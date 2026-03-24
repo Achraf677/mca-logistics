@@ -154,30 +154,6 @@
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="ecran-login">
-  <div class="login-box">
-    <div class="login-logo">
-      <div class="login-logo-icon">🚐</div>
-      <div><div class="login-logo-text">MCA Logistics</div><div class="login-logo-sub">Espace Salarié</div></div>
-    </div>
-    <div class="login-title">Connexion</div>
-    <div class="login-sub">Numéro salarié + mot de passe</div>
-    <div class="field"><label>Numéro salarié</label><input type="text" id="login-numero" placeholder="Ex : EMP001" autocomplete="username" /></div>
-    <div class="field"><label>Mot de passe</label>
-      <div style="position:relative">
-        <input type="password" id="login-mdp" placeholder="Votre mot de passe" autocomplete="current-password"
-               onkeydown="if(event.key==='Enter')seConnecter()" style="padding-right:44px;width:100%"/>
-        <button onclick="toggleLoginMdp()" type="button"
-          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1"
-          title="Afficher le mot de passe">👁️</button>
-      </div>
-    </div>
-    <button class="btn-login" onclick="seConnecter()">Se connecter →</button>
-    <div class="login-error" id="login-error">Numéro ou mot de passe incorrect.</div>
-  </div>
-</div>
-
 <!-- INTERFACE SALARIÉ -->
 <div id="ecran-salarie">
   <header class="topbar">
@@ -465,57 +441,6 @@
 /* ===== ÉTAT ===== */
 let salarieCourant = null;
 
-/* ===== CONNEXION ===== */
-function toggleLoginMdp() {
-  const input = document.getElementById('login-mdp');
-  input.type = input.type === 'password' ? 'text' : 'password';
-}
-
-function seConnecter() {
-  const numero = document.getElementById('login-numero').value.trim().toUpperCase();
-  const mdp    = document.getElementById('login-mdp').value;
-  const errEl  = document.getElementById('login-error');
-  if (!numero || !mdp) { errEl.style.display='block'; errEl.textContent='Remplissez tous les champs.'; return; }
-
-  // Vérifier blocage
-  const cle      = 'login_attempts_' + numero;
-  const attempts = JSON.parse(localStorage.getItem(cle)||'{"count":0,"time":0}');
-  const maxTent  = parseInt(localStorage.getItem('max_tentatives')||'5');
-  const delaiMin = 15;
-  if (attempts.count >= maxTent) {
-    const elapsed = (Date.now() - attempts.time) / 60000;
-    if (elapsed < delaiMin) {
-      const restant = Math.ceil(delaiMin - elapsed);
-      errEl.style.display='block';
-      errEl.textContent=`Compte temporairement bloqué. Réessayez dans ${restant} min.`;
-      return;
-    } else {
-      localStorage.removeItem(cle);
-    }
-  }
-
-  const salaries = JSON.parse(localStorage.getItem('salaries')||'[]');
-  const sal = salaries.find(s => s.numero===numero && s.mdpHash===btoa(mdp));
-  if (!sal) {
-    // Enregistrer tentative échouée
-    const att = JSON.parse(localStorage.getItem(cle)||'{"count":0,"time":0}');
-    att.count++; att.time = Date.now();
-    localStorage.setItem(cle, JSON.stringify(att));
-    const restantes = Math.max(0, maxTent - att.count);
-    errEl.style.display='block';
-    errEl.textContent = restantes > 0
-      ? `Numéro ou mot de passe incorrect. (${restantes} tentative${restantes>1?'s':''} restante${restantes>1?'s':''})`
-      : `Compte bloqué 15 minutes après trop de tentatives.`;
-    return;
-  }
-  if (!sal.actif) { errEl.style.display='block'; errEl.textContent="Compte désactivé. Contactez l'administrateur."; return; }
-
-  // Succès — réinitialiser les tentatives
-  localStorage.removeItem(cle);
-  salarieCourant = sal; errEl.style.display='none';
-  lancerInterface();
-}
-
 function seDeconnecter() {
   salarieCourant = null;
   if (window._msgPollInterval) clearInterval(window._msgPollInterval);
@@ -526,7 +451,6 @@ function seDeconnecter() {
 }
 
 function lancerInterface() {
-  document.getElementById('ecran-login').style.display   = 'none';
   document.getElementById('ecran-salarie').style.display = 'flex';
   document.getElementById('ecran-salarie').style.flexDirection = 'column';
   document.getElementById('ecran-salarie').style.height = '100vh';
@@ -1715,13 +1639,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
-  const dateDuJour = new Date().toISOString().split('T')[0];
-  const dateInsp = document.getElementById('insp-date');
-  const dateKm = document.getElementById('km-date');
-  const dateCarb = document.getElementById('sal-carb-date');
-  if (dateInsp) dateInsp.value = dateDuJour;
-  if (dateKm) dateKm.value = dateDuJour;
-  if (dateCarb) dateCarb.value = dateDuJour;
+  window.location.href = 'login.html';
 });
 </script>
 </body>
