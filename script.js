@@ -140,6 +140,31 @@ function getDateRangeInclusive(debut, fin) {
 function getLogoEntreprise() {
   return localStorage.getItem('logo_entreprise') || '';
 }
+function getDefaultAdminAccounts() {
+  return [
+    { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
+    { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: 'admin123' }
+  ];
+}
+function getAdminAccounts() {
+  const raw = localStorage.getItem('admin_accounts');
+  if (raw) {
+    try {
+      const comptes = JSON.parse(raw);
+      if (Array.isArray(comptes) && comptes.length) return comptes;
+    } catch (_) {}
+  }
+  const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
+  const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
+    ...compte,
+    motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
+  }));
+  localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+  return comptes;
+}
+function saveAdminAccounts(comptes) {
+  localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+}
 function getAdminSession() {
   return {
     identifiant: sessionStorage.getItem('admin_login') || '',
@@ -337,6 +362,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html';
     return;
   }
+  getAdminAccounts();
   document.getElementById('currentDate').textContent =
     new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   document.querySelectorAll('input[type="date"]').forEach(el => { el.value = aujourdhui(); });
@@ -4578,30 +4604,17 @@ function changerMdpAdmin() {
   const nouveau   = document.getElementById('param-mdp-nouveau').value;
   const confirmer = document.getElementById('param-mdp-confirmer').value;
   if (!actuel || !nouveau || !confirmer) { afficherToast('⚠️ Remplissez tous les champs', 'error'); return; }
+  const sessionAdmin = getAdminSession();
+  const comptes = getAdminAccounts();
+  const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
+  if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
+  if (actuel !== comptes[idx].motDePasse) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
   if (nouveau.length < 4) { afficherToast('⚠️ Nouveau mot de passe trop court (4 min)', 'error'); return; }
   if (nouveau !== confirmer) { afficherToast('⚠️ Les mots de passe ne correspondent pas', 'error'); return; }
-  const client = window.DelivProSupabase?.getClient ? window.DelivProSupabase.getClient() : null;
-  const sessionAdmin = getAdminSession();
-  if (!client || !sessionAdmin.identifiant) { afficherToast('⚠️ Session Supabase administrateur introuvable', 'error'); return; }
-  client.auth.signInWithPassword({
-    email: sessionAdmin.identifiant,
-    password: actuel
-  }).then(function(resultat) {
-    if (resultat.error) {
-      afficherToast('⚠️ Mot de passe actuel incorrect', 'error');
-      return;
-    }
-    return client.auth.updateUser({ password: nouveau }).then(function(updateResult) {
-      if (updateResult.error) {
-        afficherToast('⚠️ Impossible de mettre à jour le mot de passe admin', 'error');
-        return;
-      }
-      ['param-mdp-actuel','param-mdp-nouveau','param-mdp-confirmer'].forEach(function(id) { const el=document.getElementById(id); if(el) el.value=''; });
-      afficherToast('✅ Mot de passe administrateur Supabase mis à jour');
-    });
-  }).catch(function() {
-    afficherToast('⚠️ Impossible de mettre à jour le mot de passe admin', 'error');
-  });
+  comptes[idx].motDePasse = nouveau;
+  saveAdminAccounts(comptes);
+  ['param-mdp-actuel','param-mdp-nouveau','param-mdp-confirmer'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  afficherToast('✅ Mot de passe administrateur mis à jour pour votre compte');
 }
 
 function sauvegarderObjectifCA() {
@@ -4698,6 +4711,12 @@ function sauvegarderParametres() {
     email:    document.getElementById('param-email')?.value.trim()           || ''
   };
   sauvegarder('params_entreprise', params);
+  const comptes = getAdminAccounts();
+  const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
+  if (idx > -1) {
+    comptes[idx].nom = adminNom;
+    saveAdminAccounts(comptes);
+  }
   sessionStorage.setItem('admin_nom', adminNom);
   chargerNomEntreprise();
   appliquerBranding();

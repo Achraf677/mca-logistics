@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MCA Logistics â€” Connexion</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸš</text></svg>" />
+  <title>MCA Logistics — Connexion</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
     :root {
       --bg: #0f1117;
@@ -288,28 +288,28 @@
 <body>
   <div class="login-wrap">
     <div class="login-logo">
-      <span class="icon">ðŸš</span>
+      <span class="icon">🚐</span>
       <div class="name">MCA Logistics</div>
       <div class="sub">Choisissez votre espace de connexion</div>
     </div>
 
     <div class="login-card">
       <h2>Connexion</h2>
-      <div class="login-subtitle">AccÃ¨s unique pour l'administration et les salariÃ©s</div>
+      <div class="login-subtitle">Accès unique pour l'administration et les salariés</div>
 
       <div class="mode-switch">
         <button id="btn-mode-admin" class="mode-btn active-admin" type="button" onclick="basculerMode('admin')">
           <strong>Administrateur</strong>
-          <span>Gestion complÃ¨te de l'interface admin</span>
+          <span>Gestion complète de l'interface admin</span>
         </button>
         <button id="btn-mode-salarie" class="mode-btn" type="button" onclick="basculerMode('salarie')">
-          <strong>SalariÃ©</strong>
-          <span>AccÃ¨s personnel, planning, km, carburant, inspection</span>
+          <strong>Salarié</strong>
+          <span>Accès personnel, planning, km, carburant, inspection</span>
         </button>
       </div>
 
       <div id="panel-admin" class="panel admin-panel active">
-        <div class="panel-badge admin">ðŸ” Connexion administrateur</div>
+        <div class="panel-badge admin">🔐 Connexion administrateur</div>
 
         <div class="form-group">
           <label>Identifiant administrateur</label>
@@ -319,20 +319,20 @@
         <div class="form-group">
           <label>Mot de passe administrateur</label>
           <div style="position:relative">
-            <input type="password" id="input-mdp" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterAdmin()" style="padding-right:44px;width:100%"/>
-            <button onclick="toggleMdpVisible('input-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">ðŸ‘ï¸</button>
+            <input type="password" id="input-mdp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterAdmin()" style="padding-right:44px;width:100%"/>
+            <button onclick="toggleMdpVisible('input-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">👁️</button>
           </div>
         </div>
 
-        <button class="btn-login admin" onclick="seConnecterAdmin()">Se connecter en admin â†’</button>
-        <div class="error-msg" id="error-admin">âŒ Identifiants incorrects</div>
+        <button class="btn-login admin" onclick="seConnecterAdmin()">Se connecter en admin →</button>
+        <div class="error-msg" id="error-admin">❌ Identifiants incorrects</div>
       </div>
 
       <div id="panel-salarie" class="panel salarie-panel">
-        <div class="panel-badge salarie">ðŸ‘· Connexion salariÃ©</div>
+        <div class="panel-badge salarie">👷 Connexion salarié</div>
 
         <div class="form-group">
-          <label>NumÃ©ro salariÃ©</label>
+          <label>Numéro salarié</label>
           <input type="text" id="login-numero" placeholder="Ex : EMP001" autocomplete="username" onkeydown="if(event.key==='Enter') seConnecterSalarie()" />
         </div>
 
@@ -340,16 +340,16 @@
           <label>Mot de passe</label>
           <div style="position:relative">
             <input type="password" id="login-mdp" placeholder="Votre mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterSalarie()" style="padding-right:44px;width:100%"/>
-            <button onclick="toggleMdpVisible('login-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">ðŸ‘ï¸</button>
+            <button onclick="toggleMdpVisible('login-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">👁️</button>
           </div>
         </div>
 
-        <button class="btn-login salarie" onclick="seConnecterSalarie()">Se connecter en salariÃ© â†’</button>
-        <div class="error-msg" id="error-salarie">âŒ NumÃ©ro ou mot de passe incorrect</div>
+        <button class="btn-login salarie" onclick="seConnecterSalarie()">Se connecter en salarié →</button>
+        <div class="error-msg" id="error-salarie">❌ Numéro ou mot de passe incorrect</div>
       </div>
     </div>
 
-    <div class="login-footer">MCA Logistics v2 â€” Gestion interne</div>
+    <div class="login-footer">MCA Logistics v2 — Gestion interne</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -357,6 +357,33 @@
   <script src="supabase-client.js"></script>
   <script src="supabase-auth.js"></script>
   <script>
+    function getDefaultAdminAccounts() {
+      return [
+        { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
+        { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: 'admin123' }
+      ];
+    }
+
+    function getAdminAccounts() {
+      const raw = localStorage.getItem('admin_accounts');
+      if (raw) {
+        try {
+          const comptes = JSON.parse(raw);
+          if (Array.isArray(comptes) && comptes.length) return comptes;
+        } catch (_) {}
+      }
+
+      const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
+      const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
+        identifiant: compte.identifiant,
+        nom: compte.nom,
+        motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
+      }));
+
+      localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+      return comptes;
+    }
+
     function basculerMode(mode) {
       const estAdmin = mode === 'admin';
       document.getElementById('panel-admin').classList.toggle('active', estAdmin);
@@ -393,7 +420,7 @@
       errEl.classList.remove('show');
 
       if (!identifiant || !mdp) {
-        errEl.textContent = 'âŒ Veuillez saisir votre identifiant et votre mot de passe';
+        errEl.textContent = '❌ Veuillez saisir votre identifiant et votre mot de passe';
         errEl.classList.add('show');
         return;
       }
@@ -410,8 +437,22 @@
           return;
         }
       }
-      errEl.textContent = 'Identifiant ou mot de passe administrateur Supabase incorrect';
-      errEl.classList.add('show');
+
+      const compte = getAdminAccounts().find(function (a) {
+        return a.identifiant.toLowerCase() === identifiant;
+      });
+
+      if (compte && mdp === compte.motDePasse) {
+        sessionStorage.setItem('role', 'admin');
+        sessionStorage.setItem('admin_login', compte.identifiant);
+        sessionStorage.setItem('admin_nom', compte.nom);
+        sessionStorage.removeItem('salarie_id');
+        sessionStorage.removeItem('salarie_numero');
+        window.location.href = 'admin.html';
+      } else {
+        errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
+        errEl.classList.add('show');
+      }
     }
 
     async function seConnecterSalarie() {
@@ -421,7 +462,7 @@
       errEl.classList.remove('show');
 
       if (!numero || !mdp) {
-        errEl.textContent = 'âŒ Veuillez saisir votre numÃ©ro salariÃ© et votre mot de passe';
+        errEl.textContent = '❌ Veuillez saisir votre numéro salarié et votre mot de passe';
         errEl.classList.add('show');
         return;
       }
@@ -435,7 +476,7 @@
         const elapsed = (Date.now() - attempts.time) / 60000;
         if (elapsed < delaiMin) {
           const restant = Math.ceil(delaiMin - elapsed);
-          errEl.textContent = 'âŒ Compte temporairement bloquÃ©. RÃ©essayez dans ' + restant + ' min.';
+          errEl.textContent = '❌ Compte temporairement bloqué. Réessayez dans ' + restant + ' min.';
           errEl.classList.add('show');
           return;
         }
@@ -468,14 +509,14 @@
         localStorage.setItem(cle, JSON.stringify(att));
         const restantes = Math.max(0, maxTent - att.count);
         errEl.textContent = restantes > 0
-          ? 'âŒ NumÃ©ro ou mot de passe incorrect. (' + restantes + ' tentative' + (restantes > 1 ? 's' : '') + ' restante' + (restantes > 1 ? 's' : '') + ')'
-          : 'âŒ Compte bloquÃ© 15 minutes aprÃ¨s trop de tentatives.';
+          ? '❌ Numéro ou mot de passe incorrect. (' + restantes + ' tentative' + (restantes > 1 ? 's' : '') + ' restante' + (restantes > 1 ? 's' : '') + ')'
+          : '❌ Compte bloqué 15 minutes après trop de tentatives.';
         errEl.classList.add('show');
         return;
       }
 
       if (!sal.actif) {
-        errEl.textContent = 'âŒ Compte dÃ©sactivÃ©. Contactez lâ€™administrateur.';
+        errEl.textContent = '❌ Compte désactivé. Contactez l’administrateur.';
         errEl.classList.add('show');
         return;
       }
@@ -500,10 +541,9 @@
           return;
         }
       }
+      getAdminAccounts();
       basculerMode('admin');
     });
   </script>
 </body>
 </html>
-
-
