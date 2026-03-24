@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8"/>
@@ -10,12 +10,13 @@
       --bg: #0f1117;
       --card: #1a1d27;
       --accent: #f5a623;
+      --accent-dark: #d4911d;
+      --blue: #3498db;
+      --blue-dark: #2575a7;
       --border: #2a2d3d;
       --text: #e8eaf0;
       --muted: #7c8299;
-      --green: #2ecc71;
       --red: #e74c3c;
-      --blue: #3498db;
       --font: 'Segoe UI', system-ui, sans-serif;
     }
 
@@ -32,27 +33,27 @@
       padding: 16px;
     }
 
-    /* Fond avec effet subtil */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse at 30% 50%, rgba(245,166,35,0.04) 0%, transparent 60%),
-                  radial-gradient(ellipse at 70% 20%, rgba(52,152,219,0.04) 0%, transparent 50%);
+      background:
+        radial-gradient(ellipse at 30% 50%, rgba(245,166,35,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse at 72% 20%, rgba(52,152,219,0.05) 0%, transparent 52%);
       pointer-events: none;
     }
 
     .login-wrap {
       width: 100%;
-      max-width: 420px;
+      max-width: 460px;
       position: relative;
       z-index: 1;
+      animation: slideUp 0.4s ease;
     }
 
-    /* Logo */
     .login-logo {
       text-align: center;
-      margin-bottom: 32px;
+      margin-bottom: 28px;
     }
 
     .login-logo .icon {
@@ -62,7 +63,7 @@
     }
 
     .login-logo .name {
-      font-size: 1.8rem;
+      font-size: 1.85rem;
       font-weight: 800;
       color: var(--accent);
       letter-spacing: 2px;
@@ -74,25 +75,105 @@
       margin-top: 4px;
     }
 
-    /* Card de connexion */
     .login-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 32px;
+      border-radius: 18px;
+      padding: 30px;
       box-shadow: 0 8px 40px rgba(0,0,0,0.5);
     }
 
     .login-card h2 {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 24px;
+      font-size: 1.12rem;
+      font-weight: 700;
+      margin-bottom: 12px;
       color: var(--text);
+      text-align: center;
     }
 
-    /* Sélecteur de rôle */
+    .login-subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 22px;
+    }
 
-    /* Champs */
+    .mode-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .mode-btn {
+      border: 1px solid var(--border);
+      background: #11141d;
+      color: var(--text);
+      border-radius: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      font-family: var(--font);
+    }
+
+    .mode-btn strong {
+      display: block;
+      font-size: 0.93rem;
+      margin-bottom: 4px;
+    }
+
+    .mode-btn span {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    .mode-btn.active-admin {
+      border-color: rgba(245,166,35,0.5);
+      background: rgba(245,166,35,0.08);
+      box-shadow: 0 0 0 1px rgba(245,166,35,0.15) inset;
+    }
+
+    .mode-btn.active-salarie {
+      border-color: rgba(52,152,219,0.45);
+      background: rgba(52,152,219,0.08);
+      box-shadow: 0 0 0 1px rgba(52,152,219,0.14) inset;
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .panel-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      font-size: 0.78rem;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .panel-badge.admin {
+      background: rgba(245,166,35,0.08);
+      color: var(--accent);
+      border-color: rgba(245,166,35,0.18);
+    }
+
+    .panel-badge.salarie {
+      background: rgba(52,152,219,0.08);
+      color: var(--blue);
+      border-color: rgba(52,152,219,0.18);
+    }
+
     .form-group {
       display: flex;
       flex-direction: column;
@@ -125,13 +206,15 @@
       border-color: var(--accent);
     }
 
+    .panel.salarie-panel .form-group input:focus {
+      border-color: var(--blue);
+    }
+
     .form-group input::placeholder { color: var(--muted); }
 
-    /* Bouton connexion */
     .btn-login {
       width: 100%;
       padding: 13px;
-      background: var(--accent);
       color: #000;
       border: none;
       border-radius: 10px;
@@ -144,15 +227,27 @@
       letter-spacing: 0.5px;
     }
 
-    .btn-login:hover {
-      background: #d4911d;
+    .btn-login.admin {
+      background: var(--accent);
+    }
+
+    .btn-login.admin:hover {
+      background: var(--accent-dark);
       transform: translateY(-1px);
       box-shadow: 0 4px 16px rgba(245,166,35,0.3);
     }
 
-    .btn-login:active { transform: translateY(0); }
+    .btn-login.salarie {
+      background: var(--blue);
+      color: #fff;
+    }
 
-    /* Message d'erreur */
+    .btn-login.salarie:hover {
+      background: var(--blue-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(52,152,219,0.28);
+    }
+
     .error-msg {
       display: none;
       background: rgba(231,76,60,0.1);
@@ -167,7 +262,6 @@
 
     .error-msg.show { display: block; }
 
-    /* Footer */
     .login-footer {
       text-align: center;
       margin-top: 20px;
@@ -175,81 +269,84 @@
       color: var(--muted);
     }
 
-    /* Séparateur de rôle */
-    .role-divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      font-size: 0.75rem;
-      color: var(--muted);
-    }
-    .role-divider::before, .role-divider::after {
-      content: '';
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    /* Animation d'entrée */
-    .login-wrap { animation: slideUp 0.4s ease; }
     @keyframes slideUp {
       from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Indicateur de rôle sélectionné */
-    .role-indicator {
-      font-size: 0.78rem;
-      text-align: center;
-      margin-bottom: 16px;
-      color: var(--muted);
-      min-height: 20px;
-    }
+    @media (max-width: 520px) {
+      .login-card {
+        padding: 24px 18px;
+      }
 
-    .role-indicator.admin  { color: var(--accent); }
-    .role-indicator.salarie { color: var(--blue); }
+      .mode-switch {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-
   <div class="login-wrap">
-
-    <!-- Logo -->
     <div class="login-logo">
       <span class="icon">🚐</span>
       <div class="name">MCA Logistics</div>
-      <div class="sub">Gestion de livraison</div>
+      <div class="sub">Choisissez votre espace de connexion</div>
     </div>
 
-    <!-- Card -->
     <div class="login-card">
       <h2>Connexion</h2>
+      <div class="login-subtitle">Accès unique pour l'administration et les salariés</div>
 
-      <div class="role-divider">🔐 Accès Administrateur</div>
-
-      <div class="form-group">
-        <label>Identifiant administrateur</label>
-        <input type="text" id="input-identifiant" autocomplete="username"
-               onkeydown="if(event.key==='Enter') seConnecter()" />
+      <div class="mode-switch">
+        <button id="btn-mode-admin" class="mode-btn active-admin" type="button" onclick="basculerMode('admin')">
+          <strong>Administrateur</strong>
+          <span>Gestion complète de l'interface admin</span>
+        </button>
+        <button id="btn-mode-salarie" class="mode-btn" type="button" onclick="basculerMode('salarie')">
+          <strong>Salarié</strong>
+          <span>Accès personnel, planning, km, carburant, inspection</span>
+        </button>
       </div>
 
-      <!-- Mot de passe -->
-      <div class="form-group">
-        <label>Mot de passe administrateur</label>
-        <div style="position:relative">
-          <input type="password" id="input-mdp" placeholder="••••••••" autocomplete="current-password"
-                 onkeydown="if(event.key==='Enter') seConnecter()"
-                 style="padding-right:44px;width:100%"/>
-          <button onclick="toggleMdpVisible()" type="button"
-            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1"
-            id="btn-oeil" title="Afficher le mot de passe">👁️</button>
+      <div id="panel-admin" class="panel admin-panel active">
+        <div class="panel-badge admin">🔐 Connexion administrateur</div>
+
+        <div class="form-group">
+          <label>Identifiant administrateur</label>
+          <input type="text" id="input-identifiant" autocomplete="username" onkeydown="if(event.key==='Enter') seConnecterAdmin()" />
         </div>
+
+        <div class="form-group">
+          <label>Mot de passe administrateur</label>
+          <div style="position:relative">
+            <input type="password" id="input-mdp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterAdmin()" style="padding-right:44px;width:100%"/>
+            <button onclick="toggleMdpVisible('input-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">👁️</button>
+          </div>
+        </div>
+
+        <button class="btn-login admin" onclick="seConnecterAdmin()">Se connecter en admin →</button>
+        <div class="error-msg" id="error-admin">❌ Identifiants incorrects</div>
       </div>
 
-      <button class="btn-login" onclick="seConnecter()">Se connecter →</button>
+      <div id="panel-salarie" class="panel salarie-panel">
+        <div class="panel-badge salarie">👷 Connexion salarié</div>
 
-      <div class="error-msg" id="error-msg">❌ Identifiants incorrects</div>
+        <div class="form-group">
+          <label>Numéro salarié</label>
+          <input type="text" id="login-numero" placeholder="Ex : EMP001" autocomplete="username" onkeydown="if(event.key==='Enter') seConnecterSalarie()" />
+        </div>
+
+        <div class="form-group">
+          <label>Mot de passe</label>
+          <div style="position:relative">
+            <input type="password" id="login-mdp" placeholder="Votre mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterSalarie()" style="padding-right:44px;width:100%"/>
+            <button onclick="toggleMdpVisible('login-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">👁️</button>
+          </div>
+        </div>
+
+        <button class="btn-login salarie" onclick="seConnecterSalarie()">Se connecter en salarié →</button>
+        <div class="error-msg" id="error-salarie">❌ Numéro ou mot de passe incorrect</div>
+      </div>
     </div>
 
     <div class="login-footer">MCA Logistics v2 — Gestion interne</div>
@@ -259,17 +356,6 @@
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
   <script>
-    /* =====================================================
-       LOGIN — Logique de connexion
-       
-       Comptes admin par défaut :
-       achraf.chikri / admin123
-       mohammed.chikri / admin123
-
-       Chaque salarié a : numéro + mot de passe
-       créés depuis l'interface admin.
-       ===================================================== */
-
     function getDefaultAdminAccounts() {
       return [
         { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
@@ -285,26 +371,51 @@
           if (Array.isArray(comptes) && comptes.length) return comptes;
         } catch (_) {}
       }
+
       const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
       const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
-        ...compte,
+        identifiant: compte.identifiant,
+        nom: compte.nom,
         motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
       }));
+
       localStorage.setItem('admin_accounts', JSON.stringify(comptes));
       return comptes;
     }
 
-    function toggleMdpVisible() {
-      const input = document.getElementById('input-mdp');
-      const btn   = document.getElementById('btn-oeil');
-      if (input.type === 'password') { input.type = 'text';  btn.style.opacity = '1'; }
-      else                           { input.type = 'password'; btn.style.opacity = '0.5'; }
+    function basculerMode(mode) {
+      const estAdmin = mode === 'admin';
+      document.getElementById('panel-admin').classList.toggle('active', estAdmin);
+      document.getElementById('panel-salarie').classList.toggle('active', !estAdmin);
+      document.getElementById('btn-mode-admin').className = 'mode-btn' + (estAdmin ? ' active-admin' : '');
+      document.getElementById('btn-mode-salarie').className = 'mode-btn' + (!estAdmin ? ' active-salarie' : '');
+
+      document.getElementById('error-admin').classList.remove('show');
+      document.getElementById('error-salarie').classList.remove('show');
+
+      if (estAdmin) {
+        document.getElementById('input-identifiant').focus();
+      } else {
+        document.getElementById('login-numero').focus();
+      }
     }
 
-    function seConnecter() {
+    function toggleMdpVisible(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.style.opacity = '1';
+      } else {
+        input.type = 'password';
+        btn.style.opacity = '0.6';
+      }
+    }
+
+    function seConnecterAdmin() {
       const identifiant = document.getElementById('input-identifiant').value.trim().toLowerCase();
-      const mdp   = document.getElementById('input-mdp').value.trim();
-      const errEl = document.getElementById('error-msg');
+      const mdp = document.getElementById('input-mdp').value.trim();
+      const errEl = document.getElementById('error-admin');
       errEl.classList.remove('show');
 
       if (!identifiant || !mdp) {
@@ -313,11 +424,16 @@
         return;
       }
 
-      const compte = getAdminAccounts().find(a => a.identifiant.toLowerCase() === identifiant);
+      const compte = getAdminAccounts().find(function (a) {
+        return a.identifiant.toLowerCase() === identifiant;
+      });
+
       if (compte && mdp === compte.motDePasse) {
         sessionStorage.setItem('role', 'admin');
         sessionStorage.setItem('admin_login', compte.identifiant);
         sessionStorage.setItem('admin_nom', compte.nom);
+        sessionStorage.removeItem('salarie_id');
+        sessionStorage.removeItem('salarie_numero');
         window.location.href = 'admin.html';
       } else {
         errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
@@ -325,11 +441,71 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function seConnecterSalarie() {
+      const numero = document.getElementById('login-numero').value.trim().toUpperCase();
+      const mdp = document.getElementById('login-mdp').value;
+      const errEl = document.getElementById('error-salarie');
+      errEl.classList.remove('show');
+
+      if (!numero || !mdp) {
+        errEl.textContent = '❌ Veuillez saisir votre numéro salarié et votre mot de passe';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const cle = 'login_attempts_' + numero;
+      const attempts = JSON.parse(localStorage.getItem(cle) || '{"count":0,"time":0}');
+      const maxTent = parseInt(localStorage.getItem('max_tentatives') || '5', 10);
+      const delaiMin = 15;
+
+      if (attempts.count >= maxTent) {
+        const elapsed = (Date.now() - attempts.time) / 60000;
+        if (elapsed < delaiMin) {
+          const restant = Math.ceil(delaiMin - elapsed);
+          errEl.textContent = '❌ Compte temporairement bloqué. Réessayez dans ' + restant + ' min.';
+          errEl.classList.add('show');
+          return;
+        }
+        localStorage.removeItem(cle);
+      }
+
+      const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+      const sal = salaries.find(function (s) {
+        return s.numero === numero && s.mdpHash === btoa(mdp);
+      });
+
+      if (!sal) {
+        const att = JSON.parse(localStorage.getItem(cle) || '{"count":0,"time":0}');
+        att.count += 1;
+        att.time = Date.now();
+        localStorage.setItem(cle, JSON.stringify(att));
+        const restantes = Math.max(0, maxTent - att.count);
+        errEl.textContent = restantes > 0
+          ? '❌ Numéro ou mot de passe incorrect. (' + restantes + ' tentative' + (restantes > 1 ? 's' : '') + ' restante' + (restantes > 1 ? 's' : '') + ')'
+          : '❌ Compte bloqué 15 minutes après trop de tentatives.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      if (!sal.actif) {
+        errEl.textContent = '❌ Compte désactivé. Contactez l’administrateur.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      localStorage.removeItem(cle);
+      sessionStorage.setItem('role', 'salarie');
+      sessionStorage.setItem('salarie_id', sal.id);
+      sessionStorage.setItem('salarie_numero', sal.numero);
+      sessionStorage.removeItem('admin_login');
+      sessionStorage.removeItem('admin_nom');
+      window.location.href = 'salarie.html';
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
       getAdminAccounts();
-      document.getElementById('input-identifiant').focus();
+      basculerMode('admin');
     });
   </script>
 </body>
 </html>
-

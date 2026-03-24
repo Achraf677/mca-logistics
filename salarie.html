@@ -519,9 +519,10 @@ function seConnecter() {
 function seDeconnecter() {
   salarieCourant = null;
   if (window._msgPollInterval) clearInterval(window._msgPollInterval);
-  document.getElementById('ecran-salarie').style.display = 'none';
-  document.getElementById('ecran-login').style.display   = 'flex';
-  document.getElementById('login-mdp').value = '';
+  sessionStorage.removeItem('role');
+  sessionStorage.removeItem('salarie_id');
+  sessionStorage.removeItem('salarie_numero');
+  window.location.href = 'login.html';
 }
 
 function lancerInterface() {
@@ -1695,6 +1696,33 @@ function toast(msg, type='success') {
   el.textContent=msg; el.className='toast show'+(type==='error'?' error':'');
   setTimeout(()=>{el.className='toast';},3200);
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+  const role = sessionStorage.getItem('role');
+  const salarieId = sessionStorage.getItem('salarie_id');
+  const salarieNumero = sessionStorage.getItem('salarie_numero');
+  const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+
+  if (role === 'salarie' && (salarieId || salarieNumero)) {
+    const sal = salaries.find(function (item) {
+      return item.id === salarieId || item.numero === salarieNumero;
+    });
+
+    if (sal && sal.actif) {
+      salarieCourant = sal;
+      lancerInterface();
+      return;
+    }
+  }
+
+  const dateDuJour = new Date().toISOString().split('T')[0];
+  const dateInsp = document.getElementById('insp-date');
+  const dateKm = document.getElementById('km-date');
+  const dateCarb = document.getElementById('sal-carb-date');
+  if (dateInsp) dateInsp.value = dateDuJour;
+  if (dateKm) dateKm.value = dateDuJour;
+  if (dateCarb) dateCarb.value = dateDuJour;
+});
 </script>
 </body>
 </html>
