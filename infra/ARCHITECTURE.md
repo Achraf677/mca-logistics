@@ -2,7 +2,8 @@
 
 ## Front
 
-- `index.html`: interface admin
+- `index.html`: entree publique avec redirection vers `login.html`
+- `admin.html`: interface admin
 - `login.html`: connexion
 - `salarie.html`: espace salarie
 - `script.js`: logique front
@@ -43,4 +44,3 @@ Si on veut fiabiliser rapidement:
 3. Vehicules
 4. Inspections
 5. Photos R2
-

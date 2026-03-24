@@ -52,8 +52,9 @@ git push -u origin main
 
 Resultat:
 
-- `index.html` sera l'interface admin
-- `login.html` restera accessible
+- `index.html` sert d'entree publique et redirige vers `login.html`
+- `admin.html` est l'interface admin
+- `login.html` reste accessible directement
 - `salarie.html` restera accessible
 
 ## Etape 3 - Creer Supabase
@@ -112,4 +113,3 @@ La prochaine etape utile est:
 1. brancher Supabase Auth
 2. remplacer `charger()` / `sauvegarder()` par un adaptateur progressif
 3. migrer le module `inspections` en premier pour les photos
-

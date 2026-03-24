@@ -255,6 +255,9 @@
     <div class="login-footer">MCA Logistics v2 — Gestion interne</div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="supabase-client.js"></script>
   <script>
     /* =====================================================
        LOGIN — Logique de connexion
@@ -315,7 +318,7 @@
         sessionStorage.setItem('role', 'admin');
         sessionStorage.setItem('admin_login', compte.identifiant);
         sessionStorage.setItem('admin_nom', compte.nom);
-        window.location.href = 'index.html';
+        window.location.href = 'admin.html';
       } else {
         errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
         errEl.classList.add('show');
