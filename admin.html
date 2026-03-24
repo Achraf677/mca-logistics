@@ -1529,7 +1529,13 @@
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:10px;">Salarié : <strong id="provision-access-nom"></strong></p>
         <p style="color:var(--text-muted);margin-bottom:16px;">Email technique : <code id="provision-access-email" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
-        <div class="form-group"><label>Mot de passe initial *</label><input type="password" id="provision-access-password" /></div>
+        <div class="form-group">
+          <label>Mot de passe initial *</label>
+          <div style="position:relative">
+            <input type="password" id="provision-access-password" style="padding-right:44px;width:100%" />
+            <button onclick="toggleParamMdp('provision-access-password')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+          </div>
+        </div>
         <p style="color:var(--text-muted);font-size:.8rem;margin-top:12px">Cette action créera ou mettra à jour le compte d'authentification Supabase du salarié.</p>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-provision-access')">Annuler</button><button class="btn-primary" onclick="confirmerProvisionAccesSalarie()">Créer l'accès</button></div>

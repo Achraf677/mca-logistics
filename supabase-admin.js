@@ -14,7 +14,20 @@
     });
 
     if (result.error) {
-      return { ok: false, reason: 'invoke_error', error: result.error };
+      var detailedMessage =
+        result.data?.error ||
+        result.error?.context?.error ||
+        result.error?.message ||
+        'invoke_error';
+      return {
+        ok: false,
+        reason: 'invoke_error',
+        error: {
+          message: detailedMessage,
+          raw: result.error
+        },
+        data: result.data || null
+      };
     }
 
     return { ok: true, data: result.data || null };
