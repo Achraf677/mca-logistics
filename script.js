@@ -1999,7 +1999,7 @@ function calculerPrevision() {
 }
 
 /* ===== GESTION SALARIÉS ===== */
-let resetMdpTargetId=null, editSalarieId=null;
+let resetMdpTargetId=null, provisionAccessTargetId=null, editSalarieId=null;
 
 function toggleFormulaireNewSalarie() {
   const el=document.getElementById('form-nouveau-salarie');
@@ -2111,6 +2111,53 @@ function notifierSynchroSalarie(resultat, actionLabel) {
   afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
 }
 
+function ouvrirProvisionAccesSalarie(id, nom) {
+  provisionAccessTargetId = id;
+  const salarie = charger('salaries').find(function(item) { return item.id === id; });
+  document.getElementById('provision-access-nom').textContent = nom || salarie?.nom || 'Salarié';
+  document.getElementById('provision-access-email').textContent = salarie?.email || '—';
+  document.getElementById('provision-access-password').value = '';
+  document.getElementById('modal-provision-access').classList.add('open');
+}
+
+async function confirmerProvisionAccesSalarie() {
+  const salarie = charger('salaries').find(function(item) { return item.id === provisionAccessTargetId; });
+  const password = (document.getElementById('provision-access-password')?.value || '').trim();
+  if (!salarie) { afficherToast('⚠️ Salarié introuvable', 'error'); return; }
+  if (!password) { afficherToast('⚠️ Mot de passe initial obligatoire', 'error'); return; }
+  if (!window.DelivProAdminSupabase || !window.DelivProAdminSupabase.provisionSalarieAccess) {
+    afficherToast('⚠️ Fonction admin Supabase indisponible', 'error');
+    return;
+  }
+
+  const result = await window.DelivProAdminSupabase.provisionSalarieAccess({
+    salarieId: salarie.supabaseId || null,
+    numero: salarie.numero,
+    password: password
+  });
+
+  if (!result.ok) {
+    const message = result.error?.message || result.reason || 'Provisionnement impossible';
+    afficherToast(`⚠️ ${message}`, 'error');
+    return;
+  }
+
+  if (result.data?.profileId) {
+    const salaries = charger('salaries');
+    const idx = salaries.findIndex(function(item) { return item.id === salarie.id; });
+    if (idx > -1) {
+      salaries[idx].profileId = result.data.profileId;
+      salaries[idx].email = result.data.email || salaries[idx].email;
+      sauvegarder('salaries', salaries);
+    }
+  }
+
+  closeModal('modal-provision-access');
+  provisionAccessTargetId = null;
+  afficherSalaries();
+  afficherToast('✅ Accès Supabase salarié créé / mis à jour');
+}
+
 async function creerSalarie() {
   const nom    = document.getElementById('nsal-nom').value.trim();
   const prenom = document.getElementById('nsal-prenom')?.value.trim() || '';
@@ -2184,6 +2231,7 @@ function afficherSalaries() {
       <td>${s.tel||'—'}</td><td>${vehLabel}</td><td>${badge}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn-icon" onclick="ouvrirEditSalarie('${s.id}')" title="Modifier">✏️</button>
+        <button class="btn-icon" onclick="ouvrirProvisionAccesSalarie('${s.id}','${s.nom}')" title="Créer accès Supabase">☁️</button>
         <button class="btn-icon" onclick="ouvrirResetMdp('${s.id}','${s.nom}')" title="MDP">🔑</button>
         <button class="btn-icon" onclick="genererFicheTournee('${s.id}')" title="Fiche tournée">📋</button>
         <button class="btn-icon" onclick="ouvrirNoteInterne('${s.id}','${s.nom}')" title="Note interne" style="${chargerNoteInterne(s.id)?'border-color:var(--accent);color:var(--accent)':''}">📝${chargerNoteInterne(s.id)?'<span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;margin-left:2px;vertical-align:middle"></span>':''}</button>
