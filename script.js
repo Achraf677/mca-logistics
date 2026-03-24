@@ -242,6 +242,7 @@ function getAdminSession() {
 const ADMIN_EDIT_LOCKS_KEY = 'admin_edit_locks';
 const ADMIN_EDIT_LOCK_TTL_MS = 20 * 60 * 1000;
 const adminHeldEditLocks = new Set();
+let derniereAlerteConflitEdition = '';
 
 function getAdminActorKey() {
   const session = getAdminSession();
@@ -273,6 +274,78 @@ function getAdminEditLockKey(type, id) {
   return `${type}:${id}`;
 }
 
+function synchroniserVerrousEdition() {
+  if (window.DelivProRemoteStorage && typeof window.DelivProRemoteStorage.flush === 'function') {
+    window.DelivProRemoteStorage.flush().catch(function () {});
+  }
+}
+
+async function actualiserVerrousEditionDistance() {
+  if (window.DelivProRemoteStorage && typeof window.DelivProRemoteStorage.pullLatest === 'function') {
+    try {
+      await window.DelivProRemoteStorage.pullLatest();
+    } catch (_) {}
+  }
+}
+
+function getModalIdForLockType(type) {
+  return {
+    salarie: 'modal-edit-salarie',
+    livraison: 'modal-edit-livraison',
+    client: 'modal-edit-client',
+    vehicule: 'modal-vehicule'
+  }[type] || '';
+}
+
+function afficherAlerteVerrouModal(modalId, message) {
+  const modal = document.getElementById(modalId);
+  if (!modal) return;
+  const body = modal.querySelector('.modal-body');
+  if (!body) return;
+  let banner = modal.querySelector('.edit-lock-alert');
+  if (!message) {
+    if (banner) banner.remove();
+    return;
+  }
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.className = 'edit-lock-alert';
+    banner.style.cssText = 'margin-bottom:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(231,76,60,.35);background:rgba(231,76,60,.1);color:#ffb3aa;font-size:.84rem;line-height:1.4';
+    body.insertBefore(banner, body.firstChild);
+  }
+  banner.textContent = message;
+}
+
+function surveillerConflitsEditionActifs() {
+  const modals = [
+    { id: 'modal-edit-salarie', type: 'salarie', entityId: editSalarieId || window._editSalarieId },
+    { id: 'modal-edit-livraison', type: 'livraison', entityId: window._editLivId },
+    { id: 'modal-edit-client', type: 'client', entityId: _editClientId },
+    { id: 'modal-vehicule', type: 'vehicule', entityId: window._editVehId }
+  ];
+
+  modals.forEach(function(entry) {
+    const modal = document.getElementById(entry.id);
+    if (!modal?.classList.contains('open') || !entry.entityId) {
+      afficherAlerteVerrouModal(entry.id, '');
+      return;
+    }
+    const lockState = verifierVerrouEdition(entry.type, entry.entityId);
+    if (!lockState.ok) {
+      const lock = lockState.lock || {};
+      const signature = `${entry.type}:${entry.entityId}:${lock.actorKey || ''}:${lock.createdAt || ''}`;
+      const message = `Modification en cours par ${lock.actorLabel || 'un autre admin'}. Évite d'enregistrer cette fiche tant que le verrou n'est pas libéré.`;
+      afficherAlerteVerrouModal(entry.id, message);
+      if (signature !== derniereAlerteConflitEdition) {
+        derniereAlerteConflitEdition = signature;
+        afficherToast(`⚠️ ${lock.actorLabel || 'Un autre admin'} modifie déjà cette fiche`, 'error');
+      }
+      return;
+    }
+    afficherAlerteVerrouModal(entry.id, '');
+  });
+}
+
 function prendreVerrouEdition(type, id, label) {
   if (!type || !id || sessionStorage.getItem('role') !== 'admin') return { ok: true };
   const locks = getAdminEditLocks();
@@ -292,6 +365,7 @@ function prendreVerrouEdition(type, id, label) {
   };
   sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
   adminHeldEditLocks.add(lockKey);
+  synchroniserVerrousEdition();
   return { ok: true, lock: locks[lockKey] };
 }
 
@@ -312,6 +386,7 @@ function libererVerrouEdition(type, id) {
   if (lock && lock.actorKey === getAdminActorKey()) {
     delete locks[lockKey];
     sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
+    synchroniserVerrousEdition();
   }
   adminHeldEditLocks.delete(lockKey);
 }
@@ -326,6 +401,7 @@ function libererTousVerrousEdition() {
   });
   adminHeldEditLocks.clear();
   sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
+  synchroniserVerrousEdition();
 }
 
 function getEditLockContextForModal(modalId) {
@@ -346,6 +422,16 @@ function getEditLockContextForModal(modalId) {
 
 window.addEventListener('pagehide', libererTousVerrousEdition);
 window.addEventListener('beforeunload', libererTousVerrousEdition);
+window.addEventListener('storage', function(event) {
+  if (event.key === ADMIN_EDIT_LOCKS_KEY) {
+    surveillerConflitsEditionActifs();
+  }
+});
+window.addEventListener('delivpro:storage-sync', function(event) {
+  if (event.detail?.key === ADMIN_EDIT_LOCKS_KEY) {
+    surveillerConflitsEditionActifs();
+  }
+});
 function fermerMenuAdmin() {
   document.getElementById('topbar-user-menu')?.classList.remove('open');
 }
@@ -2624,10 +2710,11 @@ function afficherSalaries() {
   }).join('');
 }
 
-function ouvrirEditSalarie(id) {
+async function ouvrirEditSalarie(id) {
   window._editSalarieId = id;
   editSalarieId = id;
   const sal=charger('salaries').find(s=>s.id===id); if(!sal) return;
+  await actualiserVerrousEditionDistance();
   const lockResult = prendreVerrouEdition('salarie', id, sal.nom || 'Salarié');
   if (!lockResult.ok) {
     afficherToast(`⚠️ Fiche salarié en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
@@ -2656,9 +2743,11 @@ function ouvrirEditSalarie(id) {
     });
   }
   document.getElementById('modal-edit-salarie').classList.add('open');
+  afficherAlerteVerrouModal('modal-edit-salarie', '');
 }
 
 async function confirmerEditSalarie() {
+  surveillerConflitsEditionActifs();
   const lockState = verifierVerrouEdition('salarie', editSalarieId || window._editSalarieId);
   if (!lockState.ok) {
     afficherToast(`⚠️ Cette fiche salarié est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
@@ -2899,6 +2988,7 @@ async function supprimerInspectionAdmin(id) {
 /* ===== ÉDITION LIVRAISON ADMIN ===== */
 let _editLivId = null;
 function confirmerEditLivraison() {
+  surveillerConflitsEditionActifs();
   const id     = document.getElementById('edit-liv-id').value;
   const lockState = verifierVerrouEdition('livraison', id);
   if (!lockState.ok) {
@@ -4081,11 +4171,12 @@ function ouvrirTCO(vehId) {
 }
 
 /* ===== CONNEXION HISTOR. MODIFS DANS MODAL EDIT LIVRAISON ===== */
-function ouvrirEditLivraison(id) {
+async function ouvrirEditLivraison(id) {
   window._editLivId = id;
   const livraisons = charger('livraisons');
   const l = livraisons.find(x => x.id === id);
   if (!l) return;
+  await actualiserVerrousEditionDistance();
   const lockResult = prendreVerrouEdition('livraison', id, l.numLiv || 'Livraison');
   if (!lockResult.ok) {
     afficherToast(`⚠️ Livraison en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
@@ -4112,6 +4203,7 @@ function ouvrirEditLivraison(id) {
   afficherHistoriqueModifs(id);
   afficherCommentairesLiv(id);
   document.getElementById('modal-edit-livraison').classList.add('open');
+  afficherAlerteVerrouModal('modal-edit-livraison', '');
 }
 
 /* ===== VUE COMPACTE TABLEAUX ===== */
@@ -6025,9 +6117,10 @@ function autoRemplirVehicule() {
 
 /* ===== MODIFIER CLIENT ===== */
 let _editClientId = null;
-function ouvrirEditClient(id) {
+async function ouvrirEditClient(id) {
   const c = charger('clients').find(x=>x.id===id);
   if (!c) return;
+  await actualiserVerrousEditionDistance();
   const lockResult = prendreVerrouEdition('client', id, c.nom || 'Client');
   if (!lockResult.ok) {
     afficherToast(`⚠️ Client en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
@@ -6041,9 +6134,11 @@ function ouvrirEditClient(id) {
   document.getElementById('edit-cl-email').value   = c.email||'';
   document.getElementById('edit-cl-adresse').value = c.adresse||'';
   document.getElementById('modal-edit-client').classList.add('open');
+  afficherAlerteVerrouModal('modal-edit-client', '');
 }
 
 function confirmerEditClient() {
+  surveillerConflitsEditionActifs();
   const id      = document.getElementById('edit-cl-id').value;
   const lockState = verifierVerrouEdition('client', id);
   if (!lockState.ok) {
@@ -6121,9 +6216,10 @@ function exporterHeuresPDF() {
 }
 
 /* ===== MODIFIER VÉHICULE ===== */
-function ouvrirEditVehicule(vehId) {
+async function ouvrirEditVehicule(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId);
   if (!veh) return;
+  await actualiserVerrousEditionDistance();
   const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
   if (!lockResult.ok) {
     afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
@@ -6151,9 +6247,11 @@ function ouvrirEditVehicule(vehId) {
   modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'confirmerEditVehicule()');
   modal.classList.add('open');
+  afficherAlerteVerrouModal('modal-vehicule', '');
 }
 
 function confirmerEditVehicule() {
+  surveillerConflitsEditionActifs();
   const id = window._editVehId;
   if (!id) return;
   const lockState = verifierVerrouEdition('vehicule', id);
