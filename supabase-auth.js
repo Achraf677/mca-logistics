@@ -1,13 +1,65 @@
 (function () {
+  var LOGIN_TARGET_CACHE_KEY = 'delivpro_login_target_cache_v1';
+  var LOGIN_TARGET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
   function getClient() {
     return window.DelivProSupabase && window.DelivProSupabase.getClient
       ? window.DelivProSupabase.getClient()
       : null;
   }
 
+  function readLoginTargetCache() {
+    try {
+      var raw = window.localStorage.getItem(LOGIN_TARGET_CACHE_KEY);
+      var parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeLoginTargetCache(cache) {
+    try {
+      window.localStorage.setItem(LOGIN_TARGET_CACHE_KEY, JSON.stringify(cache || {}));
+    } catch (_) {}
+  }
+
+  function buildLoginTargetCacheKey(kind, identifier) {
+    return String(kind || '') + ':' + String(identifier || '').trim().toLowerCase();
+  }
+
+  function getCachedLoginTarget(kind, identifier) {
+    var cache = readLoginTargetCache();
+    var key = buildLoginTargetCacheKey(kind, identifier);
+    var entry = cache[key];
+    if (!entry || !entry.target || !entry.savedAt) return null;
+    var age = Date.now() - Number(entry.savedAt);
+    if (!Number.isFinite(age) || age > LOGIN_TARGET_CACHE_TTL_MS) {
+      delete cache[key];
+      writeLoginTargetCache(cache);
+      return null;
+    }
+    return entry.target;
+  }
+
+  function cacheLoginTarget(kind, identifier, target) {
+    if (!target || !target.email) return;
+    var cache = readLoginTargetCache();
+    cache[buildLoginTargetCacheKey(kind, identifier)] = {
+      target: target,
+      savedAt: Date.now()
+    };
+    writeLoginTargetCache(cache);
+  }
+
   async function resolveLoginTarget(kind, identifier) {
     const client = getClient();
     if (!client || !identifier) return { ok: false, reason: 'unavailable' };
+
+    var cachedTarget = getCachedLoginTarget(kind, identifier);
+    if (cachedTarget && cachedTarget.email) {
+      return { ok: true, target: cachedTarget, cached: true };
+    }
 
     const { data, error } = await client.rpc('find_login_email', {
       login_kind: kind,
@@ -16,6 +68,8 @@
 
     if (error) return { ok: false, reason: 'lookup_error', error: error };
     if (!Array.isArray(data) || !data.length) return { ok: false, reason: 'not_found' };
+
+    cacheLoginTarget(kind, identifier, data[0]);
 
     return { ok: true, target: data[0] };
   }
@@ -69,7 +123,6 @@
 
     if (error) return { ok: false, reason: 'invalid_credentials', error: error };
 
-    const profile = await fetchOwnProfile();
     const salarie = kind === 'salarie' ? await fetchOwnSalarie() : null;
 
     return {
@@ -77,7 +130,7 @@
       session: data.session || null,
       user: data.user || null,
       target: target,
-      profile: profile,
+      profile: null,
       salarie: salarie
     };
   }
