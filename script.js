@@ -168,6 +168,8 @@ function saveAdminAccounts(comptes) {
 function getAdminSession() {
   return {
     identifiant: sessionStorage.getItem('admin_login') || '',
+    email: sessionStorage.getItem('admin_email') || '',
+    authMode: sessionStorage.getItem('auth_mode') || 'local',
     nom: sessionStorage.getItem('admin_nom') || ''
   };
 }
@@ -182,7 +184,9 @@ function toggleAdminMenu(event) {
 }
 function deconnexionAdmin() {
   sessionStorage.removeItem('role');
+  sessionStorage.removeItem('auth_mode');
   sessionStorage.removeItem('admin_login');
+  sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('admin_nom');
   if (window.DelivProAuth && window.DelivProAuth.signOut) {
     window.DelivProAuth.signOut().finally(() => {
@@ -361,6 +365,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (sessionStorage.getItem('role') !== 'admin') {
     window.location.href = 'login.html';
     return;
+  }
+  let syncInitResult = null;
+  if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init) {
+    syncInitResult = await window.DelivProRemoteStorage.init();
+  }
+  if (!syncInitResult?.ok) {
+    afficherToast('⚠️ Session Supabase absente: vous êtes en mode local, la synchro multi-appareils est inactive.', 'error');
   }
   getAdminAccounts();
   await importerSalariesDepuisSupabase();
@@ -2421,11 +2432,30 @@ function ouvrirResetMdp(id, nom) {
   document.getElementById('modal-reset-mdp').classList.add('open');
 }
 
-function confirmerResetMdp() {
+async function confirmerResetMdp() {
   const nouveau=document.getElementById('reset-mdp-val').value;
   if(!nouveau){afficherToast('⚠️ Mot de passe vide','error');return;}
   const salaries=charger('salaries'),idx=salaries.findIndex(s=>s.id===resetMdpTargetId);
-  if(idx>-1){salaries[idx].mdpHash=btoa(nouveau);sauvegarder('salaries',salaries);afficherToast('✅ Mot de passe mis à jour');}
+  let syncResult = null;
+  if(idx>-1){
+    salaries[idx].mdpHash=btoa(nouveau);
+    sauvegarder('salaries',salaries);
+    if (window.DelivProAdminSupabase && window.DelivProAdminSupabase.provisionSalarieAccess) {
+      syncResult = await window.DelivProAdminSupabase.provisionSalarieAccess({
+        salarieId: salaries[idx].supabaseId || null,
+        numero: salaries[idx].numero || '',
+        password: nouveau
+      });
+      if (syncResult?.ok && syncResult.data) {
+        salaries[idx].profileId = syncResult.data.profileId || salaries[idx].profileId || '';
+        salaries[idx].email = syncResult.data.email || salaries[idx].email || '';
+        sauvegarder('salaries', salaries);
+      }
+    }
+    if (syncResult?.ok) afficherToast('✅ Mot de passe salarié mis à jour et synchronisé avec Supabase');
+    else if (syncResult && !syncResult.ok) afficherToast(`⚠️ Mot de passe local mis à jour, mais pas Supabase (${syncResult.error?.message || syncResult.reason || 'erreur inconnue'})`, 'error');
+    else afficherToast('✅ Mot de passe mis à jour');
+  }
   closeModal('modal-reset-mdp'); resetMdpTargetId=null;
 }
 
@@ -4730,7 +4760,9 @@ function resetTimerInactivite() {
   clearTimeout(_timerInactivite);
   _timerInactivite = setTimeout(() => {
     sessionStorage.removeItem('role');
+    sessionStorage.removeItem('auth_mode');
     sessionStorage.removeItem('admin_login');
+    sessionStorage.removeItem('admin_email');
     sessionStorage.removeItem('admin_nom');
     alert('⏱️ Session expirée après 30 min d\'inactivité. Reconnectez-vous.');
     window.location.href = 'login.html';
@@ -4744,7 +4776,7 @@ function toggleParamMdp(inputId) {
   if (input) input.type = input.type === 'password' ? 'text' : 'password';
 }
 
-function changerMdpAdmin() {
+async function changerMdpAdmin() {
   const actuel    = document.getElementById('param-mdp-actuel').value;
   const nouveau   = document.getElementById('param-mdp-nouveau').value;
   const confirmer = document.getElementById('param-mdp-confirmer').value;
@@ -4756,10 +4788,30 @@ function changerMdpAdmin() {
   if (actuel !== comptes[idx].motDePasse) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
   if (nouveau.length < 4) { afficherToast('⚠️ Nouveau mot de passe trop court (4 min)', 'error'); return; }
   if (nouveau !== confirmer) { afficherToast('⚠️ Les mots de passe ne correspondent pas', 'error'); return; }
+  const client = getSupabaseClientSafe();
+  const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
+  if (supabaseReady) {
+    if (sessionAdmin.authMode !== 'supabase' || !client) {
+      afficherToast('⚠️ Connectez-vous via Supabase pour changer un mot de passe admin synchronisé.', 'error');
+      return;
+    }
+  }
+  if (supabaseReady) {
+    const sessionResult = await client.auth.getSession();
+    if (!sessionResult?.data?.session) {
+      afficherToast('⚠️ Session Supabase administrateur introuvable. Reconnectez-vous.', 'error');
+      return;
+    }
+    const updateResult = await client.auth.updateUser({ password: nouveau });
+    if (updateResult.error) {
+      afficherToast(`⚠️ Mot de passe Supabase non mis à jour (${updateResult.error.message})`, 'error');
+      return;
+    }
+  }
   comptes[idx].motDePasse = nouveau;
   saveAdminAccounts(comptes);
   ['param-mdp-actuel','param-mdp-nouveau','param-mdp-confirmer'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  afficherToast('✅ Mot de passe administrateur mis à jour pour votre compte');
+  afficherToast(supabaseReady ? '✅ Mot de passe administrateur mis à jour et synchronisé avec Supabase' : '✅ Mot de passe administrateur mis à jour pour votre compte');
 }
 
 function sauvegarderObjectifCA() {

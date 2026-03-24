@@ -417,6 +417,7 @@
       const identifiant = document.getElementById('input-identifiant').value.trim().toLowerCase();
       const mdp = document.getElementById('input-mdp').value.trim();
       const errEl = document.getElementById('error-admin');
+      const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
       errEl.classList.remove('show');
 
       if (!identifiant || !mdp) {
@@ -425,17 +426,33 @@
         return;
       }
 
+      let authResult = null;
       if (window.DelivProAuth && window.DelivProAuth.signIn) {
-        const authResult = await window.DelivProAuth.signIn('admin', identifiant, mdp);
+        authResult = await window.DelivProAuth.signIn('admin', identifiant, mdp);
         if (authResult.ok) {
           sessionStorage.setItem('role', 'admin');
-          sessionStorage.setItem('admin_login', authResult.target.email || identifiant);
+          sessionStorage.setItem('auth_mode', 'supabase');
+          sessionStorage.setItem('admin_login', identifiant);
+          sessionStorage.setItem('admin_email', authResult.target.email || '');
           sessionStorage.setItem('admin_nom', authResult.profile?.display_name || authResult.target.display_name || 'Admin');
           sessionStorage.removeItem('salarie_id');
           sessionStorage.removeItem('salarie_numero');
+          localStorage.setItem('last_admin_identifiant', identifiant);
           window.location.href = 'admin.html';
           return;
         }
+      }
+
+      if (supabaseReady && authResult && authResult.reason !== 'unavailable') {
+        if (authResult.reason === 'invalid_credentials') {
+          errEl.textContent = '❌ Mot de passe Supabase administrateur incorrect. La connexion locale ne permet pas la synchro entre appareils.';
+        } else if (authResult.reason === 'not_found') {
+          errEl.textContent = '❌ Ce compte admin n’est pas configuré dans Supabase. Ajoutez-le d’abord dans Authentication et admin_identities.';
+        } else {
+          errEl.textContent = '❌ Connexion admin Supabase impossible. Vérifiez le compte admin dans Supabase.';
+        }
+        errEl.classList.add('show');
+        return;
       }
 
       const compte = getAdminAccounts().find(function (a) {
@@ -444,10 +461,13 @@
 
       if (compte && mdp === compte.motDePasse) {
         sessionStorage.setItem('role', 'admin');
+        sessionStorage.setItem('auth_mode', 'local');
         sessionStorage.setItem('admin_login', compte.identifiant);
+        sessionStorage.removeItem('admin_email');
         sessionStorage.setItem('admin_nom', compte.nom);
         sessionStorage.removeItem('salarie_id');
         sessionStorage.removeItem('salarie_numero');
+        localStorage.setItem('last_admin_identifiant', compte.identifiant);
         window.location.href = 'admin.html';
       } else {
         errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
@@ -459,6 +479,7 @@
       const numero = document.getElementById('login-numero').value.trim().toUpperCase();
       const mdp = document.getElementById('login-mdp').value;
       const errEl = document.getElementById('error-salarie');
+      const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
       errEl.classList.remove('show');
 
       if (!numero || !mdp) {
@@ -483,18 +504,33 @@
         localStorage.removeItem(cle);
       }
 
+      let authResult = null;
       if (window.DelivProAuth && window.DelivProAuth.signIn) {
-        const authResult = await window.DelivProAuth.signIn('salarie', numero, mdp);
+        authResult = await window.DelivProAuth.signIn('salarie', numero, mdp);
         if (authResult.ok && authResult.salarie && authResult.salarie.actif !== false) {
           localStorage.removeItem(cle);
           sessionStorage.setItem('role', 'salarie');
+          sessionStorage.setItem('auth_mode', 'supabase');
           sessionStorage.setItem('salarie_id', authResult.salarie.id || authResult.target.salarie_id || '');
           sessionStorage.setItem('salarie_numero', authResult.salarie.numero || numero);
           sessionStorage.removeItem('admin_login');
+          sessionStorage.removeItem('admin_email');
           sessionStorage.removeItem('admin_nom');
           window.location.href = 'salarie.html';
           return;
         }
+      }
+
+      if (supabaseReady && authResult && authResult.reason !== 'unavailable') {
+        if (authResult.reason === 'invalid_credentials') {
+          errEl.textContent = '❌ Mot de passe Supabase salarié incorrect. La connexion locale ne permet pas la synchro entre appareils.';
+        } else if (authResult.reason === 'not_found') {
+          errEl.textContent = '❌ Ce salarié n’est pas encore configuré dans Supabase. Utilisez le bouton cloud dans l’admin.';
+        } else {
+          errEl.textContent = '❌ Connexion salarié Supabase impossible. Vérifiez le compte dans Supabase.';
+        }
+        errEl.classList.add('show');
+        return;
       }
 
       const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
@@ -523,9 +559,11 @@
 
       localStorage.removeItem(cle);
       sessionStorage.setItem('role', 'salarie');
+      sessionStorage.setItem('auth_mode', 'local');
       sessionStorage.setItem('salarie_id', sal.id);
       sessionStorage.setItem('salarie_numero', sal.numero);
       sessionStorage.removeItem('admin_login');
+      sessionStorage.removeItem('admin_email');
       sessionStorage.removeItem('admin_nom');
       window.location.href = 'salarie.html';
     }

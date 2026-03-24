@@ -94,7 +94,10 @@
     const client = getClient();
     if (!client) return false;
 
-    if (sessionStorage.getItem('role') === 'admin') return true;
+    if (sessionStorage.getItem('role') === 'admin' && sessionStorage.getItem('auth_mode') === 'supabase') {
+      const existingSession = await client.auth.getSession();
+      if (existingSession?.data?.session) return true;
+    }
 
     const {
       data: { session }
@@ -104,8 +107,11 @@
     const profile = await fetchOwnProfile();
     if (!profile || profile.role !== 'admin') return false;
 
+    const savedIdentifiant = sessionStorage.getItem('admin_login') || localStorage.getItem('last_admin_identifiant') || '';
     sessionStorage.setItem('role', 'admin');
-    sessionStorage.setItem('admin_login', profile.email || session.user.email || '');
+    sessionStorage.setItem('auth_mode', 'supabase');
+    sessionStorage.setItem('admin_login', savedIdentifiant || profile.email || session.user.email || '');
+    sessionStorage.setItem('admin_email', profile.email || session.user.email || '');
     sessionStorage.setItem('admin_nom', profile.display_name || session.user.email || 'Admin');
     sessionStorage.removeItem('salarie_id');
     sessionStorage.removeItem('salarie_numero');
@@ -116,7 +122,10 @@
     const client = getClient();
     if (!client) return false;
 
-    if (sessionStorage.getItem('role') === 'salarie') return true;
+    if (sessionStorage.getItem('role') === 'salarie' && sessionStorage.getItem('auth_mode') === 'supabase') {
+      const existingSession = await client.auth.getSession();
+      if (existingSession?.data?.session) return true;
+    }
 
     const {
       data: { session }
@@ -130,9 +139,11 @@
     if (!salarie || salarie.actif === false) return false;
 
     sessionStorage.setItem('role', 'salarie');
+    sessionStorage.setItem('auth_mode', 'supabase');
     sessionStorage.setItem('salarie_id', salarie.id || '');
     sessionStorage.setItem('salarie_numero', salarie.numero || '');
     sessionStorage.removeItem('admin_login');
+    sessionStorage.removeItem('admin_email');
     sessionStorage.removeItem('admin_nom');
     return true;
   }
