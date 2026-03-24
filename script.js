@@ -3,9 +3,58 @@
    ===================================================== */
 
 /* ===== UTILITAIRES ===== */
-function charger(cle)          { const d = localStorage.getItem(cle); return d ? JSON.parse(d) : []; }
-function sauvegarder(cle, val) { localStorage.setItem(cle, JSON.stringify(val)); }
-function chargerObj(cle, def)  { const d = localStorage.getItem(cle); return d ? JSON.parse(d) : def; }
+const STORAGE_CACHE = new Map();
+let lastStorageWarningAt = 0;
+
+function dupliquerValeurStockage(valeur) {
+  if (valeur === null || valeur === undefined) return valeur;
+  if (typeof valeur !== 'object') return valeur;
+  if (typeof structuredClone === 'function') return structuredClone(valeur);
+  return JSON.parse(JSON.stringify(valeur));
+}
+
+function lireStockageJSON(cle, fallback) {
+  const raw = localStorage.getItem(cle);
+  const cached = STORAGE_CACHE.get(cle);
+
+  if (cached && cached.raw === raw) {
+    return dupliquerValeurStockage(cached.value);
+  }
+
+  if (raw === null) {
+    STORAGE_CACHE.set(cle, { raw: null, value: fallback });
+    return dupliquerValeurStockage(fallback);
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    STORAGE_CACHE.set(cle, { raw, value: parsed });
+    return dupliquerValeurStockage(parsed);
+  } catch (error) {
+    console.warn(`[DelivPro] Donnée locale invalide pour "${cle}", fallback utilisé.`, error);
+    STORAGE_CACHE.set(cle, { raw, value: fallback });
+    return dupliquerValeurStockage(fallback);
+  }
+}
+
+function charger(cle)          { return lireStockageJSON(cle, []); }
+function sauvegarder(cle, val) {
+  try {
+    const raw = JSON.stringify(val);
+    localStorage.setItem(cle, raw);
+    STORAGE_CACHE.set(cle, { raw, value: dupliquerValeurStockage(val) });
+    return true;
+  } catch (error) {
+    console.error(`[DelivPro] Impossible d'enregistrer "${cle}" dans le stockage local.`, error);
+    const maintenant = Date.now();
+    if (maintenant - lastStorageWarningAt > 4000 && typeof afficherToast === 'function') {
+      lastStorageWarningAt = maintenant;
+      afficherToast('⚠️ Enregistrement local impossible. Vérifiez l’espace navigateur disponible.', 'error');
+    }
+    return false;
+  }
+}
+function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
 function genId()               { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
 function aujourdhui()          { return new Date().toISOString().split('T')[0]; }
 function euros(n)              { return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(parseFloat(n||0)); }
@@ -147,23 +196,18 @@ function getDefaultAdminAccounts() {
   ];
 }
 function getAdminAccounts() {
-  const raw = localStorage.getItem('admin_accounts');
-  if (raw) {
-    try {
-      const comptes = JSON.parse(raw);
-      if (Array.isArray(comptes) && comptes.length) return comptes;
-    } catch (_) {}
-  }
+  const comptesExistants = chargerObj('admin_accounts', null);
+  if (Array.isArray(comptesExistants) && comptesExistants.length) return comptesExistants;
   const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
   const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
     ...compte,
     motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
   }));
-  localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+  sauvegarder('admin_accounts', comptes);
   return comptes;
 }
 function saveAdminAccounts(comptes) {
-  localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+  sauvegarder('admin_accounts', comptes);
 }
 function getAdminSession() {
   return {
@@ -359,6 +403,8 @@ function afficherBadgeAlertes() {
 
 /* ===== NAVIGATION ===== */
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.__delivproAdminBootstrapped) return;
+  window.__delivproAdminBootstrapped = true;
   if (window.DelivProAuth) {
     await window.DelivProAuth.ensureAdminLegacySessionFromSupabase();
   }
@@ -399,7 +445,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPullToRefresh();
   initDensiteTableau();
   verifierMessagesAutomatiques();
-  setInterval(verifierMessagesAutomatiques, 5 * 60 * 1000);
+  if (window.__delivproMessagesInterval) clearInterval(window.__delivproMessagesInterval);
+  window.__delivproMessagesInterval = setInterval(verifierMessagesAutomatiques, 5 * 60 * 1000);
   mettreAJourBadgesNav();
   verifierTriggersPlanningAuto(); // Vérifier au démarrage
   naviguerVers('dashboard');
@@ -717,6 +764,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ===== SYNCHRO STORAGE (salarié → admin en temps réel) ===== */
 window.addEventListener('storage', function(e) {
+  if (e.key) STORAGE_CACHE.delete(e.key);
+  else STORAGE_CACHE.clear();
   // Statut livraison mis à jour par un salarié
   if (e.key === 'livraisons') {
     const pageActive = document.querySelector('.page.active');
