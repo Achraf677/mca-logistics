@@ -33,6 +33,11 @@
       padding: 16px;
     }
 
+    body.route-leaving .login-wrap {
+      opacity: 0;
+      transform: translateY(-10px) scale(0.985);
+    }
+
     body::before {
       content: '';
       position: fixed;
@@ -49,6 +54,7 @@
       position: relative;
       z-index: 1;
       animation: slideUp 0.4s ease;
+      transition: opacity 0.18s ease, transform 0.18s ease;
     }
 
     .login-logo {
@@ -225,6 +231,27 @@
       margin-top: 8px;
       font-family: var(--font);
       letter-spacing: 0.5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-login[disabled] {
+      cursor: wait;
+      opacity: 0.78;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .btn-login.is-loading::after {
+      content: '';
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid currentColor;
+      border-right-color: transparent;
+      animation: spin .7s linear infinite;
     }
 
     .btn-login.admin {
@@ -258,6 +285,11 @@
       font-size: 0.85rem;
       margin-top: 14px;
       text-align: center;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     .error-msg.show { display: block; }
@@ -324,7 +356,7 @@
           </div>
         </div>
 
-        <button class="btn-login admin" onclick="seConnecterAdmin()">Se connecter en admin →</button>
+        <button class="btn-login admin" id="btn-login-admin" onclick="seConnecterAdmin()">Se connecter en admin →</button>
         <div class="error-msg" id="error-admin">❌ Identifiants incorrects</div>
       </div>
 
@@ -344,7 +376,7 @@
           </div>
         </div>
 
-        <button class="btn-login salarie" onclick="seConnecterSalarie()">Se connecter en salarié →</button>
+        <button class="btn-login salarie" id="btn-login-salarie" onclick="seConnecterSalarie()">Se connecter en salarié →</button>
         <div class="error-msg" id="error-salarie">❌ Numéro ou mot de passe incorrect</div>
       </div>
     </div>
@@ -357,6 +389,27 @@
   <script src="supabase-client.js"></script>
   <script src="supabase-auth.js"></script>
   <script>
+    let loginEnCours = null;
+
+    function redirigerAvecTransition(url) {
+      document.body.classList.add('route-leaving');
+      setTimeout(function () {
+        window.location.href = url;
+      }, 90);
+    }
+
+    function setLoginBusy(mode, busy) {
+      const adminBtn = document.getElementById('btn-login-admin');
+      const salarieBtn = document.getElementById('btn-login-salarie');
+      [adminBtn, salarieBtn].forEach(function (btn) {
+        if (!btn) return;
+        const actif = btn.id === (mode === 'admin' ? 'btn-login-admin' : 'btn-login-salarie');
+        btn.disabled = !!busy;
+        btn.classList.toggle('is-loading', !!busy && actif);
+      });
+      if (!busy) loginEnCours = null;
+    }
+
     function getDefaultAdminAccounts() {
       return [
         { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
@@ -414,15 +467,19 @@
     }
 
     async function seConnecterAdmin() {
+      if (loginEnCours) return;
+      loginEnCours = 'admin';
       const identifiant = document.getElementById('input-identifiant').value.trim().toLowerCase();
       const mdp = document.getElementById('input-mdp').value.trim();
       const errEl = document.getElementById('error-admin');
       const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
       errEl.classList.remove('show');
+      setLoginBusy('admin', true);
 
       if (!identifiant || !mdp) {
         errEl.textContent = '❌ Veuillez saisir votre identifiant et votre mot de passe';
         errEl.classList.add('show');
+        setLoginBusy('admin', false);
         return;
       }
 
@@ -438,7 +495,7 @@
           sessionStorage.removeItem('salarie_id');
           sessionStorage.removeItem('salarie_numero');
           localStorage.setItem('last_admin_identifiant', identifiant);
-          window.location.href = 'admin.html';
+          redirigerAvecTransition('admin.html');
           return;
         }
       }
@@ -452,6 +509,7 @@
           errEl.textContent = '❌ Connexion admin Supabase impossible. Vérifiez le compte admin dans Supabase.';
         }
         errEl.classList.add('show');
+        setLoginBusy('admin', false);
         return;
       }
 
@@ -468,23 +526,28 @@
         sessionStorage.removeItem('salarie_id');
         sessionStorage.removeItem('salarie_numero');
         localStorage.setItem('last_admin_identifiant', compte.identifiant);
-        window.location.href = 'admin.html';
+        redirigerAvecTransition('admin.html');
       } else {
         errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
         errEl.classList.add('show');
+        setLoginBusy('admin', false);
       }
     }
 
     async function seConnecterSalarie() {
+      if (loginEnCours) return;
+      loginEnCours = 'salarie';
       const numero = document.getElementById('login-numero').value.trim().toUpperCase();
       const mdp = document.getElementById('login-mdp').value;
       const errEl = document.getElementById('error-salarie');
       const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
       errEl.classList.remove('show');
+      setLoginBusy('salarie', true);
 
       if (!numero || !mdp) {
         errEl.textContent = '❌ Veuillez saisir votre numéro salarié et votre mot de passe';
         errEl.classList.add('show');
+        setLoginBusy('salarie', false);
         return;
       }
 
@@ -499,6 +562,7 @@
           const restant = Math.ceil(delaiMin - elapsed);
           errEl.textContent = '❌ Compte temporairement bloqué. Réessayez dans ' + restant + ' min.';
           errEl.classList.add('show');
+          setLoginBusy('salarie', false);
           return;
         }
         localStorage.removeItem(cle);
@@ -516,7 +580,7 @@
           sessionStorage.removeItem('admin_login');
           sessionStorage.removeItem('admin_email');
           sessionStorage.removeItem('admin_nom');
-          window.location.href = 'salarie.html';
+          redirigerAvecTransition('salarie.html');
           return;
         }
       }
@@ -530,6 +594,7 @@
           errEl.textContent = '❌ Connexion salarié Supabase impossible. Vérifiez le compte dans Supabase.';
         }
         errEl.classList.add('show');
+        setLoginBusy('salarie', false);
         return;
       }
 
@@ -548,12 +613,14 @@
           ? '❌ Numéro ou mot de passe incorrect. (' + restantes + ' tentative' + (restantes > 1 ? 's' : '') + ' restante' + (restantes > 1 ? 's' : '') + ')'
           : '❌ Compte bloqué 15 minutes après trop de tentatives.';
         errEl.classList.add('show');
+        setLoginBusy('salarie', false);
         return;
       }
 
       if (!sal.actif) {
         errEl.textContent = '❌ Compte désactivé. Contactez l’administrateur.';
         errEl.classList.add('show');
+        setLoginBusy('salarie', false);
         return;
       }
 
@@ -565,17 +632,17 @@
       sessionStorage.removeItem('admin_login');
       sessionStorage.removeItem('admin_email');
       sessionStorage.removeItem('admin_nom');
-      window.location.href = 'salarie.html';
+      redirigerAvecTransition('salarie.html');
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
       if (window.DelivProAuth) {
         if (await window.DelivProAuth.ensureAdminLegacySessionFromSupabase()) {
-          window.location.href = 'admin.html';
+          redirigerAvecTransition('admin.html');
           return;
         }
         if (await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase()) {
-          window.location.href = 'salarie.html';
+          redirigerAvecTransition('salarie.html');
           return;
         }
       }

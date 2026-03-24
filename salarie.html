@@ -13,6 +13,8 @@
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    body.app-shell #ecran-salarie{transition:opacity .22s ease,transform .22s ease;}
+    body.app-shell.app-booting #ecran-salarie{opacity:0;transform:translateY(10px);}
 
     /* LOGIN */
     #ecran-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
@@ -51,6 +53,7 @@
     .btn-sm{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;font-size:.82rem;cursor:pointer;transition:all .2s;}
     .btn-sm:hover{border-color:var(--accent);color:var(--accent);}
     .btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
+    .btn-sm[disabled]{opacity:.75;cursor:wait;}
 
     /* LAYOUT PRINCIPAL */
     #ecran-salarie{display:none;height:100vh;display:none;flex-direction:column;}
@@ -152,7 +155,7 @@
     }
   </style>
 </head>
-<body>
+<body class="app-shell app-booting">
 
 <!-- INTERFACE SALARIÉ -->
 <div id="ecran-salarie">
@@ -170,7 +173,7 @@
         👤
         <span class="notif-dot" id="notif-dot"></span>
       </button>
-      <button class="btn-sm danger" onclick="seDeconnecter()">⏏ Déco</button>
+      <button class="btn-sm danger" id="btn-salarie-logout" onclick="seDeconnecter()">⏏ Déco</button>
     </div>
   </header>
 
@@ -443,7 +446,23 @@
 /* ===== ÉTAT ===== */
 let salarieCourant = null;
 
+function setBoutonDeconnexionSalarieEtat(enCours) {
+  const btn = document.getElementById('btn-salarie-logout');
+  if (!btn) return;
+  if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = btn.textContent;
+  btn.disabled = !!enCours;
+  btn.textContent = enCours ? 'Déconnexion...' : btn.dataset.defaultLabel;
+}
+
+function redirigerVersLoginSalarie() {
+  document.body.classList.add('app-booting');
+  window.location.href = 'login.html';
+}
+
 function seDeconnecter() {
+  if (window.__delivproSalarieLogoutPending) return;
+  window.__delivproSalarieLogoutPending = true;
+  setBoutonDeconnexionSalarieEtat(true);
   salarieCourant = null;
   if (window._msgPollInterval) clearInterval(window._msgPollInterval);
   sessionStorage.removeItem('role');
@@ -451,12 +470,16 @@ function seDeconnecter() {
   sessionStorage.removeItem('salarie_id');
   sessionStorage.removeItem('salarie_numero');
   if (window.DelivProAuth && window.DelivProAuth.signOut) {
+    const fallback = setTimeout(function () {
+      redirigerVersLoginSalarie();
+    }, 1200);
     window.DelivProAuth.signOut().finally(function () {
-      window.location.href = 'login.html';
+      clearTimeout(fallback);
+      redirigerVersLoginSalarie();
     });
     return;
   }
-  window.location.href = 'login.html';
+  redirigerVersLoginSalarie();
 }
 
 function lancerInterface() {
@@ -498,6 +521,9 @@ function lancerInterface() {
   // Date du jour dans inspection
   const inspDate = document.getElementById('insp-date');
   if (inspDate) inspDate.value = auj;
+  requestAnimationFrame(function () {
+    document.body.classList.remove('app-booting');
+  });
 
   // Polling toutes les 10s pour détecter nouveaux messages admin
   if (window._msgPollInterval) clearInterval(window._msgPollInterval);

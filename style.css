@@ -33,6 +33,15 @@ body {
   overflow-x: hidden;
 }
 
+body.app-shell .main-content {
+  transition: opacity 0.22s ease, transform 0.22s ease, margin-left 0.3s ease;
+}
+
+body.app-shell.app-booting .main-content {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
 /* ===== SIDEBAR ===== */
 .sidebar {
   width: var(--sidebar-width);
@@ -143,7 +152,6 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  transition: margin-left 0.3s ease;
 }
 .main-content.expanded { margin-left: var(--sidebar-collapsed); }
 
@@ -207,9 +215,11 @@ body {
 .btn-menu-mobile { display: none; background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 5px 9px; border-radius: 6px; cursor: pointer; font-size: 1rem; }
 
 /* ===== PAGES ===== */
-.page { display: none; padding: 24px; animation: fadeIn 0.25s ease; }
+.page { display: none; padding: 24px; animation: fadeIn 0.22s ease; }
 .page.active { display: block; }
+.page.route-enter { animation: pageRouteIn 0.22s cubic-bezier(.22,.61,.36,1); }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pageRouteIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
 .page-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
 .page-actions h2 { font-size: 1.3rem; font-weight: 600; }
@@ -967,6 +977,10 @@ body.light-mode .nav-item.active { color: var(--accent); }
 .topbar-dropdown-item:hover {
   background: rgba(245,166,35,.12);
   color: var(--accent);
+}
+.topbar-dropdown-item:disabled {
+  opacity: .72;
+  cursor: wait;
 }
 
 /* ===== BON DE LIVRAISON PRINT ===== */

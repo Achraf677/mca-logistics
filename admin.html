@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
-<body>
+<body class="app-shell app-booting">
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header" onclick="naviguerVers('dashboard')" style="cursor:pointer" title="Retour Dashboard">
@@ -59,14 +59,6 @@
     <header class="topbar">
       <button class="btn-menu-mobile" id="menuMobile">☰</button>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
-      <!-- Recherche universelle -->
-      <div style="position:relative;flex:1;max-width:320px;margin:0 16px">
-        <input type="text" id="barre-recherche-univ" placeholder="🔍 Rechercher..."
-          oninput="rechercheUniverselle(this.value)"
-          onblur="setTimeout(fermerRecherche,200)"
-          style="width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);color:var(--text-primary);padding:7px 12px;border-radius:8px;font-size:.84rem;font-family:inherit;outline:none" />
-        <div id="recherche-resultats" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden"></div>
-      </div>
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre">🌙</button>
       <div class="topbar-user-menu" id="topbar-user-menu">
         <button class="topbar-user" id="topbar-user-trigger" type="button" onclick="toggleAdminMenu(event)">
@@ -75,7 +67,7 @@
           <span class="topbar-user-caret">▾</span>
         </button>
         <div class="topbar-dropdown" id="topbar-admin-dropdown">
-          <button class="topbar-dropdown-item" type="button" onclick="deconnexionAdmin()">⏏ Déconnexion</button>
+          <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()">⏏ Déconnexion</button>
         </div>
       </div>
       <div class="topbar-date" id="currentDate"></div>

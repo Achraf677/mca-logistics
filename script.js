@@ -355,19 +355,38 @@ function toggleAdminMenu(event) {
   if (!menu) return;
   menu.classList.toggle('open');
 }
+function setBoutonDeconnexionAdminEtat(enCours) {
+  const btn = document.getElementById('btn-admin-logout');
+  if (!btn) return;
+  if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = btn.textContent;
+  btn.disabled = !!enCours;
+  btn.textContent = enCours ? 'Déconnexion...' : btn.dataset.defaultLabel;
+}
+function redirigerVersLoginAdmin() {
+  document.body.classList.add('app-booting');
+  window.location.href = 'login.html';
+}
 function deconnexionAdmin() {
+  if (window.__delivproAdminLogoutPending) return;
+  window.__delivproAdminLogoutPending = true;
+  setBoutonDeconnexionAdminEtat(true);
   sessionStorage.removeItem('role');
   sessionStorage.removeItem('auth_mode');
   sessionStorage.removeItem('admin_login');
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('admin_nom');
+  fermerMenuAdmin();
   if (window.DelivProAuth && window.DelivProAuth.signOut) {
+    const fallback = setTimeout(() => {
+      redirigerVersLoginAdmin();
+    }, 1200);
     window.DelivProAuth.signOut().finally(() => {
-      window.location.href = 'login.html';
+      clearTimeout(fallback);
+      redirigerVersLoginAdmin();
     });
     return;
   }
-  window.location.href = 'login.html';
+  redirigerVersLoginAdmin();
 }
 function appliquerBranding() {
   const logo = getLogoEntreprise();
@@ -593,16 +612,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   mettreAJourBadgesNav();
   verifierTriggersPlanningAuto(); // Vérifier au démarrage
   naviguerVers('dashboard');
+  requestAnimationFrame(() => {
+    document.body.classList.remove('app-booting');
+  });
 });
 
 function naviguerVers(page) {
+  if (!page) return;
+  window.__delivproCurrentPage = page;
   mettreAJourBadgesNav();
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
   if (navItem) navItem.classList.add('active');
   const pageEl = document.getElementById(`page-${page}`);
-  if (pageEl) pageEl.classList.add('active');
+  if (pageEl) {
+    pageEl.classList.add('active', 'route-enter');
+    setTimeout(() => pageEl.classList.remove('route-enter'), 240);
+  }
   const titres = {
     dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients',
     chauffeurs:'👤 Chauffeurs', vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
@@ -614,36 +641,40 @@ function naviguerVers(page) {
     heures:'⏱️ Heures & Km'
   };
   document.getElementById('pageTitle').textContent = titres[page] || page;
-  switch (page) {
-    case 'dashboard':    rafraichirDashboard(); break;
-    case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
-    case 'chauffeurs':   afficherChauffeurs(); break;
-    case 'vehicules':    afficherVehicules(); afficherEntretiensVehicules(); break;
-    case 'carburant':    navCarbMois(0); break;
-    case 'rentabilite':  afficherRentabilite(); break;
-    case 'statistiques': afficherStatistiques(); break;
-    case 'previsions':   calculerPrevision(); break;
-    case 'tva':          navTvaMois(0); break;
-    case 'salaries':
-      afficherSalaries();
-      importerSalariesDepuisSupabase().then(function(resultat) {
-        if (!resultat?.ok) return;
-        afficherSalaries();
-        rafraichirDependancesSalaries();
-      });
-      break;
-    case 'heures':       navHeuresSemaine(0); break;
-    case 'planning':     afficherPlanning(); afficherPlanningSemaine(); peuplerAbsenceSal(); afficherAbsencesPeriodes(); initFormulairePlanningRapide(); break;
-    case 'alertes':      verifierDocumentsSalaries(); afficherAlertes(); break;
-    case 'inspections':  navInspSemaine(0); break;
-    case 'messagerie':   afficherMessagerie(); break;
-    case 'clients':      afficherClientsDashboard(); break;
-    case 'charges':      navChargesMois(0); break;
-    case 'incidents':    afficherIncidents(); break;
-    case 'relances':     afficherRelances(); break;
-    case 'entretiens':   navEntrMois(0); break;
-    case 'parametres':   chargerParametres(); break;
-  }
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      switch (page) {
+        case 'dashboard':    rafraichirDashboard(); break;
+        case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
+        case 'chauffeurs':   afficherChauffeurs(); break;
+        case 'vehicules':    afficherVehicules(); afficherEntretiensVehicules(); break;
+        case 'carburant':    navCarbMois(0); break;
+        case 'rentabilite':  afficherRentabilite(); break;
+        case 'statistiques': afficherStatistiques(); break;
+        case 'previsions':   calculerPrevision(); break;
+        case 'tva':          navTvaMois(0); break;
+        case 'salaries':
+          afficherSalaries();
+          importerSalariesDepuisSupabase().then(function(resultat) {
+            if (!resultat?.ok) return;
+            afficherSalaries();
+            rafraichirDependancesSalaries();
+          });
+          break;
+        case 'heures':       navHeuresSemaine(0); break;
+        case 'planning':     afficherPlanning(); afficherPlanningSemaine(); peuplerAbsenceSal(); afficherAbsencesPeriodes(); initFormulairePlanningRapide(); break;
+        case 'alertes':      verifierDocumentsSalaries(); afficherAlertes(); break;
+        case 'inspections':  navInspSemaine(0); break;
+        case 'messagerie':   afficherMessagerie(); break;
+        case 'clients':      afficherClientsDashboard(); break;
+        case 'charges':      navChargesMois(0); break;
+        case 'incidents':    afficherIncidents(); break;
+        case 'relances':     afficherRelances(); break;
+        case 'entretiens':   navEntrMois(0); break;
+        case 'parametres':   chargerParametres(); break;
+      }
+    });
+  });
 }
 
 function appliquerLibellesAnalyseHT() {
@@ -4866,8 +4897,6 @@ document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) {
     switch(e.key) {
       case 'n': e.preventDefault(); openModal('modal-livraison'); break;
-      case 'f': e.preventDefault(); document.getElementById('barre-recherche-univ')?.focus(); break;
-      case 'k': e.preventDefault(); document.getElementById('barre-recherche-univ')?.focus(); break;
     }
   }
   if (e.key === 'Escape') {
@@ -4877,7 +4906,9 @@ document.addEventListener('keydown', e => {
 
 /* ===== RECHERCHE UNIVERSELLE ===== */
 function rechercheUniverselle(q) {
-  if (!q || q.length < 2) { document.getElementById('recherche-resultats').style.display='none'; return; }
+  const cont = document.getElementById('recherche-resultats');
+  if (!cont) return;
+  if (!q || q.length < 2) { cont.style.display='none'; return; }
   q = q.toLowerCase();
   const livraisons = charger('livraisons');
   const salaries   = charger('salaries');
@@ -4894,7 +4925,6 @@ function rechercheUniverselle(q) {
   clients.filter(c => c.nom.toLowerCase().includes(q))
     .slice(0,3).forEach(c => res.push({ label:`🧑‍💼 ${c.nom}`, sub:c.adresse||c.tel||'', action:`naviguerVers('livraisons')` }));
 
-  const cont = document.getElementById('recherche-resultats');
   if (!res.length) { cont.innerHTML='<div style="padding:10px 14px;color:var(--text-muted);font-size:.85rem">Aucun résultat</div>'; cont.style.display='block'; return; }
   cont.innerHTML = res.map(r => `
     <div onclick="${r.action};fermerRecherche()" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
@@ -4903,7 +4933,12 @@ function rechercheUniverselle(q) {
     </div>`).join('');
   cont.style.display = 'block';
 }
-function fermerRecherche() { const el = document.getElementById('recherche-resultats'); if(el) el.style.display='none'; document.getElementById('barre-recherche-univ').value=''; }
+function fermerRecherche() {
+  const el = document.getElementById('recherche-resultats');
+  if (el) el.style.display='none';
+  const input = document.getElementById('barre-recherche-univ');
+  if (input) input.value = '';
+}
 
 /* ===== CARNET CLIENTS ===== */
 function afficherClients() {
