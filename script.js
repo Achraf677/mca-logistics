@@ -6,6 +6,28 @@
 const STORAGE_CACHE = new Map();
 let lastStorageWarningAt = 0;
 
+if (!window.__delivproStoragePatched) {
+  window.__delivproStoragePatched = true;
+  const nativeSetItem = Storage.prototype.setItem;
+  const nativeRemoveItem = Storage.prototype.removeItem;
+  const nativeClear = Storage.prototype.clear;
+
+  Storage.prototype.setItem = function(cle, valeur) {
+    STORAGE_CACHE.delete(String(cle));
+    return nativeSetItem.call(this, cle, valeur);
+  };
+
+  Storage.prototype.removeItem = function(cle) {
+    STORAGE_CACHE.delete(String(cle));
+    return nativeRemoveItem.call(this, cle);
+  };
+
+  Storage.prototype.clear = function() {
+    STORAGE_CACHE.clear();
+    return nativeClear.call(this);
+  };
+}
+
 function dupliquerValeurStockage(valeur) {
   if (valeur === null || valeur === undefined) return valeur;
   if (typeof valeur !== 'object') return valeur;
@@ -751,6 +773,18 @@ function viderFormulaireLivraison() {
   if (sug) sug.innerHTML = '';
 }
 
+const STORAGE_REFRESH_QUEUE = new Map();
+
+function planifierRafraichissementStorage(cle, callback) {
+  if (typeof callback !== 'function') return;
+  if (STORAGE_REFRESH_QUEUE.has(cle)) return;
+  const timer = setTimeout(function() {
+    STORAGE_REFRESH_QUEUE.delete(cle);
+    callback();
+  }, 60);
+  STORAGE_REFRESH_QUEUE.set(cle, timer);
+}
+
 /* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
 document.addEventListener('DOMContentLoaded', () => {
   const selChauf = document.getElementById('liv-chauffeur');
@@ -769,38 +803,38 @@ window.addEventListener('storage', function(e) {
   // Statut livraison mis à jour par un salarié
   if (e.key === 'livraisons') {
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-livraisons')  afficherLivraisons();
-    if (pageActive?.id === 'page-dashboard')   rafraichirDashboard();
-    afficherBadgeAlertes();
+    if (pageActive?.id === 'page-livraisons')  planifierRafraichissementStorage('page-livraisons', afficherLivraisons);
+    if (pageActive?.id === 'page-dashboard')   planifierRafraichissementStorage('dashboard-livraisons', rafraichirDashboard);
+    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
   }
   // Km saisi par un salarié
   if (e.key && e.key.startsWith('km_sal_')) {
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-salaries') afficherSalaries();
+    if (pageActive?.id === 'page-salaries') planifierRafraichissementStorage('page-salaries', afficherSalaries);
   }
   // Carburant saisi/modifié par un salarié
   if (e.key === 'carburant') {
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-carburant') afficherCarburant();
+    if (pageActive?.id === 'page-carburant') planifierRafraichissementStorage('page-carburant', afficherCarburant);
   }
   // Nouvelles alertes (modif plein, km, inspection)
   if (e.key === 'alertes_admin') {
-    afficherBadgeAlertes();
+    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-alertes') afficherAlertes();
-    if (pageActive?.id === 'page-dashboard') rafraichirDashboard();
+    if (pageActive?.id === 'page-alertes') planifierRafraichissementStorage('page-alertes', afficherAlertes);
+    if (pageActive?.id === 'page-dashboard') planifierRafraichissementStorage('dashboard-alertes', rafraichirDashboard);
   }
   // Nouvelle inspection
   if (e.key === 'inspections') {
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-inspections') afficherInspections();
+    if (pageActive?.id === 'page-inspections') planifierRafraichissementStorage('page-inspections', afficherInspections);
   }
   // Nouveau message d'un salarié
   if (e.key && e.key.startsWith('messages_')) {
-    mettreAJourBadgeMsgAdmin();
+    planifierRafraichissementStorage('badge-messages', mettreAJourBadgeMsgAdmin);
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-messagerie') afficherMessagerie();
-    if (pageActive?.id === 'page-dashboard')  rafraichirDashboard();
+    if (pageActive?.id === 'page-messagerie') planifierRafraichissementStorage('page-messagerie', afficherMessagerie);
+    if (pageActive?.id === 'page-dashboard')  planifierRafraichissementStorage('dashboard-messages', rafraichirDashboard);
   }
 });
 
