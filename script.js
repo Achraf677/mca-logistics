@@ -2064,9 +2064,26 @@ async function synchroniserSalarieVersSupabase(salarie) {
   if (!client || !salarie || !salarie.numero) return { ok: false, skipped: true };
 
   const payload = construirePayloadSupabaseSalarie(salarie);
-  const { data, error } = await client
-    .from('salaries')
-    .upsert(payload, { onConflict: 'numero' })
+  const previousNumero = salarie.previousNumero || salarie._previousNumero || null;
+  let query = null;
+
+  if (salarie.supabaseId) {
+    query = client
+      .from('salaries')
+      .update(payload)
+      .eq('id', salarie.supabaseId);
+  } else if (previousNumero && previousNumero !== salarie.numero) {
+    query = client
+      .from('salaries')
+      .update(payload)
+      .eq('numero', previousNumero);
+  } else {
+    query = client
+      .from('salaries')
+      .upsert(payload, { onConflict: 'numero' });
+  }
+
+  const { data, error } = await query
     .select('id, profile_id, numero, email, actif, nom, prenom, poste, permis, assurance, telephone')
     .single();
 
@@ -2285,9 +2302,11 @@ async function confirmerEditSalarie() {
   if (salaries.find(s=>s.numero===numero&&s.id!==editSalarieId)) { afficherToast('⚠️ Numéro déjà utilisé', 'error'); return; }
   const idx=salaries.findIndex(s=>s.id===editSalarieId);
   if (idx>-1) {
+    const ancienNumero = salaries[idx].numero || null;
     salaries[idx].nom=nomComplet; salaries[idx].nomFamille=nomFamille; salaries[idx].prenom=prenom;
     salaries[idx].numero=numero; salaries[idx].email=emailTechnique; salaries[idx].tel=tel; salaries[idx].poste=poste;
     salaries[idx].datePermis=datePermis; salaries[idx].dateAssurance=dateAssurance;
+    salaries[idx].previousNumero = ancienNumero;
     sauvegarder('salaries', salaries);
     // Propager dans chauffeurs
     const ch=charger('chauffeurs'), ci=ch.findIndex(c=>c.id===editSalarieId);
@@ -2306,6 +2325,7 @@ async function confirmerEditSalarie() {
     const syncResult = await synchroniserSalarieVersSupabase(salaries[idx]);
     if (syncResult.ok && syncResult.record) {
       hydraterSalarieLocalDepuisSupabase(salaries[idx], syncResult.record);
+      delete salaries[idx].previousNumero;
       sauvegarder('salaries', salaries);
     }
     notifierSynchroSalarie(syncResult, 'Modification salarié');
