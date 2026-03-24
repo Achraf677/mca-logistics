@@ -2303,6 +2303,19 @@ async function creerSalarie() {
     hydraterSalarieLocalDepuisSupabase(salarie, syncResult.record);
     sauvegarder('salaries', salaries);
   }
+  let provisionResult = null;
+  if (window.DelivProAdminSupabase && window.DelivProAdminSupabase.provisionSalarieAccess) {
+    provisionResult = await window.DelivProAdminSupabase.provisionSalarieAccess({
+      salarieId: salarie.supabaseId || null,
+      numero: salarie.numero,
+      password: mdp
+    });
+    if (provisionResult?.ok && provisionResult.data) {
+      salarie.profileId = provisionResult.data.profileId || salarie.profileId || '';
+      salarie.email = provisionResult.data.email || salarie.email || '';
+      sauvegarder('salaries', salaries);
+    }
+  }
 
   ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>document.getElementById(id).value='');
   if (document.getElementById('nsal-poste')) document.getElementById('nsal-poste').value='';
@@ -2311,7 +2324,9 @@ async function creerSalarie() {
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
   rafraichirDependancesSalaries();
-  afficherToast(`✅ Compte créé pour ${nomComplet}`);
+  if (provisionResult?.ok) afficherToast(`✅ Compte créé pour ${nomComplet} et accès Supabase activé`);
+  else if (provisionResult && !provisionResult.ok) afficherToast(`⚠️ Compte créé pour ${nomComplet}, mais l'accès Supabase n'a pas pu être activé (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
+  else afficherToast(`✅ Compte créé pour ${nomComplet}`);
   notifierSynchroSalarie(syncResult, 'Salarié');
 }
 

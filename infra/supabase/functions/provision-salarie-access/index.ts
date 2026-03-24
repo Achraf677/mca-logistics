@@ -12,10 +12,11 @@ Deno.serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-    const serviceRoleKey = Deno.env.get("SERVICE_ROLE_KEY") ?? "";
+    const serviceRoleKey = Deno.env.get("SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const authHeader = req.headers.get("Authorization") ?? "";
 
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey || !anonKey) {
       return new Response(JSON.stringify({ error: "Missing Supabase env vars" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -26,11 +27,15 @@ Deno.serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const jwt = authHeader.replace("Bearer ", "");
+    const requesterClient = createClient(supabaseUrl, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: authHeader } },
+    });
+
     const {
       data: { user: requester },
       error: requesterError,
-    } = await adminClient.auth.getUser(jwt);
+    } = await requesterClient.auth.getUser();
 
     if (requesterError || !requester) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
