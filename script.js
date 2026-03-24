@@ -2034,7 +2034,84 @@ function mettreAJourEmailTechniqueSalarie(mode) {
   labelEl.textContent = email || '—';
 }
 
-function creerSalarie() {
+function getSupabaseClientSafe() {
+  return window.DelivProSupabase && window.DelivProSupabase.getClient
+    ? window.DelivProSupabase.getClient()
+    : null;
+}
+
+function construirePayloadSupabaseSalarie(salarie) {
+  if (!salarie) return null;
+  const payload = {
+    profile_id: salarie.profileId || null,
+    numero: salarie.numero || null,
+    nom: salarie.nomFamille || salarie.nom || null,
+    prenom: salarie.prenom || null,
+    poste: salarie.poste || null,
+    permis: salarie.datePermis || null,
+    assurance: salarie.dateAssurance || null,
+    telephone: salarie.tel || null,
+    email: salarie.email || null,
+    actif: salarie.actif !== false,
+    updated_at: new Date().toISOString()
+  };
+  if (salarie.supabaseId) payload.id = salarie.supabaseId;
+  return payload;
+}
+
+async function synchroniserSalarieVersSupabase(salarie) {
+  const client = getSupabaseClientSafe();
+  if (!client || !salarie || !salarie.numero) return { ok: false, skipped: true };
+
+  const payload = construirePayloadSupabaseSalarie(salarie);
+  const { data, error } = await client
+    .from('salaries')
+    .upsert(payload, { onConflict: 'numero' })
+    .select('id, profile_id, numero, email, actif, nom, prenom, poste, permis, assurance, telephone')
+    .single();
+
+  if (error) return { ok: false, error: error };
+
+  return {
+    ok: true,
+    record: data
+  };
+}
+
+async function supprimerSalarieDansSupabase(salarie) {
+  const client = getSupabaseClientSafe();
+  if (!client || !salarie) return { ok: false, skipped: true };
+
+  let query = client.from('salaries').delete();
+  if (salarie.supabaseId) query = query.eq('id', salarie.supabaseId);
+  else if (salarie.numero) query = query.eq('numero', salarie.numero);
+  else return { ok: false, skipped: true };
+
+  const { error } = await query;
+  if (error) return { ok: false, error: error };
+  return { ok: true };
+}
+
+function hydraterSalarieLocalDepuisSupabase(salarie, record) {
+  if (!salarie || !record) return salarie;
+  salarie.supabaseId = record.id || salarie.supabaseId || '';
+  salarie.profileId = record.profile_id || salarie.profileId || '';
+  salarie.email = record.email || salarie.email || '';
+  salarie.actif = record.actif !== false;
+  return salarie;
+}
+
+function notifierSynchroSalarie(resultat, actionLabel) {
+  if (!resultat || resultat.skipped) return;
+  if (resultat.ok) {
+    afficherToast(`☁️ ${actionLabel} synchronisé avec Supabase`, 'success');
+    return;
+  }
+  const message = resultat.error?.message || 'Synchronisation Supabase indisponible';
+  afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
+}
+
+async function creerSalarie() {
   const nom    = document.getElementById('nsal-nom').value.trim();
   const prenom = document.getElementById('nsal-prenom')?.value.trim() || '';
   const nomComplet = prenom ? `${prenom} ${nom}` : nom;
@@ -2069,6 +2146,12 @@ function creerSalarie() {
     if (vi>-1 && !vehicules[vi].salId) { vehicules[vi].salId=salarie.id; vehicules[vi].salNom=nomComplet; sauvegarder('vehicules', vehicules); }
   }
 
+  const syncResult = await synchroniserSalarieVersSupabase(salarie);
+  if (syncResult.ok && syncResult.record) {
+    hydraterSalarieLocalDepuisSupabase(salarie, syncResult.record);
+    sauvegarder('salaries', salaries);
+  }
+
   ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>document.getElementById(id).value='');
   if (document.getElementById('nsal-poste')) document.getElementById('nsal-poste').value='';
   if (document.getElementById('nsal-vehicule')) document.getElementById('nsal-vehicule').value='';
@@ -2077,6 +2160,7 @@ function creerSalarie() {
   afficherSalaries();
   rafraichirDependancesSalaries();
   afficherToast(`✅ Compte créé pour ${nomComplet}`);
+  notifierSynchroSalarie(syncResult, 'Salarié');
 }
 
 function afficherSalaries() {
@@ -2136,7 +2220,7 @@ function ouvrirEditSalarie(id) {
   document.getElementById('modal-edit-salarie').classList.add('open');
 }
 
-function confirmerEditSalarie() {
+async function confirmerEditSalarie() {
   const nomFamille = document.getElementById('edit-sal-nom').value.trim();
   const prenom     = document.getElementById('edit-sal-prenom')?.value.trim()||'';
   const nomComplet = prenom ? `${prenom} ${nomFamille}` : nomFamille;
@@ -2170,6 +2254,13 @@ function confirmerEditSalarie() {
       if(vi>-1){vehicules[vi].salId=editSalarieId;vehicules[vi].salNom=nomComplet;}
     }
     sauvegarder('vehicules', vehicules);
+
+    const syncResult = await synchroniserSalarieVersSupabase(salaries[idx]);
+    if (syncResult.ok && syncResult.record) {
+      hydraterSalarieLocalDepuisSupabase(salaries[idx], syncResult.record);
+      sauvegarder('salaries', salaries);
+    }
+    notifierSynchroSalarie(syncResult, 'Modification salarié');
   }
   closeModal('modal-edit-salarie');
   editSalarieId=null; window._editSalarieId=null;
@@ -2195,13 +2286,28 @@ function confirmerResetMdp() {
 
 function toggleActifSalarie(id) {
   const salaries=charger('salaries'),idx=salaries.findIndex(s=>s.id===id);
-  if(idx>-1){salaries[idx].actif=!salaries[idx].actif;sauvegarder('salaries',salaries);afficherSalaries();rafraichirDependancesSalaries();afficherToast(salaries[idx].actif?'✅ Activé':'⏸️ Désactivé');}
+  if(idx>-1){
+    salaries[idx].actif=!salaries[idx].actif;
+    sauvegarder('salaries',salaries);
+    afficherSalaries();
+    rafraichirDependancesSalaries();
+    afficherToast(salaries[idx].actif?'✅ Activé':'⏸️ Désactivé');
+    synchroniserSalarieVersSupabase(salaries[idx]).then(function(resultat){
+      if (resultat.ok && resultat.record) {
+        hydraterSalarieLocalDepuisSupabase(salaries[idx], resultat.record);
+        sauvegarder('salaries', salaries);
+      }
+      notifierSynchroSalarie(resultat, 'Statut salarié');
+    });
+  }
 }
 
 async function supprimerSalarie(id) {
   const sal = charger('salaries').find(s => s.id === id);
   const _ok1 = await confirmDialog(`Supprimer ${sal?.nom || 'ce salarié'} ? Toutes ses données seront effacées.`, {titre:'Supprimer le salarié',icone:'🗑️',btnLabel:'Supprimer'});
   if (!_ok1) return;
+
+  const syncResult = await supprimerSalarieDansSupabase(sal);
 
   // 1. Supprimer de la liste salariés
   sauvegarder('salaries', charger('salaries').filter(s => s.id !== id));
@@ -2244,6 +2350,7 @@ async function supprimerSalarie(id) {
   afficherSalaries();
   rafraichirDependancesSalaries();
   afficherToast(`🗑️ ${sal?.nom || 'Salarié'} et toutes ses données supprimés`);
+  notifierSynchroSalarie(syncResult, 'Suppression salarié');
 }
 
 /* ===== UTILITAIRES AFFICHAGE ===== */
