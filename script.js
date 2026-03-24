@@ -363,6 +363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   getAdminAccounts();
+  await importerSalariesDepuisSupabase();
   document.getElementById('currentDate').textContent =
     new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   document.querySelectorAll('input[type="date"]').forEach(el => { el.value = aujourdhui(); });
@@ -422,7 +423,14 @@ function naviguerVers(page) {
     case 'statistiques': afficherStatistiques(); break;
     case 'previsions':   calculerPrevision(); break;
     case 'tva':          navTvaMois(0); break;
-    case 'salaries':     afficherSalaries(); break;
+    case 'salaries':
+      afficherSalaries();
+      importerSalariesDepuisSupabase().then(function(resultat) {
+        if (!resultat?.ok) return;
+        afficherSalaries();
+        rafraichirDependancesSalaries();
+      });
+      break;
     case 'heures':       navHeuresSemaine(0); break;
     case 'planning':     afficherPlanning(); afficherPlanningSemaine(); peuplerAbsenceSal(); afficherAbsencesPeriodes(); initFormulairePlanningRapide(); break;
     case 'alertes':      verifierDocumentsSalaries(); afficherAlertes(); break;
@@ -2116,6 +2124,75 @@ function hydraterSalarieLocalDepuisSupabase(salarie, record) {
   salarie.email = record.email || salarie.email || '';
   salarie.actif = record.actif !== false;
   return salarie;
+}
+
+function convertirSalarieSupabaseVersLocal(record, existant) {
+  if (!record) return existant || null;
+  const nomFamille = record.nom || existant?.nomFamille || '';
+  const prenom = record.prenom || existant?.prenom || '';
+  const nomComplet = [prenom, nomFamille].filter(Boolean).join(' ').trim() || existant?.nom || nomFamille || '';
+  return {
+    ...(existant || {}),
+    id: existant?.id || record.id,
+    supabaseId: record.id || existant?.supabaseId || '',
+    profileId: record.profile_id || existant?.profileId || '',
+    nom: nomComplet,
+    nomFamille: nomFamille,
+    prenom: prenom,
+    numero: record.numero || existant?.numero || '',
+    email: record.email || existant?.email || '',
+    tel: record.telephone || existant?.tel || '',
+    poste: record.poste || existant?.poste || '',
+    datePermis: record.permis || existant?.datePermis || '',
+    dateAssurance: record.assurance || existant?.dateAssurance || '',
+    actif: record.actif !== false,
+    creeLe: existant?.creeLe || new Date().toISOString()
+  };
+}
+
+async function importerSalariesDepuisSupabase() {
+  const client = getSupabaseClientSafe();
+  if (!client) return { ok: false, skipped: true };
+
+  const { data, error } = await client
+    .from('salaries')
+    .select('id, profile_id, numero, email, actif, nom, prenom, poste, permis, assurance, telephone')
+    .order('created_at', { ascending: false });
+
+  if (error) return { ok: false, error: error };
+  if (!Array.isArray(data)) return { ok: true, updated: 0 };
+
+  const salaries = charger('salaries');
+  const indexParSupabaseId = new Map();
+  const indexParNumero = new Map();
+
+  salaries.forEach(function(item, index) {
+    if (item?.supabaseId) indexParSupabaseId.set(item.supabaseId, index);
+    if (item?.numero) indexParNumero.set(String(item.numero).toUpperCase(), index);
+  });
+
+  data.forEach(function(record) {
+    const numeroKey = record?.numero ? String(record.numero).toUpperCase() : '';
+    const index = indexParSupabaseId.has(record.id)
+      ? indexParSupabaseId.get(record.id)
+      : (numeroKey && indexParNumero.has(numeroKey) ? indexParNumero.get(numeroKey) : -1);
+
+    if (index > -1) {
+      salaries[index] = convertirSalarieSupabaseVersLocal(record, salaries[index]);
+      indexParSupabaseId.set(record.id, index);
+      if (numeroKey) indexParNumero.set(numeroKey, index);
+      return;
+    }
+
+    const nouveau = convertirSalarieSupabaseVersLocal(record, null);
+    salaries.push(nouveau);
+    const nouvelIndex = salaries.length - 1;
+    indexParSupabaseId.set(record.id, nouvelIndex);
+    if (numeroKey) indexParNumero.set(numeroKey, nouvelIndex);
+  });
+
+  sauvegarder('salaries', salaries);
+  return { ok: true, updated: data.length };
 }
 
 function notifierSynchroSalarie(resultat, actionLabel) {
