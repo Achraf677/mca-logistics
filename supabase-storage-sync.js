@@ -1,8 +1,9 @@
 (function () {
   var STORAGE_SCOPE = 'global';
-  var FLUSH_DELAY_MS = 120;
-  var POLL_INTERVAL_MS = 1200;
-  var RETRY_DELAY_MS = 1200;
+  var FLUSH_DELAY_MS = 35;
+  var FAST_FLUSH_DELAY_MS = 0;
+  var POLL_INTERVAL_MS = 700;
+  var RETRY_DELAY_MS = 900;
   var suppressLocalSync = false;
   var pendingChanges = {};
   var pendingRemovals = {};
@@ -37,6 +38,22 @@
     if (key === 'accent_color') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     return true;
+  }
+
+  function isPriorityKey(key) {
+    if (!key || typeof key !== 'string') return false;
+    if (
+      key === 'livraisons' ||
+      key === 'salaries' ||
+      key === 'vehicules' ||
+      key === 'clients' ||
+      key === 'carburant' ||
+      key === 'admin_edit_locks'
+    ) return true;
+    if (key.indexOf('messages_') === 0) return true;
+    if (key.indexOf('km_sal_') === 0) return true;
+    if (key.indexOf('km_report_') === 0) return true;
+    return false;
   }
 
   function buildSnapshot() {
@@ -236,14 +253,14 @@
     if (!initialized || suppressLocalSync || !isEligibleKey(key)) return;
     delete pendingRemovals[key];
     pendingChanges[key] = String(value);
-    scheduleFlush();
+    scheduleFlush(isPriorityKey(key) ? FAST_FLUSH_DELAY_MS : FLUSH_DELAY_MS);
   }
 
   function queueRemove(key) {
     if (!initialized || suppressLocalSync || !isEligibleKey(key)) return;
     delete pendingChanges[key];
     pendingRemovals[key] = true;
-    scheduleFlush();
+    scheduleFlush(isPriorityKey(key) ? FAST_FLUSH_DELAY_MS : FLUSH_DELAY_MS);
   }
 
   function subscribeRealtime() {
