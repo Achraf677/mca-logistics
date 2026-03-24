@@ -1,0 +1,1698 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MCA Logistics — Espace Salarié</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <style>
+    :root {
+      --bg:#0c0e16; --card:#13161f; --card2:#1a1d2a; --border:#252836;
+      --accent:#f5a623; --blue:#4f8ef7; --green:#2ecc71; --red:#e74c3c;
+      --orange:#e67e22; --text:#e8eaf0; --muted:#6b7280; --radius:12px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+    /* LOGIN */
+    #ecran-login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+      background:radial-gradient(ellipse at 30% 50%,rgba(245,166,35,.05) 0%,transparent 60%),
+                 radial-gradient(ellipse at 80% 20%,rgba(79,142,247,.05) 0%,transparent 50%),var(--bg);}
+    .login-box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:48px 40px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+    .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;}
+    .login-logo-icon{width:48px;height:48px;background:linear-gradient(135deg,var(--accent),#d4911d);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+    .login-logo-text{font-size:1.5rem;font-weight:700;}
+    .login-logo-sub{font-size:.75rem;color:var(--muted);margin-top:2px;}
+    .login-title{font-size:1.1rem;font-weight:600;margin-bottom:8px;}
+    .login-sub{font-size:.85rem;color:var(--muted);margin-bottom:28px;}
+    .field{margin-bottom:16px;}
+    .field label{display:block;font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+    .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:8px;font-size:.95rem;font-family:inherit;transition:border-color .2s;}
+    .field input:focus{outline:none;border-color:var(--accent);}
+    .btn-login{width:100%;background:var(--accent);color:#000;border:none;padding:13px;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;margin-top:8px;transition:all .2s;}
+    .btn-login:hover{background:#d4911d;transform:translateY(-1px);}
+    .login-error{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);color:var(--red);padding:10px 14px;border-radius:8px;font-size:.85rem;margin-top:16px;display:none;}
+
+    /* APP */
+    #ecran-salarie{display:none;}
+    .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+    .topbar-left{display:flex;align-items:center;gap:12px;}
+    .topbar-logo{font-size:1rem;font-weight:700;color:var(--accent);}
+    .topbar-info .name{font-size:.9rem;font-weight:600;}
+    .topbar-info .veh{font-size:.75rem;color:var(--muted);}
+    .topbar-right{display:flex;align-items:center;gap:8px;}
+
+    /* BOUTON PROFIL */
+    .btn-profil{position:relative;width:38px;height:38px;background:linear-gradient(135deg,var(--accent),#d4911d);border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:transform .2s;flex-shrink:0;}
+    .btn-profil:hover{transform:scale(1.05);}
+    .notif-dot{position:absolute;top:1px;right:1px;width:10px;height:10px;background:var(--red);border-radius:50%;border:2px solid var(--bg);display:none;}
+    .notif-dot.visible{display:block;}
+
+    .btn-sm{background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;font-size:.82rem;cursor:pointer;transition:all .2s;}
+    .btn-sm:hover{border-color:var(--accent);color:var(--accent);}
+    .btn-sm.danger:hover{border-color:var(--red);color:var(--red);}
+
+    /* LAYOUT PRINCIPAL */
+    #ecran-salarie{display:none;height:100vh;display:none;flex-direction:column;}
+    #ecran-salarie.actif{display:flex;}
+    .topbar{flex-shrink:0;}
+
+    /* ONGLETS FIXES EN HAUT */
+    .tabs-wrapper{background:var(--card);border-bottom:1px solid var(--border);padding:0 12px;flex-shrink:0;position:sticky;top:0;z-index:40;}
+    .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding:6px 0;}
+    .tabs::-webkit-scrollbar{display:none;}
+    .tab{flex-shrink:0;padding:8px 14px;border:none;background:transparent;color:var(--muted);border-radius:7px;font-size:.82rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;font-family:inherit;display:flex;align-items:center;gap:4px;}
+    .tab.active{background:var(--accent);color:#000;font-weight:700;}
+    .tab:not(.active):hover{color:var(--text);background:rgba(255,255,255,.05);}
+
+    /* CONTENU SCROLLABLE */
+    .main{flex:1;overflow-y:auto;padding:16px;max-width:820px;margin:0 auto;width:100%;}
+
+    /* PANNEAUX */
+    .panneau{display:none;}
+    .panneau.active{display:block;}
+
+    /* CARDS */
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
+    .card-header{padding:14px 18px;border-bottom:1px solid var(--border);font-size:.95rem;font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+    .card-body{padding:18px;}
+
+    /* NOTIF BANNER */
+    .notif-banner{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.25);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:10px;}
+    .notif-banner .close-notif{background:none;border:none;color:var(--green);cursor:pointer;font-size:1rem;margin-left:auto;}
+
+    /* LIVRAISONS */
+    .livraison-item{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+    .livraison-info{flex:1;min-width:160px;}
+    .livraison-client{font-weight:600;font-size:.95rem;margin-bottom:3px;}
+    .livraison-adresses{font-size:.82rem;color:var(--muted);}
+    .livraison-statut select{background:var(--card);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:.83rem;cursor:pointer;font-family:inherit;}
+
+    /* FORMS */
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+    .form-group{display:flex;flex-direction:column;gap:6px;}
+    .form-group.full{grid-column:1/-1;}
+    .form-group label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+    .form-group input,.form-group select{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.9rem;font-family:inherit;transition:border-color .2s;}
+    .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--accent);}
+    .btn-primary{background:var(--accent);color:#000;border:none;padding:10px 20px;border-radius:8px;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:inherit;}
+    .btn-primary:hover{background:#d4911d;}
+    .btn-danger{background:rgba(231,76,60,.1);color:var(--red);border:1px solid rgba(231,76,60,.3);padding:8px 14px;border-radius:7px;font-size:.85rem;cursor:pointer;font-family:inherit;transition:all .2s;min-height:36px;}
+    .btn-danger:hover{background:rgba(231,76,60,.2);}
+    .btn-edit{background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);padding:8px 14px;border-radius:7px;font-size:.85rem;cursor:pointer;font-family:inherit;transition:all .2s;min-height:36px;}
+    .btn-edit:hover{background:rgba(79,142,247,.2);}
+
+    .result-box{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.25);border-radius:8px;padding:12px 16px;font-size:.88rem;color:var(--green);margin-top:14px;display:none;}
+    .veh-info-box{background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:8px;padding:10px 14px;font-size:.85rem;color:var(--blue);margin-bottom:14px;display:none;}
+
+    /* HISTORIQUE */
+    .hist-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:.88rem;gap:8px;flex-wrap:wrap;}
+    .hist-row:last-child{border-bottom:none;}
+    .hist-actions{display:flex;gap:6px;flex-shrink:0;}
+
+    /* PROFIL PAGE */
+    .profil-header{display:flex;align-items:center;gap:20px;margin-bottom:28px;}
+    .profil-avatar{width:72px;height:72px;background:linear-gradient(135deg,var(--accent),#d4911d);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;}
+    .profil-name{font-size:1.3rem;font-weight:700;}
+    .profil-sub{font-size:.85rem;color:var(--muted);margin-top:4px;}
+    .profil-badge{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.3);padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:600;margin-top:6px;display:inline-block;}
+
+    .profil-section{margin-bottom:24px;}
+    .profil-section h3{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+    .profil-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:.88rem;}
+    .profil-row:last-child{border-bottom:none;}
+    .profil-row .label{color:var(--muted);}
+    .profil-row .value{font-weight:500;}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:20px;right:20px;background:var(--card);border:1px solid var(--border);border-left:4px solid var(--green);color:var(--text);padding:11px 18px;border-radius:8px;font-size:.88rem;z-index:300;transform:translateX(150%);transition:transform .3s ease;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+    .toast.show{transform:translateX(0);}
+    .toast.error{border-left-color:var(--red);}
+
+    /* MODAL */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:16px;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+    .modal-header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--border);font-weight:600;}
+    .modal-body{padding:20px;}
+    .modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;}
+    .btn-close{background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;}
+
+    .empty{text-align:center;color:var(--muted);padding:28px;font-size:.9rem;font-style:italic;}
+
+    @media(max-width:400px){
+      .tab-label-long{display:none!important;}
+      .tab-label-court{display:inline!important;}
+    }
+    @media(max-width:500px){
+      .login-box{padding:32px 20px;}
+      .form-row{grid-template-columns:1fr;}
+      .livraison-item{flex-direction:column;align-items:flex-start;}
+      .topbar{padding:10px 12px;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="ecran-login">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-logo-icon">🚐</div>
+      <div><div class="login-logo-text">MCA Logistics</div><div class="login-logo-sub">Espace Salarié</div></div>
+    </div>
+    <div class="login-title">Connexion</div>
+    <div class="login-sub">Numéro salarié + mot de passe</div>
+    <div class="field"><label>Numéro salarié</label><input type="text" id="login-numero" placeholder="Ex : EMP001" autocomplete="username" /></div>
+    <div class="field"><label>Mot de passe</label>
+      <div style="position:relative">
+        <input type="password" id="login-mdp" placeholder="Votre mot de passe" autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')seConnecter()" style="padding-right:44px;width:100%"/>
+        <button onclick="toggleLoginMdp()" type="button"
+          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1"
+          title="Afficher le mot de passe">👁️</button>
+      </div>
+    </div>
+    <button class="btn-login" onclick="seConnecter()">Se connecter →</button>
+    <div class="login-error" id="login-error">Numéro ou mot de passe incorrect.</div>
+  </div>
+</div>
+
+<!-- INTERFACE SALARIÉ -->
+<div id="ecran-salarie">
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">🚐 MCA Logistics</span>
+      <span style="color:var(--border)">|</span>
+      <div class="topbar-info">
+        <div class="name" id="sal-nom-display"></div>
+        <div class="veh" id="sal-veh-display"></div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil">
+        👤
+        <span class="notif-dot" id="notif-dot"></span>
+      </button>
+      <button class="btn-sm danger" onclick="seDeconnecter()">⏏ Déco</button>
+    </div>
+  </header>
+
+  <div class="tabs-wrapper">
+    <div class="tabs">
+      <button class="tab active" id="tab-accueil" onclick="changerOnglet('accueil',this)">🏠 Accueil <span id="badge-accueil" style="display:none;background:var(--red);color:#fff;border-radius:20px;font-size:.7rem;padding:1px 6px;font-weight:700"></span></button>
+      <button class="tab" id="tab-livraisons" onclick="changerOnglet('livraisons',this)">📦 Livraisons</button>
+      <button class="tab" id="tab-planning" onclick="changerOnglet('planning',this)">📅 Planning</button>
+      <button class="tab" id="tab-carburant" onclick="changerOnglet('carburant',this)">⛽ Carburant</button>
+      <button class="tab" id="tab-inspection" onclick="changerOnglet('inspection',this)">
+        <span class="tab-label-long">🚗 Inspection & Km</span>
+        <span class="tab-label-court" style="display:none">🚗 Insp.</span>
+      </button>
+      <button class="tab" id="tab-messages" onclick="changerOnglet('messages',this)">💬 Messages <span id="badge-msg-sal" style="display:none;background:var(--red);color:#fff;border-radius:20px;font-size:.7rem;padding:2px 7px;font-weight:700;line-height:1.2;vertical-align:middle"></span></button>
+      <button class="tab" id="tab-profil" onclick="changerOnglet('profil',this)">👤 Profil</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- ACCUEIL -->
+    <div class="panneau active" id="panneau-accueil">
+      <div id="resume-journee-container"></div>
+      <!-- Planning du jour -->
+      <div class="card" id="accueil-planning-card" style="margin-bottom:14px;display:none">
+        <div class="card-header">📅 Mon planning aujourd'hui</div>
+        <div class="card-body" id="accueil-planning-content"></div>
+      </div>
+
+      <!-- Checklist tâches du jour -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">✅ Tâches du jour <span id="accueil-checklist-progress" style="font-size:.78rem;color:var(--muted);font-weight:400"></span></div>
+        <div class="card-body" id="accueil-checklist">
+          <div class="empty">Chargement...</div>
+        </div>
+      </div>
+
+      <!-- Résumé rapide livraisons -->
+      <div class="card">
+        <div class="card-header">📦 Mes livraisons du jour <span id="accueil-nb-livs" style="font-size:.78rem;color:var(--muted);font-weight:400"></span></div>
+        <div class="card-body" id="accueil-livraisons-resume"><div class="empty">Aucune livraison assignée</div></div>
+      </div>
+    </div>
+
+    <!-- LIVRAISONS -->
+    <div class="panneau" id="panneau-livraisons">
+      <div class="card">
+        <div class="card-header">📦 Mes livraisons d'aujourd'hui <span id="badge-nb-livraisons" style="font-size:.78rem;color:var(--muted);font-weight:400;"></span></div>
+        <div class="card-body" id="liste-livraisons"><div class="empty">Aucune livraison assignée</div></div>
+      </div>
+    </div>
+
+    <!-- PLANNING SALARIÉ -->
+    <div class="panneau" id="panneau-planning">
+      <div class="card">
+        <div class="card-header">📅 Mon planning de la semaine</div>
+        <div class="card-body" id="planning-sal-content">
+          <div class="empty">Aucun planning défini — contactez votre administrateur.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARBURANT -->
+    <div class="panneau" id="panneau-carburant">
+      <div id="notifs-carburant-container"></div>
+      <div class="card">
+        <div class="card-header">⛽ Enregistrer un plein</div>
+        <div class="card-body">
+          <div class="veh-info-box" id="carb-veh-info"></div>
+          <div class="form-row">
+            <div class="form-group"><label>Litres *</label><input type="number" id="sal-litres" placeholder="40" min="0" step="0.1" oninput="calculerPlein()" /></div>
+            <div class="form-group"><label>Prix / litre (€) *</label><input type="number" id="sal-prix-litre" placeholder="1.85" min="0" step="0.01" oninput="calculerPlein()" /></div>
+            <div class="form-group"><label>Date</label><input type="date" id="sal-carb-date" /></div>
+          </div>
+          <div class="result-box" id="plein-result">Total : <strong id="plein-total">0 €</strong></div>
+          <button class="btn-primary" style="margin-top:16px" onclick="enregistrerPlein()">✅ Enregistrer le plein</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">📋 Mes pleins</div>
+        <div class="card-body" id="historique-carburant"><div class="empty">Aucun plein</div></div>
+      </div>
+    </div>
+
+    <!-- INSPECTION + KM -->
+    <div class="panneau" id="panneau-inspection">
+
+      <!-- KM SECTION — SIMPLE -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">🛣️ Relevé kilométrique de tournée</div>
+        <div class="card-body">
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:16px">Saisissez le compteur de votre véhicule au début et à la fin de votre tournée.</p>
+
+          <div class="form-group" style="margin-bottom:12px">
+            <label>DATE</label>
+            <input type="date" id="km-date" onchange="rafraichirTourneesSelect()" />
+          </div>
+
+          <div class="form-group" style="margin-bottom:12px">
+            <label>TOURNÉE CONCERNÉE</label>
+            <select id="km-tournee-id" style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:9px 12px;border-radius:8px;font-size:.88rem;width:100%">
+              <option value="">— Sélectionner une livraison (optionnel) —</option>
+            </select>
+            <span style="font-size:.75rem;color:var(--muted)">Liez ce relevé à une livraison spécifique du jour</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="form-group">
+              <label>KM DÉBUT *</label>
+              <input type="number" id="km-depart" placeholder="Ex : 50 200" min="0" inputmode="numeric" oninput="majDistanceKm()" />
+              <span style="font-size:.75rem;color:var(--muted)">Compteur avant départ</span>
+            </div>
+            <div class="form-group">
+              <label>KM FIN *</label>
+              <input type="number" id="km-arrivee" placeholder="Ex : 50 400" min="0" inputmode="numeric" oninput="majDistanceKm()" />
+              <span style="font-size:.75rem;color:var(--muted)">Compteur après retour</span>
+            </div>
+          </div>
+
+          <div id="km-result" style="display:none;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:8px;padding:10px 14px;font-size:.9rem;color:var(--green);margin-bottom:14px;font-weight:600">
+            🚗 Distance parcourue : <span id="km-calcule"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <button class="btn-primary" style="width:100%;padding:13px;font-size:.95rem" onclick="enregistrerKmDepart()">🚩 Enregistrer KM début</button>
+            <button class="btn-primary" style="width:100%;padding:13px;font-size:.95rem" onclick="enregistrerKmFin()">🏁 Enregistrer KM fin</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header">📋 Historique des relevés</div>
+        <div class="card-body" id="historique-km"><div class="empty">Aucun relevé enregistré</div></div>
+      </div>
+
+      <!-- INSPECTION PHOTO -->
+      <div class="card">
+        <div class="card-header">🚗 Inspection quotidienne du véhicule</div>
+        <div class="card-body">
+          <div class="veh-info-box" id="insp-veh-info"></div>
+          <p style="font-size:.83rem;color:var(--muted);margin-bottom:14px">Photos avant départ transmises à l'administrateur.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div class="form-group"><label>Date d'inspection</label><input type="date" id="insp-date" /></div>
+            <div class="form-group"><label>Kilométrage actuel</label><input type="number" id="insp-km" placeholder="Ex : 50 200" min="0" inputmode="numeric" /></div>
+            <div class="form-group full"><label>Commentaire</label><input type="text" id="insp-commentaire" placeholder="Ex : Rayure porte droite..." style="width:100%" /></div>
+          </div>
+          <div style="margin-bottom:14px">
+            <label style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:8px">Photos (1 à 4)*</label>
+            <label for="insp-photos" style="display:flex;align-items:center;gap:12px;background:rgba(79,142,247,.06);border:2px dashed rgba(79,142,247,.25);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s" id="insp-label">
+              <span style="font-size:1.6rem">📷</span>
+              <span style="font-size:.85rem;color:var(--blue)">Prendre des photos<br><span style="font-size:.75rem;color:var(--muted)">JPG, PNG — max 4</span></span>
+            </label>
+            <input type="file" id="insp-photos" accept="image/*" multiple capture="environment" style="display:none" onchange="previsualiserPhotos()" />
+          </div>
+          <div id="insp-previews" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px"></div>
+          <button class="btn-primary" style="width:100%;padding:12px" onclick="envoyerInspection()">📤 Envoyer l'inspection</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="card-header">📋 Mes inspections précédentes</div>
+        <div class="card-body" id="historique-inspections"><div class="empty">Aucune inspection enregistrée</div></div>
+      </div>
+    </div>
+
+    <!-- MESSAGERIE -->
+    <div class="panneau" id="panneau-messages">
+      <div class="card" style="display:flex;flex-direction:column;height:calc(100vh - 200px);min-height:400px">
+        <div class="card-header">💬 Messagerie — Administration</div>
+        <div id="msg-fil" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px">
+          <div class="empty" id="msg-vide">Aucun message pour l'instant</div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding:12px;display:flex;gap:8px;align-items:flex-end">
+          <label for="msg-sal-photo" style="cursor:pointer;padding:8px;color:var(--muted);font-size:1.1rem;flex-shrink:0" title="Envoyer une photo">📷</label>
+          <input type="file" id="msg-sal-photo" accept="image/*" style="display:none" onchange="envoyerPhotoSal(this)" />
+          <textarea id="msg-input" placeholder="Écrire un message à l'administrateur..." rows="2"
+            style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.88rem;font-family:inherit;resize:none;outline:none;transition:border-color .2s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageSal();}"></textarea>
+          <button onclick="envoyerMessageSal()" class="btn-primary" style="padding:10px 16px;flex-shrink:0">➤</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFIL -->
+    <div class="panneau" id="panneau-profil">
+      <!-- Incidents me concernant -->
+      <div id="mes-incidents-container" style="margin-bottom:14px"></div>
+      <div id="notifs-profil-container"></div>
+      <div class="card">
+        <div class="card-header">👤 Mon profil</div>
+        <div class="card-body">
+          <div class="profil-header">
+            <div class="profil-avatar" id="profil-avatar">👤</div>
+            <div>
+              <div class="profil-name" id="profil-nom-display">—</div>
+              <div class="profil-sub" id="profil-poste-display">—</div>
+              <div class="profil-badge" id="profil-statut-badge">✅ Actif</div>
+            </div>
+          </div>
+          <div class="profil-section">
+            <h3>Informations</h3>
+            <div class="profil-row"><span class="label">N° Salarié</span><span class="value" id="profil-numero">—</span></div>
+            <div class="profil-row"><span class="label">Téléphone</span><span class="value" id="profil-tel">—</span></div>
+            <div class="profil-row"><span class="label">Véhicule affecté</span><span class="value" id="profil-vehicule">—</span></div>
+            <div class="profil-row"><span class="label">Poste</span><span class="value" id="profil-poste">—</span></div>
+            <div class="profil-row"><span class="label">Membre depuis</span><span class="value" id="profil-depuis">—</span></div>
+          </div>
+          <div class="profil-section">
+            <h3>Statistiques</h3>
+            <div class="profil-row"><span class="label">Livraisons ce mois</span><span class="value" id="profil-livs-mois">—</span></div>
+            <div class="profil-row"><span class="label">Livraisons aujourd'hui</span><span class="value" id="profil-livs-auj">—</span></div>
+            <div class="profil-row"><span class="label">Km ce mois (relevés)</span><span class="value" id="profil-km-mois">—</span></div>
+          </div>
+          <div class="profil-section">
+            <h3>Modifier le mot de passe</h3>
+            <div class="form-group" style="margin-bottom:10px"><label>Mot de passe actuel</label><input type="password" id="chg-ancien" /></div>
+            <div class="form-group" style="margin-bottom:10px"><label>Nouveau mot de passe</label><input type="password" id="chg-nouveau" /></div>
+            <div class="form-group" style="margin-bottom:16px"><label>Confirmer le nouveau</label><input type="password" id="chg-confirmer" /></div>
+            <button class="btn-primary" onclick="changerMonMdp()">🔑 Mettre à jour le mot de passe</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal : Modifier plein carburant -->
+<div class="modal-overlay" id="modal-modif-plein">
+  <div class="modal">
+    <div class="modal-header">✏️ Modifier le plein <button class="btn-close" onclick="fermerModal('modal-modif-plein')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="modif-plein-id" />
+      <div class="form-group" style="margin-bottom:12px"><label>Litres *</label><input type="number" id="modif-litres" min="0" step="0.1" /></div>
+      <div class="form-group" style="margin-bottom:12px"><label>Prix / litre (€) *</label><input type="number" id="modif-prix-litre" min="0" step="0.01" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="modif-date" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="fermerModal('modal-modif-plein')">Annuler</button>
+      <button class="btn-primary" onclick="confirmerModifPlein()">✅ Enregistrer la modification</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Modifier relevé km -->
+<div class="modal-overlay" id="modal-edit-km-sal">
+  <div class="modal">
+    <div class="modal-header">✏️ Modifier le relevé <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-km-id" />
+      <div class="form-group" style="margin-bottom:12px"><label>Km début *</label><input type="number" id="edit-km-dep" min="0" inputmode="numeric" /></div>
+      <div class="form-group" style="margin-bottom:12px"><label>Km fin</label><input type="number" id="edit-km-arr" min="0" inputmode="numeric" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="edit-km-date" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="fermerModal('modal-edit-km-sal')">Annuler</button>
+      <button class="btn-primary" onclick="confirmerEditKmSal()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-sal"></div>
+
+<script>
+/* ===== ÉTAT ===== */
+let salarieCourant = null;
+
+/* ===== CONNEXION ===== */
+function toggleLoginMdp() {
+  const input = document.getElementById('login-mdp');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function seConnecter() {
+  const numero = document.getElementById('login-numero').value.trim().toUpperCase();
+  const mdp    = document.getElementById('login-mdp').value;
+  const errEl  = document.getElementById('login-error');
+  if (!numero || !mdp) { errEl.style.display='block'; errEl.textContent='Remplissez tous les champs.'; return; }
+
+  // Vérifier blocage
+  const cle      = 'login_attempts_' + numero;
+  const attempts = JSON.parse(localStorage.getItem(cle)||'{"count":0,"time":0}');
+  const maxTent  = parseInt(localStorage.getItem('max_tentatives')||'5');
+  const delaiMin = 15;
+  if (attempts.count >= maxTent) {
+    const elapsed = (Date.now() - attempts.time) / 60000;
+    if (elapsed < delaiMin) {
+      const restant = Math.ceil(delaiMin - elapsed);
+      errEl.style.display='block';
+      errEl.textContent=`Compte temporairement bloqué. Réessayez dans ${restant} min.`;
+      return;
+    } else {
+      localStorage.removeItem(cle);
+    }
+  }
+
+  const salaries = JSON.parse(localStorage.getItem('salaries')||'[]');
+  const sal = salaries.find(s => s.numero===numero && s.mdpHash===btoa(mdp));
+  if (!sal) {
+    // Enregistrer tentative échouée
+    const att = JSON.parse(localStorage.getItem(cle)||'{"count":0,"time":0}');
+    att.count++; att.time = Date.now();
+    localStorage.setItem(cle, JSON.stringify(att));
+    const restantes = Math.max(0, maxTent - att.count);
+    errEl.style.display='block';
+    errEl.textContent = restantes > 0
+      ? `Numéro ou mot de passe incorrect. (${restantes} tentative${restantes>1?'s':''} restante${restantes>1?'s':''})`
+      : `Compte bloqué 15 minutes après trop de tentatives.`;
+    return;
+  }
+  if (!sal.actif) { errEl.style.display='block'; errEl.textContent="Compte désactivé. Contactez l'administrateur."; return; }
+
+  // Succès — réinitialiser les tentatives
+  localStorage.removeItem(cle);
+  salarieCourant = sal; errEl.style.display='none';
+  lancerInterface();
+}
+
+function seDeconnecter() {
+  salarieCourant = null;
+  if (window._msgPollInterval) clearInterval(window._msgPollInterval);
+  document.getElementById('ecran-salarie').style.display = 'none';
+  document.getElementById('ecran-login').style.display   = 'flex';
+  document.getElementById('login-mdp').value = '';
+}
+
+function lancerInterface() {
+  document.getElementById('ecran-login').style.display   = 'none';
+  document.getElementById('ecran-salarie').style.display = 'flex';
+  document.getElementById('ecran-salarie').style.flexDirection = 'column';
+  document.getElementById('ecran-salarie').style.height = '100vh';
+
+  document.getElementById('sal-nom-display').textContent = salarieCourant.nom;
+  const veh = getMonVehicule();
+  document.getElementById('sal-veh-display').textContent = veh ? `🚐 ${veh.immat} — ${veh.modele}` : 'Aucun véhicule affecté';
+
+  const infoTxt = veh ? `🚐 Votre véhicule : ${veh.immat} — ${veh.modele}` : '';
+  ['km-veh-info','carb-veh-info'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = infoTxt; el.style.display = infoTxt ? 'block' : 'none'; }
+  });
+
+  const auj = new Date().toISOString().split('T')[0];
+  ['km-date','sal-carb-date'].forEach(id => { const el=document.getElementById(id); if(el) el.value=auj; });
+
+  // Km report auto
+  // Vérifier notifs
+  verifierNotifs();
+
+  changerOnglet('accueil', document.getElementById('tab-accueil'));
+  chargerLivraisons();
+  chargerHistoriqueKm();
+  chargerHistoriqueCarburant();
+  chargerHistoriqueInspections();
+  chargerMessagesSal();
+  mettreAJourBadgeMsgSal();
+  afficherAccueil();
+  rafraichirTourneesSelect(); // Pré-charger les livraisons du jour dans le select km
+
+  // Info véhicule dans inspection + km
+  const infoInsp = document.getElementById('insp-veh-info');
+  if (infoInsp && veh) { infoInsp.textContent = `🚐 Véhicule : ${veh.immat} — ${veh.modele}`; infoInsp.style.display = 'block'; }
+
+  // Date du jour dans inspection
+  const inspDate = document.getElementById('insp-date');
+  if (inspDate) inspDate.value = auj;
+
+  // Polling toutes les 10s pour détecter nouveaux messages admin
+  if (window._msgPollInterval) clearInterval(window._msgPollInterval);
+  window._msgPollInterval = setInterval(() => {
+    if (!salarieCourant) { clearInterval(window._msgPollInterval); return; }
+    mettreAJourBadgeMsgSal();
+  }, 10000);
+}
+
+function getMonVehicule() {
+  return (JSON.parse(localStorage.getItem('vehicules')||'[]')).find(v => v.salId===salarieCourant.id) || null;
+}
+
+function libelleCarburant() {
+  const veh = getMonVehicule();
+  return `${veh ? veh.immat : 'SANS-PLAQUE'} — ${salarieCourant.nom}`;
+}
+
+/* ===== NOTIFS ===== */
+function verifierNotifs() {
+  const notifs = (JSON.parse(localStorage.getItem('notifs_sal_'+salarieCourant.id)||'[]')).filter(n=>!n.lu);
+  const dot = document.getElementById('notif-dot');
+  if (dot) dot.classList.toggle('visible', notifs.length > 0);
+}
+
+function afficherNotifsDansOnglet(containerId) {
+  const cle   = 'notifs_sal_'+salarieCourant.id;
+  const notifs = JSON.parse(localStorage.getItem(cle)||'[]').filter(n=>!n.lu);
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  notifs.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'notif-banner';
+    div.innerHTML = `<span>✅ ${n.message}</span><button class="close-notif" onclick="marquerNotifLue('${n.id}','${containerId}')">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+function marquerNotifLue(notifId, containerId) {
+  const cle    = 'notifs_sal_'+salarieCourant.id;
+  const notifs = JSON.parse(localStorage.getItem(cle)||'[]');
+  const idx    = notifs.findIndex(n => n.id===notifId);
+  if (idx > -1) { notifs[idx].lu = true; localStorage.setItem(cle, JSON.stringify(notifs)); }
+  verifierNotifs();
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
+  afficherNotifsDansOnglet(containerId);
+}
+
+/* ===== PROFIL ===== */
+function afficherProfil() {
+  const sal = salarieCourant;
+  const veh = getMonVehicule();
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const mois = new Date().toISOString().slice(0,7);
+  const auj  = new Date().toISOString().split('T')[0];
+  const livsM = livraisons.filter(l => l.chaufId===sal.id && l.date.startsWith(mois)).length;
+  const livsA = livraisons.filter(l => l.chaufId===sal.id && l.date===auj).length;
+
+  // Km ce mois
+  const entrees = JSON.parse(localStorage.getItem('km_sal_'+sal.id)||'[]');
+  const kmMois  = entrees.filter(e => e.date.startsWith(mois)).reduce((s,e)=>s+(e.distance||0),0);
+
+  document.getElementById('profil-nom-display').textContent = sal.nom;
+  document.getElementById('profil-poste-display').textContent = sal.poste || 'Poste non renseigné';
+  document.getElementById('profil-avatar').textContent = sal.nom.charAt(0).toUpperCase();
+  document.getElementById('profil-numero').textContent  = sal.numero;
+  document.getElementById('profil-tel').textContent     = sal.tel || 'Non renseigné';
+  document.getElementById('profil-vehicule').textContent = veh ? `${veh.immat} — ${veh.modele}` : 'Non affecté';
+  document.getElementById('profil-poste').textContent   = sal.poste || 'Non renseigné';
+  document.getElementById('profil-depuis').textContent  = sal.creeLe ? new Date(sal.creeLe).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  document.getElementById('profil-livs-mois').textContent = livsM;
+  document.getElementById('profil-livs-auj').textContent  = livsA;
+  document.getElementById('profil-km-mois').textContent   = kmMois.toFixed(0)+' km';
+
+  // Incidents me concernant
+  const incidents = JSON.parse(localStorage.getItem('incidents')||'[]').filter(i=>i.chaufId===sal.id);
+  const incCont   = document.getElementById('mes-incidents-container');
+  if (incCont) {
+    if (incidents.length === 0) {
+      incCont.innerHTML = '';
+    } else {
+      const ouverts = incidents.filter(i=>i.statut==='ouvert').length;
+      incCont.innerHTML = `
+        <div class="card" style="border-left:3px solid ${ouverts>0?'var(--red)':'var(--green)'}">
+          <div class="card-header"><h2>${ouverts>0?'🚨':'✅'} Incidents / Réclamations me concernant</h2><span style="font-size:.82rem;color:var(--text-muted)">${incidents.length} au total · ${ouverts} ouvert(s)</span></div>
+          <div class="card-body" style="padding:0">
+            ${incidents.slice(0,5).map(i=>`
+              <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:.85rem;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-weight:500">${i.description||'—'}</div>
+                  <div style="font-size:.75rem;color:var(--muted)">${i.date} · ${i.client||'—'}</div>
+                </div>
+                <span class="incident-badge ${i.statut==='ouvert'?'incident-ouvert':i.statut==='traite'?'incident-traite':'incident-encours'}">${i.statut==='ouvert'?'🔴 Ouvert':i.statut==='traite'?'✅ Traité':'🟡 En cours'}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+  }
+
+  // Notifs dans profil
+  const notifsDansOnglet = JSON.parse(localStorage.getItem('notifs_sal_'+sal.id)||'[]').filter(n=>!n.lu);
+  const container = document.getElementById('notifs-profil-container');
+  container.innerHTML = '';
+  notifsDansOnglet.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'notif-banner';
+    div.innerHTML = `<span>${n.message}</span><button class="close-notif" onclick="marquerNotifLue('${n.id}','notifs-profil-container')">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+/* ===== ONGLETS ===== */
+function changerOnglet(nom, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panneau').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else { const t = document.getElementById('tab-profil'); if(t) t.classList.add('active'); }
+  const p = document.getElementById('panneau-'+nom);
+  if (p) p.classList.add('active');
+
+  if (nom === 'profil') {
+    afficherProfil();
+    const dot = document.getElementById('notif-dot');
+    if (dot) dot.classList.remove('visible');
+  }
+  if (nom === 'carburant')  afficherNotifsDansOnglet('notifs-carburant-container');
+  if (nom === 'messages')   { chargerMessagesSal(); }
+  if (nom === 'inspection') { chargerHistoriqueInspections(); rafraichirTourneesSelect(); }
+  if (nom === 'accueil')    { afficherAccueil(); }
+  if (nom === 'planning')   { afficherPlanningSal(); }
+}
+
+/* ===== SYNCHRO STORAGE (admin → salarié en temps réel) ===== */
+window.addEventListener('storage', function(e) {
+  if (!salarieCourant) return;
+  // Planning mis à jour par l'admin
+  if (e.key === 'plannings') {
+    afficherAccueil();
+    const panneau = document.getElementById('panneau-planning');
+    if (panneau && panneau.closest('.panneau.active')) afficherPlanningSal();
+    else afficherPlanningSal(); // toujours mettre à jour en cache
+    toast('📅 Planning mis à jour par l\'administrateur');
+  }
+  // Nouvelles livraisons assignées
+  if (e.key === 'livraisons') {
+    chargerLivraisons();
+    afficherAccueil();
+  }
+  // Nouveau message de l'admin
+  if (e.key && e.key.startsWith('messages_' + salarieCourant.id)) {
+    mettreAJourBadgeMsgSal();
+    const msgs = document.getElementById('msg-fil');
+    if (msgs) chargerMessagesSal();
+  }
+  // Notifs validées par admin
+  if (e.key && e.key.startsWith('notifs_sal_' + salarieCourant.id)) {
+    verifierNotifs();
+  }
+});
+
+/* ===== RÉSUMÉ FIN DE JOURNÉE ===== */
+function afficherResumeJournee() {
+  const auj   = new Date().toISOString().split('T')[0];
+  const heure = new Date().getHours();
+  const cont  = document.getElementById('resume-journee-container');
+  if (!cont) return;
+
+  // Heure de déclenchement : basée sur le planning du salarié
+  const plannings  = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const monPlan    = plannings.find(p=>p.salId===salarieCourant.id);
+  const joursSem   = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const jourNom    = joursSem[new Date().getDay()];
+  const entree     = monPlan?.semaine?.find(j=>j.jour===jourNom);
+  const heureFin   = entree?.heureFin ? parseInt(entree.heureFin.split(':')[0]) : 16;
+  const seuilAffichage = Math.max(heureFin - 1, 14); // 1h avant la fin, min 14h
+
+  if (heure < seuilAffichage) { cont.innerHTML = ''; return; }
+
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]')
+    .filter(l => l.chaufId===salarieCourant.id && l.date===auj);
+  if (!livraisons.length) { cont.innerHTML=''; return; }
+
+  const livrees  = livraisons.filter(l=>l.statut==='livre').length;
+  const kmEntrees= JSON.parse(localStorage.getItem('km_sal_'+salarieCourant.id)||'[]').filter(e=>e.date===auj);
+  const kmTotal  = kmEntrees.reduce((s,e)=>s+(e.distance||0),0);
+  const pleins   = JSON.parse(localStorage.getItem('carb_sal_'+salarieCourant.id)||'[]');
+  const plein    = pleins.some(p=>p.date===auj);
+  const caJour   = livraisons.filter(l=>l.statut==='livre').reduce((s,l)=>s+(l.prix||0),0);
+
+  cont.innerHTML = `
+    <div class="resume-journee">
+      <div class="resume-journee-title">🌅 Résumé de votre journée</div>
+      <div class="resume-grid">
+        <div class="resume-item"><div class="resume-item-val">${livraisons.length}</div><div class="resume-item-label">Livraisons</div></div>
+        <div class="resume-item"><div class="resume-item-val" style="color:var(--green)">${livrees}</div><div class="resume-item-label">Livrées ✅</div></div>
+        <div class="resume-item"><div class="resume-item-val">${kmTotal>0?kmTotal.toFixed(0)+' km':'—'}</div><div class="resume-item-label">Km parcourus</div></div>
+        <div class="resume-item"><div class="resume-item-val">${plein?'✅':'❌'}</div><div class="resume-item-label">Plein fait</div></div>
+        ${caJour > 0 ? `<div class="resume-item" style="grid-column:1/-1"><div class="resume-item-val" style="font-size:1rem">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caJour)}</div><div class="resume-item-label">CA livré</div></div>` : ''}
+      </div>
+    </div>`;
+}
+
+/* ===== PHOTO MESSAGERIE SALARIÉ ===== */
+function envoyerPhotoSal(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 800;
+      let w = img.width, h = img.height;
+      if (w > max || h > max) { const r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed = c.toDataURL('image/jpeg',0.72);
+      const msgs = JSON.parse(localStorage.getItem('messages_'+salarieCourant.id)||'[]');
+      msgs.push({ id: Date.now().toString(36), auteur:'salarie', texte:'📷 Photo partagée', photo:compressed, lu:false, creeLe:new Date().toISOString() });
+      localStorage.setItem('messages_'+salarieCourant.id, JSON.stringify(msgs));
+      input.value = '';
+      chargerMessagesSal();
+      toast('✅ Photo envoyée');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ===== PLANNING SALARIÉ ===== */
+function afficherPlanningSal() {
+  if (!salarieCourant) return;
+  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const monPlan   = plannings.find(p => p.salId === salarieCourant.id);
+  const cont      = document.getElementById('planning-sal-content');
+  if (!cont) return;
+
+  if (!monPlan || !monPlan.semaine || !monPlan.semaine.length) {
+    cont.innerHTML = '<div class="empty">Aucun planning défini — contactez votre administrateur.</div>';
+    return;
+  }
+
+  const joursSemaine = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  const joursLabels  = { lundi:'Lundi', mardi:'Mardi', mercredi:'Mercredi', jeudi:'Jeudi', vendredi:'Vendredi', samedi:'Samedi', dimanche:'Dimanche' };
+  const jourActuel   = joursSemaine[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+      ${joursSemaine.map(jour => {
+        const j = monPlan.semaine.find(s => s.jour === jour);
+        const estAujourdhui = jour === jourActuel;
+        const travaille = j && j.travaille;
+        return `
+          <div style="border-radius:10px;padding:12px;border:2px solid ${estAujourdhui ? 'var(--accent)' : 'var(--border)'};background:${estAujourdhui ? 'rgba(245,166,35,.06)' : 'var(--card2)'}">
+            <div style="font-size:.8rem;font-weight:700;margin-bottom:8px;color:${estAujourdhui ? 'var(--accent)' : 'var(--text)'}">
+              ${joursLabels[jour]}${estAujourdhui ? ' <span style="font-size:.68rem;background:var(--accent);color:#000;padding:1px 6px;border-radius:20px">Aujourd\'hui</span>' : ''}
+            </div>
+            ${travaille ? `
+              <div style="font-size:.82rem;color:var(--green);margin-bottom:4px">🟢 Travaillé</div>
+              ${j.heureDebut ? `<div style="font-size:.78rem;color:var(--muted)">🕐 ${j.heureDebut}${j.heureFin ? ' – ' + j.heureFin : ''}</div>` : ''}
+              ${j.zone ? `<div style="font-size:.78rem;color:var(--muted);margin-top:3px">📍 ${j.zone}</div>` : ''}
+              ${j.note ? `<div style="font-size:.76rem;color:var(--muted);margin-top:3px;font-style:italic">${j.note}</div>` : ''}
+            ` : `<div style="font-size:.82rem;color:var(--muted)">🔴 Repos</div>`}
+          </div>`;
+      }).join('')}
+    </div>
+    <p style="font-size:.76rem;color:var(--muted);margin-top:12px;text-align:right">Mis à jour le ${monPlan.mis_a_jour ? new Date(monPlan.mis_a_jour).toLocaleDateString('fr-FR', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '—'}</p>`;
+}
+
+/* ===== ACCUEIL ===== */
+function afficherAccueil() {
+  const auj      = new Date().toISOString().split('T')[0];
+  const salId    = salarieCourant.id;
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const livsAuj  = livraisons.filter(l => l.chaufId===salId && l.date===auj);
+
+  // ── Planning du jour ──
+  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const monPlan   = plannings.find(p => p.salId===salId);
+  // getDay() : 0=dim,1=lun,...,6=sam — on mappe vers notre convention (lundi=premier)
+  const _joursSem = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const jourNom   = _joursSem[new Date().getDay()];
+  const planCard  = document.getElementById('accueil-planning-card');
+  const planCont  = document.getElementById('accueil-planning-content');
+  if (planCard) planCard.style.display = 'none';
+  if (planCont) {
+    if (monPlan) {
+      const entree = (monPlan.semaine||[]).find(j => j.jour === jourNom);
+      planCard.style.display = 'block';
+      if (entree && entree.travaille) {
+        planCont.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+            ${entree.heureDebut ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">DÉBUT</div><strong>${entree.heureDebut}</strong></div>` : ''}
+            ${entree.heureFin   ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">FIN</div><strong>${entree.heureFin}</strong></div>` : ''}
+            ${entree.zone       ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">ZONE</div><strong>${entree.zone}</strong></div>` : ''}
+          </div>
+          ${entree.note ? `<p style="font-size:.82rem;color:var(--muted);margin-top:8px">📝 ${entree.note}</p>` : ''}
+          <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:10px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
+      } else if (entree && !entree.travaille) {
+        planCont.innerHTML = `<p style="color:var(--green);font-size:.9rem">🏖️ Jour de repos — Bonne journée !</p>
+          <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
+      } else {
+        planCont.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aucune entrée pour aujourd'hui.</p>
+          <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
+      }
+    }
+  }
+
+  // ── Checklist tâches ──
+  const cleCl   = 'checklist_'+salId+'_'+auj;
+  let checklist = JSON.parse(localStorage.getItem(cleCl)||'null');
+  if (!checklist) {
+    checklist = {
+      kmDepart:    false,
+      inspection:  false,
+      kmArrivee:   false,
+      pleinFait:   null   // null = pas répondu, true/false = réponse
+    };
+    localStorage.setItem(cleCl, JSON.stringify(checklist));
+  }
+
+  // Vérifier auto depuis les données réelles
+  const kmEntrees = JSON.parse(localStorage.getItem('km_sal_'+salId)||'[]').filter(e=>e.date===auj);
+  if (kmEntrees.some(e => e.kmDepart != null && e.kmDepart !== '')) checklist.kmDepart = true;
+  if (kmEntrees.some(e => e.kmArrivee != null && e.kmArrivee !== '')) checklist.kmArrivee = true;
+  const inspAuj = JSON.parse(localStorage.getItem('inspections')||'[]').filter(i=>i.salId===salId&&i.date===auj);
+  if (inspAuj.length > 0) checklist.inspection = true;
+  // pleinFait auto si un plein a été enregistré aujourd'hui
+  const pleinsAuj = JSON.parse(localStorage.getItem('carb_sal_'+salId)||'[]').filter(p=>p.date===auj);
+  if (pleinsAuj.length > 0 && checklist.pleinFait === null) checklist.pleinFait = true;
+  localStorage.setItem(cleCl, JSON.stringify(checklist));
+
+  const taches = [
+    { cle:'kmDepart',   fait: checklist.kmDepart,   label:'🛣️ Relevé kilométrique de départ',       action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+    { cle:'inspection', fait: checklist.inspection, label:'📷 Photos d\'inspection du véhicule',     action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Faire l\'inspection' },
+    { cle:'kmArrivee',  fait: checklist.kmArrivee,  label:'🏁 Relevé kilométrique de retour (soir)', action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+  ];
+
+  const done   = taches.filter(t=>t.fait).length + (checklist.pleinFait !== null ? 1 : 0);
+  const total  = taches.length + 1;
+  const pct    = Math.round(done/total*100);
+
+  const cont = document.getElementById('accueil-checklist');
+  const prog = document.getElementById('accueil-checklist-progress');
+  if (prog) prog.textContent = `${done}/${total} complétées`;
+
+  // Badge Accueil si tâches non faites
+  const nonFaites = taches.filter(t => !t.fait).length + (checklist.pleinFait === null ? 1 : 0);
+  const badgeAcc = document.getElementById('badge-accueil');
+  if (badgeAcc) { badgeAcc.textContent = nonFaites; badgeAcc.style.display = nonFaites > 0 ? 'inline-block' : 'none'; }
+
+  cont.innerHTML = `
+    <div style="background:var(--card2);border-radius:8px;padding:8px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;background:rgba(255,255,255,.08);border-radius:20px;height:8px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'var(--accent)'};border-radius:20px;transition:width .4s"></div>
+      </div>
+      <span style="font-size:.82rem;color:${pct===100?'var(--green)':'var(--muted)'};font-weight:600">${pct}%</span>
+    </div>
+    ${taches.map(t => `
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)">
+        <div style="width:24px;height:24px;border-radius:50%;background:${t.fait?'var(--green)':'rgba(255,255,255,.08)'};border:2px solid ${t.fait?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem">${t.fait?'✓':''}</div>
+        <span style="flex:1;font-size:.88rem;color:${t.fait?'var(--muted)':'var(--text)'};${t.fait?'text-decoration:line-through':''}">${t.label}</span>
+        ${!t.fait ? `<button onclick="${t.action}" style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;white-space:nowrap">${t.btnLabel} →</button>` : '<span style="font-size:.78rem;color:var(--green)">✅ Fait</span>'}
+      </div>`).join('')}
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 0">
+      <div style="width:24px;height:24px;border-radius:50%;background:${checklist.pleinFait===true?'var(--green)':checklist.pleinFait===false?'rgba(231,76,60,.2)':'rgba(255,255,255,.08)'};border:2px solid ${checklist.pleinFait!==null?checklist.pleinFait?'var(--green)':'var(--red)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem">${checklist.pleinFait===true?'✓':checklist.pleinFait===false?'✗':''}</div>
+      <span style="flex:1;font-size:.88rem">⛽ Plein de carburant effectué aujourd'hui ?</span>
+      ${checklist.pleinFait===null ? `
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="repondreChecklistPleinOui()" style="background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);color:var(--green);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">✅ Oui — saisir le plein →</button>
+          <button onclick="repondreChecklist('pleinFait',false)" style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.25);color:var(--red);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Non</button>
+        </div>` : `<div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:.78rem;color:${checklist.pleinFait?'var(--green)':'var(--muted)'}">${checklist.pleinFait?'✅ Oui':'❌ Non'}</span>
+          ${checklist.pleinFait ? `<button onclick="changerOnglet('carburant',document.getElementById('tab-carburant'))" style="background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);color:var(--green);padding:3px 9px;border-radius:6px;font-size:.72rem;cursor:pointer">⛽ Saisir →</button>` : ''}
+          <button onclick="repondreChecklist('pleinFait',null)" style="background:none;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:6px;font-size:.72rem;cursor:pointer">Modifier</button>
+        </div>`}
+    </div>`;
+
+  // ── Résumé livraisons ──
+  const resumeCont = document.getElementById('accueil-livraisons-resume');
+  const nbEl = document.getElementById('accueil-nb-livs');
+  if (nbEl) nbEl.textContent = `${livsAuj.length} livraison(s)`;
+  if (!livsAuj.length) {
+    resumeCont.innerHTML = '<div class="empty">Aucune livraison assignée pour aujourd\'hui</div>';
+  } else {
+    resumeCont.innerHTML = livsAuj.map(l => `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:.88rem;flex:1">📦 <strong>${l.client}</strong>${l.arrivee ? ' → ' + l.arrivee : ''}</span>
+        <span style="font-size:.78rem;background:${l.statut==='livre'?'rgba(46,204,113,.12)':l.statut==='en-cours'?'rgba(79,142,247,.12)':'rgba(255,255,255,.06)'};color:${l.statut==='livre'?'var(--green)':l.statut==='en-cours'?'var(--blue)':'var(--muted)'};padding:3px 9px;border-radius:20px">${l.statut==='livre'?'✅ Livré':l.statut==='en-cours'?'🚐 En cours':'⏳ En attente'}</span>
+      </div>`).join('');
+  }
+  // Résumé fin de journée (visible à partir de 15h)
+  afficherResumeJournee();
+}
+
+function repondreChecklist(cle, valeur) {
+  const auj  = new Date().toISOString().split('T')[0];
+  const cleCl = 'checklist_'+salarieCourant.id+'_'+auj;
+  const cl   = JSON.parse(localStorage.getItem(cleCl)||'{}');
+  cl[cle]    = valeur;
+  localStorage.setItem(cleCl, JSON.stringify(cl));
+  afficherAccueil();
+}
+
+function repondreChecklistPleinOui() {
+  repondreChecklist('pleinFait', true);
+  changerOnglet('carburant', document.getElementById('tab-carburant'));
+}
+
+/* ===== LIVRAISONS ===== */
+function chargerLivraisons() {
+  const auj        = new Date().toISOString().split('T')[0];
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const miennes    = livraisons.filter(l => l.chaufId===salarieCourant.id && l.date===auj);
+  document.getElementById('badge-nb-livraisons').textContent = miennes.length+' livraison(s)';
+  const container = document.getElementById('liste-livraisons');
+  if (!miennes.length) { container.innerHTML='<div class="empty">Aucune livraison assignée pour aujourd\'hui</div>'; return; }
+  container.innerHTML = miennes.map(l => `
+    <div class="livraison-item">
+      <div class="livraison-info">
+        <div class="livraison-client">📦 ${l.client}</div>
+        <div class="livraison-adresses">
+          ${l.depart ? '📍 '+l.depart+'<br>' : ''}
+          ${l.arrivee ? '🏁 '+l.arrivee : ''}
+          ${l.distance ? ' · '+l.distance+' km' : ''}
+          ${l.notes ? '<br>📝 '+l.notes : ''}
+        </div>
+      </div>
+      <div class="livraison-statut">
+        <select onchange="changerStatut('${l.id}',this.value)">
+          <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>⏳ En attente</option>
+          <option value="en-cours"   ${l.statut==='en-cours'  ?'selected':''}>🚐 En cours</option>
+          <option value="livre"      ${l.statut==='livre'     ?'selected':''}>✅ Livré</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function changerStatut(id, statut) {
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const idx = livraisons.findIndex(l => l.id===id);
+  if (idx > -1) {
+    livraisons[idx].statut = statut;
+    localStorage.setItem('livraisons', JSON.stringify(livraisons));
+    toast('✅ Statut mis à jour');
+    chargerLivraisons();
+    afficherAccueil();
+  }
+}
+
+
+/* ===== KM ===== */
+function rafraichirTourneesSelect() {
+  const date = document.getElementById('km-date')?.value || new Date().toISOString().split('T')[0];
+  const sel  = document.getElementById('km-tournee-id');
+  if (!sel || !salarieCourant) return;
+
+  const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+  const miennes    = livraisons.filter(l => l.chaufId === salarieCourant.id && l.date === date);
+
+  sel.innerHTML = '<option value="">— Sélectionner une livraison (optionnel) —</option>';
+  if (!miennes.length) {
+    sel.innerHTML += '<option value="" disabled>Aucune livraison assignée ce jour</option>';
+    return;
+  }
+  miennes.forEach(l => {
+    const label = `📦 ${l.client}${l.arrivee ? ' → ' + l.arrivee : ''}${l.numLiv ? ' ('+l.numLiv+')' : ''}`;
+    sel.innerHTML += `<option value="${l.id}">${label}</option>`;
+  });
+}
+
+function majDistanceKm() {
+  const dep = parseFloat(document.getElementById('km-depart').value)||0;
+  const arr = parseFloat(document.getElementById('km-arrivee').value)||0;
+  const res = document.getElementById('km-result');
+  const calc = document.getElementById('km-calcule');
+  if (dep > 0 && arr > dep) {
+    calc.textContent = (arr - dep).toFixed(0) + ' km';
+    res.style.display = 'block';
+  } else {
+    res.style.display = 'none';
+  }
+}
+
+function getKmStorageKey() {
+  return 'km_sal_' + salarieCourant.id;
+}
+
+function getKmEntries() {
+  return JSON.parse(localStorage.getItem(getKmStorageKey()) || '[]');
+}
+
+function saveKmEntries(list) {
+  localStorage.setItem(getKmStorageKey(), JSON.stringify(list));
+}
+
+function getKmTourneeSelection() {
+  const livId = document.getElementById('km-tournee-id')?.value || '';
+  const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+  const liv = livId ? livraisons.find(l => l.id === livId) : null;
+  return { livId, liv, livraisons };
+}
+
+function trouverReleveKmEnCours(date, livId) {
+  const list = getKmEntries();
+  const candidats = list
+    .filter(e => e.date === date && !e.kmArrivee)
+    .sort((a, b) => new Date(b.creeLe || b.date) - new Date(a.creeLe || a.date));
+  if (!candidats.length) return null;
+  if (livId) {
+    const lie = candidats.find(e => e.livId === livId);
+    if (lie) return lie;
+  }
+  return candidats[0];
+}
+
+function majLivraisonDepuisKm(livId, distance) {
+  if (!livId || !distance) return;
+  const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+  const idx = livraisons.findIndex(l => l.id === livId);
+  if (idx === -1) return;
+  livraisons[idx].distance = distance;
+  livraisons[idx].profit = (livraisons[idx].prix || 0) - distance * 0.20;
+  localStorage.setItem('livraisons', JSON.stringify(livraisons));
+}
+
+function rechargerBlocKm() {
+  chargerHistoriqueKm();
+  afficherAccueil();
+}
+
+function enregistrerKmDepart() {
+  const dep  = parseFloat(document.getElementById('km-depart').value);
+  const date = document.getElementById('km-date').value;
+  const { livId, liv } = getKmTourneeSelection();
+
+  if (!dep || !date) {
+    toast('⚠️ Saisissez au moins la date et le km de début', 'error');
+    return;
+  }
+  if (trouverReleveKmEnCours(date, livId)) {
+    toast('⚠️ Un km début est déjà en attente de km fin pour cette journée', 'error');
+    return;
+  }
+
+  const list = getKmEntries();
+  list.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    salId: salarieCourant.id,
+    salNom: salarieCourant.nom,
+    kmDepart: dep,
+    kmArrivee: null,
+    distance: 0,
+    date,
+    livId: liv?.id || null,
+    livNom: liv?.client || null,
+    creeLe: new Date().toISOString()
+  });
+  saveKmEntries(list);
+
+  document.getElementById('km-arrivee').value = '';
+  document.getElementById('km-result').style.display = 'none';
+  rechargerBlocKm();
+  toast(liv ? `✅ Km début enregistré pour ${liv.client}` : '✅ Km début enregistré');
+}
+
+function enregistrerKmFin() {
+  const arr  = parseFloat(document.getElementById('km-arrivee').value);
+  const date = document.getElementById('km-date').value;
+  const { livId, liv } = getKmTourneeSelection();
+  const releve = trouverReleveKmEnCours(date, livId);
+
+  if (!releve) {
+    toast('⚠️ Enregistrez d’abord un km début avant le km fin', 'error');
+    return;
+  }
+  if (!arr || arr <= (releve.kmDepart || 0)) {
+    toast('⚠️ Le km de fin doit être supérieur au km de début', 'error');
+    return;
+  }
+
+  const list = getKmEntries();
+  const idx = list.findIndex(e => e.id === releve.id);
+  if (idx === -1) return;
+
+  const distance = arr - list[idx].kmDepart;
+  list[idx].kmArrivee = arr;
+  list[idx].distance = distance;
+  if (livId && !list[idx].livId) {
+    list[idx].livId = livId;
+    list[idx].livNom = liv?.client || null;
+  }
+  saveKmEntries(list);
+
+  majLivraisonDepuisKm(list[idx].livId, distance);
+
+  document.getElementById('km-depart').value = arr;
+  document.getElementById('km-arrivee').value = '';
+  document.getElementById('km-result').style.display = 'none';
+  if (document.getElementById('km-tournee-id')) document.getElementById('km-tournee-id').value = '';
+
+  rechargerBlocKm();
+  const cible = list[idx].livNom || liv?.client;
+  toast(cible ? `✅ ${distance.toFixed(0)} km enregistrés et liés à ${cible}` : `✅ ${distance.toFixed(0)} km enregistrés`);
+}
+
+function chargerHistoriqueKm() {
+  const list = getKmEntries()
+    .sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe))
+    .slice(0, 20);
+  const cont = document.getElementById('historique-km');
+  if (!list.length) { cont.innerHTML = '<div class="empty">Aucun relevé enregistré</div>'; return; }
+
+  cont.innerHTML = list.map(e => {
+    const modTag = e.modifie
+      ? '<span style="font-size:.72rem;background:rgba(231,76,60,.15);color:#e74c3c;padding:1px 6px;border-radius:8px;margin-left:4px">✏️</span>'
+      : '';
+    const livTag = e.livNom
+      ? `<span style="font-size:.74rem;background:rgba(79,142,247,.1);color:var(--blue);padding:1px 7px;border-radius:8px;margin-left:4px">📦 ${e.livNom}</span>`
+      : '';
+    const ligneKm = e.kmArrivee
+      ? `${(e.kmDepart||0).toLocaleString('fr-FR')} → ${(e.kmArrivee||0).toLocaleString('fr-FR')} km`
+      : `${(e.kmDepart||0).toLocaleString('fr-FR')} km · En attente du km fin`;
+    const distanceLib = e.kmArrivee ? `${(e.distance||0).toFixed(0)} km` : 'En cours';
+    return `<div class="hist-row">
+      <span style="font-size:.85rem">${e.date}${modTag}${livTag}</span>
+      <span style="color:var(--muted);font-size:.82rem">${ligneKm}</span>
+      <strong style="color:var(--accent)">${distanceLib}</strong>
+      <div class="hist-actions">
+        <button class="btn-edit" onclick="ouvrirEditKmSal('${e.id}')">✏️</button>
+        <button class="btn-danger" onclick="supprimerKmSal('${e.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ouvrirEditKmSal(id) {
+  const list = getKmEntries();
+  const e = list.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('edit-km-id').value   = id;
+  document.getElementById('edit-km-dep').value  = e.kmDepart;
+  document.getElementById('edit-km-arr').value  = e.kmArrivee || '';
+  document.getElementById('edit-km-date').value = e.date;
+  document.getElementById('modal-edit-km-sal').classList.add('open');
+}
+
+function confirmerEditKmSal() {
+  const id  = document.getElementById('edit-km-id').value;
+  const dep = parseFloat(document.getElementById('edit-km-dep').value);
+  const arrRaw = document.getElementById('edit-km-arr').value;
+  const arr = arrRaw === '' ? null : parseFloat(arrRaw);
+  const date= document.getElementById('edit-km-date').value;
+  if (!dep) { toast('⚠️ Km début obligatoire', 'error'); return; }
+  if (arr !== null && arr <= dep) { toast('⚠️ Km fin doit être > km début', 'error'); return; }
+
+  const list = getKmEntries();
+  const idx  = list.findIndex(e => e.id === id);
+  if (idx === -1) return;
+
+  const ancien = { dep: list[idx].kmDepart, arr: list[idx].kmArrivee };
+  list[idx].kmDepart  = dep;
+  list[idx].kmArrivee = arr;
+  list[idx].distance  = arr !== null ? arr - dep : 0;
+  list[idx].date      = date;
+  list[idx].modifie   = true;
+  saveKmEntries(list);
+  majLivraisonDepuisKm(list[idx].livId, list[idx].distance);
+
+  const ancienDep = ancien.dep != null ? ancien.dep.toLocaleString('fr-FR') : '—';
+  const ancienArr = ancien.arr != null ? ancien.arr.toLocaleString('fr-FR') : '—';
+  const nouveauDep = dep.toLocaleString('fr-FR');
+  const nouveauArr = arr != null ? arr.toLocaleString('fr-FR') : '—';
+
+  // Alerte admin
+  const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+  alertes.push({
+    id: Date.now().toString(36), type: 'km_modif',
+    message: `Relevé km modifié par ${salarieCourant.nom} : ${ancienDep}→${ancienArr} km ✏️ ${nouveauDep}→${nouveauArr} km`,
+    meta: { salNom: salarieCourant.nom, salId: salarieCourant.id },
+    lu: false, traitee: false, creeLe: new Date().toISOString()
+  });
+  localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+
+  fermerModal('modal-edit-km-sal');
+  rechargerBlocKm();
+  toast('✅ Relevé mis à jour — admin notifié');
+}
+
+function supprimerKmSal(id) {
+  if (!confirm('Supprimer ce relevé ?')) return;
+  const list = getKmEntries().filter(e => e.id !== id);
+  saveKmEntries(list);
+  rechargerBlocKm();
+  toast('🗑️ Relevé supprimé');
+}
+
+/* ===== CARBURANT ===== */
+function calculerPlein() {
+  const l=parseFloat(document.getElementById('sal-litres').value)||0;
+  const p=parseFloat(document.getElementById('sal-prix-litre').value)||0;
+  const res=document.getElementById('plein-result');
+  if(l>0&&p>0){document.getElementById('plein-total').textContent=(l*p).toFixed(2)+' €';res.style.display='block';}
+  else{res.style.display='none';}
+}
+
+function enregistrerPlein() {
+  const litres    = parseFloat(document.getElementById('sal-litres').value);
+  const prixLitre = parseFloat(document.getElementById('sal-prix-litre').value);
+  const date      = document.getElementById('sal-carb-date').value;
+  if (!litres||!prixLitre||isNaN(litres)||isNaN(prixLitre)){toast('⚠️ Litres et prix obligatoires','error');return;}
+  const total   = litres*prixLitre;
+  const veh     = getMonVehicule();
+  const libelle = libelleCarburant();
+  const id      = Date.now().toString(36)+Math.random().toString(36).substr(2);
+  const plein   = { id, salId:salarieCourant.id, salNom:salarieCourant.nom, vehId:veh?veh.id:'', vehNom:libelle, litres, prixLitre, total, date, source:'salarie', modifie:false, creeLe:new Date().toISOString() };
+  // Perso
+  const cle=`carb_sal_${salarieCourant.id}`;
+  const perso=JSON.parse(localStorage.getItem(cle)||'[]'); perso.push(plein); localStorage.setItem(cle,JSON.stringify(perso));
+  // Global
+  const global=JSON.parse(localStorage.getItem('carburant')||'[]'); global.push(plein); localStorage.setItem('carburant',JSON.stringify(global));
+  document.getElementById('sal-litres').value='';
+  document.getElementById('sal-prix-litre').value='';
+  document.getElementById('plein-result').style.display='none';
+  chargerHistoriqueCarburant();
+  afficherAccueil(); // Cocher auto pleinFait dans la checklist
+  toast('✅ Plein enregistré !');
+}
+
+function supprimerPleinSal(id) {
+  if (!confirm('Supprimer ce plein ?')) return;
+  const cle  = `carb_sal_${salarieCourant.id}`;
+  const perso = JSON.parse(localStorage.getItem(cle)||'[]').filter(p => p.id !== id);
+  localStorage.setItem(cle, JSON.stringify(perso));
+  // Supprimer aussi du global
+  const global = JSON.parse(localStorage.getItem('carburant')||'[]').filter(p => p.id !== id);
+  localStorage.setItem('carburant', JSON.stringify(global));
+  chargerHistoriqueCarburant();
+  afficherAccueil();
+  toast('🗑️ Plein supprimé');
+}
+
+function ouvrirModifPlein(id) {
+  const cle   = `carb_sal_${salarieCourant.id}`;
+  const perso = JSON.parse(localStorage.getItem(cle)||'[]');
+  const p     = perso.find(x => x.id===id); if(!p) return;
+  document.getElementById('modif-plein-id').value   = id;
+  document.getElementById('modif-litres').value     = p.litres;
+  document.getElementById('modif-prix-litre').value = p.prixLitre;
+  document.getElementById('modif-date').value       = p.date;
+  document.getElementById('modal-modif-plein').classList.add('open');
+}
+
+function confirmerModifPlein() {
+  const id        = document.getElementById('modif-plein-id').value;
+  const litres    = parseFloat(document.getElementById('modif-litres').value);
+  const prixLitre = parseFloat(document.getElementById('modif-prix-litre').value);
+  const date      = document.getElementById('modif-date').value;
+  if(!litres||!prixLitre||isNaN(litres)||isNaN(prixLitre)){toast('⚠️ Champs obligatoires','error');return;}
+  const total = litres*prixLitre;
+  const cle   = `carb_sal_${salarieCourant.id}`;
+  const perso = JSON.parse(localStorage.getItem(cle)||'[]');
+  const idx   = perso.findIndex(p => p.id===id);
+  if(idx===-1){toast('⚠️ Plein introuvable','error');return;}
+  const ancL=perso[idx].litres, ancT=perso[idx].total;
+  perso[idx].litres=litres; perso[idx].prixLitre=prixLitre; perso[idx].total=total;
+  perso[idx].date=date; perso[idx].modifie=true; perso[idx].modifieLe=new Date().toISOString();
+  localStorage.setItem(cle,JSON.stringify(perso));
+  // Global
+  const global=JSON.parse(localStorage.getItem('carburant')||'[]');
+  const gi=global.findIndex(p=>p.id===id);
+  if(gi>-1){global[gi].litres=litres;global[gi].prixLitre=prixLitre;global[gi].total=total;global[gi].date=date;global[gi].modifie=true;global[gi].modifieLe=new Date().toISOString();localStorage.setItem('carburant',JSON.stringify(global));}
+  // Alerte admin
+  const alertes=JSON.parse(localStorage.getItem('alertes_admin')||'[]');
+  alertes.push({id:Date.now().toString(36),type:'carburant_modif',
+    message:`Plein modifié par ${salarieCourant.nom} : ${ancL}L / ${ancT.toFixed(2)}€ → ${litres}L / ${total.toFixed(2)}€`,
+    meta:{salNom:salarieCourant.nom,salId:salarieCourant.id,pleinId:id},
+    lu:false,traitee:false,creeLe:new Date().toISOString()});
+  localStorage.setItem('alertes_admin',JSON.stringify(alertes));
+  fermerModal('modal-modif-plein');
+  chargerHistoriqueCarburant();
+  toast('✅ Plein modifié — admin notifié');
+}
+
+function chargerHistoriqueCarburant() {
+  const cle   = `carb_sal_${salarieCourant.id}`;
+  const pleins= JSON.parse(localStorage.getItem(cle)||'[]').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe)).slice(0,15);
+  const cont  = document.getElementById('historique-carburant');
+  if(!pleins.length){cont.innerHTML='<div class="empty">Aucun plein</div>';return;}
+
+  // Récupérer les notifs validées pour associer aux pleins
+  const notifs = JSON.parse(localStorage.getItem(`notifs_sal_${salarieCourant.id}`)||'[]');
+
+  cont.innerHTML = pleins.map(p => {
+    const modTag  = p.modifie ? '<span style="font-size:.72rem;background:rgba(231,76,60,.15);color:#e74c3c;padding:1px 6px;border-radius:8px;margin-left:4px;">✏️ modifié</span>' : '';
+    const valTag  = p.modifie && notifs.find(n=>n.type==='carburant_modif_valide'&&n.meta?.pleinId===p.id)
+      ? '<span style="font-size:.72rem;background:rgba(46,204,113,.12);color:#2ecc71;padding:1px 6px;border-radius:8px;margin-left:4px;">✅ validé admin</span>' : '';
+    return `<div class="hist-row">
+      <span>${p.date}${modTag}${valTag}</span>
+      <span style="color:var(--muted)">${p.litres}L · ${p.prixLitre.toFixed(2)}€/L</span>
+      <strong style="color:var(--accent)">${p.total.toFixed(2)} €</strong>
+      <div class="hist-actions">
+        <button class="btn-edit" onclick="ouvrirModifPlein('${p.id}')">✏️</button>
+        <button class="btn-danger" onclick="supprimerPleinSal('${p.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ===== CHANGER MDP ===== */
+function changerMonMdp() {
+  const ancien    = document.getElementById('chg-ancien').value;
+  const nouveau   = document.getElementById('chg-nouveau').value;
+  const confirmer = document.getElementById('chg-confirmer').value;
+  if(!ancien||!nouveau||!confirmer){toast('⚠️ Remplissez tous les champs','error');return;}
+  if(btoa(ancien)!==salarieCourant.mdpHash){toast('⚠️ Mot de passe actuel incorrect','error');return;}
+  if(nouveau.length<4){toast('⚠️ Nouveau mot de passe trop court (4 min)','error');return;}
+  if(nouveau!==confirmer){toast('⚠️ Les nouveaux mots de passe ne correspondent pas','error');return;}
+  const salaries=JSON.parse(localStorage.getItem('salaries')||'[]');
+  const idx=salaries.findIndex(s=>s.id===salarieCourant.id);
+  if(idx>-1){salaries[idx].mdpHash=btoa(nouveau);localStorage.setItem('salaries',JSON.stringify(salaries));salarieCourant.mdpHash=btoa(nouveau);}
+  ['chg-ancien','chg-nouveau','chg-confirmer'].forEach(id=>document.getElementById(id).value='');
+  toast('✅ Mot de passe modifié avec succès !');
+}
+
+/* ===== INSPECTION VÉHICULE ===== */
+let _inspPhotosB64 = [];
+
+/* Compresse une image via canvas — retourne une promesse avec le base64 */
+function compresserImage(file, maxW, maxH, qualite) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', qualite));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function previsualiserPhotos() {
+  const files = document.getElementById('insp-photos').files;
+  const container = document.getElementById('insp-previews');
+  _inspPhotosB64 = [];
+  container.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px">⏳ Chargement des photos...</div>';
+  if (!files.length) { container.innerHTML = ''; return; }
+
+  const max = Math.min(files.length, 4);
+  const promesses = [];
+  for (let i = 0; i < max; i++) {
+    promesses.push(compresserImage(files[i], 1200, 900, 0.75));
+  }
+
+  Promise.all(promesses).then(resultats => {
+    _inspPhotosB64 = resultats;
+    container.innerHTML = '';
+    resultats.forEach((b64, i) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3';
+      div.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover" />
+        <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
+      container.appendChild(div);
+    });
+    const label = document.getElementById('insp-label');
+    if (label) { label.style.borderColor='rgba(46,204,113,.4)'; label.style.background='rgba(46,204,113,.06)'; }
+    // Mettre à jour le statut
+    const statut = document.getElementById('insp-statut');
+    if (statut) { statut.style.display='block'; statut.style.color='var(--green)'; statut.textContent=`✅ ${resultats.length} photo(s) prête(s) — vous pouvez envoyer`; }
+    toast(`✅ ${resultats.length} photo(s) chargée(s)`);
+  }).catch(() => {
+    container.innerHTML = '';
+    const statut = document.getElementById('insp-statut');
+    if (statut) { statut.style.display='block'; statut.style.color='var(--red)'; statut.textContent='⚠️ Erreur de chargement — réessayez'; }
+    toast('⚠️ Erreur lors du chargement des photos', 'error');
+  });
+}
+
+function retirerPhoto(idx) {
+  _inspPhotosB64.splice(idx, 1);
+  const container = document.getElementById('insp-previews');
+  container.innerHTML = '';
+  if (!_inspPhotosB64.length) {
+    document.getElementById('insp-photos').value = '';
+    const label = document.getElementById('insp-label');
+    if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
+    return;
+  }
+  _inspPhotosB64.forEach((b64, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3';
+    div.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover" />
+      <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+function envoyerInspection() {
+  const date  = document.getElementById('insp-date').value;
+  const km    = document.getElementById('insp-km').value;
+  const comm  = document.getElementById('insp-commentaire').value.trim();
+
+  if (!_inspPhotosB64.length) { toast('⚠️ Ajoutez au moins une photo', 'error'); return; }
+  if (!date) { toast('⚠️ Sélectionnez une date', 'error'); return; }
+
+  const veh = getMonVehicule();
+  const inspId = Date.now().toString(36);
+  const inspection = {
+    id: inspId,
+    salId: salarieCourant.id, salNom: salarieCourant.nom,
+    vehId: veh ? veh.id : '', vehImmat: veh ? veh.immat : 'Non affecté',
+    date, km: km || null, commentaire: comm,
+    photos: [..._inspPhotosB64],
+    creeLe: new Date().toISOString()
+  };
+
+  // Sauvegarde avec gestion du quota localStorage
+  try {
+    const toutes = JSON.parse(localStorage.getItem('inspections') || '[]');
+    toutes.push(inspection);
+    localStorage.setItem('inspections', JSON.stringify(toutes));
+  } catch(e) {
+    // Quota dépassé : stocker sans les photos (juste les métadonnées)
+    try {
+      const toutes = JSON.parse(localStorage.getItem('inspections') || '[]');
+      toutes.push({ ...inspection, photos: [], note_quota: 'Photos non stockées (espace insuffisant)' });
+      localStorage.setItem('inspections', JSON.stringify(toutes));
+      toast('⚠️ Inspection enregistrée mais photos non sauvegardées (mémoire insuffisante)', 'error');
+    } catch(e2) {
+      toast('⚠️ Impossible de sauvegarder — mémoire du navigateur pleine', 'error');
+      return;
+    }
+  }
+
+  // Alerte admin
+  try {
+    const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+    alertes.push({
+      id: inspId + 'i', type: 'inspection',
+      message: `Inspection soumise par ${salarieCourant.nom} — ${veh ? veh.immat : 'sans véhicule'} (${date}) — ${_inspPhotosB64.length} photo(s)`,
+      meta: { salNom: salarieCourant.nom, salId: salarieCourant.id, inspId },
+      lu: false, traitee: false, creeLe: new Date().toISOString()
+    });
+    localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+  } catch(e) { /* non bloquant */ }
+
+  // Reset formulaire
+  _inspPhotosB64 = [];
+  document.getElementById('insp-photos').value = '';
+  document.getElementById('insp-previews').innerHTML = '';
+  document.getElementById('insp-commentaire').value = '';
+  document.getElementById('insp-km').value = '';
+  const label = document.getElementById('insp-label');
+  if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
+  const statut = document.getElementById('insp-statut');
+  if (statut) { statut.style.display='none'; statut.textContent=''; }
+
+  chargerHistoriqueInspections();
+  toast('✅ Inspection envoyée à l\'administrateur !');
+}
+
+function chargerHistoriqueInspections() {
+  const toutes = JSON.parse(localStorage.getItem('inspections') || '[]')
+    .filter(i => i.salId === salarieCourant.id)
+    .sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe))
+    .slice(0, 10);
+
+  const cont = document.getElementById('historique-inspections');
+  if (!toutes.length) { cont.innerHTML = '<div class="empty">Aucune inspection enregistrée</div>'; return; }
+
+  cont.innerHTML = toutes.map(insp => `
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:.9rem">🗓️ ${insp.date}</strong>
+        <span style="font-size:.78rem;color:var(--muted)">${insp.vehImmat}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
+      </div>
+      ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">💬 ${insp.commentaire}</p>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(${Math.min(insp.photos.length,4)},1fr);gap:6px">
+        ${insp.photos.map(p => `<img src="${p}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer" onclick="voirPhotoPleinEcran('${p}')" />`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function voirPhotoPleinEcran(src) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px';
+  overlay.innerHTML = `<img src="${src}" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain" />`;
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+}
+
+/* ===== MESSAGERIE SALARIÉ ===== */
+function chargerMessagesSal() {
+  const messages = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  const fil = document.getElementById('msg-fil');
+  const vide = document.getElementById('msg-vide');
+
+  if (!messages.length) {
+    if (vide) vide.style.display = 'block';
+    return;
+  }
+  if (vide) vide.style.display = 'none';
+
+  // Marquer les messages admin comme lus avec horodatage
+  let modifie = false;
+  messages.forEach(m => {
+    if (m.auteur === 'admin' && !m.lu) {
+      m.lu = true;
+      m.luLe = new Date().toISOString();
+      modifie = true;
+    }
+  });
+  if (modifie) localStorage.setItem('messages_' + salarieCourant.id, JSON.stringify(messages));
+
+  // Mettre à jour le badge
+  mettreAJourBadgeMsgSal();
+
+  fil.innerHTML = '';
+  messages.forEach(m => {
+    const estMoi = m.auteur === 'salarie';
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex;flex-direction:column;align-items:${estMoi ? 'flex-end' : 'flex-start'}`;
+    const heure = new Date(m.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    div.innerHTML = `
+      <div style="max-width:80%;background:${estMoi ? 'var(--accent)' : 'var(--card2)'};color:${estMoi ? '#000' : 'var(--text)'};padding:9px 13px;border-radius:${estMoi ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
+          ${m.photo ? `<img src="${m.photo}" style="max-width:180px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />` : m.texte}
+        </div>
+      <span style="font-size:.72rem;color:var(--muted);margin-top:3px">${estMoi ? 'Moi' : '⚙️ Admin'} · ${heure}</span>`;
+    fil.appendChild(div);
+  });
+  fil.scrollTop = fil.scrollHeight;
+}
+
+function envoyerMessageSal() {
+  const input = document.getElementById('msg-input');
+  const texte = input.value.trim();
+  if (!texte) return;
+
+  const messages = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  messages.push({
+    id: Date.now().toString(36),
+    auteur: 'salarie', salNom: salarieCourant.nom,
+    texte, lu: false, creeLe: new Date().toISOString()
+  });
+  localStorage.setItem('messages_' + salarieCourant.id, JSON.stringify(messages));
+
+  // Badge admin (nouveau message non lu)
+  const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+  // Éviter les doublons d'alertes message non traité
+  const dejaAlerte = alertes.find(a => a.type === 'message' && !a.traitee && a.meta?.salId === salarieCourant.id);
+  if (!dejaAlerte) {
+    alertes.push({
+      id: Date.now().toString(36) + 'm',
+      type: 'message',
+      message: `Nouveau message de ${salarieCourant.nom}`,
+      meta: { salNom: salarieCourant.nom, salId: salarieCourant.id },
+      lu: false, traitee: false, creeLe: new Date().toISOString()
+    });
+    localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+  }
+
+  input.value = '';
+  chargerMessagesSal();
+}
+
+function mettreAJourBadgeMsgSal() {
+  if (!salarieCourant) return;
+  const messages = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  const nonLus = messages.filter(m => m.auteur === 'admin' && !m.lu).length;
+
+  // Son + vibration si nouveau message non lu
+  const ancienCount = parseInt(window._prevNonLusSal||0);
+  if (nonLus > ancienCount) {
+    // Son de notification
+    try {
+      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.setValueAtTime(1100, ctx.currentTime + 0.08);
+      g.gain.setValueAtTime(0.25, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.35);
+    } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  }
+  window._prevNonLusSal = nonLus;
+
+  // Badge sur l'onglet Messages
+  const badgeMsg = document.getElementById('badge-msg-sal');
+  if (badgeMsg) {
+    badgeMsg.textContent = nonLus;
+    badgeMsg.style.display = nonLus > 0 ? 'inline-flex' : 'none';
+    badgeMsg.style.alignItems = 'center';
+    badgeMsg.style.justifyContent = 'center';
+    badgeMsg.style.minWidth = '18px';
+    badgeMsg.style.height = '18px';
+  }
+
+  // Badge sur l'onglet Accueil (combiné tâches + messages)
+  const tachesNonFaites = parseInt(document.getElementById('badge-accueil')?.textContent || '0');
+  const badgeAcc = document.getElementById('badge-accueil');
+  if (badgeAcc) {
+    const total = tachesNonFaites + nonLus;
+    badgeAcc.textContent = total > 0 ? total : '';
+    badgeAcc.style.display = total > 0 ? 'inline-block' : 'none';
+  }
+
+  // Notif dot sur le bouton profil si messages non lus
+  const dot = document.getElementById('notif-dot');
+  if (dot && nonLus > 0) dot.classList.add('visible');
+}
+
+/* ===== MODALS & TOAST ===== */
+function fermerModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))fermerModal(e.target.id);});
+
+function toast(msg, type='success') {
+  const el=document.getElementById('toast-sal');
+  el.textContent=msg; el.className='toast show'+(type==='error'?' error':'');
+  setTimeout(()=>{el.className='toast';},3200);
+}
+</script>
+</body>
+</html>
+

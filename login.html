@@ -1,0 +1,332 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MCA Logistics — Connexion</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <style>
+    :root {
+      --bg: #0f1117;
+      --card: #1a1d27;
+      --accent: #f5a623;
+      --border: #2a2d3d;
+      --text: #e8eaf0;
+      --muted: #7c8299;
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --blue: #3498db;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    /* Fond avec effet subtil */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 30% 50%, rgba(245,166,35,0.04) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 20%, rgba(52,152,219,0.04) 0%, transparent 50%);
+      pointer-events: none;
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Logo */
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-logo .icon {
+      font-size: 3rem;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .login-logo .name {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 2px;
+    }
+
+    .login-logo .sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    /* Card de connexion */
+    .login-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    .login-card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: var(--text);
+    }
+
+    /* Sélecteur de rôle */
+
+    /* Champs */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .form-group input {
+      background: #0f1117;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-family: var(--font);
+      transition: border-color 0.2s;
+      width: 100%;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .form-group input::placeholder { color: var(--muted); }
+
+    /* Bouton connexion */
+    .btn-login {
+      width: 100%;
+      padding: 13px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+      font-family: var(--font);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-login:hover {
+      background: #d4911d;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(245,166,35,0.3);
+    }
+
+    .btn-login:active { transform: translateY(0); }
+
+    /* Message d'erreur */
+    .error-msg {
+      display: none;
+      background: rgba(231,76,60,0.1);
+      border: 1px solid rgba(231,76,60,0.3);
+      color: var(--red);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-top: 14px;
+      text-align: center;
+    }
+
+    .error-msg.show { display: block; }
+
+    /* Footer */
+    .login-footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Séparateur de rôle */
+    .role-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .role-divider::before, .role-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Animation d'entrée */
+    .login-wrap { animation: slideUp 0.4s ease; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Indicateur de rôle sélectionné */
+    .role-indicator {
+      font-size: 0.78rem;
+      text-align: center;
+      margin-bottom: 16px;
+      color: var(--muted);
+      min-height: 20px;
+    }
+
+    .role-indicator.admin  { color: var(--accent); }
+    .role-indicator.salarie { color: var(--blue); }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrap">
+
+    <!-- Logo -->
+    <div class="login-logo">
+      <span class="icon">🚐</span>
+      <div class="name">MCA Logistics</div>
+      <div class="sub">Gestion de livraison</div>
+    </div>
+
+    <!-- Card -->
+    <div class="login-card">
+      <h2>Connexion</h2>
+
+      <div class="role-divider">🔐 Accès Administrateur</div>
+
+      <div class="form-group">
+        <label>Identifiant administrateur</label>
+        <input type="text" id="input-identifiant" autocomplete="username"
+               onkeydown="if(event.key==='Enter') seConnecter()" />
+      </div>
+
+      <!-- Mot de passe -->
+      <div class="form-group">
+        <label>Mot de passe administrateur</label>
+        <div style="position:relative">
+          <input type="password" id="input-mdp" placeholder="••••••••" autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter') seConnecter()"
+                 style="padding-right:44px;width:100%"/>
+          <button onclick="toggleMdpVisible()" type="button"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1"
+            id="btn-oeil" title="Afficher le mot de passe">👁️</button>
+        </div>
+      </div>
+
+      <button class="btn-login" onclick="seConnecter()">Se connecter →</button>
+
+      <div class="error-msg" id="error-msg">❌ Identifiants incorrects</div>
+    </div>
+
+    <div class="login-footer">MCA Logistics v2 — Gestion interne</div>
+  </div>
+
+  <script>
+    /* =====================================================
+       LOGIN — Logique de connexion
+       
+       Comptes admin par défaut :
+       achraf.chikri / admin123
+       mohammed.chikri / admin123
+
+       Chaque salarié a : numéro + mot de passe
+       créés depuis l'interface admin.
+       ===================================================== */
+
+    function getDefaultAdminAccounts() {
+      return [
+        { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
+        { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: 'admin123' }
+      ];
+    }
+
+    function getAdminAccounts() {
+      const raw = localStorage.getItem('admin_accounts');
+      if (raw) {
+        try {
+          const comptes = JSON.parse(raw);
+          if (Array.isArray(comptes) && comptes.length) return comptes;
+        } catch (_) {}
+      }
+      const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
+      const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
+        ...compte,
+        motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
+      }));
+      localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+      return comptes;
+    }
+
+    function toggleMdpVisible() {
+      const input = document.getElementById('input-mdp');
+      const btn   = document.getElementById('btn-oeil');
+      if (input.type === 'password') { input.type = 'text';  btn.style.opacity = '1'; }
+      else                           { input.type = 'password'; btn.style.opacity = '0.5'; }
+    }
+
+    function seConnecter() {
+      const identifiant = document.getElementById('input-identifiant').value.trim().toLowerCase();
+      const mdp   = document.getElementById('input-mdp').value.trim();
+      const errEl = document.getElementById('error-msg');
+      errEl.classList.remove('show');
+
+      if (!identifiant || !mdp) {
+        errEl.textContent = '❌ Veuillez saisir votre identifiant et votre mot de passe';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const compte = getAdminAccounts().find(a => a.identifiant.toLowerCase() === identifiant);
+      if (compte && mdp === compte.motDePasse) {
+        sessionStorage.setItem('role', 'admin');
+        sessionStorage.setItem('admin_login', compte.identifiant);
+        sessionStorage.setItem('admin_nom', compte.nom);
+        window.location.href = 'index.html';
+      } else {
+        errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
+        errEl.classList.add('show');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      getAdminAccounts();
+      document.getElementById('input-identifiant').focus();
+    });
+  </script>
+</body>
+</html>
+
