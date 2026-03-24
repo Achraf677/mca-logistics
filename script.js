@@ -239,6 +239,113 @@ function getAdminSession() {
     nom: sessionStorage.getItem('admin_nom') || ''
   };
 }
+const ADMIN_EDIT_LOCKS_KEY = 'admin_edit_locks';
+const ADMIN_EDIT_LOCK_TTL_MS = 20 * 60 * 1000;
+const adminHeldEditLocks = new Set();
+
+function getAdminActorKey() {
+  const session = getAdminSession();
+  return session.email || session.identifiant || 'admin';
+}
+
+function getAdminActorLabel() {
+  const session = getAdminSession();
+  return session.nom || session.identifiant || session.email || 'Admin';
+}
+
+function getAdminEditLocks() {
+  const locks = chargerObj(ADMIN_EDIT_LOCKS_KEY, {});
+  const now = Date.now();
+  let changed = false;
+  Object.keys(locks).forEach(function(key) {
+    const lock = locks[key];
+    const createdAt = lock && lock.createdAt ? Date.parse(lock.createdAt) : 0;
+    if (!lock || !createdAt || Number.isNaN(createdAt) || now - createdAt > ADMIN_EDIT_LOCK_TTL_MS) {
+      delete locks[key];
+      changed = true;
+    }
+  });
+  if (changed) sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
+  return locks;
+}
+
+function getAdminEditLockKey(type, id) {
+  return `${type}:${id}`;
+}
+
+function prendreVerrouEdition(type, id, label) {
+  if (!type || !id || sessionStorage.getItem('role') !== 'admin') return { ok: true };
+  const locks = getAdminEditLocks();
+  const lockKey = getAdminEditLockKey(type, id);
+  const actorKey = getAdminActorKey();
+  const existing = locks[lockKey];
+  if (existing && existing.actorKey && existing.actorKey !== actorKey) {
+    return { ok: false, lock: existing };
+  }
+  locks[lockKey] = {
+    actorKey: actorKey,
+    actorLabel: getAdminActorLabel(),
+    type: type,
+    id: id,
+    label: label || '',
+    createdAt: new Date().toISOString()
+  };
+  sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
+  adminHeldEditLocks.add(lockKey);
+  return { ok: true, lock: locks[lockKey] };
+}
+
+function verifierVerrouEdition(type, id) {
+  if (!type || !id || sessionStorage.getItem('role') !== 'admin') return { ok: true };
+  const locks = getAdminEditLocks();
+  const lock = locks[getAdminEditLockKey(type, id)];
+  const actorKey = getAdminActorKey();
+  if (!lock || !lock.actorKey || lock.actorKey === actorKey) return { ok: true };
+  return { ok: false, lock: lock };
+}
+
+function libererVerrouEdition(type, id) {
+  if (!type || !id) return;
+  const locks = getAdminEditLocks();
+  const lockKey = getAdminEditLockKey(type, id);
+  const lock = locks[lockKey];
+  if (lock && lock.actorKey === getAdminActorKey()) {
+    delete locks[lockKey];
+    sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
+  }
+  adminHeldEditLocks.delete(lockKey);
+}
+
+function libererTousVerrousEdition() {
+  if (!adminHeldEditLocks.size) return;
+  const locks = getAdminEditLocks();
+  const actorKey = getAdminActorKey();
+  adminHeldEditLocks.forEach(function(lockKey) {
+    const lock = locks[lockKey];
+    if (lock && lock.actorKey === actorKey) delete locks[lockKey];
+  });
+  adminHeldEditLocks.clear();
+  sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
+}
+
+function getEditLockContextForModal(modalId) {
+  if (modalId === 'modal-edit-salarie' && (editSalarieId || window._editSalarieId)) {
+    return { type: 'salarie', id: editSalarieId || window._editSalarieId };
+  }
+  if (modalId === 'modal-edit-livraison' && window._editLivId) {
+    return { type: 'livraison', id: window._editLivId };
+  }
+  if (modalId === 'modal-edit-client' && _editClientId) {
+    return { type: 'client', id: _editClientId };
+  }
+  if (modalId === 'modal-vehicule' && window._editVehId) {
+    return { type: 'vehicule', id: window._editVehId };
+  }
+  return null;
+}
+
+window.addEventListener('pagehide', libererTousVerrousEdition);
+window.addEventListener('beforeunload', libererTousVerrousEdition);
 function fermerMenuAdmin() {
   document.getElementById('topbar-user-menu')?.classList.remove('open');
 }
@@ -631,10 +738,16 @@ function fermerMenuMobile()  { document.getElementById('sidebar').classList.remo
 /* ===== MODALS ===== */
 function openModal(id)  { mettreAJourSelects(); document.getElementById(id).classList.add('open'); }
 function closeModal(id) {
+  const editLockContext = getEditLockContextForModal(id);
+  if (editLockContext) libererVerrouEdition(editLockContext.type, editLockContext.id);
   document.getElementById(id).classList.remove('open');
+  if (id === 'modal-edit-salarie') { editSalarieId = null; window._editSalarieId = null; }
+  if (id === 'modal-edit-livraison') { window._editLivId = null; }
+  if (id === 'modal-edit-client') { _editClientId = null; }
+  if (id === 'modal-vehicule') { window._editVehId = null; }
   ['alerte-rent','profit-recap'].forEach(i => { const e = document.getElementById(i); if (e) e.style.display='none'; });
 }
-document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open'); });
+document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id); });
 
 function mettreAJourSelects() {
   const chauffeurs = charger('chauffeurs');
@@ -2462,6 +2575,13 @@ function ouvrirEditSalarie(id) {
   window._editSalarieId = id;
   editSalarieId = id;
   const sal=charger('salaries').find(s=>s.id===id); if(!sal) return;
+  const lockResult = prendreVerrouEdition('salarie', id, sal.nom || 'Salarié');
+  if (!lockResult.ok) {
+    afficherToast(`⚠️ Fiche salarié en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    editSalarieId = null;
+    window._editSalarieId = null;
+    return;
+  }
   document.getElementById('edit-sal-nom').value    = sal.nomFamille || sal.nom;
   if (document.getElementById('edit-sal-prenom')) document.getElementById('edit-sal-prenom').value = sal.prenom || '';
   document.getElementById('edit-sal-numero').value = sal.numero;
@@ -2486,6 +2606,11 @@ function ouvrirEditSalarie(id) {
 }
 
 async function confirmerEditSalarie() {
+  const lockState = verifierVerrouEdition('salarie', editSalarieId || window._editSalarieId);
+  if (!lockState.ok) {
+    afficherToast(`⚠️ Cette fiche salarié est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    return;
+  }
   const nomFamille = document.getElementById('edit-sal-nom').value.trim();
   const prenom     = document.getElementById('edit-sal-prenom')?.value.trim()||'';
   const nomComplet = prenom ? `${prenom} ${nomFamille}` : nomFamille;
@@ -2722,6 +2847,11 @@ async function supprimerInspectionAdmin(id) {
 let _editLivId = null;
 function confirmerEditLivraison() {
   const id     = document.getElementById('edit-liv-id').value;
+  const lockState = verifierVerrouEdition('livraison', id);
+  if (!lockState.ok) {
+    afficherToast(`⚠️ Cette livraison est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    return;
+  }
   const client = document.getElementById('edit-liv-client').value.trim();
   if (!client) { afficherToast('⚠️ Client obligatoire', 'error'); return; }
   const livraisons = charger('livraisons');
@@ -3903,6 +4033,12 @@ function ouvrirEditLivraison(id) {
   const livraisons = charger('livraisons');
   const l = livraisons.find(x => x.id === id);
   if (!l) return;
+  const lockResult = prendreVerrouEdition('livraison', id, l.numLiv || 'Livraison');
+  if (!lockResult.ok) {
+    afficherToast(`⚠️ Livraison en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    window._editLivId = null;
+    return;
+  }
   document.getElementById('edit-liv-id').value      = id;
   document.getElementById('edit-liv-client').value  = l.client||'';
   const zoneGeo = l.depart && l.arrivee && l.depart !== l.arrivee
@@ -5833,8 +5969,13 @@ function autoRemplirVehicule() {
 /* ===== MODIFIER CLIENT ===== */
 let _editClientId = null;
 function ouvrirEditClient(id) {
-  const c = JSON.parse(localStorage.getItem('clients')||'[]').find(x=>x.id===id);
+  const c = charger('clients').find(x=>x.id===id);
   if (!c) return;
+  const lockResult = prendreVerrouEdition('client', id, c.nom || 'Client');
+  if (!lockResult.ok) {
+    afficherToast(`⚠️ Client en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    return;
+  }
   _editClientId = id;
   document.getElementById('edit-cl-id').value      = id;
   document.getElementById('edit-cl-nom').value     = c.nom||'';
@@ -5847,18 +5988,23 @@ function ouvrirEditClient(id) {
 
 function confirmerEditClient() {
   const id      = document.getElementById('edit-cl-id').value;
+  const lockState = verifierVerrouEdition('client', id);
+  if (!lockState.ok) {
+    afficherToast(`⚠️ Ce client est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    return;
+  }
   const nom     = document.getElementById('edit-cl-nom').value.trim();
   const prenom  = document.getElementById('edit-cl-prenom').value.trim();
   const tel     = document.getElementById('edit-cl-tel').value.trim();
   const email   = document.getElementById('edit-cl-email').value.trim();
   const adresse = document.getElementById('edit-cl-adresse').value.trim();
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
-  const clients = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
   if (idx>-1) {
     clients[idx].nom=nom; clients[idx].prenom=prenom; clients[idx].tel=tel;
     clients[idx].email=email; clients[idx].adresse=adresse;
-    localStorage.setItem('clients', JSON.stringify(clients));
+    sauvegarder('clients', clients);
   }
   closeModal('modal-edit-client');
   _editClientId = null;
@@ -5921,6 +6067,11 @@ function exporterHeuresPDF() {
 function ouvrirEditVehicule(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId);
   if (!veh) return;
+  const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
+  if (!lockResult.ok) {
+    afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    return;
+  }
   window._editVehId = vehId;
   document.getElementById('veh-immat').value    = veh.immat||'';
   document.getElementById('veh-modele').value   = veh.modele||'';
@@ -5948,6 +6099,11 @@ function ouvrirEditVehicule(vehId) {
 function confirmerEditVehicule() {
   const id = window._editVehId;
   if (!id) return;
+  const lockState = verifierVerrouEdition('vehicule', id);
+  if (!lockState.ok) {
+    afficherToast(`⚠️ Ce véhicule est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    return;
+  }
   const vehicules = charger('vehicules');
   const idx = vehicules.findIndex(v=>v.id===id);
   if (idx === -1) return;
