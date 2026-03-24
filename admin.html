@@ -566,7 +566,11 @@
           <div class="form-grid">
             <div class="form-group"><label>Nom *</label><input type="text" id="nsal-nom" placeholder="Ex : Benali" /></div>
             <div class="form-group"><label>Prénom *</label><input type="text" id="nsal-prenom" placeholder="Ex : Mohamed" /></div>
-            <div class="form-group"><label>Numéro salarié * (identifiant connexion)</label><input type="text" id="nsal-numero" placeholder="Ex : EMP001" /></div>
+            <div class="form-group">
+              <label>Numéro salarié * (identifiant connexion)</label>
+              <input type="text" id="nsal-numero" placeholder="Ex : EMP001" oninput="mettreAJourEmailTechniqueSalarie('new')" />
+              <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Email technique généré : <code id="nsal-email-technique" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></div>
+            </div>
             <div class="form-group"><label>Mot de passe initial *</label><input type="password" id="nsal-mdp" placeholder="Le salarié pourra le modifier" /></div>
             <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="Ex : 06 12 34 56 78" /></div>
             <div class="form-group"><label>Poste / Fonction</label><select id="nsal-poste"><option value="">-- Choisir un poste --</option></select></div>
@@ -1422,7 +1426,11 @@
         <div class="form-grid">
           <div class="form-group"><label>Nom *</label><input type="text" id="edit-sal-nom" /></div>
           <div class="form-group"><label>Prénom *</label><input type="text" id="edit-sal-prenom" /></div>
-          <div class="form-group"><label>Numéro salarié *</label><input type="text" id="edit-sal-numero" /></div>
+          <div class="form-group">
+            <label>Numéro salarié *</label>
+            <input type="text" id="edit-sal-numero" oninput="mettreAJourEmailTechniqueSalarie('edit')" />
+            <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Email technique généré : <code id="edit-sal-email-technique" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></div>
+          </div>
           <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-sal-tel" /></div>
           <div class="form-group"><label>Poste / Fonction</label><select id="edit-sal-poste"><option value="">-- Choisir un poste --</option></select></div>
           <div class="form-group"><label>Véhicule affecté</label><select id="edit-sal-vehicule"><option value="">-- Retirer l'affectation --</option></select></div>

@@ -2005,6 +2005,7 @@ function toggleFormulaireNewSalarie() {
   const el=document.getElementById('form-nouveau-salarie');
   if (el.style.display==='none') {
     el.style.display='block';
+    mettreAJourEmailTechniqueSalarie('new');
     // Mettre à jour le select véhicule dans le formulaire
     const sv=document.getElementById('nsal-vehicule');
     if (sv) {
@@ -2013,6 +2014,24 @@ function toggleFormulaireNewSalarie() {
       vehicules.filter(v=>!v.salId).forEach(v=>{ sv.innerHTML+=`<option value="${v.id}">${v.immat} — ${v.modele}</option>`; });
     }
   } else { el.style.display='none'; }
+}
+
+function genererEmailTechniqueSalarie(numero) {
+  const base = (numero || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[^a-z0-9._-]/g, '');
+  return base ? `${base}@mca-logistics.fr` : '';
+}
+
+function mettreAJourEmailTechniqueSalarie(mode) {
+  const isEdit = mode === 'edit';
+  const numeroEl = document.getElementById(isEdit ? 'edit-sal-numero' : 'nsal-numero');
+  const labelEl = document.getElementById(isEdit ? 'edit-sal-email-technique' : 'nsal-email-technique');
+  if (!numeroEl || !labelEl) return;
+  const email = genererEmailTechniqueSalarie(numeroEl.value);
+  labelEl.textContent = email || '—';
 }
 
 function creerSalarie() {
@@ -2026,12 +2045,13 @@ function creerSalarie() {
   const datePermis    = document.getElementById('nsal-date-permis')?.value || '';
   const dateAssurance = document.getElementById('nsal-date-assurance')?.value || '';
   const vehId  = document.getElementById('nsal-vehicule')?.value || '';
+  const emailTechnique = genererEmailTechniqueSalarie(numero);
 
   if (!nom||!numero||!mdp) { afficherToast('⚠️ Nom, numéro et mot de passe obligatoires', 'error'); return; }
   const salaries=charger('salaries');
   if (salaries.find(s=>s.numero===numero)) { afficherToast('⚠️ Ce numéro existe déjà', 'error'); return; }
 
-  const salarie={ id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero, tel, poste, datePermis, dateAssurance, mdpHash:btoa(mdp), actif:true, creeLe:new Date().toISOString() };
+  const salarie={ id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero, email:emailTechnique, tel, poste, datePermis, dateAssurance, mdpHash:btoa(mdp), actif:true, creeLe:new Date().toISOString() };
   salaries.push(salarie);
   sauvegarder('salaries', salaries);
 
@@ -2052,6 +2072,7 @@ function creerSalarie() {
   ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>document.getElementById(id).value='');
   if (document.getElementById('nsal-poste')) document.getElementById('nsal-poste').value='';
   if (document.getElementById('nsal-vehicule')) document.getElementById('nsal-vehicule').value='';
+  mettreAJourEmailTechniqueSalarie('new');
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
   rafraichirDependancesSalaries();
@@ -2095,6 +2116,7 @@ function ouvrirEditSalarie(id) {
   document.getElementById('edit-sal-nom').value    = sal.nomFamille || sal.nom;
   if (document.getElementById('edit-sal-prenom')) document.getElementById('edit-sal-prenom').value = sal.prenom || '';
   document.getElementById('edit-sal-numero').value = sal.numero;
+  mettreAJourEmailTechniqueSalarie('edit');
   document.getElementById('edit-sal-tel').value    = sal.tel||'';
   if (document.getElementById('edit-sal-poste')) document.getElementById('edit-sal-poste').value = sal.poste||'';
   if (document.getElementById('edit-sal-date-permis')) document.getElementById('edit-sal-date-permis').value = sal.datePermis||'';
@@ -2124,6 +2146,7 @@ function confirmerEditSalarie() {
   const vehId  = document.getElementById('edit-sal-vehicule')?.value||'';
   const datePermis    = document.getElementById('edit-sal-date-permis')?.value||'';
   const dateAssurance = document.getElementById('edit-sal-date-assurance')?.value||'';
+  const emailTechnique = genererEmailTechniqueSalarie(numero);
 
   if (!nomFamille||!numero) { afficherToast('⚠️ Nom et numéro obligatoires', 'error'); return; }
   const salaries=charger('salaries');
@@ -2131,7 +2154,7 @@ function confirmerEditSalarie() {
   const idx=salaries.findIndex(s=>s.id===editSalarieId);
   if (idx>-1) {
     salaries[idx].nom=nomComplet; salaries[idx].nomFamille=nomFamille; salaries[idx].prenom=prenom;
-    salaries[idx].numero=numero; salaries[idx].tel=tel; salaries[idx].poste=poste;
+    salaries[idx].numero=numero; salaries[idx].email=emailTechnique; salaries[idx].tel=tel; salaries[idx].poste=poste;
     salaries[idx].datePermis=datePermis; salaries[idx].dateAssurance=dateAssurance;
     sauvegarder('salaries', salaries);
     // Propager dans chauffeurs
