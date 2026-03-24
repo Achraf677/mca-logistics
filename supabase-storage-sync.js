@@ -364,10 +364,6 @@
     }
   };
 
-  document.addEventListener('DOMContentLoaded', function () {
-    bootstrap().catch(function () {});
-  });
-
   async function pushFullSnapshot() {
     var snapshot = buildSnapshot();
     return await pushChanges(snapshot, []);

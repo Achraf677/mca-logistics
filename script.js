@@ -550,6 +550,7 @@ function afficherBadgeAlertes() {
 }
 
 let derniereAlerteSynchroAdmin = '';
+let warmupAdminPromise = null;
 
 function notifierMajAutreAdmin(detail) {
   if (!detail || !detail.externalActor) return;
@@ -558,6 +559,32 @@ function notifierMajAutreAdmin(detail) {
   if (!updatedAt || updatedAt === derniereAlerteSynchroAdmin) return;
   derniereAlerteSynchroAdmin = updatedAt;
   afficherToast('🔄 Un autre admin a mis à jour les données. La page a été resynchronisée.', 'info');
+}
+
+function lancerWarmupAdmin() {
+  if (warmupAdminPromise) return warmupAdminPromise;
+  warmupAdminPromise = (async function() {
+    let syncInitResult = null;
+    if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init) {
+      syncInitResult = await window.DelivProRemoteStorage.init();
+    }
+    if (!syncInitResult?.ok) {
+      afficherToast('⚠️ Session Supabase absente: vous êtes en mode local, la synchro multi-appareils est inactive.', 'error');
+    }
+
+    const importResult = await importerSalariesDepuisSupabase();
+    if (importResult?.ok) {
+      rafraichirDependancesSalaries();
+      const pageActive = document.querySelector('.page.active')?.id || '';
+      if (pageActive === 'page-salaries') afficherSalaries();
+      if (pageActive === 'page-dashboard') rafraichirDashboard();
+    }
+    return { syncInitResult: syncInitResult, importResult: importResult };
+  })().catch(function(error) {
+    console.warn('Warmup admin différé échoué', error);
+    return { ok: false, error: error };
+  });
+  return warmupAdminPromise;
 }
 
 /* ===== NAVIGATION ===== */
@@ -574,15 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.location.href = 'login.html';
     return;
   }
-  let syncInitResult = null;
-  if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init) {
-    syncInitResult = await window.DelivProRemoteStorage.init();
-  }
-  if (!syncInitResult?.ok) {
-    afficherToast('⚠️ Session Supabase absente: vous êtes en mode local, la synchro multi-appareils est inactive.', 'error');
-  }
   getAdminAccounts();
-  await importerSalariesDepuisSupabase();
   document.getElementById('currentDate').textContent =
     new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
   document.querySelectorAll('input[type="date"]').forEach(el => { el.value = aujourdhui(); });
@@ -615,6 +634,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   requestAnimationFrame(() => {
     document.body.classList.remove('app-booting');
   });
+  setTimeout(() => {
+    lancerWarmupAdmin();
+  }, 0);
 });
 
 function naviguerVers(page) {
