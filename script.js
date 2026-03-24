@@ -184,6 +184,12 @@ function deconnexionAdmin() {
   sessionStorage.removeItem('role');
   sessionStorage.removeItem('admin_login');
   sessionStorage.removeItem('admin_nom');
+  if (window.DelivProAuth && window.DelivProAuth.signOut) {
+    window.DelivProAuth.signOut().finally(() => {
+      window.location.href = 'login.html';
+    });
+    return;
+  }
   window.location.href = 'login.html';
 }
 function appliquerBranding() {
@@ -348,7 +354,14 @@ function afficherBadgeAlertes() {
 }
 
 /* ===== NAVIGATION ===== */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  if (window.DelivProAuth) {
+    await window.DelivProAuth.ensureAdminLegacySessionFromSupabase();
+  }
+  if (sessionStorage.getItem('role') !== 'admin') {
+    window.location.href = 'login.html';
+    return;
+  }
   getAdminAccounts();
   document.getElementById('currentDate').textContent =
     new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

@@ -355,6 +355,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase-config.js"></script>
   <script src="supabase-client.js"></script>
+  <script src="supabase-auth.js"></script>
   <script>
     function getDefaultAdminAccounts() {
       return [
@@ -412,7 +413,7 @@
       }
     }
 
-    function seConnecterAdmin() {
+    async function seConnecterAdmin() {
       const identifiant = document.getElementById('input-identifiant').value.trim().toLowerCase();
       const mdp = document.getElementById('input-mdp').value.trim();
       const errEl = document.getElementById('error-admin');
@@ -422,6 +423,19 @@
         errEl.textContent = '❌ Veuillez saisir votre identifiant et votre mot de passe';
         errEl.classList.add('show');
         return;
+      }
+
+      if (window.DelivProAuth && window.DelivProAuth.signIn) {
+        const authResult = await window.DelivProAuth.signIn('admin', identifiant, mdp);
+        if (authResult.ok) {
+          sessionStorage.setItem('role', 'admin');
+          sessionStorage.setItem('admin_login', authResult.target.email || identifiant);
+          sessionStorage.setItem('admin_nom', authResult.profile?.display_name || authResult.target.display_name || 'Admin');
+          sessionStorage.removeItem('salarie_id');
+          sessionStorage.removeItem('salarie_numero');
+          window.location.href = 'admin.html';
+          return;
+        }
       }
 
       const compte = getAdminAccounts().find(function (a) {
@@ -441,7 +455,7 @@
       }
     }
 
-    function seConnecterSalarie() {
+    async function seConnecterSalarie() {
       const numero = document.getElementById('login-numero').value.trim().toUpperCase();
       const mdp = document.getElementById('login-mdp').value;
       const errEl = document.getElementById('error-salarie');
@@ -467,6 +481,20 @@
           return;
         }
         localStorage.removeItem(cle);
+      }
+
+      if (window.DelivProAuth && window.DelivProAuth.signIn) {
+        const authResult = await window.DelivProAuth.signIn('salarie', numero, mdp);
+        if (authResult.ok && authResult.salarie && authResult.salarie.actif !== false) {
+          localStorage.removeItem(cle);
+          sessionStorage.setItem('role', 'salarie');
+          sessionStorage.setItem('salarie_id', authResult.salarie.id || authResult.target.salarie_id || '');
+          sessionStorage.setItem('salarie_numero', authResult.salarie.numero || numero);
+          sessionStorage.removeItem('admin_login');
+          sessionStorage.removeItem('admin_nom');
+          window.location.href = 'salarie.html';
+          return;
+        }
       }
 
       const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
@@ -502,7 +530,17 @@
       window.location.href = 'salarie.html';
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', async function () {
+      if (window.DelivProAuth) {
+        if (await window.DelivProAuth.ensureAdminLegacySessionFromSupabase()) {
+          window.location.href = 'admin.html';
+          return;
+        }
+        if (await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase()) {
+          window.location.href = 'salarie.html';
+          return;
+        }
+      }
       getAdminAccounts();
       basculerMode('admin');
     });
