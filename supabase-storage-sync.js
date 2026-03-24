@@ -1,11 +1,13 @@
 (function () {
   var STORAGE_SCOPE = 'global';
-  var FLUSH_DELAY_MS = 700;
-  var POLL_INTERVAL_MS = 5000;
+  var FLUSH_DELAY_MS = 120;
+  var POLL_INTERVAL_MS = 1200;
+  var RETRY_DELAY_MS = 1200;
   var suppressLocalSync = false;
   var pendingChanges = {};
   var pendingRemovals = {};
   var flushTimer = null;
+  var scheduledFlushDelay = null;
   var pollTimer = null;
   var initialized = false;
   var bootstrapPromise = null;
@@ -194,6 +196,7 @@
 
   async function flushPending() {
     flushTimer = null;
+    scheduledFlushDelay = null;
 
     if (!initialized || suppressLocalSync) return;
 
@@ -213,15 +216,20 @@
       removedKeys.forEach(function (key) {
         pendingRemovals[key] = true;
       });
-      scheduleFlush(2500);
+      scheduleFlush(RETRY_DELAY_MS);
     }
   }
 
   function scheduleFlush(delay) {
-    if (flushTimer) window.clearTimeout(flushTimer);
+    var nextDelay = typeof delay === 'number' ? delay : FLUSH_DELAY_MS;
+    if (flushTimer) {
+      if (scheduledFlushDelay != null && nextDelay >= scheduledFlushDelay) return;
+      window.clearTimeout(flushTimer);
+    }
+    scheduledFlushDelay = nextDelay;
     flushTimer = window.setTimeout(function () {
       flushPending().catch(function () {});
-    }, typeof delay === 'number' ? delay : FLUSH_DELAY_MS);
+    }, nextDelay);
   }
 
   function queueSet(key, value) {
@@ -265,6 +273,25 @@
       if (!initialized || suppressLocalSync) return;
       pullLatest().catch(function () {});
     }, POLL_INTERVAL_MS);
+  }
+
+  function startForegroundRefresh() {
+    function pullSoon() {
+      if (!initialized || suppressLocalSync) return;
+      pullLatest().catch(function () {});
+    }
+
+    window.addEventListener('focus', pullSoon);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') pullSoon();
+      if (document.visibilityState === 'hidden') flushPending().catch(function () {});
+    });
+    window.addEventListener('beforeunload', function () {
+      flushPending().catch(function () {});
+    });
+    window.addEventListener('pagehide', function () {
+      flushPending().catch(function () {});
+    });
   }
 
   async function pullLatest(forceApply) {
@@ -326,6 +353,7 @@
       initialized = true;
       subscribeRealtime();
       startPolling();
+      startForegroundRefresh();
       return { ok: true };
     })();
 

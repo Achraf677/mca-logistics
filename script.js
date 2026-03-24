@@ -1047,7 +1047,7 @@ function planifierRafraichissementStorage(cle, callback) {
   const timer = setTimeout(function() {
     STORAGE_REFRESH_QUEUE.delete(cle);
     callback();
-  }, 60);
+  }, 24);
   STORAGE_REFRESH_QUEUE.set(cle, timer);
 }
 
