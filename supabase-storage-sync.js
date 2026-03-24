@@ -11,7 +11,9 @@
   var bootstrapPromise = null;
   var realtimeChannel = null;
   var lastRemoteUpdatedAt = '';
+  var lastRemoteUpdatedBy = '';
   var lastErrorMessage = '';
+  var currentUserId = '';
 
   var originalSetItem = Storage.prototype.setItem;
   var originalRemoveItem = Storage.prototype.removeItem;
@@ -113,12 +115,25 @@
     }
   }
 
+  async function getCurrentUserId() {
+    if (currentUserId) return currentUserId;
+    var client = getClient();
+    if (!client) return '';
+    try {
+      var userResult = await client.auth.getUser();
+      currentUserId = userResult?.data?.user?.id || '';
+      return currentUserId;
+    } catch (_) {
+      return '';
+    }
+  }
+
   async function fetchRemoteState() {
     var client = getClient();
     if (!client) return null;
     var result = await client
       .from('app_state')
-      .select('scope, payload, updated_at')
+      .select('scope, payload, updated_at, updated_by')
       .eq('scope', STORAGE_SCOPE)
       .maybeSingle();
 
@@ -132,6 +147,23 @@
   function rememberRemoteState(record) {
     if (!record) return;
     lastRemoteUpdatedAt = record.updated_at ? String(record.updated_at) : lastRemoteUpdatedAt;
+    lastRemoteUpdatedBy = record.updated_by ? String(record.updated_by) : lastRemoteUpdatedBy;
+  }
+
+  async function notifyRemoteUpdate(record, origin) {
+    var updatedAt = record && record.updated_at ? String(record.updated_at) : '';
+    if (!updatedAt) return;
+    var userId = await getCurrentUserId();
+    var updatedBy = record && record.updated_by ? String(record.updated_by) : '';
+    var externalActor = !!updatedBy && !!userId && updatedBy !== userId;
+    window.dispatchEvent(new CustomEvent('delivpro:remote-update', {
+      detail: {
+        updatedAt: updatedAt,
+        updatedBy: updatedBy,
+        externalActor: externalActor,
+        origin: origin || 'remote'
+      }
+    }));
   }
 
   async function pushChanges(changes, removedKeys) {
@@ -222,6 +254,7 @@
         if (!record || !record.payload) return;
         rememberRemoteState(record);
         applyRemoteSnapshot(record.payload, true);
+        notifyRemoteUpdate(record, 'realtime').catch(function () {});
       })
       .subscribe();
   }
@@ -255,6 +288,9 @@
 
     rememberRemoteState(remote);
     if (shouldApply) applyRemoteSnapshot(remote.payload, true);
+    if (shouldApply) {
+      notifyRemoteUpdate(remote, forceApply ? 'pull-force' : 'poll').catch(function () {});
+    }
 
     return { ok: true, data: remote, applied: shouldApply };
   }
@@ -352,9 +388,11 @@
       initialized: initialized,
       hasClient: !!client,
       hasSession: !!session,
+      currentUserId: currentUserId || session?.user?.id || '',
       authMode: sessionStorage.getItem('auth_mode') || '',
       role: sessionStorage.getItem('role') || '',
       lastRemoteUpdatedAt: lastRemoteUpdatedAt,
+      lastRemoteUpdatedBy: lastRemoteUpdatedBy,
       lastErrorMessage: lastErrorMessage,
       snapshotKeys: Object.keys(buildSnapshot()),
       pendingChangeCount: Object.keys(pendingChanges).length,

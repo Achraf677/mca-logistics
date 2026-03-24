@@ -423,10 +423,24 @@ function afficherBadgeAlertes() {
   mettreAJourBadgeMsgAdmin();
 }
 
+let derniereAlerteSynchroAdmin = '';
+
+function notifierMajAutreAdmin(detail) {
+  if (!detail || !detail.externalActor) return;
+  if (sessionStorage.getItem('role') !== 'admin') return;
+  const updatedAt = detail.updatedAt || '';
+  if (!updatedAt || updatedAt === derniereAlerteSynchroAdmin) return;
+  derniereAlerteSynchroAdmin = updatedAt;
+  afficherToast('🔄 Un autre admin a mis à jour les données. La page a été resynchronisée.', 'info');
+}
+
 /* ===== NAVIGATION ===== */
 document.addEventListener('DOMContentLoaded', async () => {
   if (window.__delivproAdminBootstrapped) return;
   window.__delivproAdminBootstrapped = true;
+  window.addEventListener('delivpro:remote-update', function(event) {
+    notifierMajAutreAdmin(event.detail || {});
+  });
   if (window.DelivProAuth) {
     await window.DelivProAuth.ensureAdminLegacySessionFromSupabase();
   }
