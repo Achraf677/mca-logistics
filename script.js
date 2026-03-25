@@ -232,11 +232,20 @@ function saveAdminAccounts(comptes) {
   sauvegarder('admin_accounts', comptes);
 }
 function getAdminSession() {
+  const identifiant = sessionStorage.getItem('admin_login') || '';
+  const email = sessionStorage.getItem('admin_email') || '';
+  const nomBrut = sessionStorage.getItem('admin_nom') || '';
+  const nomNormalise = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
+    ? window.DelivProAuth.normalizeAdminDisplayName(nomBrut, identifiant, email)
+    : (nomBrut || '');
+  if (nomNormalise && nomNormalise !== nomBrut) {
+    sessionStorage.setItem('admin_nom', nomNormalise);
+  }
   return {
-    identifiant: sessionStorage.getItem('admin_login') || '',
-    email: sessionStorage.getItem('admin_email') || '',
+    identifiant: identifiant,
+    email: email,
     authMode: sessionStorage.getItem('auth_mode') || 'local',
-    nom: sessionStorage.getItem('admin_nom') || ''
+    nom: nomNormalise
   };
 }
 const ADMIN_EDIT_LOCKS_KEY = 'admin_edit_locks';
@@ -5295,7 +5304,10 @@ function majSelectsPostes() {
 
 function sauvegarderParametres() {
   const sessionAdmin = getAdminSession();
-  const adminNom = document.getElementById('param-nom-admin')?.value.trim() || 'Admin';
+  const adminNomSaisi = document.getElementById('param-nom-admin')?.value.trim() || 'Admin';
+  const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
+    ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
+    : adminNomSaisi;
   const params = {
     nom:      document.getElementById('param-nom-entreprise')?.value.trim() || 'MCA Logistics',
     nomAdmin: chargerObj('params_entreprise', {}).nomAdmin || '',

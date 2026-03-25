@@ -417,6 +417,13 @@
       ];
     }
 
+    function normaliserNomAdminAffiche(nom, identifiant, email) {
+      if (window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function') {
+        return window.DelivProAuth.normalizeAdminDisplayName(nom, identifiant, email);
+      }
+      return nom || identifiant || email || 'Admin';
+    }
+
     function getAdminAccounts() {
       const raw = localStorage.getItem('admin_accounts');
       if (raw) {
@@ -491,7 +498,11 @@
           sessionStorage.setItem('auth_mode', 'supabase');
           sessionStorage.setItem('admin_login', identifiant);
           sessionStorage.setItem('admin_email', authResult.target.email || '');
-          sessionStorage.setItem('admin_nom', authResult.profile?.display_name || authResult.target.display_name || 'Admin');
+          sessionStorage.setItem('admin_nom', normaliserNomAdminAffiche(
+            authResult.profile?.display_name || authResult.target.display_name || '',
+            identifiant,
+            authResult.target.email || ''
+          ));
           sessionStorage.removeItem('salarie_id');
           sessionStorage.removeItem('salarie_numero');
           localStorage.setItem('last_admin_identifiant', identifiant);
@@ -522,7 +533,7 @@
         sessionStorage.setItem('auth_mode', 'local');
         sessionStorage.setItem('admin_login', compte.identifiant);
         sessionStorage.removeItem('admin_email');
-        sessionStorage.setItem('admin_nom', compte.nom);
+        sessionStorage.setItem('admin_nom', normaliserNomAdminAffiche(compte.nom, compte.identifiant, ''));
         sessionStorage.removeItem('salarie_id');
         sessionStorage.removeItem('salarie_numero');
         localStorage.setItem('last_admin_identifiant', compte.identifiant);

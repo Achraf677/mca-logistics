@@ -2,6 +2,35 @@
   var LOGIN_TARGET_CACHE_KEY = 'delivpro_login_target_cache_v1';
   var LOGIN_TARGET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
+  function getKnownAdminName(identifierOrEmail) {
+    var value = String(identifierOrEmail || '').trim().toLowerCase();
+    if (!value) return '';
+    if (value === 'achraf.chikri' || value === 'admin.achraf@mca-logistics.fr' || value === 'admin.achraf') {
+      return 'Achraf Chikri';
+    }
+    if (value === 'mohammed.chikri' || value === 'admin.mohammed@mca-logistics.fr' || value === 'admin.mohammed') {
+      return 'Mohammed Chikri';
+    }
+    return '';
+  }
+
+  function normalizeAdminDisplayName(displayName, identifier, email) {
+    var known = getKnownAdminName(identifier) || getKnownAdminName(email) || getKnownAdminName(displayName);
+    if (known) return known;
+
+    var candidate = String(displayName || '').trim();
+    if (!candidate) {
+      return String(identifier || email || 'Admin').trim() || 'Admin';
+    }
+
+    var normalized = candidate.toLowerCase();
+    if (normalized === 'admin.achraf' || normalized === 'admin.mohammed') {
+      return getKnownAdminName(candidate) || candidate;
+    }
+
+    return candidate;
+  }
+
   function getClient() {
     return window.DelivProSupabase && window.DelivProSupabase.getClient
       ? window.DelivProSupabase.getClient()
@@ -123,14 +152,22 @@
 
     if (error) return { ok: false, reason: 'invalid_credentials', error: error };
 
+    const profile = kind === 'admin' ? await fetchOwnProfile() : null;
     const salarie = kind === 'salarie' ? await fetchOwnSalarie() : null;
+    if (kind === 'admin') {
+      target.display_name = normalizeAdminDisplayName(
+        target.display_name || profile?.display_name || '',
+        identifier,
+        target.email || profile?.email || data.user?.email || ''
+      );
+    }
 
     return {
       ok: true,
       session: data.session || null,
       user: data.user || null,
       target: target,
-      profile: null,
+      profile: profile,
       salarie: salarie
     };
   }
@@ -161,11 +198,16 @@
     if (!profile || profile.role !== 'admin') return false;
 
     const savedIdentifiant = sessionStorage.getItem('admin_login') || localStorage.getItem('last_admin_identifiant') || '';
+    var adminLabel = normalizeAdminDisplayName(
+      profile.display_name || '',
+      savedIdentifiant,
+      profile.email || session.user.email || ''
+    );
     sessionStorage.setItem('role', 'admin');
     sessionStorage.setItem('auth_mode', 'supabase');
     sessionStorage.setItem('admin_login', savedIdentifiant || profile.email || session.user.email || '');
     sessionStorage.setItem('admin_email', profile.email || session.user.email || '');
-    sessionStorage.setItem('admin_nom', profile.display_name || session.user.email || 'Admin');
+    sessionStorage.setItem('admin_nom', adminLabel || 'Admin');
     sessionStorage.removeItem('salarie_id');
     sessionStorage.removeItem('salarie_numero');
     return true;
@@ -202,6 +244,7 @@
   }
 
   window.DelivProAuth = {
+    normalizeAdminDisplayName: normalizeAdminDisplayName,
     resolveLoginTarget: resolveLoginTarget,
     signIn: signIn,
     signOut: signOut,
