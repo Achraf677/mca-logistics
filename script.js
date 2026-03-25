@@ -1253,6 +1253,8 @@ function rafraichirVueHeuresEtKm() {
 function rafraichirVuePlanningAdmin() {
   afficherPlanning();
   if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof peuplerAbsenceSal === 'function') peuplerAbsenceSal();
+  if (typeof afficherAbsencesPeriodes === 'function') afficherAbsencesPeriodes();
 }
 
 function planifierRafraichissementSiPageActive(pageId, cle, callback) {
@@ -1273,6 +1275,7 @@ function gererChangementStorageAdmin(key) {
     planifierRafraichissementSiPageActive('page-tva', 'page-tva-livraisons', afficherTva);
     planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-livraisons', afficherChauffeurs);
     planifierRafraichissementSiPageActive('page-clients', 'page-clients-livraisons', afficherClients);
+    planifierRafraichissementSiPageActive('page-heures', 'page-heures-livraisons', rafraichirVueHeuresEtKm);
     planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
     return;
   }
@@ -1292,6 +1295,16 @@ function gererChangementStorageAdmin(key) {
     planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-salaries', rafraichirVueLivraisonsActive);
     planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-salaries', afficherAlertes);
     planifierRafraichissementSiPageActive('page-incidents', 'page-incidents-salaries', afficherIncidents);
+    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-salaries', afficherChauffeurs);
+    return;
+  }
+
+  if (key === 'chauffeurs') {
+    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs', afficherChauffeurs);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-chauffeurs', rafraichirDashboard);
+    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-chauffeurs', rafraichirVueLivraisonsActive);
+    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-chauffeurs', afficherStatistiques);
+    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-chauffeurs', calculerPrevision);
     return;
   }
 
@@ -1301,6 +1314,8 @@ function gererChangementStorageAdmin(key) {
     planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens-vehicules', afficherEntretiens);
     planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-vehicules', rafraichirVueLivraisonsActive);
     planifierRafraichissementSiPageActive('page-tva', 'page-tva-vehicules', afficherTva);
+    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-vehicules', afficherChauffeurs);
+    planifierRafraichissementSiPageActive('page-heures', 'page-heures-vehicules', rafraichirVueHeuresEtKm);
     return;
   }
 
@@ -1338,6 +1353,7 @@ function gererChangementStorageAdmin(key) {
   if (key === 'plannings' || key === 'absences_periodes') {
     planifierRafraichissementSiPageActive('page-planning', 'page-planning', rafraichirVuePlanningAdmin);
     planifierRafraichissementSiPageActive('page-heures', 'page-heures-planning', rafraichirVueHeuresEtKm);
+    planifierRafraichissementSiPageActive('page-salaries', 'page-salaries-planning', afficherSalaries);
     return;
   }
 
@@ -1378,6 +1394,11 @@ function gererChangementStorageAdmin(key) {
     planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-km', afficherVehicules);
     planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-km', afficherAlertes);
     planifierRafraichissementSiPageActive('page-heures', 'page-heures-km', rafraichirVueHeuresEtKm);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-km', rafraichirDashboard);
+  }
+
+  if (key && key.indexOf('notifs_sal_') === 0) {
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-notifs', rafraichirDashboard);
   }
 }
 
