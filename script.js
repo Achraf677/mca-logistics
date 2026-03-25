@@ -123,18 +123,45 @@ function renderLogoEntrepriseExport() {
 function calculerAmortissementVehicule(veh) {
   const ht = parseFloat(veh?.prixAchatHT) || 0;
   const duree = parseFloat(veh?.dureeAmortissement) || 0;
-  if (!ht || !duree) return { annuel: 0, mensuel: 0, cumule: 0, reste: ht };
-  const annuel = ht / duree;
+  const mode = veh?.modeAmortissement === 'degressif' ? 'degressif' : 'lineaire';
+  const valeurRebut = parseFloat(veh?.valeurMiseAuRebut) || 0;
+  const baseAmortissable = Math.max(0, ht - valeurRebut);
+  if (!baseAmortissable || !duree) {
+    return { annuel: 0, mensuel: 0, cumule: 0, reste: baseAmortissable, mode, prorataPremierExercice: 0 };
+  }
+  const annees = parseFloat(duree) || 0;
+  const coefficientDegressif = annees >= 7 ? 2.25 : annees >= 5 ? 1.75 : annees >= 3 ? 1.25 : 1;
+  const tauxLineaire = annees > 0 ? 1 / annees : 0;
+  const tauxAnnuel = mode === 'degressif' ? (tauxLineaire * coefficientDegressif) : tauxLineaire;
+  const annuel = baseAmortissable * tauxAnnuel;
   const mensuel = annuel / 12;
   const dateAcq = veh?.dateAcquisition ? new Date(veh.dateAcquisition + 'T00:00:00') : null;
   let moisEcoules = 0;
+  let prorataPremierExercice = 0;
   if (dateAcq && !Number.isNaN(dateAcq.getTime())) {
     const now = new Date();
     moisEcoules = Math.max(0, (now.getFullYear() - dateAcq.getFullYear()) * 12 + (now.getMonth() - dateAcq.getMonth()));
     if (now.getDate() < dateAcq.getDate()) moisEcoules = Math.max(0, moisEcoules - 1);
+    const finExercice = new Date(dateAcq.getFullYear(), 11, 31);
+    const debutExercice = new Date(dateAcq.getFullYear(), 0, 1);
+    const joursExercice = Math.max(1, Math.round((finExercice - debutExercice) / 86400000) + 1);
+    const joursRestants = Math.max(0, Math.round((finExercice - dateAcq) / 86400000) + 1);
+    prorataPremierExercice = joursRestants / joursExercice;
   }
-  const cumule = Math.min(ht, mensuel * Math.min(moisEcoules, Math.round(duree * 12)));
-  return { annuel, mensuel, cumule, reste: Math.max(0, ht - cumule) };
+  const dateRebut = veh?.dateMiseAuRebut ? new Date(veh.dateMiseAuRebut + 'T00:00:00') : null;
+  if (dateRebut && dateAcq && !Number.isNaN(dateRebut.getTime()) && dateRebut > dateAcq) {
+    const moisRebut = Math.max(0, (dateRebut.getFullYear() - dateAcq.getFullYear()) * 12 + (dateRebut.getMonth() - dateAcq.getMonth()));
+    moisEcoules = Math.min(moisEcoules, moisRebut);
+  }
+  const cumule = Math.min(baseAmortissable, mensuel * Math.min(moisEcoules, Math.round(duree * 12)));
+  return {
+    annuel,
+    mensuel,
+    cumule,
+    reste: Math.max(0, baseAmortissable - cumule),
+    mode,
+    prorataPremierExercice
+  };
 }
 function formaterTaux(value) {
   const n = parseFloat(value);
@@ -622,6 +649,143 @@ function getVehiculeParSalId(salId) {
   return charger('vehicules').find(v => v.salId === salId) || null;
 }
 
+function mettreAJourKmVehiculeParSalarie(salId, km) {
+  const valeur = parseFloat(km) || 0;
+  if (!salId || !valeur) return;
+  const vehicules = charger('vehicules');
+  const idx = vehicules.findIndex(function(v) { return v.salId === salId; });
+  if (idx === -1) return;
+  const kmAvant = parseFloat(vehicules[idx].km) || 0;
+  vehicules[idx].km = Math.max(parseFloat(vehicules[idx].km) || 0, valeur);
+  if (!Number.isFinite(parseFloat(vehicules[idx].kmInitial))) vehicules[idx].kmInitial = kmAvant || valeur;
+  sauvegarder('vehicules', vehicules);
+}
+
+function getSalarieNomComplet(salarie, options) {
+  if (!salarie) return '';
+  const settings = options || {};
+  let nom = String(salarie.nom || '').trim();
+  let prenom = String(salarie.prenom || '').trim();
+  if (nom && prenom) {
+    const nomLower = nom.toLowerCase();
+    const prenomLower = prenom.toLowerCase();
+    if (nomLower === prenomLower) prenom = '';
+    else if (nomLower.includes(prenomLower)) prenom = '';
+    else if (prenomLower.includes(nomLower)) nom = prenom;
+  }
+  const morceaux = [];
+  if (prenom) morceaux.push(prenom);
+  if (nom) morceaux.push(nom);
+  let label = morceaux.join(' ').replace(/\s+/g, ' ').trim() || nom || prenom || 'Salarié';
+  if (settings.includePoste && salarie.poste) label += ' - ' + salarie.poste;
+  if (settings.includeNumero && salarie.numero) label += ' (#' + salarie.numero + ')';
+  return label;
+}
+
+function getVehiculeKmsParLivraisons(vehId) {
+  return charger('livraisons')
+    .filter(l => l.vehId === vehId)
+    .reduce((sum, l) => sum + (parseFloat(l.distance) || 0), 0);
+}
+
+function getVehiculePlusHautKmSaisi(veh) {
+  const livraisons = charger('livraisons');
+  let maxKm = 0;
+  charger('salaries').forEach(function(salarie) {
+    charger('km_sal_' + salarie.id).forEach(function(entry) {
+      const livraisonLiee = entry.livId ? livraisons.find(l => l.id === entry.livId) : null;
+      const concerneVehicule = (livraisonLiee && livraisonLiee.vehId === veh.id) || (veh.salId && salarie.id === veh.salId);
+      if (!concerneVehicule) return;
+      maxKm = Math.max(maxKm, parseFloat(entry.kmDepart) || 0, parseFloat(entry.kmArrivee) || 0);
+    });
+  });
+  charger('inspections').forEach(function(insp) {
+    if (insp.vehId !== veh.id) return;
+    maxKm = Math.max(maxKm, parseFloat(insp.km) || 0);
+  });
+  return maxKm;
+}
+
+function calculerKilometrageVehiculeActuel(veh) {
+  if (!veh) return 0;
+  const kmReference = parseFloat(veh.km) || 0;
+  const kmInitial = parseFloat(veh.kmInitial);
+  const kmLivraisons = Number.isFinite(kmInitial)
+    ? kmInitial + getVehiculeKmsParLivraisons(veh.id)
+    : 0;
+  const kmSaisi = getVehiculePlusHautKmSaisi(veh);
+  return Math.max(kmReference, Number.isFinite(kmInitial) ? kmInitial : 0, kmLivraisons, kmSaisi);
+}
+
+function getPilotageEntretienVehicule(veh) {
+  if (!veh) return { kmActuel: 0, prochainKm: 0, dateEcheance: '', estEnRetard: false, estProche: false };
+  const kmActuel = calculerKilometrageVehiculeActuel(veh);
+  const intervalKm = parseFloat(veh.entretienIntervalKm) || 0;
+  const intervalMois = parseFloat(veh.entretienIntervalMois) || 0;
+  const entretiensVehicule = charger('entretiens')
+    .filter(function(e) { return e.vehId === veh.id; })
+    .sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  const dernier = entretiensVehicule[0] || null;
+  const dernierKm = parseFloat(dernier?.km) || 0;
+  const prochainKm = parseFloat(dernier?.prochainKm) || (intervalKm ? ((dernierKm || kmActuel || (parseFloat(veh.kmInitial) || 0)) + intervalKm) : 0);
+  let dateEcheance = '';
+  if (intervalMois) {
+    const baseDate = dernier?.date || veh.dateAcquisition || '';
+    if (baseDate) {
+      const d = new Date(baseDate + 'T00:00:00');
+      if (!Number.isNaN(d.getTime())) {
+        d.setMonth(d.getMonth() + intervalMois);
+        dateEcheance = d.toISOString().slice(0, 10);
+      }
+    }
+  }
+  const auj = aujourdhui();
+  const kmRestants = prochainKm ? (prochainKm - kmActuel) : null;
+  return {
+    kmActuel,
+    prochainKm,
+    dateEcheance,
+    estEnRetard: Boolean((prochainKm && kmActuel >= prochainKm) || (dateEcheance && dateEcheance < auj)),
+    estProche: Boolean((prochainKm && kmRestants !== null && kmRestants > 0 && kmRestants <= 1000) || (dateEcheance && dateEcheance >= auj && dateEcheance <= new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))),
+    kmRestants
+  };
+}
+
+function synchroniserAffectationLivraison(chaufId, vehId) {
+  const salaries = charger('salaries');
+  const vehicules = charger('vehicules');
+  let salarie = chaufId ? salaries.find(function(item) { return item.id === chaufId; }) : null;
+  let vehicule = vehId ? vehicules.find(function(item) { return item.id === vehId; }) : null;
+  if (salarie && !vehicule) vehicule = getVehiculeParSalId(salarie.id);
+  if (vehicule && !salarie && vehicule.salId) salarie = salaries.find(function(item) { return item.id === vehicule.salId; }) || null;
+  return {
+    chaufId: salarie ? salarie.id : '',
+    chaufNom: salarie ? getSalarieNomComplet(salarie) : 'Non assigné',
+    vehId: vehicule ? vehicule.id : '',
+    vehNom: vehicule ? vehicule.immat : ''
+  };
+}
+
+function peuplerSelectsLivraisonEdition(chaufId, vehId) {
+  const selChauf = document.getElementById('edit-liv-chauffeur');
+  const selVeh = document.getElementById('edit-liv-vehicule');
+  if (selChauf) {
+    selChauf.innerHTML = '<option value="">-- Choisir --</option>';
+    charger('salaries').forEach(function(salarie) {
+      selChauf.innerHTML += '<option value="' + salarie.id + '">' + getSalarieNomComplet(salarie, { includeNumero: true }) + '</option>';
+    });
+    selChauf.value = chaufId || '';
+  }
+  if (selVeh) {
+    selVeh.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
+    charger('vehicules').forEach(function(vehicule) {
+      const label = vehicule.immat + (vehicule.modele ? ' — ' + vehicule.modele : '') + (vehicule.salNom ? ' (' + vehicule.salNom + ')' : '');
+      selVeh.innerHTML += '<option value="' + vehicule.id + '">' + label + '</option>';
+    });
+    selVeh.value = vehId || '';
+  }
+}
+
 let config = chargerObj('config', { coutKmEstime: 0.20 });
 
 /* ===== ALERTES ADMIN ===== */
@@ -764,7 +928,7 @@ function naviguerVers(page) {
         case 'dashboard':    rafraichirDashboard(); break;
         case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
         case 'chauffeurs':   afficherChauffeurs(); break;
-        case 'vehicules':    afficherVehicules(); afficherEntretiensVehicules(); break;
+        case 'vehicules':    afficherVehicules(); break;
         case 'carburant':    navCarbMois(0); break;
         case 'rentabilite':  afficherRentabilite(); break;
         case 'statistiques': afficherStatistiques(); break;
@@ -930,7 +1094,7 @@ function mettreAJourSelects() {
   if (sp) {
     const v = sp.value;
     sp.innerHTML = '<option value="">-- Choisir un salarié --</option>';
-    salaries.forEach(s => { sp.innerHTML += `<option value="${s.id}">${s.nom} (${s.numero})</option>`; });
+    salaries.forEach(s => { sp.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     sp.value = v;
   }
 
@@ -938,13 +1102,22 @@ function mettreAJourSelects() {
   if (sc) {
     const v = sc.value; sc.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
     // Salariés d'abord (avec badge), puis chauffeurs non-salariés
-    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">👤 ${s.nom} (${s.numero})</option>`; });
+    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">👤 ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sc.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sc.value = v;
   }
 
-  ['liv-vehicule','carb-vehicule','entr-vehicule'].forEach(id => {
+  const sec = document.getElementById('edit-liv-chauffeur');
+  if (sec) {
+    const v = sec.value; sec.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
+    salaries.forEach(s => { sec.innerHTML += `<option value="${s.id}">👤 ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
+      .forEach(c => { sec.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
+    sec.value = v;
+  }
+
+  ['liv-vehicule','edit-liv-vehicule','carb-vehicule','entr-vehicule'].forEach(id => {
     const sel = document.getElementById(id); if (!sel) return;
     const v = sel.value; sel.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
     vehicules.forEach(veh => { sel.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}${veh.salNom ? ' ('+veh.salNom+')' : ''}</option>`; });
@@ -995,27 +1168,15 @@ function ajouterLivraison() {
     afficherBadgeAlertes();
   }
 
-  const profit    = prix - distance * config.coutKmEstime;
-  const chauffeurs = charger('chauffeurs');
-  const chauffeur  = chauffeurs.find(c => c.id === chaufId);
-
-  // Véhicule auto depuis affectation salarié si non choisi
-  let vehIdFinal  = vehId;
-  let vehNomFinal = '';
-  if (!vehIdFinal && chaufId) {
-    const vehAff = getVehiculeParSalId(chaufId);
-    if (vehAff) { vehIdFinal = vehAff.id; vehNomFinal = vehAff.immat; }
-  } else if (vehIdFinal) {
-    const veh = charger('vehicules').find(v => v.id === vehIdFinal);
-    vehNomFinal = veh ? veh.immat : '';
-  }
+  const profit = prix - distance * config.coutKmEstime;
+  const affectation = synchroniserAffectationLivraison(chaufId, vehId);
 
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
     client, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
-    chaufId, chaufNom: chauffeur ? chauffeur.nom : 'Non assigné',
-    vehId: vehIdFinal, vehNom: vehNomFinal,
+    chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
+    vehId: affectation.vehId || null, vehNom: affectation.vehNom,
     statut, date, notes,
     statutPaiement: 'en-attente',
     modePaiement:   document.getElementById('liv-mode-paiement')?.value || '',
@@ -1078,7 +1239,13 @@ window.addEventListener('storage', function(e) {
   // Statut livraison mis à jour par un salarié
   if (e.key === 'livraisons') {
     const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-livraisons')  planifierRafraichissementStorage('page-livraisons', afficherLivraisons);
+    if (pageActive?.id === 'page-livraisons')  {
+      planifierRafraichissementStorage('page-livraisons', function() {
+        if (_vueLivraisons === 'kanban') afficherKanban();
+        else if (_vueLivraisons === 'calendrier') afficherCalendrier();
+        else afficherLivraisons();
+      });
+    }
     if (pageActive?.id === 'page-dashboard')   planifierRafraichissementStorage('dashboard-livraisons', rafraichirDashboard);
     planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
   }
@@ -1086,6 +1253,8 @@ window.addEventListener('storage', function(e) {
   if (e.key && e.key.startsWith('km_sal_')) {
     const pageActive = document.querySelector('.page.active');
     if (pageActive?.id === 'page-salaries') planifierRafraichissementStorage('page-salaries', afficherSalaries);
+    if (pageActive?.id === 'page-vehicules') planifierRafraichissementStorage('page-vehicules', afficherVehicules);
+    if (pageActive?.id === 'page-alertes') planifierRafraichissementStorage('page-alertes-km', afficherAlertes);
   }
   // Carburant saisi/modifié par un salarié
   if (e.key === 'carburant') {
@@ -1103,6 +1272,7 @@ window.addEventListener('storage', function(e) {
   if (e.key === 'inspections') {
     const pageActive = document.querySelector('.page.active');
     if (pageActive?.id === 'page-inspections') planifierRafraichissementStorage('page-inspections', afficherInspections);
+    if (pageActive?.id === 'page-vehicules') planifierRafraichissementStorage('page-vehicules-inspections', afficherVehicules);
   }
   // Nouveau message d'un salarié
   if (e.key && e.key.startsWith('messages_')) {
@@ -1296,13 +1466,17 @@ function ajouterVehicule() {
   const conso  = parseFloat(document.getElementById('veh-conso').value) || 0;
   const salId  = document.getElementById('veh-salarie')?.value || '';
   const dateCT = document.getElementById('veh-date-ct')?.value || '';
-  const kmVidange = parseFloat(document.getElementById('veh-km-vidange')?.value) || 0;
   const modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   const dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
   const prixAchatHT = parseFloat(document.getElementById('veh-acq-prix-ht')?.value) || 0;
   const tauxTVAAchat = parseFloat(document.getElementById('veh-acq-taux-tva')?.value) || 20;
   const prixAchatTTC = parseFloat(document.getElementById('veh-acq-prix')?.value) || (prixAchatHT * (1 + tauxTVAAchat/100));
   const dureeAmortissement = parseFloat(document.getElementById('veh-duree-amortissement')?.value) || 0;
+  const modeAmortissement = document.getElementById('veh-mode-amortissement')?.value || 'lineaire';
+  const entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value) || 0;
+  const entretienIntervalMois = parseFloat(document.getElementById('veh-entretien-interval-mois')?.value) || 0;
+  const dateMiseAuRebut = document.getElementById('veh-date-rebut')?.value || '';
+  const valeurMiseAuRebut = parseFloat(document.getElementById('veh-valeur-rebut')?.value) || 0;
 
   if (!immat) { afficherToast('⚠️ Immatriculation obligatoire', 'error'); return; }
   if (salId && charger('vehicules').find(v => v.salId === salId)) {
@@ -1312,8 +1486,9 @@ function ajouterVehicule() {
   const sal = charger('salaries').find(s => s.id === salId);
   const tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 80;
   const vehicule = {
-    id: genId(), immat, modele, km, conso, dateCT, kmVidange, tvaCarbDeductible,
+    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, prixAchatHT, tauxTVAAchat, prixAchatTTC, dureeAmortissement,
+    modeAmortissement, entretienIntervalKm, entretienIntervalMois, dateMiseAuRebut, valeurMiseAuRebut,
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   };
@@ -1322,9 +1497,10 @@ function ajouterVehicule() {
   sauvegarder('vehicules', vehicules);
 
   closeModal('modal-vehicule');
-  ['veh-immat','veh-modele','veh-km','veh-conso','veh-acq-prix-ht','veh-acq-prix','veh-duree-amortissement'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
+  ['veh-immat','veh-modele','veh-km','veh-conso','veh-acq-prix-ht','veh-acq-prix','veh-duree-amortissement','veh-entretien-interval-km','veh-entretien-interval-mois','veh-date-rebut','veh-valeur-rebut'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
   if (document.getElementById('veh-acq-taux-tva')) document.getElementById('veh-acq-taux-tva').value = '20';
   if (document.getElementById('veh-mode-acquisition')) document.getElementById('veh-mode-acquisition').value = 'achat';
+  if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
   if (document.getElementById('veh-date-acquisition')) document.getElementById('veh-date-acquisition').value = '';
   if (document.getElementById('veh-date-ct')) document.getElementById('veh-date-ct').value = '';
   if (document.getElementById('veh-salarie')) document.getElementById('veh-salarie').value = '';
@@ -1336,7 +1512,6 @@ function afficherVehicules() {
   let vehicules  = charger('vehicules');
   const entretiens = charger('entretiens');
   const salaries   = charger('salaries');
-  const livraisons = charger('livraisons');
   const tb = document.getElementById('tb-vehicules');
 
   // Filtre
@@ -1361,13 +1536,16 @@ function afficherVehicules() {
   // Vérifier alertes CT (dans les 30 jours)
   const auj = new Date(); const dans30j = new Date(); dans30j.setDate(auj.getDate()+30);
   vehicules.forEach(v => {
+    const pilotageEntretien = getPilotageEntretienVehicule(v);
     if (v.dateCT) {
       const dateCT = new Date(v.dateCT);
       if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${v.immat}`, { vehId: v.id });
       else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `🔔 CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
     }
-    if (v.kmVidange && v.km && v.km >= v.kmVidange) {
-      ajouterAlerteSiAbsente('vidange', `🔧 Vidange à effectuer — ${v.immat} (${formatKm(v.km)} / objectif ${formatKm(v.kmVidange)})`, { vehId: v.id });
+    if (pilotageEntretien.estEnRetard && pilotageEntretien.prochainKm) {
+      ajouterAlerteSiAbsente('vidange', `🔧 Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
+    } else if (pilotageEntretien.estProche && pilotageEntretien.prochainKm) {
+      ajouterAlerteSiAbsente('vidange', `🔔 Entretien proche — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
     }
   });
   afficherBadgeAlertes();
@@ -1376,6 +1554,8 @@ function afficherVehicules() {
   tb.innerHTML = vehicules.map(v => {
     const ent = entretiens.filter(e => e.vehId === v.id).sort((a,b) => new Date(b.date)-new Date(a.date))[0];
     const sal = v.salId ? salaries.find(s => s.id === v.salId) : null;
+    const kmActuel = calculerKilometrageVehiculeActuel(v);
+    const pilotageEntretien = getPilotageEntretienVehicule(v);
 
     // Conso réelle : calcul entre pleins consécutifs (méthode correcte)
     const pleinsVeh = charger('carburant').filter(p=>p.vehId===v.id && p.km)
@@ -1410,20 +1590,28 @@ function afficherVehicules() {
     const acquisitionInfos = [
       v.modeAcquisition ? `<div style="font-weight:600">${(v.modeAcquisition||'').toUpperCase()}</div>` : '',
       v.dateAcquisition ? `<div style="font-size:.76rem;color:var(--text-muted)">Depuis le ${formatDateExport(v.dateAcquisition)}</div>` : '',
-      v.dureeAmortissement ? `<div style="font-size:.76rem;color:var(--text-muted)">Amort. ${v.dureeAmortissement} an(s)</div>` : ''
+      v.dureeAmortissement ? `<div style="font-size:.76rem;color:var(--text-muted)">Amort. ${v.dureeAmortissement} an(s)</div>` : '',
+      (v.entretienIntervalKm || v.entretienIntervalMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Révision ${v.entretienIntervalKm ? 'tous les ' + formatKm(v.entretienIntervalKm) : ''}${v.entretienIntervalKm && v.entretienIntervalMois ? ' / ' : ''}${v.entretienIntervalMois ? 'tous les ' + v.entretienIntervalMois + ' mois' : ''}</div>` : ''
     ].filter(Boolean).join('');
     const financeInfos = [
       v.prixAchatHT ? `<div><strong>${euros(v.prixAchatHT)}</strong> HT</div>` : '',
       v.prixAchatTTC ? `<div style="font-size:.76rem;color:var(--text-muted)">${euros((v.prixAchatTTC||0) - (v.prixAchatHT||0))} TVA • ${euros(v.prixAchatTTC)} TTC</div>` : '',
-      v.dureeAmortissement && amort.annuel ? `<div style="font-size:.76rem;color:var(--accent)">Amort. ${euros(amort.annuel)}/an</div>` : '',
+      v.dureeAmortissement && amort.annuel ? `<div style="font-size:.76rem;color:var(--accent)">Amort. ${euros(amort.annuel)}/an • ${amort.mode === 'degressif' ? 'dégressif' : 'linéaire'}</div>` : '',
+      amort.prorataPremierExercice ? `<div style="font-size:.76rem;color:var(--text-muted)">Prorata fiscal 1er exercice : ${(amort.prorataPremierExercice * 100).toFixed(1)} %</div>` : '',
+      v.dateMiseAuRebut ? `<div style="font-size:.76rem;color:var(--text-muted)">Mise au rebut : ${formatDateExport(v.dateMiseAuRebut)}</div>` : '',
       `<div style="font-size:.76rem;color:var(--text-muted)">TVA carburant ${formaterTaux(v.tvaCarbDeductible || 0)}</div>`
+    ].filter(Boolean).join('');
+    const entretienInfos = [
+      ent ? formatDateExport(ent.date) : '—',
+      pilotageEntretien.prochainKm ? `<div style="font-size:.75rem;color:${pilotageEntretien.estEnRetard ? 'var(--red)' : pilotageEntretien.estProche ? 'var(--accent)' : 'var(--text-muted)'}">Prochain km : ${formatKm(pilotageEntretien.prochainKm)}</div>` : '',
+      pilotageEntretien.dateEcheance ? `<div style="font-size:.75rem;color:var(--text-muted)">Échéance : ${formatDateExport(pilotageEntretien.dateEcheance)}</div>` : ''
     ].filter(Boolean).join('');
 
     return `<tr>
       <td>${v.photo ? `<img src="${v.photo}" class="veh-photo-thumb" onclick="voirPhotoVehicule('${v.id}')" />` : `<label class="veh-photo-placeholder" title="Ajouter photo"><input type="file" accept="image/*" style="display:none" onchange="uploaderPhotoVehicule('${v.id}',this)" />📷</label>`}</td>
       <td><strong>${v.immat}</strong></td>
       <td>${v.modele||'—'}</td>
-      <td>${v.km ? formatKm(v.km) : '—'}</td>
+      <td>${kmActuel ? formatKm(kmActuel) : '—'}</td>
       <td>${acquisitionInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${v.conso ? v.conso+' L/100km' : '—'}${consoReelle
         ? ` <span style="color:var(--green);font-size:.75rem" title="Calculé entre ${pleinsVeh.length} pleins">(réel: ${consoReelle} L/100km)</span>`
@@ -1432,9 +1620,9 @@ function afficherVehicules() {
           : ''
       }</td>
       <td style="${ctStyle}">${v.dateCT ? formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</td>
-      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${sal.nom}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td>${ent ? formatDateExport(ent.date) : '—'}</td>
+      <td>${entretienInfos || '—'}</td>
       <td>
         <button class="btn-icon" onclick="ouvrirEditVehicule('${v.id}')" title="Modifier">✏️</button>
         <button class="btn-icon" onclick="ouvrirAffectationVehicule('${v.id}')" title="Affecter">👤</button>
@@ -1463,7 +1651,7 @@ function ouvrirAffectationVehicule(vehId) {
   sel.innerHTML = '<option value="">-- Retirer l\'affectation --</option>';
   salaries.forEach(s => {
     const pris = vehicules.find(v => v.salId === s.id && v.id !== vehId);
-    if (!pris) sel.innerHTML += `<option value="${s.id}" ${veh?.salId===s.id?'selected':''}>${s.nom} (${s.numero})</option>`;
+    if (!pris) sel.innerHTML += `<option value="${s.id}" ${veh?.salId===s.id?'selected':''}>${getSalarieNomComplet(s, { includeNumero: true })}</option>`;
   });
   document.getElementById('modal-affecter-vehicule').classList.add('open');
 }
@@ -1677,6 +1865,8 @@ function confirmerEditKmAdmin() {
     entrees[idx].date      = date;
     entrees[idx].modifieAdmin = true;
     sauvegarder(cle, entrees);
+    if (arr !== null) mettreAJourKmVehiculeParSalarie(_editKmSalId, arr);
+    else mettreAJourKmVehiculeParSalarie(_editKmSalId, dep);
     // Km de report automatique supprimé en v12fix3
   }
   closeModal('modal-edit-km');
@@ -3019,6 +3209,14 @@ function confirmerEditLivraison() {
   livraisons[idx].prixHT   = parseFloat(document.getElementById('edit-liv-prix-ht')?.value) || 0;
   livraisons[idx].tauxTVA  = parseFloat(document.getElementById('edit-liv-taux-tva')?.value) || 20;
   livraisons[idx].prix     = parseFloat(document.getElementById('edit-liv-prix').value) || 0;
+  const affectation = synchroniserAffectationLivraison(
+    document.getElementById('edit-liv-chauffeur')?.value || '',
+    document.getElementById('edit-liv-vehicule')?.value || ''
+  );
+  livraisons[idx].chaufId = affectation.chaufId || null;
+  livraisons[idx].chaufNom = affectation.chaufNom;
+  livraisons[idx].vehId = affectation.vehId || null;
+  livraisons[idx].vehNom = affectation.vehNom;
   livraisons[idx].date     = document.getElementById('edit-liv-date').value;
   livraisons[idx].statut   = document.getElementById('edit-liv-statut').value;
   livraisons[idx].notes    = document.getElementById('edit-liv-notes').value.trim();
@@ -3506,8 +3704,18 @@ function afficherKanban() {
   let livraisons = charger('livraisons');
   const filtreDeb = document.getElementById('filtre-date-debut')?.value;
   const filtreFin = document.getElementById('filtre-date-fin')?.value;
+  const filtreStatut = document.getElementById('filtre-statut')?.value || '';
+  const filtreRecherche = document.getElementById('filtre-recherche-liv')?.value?.toLowerCase().trim() || '';
+  const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
+  const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
   if (filtreDeb) livraisons = livraisons.filter(l => l.date >= filtreDeb);
   if (filtreFin) livraisons = livraisons.filter(l => l.date <= filtreFin);
+  if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+  if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
+  if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
+  if (filtreRecherche) {
+    livraisons = livraisons.filter(l => [l.client, l.chaufNom, l.numLiv, l.depart, l.arrivee, l.vehNom].filter(Boolean).join(' ').toLowerCase().includes(filtreRecherche));
+  }
   livraisons.sort((a,b) => new Date(b.creeLe) - new Date(a.creeLe));
 
   const cols = { 'en-attente': [], 'en-cours': [], 'livre': [] };
@@ -4205,6 +4413,7 @@ async function ouvrirEditLivraison(id) {
   const elHT = document.getElementById('edit-liv-prix-ht'); if (elHT) elHT.value = l.prixHT||'';
   const elTVA = document.getElementById('edit-liv-taux-tva'); if (elTVA) elTVA.value = l.tauxTVA||'20';
   document.getElementById('edit-liv-prix').value    = l.prix||'';
+  peuplerSelectsLivraisonEdition(l.chaufId || '', l.vehId || '');
   document.getElementById('edit-liv-date').value    = l.date||'';
   document.getElementById('edit-liv-statut').value  = l.statut||'en-attente';
   document.getElementById('edit-liv-notes').value   = l.notes||'';
@@ -5750,6 +5959,16 @@ function ajouterEntretien() {
   }
   entretiens.push({ id:entretienId, chargeId, vehId, date, type, description:desc, km, prochainKm, cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, tauxDeductible, creeLe:new Date().toISOString() });
   sauvegarder('entretiens', entretiens);
+  if (veh && km > (parseFloat(veh.km) || 0)) {
+    const vehicules = charger('vehicules');
+    const idxVeh = vehicules.findIndex(function(item) { return item.id === vehId; });
+    if (idxVeh > -1) {
+      const kmAvant = parseFloat(vehicules[idxVeh].km) || 0;
+      vehicules[idxVeh].km = Math.max(parseFloat(vehicules[idxVeh].km) || 0, km);
+      if (!Number.isFinite(parseFloat(vehicules[idxVeh].kmInitial))) vehicules[idxVeh].kmInitial = kmAvant || km;
+      sauvegarder('vehicules', vehicules);
+    }
+  }
 
   closeModal('modal-entretien');
   afficherEntretiens();
@@ -5802,6 +6021,16 @@ function confirmerEditEntretien() {
     modifieLe: new Date().toISOString()
   };
   sauvegarder('entretiens', entretiens);
+  if (veh && km > (parseFloat(veh.km) || 0)) {
+    const vehicules = charger('vehicules');
+    const idxVeh = vehicules.findIndex(function(item) { return item.id === vehId; });
+    if (idxVeh > -1) {
+      const kmAvant = parseFloat(vehicules[idxVeh].km) || 0;
+      vehicules[idxVeh].km = Math.max(parseFloat(vehicules[idxVeh].km) || 0, km);
+      if (!Number.isFinite(parseFloat(vehicules[idxVeh].kmInitial))) vehicules[idxVeh].kmInitial = kmAvant || km;
+      sauvegarder('vehicules', vehicules);
+    }
+  }
   const charges = charger('charges');
   const chargeIdx = charges.findIndex(c => c.id === entretiens[idx].chargeId || c.entretienId === id);
   if (chargeIdx > -1) {
@@ -6127,6 +6356,34 @@ function autoRemplirVehicule() {
   }
 }
 
+function autoRemplirChauffeurDepuisVehicule() {
+  const selChauf = document.getElementById('liv-chauffeur');
+  const vehId = document.getElementById('liv-vehicule')?.value || '';
+  if (!selChauf || !vehId) return;
+  const affectation = synchroniserAffectationLivraison(selChauf.value || '', vehId);
+  if (affectation.chaufId) selChauf.value = affectation.chaufId;
+}
+
+function autoRemplirVehiculeEdit() {
+  const selVeh = document.getElementById('edit-liv-vehicule');
+  if (!selVeh) return;
+  const affectation = synchroniserAffectationLivraison(
+    document.getElementById('edit-liv-chauffeur')?.value || '',
+    selVeh.value || ''
+  );
+  if (affectation.vehId) selVeh.value = affectation.vehId;
+}
+
+function autoRemplirChauffeurDepuisVehiculeEdit() {
+  const selChauf = document.getElementById('edit-liv-chauffeur');
+  if (!selChauf) return;
+  const affectation = synchroniserAffectationLivraison(
+    selChauf.value || '',
+    document.getElementById('edit-liv-vehicule')?.value || ''
+  );
+  if (affectation.chaufId) selChauf.value = affectation.chaufId;
+}
+
 /* ===== MODIFIER CLIENT ===== */
 let _editClientId = null;
 async function ouvrirEditClient(id) {
@@ -6240,7 +6497,7 @@ async function ouvrirEditVehicule(vehId) {
   window._editVehId = vehId;
   document.getElementById('veh-immat').value    = veh.immat||'';
   document.getElementById('veh-modele').value   = veh.modele||'';
-  document.getElementById('veh-km').value       = veh.km||'';
+  document.getElementById('veh-km').value       = calculerKilometrageVehiculeActuel(veh)||'';
   document.getElementById('veh-conso').value    = veh.conso||'';
   document.getElementById('veh-mode-acquisition').value = veh.modeAcquisition || 'achat';
   document.getElementById('veh-date-acquisition').value = veh.dateAcquisition || '';
@@ -6248,8 +6505,12 @@ async function ouvrirEditVehicule(vehId) {
   document.getElementById('veh-acq-taux-tva').value = veh.tauxTVAAchat ?? 20;
   document.getElementById('veh-acq-prix').value = veh.prixAchatTTC || '';
   document.getElementById('veh-duree-amortissement').value = veh.dureeAmortissement || '';
+  document.getElementById('veh-mode-amortissement').value = veh.modeAmortissement || 'lineaire';
   document.getElementById('veh-date-ct').value  = veh.dateCT||'';
-  document.getElementById('veh-km-vidange').value = veh.kmVidange||'';
+  document.getElementById('veh-entretien-interval-km').value = veh.entretienIntervalKm || '';
+  document.getElementById('veh-entretien-interval-mois').value = veh.entretienIntervalMois || '';
+  document.getElementById('veh-date-rebut').value = veh.dateMiseAuRebut || '';
+  document.getElementById('veh-valeur-rebut').value = veh.valeurMiseAuRebut || '';
   var selTvaCarb = document.getElementById('veh-tva-carburant');
   if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 80;
   const sv = document.getElementById('veh-salarie');
@@ -6277,6 +6538,7 @@ function confirmerEditVehicule() {
   vehicules[idx].immat    = document.getElementById('veh-immat').value.trim().toUpperCase();
   vehicules[idx].modele   = document.getElementById('veh-modele').value.trim();
   vehicules[idx].km       = parseFloat(document.getElementById('veh-km').value)||0;
+  if (!Number.isFinite(parseFloat(vehicules[idx].kmInitial))) vehicules[idx].kmInitial = vehicules[idx].km;
   vehicules[idx].conso    = parseFloat(document.getElementById('veh-conso').value)||0;
   vehicules[idx].modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   vehicules[idx].dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
@@ -6284,8 +6546,12 @@ function confirmerEditVehicule() {
   vehicules[idx].tauxTVAAchat = parseFloat(document.getElementById('veh-acq-taux-tva')?.value) || 20;
   vehicules[idx].prixAchatTTC = parseFloat(document.getElementById('veh-acq-prix')?.value) || (vehicules[idx].prixAchatHT * (1 + vehicules[idx].tauxTVAAchat/100));
   vehicules[idx].dureeAmortissement = parseFloat(document.getElementById('veh-duree-amortissement')?.value)||0;
+  vehicules[idx].modeAmortissement = document.getElementById('veh-mode-amortissement')?.value || 'lineaire';
   vehicules[idx].dateCT   = document.getElementById('veh-date-ct').value||'';
-  vehicules[idx].kmVidange= parseFloat(document.getElementById('veh-km-vidange').value)||0;
+  vehicules[idx].entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value)||0;
+  vehicules[idx].entretienIntervalMois = parseFloat(document.getElementById('veh-entretien-interval-mois')?.value)||0;
+  vehicules[idx].dateMiseAuRebut = document.getElementById('veh-date-rebut')?.value || '';
+  vehicules[idx].valeurMiseAuRebut = parseFloat(document.getElementById('veh-valeur-rebut')?.value)||0;
   vehicules[idx].tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 80;
   const salId = document.getElementById('veh-salarie')?.value||'';
   vehicules[idx].salId = salId||null;
@@ -6296,6 +6562,11 @@ function confirmerEditVehicule() {
   modal.querySelector('h3').textContent = '🚐 Nouveau Véhicule';
   modal.querySelector('.modal-footer .btn-primary').textContent = 'Enregistrer';
   modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'ajouterVehicule()');
+  ['veh-entretien-interval-km','veh-entretien-interval-mois','veh-date-rebut','veh-valeur-rebut'].forEach(function(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (field) field.value = '';
+  });
+  if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
   window._editVehId = null;
   afficherVehicules();
   afficherTva();
@@ -6839,7 +7110,9 @@ function navLivPeriode(mode, delta) {
   if (fin) fin.value = range.fin;
   var lbl = document.getElementById('liv-periode-label');
   if (lbl) lbl.textContent = range.label;
-  afficherLivraisons();
+  if (_vueLivraisons === 'kanban') afficherKanban();
+  else if (_vueLivraisons === 'calendrier') afficherCalendrier();
+  else afficherLivraisons();
 }
 
 /* --- HEURES & KM : semaine --- */
@@ -8670,12 +8943,7 @@ exporterPlanningSemainePDF = function() {
 
 /* ===== PLANNING REWRITE ===== */
 function planningBuildEmployeeLabel(salarie) {
-  if (!salarie) return '';
-  return [
-    salarie.nom || '',
-    salarie.prenom || '',
-    salarie.poste ? '- ' + salarie.poste : ''
-  ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  return getSalarieNomComplet(salarie, { includePoste: true });
 }
 
 function planningFindEmployeeBySearch(value) {

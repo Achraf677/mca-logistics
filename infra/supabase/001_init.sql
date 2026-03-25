@@ -208,19 +208,15 @@ alter table public.entretiens enable row level security;
 alter table public.charges enable row level security;
 alter table public.incidents enable row level security;
 
-drop policy if exists "profiles self read" on public.profiles;
 create policy "profiles self read" on public.profiles
 for select using (auth.uid() = id);
 
-drop policy if exists "profiles self update" on public.profiles;
 create policy "profiles self update" on public.profiles
 for update using (auth.uid() = id);
 
-drop policy if exists "salaries self read" on public.salaries;
 create policy "salaries self read" on public.salaries
 for select using (profile_id = auth.uid());
 
-drop policy if exists "inspections self read" on public.inspections;
 create policy "inspections self read" on public.inspections
 for select using (
   salarie_id in (
@@ -228,7 +224,6 @@ for select using (
   )
 );
 
-drop policy if exists "inspections self insert" on public.inspections;
 create policy "inspections self insert" on public.inspections
 for insert with check (
   salarie_id in (
@@ -236,7 +231,6 @@ for insert with check (
   )
 );
 
-drop policy if exists "inspection photos self read" on public.inspection_photos;
 create policy "inspection photos self read" on public.inspection_photos
 for select using (
   salarie_id in (
@@ -244,7 +238,6 @@ for select using (
   )
 );
 
-drop policy if exists "messages self read" on public.messages;
 create policy "messages self read" on public.messages
 for select using (
   destinataire_salarie_id in (

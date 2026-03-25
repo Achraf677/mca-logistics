@@ -537,6 +537,21 @@ function getMonVehicule() {
   return (JSON.parse(localStorage.getItem('vehicules')||'[]')).find(v => v.salId===salarieCourant.id) || null;
 }
 
+function mettreAJourKmVehiculeAffecte(km) {
+  const valeur = parseFloat(km) || 0;
+  const veh = getMonVehicule();
+  if (!veh || !valeur) return;
+  const vehicules = JSON.parse(localStorage.getItem('vehicules') || '[]');
+  const idx = vehicules.findIndex(v => v.id === veh.id);
+  if (idx === -1) return;
+  const kmAvant = parseFloat(vehicules[idx].km) || 0;
+  vehicules[idx].km = Math.max(parseFloat(vehicules[idx].km) || 0, valeur);
+  if (vehicules[idx].kmInitial === undefined || vehicules[idx].kmInitial === null || vehicules[idx].kmInitial === '') {
+    vehicules[idx].kmInitial = kmAvant || valeur;
+  }
+  localStorage.setItem('vehicules', JSON.stringify(vehicules));
+}
+
 function libelleCarburant() {
   const veh = getMonVehicule();
   return `${veh ? veh.immat : 'SANS-PLAQUE'} — ${salarieCourant.nom}`;
@@ -1084,6 +1099,7 @@ function enregistrerKmDepart() {
     creeLe: new Date().toISOString()
   });
   saveKmEntries(list);
+  mettreAJourKmVehiculeAffecte(dep);
 
   document.getElementById('km-arrivee').value = '';
   document.getElementById('km-result').style.display = 'none';
@@ -1118,6 +1134,7 @@ function enregistrerKmFin() {
     list[idx].livNom = liv?.client || null;
   }
   saveKmEntries(list);
+  mettreAJourKmVehiculeAffecte(arr);
 
   majLivraisonDepuisKm(list[idx].livId, distance);
 
@@ -1192,6 +1209,8 @@ function confirmerEditKmSal() {
   list[idx].date      = date;
   list[idx].modifie   = true;
   saveKmEntries(list);
+  if (arr !== null) mettreAJourKmVehiculeAffecte(arr);
+  else mettreAJourKmVehiculeAffecte(dep);
   majLivraisonDepuisKm(list[idx].livId, list[idx].distance);
 
   const ancienDep = ancien.dep != null ? ancien.dep.toLocaleString('fr-FR') : '—';
@@ -1448,6 +1467,7 @@ function envoyerInspection() {
     photos: [..._inspPhotosB64],
     creeLe: new Date().toISOString()
   };
+  if (km) mettreAJourKmVehiculeAffecte(km);
 
   // Sauvegarde avec gestion du quota localStorage
   try {
