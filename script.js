@@ -6,6 +6,16 @@
 const STORAGE_CACHE = new Map();
 let lastStorageWarningAt = 0;
 
+function emettreEvenementStockageLocal(cle, oldValue, newValue) {
+  window.dispatchEvent(new CustomEvent('delivpro:storage-sync', {
+    detail: {
+      key: cle || '',
+      oldValue: oldValue == null ? null : String(oldValue),
+      newValue: newValue == null ? null : String(newValue)
+    }
+  }));
+}
+
 if (!window.__delivproStoragePatched) {
   window.__delivproStoragePatched = true;
   const nativeSetItem = Storage.prototype.setItem;
@@ -13,18 +23,26 @@ if (!window.__delivproStoragePatched) {
   const nativeClear = Storage.prototype.clear;
 
   Storage.prototype.setItem = function(cle, valeur) {
+    const ancienneValeur = this === window.localStorage ? this.getItem(cle) : null;
     STORAGE_CACHE.delete(String(cle));
-    return nativeSetItem.call(this, cle, valeur);
+    const resultat = nativeSetItem.call(this, cle, valeur);
+    if (this === window.localStorage) emettreEvenementStockageLocal(String(cle), ancienneValeur, valeur);
+    return resultat;
   };
 
   Storage.prototype.removeItem = function(cle) {
+    const ancienneValeur = this === window.localStorage ? this.getItem(cle) : null;
     STORAGE_CACHE.delete(String(cle));
-    return nativeRemoveItem.call(this, cle);
+    const resultat = nativeRemoveItem.call(this, cle);
+    if (this === window.localStorage) emettreEvenementStockageLocal(String(cle), ancienneValeur, null);
+    return resultat;
   };
 
   Storage.prototype.clear = function() {
     STORAGE_CACHE.clear();
-    return nativeClear.call(this);
+    const resultat = nativeClear.call(this);
+    if (this === window.localStorage) emettreEvenementStockageLocal('', null, null);
+    return resultat;
   };
 }
 
@@ -810,6 +828,7 @@ function afficherBadgeAlertes() {
 
 let derniereAlerteSynchroAdmin = '';
 let warmupAdminPromise = null;
+const FAST_BOOT_ROLE_KEY = 'delivpro_fast_boot_role';
 
 function notifierMajAutreAdmin(detail) {
   if (!detail || !detail.externalActor) return;
@@ -853,7 +872,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('delivpro:remote-update', function(event) {
     notifierMajAutreAdmin(event.detail || {});
   });
-  if (window.DelivProAuth) {
+  const fastBootRole = sessionStorage.getItem(FAST_BOOT_ROLE_KEY);
+  if (fastBootRole === 'admin') {
+    sessionStorage.removeItem(FAST_BOOT_ROLE_KEY);
+  } else if (window.DelivProAuth) {
     await window.DelivProAuth.ensureAdminLegacySessionFromSupabase();
   }
   if (sessionStorage.getItem('role') !== 'admin') {

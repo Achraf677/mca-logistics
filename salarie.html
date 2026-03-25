@@ -1677,15 +1677,11 @@ function toast(msg, type='success') {
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-  if (window.DelivProAuth) {
+  const fastBootRole = sessionStorage.getItem('delivpro_fast_boot_role');
+  if (fastBootRole === 'salarie') {
+    sessionStorage.removeItem('delivpro_fast_boot_role');
+  } else if (window.DelivProAuth) {
     await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase();
-  }
-  let syncInitResult = null;
-  if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init) {
-    syncInitResult = await window.DelivProRemoteStorage.init();
-  }
-  if (!syncInitResult?.ok) {
-    toast('⚠️ Session Supabase absente: mode local, synchro inactive.', 'error');
   }
   const role = sessionStorage.getItem('role');
   const salarieId = sessionStorage.getItem('salarie_id');
@@ -1700,6 +1696,15 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (sal && sal.actif) {
       salarieCourant = sal;
       lancerInterface();
+      if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init) {
+        window.DelivProRemoteStorage.init().then(function(syncInitResult) {
+          if (!syncInitResult?.ok) {
+            toast('⚠️ Session Supabase absente: mode local, synchro inactive.', 'error');
+          }
+        }).catch(function() {
+          toast('⚠️ Synchro distante indisponible.', 'error');
+        });
+      }
       return;
     }
   }

@@ -390,12 +390,19 @@
   <script src="supabase-auth.js"></script>
   <script>
     let loginEnCours = null;
+    const LOGIN_FAST_BOOT_KEY = 'delivpro_fast_boot_role';
 
     function redirigerAvecTransition(url) {
       document.body.classList.add('route-leaving');
       setTimeout(function () {
         window.location.href = url;
       }, 90);
+    }
+
+    function memoriserFastBoot(role) {
+      try {
+        sessionStorage.setItem(LOGIN_FAST_BOOT_KEY, role || '');
+      } catch (_) {}
     }
 
     function setLoginBusy(mode, busy) {
@@ -505,6 +512,7 @@
           ));
           sessionStorage.removeItem('salarie_id');
           sessionStorage.removeItem('salarie_numero');
+          memoriserFastBoot('admin');
           localStorage.setItem('last_admin_identifiant', identifiant);
           redirigerAvecTransition('admin.html');
           return;
@@ -536,6 +544,7 @@
         sessionStorage.setItem('admin_nom', normaliserNomAdminAffiche(compte.nom, compte.identifiant, ''));
         sessionStorage.removeItem('salarie_id');
         sessionStorage.removeItem('salarie_numero');
+        memoriserFastBoot('admin');
         localStorage.setItem('last_admin_identifiant', compte.identifiant);
         redirigerAvecTransition('admin.html');
       } else {
@@ -591,6 +600,7 @@
           sessionStorage.removeItem('admin_login');
           sessionStorage.removeItem('admin_email');
           sessionStorage.removeItem('admin_nom');
+          memoriserFastBoot('salarie');
           redirigerAvecTransition('salarie.html');
           return;
         }
@@ -643,6 +653,7 @@
       sessionStorage.removeItem('admin_login');
       sessionStorage.removeItem('admin_email');
       sessionStorage.removeItem('admin_nom');
+      memoriserFastBoot('salarie');
       redirigerAvecTransition('salarie.html');
     }
 
