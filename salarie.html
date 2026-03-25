@@ -466,21 +466,12 @@ function seDeconnecter() {
   salarieCourant = null;
   if (window._msgPollInterval) clearInterval(window._msgPollInterval);
   sessionStorage.setItem('delivpro_logged_out', '1');
+  sessionStorage.setItem('delivpro_pending_signout', '1');
   sessionStorage.removeItem('role');
   sessionStorage.removeItem('auth_mode');
   sessionStorage.removeItem('salarie_id');
   sessionStorage.removeItem('salarie_numero');
   sessionStorage.removeItem('delivpro_fast_boot_role');
-  if (window.DelivProAuth && window.DelivProAuth.signOut) {
-    const fallback = setTimeout(function () {
-      redirigerVersLoginSalarie();
-    }, 120);
-    window.DelivProAuth.signOut().finally(function () {
-      clearTimeout(fallback);
-      redirigerVersLoginSalarie();
-    });
-    return;
-  }
   redirigerVersLoginSalarie();
 }
 
@@ -1683,7 +1674,9 @@ document.addEventListener('DOMContentLoaded', async function () {
   if (fastBootRole === 'salarie') {
     sessionStorage.removeItem('delivpro_fast_boot_role');
   } else if (window.DelivProAuth) {
-    await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase();
+    await (window.DelivProAuth.restoreLegacySessionFromSupabase
+      ? window.DelivProAuth.restoreLegacySessionFromSupabase('salarie')
+      : window.DelivProAuth.ensureSalarieLegacySessionFromSupabase());
   }
   const role = sessionStorage.getItem('role');
   const salarieId = sessionStorage.getItem('salarie_id');

@@ -511,6 +511,7 @@ function deconnexionAdmin() {
   window.__delivproAdminLogoutPending = true;
   setBoutonDeconnexionAdminEtat(true);
   sessionStorage.setItem('delivpro_logged_out', '1');
+  sessionStorage.setItem('delivpro_pending_signout', '1');
   sessionStorage.removeItem('role');
   sessionStorage.removeItem('auth_mode');
   sessionStorage.removeItem('admin_login');
@@ -518,16 +519,6 @@ function deconnexionAdmin() {
   sessionStorage.removeItem('admin_nom');
   sessionStorage.removeItem('delivpro_fast_boot_role');
   fermerMenuAdmin();
-  if (window.DelivProAuth && window.DelivProAuth.signOut) {
-    const fallback = setTimeout(() => {
-      redirigerVersLoginAdmin();
-    }, 120);
-    window.DelivProAuth.signOut().finally(() => {
-      clearTimeout(fallback);
-      if (!window.__delivproAdminLogoutRedirected) redirigerVersLoginAdmin();
-    });
-    return;
-  }
   redirigerVersLoginAdmin();
 }
 function appliquerBranding() {
@@ -878,7 +869,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (fastBootRole === 'admin') {
     sessionStorage.removeItem(FAST_BOOT_ROLE_KEY);
   } else if (window.DelivProAuth) {
-    await window.DelivProAuth.ensureAdminLegacySessionFromSupabase();
+    await (window.DelivProAuth.restoreLegacySessionFromSupabase
+      ? window.DelivProAuth.restoreLegacySessionFromSupabase('admin')
+      : window.DelivProAuth.ensureAdminLegacySessionFromSupabase());
   }
   if (sessionStorage.getItem('role') !== 'admin') {
     window.location.href = 'login.html';
@@ -4688,6 +4681,35 @@ function getPlanningPeriodForDate(salId, dateStr, periodes) {
   }) || null;
 }
 
+function construireContexteHeures(range) {
+  const periodeRange = range || getHeuresPeriodeRange();
+  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const absencesPeriodes = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  const dates = getDateRangeInclusive(periodeRange.debut, periodeRange.fin);
+  const planningsParSalarie = new Map();
+  const absencesParSalarie = new Map();
+
+  plannings.forEach(function(plan) {
+    if (!plan || !plan.salId) return;
+    planningsParSalarie.set(plan.salId, plan);
+  });
+
+  absencesPeriodes.forEach(function(periode) {
+    if (!periode || !periode.salId) return;
+    if (periode.fin < periodeRange.debut || periode.debut > periodeRange.fin) return;
+    if (!absencesParSalarie.has(periode.salId)) absencesParSalarie.set(periode.salId, []);
+    absencesParSalarie.get(periode.salId).push(periode);
+  });
+
+  return {
+    range: periodeRange,
+    dates: dates,
+    planningsParSalarie: planningsParSalarie,
+    absencesParSalarie: absencesParSalarie,
+    absencesPeriodes: absencesPeriodes
+  };
+}
+
 function getPlanningPeriodLabel(type) {
   return type === 'travail' ? 'Travail'
     : type === 'repos' ? 'Repos'
@@ -4741,19 +4763,15 @@ function reinitialiserHeuresPeriode() {
   afficherReleveKm();
 }
 
-function calculerHeuresSalarieSemaine(salId) {
-  const range = getHeuresPeriodeRange();
-  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
-  const plan = plannings.find(p => p.salId === salId);
-  const periodes = charger('absences_periodes').filter(a =>
-    a.salId === salId &&
-    a.fin >= range.debut &&
-    a.debut <= range.fin
-  );
+function calculerHeuresSalarieSemaine(salId, contexte) {
+  const ctx = contexte || construireContexteHeures();
+  const range = ctx.range;
+  const plan = ctx.planningsParSalarie.get(salId);
+  const periodes = ctx.absencesParSalarie.get(salId) || [];
   const details = [];
   let total = 0;
 
-  getDateRangeInclusive(range.debut, range.fin).forEach(dateObj => {
+  ctx.dates.forEach(dateObj => {
     const dateStr = dateObj.toISOString().slice(0, 10);
     const periode = getPlanningPeriodForDate(salId, dateStr, periodes);
     if (periode) {
@@ -4784,6 +4802,7 @@ function afficherCompteurHeures() {
   const cont = document.getElementById('tb-heures');
   if (!cont) return;
   const range = getHeuresPeriodeRange();
+  const contexteHeures = construireContexteHeures(range);
   const periode = document.getElementById('heures-periode-label');
   if (periode) periode.textContent = `${range.label} · ${range.datesLabel}`;
 
@@ -4808,10 +4827,9 @@ function afficherCompteurHeures() {
   if (!salFiltrees.length) { cont.innerHTML = emptyState('⏱️','Aucun salarié','Créez des salariés et définissez leur planning pour voir les heures.'); return; }
 
   cont.innerHTML = salFiltrees.map(s => {
-    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id);
-    const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
-    const plan = plannings.find(p=>p.salId===s.id);
-    const absencesPeriodes = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id, contexteHeures);
+    const plan = contexteHeures.planningsParSalarie.get(s.id);
+    const absencesPeriodes = contexteHeures.absencesPeriodes;
 
     const detailStr = details.length
       ? `${details.length} jour(s) travaillé(s) · ${planifiees.toFixed(1)} h`
@@ -4848,9 +4866,10 @@ function resetFiltresHeures() {
 
 function exporterRecapHeures() {
   const range = getHeuresPeriodeRange();
+  const contexteHeures = construireContexteHeures(range);
   const salaries = charger('salaries');
   const data = salaries.map(s => {
-    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id);
+    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id, contexteHeures);
     return { nom: s.nom, poste: s.poste||'', numero: s.numero, planifiees, details };
   });
   exporterCSV(data, [

@@ -392,12 +392,13 @@
     let loginEnCours = null;
     const LOGIN_FAST_BOOT_KEY = 'delivpro_fast_boot_role';
     const LOGOUT_GUARD_KEY = 'delivpro_logged_out';
+    const PENDING_SIGNOUT_KEY = 'delivpro_pending_signout';
 
     function redirigerAvecTransition(url) {
       document.body.classList.add('route-leaving');
       setTimeout(function () {
         window.location.href = url;
-      }, 90);
+      }, 24);
     }
 
     function memoriserFastBoot(role) {
@@ -410,6 +411,27 @@
       try {
         sessionStorage.removeItem(LOGOUT_GUARD_KEY);
       } catch (_) {}
+    }
+
+    function terminerSignOutEnArrierePlan() {
+      if (sessionStorage.getItem(PENDING_SIGNOUT_KEY) !== '1') return;
+      if (!window.DelivProAuth || !window.DelivProAuth.signOut) {
+        sessionStorage.removeItem(PENDING_SIGNOUT_KEY);
+        return;
+      }
+      window.DelivProAuth.signOut().finally(function () {
+        sessionStorage.removeItem(PENDING_SIGNOUT_KEY);
+      });
+    }
+
+    function peutAvoirSessionSupabaseLocale() {
+      try {
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i) || '';
+          if (key.indexOf('sb-') === 0 || key.indexOf('supabase.auth.token') === 0) return true;
+        }
+      } catch (_) {}
+      return false;
     }
 
     function setLoginBusy(mode, busy) {
@@ -667,18 +689,26 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+      terminerSignOutEnArrierePlan();
       if (sessionStorage.getItem(LOGOUT_GUARD_KEY) === '1') {
         sessionStorage.removeItem(LOGOUT_GUARD_KEY);
         getAdminAccounts();
         basculerMode('admin');
         return;
       }
-      if (window.DelivProAuth) {
-        if (await window.DelivProAuth.ensureAdminLegacySessionFromSupabase()) {
+      if (window.DelivProAuth && peutAvoirSessionSupabaseLocale()) {
+        const restoredRole = window.DelivProAuth.restoreLegacySessionFromSupabase
+          ? await window.DelivProAuth.restoreLegacySessionFromSupabase()
+          : (await window.DelivProAuth.ensureAdminLegacySessionFromSupabase())
+            ? 'admin'
+            : (await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase())
+              ? 'salarie'
+              : '';
+        if (restoredRole === 'admin') {
           redirigerAvecTransition('admin.html');
           return;
         }
-        if (await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase()) {
+        if (restoredRole === 'salarie') {
           redirigerAvecTransition('salarie.html');
           return;
         }

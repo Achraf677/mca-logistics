@@ -243,11 +243,71 @@
     return true;
   }
 
+  async function restoreLegacySessionFromSupabase(expectedRole) {
+    const client = getClient();
+    if (!client) return '';
+
+    const expected = expectedRole === 'admin' || expectedRole === 'salarie'
+      ? expectedRole
+      : '';
+    const currentRole = sessionStorage.getItem('role');
+    const currentAuthMode = sessionStorage.getItem('auth_mode');
+    if (currentAuthMode === 'supabase' && currentRole && (!expected || currentRole === expected)) {
+      try {
+        const existingSession = await client.auth.getSession();
+        if (existingSession?.data?.session) return currentRole;
+      } catch (_) {}
+    }
+
+    const {
+      data: { session }
+    } = await client.auth.getSession();
+    if (!session) return '';
+
+    const profile = await fetchOwnProfile();
+    if (!profile || !profile.role) return '';
+
+    if (profile.role === 'admin') {
+      if (expected && expected !== 'admin') return '';
+      const savedIdentifiant = sessionStorage.getItem('admin_login') || localStorage.getItem('last_admin_identifiant') || '';
+      var adminLabel = normalizeAdminDisplayName(
+        profile.display_name || '',
+        savedIdentifiant,
+        profile.email || session.user.email || ''
+      );
+      sessionStorage.setItem('role', 'admin');
+      sessionStorage.setItem('auth_mode', 'supabase');
+      sessionStorage.setItem('admin_login', savedIdentifiant || profile.email || session.user.email || '');
+      sessionStorage.setItem('admin_email', profile.email || session.user.email || '');
+      sessionStorage.setItem('admin_nom', adminLabel || 'Admin');
+      sessionStorage.removeItem('salarie_id');
+      sessionStorage.removeItem('salarie_numero');
+      return 'admin';
+    }
+
+    if (profile.role === 'salarie') {
+      if (expected && expected !== 'salarie') return '';
+      const salarie = await fetchOwnSalarie();
+      if (!salarie || salarie.actif === false) return '';
+      sessionStorage.setItem('role', 'salarie');
+      sessionStorage.setItem('auth_mode', 'supabase');
+      sessionStorage.setItem('salarie_id', salarie.id || '');
+      sessionStorage.setItem('salarie_numero', salarie.numero || '');
+      sessionStorage.removeItem('admin_login');
+      sessionStorage.removeItem('admin_email');
+      sessionStorage.removeItem('admin_nom');
+      return 'salarie';
+    }
+
+    return '';
+  }
+
   window.DelivProAuth = {
     normalizeAdminDisplayName: normalizeAdminDisplayName,
     resolveLoginTarget: resolveLoginTarget,
     signIn: signIn,
     signOut: signOut,
+    restoreLegacySessionFromSupabase: restoreLegacySessionFromSupabase,
     ensureAdminLegacySessionFromSupabase: ensureAdminLegacySessionFromSupabase,
     ensureSalarieLegacySessionFromSupabase: ensureSalarieLegacySessionFromSupabase
   };
