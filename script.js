@@ -510,19 +510,21 @@ function deconnexionAdmin() {
   if (window.__delivproAdminLogoutPending) return;
   window.__delivproAdminLogoutPending = true;
   setBoutonDeconnexionAdminEtat(true);
+  sessionStorage.setItem('delivpro_logged_out', '1');
   sessionStorage.removeItem('role');
   sessionStorage.removeItem('auth_mode');
   sessionStorage.removeItem('admin_login');
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('admin_nom');
+  sessionStorage.removeItem('delivpro_fast_boot_role');
   fermerMenuAdmin();
   if (window.DelivProAuth && window.DelivProAuth.signOut) {
     const fallback = setTimeout(() => {
       redirigerVersLoginAdmin();
-    }, 1200);
+    }, 120);
     window.DelivProAuth.signOut().finally(() => {
       clearTimeout(fallback);
-      redirigerVersLoginAdmin();
+      if (!window.__delivproAdminLogoutRedirected) redirigerVersLoginAdmin();
     });
     return;
   }

@@ -1,9 +1,9 @@
 (function () {
   var STORAGE_SCOPE = 'global';
-  var FLUSH_DELAY_MS = 35;
+  var FLUSH_DELAY_MS = 15;
   var FAST_FLUSH_DELAY_MS = 0;
-  var POLL_INTERVAL_MS = 700;
-  var RETRY_DELAY_MS = 900;
+  var POLL_INTERVAL_MS = 350;
+  var RETRY_DELAY_MS = 600;
   var suppressLocalSync = false;
   var pendingChanges = {};
   var pendingRemovals = {};
@@ -48,6 +48,10 @@
       key === 'vehicules' ||
       key === 'clients' ||
       key === 'carburant' ||
+      key === 'plannings' ||
+      key === 'absences_periodes' ||
+      key === 'charges' ||
+      key === 'entretiens' ||
       key === 'admin_edit_locks'
     ) return true;
     if (key.indexOf('messages_') === 0) return true;

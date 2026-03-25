@@ -465,14 +465,16 @@ function seDeconnecter() {
   setBoutonDeconnexionSalarieEtat(true);
   salarieCourant = null;
   if (window._msgPollInterval) clearInterval(window._msgPollInterval);
+  sessionStorage.setItem('delivpro_logged_out', '1');
   sessionStorage.removeItem('role');
   sessionStorage.removeItem('auth_mode');
   sessionStorage.removeItem('salarie_id');
   sessionStorage.removeItem('salarie_numero');
+  sessionStorage.removeItem('delivpro_fast_boot_role');
   if (window.DelivProAuth && window.DelivProAuth.signOut) {
     const fallback = setTimeout(function () {
       redirigerVersLoginSalarie();
-    }, 1200);
+    }, 120);
     window.DelivProAuth.signOut().finally(function () {
       clearTimeout(fallback);
       redirigerVersLoginSalarie();

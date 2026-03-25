@@ -391,6 +391,7 @@
   <script>
     let loginEnCours = null;
     const LOGIN_FAST_BOOT_KEY = 'delivpro_fast_boot_role';
+    const LOGOUT_GUARD_KEY = 'delivpro_logged_out';
 
     function redirigerAvecTransition(url) {
       document.body.classList.add('route-leaving');
@@ -402,6 +403,12 @@
     function memoriserFastBoot(role) {
       try {
         sessionStorage.setItem(LOGIN_FAST_BOOT_KEY, role || '');
+      } catch (_) {}
+    }
+
+    function nettoyerGardeLogout() {
+      try {
+        sessionStorage.removeItem(LOGOUT_GUARD_KEY);
       } catch (_) {}
     }
 
@@ -496,6 +503,7 @@
         setLoginBusy('admin', false);
         return;
       }
+      nettoyerGardeLogout();
 
       let authResult = null;
       if (window.DelivProAuth && window.DelivProAuth.signIn) {
@@ -570,6 +578,7 @@
         setLoginBusy('salarie', false);
         return;
       }
+      nettoyerGardeLogout();
 
       const cle = 'login_attempts_' + numero;
       const attempts = JSON.parse(localStorage.getItem(cle) || '{"count":0,"time":0}');
@@ -658,6 +667,12 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function () {
+      if (sessionStorage.getItem(LOGOUT_GUARD_KEY) === '1') {
+        sessionStorage.removeItem(LOGOUT_GUARD_KEY);
+        getAdminAccounts();
+        basculerMode('admin');
+        return;
+      }
       if (window.DelivProAuth) {
         if (await window.DelivProAuth.ensureAdminLegacySessionFromSupabase()) {
           redirigerAvecTransition('admin.html');
