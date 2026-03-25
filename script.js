@@ -1,5 +1,5 @@
-/* =====================================================
-   DelivPro â€” script.js  (v20 â€” full featured + bugfixes)
+﻿/* =====================================================
+   DelivPro — script.js  (v20 — full featured + bugfixes)
    ===================================================== */
 
 /* ===== UTILITAIRES ===== */
@@ -53,7 +53,7 @@ function lireStockageJSON(cle, fallback) {
     STORAGE_CACHE.set(cle, { raw, value: parsed });
     return dupliquerValeurStockage(parsed);
   } catch (error) {
-    console.warn(`[DelivPro] DonnÃ©e locale invalide pour "${cle}", fallback utilisÃ©.`, error);
+    console.warn(`[DelivPro] Donnée locale invalide pour "${cle}", fallback utilisé.`, error);
     STORAGE_CACHE.set(cle, { raw, value: fallback });
     return dupliquerValeurStockage(fallback);
   }
@@ -71,7 +71,7 @@ function sauvegarder(cle, val) {
     const maintenant = Date.now();
     if (maintenant - lastStorageWarningAt > 4000 && typeof afficherToast === 'function') {
       lastStorageWarningAt = maintenant;
-      afficherToast('âš ï¸ Enregistrement local impossible. VÃ©rifiez lâ€™espace navigateur disponible.', 'error');
+      afficherToast('⚠️ Enregistrement local impossible. Vérifiez l’espace navigateur disponible.', 'error');
     }
     return false;
   }
@@ -82,7 +82,7 @@ function aujourdhui()          { return new Date().toISOString().split('T')[0]; 
 function euros(n)              { return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(parseFloat(n||0)); }
 function formatKm(n)           { return new Intl.NumberFormat('fr-FR').format(Math.round(parseFloat(n||0)))+' km'; }
 function formatDateExport(val) {
-  if (!val) return 'â€”';
+  if (!val) return '—';
   const source = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val) ? val + 'T00:00:00' : val;
   const d = new Date(source);
   if (Number.isNaN(d.getTime())) return val;
@@ -165,14 +165,14 @@ function calculerAmortissementVehicule(veh) {
 }
 function formaterTaux(value) {
   const n = parseFloat(value);
-  return Number.isFinite(n) ? n.toFixed(n % 1 === 0 ? 0 : 2) + ' %' : 'â€”';
+  return Number.isFinite(n) ? n.toFixed(n % 1 === 0 ? 0 : 2) + ' %' : '—';
 }
 function getVehiculeById(vehId) {
   return charger('vehicules').find(v => v.id === vehId) || null;
 }
 function getTypeEntretienLabel(type) {
   return {
-    revision: 'RÃ©vision',
+    revision: 'Révision',
     vidange: 'Vidange',
     pneus: 'Pneus',
     plaquettes: 'Plaquettes de frein',
@@ -370,11 +370,11 @@ function surveillerConflitsEditionActifs() {
     if (!lockState.ok) {
       const lock = lockState.lock || {};
       const signature = `${entry.type}:${entry.entityId}:${lock.actorKey || ''}:${lock.createdAt || ''}`;
-      const message = `Modification en cours par ${lock.actorLabel || 'un autre admin'}. Ã‰vite d'enregistrer cette fiche tant que le verrou n'est pas libÃ©rÃ©.`;
+      const message = `Modification en cours par ${lock.actorLabel || 'un autre admin'}. Évite d'enregistrer cette fiche tant que le verrou n'est pas libéré.`;
       afficherAlerteVerrouModal(entry.id, message);
       if (signature !== derniereAlerteConflitEdition) {
         derniereAlerteConflitEdition = signature;
-        afficherToast(`âš ï¸ ${lock.actorLabel || 'Un autre admin'} modifie dÃ©jÃ  cette fiche`, 'error');
+        afficherToast(`⚠️ ${lock.actorLabel || 'Un autre admin'} modifie déjà cette fiche`, 'error');
       }
       return;
     }
@@ -482,7 +482,7 @@ function setBoutonDeconnexionAdminEtat(enCours) {
   if (!btn) return;
   if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = btn.textContent;
   btn.disabled = !!enCours;
-  btn.textContent = enCours ? 'DÃ©connexion...' : btn.dataset.defaultLabel;
+  btn.textContent = enCours ? 'Déconnexion...' : btn.dataset.defaultLabel;
 }
 function redirigerVersLoginAdmin() {
   document.body.classList.add('app-booting');
@@ -514,16 +514,16 @@ function appliquerBranding() {
   const logo = getLogoEntreprise();
   const iconTargets = document.querySelectorAll('.logo-icon');
   iconTargets.forEach(el => {
-    el.innerHTML = logo ? `<img src="${logo}" alt="Logo" />` : 'ðŸš';
+    el.innerHTML = logo ? `<img src="${logo}" alt="Logo" />` : '🚐';
   });
   const preview = document.getElementById('param-logo-preview');
-  if (preview) preview.innerHTML = logo ? `<img src="${logo}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:12px" />` : 'ðŸš';
+  if (preview) preview.innerHTML = logo ? `<img src="${logo}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:12px" />` : '🚐';
   const link = document.querySelector("link[rel='icon']") || document.createElement('link');
   link.rel = 'icon';
-  link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸš</text></svg>";
+  link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>";
   document.head.appendChild(link);
 }
-/* GÃ©nÃ¨re un numÃ©ro de livraison unique LIV-AAAA-XXXX */
+/* Génère un numéro de livraison unique LIV-AAAA-XXXX */
 function genNumLivraison() {
   const annee = new Date().getFullYear();
   const livs  = charger('livraisons');
@@ -545,7 +545,7 @@ function compresserImage(base64, callback) {
   img.src = base64;
 }
 
-/* ===== HT / TVA / TTC â€” Calculs bidirectionnels ===== */
+/* ===== HT / TVA / TTC — Calculs bidirectionnels ===== */
 function calculerTTCDepuisHT(prefix) {
   const ht   = parseFloat(document.getElementById(prefix+'-prix-ht')?.value || document.getElementById(prefix+'-montant-ht')?.value || document.getElementById(prefix+'-cout-ht')?.value) || 0;
   const taux = parseFloat(document.getElementById(prefix+'-taux-tva')?.value) || 0;
@@ -554,7 +554,7 @@ function calculerTTCDepuisHT(prefix) {
   const elTTC = document.getElementById(prefix+'-prix') || document.getElementById(prefix+'-montant') || document.getElementById(prefix+'-cout');
   if (elTTC) elTTC.value = ttc.toFixed(2);
   const elTVA = document.getElementById(prefix+'-montant-tva');
-  if (elTVA) elTVA.textContent = ht > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' â‚¬' : '';
+  if (elTVA) elTVA.textContent = ht > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
   if (prefix === 'liv') alerteRentabilite();
 }
 function calculerHTDepuisTTC(prefix) {
@@ -565,19 +565,19 @@ function calculerHTDepuisTTC(prefix) {
   const elHT = document.getElementById(prefix+'-prix-ht') || document.getElementById(prefix+'-montant-ht') || document.getElementById(prefix+'-cout-ht');
   if (elHT) elHT.value = ht.toFixed(2);
   const elTVA = document.getElementById(prefix+'-montant-tva');
-  if (elTVA) elTVA.textContent = ttc > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' â‚¬' : '';
+  if (elTVA) elTVA.textContent = ttc > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
   if (prefix === 'liv') alerteRentabilite();
 }
 
-/* ===== THÃˆME MODE CLAIR / SOMBRE ===== */
+/* ===== THÈME MODE CLAIR / SOMBRE ===== */
 function initTheme() {
   const theme = localStorage.getItem('theme') || 'dark';
   if (theme === 'light') {
     document.body.classList.add('light-mode');
     const btn = document.getElementById('btn-theme');
-    if (btn) btn.textContent = 'â˜€ï¸';
+    if (btn) btn.textContent = '☀️';
   }
-  // Appliquer couleur accent personnalisÃ©e
+  // Appliquer couleur accent personnalisée
   const accent = localStorage.getItem('accent_color');
   if (accent) document.documentElement.style.setProperty('--accent', accent);
 }
@@ -586,12 +586,12 @@ function toggleTheme() {
   const isLight = document.body.classList.toggle('light-mode');
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
   const btn = document.getElementById('btn-theme');
-  if (btn) btn.textContent = isLight ? 'â˜€ï¸' : 'ðŸŒ™';
+  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
 }
 
-/* ===== MODAL CONFIRMATION STYLÃ‰E ===== */
+/* ===== MODAL CONFIRMATION STYLÉE ===== */
 let _confirmResolve = null;
-function confirmDialog(msg, { titre='Confirmation', icone='âš ï¸', btnLabel='Confirmer', danger=true } = {}) {
+function confirmDialog(msg, { titre='Confirmation', icone='⚠️', btnLabel='Confirmer', danger=true } = {}) {
   return new Promise(resolve => {
     _confirmResolve = resolve;
     document.getElementById('confirm-icon').textContent  = icone;
@@ -676,7 +676,7 @@ function getSalarieNomComplet(salarie, options) {
   const morceaux = [];
   if (prenom) morceaux.push(prenom);
   if (nom) morceaux.push(nom);
-  let label = morceaux.join(' ').replace(/\s+/g, ' ').trim() || nom || prenom || 'SalariÃ©';
+  let label = morceaux.join(' ').replace(/\s+/g, ' ').trim() || nom || prenom || 'Salarié';
   if (settings.includePoste && salarie.poste) label += ' - ' + salarie.poste;
   if (settings.includeNumero && salarie.numero) label += ' (#' + salarie.numero + ')';
   return label;
@@ -760,7 +760,7 @@ function synchroniserAffectationLivraison(chaufId, vehId) {
   if (vehicule && !salarie && vehicule.salId) salarie = salaries.find(function(item) { return item.id === vehicule.salId; }) || null;
   return {
     chaufId: salarie ? salarie.id : '',
-    chaufNom: salarie ? getSalarieNomComplet(salarie) : 'Non assignÃ©',
+    chaufNom: salarie ? getSalarieNomComplet(salarie) : 'Non assigné',
     vehId: vehicule ? vehicule.id : '',
     vehNom: vehicule ? vehicule.immat : ''
   };
@@ -777,9 +777,9 @@ function peuplerSelectsLivraisonEdition(chaufId, vehId) {
     selChauf.value = chaufId || '';
   }
   if (selVeh) {
-    selVeh.innerHTML = '<option value="">-- Choisir un vÃ©hicule --</option>';
+    selVeh.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
     charger('vehicules').forEach(function(vehicule) {
-      const label = vehicule.immat + (vehicule.modele ? ' â€” ' + vehicule.modele : '') + (vehicule.salNom ? ' (' + vehicule.salNom + ')' : '');
+      const label = vehicule.immat + (vehicule.modele ? ' — ' + vehicule.modele : '') + (vehicule.salNom ? ' (' + vehicule.salNom + ')' : '');
       selVeh.innerHTML += '<option value="' + vehicule.id + '">' + label + '</option>';
     });
     selVeh.value = vehId || '';
@@ -817,7 +817,7 @@ function notifierMajAutreAdmin(detail) {
   const updatedAt = detail.updatedAt || '';
   if (!updatedAt || updatedAt === derniereAlerteSynchroAdmin) return;
   derniereAlerteSynchroAdmin = updatedAt;
-  afficherToast('ðŸ”„ Un autre admin a mis Ã  jour les donnÃ©es. La page a Ã©tÃ© resynchronisÃ©e.', 'info');
+  afficherToast('🔄 Un autre admin a mis à jour les données. La page a été resynchronisée.', 'info');
 }
 
 function lancerWarmupAdmin() {
@@ -828,7 +828,7 @@ function lancerWarmupAdmin() {
       syncInitResult = await window.DelivProRemoteStorage.init();
     }
     if (!syncInitResult?.ok) {
-      afficherToast('âš ï¸ Session Supabase absente: vous Ãªtes en mode local, la synchro multi-appareils est inactive.', 'error');
+      afficherToast('⚠️ Session Supabase absente: vous êtes en mode local, la synchro multi-appareils est inactive.', 'error');
     }
 
     const importResult = await importerSalariesDepuisSupabase();
@@ -840,7 +840,7 @@ function lancerWarmupAdmin() {
     }
     return { syncInitResult: syncInitResult, importResult: importResult };
   })().catch(function(error) {
-    console.warn('Warmup admin diffÃ©rÃ© Ã©chouÃ©', error);
+    console.warn('Warmup admin différé échoué', error);
     return { ok: false, error: error };
   });
   return warmupAdminPromise;
@@ -888,7 +888,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.__delivproMessagesInterval) clearInterval(window.__delivproMessagesInterval);
   window.__delivproMessagesInterval = setInterval(verifierMessagesAutomatiques, 5 * 60 * 1000);
   mettreAJourBadgesNav();
-  verifierTriggersPlanningAuto(); // VÃ©rifier au dÃ©marrage
+  verifierTriggersPlanningAuto(); // Vérifier au démarrage
   naviguerVers('dashboard');
   requestAnimationFrame(() => {
     document.body.classList.remove('app-booting');
@@ -912,14 +912,14 @@ function naviguerVers(page) {
     setTimeout(() => pageEl.classList.remove('route-enter'), 240);
   }
   const titres = {
-    dashboard:'ðŸ“Š Dashboard', livraisons:'ðŸ“¦ Livraisons', clients:'ðŸ§‘â€ðŸ’¼ Carnet Clients',
-    chauffeurs:'ðŸ‘¤ Chauffeurs', vehicules:'ðŸš VÃ©hicules', carburant:'â›½ Carburant',
-    rentabilite:'ðŸ’° RentabilitÃ©', statistiques:'ðŸ“ˆ Statistiques', previsions:'ðŸ”® PrÃ©visions',
-    salaries:'ðŸ‘¥ Gestion SalariÃ©s', planning:'ðŸ“… Planning hebdomadaire',
-    alertes:'ðŸ”” Alertes', inspections:'ðŸš— Inspections vÃ©hicules',
-    messagerie:'ðŸ’¬ Messagerie interne', parametres:'âš™ï¸ ParamÃ¨tres',
-    charges:'ðŸ’¸ Charges', incidents:'ðŸš¨ Incidents / RÃ©clamations', relances:'â° Relances paiement', entretiens:'ðŸ”§ Carnet d\'entretien',
-    heures:'â±ï¸ Heures & Km'
+    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients',
+    chauffeurs:'👤 Chauffeurs', vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
+    rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', previsions:'🔮 Prévisions',
+    salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
+    alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
+    messagerie:'💬 Messagerie interne', parametres:'⚙️ Paramètres',
+    charges:'💸 Charges', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
+    heures:'⏱️ Heures & Km'
   };
   document.getElementById('pageTitle').textContent = titres[page] || page;
   requestAnimationFrame(() => {
@@ -961,10 +961,10 @@ function naviguerVers(page) {
 function appliquerLibellesAnalyseHT() {
   const rent = {
     'rent-ca': "Chiffre d'affaires HT",
-    'rent-carb': 'DÃ©penses carburant HT',
-    'rent-entretien': 'DÃ©penses entretien HT',
-    'rent-cout-km': 'CoÃ»t HT par kilomÃ¨tre',
-    'rent-profit': 'Profit net estimÃ© HT'
+    'rent-carb': 'Dépenses carburant HT',
+    'rent-entretien': 'Dépenses entretien HT',
+    'rent-cout-km': 'Coût HT par kilomètre',
+    'rent-profit': 'Profit net estimé HT'
   };
   Object.entries(rent).forEach(([id, label]) => {
     const card = document.getElementById(id)?.closest('.kpi-card');
@@ -972,7 +972,7 @@ function appliquerLibellesAnalyseHT() {
     if (target) target.textContent = label;
   });
   const stats = {
-    'stats-ca-periode': 'CA pÃ©riode HT',
+    'stats-ca-periode': 'CA période HT',
     'stats-panier-moyen': 'Panier moyen HT'
   };
   Object.entries(stats).forEach(([id, label]) => {
@@ -981,11 +981,11 @@ function appliquerLibellesAnalyseHT() {
     if (target) target.textContent = label;
   });
   const rentTitle = document.getElementById('chartRentabilite')?.closest('.card')?.querySelector('.card-header h2');
-  if (rentTitle) rentTitle.textContent = 'RÃ©partition des dÃ©penses HT';
+  if (rentTitle) rentTitle.textContent = 'Répartition des dépenses HT';
   const statsTitle = document.getElementById('chartCA')?.closest('.card')?.querySelector('.card-header h2');
-  if (statsTitle) statsTitle.textContent = 'Ã‰volution du CA HT';
+  if (statsTitle) statsTitle.textContent = 'Évolution du CA HT';
   const statsDriverTitle = document.getElementById('chartCAParChauffeur')?.closest('.card')?.querySelector('.card-header h2');
-  if (statsDriverTitle) statsDriverTitle.textContent = 'CA HT par chauffeur (dÃ©tail)';
+  if (statsDriverTitle) statsDriverTitle.textContent = 'CA HT par chauffeur (détail)';
 }
 
 function toggleAbsenceTypeFields() {
@@ -999,9 +999,9 @@ function toggleAbsenceTypeFields() {
 function initFormulairePlanningRapide() {
   appliquerLibellesAnalyseHT();
   const panelTitle = document.querySelector('#page-planning .planning-panel-title');
-  if (panelTitle) panelTitle.textContent = 'Ajouter une pÃ©riode planning';
+  if (panelTitle) panelTitle.textContent = 'Ajouter une période planning';
   const btn = document.querySelector('#page-planning .planning-absence-form .btn-primary');
-  if (btn) btn.textContent = '+ Enregistrer la pÃ©riode';
+  if (btn) btn.textContent = '+ Enregistrer la période';
 
   const typeSelect = document.getElementById('absence-type');
   if (typeSelect && !typeSelect.querySelector('option[value="travail"]')) {
@@ -1013,7 +1013,7 @@ function initFormulairePlanningRapide() {
   if (finField && !document.getElementById('absence-heure-debut')) {
     finField.insertAdjacentHTML('afterend', `
       <div class="planning-field" id="absence-heure-debut-wrap">
-        <label>Heure dÃ©but</label>
+        <label>Heure début</label>
         <input type="time" id="absence-heure-debut" />
       </div>
       <div class="planning-field" id="absence-heure-fin-wrap">
@@ -1066,43 +1066,43 @@ function mettreAJourSelects() {
   const vehicules  = charger('vehicules');
   const salaries   = charger('salaries');
 
-  // VÃ©hicule dans charges et entretiens
+  // Véhicule dans charges et entretiens
   ['charge-veh','entr-veh'].forEach(id => {
     const sel = document.getElementById(id); if (!sel) return;
     const v = sel.value;
-    sel.innerHTML = id==='charge-veh' ? '<option value="">â€” GÃ©nÃ©ral â€”</option>' : '<option value="">â€” Choisir â€”</option>';
-    vehicules.forEach(vh => sel.innerHTML += `<option value="${vh.id}">${vh.immat}${vh.modele?' â€” '+vh.modele:''}</option>`);
+    sel.innerHTML = id==='charge-veh' ? '<option value="">— Général —</option>' : '<option value="">— Choisir —</option>';
+    vehicules.forEach(vh => sel.innerHTML += `<option value="${vh.id}">${vh.immat}${vh.modele?' — '+vh.modele:''}</option>`);
     sel.value = v;
   });
 
-  // Livraisons rÃ©centes dans incident (30 derniers jours)
+  // Livraisons récentes dans incident (30 derniers jours)
   const incSel = document.getElementById('inc-livraison');
   if (incSel) {
     const v = incSel.value;
     const dateMin = new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
-    incSel.innerHTML = '<option value="">â€” Aucune livraison spÃ©cifique â€”</option>';
+    incSel.innerHTML = '<option value="">— Aucune livraison spécifique —</option>';
     charger('livraisons').filter(l=>l.date>=dateMin).sort((a,b)=>new Date(b.date)-new Date(a.date))
-      .forEach(l => incSel.innerHTML += `<option value="${l.id}">${l.numLiv||''} â€” ${l.client} (${l.date})</option>`);
+      .forEach(l => incSel.innerHTML += `<option value="${l.id}">${l.numLiv||''} — ${l.client} (${l.date})</option>`);
     incSel.value = v;
   }
 
-  // SÃ©lect salariÃ© dans modal incident
+  // Sélect salarié dans modal incident
   peupleIncSalarie();
 
-  // SÃ©lect salariÃ© dans modal planning
+  // Sélect salarié dans modal planning
   const sp = document.getElementById('plan-salarie');
   if (sp) {
     const v = sp.value;
-    sp.innerHTML = '<option value="">-- Choisir un salariÃ© --</option>';
+    sp.innerHTML = '<option value="">-- Choisir un salarié --</option>';
     salaries.forEach(s => { sp.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     sp.value = v;
   }
 
   const sc = document.getElementById('liv-chauffeur');
   if (sc) {
-    const v = sc.value; sc.innerHTML = '<option value="">-- Choisir un salariÃ© / chauffeur --</option>';
-    // SalariÃ©s d'abord (avec badge), puis chauffeurs non-salariÃ©s
-    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">ðŸ‘¤ ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    const v = sc.value; sc.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
+    // Salariés d'abord (avec badge), puis chauffeurs non-salariés
+    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">👤 ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sc.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sc.value = v;
@@ -1110,8 +1110,8 @@ function mettreAJourSelects() {
 
   const sec = document.getElementById('edit-liv-chauffeur');
   if (sec) {
-    const v = sec.value; sec.innerHTML = '<option value="">-- Choisir un salariÃ© / chauffeur --</option>';
-    salaries.forEach(s => { sec.innerHTML += `<option value="${s.id}">ðŸ‘¤ ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    const v = sec.value; sec.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
+    salaries.forEach(s => { sec.innerHTML += `<option value="${s.id}">👤 ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sec.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sec.value = v;
@@ -1119,26 +1119,26 @@ function mettreAJourSelects() {
 
   ['liv-vehicule','edit-liv-vehicule','carb-vehicule','entr-vehicule'].forEach(id => {
     const sel = document.getElementById(id); if (!sel) return;
-    const v = sel.value; sel.innerHTML = '<option value="">-- Choisir un vÃ©hicule --</option>';
-    vehicules.forEach(veh => { sel.innerHTML += `<option value="${veh.id}">${veh.immat} â€” ${veh.modele}${veh.salNom ? ' ('+veh.salNom+')' : ''}</option>`; });
+    const v = sel.value; sel.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
+    vehicules.forEach(veh => { sel.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}${veh.salNom ? ' ('+veh.salNom+')' : ''}</option>`; });
     sel.value = v;
   });
 
-  // SÃ©lect vÃ©hicule dans crÃ©ation salariÃ©
+  // Sélect véhicule dans création salarié
   const sv = document.getElementById('nsal-vehicule');
   if (sv) {
     const v = sv.value; sv.innerHTML = '<option value="">-- Aucun pour l\'instant --</option>';
-    vehicules.filter(veh => !veh.salId).forEach(veh => { sv.innerHTML += `<option value="${veh.id}">${veh.immat} â€” ${veh.modele}</option>`; });
+    vehicules.filter(veh => !veh.salId).forEach(veh => { sv.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}</option>`; });
     sv.value = v;
   }
 
-  // SÃ©lect vÃ©hicule dans modal edit salariÃ©
+  // Sélect véhicule dans modal edit salarié
   const sve = document.getElementById('edit-sal-vehicule');
   if (sve) {
     const v = sve.value; sve.innerHTML = '<option value="">-- Retirer l\'affectation --</option>';
     vehicules.forEach(veh => {
       const dejaPris = veh.salId && veh.salId !== (window._editSalarieId || '');
-      if (!dejaPris) sve.innerHTML += `<option value="${veh.id}">${veh.immat} â€” ${veh.modele}</option>`;
+      if (!dejaPris) sve.innerHTML += `<option value="${veh.id}">${veh.immat} — ${veh.modele}</option>`;
     });
     sve.value = v;
   }
@@ -1160,11 +1160,11 @@ function ajouterLivraison() {
   const date     = document.getElementById('liv-date').value || aujourdhui();
   const notes    = document.getElementById('liv-notes').value.trim();
 
-  if (!client) { afficherToast('âš ï¸ Le nom du client est obligatoire', 'error'); return; }
+  if (!client) { afficherToast('⚠️ Le nom du client est obligatoire', 'error'); return; }
 
-  // Si prix manquant â†’ crÃ©er une alerte et continuer quand mÃªme
+  // Si prix manquant → créer une alerte et continuer quand même
   if (!prix || isNaN(prix)) {
-    ajouterAlerte('prix_manquant', `Livraison sans prix saisie â€” Client : ${client} (${date})`, { client, date });
+    ajouterAlerte('prix_manquant', `Livraison sans prix saisie — Client : ${client} (${date})`, { client, date });
     afficherBadgeAlertes();
   }
 
@@ -1192,7 +1192,7 @@ function ajouterLivraison() {
   closeModal('modal-livraison');
   viderFormulaireLivraison();
   afficherLivraisons();
-  afficherToast('âœ… Livraison enregistrÃ©e !');
+  afficherToast('✅ Livraison enregistrée !');
 }
 
 function viderFormulaireLivraison() {
@@ -1221,7 +1221,7 @@ function planifierRafraichissementStorage(cle, callback) {
   STORAGE_REFRESH_QUEUE.set(cle, timer);
 }
 
-/* Auto-remplir le vÃ©hicule quand on choisit un salariÃ© dans le modal livraison */
+/* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
 document.addEventListener('DOMContentLoaded', () => {
   const selChauf = document.getElementById('liv-chauffeur');
   if (selChauf) selChauf.addEventListener('change', () => {
@@ -1232,11 +1232,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-/* ===== SYNCHRO STORAGE (salariÃ© â†’ admin en temps rÃ©el) ===== */
+/* ===== SYNCHRO STORAGE (salarié → admin en temps réel) ===== */
 window.addEventListener('storage', function(e) {
   if (e.key) STORAGE_CACHE.delete(e.key);
   else STORAGE_CACHE.clear();
-  // Statut livraison mis Ã  jour par un salariÃ©
+  // Statut livraison mis à jour par un salarié
   if (e.key === 'livraisons') {
     const pageActive = document.querySelector('.page.active');
     if (pageActive?.id === 'page-livraisons')  {
@@ -1249,14 +1249,14 @@ window.addEventListener('storage', function(e) {
     if (pageActive?.id === 'page-dashboard')   planifierRafraichissementStorage('dashboard-livraisons', rafraichirDashboard);
     planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
   }
-  // Km saisi par un salariÃ©
+  // Km saisi par un salarié
   if (e.key && e.key.startsWith('km_sal_')) {
     const pageActive = document.querySelector('.page.active');
     if (pageActive?.id === 'page-salaries') planifierRafraichissementStorage('page-salaries', afficherSalaries);
     if (pageActive?.id === 'page-vehicules') planifierRafraichissementStorage('page-vehicules', afficherVehicules);
     if (pageActive?.id === 'page-alertes') planifierRafraichissementStorage('page-alertes-km', afficherAlertes);
   }
-  // Carburant saisi/modifiÃ© par un salariÃ©
+  // Carburant saisi/modifié par un salarié
   if (e.key === 'carburant') {
     const pageActive = document.querySelector('.page.active');
     if (pageActive?.id === 'page-carburant') planifierRafraichissementStorage('page-carburant', afficherCarburant);
@@ -1274,7 +1274,7 @@ window.addEventListener('storage', function(e) {
     if (pageActive?.id === 'page-inspections') planifierRafraichissementStorage('page-inspections', afficherInspections);
     if (pageActive?.id === 'page-vehicules') planifierRafraichissementStorage('page-vehicules-inspections', afficherVehicules);
   }
-  // Nouveau message d'un salariÃ©
+  // Nouveau message d'un salarié
   if (e.key && e.key.startsWith('messages_')) {
     planifierRafraichissementStorage('badge-messages', mettreAJourBadgeMsgAdmin);
     const pageActive = document.querySelector('.page.active');
@@ -1293,14 +1293,11 @@ function afficherLivraisons() {
   const filtrePaiement  = document.getElementById('filtre-paiement')?.value;
   const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value;
 
-  // Mettre Ã  jour le select chauffeurs
+  // Mettre à jour le select chauffeurs
   const selChauf = document.getElementById('filtre-chauffeur');
-  if (selChauf) {
-    const valeurCourante = selChauf.value;
-    selChauf.innerHTML = '<option value="">Tous les chauffeurs</option>';
+  if (selChauf && selChauf.options.length <= 1) {
     const salaries = charger('salaries');
-    salaries.forEach(s => { selChauf.innerHTML += `<option value="${s.id}">ðŸ‘¤ ${s.nom}</option>`; });
-    selChauf.value = valeurCourante;
+    salaries.forEach(s => { selChauf.innerHTML += `<option value="${s.id}">👤 ${s.nom}</option>`; });
   }
 
   if (filtreStatut)    livraisons = livraisons.filter(l => l.statut === filtreStatut);
@@ -1319,44 +1316,44 @@ function afficherLivraisons() {
   paginer['__reload_tb-livraisons'] = afficherLivraisons;
 
   if (!livraisons.length) {
-    tb.innerHTML = emptyState('ðŸ“¦', 'Aucune livraison trouvÃ©e', filtreRecherche||filtreStatut||filtreDate ? 'Aucun rÃ©sultat pour ces filtres â€” essayez de les rÃ©initialiser.' : 'CrÃ©ez votre premiÃ¨re livraison pour commencer.', filtreRecherche||filtreStatut||filtreDate ? 'RÃ©initialiser' : '+ Nouvelle livraison', filtreRecherche||filtreStatut||filtreDate ? 'resetFiltres()' : "openModal('modal-livraison')");
+    tb.innerHTML = emptyState('📦', 'Aucune livraison trouvée', filtreRecherche||filtreStatut||filtreDate ? 'Aucun résultat pour ces filtres — essayez de les réinitialiser.' : 'Créez votre première livraison pour commencer.', filtreRecherche||filtreStatut||filtreDate ? 'Réinitialiser' : '+ Nouvelle livraison', filtreRecherche||filtreStatut||filtreDate ? 'resetFiltres()' : "openModal('modal-livraison')");
     return;
   }
   paginer['__reload_tb-livraisons'] = afficherLivraisons;
   tb.innerHTML = livraisons.map(l => {
     const bdgPay = {
-      'payÃ©':       '<span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:2px 8px;border-radius:12px;font-size:.75rem">ðŸ’³ PayÃ©</span>',
-      'en-attente': '<span style="background:rgba(245,166,35,.15);color:var(--accent);padding:2px 8px;border-radius:12px;font-size:.75rem">â³ En attente</span>',
-      'litige':     '<span style="background:rgba(231,76,60,.15);color:#e74c3c;padding:2px 8px;border-radius:12px;font-size:.75rem">âš ï¸ Litige</span>'
+      'payé':       '<span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:2px 8px;border-radius:12px;font-size:.75rem">💳 Payé</span>',
+      'en-attente': '<span style="background:rgba(245,166,35,.15);color:var(--accent);padding:2px 8px;border-radius:12px;font-size:.75rem">⏳ En attente</span>',
+      'litige':     '<span style="background:rgba(231,76,60,.15);color:#e74c3c;padding:2px 8px;border-radius:12px;font-size:.75rem">⚠️ Litige</span>'
     }[l.statutPaiement||'en-attente'] || '';
     return `<tr>
-      <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv||'â€”'}</td>
+      <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv||'—'}</td>
       <td><strong>${l.client}</strong></td>
-      <td style="font-size:.82rem">${l.depart||'â€”'}</td>
-      <td style="font-size:.82rem">${l.arrivee||'â€”'}</td>
-      <td>${l.distance ? formatKm(l.distance) : 'â€”'}</td>
-      <td style="font-size:.85rem">${l.prixHT ? euros(l.prixHT) : (l.prix ? euros(l.prix / (1+(l.tauxTVA||20)/100)) : 'â€”')}</td>
-      <td style="font-size:.82rem;color:var(--text-muted)">${l.prix ? euros(l.prix - (l.prixHT || l.prix/(1+(l.tauxTVA||20)/100))) : 'â€”'}</td>
-      <td style="font-weight:700">${l.prix ? euros(l.prix) : 'â€”'}</td>
+      <td style="font-size:.82rem">${l.depart||'—'}</td>
+      <td style="font-size:.82rem">${l.arrivee||'—'}</td>
+      <td>${l.distance ? formatKm(l.distance) : '—'}</td>
+      <td style="font-size:.85rem">${l.prixHT ? euros(l.prixHT) : (l.prix ? euros(l.prix / (1+(l.tauxTVA||20)/100)) : '—')}</td>
+      <td style="font-size:.82rem;color:var(--text-muted)">${l.prix ? euros(l.prix - (l.prixHT || l.prix/(1+(l.tauxTVA||20)/100))) : '—'}</td>
+      <td style="font-weight:700">${l.prix ? euros(l.prix) : '—'}</td>
       <td>${l.chaufNom}</td>
       <td class="${(l.profit||0)>=0?'profit-pos':'profit-neg'}">${euros(l.profit||0)}</td>
       <td>${badgeStatut(l.statut)}</td>
       <td>${bdgPay}</td>
       <td><div class="livraison-actions-panel"><div class="livraison-actions-quick">${actionStatutPropre}${actionPaiementPropre}</div><div class="livraison-actions-main">
         <select class="btn-icon" onchange="changerStatutPaiement('${l.id}',this.value)" title="Statut paiement">
-          <option value="en-attente" ${(l.statutPaiement||'en-attente')==='en-attente'?'selected':''}>â³</option>
-          <option value="payÃ©"       ${l.statutPaiement==='payÃ©'      ?'selected':''}>ðŸ’³</option>
-          <option value="litige"     ${l.statutPaiement==='litige'    ?'selected':''}>âš ï¸</option>
+          <option value="en-attente" ${(l.statutPaiement||'en-attente')==='en-attente'?'selected':''}>⏳</option>
+          <option value="payé"       ${l.statutPaiement==='payé'      ?'selected':''}>💳</option>
+          <option value="litige"     ${l.statutPaiement==='litige'    ?'selected':''}>⚠️</option>
         </select>
         <select class="btn-icon" onchange="changerStatutLivraison('${l.id}',this.value)">
-          <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>â³</option>
-          <option value="en-cours"   ${l.statut==='en-cours'  ?'selected':''}>ðŸš</option>
-          <option value="livre"      ${l.statut==='livre'     ?'selected':''}>âœ…</option>
+          <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>⏳</option>
+          <option value="en-cours"   ${l.statut==='en-cours'  ?'selected':''}>🚐</option>
+          <option value="livre"      ${l.statut==='livre'     ?'selected':''}>✅</option>
         </select>
-        <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">ðŸ“‹</button>
-        <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="RÃ©currence">ðŸ”</button>
-        <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')">âœï¸</button>
-        <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">📋</button>
+        <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="Récurrence">🔁</button>
+        <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')">🗑️</button>
       </div></div></td>
     </tr>`;
   }).join('');
@@ -1365,19 +1362,19 @@ function afficherLivraisons() {
 function changerStatutPaiement(id, statut) {
   const livraisons = charger('livraisons');
   const idx = livraisons.findIndex(l => l.id === id);
-  if (idx > -1) { livraisons[idx].statutPaiement = statut; sauvegarder('livraisons', livraisons); afficherToast('ðŸ’³ Paiement mis Ã  jour'); }
+  if (idx > -1) { livraisons[idx].statutPaiement = statut; sauvegarder('livraisons', livraisons); afficherToast('💳 Paiement mis à jour'); }
 }
 
 function changerStatutLivraison(id, statut) {
   const livraisons = charger('livraisons'), idx = livraisons.findIndex(l => l.id === id);
-  if (idx > -1) { livraisons[idx].statut = statut; sauvegarder('livraisons', livraisons); afficherToast('âœ… Statut mis Ã  jour'); }
+  if (idx > -1) { livraisons[idx].statut = statut; sauvegarder('livraisons', livraisons); afficherToast('✅ Statut mis à jour'); }
 }
 
 async function supprimerLivraison(id) {
-  const _ok = await confirmDialog('Supprimer cette livraison ?', {titre:'Supprimer',icone:'ðŸ“¦',btnLabel:'Supprimer'});
+  const _ok = await confirmDialog('Supprimer cette livraison ?', {titre:'Supprimer',icone:'📦',btnLabel:'Supprimer'});
   if (!_ok) return;
   sauvegarder('livraisons', charger('livraisons').filter(l => l.id !== id));
-  afficherLivraisons(); afficherToast('ðŸ—‘ï¸ SupprimÃ©');
+  afficherLivraisons(); afficherToast('🗑️ Supprimé');
 }
 
 function resetFiltres() {
@@ -1406,13 +1403,13 @@ function ajouterChauffeur() {
   const nomComplet = prenom ? `${prenom} ${nom}` : nom;
   const tel = document.getElementById('chauf-tel').value.trim();
   const statut = document.getElementById('chauf-statut').value;
-  if (!nom || !tel) { afficherToast('âš ï¸ Nom et tÃ©lÃ©phone obligatoires', 'error'); return; }
+  if (!nom || !tel) { afficherToast('⚠️ Nom et téléphone obligatoires', 'error'); return; }
   const chauffeurs = charger('chauffeurs');
   chauffeurs.push({ id: genId(), nom: nomComplet, nomFamille: nom, prenom, tel, statut, creeLe: new Date().toISOString() });
   sauvegarder('chauffeurs', chauffeurs);
   closeModal('modal-chauffeur');
   ['chauf-nom','chauf-tel'].forEach(id => document.getElementById(id).value = '');
-  afficherChauffeurs(); afficherToast('âœ… Chauffeur ajoutÃ© !');
+  afficherChauffeurs(); afficherToast('✅ Chauffeur ajouté !');
 }
 
 function afficherChauffeurs() {
@@ -1425,26 +1422,26 @@ function afficherChauffeurs() {
   const salSansVeh = salaries.filter(s => !vehicules.find(v => v.salId === s.id));
   const sel = document.getElementById('sel-affecter-chauffeur');
   if (sel) {
-    sel.innerHTML = '<option value="">-- SalariÃ©s sans vÃ©hicule --</option>';
+    sel.innerHTML = '<option value="">-- Salariés sans véhicule --</option>';
     salSansVeh.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nom} (${s.numero})</option>`; });
   }
 
-  if (!chauffeurs.length) { tb.innerHTML = emptyState('ðŸ‘¤','Aucun chauffeur','Les chauffeurs sont crÃ©Ã©s automatiquement depuis la page SalariÃ©s.'); return; }
+  if (!chauffeurs.length) { tb.innerHTML = emptyState('👤','Aucun chauffeur','Les chauffeurs sont créés automatiquement depuis la page Salariés.'); return; }
   tb.innerHTML = chauffeurs.map(c => {
     const livs = livraisons.filter(l => l.chaufId === c.id);
     const ca   = livs.reduce((s, l) => s + (l.prix||0), 0);
     const veh  = vehicules.find(v => v.salId === c.id);
     return `<tr>
       <td><strong>${c.nom}</strong></td><td>${c.tel}</td><td>${badgeChauffeur(c.statut)}</td>
-      <td>${veh ? `<span style="color:var(--accent-2);font-size:0.82rem">ðŸš ${veh.immat}</span>` : '<span style="color:var(--text-muted);font-size:0.82rem">â€”</span>'}</td>
+      <td>${veh ? `<span style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</span>` : '<span style="color:var(--text-muted);font-size:0.82rem">—</span>'}</td>
       <td>${livs.length}</td><td>${euros(ca)}</td>
       <td><div class="livraison-actions-panel"><div class="livraison-actions-quick">${actionStatutPropre}${actionPaiementPropre}</div><div class="livraison-actions-main">
         <select class="btn-icon" onchange="changerStatutChauffeur('${c.id}',this.value)">
-          <option value="disponible"   ${c.statut==='disponible'  ?'selected':''}>âœ…</option>
-          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>ðŸš</option>
-          <option value="inactif"      ${c.statut==='inactif'     ?'selected':''}>â¸ï¸</option>
+          <option value="disponible"   ${c.statut==='disponible'  ?'selected':''}>✅</option>
+          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>🚐</option>
+          <option value="inactif"      ${c.statut==='inactif'     ?'selected':''}>⏸️</option>
         </select>
-        <button class="btn-icon danger" onclick="supprimerChauffeur('${c.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon danger" onclick="supprimerChauffeur('${c.id}')">🗑️</button>
       </td></tr>`;
   }).join('');
 }
@@ -1455,13 +1452,13 @@ function changerStatutChauffeur(id, statut) {
 }
 
 async function supprimerChauffeur(id) {
-  const _ok4 = await confirmDialog('Supprimer ce chauffeur ?', {titre:'Supprimer',icone:'ðŸ‘¤',btnLabel:'Supprimer'});
+  const _ok4 = await confirmDialog('Supprimer ce chauffeur ?', {titre:'Supprimer',icone:'👤',btnLabel:'Supprimer'});
   if (!_ok4) return;
   sauvegarder('chauffeurs', charger('chauffeurs').filter(c => c.id !== id));
-  afficherChauffeurs(); afficherToast('ðŸ—‘ï¸ SupprimÃ©');
+  afficherChauffeurs(); afficherToast('🗑️ Supprimé');
 }
 
-/* ===== VÃ‰HICULES ===== */
+/* ===== VÉHICULES ===== */
 function ajouterVehicule() {
   const immat  = document.getElementById('veh-immat').value.trim().toUpperCase();
   const modele = document.getElementById('veh-modele').value.trim();
@@ -1481,9 +1478,9 @@ function ajouterVehicule() {
   const dateMiseAuRebut = document.getElementById('veh-date-rebut')?.value || '';
   const valeurMiseAuRebut = parseFloat(document.getElementById('veh-valeur-rebut')?.value) || 0;
 
-  if (!immat) { afficherToast('âš ï¸ Immatriculation obligatoire', 'error'); return; }
+  if (!immat) { afficherToast('⚠️ Immatriculation obligatoire', 'error'); return; }
   if (salId && charger('vehicules').find(v => v.salId === salId)) {
-    afficherToast('âš ï¸ Ce salariÃ© a dÃ©jÃ  un vÃ©hicule', 'error'); return;
+    afficherToast('⚠️ Ce salarié a déjà un véhicule', 'error'); return;
   }
 
   const sal = charger('salaries').find(s => s.id === salId);
@@ -1508,7 +1505,7 @@ function ajouterVehicule() {
   if (document.getElementById('veh-date-ct')) document.getElementById('veh-date-ct').value = '';
   if (document.getElementById('veh-salarie')) document.getElementById('veh-salarie').value = '';
   if (document.getElementById('veh-tva-carburant')) document.getElementById('veh-tva-carburant').value = '80';
-  afficherVehicules(); afficherChauffeurs(); afficherToast('âœ… VÃ©hicule ajoutÃ© !');
+  afficherVehicules(); afficherChauffeurs(); afficherToast('✅ Véhicule ajouté !');
 }
 
 function afficherVehicules() {
@@ -1522,8 +1519,8 @@ function afficherVehicules() {
   const selFiltreVeh = document.getElementById('filtre-veh-salarie');
   if (selFiltreVeh) {
     const currentValue = selFiltreVeh.value;
-    selFiltreVeh.innerHTML = '<option value="">Tous les vÃ©hicules</option>';
-    vehicules.forEach(v => { selFiltreVeh.innerHTML += `<option value="${v.id}">${v.immat} â€” ${v.modele||''}</option>`; });
+    selFiltreVeh.innerHTML = '<option value="">Tous les véhicules</option>';
+    vehicules.forEach(v => { selFiltreVeh.innerHTML += `<option value="${v.id}">${v.immat} — ${v.modele||''}</option>`; });
     selFiltreVeh.value = currentValue;
   }
   if (filtreVehSal) vehicules = vehicules.filter(v => v.id === filtreVehSal);
@@ -1536,36 +1533,36 @@ function afficherVehicules() {
     sv.value = v;
   }
 
-  // VÃ©rifier alertes CT (dans les 30 jours)
+  // Vérifier alertes CT (dans les 30 jours)
   const auj = new Date(); const dans30j = new Date(); dans30j.setDate(auj.getDate()+30);
   vehicules.forEach(v => {
     const pilotageEntretien = getPilotageEntretienVehicule(v);
     if (v.dateCT) {
       const dateCT = new Date(v.dateCT);
-      if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `âš ï¸ ContrÃ´le technique expirÃ© â€” ${v.immat}`, { vehId: v.id });
-      else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `ðŸ”” CT Ã  renouveler dans moins de 30 jours â€” ${v.immat}`, { vehId: v.id });
+      if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${v.immat}`, { vehId: v.id });
+      else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `🔔 CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
     }
     if (pilotageEntretien.estEnRetard && pilotageEntretien.prochainKm) {
-      ajouterAlerteSiAbsente('vidange', `ðŸ”§ Entretien Ã  effectuer â€” ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
+      ajouterAlerteSiAbsente('vidange', `🔧 Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
     } else if (pilotageEntretien.estProche && pilotageEntretien.prochainKm) {
-      ajouterAlerteSiAbsente('vidange', `ðŸ”” Entretien proche â€” ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
+      ajouterAlerteSiAbsente('vidange', `🔔 Entretien proche — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
     }
   });
   afficherBadgeAlertes();
 
-  if (!vehicules.length) { tb.innerHTML = emptyState('ðŸš','Aucun vÃ©hicule','Ajoutez votre premier vÃ©hicule pour commencer le suivi de flotte.','+ Nouveau vÃ©hicule',"openModal('modal-vehicule')"); return; }
+  if (!vehicules.length) { tb.innerHTML = emptyState('🚐','Aucun véhicule','Ajoutez votre premier véhicule pour commencer le suivi de flotte.','+ Nouveau véhicule',"openModal('modal-vehicule')"); return; }
   tb.innerHTML = vehicules.map(v => {
     const ent = entretiens.filter(e => e.vehId === v.id).sort((a,b) => new Date(b.date)-new Date(a.date))[0];
     const sal = v.salId ? salaries.find(s => s.id === v.salId) : null;
     const kmActuel = calculerKilometrageVehiculeActuel(v);
     const pilotageEntretien = getPilotageEntretienVehicule(v);
 
-    // Conso rÃ©elle : calcul entre pleins consÃ©cutifs (mÃ©thode correcte)
+    // Conso réelle : calcul entre pleins consécutifs (méthode correcte)
     const pleinsVeh = charger('carburant').filter(p=>p.vehId===v.id && p.km)
       .sort((a,b)=>new Date(a.date)-new Date(b.date));
     let consoReelle = null;
     if (pleinsVeh.length >= 2) {
-      // Calculer sur tous les intervalles entre pleins consÃ©cutifs
+      // Calculer sur tous les intervalles entre pleins consécutifs
       let totalLitres = 0, totalKm = 0, nbIntervalles = 0;
       for (let i = 1; i < pleinsVeh.length; i++) {
         const kmInterval = (pleinsVeh[i].km||0) - (pleinsVeh[i-1].km||0);
@@ -1582,7 +1579,7 @@ function afficherVehicules() {
     }
 
     // Alerte CT
-    let ctLabel = v.dateCT ? v.dateCT : 'â€”';
+    let ctLabel = v.dateCT ? v.dateCT : '—';
     let ctStyle = '';
     if (v.dateCT) {
       const dct = new Date(v.dateCT);
@@ -1594,50 +1591,50 @@ function afficherVehicules() {
       v.modeAcquisition ? `<div style="font-weight:600">${(v.modeAcquisition||'').toUpperCase()}</div>` : '',
       v.dateAcquisition ? `<div style="font-size:.76rem;color:var(--text-muted)">Depuis le ${formatDateExport(v.dateAcquisition)}</div>` : '',
       v.dureeAmortissement ? `<div style="font-size:.76rem;color:var(--text-muted)">Amort. ${v.dureeAmortissement} an(s)</div>` : '',
-      (v.entretienIntervalKm || v.entretienIntervalMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">RÃ©vision ${v.entretienIntervalKm ? 'tous les ' + formatKm(v.entretienIntervalKm) : ''}${v.entretienIntervalKm && v.entretienIntervalMois ? ' / ' : ''}${v.entretienIntervalMois ? 'tous les ' + v.entretienIntervalMois + ' mois' : ''}</div>` : ''
+      (v.entretienIntervalKm || v.entretienIntervalMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Révision ${v.entretienIntervalKm ? 'tous les ' + formatKm(v.entretienIntervalKm) : ''}${v.entretienIntervalKm && v.entretienIntervalMois ? ' / ' : ''}${v.entretienIntervalMois ? 'tous les ' + v.entretienIntervalMois + ' mois' : ''}</div>` : ''
     ].filter(Boolean).join('');
     const financeInfos = [
       v.prixAchatHT ? `<div><strong>${euros(v.prixAchatHT)}</strong> HT</div>` : '',
-      v.prixAchatTTC ? `<div style="font-size:.76rem;color:var(--text-muted)">${euros((v.prixAchatTTC||0) - (v.prixAchatHT||0))} TVA â€¢ ${euros(v.prixAchatTTC)} TTC</div>` : '',
-      v.dureeAmortissement && amort.annuel ? `<div style="font-size:.76rem;color:var(--accent)">Amort. ${euros(amort.annuel)}/an â€¢ ${amort.mode === 'degressif' ? 'dÃ©gressif' : 'linÃ©aire'}</div>` : '',
+      v.prixAchatTTC ? `<div style="font-size:.76rem;color:var(--text-muted)">${euros((v.prixAchatTTC||0) - (v.prixAchatHT||0))} TVA • ${euros(v.prixAchatTTC)} TTC</div>` : '',
+      v.dureeAmortissement && amort.annuel ? `<div style="font-size:.76rem;color:var(--accent)">Amort. ${euros(amort.annuel)}/an • ${amort.mode === 'degressif' ? 'dégressif' : 'linéaire'}</div>` : '',
       amort.prorataPremierExercice ? `<div style="font-size:.76rem;color:var(--text-muted)">Prorata fiscal 1er exercice : ${(amort.prorataPremierExercice * 100).toFixed(1)} %</div>` : '',
       v.dateMiseAuRebut ? `<div style="font-size:.76rem;color:var(--text-muted)">Mise au rebut : ${formatDateExport(v.dateMiseAuRebut)}</div>` : '',
       `<div style="font-size:.76rem;color:var(--text-muted)">TVA carburant ${formaterTaux(v.tvaCarbDeductible || 0)}</div>`
     ].filter(Boolean).join('');
     const entretienInfos = [
-      ent ? formatDateExport(ent.date) : 'â€”',
+      ent ? formatDateExport(ent.date) : '—',
       pilotageEntretien.prochainKm ? `<div style="font-size:.75rem;color:${pilotageEntretien.estEnRetard ? 'var(--red)' : pilotageEntretien.estProche ? 'var(--accent)' : 'var(--text-muted)'}">Prochain km : ${formatKm(pilotageEntretien.prochainKm)}</div>` : '',
-      pilotageEntretien.dateEcheance ? `<div style="font-size:.75rem;color:var(--text-muted)">Ã‰chÃ©ance : ${formatDateExport(pilotageEntretien.dateEcheance)}</div>` : ''
+      pilotageEntretien.dateEcheance ? `<div style="font-size:.75rem;color:var(--text-muted)">Échéance : ${formatDateExport(pilotageEntretien.dateEcheance)}</div>` : ''
     ].filter(Boolean).join('');
 
     return `<tr>
-      <td>${v.photo ? `<img src="${v.photo}" class="veh-photo-thumb" onclick="voirPhotoVehicule('${v.id}')" />` : `<label class="veh-photo-placeholder" title="Ajouter photo"><input type="file" accept="image/*" style="display:none" onchange="uploaderPhotoVehicule('${v.id}',this)" />ðŸ“·</label>`}</td>
+      <td>${v.photo ? `<img src="${v.photo}" class="veh-photo-thumb" onclick="voirPhotoVehicule('${v.id}')" />` : `<label class="veh-photo-placeholder" title="Ajouter photo"><input type="file" accept="image/*" style="display:none" onchange="uploaderPhotoVehicule('${v.id}',this)" />📷</label>`}</td>
       <td><strong>${v.immat}</strong></td>
-      <td>${v.modele||'â€”'}</td>
-      <td>${kmActuel ? formatKm(kmActuel) : 'â€”'}</td>
-      <td>${acquisitionInfos || '<span style="color:var(--text-muted)">â€”</span>'}</td>
-      <td>${v.conso ? v.conso+' L/100km' : 'â€”'}${consoReelle
-        ? ` <span style="color:var(--green);font-size:.75rem" title="CalculÃ© entre ${pleinsVeh.length} pleins">(rÃ©el: ${consoReelle} L/100km)</span>`
+      <td>${v.modele||'—'}</td>
+      <td>${kmActuel ? formatKm(kmActuel) : '—'}</td>
+      <td>${acquisitionInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${v.conso ? v.conso+' L/100km' : '—'}${consoReelle
+        ? ` <span style="color:var(--green);font-size:.75rem" title="Calculé entre ${pleinsVeh.length} pleins">(réel: ${consoReelle} L/100km)</span>`
         : pleinsVeh.length === 1
-          ? ` <span style="color:var(--text-muted);font-size:.72rem">(1 plein â€” besoin de 2+)</span>`
+          ? ` <span style="color:var(--text-muted);font-size:.72rem">(1 plein — besoin de 2+)</span>`
           : ''
       }</td>
-      <td style="${ctStyle}">${v.dateCT ? formatDateExport(ctLabel) : 'â€”'}${v.dateCT && new Date(v.dateCT)<auj?' âš ï¸':''}</td>
-      <td>${sal ? `<span style="color:var(--accent-2)">ðŸ‘¤ ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">â€”</span>'}</td>
-      <td>${financeInfos || '<span style="color:var(--text-muted)">â€”</span>'}</td>
-      <td>${entretienInfos || 'â€”'}</td>
+      <td style="${ctStyle}">${v.dateCT ? formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</td>
+      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${entretienInfos || '—'}</td>
       <td>
-        <button class="btn-icon" onclick="ouvrirEditVehicule('${v.id}')" title="Modifier">âœï¸</button>
-        <button class="btn-icon" onclick="ouvrirAffectationVehicule('${v.id}')" title="Affecter">ðŸ‘¤</button>
-        <button class="btn-icon" onclick="ouvrirTCO('${v.id}')" title="CoÃ»t total TCO">ðŸ’°</button>
-        <button class="btn-icon" onclick="ouvrirHistoriqueConducteurs('${v.id}')" title="Historique conducteurs">ðŸš</button>
-        <button class="btn-icon danger" onclick="supprimerVehicule('${v.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="ouvrirEditVehicule('${v.id}')" title="Modifier">✏️</button>
+        <button class="btn-icon" onclick="ouvrirAffectationVehicule('${v.id}')" title="Affecter">👤</button>
+        <button class="btn-icon" onclick="ouvrirTCO('${v.id}')" title="Coût total TCO">💰</button>
+        <button class="btn-icon" onclick="ouvrirHistoriqueConducteurs('${v.id}')" title="Historique conducteurs">🚐</button>
+        <button class="btn-icon danger" onclick="supprimerVehicule('${v.id}')">🗑️</button>
       </div></div></td>
     </tr>`;
   }).join('');
 }
 
-/* Ajoute une alerte seulement si elle n'existe pas dÃ©jÃ  (Ã©vite les doublons) */
+/* Ajoute une alerte seulement si elle n'existe pas déjà (évite les doublons) */
 function ajouterAlerteSiAbsente(type, message, meta) {
   const alertes = charger('alertes_admin');
   const existe  = alertes.find(a => a.type === type && a.meta?.vehId === meta?.vehId && !a.traitee);
@@ -1649,7 +1646,7 @@ function ouvrirAffectationVehicule(vehId) {
   affectVehId = vehId;
   const vehicules = charger('vehicules'), salaries = charger('salaries');
   const veh = vehicules.find(v => v.id === vehId);
-  document.getElementById('affect-veh-label').textContent = veh ? `${veh.immat} â€” ${veh.modele}` : '';
+  document.getElementById('affect-veh-label').textContent = veh ? `${veh.immat} — ${veh.modele}` : '';
   const sel = document.getElementById('affect-salarie-sel');
   sel.innerHTML = '<option value="">-- Retirer l\'affectation --</option>';
   salaries.forEach(s => {
@@ -1676,24 +1673,24 @@ function confirmerAffectationVehicule() {
   closeModal('modal-affecter-vehicule');
   affectVehId = null;
   afficherVehicules(); afficherChauffeurs();
-  afficherToast(salId ? 'âœ… VÃ©hicule affectÃ© !' : 'âœ… Affectation retirÃ©e');
+  afficherToast(salId ? '✅ Véhicule affecté !' : '✅ Affectation retirée');
 }
 
 async function supprimerVehicule(id) {
   const veh = charger('vehicules').find(v => v.id === id);
-  const _ok2 = await confirmDialog(`Supprimer ${veh?.immat || 'ce vÃ©hicule'} ?`, {titre:'Supprimer le vÃ©hicule',icone:'ðŸš',btnLabel:'Supprimer'});
+  const _ok2 = await confirmDialog(`Supprimer ${veh?.immat || 'ce véhicule'} ?`, {titre:'Supprimer le véhicule',icone:'🚐',btnLabel:'Supprimer'});
   if (!_ok2) return;
-  // Supprimer le vÃ©hicule
+  // Supprimer le véhicule
   sauvegarder('vehicules', charger('vehicules').filter(v => v.id !== id));
-  // Anonymiser les livraisons liÃ©es (garder l'historique)
+  // Anonymiser les livraisons liées (garder l'historique)
   const livraisons = charger('livraisons');
-  livraisons.forEach(l => { if (l.vehId === id) { l.vehId = null; l.vehNom = (veh?.immat||'VÃ©hicule supprimÃ©') + ' (archivÃ©)'; } });
+  livraisons.forEach(l => { if (l.vehId === id) { l.vehId = null; l.vehNom = (veh?.immat||'Véhicule supprimé') + ' (archivé)'; } });
   sauvegarder('livraisons', livraisons);
   afficherVehicules(); afficherChauffeurs();
-  afficherToast('ðŸ—‘ï¸ VÃ©hicule supprimÃ©');
+  afficherToast('🗑️ Véhicule supprimé');
 }
 
-/* ===== ENTRETIENS (dans page VÃ©hicules â€” historique simplifiÃ©) ===== */
+/* ===== ENTRETIENS (dans page Véhicules — historique simplifié) ===== */
 function afficherEntretiensVehicules() {
   const vehicules  = charger('vehicules');
   const entretiens = charger('entretiens').sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -1703,12 +1700,12 @@ function afficherEntretiensVehicules() {
   tb.innerHTML = entretiens.slice(0,20).map(e => {
     const veh = vehicules.find(v=>v.id===e.vehId);
     return `<tr>
-      <td><strong>${veh?.immat||'â€”'}</strong></td>
+      <td><strong>${veh?.immat||'—'}</strong></td>
       <td>${getTypeEntretienLabel(e.type)}</td>
-      <td><strong>${e.cout ? euros(e.cout) : 'â€”'}</strong></td>
+      <td><strong>${e.cout ? euros(e.cout) : '—'}</strong></td>
       <td>${formatDateExport(e.date)}</td>
-      <td style="font-size:.82rem">${e.description||'â€”'}</td>
-      <td><button class="btn-icon" onclick="ouvrirEditEntretien('${e.id}')" title="Modifier">âœï¸</button><button class="btn-icon danger" onclick="supprimerEntretien('${e.id}');afficherEntretiensVehicules()">ðŸ—‘ï¸</button></td>
+      <td style="font-size:.82rem">${e.description||'—'}</td>
+      <td><button class="btn-icon" onclick="ouvrirEditEntretien('${e.id}')" title="Modifier">✏️</button><button class="btn-icon danger" onclick="supprimerEntretien('${e.id}');afficherEntretiensVehicules()">🗑️</button></td>
     </tr>`;
   }).join('');
 }
@@ -1720,17 +1717,17 @@ function ajouterCarburant() {
   const prixLitre = parseFloat(document.getElementById('carb-prix-litre').value);
   const date      = document.getElementById('carb-date').value || aujourdhui();
   const typeCarb  = document.getElementById('carb-type')?.value || 'gasoil';
-  if (!vehId || isNaN(litres) || isNaN(prixLitre)) { afficherToast('âš ï¸ Tous les champs sont obligatoires', 'error'); return; }
+  if (!vehId || isNaN(litres) || isNaN(prixLitre)) { afficherToast('⚠️ Tous les champs sont obligatoires', 'error'); return; }
   const veh   = charger('vehicules').find(v => v.id === vehId);
   const total = litres * prixLitre;
   let libelle = veh ? veh.immat : 'Inconnu';
-  if (veh?.salNom) libelle = `${veh.immat} â€” ${veh.salNom}`;
+  if (veh?.salNom) libelle = `${veh.immat} — ${veh.salNom}`;
   const pleins = charger('carburant');
   pleins.push({ id: genId(), vehId, vehNom: libelle, litres, prixLitre, total, date, typeCarburant: typeCarb, source: 'admin', modifie: false, creeLe: new Date().toISOString() });
   sauvegarder('carburant', pleins);
   closeModal('modal-carburant');
   ['carb-litres','carb-prix-litre'].forEach(id => document.getElementById(id).value = '');
-  afficherCarburant(); afficherToast('âœ… Plein enregistrÃ© !');
+  afficherCarburant(); afficherToast('✅ Plein enregistré !');
 }
 
 function afficherCarburant() {
@@ -1742,11 +1739,11 @@ function afficherCarburant() {
   const filtreVeh  = document.getElementById('filtre-carb-vehicule')?.value || '';
   const filtreMois = document.getElementById('filtre-carb-mois')?.value || '';
 
-  // Remplir le select vÃ©hicules du filtre
+  // Remplir le select véhicules du filtre
   const selVeh = document.getElementById('filtre-carb-vehicule');
   if (selVeh) {
     const currentValue = selVeh.value;
-    selVeh.innerHTML = '<option value="">Tous les vÃ©hicules</option>';
+    selVeh.innerHTML = '<option value="">Tous les véhicules</option>';
     charger('vehicules').forEach(v => { selVeh.innerHTML += `<option value="${v.id}">${v.immat}</option>`; });
     selVeh.value = currentValue;
   }
@@ -1756,7 +1753,7 @@ function afficherCarburant() {
   if (filtreVeh)  pleins = pleins.filter(p => p.vehId === filtreVeh);
   if (filtreMois) pleins = pleins.filter(p => (p.date||'').startsWith(filtreMois));
 
-  // KPIs (basÃ©s sur le mois filtrÃ© ou le mois courant)
+  // KPIs (basés sur le mois filtré ou le mois courant)
   const moisRef = filtreMois || new Date().toISOString().slice(0,7);
   const pleinsMois = charger('carburant').filter(p => p.date.startsWith(moisRef));
   const tot = pleinsMois.reduce((s,p) => s+p.total,0), lts = pleinsMois.reduce((s,p) => s+p.litres,0);
@@ -1766,23 +1763,23 @@ function afficherCarburant() {
   const prixMoyenTTC = lts > 0 ? tot / lts : 0;
   document.getElementById('kpi-carb-mois').textContent   = euros(tot);
   const elCarbDetail = document.getElementById('kpi-carb-mois-detail');
-  if (elCarbDetail) elCarbDetail.textContent = `HT ${euros(totalHT)} â€¢ TVA ${euros(totalTVA)}`;
+  if (elCarbDetail) elCarbDetail.textContent = `HT ${euros(totalHT)} • TVA ${euros(totalTVA)}`;
   document.getElementById('kpi-litres-mois').textContent = lts.toFixed(1)+' L';
   document.getElementById('kpi-prix-litre').textContent  = euros(prixMoyenTTC);
   const elPrixLitreDetail = document.getElementById('kpi-prix-litre-detail');
-  if (elPrixLitreDetail) elPrixLitreDetail.textContent = `HT ${euros(prixMoyenHT)} â€¢ TTC ${euros(prixMoyenTTC)}`;
+  if (elPrixLitreDetail) elPrixLitreDetail.textContent = `HT ${euros(prixMoyenHT)} • TTC ${euros(prixMoyenTTC)}`;
 
-  if (!pleins.length) { tb.innerHTML = emptyState('â›½','Aucun plein enregistrÃ©','Les pleins saisis par vos salariÃ©s ou vous-mÃªme apparaÃ®tront ici.'); return; }
+  if (!pleins.length) { tb.innerHTML = emptyState('⛽','Aucun plein enregistré','Les pleins saisis par vos salariés ou vous-même apparaîtront ici.'); return; }
   tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
     const src = p.source==='salarie'
-      ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">ðŸ‘¤ SalariÃ©</span>'
-      : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">âš™ï¸ Admin</span>';
-    const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">âœï¸ ModifiÃ©</span>' : '';
-    const typeLabel = (p.typeCarburant||'gasoil')==='essence' ? 'ðŸŸ¢ Essence' : 'â›½ Gasoil';
+      ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">👤 Salarié</span>'
+      : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
+    const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
+    const typeLabel = (p.typeCarburant||'gasoil')==='essence' ? '🟢 Essence' : '⛽ Gasoil';
     return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
       <td>${p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
       <td><strong>${euros(p.total)}</strong></td><td>${formatDateExport(p.date)}</td><td>${src}</td>
-      <td><button class="btn-icon" onclick="ouvrirEditCarburantAdmin('${p.id}')">âœï¸</button> <button class="btn-icon danger" onclick="supprimerCarburant('${p.id}')">ðŸ—‘ï¸</button></td></tr>`;
+      <td><button class="btn-icon" onclick="ouvrirEditCarburantAdmin('${p.id}')">✏️</button> <button class="btn-icon danger" onclick="supprimerCarburant('${p.id}')">🗑️</button></td></tr>`;
   }).join('');
 }
 
@@ -1794,13 +1791,13 @@ function resetFiltresCarburant() {
 }
 
 async function supprimerCarburant(id) {
-  const _ok = await confirmDialog('Supprimer ce plein ?', {titre:'Supprimer',icone:'â›½',btnLabel:'Supprimer'});
+  const _ok = await confirmDialog('Supprimer ce plein ?', {titre:'Supprimer',icone:'⛽',btnLabel:'Supprimer'});
   if (!_ok) return;
   sauvegarder('carburant', charger('carburant').filter(p => p.id !== id));
-  afficherCarburant(); afficherToast('ðŸ—‘ï¸ SupprimÃ©');
+  afficherCarburant(); afficherToast('🗑️ Supprimé');
 }
 
-/* ===== RELEVÃ‰S KM â€” ADMIN ===== */
+/* ===== RELEVÉS KM — ADMIN ===== */
 function afficherReleveKm() {
   const salaries = charger('salaries');
   const tb = document.getElementById('tb-releve-km');
@@ -1813,15 +1810,15 @@ function afficherReleveKm() {
   });
   tous.sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe));
   if (!tous.length) {
-    tb.innerHTML = emptyState('ðŸ›£ï¸','Aucun relevÃ© km',`Aucun relevÃ© kilomÃ©trique sur ${range.label.toLowerCase()} (${range.datesLabel}).`);
+    tb.innerHTML = emptyState('🛣️','Aucun relevé km',`Aucun relevé kilométrique sur ${range.label.toLowerCase()} (${range.datesLabel}).`);
     return;
   }
   tb.innerHTML = tous.map(e => {
     const modTag = e.modifie
-      ? '<span style="font-size:.72rem;background:rgba(231,76,60,.12);color:#e74c3c;padding:1px 6px;border-radius:12px;margin-left:4px">âœï¸ ModifiÃ©</span>'
+      ? '<span style="font-size:.72rem;background:rgba(231,76,60,.12);color:#e74c3c;padding:1px 6px;border-radius:12px;margin-left:4px">✏️ Modifié</span>'
       : '';
-    const kmDepart = e.kmDepart != null ? e.kmDepart.toLocaleString('fr-FR')+' km' : 'â€”';
-    const kmArrivee = e.kmArrivee != null ? e.kmArrivee.toLocaleString('fr-FR')+' km' : 'â€”';
+    const kmDepart = e.kmDepart != null ? e.kmDepart.toLocaleString('fr-FR')+' km' : '—';
+    const kmArrivee = e.kmArrivee != null ? e.kmArrivee.toLocaleString('fr-FR')+' km' : '—';
     const distance = e.kmArrivee != null
       ? ((e.distance || (e.kmArrivee - e.kmDepart)) || 0).toFixed(0)+' km'
       : 'En attente';
@@ -1832,8 +1829,8 @@ function afficherReleveKm() {
       <td>${kmArrivee}</td>
       <td><strong style="color:var(--accent)">${distance}</strong>${modTag}</td>
       <td>
-        <button class="btn-icon" onclick="ouvrirEditKmAdmin('${e.salId}','${e.id}')">âœï¸</button>
-        <button class="btn-icon danger" onclick="supprimerKmAdmin('${e.salId}','${e.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="ouvrirEditKmAdmin('${e.salId}','${e.id}')">✏️</button>
+        <button class="btn-icon danger" onclick="supprimerKmAdmin('${e.salId}','${e.id}')">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -1855,8 +1852,8 @@ function confirmerEditKmAdmin() {
   const arrRaw = document.getElementById('admin-km-arr').value;
   const arr  = arrRaw === '' ? null : parseFloat(arrRaw);
   const date = document.getElementById('admin-km-date').value;
-  if (!dep) { afficherToast('âš ï¸ Km dÃ©part obligatoire', 'error'); return; }
-  if (arr !== null && arr <= dep) { afficherToast('âš ï¸ Km arrivÃ©e doit Ãªtre supÃ©rieur au km dÃ©part', 'error'); return; }
+  if (!dep) { afficherToast('⚠️ Km départ obligatoire', 'error'); return; }
+  if (arr !== null && arr <= dep) { afficherToast('⚠️ Km arrivée doit être supérieur au km départ', 'error'); return; }
 
   const cle = 'km_sal_'+_editKmSalId;
   const entrees = charger(cle);
@@ -1870,26 +1867,26 @@ function confirmerEditKmAdmin() {
     sauvegarder(cle, entrees);
     if (arr !== null) mettreAJourKmVehiculeParSalarie(_editKmSalId, arr);
     else mettreAJourKmVehiculeParSalarie(_editKmSalId, dep);
-    // Km de report automatique supprimÃ© en v12fix3
+    // Km de report automatique supprimé en v12fix3
   }
   closeModal('modal-edit-km');
   _editKmSalId = null; _editKmId = null;
-  afficherReleveKm(); afficherToast('âœ… RelevÃ© mis Ã  jour');
+  afficherReleveKm(); afficherToast('✅ Relevé mis à jour');
 }
 
 async function supprimerKmAdmin(salId, kmId) {
-  const _ok = await confirmDialog('Supprimer ce relevÃ© ?', {titre:'Supprimer',icone:'ðŸ›£ï¸',btnLabel:'Supprimer'});
+  const _ok = await confirmDialog('Supprimer ce relevé ?', {titre:'Supprimer',icone:'🛣️',btnLabel:'Supprimer'});
   if (!_ok) return;
   const cle = 'km_sal_'+salId;
   const entrees = charger(cle).filter(e => e.id !== kmId);
   sauvegarder(cle, entrees);
-  afficherReleveKm(); afficherToast('ðŸ—‘ï¸ RelevÃ© supprimÃ©');
+  afficherReleveKm(); afficherToast('🗑️ Relevé supprimé');
 }
 
-/* Met Ã  jour le km de dÃ©part mÃ©morisÃ© pour la prochaine saisie */
-/* mettreAJourKmReport supprimÃ© â€” v12fix3 */
+/* Met à jour le km de départ mémorisé pour la prochaine saisie */
+/* mettreAJourKmReport supprimé — v12fix3 */
 
-/* ===== VOIR PHOTO VÃ‰HICULE EN PLEIN Ã‰CRAN ===== */
+/* ===== VOIR PHOTO VÉHICULE EN PLEIN ÉCRAN ===== */
 function voirPhotoVehicule(vehId) {
   const veh = charger('vehicules').find(v => v.id === vehId);
   if (!veh || !veh.photo) return;
@@ -1897,8 +1894,8 @@ function voirPhotoVehicule(vehId) {
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
   overlay.innerHTML = `
     <img src="${veh.photo}" style="max-width:90%;max-height:80vh;border-radius:8px;object-fit:contain" />
-    <div style="color:#fff;font-size:.9rem;font-weight:600">${veh.immat} â€” ${veh.modele||''}</div>
-    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">âœ• Fermer</button>`;
+    <div style="color:#fff;font-size:.9rem;font-weight:600">${veh.immat} — ${veh.modele||''}</div>
+    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">✕ Fermer</button>`;
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
   document.body.appendChild(overlay);
 }
@@ -1913,13 +1910,10 @@ function afficherAlertes() {
   const filtreStatut = document.getElementById('filtre-alerte-statut')?.value || 'actives';
   const filtreDate   = document.getElementById('filtre-alerte-date')?.value || '';
 
-  // Remplir select salariÃ© si vide
+  // Remplir select salarié si vide
   const selSal = document.getElementById('filtre-alerte-salarie');
-  if (selSal) {
-    const valeurCourante = selSal.value;
-    selSal.innerHTML = '<option value="">Tous les salariÃ©s</option>';
+  if (selSal && selSal.options.length <= 1) {
     charger('salaries').forEach(s => { selSal.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
-    selSal.value = valeurCourante;
   }
 
   let filtered = toutes;
@@ -1940,22 +1934,22 @@ function afficherAlertes() {
   const cardTraitees = document.getElementById('card-alertes-traitees');
   if (cardTraitees) cardTraitees.style.display = (filtreStatut === 'actives') ? 'none' : 'block';
 
-  // â”€â”€ CatÃ©gories d'alertes actives â”€â”€
+  // ── Catégories d'alertes actives ──
   const categories = [
-    { type: 'prix_manquant',   label: 'ðŸ’¶ Prix de livraison manquant',  color: 'rgba(245,166,35,0.08)',  border: 'rgba(245,166,35,0.3)'  },
-    { type: 'livraison_modif', label: 'âœï¸ Livraisons modifiÃ©es',         color: 'rgba(155,89,182,0.06)',  border: 'rgba(155,89,182,0.25)' },
-    { type: 'carburant_modif', label: 'âœï¸ Modifications carburant',      color: 'rgba(231,76,60,0.06)',   border: 'rgba(231,76,60,0.25)'  },
-    { type: 'km_modif',        label: 'âœï¸ Modifications relevÃ©s km',     color: 'rgba(79,142,247,0.06)',  border: 'rgba(79,142,247,0.25)' },
-    { type: 'inspection',      label: 'ðŸš— Inspections vÃ©hicules reÃ§ues', color: 'rgba(46,204,113,0.06)',  border: 'rgba(46,204,113,0.25)' },
-    { type: 'ct_expire',       label: 'âš ï¸ ContrÃ´les techniques expirÃ©s', color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'ct_proche',       label: 'ðŸ”” CT Ã  renouveler (< 30 jours)', color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'vidange',            label: 'ðŸ”§ Vidanges Ã  effectuer',           color: 'rgba(52,152,219,0.06)',  border: 'rgba(52,152,219,0.2)'  },
-    { type: 'permis_expire',    label: 'âš ï¸ Permis de conduire expirÃ©s',     color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'permis_proche',    label: 'ðŸªª Permis expirent bientÃ´t',        color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'assurance_expire', label: 'âš ï¸ Assurances expirÃ©es',            color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'assurance_proche', label: 'ðŸ›¡ï¸ Assurances expirent bientÃ´t',   color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
+    { type: 'prix_manquant',   label: '💶 Prix de livraison manquant',  color: 'rgba(245,166,35,0.08)',  border: 'rgba(245,166,35,0.3)'  },
+    { type: 'livraison_modif', label: '✏️ Livraisons modifiées',         color: 'rgba(155,89,182,0.06)',  border: 'rgba(155,89,182,0.25)' },
+    { type: 'carburant_modif', label: '✏️ Modifications carburant',      color: 'rgba(231,76,60,0.06)',   border: 'rgba(231,76,60,0.25)'  },
+    { type: 'km_modif',        label: '✏️ Modifications relevés km',     color: 'rgba(79,142,247,0.06)',  border: 'rgba(79,142,247,0.25)' },
+    { type: 'inspection',      label: '🚗 Inspections véhicules reçues', color: 'rgba(46,204,113,0.06)',  border: 'rgba(46,204,113,0.25)' },
+    { type: 'ct_expire',       label: '⚠️ Contrôles techniques expirés', color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
+    { type: 'ct_proche',       label: '🔔 CT à renouveler (< 30 jours)', color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
+    { type: 'vidange',            label: '🔧 Vidanges à effectuer',           color: 'rgba(52,152,219,0.06)',  border: 'rgba(52,152,219,0.2)'  },
+    { type: 'permis_expire',    label: '⚠️ Permis de conduire expirés',     color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
+    { type: 'permis_proche',    label: '🪪 Permis expirent bientôt',        color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
+    { type: 'assurance_expire', label: '⚠️ Assurances expirées',            color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
+    { type: 'assurance_proche', label: '🛡️ Assurances expirent bientôt',   color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
   ];
-  // Types Ã  ne jamais afficher dans les alertes (gÃ©rÃ©s ailleurs)
+  // Types à ne jamais afficher dans les alertes (gérés ailleurs)
   const typesExclus = ['message'];
 
   const container = document.getElementById('alertes-categories');
@@ -1977,10 +1971,10 @@ function afficherAlertes() {
         <span style="background:rgba(255,255,255,0.1);padding:2px 10px;border-radius:20px;font-size:0.78rem">${items.length}</span>
       </div>
       <table class="data-table" style="background:transparent">
-        <thead><tr><th>Message</th><th>SalariÃ©</th><th>Date/Heure</th><th>Action</th></tr></thead>
+        <thead><tr><th>Message</th><th>Salarié</th><th>Date/Heure</th><th>Action</th></tr></thead>
         <tbody>${items.map(a => {
           const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-          // Types critiques = pas d'ignorer (CT expirÃ© uniquement)
+          // Types critiques = pas d'ignorer (CT expiré uniquement)
           const estCritique = ['ct_expire'].includes(cat.type);
           // Types avec saisie rapide
           const estPrixManquant = cat.type === 'prix_manquant';
@@ -1989,27 +1983,27 @@ function afficherAlertes() {
           // Raccourci contextuel selon le type
           let btnRaccourci = '';
           if (['permis_expire','permis_proche'].includes(cat.type) && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salariÃ©">ðŸªª Modifier permis</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">🪪 Modifier permis</button>`;
           } else if (['assurance_expire','assurance_proche'].includes(cat.type) && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salariÃ©">ðŸ›¡ï¸ Modifier assurance</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">🛡️ Modifier assurance</button>`;
           } else if (['ct_expire','ct_proche'].includes(cat.type) && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('vehicules');setTimeout(()=>ouvrirEditVehicule('${a.meta.vehId}'),200)" title="Modifier le vÃ©hicule">ðŸš Modifier vÃ©hicule</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('vehicules');setTimeout(()=>ouvrirEditVehicule('${a.meta.vehId}'),200)" title="Modifier le véhicule">🚐 Modifier véhicule</button>`;
           } else if (cat.type === 'vidange' && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('entretiens')" title="Ajouter entretien">ðŸ”§ Entretien</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('entretiens')" title="Ajouter entretien">🔧 Entretien</button>`;
           }
 
           if (estPrixManquant) {
-            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">ðŸ“ Saisir</button>
-              <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer dÃ©finitivement">âœ• Ignorer</button>`;
+            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">📝 Saisir</button>
+              <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer définitivement">✕ Ignorer</button>`;
           } else if (estCritique) {
-            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">âœ… TraitÃ©</button>`;
+            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Traité</button>`;
           } else {
-            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">âœ… Valider</button>
-              <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer dÃ©finitivement">âœ• Ignorer</button>`;
+            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button>
+              <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer définitivement">✕ Ignorer</button>`;
           }
           return `<tr>
             <td style="font-size:0.85rem">${a.message}</td>
-            <td>${a.meta?.salNom||a.meta?.client||'â€”'}</td>
+            <td>${a.meta?.salNom||a.meta?.client||'—'}</td>
             <td style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</td>
             <td style="white-space:nowrap">${btnRaccourci} ${btnActions}</td>
           </tr>`;
@@ -2018,41 +2012,41 @@ function afficherAlertes() {
     container.appendChild(section);
   });
 
-  // Alertes d'autres types non catÃ©gorisÃ©s
+  // Alertes d'autres types non catégorisés
   const autres = actives.filter(a => !categories.find(c => c.type === a.type) && !typesExclus.includes(a.type));
   if (autres.length) {
     totalActives += autres.length;
     const section = document.createElement('div');
     section.style.cssText = 'background:rgba(108,117,125,0.06);border:1px solid rgba(108,117,125,0.2);border-radius:10px;margin-bottom:16px;overflow:hidden';
     section.innerHTML = `
-      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid rgba(108,117,125,0.2)">ðŸ”” Autres alertes</div>
-      <table class="data-table" style="background:transparent"><thead><tr><th>Message</th><th>SalariÃ©</th><th>Date/Heure</th><th>Action</th></tr></thead>
+      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid rgba(108,117,125,0.2)">🔔 Autres alertes</div>
+      <table class="data-table" style="background:transparent"><thead><tr><th>Message</th><th>Salarié</th><th>Date/Heure</th><th>Action</th></tr></thead>
       <tbody>${autres.map(a => {
         const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-        return `<tr><td style="font-size:0.85rem">${a.message}</td><td>${a.meta?.salNom||'â€”'}</td>
+        return `<tr><td style="font-size:0.85rem">${a.message}</td><td>${a.meta?.salNom||'—'}</td>
           <td style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</td>
-          <td><button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">âœ… Valider</button></td></tr>`;
+          <td><button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button></td></tr>`;
       }).join('')}</tbody></table>`;
     container.appendChild(section);
   }
 
   if (!totalActives) {
-    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.9rem">âœ… Aucune alerte en attente</div>';
+    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.9rem">✅ Aucune alerte en attente</div>';
   }
 
-  // â”€â”€ Historique traitÃ© â”€â”€
+  // ── Historique traité ──
   const tbT = document.getElementById('tb-alertes-traitees');
   if (tbT) {
     if (!traitees.length) {
-      tbT.innerHTML = '<tr><td colspan="4" class="empty-row">Aucune alerte traitÃ©e</td></tr>';
+      tbT.innerHTML = '<tr><td colspan="4" class="empty-row">Aucune alerte traitée</td></tr>';
     } else {
       tbT.innerHTML = traitees.slice(0, 30).map(a => {
         const dateFmt = new Date(a.traiteLe||a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-        const icon = a.type==='carburant_modif' ? 'âœï¸â›½' : a.type==='km_modif' ? 'âœï¸ðŸ›£ï¸' : a.type==='prix_manquant' ? 'ðŸ’¶' : 'âœ…';
+        const icon = a.type==='carburant_modif' ? '✏️⛽' : a.type==='km_modif' ? '✏️🛣️' : a.type==='prix_manquant' ? '💶' : '✅';
         return `<tr style="opacity:0.6">
           <td>${icon}</td><td style="font-size:0.85rem">${a.message}</td>
-          <td>${a.meta?.salNom||a.meta?.client||'â€”'}</td>
-          <td style="color:var(--text-muted);font-size:0.82rem">TraitÃ© le ${dateFmt}</td>
+          <td>${a.meta?.salNom||a.meta?.client||'—'}</td>
+          <td style="color:var(--text-muted);font-size:0.82rem">Traité le ${dateFmt}</td>
         </tr>`;
       }).join('');
     }
@@ -2060,7 +2054,7 @@ function afficherAlertes() {
 }
 
 function ouvrirLivraisonPourPrix(client) {
-  // Ouvre le modal livraison prÃ©-rempli avec le client
+  // Ouvre le modal livraison pré-rempli avec le client
   openModal('modal-livraison');
   if (client) {
     const el = document.getElementById('liv-client');
@@ -2074,7 +2068,7 @@ function validerAlerte(id) {
   if (idx > -1) {
     alertes[idx].traitee  = true;
     alertes[idx].traiteLe = new Date().toISOString();
-    // Notifier le salariÃ© que sa modification a Ã©tÃ© validÃ©e
+    // Notifier le salarié que sa modification a été validée
     const salId = alertes[idx].meta?.salId;
     const type  = alertes[idx].type;
     if (salId) {
@@ -2082,8 +2076,8 @@ function validerAlerte(id) {
       notifs.push({
         id: genId(), type: type+'_valide',
         message: type==='carburant_modif'
-          ? 'âœ… Votre modification de plein a Ã©tÃ© validÃ©e par l\'administrateur.'
-          : 'âœ… Votre modification de relevÃ© km a Ã©tÃ© validÃ©e par l\'administrateur.',
+          ? '✅ Votre modification de plein a été validée par l\'administrateur.'
+          : '✅ Votre modification de relevé km a été validée par l\'administrateur.',
         lu: false,
         creeLe: new Date().toISOString()
       });
@@ -2092,23 +2086,23 @@ function validerAlerte(id) {
     sauvegarder('alertes_admin', alertes);
     afficherAlertes();
     afficherBadgeAlertes();
-    afficherToast('âœ… Alerte traitÃ©e â€” salariÃ© notifiÃ©');
+    afficherToast('✅ Alerte traitée — salarié notifié');
   }
 }
 
 function ignorerAlerte(id) {
-  // Supprime dÃ©finitivement l'alerte â€” pas dans l'historique traitÃ©
+  // Supprime définitivement l'alerte — pas dans l'historique traité
   sauvegarder('alertes_admin', charger('alertes_admin').filter(a => a.id !== id));
   afficherAlertes();
   afficherBadgeAlertes();
-  afficherToast('ðŸ—‘ï¸ Alerte ignorÃ©e');
+  afficherToast('🗑️ Alerte ignorée');
 }
 
 async function viderAlertes() {
-  const _ok7 = await confirmDialog('Effacer toutes les alertes traitÃ©es ?', {titre:'Vider l\'historique',icone:'ðŸ—‘ï¸',btnLabel:'Effacer',danger:false});
+  const _ok7 = await confirmDialog('Effacer toutes les alertes traitées ?', {titre:'Vider l\'historique',icone:'🗑️',btnLabel:'Effacer',danger:false});
   if (!_ok7) return;
   sauvegarder('alertes_admin', charger('alertes_admin').filter(a => !a.traitee));
-  afficherAlertes(); afficherToast('ðŸ—‘ï¸ Historique effacÃ©');
+  afficherAlertes(); afficherToast('🗑️ Historique effacé');
 }
 
 /* ===== DASHBOARD ===== */
@@ -2168,15 +2162,15 @@ function rafraichirDashboard() {
   setText('kpi-tva-solde', soldeTva >= 0 ? euros(soldeTva) : euros(Math.abs(soldeTva)));
   const depDetailEl = document.getElementById('kpi-depenses-detail');
   if (depDetailEl) depDetailEl.innerHTML = `
-    <div class="kpi-depenses-line"><span>â›½</span><span>Carburant</span><strong>${euros(carbMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>ðŸ”§</span><span>Entretien</span><strong>${euros(entretienChargesMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>ðŸ’¸</span><span>Charges</span><strong>${euros(autresChargesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span>⛽</span><span>Carburant</span><strong>${euros(carbMois)}</strong></div>
+    <div class="kpi-depenses-line"><span>🔧</span><span>Entretien</span><strong>${euros(entretienChargesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span>💸</span><span>Charges</span><strong>${euros(autresChargesMois)}</strong></div>
   `;
   const tvaDetailEl = document.getElementById('kpi-tva-detail');
   if (tvaDetailEl) {
     tvaDetailEl.textContent = soldeTva >= 0
-      ? `CollectÃ©e ${euros(totalTvaCollectee)} Â· DÃ©ductible ${euros(totalTvaDeductible)}`
-      : `CrÃ©dit TVA ${euros(Math.abs(soldeTva))}`;
+      ? `Collectée ${euros(totalTvaCollectee)} · Déductible ${euros(totalTvaDeductible)}`
+      : `Crédit TVA ${euros(Math.abs(soldeTva))}`;
   }
   setText('kpi-chauffeurs', chauffeurs.filter(c=>c.statut!=='inactif').length);
   setText('kpi-vehicules', vehicules.length);
@@ -2216,10 +2210,10 @@ function rafraichirDashboard() {
     const listEl = document.getElementById('liste-travaillent');
     if (listEl) listEl.innerHTML = travaillent.length
       ? travaillent.map(s => `<span style="font-size:.8rem;background:rgba(46,204,113,.1);color:var(--green);padding:3px 8px;border-radius:20px;margin:2px">${s.nom}</span>`).join('')
-      : '<span style="font-size:.82rem;color:var(--text-muted)">Aucun planning dÃ©fini pour aujourd\'hui</span>';
+      : '<span style="font-size:.82rem;color:var(--text-muted)">Aucun planning défini pour aujourd\'hui</span>';
   }
 
-  // Solde trÃ©sorerie
+  // Solde trésorerie
   const solde = calculerSoldeTresorerie();
   const soldeEl = document.getElementById('kpi-solde');
   if (soldeEl) {
@@ -2227,14 +2221,14 @@ function rafraichirDashboard() {
     soldeEl.className   = 'kpi-value ' + (solde.solde >= 0 ? 'solde-positif' : 'solde-negatif');
   }
   const encaisseEl = document.getElementById('kpi-encaisse-sub');
-  if (encaisseEl) encaisseEl.textContent = `ðŸ’¶ EncaissÃ© : ${euros(solde.encaisse)} Â· DÃ©pensÃ© : ${euros(solde.depenses)}`;
+  if (encaisseEl) encaisseEl.textContent = `💶 Encaissé : ${euros(solde.encaisse)} · Dépensé : ${euros(solde.depenses)}`;
 
   // Comparatif mensuel
   const comp = calculerComparatif();
   const compEl = document.getElementById('kpi-comp-ca');
-  if (compEl) compEl.innerHTML = `vs mois prÃ©c. ${euros(comp.caPrec)} ${badgeEvol(comp.caActuel, comp.caPrec)}`;
+  if (compEl) compEl.innerHTML = `vs mois préc. ${euros(comp.caPrec)} ${badgeEvol(comp.caActuel, comp.caPrec)}`;
   const compLivEl = document.getElementById('kpi-comp-liv');
-  if (compLivEl) compLivEl.innerHTML = `vs mois prÃ©c. ${comp.livPrec} ${badgeEvol(comp.livActuel, comp.livPrec)}`;
+  if (compLivEl) compLivEl.innerHTML = `vs mois préc. ${comp.livPrec} ${badgeEvol(comp.livActuel, comp.livPrec)}`;
 
   // Objectif livraisons
   const objLiv = parseInt(localStorage.getItem('objectif_livraisons_mensuel')||'0');
@@ -2248,7 +2242,7 @@ function rafraichirDashboard() {
       <div style="font-size:.78rem;margin-top:3px;color:${pct>=100?'var(--green)':'var(--text)'}">${pct}%</div>`;
   }
 
-  // Taux ponctualitÃ©
+  // Taux ponctualité
   afficherPonctualite();
 
   // Incidents ouverts
@@ -2256,13 +2250,13 @@ function rafraichirDashboard() {
   const incEl   = document.getElementById('kpi-incidents');
   if (incEl) incEl.textContent = incOpen;
 
-  // Taux de ponctualitÃ©
+  // Taux de ponctualité
   const ponct = calculerTauxPonctualite();
   const ponctEl = document.getElementById('kpi-ponctualite');
   if (ponctEl) {
     ponctEl.innerHTML = `<div style="font-size:1.5rem;font-weight:800;color:${ponct.taux>=90?'var(--green)':ponct.taux>=70?'var(--accent)':'var(--red)'}">${ponct.taux}%</div>
       <div class="ponctualite-bar"><div class="ponctualite-fill" style="width:${ponct.taux}%;background:${ponct.taux>=90?'var(--green)':ponct.taux>=70?'var(--accent)':'var(--red)'}"></div></div>
-      <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">${ponct.livres}/${ponct.total} livrÃ©es</div>`;
+      <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">${ponct.livres}/${ponct.total} livrées</div>`;
   }
 
   // Top clients
@@ -2271,7 +2265,7 @@ function rafraichirDashboard() {
   const recentes = [...livraisons].sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe)).slice(0,5);
   document.getElementById('tb-livraisons-recentes').innerHTML = recentes.length===0
     ? '<tr><td colspan="5" class="empty-row">Aucune livraison</td></tr>'
-    : recentes.map(l=>`<tr><td>${l.numLiv||'â€”'}</td><td><strong>${l.client}</strong></td><td>${euros(l.prix)}</td><td>${badgeStatut(l.statut)}</td><td>${l.date}</td></tr>`).join('');
+    : recentes.map(l=>`<tr><td>${l.numLiv||'—'}</td><td><strong>${l.client}</strong></td><td>${euros(l.prix)}</td><td>${badgeStatut(l.statut)}</td><td>${l.date}</td></tr>`).join('');
 
   const labels=[], donnees=[];
   for (let i=6;i>=0;i--) {
@@ -2282,7 +2276,7 @@ function rafraichirDashboard() {
   }
   if (chartActivite) chartActivite.destroy();
   chartActivite = new Chart(document.getElementById('chartActivite'), {
-    type:'bar', data:{ labels, datasets:[{ label:'CA (â‚¬)', data:donnees,
+    type:'bar', data:{ labels, datasets:[{ label:'CA (€)', data:donnees,
       backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6 }] },
     options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}},
       scales:{ x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c8299'}}, y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#7c8299'}} } }
@@ -2293,7 +2287,7 @@ function getSemaineDebut() {
   return new Date(new Date().setDate(diff)).toISOString().split('T')[0];
 }
 
-/* ===== RENTABILITÃ‰ ===== */
+/* ===== RENTABILITÉ ===== */
 let chartRentab = null;
 var _rentMoisOffset = 0;
 function getRentMoisRange() {
@@ -2344,29 +2338,29 @@ function afficherRentabilite() {
   });
 }
 
-/* ===== RENTABILITÃ‰ â€” Export PDF ===== */
+/* ===== RENTABILITÉ — Export PDF ===== */
 function genererRentabilitePDF() {
   const params = getEntrepriseExportParams();
   const nom    = params.nom;
-  const ca     = document.getElementById('rent-ca')?.textContent || '0 â‚¬';
-  const carb   = document.getElementById('rent-carb')?.textContent || '0 â‚¬';
-  const entr   = document.getElementById('rent-entretien')?.textContent || '0 â‚¬';
-  const autres = document.getElementById('rent-charges')?.textContent || '0 â‚¬';
-  const coutKm = document.getElementById('rent-cout-km')?.textContent || '0 â‚¬';
-  const profit = document.getElementById('rent-profit')?.textContent || '0 â‚¬';
+  const ca     = document.getElementById('rent-ca')?.textContent || '0 €';
+  const carb   = document.getElementById('rent-carb')?.textContent || '0 €';
+  const entr   = document.getElementById('rent-entretien')?.textContent || '0 €';
+  const autres = document.getElementById('rent-charges')?.textContent || '0 €';
+  const coutKm = document.getElementById('rent-cout-km')?.textContent || '0 €';
+  const profit = document.getElementById('rent-profit')?.textContent || '0 €';
   const marge  = document.getElementById('rent-marge')?.textContent || '0 %';
   const dateExp = formatDateHeureExport();
 
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
-    ${construireEnteteExport(params, 'Rapport de rentabilitÃ©', '', dateExp)}
+    ${construireEnteteExport(params, 'Rapport de rentabilité', '', dateExp)}
     ${renderBlocInfosEntreprise(params)}
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
-      ${[['ðŸ’¶ CA',ca,'#f5a623'],['â›½ Carburant',carb,'#e74c3c'],['ðŸ”§ Entretien',entr,'#3498db'],['ðŸ“ Autres charges',autres,'#9b59b6'],['ðŸ“ CoÃ»t/km',coutKm,'#6b7280'],['ðŸ’° Profit',profit,'#2ecc71'],['ðŸ“Š Marge',marge,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.1rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
+      ${[['💶 CA',ca,'#f5a623'],['⛽ Carburant',carb,'#e74c3c'],['🔧 Entretien',entr,'#3498db'],['📝 Autres charges',autres,'#9b59b6'],['📏 Coût/km',coutKm,'#6b7280'],['💰 Profit',profit,'#2ecc71'],['📊 Marge',marge,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.1rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
     </div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  ouvrirFenetreImpression('RentabilitÃ© â€” ' + nom, html, 'width=800,height=600');
-  afficherToast('ðŸ“„ Rapport rentabilitÃ© gÃ©nÃ©rÃ©');
+  ouvrirFenetreImpression('Rentabilité — ' + nom, html, 'width=800,height=600');
+  afficherToast('📄 Rapport rentabilité généré');
 }
 
 /* ===== STATISTIQUES ===== */
@@ -2398,7 +2392,7 @@ function afficherStatistiques() {
   const dates = document.getElementById('stats-mois-dates'); if (dates) dates.textContent = range.dates;
   const livsFiltrees = livraisons.filter(l => l.date >= dateMinStr && l.date <= dateMaxStr);
 
-  // KPIs pÃ©riode
+  // KPIs période
   const caPeriode = livsFiltrees.reduce((s,l)=>s+(l.prix||0),0);
   const nbLivs    = livsFiltrees.length;
   const panierMoy = nbLivs > 0 ? caPeriode / nbLivs : 0;
@@ -2408,7 +2402,7 @@ function afficherStatistiques() {
   const el3=document.getElementById('stats-panier-moyen'); if(el3) el3.textContent=euros(panierMoy);
   const el4=document.getElementById('stats-km-total'); if(el4) el4.textContent=Math.round(kmTotal)+' km';
 
-  // Graphique CA â€” adaptatif
+  // Graphique CA — adaptatif
   const labels=[],donnees=[];
   const nbJours = Math.max(1, Math.round((new Date(dateMaxStr) - new Date(dateMinStr)) / (1000*60*60*24)));
   if (nbJours <= 31) {
@@ -2427,13 +2421,13 @@ function afficherStatistiques() {
   chartCA=new Chart(document.getElementById('chartCA'),{
     type:'line',
     data:{labels,datasets:[
-      {label:'CA (â‚¬)',data:donnees,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:'#4f8ef7',borderWidth:2.5}
+      {label:'CA (€)',data:donnees,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:'#4f8ef7',borderWidth:2.5}
     ]},
     options:{responsive:true,plugins:{legend:{labels:{color:legendColor}}},
       scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,maxTicksLimit:12}},y:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>euros(v)}}}}
   });
 
-  // Chauffeurs â€” horizontal bar
+  // Chauffeurs — horizontal bar
   const ch=charger('chauffeurs');
   if(chartChauff)chartChauff.destroy();
   const chData = ch.length ? ch.map(c=>({nom:c.nom, nb:livsFiltrees.filter(l=>l.chaufId===c.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
@@ -2443,7 +2437,7 @@ function afficherStatistiques() {
     options:{indexAxis:'horizontal',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor}},y:{grid:{color:gridColor},ticks:{color:tickColor}}}}
   });
 
-  // VÃ©hicules
+  // Véhicules
   const veh=charger('vehicules');
   if(chartVeh)chartVeh.destroy();
   const vehData = veh.length ? veh.map(v=>({nom:v.immat,nb:livsFiltrees.filter(l=>l.vehId===v.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
@@ -2466,14 +2460,14 @@ function afficherStatistiques() {
   }
 }
 
-/* ===== PRÃ‰VISIONS ===== */
+/* ===== PRÉVISIONS ===== */
 let chartPrev=null;
 function calculerPrevision() {
   const livraisons = charger('livraisons');
   const carburant  = charger('carburant');
   const charges    = charger('charges');
 
-  // â”€â”€ Calcul basÃ© sur les 3 derniers mois rÃ©els â”€â”€
+  // ── Calcul basé sur les 3 derniers mois réels ──
   const moisReels = [];
   for (let i = 1; i <= 3; i++) {
     const d = new Date();
@@ -2489,22 +2483,22 @@ function calculerPrevision() {
 
   const nbMoisDonnees = moisReels.filter(m=>m.ca>0||m.livraisons>0).length;
   const avertissement = nbMoisDonnees < 3
-    ? `âš ï¸ PrÃ©vision basÃ©e sur ${nbMoisDonnees} mois de donnÃ©es â€” rÃ©sultats peu fiables en dessous de 3 mois.`
-    : `âœ… PrÃ©vision basÃ©e sur ${nbMoisDonnees} mois de donnÃ©es rÃ©elles.`;
+    ? `⚠️ Prévision basée sur ${nbMoisDonnees} mois de données — résultats peu fiables en dessous de 3 mois.`
+    : `✅ Prévision basée sur ${nbMoisDonnees} mois de données réelles.`;
 
-  // Moyennes rÃ©elles
+  // Moyennes réelles
   const moyCA    = nbMoisDonnees > 0 ? moisReels.slice(0,nbMoisDonnees).reduce((s,m)=>s+m.ca,0) / nbMoisDonnees : 0;
   const moyDep   = nbMoisDonnees > 0 ? moisReels.slice(0,nbMoisDonnees).reduce((s,m)=>s+m.depenses,0) / nbMoisDonnees : 0;
   const moyLivs  = nbMoisDonnees > 0 ? moisReels.slice(0,nbMoisDonnees).reduce((s,m)=>s+m.livraisons,0) / nbMoisDonnees : 0;
 
   // Tendance (mois 1 vs mois 3)
   const tendanceCA  = moisReels[2]?.ca > 0 ? ((moisReels[0].ca - moisReels[2].ca) / moisReels[2].ca * 100) : 0;
-  const prevCA      = moyCA * (1 + tendanceCA/100 * 0.5); // Lissage tendance Ã  50%
+  const prevCA      = moyCA * (1 + tendanceCA/100 * 0.5); // Lissage tendance à 50%
   const prevDep     = moyDep;
   const prevBen     = prevCA - prevDep;
   const prevMarge   = prevCA > 0 ? (prevBen/prevCA*100) : 0;
 
-  // Afficher les prÃ©visions
+  // Afficher les prévisions
   const elCA  = document.getElementById('prev-ca');
   const elDep = document.getElementById('prev-depenses');
   const elBen = document.getElementById('prev-benefice');
@@ -2521,7 +2515,7 @@ function calculerPrevision() {
   if (elAvt)  { elAvt.textContent = avertissement; elAvt.style.color = nbMoisDonnees<3?'var(--accent)':'var(--green)'; }
   if (elTend) {
     const signe = tendanceCA > 0 ? '+' : '';
-    elTend.textContent = `Tendance : ${signe}${tendanceCA.toFixed(1)}% vs mois prÃ©cÃ©dent`;
+    elTend.textContent = `Tendance : ${signe}${tendanceCA.toFixed(1)}% vs mois précédent`;
     elTend.style.color = tendanceCA >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
@@ -2537,7 +2531,7 @@ function calculerPrevision() {
     dataCA.push(caM);
     dataBen.push(caM - depM);
   }
-  // Ajouter prÃ©vision mois prochain
+  // Ajouter prévision mois prochain
   const dNext = new Date(); dNext.setMonth(dNext.getMonth()+1);
   labels.push(dNext.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})+' *');
   dataCA.push(Math.round(prevCA));
@@ -2551,11 +2545,11 @@ function calculerPrevision() {
     data: {
       labels,
       datasets: [
-        { label:'CA rÃ©el (â‚¬)', data:dataCA.slice(0,-1).concat([null]),
+        { label:'CA réel (€)', data:dataCA.slice(0,-1).concat([null]),
           backgroundColor:'rgba(79,142,247,0.4)', borderColor:'rgba(79,142,247,0.9)', borderWidth:2, borderRadius:6 },
-        { label:'CA prÃ©vu (â‚¬)', data:Array(6).fill(null).concat([dataCA[6]]),
+        { label:'CA prévu (€)', data:Array(6).fill(null).concat([dataCA[6]]),
           backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6, borderDash:[5,5] },
-        { label:'BÃ©nÃ©fice net (â‚¬)', data:dataBen.slice(0,-1).concat([null]),
+        { label:'Bénéfice net (€)', data:dataBen.slice(0,-1).concat([null]),
           type:'line', borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)', fill:true, tension:0.4, pointRadius:4 },
       ]
     },
@@ -2571,7 +2565,7 @@ function calculerPrevision() {
   });
 }
 
-/* ===== GESTION SALARIÃ‰S ===== */
+/* ===== GESTION SALARIÉS ===== */
 let resetMdpTargetId=null, provisionAccessTargetId=null, editSalarieId=null;
 
 function toggleFormulaireNewSalarie() {
@@ -2579,12 +2573,12 @@ function toggleFormulaireNewSalarie() {
   if (el.style.display==='none') {
     el.style.display='block';
     mettreAJourEmailTechniqueSalarie('new');
-    // Mettre Ã  jour le select vÃ©hicule dans le formulaire
+    // Mettre à jour le select véhicule dans le formulaire
     const sv=document.getElementById('nsal-vehicule');
     if (sv) {
       const vehicules=charger('vehicules');
       sv.innerHTML='<option value="">-- Aucun pour l\'instant --</option>';
-      vehicules.filter(v=>!v.salId).forEach(v=>{ sv.innerHTML+=`<option value="${v.id}">${v.immat} â€” ${v.modele}</option>`; });
+      vehicules.filter(v=>!v.salId).forEach(v=>{ sv.innerHTML+=`<option value="${v.id}">${v.immat} — ${v.modele}</option>`; });
     }
   } else { el.style.display='none'; }
 }
@@ -2604,7 +2598,7 @@ function mettreAJourEmailTechniqueSalarie(mode) {
   const labelEl = document.getElementById(isEdit ? 'edit-sal-email-technique' : 'nsal-email-technique');
   if (!numeroEl || !labelEl) return;
   const email = genererEmailTechniqueSalarie(numeroEl.value);
-  labelEl.textContent = email || 'â€”';
+  labelEl.textContent = email || '—';
 }
 
 function getSupabaseClientSafe() {
@@ -2763,18 +2757,18 @@ async function importerSalariesDepuisSupabase() {
 function notifierSynchroSalarie(resultat, actionLabel) {
   if (!resultat || resultat.skipped) return;
   if (resultat.ok) {
-    afficherToast(`â˜ï¸ ${actionLabel} synchronisÃ© avec Supabase`, 'success');
+    afficherToast(`☁️ ${actionLabel} synchronisé avec Supabase`, 'success');
     return;
   }
   const message = resultat.error?.message || 'Synchronisation Supabase indisponible';
-  afficherToast(`âš ï¸ ${actionLabel} enregistrÃ© localement uniquement (${message})`, 'error');
+  afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
 }
 
 function ouvrirProvisionAccesSalarie(id, nom) {
   provisionAccessTargetId = id;
   const salarie = charger('salaries').find(function(item) { return item.id === id; });
-  document.getElementById('provision-access-nom').textContent = nom || salarie?.nom || 'SalariÃ©';
-  document.getElementById('provision-access-email').textContent = salarie?.email || 'â€”';
+  document.getElementById('provision-access-nom').textContent = nom || salarie?.nom || 'Salarié';
+  document.getElementById('provision-access-email').textContent = salarie?.email || '—';
   document.getElementById('provision-access-password').value = '';
   document.getElementById('modal-provision-access').classList.add('open');
 }
@@ -2782,10 +2776,10 @@ function ouvrirProvisionAccesSalarie(id, nom) {
 async function confirmerProvisionAccesSalarie() {
   const salarie = charger('salaries').find(function(item) { return item.id === provisionAccessTargetId; });
   const password = (document.getElementById('provision-access-password')?.value || '').trim();
-  if (!salarie) { afficherToast('âš ï¸ SalariÃ© introuvable', 'error'); return; }
-  if (!password) { afficherToast('âš ï¸ Mot de passe initial obligatoire', 'error'); return; }
+  if (!salarie) { afficherToast('⚠️ Salarié introuvable', 'error'); return; }
+  if (!password) { afficherToast('⚠️ Mot de passe initial obligatoire', 'error'); return; }
   if (!window.DelivProAdminSupabase || !window.DelivProAdminSupabase.provisionSalarieAccess) {
-    afficherToast('âš ï¸ Fonction admin Supabase indisponible', 'error');
+    afficherToast('⚠️ Fonction admin Supabase indisponible', 'error');
     return;
   }
 
@@ -2797,7 +2791,7 @@ async function confirmerProvisionAccesSalarie() {
 
   if (!result.ok) {
     const message = result.error?.message || result.reason || 'Provisionnement impossible';
-    afficherToast(`âš ï¸ ${message}`, 'error');
+    afficherToast(`⚠️ ${message}`, 'error');
     return;
   }
 
@@ -2814,7 +2808,7 @@ async function confirmerProvisionAccesSalarie() {
   closeModal('modal-provision-access');
   provisionAccessTargetId = null;
   afficherSalaries();
-  afficherToast('âœ… AccÃ¨s Supabase salariÃ© crÃ©Ã© / mis Ã  jour');
+  afficherToast('✅ Accès Supabase salarié créé / mis à jour');
 }
 
 async function creerSalarie() {
@@ -2830,9 +2824,9 @@ async function creerSalarie() {
   const vehId  = document.getElementById('nsal-vehicule')?.value || '';
   const emailTechnique = genererEmailTechniqueSalarie(numero);
 
-  if (!nom||!numero||!mdp) { afficherToast('âš ï¸ Nom, numÃ©ro et mot de passe obligatoires', 'error'); return; }
+  if (!nom||!numero||!mdp) { afficherToast('⚠️ Nom, numéro et mot de passe obligatoires', 'error'); return; }
   const salaries=charger('salaries');
-  if (salaries.find(s=>s.numero===numero)) { afficherToast('âš ï¸ Ce numÃ©ro existe dÃ©jÃ ', 'error'); return; }
+  if (salaries.find(s=>s.numero===numero)) { afficherToast('⚠️ Ce numéro existe déjà', 'error'); return; }
 
   const salarie={ id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero, email:emailTechnique, tel, poste, datePermis, dateAssurance, mdpHash:btoa(mdp), actif:true, creeLe:new Date().toISOString() };
   salaries.push(salarie);
@@ -2845,7 +2839,7 @@ async function creerSalarie() {
     sauvegarder('chauffeurs', chauffeurs);
   }
 
-  // Affecter le vÃ©hicule si sÃ©lectionnÃ©
+  // Affecter le véhicule si sélectionné
   if (vehId) {
     const vehicules=charger('vehicules');
     const vi=vehicules.findIndex(v=>v.id===vehId);
@@ -2878,39 +2872,39 @@ async function creerSalarie() {
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
   rafraichirDependancesSalaries();
-  if (provisionResult?.ok) afficherToast(`âœ… Compte crÃ©Ã© pour ${nomComplet} et accÃ¨s Supabase activÃ©`);
-  else if (provisionResult && !provisionResult.ok) afficherToast(`âš ï¸ Compte crÃ©Ã© pour ${nomComplet}, mais l'accÃ¨s Supabase n'a pas pu Ãªtre activÃ© (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
-  else afficherToast(`âœ… Compte crÃ©Ã© pour ${nomComplet}`);
-  notifierSynchroSalarie(syncResult, 'SalariÃ©');
+  if (provisionResult?.ok) afficherToast(`✅ Compte créé pour ${nomComplet} et accès Supabase activé`);
+  else if (provisionResult && !provisionResult.ok) afficherToast(`⚠️ Compte créé pour ${nomComplet}, mais l'accès Supabase n'a pas pu être activé (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
+  else afficherToast(`✅ Compte créé pour ${nomComplet}`);
+  notifierSynchroSalarie(syncResult, 'Salarié');
 }
 
 function afficherSalaries() {
   const salaries=charger('salaries'), vehicules=charger('vehicules');
   const tb=document.getElementById('tb-salaries');
-  if (!salaries.length) { tb.innerHTML=emptyState('ðŸ‘¥','Aucun salariÃ©','CrÃ©ez votre premier compte salariÃ© pour commencer.','+ Nouveau salariÃ©',"toggleFormulaireNewSalarie()"); return; }
-  // Mettre Ã  jour le select poste
+  if (!salaries.length) { tb.innerHTML=emptyState('👥','Aucun salarié','Créez votre premier compte salarié pour commencer.','+ Nouveau salarié',"toggleFormulaireNewSalarie()"); return; }
+  // Mettre à jour le select poste
   majSelectsPostes();
   tb.innerHTML=salaries.map(s=>{
     const veh=vehicules.find(v=>v.salId===s.id);
     const vehLabel=veh
-      ? `<span style="color:var(--accent-2);font-size:0.82rem">ðŸš ${veh.immat}</span>`
-      : `<span style="color:var(--text-muted);font-size:0.82rem">Non affectÃ©</span>`;
+      ? `<span style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</span>`
+      : `<span style="color:var(--text-muted);font-size:0.82rem">Non affecté</span>`;
     const badge=s.actif
-      ? '<span class="badge badge-dispo">âœ… Actif</span>'
-      : '<span class="badge badge-inactif">â¸ï¸ Inactif</span>';
+      ? '<span class="badge badge-dispo">✅ Actif</span>'
+      : '<span class="badge badge-inactif">⏸️ Inactif</span>';
     const noteInterne = charger_note_interne(s.id);
     return `<tr>
       <td><strong>${s.nom}</strong>${noteInterne?'<span class="note-dot" title="Note interne"></span>':''}${s.poste?`<br><span style="color:var(--text-muted);font-size:0.78rem">${s.poste}</span>`:''}</td>
       <td><code style="background:var(--bg-dark);padding:2px 8px;border-radius:4px;font-size:0.85rem">${s.numero}</code></td>
-      <td>${s.tel||'â€”'}</td><td>${vehLabel}</td><td>${badge}</td>
+      <td>${s.tel||'—'}</td><td>${vehLabel}</td><td>${badge}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn-icon" onclick="ouvrirEditSalarie('${s.id}')" title="Modifier">âœï¸</button>
-        <button class="btn-icon" onclick="ouvrirProvisionAccesSalarie('${s.id}','${s.nom}')" title="CrÃ©er accÃ¨s Supabase">â˜ï¸</button>
-        <button class="btn-icon" onclick="ouvrirResetMdp('${s.id}','${s.nom}')" title="MDP">ðŸ”‘</button>
-        <button class="btn-icon" onclick="genererFicheTournee('${s.id}')" title="Fiche tournÃ©e">ðŸ“‹</button>
-        <button class="btn-icon" onclick="ouvrirNoteInterne('${s.id}','${s.nom}')" title="Note interne" style="${chargerNoteInterne(s.id)?'border-color:var(--accent);color:var(--accent)':''}">ðŸ“${chargerNoteInterne(s.id)?'<span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;margin-left:2px;vertical-align:middle"></span>':''}</button>
-        <button class="btn-icon" onclick="toggleActifSalarie('${s.id}')">${s.actif?'â¸ï¸':'â–¶ï¸'}</button>
-        <button class="btn-icon danger" onclick="supprimerSalarie('${s.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="ouvrirEditSalarie('${s.id}')" title="Modifier">✏️</button>
+        <button class="btn-icon" onclick="ouvrirProvisionAccesSalarie('${s.id}','${s.nom}')" title="Créer accès Supabase">☁️</button>
+        <button class="btn-icon" onclick="ouvrirResetMdp('${s.id}','${s.nom}')" title="MDP">🔑</button>
+        <button class="btn-icon" onclick="genererFicheTournee('${s.id}')" title="Fiche tournée">📋</button>
+        <button class="btn-icon" onclick="ouvrirNoteInterne('${s.id}','${s.nom}')" title="Note interne" style="${chargerNoteInterne(s.id)?'border-color:var(--accent);color:var(--accent)':''}">📝${chargerNoteInterne(s.id)?'<span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;margin-left:2px;vertical-align:middle"></span>':''}</button>
+        <button class="btn-icon" onclick="toggleActifSalarie('${s.id}')">${s.actif?'⏸️':'▶️'}</button>
+        <button class="btn-icon danger" onclick="supprimerSalarie('${s.id}')">🗑️</button>
       </td></tr>`;
   }).join('');
 }
@@ -2920,9 +2914,9 @@ async function ouvrirEditSalarie(id) {
   editSalarieId = id;
   const sal=charger('salaries').find(s=>s.id===id); if(!sal) return;
   await actualiserVerrousEditionDistance();
-  const lockResult = prendreVerrouEdition('salarie', id, sal.nom || 'SalariÃ©');
+  const lockResult = prendreVerrouEdition('salarie', id, sal.nom || 'Salarié');
   if (!lockResult.ok) {
-    afficherToast(`âš ï¸ Fiche salariÃ© en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Fiche salarié en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
     editSalarieId = null;
     window._editSalarieId = null;
     return;
@@ -2936,7 +2930,7 @@ async function ouvrirEditSalarie(id) {
   if (document.getElementById('edit-sal-date-permis')) document.getElementById('edit-sal-date-permis').value = sal.datePermis||'';
   if (document.getElementById('edit-sal-date-assurance')) document.getElementById('edit-sal-date-assurance').value = sal.dateAssurance||'';
 
-  // Charger select vÃ©hicule
+  // Charger select véhicule
   const vehicules=charger('vehicules');
   const sve=document.getElementById('edit-sal-vehicule');
   if (sve) {
@@ -2944,7 +2938,7 @@ async function ouvrirEditSalarie(id) {
     sve.innerHTML='<option value="">-- Retirer l\'affectation --</option>';
     vehicules.forEach(v=>{
       const pris = v.salId && v.salId !== id;
-      if (!pris) sve.innerHTML+=`<option value="${v.id}" ${v.salId===id?'selected':''}>${v.immat} â€” ${v.modele}</option>`;
+      if (!pris) sve.innerHTML+=`<option value="${v.id}" ${v.salId===id?'selected':''}>${v.immat} — ${v.modele}</option>`;
     });
   }
   document.getElementById('modal-edit-salarie').classList.add('open');
@@ -2955,7 +2949,7 @@ async function confirmerEditSalarie() {
   surveillerConflitsEditionActifs();
   const lockState = verifierVerrouEdition('salarie', editSalarieId || window._editSalarieId);
   if (!lockState.ok) {
-    afficherToast(`âš ï¸ Cette fiche salariÃ© est verrouillÃ©e par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Cette fiche salarié est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
   const nomFamille = document.getElementById('edit-sal-nom').value.trim();
@@ -2969,9 +2963,9 @@ async function confirmerEditSalarie() {
   const dateAssurance = document.getElementById('edit-sal-date-assurance')?.value||'';
   const emailTechnique = genererEmailTechniqueSalarie(numero);
 
-  if (!nomFamille||!numero) { afficherToast('âš ï¸ Nom et numÃ©ro obligatoires', 'error'); return; }
+  if (!nomFamille||!numero) { afficherToast('⚠️ Nom et numéro obligatoires', 'error'); return; }
   const salaries=charger('salaries');
-  if (salaries.find(s=>s.numero===numero&&s.id!==editSalarieId)) { afficherToast('âš ï¸ NumÃ©ro dÃ©jÃ  utilisÃ©', 'error'); return; }
+  if (salaries.find(s=>s.numero===numero&&s.id!==editSalarieId)) { afficherToast('⚠️ Numéro déjà utilisé', 'error'); return; }
   const idx=salaries.findIndex(s=>s.id===editSalarieId);
   if (idx>-1) {
     const ancienNumero = salaries[idx].numero || null;
@@ -2983,11 +2977,11 @@ async function confirmerEditSalarie() {
     // Propager dans chauffeurs
     const ch=charger('chauffeurs'), ci=ch.findIndex(c=>c.id===editSalarieId);
     if(ci>-1){ch[ci].nom=nomComplet;ch[ci].tel=tel;sauvegarder('chauffeurs',ch);}
-    // Mettre Ã  jour affectation vÃ©hicule
+    // Mettre à jour affectation véhicule
     const vehicules=charger('vehicules');
-    // Retirer l'ancienne affectation de ce salariÃ©
+    // Retirer l'ancienne affectation de ce salarié
     vehicules.forEach(v=>{ if(v.salId===editSalarieId){v.salId=null;v.salNom=null;} });
-    // Attribuer le nouveau vÃ©hicule si sÃ©lectionnÃ©
+    // Attribuer le nouveau véhicule si sélectionné
     if (vehId) {
       const vi=vehicules.findIndex(v=>v.id===vehId);
       if(vi>-1){vehicules[vi].salId=editSalarieId;vehicules[vi].salNom=nomComplet;}
@@ -3000,13 +2994,13 @@ async function confirmerEditSalarie() {
       delete salaries[idx].previousNumero;
       sauvegarder('salaries', salaries);
     }
-    notifierSynchroSalarie(syncResult, 'Modification salariÃ©');
+    notifierSynchroSalarie(syncResult, 'Modification salarié');
   }
   closeModal('modal-edit-salarie');
   editSalarieId=null; window._editSalarieId=null;
   afficherSalaries();
   rafraichirDependancesSalaries();
-  afficherToast('âœ… Fiche mise Ã  jour');
+  afficherToast('✅ Fiche mise à jour');
 }
 
 function ouvrirResetMdp(id, nom) {
@@ -3018,7 +3012,7 @@ function ouvrirResetMdp(id, nom) {
 
 async function confirmerResetMdp() {
   const nouveau=document.getElementById('reset-mdp-val').value;
-  if(!nouveau){afficherToast('âš ï¸ Mot de passe vide','error');return;}
+  if(!nouveau){afficherToast('⚠️ Mot de passe vide','error');return;}
   const salaries=charger('salaries'),idx=salaries.findIndex(s=>s.id===resetMdpTargetId);
   let syncResult = null;
   if(idx>-1){
@@ -3036,9 +3030,9 @@ async function confirmerResetMdp() {
         sauvegarder('salaries', salaries);
       }
     }
-    if (syncResult?.ok) afficherToast('âœ… Mot de passe salariÃ© mis Ã  jour et synchronisÃ© avec Supabase');
-    else if (syncResult && !syncResult.ok) afficherToast(`âš ï¸ Mot de passe local mis Ã  jour, mais pas Supabase (${syncResult.error?.message || syncResult.reason || 'erreur inconnue'})`, 'error');
-    else afficherToast('âœ… Mot de passe mis Ã  jour');
+    if (syncResult?.ok) afficherToast('✅ Mot de passe salarié mis à jour et synchronisé avec Supabase');
+    else if (syncResult && !syncResult.ok) afficherToast(`⚠️ Mot de passe local mis à jour, mais pas Supabase (${syncResult.error?.message || syncResult.reason || 'erreur inconnue'})`, 'error');
+    else afficherToast('✅ Mot de passe mis à jour');
   }
   closeModal('modal-reset-mdp'); resetMdpTargetId=null;
 }
@@ -3050,36 +3044,36 @@ function toggleActifSalarie(id) {
     sauvegarder('salaries',salaries);
     afficherSalaries();
     rafraichirDependancesSalaries();
-    afficherToast(salaries[idx].actif?'âœ… ActivÃ©':'â¸ï¸ DÃ©sactivÃ©');
+    afficherToast(salaries[idx].actif?'✅ Activé':'⏸️ Désactivé');
     synchroniserSalarieVersSupabase(salaries[idx]).then(function(resultat){
       if (resultat.ok && resultat.record) {
         hydraterSalarieLocalDepuisSupabase(salaries[idx], resultat.record);
         sauvegarder('salaries', salaries);
       }
-      notifierSynchroSalarie(resultat, 'Statut salariÃ©');
+      notifierSynchroSalarie(resultat, 'Statut salarié');
     });
   }
 }
 
 async function supprimerSalarie(id) {
   const sal = charger('salaries').find(s => s.id === id);
-  const _ok1 = await confirmDialog(`Supprimer ${sal?.nom || 'ce salariÃ©'} ? Toutes ses donnÃ©es seront effacÃ©es.`, {titre:'Supprimer le salariÃ©',icone:'ðŸ—‘ï¸',btnLabel:'Supprimer'});
+  const _ok1 = await confirmDialog(`Supprimer ${sal?.nom || 'ce salarié'} ? Toutes ses données seront effacées.`, {titre:'Supprimer le salarié',icone:'🗑️',btnLabel:'Supprimer'});
   if (!_ok1) return;
 
   const syncResult = await supprimerSalarieDansSupabase(sal);
 
-  // 1. Supprimer de la liste salariÃ©s
+  // 1. Supprimer de la liste salariés
   sauvegarder('salaries', charger('salaries').filter(s => s.id !== id));
 
   // 2. Supprimer de la liste chauffeurs
   sauvegarder('chauffeurs', charger('chauffeurs').filter(c => c.id !== id));
 
-  // 3. Retirer l'affectation vÃ©hicule
+  // 3. Retirer l'affectation véhicule
   const vehicules = charger('vehicules');
   vehicules.forEach(v => { if (v.salId === id) { v.salId = null; v.salNom = null; } });
   sauvegarder('vehicules', vehicules);
 
-  // 4. Supprimer ses donnÃ©es personnelles (km, carburant perso, inspections, messages, checklist, planning, notifs)
+  // 4. Supprimer ses données personnelles (km, carburant perso, inspections, messages, checklist, planning, notifs)
   const keysToRemove = [
     `km_sal_${id}`, `carb_sal_${id}`, `km_report_${id}`,
     `messages_${id}`, `notifs_sal_${id}`
@@ -3103,25 +3097,25 @@ async function supprimerSalarie(id) {
 
   // 9. Anonymiser ses livraisons (garder l'historique mais retirer le lien)
   const livraisons = charger('livraisons');
-  livraisons.forEach(l => { if (l.chaufId === id) { l.chaufId = null; l.chaufNom = (sal?.nom||'SalariÃ© supprimÃ©') + ' (archivÃ©)'; } });
+  livraisons.forEach(l => { if (l.chaufId === id) { l.chaufId = null; l.chaufNom = (sal?.nom||'Salarié supprimé') + ' (archivé)'; } });
   sauvegarder('livraisons', livraisons);
 
   afficherSalaries();
   rafraichirDependancesSalaries();
-  afficherToast(`ðŸ—‘ï¸ ${sal?.nom || 'SalariÃ©'} et toutes ses donnÃ©es supprimÃ©s`);
-  notifierSynchroSalarie(syncResult, 'Suppression salariÃ©');
+  afficherToast(`🗑️ ${sal?.nom || 'Salarié'} et toutes ses données supprimés`);
+  notifierSynchroSalarie(syncResult, 'Suppression salarié');
 }
 
 /* ===== UTILITAIRES AFFICHAGE ===== */
 function badgeStatut(s) {
   return {
-    'en-attente': '<span class="badge badge-attente">â³ En attente</span>',
-    'en-cours':   '<span class="badge badge-cours">ðŸš En cours</span>',
-    'livre':      '<span class="badge badge-livre">âœ… LivrÃ©</span>'
+    'en-attente': '<span class="badge badge-attente">⏳ En attente</span>',
+    'en-cours':   '<span class="badge badge-cours">🚐 En cours</span>',
+    'livre':      '<span class="badge badge-livre">✅ Livré</span>'
   }[s] || s;
 }
 function badgeChauffeur(s) {
-  return { 'disponible':'<span class="badge badge-dispo">âœ… Disponible</span>', 'en-livraison':'<span class="badge badge-actif">ðŸš En livraison</span>', 'inactif':'<span class="badge badge-inactif">â¸ï¸ Inactif</span>' }[s] || s;
+  return { 'disponible':'<span class="badge badge-dispo">✅ Disponible</span>', 'en-livraison':'<span class="badge badge-actif">🚐 En livraison</span>', 'inactif':'<span class="badge badge-inactif">⏸️ Inactif</span>' }[s] || s;
 }
 function afficherToast(message, type='success') {
   const t=document.getElementById('toast');
@@ -3148,17 +3142,17 @@ function afficherInspections() {
   inspections.sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe));
 
   if (!inspections.length) {
-    container.innerHTML = '<div class="card"><div class="modal-body" style="text-align:center;color:var(--text-muted);padding:32px">Aucune inspection trouvÃ©e</div></div>';
+    container.innerHTML = '<div class="card"><div class="modal-body" style="text-align:center;color:var(--text-muted);padding:32px">Aucune inspection trouvée</div></div>';
     return;
   }
 
   container.innerHTML = inspections.map(insp => `
     <div class="card" style="margin-bottom:16px">
       <div class="card-header">
-        <span>ðŸ‘¤ <strong>${insp.salNom}</strong> â€” ${insp.vehImmat}</span>
+        <span>👤 <strong>${insp.salNom}</strong> — ${insp.vehImmat}</span>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.82rem;color:var(--text-muted)">ðŸ—“ï¸ ${insp.date}${insp.km ? ' Â· ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
-          <button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">ðŸ—‘ï¸</button>
+          <span style="font-size:.82rem;color:var(--text-muted)">🗓️ ${insp.date}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
+          <button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button>
         </div>
       </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
@@ -3182,26 +3176,26 @@ function filtrerInspParSalarieInput() {
   afficherInspections();
 }
 async function supprimerInspectionAdmin(id) {
-  const _ok8 = await confirmDialog('Supprimer cette inspection ?', {titre:'Supprimer',icone:'ðŸš—',btnLabel:'Supprimer'});
+  const _ok8 = await confirmDialog('Supprimer cette inspection ?', {titre:'Supprimer',icone:'🚗',btnLabel:'Supprimer'});
   if (!_ok8) return;
   const toutes = JSON.parse(localStorage.getItem('inspections') || '[]').filter(i => i.id !== id);
   localStorage.setItem('inspections', JSON.stringify(toutes));
   afficherInspections();
-  afficherToast('ðŸ—‘ï¸ Inspection supprimÃ©e');
+  afficherToast('🗑️ Inspection supprimée');
 }
 
-/* ===== Ã‰DITION LIVRAISON ADMIN ===== */
+/* ===== ÉDITION LIVRAISON ADMIN ===== */
 let _editLivId = null;
 function confirmerEditLivraison() {
   surveillerConflitsEditionActifs();
   const id     = document.getElementById('edit-liv-id').value;
   const lockState = verifierVerrouEdition('livraison', id);
   if (!lockState.ok) {
-    afficherToast(`âš ï¸ Cette livraison est verrouillÃ©e par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Cette livraison est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
   const client = document.getElementById('edit-liv-client').value.trim();
-  if (!client) { afficherToast('âš ï¸ Client obligatoire', 'error'); return; }
+  if (!client) { afficherToast('⚠️ Client obligatoire', 'error'); return; }
   const livraisons = charger('livraisons');
   const idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return;
@@ -3229,7 +3223,7 @@ function confirmerEditLivraison() {
   livraisons[idx].profit   = livraisons[idx].prix - livraisons[idx].distance * config.coutKmEstime;
 
   // Logger les modifications
-  const champs = { client:'Client', prix:'Prix', statut:'Statut', distance:'Distance', depart:'Zone gÃ©ographique' };
+  const champs = { client:'Client', prix:'Prix', statut:'Statut', distance:'Distance', depart:'Zone géographique' };
   Object.entries(champs).forEach(([k,label]) => {
     if (String(ancien[k]||'') !== String(livraisons[idx][k]||'')) {
       logModifLivraison(id, label, ancien[k], livraisons[idx][k]);
@@ -3239,16 +3233,16 @@ function confirmerEditLivraison() {
   sauvegarder('livraisons', livraisons);
   if (ancien.prix !== livraisons[idx].prix) {
     ajouterAlerte('livraison_modif',
-      `Livraison modifiÃ©e â€” ${client} : ${ancien.prix ? euros(ancien.prix) : 'â€”'} â†’ ${euros(livraisons[idx].prix)}`,
+      `Livraison modifiée — ${client} : ${ancien.prix ? euros(ancien.prix) : '—'} → ${euros(livraisons[idx].prix)}`,
       { client });
     afficherBadgeAlertes();
   }
   closeModal('modal-edit-livraison');
   afficherLivraisons();
-  afficherToast('âœ… Livraison mise Ã  jour');
+  afficherToast('✅ Livraison mise à jour');
 }
 
-/* ===== Ã‰DITION CARBURANT ADMIN ===== */
+/* ===== ÉDITION CARBURANT ADMIN ===== */
 let _editCarbId = null;
 function ouvrirEditCarburantAdmin(id) {
   const p = charger('carburant').find(x => x.id === id);
@@ -3266,7 +3260,7 @@ function confirmerEditCarburantAdmin() {
   const litres    = parseFloat(document.getElementById('edit-carb-litres').value);
   const prixLitre = parseFloat(document.getElementById('edit-carb-prix').value);
   const date      = document.getElementById('edit-carb-date').value;
-  if (!litres || !prixLitre) { afficherToast('âš ï¸ Litres et prix obligatoires', 'error'); return; }
+  if (!litres || !prixLitre) { afficherToast('⚠️ Litres et prix obligatoires', 'error'); return; }
   const total  = litres * prixLitre;
   const pleins = charger('carburant');
   const idx    = pleins.findIndex(p => p.id === id);
@@ -3289,7 +3283,7 @@ function confirmerEditCarburantAdmin() {
   }
   closeModal('modal-edit-carburant');
   afficherCarburant();
-  afficherToast('âœ… Plein mis Ã  jour');
+  afficherToast('✅ Plein mis à jour');
 }
 
 function voirPhotoAdmin(inspId, idx) {
@@ -3304,7 +3298,7 @@ function voirPhotoAdmin(inspId, idx) {
     <div style="display:flex;gap:10px">
       ${_adminPhotos.map((_, i) => `<div onclick="changerPhotoAdmin(${i})" style="width:48px;height:48px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid ${i===idx?'var(--accent)':'transparent'}"><img src="${_adminPhotos[i]}" style="width:100%;height:100%;object-fit:cover"/></div>`).join('')}
     </div>
-    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">âœ• Fermer</button>`;
+    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">✕ Fermer</button>`;
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
   document.body.appendChild(overlay);
 }
@@ -3323,16 +3317,13 @@ function afficherMessagerie() {
 
   // Initialiser le select poste du broadcast
   const selPoste = document.getElementById('broadcast-poste');
-  if (selPoste) {
-    const valeurCourante = selPoste.value;
-    selPoste.innerHTML = '<option value="">Tous les postes</option>';
+  if (selPoste && selPoste.options.length <= 1) {
     const postes = getPostes();
     postes.forEach(p => { selPoste.innerHTML += `<option value="${p}">${p}</option>`; });
-    selPoste.value = valeurCourante;
   }
 
   if (!salaries.length) {
-    liste.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:.85rem">Aucun salariÃ©</div>';
+    liste.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:.85rem">Aucun salarié</div>';
     return;
   }
 
@@ -3350,9 +3341,9 @@ function afficherMessagerie() {
           </div>
           ${nonLus > 0 ? `<span style="background:var(--red);color:#fff;border-radius:20px;font-size:.7rem;padding:1px 7px;font-weight:700">${nonLus}</span>` : ''}
         </div>
-        ${dernier ? `<div style="font-size:.76rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dernier.auteur==='admin'?'Vous : ':''}${dernier.texte.substring(0,40)}${dernier.texte.length>40?'â€¦':''}</div>` : '<div style="font-size:.76rem;color:var(--text-muted)">Aucun message</div>'}
+        ${dernier ? `<div style="font-size:.76rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dernier.auteur==='admin'?'Vous : ':''}${dernier.texte.substring(0,40)}${dernier.texte.length>40?'…':''}</div>` : '<div style="font-size:.76rem;color:var(--text-muted)">Aucun message</div>'}
       </div>
-      <button onclick="event.stopPropagation();supprimerConversation('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;padding:4px;opacity:.4;transition:opacity .2s" onmouseover="this.style.opacity='1';this.style.color='var(--red)'" onmouseout="this.style.opacity='.4';this.style.color='var(--text-muted)'" title="Supprimer la conversation">ðŸ—‘ï¸</button>
+      <button onclick="event.stopPropagation();supprimerConversation('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;padding:4px;opacity:.4;transition:opacity .2s" onmouseover="this.style.opacity='1';this.style.color='var(--red)'" onmouseout="this.style.opacity='.4';this.style.color='var(--text-muted)'" title="Supprimer la conversation">🗑️</button>
     </div>`;
   }).join('');
 
@@ -3361,22 +3352,22 @@ function afficherMessagerie() {
 
 async function supprimerConversation(salId) {
   const sal = charger('salaries').find(s=>s.id===salId);
-  const ok = await confirmDialog(`Supprimer la conversation avec ${sal?.nom||'ce salariÃ©'} ?`, {titre:'Supprimer conversation',icone:'ðŸ’¬',btnLabel:'Supprimer'});
+  const ok = await confirmDialog(`Supprimer la conversation avec ${sal?.nom||'ce salarié'} ?`, {titre:'Supprimer conversation',icone:'💬',btnLabel:'Supprimer'});
   if (!ok) return;
   localStorage.removeItem('messages_'+salId);
   if (_msgSalarieActif === salId) {
     _msgSalarieActif = null;
-    document.getElementById('msg-admin-nom').textContent = 'SÃ©lectionnez un salariÃ©';
+    document.getElementById('msg-admin-nom').textContent = 'Sélectionnez un salarié';
     document.getElementById('msg-admin-nom').style.color = 'var(--text-muted)';
-    document.getElementById('msg-admin-fil').innerHTML = '<div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.88rem">â† Choisissez une conversation</div>';
+    document.getElementById('msg-admin-fil').innerHTML = '<div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.88rem">← Choisissez une conversation</div>';
     document.getElementById('msg-admin-input').disabled = true;
     document.getElementById('btn-envoyer-admin').disabled = true;
   }
   afficherMessagerie();
-  afficherToast('ðŸ—‘ï¸ Conversation supprimÃ©e');
+  afficherToast('🗑️ Conversation supprimée');
 }
 
-/* Broadcast â€” gestion cible par poste / sÃ©lection */
+/* Broadcast — gestion cible par poste / sélection */
 function majBroadcastSelection() {
   const cible = document.getElementById('broadcast-cible')?.value || 'tous';
   const selPoste = document.getElementById('broadcast-poste');
@@ -3391,7 +3382,7 @@ function majBroadcastSelection() {
     const cont = document.getElementById('broadcast-checkboxes');
     if (cont) {
       cont.innerHTML = `
-        <input type="text" id="broadcast-search-sal" placeholder="ðŸ” Rechercher un salariÃ©..." oninput="filtrerBroadcastSalaries()" style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:7px 12px;border-radius:8px;font-size:.85rem;margin-bottom:8px" />
+        <input type="text" id="broadcast-search-sal" placeholder="🔍 Rechercher un salarié..." oninput="filtrerBroadcastSalaries()" style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:7px 12px;border-radius:8px;font-size:.85rem;margin-bottom:8px" />
         <div id="broadcast-sal-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow-y:auto">
           ${salaries.map(s =>
             `<label class="broadcast-sal-label" data-nom="${s.nom.toLowerCase()}" style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer;background:rgba(255,255,255,.04);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">
@@ -3434,7 +3425,7 @@ function getBroadcastDestinataires() {
 }
 
 function ouvrirConversation(salId) {
-  // Marquer tous les messages salarieâ†’admin comme lus
+  // Marquer tous les messages salarie→admin comme lus
   const msgs = JSON.parse(localStorage.getItem('messages_'+salId)||'[]');
   let changed = false;
   msgs.forEach(m => { if (m.auteur==='salarie' && !m.lu) { m.lu=true; m.luLe=new Date().toISOString(); changed=true; } });
@@ -3444,13 +3435,13 @@ function ouvrirConversation(salId) {
   const sal = salaries.find(s => s.id === salId);
   const messages = JSON.parse(localStorage.getItem('messages_' + salId) || '[]');
 
-  // Marquer les messages salariÃ© comme lus
+  // Marquer les messages salarié comme lus
   let modifie = false;
   messages.forEach(m => { if (m.auteur === 'salarie' && !m.lu) { m.lu = true; modifie = true; } });
   if (modifie) localStorage.setItem('messages_' + salId, JSON.stringify(messages));
 
   // Header
-  document.getElementById('msg-admin-nom').textContent = sal ? `ðŸ‘¤ ${sal.nom} â€” ${sal.numero}` : 'SalariÃ©';
+  document.getElementById('msg-admin-nom').textContent = sal ? `👤 ${sal.nom} — ${sal.numero}` : 'Salarié';
   document.getElementById('msg-admin-nom').style.color = 'var(--text)';
   // Afficher les templates de messages
   afficherTemplatesMsg(sal?.nom || '');
@@ -3465,7 +3456,7 @@ function ouvrirConversation(salId) {
   // Afficher les messages
   const fil = document.getElementById('msg-admin-fil');
   if (!messages.length) {
-    fil.innerHTML = '<div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.85rem">DÃ©marrez la conversation</div>';
+    fil.innerHTML = '<div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.85rem">Démarrez la conversation</div>';
   } else {
     fil.innerHTML = '';
     messages.forEach((m, i) => {
@@ -3473,16 +3464,16 @@ function ouvrirConversation(salId) {
       const div = document.createElement('div');
       div.style.cssText = `display:flex;flex-direction:column;align-items:${estAdmin ? 'flex-end' : 'flex-start'}`;
       const heure = new Date(m.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-      // AccusÃ© de lecture : dernier message admin + lu par salariÃ©
+      // Accusé de lecture : dernier message admin + lu par salarié
       const estDernierAdmin = estAdmin && messages.slice(i+1).every(mm => mm.auteur !== 'admin');
       const accuse = estAdmin && estDernierAdmin && m.lu
-        ? `<span class="msg-double-check" title="Lu le ${m.luLe ? new Date(m.luLe).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : ''}">âœ“âœ“</span>`
-        : estAdmin ? '<span style="font-size:.68rem;color:var(--text-muted);opacity:.5">âœ“</span>' : '';
+        ? `<span class="msg-double-check" title="Lu le ${m.luLe ? new Date(m.luLe).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : ''}">✓✓</span>`
+        : estAdmin ? '<span style="font-size:.68rem;color:var(--text-muted);opacity:.5">✓</span>' : '';
       div.innerHTML = `
         <div style="max-width:75%;background:${estAdmin ? 'var(--accent)' : 'var(--bg-dark)'};color:${estAdmin ? '#000' : 'var(--text-primary)'};padding:9px 13px;border-radius:${estAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
           ${m.photo ? `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />` : m.texte}
         </div>
-        <span style="font-size:.72rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${estAdmin ? 'Vous' : sal?.nom || 'SalariÃ©'} Â· ${heure} ${accuse}</span>`;
+        <span style="font-size:.72rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${estAdmin ? 'Vous' : sal?.nom || 'Salarié'} · ${heure} ${accuse}</span>`;
       fil.appendChild(div);
     });
     fil.scrollTop = fil.scrollHeight;
@@ -3537,31 +3528,31 @@ function afficherPlanning() {
   const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
   const tb = document.getElementById('tb-planning');
 
-  // Mettre Ã  jour le select du modal
+  // Mettre à jour le select du modal
   const sel = document.getElementById('plan-salarie');
   if (sel) {
     const valeur = sel.value;
-    sel.innerHTML = '<option value="">-- Choisir un salariÃ© --</option>';
+    sel.innerHTML = '<option value="">-- Choisir un salarié --</option>';
     salaries.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nom} (${s.numero})</option>`; });
     sel.value = valeur;
   }
 
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">Aucun salariÃ©</td></tr>'; return; }
+  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">Aucun salarié</td></tr>'; return; }
 
   tb.innerHTML = salaries.map(s => {
     const plan = plannings.find(p => p.salId === s.id);
     const cellules = JOURS.map(j => {
-      if (!plan) return '<td style="color:var(--text-muted);font-size:.75rem">â€”</td>';
+      if (!plan) return '<td style="color:var(--text-muted);font-size:.75rem">—</td>';
       const jour = plan.semaine?.find(d => d.jour === j);
-      if (!jour || !jour.travaille) return '<td style="color:var(--text-muted);font-size:.8rem;text-align:center">ðŸ”´</td>';
-      return `<td style="text-align:center;font-size:.78rem"><span style="color:var(--green)">ðŸŸ¢</span>${jour.heureDebut ? '<br><span style="color:var(--muted)">'+jour.heureDebut+'</span>' : ''}</td>`;
+      if (!jour || !jour.travaille) return '<td style="color:var(--text-muted);font-size:.8rem;text-align:center">🔴</td>';
+      return `<td style="text-align:center;font-size:.78rem"><span style="color:var(--green)">🟢</span>${jour.heureDebut ? '<br><span style="color:var(--muted)">'+jour.heureDebut+'</span>' : ''}</td>`;
     }).join('');
     return `<tr>
       <td><strong>${s.nom}</strong></td>
       ${cellules}
       <td>
-        <button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Modifier">âœï¸</button>
-        ${plan ? `<button class="btn-icon danger" onclick="supprimerPlanning('${s.id}')" title="Supprimer">ðŸ—‘ï¸</button>` : ''}
+        <button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Modifier">✏️</button>
+        ${plan ? `<button class="btn-icon danger" onclick="supprimerPlanning('${s.id}')" title="Supprimer">🗑️</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -3586,18 +3577,18 @@ function genererGrilleJours() {
             <input type="checkbox" id="plan-travaille-${jour}" ${existing.travaille ? 'checked' : ''}
               onchange="toggleJourPlanning('${jour}')"
               style="width:16px;height:16px;accent-color:var(--accent)" />
-            <strong style="font-size:.9rem">${JOURS_COURTS[i]} â€” ${jour.charAt(0).toUpperCase()+jour.slice(1)}</strong>
+            <strong style="font-size:.9rem">${JOURS_COURTS[i]} — ${jour.charAt(0).toUpperCase()+jour.slice(1)}</strong>
           </label>
           <select class="planning-type-select" id="plan-type-${jour}" onchange="toggleTypeJour('${jour}')" style="width:110px">
-            <option value="travail" ${typeJour==='travail'?'selected':''}>ðŸŸ¢ Travail</option>
-            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>âšª Repos</option>
-            <option value="conge"   ${typeJour==='conge'  ?'selected':''}>ðŸ”µ CongÃ©</option>
-            <option value="absence" ${typeJour==='absence'?'selected':''}>ðŸ”´ Absence</option>
-            <option value="maladie" ${typeJour==='maladie'?'selected':''}>ðŸŸ£ Maladie</option>
+            <option value="travail" ${typeJour==='travail'?'selected':''}>🟢 Travail</option>
+            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>⚪ Repos</option>
+            <option value="conge"   ${typeJour==='conge'  ?'selected':''}>🔵 Congé</option>
+            <option value="absence" ${typeJour==='absence'?'selected':''}>🔴 Absence</option>
+            <option value="maladie" ${typeJour==='maladie'?'selected':''}>🟣 Maladie</option>
           </select>
         </div>
         <div id="plan-horaires-${jour}" style="display:${existing.travaille&&typeJour==='travail' ? 'grid' : 'none'};grid-template-columns:1fr 1fr 1fr;gap:8px">
-          <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">DÃ©but</label>
+          <div><label style="font-size:.72rem;color:var(--muted);display:block;margin-bottom:3px">Début</label>
             <input type="time" id="plan-debut-${jour}" value="${existing.heureDebut||''}"
               onchange="mettreAJourTotalHeuresPlanning()"
               style="width:100%;background:var(--bg-card,#13161f);border:1px solid var(--border);color:var(--text);padding:6px 8px;border-radius:6px;font-size:.85rem;font-family:inherit" /></div>
@@ -3650,7 +3641,7 @@ function ouvrirEditPlanning(salId) {
 
 function sauvegarderPlanning() {
   const salId = document.getElementById('plan-salarie').value;
-  if (!salId) { afficherToast('âš ï¸ Choisissez un salariÃ©', 'error'); return; }
+  if (!salId) { afficherToast('⚠️ Choisissez un salarié', 'error'); return; }
 
   const semaine = JOURS.map(jour => {
     const travaille = document.getElementById('plan-travaille-'+jour)?.checked || false;
@@ -3679,18 +3670,18 @@ function sauvegarderPlanning() {
   afficherPlanning();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  afficherToast(`âœ… Planning de ${sal?.nom || 'salariÃ©'} enregistrÃ©`);
+  afficherToast(`✅ Planning de ${sal?.nom || 'salarié'} enregistré`);
 }
 
 async function supprimerPlanning(salId) {
-  const _ok9 = await confirmDialog('Supprimer le planning de ce salariÃ© ?', {titre:'Supprimer le planning',icone:'ðŸ“…',btnLabel:'Supprimer'});
+  const _ok9 = await confirmDialog('Supprimer le planning de ce salarié ?', {titre:'Supprimer le planning',icone:'📅',btnLabel:'Supprimer'});
   if (!_ok9) return;
   const plannings = JSON.parse(localStorage.getItem('plannings') || '[]').filter(p => p.salId !== salId);
   localStorage.setItem('plannings', JSON.stringify(plannings));
   afficherPlanning();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  afficherToast('ðŸ—‘ï¸ Planning supprimÃ©');
+  afficherToast('🗑️ Planning supprimé');
 }
 
 /* ===== VUE KANBAN LIVRAISONS ===== */
@@ -3733,7 +3724,7 @@ function afficherKanban() {
     else cols['en-attente'].push(l);
   });
 
-  const labels = { 'en-attente': 'â³ En attente', 'en-cours': 'ðŸš En cours', 'livre': 'âœ… LivrÃ©' };
+  const labels = { 'en-attente': '⏳ En attente', 'en-cours': '🚐 En cours', 'livre': '✅ Livré' };
   const classes= { 'en-attente': 'attente', 'en-cours': 'cours', 'livre': 'livre' };
 
   const board = document.getElementById('kanban-board');
@@ -3755,13 +3746,13 @@ function afficherKanban() {
               ondragstart="dragKanban(event,'${l.id}')"
               ondragend="document.querySelectorAll('.kanban-col-body').forEach(c=>c.classList.remove('drag-over'))"
               onclick="ouvrirEditLivraison('${l.id}')">
-              <div class="kanban-card-client">ðŸ“¦ ${l.client}</div>
-              <div class="kanban-card-sub">${l.numLiv||'â€”'} Â· ${l.date}</div>
-              ${l.chaufNom ? `<div class="kanban-card-sub">ðŸ‘¤ ${l.chaufNom}</div>` : ''}
-              ${l.arrivee  ? `<div class="kanban-card-sub">ðŸ“ ${l.arrivee}</div>` : ''}
+              <div class="kanban-card-client">📦 ${l.client}</div>
+              <div class="kanban-card-sub">${l.numLiv||'—'} · ${l.date}</div>
+              ${l.chaufNom ? `<div class="kanban-card-sub">👤 ${l.chaufNom}</div>` : ''}
+              ${l.arrivee  ? `<div class="kanban-card-sub">📍 ${l.arrivee}</div>` : ''}
               <div class="kanban-card-prix">${l.prix ? euros(l.prix) : 'Prix manquant'}</div>
               <div style="display:flex;gap:4px;margin-top:6px">
-                <button class="btn-icon" onclick="event.stopPropagation();dupliquerLivraison('${l.id}')" title="Dupliquer" style="font-size:.75rem;padding:2px 6px">ðŸ“‹</button>
+                <button class="btn-icon" onclick="event.stopPropagation();dupliquerLivraison('${l.id}')" title="Dupliquer" style="font-size:.75rem;padding:2px 6px">📋</button>
               </div>
             </div>`).join('')}
       </div>
@@ -3783,7 +3774,7 @@ function dropKanban(event, nouveauStatut) {
     livraisons[idx].statut = nouveauStatut;
     sauvegarder('livraisons', livraisons);
     afficherKanban();
-    afficherToast(`âœ… Livraison dÃ©placÃ©e â†’ ${nouveauStatut === 'livre' ? 'LivrÃ©' : nouveauStatut === 'en-cours' ? 'En cours' : 'En attente'}`);
+    afficherToast(`✅ Livraison déplacée → ${nouveauStatut === 'livre' ? 'Livré' : nouveauStatut === 'en-cours' ? 'En cours' : 'En attente'}`);
   }
   _dragLivId = null;
 }
@@ -3844,7 +3835,7 @@ function afficherCalendrier() {
     </div>`;
   }
 
-  // Cases vides aprÃ¨s le dernier
+  // Cases vides après le dernier
   const total = offset + nbJours;
   const reste = total % 7 === 0 ? 0 : 7 - (total % 7);
   for (let i = 1; i <= reste; i++) {
@@ -3870,7 +3861,7 @@ function filtrerCalJour(date) {
   if (fin) fin.value = date;
   afficherLivraisons();
   document.getElementById('barre-recherche-univ')?.blur();
-  afficherToast(`ðŸ“… Livraisons du ${new Date(date).toLocaleDateString('fr-FR', {day:'numeric',month:'long'})}`);
+  afficherToast(`📅 Livraisons du ${new Date(date).toLocaleDateString('fr-FR', {day:'numeric',month:'long'})}`);
 }
 
 /* ===== DUPLICATION LIVRAISON ===== */
@@ -3890,15 +3881,15 @@ function dupliquerLivraison(id) {
   livraisons.push(copie);
   sauvegarder('livraisons', livraisons);
   afficherLivraisons();
-  afficherToast(`ðŸ“‹ Livraison dupliquÃ©e â†’ ${copie.numLiv}`);
+  afficherToast(`📋 Livraison dupliquée → ${copie.numLiv}`);
 }
 
-/* ===== RÃ‰CURRENCE LIVRAISON ===== */
+/* ===== RÉCURRENCE LIVRAISON ===== */
 function ouvrirRecurrence(id) {
   const liv = charger('livraisons').find(l => l.id === id);
   if (!liv) return;
   document.getElementById('rec-liv-id').value  = id;
-  document.getElementById('rec-liv-info').textContent = `${liv.client} â€” ${liv.numLiv||''}`;
+  document.getElementById('rec-liv-info').textContent = `${liv.client} — ${liv.numLiv||''}`;
   document.getElementById('rec-semaines').value = '4';
   openModal('modal-recurrence');
 }
@@ -3907,7 +3898,7 @@ function confirmerRecurrence() {
   const id      = document.getElementById('rec-liv-id').value;
   const nb      = parseInt(document.getElementById('rec-semaines').value) || 1;
   const source  = charger('livraisons').find(l => l.id === id);
-  if (!source || nb < 1 || nb > 52) { afficherToast('âš ï¸ Nombre de semaines invalide (1-52)', 'error'); return; }
+  if (!source || nb < 1 || nb > 52) { afficherToast('⚠️ Nombre de semaines invalide (1-52)', 'error'); return; }
 
   const livraisons = charger('livraisons');
   const baseDate   = new Date(source.date);
@@ -3931,10 +3922,10 @@ function confirmerRecurrence() {
   sauvegarder('livraisons', livraisons);
   closeModal('modal-recurrence');
   afficherLivraisons();
-  afficherToast(`âœ… ${nb} livraison(s) rÃ©currente(s) crÃ©Ã©e(s)`);
+  afficherToast(`✅ ${nb} livraison(s) récurrente(s) créée(s)`);
 }
 
-/* ===== TRI COLONNES GÃ‰NÃ‰RIQUE ===== */
+/* ===== TRI COLONNES GÉNÉRIQUE ===== */
 const _sortState = {};
 function trierTableau(tbodyId, colIndex, type='string') {
   const key = tbodyId + colIndex;
@@ -3957,7 +3948,7 @@ function trierTableau(tbodyId, colIndex, type='string') {
   });
   rows.forEach(r => tbody.appendChild(r));
 
-  // Mettre Ã  jour les indicateurs visuels
+  // Mettre à jour les indicateurs visuels
   const table = tbody.closest('table');
   if (table) {
     table.querySelectorAll('.th-sortable').forEach(th => th.classList.remove('asc','desc'));
@@ -3966,7 +3957,7 @@ function trierTableau(tbodyId, colIndex, type='string') {
   }
 }
 
-/* ===== PAGINATION GÃ‰NÃ‰RIQUE ===== */
+/* ===== PAGINATION GÉNÉRIQUE ===== */
 const _pageState = {};
 function paginer(items, containerId, renderFn, pageSize=20) {
   const state = _pageState[containerId] || { page: 1 };
@@ -3991,19 +3982,19 @@ function paginer(items, containerId, renderFn, pageSize=20) {
     if (p===1||p===pages||Math.abs(p-state.page)<=1) {
       btns.push(`<button class="btn-page${p===state.page?' active':''}" onclick="_pageState['${containerId}'].page=${p};paginer.__reload_${containerId}&&paginer.__reload_${containerId}()">${p}</button>`);
     } else if (Math.abs(p-state.page)===2) {
-      btns.push(`<span style="padding:0 4px;color:var(--text-muted)">â€¦</span>`);
+      btns.push(`<span style="padding:0 4px;color:var(--text-muted)">…</span>`);
     }
   }
   pag.innerHTML = `
-    <span>${(state.page-1)*pageSize+1}â€“${Math.min(state.page*pageSize,total)} sur ${total}</span>
+    <span>${(state.page-1)*pageSize+1}–${Math.min(state.page*pageSize,total)} sur ${total}</span>
     <div class="pagination-btns">
-      <button class="btn-page" ${state.page<=1?'disabled':''} onclick="_pageState['${containerId}'].page--;paginer.__reload_${containerId}&&paginer.__reload_${containerId}()">â€¹</button>
+      <button class="btn-page" ${state.page<=1?'disabled':''} onclick="_pageState['${containerId}'].page--;paginer.__reload_${containerId}&&paginer.__reload_${containerId}()">‹</button>
       ${btns.join('')}
-      <button class="btn-page" ${state.page>=pages?'disabled':''} onclick="_pageState['${containerId}'].page++;paginer.__reload_${containerId}&&paginer.__reload_${containerId}()">â€º</button>
+      <button class="btn-page" ${state.page>=pages?'disabled':''} onclick="_pageState['${containerId}'].page++;paginer.__reload_${containerId}&&paginer.__reload_${containerId}()">›</button>
     </div>`;
 }
 
-/* ===== Ã‰TATS VIDES ILLUSTRÃ‰S ===== */
+/* ===== ÉTATS VIDES ILLUSTRÉS ===== */
 function emptyState(icon, title, sub, btnLabel='', btnAction='') {
   return `<tr><td colspan="99">
     <div class="empty-illustrated">
@@ -4038,7 +4029,7 @@ function majBadgeFavicon(count) {
     document.head.appendChild(link);
   };
   if (count <= 0) {
-    link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ðŸš</text></svg>";
+    link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>";
     document.head.appendChild(link);
     return;
   }
@@ -4051,14 +4042,14 @@ function majBadgeFavicon(count) {
     };
     img.onerror = function() {
       ctx.font = '24px serif';
-      ctx.fillText('ðŸš', 0, 24);
+      ctx.fillText('🚐', 0, 24);
       dessinerBadge();
     };
     img.src = logo;
     return;
   }
   ctx.font = '24px serif';
-  ctx.fillText('ðŸš', 0, 24);
+  ctx.fillText('🚐', 0, 24);
   dessinerBadge();
 }
 
@@ -4073,7 +4064,7 @@ function exporterCSV(data, colonnes, nomFichier) {
       return str.includes(sep) || str.includes('\n') ? `"${str}"` : str;
     }).join(sep)
   );
-  const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM pour Excel franÃ§ais
+  const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM pour Excel français
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -4084,33 +4075,33 @@ function exporterCSV(data, colonnes, nomFichier) {
 function exporterLivraisons() {
   const livraisons = charger('livraisons').sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe));
   exporterCSV(livraisons, [
-    { label: 'NÂ° LIV',      get: l => l.numLiv||'' },
+    { label: 'N° LIV',      get: l => l.numLiv||'' },
     { label: 'Date',         get: l => l.date||'' },
     { label: 'Client',       get: l => l.client||'' },
-    { label: 'DÃ©part',       get: l => l.depart||'' },
-    { label: 'ArrivÃ©e',      get: l => l.arrivee||'' },
+    { label: 'Départ',       get: l => l.depart||'' },
+    { label: 'Arrivée',      get: l => l.arrivee||'' },
     { label: 'Distance km',  get: l => l.distance||'' },
-    { label: 'Prix â‚¬',       get: l => l.prix||'' },
+    { label: 'Prix €',       get: l => l.prix||'' },
     { label: 'Chauffeur',    get: l => l.chaufNom||'' },
-    { label: 'VÃ©hicule',     get: l => l.vehNom||'' },
+    { label: 'Véhicule',     get: l => l.vehNom||'' },
     { label: 'Statut',       get: l => l.statut||'' },
     { label: 'Paiement',     get: l => l.statutPaiement||'' },
     { label: 'Mode paiement',get: l => l.modePaiement||'' },
-    { label: 'Profit â‚¬',     get: l => l.profit ? parseFloat(l.profit).toFixed(2) : '' },
+    { label: 'Profit €',     get: l => l.profit ? parseFloat(l.profit).toFixed(2) : '' },
   ], `livraisons_${aujourdhui()}.csv`);
-  afficherToast('âœ… Export CSV tÃ©lÃ©chargÃ©');
+  afficherToast('✅ Export CSV téléchargé');
 }
 
 function exporterCharges() {
   const charges = charger('charges').sort((a,b)=>new Date(b.date)-new Date(a.date));
   exporterCSV(charges, [
     { label:'Date',        get:c=>c.date||'' },
-    { label:'CatÃ©gorie',   get:c=>c.categorie||'' },
+    { label:'Catégorie',   get:c=>c.categorie||'' },
     { label:'Description', get:c=>c.description||'' },
-    { label:'VÃ©hicule',    get:c=>c.vehNom||'' },
-    { label:'Montant â‚¬',   get:c=>c.montant?parseFloat(c.montant).toFixed(2):'' },
+    { label:'Véhicule',    get:c=>c.vehNom||'' },
+    { label:'Montant €',   get:c=>c.montant?parseFloat(c.montant).toFixed(2):'' },
   ], `charges_${aujourdhui()}.csv`);
-  afficherToast('âœ… Export charges CSV tÃ©lÃ©chargÃ©');
+  afficherToast('✅ Export charges CSV téléchargé');
 }
 
 function exporterEntretiens() {
@@ -4118,14 +4109,14 @@ function exporterEntretiens() {
   const vehs = charger('vehicules');
   exporterCSV(tous, [
     { label:'Date',           get:e=>e.date||'' },
-    { label:'VÃ©hicule',       get:e=>vehs.find(v=>v.id===e.vehId)?.immat||'' },
+    { label:'Véhicule',       get:e=>vehs.find(v=>v.id===e.vehId)?.immat||'' },
     { label:'Type',           get:e=>e.type||'' },
     { label:'Description',    get:e=>e.description||'' },
     { label:'Km',             get:e=>e.km||'' },
     { label:'Prochain km',    get:e=>e.prochainKm||'' },
-    { label:'CoÃ»t â‚¬',         get:e=>e.cout?parseFloat(e.cout).toFixed(2):'' },
+    { label:'Coût €',         get:e=>e.cout?parseFloat(e.cout).toFixed(2):'' },
   ], `entretiens_${aujourdhui()}.csv`);
-  afficherToast('âœ… Export entretiens CSV tÃ©lÃ©chargÃ©');
+  afficherToast('✅ Export entretiens CSV téléchargé');
 }
 
 /* ===== RAPPORT MENSUEL PDF ===== */
@@ -4163,15 +4154,15 @@ function genererRapportMensuel() {
   const html = `
   <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
 
-    <!-- EN-TÃŠTE -->
+    <!-- EN-TÊTE -->
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:3px solid #f5a623;margin-bottom:28px">
       <div>
         <div style="font-size:1.5rem;font-weight:800;color:#f5a623">${nom}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Rapport d'activitÃ©</div>
+        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Rapport d'activité</div>
         <div style="font-size:1.2rem;font-weight:800;text-transform:capitalize">${moisLabel}</div>
-        <div style="font-size:.78rem;color:#9ca3af">GÃ©nÃ©rÃ© le ${dateExp}</div>
+        <div style="font-size:.78rem;color:#9ca3af">Généré le ${dateExp}</div>
       </div>
     </div>
     ${renderBlocInfosEntreprise(params)}
@@ -4179,10 +4170,10 @@ function genererRapportMensuel() {
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px">
       ${[
-        ['ðŸ’¶ CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#f5a623'],
-        ['ðŸ“¦ Livraisons', livraisons.length + ' total', '#4f8ef7'],
-        ['â›½ Carburant',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal), '#e74c3c'],
-        ['ðŸ’° BÃ©nÃ©fice',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(benefice), benefice>=0?'#2ecc71':'#e74c3c'],
+        ['💶 CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#f5a623'],
+        ['📦 Livraisons', livraisons.length + ' total', '#4f8ef7'],
+        ['⛽ Carburant',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal), '#e74c3c'],
+        ['💰 Bénéfice',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(benefice), benefice>=0?'#2ecc71':'#e74c3c'],
       ].map(([label, value, color]) => `
         <div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${color}">
           <div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${label}</div>
@@ -4194,21 +4185,21 @@ function genererRapportMensuel() {
     <div style="background:#f8f9fc;border-radius:10px;padding:16px;margin-bottom:24px">
       <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:12px">Statuts des livraisons</div>
       <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <div><span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">âœ… LivrÃ© : ${livrees}</span></div>
-        <div><span style="background:rgba(245,166,35,.15);color:#f5a623;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">â³ En attente : ${enAttente}</span></div>
-        <div><span style="background:rgba(52,152,219,.15);color:#4f8ef7;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">ðŸš En cours : ${livraisons.filter(l=>l.statut==='en-cours').length}</span></div>
+        <div><span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">✅ Livré : ${livrees}</span></div>
+        <div><span style="background:rgba(245,166,35,.15);color:#f5a623;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">⏳ En attente : ${enAttente}</span></div>
+        <div><span style="background:rgba(52,152,219,.15);color:#4f8ef7;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">🚐 En cours : ${livraisons.filter(l=>l.statut==='en-cours').length}</span></div>
       </div>
     </div>
 
     <!-- KM + CARBURANT -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
       <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">KilomÃ©trage total</div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Kilométrage total</div>
         <div style="font-size:1.4rem;font-weight:800">${new Intl.NumberFormat('fr-FR').format(Math.round(kmTotal))} km</div>
         <div style="font-size:.78rem;color:#9ca3af;margin-top:4px">Tous chauffeurs confondus</div>
       </div>
       <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">CoÃ»t carburant</div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Coût carburant</div>
         <div style="font-size:1.4rem;font-weight:800">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal)}</div>
         <div style="font-size:.78rem;color:#9ca3af;margin-top:4px">${carburant.length} plein(s) ce mois</div>
       </div>
@@ -4222,7 +4213,7 @@ function genererRapportMensuel() {
         <thead><tr style="background:#f3f4f6">
           <th style="padding:9px 12px;text-align:left;font-weight:600;color:#6b7280">Chauffeur</th>
           <th style="padding:9px 12px;text-align:right;font-weight:600;color:#6b7280">Livraisons</th>
-          <th style="padding:9px 12px;text-align:right;font-weight:600;color:#6b7280">CA gÃ©nÃ©rÃ©</th>
+          <th style="padding:9px 12px;text-align:right;font-weight:600;color:#6b7280">CA généré</th>
         </tr></thead>
         <tbody>${Object.entries(statsChauff).sort((a,b)=>b[1].ca-a[1].ca).map(([nom,s],i) => `
           <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
@@ -4236,43 +4227,43 @@ function genererRapportMensuel() {
 
     <!-- PIED DE PAGE -->
     <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-      <span>${nom} â€” Page 1/1</span>
+      <span>${nom} — Page 1/1</span>
       <span>${dateExp}</span>
       <span>${params.tel || params.email || params.siret || ''}</span>
     </div>
   </div>`;
 
   const win = window.open('', '_blank', 'width=850,height:950');
-  win.document.write(`<!DOCTYPE html><html><head><title>Rapport ${moisLabel} â€” ${nom}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>Rapport ${moisLabel} — ${nom}</title>
     <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm} @media print{body{padding:0}}</style>
     </head><body>${html}
     <script>setTimeout(()=>{window.print();},400)<\/script>
     </body></html>`);
   win.document.close();
-  afficherToast('ðŸ“„ Rapport mensuel gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport mensuel généré');
 }
 
-/* ===== ACCUSÃ‰ DE LECTURE MESSAGERIE ===== */
-/* ===== GOOGLE MAPS â€” CALCUL DISTANCE AUTO ===== */
+/* ===== ACCUSÉ DE LECTURE MESSAGERIE ===== */
+/* ===== GOOGLE MAPS — CALCUL DISTANCE AUTO ===== */
 async function calculerDistanceMaps(depart, arrivee, inputId) {
-  if (!depart || !arrivee) { afficherToast('âš ï¸ Saisissez dÃ©part et arrivÃ©e d\'abord', 'error'); return; }
+  if (!depart || !arrivee) { afficherToast('⚠️ Saisissez départ et arrivée d\'abord', 'error'); return; }
   const btn = document.getElementById('maps-calc-btn');
-  if (btn) { btn.classList.add('maps-loading'); btn.textContent = 'â³ Calcul...'; }
+  if (btn) { btn.classList.add('maps-loading'); btn.textContent = '⏳ Calcul...'; }
 
   try {
-    // Utiliser l'API Nominatim (OSM) pour gÃ©ocoder + calcul Ã  vol d'oiseau
+    // Utiliser l'API Nominatim (OSM) pour géocoder + calcul à vol d'oiseau
     const encD = encodeURIComponent(depart);
     const encA = encodeURIComponent(arrivee);
     const [resD, resA] = await Promise.all([
       fetch(`https://nominatim.openstreetmap.org/search?q=${encD}&format=json&limit=1`).then(r=>r.json()),
       fetch(`https://nominatim.openstreetmap.org/search?q=${encA}&format=json&limit=1`).then(r=>r.json())
     ]);
-    if (!resD.length || !resA.length) { afficherToast('âš ï¸ Adresse introuvable â€” saisissez manuellement', 'error'); return; }
+    if (!resD.length || !resA.length) { afficherToast('⚠️ Adresse introuvable — saisissez manuellement', 'error'); return; }
 
     const lat1 = parseFloat(resD[0].lat), lon1 = parseFloat(resD[0].lon);
     const lat2 = parseFloat(resA[0].lat), lon2 = parseFloat(resA[0].lon);
 
-    // Formule Haversine (distance Ã  vol d'oiseau)
+    // Formule Haversine (distance à vol d'oiseau)
     const R = 6371;
     const dLat = (lat2-lat1) * Math.PI/180;
     const dLon = (lon2-lon1) * Math.PI/180;
@@ -4283,23 +4274,23 @@ async function calculerDistanceMaps(depart, arrivee, inputId) {
 
     const input = document.getElementById(inputId);
     if (input) { input.value = distRoute; input.dispatchEvent(new Event('input')); }
-    afficherToast(`ðŸ“ Distance estimÃ©e : ${distRoute} km (via OSM)`);
+    afficherToast(`📍 Distance estimée : ${distRoute} km (via OSM)`);
   } catch(e) {
-    afficherToast('âš ï¸ Erreur de calcul â€” vÃ©rifiez votre connexion', 'error');
+    afficherToast('⚠️ Erreur de calcul — vérifiez votre connexion', 'error');
   } finally {
-    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = 'ðŸ“ Calculer distance'; }
+    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = '📍 Calculer distance'; }
   }
 }
 
 /* ===== HT/TVA DANS LE TABLEAU LIVRAISONS ===== */
 function formatPrixAvecHT(prix) {
-  if (!prix) return 'â€”';
+  if (!prix) return '—';
   const taux = getTauxTVA();
   const ht   = prixHT(prix, taux);
   return `<div><strong>${euros(prix)}</strong></div><div style="font-size:.72rem;color:var(--text-muted)">${euros(ht)} HT</div>`;
 }
 
-/* ===== BADGES NAV â€” INCIDENTS + RELANCES ===== */
+/* ===== BADGES NAV — INCIDENTS + RELANCES ===== */
 function mettreAJourBadgesNav() {
   // Badge incidents ouverts
   const incOpen = charger('incidents').filter(i=>i.statut==='ouvert').length;
@@ -4317,7 +4308,7 @@ function mettreAJourBadgesNav() {
   if (badgeRel) { badgeRel.textContent=relOpen; badgeRel.style.display=relOpen>0?'inline-flex':'none'; }
 }
 
-/* ===== TAUX DE PONCTUALITÃ‰ ===== */
+/* ===== TAUX DE PONCTUALITÉ ===== */
 function calculerPonctualite() {
   const livraisons = charger('livraisons').filter(l=>l.statut==='livre'||l.statut==='en-attente');
   if (!livraisons.length) return { taux:0, livrees:0, total:0 };
@@ -4332,15 +4323,15 @@ function afficherPonctualite() {
   const color = taux>=90?'var(--green)':taux>=70?'var(--accent)':'var(--red)';
   cont.innerHTML = `
     <div class="card mt-20">
-      <div class="card-header"><h2>ðŸŽ¯ Taux de ponctualitÃ©</h2><span style="font-size:1.3rem;font-weight:800;color:${color}">${taux}%</span></div>
+      <div class="card-header"><h2>🎯 Taux de ponctualité</h2><span style="font-size:1.3rem;font-weight:800;color:${color}">${taux}%</span></div>
       <div style="padding:16px">
         <div class="ponctualite-bar"><div class="ponctualite-fill" style="width:${taux}%;background:${color}"></div></div>
-        <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px">${livrees} livrÃ©es sur ${total} assignÃ©es</div>
+        <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px">${livrees} livrées sur ${total} assignées</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">
           ${[
-            ['âœ… LivrÃ©es', livrees, 'var(--green)'],
-            ['â³ En attente', total-livrees, 'var(--accent)'],
-            ['ðŸ“Š Taux', taux+'%', color]
+            ['✅ Livrées', livrees, 'var(--green)'],
+            ['⏳ En attente', total-livrees, 'var(--accent)'],
+            ['📊 Taux', taux+'%', color]
           ].map(([l,v,c])=>`<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center">
             <div style="font-size:1.1rem;font-weight:700;color:${c}">${v}</div>
             <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">${l}</div>
@@ -4355,24 +4346,24 @@ function afficherClientsDashboard() {
   const clients    = JSON.parse(localStorage.getItem('clients')||'[]');
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
-  if (!clients.length) { tb.innerHTML = emptyState('ðŸ§‘â€ðŸ’¼','Aucun client','Enregistrez vos clients pour activer l\'auto-complÃ©tion.','+ Nouveau client',"openModal('modal-client')"); return; }
+  if (!clients.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.','+ Nouveau client',"openModal('modal-client')"); return; }
 
   tb.innerHTML = clients.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr')).map(c => {
     return `<tr>
       <td><strong>${c.nom}</strong></td>
-      <td>${c.prenom||'â€”'}</td>
-      <td>${c.tel||'â€”'}</td>
-      <td style="font-size:.82rem">${c.adresse||'â€”'}</td>
+      <td>${c.prenom||'—'}</td>
+      <td>${c.tel||'—'}</td>
+      <td style="font-size:.82rem">${c.adresse||'—'}</td>
       <td>
-        <button class="btn-icon" onclick="ouvrirEditClient('${c.id}')" title="Modifier">âœï¸</button>
-        <button class="btn-icon" onclick="preFillLivraisonClient('${c.id}')" title="Nouvelle livraison">ðŸ“¦</button>
-        <button class="btn-icon danger" onclick="supprimerClient('${c.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="ouvrirEditClient('${c.id}')" title="Modifier">✏️</button>
+        <button class="btn-icon" onclick="preFillLivraisonClient('${c.id}')" title="Nouvelle livraison">📦</button>
+        <button class="btn-icon danger" onclick="supprimerClient('${c.id}')">🗑️</button>
       </td>
     </tr>`;
   }).join('');
 }
 
-/* ===== CONGÃ‰S / ABSENCES DANS LE PLANNING ===== */
+/* ===== CONGÉS / ABSENCES DANS LE PLANNING ===== */
 function toggleTypeJour(jour) {
   const sel = document.getElementById('plan-type-'+jour);
   const row = document.getElementById('plan-row-'+jour);
@@ -4387,11 +4378,11 @@ function toggleTypeJour(jour) {
   mettreAJourTotalHeuresPlanning();
 }
 
-/* ===== CONNEXION TCO DANS LA PAGE VÃ‰HICULES ===== */
+/* ===== CONNEXION TCO DANS LA PAGE VÉHICULES ===== */
 function ouvrirTCO(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId);
   if (!veh) return;
-  document.getElementById('tco-veh-nom').textContent = `${veh.immat} â€” ${veh.modele||''}`;
+  document.getElementById('tco-veh-nom').textContent = `${veh.immat} — ${veh.modele||''}`;
   afficherTCO(vehId);
   openModal('modal-tco');
 }
@@ -4405,14 +4396,14 @@ async function ouvrirEditLivraison(id) {
   await actualiserVerrousEditionDistance();
   const lockResult = prendreVerrouEdition('livraison', id, l.numLiv || 'Livraison');
   if (!lockResult.ok) {
-    afficherToast(`âš ï¸ Livraison en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Livraison en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
     window._editLivId = null;
     return;
   }
   document.getElementById('edit-liv-id').value      = id;
   document.getElementById('edit-liv-client').value  = l.client||'';
   const zoneGeo = l.depart && l.arrivee && l.depart !== l.arrivee
-    ? (l.depart + ' â†’ ' + l.arrivee)
+    ? (l.depart + ' → ' + l.arrivee)
     : (l.arrivee || l.depart || '');
   const editZone = document.getElementById('edit-liv-zone');
   if (editZone) editZone.value = zoneGeo;
@@ -4442,16 +4433,16 @@ function toggleVueCompacte() {
   const btn2= document.getElementById('btn-density-normal');
   if (btn)  btn.classList.toggle('active',  _vueCompacte);
   if (btn2) btn2.classList.toggle('active', !_vueCompacte);
-  afficherToast(_vueCompacte ? 'ðŸ—œï¸ Vue compacte' : 'ðŸ“‹ Vue normale');
+  afficherToast(_vueCompacte ? '🗜️ Vue compacte' : '📋 Vue normale');
 }
 
-/* ===== MODÃˆLES DE MESSAGES PRÃ‰DÃ‰FINIS ===== */
+/* ===== MODÈLES DE MESSAGES PRÉDÉFINIS ===== */
 const MODELES_MESSAGES = [
-  { id:1, titre:'TournÃ©e prÃªte',      texte:'Bonjour {prenom} ðŸ‘‹ Votre tournÃ©e du jour est prÃªte. VÃ©rifiez vos livraisons assignÃ©es dans l\'onglet Livraisons.' },
-  { id:2, titre:'Rappel km retour',   texte:'Bonsoir {prenom}, n\'oubliez pas d\'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci ðŸ™' },
-  { id:3, titre:'Rappel inspection',  texte:'Rappel : pensez Ã  faire l\'inspection de votre vÃ©hicule avant le dÃ©part. Photos obligatoires ðŸ“·' },
-  { id:4, titre:'Livraison urgente',  texte:'ðŸ“¦ Livraison urgente ajoutÃ©e Ã  votre tournÃ©e. Consultez l\'onglet Livraisons pour les dÃ©tails.' },
-  { id:5, titre:'Bonne journÃ©e',      texte:'Bonjour {prenom} â˜€ï¸ Bonne journÃ©e de livraisons ! N\'hÃ©sitez pas Ã  me contacter en cas de problÃ¨me.' },
+  { id:1, titre:'Tournée prête',      texte:'Bonjour {prenom} 👋 Votre tournée du jour est prête. Vérifiez vos livraisons assignées dans l\'onglet Livraisons.' },
+  { id:2, titre:'Rappel km retour',   texte:'Bonsoir {prenom}, n\'oubliez pas d\'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci 🙏' },
+  { id:3, titre:'Rappel inspection',  texte:'Rappel : pensez à faire l\'inspection de votre véhicule avant le départ. Photos obligatoires 📷' },
+  { id:4, titre:'Livraison urgente',  texte:'📦 Livraison urgente ajoutée à votre tournée. Consultez l\'onglet Livraisons pour les détails.' },
+  { id:5, titre:'Bonne journée',      texte:'Bonjour {prenom} ☀️ Bonne journée de livraisons ! N\'hésitez pas à me contacter en cas de problème.' },
 ];
 
 function afficherModelesMessages() {
@@ -4463,13 +4454,13 @@ function afficherModelesMessages() {
         <div style="font-size:.82rem;font-weight:600">${m.titre}</div>
         <div style="font-size:.75rem;color:var(--text-muted)">${m.texte.substring(0,55)}...</div>
       </div>
-      <button class="btn-icon" onclick="utiliserModele(${m.id})" title="Utiliser">â†’</button>
+      <button class="btn-icon" onclick="utiliserModele(${m.id})" title="Utiliser">→</button>
     </div>`).join('');
 }
 
 function utiliserModele(id) {
   const modele = MODELES_MESSAGES.find(m=>m.id===id);
-  if (!modele || !_msgSalarieActif) { afficherToast('âš ï¸ SÃ©lectionnez d\'abord un salariÃ©','error'); return; }
+  if (!modele || !_msgSalarieActif) { afficherToast('⚠️ Sélectionnez d\'abord un salarié','error'); return; }
   const sal = charger('salaries').find(s=>s.id===_msgSalarieActif);
   const texte = modele.texte.replace('{prenom}', sal?.nom.split(' ')[0]||'');
   const input = document.getElementById('msg-admin-input');
@@ -4484,7 +4475,7 @@ function togglePanelModeles() {
   if (isOpen) afficherModelesMessages();
 }
 
-/* ===== RH â€” COMPTEUR HEURES ===== */
+/* ===== RH — COMPTEUR HEURES ===== */
 function calculerHeuresSalarie(salId) {
   const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
   const plan = plannings.find(p => p.salId === salId);
@@ -4543,7 +4534,7 @@ function getPlanningPeriodForDate(salId, dateStr, periodes) {
 function getPlanningPeriodLabel(type) {
   return type === 'travail' ? 'Travail'
     : type === 'repos' ? 'Repos'
-    : type === 'conge' ? 'CongÃ©'
+    : type === 'conge' ? 'Congé'
     : type === 'maladie' ? 'Maladie'
     : 'Absence';
 }
@@ -4563,11 +4554,11 @@ function majHeuresPeriodeLabel() {
     ? range.label.charAt(0).toUpperCase() + range.label.slice(1)
     : range.label;
   if (elD) elD.textContent = range.datesLabel;
-  if (prevBtn) prevBtn.textContent = range.mode === 'mois' ? 'â—€ Mois prÃ©c.' : 'â—€ Semaine prÃ©c.';
-  if (nextBtn) nextBtn.textContent = range.mode === 'mois' ? 'Mois suiv. â–¶' : 'Semaine suiv. â–¶';
+  if (prevBtn) prevBtn.textContent = range.mode === 'mois' ? '◀ Mois préc.' : '◀ Semaine préc.';
+  if (nextBtn) nextBtn.textContent = range.mode === 'mois' ? 'Mois suiv. ▶' : 'Semaine suiv. ▶';
   if (resetBtn) resetBtn.textContent = range.mode === 'mois' ? 'Mois actuel' : 'Aujourd\'hui';
   if (totalCol) totalCol.textContent = range.mode === 'mois' ? 'H/mois' : 'H/semaine';
-  if (detailCol) detailCol.textContent = range.mode === 'mois' ? 'DÃ©tail pÃ©riode' : 'DÃ©tail par jour';
+  if (detailCol) detailCol.textContent = range.mode === 'mois' ? 'Détail période' : 'Détail par jour';
 }
 
 function changerVueHeures(vue) {
@@ -4637,19 +4628,19 @@ function afficherCompteurHeures() {
   if (!cont) return;
   const range = getHeuresPeriodeRange();
   const periode = document.getElementById('heures-periode-label');
-  if (periode) periode.textContent = `${range.label} Â· ${range.datesLabel}`;
+  if (periode) periode.textContent = `${range.label} · ${range.datesLabel}`;
 
-  // Filtre par salariÃ©
+  // Filtre par salarié
   const filtreSal = document.getElementById('filtre-heures-salarie')?.value || '';
   const selSal = document.getElementById('filtre-heures-salarie');
   if (selSal) {
     const currentValue = selSal.value;
-    selSal.innerHTML = '<option value="">Tous les salariÃ©s</option>';
+    selSal.innerHTML = '<option value="">Tous les salariés</option>';
     salaries.forEach(s => { selSal.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
     selSal.value = currentValue;
   }
 
-  // Afficher/masquer dates personnalisÃ©es
+  // Afficher/masquer dates personnalisées
   const vue = document.getElementById('filtre-heures-vue')?.value || _heuresVue || 'semaine';
   const deb = document.getElementById('filtre-heures-debut');
   const fin = document.getElementById('filtre-heures-fin');
@@ -4657,7 +4648,7 @@ function afficherCompteurHeures() {
   if (fin) fin.style.display = vue === 'custom' ? 'inline-block' : 'none';
 
   const salFiltrees = filtreSal ? salaries.filter(s=>s.id===filtreSal) : salaries;
-  if (!salFiltrees.length) { cont.innerHTML = emptyState('â±ï¸','Aucun salariÃ©','CrÃ©ez des salariÃ©s et dÃ©finissez leur planning pour voir les heures.'); return; }
+  if (!salFiltrees.length) { cont.innerHTML = emptyState('⏱️','Aucun salarié','Créez des salariés et définissez leur planning pour voir les heures.'); return; }
 
   cont.innerHTML = salFiltrees.map(s => {
     const { planifiees, details } = calculerHeuresSalarieSemaine(s.id);
@@ -4666,24 +4657,24 @@ function afficherCompteurHeures() {
     const absencesPeriodes = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
 
     const detailStr = details.length
-      ? `${details.length} jour(s) travaillÃ©(s) Â· ${planifiees.toFixed(1)} h`
-      : 'â€”';
+      ? `${details.length} jour(s) travaillé(s) · ${planifiees.toFixed(1)} h`
+      : '—';
     const absences = plan?.semaine?.filter(j=>['conge','absence','maladie'].includes(j.typeJour)) || [];
     const absencesPeriodeSemaine = absencesPeriodes.filter(a => a.salId===s.id && a.type !== 'travail' && a.fin >= range.debut && a.debut <= range.fin);
     const typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-    const typeLabels = { conge:'ðŸ”µ CongÃ©', absence:'ðŸ”´ Absence', maladie:'ðŸŸ£ Maladie' };
+    const typeLabels = { conge:'🔵 Congé', absence:'🔴 Absence', maladie:'🟣 Maladie' };
     const absStr = absences.length
       ? absences.map(j=>`<span style="display:inline-block;background:${typeColors[j.typeJour]||'var(--muted)'}20;color:${typeColors[j.typeJour]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[j.typeJour]||j.typeJour} ${j.jour.substring(0,3)}</span>`).join(' ')
-      : '<span style="color:var(--text-muted);font-size:.78rem">â€”</span>';
-    const absPeriodeStr = absencesPeriodeSemaine.map(a => `<span style="display:inline-block;background:${typeColors[a.type]||'var(--muted)'}20;color:${typeColors[a.type]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[a.type]||a.type} ${formatDateExport(a.debut)} â†’ ${formatDateExport(a.fin)}</span>`).join(' ');
+      : '<span style="color:var(--text-muted);font-size:.78rem">—</span>';
+    const absPeriodeStr = absencesPeriodeSemaine.map(a => `<span style="display:inline-block;background:${typeColors[a.type]||'var(--muted)'}20;color:${typeColors[a.type]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[a.type]||a.type} ${formatDateExport(a.debut)} → ${formatDateExport(a.fin)}</span>`).join(' ');
 
     return `<tr>
       <td><strong>${s.nom}</strong></td>
-      <td style="font-size:.78rem;color:var(--text-muted)">${s.poste||'â€”'}</td>
+      <td style="font-size:.78rem;color:var(--text-muted)">${s.poste||'—'}</td>
       <td><strong>${planifiees.toFixed(1)} h</strong></td>
-      <td style="font-size:.78rem;color:var(--text-muted)">${detailStr||'â€”'}</td>
+      <td style="font-size:.78rem;color:var(--text-muted)">${detailStr||'—'}</td>
       <td>${absPeriodeStr || absStr}</td>
-      <td><button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Modifier le planning">âœï¸</button></td>
+      <td><button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Modifier le planning">✏️</button></td>
     </tr>`;
   }).join('');
 }
@@ -4708,14 +4699,14 @@ function exporterRecapHeures() {
   exporterCSV(data, [
     { label:'Nom', get:d=>d.nom },
     { label:'Poste', get:d=>d.poste },
-    { label:'NÂ° SalariÃ©', get:d=>d.numero },
+    { label:'N° Salarié', get:d=>d.numero },
     { label: range.mode === 'mois' ? 'H/mois' : 'H/semaine', get:d=>d.planifiees.toFixed(1) },
-    { label:'DÃ©tail', get:d=>d.details.map(j=>`${j.jour.substring(0,3)} ${j.date}:${j.duree.toFixed(1)}h`).join(' ') },
+    { label:'Détail', get:d=>d.details.map(j=>`${j.jour.substring(0,3)} ${j.date}:${j.duree.toFixed(1)}h`).join(' ') },
   ], `recap_heures_${range.debut}_${range.fin}.csv`);
-  afficherToast('âœ… Export heures tÃ©lÃ©chargÃ©');
+  afficherToast('✅ Export heures téléchargé');
 }
 
-/* ===== RH â€” NOTE INTERNE SALARIÃ‰ ===== */
+/* ===== RH — NOTE INTERNE SALARIÉ ===== */
 function charger_note_interne(salId) {
   const notes = JSON.parse(localStorage.getItem('notes_internes')||'{}');
   return notes[salId]?.texte || '';
@@ -4740,10 +4731,10 @@ function confirmerNoteInterne() {
   notes[salId] = { texte, date: new Date().toISOString() };
   localStorage.setItem('notes_internes', JSON.stringify(notes));
   closeModal('modal-note-interne');
-  afficherToast('ðŸ“ Note enregistrÃ©e');
+  afficherToast('📝 Note enregistrée');
 }
 
-/* ===== FLOTTE â€” PHOTO VÃ‰HICULE ===== */
+/* ===== FLOTTE — PHOTO VÉHICULE ===== */
 function uploaderPhotoVehicule(vehId, input) {
   const file = input.files[0];
   if (!file) return;
@@ -4756,18 +4747,18 @@ function uploaderPhotoVehicule(vehId, input) {
         vehicules[idx].photo = compressed;
         sauvegarder('vehicules', vehicules);
         afficherVehicules();
-        afficherToast('âœ… Photo enregistrÃ©e');
+        afficherToast('✅ Photo enregistrée');
       }
     });
   };
   reader.readAsDataURL(file);
 }
 
-/* ===== FLOTTE â€” HISTORIQUE CONDUCTEURS ===== */
+/* ===== FLOTTE — HISTORIQUE CONDUCTEURS ===== */
 function ouvrirHistoriqueConducteurs(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId);
   if (!veh) return;
-  document.getElementById('hist-cond-titre').textContent = `${veh.immat} â€” ${veh.modele||''}`;
+  document.getElementById('hist-cond-titre').textContent = `${veh.immat} — ${veh.modele||''}`;
   afficherHistoriqueConducteurs(vehId);
   openModal('modal-hist-conducteurs');
 }
@@ -4795,14 +4786,14 @@ function afficherHistoriqueConducteurs(vehId) {
                document.getElementById('hist-conducteurs-' + vehId);
   if (!cont) return;
   if (!hist.length) {
-    cont.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:.85rem">Aucune conduite enregistrÃ©e pour ce vÃ©hicule.</div>';
+    cont.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:.85rem">Aucune conduite enregistrée pour ce véhicule.</div>';
     return;
   }
   cont.innerHTML = hist.map(h => `
     <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:.85rem">
       <div>
         <strong>${h.salNom}</strong>
-        ${h.livNom ? `<span style="font-size:.78rem;color:var(--text-muted)"> Â· ${h.livNom}</span>` : ''}
+        ${h.livNom ? `<span style="font-size:.78rem;color:var(--text-muted)"> · ${h.livNom}</span>` : ''}
         ${h.numLiv ? `<span style="font-size:.72rem;color:var(--text-muted)"> (${h.numLiv})</span>` : ''}
       </div>
       <div style="display:flex;gap:12px;align-items:center">
@@ -4814,11 +4805,11 @@ function afficherHistoriqueConducteurs(vehId) {
 
 /* ===== MESSAGES AUTOMATIQUES BEST EFFORT ===== */
 function verifierMessagesAuto() {
-  if (!salarieCourant) return; // CÃ´tÃ© admin uniquement
-  return; // Cette fonction est cÃ´tÃ© admin, pas salariÃ©
+  if (!salarieCourant) return; // Côté admin uniquement
+  return; // Cette fonction est côté admin, pas salarié
 }
 
-/* CÃ´tÃ© admin : vÃ©rifier si un salariÃ© commence bientÃ´t (H-15min) ou vient de finir (H+30min) */
+/* Côté admin : vérifier si un salarié commence bientôt (H-15min) ou vient de finir (H+30min) */
 function verifierTriggersPlanningAuto() {
   const salaries  = charger('salaries').filter(s=>s.actif);
   const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
@@ -4840,24 +4831,24 @@ function verifierTriggersPlanningAuto() {
     const cleDep = `auto_msg_dep_${s.id}_${auj}`;
     const cleFin = `auto_msg_fin_${s.id}_${auj}`;
 
-    // H-15min avant dÃ©part â†’ message de rappel tournÃ©e
+    // H-15min avant départ → message de rappel tournée
     if (hMin >= debutMin-15 && hMin < debutMin && !localStorage.getItem(cleDep)) {
       const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
       const prenom = s.nom.split(' ')[0];
       msgs.push({ id:genId(), auteur:'admin',
-        texte:`Bonjour ${prenom} ðŸ‘‹ Votre tournÃ©e dÃ©marre Ã  ${jour.heureDebut}. Pensez Ã  faire votre inspection vÃ©hicule et votre relevÃ© km de dÃ©part. Bonne journÃ©e !`,
+        texte:`Bonjour ${prenom} 👋 Votre tournée démarre à ${jour.heureDebut}. Pensez à faire votre inspection véhicule et votre relevé km de départ. Bonne journée !`,
         lu:false, auto:true, creeLe:new Date().toISOString() });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       localStorage.setItem(cleDep, '1');
       mettreAJourBadgeMsgAdmin();
     }
 
-    // H+30min aprÃ¨s fin â†’ rappel km retour
+    // H+30min après fin → rappel km retour
     if (hMin >= finMin+30 && hMin < finMin+60 && !localStorage.getItem(cleFin)) {
       const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
       const prenom = s.nom.split(' ')[0];
       msgs.push({ id:genId(), auteur:'admin',
-        texte:`Bonsoir ${prenom}, n'oubliez pas d'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci ðŸ™`,
+        texte:`Bonsoir ${prenom}, n'oubliez pas d'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci 🙏`,
         lu:false, auto:true, creeLe:new Date().toISOString() });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       localStorage.setItem(cleFin, '1');
@@ -4866,10 +4857,10 @@ function verifierTriggersPlanningAuto() {
   });
 }
 
-// VÃ©rifier toutes les minutes
+// Vérifier toutes les minutes
 setInterval(verifierTriggersPlanningAuto, 60000);
 
-/* ===== MOBILE â€” SWIPE SIDEBAR ===== */
+/* ===== MOBILE — SWIPE SIDEBAR ===== */
 function initSwipeSidebar() {
   let startX = 0, isDragging = false;
   const sidebar  = document.getElementById('sidebar');
@@ -4890,7 +4881,7 @@ function initSwipeSidebar() {
   }, { passive: true });
 }
 
-/* ===== MOBILE â€” PULL TO REFRESH ===== */
+/* ===== MOBILE — PULL TO REFRESH ===== */
 function initPullToRefresh() {
   // Uniquement sur mobile/tactile
   if (!navigator.maxTouchPoints || navigator.maxTouchPoints === 0) return;
@@ -4917,12 +4908,12 @@ function initPullToRefresh() {
     if (diff > 80) {
       const page = document.querySelector('.page.active')?.id?.replace('page-','');
       if (page) naviguerVers(page);
-      afficherToast('ðŸ”„ ActualisÃ©');
+      afficherToast('🔄 Actualisé');
     }
   }, { passive: true });
 }
 
-/* ===== PIÃˆCES JOINTES MESSAGERIE ===== */
+/* ===== PIÈCES JOINTES MESSAGERIE ===== */
 function envoyerMessageAvecPhoto(salId, input) {
   const file = input.files[0];
   if (!file) return;
@@ -4932,20 +4923,20 @@ function envoyerMessageAvecPhoto(salId, input) {
       const messages = JSON.parse(localStorage.getItem('messages_'+salId)||'[]');
       messages.push({
         id: genId(), auteur: 'admin',
-        texte: 'ðŸ“· Photo partagÃ©e',
+        texte: '📷 Photo partagée',
         photo: compressed,
         lu: false, creeLe: new Date().toISOString()
       });
       localStorage.setItem('messages_'+salId, JSON.stringify(messages));
       ouvrirConversation(salId);
-      afficherToast('âœ… Photo envoyÃ©e');
+      afficherToast('✅ Photo envoyée');
     });
   };
   reader.readAsDataURL(file);
 }
 
 /* ===== SON / VIBRATION MESSAGES ===== */
-/* ===== FICHE TOURNÃ‰E JOURNALIÃˆRE PDF ===== */
+/* ===== FICHE TOURNÉE JOURNALIÈRE PDF ===== */
 function genererFicheTournee(salId, date) {
   date = date || aujourdhui();
   const salaries   = charger('salaries');
@@ -4966,7 +4957,7 @@ function genererFicheTournee(salId, date) {
         <div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Fiche de tournÃ©e</div>
+        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Fiche de tournée</div>
         <div style="font-size:1rem;font-weight:700">${dateLabel}</div>
       </div>
     </div>
@@ -4976,19 +4967,19 @@ function genererFicheTournee(salId, date) {
       <div style="background:#f8f9fc;border-radius:10px;padding:14px">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">Chauffeur</div>
         <div style="font-size:1rem;font-weight:700">${sal.nom}</div>
-        ${sal.tel?`<div style="font-size:.82rem;color:#6b7280">ðŸ“ž ${sal.tel}</div>`:''}
+        ${sal.tel?`<div style="font-size:.82rem;color:#6b7280">📞 ${sal.tel}</div>`:''}
       </div>
       <div style="background:#f8f9fc;border-radius:10px;padding:14px">
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">VÃ©hicule</div>
-        <div style="font-size:1rem;font-weight:700">${veh?.immat||'Non affectÃ©'}</div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">Véhicule</div>
+        <div style="font-size:1rem;font-weight:700">${veh?.immat||'Non affecté'}</div>
         <div style="font-size:.82rem;color:#6b7280">${veh?.modele||''}</div>
       </div>
     </div>
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
       ${[
-        ['ðŸ“¦ Livraisons', livraisons.length],
-        ['ðŸ›£ï¸ Km estimÃ©s', totalKm+' km'],
+        ['📦 Livraisons', livraisons.length],
+        ['🛣️ Km estimés', totalKm+' km'],
       ].map(([l,v])=>`<div style="background:#f8f9fc;border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:.72rem;color:#9ca3af;margin-bottom:4px">${l}</div>
         <div style="font-size:1.2rem;font-weight:800">${v}</div>
@@ -4996,7 +4987,7 @@ function genererFicheTournee(salId, date) {
     </div>
 
     <div style="margin-bottom:24px">
-      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:10px">DÃ©tail des livraisons</div>
+      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:10px">Détail des livraisons</div>
       <table style="width:100%;border-collapse:collapse;font-size:.85rem">
         <thead><tr style="background:#f3f4f6">
           <th style="padding:8px 12px;text-align:left;font-weight:600;color:#6b7280">#</th>
@@ -5006,14 +4997,14 @@ function genererFicheTournee(salId, date) {
           <th style="padding:8px 12px;text-align:center;font-weight:600;color:#6b7280">Statut</th>
         </tr></thead>
         <tbody>${livraisons.length === 0
-          ? `<tr><td colspan="5" style="padding:16px;text-align:center;color:#9ca3af">Aucune livraison assignÃ©e</td></tr>`
+          ? `<tr><td colspan="5" style="padding:16px;text-align:center;color:#9ca3af">Aucune livraison assignée</td></tr>`
           : livraisons.map((l,i)=>`
           <tr style="border-bottom:1px solid #f0f0f0">
             <td style="padding:8px 12px;color:#9ca3af">${i+1}</td>
             <td style="padding:8px 12px;font-weight:600">${l.client}</td>
-            <td style="padding:8px 12px;color:#6b7280;font-size:.82rem">${l.arrivee||l.depart||'â€”'}</td>
-            <td style="padding:8px 12px;text-align:right">${l.distance?l.distance+' km':'â€”'}</td>
-            <td style="padding:8px 12px;text-align:center">${l.statut==='livre'?'âœ…':l.statut==='en-cours'?'ðŸš':'â³'}</td>
+            <td style="padding:8px 12px;color:#6b7280;font-size:.82rem">${l.arrivee||l.depart||'—'}</td>
+            <td style="padding:8px 12px;text-align:right">${l.distance?l.distance+' km':'—'}</td>
+            <td style="padding:8px 12px;text-align:center">${l.statut==='livre'?'✅':l.statut==='en-cours'?'🚐':'⏳'}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -5024,41 +5015,41 @@ function genererFicheTournee(salId, date) {
     </div>
 
     <div style="border-top:1px solid #e5e7eb;padding-top:10px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-      <span>${nom} â€” Page 1/1</span><span>${dateExp}</span><span>${params.tel || params.email || ''}</span>
+      <span>${nom} — Page 1/1</span><span>${dateExp}</span><span>${params.tel || params.email || ''}</span>
     </div>
   </div>`;
 
   const win = window.open('', '_blank', 'width=850,height:950');
-  win.document.write(`<!DOCTYPE html><html><head><title>TournÃ©e ${sal.nom} â€” ${date}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>Tournée ${sal.nom} — ${date}</title>
     <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm}</style>
     </head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
-  afficherToast('ðŸ“„ Fiche de tournÃ©e gÃ©nÃ©rÃ©e');
+  afficherToast('📄 Fiche de tournée générée');
 }
 
-/* ===== GOOGLE MAPS â€” DISTANCE AUTO ===== */
-/* ===== VUE COMPACTE / Ã‰TENDUE ===== */
+/* ===== GOOGLE MAPS — DISTANCE AUTO ===== */
+/* ===== VUE COMPACTE / ÉTENDUE ===== */
 let _tableauCompact = false;
 function initDensiteTableau() {
   _tableauCompact = localStorage.getItem('tableau_compact') === '1';
   if (_tableauCompact) document.querySelectorAll('.data-table').forEach(t => t.classList.add('compact'));
   const btn = document.getElementById('btn-densite');
-  if (btn) { btn.textContent = _tableauCompact ? 'âŠž Ã‰tendu' : 'âŠŸ Compact'; btn.classList.toggle('active', _tableauCompact); }
+  if (btn) { btn.textContent = _tableauCompact ? '⊞ Étendu' : '⊟ Compact'; btn.classList.toggle('active', _tableauCompact); }
 }
 
-/* ===== MODÃˆLES DE MESSAGES ===== */
+/* ===== MODÈLES DE MESSAGES ===== */
 const MSG_TEMPLATES = [
-  { label: 'ðŸš€ TournÃ©e prÃªte',   texte: 'Bonjour [prÃ©nom] ðŸ‘‹ Votre tournÃ©e du jour est prÃªte. VÃ©rifiez vos livraisons dans l\'onglet Livraisons. Bonne journÃ©e !' },
-  { label: 'ðŸ›£ï¸ RelevÃ© km',       texte: 'Rappel : pensez Ã  enregistrer votre relevÃ© kilomÃ©trique de retour dans l\'onglet Inspection & Km. Merci !' },
-  { label: 'ðŸš— Inspection',      texte: 'Rappel : inspection vÃ©hicule obligatoire avant le dÃ©part. Prenez les 4 photos demandÃ©es. Merci !' },
-  { label: 'â›½ Plein',           texte: 'Si vous avez fait le plein aujourd\'hui, n\'oubliez pas de le saisir dans l\'onglet Carburant. Merci !' },
-  { label: 'âœ… Bonne journÃ©e',   texte: 'Bonjour Ã  tous ! Bonne journÃ©e de livraisons. Restez prudents sur la route ðŸš' },
+  { label: '🚀 Tournée prête',   texte: 'Bonjour [prénom] 👋 Votre tournée du jour est prête. Vérifiez vos livraisons dans l\'onglet Livraisons. Bonne journée !' },
+  { label: '🛣️ Relevé km',       texte: 'Rappel : pensez à enregistrer votre relevé kilométrique de retour dans l\'onglet Inspection & Km. Merci !' },
+  { label: '🚗 Inspection',      texte: 'Rappel : inspection véhicule obligatoire avant le départ. Prenez les 4 photos demandées. Merci !' },
+  { label: '⛽ Plein',           texte: 'Si vous avez fait le plein aujourd\'hui, n\'oubliez pas de le saisir dans l\'onglet Carburant. Merci !' },
+  { label: '✅ Bonne journée',   texte: 'Bonjour à tous ! Bonne journée de livraisons. Restez prudents sur la route 🚐' },
 ];
 
 function insererTemplate(texte, salNom) {
   const input = document.getElementById('msg-admin-input');
   if (!input) return;
-  input.value = texte.replace('[prÃ©nom]', salNom || '');
+  input.value = texte.replace('[prénom]', salNom || '');
   input.focus();
   input.dispatchEvent(new Event('input'));
 }
@@ -5073,7 +5064,7 @@ function afficherTemplatesMsg(salNom) {
 
 /* ===== MESSAGES AUTOMATIQUES "BEST EFFORT" ===== */
 function verifierMessagesAutomatiques() {
-  if (!document || document.hidden) return; // Ne pas jouer si l'onglet est en arriÃ¨re-plan
+  if (!document || document.hidden) return; // Ne pas jouer si l'onglet est en arrière-plan
   const salaries  = charger('salaries').filter(s => s.actif);
   const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
   const auj       = aujourdhui();
@@ -5094,18 +5085,18 @@ function verifierMessagesAutomatiques() {
     const minutesFin = hFin * 60 + mFin;
     const maintenant = heure * 60 + minute;
 
-    // Rappel dÃ©part : fenÃªtre H-20min Ã  H-10min
+    // Rappel départ : fenêtre H-20min à H-10min
     if (maintenant >= minutesDep - 20 && maintenant <= minutesDep - 10 && !deja[s.id + '_depart']) {
       const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
-      msgs.push({ id:genId(), auteur:'admin', texte:`ðŸš€ Rappel automatique â€” Votre tournÃ©e commence Ã  ${jour.heureDebut}. Pensez Ã  faire votre inspection et votre relevÃ© km de dÃ©part. Bonne journÃ©e ${s.nom} !`, lu:false, creeLe:new Date().toISOString(), auto:true });
+      msgs.push({ id:genId(), auteur:'admin', texte:`🚀 Rappel automatique — Votre tournée commence à ${jour.heureDebut}. Pensez à faire votre inspection et votre relevé km de départ. Bonne journée ${s.nom} !`, lu:false, creeLe:new Date().toISOString(), auto:true });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       deja[s.id + '_depart'] = true;
     }
 
-    // Rappel retour : fenÃªtre H+25min Ã  H+35min
+    // Rappel retour : fenêtre H+25min à H+35min
     if (maintenant >= minutesFin + 25 && maintenant <= minutesFin + 35 && !deja[s.id + '_retour']) {
       const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
-      msgs.push({ id:genId(), auteur:'admin', texte:`ðŸŒ™ Fin de journÃ©e ${s.nom} â€” N'oubliez pas d'enregistrer votre km de retour et votre plein si effectuÃ©. Bonne soirÃ©e ! ðŸ™`, lu:false, creeLe:new Date().toISOString(), auto:true });
+      msgs.push({ id:genId(), auteur:'admin', texte:`🌙 Fin de journée ${s.nom} — N'oubliez pas d'enregistrer votre km de retour et votre plein si effectué. Bonne soirée ! 🙏`, lu:false, creeLe:new Date().toISOString(), auto:true });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       deja[s.id + '_retour'] = true;
     }
@@ -5114,7 +5105,7 @@ function verifierMessagesAutomatiques() {
   localStorage.setItem(cle, JSON.stringify(deja));
 }
 
-/* ===== TAUX DE PONCTUALITÃ‰ ===== */
+/* ===== TAUX DE PONCTUALITÉ ===== */
 function calculerTauxPonctualite() {
   const livraisons = charger('livraisons');
   const total  = livraisons.filter(l => l.statut !== 'en-attente').length;
@@ -5130,7 +5121,7 @@ function afficherTopClients() {
   const cont       = document.getElementById('top-clients-list');
   if (!cont) return;
 
-  // AgrÃ©ger par client
+  // Agréger par client
   const stats = {};
   livraisons.forEach(l => {
     const nom = l.client;
@@ -5142,28 +5133,28 @@ function afficherTopClients() {
   });
 
   const sorted = Object.values(stats).sort((a,b) => b.ca - a.ca).slice(0, 8);
-  if (!sorted.length) { cont.innerHTML = '<div class="empty-illustrated"><div class="ei-icon">ðŸ§‘â€ðŸ’¼</div><div class="ei-title">Aucun client</div></div>'; return; }
+  if (!sorted.length) { cont.innerHTML = '<div class="empty-illustrated"><div class="ei-icon">🧑‍💼</div><div class="ei-title">Aucun client</div></div>'; return; }
 
-  const medals = ['ðŸ¥‡','ðŸ¥ˆ','ðŸ¥‰'];
+  const medals = ['🥇','🥈','🥉'];
   cont.innerHTML = sorted.map((c, i) => `
     <div class="client-score">
       <span class="client-score-rank">${medals[i] || (i+1)}</span>
       <div class="client-score-info">
         <div style="font-weight:600">${c.nom}</div>
-        <div style="font-size:.75rem;color:var(--text-muted)">${c.nb} livraison(s) Â· DerniÃ¨re : ${c.derniere||'â€”'}</div>
-        ${c.impaye > 0 ? `<div style="font-size:.72rem;color:var(--red)">âš ï¸ ${euros(c.impaye)} impayÃ©</div>` : ''}
+        <div style="font-size:.75rem;color:var(--text-muted)">${c.nb} livraison(s) · Dernière : ${c.derniere||'—'}</div>
+        ${c.impaye > 0 ? `<div style="font-size:.72rem;color:var(--red)">⚠️ ${euros(c.impaye)} impayé</div>` : ''}
       </div>
       <span class="client-score-ca">${euros(c.ca)}</span>
     </div>`).join('');
 }
 
-/* ===== SUIVI CONGÃ‰S / ABSENCES ===== */
+/* ===== SUIVI CONGÉS / ABSENCES ===== */
 /* ===== BROADCAST MESSAGE ===== */
 function envoyerBroadcast() {
   const texte = document.getElementById('broadcast-texte')?.value.trim();
-  if (!texte) { afficherToast('âš ï¸ Saisissez un message', 'error'); return; }
+  if (!texte) { afficherToast('⚠️ Saisissez un message', 'error'); return; }
   const destinataires = getBroadcastDestinataires();
-  if (!destinataires.length) { afficherToast('âš ï¸ Aucun destinataire sÃ©lectionnÃ©', 'error'); return; }
+  if (!destinataires.length) { afficherToast('⚠️ Aucun destinataire sélectionné', 'error'); return; }
   destinataires.forEach(s => {
     const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
     msgs.push({ id: genId(), auteur:'admin', texte, lu:false, creeLe: new Date().toISOString() });
@@ -5173,7 +5164,7 @@ function envoyerBroadcast() {
   if (el) el.value = '';
   mettreAJourBadgeMsgAdmin();
   afficherMessagerie();
-  afficherToast(`âœ… Message envoyÃ© Ã  ${destinataires.length} salariÃ©(s)`);
+  afficherToast(`✅ Message envoyé à ${destinataires.length} salarié(s)`);
 }
 
 /* ===== ALERTES PERMIS / ASSURANCE ===== */
@@ -5186,13 +5177,13 @@ function verifierDocumentsSalaries() {
   salaries.forEach(s => {
     if (s.datePermis) {
       const d = new Date(s.datePermis);
-      if (d < auj) ajouterAlerteSiAbsente('permis_expire', `âš ï¸ Permis expirÃ© â€” ${s.nom}`, { salId:s.id, salNom:s.nom });
-      else if (d < dans60) ajouterAlerteSiAbsente('permis_proche', `ðŸªª Permis expire bientÃ´t â€” ${s.nom} (${s.datePermis})`, { salId:s.id, salNom:s.nom });
+      if (d < auj) ajouterAlerteSiAbsente('permis_expire', `⚠️ Permis expiré — ${s.nom}`, { salId:s.id, salNom:s.nom });
+      else if (d < dans60) ajouterAlerteSiAbsente('permis_proche', `🪪 Permis expire bientôt — ${s.nom} (${s.datePermis})`, { salId:s.id, salNom:s.nom });
     }
     if (s.dateAssurance) {
       const d = new Date(s.dateAssurance);
-      if (d < auj) ajouterAlerteSiAbsente('assurance_expire', `âš ï¸ Assurance expirÃ©e â€” ${s.nom}`, { salId:s.id, salNom:s.nom });
-      else if (d < dans30) ajouterAlerteSiAbsente('assurance_proche', `ðŸ›¡ï¸ Assurance expire bientÃ´t â€” ${s.nom} (${s.dateAssurance})`, { salId:s.id, salNom:s.nom });
+      if (d < auj) ajouterAlerteSiAbsente('assurance_expire', `⚠️ Assurance expirée — ${s.nom}`, { salId:s.id, salNom:s.nom });
+      else if (d < dans30) ajouterAlerteSiAbsente('assurance_proche', `🛡️ Assurance expire bientôt — ${s.nom} (${s.dateAssurance})`, { salId:s.id, salNom:s.nom });
     }
   });
   afficherBadgeAlertes();
@@ -5201,9 +5192,9 @@ function verifierDocumentsSalaries() {
 /* ===== TEMPLATES SMS ===== */
 const TEMPLATES_SMS = [
   { id:1, titre:'Avis de passage',    texte:"Bonjour, votre livreur [NOM] sera chez vous prochainement. MCA Logistics." },
-  { id:2, titre:'Livraison effectuÃ©e',texte:"Votre commande a Ã©tÃ© livrÃ©e par [NOM]. Merci de votre confiance. MCA Logistics." },
-  { id:3, titre:'Retard',             texte:"Nous vous informons d\u2019un lÃ©ger retard sur votre livraison. Merci de votre comprÃ©hension. MCA Logistics." },
-  { id:4, titre:'Tentative Ã©chouÃ©e',  texte:"Nous avons tentÃ© de vous livrer sans succÃ¨s. Merci de nous recontacter. MCA Logistics." },
+  { id:2, titre:'Livraison effectuée',texte:"Votre commande a été livrée par [NOM]. Merci de votre confiance. MCA Logistics." },
+  { id:3, titre:'Retard',             texte:"Nous vous informons d\u2019un léger retard sur votre livraison. Merci de votre compréhension. MCA Logistics." },
+  { id:4, titre:'Tentative échouée',  texte:"Nous avons tenté de vous livrer sans succès. Merci de nous recontacter. MCA Logistics." },
 ];
 
 function afficherTemplatesSMS() {
@@ -5214,7 +5205,7 @@ function afficherTemplatesSMS() {
       <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">${t.titre}</div>
       <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;font-style:italic">${t.texte}</div>
       <button class="btn-secondary" style="font-size:.75rem;padding:4px 10px"
-        onclick="copierTemplateSMS('${t.id}')">ðŸ“‹ Copier</button>
+        onclick="copierTemplateSMS('${t.id}')">📋 Copier</button>
     </div>`).join('');
 }
 
@@ -5222,13 +5213,13 @@ function copierTemplateSMS(id) {
   const t = TEMPLATES_SMS.find(x=>x.id===parseInt(id));
   if (!t) return;
   navigator.clipboard?.writeText(t.texte).then(()=>{
-    afficherToast('ðŸ“‹ Template SMS copiÃ© dans le presse-papier');
+    afficherToast('📋 Template SMS copié dans le presse-papier');
   }).catch(()=>{
     // Fallback si clipboard non disponible
     const ta = document.createElement('textarea');
     ta.value = t.texte; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    afficherToast('ðŸ“‹ Template SMS copiÃ©');
+    afficherToast('📋 Template SMS copié');
   });
 }
 
@@ -5258,15 +5249,15 @@ function rechercheUniverselle(q) {
   const res = [];
 
   livraisons.filter(l => (l.client||'').toLowerCase().includes(q)||(l.numLiv||'').toLowerCase().includes(q)||(l.chaufNom||'').toLowerCase().includes(q))
-    .slice(0,4).forEach(l => res.push({ label:`ðŸ“¦ ${l.numLiv||''} â€” ${l.client}`, sub:`${l.date} Â· ${euros(l.prix||0)}`, action:`naviguerVers('livraisons')` }));
+    .slice(0,4).forEach(l => res.push({ label:`📦 ${l.numLiv||''} — ${l.client}`, sub:`${l.date} · ${euros(l.prix||0)}`, action:`naviguerVers('livraisons')` }));
   salaries.filter(s => s.nom.toLowerCase().includes(q)||s.numero.toLowerCase().includes(q))
-    .slice(0,3).forEach(s => res.push({ label:`ðŸ‘¤ ${s.nom}`, sub:`NÂ° ${s.numero}`, action:`naviguerVers('salaries')` }));
+    .slice(0,3).forEach(s => res.push({ label:`👤 ${s.nom}`, sub:`N° ${s.numero}`, action:`naviguerVers('salaries')` }));
   vehicules.filter(v => v.immat.toLowerCase().includes(q)||(v.modele||'').toLowerCase().includes(q))
-    .slice(0,3).forEach(v => res.push({ label:`ðŸš ${v.immat}`, sub:v.modele||'', action:`naviguerVers('vehicules')` }));
+    .slice(0,3).forEach(v => res.push({ label:`🚐 ${v.immat}`, sub:v.modele||'', action:`naviguerVers('vehicules')` }));
   clients.filter(c => c.nom.toLowerCase().includes(q))
-    .slice(0,3).forEach(c => res.push({ label:`ðŸ§‘â€ðŸ’¼ ${c.nom}`, sub:c.adresse||c.tel||'', action:`naviguerVers('livraisons')` }));
+    .slice(0,3).forEach(c => res.push({ label:`🧑‍💼 ${c.nom}`, sub:c.adresse||c.tel||'', action:`naviguerVers('livraisons')` }));
 
-  if (!res.length) { cont.innerHTML='<div style="padding:10px 14px;color:var(--text-muted);font-size:.85rem">Aucun rÃ©sultat</div>'; cont.style.display='block'; return; }
+  if (!res.length) { cont.innerHTML='<div style="padding:10px 14px;color:var(--text-muted);font-size:.85rem">Aucun résultat</div>'; cont.style.display='block'; return; }
   cont.innerHTML = res.map(r => `
     <div onclick="${r.action};fermerRecherche()" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
       <div style="font-size:.88rem;font-weight:500">${r.label}</div>
@@ -5286,19 +5277,19 @@ function afficherClients() {
   const clients = JSON.parse(localStorage.getItem('clients')||'[]');
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
-  if (!clients.length) { tb.innerHTML=emptyState('ðŸ§‘â€ðŸ’¼','Aucun client enregistrÃ©','Enregistrez vos clients pour activer l\'auto-complÃ©tion lors de la crÃ©ation des livraisons.','+ Nouveau client',"openModal('modal-client')"); return; }
+  if (!clients.length) { tb.innerHTML=emptyState('🧑‍💼','Aucun client enregistré','Enregistrez vos clients pour activer l\'auto-complétion lors de la création des livraisons.','+ Nouveau client',"openModal('modal-client')"); return; }
   const livraisons = charger('livraisons');
   tb.innerHTML = clients.map(c => {
     const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
     const caC   = livsC.reduce((s,l)=>s+(l.prix||0),0);
     return `<tr>
       <td><strong>${c.nom}</strong></td>
-      <td>${c.tel||'â€”'}</td>
-      <td style="font-size:.82rem">${c.adresse||'â€”'}</td>
-      <td>${livsC.length} Â· ${euros(caC)}</td>
+      <td>${c.tel||'—'}</td>
+      <td style="font-size:.82rem">${c.adresse||'—'}</td>
+      <td>${livsC.length} · ${euros(caC)}</td>
       <td>
-        <button class="btn-icon" onclick="preFillLivraisonClient('${c.id}')">ðŸ“¦</button>
-        <button class="btn-icon danger" onclick="supprimerClient('${c.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="preFillLivraisonClient('${c.id}')">📦</button>
+        <button class="btn-icon danger" onclick="supprimerClient('${c.id}')">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -5309,24 +5300,24 @@ function ajouterClient() {
   const prenom  = document.getElementById('cl-prenom')?.value.trim() || '';
   const tel     = document.getElementById('cl-tel')?.value.trim();
   const adresse = document.getElementById('cl-adresse')?.value.trim();
-  if (!nom) { afficherToast('âš ï¸ Nom obligatoire','error'); return; }
+  if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   const clients = JSON.parse(localStorage.getItem('clients')||'[]');
-  if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('âš ï¸ Client dÃ©jÃ  existant','error'); return; }
+  if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Client déjà existant','error'); return; }
   clients.push({ id:genId(), nom, prenom, tel, adresse, creeLe:new Date().toISOString() });
   localStorage.setItem('clients', JSON.stringify(clients));
   ['cl-nom','cl-prenom','cl-tel','cl-adresse'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   closeModal('modal-client');
   afficherClients();
-  afficherToast('âœ… Client ajoutÃ©');
+  afficherToast('✅ Client ajouté');
 }
 
 async function supprimerClient(id) {
-  const _ok6 = await confirmDialog('Supprimer ce client ?', {titre:'Supprimer le client',icone:'ðŸ§‘â€ðŸ’¼',btnLabel:'Supprimer'});
+  const _ok6 = await confirmDialog('Supprimer ce client ?', {titre:'Supprimer le client',icone:'🧑‍💼',btnLabel:'Supprimer'});
   if (!_ok6) return;
   const clients = JSON.parse(localStorage.getItem('clients')||'[]').filter(c=>c.id!==id);
   localStorage.setItem('clients', JSON.stringify(clients));
   afficherClients();
-  afficherToast('ðŸ—‘ï¸ Client supprimÃ©');
+  afficherToast('🗑️ Client supprimé');
 }
 
 function preFillLivraisonClient(id) {
@@ -5344,7 +5335,7 @@ function preFillLivraisonClient(id) {
   },100);
 }
 
-/* Auto-complÃ©tion client dans modal livraison */
+/* Auto-complétion client dans modal livraison */
 function autoCompleteClient(val) {
   const clients = JSON.parse(localStorage.getItem('clients')||'[]');
   const sug = document.getElementById('client-suggestions');
@@ -5353,14 +5344,14 @@ function autoCompleteClient(val) {
   sug.innerHTML = matches.map(c=>`<div onclick="document.getElementById('liv-client').value='${c.nom}';if(document.getElementById('liv-zone')&&'${c.adresse}')document.getElementById('liv-zone').value='${c.adresse}';if(document.getElementById('liv-depart')&&'${c.adresse}')document.getElementById('liv-depart').value='${c.adresse}';if(document.getElementById('liv-arrivee'))document.getElementById('liv-arrivee').value='';this.parentElement.innerHTML=''" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${c.nom}${c.adresse?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${c.adresse}</span>`:''}</div>`).join('');
 }
 
-/* ===== COPIER PLANNING SEMAINE PRÃ‰CÃ‰DENTE ===== */
+/* ===== COPIER PLANNING SEMAINE PRÉCÉDENTE ===== */
 function copierSemainePrecedente() {
   const salId = document.getElementById('plan-salarie').value;
-  if (!salId) { afficherToast('âš ï¸ Choisissez un salariÃ©','error'); return; }
+  if (!salId) { afficherToast('⚠️ Choisissez un salarié','error'); return; }
   const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
   const plan = plannings.find(p=>p.salId===salId);
-  if (!plan?.semaine?.length) { afficherToast('âš ï¸ Aucun planning prÃ©cÃ©dent Ã  copier','error'); return; }
-  // PrÃ©-remplir la grille avec les donnÃ©es existantes
+  if (!plan?.semaine?.length) { afficherToast('⚠️ Aucun planning précédent à copier','error'); return; }
+  // Pré-remplir la grille avec les données existantes
   JOURS.forEach(jour => {
     const j = plan.semaine.find(s=>s.jour===jour);
     const cb = document.getElementById('plan-travaille-'+jour);
@@ -5375,10 +5366,10 @@ function copierSemainePrecedente() {
       }
     }
   });
-  afficherToast('âœ… Semaine prÃ©cÃ©dente copiÃ©e â€” modifiez si nÃ©cessaire');
+  afficherToast('✅ Semaine précédente copiée — modifiez si nécessaire');
 }
 
-/* ===== DÃ‰CONNEXION AUTO ADMIN (30 min inactivitÃ©) ===== */
+/* ===== DÉCONNEXION AUTO ADMIN (30 min inactivité) ===== */
 let _timerInactivite = null;
 function resetTimerInactivite() {
   clearTimeout(_timerInactivite);
@@ -5388,13 +5379,13 @@ function resetTimerInactivite() {
     sessionStorage.removeItem('admin_login');
     sessionStorage.removeItem('admin_email');
     sessionStorage.removeItem('admin_nom');
-    alert('â±ï¸ Session expirÃ©e aprÃ¨s 30 min d\'inactivitÃ©. Reconnectez-vous.');
+    alert('⏱️ Session expirée après 30 min d\'inactivité. Reconnectez-vous.');
     window.location.href = 'login.html';
   }, 30 * 60 * 1000);
 }
 ['click','keydown','mousemove','scroll'].forEach(ev => document.addEventListener(ev, resetTimerInactivite, { passive:true }));
 
-/* ===== PARAMÃˆTRES ADMIN ===== */
+/* ===== PARAMÈTRES ADMIN ===== */
 function toggleParamMdp(inputId) {
   const input = document.getElementById(inputId);
   if (input) input.type = input.type === 'password' ? 'text' : 'password';
@@ -5404,44 +5395,44 @@ async function changerMdpAdmin() {
   const actuel    = document.getElementById('param-mdp-actuel').value;
   const nouveau   = document.getElementById('param-mdp-nouveau').value;
   const confirmer = document.getElementById('param-mdp-confirmer').value;
-  if (!actuel || !nouveau || !confirmer) { afficherToast('âš ï¸ Remplissez tous les champs', 'error'); return; }
+  if (!actuel || !nouveau || !confirmer) { afficherToast('⚠️ Remplissez tous les champs', 'error'); return; }
   const sessionAdmin = getAdminSession();
   const comptes = getAdminAccounts();
   const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
-  if (idx === -1) { afficherToast('âš ï¸ Session administrateur introuvable', 'error'); return; }
-  if (actuel !== comptes[idx].motDePasse) { afficherToast('âš ï¸ Mot de passe actuel incorrect', 'error'); return; }
-  if (nouveau.length < 4) { afficherToast('âš ï¸ Nouveau mot de passe trop court (4 min)', 'error'); return; }
-  if (nouveau !== confirmer) { afficherToast('âš ï¸ Les mots de passe ne correspondent pas', 'error'); return; }
+  if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
+  if (actuel !== comptes[idx].motDePasse) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
+  if (nouveau.length < 4) { afficherToast('⚠️ Nouveau mot de passe trop court (4 min)', 'error'); return; }
+  if (nouveau !== confirmer) { afficherToast('⚠️ Les mots de passe ne correspondent pas', 'error'); return; }
   const client = getSupabaseClientSafe();
   const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
   if (supabaseReady) {
     if (sessionAdmin.authMode !== 'supabase' || !client) {
-      afficherToast('âš ï¸ Connectez-vous via Supabase pour changer un mot de passe admin synchronisÃ©.', 'error');
+      afficherToast('⚠️ Connectez-vous via Supabase pour changer un mot de passe admin synchronisé.', 'error');
       return;
     }
   }
   if (supabaseReady) {
     const sessionResult = await client.auth.getSession();
     if (!sessionResult?.data?.session) {
-      afficherToast('âš ï¸ Session Supabase administrateur introuvable. Reconnectez-vous.', 'error');
+      afficherToast('⚠️ Session Supabase administrateur introuvable. Reconnectez-vous.', 'error');
       return;
     }
     const updateResult = await client.auth.updateUser({ password: nouveau });
     if (updateResult.error) {
-      afficherToast(`âš ï¸ Mot de passe Supabase non mis Ã  jour (${updateResult.error.message})`, 'error');
+      afficherToast(`⚠️ Mot de passe Supabase non mis à jour (${updateResult.error.message})`, 'error');
       return;
     }
   }
   comptes[idx].motDePasse = nouveau;
   saveAdminAccounts(comptes);
   ['param-mdp-actuel','param-mdp-nouveau','param-mdp-confirmer'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  afficherToast(supabaseReady ? 'âœ… Mot de passe administrateur mis Ã  jour et synchronisÃ© avec Supabase' : 'âœ… Mot de passe administrateur mis Ã  jour pour votre compte');
+  afficherToast(supabaseReady ? '✅ Mot de passe administrateur mis à jour et synchronisé avec Supabase' : '✅ Mot de passe administrateur mis à jour pour votre compte');
 }
 
 function sauvegarderObjectifCA() {
   const val = parseFloat(document.getElementById('param-objectif-ca')?.value) || 0;
   localStorage.setItem('objectif_ca_mensuel', val);
-  afficherToast('âœ… Objectif CA enregistrÃ© : ' + euros(val));
+  afficherToast('✅ Objectif CA enregistré : ' + euros(val));
 }
 
 function chargerParametres() {
@@ -5461,7 +5452,7 @@ function chargerParametres() {
   const maxTentEl = document.getElementById('param-max-tentatives');
   if (maxTentEl) maxTentEl.value = localStorage.getItem('max_tentatives') || '5';
   const compteEl = document.getElementById('param-admin-compte');
-  if (compteEl) compteEl.textContent = 'Compte connectÃ© : ' + (sessionAdmin.identifiant || 'â€”');
+  if (compteEl) compteEl.textContent = 'Compte connecté : ' + (sessionAdmin.identifiant || '—');
   appliquerBranding();
   afficherPostes();
   majResumeSauvegardeAdmin();
@@ -5478,23 +5469,23 @@ function afficherPostes() {
   cont.innerHTML = postes.map((p,i) => `
     <span style="display:inline-flex;align-items:center;gap:6px;background:rgba(245,166,35,.1);border:1px solid rgba(245,166,35,.25);color:var(--accent);padding:5px 12px;border-radius:20px;font-size:.82rem;font-weight:600">
       ${p}
-      <button onclick="supprimerPoste(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:.9rem;padding:0;line-height:1" title="Supprimer">âœ•</button>
+      <button onclick="supprimerPoste(${i})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:.9rem;padding:0;line-height:1" title="Supprimer">✕</button>
     </span>`).join('');
-  // Mettre Ã  jour les selects de poste partout
+  // Mettre à jour les selects de poste partout
   majSelectsPostes();
 }
 
 function ajouterPoste() {
   const input = document.getElementById('nouveau-poste');
   const nom = input?.value.trim();
-  if (!nom) { afficherToast('âš ï¸ Nom du poste vide','error'); return; }
+  if (!nom) { afficherToast('⚠️ Nom du poste vide','error'); return; }
   const postes = getPostes();
-  if (postes.find(p=>p.toLowerCase()===nom.toLowerCase())) { afficherToast('âš ï¸ Ce poste existe dÃ©jÃ ','error'); return; }
+  if (postes.find(p=>p.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Ce poste existe déjà','error'); return; }
   postes.push(nom);
   sauvegarderPostes(postes);
   input.value = '';
   afficherPostes();
-  afficherToast('âœ… Poste ajoutÃ© : ' + nom);
+  afficherToast('✅ Poste ajouté : ' + nom);
 }
 
 function supprimerPoste(idx) {
@@ -5502,7 +5493,7 @@ function supprimerPoste(idx) {
   postes.splice(idx, 1);
   sauvegarderPostes(postes);
   afficherPostes();
-  afficherToast('ðŸ—‘ï¸ Poste supprimÃ©');
+  afficherToast('🗑️ Poste supprimé');
 }
 
 function majSelectsPostes() {
@@ -5544,7 +5535,7 @@ function sauvegarderParametres() {
   sessionStorage.setItem('admin_nom', adminNom);
   chargerNomEntreprise();
   appliquerBranding();
-  afficherToast('âœ… ParamÃ¨tres enregistrÃ©s');
+  afficherToast('✅ Paramètres enregistrés');
 }
 
 function changerLogoEntreprise(input) {
@@ -5554,7 +5545,7 @@ function changerLogoEntreprise(input) {
   reader.onload = function() {
     localStorage.setItem('logo_entreprise', reader.result);
     appliquerBranding();
-    afficherToast('âœ… Logo mis Ã  jour');
+    afficherToast('✅ Logo mis à jour');
     if (input) input.value = '';
   };
   reader.readAsDataURL(file);
@@ -5565,25 +5556,25 @@ function supprimerLogoEntreprise() {
   const input = document.getElementById('param-logo-file');
   if (input) input.value = '';
   appliquerBranding();
-  afficherToast('ðŸ—‘ï¸ Logo supprimÃ©');
+  afficherToast('🗑️ Logo supprimé');
 }
 
 function sauvegarderTVA() {
   const taux = parseFloat(document.getElementById('param-taux-tva')?.value) || 20;
   localStorage.setItem('taux_tva', taux);
-  afficherToast('âœ… Taux TVA enregistrÃ© : ' + taux + '%');
+  afficherToast('✅ Taux TVA enregistré : ' + taux + '%');
 }
 
 function sauvegarderObjectifLivraisons() {
   const val = parseInt(document.getElementById('param-objectif-livraisons')?.value) || 0;
   localStorage.setItem('objectif_livraisons_mensuel', val);
-  afficherToast('âœ… Objectif ' + val + ' livraisons/mois enregistrÃ©');
+  afficherToast('✅ Objectif ' + val + ' livraisons/mois enregistré');
 }
 
 function sauvegarderMaxTentatives() {
   const val = parseInt(document.getElementById('param-max-tentatives')?.value) || 5;
   localStorage.setItem('max_tentatives', val);
-  afficherToast('âœ… Blocage aprÃ¨s ' + val + ' tentatives');
+  afficherToast('✅ Blocage après ' + val + ' tentatives');
 }
 
 function sauvegarderRelanceDelai() {
@@ -5592,14 +5583,14 @@ function sauvegarderRelanceDelai() {
   // Synchroniser les deux inputs
   const p = document.getElementById('param-relance-delai'); if (p) p.value = val;
   const r = document.getElementById('relance-delai-input'); if (r) r.value = val;
-  afficherToast('âœ… DÃ©lai relance : ' + val + ' jours');
+  afficherToast('✅ Délai relance : ' + val + ' jours');
 }
 
 function appliquerAccentColor() {
   const color = document.getElementById('param-accent-color')?.value || '#f5a623';
   document.documentElement.style.setProperty('--accent', color);
   localStorage.setItem('accent_color', color);
-  afficherToast('ðŸŽ¨ Couleur appliquÃ©e');
+  afficherToast('🎨 Couleur appliquée');
 }
 
 function majResumeSauvegardeAdmin() {
@@ -5640,7 +5631,7 @@ function exporterSauvegardeAdmin() {
   URL.revokeObjectURL(url);
   localStorage.setItem('backup_admin_last_export', payload.exportedAt);
   majResumeSauvegardeAdmin();
-  afficherToast('Sauvegarde tÃ©lÃ©chargÃ©e');
+  afficherToast('Sauvegarde téléchargée');
 }
 
 async function importerSauvegardeAdmin(input) {
@@ -5654,7 +5645,7 @@ async function importerSauvegardeAdmin(input) {
       if (input) input.value = '';
       return;
     }
-    const ok = await confirmDialog('Restaurer cette sauvegarde va remplacer les donnÃ©es actuelles de lâ€™application sur ce navigateur. Continuer ?', { titre:'Restaurer une sauvegarde', icone:'ðŸ’¾', btnLabel:'Restaurer' });
+    const ok = await confirmDialog('Restaurer cette sauvegarde va remplacer les données actuelles de l’application sur ce navigateur. Continuer ?', { titre:'Restaurer une sauvegarde', icone:'💾', btnLabel:'Restaurer' });
     if (!ok) {
       if (input) input.value = '';
       return;
@@ -5665,7 +5656,7 @@ async function importerSauvegardeAdmin(input) {
     });
     localStorage.setItem('backup_admin_last_export', payload.exportedAt || new Date().toISOString());
     if (input) input.value = '';
-    afficherToast('Sauvegarde restaurÃ©e');
+    afficherToast('Sauvegarde restaurée');
     setTimeout(() => window.location.reload(), 300);
   } catch (err) {
     console.error(err);
@@ -5681,46 +5672,46 @@ function prixHT(prixTTC, tauxTVA) {
 function getTauxTVA() {
   return parseFloat(localStorage.getItem('taux_tva') || '20');
 }
-/* ===== SOLDE TRÃ‰SORERIE ===== */
+/* ===== SOLDE TRÉSORERIE ===== */
 function calculerSoldeTresorerie() {
   const mois      = aujourdhui().slice(0,7);
   const livraisons= charger('livraisons').filter(l => (l.date||'').startsWith(mois));
   const carburant = charger('carburant').filter(p => (p.date||'').startsWith(mois));
   const charges   = charger('charges').filter(c => (c.date||'').startsWith(mois));
 
-  const encaisse  = livraisons.filter(l => l.statutPaiement==='payÃ©').reduce((s,l)=>s+(l.prix||0), 0);
+  const encaisse  = livraisons.filter(l => l.statutPaiement==='payé').reduce((s,l)=>s+(l.prix||0), 0);
   const depenses  = carburant.reduce((s,p)=>s+(p.total||0), 0)
                   + charges.reduce((s,c)=>s+(c.montant||0), 0);
   return { encaisse, depenses, solde: encaisse - depenses };
 }
 
-/* ===== CATÃ‰GORIES DE CHARGES ===== */
+/* ===== CATÉGORIES DE CHARGES ===== */
 function afficherCharges() {
   var moisStr = getChargesMoisStr();
   var charges = charger('charges').filter(function(c){return (c.date||'').startsWith(moisStr);}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
   const tb = document.getElementById('tb-charges');
   if (!tb) return;
 
-  if (!charges.length) { tb.innerHTML = emptyState('ðŸ’¸','Aucune charge ce mois','Changez de mois ou ajoutez une charge.'); return; }
+  if (!charges.length) { tb.innerHTML = emptyState('💸','Aucune charge ce mois','Changez de mois ou ajoutez une charge.'); return; }
 
   const total = charges.reduce((s,c)=>s+(c.montant||0),0);
   const totalEl = document.getElementById('charges-total-mois');
   if (totalEl) totalEl.textContent = euros(total);
 
-  const catIcons = { carburant:'â›½', peage:'ðŸ›£ï¸', entretien:'ðŸ”§', assurance:'ðŸ›¡ï¸', autre:'ðŸ“' };
+  const catIcons = { carburant:'⛽', peage:'🛣️', entretien:'🔧', assurance:'🛡️', autre:'📝' };
   tb.innerHTML = charges.map(c => {
     const ht = c.montantHT || (c.montant||0) / (1 + (c.tauxTVA||20)/100);
     const tvaM = (c.montant||0) - ht;
     return `<tr>
     <td>${c.date}</td>
-    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'ðŸ“'} ${c.categorie||'autre'}</span></td>
-    <td>${c.description||'â€”'}</td>
-    <td>${c.vehNom||'â€”'}</td>
+    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</span></td>
+    <td>${c.description||'—'}</td>
+    <td>${c.vehNom||'—'}</td>
     <td style="font-size:.85rem">${euros(ht)}</td>
     <td style="font-size:.82rem;color:var(--text-muted)">${euros(tvaM)}</td>
     <td><strong>${euros(c.montant||0)}</strong></td>
     <td>
-      <button class="btn-icon danger" onclick="supprimerCharge('${c.id}')">ðŸ—‘ï¸</button>
+      <button class="btn-icon danger" onclick="supprimerCharge('${c.id}')">🗑️</button>
     </td>
   </tr>`;
   }).join('');
@@ -5735,7 +5726,7 @@ function ajouterCharge() {
   const montant   = parseFloat(document.getElementById('charge-montant')?.value) || (montantHT * (1 + tauxTVA/100));
   const vehId     = document.getElementById('charge-veh')?.value || '';
 
-  if (!montant && !montantHT) { afficherToast('âš ï¸ Montant obligatoire','error'); return; }
+  if (!montant && !montantHT) { afficherToast('⚠️ Montant obligatoire','error'); return; }
 
   const vehicule = vehId ? charger('vehicules').find(v=>v.id===vehId) : null;
   const charges  = charger('charges');
@@ -5747,17 +5738,17 @@ function ajouterCharge() {
   afficherCharges();
   rafraichirDashboard();
   afficherRentabilite();
-  afficherToast('âœ… Charge enregistrÃ©e');
+  afficherToast('✅ Charge enregistrée');
 }
 
 async function supprimerCharge(id) {
-  const ok = await confirmDialog('Supprimer cette charge ?',{titre:'Supprimer',icone:'ðŸ’¸',btnLabel:'Supprimer'});
+  const ok = await confirmDialog('Supprimer cette charge ?',{titre:'Supprimer',icone:'💸',btnLabel:'Supprimer'});
   if (!ok) return;
   sauvegarder('charges', charger('charges').filter(c=>c.id!==id));
   afficherCharges();
   rafraichirDashboard();
   afficherRentabilite();
-  afficherToast('ðŸ—‘ï¸ Charge supprimÃ©e');
+  afficherToast('🗑️ Charge supprimée');
 }
 
 function exporterChargesPDF() {
@@ -5766,30 +5757,30 @@ function exporterChargesPDF() {
   const nom = params.nom || 'MCA Logistics';
   const dateExp = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
   const total = charges.reduce((s,c)=>s+(c.montant||0),0);
-  const catIcons = {carburant:'â›½',peage:'ðŸ›£ï¸',entretien:'ðŸ”§',assurance:'ðŸ›¡ï¸',autre:'ðŸ“'};
+  const catIcons = {carburant:'⛽',peage:'🛣️',entretien:'🔧',assurance:'🛡️',autre:'📝'};
 
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
       <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">RÃ©capitulatif des charges</div><div style="font-size:1rem;font-weight:700">Total : ${euros(total)}</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
+      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif des charges</div><div style="font-size:1rem;font-weight:700">Total : ${euros(total)}</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left">Date</th><th style="padding:8px 12px;text-align:left">CatÃ©gorie</th><th style="padding:8px 12px;text-align:left">Description</th><th style="padding:8px 12px;text-align:left">VÃ©hicule</th><th style="padding:8px 12px;text-align:right">Montant</th></tr></thead>
+      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left">Date</th><th style="padding:8px 12px;text-align:left">Catégorie</th><th style="padding:8px 12px;text-align:left">Description</th><th style="padding:8px 12px;text-align:left">Véhicule</th><th style="padding:8px 12px;text-align:right">Montant</th></tr></thead>
       <tbody>${charges.map((c,i)=>`<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
-        <td style="padding:8px 12px">${c.date||'â€”'}</td>
-        <td style="padding:8px 12px">${catIcons[c.categorie]||'ðŸ“'} ${c.categorie||'autre'}</td>
-        <td style="padding:8px 12px">${c.description||'â€”'}</td>
-        <td style="padding:8px 12px">${c.vehNom||'â€”'}</td>
+        <td style="padding:8px 12px">${c.date||'—'}</td>
+        <td style="padding:8px 12px">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</td>
+        <td style="padding:8px 12px">${c.description||'—'}</td>
+        <td style="padding:8px 12px">${c.vehNom||'—'}</td>
         <td style="padding:8px 12px;text-align:right;font-weight:700">${euros(c.montant||0)}</td>
       </tr>`).join('')}</tbody>
     </table>
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong style="font-size:1rem">Total : ${euros(total)}</strong></div>
-    <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>GÃ©nÃ©rÃ© par MCA Logistics â€” ${nom}</span><span>${dateExp}</span></div>
+    <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Généré par MCA Logistics — ${nom}</span><span>${dateExp}</span></div>
   </div>`;
   const win = window.open('','_blank','width=800,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><title>Charges â€” ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><title>Charges — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
-  afficherToast('ðŸ“„ PDF charges gÃ©nÃ©rÃ©');
+  afficherToast('📄 PDF charges généré');
 }
 
 /* ===== RELANCE PAIEMENT ===== */
@@ -5798,7 +5789,7 @@ function afficherRelances() {
   if (!tb) return;
   const delai = parseInt(localStorage.getItem('relance_delai')||'7');
 
-  // Synchroniser l'input dÃ©lai dans la page relances
+  // Synchroniser l'input délai dans la page relances
   const inputDelai = document.getElementById('relance-delai-input');
   if (inputDelai && !inputDelai.matches(':focus')) inputDelai.value = delai;
 
@@ -5815,21 +5806,21 @@ function afficherRelances() {
   const totalEl = document.getElementById('relances-total');
   if (totalEl) totalEl.textContent = euros(livraisons.reduce((s,l)=>s+(l.prix||0),0));
 
-  if (!livraisons.length) { tb.innerHTML = emptyState('âœ…','Aucune relance nÃ©cessaire','Toutes les livraisons livrÃ©es sont payÃ©es ou rÃ©centes.'); return; }
+  if (!livraisons.length) { tb.innerHTML = emptyState('✅','Aucune relance nécessaire','Toutes les livraisons livrées sont payées ou récentes.'); return; }
 
   tb.innerHTML = livraisons.map(l => {
     const joursRetard = Math.floor((new Date()-new Date(l.date))/(1000*60*60*24));
     const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : 1;
-    const niveauLabel = niveau===3 ? 'ðŸ”´ Dernier avis' : niveau===2 ? 'ðŸŸ¡ Mise en demeure' : 'ðŸŸ¢ Amiable';
+    const niveauLabel = niveau===3 ? '🔴 Dernier avis' : niveau===2 ? '🟡 Mise en demeure' : '🟢 Amiable';
     return `<tr class="relance-row">
-      <td><span style="font-size:.78rem;color:var(--text-muted)">${l.numLiv||'â€”'}</span></td>
+      <td><span style="font-size:.78rem;color:var(--text-muted)">${l.numLiv||'—'}</span></td>
       <td><strong>${l.client}</strong></td>
       <td>${l.date}</td>
       <td><strong>${euros(l.prix)}</strong></td>
-      <td><span class="relance-badge">â° ${joursRetard}j</span><br><span style="font-size:.7rem">${niveauLabel}</span></td>
+      <td><span class="relance-badge">⏰ ${joursRetard}j</span><br><span style="font-size:.7rem">${niveauLabel}</span></td>
       <td style="white-space:nowrap">
-        <button class="btn-icon" onclick="marquerPaye('${l.id}')" title="Marquer payÃ©">ðŸ’³</button>
-        <button class="btn-rapport" onclick="genererLettreRelance('${l.id}',${niveau})" title="Lettre de relance" style="padding:4px 10px;font-size:.75rem">ðŸ“„ Lettre</button>
+        <button class="btn-icon" onclick="marquerPaye('${l.id}')" title="Marquer payé">💳</button>
+        <button class="btn-rapport" onclick="genererLettreRelance('${l.id}',${niveau})" title="Lettre de relance" style="padding:4px 10px;font-size:.75rem">📄 Lettre</button>
       </td>
     </tr>`;
   }).join('');
@@ -5838,15 +5829,15 @@ function afficherRelances() {
 function marquerPaye(id) {
   const livs = charger('livraisons');
   const idx  = livs.findIndex(l=>l.id===id);
-  if (idx>-1) { livs[idx].statutPaiement='payÃ©'; sauvegarder('livraisons',livs); afficherRelances(); afficherToast('ðŸ’³ MarquÃ© comme payÃ©'); }
+  if (idx>-1) { livs[idx].statutPaiement='payé'; sauvegarder('livraisons',livs); afficherRelances(); afficherToast('💳 Marqué comme payé'); }
 }
 function marquerRelance(id) {
   const livs = charger('livraisons');
   const idx  = livs.findIndex(l=>l.id===id);
-  if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); sauvegarder('livraisons',livs); afficherRelances(); afficherToast('ðŸ“§ Relance notÃ©e'); }
+  if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); sauvegarder('livraisons',livs); afficherRelances(); afficherToast('📧 Relance notée'); }
 }
 
-/* ===== TCO VÃ‰HICULE ===== */
+/* ===== TCO VÉHICULE ===== */
 function calculerTCO(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId) || {};
   const carburant  = charger('carburant').filter(p=>p.vehId===vehId);
@@ -5870,18 +5861,18 @@ function afficherTCO(vehId) {
   if (!cont || !veh) return;
 
   cont.innerHTML = `
-    <div style="font-size:.9rem;font-weight:600;margin-bottom:12px">ðŸš TCO â€” ${veh.immat} ${veh.modele||''}</div>
+    <div style="font-size:.9rem;font-weight:600;margin-bottom:12px">🚐 TCO — ${veh.immat} ${veh.modele||''}</div>
     <div class="tco-grid">
-      <div class="tco-item"><div class="tco-label">ðŸ·ï¸ Acquisition HT</div><div class="tco-value" style="color:#4f8ef7">${euros(tco.achatHT)}</div></div>
-      <div class="tco-item"><div class="tco-label">â›½ Carburant</div><div class="tco-value" style="color:#e74c3c">${euros(tco.totalCarb)}</div></div>
-      <div class="tco-item"><div class="tco-label">ðŸ”§ Entretiens</div><div class="tco-value" style="color:var(--accent)">${euros(tco.totalEntr)}</div></div>
-      <div class="tco-item"><div class="tco-label">ðŸ’¸ Autres charges</div><div class="tco-value" style="color:#9b59b6">${euros(tco.totalCharg)}</div></div>
-      <div class="tco-item"><div class="tco-label">ðŸ“‰ Amorti cumulÃ©</div><div class="tco-value" style="color:#16a34a">${euros(tco.amort.cumule)}</div></div>
-      <div class="tco-item" style="border:1px solid var(--border)"><div class="tco-label">ðŸ’° Total TCO</div><div class="tco-value" style="color:var(--text-primary)">${euros(tco.total)}</div></div>
+      <div class="tco-item"><div class="tco-label">🏷️ Acquisition HT</div><div class="tco-value" style="color:#4f8ef7">${euros(tco.achatHT)}</div></div>
+      <div class="tco-item"><div class="tco-label">⛽ Carburant</div><div class="tco-value" style="color:#e74c3c">${euros(tco.totalCarb)}</div></div>
+      <div class="tco-item"><div class="tco-label">🔧 Entretiens</div><div class="tco-value" style="color:var(--accent)">${euros(tco.totalEntr)}</div></div>
+      <div class="tco-item"><div class="tco-label">💸 Autres charges</div><div class="tco-value" style="color:#9b59b6">${euros(tco.totalCharg)}</div></div>
+      <div class="tco-item"><div class="tco-label">📉 Amorti cumulé</div><div class="tco-value" style="color:#16a34a">${euros(tco.amort.cumule)}</div></div>
+      <div class="tco-item" style="border:1px solid var(--border)"><div class="tco-label">💰 Total TCO</div><div class="tco-value" style="color:var(--text-primary)">${euros(tco.total)}</div></div>
     </div>`;
 }
 
-/* ===== CARNET ENTRETIEN DÃ‰TAILLÃ‰ ===== */
+/* ===== CARNET ENTRETIEN DÉTAILLÉ ===== */
 function afficherEntretiens() {
   const vehicules  = charger('vehicules');
   let entretiens = charger('entretiens').sort((a,b)=>new Date(b.date)-new Date(a.date));
@@ -5892,19 +5883,16 @@ function afficherEntretiens() {
   const filtreVeh  = document.getElementById('filtre-entr-vehicule')?.value || '';
   var moisEntr = getEntrMoisStr();
   const selVeh = document.getElementById('filtre-entr-vehicule');
-  if (selVeh) {
-    const valeurCourante = selVeh.value;
-    selVeh.innerHTML = '<option value="">Tous les vÃ©hicules</option>';
+  if (selVeh && selVeh.options.length <= 1) {
     vehicules.forEach(v => { selVeh.innerHTML += `<option value="${v.id}">${v.immat}</option>`; });
-    selVeh.value = valeurCourante;
   }
   if (filtreVeh)  entretiens = entretiens.filter(e => e.vehId === filtreVeh);
   entretiens = entretiens.filter(e => (e.date||'').startsWith(moisEntr));
 
-  if (!entretiens.length) { tb.innerHTML = emptyState('ðŸ”§','Aucun entretien ce mois','Changez de mois ou ajoutez un entretien.'); return; }
+  if (!entretiens.length) { tb.innerHTML = emptyState('🔧','Aucun entretien ce mois','Changez de mois ou ajoutez un entretien.'); return; }
 
   const typeClass = { revision:'type-revision', pneus:'type-pneus', vidange:'type-vidange', plaquettes:'type-plaquettes', courroie:'type-courroie', freins:'type-plaquettes', carrosserie:'type-autre', autre:'type-autre' };
-  const typeIcons = { revision:'ðŸ”©', pneus:'ðŸ”˜', vidange:'ðŸ›¢ï¸', plaquettes:'âš™ï¸', courroie:'â›“ï¸', freins:'ðŸ›‘', carrosserie:'ðŸš˜', autre:'ðŸ”§' };
+  const typeIcons = { revision:'🔩', pneus:'🔘', vidange:'🛢️', plaquettes:'⚙️', courroie:'⛓️', freins:'🛑', carrosserie:'🚘', autre:'🔧' };
 
   tb.innerHTML = entretiens.map(e => {
     const veh = vehicules.find(v=>v.id===e.vehId);
@@ -5912,17 +5900,17 @@ function afficherEntretiens() {
     const tvaM = (e.cout||0) - ht;
     return `<tr>
       <td>${formatDateExport(e.date)}</td>
-      <td><strong>${veh?.immat||'â€”'}</strong> <span style="font-size:.78rem;color:var(--text-muted)">${veh?.modele||''}</span></td>
-      <td><span class="entretien-type-badge ${typeClass[e.type]||'type-autre'}">${typeIcons[e.type]||'ðŸ”§'} ${getTypeEntretienLabel(e.type)}</span></td>
-      <td>${e.description||'â€”'}</td>
-      <td>${e.km ? formatKm(e.km) : 'â€”'}</td>
-      <td>${e.prochainKm ? formatKm(e.prochainKm) : 'â€”'}</td>
-      <td style="font-size:.85rem">${e.cout ? euros(ht) : 'â€”'}</td>
-      <td style="font-size:.82rem;color:var(--text-muted)">${e.cout ? euros(tvaM) : 'â€”'}</td>
-      <td><strong>${e.cout ? euros(e.cout) : 'â€”'}</strong></td>
+      <td><strong>${veh?.immat||'—'}</strong> <span style="font-size:.78rem;color:var(--text-muted)">${veh?.modele||''}</span></td>
+      <td><span class="entretien-type-badge ${typeClass[e.type]||'type-autre'}">${typeIcons[e.type]||'🔧'} ${getTypeEntretienLabel(e.type)}</span></td>
+      <td>${e.description||'—'}</td>
+      <td>${e.km ? formatKm(e.km) : '—'}</td>
+      <td>${e.prochainKm ? formatKm(e.prochainKm) : '—'}</td>
+      <td style="font-size:.85rem">${e.cout ? euros(ht) : '—'}</td>
+      <td style="font-size:.82rem;color:var(--text-muted)">${e.cout ? euros(tvaM) : '—'}</td>
+      <td><strong>${e.cout ? euros(e.cout) : '—'}</strong></td>
       <td>
-        <button class="btn-icon" onclick="ouvrirEditEntretien('${e.id}')" title="Modifier">âœï¸</button>
-        <button class="btn-icon danger" onclick="supprimerEntretien('${e.id}')">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="ouvrirEditEntretien('${e.id}')" title="Modifier">✏️</button>
+        <button class="btn-icon danger" onclick="supprimerEntretien('${e.id}')">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -5939,8 +5927,8 @@ function ouvrirModalEntretien() {
   const type = document.getElementById('entr-type'); if (type) type.value = 'revision';
   const tva = document.getElementById('entr-taux-tva'); if (tva) tva.value = '20';
   const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = 'ðŸ”§ Ajouter un entretien';
-  modal.querySelector('.modal-footer .btn-primary').textContent = 'âœ… Enregistrer';
+  modal.querySelector('h3').textContent = '🔧 Ajouter un entretien';
+  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   openModal('modal-entretien');
 }
 
@@ -5956,7 +5944,7 @@ function ajouterEntretien() {
   const tauxTVA    = parseFloat(document.getElementById('entr-taux-tva')?.value) || 20;
   const cout       = parseFloat(document.getElementById('entr-cout')?.value) || (coutHT * (1 + tauxTVA/100));
 
-  if (!vehId) { afficherToast('âš ï¸ VÃ©hicule obligatoire','error'); return; }
+  if (!vehId) { afficherToast('⚠️ Véhicule obligatoire','error'); return; }
 
   const entretiens = charger('entretiens');
   const veh = getVehiculeById(vehId);
@@ -5966,7 +5954,7 @@ function ajouterEntretien() {
   if (cout > 0) {
     chargeId = genId();
     const charges = charger('charges');
-    charges.push({ id:chargeId, entretienId, date, categorie:'entretien', description:`${getTypeEntretienLabel(type)} â€” ${desc||veh?.immat||''}`, montant:cout, montantHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, vehId, vehNom:veh?.immat||'', creeLe:new Date().toISOString() });
+    charges.push({ id:chargeId, entretienId, date, categorie:'entretien', description:`${getTypeEntretienLabel(type)} — ${desc||veh?.immat||''}`, montant:cout, montantHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, vehId, vehNom:veh?.immat||'', creeLe:new Date().toISOString() });
     sauvegarder('charges', charges);
   }
   entretiens.push({ id:entretienId, chargeId, vehId, date, type, description:desc, km, prochainKm, cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, tauxDeductible, creeLe:new Date().toISOString() });
@@ -5986,7 +5974,7 @@ function ajouterEntretien() {
   afficherEntretiens();
   afficherVehicules();
   afficherTva();
-  afficherToast('âœ… Entretien enregistrÃ©');
+  afficherToast('✅ Entretien enregistré');
 }
 
 function ouvrirEditEntretien(id) {
@@ -6004,8 +5992,8 @@ function ouvrirEditEntretien(id) {
   document.getElementById('entr-cout').value = e.cout || '';
   calculerTTCDepuisHT('entr');
   const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = 'âœï¸ Modifier un entretien';
-  modal.querySelector('.modal-footer .btn-primary').textContent = 'âœ… Enregistrer';
+  modal.querySelector('h3').textContent = '✏️ Modifier un entretien';
+  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   modal.classList.add('open');
 }
 
@@ -6050,7 +6038,7 @@ function confirmerEditEntretien() {
       ...charges[chargeIdx],
       date,
       categorie:'entretien',
-      description:`${getTypeEntretienLabel(type)} â€” ${description||veh?.immat||''}`,
+      description:`${getTypeEntretienLabel(type)} — ${description||veh?.immat||''}`,
       montant: cout,
       montantHT: coutHT || cout/(1+tauxTVA/100),
       tauxTVA,
@@ -6061,19 +6049,19 @@ function confirmerEditEntretien() {
   }
   closeModal('modal-entretien');
   const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = 'ðŸ”§ Ajouter un entretien';
-  modal.querySelector('.modal-footer .btn-primary').textContent = 'âœ… Enregistrer';
+  modal.querySelector('h3').textContent = '🔧 Ajouter un entretien';
+  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   window._editEntretienId = null;
   afficherEntretiens();
   afficherVehicules();
   afficherTva();
-  afficherToast('âœ… Entretien modifiÃ©');
+  afficherToast('✅ Entretien modifié');
 }
 
 async function supprimerEntretien(id) {
-  const ok = await confirmDialog('Supprimer cet entretien ?',{titre:'Supprimer',icone:'ðŸ”§',btnLabel:'Supprimer'});
+  const ok = await confirmDialog('Supprimer cet entretien ?',{titre:'Supprimer',icone:'🔧',btnLabel:'Supprimer'});
   if (!ok) return;
-  // Trouver l'entretien pour supprimer la charge liÃ©e
+  // Trouver l'entretien pour supprimer la charge liée
   const entretien = charger('entretiens').find(e=>e.id===id);
   sauvegarder('entretiens', charger('entretiens').filter(e=>e.id!==id));
   // Supprimer la charge correspondante si elle existe
@@ -6084,33 +6072,33 @@ async function supprimerEntretien(id) {
   }
   afficherEntretiens();
   afficherTva();
-  afficherToast('ðŸ—‘ï¸ Entretien supprimÃ©');
+  afficherToast('🗑️ Entretien supprimé');
 }
 
-/* ===== BLOCAGE COMPTE aprÃ¨s X tentatives ===== */
-/* ===== INCIDENTS / RÃ‰CLAMATIONS ===== */
+/* ===== BLOCAGE COMPTE après X tentatives ===== */
+/* ===== INCIDENTS / RÉCLAMATIONS ===== */
 function afficherIncidents() {
   const incidents = charger('incidents').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe));
   const tb = document.getElementById('tb-incidents');
   if (!tb) return;
 
-  if (!incidents.length) { tb.innerHTML = emptyState('ðŸš¨','Aucun incident','Les rÃ©clamations clients et incidents de livraison apparaÃ®tront ici.'); return; }
+  if (!incidents.length) { tb.innerHTML = emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.'); return; }
 
-  const statBadge = { ouvert:'<span class="incident-badge incident-ouvert">ðŸ”´ Ouvert</span>', encours:'<span class="incident-badge incident-encours">ðŸŸ¡ En cours</span>', traite:'<span class="incident-badge incident-traite">âœ… TraitÃ©</span>' };
+  const statBadge = { ouvert:'<span class="incident-badge incident-ouvert">🔴 Ouvert</span>', encours:'<span class="incident-badge incident-encours">🟡 En cours</span>', traite:'<span class="incident-badge incident-traite">✅ Traité</span>' };
 
   tb.innerHTML = incidents.map(i => `<tr>
     <td>${i.date}</td>
-    <td><strong>${i.client||'â€”'}</strong></td>
-    <td>${i.chaufNom||'â€”'}</td>
-    <td style="font-size:.83rem">${i.description||'â€”'}</td>
+    <td><strong>${i.client||'—'}</strong></td>
+    <td>${i.chaufNom||'—'}</td>
+    <td style="font-size:.83rem">${i.description||'—'}</td>
     <td>${statBadge[i.statut||'ouvert']||''}</td>
     <td>
       <select class="btn-icon" onchange="changerStatutIncident('${i.id}',this.value)">
-        <option value="ouvert"  ${(i.statut||'ouvert')==='ouvert' ?'selected':''}>ðŸ”´ Ouvert</option>
-        <option value="encours" ${i.statut==='encours'?'selected':''}>ðŸŸ¡ En cours</option>
-        <option value="traite"  ${i.statut==='traite' ?'selected':''}>âœ… TraitÃ©</option>
+        <option value="ouvert"  ${(i.statut||'ouvert')==='ouvert' ?'selected':''}>🔴 Ouvert</option>
+        <option value="encours" ${i.statut==='encours'?'selected':''}>🟡 En cours</option>
+        <option value="traite"  ${i.statut==='traite' ?'selected':''}>✅ Traité</option>
       </select>
-      <button class="btn-icon danger" onclick="supprimerIncident('${i.id}')">ðŸ—‘ï¸</button>
+      <button class="btn-icon danger" onclick="supprimerIncident('${i.id}')">🗑️</button>
     </td>
   </tr>`).join('');
 }
@@ -6122,7 +6110,7 @@ function ajouterIncident() {
   const desc     = document.getElementById('inc-description')?.value.trim() || '';
   const gravite  = document.getElementById('inc-gravite')?.value || 'moyen';
 
-  if (!desc) { afficherToast('âš ï¸ Description obligatoire','error'); return; }
+  if (!desc) { afficherToast('⚠️ Description obligatoire','error'); return; }
 
   const livraisons = charger('livraisons');
   const liv = livId ? livraisons.find(l=>l.id===livId) : null;
@@ -6137,27 +6125,27 @@ function ajouterIncident() {
 
   if (finalSalId) {
     const msgs = JSON.parse(localStorage.getItem('messages_'+finalSalId)||'[]');
-    msgs.push({ id:genId(), auteur:'admin', texte:`âš ï¸ Un incident a Ã©tÃ© signalÃ©${liv?' sur votre livraison du '+date+' ('+liv.client+')':' vous concernant le '+date}. Motif : ${desc}`, lu:false, creeLe:new Date().toISOString() });
+    msgs.push({ id:genId(), auteur:'admin', texte:`⚠️ Un incident a été signalé${liv?' sur votre livraison du '+date+' ('+liv.client+')':' vous concernant le '+date}. Motif : ${desc}`, lu:false, creeLe:new Date().toISOString() });
     localStorage.setItem('messages_'+finalSalId, JSON.stringify(msgs));
   }
 
   closeModal('modal-incident');
   afficherIncidents();
-  afficherToast('âœ… Incident enregistrÃ©');
+  afficherToast('✅ Incident enregistré');
 }
 
 function changerStatutIncident(id, statut) {
   const incidents = charger('incidents');
   const idx = incidents.findIndex(i=>i.id===id);
-  if (idx>-1) { incidents[idx].statut=statut; sauvegarder('incidents',incidents); afficherIncidents(); afficherToast('âœ… Statut mis Ã  jour'); }
+  if (idx>-1) { incidents[idx].statut=statut; sauvegarder('incidents',incidents); afficherIncidents(); afficherToast('✅ Statut mis à jour'); }
 }
 
 async function supprimerIncident(id) {
-  const ok = await confirmDialog('Supprimer cet incident ?',{titre:'Supprimer',icone:'ðŸš¨',btnLabel:'Supprimer'});
+  const ok = await confirmDialog('Supprimer cet incident ?',{titre:'Supprimer',icone:'🚨',btnLabel:'Supprimer'});
   if (!ok) return;
   sauvegarder('incidents', charger('incidents').filter(i=>i.id!==id));
   afficherIncidents();
-  afficherToast('ðŸ—‘ï¸ Incident supprimÃ©');
+  afficherToast('🗑️ Incident supprimé');
 }
 
 /* ===== HISTORIQUE MODIFICATIONS LIVRAISON ===== */
@@ -6174,12 +6162,12 @@ function afficherHistoriqueModifs(livId) {
   const logs = JSON.parse(localStorage.getItem(cle)||'[]').reverse();
   const cont = document.getElementById('historique-modifs-liv');
   if (!cont) return;
-  if (!logs.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune modification enregistrÃ©e</div>'; return; }
+  if (!logs.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune modification enregistrée</div>'; return; }
   cont.innerHTML = logs.map(l => `
     <div class="modif-log">
       <span class="modif-log-date">${new Date(l.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
       <span class="modif-log-qui">${l.par}</span>
-      <span><strong>${l.champ}</strong> : <span style="color:var(--red)">${l.ancienne||'â€”'}</span> â†’ <span style="color:var(--green)">${l.nouvelle||'â€”'}</span></span>
+      <span><strong>${l.champ}</strong> : <span style="color:var(--red)">${l.ancienne||'—'}</span> → <span style="color:var(--green)">${l.nouvelle||'—'}</span></span>
     </div>`).join('');
 }
 
@@ -6194,7 +6182,7 @@ function ajouterCommentaireLiv(livId) {
   localStorage.setItem(cle, JSON.stringify(list));
   if (input) input.value = '';
   afficherCommentairesLiv(livId);
-  afficherToast('ðŸ’¬ Commentaire ajoutÃ©');
+  afficherToast('💬 Commentaire ajouté');
 }
 
 function afficherCommentairesLiv(livId) {
@@ -6205,7 +6193,7 @@ function afficherCommentairesLiv(livId) {
   if (!list.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Aucun commentaire</div>'; return; }
   cont.innerHTML = list.map(c => `
     <div style="background:rgba(255,255,255,.03);border-radius:7px;padding:8px 12px;margin-bottom:6px;font-size:.85rem">
-      <div style="color:var(--text-muted);font-size:.72rem;margin-bottom:3px">${c.par} Â· ${new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
+      <div style="color:var(--text-muted);font-size:.72rem;margin-bottom:3px">${c.par} · ${new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
       ${c.texte}
     </div>`).join('');
 }
@@ -6231,8 +6219,8 @@ function calculerComparatif() {
 function badgeEvol(actuel, precedent) {
   if (!precedent) return '';
   const pct = Math.round((actuel - precedent) / precedent * 100);
-  if (pct > 0)  return `<span class="evol-badge up">â†‘ +${pct}%</span>`;
-  if (pct < 0)  return `<span class="evol-badge down">â†“ ${pct}%</span>`;
+  if (pct > 0)  return `<span class="evol-badge up">↑ +${pct}%</span>`;
+  if (pct < 0)  return `<span class="evol-badge down">↓ ${pct}%</span>`;
   return `<span class="evol-badge flat">= 0%</span>`;
 }
 
@@ -6243,7 +6231,7 @@ function genererBonLivraison(livId) {
   if (!l) return;
   const params = getEntrepriseExportParams();
   const nom = params.nom;
-  const siret = params.siret || 'â€”';
+  const siret = params.siret || '—';
   const adresse = params.adresse || '';
   const tel = params.tel || '';
   const dateExp = formatDateHeureExport();
@@ -6251,20 +6239,20 @@ function genererBonLivraison(livId) {
 
   const html = `
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
-      <!-- EN-TÃŠTE -->
+      <!-- EN-TÊTE -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #f5a623">
         <div>
           <div style="font-size:1.6rem;font-weight:800;color:#f5a623;letter-spacing:1px">${nom}</div>
           ${adresse ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">${adresse}</div>` : ''}
-          ${tel     ? `<div style="font-size:.85rem;color:#6b7280">ðŸ“ž ${tel}</div>` : ''}
-          ${siret !== 'â€”' ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:2px">SIRET : ${siret}</div>` : ''}
+          ${tel     ? `<div style="font-size:.85rem;color:#6b7280">📞 ${tel}</div>` : ''}
+          ${siret !== '—' ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:2px">SIRET : ${siret}</div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right">
           ${logo || ''}
           <div>
           <div style="font-size:1.1rem;font-weight:700;color:#1a1d27">BON DE LIVRAISON</div>
-          <div style="font-size:1.3rem;font-weight:800;color:#f5a623">${l.numLiv || 'â€”'}</div>
-          <div style="font-size:.82rem;color:#6b7280;margin-top:4px">Date : ${formatDateExport(l.date) || 'â€”'}</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#f5a623">${l.numLiv || '—'}</div>
+          <div style="font-size:.82rem;color:#6b7280;margin-top:4px">Date : ${formatDateExport(l.date) || '—'}</div>
           ${l.heureDebut ? `<div style="font-size:.82rem;color:#6b7280">Heure : ${l.heureDebut}</div>` : ''}
           </div>
         </div>
@@ -6274,25 +6262,25 @@ function genererBonLivraison(livId) {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
         <div style="background:#f8f9fc;border-radius:10px;padding:16px">
           <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Client</div>
-          <div style="font-size:1rem;font-weight:700">${l.client || 'â€”'}</div>
-          ${l.arrivee ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">ðŸ“ ${l.arrivee}</div>` : ''}
+          <div style="font-size:1rem;font-weight:700">${l.client || '—'}</div>
+          ${l.arrivee ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">📍 ${l.arrivee}</div>` : ''}
         </div>
         <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">ExÃ©cution</div>
-          <div style="font-size:.88rem"><strong>Chauffeur :</strong> ${l.chaufNom || 'â€”'}</div>
-          <div style="font-size:.88rem;margin-top:4px"><strong>VÃ©hicule :</strong> ${l.vehNom || 'â€”'}</div>
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Exécution</div>
+          <div style="font-size:.88rem"><strong>Chauffeur :</strong> ${l.chaufNom || '—'}</div>
+          <div style="font-size:.88rem;margin-top:4px"><strong>Véhicule :</strong> ${l.vehNom || '—'}</div>
           ${l.distance ? `<div style="font-size:.88rem;margin-top:4px"><strong>Distance :</strong> ${l.distance} km</div>` : ''}
         </div>
       </div>
 
-      <!-- DÃ‰PART / ARRIVÃ‰E -->
+      <!-- DÉPART / ARRIVÉE -->
       ${(l.depart || l.arrivee) ? `
       <div style="background:#fff8ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;margin-bottom:24px">
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px">ItinÃ©raire</div>
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px">Itinéraire</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          ${l.depart  ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">DÃ‰PART</div><div style="font-weight:600">ðŸ“ ${l.depart}</div></div>` : ''}
-          ${l.depart && l.arrivee ? `<div style="font-size:1.2rem;color:#f5a623">â†’</div>` : ''}
-          ${l.arrivee ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">ARRIVÃ‰E</div><div style="font-weight:600">ðŸ ${l.arrivee}</div></div>` : ''}
+          ${l.depart  ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">DÉPART</div><div style="font-weight:600">📍 ${l.depart}</div></div>` : ''}
+          ${l.depart && l.arrivee ? `<div style="font-size:1.2rem;color:#f5a623">→</div>` : ''}
+          ${l.arrivee ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">ARRIVÉE</div><div style="font-weight:600">🏁 ${l.arrivee}</div></div>` : ''}
         </div>
       </div>` : ''}
 
@@ -6327,7 +6315,7 @@ function genererBonLivraison(livId) {
         </div>
         <div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px;min-height:90px">
           <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Signature client</div>
-          <div style="margin-top:8px;font-size:.8rem;color:#9ca3af">Lu et approuvÃ©</div>
+          <div style="margin-top:8px;font-size:.8rem;color:#9ca3af">Lu et approuvé</div>
         </div>
       </div>
 
@@ -6335,8 +6323,8 @@ function genererBonLivraison(livId) {
 
       <!-- PIED DE PAGE -->
       <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-        <span>GÃ©nÃ©rÃ© par ${nom}</span>
-        <span>ExportÃ© le ${dateExp}</span>
+        <span>Généré par ${nom}</span>
+        <span>Exporté le ${dateExp}</span>
         <span>Page 1/1</span>
       </div>
     </div>`;
@@ -6344,11 +6332,11 @@ function genererBonLivraison(livId) {
   const zone = document.getElementById('print-bon');
   zone.innerHTML = html;
 
-  // Ouvrir dans une nouvelle fenÃªtre pour impression/sauvegarde PDF
+  // Ouvrir dans une nouvelle fenêtre pour impression/sauvegarde PDF
   ouvrirFenetreImpression(`Bon de livraison ${l.numLiv||''}`, html, 'width=800,height=900');
 }
 
-/* Auto-remplir le vÃ©hicule quand on choisit un salariÃ© dans le modal livraison */
+/* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
 function autoRemplirVehicule() {
   const chaufId = document.getElementById('liv-chauffeur').value;
   const selVeh  = document.getElementById('liv-vehicule');
@@ -6361,7 +6349,7 @@ function autoRemplirVehicule() {
     if (!found) {
       const opt = document.createElement('option');
       opt.value = veh.id;
-      opt.textContent = `${veh.immat} â€” ${veh.modele}`;
+      opt.textContent = `${veh.immat} — ${veh.modele}`;
       selVeh.appendChild(opt);
     }
     selVeh.value = veh.id;
@@ -6404,7 +6392,7 @@ async function ouvrirEditClient(id) {
   await actualiserVerrousEditionDistance();
   const lockResult = prendreVerrouEdition('client', id, c.nom || 'Client');
   if (!lockResult.ok) {
-    afficherToast(`âš ï¸ Client en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Client en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
   _editClientId = id;
@@ -6423,7 +6411,7 @@ function confirmerEditClient() {
   const id      = document.getElementById('edit-cl-id').value;
   const lockState = verifierVerrouEdition('client', id);
   if (!lockState.ok) {
-    afficherToast(`âš ï¸ Ce client est verrouillÃ© par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Ce client est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
   const nom     = document.getElementById('edit-cl-nom').value.trim();
@@ -6431,7 +6419,7 @@ function confirmerEditClient() {
   const tel     = document.getElementById('edit-cl-tel').value.trim();
   const email   = document.getElementById('edit-cl-email').value.trim();
   const adresse = document.getElementById('edit-cl-adresse').value.trim();
-  if (!nom) { afficherToast('âš ï¸ Nom obligatoire','error'); return; }
+  if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
   if (idx>-1) {
@@ -6442,16 +6430,16 @@ function confirmerEditClient() {
   closeModal('modal-edit-client');
   _editClientId = null;
   afficherClientsDashboard();
-  afficherToast('âœ… Client mis Ã  jour');
+  afficherToast('✅ Client mis à jour');
 }
 
 /* ===== EXPORT STATS PDF ===== */
 function exporterStatsPDF() {
   const params = getEntrepriseExportParams();
   const nom = params.nom;
-  const ca = document.getElementById('stats-ca-periode')?.textContent||'0 â‚¬';
+  const ca = document.getElementById('stats-ca-periode')?.textContent||'0 €';
   const livs = document.getElementById('stats-livraisons-periode')?.textContent||'0';
-  const panier = document.getElementById('stats-panier-moyen')?.textContent||'0 â‚¬';
+  const panier = document.getElementById('stats-panier-moyen')?.textContent||'0 €';
   const km = document.getElementById('stats-km-total')?.textContent||'0 km';
   const dateExp = formatDateHeureExport();
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
@@ -6461,14 +6449,14 @@ function exporterStatsPDF() {
     </div>
     ${renderBlocInfosEntreprise(params)}
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
-      ${[['CA pÃ©riode',ca,'#2ecc71'],['Livraisons',livs,'#4f8ef7'],['Panier moyen',panier,'#f5a623'],['Km total',km,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:16px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.2rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
+      ${[['CA période',ca,'#2ecc71'],['Livraisons',livs,'#4f8ef7'],['Panier moyen',panier,'#f5a623'],['Km total',km,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:16px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.2rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
     </div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   const win = window.open('','_blank','width=800,height=600');
-  win.document.write(`<!DOCTYPE html><html><head><title>Statistiques â€” ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><title>Statistiques — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
-  afficherToast('ðŸ“„ Rapport statistiques gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport statistiques généré');
 }
 
 /* ===== EXPORT HEURES PDF ===== */
@@ -6480,30 +6468,30 @@ function exporterHeuresPDF() {
   const range = getHeuresPeriodeRange();
   const rows = salaries.map(s => {
     const { planifiees, details } = calculerHeuresSalarieSemaine(s.id);
-    const detailStr = details.map(d=>`${d.jour.substring(0,3)}: ${d.duree.toFixed(1)}h`).join(' Â· ');
-    return `<tr><td style="padding:8px 12px;font-weight:600">${s.nom}</td><td style="padding:8px 12px">${s.poste||'â€”'}</td><td style="padding:8px 12px;text-align:center;font-weight:700">${planifiees.toFixed(1)}h</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">${detailStr||'â€”'}</td></tr>`;
+    const detailStr = details.map(d=>`${d.jour.substring(0,3)}: ${d.duree.toFixed(1)}h`).join(' · ');
+    return `<tr><td style="padding:8px 12px;font-weight:600">${s.nom}</td><td style="padding:8px 12px">${s.poste||'—'}</td><td style="padding:8px 12px;text-align:center;font-weight:700">${planifiees.toFixed(1)}h</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">${detailStr||'—'}</td></tr>`;
   }).join('');
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    ${construireEnteteExport(params, 'Rapport heures', `${range.label} Â· ${range.datesLabel}`, dateExp)}
+    ${construireEnteteExport(params, 'Rapport heures', `${range.label} · ${range.datesLabel}`, dateExp)}
     ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">SalariÃ©</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th><th style="padding:8px 12px;text-align:center;color:#6b7280">H/semaine</th><th style="padding:8px 12px;text-align:left;color:#6b7280">DÃ©tail</th></tr></thead>
+      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th><th style="padding:8px 12px;text-align:center;color:#6b7280">H/semaine</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Détail</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Heures - ${nom}`, html, 'width=800,height=700');
-  afficherToast('ðŸ“„ Rapport heures gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport heures généré');
 }
 
-/* ===== MODIFIER VÃ‰HICULE ===== */
+/* ===== MODIFIER VÉHICULE ===== */
 async function ouvrirEditVehicule(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId);
   if (!veh) return;
   await actualiserVerrousEditionDistance();
-  const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'VÃ©hicule');
+  const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
   if (!lockResult.ok) {
-    afficherToast(`âš ï¸ VÃ©hicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
   window._editVehId = vehId;
@@ -6528,8 +6516,8 @@ async function ouvrirEditVehicule(vehId) {
   const sv = document.getElementById('veh-salarie');
   if (sv) sv.value = veh.salId||'';
   const modal = document.getElementById('modal-vehicule');
-  modal.querySelector('h3').textContent = 'âœï¸ Modifier le vÃ©hicule';
-  modal.querySelector('.modal-footer .btn-primary').textContent = 'âœ… Enregistrer';
+  modal.querySelector('h3').textContent = '✏️ Modifier le véhicule';
+  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'confirmerEditVehicule()');
   modal.classList.add('open');
   afficherAlerteVerrouModal('modal-vehicule', '');
@@ -6541,7 +6529,7 @@ function confirmerEditVehicule() {
   if (!id) return;
   const lockState = verifierVerrouEdition('vehicule', id);
   if (!lockState.ok) {
-    afficherToast(`âš ï¸ Ce vÃ©hicule est verrouillÃ© par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
+    afficherToast(`⚠️ Ce véhicule est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
   const vehicules = charger('vehicules');
@@ -6571,7 +6559,7 @@ function confirmerEditVehicule() {
   sauvegarder('vehicules', vehicules);
   closeModal('modal-vehicule');
   const modal = document.getElementById('modal-vehicule');
-  modal.querySelector('h3').textContent = 'ðŸš Nouveau VÃ©hicule';
+  modal.querySelector('h3').textContent = '🚐 Nouveau Véhicule';
   modal.querySelector('.modal-footer .btn-primary').textContent = 'Enregistrer';
   modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'ajouterVehicule()');
   ['veh-entretien-interval-km','veh-entretien-interval-mois','veh-date-rebut','veh-valeur-rebut'].forEach(function(fieldId) {
@@ -6583,7 +6571,7 @@ function confirmerEditVehicule() {
   afficherVehicules();
   afficherTva();
   afficherEntretiens();
-  afficherToast('âœ… VÃ©hicule mis Ã  jour');
+  afficherToast('✅ Véhicule mis à jour');
 }
 
 /* ===== ALIAS EXPORTS ===== */
@@ -6603,23 +6591,23 @@ function exporterPlanningPDF() {
     const plan = plannings.find(p=>p.salId===s.id);
     const jours = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'].map(j => {
       const jour = plan?.semaine?.find(d=>d.jour===j);
-      if (!jour || !jour.travaille) return `<td style="padding:6px 8px;text-align:center;color:${typeColors[jour?.typeJour||'repos']||'#6b7280'};font-size:.78rem">${jour?.typeJour==='conge'?'CongÃ©':jour?.typeJour==='maladie'?'Maladie':jour?.typeJour==='absence'?'Absent':'â€”'}</td>`;
-      return `<td style="padding:6px 8px;text-align:center;font-size:.78rem;color:#2ecc71">${jour.heureDebut||'â€”'}${jour.heureFin?' â€“ '+jour.heureFin:''}</td>`;
+      if (!jour || !jour.travaille) return `<td style="padding:6px 8px;text-align:center;color:${typeColors[jour?.typeJour||'repos']||'#6b7280'};font-size:.78rem">${jour?.typeJour==='conge'?'Congé':jour?.typeJour==='maladie'?'Maladie':jour?.typeJour==='absence'?'Absent':'—'}</td>`;
+      return `<td style="padding:6px 8px;text-align:center;font-size:.78rem;color:#2ecc71">${jour.heureDebut||'—'}${jour.heureFin?' – '+jour.heureFin:''}</td>`;
     }).join('');
-    return `<tr><td style="padding:8px 12px;font-weight:600">${s.nom}</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">${s.poste||'â€”'}</td>${jours}</tr>`;
+    return `<tr><td style="padding:8px 12px;font-weight:600">${s.nom}</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">${s.poste||'—'}</td>${jours}</tr>`;
   }).join('');
 
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">
     ${construireEnteteExport(params, 'Planning hebdomadaire', '', dateExp)}
     ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">SalariÃ©</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>${Object.values(JOURS_LABELS).map(j=>`<th style="padding:6px 8px;text-align:center;color:#6b7280">${j}</th>`).join('')}</tr></thead>
+      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>${Object.values(JOURS_LABELS).map(j=>`<th style="padding:6px 8px;text-align:center;color:#6b7280">${j}</th>`).join('')}</tr></thead>
       <tbody>${rows}</tbody>
     </table>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Planning - ${nom}`, html, 'width=950,height=700');
-  afficherToast('ðŸ“„ Rapport planning gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport planning généré');
 }
 
 /* ===== EXPORT ENTRETIENS PDF ===== */
@@ -6630,7 +6618,7 @@ function exporterEntretiensPDF() {
   const nom = params.nom;
   const total = entretiens.reduce((s,e)=>s+(e.cout||0),0);
   const dateExp = formatDateHeureExport();
-  const typeIcons = {revision:'ðŸ”©',vidange:'ðŸ›¢ï¸',pneus:'ðŸ”˜',plaquettes:'âš™ï¸',courroie:'â›“ï¸',autre:'ðŸ”§'};
+  const typeIcons = {revision:'🔩',vidange:'🛢️',pneus:'🔘',plaquettes:'⚙️',courroie:'⛓️',autre:'🔧'};
 
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
@@ -6639,19 +6627,19 @@ function exporterEntretiensPDF() {
     </div>
     ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:left;color:#6b7280">VÃ©hicule</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Type</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Description</th><th style="padding:8px 12px;text-align:right;color:#6b7280">CoÃ»t</th></tr></thead>
-      <tbody>${entretiens.map((e,i)=>{const veh=vehicules.find(v=>v.id===e.vehId);return `<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}"><td style="padding:8px 12px">${formatDateExport(e.date)}</td><td style="padding:8px 12px;font-weight:600">${veh?.immat||'â€”'}</td><td style="padding:8px 12px">${typeIcons[e.type]||'ðŸ”§'} ${e.type||'autre'}</td><td style="padding:8px 12px">${e.description||'â€”'}</td><td style="padding:8px 12px;text-align:right;font-weight:700">${e.cout?euros(e.cout):'â€”'}</td></tr>`;}).join('')}</tbody>
+      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Véhicule</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Type</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Description</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Coût</th></tr></thead>
+      <tbody>${entretiens.map((e,i)=>{const veh=vehicules.find(v=>v.id===e.vehId);return `<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}"><td style="padding:8px 12px">${formatDateExport(e.date)}</td><td style="padding:8px 12px;font-weight:600">${veh?.immat||'—'}</td><td style="padding:8px 12px">${typeIcons[e.type]||'🔧'} ${e.type||'autre'}</td><td style="padding:8px 12px">${e.description||'—'}</td><td style="padding:8px 12px;text-align:right;font-weight:700">${e.cout?euros(e.cout):'—'}</td></tr>`;}).join('')}</tbody>
     </table>
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong>Total : ${euros(total)}</strong></div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   const win = window.open('','_blank','width=800,height=700');
-  win.document.write(`<!DOCTYPE html><html><head><title>Entretiens â€” ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
+  win.document.write(`<!DOCTYPE html><html><head><title>Entretiens — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
-  afficherToast('ðŸ“„ Rapport entretiens gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport entretiens généré');
 }
 
-/* ===== EXPORT VÃ‰HICULES PDF ===== */
+/* ===== EXPORT VÉHICULES PDF ===== */
 function exporterVehiculesPDF() {
   const vehicules = charger('vehicules');
   const entretiens = charger('entretiens');
@@ -6662,48 +6650,48 @@ function exporterVehiculesPDF() {
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">
     <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
       <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Rapport flotte vÃ©hicules</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
+      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Rapport flotte véhicules</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
     </div>
     ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Immatriculation</th><th style="padding:8px 12px;text-align:left;color:#6b7280">ModÃ¨le</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Acquisition</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Finances</th><th style="padding:8px 12px;text-align:left;color:#6b7280">CT</th><th style="padding:8px 12px;text-align:left;color:#6b7280">SalariÃ©</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Dernier entretien</th></tr></thead>
+      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Immatriculation</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Modèle</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Acquisition</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Finances</th><th style="padding:8px 12px;text-align:left;color:#6b7280">CT</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Dernier entretien</th></tr></thead>
       <tbody>${vehicules.map((v,i)=>{
         const ent = entretiens.filter(e=>e.vehId===v.id).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
         const amort = calculerAmortissementVehicule(v);
         return `<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
           <td style="padding:8px 12px;font-weight:700">${v.immat}</td>
-          <td style="padding:8px 12px">${v.modele||'â€”'}</td>
-          <td style="padding:8px 12px;text-align:right">${v.km?v.km.toLocaleString('fr-FR')+' km':'â€”'}</td>
-          <td style="padding:8px 12px">${(v.modeAcquisition||'â€”').toUpperCase()}${v.dateAcquisition?'<br><span style="font-size:.76rem;color:#6b7280">'+formatDateExport(v.dateAcquisition)+'</span>':''}${v.dureeAmortissement?'<br><span style="font-size:.76rem;color:#6b7280">'+v.dureeAmortissement+' an(s)</span>':''}</td>
-          <td style="padding:8px 12px">${v.prixAchatHT?euros(v.prixAchatHT)+' HT':'â€”'}${v.prixAchatTTC?'<br><span style="font-size:.76rem;color:#6b7280">'+euros(v.prixAchatTTC)+' TTC</span>':''}${amort.annuel?'<br><span style="font-size:.76rem;color:#6b7280">Amort. '+euros(amort.annuel)+'/an</span>':''}</td>
+          <td style="padding:8px 12px">${v.modele||'—'}</td>
+          <td style="padding:8px 12px;text-align:right">${v.km?v.km.toLocaleString('fr-FR')+' km':'—'}</td>
+          <td style="padding:8px 12px">${(v.modeAcquisition||'—').toUpperCase()}${v.dateAcquisition?'<br><span style="font-size:.76rem;color:#6b7280">'+formatDateExport(v.dateAcquisition)+'</span>':''}${v.dureeAmortissement?'<br><span style="font-size:.76rem;color:#6b7280">'+v.dureeAmortissement+' an(s)</span>':''}</td>
+          <td style="padding:8px 12px">${v.prixAchatHT?euros(v.prixAchatHT)+' HT':'—'}${v.prixAchatTTC?'<br><span style="font-size:.76rem;color:#6b7280">'+euros(v.prixAchatTTC)+' TTC</span>':''}${amort.annuel?'<br><span style="font-size:.76rem;color:#6b7280">Amort. '+euros(amort.annuel)+'/an</span>':''}</td>
           <td style="padding:8px 12px">${formatDateExport(v.dateCT)}</td>
-          <td style="padding:8px 12px">${v.salNom||'â€”'}</td>
-          <td style="padding:8px 12px">${ent?formatDateExport(ent.date):'â€”'}</td>
+          <td style="padding:8px 12px">${v.salNom||'—'}</td>
+          <td style="padding:8px 12px">${ent?formatDateExport(ent.date):'—'}</td>
         </tr>`;
       }).join('')}</tbody>
     </table>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   const win = window.open('','_blank','width=850,height=700');
-  win.document.write('<!DOCTYPE html><html><head><title>VÃ©hicules â€” '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(()=>{window.print();},400)<\/script></body></html>');
+  win.document.write('<!DOCTYPE html><html><head><title>Véhicules — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(()=>{window.print();},400)<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport vÃ©hicules gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport véhicules généré');
 }
 
 /* ===============================================
-   AJOUTS v22+ â€” FonctionnalitÃ©s supplÃ©mentaires
+   AJOUTS v22+ — Fonctionnalités supplémentaires
    =============================================== */
 
-/* ===== FORMAT PRIX COMPLET HT/TVAâ‚¬/TTC ===== */
+/* ===== FORMAT PRIX COMPLET HT/TVA€/TTC ===== */
 function formatPrixComplet(l) {
-  if (!l.prix) return 'â€”';
+  if (!l.prix) return '—';
   const taux = l.tauxTVA || parseFloat(localStorage.getItem('taux_tva')||'20');
   const ht   = l.prixHT || (l.prix / (1 + taux/100));
   const tvaM = l.prix - ht;
-  return `<div><strong>${euros(l.prix)} TTC</strong></div><div style="font-size:.72rem;color:var(--text-muted)">${euros(ht)} HT Â· TVA ${euros(tvaM)}</div>`;
+  return `<div><strong>${euros(l.prix)} TTC</strong></div><div style="font-size:.72rem;color:var(--text-muted)">${euros(ht)} HT · TVA ${euros(tvaM)}</div>`;
 }
 
-/* ===== RELANCES â€” LETTRES PDF 3 NIVEAUX ===== */
+/* ===== RELANCES — LETTRES PDF 3 NIVEAUX ===== */
 function genererLettreRelance(livId, niveau) {
   const liv = charger('livraisons').find(l=>l.id===livId);
   if (!liv) return;
@@ -6718,20 +6706,20 @@ function genererLettreRelance(livId, niveau) {
     1: {
       titre: 'RELANCE AMIABLE',
       couleur: '#2ecc71',
-      objet: 'Relance amiable â€” Facture ' + (liv.numLiv||''),
-      corps: 'Nous nous permettons de vous rappeler que la livraison <strong>' + (liv.numLiv||'') + '</strong> du <strong>' + formatDateExport(liv.date) + '</strong> d\'un montant de <strong>' + montant + '</strong> reste, Ã  ce jour, impayÃ©e (' + joursRetard + ' jours de retard).<br><br>Il est possible que ce rÃ¨glement ait Ã©tÃ© effectuÃ© entre-temps. Dans ce cas, nous vous prions de ne pas tenir compte de ce courrier.<br><br>Dans le cas contraire, nous vous serions reconnaissants de bien vouloir procÃ©der au rÃ¨glement dans les meilleurs dÃ©lais.'
+      objet: 'Relance amiable — Facture ' + (liv.numLiv||''),
+      corps: 'Nous nous permettons de vous rappeler que la livraison <strong>' + (liv.numLiv||'') + '</strong> du <strong>' + formatDateExport(liv.date) + '</strong> d\'un montant de <strong>' + montant + '</strong> reste, à ce jour, impayée (' + joursRetard + ' jours de retard).<br><br>Il est possible que ce règlement ait été effectué entre-temps. Dans ce cas, nous vous prions de ne pas tenir compte de ce courrier.<br><br>Dans le cas contraire, nous vous serions reconnaissants de bien vouloir procéder au règlement dans les meilleurs délais.'
     },
     2: {
       titre: 'MISE EN DEMEURE',
       couleur: '#f39c12',
-      objet: 'Mise en demeure â€” Facture ' + (liv.numLiv||''),
-      corps: 'MalgrÃ© notre relance prÃ©cÃ©dente, nous constatons que la livraison <strong>' + (liv.numLiv||'') + '</strong> du <strong>' + formatDateExport(liv.date) + '</strong> d\'un montant de <strong>' + montant + '</strong> demeure impayÃ©e (' + joursRetard + ' jours de retard).<br><br>Par la prÃ©sente, nous vous mettons en demeure de rÃ©gler cette somme sous <strong>8 jours</strong> Ã  compter de la rÃ©ception de ce courrier.<br><br>Ã€ dÃ©faut de paiement dans ce dÃ©lai, nous nous rÃ©servons le droit d\'appliquer des pÃ©nalitÃ©s de retard et d\'engager toute procÃ©dure de recouvrement nÃ©cessaire.'
+      objet: 'Mise en demeure — Facture ' + (liv.numLiv||''),
+      corps: 'Malgré notre relance précédente, nous constatons que la livraison <strong>' + (liv.numLiv||'') + '</strong> du <strong>' + formatDateExport(liv.date) + '</strong> d\'un montant de <strong>' + montant + '</strong> demeure impayée (' + joursRetard + ' jours de retard).<br><br>Par la présente, nous vous mettons en demeure de régler cette somme sous <strong>8 jours</strong> à compter de la réception de ce courrier.<br><br>À défaut de paiement dans ce délai, nous nous réservons le droit d\'appliquer des pénalités de retard et d\'engager toute procédure de recouvrement nécessaire.'
     },
     3: {
       titre: 'DERNIER AVIS AVANT CONTENTIEUX',
       couleur: '#e74c3c',
-      objet: 'Dernier avis avant procÃ©dure â€” Facture ' + (liv.numLiv||''),
-      corps: 'Nos prÃ©cÃ©dentes relances Ã©tant restÃ©es sans effet, nous vous informons que la livraison <strong>' + (liv.numLiv||'') + '</strong> du <strong>' + formatDateExport(liv.date) + '</strong> d\'un montant de <strong>' + montant + '</strong> n\'a toujours pas Ã©tÃ© rÃ©glÃ©e (' + joursRetard + ' jours de retard).<br><br>Le prÃ©sent courrier constitue un <strong>dernier avis avant engagement d\'une procÃ©dure contentieuse</strong>.<br><br>Sans rÃ©ception de votre rÃ¨glement sous <strong>48 heures</strong>, nous transmettrons ce dossier Ã  notre service juridique pour engagement des poursuites appropriÃ©es. Les frais de recouvrement seront intÃ©gralement Ã  votre charge.'
+      objet: 'Dernier avis avant procédure — Facture ' + (liv.numLiv||''),
+      corps: 'Nos précédentes relances étant restées sans effet, nous vous informons que la livraison <strong>' + (liv.numLiv||'') + '</strong> du <strong>' + formatDateExport(liv.date) + '</strong> d\'un montant de <strong>' + montant + '</strong> n\'a toujours pas été réglée (' + joursRetard + ' jours de retard).<br><br>Le présent courrier constitue un <strong>dernier avis avant engagement d\'une procédure contentieuse</strong>.<br><br>Sans réception de votre règlement sous <strong>48 heures</strong>, nous transmettrons ce dossier à notre service juridique pour engagement des poursuites appropriées. Les frais de recouvrement seront intégralement à votre charge.'
     }
   };
   var n = niveaux[niveau] || niveaux[1];
@@ -6740,8 +6728,8 @@ function genererLettreRelance(livId, niveau) {
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">' +
       '<div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">' + nom + '</div>' +
       (params.adresse ? '<div style="font-size:.82rem;color:#6b7280;margin-top:2px">' + params.adresse + '</div>' : '') +
-      (params.tel ? '<div style="font-size:.82rem;color:#6b7280">ðŸ“ž ' + params.tel + '</div>' : '') +
-      (params.email ? '<div style="font-size:.82rem;color:#6b7280">âœ‰ï¸ ' + params.email + '</div>' : '') +
+      (params.tel ? '<div style="font-size:.82rem;color:#6b7280">📞 ' + params.tel + '</div>' : '') +
+      (params.email ? '<div style="font-size:.82rem;color:#6b7280">✉️ ' + params.email + '</div>' : '') +
       (params.siret ? '<div style="font-size:.78rem;color:#9ca3af;margin-top:4px">SIRET : ' + params.siret + '</div>' : '') +
       (params.nomAdmin ? '<div style="font-size:.78rem;color:#9ca3af">Contact : ' + params.nomAdmin + '</div>' : '') +
       '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right">' + (logo || '') + '<div style="font-size:.82rem;color:#9ca3af">' + dateExp + '</div></div></div>' +
@@ -6749,14 +6737,14 @@ function genererLettreRelance(livId, niveau) {
       '<div style="font-size:1.1rem;font-weight:800;color:' + n.couleur + ';letter-spacing:2px">' + n.titre + '</div></div>' +
     '<div style="margin-bottom:20px"><div style="font-size:.85rem;color:#6b7280;margin-bottom:4px">Destinataire :</div><div style="font-size:1rem;font-weight:700">' + liv.client + '</div></div>' +
     '<div style="font-size:.88rem;margin-bottom:24px;padding:16px;background:#f8f9fc;border-radius:8px;border-left:4px solid ' + n.couleur + '"><strong>Objet :</strong> ' + n.objet + '</div>' +
-    '<div style="font-size:.9rem;line-height:1.7;margin-bottom:24px"><p>Madame, Monsieur,</p><p>' + n.corps + '</p><p>Nous restons Ã  votre disposition pour tout renseignement complÃ©mentaire.</p><p>Veuillez agrÃ©er, Madame, Monsieur, l\'expression de nos salutations distinguÃ©es.</p></div>' +
+    '<div style="font-size:.9rem;line-height:1.7;margin-bottom:24px"><p>Madame, Monsieur,</p><p>' + n.corps + '</p><p>Nous restons à votre disposition pour tout renseignement complémentaire.</p><p>Veuillez agréer, Madame, Monsieur, l\'expression de nos salutations distinguées.</p></div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0;padding:14px;background:#f8f9fc;border-radius:8px">' +
-      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">RÃ©fÃ©rence</div><div style="font-weight:700">' + (liv.numLiv||'â€”') + '</div></div>' +
+      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Référence</div><div style="font-weight:700">' + (liv.numLiv||'—') + '</div></div>' +
       '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Date livraison</div><div style="font-weight:700">' + formatDateExport(liv.date) + '</div></div>' +
-      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Montant dÃ»</div><div style="font-weight:700;color:' + n.couleur + ';font-size:1.1rem">' + montant + '</div></div>' +
+      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Montant dû</div><div style="font-weight:700;color:' + n.couleur + ';font-size:1.1rem">' + montant + '</div></div>' +
       '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Retard</div><div style="font-weight:700">' + joursRetard + ' jours</div></div></div>' +
     '<div style="margin-top:32px;text-align:right"><div style="font-size:.9rem;font-weight:600">' + (params.nomAdmin||'La Direction') + '</div><div style="font-size:.82rem;color:#6b7280">' + nom + '</div></div>' +
-    '<div style="border-top:1px solid #e5e7eb;margin-top:40px;padding-top:10px;font-size:.7rem;color:#9ca3af;text-align:center">Document gÃ©nÃ©rÃ© le ' + dateExp + ' â€” ' + nom + '</div></div>';
+    '<div style="border-top:1px solid #e5e7eb;margin-top:40px;padding-top:10px;font-size:.7rem;color:#9ca3af;text-align:center">Document généré le ' + dateExp + ' — ' + nom + '</div></div>';
 
   ouvrirFenetreImpression(n.titre + ' - ' + liv.client, html, 'width=800,height=900');
 
@@ -6764,17 +6752,17 @@ function genererLettreRelance(livId, niveau) {
   var idx = livs.findIndex(function(l){return l.id===livId;});
   if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); livs[idx].niveauRelance=niveau; sauvegarder('livraisons',livs); }
   afficherRelances();
-  afficherToast('ðŸ“„ Lettre de relance niveau ' + niveau + ' gÃ©nÃ©rÃ©e');
+  afficherToast('📄 Lettre de relance niveau ' + niveau + ' générée');
 }
 
-/* ===== PLANNING â€” PÃ‰RIODE ABSENCE ===== */
+/* ===== PLANNING — PÉRIODE ABSENCE ===== */
 function ajouterPeriodeAbsence() {
   var salId = document.getElementById('absence-sal') ? document.getElementById('absence-sal').value : '';
   var type  = document.getElementById('absence-type') ? document.getElementById('absence-type').value : 'conge';
   var debut = document.getElementById('absence-debut') ? document.getElementById('absence-debut').value : '';
   var fin   = document.getElementById('absence-fin') ? document.getElementById('absence-fin').value : '';
-  if (!salId || !debut || !fin) { afficherToast('âš ï¸ SalariÃ©, date dÃ©but et date fin obligatoires','error'); return; }
-  if (fin < debut) { afficherToast('âš ï¸ La date de fin doit Ãªtre aprÃ¨s la date de dÃ©but','error'); return; }
+  if (!salId || !debut || !fin) { afficherToast('⚠️ Salarié, date début et date fin obligatoires','error'); return; }
+  if (fin < debut) { afficherToast('⚠️ La date de fin doit être après la date de début','error'); return; }
   var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
   absences.push({ id:genId(), salId:salId, type:type, debut:debut, fin:fin, creeLe:new Date().toISOString() });
   localStorage.setItem('absences_periodes', JSON.stringify(absences));
@@ -6784,8 +6772,8 @@ function ajouterPeriodeAbsence() {
   afficherAbsencesPeriodes();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  var typeLabel = type==='conge'?'CongÃ©':type==='maladie'?'Maladie':'Absence';
-  afficherToast('âœ… ' + typeLabel + ' du ' + debut + ' au ' + fin);
+  var typeLabel = type==='conge'?'Congé':type==='maladie'?'Maladie':'Absence';
+  afficherToast('✅ ' + typeLabel + ' du ' + debut + ' au ' + fin);
 }
 
 function afficherAbsencesPeriodes() {
@@ -6794,16 +6782,16 @@ function afficherAbsencesPeriodes() {
   var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
   var salaries = charger('salaries');
   var typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-  var typeLabels = { conge:'CongÃ©', absence:'Absence', maladie:'Maladie' };
-  if (!absences.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune pÃ©riode enregistrÃ©e</div>'; return; }
+  var typeLabels = { conge:'Congé', absence:'Absence', maladie:'Maladie' };
+  if (!absences.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune période enregistrée</div>'; return; }
   cont.innerHTML = absences.sort(function(a,b){return new Date(b.debut)-new Date(a.debut);}).map(function(a) {
     var sal = salaries.find(function(s){return s.id===a.salId;});
     var nbJours = Math.max(1, Math.round((new Date(a.fin)-new Date(a.debut))/(1000*60*60*24))+1);
     return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:4px;background:' + (typeColors[a.type]||'#6b7280') + '10;border:1px solid ' + (typeColors[a.type]||'#6b7280') + '30;border-radius:8px;font-size:.82rem">' +
       '<span style="color:' + (typeColors[a.type]||'#6b7280') + ';font-weight:600">' + (typeLabels[a.type]||a.type) + '</span>' +
       '<strong>' + (sal?sal.nom:'?') + '</strong>' +
-      '<span style="color:var(--text-muted)">' + a.debut + ' â†’ ' + a.fin + ' (' + nbJours + 'j)</span>' +
-      '<button onclick="supprimerAbsencePeriode(\'' + a.id + '\')" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--red);font-size:.85rem" title="Supprimer">âœ•</button></div>';
+      '<span style="color:var(--text-muted)">' + a.debut + ' → ' + a.fin + ' (' + nbJours + 'j)</span>' +
+      '<button onclick="supprimerAbsencePeriode(\'' + a.id + '\')" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--red);font-size:.85rem" title="Supprimer">✕</button></div>';
   }).join('');
 }
 
@@ -6813,10 +6801,10 @@ function supprimerAbsencePeriode(id) {
   afficherAbsencesPeriodes();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  afficherToast('ðŸ—‘ï¸ PÃ©riode supprimÃ©e');
+  afficherToast('🗑️ Période supprimée');
 }
 
-/* ===== CHARGES â†’ SYNCHRO ENTRETIEN ===== */
+/* ===== CHARGES → SYNCHRO ENTRETIEN ===== */
 function synchroChargeVersEntretien(charge) {
   if (charge.categorie !== 'entretien') return;
   var entretiens = charger('entretiens');
@@ -6831,13 +6819,13 @@ function synchroChargeVersEntretien(charge) {
   sauvegarder('entretiens', entretiens);
 }
 
-/* ===== INCIDENTS â€” PEUPLER SELECT SALARIÃ‰ ===== */
+/* ===== INCIDENTS — PEUPLER SELECT SALARIÉ ===== */
 function peupleIncSalarie() {
   var sel = document.getElementById('inc-salarie');
   if (!sel) return;
   var salaries = charger('salaries');
   var v = sel.value;
-  sel.innerHTML = '<option value="">â€” Aucun salariÃ© spÃ©cifique â€”</option>';
+  sel.innerHTML = '<option value="">— Aucun salarié spécifique —</option>';
   salaries.forEach(function(s) { sel.innerHTML += '<option value="' + s.id + '">' + s.nom + (s.poste?' ('+s.poste+')':'') + '</option>'; });
   sel.value = v;
 }
@@ -6849,7 +6837,7 @@ function peuplerAbsenceSal() {
   var salaries = charger('salaries');
   var v = sel.value;
   sel.innerHTML = '<option value="">-- Choisir --</option>';
-  salaries.forEach(function(s) { sel.innerHTML += '<option value="' + s.id + '">' + s.nom + (s.poste ? ' â€” ' + s.poste : '') + (s.numero ? ' (' + s.numero + ')' : '') + '</option>'; });
+  salaries.forEach(function(s) { sel.innerHTML += '<option value="' + s.id + '">' + s.nom + (s.poste ? ' — ' + s.poste : '') + (s.numero ? ' (' + s.numero + ')' : '') + '</option>'; });
   sel.value = v;
 }
 
@@ -6869,7 +6857,7 @@ function peuplerSelectPlanningModal() {
   if (!sel) return;
   const salaries = charger('salaries');
   const currentValue = sel.value;
-  sel.innerHTML = '<option value="">-- Choisir un salariÃ© --</option>';
+  sel.innerHTML = '<option value="">-- Choisir un salarié --</option>';
   salaries.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nom}${s.numero ? ' ('+s.numero+')' : ''}</option>`; });
   sel.value = currentValue;
 }
@@ -6907,7 +6895,7 @@ function filtrerPlanningSemaine() {
 }
 
 /* ===============================================
-   PLANNING SEMAINE â€” Navigation + Absences + PDF
+   PLANNING SEMAINE — Navigation + Absences + PDF
    =============================================== */
 
 var _planningSemaineOffset = 0; // 0 = semaine courante
@@ -6945,7 +6933,7 @@ function afficherPlanningSemaine() {
   }
 
   var dimanche = datesSemaine[6];
-  var labelSemaine = 'Semaine ' + getNumSemaine(lundi) + ' â€” ' + lundi.getFullYear();
+  var labelSemaine = 'Semaine ' + getNumSemaine(lundi) + ' — ' + lundi.getFullYear();
   var labelDates = lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
 
   var elLabel = document.getElementById('planning-semaine-label');
@@ -6956,7 +6944,7 @@ function afficherPlanningSemaine() {
   // Thead avec dates
   var thead = document.getElementById('thead-planning-semaine');
   if (thead) {
-    thead.innerHTML = '<tr><th>SalariÃ©</th>' + datesSemaine.map(function(d,i) {
+    thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
       var isAuj = d.toISOString().split('T')[0] === aujourdhui();
       return '<th style="text-align:center;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
     }).join('') + '</tr>';
@@ -6966,7 +6954,7 @@ function afficherPlanningSemaine() {
   var tb = document.getElementById('tb-planning-semaine');
   if (!tb) return;
 
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salariÃ©</td></tr>'; return; }
+  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
 
   var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
   var salariesFiltres = salaries.filter(function(s) {
@@ -6993,10 +6981,10 @@ function afficherPlanningSemaine() {
   if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
   if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
   if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
-  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salariÃ© ne correspond Ã  la recherche</td></tr>'; return; }
+  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
 
   var typeColors = { travail:'var(--green)', repos:'var(--text-muted)', conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-  var typeIcons  = { travail:'ðŸŸ¢', repos:'âšª', conge:'ðŸ”µ', absence:'ðŸŸ¡', maladie:'ðŸŸ£' };
+  var typeIcons  = { travail:'🟢', repos:'⚪', conge:'🔵', absence:'🟡', maladie:'🟣' };
 
   tb.innerHTML = salariesFiltres.map(function(s) {
     var plan = plannings.find(function(p){return p.salId===s.id;});
@@ -7004,14 +6992,14 @@ function afficherPlanningSemaine() {
     var cellules = datesSemaine.map(function(d, i) {
       var dateStr = d.toISOString().split('T')[0];
 
-      // VÃ©rifier si une pÃ©riode d'absence couvre ce jour
+      // Vérifier si une période d'absence couvre ce jour
       var absJour = absences.find(function(a) {
         return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin;
       });
 
       if (absJour) {
-        var label = absJour.type === 'conge' ? 'CongÃ©' : absJour.type === 'maladie' ? 'Maladie' : 'Absent';
-        return '<td style="text-align:center;background:' + (typeColors[absJour.type]||'#e74c3c') + '10;color:' + (typeColors[absJour.type]||'#e74c3c') + ';font-size:.78rem;font-weight:600">' + (typeIcons[absJour.type]||'ðŸŸ¡') + ' ' + label + '</td>';
+        var label = absJour.type === 'conge' ? 'Congé' : absJour.type === 'maladie' ? 'Maladie' : 'Absent';
+        return '<td style="text-align:center;background:' + (typeColors[absJour.type]||'#e74c3c') + '10;color:' + (typeColors[absJour.type]||'#e74c3c') + ';font-size:.78rem;font-weight:600">' + (typeIcons[absJour.type]||'🟡') + ' ' + label + '</td>';
       }
 
       // Sinon, planning type de la semaine
@@ -7020,13 +7008,13 @@ function afficherPlanningSemaine() {
 
       if (!jour || !jour.travaille) {
         if (jour && ['conge','absence','maladie'].includes(jour.typeJour)) {
-          var lb = jour.typeJour === 'conge' ? 'CongÃ©' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absent';
-          return '<td style="text-align:center;color:' + (typeColors[jour.typeJour]||'#6b7280') + ';font-size:.78rem">' + (typeIcons[jour.typeJour]||'âšª') + ' ' + lb + '</td>';
+          var lb = jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absent';
+          return '<td style="text-align:center;color:' + (typeColors[jour.typeJour]||'#6b7280') + ';font-size:.78rem">' + (typeIcons[jour.typeJour]||'⚪') + ' ' + lb + '</td>';
         }
-        return '<td style="text-align:center;color:var(--text-muted);font-size:.78rem">âšª Repos</td>';
+        return '<td style="text-align:center;color:var(--text-muted);font-size:.78rem">⚪ Repos</td>';
       }
 
-      return '<td style="text-align:center;color:var(--green);font-size:.78rem">ðŸŸ¢ ' + (jour.heureDebut||'') + (jour.heureFin ? ' â€“ ' + jour.heureFin : '') + '</td>';
+      return '<td style="text-align:center;color:var(--green);font-size:.78rem">🟢 ' + (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : '') + '</td>';
     }).join('');
 
     return '<tr><td><strong>' + s.nom + '</strong>' + (s.poste ? '<br><span style="font-size:.72rem;color:var(--text-muted)">' + s.poste + '</span>' : '') + (s.numero ? '<br><span style="font-size:.72rem;color:var(--text-muted)">#' + s.numero + '</span>' : '') + '</td>' + cellules + '</tr>';
@@ -7059,7 +7047,7 @@ function exporterPlanningSemainePDF() {
   }
 
   var dimanche = datesSemaine[6];
-  var titreSemaine = 'Semaine ' + getNumSemaine(lundi) + ' â€” ' + lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+  var titreSemaine = 'Semaine ' + getNumSemaine(lundi) + ' — ' + lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
 
   var thCols = datesSemaine.map(function(d,i) {
     return '<th style="padding:8px 6px;text-align:center;color:#6b7280;font-size:.82rem">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
@@ -7072,21 +7060,21 @@ function exporterPlanningSemainePDF() {
       var absJour = absences.find(function(a){ return a.salId===s.id && dateStr>=a.debut && dateStr<=a.fin; });
       if (absJour) {
         var colors = { conge:'#3498db', maladie:'#9b59b6', absence:'#e74c3c' };
-        var labels = { conge:'CongÃ©', maladie:'Maladie', absence:'Absent' };
+        var labels = { conge:'Congé', maladie:'Maladie', absence:'Absent' };
         return '<td style="padding:6px;text-align:center;background:' + (colors[absJour.type]||'#e74c3c') + '15;color:' + (colors[absJour.type]||'#e74c3c') + ';font-size:.78rem;font-weight:600">' + (labels[absJour.type]||'Absent') + '</td>';
       }
       var jourNom = JOURS[i];
       var jour = plan ? (plan.semaine||[]).find(function(j){return j.jour===jourNom;}) : null;
       if (!jour || !jour.travaille) {
         if (jour && ['conge','absence','maladie'].includes(jour.typeJour)) {
-          var lb2 = {conge:'CongÃ©',maladie:'Maladie',absence:'Absent'}; 
-          return '<td style="padding:6px;text-align:center;color:#9ca3af;font-size:.78rem">' + (lb2[jour.typeJour]||'â€”') + '</td>';
+          var lb2 = {conge:'Congé',maladie:'Maladie',absence:'Absent'}; 
+          return '<td style="padding:6px;text-align:center;color:#9ca3af;font-size:.78rem">' + (lb2[jour.typeJour]||'—') + '</td>';
         }
-        return '<td style="padding:6px;text-align:center;color:#d1d5db;font-size:.78rem">â€”</td>';
+        return '<td style="padding:6px;text-align:center;color:#d1d5db;font-size:.78rem">—</td>';
       }
-      return '<td style="padding:6px;text-align:center;color:#2ecc71;font-size:.78rem">' + (jour.heureDebut||'') + (jour.heureFin?' â€“ '+jour.heureFin:'') + '</td>';
+      return '<td style="padding:6px;text-align:center;color:#2ecc71;font-size:.78rem">' + (jour.heureDebut||'') + (jour.heureFin?' – '+jour.heureFin:'') + '</td>';
     }).join('');
-    return '<tr><td style="padding:8px 12px;font-weight:600">' + s.nom + '</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">' + (s.poste||'â€”') + '</td>' + cells + '</tr>';
+    return '<tr><td style="padding:8px 12px;font-weight:600">' + s.nom + '</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">' + (s.poste||'—') + '</td>' + cells + '</tr>';
   }).join('');
 
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">' +
@@ -7094,18 +7082,18 @@ function exporterPlanningSemainePDF() {
       '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">' + nom + '</div></div>' +
       '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">' + titreSemaine + '</div><div style="font-size:.78rem;color:#9ca3af">' + dateExp + '</div></div></div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem">' +
-      '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">SalariÃ©</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>' + thCols + '</tr></thead>' +
+      '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>' + thCols + '</tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
     '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>' + nom + '</span><span>' + dateExp + '</span></div></div>';
 
   var win = window.open('','_blank','width=950,height=700');
   win.document.write('<!DOCTYPE html><html><head><title>Planning ' + titreSemaine + '</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:10mm;size:landscape}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport planning semaine gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport planning semaine généré');
 }
 
 /* ===============================================
-   NAVIGATION PÃ‰RIODE â€” Toutes les pages
+   NAVIGATION PÉRIODE — Toutes les pages
    =============================================== */
 
 /* --- LIVRAISONS : mois + semaine --- */
@@ -7208,7 +7196,7 @@ function getPeriodeRange(mode, offset) {
     return {
       debut: lundi.toISOString().split('T')[0],
       fin: dim.toISOString().split('T')[0],
-      label: 'Semaine ' + getNumSemaine(lundi) + ' â€” ' + lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dim.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})
+      label: 'Semaine ' + getNumSemaine(lundi) + ' — ' + lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dim.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})
     };
   }
   // mois
@@ -7223,7 +7211,7 @@ function getPeriodeRange(mode, offset) {
   };
 }
 
-/* --- EXPORT RELEVÃ‰ KM PDF --- */
+/* --- EXPORT RELEVÉ KM PDF --- */
 function exporterReleveKmPDF() {
   var salaries = charger('salaries');
   var params = getEntrepriseExportParams();
@@ -7242,27 +7230,27 @@ function exporterReleveKmPDF() {
   allKm.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
   var totalKm = allKm.reduce(function(s,e){return s+(e.distance||0);},0);
   var rows = allKm.slice(0,100).map(function(e,i) {
-    var kmDep = e.kmDepart != null ? Math.round(e.kmDepart) : 'â€”';
-    var kmArr = e.kmArrivee != null ? Math.round(e.kmArrivee) : 'â€”';
+    var kmDep = e.kmDepart != null ? Math.round(e.kmDepart) : '—';
+    var kmArr = e.kmArrivee != null ? Math.round(e.kmArrivee) : '—';
     var dist = e.kmArrivee != null ? Math.round(e.distance||0)+' km' : 'En attente';
     return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:8px 12px;font-weight:600">'+e.salNom+'</td><td style="padding:8px 12px">'+formatDateExport(e.date)+'</td><td style="padding:8px 12px;text-align:right">'+kmDep+'</td><td style="padding:8px 12px;text-align:right">'+kmArr+'</td><td style="padding:8px 12px;text-align:right;font-weight:700">'+dist+'</td></tr>';
   }).join('');
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">'+
       '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div></div>'+
-      '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">RelevÃ©s kilomÃ©triques</div><div style="font-size:1rem;font-weight:700">Total : '+Math.round(totalKm)+' km</div><div style="font-size:.78rem;color:#9ca3af">'+range.label+' Â· '+range.datesLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
+      '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Relevés kilométriques</div><div style="font-size:1rem;font-weight:700">Total : '+Math.round(totalKm)+' km</div><div style="font-size:.78rem;color:#9ca3af">'+range.label+' · '+range.datesLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem">'+
-      '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">SalariÃ©</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km dÃ©part</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km arrivÃ©e</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Distance</th></tr></thead>'+
+      '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km départ</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km arrivée</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Distance</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table>'+
     '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
   var win = window.open('','_blank','width=800,height=700');
-  win.document.write('<!DOCTYPE html><html><head><title>RelevÃ©s km â€” '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
+  win.document.write('<!DOCTYPE html><html><head><title>Relevés km — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport relevÃ©s km gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport relevés km généré');
 }
 
 /* ===============================================
-   ONGLET TVA â€” RÃ©capitulatif mensuel
+   ONGLET TVA — Récapitulatif mensuel
    =============================================== */
 
 var _tvaMoisOffset = 0;
@@ -7283,7 +7271,7 @@ function getTvaMoisStr() {
 function afficherTva() {
   var mois = getTvaMoisStr();
 
-  // === TVA COLLECTÃ‰E (livraisons du mois) ===
+  // === TVA COLLECTÉE (livraisons du mois) ===
   var livraisons = charger('livraisons').filter(function(l){return (l.date||'').startsWith(mois) && l.prix > 0;});
 
   var totalCollectee = 0;
@@ -7295,15 +7283,15 @@ function afficherTva() {
       var ht = l.prixHT || l.prix / (1 + taux/100);
       var tvaM = l.prix - ht;
       totalCollectee += tvaM;
-      var libelle = (l.numLiv ? l.numLiv + ' â€” ' : '') + (l.client || 'Livraison');
+      var libelle = (l.numLiv ? l.numLiv + ' — ' : '') + (l.client || 'Livraison');
       rows += '<tr><td style="font-weight:700">' + taux + ' %</td><td>' + libelle + '</td><td>' + euros(ht) + '</td><td style="font-weight:700;color:var(--green)">' + euros(tvaM) + '</td><td>' + euros(l.prix||0) + '</td></tr>';
     });
-    if (!rows) rows = '<tr><td colspan="5" class="empty-row">Aucune TVA collectÃ©e ce mois</td></tr>';
+    if (!rows) rows = '<tr><td colspan="5" class="empty-row">Aucune TVA collectée ce mois</td></tr>';
     else rows += '<tr style="background:rgba(46,204,113,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td style="color:var(--green)">' + euros(totalCollectee) + '</td><td>' + euros(livraisons.reduce(function(s,l){return s+(l.prix||0);},0)) + '</td></tr>';
     tbColl.innerHTML = rows;
   }
 
-  // === TVA DÃ‰DUCTIBLE (charges + carburant + entretiens) ===
+  // === TVA DÉDUCTIBLE (charges + carburant + entretiens) ===
   var charges    = charger('charges').filter(function(c){return (c.date||'').startsWith(mois);});
   var carburant  = charger('carburant').filter(function(p){return (p.date||'').startsWith(mois);});
   var entretiens = charger('entretiens').filter(function(e){return (e.date||'').startsWith(mois);});
@@ -7326,7 +7314,7 @@ function afficherTva() {
       var tauxRecup = getTauxDeductibiliteCarburant(p);
       var tvaDeduct = tvaM * tauxRecup / 100;
       totalDeductible += tvaDeduct;
-      var libelle = (p.vehNom || 'Carburant') + ' â€” ' + ((p.typeCarburant||p.type||'gasoil') === 'essence' ? 'Essence' : 'Gasoil') + ' (' + formaterTaux(tauxRecup) + ')';
+      var libelle = (p.vehNom || 'Carburant') + ' — ' + ((p.typeCarburant||p.type||'gasoil') === 'essence' ? 'Essence' : 'Gasoil') + ' (' + formaterTaux(tauxRecup) + ')';
       rows2 += '<tr><td style="font-weight:700">' + tauxTVA + ' %</td><td>' + libelle + '</td><td>' + euros(ht) + '</td><td style="font-weight:700;color:var(--accent)">' + euros(tvaDeduct) + '</td><td>' + euros(p.total||0) + '</td></tr>';
     });
     entretiens.sort(function(a,b){return new Date(b.date)-new Date(a.date);}).forEach(function(e) {
@@ -7336,9 +7324,9 @@ function afficherTva() {
       var tauxRecup = getTauxDeductibiliteEntretien(e);
       var tvaDeduct = tvaM * tauxRecup / 100;
       totalDeductible += tvaDeduct;
-      rows2 += '<tr><td style="font-weight:700">' + taux + ' %</td><td>' + getTypeEntretienLabel(e.type) + ' â€” ' + (e.description||'Entretien') + ' (' + formaterTaux(tauxRecup) + ')</td><td>' + euros(ht) + '</td><td style="font-weight:700;color:var(--accent)">' + euros(tvaDeduct) + '</td><td>' + euros(e.cout||0) + '</td></tr>';
+      rows2 += '<tr><td style="font-weight:700">' + taux + ' %</td><td>' + getTypeEntretienLabel(e.type) + ' — ' + (e.description||'Entretien') + ' (' + formaterTaux(tauxRecup) + ')</td><td>' + euros(ht) + '</td><td style="font-weight:700;color:var(--accent)">' + euros(tvaDeduct) + '</td><td>' + euros(e.cout||0) + '</td></tr>';
     });
-    if (!rows2) rows2 = '<tr><td colspan="5" class="empty-row">Aucune TVA dÃ©ductible ce mois</td></tr>';
+    if (!rows2) rows2 = '<tr><td colspan="5" class="empty-row">Aucune TVA déductible ce mois</td></tr>';
     else rows2 += '<tr style="background:rgba(245,166,35,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td style="color:var(--accent)">' + euros(totalDeductible) + '</td><td></td></tr>';
     tbDed.innerHTML = rows2;
   }
@@ -7351,26 +7339,26 @@ function afficherTva() {
   var solde = totalCollectee - totalDeductible;
   if (solde >= 0) {
     setT('tva-a-reverser', euros(solde));
-    setT('tva-credit', 'â€”');
+    setT('tva-credit', '—');
     var elRev = document.getElementById('tva-a-reverser'); if(elRev) elRev.style.color = 'var(--red)';
     var elCred = document.getElementById('tva-credit'); if(elCred) elCred.style.color = 'var(--text-muted)';
   } else {
-    setT('tva-a-reverser', 'â€”');
+    setT('tva-a-reverser', '—');
     setT('tva-credit', euros(Math.abs(solde)));
     var elRev2 = document.getElementById('tva-a-reverser'); if(elRev2) elRev2.style.color = 'var(--text-muted)';
     var elCred2 = document.getElementById('tva-credit'); if(elCred2) elCred2.style.color = 'var(--green)';
   }
 
-  // === Solde dÃ©tail ===
+  // === Solde détail ===
   var soldeEl = document.getElementById('tva-solde-detail');
   if (soldeEl) {
     soldeEl.innerHTML = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center">' +
-      '<div style="padding:16px;background:rgba(46,204,113,.06);border-radius:10px;border:1px solid rgba(46,204,113,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA CollectÃ©e</div><div style="font-size:1.3rem;font-weight:800;color:var(--green)">' + euros(totalCollectee) + '</div></div>' +
-      '<div style="padding:16px;background:rgba(245,166,35,.06);border-radius:10px;border:1px solid rgba(245,166,35,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA DÃ©ductible</div><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">' + euros(totalDeductible) + '</div></div>' +
-      '<div style="padding:16px;background:' + (solde>=0?'rgba(231,76,60,.06)':'rgba(52,152,219,.06)') + ';border-radius:10px;border:1px solid ' + (solde>=0?'rgba(231,76,60,.2)':'rgba(52,152,219,.2)') + '"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">' + (solde>=0?'TVA Ã  reverser':'CrÃ©dit de TVA') + '</div><div style="font-size:1.3rem;font-weight:800;color:' + (solde>=0?'var(--red)':'var(--green)') + '">' + euros(Math.abs(solde)) + '</div></div>' +
+      '<div style="padding:16px;background:rgba(46,204,113,.06);border-radius:10px;border:1px solid rgba(46,204,113,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Collectée</div><div style="font-size:1.3rem;font-weight:800;color:var(--green)">' + euros(totalCollectee) + '</div></div>' +
+      '<div style="padding:16px;background:rgba(245,166,35,.06);border-radius:10px;border:1px solid rgba(245,166,35,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Déductible</div><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">' + euros(totalDeductible) + '</div></div>' +
+      '<div style="padding:16px;background:' + (solde>=0?'rgba(231,76,60,.06)':'rgba(52,152,219,.06)') + ';border-radius:10px;border:1px solid ' + (solde>=0?'rgba(231,76,60,.2)':'rgba(52,152,219,.2)') + '"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">' + (solde>=0?'TVA à reverser':'Crédit de TVA') + '</div><div style="font-size:1.3rem;font-weight:800;color:' + (solde>=0?'var(--red)':'var(--green)') + '">' + euros(Math.abs(solde)) + '</div></div>' +
     '</div>' +
     '<div style="margin-top:16px;font-size:.82rem;color:var(--text-muted);text-align:center">' +
-      (solde >= 0 ? 'âš ï¸ Vous devez reverser ' + euros(solde) + ' au TrÃ©sor Public pour ce mois.' : 'âœ… Vous disposez d\'un crÃ©dit de TVA de ' + euros(Math.abs(solde)) + ' reportable.') +
+      (solde >= 0 ? '⚠️ Vous devez reverser ' + euros(solde) + ' au Trésor Public pour ce mois.' : '✅ Vous disposez d\'un crédit de TVA de ' + euros(Math.abs(solde)) + ' reportable.') +
     '</div>';
   }
 }
@@ -7429,25 +7417,25 @@ function exporterTvaPDF() {
   var solde = totalCollectee - totalDeductible;
 
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px"><div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div>'+(params.siret?'<div style="font-size:.78rem;color:#9ca3af">SIRET : '+params.siret+'</div>':'')+'</div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">RÃ©capitulatif TVA</div><div style="font-size:1rem;font-weight:700;text-transform:capitalize">'+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>' +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">ðŸ“¤ TVA CollectÃ©e</div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px"><div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div>'+(params.siret?'<div style="font-size:.78rem;color:#9ca3af">SIRET : '+params.siret+'</div>':'')+'</div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif TVA</div><div style="font-size:1rem;font-weight:700;text-transform:capitalize">'+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>' +
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">📤 TVA Collectée</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Taux</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:center">Nb</th></tr></thead><tbody>'+collRows+'<tr style="background:#e8f5e9;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td style="padding:6px 12px;text-align:right;color:#2ecc71">'+euros(totalCollectee)+'</td><td></td></tr></tbody></table>' +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e67e22">ðŸ“¥ TVA DÃ©ductible</div>' +
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e67e22">📥 TVA Déductible</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Taux</th><th style="padding:6px 12px;text-align:left">Source</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:center">Nb</th></tr></thead><tbody>'+dedRows+'<tr style="background:#fff3e0;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#e67e22">'+euros(totalDeductible)+'</td><td></td></tr></tbody></table>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0"><div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">CollectÃ©e</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">'+euros(totalCollectee)+'</div></div><div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">DÃ©ductible</div><div style="font-size:1.2rem;font-weight:800;color:#e67e22">'+euros(totalDeductible)+'</div></div><div style="padding:14px;background:'+(solde>=0?'#ffebee':'#e3f2fd')+';border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">'+(solde>=0?'Ã€ reverser':'CrÃ©dit TVA')+'</div><div style="font-size:1.2rem;font-weight:800;color:'+(solde>=0?'#e74c3c':'#2196F3')+'">'+euros(Math.abs(solde))+'</div></div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin:20px 0"><div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Collectée</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">'+euros(totalCollectee)+'</div></div><div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Déductible</div><div style="font-size:1.2rem;font-weight:800;color:#e67e22">'+euros(totalDeductible)+'</div></div><div style="padding:14px;background:'+(solde>=0?'#ffebee':'#e3f2fd')+';border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">'+(solde>=0?'À reverser':'Crédit TVA')+'</div><div style="font-size:1.2rem;font-weight:800;color:'+(solde>=0?'#e74c3c':'#2196F3')+'">'+euros(Math.abs(solde))+'</div></div></div>' +
     '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
 
   var win = window.open('','_blank','width=800,height=800');
-  win.document.write('<!DOCTYPE html><html><head><title>TVA '+moisLabel+' â€” '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
+  win.document.write('<!DOCTYPE html><html><head><title>TVA '+moisLabel+' — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport TVA gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport TVA généré');
 }
 
 /* ===============================================
-   CORRECTIONS & AJOUTS â€” Exports + Planning + Carburant
+   CORRECTIONS & AJOUTS — Exports + Planning + Carburant
    =============================================== */
 
-/* --- Livraisons export suit la pÃ©riode --- */
+/* --- Livraisons export suit la période --- */
 var _origGenererRapportMensuel = typeof genererRapportMensuel === 'function' ? genererRapportMensuel : null;
 function genererRapportMensuelPeriode() {
   var deb = document.getElementById('filtre-date-debut')?.value || '';
@@ -7468,7 +7456,7 @@ function genererRapportMensuelPeriode() {
   var rows = livraisons.map(function(l,i) {
     var ht = l.prixHT || (l.prix||0)/(1+(l.tauxTVA||20)/100);
     var tvaM = (l.prix||0) - ht;
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px;font-size:.82rem">'+l.date+'</td><td style="padding:6px 10px">'+l.client+'</td><td style="padding:6px 10px">'+(l.chaufNom||'â€”')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(l.prix||0)+'</td><td style="padding:6px 10px;text-align:center">'+(l.statut==='livre'?'âœ…':l.statut==='en-cours'?'ðŸš':'â³')+'</td></tr>';
+    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px;font-size:.82rem">'+l.date+'</td><td style="padding:6px 10px">'+l.client+'</td><td style="padding:6px 10px">'+(l.chaufNom||'—')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(l.prix||0)+'</td><td style="padding:6px 10px;text-align:center">'+(l.statut==='livre'?'✅':l.statut==='en-cours'?'🚐':'⏳')+'</td></tr>';
   }).join('');
 
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#1a1d27">'+
@@ -7478,16 +7466,16 @@ function genererRapportMensuelPeriode() {
       '<div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TVA</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div>'+
       '<div style="background:#e3f2fd;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800;color:#2196F3">'+euros(totalTTC)+'</div></div></div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Client</th><th style="padding:6px 10px;text-align:left">Chauffeur</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th><th style="padding:6px 10px;text-align:center">Statut</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+' â€” '+livraisons.length+' livraison(s)</span><span>'+dateExp+'</span></div></div>';
+    '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+' — '+livraisons.length+' livraison(s)</span><span>'+dateExp+'</span></div></div>';
 
   var scriptAttenteExport = "(function(){function lancer(){setTimeout(function(){window.print();},250);}function attendre(){var images=Array.prototype.slice.call(document.images||[]);if(!images.length){lancer();return;}var restantes=images.length;function fini(){restantes-=1;if(restantes<=0) lancer();}images.forEach(function(img){if(img.complete){fini();return;}img.addEventListener('load',fini,{once:true});img.addEventListener('error',fini,{once:true});});}window.addEventListener('load',attendre);})();";
   var win = window.open('','_blank','width=850,height=700');
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons â€” '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>'+scriptAttenteExport+'<\/script></body></html>');
+  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>'+scriptAttenteExport+'<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport livraisons gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport livraisons généré');
 }
 
-/* --- Charges export suit le mois naviguÃ© + HT/TVA/TTC --- */
+/* --- Charges export suit le mois navigué + HT/TVA/TTC --- */
 var _origExporterChargesPDF = typeof exporterChargesPDF === 'function' ? exporterChargesPDF : null;
 function exporterChargesPDFMois() {
   var moisStr = getChargesMoisStr();
@@ -7498,24 +7486,24 @@ function exporterChargesPDFMois() {
   var d = new Date(); d.setMonth(d.getMonth() + _chargesMoisOffset);
   var moisLabel = d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
   var totalHT=0, totalTVA=0, totalTTC=0;
-  var catIcons = {carburant:'â›½',peage:'ðŸ›£ï¸',entretien:'ðŸ”§',assurance:'ðŸ›¡ï¸',autre:'ðŸ“'};
+  var catIcons = {carburant:'⛽',peage:'🛣️',entretien:'🔧',assurance:'🛡️',autre:'📝'};
   var rows = charges.map(function(c,i) {
     var ht = c.montantHT || (c.montant||0)/(1+(c.tauxTVA||20)/100);
     var tvaM = (c.montant||0) - ht;
     totalHT += ht; totalTVA += tvaM; totalTTC += (c.montant||0);
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+c.date+'</td><td style="padding:6px 10px">'+(catIcons[c.categorie]||'ðŸ“')+' '+(c.categorie||'autre')+'</td><td style="padding:6px 10px">'+(c.description||'â€”')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.montant||0)+'</td></tr>';
+    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+c.date+'</td><td style="padding:6px 10px">'+(catIcons[c.categorie]||'📝')+' '+(c.categorie||'autre')+'</td><td style="padding:6px 10px">'+(c.description||'—')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.montant||0)+'</td></tr>';
   }).join('');
 
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Charges â€” '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Charges — '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalHT)+'</div></div><div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">TVA</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalTTC)+'</div></div></div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">CatÃ©gorie</th><th style="padding:6px 10px;text-align:left">Description</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Catégorie</th><th style="padding:6px 10px;text-align:left">Description</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
 
   var win = window.open('','_blank','width=800,height=700');
   win.document.write('<!DOCTYPE html><html><head><title>Charges '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport charges gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport charges généré');
 }
 
 /* --- Carburant export PDF avec HT/TVA/TTC --- */
@@ -7537,20 +7525,74 @@ function exporterCarburantPDF() {
     var tvaFull = (p.total||0) - ht;
     var tvaDeduct = tvaFull * tauxRecup / 100;
     totalHT += ht; totalTVA += tvaDeduct; totalTTC += (p.total||0);
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+p.date+'</td><td style="padding:6px 10px">'+(veh?veh.immat:'â€”')+'</td><td style="padding:6px 10px">'+(p.type||'gasoil')+'</td><td style="padding:6px 10px;text-align:right">'+(p.litres||0)+' L</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaDeduct)+' ('+tauxRecup+'%)</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(p.total||0)+'</td></tr>';
+    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+p.date+'</td><td style="padding:6px 10px">'+(veh?veh.immat:'—')+'</td><td style="padding:6px 10px">'+(p.type||'gasoil')+'</td><td style="padding:6px 10px;text-align:right">'+(p.litres||0)+' L</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaDeduct)+' ('+tauxRecup+'%)</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(p.total||0)+'</td></tr>';
   }).join('');
 
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Carburant â€” '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalHT)+'</div></div><div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">TVA dÃ©ductible</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalTTC)+'</div></div></div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">VÃ©hicule</th><th style="padding:6px 10px">Type</th><th style="padding:6px 10px;text-align:right">Litres</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA dÃ©d.</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Carburant — '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalHT)+'</div></div><div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">TVA déductible</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalTTC)+'</div></div></div>'+
+    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Véhicule</th><th style="padding:6px 10px">Type</th><th style="padding:6px 10px;text-align:right">Litres</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA déd.</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
 
   var win = window.open('','_blank','width=850,height:700');
   win.document.write('<!DOCTYPE html><html><head><title>Carburant '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
-  afficherToast('ðŸ“„ Rapport carburant gÃ©nÃ©rÃ©');
+  afficherToast('📄 Rapport carburant généré');
 }
+ajouterPeriodeAbsence = function() {
+  var salId = document.getElementById('absence-sal') ? document.getElementById('absence-sal').value : '';
+  var type = document.getElementById('absence-type') ? document.getElementById('absence-type').value : 'travail';
+  var debut = document.getElementById('absence-debut') ? document.getElementById('absence-debut').value : '';
+  var fin = document.getElementById('absence-fin') ? document.getElementById('absence-fin').value : '';
+  var heureDebut = document.getElementById('absence-heure-debut') ? document.getElementById('absence-heure-debut').value : '';
+  var heureFin = document.getElementById('absence-heure-fin') ? document.getElementById('absence-heure-fin').value : '';
+  if (!salId || !debut || !fin) { afficherToast('⚠️ Salarié, date début et date fin obligatoires','error'); return; }
+  if (fin < debut) { afficherToast('⚠️ La date de fin doit être après la date de début','error'); return; }
+  if (type === 'travail') {
+    if (!heureDebut || !heureFin) { afficherToast('⚠️ Renseignez les heures de travail','error'); return; }
+    if (calculerDureeJour(heureDebut, heureFin) <= 0) { afficherToast('⚠️ Les heures de travail sont invalides','error'); return; }
+    var plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+    var planIndex = plannings.findIndex(function(p){ return p.salId === salId; });
+    var plan = planIndex > -1 ? plannings[planIndex] : { salId: salId, salNom: '', semaine: [] };
+    var sal = charger('salaries').find(function(s){ return s.id === salId; });
+    plan.salNom = sal ? sal.nom : (plan.salNom || '');
+    plan.semaine = Array.isArray(plan.semaine) ? plan.semaine : [];
+    getDateRangeInclusive(debut, fin).forEach(function(dateObj) {
+      var dayIndex = (dateObj.getDay() + 6) % 7;
+      var jourNom = JOURS[dayIndex];
+      var jourIndex = plan.semaine.findIndex(function(j){ return j.jour === jourNom; });
+      var jourData = { jour: jourNom, travaille: true, typeJour: 'travail', heureDebut: heureDebut, heureFin: heureFin };
+      if (jourIndex > -1) plan.semaine[jourIndex] = { ...plan.semaine[jourIndex], ...jourData };
+      else plan.semaine.push({ ...jourData, zone: '', note: '' });
+    });
+    plan.mis_a_jour = new Date().toISOString();
+    if (planIndex > -1) plannings[planIndex] = plan;
+    else plannings.push(plan);
+    localStorage.setItem('plannings', JSON.stringify(plannings));
+    ['absence-debut','absence-fin','absence-heure-debut','absence-heure-fin','absence-sal-search'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    afficherPlanning();
+    afficherPlanningSemaine();
+    afficherCompteurHeures();
+    afficherToast('✅ Horaires de travail enregistrés');
+    return;
+  }
+  var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  absences.push({ id: genId(), salId: salId, type: type, debut: debut, fin: fin, creeLe: new Date().toISOString() });
+  localStorage.setItem('absences_periodes', JSON.stringify(absences));
+  ['absence-debut','absence-fin','absence-heure-debut','absence-heure-fin','absence-sal-search'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  afficherAbsencesPeriodes();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  var typeLabel = type === 'conge' ? 'Congé' : type === 'maladie' ? 'Maladie' : 'Absence';
+  afficherToast('✅ ' + typeLabel + ' du ' + debut + ' au ' + fin);
+};
+
 afficherRentabilite = function() {
   let livraisons = charger('livraisons'), pleins = charger('carburant'), entretiens = charger('entretiens'), charges = charger('charges');
   const range = getRentMoisRange();
@@ -7621,7 +7663,7 @@ afficherStatistiques = function() {
   if (chartCA) chartCA.destroy();
   chartCA = new Chart(document.getElementById('chartCA'), {
     type: 'line',
-    data: { labels, datasets: [{ label: 'CA HT (â‚¬)', data: donnees, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.08)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#4f8ef7', borderWidth: 2.5 }] },
+    data: { labels, datasets: [{ label: 'CA HT (€)', data: donnees, borderColor: '#4f8ef7', backgroundColor: 'rgba(79,142,247,0.08)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#4f8ef7', borderWidth: 2.5 }] },
     options: { responsive: true, plugins: { legend: { labels: { color: legendColor } } }, scales: { x: { grid: { color: gridColor }, ticks: { color: tickColor, maxTicksLimit: 12 } }, y: { grid: { color: gridColor }, ticks: { color: tickColor, callback: v => euros(v) } } } }
   });
   const ch = charger('chauffeurs');
@@ -7652,6 +7694,96 @@ afficherStatistiques = function() {
   }
 };
 
+afficherPlanningSemaine = function() {
+  var lundi = getLundiDeSemaine(_planningSemaineOffset);
+  var salaries = charger('salaries');
+  var plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+  var datesSemaine = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(lundi);
+    d.setDate(lundi.getDate() + i);
+    datesSemaine.push(d);
+  }
+
+  var dimanche = datesSemaine[6];
+  var labelSemaine = 'Semaine ' + getNumSemaine(lundi) + ' — ' + lundi.getFullYear();
+  var labelDates = lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+  var elLabel = document.getElementById('planning-semaine-label');
+  var elDates = document.getElementById('planning-semaine-dates');
+  if (elLabel) elLabel.textContent = labelSemaine;
+  if (elDates) elDates.textContent = labelDates;
+
+  initFormulairePlanningRapide();
+
+  var thead = document.getElementById('thead-planning-semaine');
+  if (thead) {
+    thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
+      var isAuj = d.toISOString().split('T')[0] === aujourdhui();
+      return '<th style="text-align:center;' + (isAuj ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
+    }).join('') + '</tr>';
+  }
+
+  var tb = document.getElementById('tb-planning-semaine');
+  if (!tb) return;
+  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
+
+  var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
+  var salariesFiltres = salaries.filter(function(s) {
+    if (!filtre) return true;
+    return [s.nom, s.prenom, s.nomFamille, s.numero, s.poste].filter(Boolean).join(' ').toLowerCase().includes(filtre);
+  });
+
+  var totalPlanifies = 0;
+  var totalAbsences = 0;
+  salariesFiltres.forEach(function(s) {
+    var plan = plannings.find(function(p){ return p.salId === s.id; });
+    var aUnJourTravaille = false;
+    datesSemaine.forEach(function(d, i) {
+      var dateStr = d.toISOString().split('T')[0];
+      var absJour = absences.find(function(a) { return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin; });
+      if (absJour) totalAbsences++;
+      var jour = plan ? (plan.semaine||[]).find(function(j){ return j.jour === JOURS[i]; }) : null;
+      if (jour && jour.travaille) aUnJourTravaille = true;
+    });
+    if (aUnJourTravaille) totalPlanifies++;
+  });
+
+  if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
+  if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
+  if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
+  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
+
+  var typeIcons = { travail:'🟢', repos:'⚪', conge:'🔵', absence:'🟡', maladie:'🟣' };
+  const renderPlanningCell = function(className, title, detail, note) {
+    return '<td><div class="planning-week-state ' + className + '"><span>' + title + '</span>' + (detail ? '<span class="planning-week-time">' + detail + '</span>' : '') + (note ? '<span class="planning-week-note">' + note + '</span>' : '') + '</div></td>';
+  };
+
+  tb.innerHTML = salariesFiltres.map(function(s) {
+    var plan = plannings.find(function(p){ return p.salId === s.id; });
+    var cellules = datesSemaine.map(function(d, i) {
+      var dateStr = d.toISOString().split('T')[0];
+      var absJour = absences.find(function(a) { return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin; });
+      if (absJour) {
+        var labelAbs = absJour.type === 'conge' ? 'Congé' : absJour.type === 'maladie' ? 'Maladie' : 'Absence';
+        return renderCell('is-' + absJour.type, (typeIcons[absJour.type] || '🟡') + ' ' + labelAbs, '', '');
+      }
+
+      var jour = plan ? (plan.semaine||[]).find(function(j){ return j.jour === JOURS[i]; }) : null;
+      if (!jour || !jour.travaille) {
+        if (jour && ['conge','absence','maladie'].includes(jour.typeJour)) {
+          var lb = jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence';
+          return renderCell('is-' + jour.typeJour, (typeIcons[jour.typeJour] || '⚪') + ' ' + lb, '', '');
+        }
+        return renderCell('is-rest', '⚪ Repos', '', '');
+      }
+
+      return renderCell('is-work', '🟢 Travail', (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : ''), jour.zone || '');
+    }).join('');
+
+    return '<tr><td><div class="planning-week-salarie"><strong>' + s.nom + '</strong>' + (s.poste ? '<span class="planning-week-meta">' + s.poste + '</span>' : '') + (s.numero ? '<span class="planning-week-meta">#' + s.numero + '</span>' : '') + '</div></td>' + cellules + '</tr>';
+  }).join('');
+};
 window.__adminFinalLock = function() {
   ouvrirFenetreImpression = function(titre, html, options) {
     const win = window.open('', '_blank', options || 'width=900,height=700');
@@ -7663,7 +7795,7 @@ window.__adminFinalLock = function() {
   construireEnteteExport = function(params, titre, sousTitre, dateExp) {
     return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
       + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
-      + '<div style="text-align:right;font-size:.78rem;color:#9ca3af">GÃ©nÃ©rÃ© le ' + dateExp + '</div>'
+      + '<div style="text-align:right;font-size:.78rem;color:#9ca3af">Généré le ' + dateExp + '</div>'
       + '</div>';
   };
 
@@ -7681,7 +7813,7 @@ window.__adminFinalLock = function() {
 
   badgePaiementLivraisonHtml = function(statut) {
     return {
-      'payÃ©': '<span class="badge badge-dispo">PayÃ©</span>',
+      'payé': '<span class="badge badge-dispo">Payé</span>',
       'en-attente': '<span class="badge badge-attente">En attente</span>',
       'litige': '<span class="badge badge-inactif">Litige</span>'
     }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
@@ -7716,19 +7848,19 @@ window.__adminFinalLock = function() {
       const ht = getMontantHTLivraison(l);
       const tva = (parseFloat(l.prix) || 0) - ht;
       return `<tr>
-        <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv || 'â€”'}</td>
-        <td><strong>${l.client || 'â€”'}</strong></td>
-        <td style="font-size:.82rem">${l.depart || 'â€”'}</td>
-        <td style="font-size:.82rem">${l.arrivee || 'â€”'}</td>
-        <td>${l.distance ? formatKm(l.distance) : 'â€”'}</td>
+        <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv || '—'}</td>
+        <td><strong>${l.client || '—'}</strong></td>
+        <td style="font-size:.82rem">${l.depart || '—'}</td>
+        <td style="font-size:.82rem">${l.arrivee || '—'}</td>
+        <td>${l.distance ? formatKm(l.distance) : '—'}</td>
         <td style="font-size:.85rem">${euros(ht)}</td>
         <td style="font-size:.82rem;color:var(--text-muted)">${euros(tva)}</td>
         <td style="font-weight:700">${euros(l.prix || 0)}</td>
-        <td>${l.chaufNom || 'â€”'}</td>
+        <td>${l.chaufNom || '—'}</td>
         <td class="${(l.profit||0)>=0?'profit-pos':'profit-neg'}">${euros(l.profit||0)}</td>
-        <td><div class="livraison-status-cell"><label>Statut</label>${badgeStatut(l.statut)}<select onchange="changerStatutLivraison('${l.id}',this.value)"><option value="en-attente" ${l.statut==='en-attente'?'selected':''}>En attente</option><option value="en-cours" ${l.statut==='en-cours'?'selected':''}>En cours</option><option value="livre" ${l.statut==='livre'?'selected':''}>LivrÃ©</option></select></div></td>
-        <td><div class="livraison-status-cell"><label>Paiement</label>${badgePaiementLivraisonHtml(l.statutPaiement)}<select onchange="changerStatutPaiement('${l.id}',this.value)"><option value="en-attente" ${(l.statutPaiement||'en-attente')==='en-attente'?'selected':''}>En attente</option><option value="payÃ©" ${l.statutPaiement==='payÃ©'?'selected':''}>PayÃ©</option><option value="litige" ${l.statutPaiement==='litige'?'selected':''}>Litige</option></select></div></td>
-        <td><div class="livraison-actions-panel"><button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">ðŸ“‹</button><button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="RÃ©currence">ðŸ”</button><button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">âœï¸</button><button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">ðŸ—‘ï¸</button></div></td>
+        <td><div class="livraison-status-cell"><label>Statut</label>${badgeStatut(l.statut)}<select onchange="changerStatutLivraison('${l.id}',this.value)"><option value="en-attente" ${l.statut==='en-attente'?'selected':''}>En attente</option><option value="en-cours" ${l.statut==='en-cours'?'selected':''}>En cours</option><option value="livre" ${l.statut==='livre'?'selected':''}>Livré</option></select></div></td>
+        <td><div class="livraison-status-cell"><label>Paiement</label>${badgePaiementLivraisonHtml(l.statutPaiement)}<select onchange="changerStatutPaiement('${l.id}',this.value)"><option value="en-attente" ${(l.statutPaiement||'en-attente')==='en-attente'?'selected':''}>En attente</option><option value="payé" ${l.statutPaiement==='payé'?'selected':''}>Payé</option><option value="litige" ${l.statutPaiement==='litige'?'selected':''}>Litige</option></select></div></td>
+        <td><div class="livraison-actions-panel"><button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">📋</button><button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="Récurrence">🔁</button><button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">✏️</button><button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">🗑️</button></div></td>
       </tr>`;
     }).join('');
   };
@@ -7744,7 +7876,7 @@ ouvrirFenetreImpression = function(titre, html, options) {
 construireEnteteExport = function(params, titre, sousTitre, dateExp) {
   return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
     + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
-    + '<div style="text-align:right;font-size:.78rem;color:#9ca3af">GÃ©nÃ©rÃ© le ' + dateExp + '</div>'
+    + '<div style="text-align:right;font-size:.78rem;color:#9ca3af">Généré le ' + dateExp + '</div>'
     + '</div>';
 };
 
@@ -7769,14 +7901,14 @@ filtrerRecherchePlanningModal = function() {
 
 badgePaiementLivraisonHtml = function(statut) {
   return {
-    'payÃ©': '<span class="badge badge-dispo">PayÃ©</span>',
+    'payé': '<span class="badge badge-dispo">Payé</span>',
     'en-attente': '<span class="badge badge-attente">En attente</span>',
     'litige': '<span class="badge badge-inactif">Litige</span>'
   }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
 };
 
 const __finalLabelStatutLivraison = function(statut) {
-  return statut === 'livre' ? 'LivrÃ©' : statut === 'en-cours' ? 'En cours' : 'En attente';
+  return statut === 'livre' ? 'Livré' : statut === 'en-cours' ? 'En cours' : 'En attente';
 };
 
 labelStatutLivraison = function(statut) {
@@ -7818,7 +7950,7 @@ calculerPrevision = function() {
   if (elDep) elDep.textContent = euros(prevDep);
   if (elBen) elBen.textContent = euros(prevBen);
   if (elMrg) elMrg.textContent = prevMarge.toFixed(1) + ' %';
-  if (elLiv) elLiv.textContent = Math.round(moyLivs) + ' liv. estimÃ©es';
+  if (elLiv) elLiv.textContent = Math.round(moyLivs) + ' liv. estimées';
   if (elTend) {
     const signe = tendanceCA > 0 ? '+' : '';
     elTend.textContent = 'Tendance HT : ' + signe + tendanceCA.toFixed(1) + '%';
@@ -7858,24 +7990,24 @@ afficherLivraisons = function() {
     const ht = getMontantHTLivraison(l);
     const tva = (parseFloat(l.prix) || 0) - ht;
     const statutPaiement = l.statutPaiement || 'en-attente';
-    const selectStatutPropre = '<select onchange="changerStatutLivraison(\'' + l.id + '\',this.value)"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>LivrÃ©</option></select>';
-    const selectPaiementPropre = '<select onchange="changerStatutPaiement(\'' + l.id + '\',this.value)"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payÃ©" ' + (statutPaiement === 'payÃ©' ? 'selected' : '') + '>PayÃ©</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const selectStatutPropre = '<select onchange="changerStatutLivraison(\'' + l.id + '\',this.value)"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+    const selectPaiementPropre = '<select onchange="changerStatutPaiement(\'' + l.id + '\',this.value)"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
     const actionStatutPropre = l.statut === 'livre'
-      ? '<button class="btn-icon" onclick="changerStatutLivraison(\'' + l.id + '\',\'en-cours\')" title="Repasser en cours">â†©</button>'
-      : '<button class="btn-icon" onclick="validerLivraisonLivree(\'' + l.id + '\')" title="Valider livrÃ©e">âœ“</button>';
-    const actionPaiementPropre = statutPaiement === 'payÃ©'
-      ? '<button class="btn-icon" onclick="changerStatutPaiement(\'' + l.id + '\',\'en-attente\')" title="Remettre en attente">â†©</button>'
-      : '<button class="btn-icon" onclick="validerLivraisonPayee(\'' + l.id + '\')" title="Valider payÃ©e">â‚¬</button>';
+      ? '<button class="btn-icon" onclick="changerStatutLivraison(\'' + l.id + '\',\'en-cours\')" title="Repasser en cours">↩</button>'
+      : '<button class="btn-icon" onclick="validerLivraisonLivree(\'' + l.id + '\')" title="Valider livrée">✓</button>';
+    const actionPaiementPropre = statutPaiement === 'payé'
+      ? '<button class="btn-icon" onclick="changerStatutPaiement(\'' + l.id + '\',\'en-attente\')" title="Remettre en attente">↩</button>'
+      : '<button class="btn-icon" onclick="validerLivraisonPayee(\'' + l.id + '\')" title="Valider payée">€</button>';
     return `<tr>
-      <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv || 'â€”'}</td>
-      <td><strong>${l.client || 'â€”'}</strong></td>
-      <td style="font-size:.82rem">${l.depart || 'â€”'}</td>
-      <td style="font-size:.82rem">${l.arrivee || 'â€”'}</td>
-      <td>${l.distance ? formatKm(l.distance) : 'â€”'}</td>
+      <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv || '—'}</td>
+      <td><strong>${l.client || '—'}</strong></td>
+      <td style="font-size:.82rem">${l.depart || '—'}</td>
+      <td style="font-size:.82rem">${l.arrivee || '—'}</td>
+      <td>${l.distance ? formatKm(l.distance) : '—'}</td>
       <td style="font-size:.85rem">${euros(ht)}</td>
       <td style="font-size:.82rem;color:var(--text-muted)">${euros(tva)}</td>
       <td style="font-weight:700">${euros(l.prix || 0)}</td>
-      <td>${l.chaufNom || 'â€”'}</td>
+      <td>${l.chaufNom || '—'}</td>
       <td class="${(l.profit||0)>=0?'profit-pos':'profit-neg'}">${euros(l.profit||0)}</td>
       <td>
         <div class="livraison-status-cell">
@@ -7884,7 +8016,7 @@ afficherLivraisons = function() {
           <select onchange="changerStatutLivraison('${l.id}',this.value)">
             <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>En attente</option>
             <option value="en-cours" ${l.statut==='en-cours'?'selected':''}>En cours</option>
-            <option value="livre" ${l.statut==='livre'?'selected':''}>LivrÃ©</option>
+            <option value="livre" ${l.statut==='livre'?'selected':''}>Livré</option>
           </select>
         </div>
       </td>
@@ -7894,17 +8026,17 @@ afficherLivraisons = function() {
           ${badgePaiementLivraisonHtml(l.statutPaiement)}
           <select onchange="changerStatutPaiement('${l.id}',this.value)">
             <option value="en-attente" ${(l.statutPaiement||'en-attente')==='en-attente'?'selected':''}>En attente</option>
-            <option value="payÃ©" ${l.statutPaiement==='payÃ©'?'selected':''}>PayÃ©</option>
+            <option value="payé" ${l.statutPaiement==='payé'?'selected':''}>Payé</option>
             <option value="litige" ${l.statutPaiement==='litige'?'selected':''}>Litige</option>
           </select>
         </div>
       </td>
       <td>
         <div class="livraison-actions-panel">
-          <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">ðŸ“‹</button>
-          <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="RÃ©currence">ðŸ”</button>
-          <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">âœï¸</button>
-          <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">ðŸ—‘ï¸</button>
+          <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">📋</button>
+          <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="Récurrence">🔁</button>
+          <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">✏️</button>
+          <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">🗑️</button>
         </div>
       </td>
     </tr>`;
@@ -7913,11 +8045,11 @@ afficherLivraisons = function() {
 
 /* ===== ADMIN FINAL UX / EXPORTS ===== */
 const labelPaiementLivraison = function(statut) {
-  return statut === 'payÃ©' ? 'PayÃ©' : statut === 'litige' ? 'Litige' : 'En attente';
+  return statut === 'payé' ? 'Payé' : statut === 'litige' ? 'Litige' : 'En attente';
 };
 
 const labelStatutLivraisonLisible = function(statut) {
-  return statut === 'livre' ? 'LivrÃ©' : statut === 'en-cours' ? 'En cours' : 'En attente';
+  return statut === 'livre' ? 'Livré' : statut === 'en-cours' ? 'En cours' : 'En attente';
 };
 
 planningSyncSearchWithSelect = function(searchId, selectId, datalistId) {
@@ -7932,7 +8064,7 @@ planningSyncSearchWithSelect = function(searchId, selectId, datalistId) {
     return [planningBuildEmployeeLabel(s), s.nom, s.prenom, s.nomFamille, s.poste, s.numero].filter(Boolean).join(' ').toLowerCase().includes(query);
   });
   if (select) {
-    select.innerHTML = '<option value="">-- Choisir un salariÃ© --</option>';
+    select.innerHTML = '<option value="">-- Choisir un salarié --</option>';
     filtered.forEach(function(s) {
       select.innerHTML += '<option value="' + s.id + '">' + planningBuildEmployeeLabel(s).replace(/"/g, '&quot;') + '</option>';
     });
@@ -7959,13 +8091,13 @@ filtrerRecherchePlanningModal = function() {
 construireEnteteExport = function(params, titre, sousTitre, dateExp) {
   return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
     + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
-    + '<div style="text-align:right;font-size:.78rem;color:#9ca3af">GÃ©nÃ©rÃ© le ' + dateExp + '</div>'
+    + '<div style="text-align:right;font-size:.78rem;color:#9ca3af">Généré le ' + dateExp + '</div>'
     + '</div>';
 };
 
 badgePaiementLivraisonHtml = function(statut) {
   return {
-    'payÃ©': '<span class="badge badge-dispo">PayÃ©</span>',
+    'payé': '<span class="badge badge-dispo">Payé</span>',
     'en-attente': '<span class="badge badge-attente">En attente</span>',
     'litige': '<span class="badge badge-inactif">Litige</span>'
   }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
@@ -8010,7 +8142,7 @@ calculerPrevision = function() {
   if (elDep) elDep.textContent = euros(prevDep);
   if (elBen) elBen.textContent = euros(prevBen);
   if (elMrg) elMrg.textContent = prevMarge.toFixed(1) + ' %';
-  if (elLiv) elLiv.textContent = Math.round(moyLivs) + ' liv. estimÃ©es';
+  if (elLiv) elLiv.textContent = Math.round(moyLivs) + ' liv. estimées';
   if (elTend) {
     const signe = tendanceCA > 0 ? '+' : '';
     elTend.textContent = 'Tendance HT : ' + signe + tendanceCA.toFixed(1) + '%';
@@ -8041,9 +8173,9 @@ calculerPrevision = function() {
     data: {
       labels,
       datasets: [
-        { label:'CA rÃ©el HT (â‚¬)', data:dataCA.slice(0,-1).concat([null]), backgroundColor:'rgba(79,142,247,0.4)', borderColor:'rgba(79,142,247,0.9)', borderWidth:2, borderRadius:6 },
-        { label:'CA prÃ©vu HT (â‚¬)', data:Array(6).fill(null).concat([dataCA[6]]), backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6, borderDash:[5,5] },
-        { label:'BÃ©nÃ©fice net HT (â‚¬)', data:dataBen.slice(0,-1).concat([null]), type:'line', borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)', fill:true, tension:0.4, pointRadius:4 }
+        { label:'CA réel HT (€)', data:dataCA.slice(0,-1).concat([null]), backgroundColor:'rgba(79,142,247,0.4)', borderColor:'rgba(79,142,247,0.9)', borderWidth:2, borderRadius:6 },
+        { label:'CA prévu HT (€)', data:Array(6).fill(null).concat([dataCA[6]]), backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6, borderDash:[5,5] },
+        { label:'Bénéfice net HT (€)', data:dataBen.slice(0,-1).concat([null]), type:'line', borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)', fill:true, tension:0.4, pointRadius:4 }
       ]
     },
     options: {
@@ -8086,15 +8218,15 @@ afficherLivraisons = function() {
     const ht = getMontantHTLivraison(l);
     const tva = (parseFloat(l.prix) || 0) - ht;
     return `<tr>
-      <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv || 'â€”'}</td>
-      <td><strong>${l.client || 'â€”'}</strong></td>
-      <td style="font-size:.82rem">${l.depart || 'â€”'}</td>
-      <td style="font-size:.82rem">${l.arrivee || 'â€”'}</td>
-      <td>${l.distance ? formatKm(l.distance) : 'â€”'}</td>
+      <td style="font-size:.78rem;color:var(--text-muted)">${l.numLiv || '—'}</td>
+      <td><strong>${l.client || '—'}</strong></td>
+      <td style="font-size:.82rem">${l.depart || '—'}</td>
+      <td style="font-size:.82rem">${l.arrivee || '—'}</td>
+      <td>${l.distance ? formatKm(l.distance) : '—'}</td>
       <td style="font-size:.85rem">${euros(ht)}</td>
       <td style="font-size:.82rem;color:var(--text-muted)">${euros(tva)}</td>
       <td style="font-weight:700">${euros(l.prix || 0)}</td>
-      <td>${l.chaufNom || 'â€”'}</td>
+      <td>${l.chaufNom || '—'}</td>
       <td class="${(l.profit||0)>=0?'profit-pos':'profit-neg'}">${euros(l.profit||0)}</td>
       <td>
         <div class="livraison-status-cell">
@@ -8103,7 +8235,7 @@ afficherLivraisons = function() {
           <select onchange="changerStatutLivraison('${l.id}',this.value)">
             <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>En attente</option>
             <option value="en-cours" ${l.statut==='en-cours'?'selected':''}>En cours</option>
-            <option value="livre" ${l.statut==='livre'?'selected':''}>LivrÃ©</option>
+            <option value="livre" ${l.statut==='livre'?'selected':''}>Livré</option>
           </select>
         </div>
       </td>
@@ -8113,16 +8245,16 @@ afficherLivraisons = function() {
           ${badgePaiementLivraisonHtml(l.statutPaiement)}
           <select onchange="changerStatutPaiement('${l.id}',this.value)">
             <option value="en-attente" ${(l.statutPaiement||'en-attente')==='en-attente'?'selected':''}>En attente</option>
-            <option value="payÃ©" ${l.statutPaiement==='payÃ©'?'selected':''}>PayÃ©</option>
+            <option value="payé" ${l.statutPaiement==='payé'?'selected':''}>Payé</option>
             <option value="litige" ${l.statutPaiement==='litige'?'selected':''}>Litige</option>
           </select>
         </div>
       </td>
       <td>
-        <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">ðŸ“‹</button>
-        <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="RÃ©currence">ðŸ”</button>
-        <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">âœï¸</button>
-        <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">ðŸ—‘ï¸</button>
+        <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">📋</button>
+        <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="Récurrence">🔁</button>
+        <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">✏️</button>
+        <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">🗑️</button>
       </td>
     </tr>`;
   }).join('');
@@ -8167,7 +8299,7 @@ window.__planningRewriteFinal = function() {
     var grid = document.getElementById('plan-jours-grid');
     if (!grid) return;
     if (!salarie) {
-      grid.innerHTML = '<div class="planning-empty-note">SÃ©lectionne un salariÃ© pour saisir ses horaires.</div>';
+      grid.innerHTML = '<div class="planning-empty-note">Sélectionne un salarié pour saisir ses horaires.</div>';
       mettreAJourTotalHeuresPlanning();
       return;
     }
@@ -8175,7 +8307,7 @@ window.__planningRewriteFinal = function() {
     grid.innerHTML = JOURS.map(function(jour, index) {
       var data = (planning.semaine || []).find(function(item) { return item.jour === jour; }) || {};
       var typeJour = data.typeJour || (data.travaille ? 'travail' : 'repos');
-      return '<div class="planning-day-editor"><div class="planning-day-top"><div class="planning-day-title">' + JOURS_COURTS[index] + ' - ' + jour.charAt(0).toUpperCase() + jour.slice(1) + '</div><select id="plan-type-' + jour + '" onchange="toggleTypeJour(\'' + jour + '\')"><option value="travail"' + (typeJour === 'travail' ? ' selected' : '') + '>Travail</option><option value="repos"' + (typeJour === 'repos' ? ' selected' : '') + '>Repos</option><option value="conge"' + (typeJour === 'conge' ? ' selected' : '') + '>CongÃ©</option><option value="absence"' + (typeJour === 'absence' ? ' selected' : '') + '>Absence</option><option value="maladie"' + (typeJour === 'maladie' ? ' selected' : '') + '>Maladie</option></select></div><div class="planning-day-grid" id="plan-horaires-' + jour + '" style="display:' + (typeJour === 'travail' ? 'grid' : 'none') + '"><div><label>DÃ©but</label><input type="time" id="plan-debut-' + jour + '" value="' + (data.heureDebut || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div><div><label>Fin</label><input type="time" id="plan-fin-' + jour + '" value="' + (data.heureFin || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div><div><label>Zone</label><input type="text" id="plan-zone-' + jour + '" value="' + ((data.zone || '').replace(/"/g, '&quot;')) + '" placeholder="TournÃ©e, secteur..." /></div><div class="wide"><label>Note</label><input type="text" id="plan-note-' + jour + '" value="' + ((data.note || '').replace(/"/g, '&quot;')) + '" placeholder="Information utile..." /></div></div></div>';
+      return '<div class="planning-day-editor"><div class="planning-day-top"><div class="planning-day-title">' + JOURS_COURTS[index] + ' - ' + jour.charAt(0).toUpperCase() + jour.slice(1) + '</div><select id="plan-type-' + jour + '" onchange="toggleTypeJour(\'' + jour + '\')"><option value="travail"' + (typeJour === 'travail' ? ' selected' : '') + '>Travail</option><option value="repos"' + (typeJour === 'repos' ? ' selected' : '') + '>Repos</option><option value="conge"' + (typeJour === 'conge' ? ' selected' : '') + '>Congé</option><option value="absence"' + (typeJour === 'absence' ? ' selected' : '') + '>Absence</option><option value="maladie"' + (typeJour === 'maladie' ? ' selected' : '') + '>Maladie</option></select></div><div class="planning-day-grid" id="plan-horaires-' + jour + '" style="display:' + (typeJour === 'travail' ? 'grid' : 'none') + '"><div><label>Début</label><input type="time" id="plan-debut-' + jour + '" value="' + (data.heureDebut || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div><div><label>Fin</label><input type="time" id="plan-fin-' + jour + '" value="' + (data.heureFin || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div><div><label>Zone</label><input type="text" id="plan-zone-' + jour + '" value="' + ((data.zone || '').replace(/"/g, '&quot;')) + '" placeholder="Tournée, secteur..." /></div><div class="wide"><label>Note</label><input type="text" id="plan-note-' + jour + '" value="' + ((data.note || '').replace(/"/g, '&quot;')) + '" placeholder="Information utile..." /></div></div></div>';
     }).join('');
     mettreAJourTotalHeuresPlanning();
   };
@@ -8187,7 +8319,7 @@ window.__planningRewriteFinal = function() {
     var grid = document.getElementById('plan-jours-grid');
     if (search) search.value = '';
     if (select) select.value = '';
-    if (grid) grid.innerHTML = '<div class="planning-empty-note">SÃ©lectionne un salariÃ© pour saisir ses horaires.</div>';
+    if (grid) grid.innerHTML = '<div class="planning-empty-note">Sélectionne un salarié pour saisir ses horaires.</div>';
     mettreAJourTotalHeuresPlanning();
     openModal('modal-planning');
   };
@@ -8205,7 +8337,7 @@ window.__planningRewriteFinal = function() {
 
   sauvegarderPlanning = function() {
     var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
-    if (!salarie) return afficherToast('Choisis un salariÃ©', 'error');
+    if (!salarie) return afficherToast('Choisis un salarié', 'error');
     var planning = { salId: salarie.id, salNom: salarie.nom || '', semaine: JOURS.map(function(jour) {
       var typeJour = document.getElementById('plan-type-' + jour)?.value || 'repos';
       return { jour: jour, travaille: typeJour === 'travail', typeJour: typeJour, heureDebut: typeJour === 'travail' ? (document.getElementById('plan-debut-' + jour)?.value || '') : '', heureFin: typeJour === 'travail' ? (document.getElementById('plan-fin-' + jour)?.value || '') : '', zone: typeJour === 'travail' ? (document.getElementById('plan-zone-' + jour)?.value || '') : '', note: typeJour === 'travail' ? (document.getElementById('plan-note-' + jour)?.value || '') : '' };
@@ -8219,24 +8351,24 @@ window.__planningRewriteFinal = function() {
     afficherPlanning();
     afficherPlanningSemaine();
     afficherCompteurHeures();
-    afficherToast('Planning enregistrÃ©');
+    afficherToast('Planning enregistré');
   };
 
   supprimerPlanning = async function(salId) {
-    var ok = await confirmDialog('Supprimer le planning hebdomadaire de ce salariÃ© ?', { titre:'Supprimer le planning', icone:'ðŸ“…', btnLabel:'Supprimer' });
+    var ok = await confirmDialog('Supprimer le planning hebdomadaire de ce salarié ?', { titre:'Supprimer le planning', icone:'📅', btnLabel:'Supprimer' });
     if (!ok) return;
     sauvegarder('plannings', charger('plannings').filter(function(p) { return p.salId !== salId; }));
     afficherPlanning();
     afficherPlanningSemaine();
     afficherCompteurHeures();
-    afficherToast('Planning supprimÃ©');
+    afficherToast('Planning supprimé');
   };
 
   copierSemainePrecedente = function() {
     var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
-    if (!salarie) return afficherToast('Choisis un salariÃ©', 'error');
+    if (!salarie) return afficherToast('Choisis un salarié', 'error');
     var planning = (charger('plannings') || []).find(function(p) { return p.salId === salarie.id; });
-    if (!planning || !planning.semaine || !planning.semaine.length) return afficherToast('Aucun planning existant Ã  copier', 'error');
+    if (!planning || !planning.semaine || !planning.semaine.length) return afficherToast('Aucun planning existant à copier', 'error');
     genererGrilleJours();
   };
 
@@ -8253,18 +8385,61 @@ window.__planningRewriteFinal = function() {
 
   initFormulairePlanningRapide = function() { peuplerAbsenceSal(); toggleAbsenceTypeFields(); };
 
+  ajouterPeriodeAbsence = function() {
+    var salarie = planningResolveSelectedEmployee('absence-sal-search', 'absence-sal');
+    var type = document.getElementById('absence-type')?.value || 'travail';
+    var debut = document.getElementById('absence-debut')?.value || '';
+    var fin = document.getElementById('absence-fin')?.value || '';
+    var heureDebut = document.getElementById('absence-heure-debut')?.value || '';
+    var heureFin = document.getElementById('absence-heure-fin')?.value || '';
+    var editId = document.getElementById('absence-edit-id')?.value || '';
+    if (!salarie || !debut || !fin) return afficherToast('Salarié, date de début et date de fin obligatoires', 'error');
+    if (fin < debut) return afficherToast('La date de fin doit être postérieure à la date de début', 'error');
+    if (type === 'travail') {
+      if (!heureDebut || !heureFin || calculerDureeJour(heureDebut, heureFin) <= 0) return afficherToast('Renseigne des horaires valides', 'error');
+      var plannings = charger('plannings');
+      var indexPlan = plannings.findIndex(function(p) { return p.salId === salarie.id; });
+      var planning = indexPlan > -1 ? plannings[indexPlan] : { salId: salarie.id, salNom: salarie.nom || '', semaine: [] };
+      planning.salNom = salarie.nom || '';
+      planning.semaine = Array.isArray(planning.semaine) ? planning.semaine : [];
+      getDateRangeInclusive(debut, fin).forEach(function(dateObj) {
+        var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
+        var indexJour = planning.semaine.findIndex(function(j) { return j.jour === jourNom; });
+        var dataJour = { jour: jourNom, travaille: true, typeJour: 'travail', heureDebut: heureDebut, heureFin: heureFin, zone: indexJour > -1 ? (planning.semaine[indexJour].zone || '') : '', note: indexJour > -1 ? (planning.semaine[indexJour].note || '') : '' };
+        if (indexJour > -1) planning.semaine[indexJour] = { ...planning.semaine[indexJour], ...dataJour }; else planning.semaine.push(dataJour);
+      });
+      planning.mis_a_jour = new Date().toISOString();
+      if (indexPlan > -1) plannings[indexPlan] = planning; else plannings.push(planning);
+      sauvegarder('plannings', plannings);
+      reinitialiserFormulairePlanningRapide();
+      afficherPlanningSemaine();
+      afficherCompteurHeures();
+      return afficherToast('Créneau de travail enregistré');
+    }
+    var absences = charger('absences_periodes');
+    var payload = { id: editId || genId(), salId: salarie.id, salNom: salarie.nom || '', type: type, debut: debut, fin: fin, creeLe: editId ? (absences.find(function(a) { return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(), modifieLe: new Date().toISOString() };
+    var indexAbs = absences.findIndex(function(a) { return a.id === payload.id; });
+    if (indexAbs > -1) absences[indexAbs] = payload; else absences.push(payload);
+    sauvegarder('absences_periodes', absences);
+    reinitialiserFormulairePlanningRapide();
+    afficherAbsencesPeriodes();
+    afficherPlanningSemaine();
+    afficherCompteurHeures();
+    afficherToast(editId ? 'Période mise à jour' : 'Période enregistrée');
+  };
+
   afficherAbsencesPeriodes = function() {
     var container = document.getElementById('liste-absences-periodes');
     if (!container) return;
     var salaries = charger('salaries');
     var colors = { conge:'#3498db', maladie:'#9b59b6', absence:'#f39c12' };
-    var labels = { conge:'CongÃ©', maladie:'Maladie', absence:'Absence' };
+    var labels = { conge:'Congé', maladie:'Maladie', absence:'Absence' };
     var absences = charger('absences_periodes').sort(function(a, b) { return new Date(b.debut) - new Date(a.debut); });
-    if (!absences.length) return container.innerHTML = '<div class="planning-empty-note">Aucune pÃ©riode enregistrÃ©e.</div>';
+    if (!absences.length) return container.innerHTML = '<div class="planning-empty-note">Aucune période enregistrée.</div>';
     container.innerHTML = absences.map(function(absence) {
       var salarie = salaries.find(function(s) { return s.id === absence.salId; });
-      var labelSal = planningBuildEmployeeLabel(salarie || { nom: absence.salNom || 'SalariÃ© supprimÃ©' });
-      return '<div class="planning-period-item"><span class="planning-period-dot" style="background:' + (colors[absence.type] || '#f39c12') + '"></span><div class="planning-period-content"><div class="planning-period-title">' + (labels[absence.type] || 'PÃ©riode') + ' - ' + labelSal + '</div><div class="planning-period-meta">Du ' + formatDateExport(absence.debut) + ' au ' + formatDateExport(absence.fin) + '</div></div><div class="planning-period-actions"><button type="button" onclick="editerPeriodeAbsence(\'' + absence.id + '\')">Modifier</button><button type="button" class="danger" onclick="supprimerAbsencePeriode(\'' + absence.id + '\')">Supprimer</button></div></div>';
+      var labelSal = planningBuildEmployeeLabel(salarie || { nom: absence.salNom || 'Salarié supprimé' });
+      return '<div class="planning-period-item"><span class="planning-period-dot" style="background:' + (colors[absence.type] || '#f39c12') + '"></span><div class="planning-period-content"><div class="planning-period-title">' + (labels[absence.type] || 'Période') + ' - ' + labelSal + '</div><div class="planning-period-meta">Du ' + formatDateExport(absence.debut) + ' au ' + formatDateExport(absence.fin) + '</div></div><div class="planning-period-actions"><button type="button" onclick="editerPeriodeAbsence(\'' + absence.id + '\')">Modifier</button><button type="button" class="danger" onclick="supprimerAbsencePeriode(\'' + absence.id + '\')">Supprimer</button></div></div>';
     }).join('');
   };
 
@@ -8279,19 +8454,19 @@ window.__planningRewriteFinal = function() {
     if (document.getElementById('absence-type')) document.getElementById('absence-type').value = absence.type;
     if (document.getElementById('absence-debut')) document.getElementById('absence-debut').value = absence.debut;
     if (document.getElementById('absence-fin')) document.getElementById('absence-fin').value = absence.fin;
-    if (document.getElementById('planning-submit-btn')) document.getElementById('planning-submit-btn').textContent = 'Mettre Ã  jour';
+    if (document.getElementById('planning-submit-btn')) document.getElementById('planning-submit-btn').textContent = 'Mettre à jour';
     toggleAbsenceTypeFields();
   };
 
   supprimerAbsencePeriode = async function(id) {
-    var ok = await confirmDialog('Supprimer cette pÃ©riode ?', { titre:'Supprimer la pÃ©riode', icone:'ðŸ“…', btnLabel:'Supprimer' });
+    var ok = await confirmDialog('Supprimer cette période ?', { titre:'Supprimer la période', icone:'📅', btnLabel:'Supprimer' });
     if (!ok) return;
     sauvegarder('absences_periodes', charger('absences_periodes').filter(function(a) { return a.id !== id; }));
     if (document.getElementById('absence-edit-id')?.value === id) reinitialiserFormulairePlanningRapide();
     afficherAbsencesPeriodes();
     afficherPlanningSemaine();
     afficherCompteurHeures();
-    afficherToast('PÃ©riode supprimÃ©e');
+    afficherToast('Période supprimée');
   };
 
   afficherPlanningSemaine = function() {
@@ -8305,9 +8480,9 @@ window.__planningRewriteFinal = function() {
     if (document.getElementById('planning-semaine-dates')) document.getElementById('planning-semaine-dates').textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
     var thead = document.getElementById('thead-planning-semaine');
     var tbody = document.getElementById('tb-planning-semaine');
-    if (thead) thead.innerHTML = '<tr><th>SalariÃ©</th>' + week.dates.map(function(dateObj, index) { var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui(); return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>'; }).join('') + '</tr>';
+    if (thead) thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) { var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui(); return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>'; }).join('') + '</tr>';
     if (!tbody) return;
-    if (!salaries.length) return tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salariÃ©</td></tr>';
+    if (!salaries.length) return tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>';
     var filtered = salaries.filter(function(salarie) { return !filtre || [planningBuildEmployeeLabel(salarie), salarie.nom, salarie.prenom, salarie.numero, salarie.poste].filter(Boolean).join(' ').toLowerCase().includes(filtre); });
     var totalPlanifies = 0;
     var totalAbsences = 0;
@@ -8317,16 +8492,16 @@ window.__planningRewriteFinal = function() {
       var cells = week.dates.map(function(dateObj, index) {
         var dateStr = dateObj.toISOString().slice(0, 10);
         var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
-        if (absence) { totalAbsences += 1; return planningRenderWeekState('is-' + absence.type, absence.type === 'conge' ? 'CongÃ©' : absence.type === 'maladie' ? 'Maladie' : 'Absence', '', ''); }
+        if (absence) { totalAbsences += 1; return planningRenderWeekState('is-' + absence.type, absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence', '', ''); }
         var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[index]; }) || null;
         if (!jour) return planningRenderWeekState('is-rest', 'Repos', '', '');
         if (jour.typeJour === 'travail' && jour.travaille) { hasWork = true; return planningRenderWeekState('is-work', 'Travail', (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : ''), jour.zone || jour.note || ''); }
-        if (jour.typeJour === 'conge' || jour.typeJour === 'absence' || jour.typeJour === 'maladie') return planningRenderWeekState('is-' + jour.typeJour, jour.typeJour === 'conge' ? 'CongÃ©' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence', '', '');
+        if (jour.typeJour === 'conge' || jour.typeJour === 'absence' || jour.typeJour === 'maladie') return planningRenderWeekState('is-' + jour.typeJour, jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence', '', '');
         return planningRenderWeekState('is-rest', 'Repos', '', '');
       }).join('');
       if (hasWork) totalPlanifies += 1;
       return '<tr><td><div class="planning-week-salarie"><strong>' + (salarie.nom || '') + '</strong>' + (salarie.poste ? '<span class="planning-week-meta">' + salarie.poste + '</span>' : '') + (salarie.numero ? '<span class="planning-week-meta">#' + salarie.numero + '</span>' : '') + '</div></td>' + cells + '</tr>';
-    }).join('') : '<tr><td colspan="8" class="empty-row">Aucun salariÃ© ne correspond Ã  la recherche</td></tr>';
+    }).join('') : '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>';
     if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
     if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
     if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
@@ -8348,23 +8523,422 @@ window.__planningRewriteFinal = function() {
       var cells = week.dates.map(function(dateObj, dayIndex) {
         var dateStr = dateObj.toISOString().slice(0, 10);
         var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
-        if (absence) return '<td style="padding:8px 10px;text-align:center">' + (absence.type === 'conge' ? 'CongÃ©' : absence.type === 'maladie' ? 'Maladie' : 'Absence') + '</td>';
+        if (absence) return '<td style="padding:8px 10px;text-align:center">' + (absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence') + '</td>';
         var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[dayIndex]; });
         if (!jour) return '<td style="padding:8px 10px;text-align:center">Repos</td>';
         if (jour.typeJour === 'travail' && jour.travaille) return '<td style="padding:8px 10px;text-align:center">' + (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : '') + '</td>';
-        return '<td style="padding:8px 10px;text-align:center">' + (jour.typeJour === 'conge' ? 'CongÃ©' : jour.typeJour === 'maladie' ? 'Maladie' : jour.typeJour === 'absence' ? 'Absence' : 'Repos') + '</td>';
+        return '<td style="padding:8px 10px;text-align:center">' + (jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : jour.typeJour === 'absence' ? 'Absence' : 'Repos') + '</td>';
       }).join('');
       return '<tr style="background:' + (index % 2 === 0 ? '#fff' : '#fafafa') + ';border-bottom:1px solid #e5e7eb"><td style="padding:8px 10px;font-weight:600">' + (salarie.nom || '') + (salarie.numero ? '<br><span style="font-size:.75rem;color:#6b7280">#' + salarie.numero + '</span>' : '') + '</td>' + cells + '</tr>';
     }).join('');
-    var html = '<html><head><meta charset="utf-8"><title>Planning hebdomadaire</title></head><body style="font-family:Arial,sans-serif;padding:28px;color:#111827"><h1 style="margin:0 0 6px;font-size:22px">' + params.nom + '</h1><div style="color:#6b7280;margin-bottom:16px">Planning hebdomadaire - Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear() + '</div>' + renderBlocInfosEntreprise(params) + '<div style="margin-bottom:16px;font-size:14px;color:#374151">PÃ©riode : ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche) + '</div><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f3f4f6"><th style="padding:8px 10px;text-align:left">SalariÃ©</th>' + cols + '</tr></thead><tbody>' + rows + '</tbody></table>' + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire') + '</body></html>';
+    var html = '<html><head><meta charset="utf-8"><title>Planning hebdomadaire</title></head><body style="font-family:Arial,sans-serif;padding:28px;color:#111827"><h1 style="margin:0 0 6px;font-size:22px">' + params.nom + '</h1><div style="color:#6b7280;margin-bottom:16px">Planning hebdomadaire - Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear() + '</div>' + renderBlocInfosEntreprise(params) + '<div style="margin-bottom:16px;font-size:14px;color:#374151">Période : ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche) + '</div><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f3f4f6"><th style="padding:8px 10px;text-align:left">Salarié</th>' + cols + '</tr></thead><tbody>' + rows + '</tbody></table>' + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire') + '</body></html>';
     var popup = window.open('', '_blank');
-    if (!popup) return afficherToast('Autorise les popups pour gÃ©nÃ©rer le PDF', 'error');
+    if (!popup) return afficherToast('Autorise les popups pour générer le PDF', 'error');
     popup.document.write(html);
     popup.document.close();
     popup.focus();
     setTimeout(function() { popup.print(); }, 250);
-    afficherToast('Rapport planning gÃ©nÃ©rÃ©');
+    afficherToast('Rapport planning généré');
   };
+};
+
+/* ===== PLANNING REWRITE FINAL ===== */
+toggleAbsenceTypeFields = function() {
+  var type = document.getElementById('absence-type')?.value || 'travail';
+  var startWrap = document.getElementById('absence-heure-debut-wrap');
+  var endWrap = document.getElementById('absence-heure-fin-wrap');
+  if (startWrap) startWrap.style.display = type === 'travail' ? '' : 'none';
+  if (endWrap) endWrap.style.display = type === 'travail' ? '' : 'none';
+};
+
+peuplerAbsenceSal = function() {
+  planningSyncSearchWithSelect('absence-sal-search', 'absence-sal', 'absence-sal-datalist');
+};
+
+filtrerRechercheAbsence = function() {
+  planningResolveSelectedEmployee('absence-sal-search', 'absence-sal');
+};
+
+peuplerSelectPlanningModal = function() {
+  planningSyncSearchWithSelect('plan-salarie-search', 'plan-salarie', 'plan-salarie-datalist');
+};
+
+filtrerRecherchePlanningModal = function() {
+  var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+  if (salarie) genererGrilleJours();
+};
+
+mettreAJourTotalHeuresPlanning = function() {
+  var total = 0;
+  JOURS.forEach(function(jour) {
+    if ((document.getElementById('plan-type-' + jour)?.value || 'repos') !== 'travail') return;
+    total += calculerDureeJour(
+      document.getElementById('plan-debut-' + jour)?.value || '',
+      document.getElementById('plan-fin-' + jour)?.value || ''
+    );
+  });
+  var el = document.getElementById('plan-total-heures');
+  if (el) el.textContent = total.toFixed(1) + ' h';
+};
+
+toggleTypeJour = function(jour) {
+  var type = document.getElementById('plan-type-' + jour)?.value || 'repos';
+  var horaires = document.getElementById('plan-horaires-' + jour);
+  if (horaires) horaires.style.display = type === 'travail' ? 'grid' : 'none';
+  mettreAJourTotalHeuresPlanning();
+};
+
+genererGrilleJours = function() {
+  var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+  var grid = document.getElementById('plan-jours-grid');
+  if (!grid) return;
+  if (!salarie) {
+    grid.innerHTML = '<div class="planning-empty-note">Sélectionne un salarié pour saisir ses horaires.</div>';
+    mettreAJourTotalHeuresPlanning();
+    return;
+  }
+  var planning = (charger('plannings') || []).find(function(p) { return p.salId === salarie.id; }) || { semaine: [] };
+  grid.innerHTML = JOURS.map(function(jour, index) {
+    var data = (planning.semaine || []).find(function(item) { return item.jour === jour; }) || {};
+    var typeJour = data.typeJour || (data.travaille ? 'travail' : 'repos');
+    return '<div class="planning-day-editor">'
+      + '<div class="planning-day-top"><div class="planning-day-title">' + JOURS_COURTS[index] + ' - ' + jour.charAt(0).toUpperCase() + jour.slice(1) + '</div>'
+      + '<select id="plan-type-' + jour + '" onchange="toggleTypeJour(\'' + jour + '\')">'
+      + '<option value="travail"' + (typeJour === 'travail' ? ' selected' : '') + '>Travail</option>'
+      + '<option value="repos"' + (typeJour === 'repos' ? ' selected' : '') + '>Repos</option>'
+      + '<option value="conge"' + (typeJour === 'conge' ? ' selected' : '') + '>Congé</option>'
+      + '<option value="absence"' + (typeJour === 'absence' ? ' selected' : '') + '>Absence</option>'
+      + '<option value="maladie"' + (typeJour === 'maladie' ? ' selected' : '') + '>Maladie</option>'
+      + '</select></div>'
+      + '<div class="planning-day-grid" id="plan-horaires-' + jour + '" style="display:' + (typeJour === 'travail' ? 'grid' : 'none') + '">'
+      + '<div><label>Début</label><input type="time" id="plan-debut-' + jour + '" value="' + (data.heureDebut || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div>'
+      + '<div><label>Fin</label><input type="time" id="plan-fin-' + jour + '" value="' + (data.heureFin || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div>'
+      + '<div><label>Zone</label><input type="text" id="plan-zone-' + jour + '" value="' + ((data.zone || '').replace(/"/g, '&quot;')) + '" placeholder="Tournée, secteur..." /></div>'
+      + '<div class="wide"><label>Note</label><input type="text" id="plan-note-' + jour + '" value="' + ((data.note || '').replace(/"/g, '&quot;')) + '" placeholder="Information utile..." /></div>'
+      + '</div></div>';
+  }).join('');
+  mettreAJourTotalHeuresPlanning();
+};
+
+ouvrirModalPlanning = function() {
+  peuplerSelectPlanningModal();
+  var search = document.getElementById('plan-salarie-search');
+  var select = document.getElementById('plan-salarie');
+  var grid = document.getElementById('plan-jours-grid');
+  if (search) search.value = '';
+  if (select) select.value = '';
+  if (grid) grid.innerHTML = '<div class="planning-empty-note">Sélectionne un salarié pour saisir ses horaires.</div>';
+  mettreAJourTotalHeuresPlanning();
+  openModal('modal-planning');
+};
+
+ouvrirEditPlanning = function(salId) {
+  peuplerSelectPlanningModal();
+  var select = document.getElementById('plan-salarie');
+  var search = document.getElementById('plan-salarie-search');
+  var salarie = charger('salaries').find(function(s) { return s.id === salId; });
+  if (select) select.value = salId;
+  if (search && salarie) search.value = planningBuildEmployeeLabel(salarie);
+  genererGrilleJours();
+  openModal('modal-planning');
+};
+
+sauvegarderPlanning = function() {
+  var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+  if (!salarie) return afficherToast('Choisis un salarié', 'error');
+  var planning = {
+    salId: salarie.id,
+    salNom: salarie.nom || '',
+    semaine: JOURS.map(function(jour) {
+      var typeJour = document.getElementById('plan-type-' + jour)?.value || 'repos';
+      return {
+        jour: jour,
+        travaille: typeJour === 'travail',
+        typeJour: typeJour,
+        heureDebut: typeJour === 'travail' ? (document.getElementById('plan-debut-' + jour)?.value || '') : '',
+        heureFin: typeJour === 'travail' ? (document.getElementById('plan-fin-' + jour)?.value || '') : '',
+        zone: typeJour === 'travail' ? (document.getElementById('plan-zone-' + jour)?.value || '') : '',
+        note: typeJour === 'travail' ? (document.getElementById('plan-note-' + jour)?.value || '') : ''
+      };
+    }),
+    mis_a_jour: new Date().toISOString()
+  };
+  if (planning.semaine.some(function(j) { return j.typeJour === 'travail' && j.heureDebut && j.heureFin && calculerDureeJour(j.heureDebut, j.heureFin) <= 0; })) {
+    return afficherToast('Certaines heures sont invalides', 'error');
+  }
+  var plannings = charger('plannings');
+  var index = plannings.findIndex(function(p) { return p.salId === salarie.id; });
+  if (index > -1) plannings[index] = planning;
+  else plannings.push(planning);
+  sauvegarder('plannings', plannings);
+  closeModal('modal-planning');
+  afficherPlanning();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast('Planning enregistré');
+};
+
+supprimerPlanning = async function(salId) {
+  var ok = await confirmDialog('Supprimer le planning hebdomadaire de ce salarié ?', { titre:'Supprimer le planning', icone:'📅', btnLabel:'Supprimer' });
+  if (!ok) return;
+  sauvegarder('plannings', charger('plannings').filter(function(p) { return p.salId !== salId; }));
+  afficherPlanning();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast('Planning supprimé');
+};
+
+copierSemainePrecedente = function() {
+  var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+  if (!salarie) return afficherToast('Choisis un salarié', 'error');
+  var planning = (charger('plannings') || []).find(function(p) { return p.salId === salarie.id; });
+  if (!planning || !planning.semaine || !planning.semaine.length) return afficherToast('Aucun planning existant à copier', 'error');
+  genererGrilleJours();
+};
+
+afficherPlanning = function() {
+  peuplerSelectPlanningModal();
+};
+
+reinitialiserFormulairePlanningRapide = function() {
+  ['absence-edit-id', 'absence-debut', 'absence-fin', 'absence-heure-debut', 'absence-heure-fin'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  var search = document.getElementById('absence-sal-search');
+  var select = document.getElementById('absence-sal');
+  var type = document.getElementById('absence-type');
+  var btn = document.getElementById('planning-submit-btn');
+  if (search) search.value = '';
+  if (select) select.value = '';
+  if (type) type.value = 'travail';
+  if (btn) btn.textContent = '+ Enregistrer';
+  toggleAbsenceTypeFields();
+};
+
+initFormulairePlanningRapide = function() {
+  peuplerAbsenceSal();
+  toggleAbsenceTypeFields();
+};
+
+ajouterPeriodeAbsence = function() {
+  var salarie = planningResolveSelectedEmployee('absence-sal-search', 'absence-sal');
+  var type = document.getElementById('absence-type')?.value || 'travail';
+  var debut = document.getElementById('absence-debut')?.value || '';
+  var fin = document.getElementById('absence-fin')?.value || '';
+  var heureDebut = document.getElementById('absence-heure-debut')?.value || '';
+  var heureFin = document.getElementById('absence-heure-fin')?.value || '';
+  var editId = document.getElementById('absence-edit-id')?.value || '';
+  if (!salarie || !debut || !fin) return afficherToast('Salarié, date de début et date de fin obligatoires', 'error');
+  if (fin < debut) return afficherToast('La date de fin doit être postérieure à la date de début', 'error');
+
+  if (type === 'travail') {
+    if (!heureDebut || !heureFin || calculerDureeJour(heureDebut, heureFin) <= 0) {
+      return afficherToast('Renseigne des horaires valides', 'error');
+    }
+    var plannings = charger('plannings');
+    var indexPlan = plannings.findIndex(function(p) { return p.salId === salarie.id; });
+    var planning = indexPlan > -1 ? plannings[indexPlan] : { salId: salarie.id, salNom: salarie.nom || '', semaine: [] };
+    planning.salNom = salarie.nom || '';
+    planning.semaine = Array.isArray(planning.semaine) ? planning.semaine : [];
+    getDateRangeInclusive(debut, fin).forEach(function(dateObj) {
+      var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
+      var indexJour = planning.semaine.findIndex(function(j) { return j.jour === jourNom; });
+      var dataJour = {
+        jour: jourNom,
+        travaille: true,
+        typeJour: 'travail',
+        heureDebut: heureDebut,
+        heureFin: heureFin,
+        zone: indexJour > -1 ? (planning.semaine[indexJour].zone || '') : '',
+        note: indexJour > -1 ? (planning.semaine[indexJour].note || '') : ''
+      };
+      if (indexJour > -1) planning.semaine[indexJour] = { ...planning.semaine[indexJour], ...dataJour };
+      else planning.semaine.push(dataJour);
+    });
+    planning.mis_a_jour = new Date().toISOString();
+    if (indexPlan > -1) plannings[indexPlan] = planning;
+    else plannings.push(planning);
+    sauvegarder('plannings', plannings);
+    reinitialiserFormulairePlanningRapide();
+    afficherPlanningSemaine();
+    afficherCompteurHeures();
+    return afficherToast('Créneau de travail enregistré');
+  }
+
+  var absences = charger('absences_periodes');
+  var payload = {
+    id: editId || genId(),
+    salId: salarie.id,
+    salNom: salarie.nom || '',
+    type: type,
+    debut: debut,
+    fin: fin,
+    creeLe: editId ? (absences.find(function(a) { return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(),
+    modifieLe: new Date().toISOString()
+  };
+  var indexAbs = absences.findIndex(function(a) { return a.id === payload.id; });
+  if (indexAbs > -1) absences[indexAbs] = payload;
+  else absences.push(payload);
+  sauvegarder('absences_periodes', absences);
+  reinitialiserFormulairePlanningRapide();
+  afficherAbsencesPeriodes();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast(editId ? 'Période mise à jour' : 'Période enregistrée');
+};
+
+afficherAbsencesPeriodes = function() {
+  var container = document.getElementById('liste-absences-periodes');
+  if (!container) return;
+  var salaries = charger('salaries');
+  var colors = { repos:'#6b7280', conge:'#3498db', maladie:'#9b59b6', absence:'#f39c12' };
+  var labels = { repos:'Repos', conge:'Congé', maladie:'Maladie', absence:'Absence' };
+  var absences = charger('absences_periodes').sort(function(a, b) { return new Date(b.debut) - new Date(a.debut); });
+  if (!absences.length) {
+    container.innerHTML = '<div class="planning-empty-note">Aucune période enregistrée.</div>';
+    return;
+  }
+  container.innerHTML = absences.map(function(absence) {
+    var salarie = salaries.find(function(s) { return s.id === absence.salId; });
+    var labelSal = planningBuildEmployeeLabel(salarie || { nom: absence.salNom || 'Salarié supprimé' });
+    return '<div class="planning-period-item">'
+      + '<span class="planning-period-dot" style="background:' + (colors[absence.type] || '#f39c12') + '"></span>'
+      + '<div class="planning-period-content"><div class="planning-period-title">' + (labels[absence.type] || 'Période') + ' - ' + labelSal + '</div>'
+      + '<div class="planning-period-meta">Du ' + formatDateExport(absence.debut) + ' au ' + formatDateExport(absence.fin) + '</div></div>'
+      + '<div class="planning-period-actions"><button type="button" onclick="editerPeriodeAbsence(\'' + absence.id + '\')">Modifier</button><button type="button" class="danger" onclick="supprimerAbsencePeriode(\'' + absence.id + '\')">Supprimer</button></div>'
+      + '</div>';
+  }).join('');
+};
+
+editerPeriodeAbsence = function(id) {
+  var absence = charger('absences_periodes').find(function(a) { return a.id === id; });
+  if (!absence) return;
+  peuplerAbsenceSal();
+  var salarie = charger('salaries').find(function(s) { return s.id === absence.salId; });
+  if (document.getElementById('absence-edit-id')) document.getElementById('absence-edit-id').value = absence.id;
+  if (document.getElementById('absence-sal')) document.getElementById('absence-sal').value = absence.salId;
+  if (document.getElementById('absence-sal-search') && salarie) document.getElementById('absence-sal-search').value = planningBuildEmployeeLabel(salarie);
+  if (document.getElementById('absence-type')) document.getElementById('absence-type').value = absence.type;
+  if (document.getElementById('absence-debut')) document.getElementById('absence-debut').value = absence.debut;
+  if (document.getElementById('absence-fin')) document.getElementById('absence-fin').value = absence.fin;
+  if (document.getElementById('planning-submit-btn')) document.getElementById('planning-submit-btn').textContent = 'Mettre à jour';
+  toggleAbsenceTypeFields();
+};
+
+supprimerAbsencePeriode = async function(id) {
+  var ok = await confirmDialog('Supprimer cette période ?', { titre:'Supprimer la période', icone:'📅', btnLabel:'Supprimer' });
+  if (!ok) return;
+  sauvegarder('absences_periodes', charger('absences_periodes').filter(function(a) { return a.id !== id; }));
+  if (document.getElementById('absence-edit-id')?.value === id) reinitialiserFormulairePlanningRapide();
+  afficherAbsencesPeriodes();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast('Période supprimée');
+};
+
+afficherPlanningSemaine = function() {
+  initFormulairePlanningRapide();
+  var week = planningGetWeekDates();
+  var salaries = charger('salaries');
+  var plannings = charger('plannings');
+  var absences = charger('absences_periodes');
+  var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
+  var label = document.getElementById('planning-semaine-label');
+  var datesLabel = document.getElementById('planning-semaine-dates');
+  var thead = document.getElementById('thead-planning-semaine');
+  var tbody = document.getElementById('tb-planning-semaine');
+  if (label) label.textContent = 'Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear();
+  if (datesLabel) datesLabel.textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
+  if (thead) {
+    thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) {
+      var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui();
+      return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>';
+    }).join('') + '</tr>';
+  }
+  if (!tbody) return;
+  if (!salaries.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>';
+    return;
+  }
+  var filtered = salaries.filter(function(salarie) {
+    if (!filtre) return true;
+    return [planningBuildEmployeeLabel(salarie), salarie.nom, salarie.prenom, salarie.numero, salarie.poste].filter(Boolean).join(' ').toLowerCase().includes(filtre);
+  });
+  var totalPlanifies = 0;
+  var totalAbsences = 0;
+  tbody.innerHTML = filtered.length ? filtered.map(function(salarie) {
+    var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
+    var hasWork = false;
+    var cells = week.dates.map(function(dateObj, index) {
+      var dateStr = dateObj.toISOString().slice(0, 10);
+      var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
+      if (absence) {
+        totalAbsences += 1;
+        return planningRenderWeekState('is-' + absence.type, absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence', '', '');
+      }
+      var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[index]; }) || null;
+      if (!jour) return planningRenderWeekState('is-rest', 'Repos', '', '');
+      if (jour.typeJour === 'travail' && jour.travaille) {
+        hasWork = true;
+        return planningRenderWeekState('is-work', 'Travail', (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : ''), jour.zone || jour.note || '');
+      }
+      if (jour.typeJour === 'conge' || jour.typeJour === 'absence' || jour.typeJour === 'maladie') {
+        return planningRenderWeekState('is-' + jour.typeJour, jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence', '', '');
+      }
+      return planningRenderWeekState('is-rest', 'Repos', '', '');
+    }).join('');
+    if (hasWork) totalPlanifies += 1;
+    return '<tr><td><div class="planning-week-salarie"><strong>' + (salarie.nom || '') + '</strong>' + (salarie.poste ? '<span class="planning-week-meta">' + salarie.poste + '</span>' : '') + (salarie.numero ? '<span class="planning-week-meta">#' + salarie.numero + '</span>' : '') + '</div></td>' + cells + '</tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>';
+  if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
+  if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
+  if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
+  afficherAbsencesPeriodes();
+};
+
+filtrerPlanningSemaine = function() {
+  afficherPlanningSemaine();
+};
+
+exporterPlanningSemainePDF = function() {
+  var week = planningGetWeekDates();
+  var salaries = charger('salaries');
+  var plannings = charger('plannings');
+  var absences = charger('absences_periodes');
+  var params = getEntrepriseExportParams();
+  var dateExp = formatDateHeureExport();
+  var cols = week.dates.map(function(dateObj, index) {
+    return '<th style="padding:8px 10px;text-align:center;color:#6b7280">' + JOURS_COURTS[index] + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>';
+  }).join('');
+  var rows = salaries.map(function(salarie, index) {
+    var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
+    var cells = week.dates.map(function(dateObj, dayIndex) {
+      var dateStr = dateObj.toISOString().slice(0, 10);
+      var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
+      if (absence) return '<td style="padding:8px 10px;text-align:center">' + (absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence') + '</td>';
+      var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[dayIndex]; });
+      if (!jour) return '<td style="padding:8px 10px;text-align:center">Repos</td>';
+      if (jour.typeJour === 'travail' && jour.travaille) return '<td style="padding:8px 10px;text-align:center">' + (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : '') + '</td>';
+      return '<td style="padding:8px 10px;text-align:center">' + (jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : jour.typeJour === 'absence' ? 'Absence' : 'Repos') + '</td>';
+    }).join('');
+    return '<tr style="background:' + (index % 2 === 0 ? '#fff' : '#fafafa') + ';border-bottom:1px solid #e5e7eb"><td style="padding:8px 10px;font-weight:600">' + (salarie.nom || '') + (salarie.numero ? '<br><span style="font-size:.75rem;color:#6b7280">#' + salarie.numero + '</span>' : '') + '</td>' + cells + '</tr>';
+  }).join('');
+  var html = '<html><head><meta charset="utf-8"><title>Planning hebdomadaire</title></head><body style="font-family:Arial,sans-serif;padding:28px;color:#111827">'
+    + '<h1 style="margin:0 0 6px;font-size:22px">' + params.nom + '</h1>'
+    + '<div style="color:#6b7280;margin-bottom:16px">Planning hebdomadaire - Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear() + '</div>'
+    + renderBlocInfosEntreprise(params)
+    + '<div style="margin-bottom:16px;font-size:14px;color:#374151">Période : ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche) + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f3f4f6"><th style="padding:8px 10px;text-align:left">Salarié</th>' + cols + '</tr></thead><tbody>' + rows + '</tbody></table>'
+    + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire')
+    + '</body></html>';
+  var popup = window.open('', '_blank');
+  if (!popup) return afficherToast('Autorise les popups pour générer le PDF', 'error');
+  popup.document.write(html);
+  popup.document.close();
+  popup.focus();
+  setTimeout(function() { popup.print(); }, 250);
+  afficherToast('Rapport planning généré');
 };
 
 /* ===== PLANNING REWRITE ===== */
@@ -8576,7 +9150,7 @@ genererGrilleJours = function() {
   var grid = document.getElementById('plan-jours-grid');
   if (!grid) return;
   if (!salarie) {
-    grid.innerHTML = '<div class="planning-empty-note">SÃ©lectionne un salariÃ© pour saisir ses horaires.</div>';
+    grid.innerHTML = '<div class="planning-empty-note">Sélectionne un salarié pour saisir ses horaires.</div>';
     mettreAJourTotalHeuresPlanning();
     return;
   }
@@ -8589,20 +9163,844 @@ genererGrilleJours = function() {
       + '<select id="plan-type-' + jour + '" onchange="toggleTypeJour(\'' + jour + '\')">'
       + '<option value="travail"' + (typeJour === 'travail' ? ' selected' : '') + '>Travail</option>'
       + '<option value="repos"' + (typeJour === 'repos' ? ' selected' : '') + '>Repos</option>'
-      + '<option value="conge"' + (typeJour === 'conge' ? ' selected' : '') + '>CongÃ©</option>'
+      + '<option value="conge"' + (typeJour === 'conge' ? ' selected' : '') + '>Congé</option>'
       + '<option value="absence"' + (typeJour === 'absence' ? ' selected' : '') + '>Absence</option>'
       + '<option value="maladie"' + (typeJour === 'maladie' ? ' selected' : '') + '>Maladie</option>'
       + '</select></div>'
       + '<div class="planning-day-grid" id="plan-horaires-' + jour + '" style="display:' + (typeJour === 'travail' ? 'grid' : 'none') + '">'
-      + '<div><label>DÃ©but</label><input type="time" id="plan-debut-' + jour + '" value="' + (data.heureDebut || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div>'
+      + '<div><label>Début</label><input type="time" id="plan-debut-' + jour + '" value="' + (data.heureDebut || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div>'
       + '<div><label>Fin</label><input type="time" id="plan-fin-' + jour + '" value="' + (data.heureFin || '') + '" onchange="mettreAJourTotalHeuresPlanning()" /></div>'
-      + '<div><label>Zone</label><input type="text" id="plan-zone-' + jour + '" value="' + ((data.zone || '').replace(/"/g, '&quot;')) + '" placeholder="TournÃ©e, secteur..." /></div>'
+      + '<div><label>Zone</label><input type="text" id="plan-zone-' + jour + '" value="' + ((data.zone || '').replace(/"/g, '&quot;')) + '" placeholder="Tournée, secteur..." /></div>'
       + '<div class="wide"><label>Note</label><input type="text" id="plan-note-' + jour + '" value="' + ((data.note || '').replace(/"/g, '&quot;')) + '" placeholder="Information utile..." /></div>'
       + '</div></div>';
   }).join('');
   mettreAJourTotalHeuresPlanning();
 };
 
+ouvrirModalPlanning = function() {
+  peuplerSelectPlanningModal();
+  var search = document.getElementById('plan-salarie-search');
+  var select = document.getElementById('plan-salarie');
+  var grid = document.getElementById('plan-jours-grid');
+  if (search) search.value = '';
+  if (select) select.value = '';
+  if (grid) grid.innerHTML = '<div class="planning-empty-note">Sélectionne un salarié pour saisir ses horaires.</div>';
+  mettreAJourTotalHeuresPlanning();
+  openModal('modal-planning');
+};
+
+ouvrirEditPlanning = function(salId) {
+  peuplerSelectPlanningModal();
+  var select = document.getElementById('plan-salarie');
+  var search = document.getElementById('plan-salarie-search');
+  var salarie = charger('salaries').find(function(s) { return s.id === salId; });
+  if (select) select.value = salId;
+  if (search && salarie) search.value = planningBuildEmployeeLabel(salarie);
+  genererGrilleJours();
+  openModal('modal-planning');
+};
+
+sauvegarderPlanning = function() {
+  var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+  if (!salarie) {
+    afficherToast('Choisis un salarié', 'error');
+    return;
+  }
+  var planning = {
+    salId: salarie.id,
+    salNom: salarie.nom || '',
+    semaine: JOURS.map(function(jour) {
+      var typeJour = document.getElementById('plan-type-' + jour)?.value || 'repos';
+      return {
+        jour: jour,
+        travaille: typeJour === 'travail',
+        typeJour: typeJour,
+        heureDebut: typeJour === 'travail' ? (document.getElementById('plan-debut-' + jour)?.value || '') : '',
+        heureFin: typeJour === 'travail' ? (document.getElementById('plan-fin-' + jour)?.value || '') : '',
+        zone: typeJour === 'travail' ? (document.getElementById('plan-zone-' + jour)?.value || '') : '',
+        note: typeJour === 'travail' ? (document.getElementById('plan-note-' + jour)?.value || '') : ''
+      };
+    }),
+    mis_a_jour: new Date().toISOString()
+  };
+  for (var i = 0; i < planning.semaine.length; i++) {
+    var jour = planning.semaine[i];
+    if (jour.typeJour === 'travail' && jour.heureDebut && jour.heureFin && calculerDureeJour(jour.heureDebut, jour.heureFin) <= 0) {
+      afficherToast('Certaines heures sont invalides', 'error');
+      return;
+    }
+  }
+  var plannings = charger('plannings');
+  var index = plannings.findIndex(function(item) { return item.salId === salarie.id; });
+  if (index > -1) plannings[index] = planning;
+  else plannings.push(planning);
+  sauvegarder('plannings', plannings);
+  closeModal('modal-planning');
+  afficherPlanning();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast('Planning enregistré');
+};
+
+supprimerPlanning = async function(salId) {
+  var ok = await confirmDialog('Supprimer le planning hebdomadaire de ce salarié ?', { titre:'Supprimer le planning', icone:'📅', btnLabel:'Supprimer' });
+  if (!ok) return;
+  sauvegarder('plannings', charger('plannings').filter(function(p) { return p.salId !== salId; }));
+  afficherPlanning();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast('Planning supprimé');
+};
+
+copierSemainePrecedente = function() {
+  var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+  if (!salarie) {
+    afficherToast('Choisis un salarié', 'error');
+    return;
+  }
+  var planning = (charger('plannings') || []).find(function(p) { return p.salId === salarie.id; });
+  if (!planning || !Array.isArray(planning.semaine) || !planning.semaine.length) {
+    afficherToast('Aucun planning existant à copier', 'error');
+    return;
+  }
+  genererGrilleJours();
+};
+
+afficherPlanning = function() {
+  peuplerSelectPlanningModal();
+};
+
+initFormulairePlanningRapide = function() {
+  peuplerAbsenceSal();
+  var btn = document.getElementById('planning-submit-btn');
+  if (btn && !document.getElementById('absence-edit-id')?.value) btn.textContent = '+ Enregistrer';
+  var editBtn = document.getElementById('planning-edit-work-btn');
+  if (editBtn) editBtn.textContent = 'Modifier les horaires';
+  toggleAbsenceTypeFields();
+};
+
+ouvrirEditionTravailRapide = function() {
+  var salarie = planningResolveSelectedEmployee('absence-sal-search', 'absence-sal');
+  if (!salarie) {
+    afficherToast('Choisis un salarié à modifier', 'error');
+    return;
+  }
+  ouvrirEditPlanning(salarie.id);
+};
+
+ajouterPeriodeAbsence = function() {
+  var salarie = planningResolveSelectedEmployee('absence-sal-search', 'absence-sal');
+  var type = document.getElementById('absence-type')?.value || 'travail';
+  var debut = document.getElementById('absence-debut')?.value || '';
+  var fin = document.getElementById('absence-fin')?.value || '';
+  var heureDebut = document.getElementById('absence-heure-debut')?.value || '';
+  var heureFin = document.getElementById('absence-heure-fin')?.value || '';
+  var editId = document.getElementById('absence-edit-id')?.value || '';
+  if (!salarie || !debut || !fin) {
+    afficherToast('Salarié, date de début et date de fin obligatoires', 'error');
+    return;
+  }
+  if (fin < debut) {
+    afficherToast('La date de fin doit être postérieure à la date de début', 'error');
+    return;
+  }
+  if (type === 'travail') {
+    if (!heureDebut || !heureFin || calculerDureeJour(heureDebut, heureFin) <= 0) {
+      afficherToast('Renseigne des horaires de travail valides', 'error');
+      return;
+    }
+    var periodesTravail = charger('absences_periodes');
+    var payloadTravail = {
+      id: editId || genId(),
+      salId: salarie.id,
+      salNom: salarie.nom || '',
+      type: 'travail',
+      debut: debut,
+      fin: fin,
+      heureDebut: heureDebut,
+      heureFin: heureFin,
+      creeLe: editId ? (periodesTravail.find(function(a) { return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(),
+      modifieLe: new Date().toISOString()
+    };
+    var indexTravail = periodesTravail.findIndex(function(a) { return a.id === payloadTravail.id; });
+    if (indexTravail > -1) periodesTravail[indexTravail] = payloadTravail;
+    else periodesTravail.push(payloadTravail);
+    sauvegarder('absences_periodes', periodesTravail);
+    reinitialiserFormulairePlanningRapide();
+    afficherAbsencesPeriodes();
+    afficherPlanningSemaine();
+    afficherCompteurHeures();
+    afficherToast(editId ? 'Créneau de travail mis à jour' : 'Créneau de travail enregistré');
+    return;
+  }
+
+  var absences = charger('absences_periodes');
+  var payload = {
+    id: editId || genId(),
+    salId: salarie.id,
+    salNom: salarie.nom || '',
+    type: type,
+    debut: debut,
+    fin: fin,
+    creeLe: editId ? (absences.find(function(a) { return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(),
+    modifieLe: new Date().toISOString()
+  };
+  var indexAbs = absences.findIndex(function(a) { return a.id === payload.id; });
+  if (indexAbs > -1) absences[indexAbs] = payload;
+  else absences.push(payload);
+  sauvegarder('absences_periodes', absences);
+  reinitialiserFormulairePlanningRapide();
+  afficherAbsencesPeriodes();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast(editId ? 'Période mise à jour' : 'Période enregistrée');
+};
+
+afficherAbsencesPeriodes = function() {
+  var container = document.getElementById('liste-absences-periodes');
+  if (!container) return;
+  var salaries = charger('salaries');
+  var colors = { travail:'#2ecc71', repos:'#6b7280', conge:'#3498db', maladie:'#9b59b6', absence:'#f39c12' };
+  var labels = { travail:'Travail', repos:'Repos', conge:'Congé', maladie:'Maladie', absence:'Absence' };
+  var absences = charger('absences_periodes').sort(function(a, b) {
+    return new Date(b.debut) - new Date(a.debut);
+  });
+  if (!absences.length) {
+    container.innerHTML = '<div class="planning-empty-note">Aucune période enregistrée.</div>';
+    return;
+  }
+  container.innerHTML = absences.map(function(absence) {
+    var salarie = salaries.find(function(s) { return s.id === absence.salId; });
+    var labelSal = planningBuildEmployeeLabel(salarie || { nom: absence.salNom || 'Salarié supprimé' });
+    return '<div class="planning-period-item">'
+      + '<span class="planning-period-dot" style="background:' + (colors[absence.type] || '#f39c12') + '"></span>'
+      + '<div class="planning-period-content">'
+      + '<div class="planning-period-title">' + (labels[absence.type] || 'Période') + ' - ' + labelSal + '</div>'
+      + '<div class="planning-period-meta">Du ' + formatDateExport(absence.debut) + ' au ' + formatDateExport(absence.fin) + (absence.type === 'travail' && absence.heureDebut && absence.heureFin ? ' · ' + absence.heureDebut + ' - ' + absence.heureFin : '') + '</div>'
+      + '</div>'
+      + '<div class="planning-period-actions">'
+      + '<button type="button" onclick="editerPeriodeAbsence(\'' + absence.id + '\')">Modifier</button>'
+      + '<button type="button" class="danger" onclick="supprimerAbsencePeriode(\'' + absence.id + '\')">Supprimer</button>'
+      + '</div></div>';
+  }).join('');
+};
+
+editerPeriodeAbsence = function(id) {
+  var absence = charger('absences_periodes').find(function(a) { return a.id === id; });
+  if (!absence) return;
+  peuplerAbsenceSal();
+  var salarie = charger('salaries').find(function(s) { return s.id === absence.salId; });
+  var editInput = document.getElementById('absence-edit-id');
+  var search = document.getElementById('absence-sal-search');
+  var select = document.getElementById('absence-sal');
+  var type = document.getElementById('absence-type');
+  var debut = document.getElementById('absence-debut');
+  var fin = document.getElementById('absence-fin');
+  var heureDebut = document.getElementById('absence-heure-debut');
+  var heureFin = document.getElementById('absence-heure-fin');
+  var btn = document.getElementById('planning-submit-btn');
+  if (editInput) editInput.value = absence.id;
+  if (search && salarie) search.value = planningBuildEmployeeLabel(salarie);
+  if (select) select.value = absence.salId;
+  if (type) type.value = absence.type;
+  if (debut) debut.value = absence.debut;
+  if (fin) fin.value = absence.fin;
+  if (heureDebut) heureDebut.value = absence.heureDebut || '';
+  if (heureFin) heureFin.value = absence.heureFin || '';
+  if (btn) btn.textContent = 'Mettre à jour';
+  toggleAbsenceTypeFields();
+};
+
+supprimerAbsencePeriode = async function(id) {
+  var ok = await confirmDialog('Supprimer cette période ?', { titre:'Supprimer la période', icone:'📅', btnLabel:'Supprimer' });
+  if (!ok) return;
+  sauvegarder('absences_periodes', charger('absences_periodes').filter(function(a) { return a.id !== id; }));
+  if (document.getElementById('absence-edit-id')?.value === id) reinitialiserFormulairePlanningRapide();
+  afficherAbsencesPeriodes();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  afficherToast('Période supprimée');
+};
+
+afficherPlanningSemaine = function() {
+  initFormulairePlanningRapide();
+  var week = planningGetWeekDates();
+  var salaries = charger('salaries');
+  var plannings = charger('plannings');
+  var absences = charger('absences_periodes');
+  var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
+  var label = document.getElementById('planning-semaine-label');
+  var datesLabel = document.getElementById('planning-semaine-dates');
+  var thead = document.getElementById('thead-planning-semaine');
+  var tbody = document.getElementById('tb-planning-semaine');
+  if (label) label.textContent = 'Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear();
+  if (datesLabel) datesLabel.textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
+  if (thead) {
+    thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) {
+      var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui();
+      return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>';
+    }).join('') + '</tr>';
+  }
+  if (!tbody) return;
+  if (!salaries.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>';
+    return;
+  }
+  var filtered = salaries.filter(function(salarie) {
+    if (!filtre) return true;
+    return [
+      planningBuildEmployeeLabel(salarie),
+      salarie.nom,
+      salarie.prenom,
+      salarie.numero,
+      salarie.poste
+    ].filter(Boolean).join(' ').toLowerCase().includes(filtre);
+  });
+  var totalPlanifies = 0;
+  var totalAbsences = 0;
+  tbody.innerHTML = filtered.length ? filtered.map(function(salarie) {
+    var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
+    var hasWork = false;
+    var cells = week.dates.map(function(dateObj, index) {
+      var dateStr = planningDateToLocalISO(dateObj);
+      var periode = getPlanningPeriodForDate(salarie.id, dateStr, absences);
+      if (periode) {
+        if (periode.type === 'travail') {
+          hasWork = true;
+          return planningRenderWeekState('is-work', 'Travail', (periode.heureDebut || '') + (periode.heureFin ? ' - ' + periode.heureFin : ''), '');
+        }
+        if (periode.type !== 'repos') totalAbsences += 1;
+        return planningRenderWeekState('is-' + periode.type, getPlanningPeriodLabel(periode.type), '', '');
+      }
+      var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[index]; }) || null;
+      if (!jour) return planningRenderWeekState('is-rest', 'Repos', '', '');
+      if (jour.typeJour === 'travail' && jour.travaille) {
+        hasWork = true;
+        return planningRenderWeekState('is-work', 'Travail', (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : ''), jour.zone || jour.note || '');
+      }
+      if (jour.typeJour === 'conge' || jour.typeJour === 'absence' || jour.typeJour === 'maladie') {
+        return planningRenderWeekState('is-' + jour.typeJour, jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence', '', '');
+      }
+      return planningRenderWeekState('is-rest', 'Repos', '', '');
+    }).join('');
+    if (hasWork) totalPlanifies += 1;
+    return '<tr>'
+      + '<td><div class="planning-week-salarie"><strong>' + (salarie.nom || '') + '</strong>'
+      + (salarie.poste ? '<span class="planning-week-meta">' + salarie.poste + '</span>' : '')
+      + (salarie.numero ? '<span class="planning-week-meta">#' + salarie.numero + '</span>' : '')
+      + '</div></td>'
+      + cells
+      + '</tr>';
+  }).join('') : '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>';
+  var kpiSal = document.getElementById('planning-kpi-salaries');
+  var kpiPlan = document.getElementById('planning-kpi-planifies');
+  var kpiAbs = document.getElementById('planning-kpi-absences');
+  if (kpiSal) kpiSal.textContent = salaries.length;
+  if (kpiPlan) kpiPlan.textContent = totalPlanifies;
+  if (kpiAbs) kpiAbs.textContent = totalAbsences;
+  afficherAbsencesPeriodes();
+};
+
+filtrerPlanningSemaine = function() {
+  afficherPlanningSemaine();
+};
+
+exporterPlanningSemainePDF = function() {
+  var week = planningGetWeekDates();
+  var salaries = charger('salaries');
+  var plannings = charger('plannings');
+  var absences = charger('absences_periodes');
+  var params = getEntrepriseExportParams();
+  var dateExp = formatDateHeureExport();
+  var titreSemaine = 'Semaine ' + getNumSemaine(week.lundi) + ' — ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
+  var stateStyles = {
+    travail: { bg:'#e9f8ef', border:'#b7e7c8', color:'#177245', label:'Travail' },
+    repos: { bg:'#f4f5f7', border:'#d7dbe2', color:'#6b7280', label:'Repos' },
+    conge: { bg:'#eaf3ff', border:'#c7defd', color:'#3498db', label:'Congé' },
+    maladie: { bg:'#f4edff', border:'#dcc8fa', color:'#9b59b6', label:'Maladie' },
+    absence: { bg:'#fdeeee', border:'#f7c7c7', color:'#e74c3c', label:'Absence' }
+  };
+  var getStateBlockStyle = function(style, extra) {
+    return 'min-height:56px;display:flex;align-items:center;justify-content:center;padding:8px 6px;border-radius:12px;background:' + style.bg + ';border:1px solid ' + style.border + ';color:' + style.color + ';-webkit-print-color-adjust:exact;print-color-adjust:exact;' + (extra || '');
+  };
+  var formatCellulePlanning = function(salarie, dateObj, dayIndex, planning) {
+    var dateStr = dateObj.toISOString().slice(0, 10);
+    var periode = getPlanningPeriodForDate(salarie.id, dateStr, absences);
+    if (periode) {
+      if (periode.type === 'travail') {
+        var periodeStyle = stateStyles.travail;
+        var horairePeriode = (periode.heureDebut || '') + (periode.heureFin ? ' - ' + periode.heureFin : '');
+        return '<td style="padding:8px 6px;border-bottom:1px solid #e5e7eb"><div style="' + getStateBlockStyle(periodeStyle, 'flex-direction:column;gap:4px;text-align:center') + '"><span style="font-size:.78rem;font-weight:700">' + periodeStyle.label + '</span><span style="font-size:.76rem;font-weight:600">' + horairePeriode + '</span></div></td>';
+      }
+      var absStyle = stateStyles[periode.type] || stateStyles.absence;
+      return '<td style="padding:8px 6px;border-bottom:1px solid #e5e7eb"><div style="' + getStateBlockStyle(absStyle, 'font-size:.78rem;font-weight:700') + '">' + absStyle.label + '</div></td>';
+    }
+    var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[dayIndex]; });
+    if (!jour) {
+      var restStyle = stateStyles.repos;
+      return '<td style="padding:8px 6px;border-bottom:1px solid #e5e7eb"><div style="' + getStateBlockStyle(restStyle, 'font-size:.78rem') + '">Repos</div></td>';
+    }
+    if (jour.typeJour === 'travail' && jour.travaille) {
+      var workStyle = stateStyles.travail;
+      var horaire = (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : '');
+      return '<td style="padding:8px 6px;border-bottom:1px solid #e5e7eb"><div style="' + getStateBlockStyle(workStyle, 'flex-direction:column;gap:4px;text-align:center') + '"><span style="font-size:.78rem;font-weight:700">' + workStyle.label + '</span><span style="font-size:.76rem;font-weight:600">' + horaire + '</span></div></td>';
+    }
+    var state = stateStyles[jour.typeJour] || stateStyles.repos;
+    return '<td style="padding:8px 6px;border-bottom:1px solid #e5e7eb"><div style="' + getStateBlockStyle(state, 'font-size:.78rem;font-weight:700') + '">' + state.label + '</div></td>';
+  };
+  var rows = salaries.map(function(salarie, index) {
+    var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
+    var cells = week.dates.map(function(dateObj, dayIndex) {
+      return formatCellulePlanning(salarie, dateObj, dayIndex, planning);
+    }).join('');
+    return '<tr style="background:' + (index % 2 === 0 ? '#fff' : '#fafafa') + '">'
+      + '<td style="padding:10px 12px;font-weight:600;border-bottom:1px solid #e5e7eb;min-width:170px">' + (salarie.nom || '') + (salarie.numero ? '<br><span style="font-size:.75rem;color:#6b7280">#' + salarie.numero + '</span>' : '') + (salarie.poste ? '<br><span style="font-size:.74rem;color:#9ca3af">' + salarie.poste + '</span>' : '') + '</td>'
+      + cells + '</tr>';
+  }).join('');
+  var thead = week.dates.map(function(dateObj, dayIndex) {
+    return '<th style="padding:10px 8px;text-align:center;color:#6b7280;font-weight:600;border-bottom:1px solid #dfe3ea;min-width:92px">' + JOURS_COURTS[dayIndex] + '<div style="font-size:.76rem;color:#9ca3af;margin-top:2px">' + formatDateExport(dateObj).slice(0, 5) + '</div></th>';
+  }).join('');
+  var html = '<style>@page{size:landscape;margin:10mm}body,table,thead,tbody,tr,th,td,div,span{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}</style><div style="font-family:Segoe UI,Arial,sans-serif;width:100%;padding:22px 24px;color:#1a1d27;box-sizing:border-box">'
+    + construireEnteteExport(params, 'Planning hebdomadaire', titreSemaine, dateExp)
+    + renderBlocInfosEntreprise(params)
+    + '<div style="margin:0 0 16px;font-size:.88rem;color:#4b5563">Période : <strong>' + formatDateExport(week.lundi) + '</strong> au <strong>' + formatDateExport(week.dimanche) + '</strong></div>'
+    + '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:.82rem;table-layout:fixed"><thead><tr style="background:#f3f4f6"><th style="padding:10px 12px;text-align:left;font-weight:600;color:#6b7280;border-bottom:1px solid #dfe3ea;min-width:170px">Salarié</th>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>'
+    + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire')
+    + '</div>';
+  ouvrirFenetreImpression('Planning ' + titreSemaine, html, 'width=1200,height=780');
+  afficherToast('Rapport planning généré');
+};
+
+validerLivraisonLivree = async function(id) {
+  var livraisons = charger('livraisons');
+  var idx = livraisons.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Valider la livraison', icone:'📦', btnLabel:'Valider', danger:false });
+  if (!ok) return;
+  livraisons[idx].statut = 'livre';
+  livraisons[idx].dateLivraison = new Date().toISOString();
+  sauvegarder('livraisons', livraisons);
+  afficherLivraisons();
+  rafraichirDashboard();
+  afficherToast('Livraison marquée comme livrée');
+};
+
+validerLivraisonPayee = async function(id) {
+  var livraisons = charger('livraisons');
+  var idx = livraisons.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  var liv = livraisons[idx];
+  if (liv.statut !== 'livre') {
+    var okLiv = await confirmDialog('Cette livraison n\'est pas encore marquée comme livrée. La marquer livrée puis payée ?', { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
+    if (!okLiv) return;
+    liv.statut = 'livre';
+    liv.dateLivraison = liv.dateLivraison || new Date().toISOString();
+  } else {
+    var ok = await confirmDialog('Confirmer cette livraison comme payée ?', { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
+    if (!ok) return;
+  }
+  liv.statutPaiement = 'payé';
+  liv.datePaiement = new Date().toISOString();
+  sauvegarder('livraisons', livraisons);
+  afficherLivraisons();
+  rafraichirDashboard();
+  afficherRelances();
+  afficherToast('Livraison marquée comme payée');
+};
+
+changerStatutPaiement = async function(id, statut) {
+  var livraisons = charger('livraisons');
+  var idx = livraisons.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  if (statut === 'payé') return validerLivraisonPayee(id);
+  if (statut === 'en-attente') {
+    var ok = await confirmDialog('Remettre le paiement en attente ?', { titre:'Paiement', icone:'💳', btnLabel:'Confirmer', danger:false });
+    if (!ok) return;
+  }
+  livraisons[idx].statutPaiement = statut;
+  if (statut !== 'payé') delete livraisons[idx].datePaiement;
+  sauvegarder('livraisons', livraisons);
+  afficherLivraisons();
+  afficherRelances();
+  afficherToast('Paiement mis à jour');
+};
+
+changerStatutLivraison = async function(id, statut) {
+  if (statut === 'livre') return validerLivraisonLivree(id);
+  var livraisons = charger('livraisons');
+  var idx = livraisons.findIndex(l => l.id === id);
+  if (idx === -1) return;
+  var ok = await confirmDialog('Mettre à jour le statut de cette livraison ?', { titre:'Statut livraison', icone:'📦', btnLabel:'Confirmer', danger:false });
+  if (!ok) return;
+  livraisons[idx].statut = statut;
+  if (statut !== 'livre') delete livraisons[idx].dateLivraison;
+  if (statut !== 'livre' && livraisons[idx].statutPaiement === 'payé') livraisons[idx].statutPaiement = 'en-attente';
+  sauvegarder('livraisons', livraisons);
+  afficherLivraisons();
+  rafraichirDashboard();
+  afficherToast('Statut livraison mis à jour');
+};
+
+afficherLivraisons = function() {
+  let livraisons = charger('livraisons');
+  const tb = document.getElementById('tb-livraisons');
+  const filtreStatut = document.getElementById('filtre-statut')?.value || '';
+  const filtreDateDeb = document.getElementById('filtre-date-debut')?.value || '';
+  const filtreDateFin = document.getElementById('filtre-date-fin')?.value || '';
+  const filtreRecherche = document.getElementById('filtre-recherche-liv')?.value?.toLowerCase().trim() || '';
+  const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
+  const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
+
+  const selChauf = document.getElementById('filtre-chauffeur');
+  if (selChauf) {
+    const currentValue = selChauf.value;
+    selChauf.innerHTML = '<option value="">Tous les chauffeurs</option>';
+    charger('salaries').forEach(s => { selChauf.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
+    selChauf.value = currentValue;
+  }
+
+  if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+  if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
+  if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
+  if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
+  if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
+  if (filtreRecherche) livraisons = livraisons.filter(l => [l.client, l.chaufNom, l.numLiv, l.depart, l.arrivee].filter(Boolean).join(' ').toLowerCase().includes(filtreRecherche));
+  livraisons.sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe));
+
+  if (!tb) return;
+  if (!livraisons.length) {
+    tb.innerHTML = '<tr><td colspan="12" class="empty-row">Aucune livraison</td></tr>';
+    return;
+  }
+
+  const escapeAttr = function(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;');
+  };
+  const escapeHtml = function(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
+  tb.innerHTML = livraisons.map(l => {
+    const ht = getMontantHTLivraison(l);
+    const tva = (parseFloat(l.prix) || 0) - ht;
+    const ttc = parseFloat(l.prix) || 0;
+    const statutPaiement = l.statutPaiement || 'en-attente';
+    const selectStatutPropre = '<select class="livraison-inline-select" onchange="changerStatutLivraison(\'' + l.id + '\',this.value)"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+    const selectPaiementPropre = '<select class="livraison-inline-select" onchange="changerStatutPaiement(\'' + l.id + '\',this.value)"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const client = l.client || '—';
+    const clientText = escapeHtml(client);
+    const depart = l.depart || '';
+    const arrivee = l.arrivee || '';
+    const zoneGeo = depart && arrivee && depart !== arrivee
+      ? depart + ' → ' + arrivee
+      : (arrivee || depart || '—');
+    const zoneGeoText = escapeHtml(zoneGeo || '—');
+    const chauffeur = l.chaufNom || 'Non assigné';
+    const chauffeurText = escapeHtml(chauffeur);
+    const clientTitle = escapeAttr(client);
+    const zoneGeoTitle = escapeAttr(zoneGeo || '—');
+    const chauffeurTitle = escapeAttr(chauffeur);
+    const distanceLabel = l.distance ? formatKm(l.distance) : '—';
+    const numLiv = escapeHtml(l.numLiv || '—');
+    return `<tr>
+      <td class="livraison-ref-cell">${numLiv}</td>
+      <td><strong class="livraison-cell-text livraison-client-text" title="${clientTitle}">${clientText}</strong></td>
+      <td><span class="livraison-cell-text livraison-zone-text" title="${zoneGeoTitle}">${zoneGeoText}</span></td>
+      <td class="livraison-number-cell">${distanceLabel}</td>
+      <td class="livraison-number-cell">${euros(ht)}</td>
+      <td class="livraison-number-cell livraison-muted-cell">${euros(tva)}</td>
+      <td class="livraison-number-cell livraison-total-cell">${euros(ttc)}</td>
+      <td><span class="livraison-cell-text livraison-driver-text" title="${chauffeurTitle}">${chauffeurText}</span></td>
+      <td class="livraison-profit-cell ${(l.profit||0)>=0?'profit-pos':'profit-neg'}">${euros(l.profit||0)}</td>
+      <td><div class="livraison-select-cell">${badgeStatut(l.statut)}${selectStatutPropre}</div></td>
+      <td><div class="livraison-select-cell">${badgePaiementLivraisonHtml(statutPaiement)}${selectPaiementPropre}</div></td>
+      <td class="actions-cell">
+        <div class="livraison-row-actions">
+          <button class="btn-icon" onclick="dupliquerLivraison('${l.id}')" title="Dupliquer">📋</button>
+          <button class="btn-icon" onclick="ouvrirRecurrence('${l.id}')" title="Récurrence">🔁</button>
+          <button class="btn-icon" onclick="ouvrirEditLivraison('${l.id}')" title="Modifier">✏️</button>
+          <button class="btn-icon danger" onclick="supprimerLivraison('${l.id}')" title="Supprimer">🗑️</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+peuplerAbsenceSal = function() {
+  var sel = document.getElementById('absence-sal');
+  var datalist = document.getElementById('absence-sal-datalist');
+  var search = document.getElementById('absence-sal-search');
+  var salaries = charger('salaries');
+  if (sel) {
+    var currentValue = sel.value;
+    sel.innerHTML = '<option value="">-- Choisir --</option>';
+    salaries.forEach(function(s) {
+      var label = s.nom + (s.poste ? ' - ' + s.poste : '') + (s.numero ? ' (' + s.numero + ')' : '');
+      sel.innerHTML += '<option value="' + s.id + '">' + label + '</option>';
+    });
+    sel.value = currentValue;
+  }
+  if (datalist) {
+    datalist.innerHTML = salaries.map(function(s) {
+      var label = s.nom + (s.poste ? ' - ' + s.poste : '') + (s.numero ? ' (' + s.numero + ')' : '');
+      return '<option value="' + label.replace(/"/g, '&quot;') + '"></option>';
+    }).join('');
+  }
+  if (search && sel && sel.value) {
+    var selected = salaries.find(function(s){ return s.id === sel.value; });
+    if (selected) search.value = selected.nom + (selected.poste ? ' - ' + selected.poste : '') + (selected.numero ? ' (' + selected.numero + ')' : '');
+  }
+};
+
+filtrerRechercheAbsence = function() {
+  var search = (document.getElementById('absence-sal-search')?.value || '').trim().toLowerCase();
+  var sel = document.getElementById('absence-sal');
+  if (!sel) return;
+  if (!search) {
+    sel.value = '';
+    return;
+  }
+  var match = charger('salaries').find(function(s) {
+    return [s.nom, s.prenom, s.nomFamille, s.poste, s.numero].filter(Boolean).join(' ').toLowerCase().includes(search);
+  });
+  if (match) sel.value = match.id;
+};
+
+initFormulairePlanningRapide = function() {
+  appliquerLibellesAnalyseHT();
+  var panelTitle = document.querySelector('#page-planning .planning-absence-form .planning-panel-title');
+  if (panelTitle) panelTitle.textContent = 'Ajouter une période planning';
+  var btn = document.querySelector('#page-planning .planning-absence-form .btn-primary');
+  if (btn) btn.textContent = '+ Enregistrer la période';
+
+  var typeSelect = document.getElementById('absence-type');
+  if (typeSelect) {
+    var currentType = typeSelect.value || 'travail';
+    typeSelect.innerHTML = ''
+      + '<option value="travail">Travail</option>'
+      + '<option value="repos">Repos</option>'
+      + '<option value="conge">Congé</option>'
+      + '<option value="maladie">Maladie</option>'
+      + '<option value="absence">Absence</option>';
+    typeSelect.value = currentType;
+    typeSelect.onchange = toggleAbsenceTypeFields;
+  }
+
+  var finField = document.getElementById('absence-fin')?.closest('.planning-field');
+  if (finField && !document.getElementById('absence-heure-debut')) {
+    finField.insertAdjacentHTML('afterend',
+      '<div class="planning-field" id="absence-heure-debut-wrap">'
+      + '<label>Heure début</label>'
+      + '<input type="time" id="absence-heure-debut" />'
+      + '</div>'
+      + '<div class="planning-field" id="absence-heure-fin-wrap">'
+      + '<label>Heure fin</label>'
+      + '<input type="time" id="absence-heure-fin" />'
+      + '</div>'
+    );
+  }
+
+  var toolbar = document.querySelector('#page-planning .planning-table-toolbar');
+  if (toolbar && !toolbar.querySelector('.planning-table-search')) {
+    var toolbarInput = toolbar.querySelector('#filtre-planning-salarie');
+    var firstBlock = toolbar.children[0];
+    if (firstBlock) firstBlock.classList.add('planning-table-toolbar-main');
+    if (toolbarInput) {
+      var searchWrap = document.createElement('div');
+      searchWrap.className = 'planning-table-search';
+      toolbarInput.parentNode.insertBefore(searchWrap, toolbarInput);
+      searchWrap.appendChild(toolbarInput);
+    }
+  }
+
+  var weekTable = document.querySelector('#page-planning .table-wrapper table');
+  if (weekTable) weekTable.classList.add('planning-week-grid');
+  var weekWrapper = document.querySelector('#page-planning .table-wrapper');
+  if (weekWrapper) weekWrapper.classList.add('planning-week-table');
+
+  var searchInput = document.getElementById('absence-sal-search');
+  var hiddenSelect = document.getElementById('absence-sal');
+  if (searchInput) {
+    if (hiddenSelect) hiddenSelect.style.display = 'none';
+    var datalist = document.getElementById('absence-sal-datalist');
+    if (!datalist) {
+      datalist = document.createElement('datalist');
+      datalist.id = 'absence-sal-datalist';
+      searchInput.insertAdjacentElement('afterend', datalist);
+    }
+    searchInput.setAttribute('list', 'absence-sal-datalist');
+    searchInput.placeholder = 'Rechercher ou sélectionner un salarié...';
+  }
+
+  peuplerAbsenceSal();
+  toggleAbsenceTypeFields();
+};
+
+ajouterPeriodeAbsence = function() {
+  var salId = document.getElementById('absence-sal') ? document.getElementById('absence-sal').value : '';
+  var type = document.getElementById('absence-type') ? document.getElementById('absence-type').value : 'travail';
+  var debut = document.getElementById('absence-debut') ? document.getElementById('absence-debut').value : '';
+  var fin = document.getElementById('absence-fin') ? document.getElementById('absence-fin').value : '';
+  var heureDebut = document.getElementById('absence-heure-debut') ? document.getElementById('absence-heure-debut').value : '';
+  var heureFin = document.getElementById('absence-heure-fin') ? document.getElementById('absence-heure-fin').value : '';
+  var editId = document.getElementById('absence-edit-id') ? document.getElementById('absence-edit-id').value : '';
+  if (!salId || !debut || !fin) { afficherToast('Salarié, date début et date fin obligatoires', 'error'); return; }
+  if (fin < debut) { afficherToast('La date de fin doit être après la date de début', 'error'); return; }
+
+  if (type === 'travail') {
+    if (!heureDebut || !heureFin) { afficherToast('Renseignez les heures de travail', 'error'); return; }
+    if (calculerDureeJour(heureDebut, heureFin) <= 0) { afficherToast('Les heures de travail sont invalides', 'error'); return; }
+    var sal = charger('salaries').find(function(s){ return s.id === salId; });
+    var periodes = charger('absences_periodes');
+    var payloadTravail = {
+      id: editId || genId(),
+      salId: salId,
+      salNom: sal ? sal.nom : '',
+      type: 'travail',
+      debut: debut,
+      fin: fin,
+      heureDebut: heureDebut,
+      heureFin: heureFin,
+      creeLe: editId ? (periodes.find(function(a) { return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(),
+      modifieLe: new Date().toISOString()
+    };
+    var idxTravail = periodes.findIndex(function(a) { return a.id === payloadTravail.id; });
+    if (idxTravail > -1) periodes[idxTravail] = payloadTravail;
+    else periodes.push(payloadTravail);
+    localStorage.setItem('absences_periodes', JSON.stringify(periodes));
+    ['absence-debut','absence-fin','absence-heure-debut','absence-heure-fin','absence-sal-search'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    if (document.getElementById('absence-edit-id')) document.getElementById('absence-edit-id').value = '';
+    if (document.getElementById('absence-sal')) document.getElementById('absence-sal').value = '';
+    afficherAbsencesPeriodes();
+    afficherPlanningSemaine();
+    afficherCompteurHeures();
+    afficherToast(editId ? 'Créneau de travail mis à jour' : 'Créneau de travail enregistré');
+    return;
+  }
+
+  var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  var payload = { id: editId || genId(), salId: salId, type: type, debut: debut, fin: fin, creeLe: editId ? (absences.find(function(a){ return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(), modifieLe: new Date().toISOString() };
+  var idx = absences.findIndex(function(a){ return a.id === payload.id; });
+  if (idx > -1) absences[idx] = payload;
+  else absences.push(payload);
+  localStorage.setItem('absences_periodes', JSON.stringify(absences));
+  ['absence-debut','absence-fin','absence-heure-debut','absence-heure-fin','absence-sal-search'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  if (document.getElementById('absence-edit-id')) document.getElementById('absence-edit-id').value = '';
+  if (document.getElementById('absence-sal')) document.getElementById('absence-sal').value = '';
+  afficherAbsencesPeriodes();
+  afficherPlanningSemaine();
+  afficherCompteurHeures();
+  var typeLabel = type === 'repos' ? 'Repos' : type === 'conge' ? 'Congé' : type === 'maladie' ? 'Maladie' : 'Absence';
+  afficherToast(typeLabel + ' enregistré');
+};
+
+afficherPlanningSemaine = function() {
+  var lundi = getLundiDeSemaine(_planningSemaineOffset);
+  var salaries = charger('salaries');
+  var plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  var datesSemaine = [];
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(lundi);
+    d.setDate(lundi.getDate() + i);
+    datesSemaine.push(d);
+  }
+
+  var dimanche = datesSemaine[6];
+  var labelSemaine = 'Semaine ' + getNumSemaine(lundi) + ' - ' + lundi.getFullYear();
+  var labelDates = lundi.toLocaleDateString('fr-FR', { day:'numeric', month:'short' }) + ' au ' + dimanche.toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' });
+  var elLabel = document.getElementById('planning-semaine-label');
+  var elDates = document.getElementById('planning-semaine-dates');
+  if (elLabel) elLabel.textContent = labelSemaine;
+  if (elDates) elDates.textContent = labelDates;
+
+  initFormulairePlanningRapide();
+
+  var thead = document.getElementById('thead-planning-semaine');
+  if (thead) {
+    thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d, i) {
+      var isAuj = d.toISOString().split('T')[0] === aujourdhui();
+      return '<th style="text-align:center;' + (isAuj ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[i].toUpperCase() + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '</th>';
+    }).join('') + '</tr>';
+  }
+
+  var tb = document.getElementById('tb-planning-semaine');
+  if (!tb) return;
+  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
+
+  var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
+  var salariesFiltres = salaries.filter(function(s) {
+    if (!filtre) return true;
+    return [s.nom, s.prenom, s.nomFamille, s.numero, s.poste].filter(Boolean).join(' ').toLowerCase().includes(filtre);
+  });
+
+  var totalPlanifies = 0;
+  var totalAbsences = 0;
+  salariesFiltres.forEach(function(s) {
+    var plan = plannings.find(function(p){ return p.salId === s.id; });
+    var aUnJourTravaille = false;
+    datesSemaine.forEach(function(d, i) {
+      var dateStr = d.toISOString().split('T')[0];
+      var absJour = getPlanningPeriodForDate(s.id, dateStr, absences);
+      if (absJour) {
+        if (absJour.type === 'travail') aUnJourTravaille = true;
+        else if (absJour.type !== 'repos') totalAbsences++;
+        return;
+      }
+      var jour = plan ? (plan.semaine || []).find(function(j){ return j.jour === JOURS[i]; }) : null;
+      if (jour && jour.travaille) aUnJourTravaille = true;
+    });
+    if (aUnJourTravaille) totalPlanifies++;
+  });
+
+  if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
+  if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
+  if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
+  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
+
+  function renderCell(className, title, detail, note) {
+    return '<td><div class="planning-week-state ' + className + '"><span>' + title + '</span>' + (detail ? '<span class="planning-week-time">' + detail + '</span>' : '') + (note ? '<span class="planning-week-note">' + note + '</span>' : '') + '</div></td>';
+  }
+
+  tb.innerHTML = salariesFiltres.map(function(s) {
+    var plan = plannings.find(function(p){ return p.salId === s.id; });
+    var cellules = datesSemaine.map(function(d, i) {
+      var dateStr = d.toISOString().split('T')[0];
+      var absJour = getPlanningPeriodForDate(s.id, dateStr, absences);
+      if (absJour) {
+        if (absJour.type === 'travail') {
+          return renderPlanningCell('is-work', 'Travail', (absJour.heureDebut || '') + (absJour.heureFin ? ' - ' + absJour.heureFin : ''), '');
+        }
+        return renderPlanningCell('is-' + absJour.type, getPlanningPeriodLabel(absJour.type), '', '');
+      }
+
+      var jour = plan ? (plan.semaine || []).find(function(j){ return j.jour === JOURS[i]; }) : null;
+      if (!jour || !jour.travaille) {
+        if (jour && ['repos','conge','absence','maladie'].includes(jour.typeJour)) {
+          var lb = jour.typeJour === 'repos' ? 'Repos' : jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence';
+          return renderPlanningCell('is-' + jour.typeJour, lb, '', '');
+        }
+        return renderPlanningCell('is-rest', 'Repos', '', '');
+      }
+
+      return renderPlanningCell('is-work', 'Travail', (jour.heureDebut || '') + (jour.heureFin ? ' - ' + jour.heureFin : ''), jour.zone || '');
+    }).join('');
+
+    return '<tr><td><div class="planning-week-salarie"><strong>' + s.nom + '</strong>' + (s.poste ? '<span class="planning-week-meta">' + s.poste + '</span>' : '') + (s.numero ? '<span class="planning-week-meta">#' + s.numero + '</span>' : '') + '</div></td>' + cellules + '</tr>';
+  }).join('');
+};
 window.__planningRewriteFinal && window.__planningRewriteFinal();
 
 window.__planningPeriodOnlyFinal = function() {
@@ -8612,7 +10010,7 @@ window.__planningPeriodOnlyFinal = function() {
 
   function getPlanningDeleteButton(salId, dateStr, enabled) {
     if (!enabled) return '';
-    return '<button type="button" class="planning-week-delete" title="Supprimer" onclick="event.stopPropagation();supprimerPlanningJour(\'' + salId + '\',\'' + dateStr + '\')">Ã—</button>';
+    return '<button type="button" class="planning-week-delete" title="Supprimer" onclick="event.stopPropagation();supprimerPlanningJour(\'' + salId + '\',\'' + dateStr + '\')">×</button>';
   }
 
   function planningGetEntryForDate(salId, dateStr, periodes, planning) {
@@ -8626,7 +10024,7 @@ window.__planningPeriodOnlyFinal = function() {
   }
 
   supprimerPlanningJour = async function(salId, dateStr) {
-    var ok = await confirmDialog('Supprimer ce crÃ©neau de cette journÃ©e ?', { titre:'Supprimer le crÃ©neau', icone:'âŒ', btnLabel:'Supprimer' });
+    var ok = await confirmDialog('Supprimer ce créneau de cette journée ?', { titre:'Supprimer le créneau', icone:'❌', btnLabel:'Supprimer' });
     if (!ok) return;
 
     var periodes = charger('absences_periodes');
@@ -8652,7 +10050,7 @@ window.__planningPeriodOnlyFinal = function() {
       sauvegarder('absences_periodes', updated.sort(function(a, b) { return new Date(a.debut) - new Date(b.debut); }));
       afficherPlanningSemaine();
       afficherCompteurHeures();
-      return afficherToast('CrÃ©neau supprimÃ© pour cette journÃ©e');
+      return afficherToast('Créneau supprimé pour cette journée');
     }
 
     var plannings = charger('plannings');
@@ -8676,7 +10074,7 @@ window.__planningPeriodOnlyFinal = function() {
     sauvegarder('plannings', plannings);
     afficherPlanningSemaine();
     afficherCompteurHeures();
-    afficherToast('CrÃ©neau hebdomadaire retirÃ©');
+    afficherToast('Créneau hebdomadaire retiré');
   };
 
   initFormulairePlanningRapide = function() {
@@ -8688,8 +10086,8 @@ window.__planningPeriodOnlyFinal = function() {
     var list = document.querySelector('#page-planning .planning-absence-list');
     var editBtn = document.getElementById('planning-edit-work-btn');
     var btn = document.getElementById('planning-submit-btn');
-    if (title) title.textContent = 'Ajouter une pÃ©riode';
-    if (sub) sub.textContent = 'Saisis uniquement des pÃ©riodes datÃ©es. Rien ne se rÃ©pÃ¨te automatiquement hors des dates choisies.';
+    if (title) title.textContent = 'Ajouter une période';
+    if (sub) sub.textContent = 'Saisis uniquement des périodes datées. Rien ne se répète automatiquement hors des dates choisies.';
     if (layout) layout.style.gridTemplateColumns = 'minmax(0, 1fr)';
     if (list) list.style.display = 'none';
     if (editBtn) editBtn.style.display = 'none';
@@ -8698,12 +10096,12 @@ window.__planningPeriodOnlyFinal = function() {
       var currentType = typeSelect.value;
       typeSelect.innerHTML = ''
         + '<option value="travail">Travail</option>'
-        + '<option value="conge">CongÃ©</option>'
+        + '<option value="conge">Congé</option>'
         + '<option value="maladie">Maladie</option>'
         + '<option value="absence">Absence</option>';
       typeSelect.value = ['travail', 'conge', 'maladie', 'absence'].includes(currentType) ? currentType : 'travail';
     }
-    if (btn && !document.getElementById('absence-edit-id')?.value) btn.textContent = '+ Enregistrer la pÃ©riode';
+    if (btn && !document.getElementById('absence-edit-id')?.value) btn.textContent = '+ Enregistrer la période';
   };
 
   afficherAbsencesPeriodes = function() {
@@ -8712,7 +10110,7 @@ window.__planningPeriodOnlyFinal = function() {
   };
 
   ouvrirEditionTravailRapide = function() {
-    afficherToast('Les pÃ©riodes de planning se gÃ¨rent directement dans le formulaire.', 'info');
+    afficherToast('Les périodes de planning se gèrent directement dans le formulaire.', 'info');
   };
 
   reinitialiserFormulairePlanningRapide = function() {
@@ -8724,7 +10122,7 @@ window.__planningPeriodOnlyFinal = function() {
     if (document.getElementById('absence-sal')) document.getElementById('absence-sal').value = '';
     if (document.getElementById('absence-type')) document.getElementById('absence-type').value = 'travail';
     var btn = document.getElementById('planning-submit-btn');
-    if (btn) btn.textContent = '+ Enregistrer la pÃ©riode';
+    if (btn) btn.textContent = '+ Enregistrer la période';
     toggleAbsenceTypeFields();
   };
 
@@ -8736,8 +10134,8 @@ window.__planningPeriodOnlyFinal = function() {
     var heureDebut = document.getElementById('absence-heure-debut')?.value || '';
     var heureFin = document.getElementById('absence-heure-fin')?.value || '';
     var editId = document.getElementById('absence-edit-id')?.value || '';
-    if (!salarie || !debut || !fin) return afficherToast('SalariÃ©, date de dÃ©but et date de fin obligatoires', 'error');
-    if (fin < debut) return afficherToast('La date de fin doit Ãªtre postÃ©rieure Ã  la date de dÃ©but', 'error');
+    if (!salarie || !debut || !fin) return afficherToast('Salarié, date de début et date de fin obligatoires', 'error');
+    if (fin < debut) return afficherToast('La date de fin doit être postérieure à la date de début', 'error');
     if (type === 'travail' && (!heureDebut || !heureFin || calculerDureeJour(heureDebut, heureFin) <= 0)) return afficherToast('Renseigne des horaires de travail valides', 'error');
 
     var periodes = charger('absences_periodes');
@@ -8759,7 +10157,7 @@ window.__planningPeriodOnlyFinal = function() {
     reinitialiserFormulairePlanningRapide();
     afficherPlanningSemaine();
     afficherCompteurHeures();
-    afficherToast(editId ? 'PÃ©riode mise Ã  jour' : 'PÃ©riode enregistrÃ©e');
+    afficherToast(editId ? 'Période mise à jour' : 'Période enregistrée');
   };
 
   calculerHeuresSalarieSemaine = function(salId) {
@@ -8806,13 +10204,13 @@ window.__planningPeriodOnlyFinal = function() {
     if (label) label.textContent = 'Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear();
     if (datesLabel) datesLabel.textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
     if (thead) {
-      thead.innerHTML = '<tr><th>SalariÃ©</th>' + week.dates.map(function(dateObj, index) {
+      thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) {
         return '<th style="text-align:center">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>';
       }).join('') + '</tr>';
     }
     if (!tbody) return;
     if (!salaries.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salariÃ©</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>';
       return;
     }
     var filtered = salaries.filter(function(salarie) {
@@ -8853,7 +10251,7 @@ window.__planningPeriodOnlyFinal = function() {
         + (salarie.poste ? '<span class="planning-week-meta">' + salarie.poste + '</span>' : '')
         + (salarie.numero ? '<span class="planning-week-meta">#' + salarie.numero + '</span>' : '')
         + '</div></td>' + cells + '</tr>';
-    }).join('') : '<tr><td colspan="8" class="empty-row">Aucun salariÃ© ne correspond Ã  la recherche</td></tr>';
+    }).join('') : '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>';
     var kpiSal = document.getElementById('planning-kpi-salaries');
     var kpiPlan = document.getElementById('planning-kpi-planifies');
     var kpiAbs = document.getElementById('planning-kpi-absences');
@@ -8869,11 +10267,11 @@ window.__planningPeriodOnlyFinal = function() {
     var periodes = charger('absences_periodes');
     var params = getEntrepriseExportParams();
     var dateExp = formatDateHeureExport();
-    var titreSemaine = 'Semaine ' + getNumSemaine(week.lundi) + ' â€” ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
+    var titreSemaine = 'Semaine ' + getNumSemaine(week.lundi) + ' — ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
     var stateStyles = {
       travail: { bg:'#e9f8ef', border:'#b7e7c8', color:'#177245', label:'Travail' },
       repos: { bg:'#f4f5f7', border:'#d7dbe2', color:'#6b7280', label:'Repos' },
-      conge: { bg:'#eaf3ff', border:'#c7defd', color:'#3498db', label:'CongÃ©' },
+      conge: { bg:'#eaf3ff', border:'#c7defd', color:'#3498db', label:'Congé' },
       maladie: { bg:'#f4edff', border:'#dcc8fa', color:'#9b59b6', label:'Maladie' },
       absence: { bg:'#fdeeee', border:'#f7c7c7', color:'#e74c3c', label:'Absence' }
     };
@@ -8921,12 +10319,12 @@ window.__planningPeriodOnlyFinal = function() {
     }).join('');
     var html = '<style>@page{size:landscape;margin:10mm}body,table,thead,tbody,tr,th,td,div,span{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}</style><div style="font-family:Segoe UI,Arial,sans-serif;width:100%;padding:22px 24px;color:#1a1d27;box-sizing:border-box">'
       + construireEnteteExport(params, 'Planning hebdomadaire', titreSemaine, dateExp)
-      + '<div style="margin:0 0 16px;font-size:.88rem;color:#4b5563">PÃ©riode : <strong>' + formatDateExport(week.lundi) + '</strong> au <strong>' + formatDateExport(week.dimanche) + '</strong></div>'
-      + '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:.82rem;table-layout:fixed"><thead><tr style="background:#f3f4f6"><th style="padding:10px 12px;text-align:left;font-weight:600;color:#6b7280;border-bottom:1px solid #dfe3ea;min-width:170px">SalariÃ©</th>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>'
+      + '<div style="margin:0 0 16px;font-size:.88rem;color:#4b5563">Période : <strong>' + formatDateExport(week.lundi) + '</strong> au <strong>' + formatDateExport(week.dimanche) + '</strong></div>'
+      + '<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:.82rem;table-layout:fixed"><thead><tr style="background:#f3f4f6"><th style="padding:10px 12px;text-align:left;font-weight:600;color:#6b7280;border-bottom:1px solid #dfe3ea;min-width:170px">Salarié</th>' + thead + '</tr></thead><tbody>' + rows + '</tbody></table>'
       + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire')
       + '</div>';
     ouvrirFenetreImpression('Planning ' + titreSemaine, html, 'width=1200,height=780');
-    afficherToast('Rapport planning gÃ©nÃ©rÃ©');
+    afficherToast('Rapport planning généré');
   };
 };
 
@@ -8984,7 +10382,7 @@ document.addEventListener('click', function(event) {
   });
 });
 
-/* ===== RENTABILITE â€” Calculateur avancÃ© ===== */
+/* ===== RENTABILITE — Calculateur avancé ===== */
 var RENTABILITE_STORAGE_KEY = 'rentabilite_calculateur_v2';
 
 function getRentabiliteDefaults() {
@@ -9102,12 +10500,12 @@ function rentabiliteRenderCharges(config) {
   var host = document.getElementById('rent-autres-charges');
   if (!host) return;
   if (!config.autresCharges.length) {
-    host.innerHTML = '<div class="rentabilite-alert-item">Aucune autre charge ajoutÃ©e pour le moment.</div>';
+    host.innerHTML = '<div class="rentabilite-alert-item">Aucune autre charge ajoutée pour le moment.</div>';
     return;
   }
   host.innerHTML = config.autresCharges.map(function(item) {
     return '<div class="rentabilite-charge-row">'
-      + '<input type="text" data-rent-charge="label" data-charge-id="' + item.id + '" value="' + planningEscapeHtml(item.label || '') + '" placeholder="LibellÃ© de la charge" />'
+      + '<input type="text" data-rent-charge="label" data-charge-id="' + item.id + '" value="' + planningEscapeHtml(item.label || '') + '" placeholder="Libellé de la charge" />'
       + '<input type="number" data-rent-charge="montant" data-charge-id="' + item.id + '" value="' + (parseFloat(item.montant) || 0) + '" min="0" step="0.01" placeholder="Montant HT" />'
       + '<button type="button" class="btn-secondary" onclick="supprimerChargeRentabilite(\'' + item.id + '\')">Supprimer</button>'
       + '</div>';
@@ -9230,19 +10628,19 @@ function rentabiliteRenderAlerts(results, config) {
   if (!host) return;
   var alerts = [];
   if (results.beneficeNet < 0) {
-    alerts.push({ type: 'danger', text: 'BÃ©nÃ©fice nÃ©gatif : vos coÃ»ts dÃ©passent actuellement votre chiffre dâ€™affaires HT.' });
+    alerts.push({ type: 'danger', text: 'Bénéfice négatif : vos coûts dépassent actuellement votre chiffre d’affaires HT.' });
   }
   if (results.seuilJours != null && results.seuilJours > config.joursTravailles) {
-    alerts.push({ type: 'warning', text: 'Seuil de rentabilitÃ© supÃ©rieur aux jours travaillÃ©s : lâ€™activitÃ© ne couvre pas encore ses charges fixes sur le mois.' });
+    alerts.push({ type: 'warning', text: 'Seuil de rentabilité supérieur aux jours travaillés : l’activité ne couvre pas encore ses charges fixes sur le mois.' });
   }
   if (results.seuilJours == null) {
-    alerts.push({ type: 'danger', text: 'Avec les paramÃ¨tres actuels, la marge journaliÃ¨re ne permet pas dâ€™atteindre la rentabilitÃ©.' });
+    alerts.push({ type: 'danger', text: 'Avec les paramètres actuels, la marge journalière ne permet pas d’atteindre la rentabilité.' });
   }
   if (!alerts.length) {
-    alerts.push({ type: 'success', text: 'Structure saine : votre activitÃ© couvre ses coÃ»ts avec les paramÃ¨tres actuels.' });
+    alerts.push({ type: 'success', text: 'Structure saine : votre activité couvre ses coûts avec les paramètres actuels.' });
   }
   if (config.repartitionCharges === 'prorata') {
-    alerts.push({ type: 'warning', text: 'Charges fixes proratisÃ©es : le calcul impute uniquement une quote-part selon les jours travaillÃ©s saisis.' });
+    alerts.push({ type: 'warning', text: 'Charges fixes proratisées : le calcul impute uniquement une quote-part selon les jours travaillés saisis.' });
   }
   host.innerHTML = alerts.map(function(alert) {
     return '<div class="rentabilite-alert-item is-' + alert.type + '">' + alert.text + '</div>';
@@ -9272,7 +10670,7 @@ function rentabiliteRenderResults(results, config) {
   setText('rent-marge-journaliere', euros(results.margeJournaliere));
   setText('rent-marge-totale', euros(results.beneficeNet));
   setText('rent-resume-activite', results.modeCalcul === 'livraison'
-    ? (results.livraison ? getRentabiliteLivraisonLabel(results.livraison) : 'Aucune livraison sÃ©lectionnÃ©e')
+    ? (results.livraison ? getRentabiliteLivraisonLabel(results.livraison) : 'Aucune livraison sélectionnée')
     : (Math.round(results.kmTotal) + ' km / mois'));
 
   var benefitCard = document.getElementById('rent-highlight-benefice');
@@ -9283,14 +10681,14 @@ function rentabiliteRenderResults(results, config) {
   }
   if (benefitSummary) {
     benefitSummary.textContent = results.beneficeNet >= 0
-      ? 'Votre activitÃ© dÃ©gage une marge positive avec ces paramÃ¨tres.'
-      : 'Votre activitÃ© est dÃ©ficitaire avec ces paramÃ¨tres.';
+      ? 'Votre activité dégage une marge positive avec ces paramètres.'
+      : 'Votre activité est déficitaire avec ces paramètres.';
   }
 
   var chargesCardSub = document.getElementById('rent-charges-fixes')?.closest('.kpi-card')?.querySelector('.kpi-sub');
   if (chargesCardSub) {
     chargesCardSub.textContent = config.repartitionCharges === 'prorata'
-      ? 'Charges fixes proratisÃ©es'
+      ? 'Charges fixes proratisées'
       : 'Mensuelles HT';
   }
 
@@ -9299,8 +10697,8 @@ function rentabiliteRenderResults(results, config) {
     seuilSummary.textContent = results.seuilJours != null
       ? (results.modeCalcul === 'livraison'
         ? 'Avec ce type de livraison, il faut environ ' + rentabiliteFormatJours(results.seuilJours) + ' pour couvrir les charges fixes'
-        : 'Votre activitÃ© devient rentable Ã  partir de ' + rentabiliteFormatJours(results.seuilJours) + ' par mois')
-      : 'Votre activitÃ© nâ€™atteint pas le seuil de rentabilitÃ© avec ces paramÃ¨tres';
+        : 'Votre activité devient rentable à partir de ' + rentabiliteFormatJours(results.seuilJours) + ' par mois')
+      : 'Votre activité n’atteint pas le seuil de rentabilité avec ces paramètres';
   }
   rentabiliteRenderAlerts(results, config);
 }
@@ -9327,7 +10725,7 @@ function ajouterChargeRentabilite() {
 }
 
 supprimerChargeRentabilite = async function(id) {
-  var ok = await confirmDialog('Supprimer cette charge ?', { titre: 'Supprimer la charge', icone: 'ðŸ’¸', btnLabel: 'Supprimer' });
+  var ok = await confirmDialog('Supprimer cette charge ?', { titre: 'Supprimer la charge', icone: '💸', btnLabel: 'Supprimer' });
   if (!ok) return;
   var config = chargerRentabiliteConfig();
   config.autresCharges = (config.autresCharges || []).filter(function(item) { return item.id !== id; });
@@ -9349,32 +10747,32 @@ genererRentabilitePDF = function() {
   var params = getEntrepriseExportParams();
   var dateExp = formatDateHeureExport();
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#1a1d27">'
-    + construireEnteteExport(params, 'Rapport de rentabilitÃ©', 'Calculateur financier', dateExp)
+    + construireEnteteExport(params, 'Rapport de rentabilité', 'Calculateur financier', dateExp)
     + '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:18px 0">'
-    + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px"><div style="font-size:.75rem;text-transform:uppercase;color:#6b7280;margin-bottom:10px">ActivitÃ©</div><div style="display:grid;gap:8px;font-size:.92rem"><div>Mode : <strong>' + (config.modeCalcul === 'livraison' ? 'Livraison ciblÃ©e' : 'Simulation manuelle') + '</strong></div><div>Km / jour : <strong>' + results.kmJour + '</strong></div><div>Prix / km HT : <strong>' + euros(results.prixKm) + '</strong></div><div>Jours travaillÃ©s : <strong>' + results.joursTravailles + '</strong></div>' + (results.livraison ? '<div>Livraison : <strong>' + planningEscapeHtml(getRentabiliteLivraisonLabel(results.livraison)) + '</strong></div>' : '') + '</div></div>'
-    + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px"><div style="font-size:.75rem;text-transform:uppercase;color:#6b7280;margin-bottom:10px">CoÃ»ts mensuels</div><div style="display:grid;gap:8px;font-size:.92rem"><div>RÃ©partition charges fixes : <strong>' + (config.repartitionCharges === 'prorata' ? 'ProratisÃ©e' : 'Mois complet') + '</strong></div><div>Carburant HT : <strong>' + euros(results.coutCarburant) + '</strong></div><div>Charges fixes imputÃ©es HT : <strong>' + euros(results.chargesFixes) + '</strong></div><div>Charges fixes mensuelles HT : <strong>' + euros(results.chargesFixesMensuelles) + '</strong></div><div>CoÃ»t total HT : <strong>' + euros(results.coutTotal) + '</strong></div></div></div>'
+    + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px"><div style="font-size:.75rem;text-transform:uppercase;color:#6b7280;margin-bottom:10px">Activité</div><div style="display:grid;gap:8px;font-size:.92rem"><div>Mode : <strong>' + (config.modeCalcul === 'livraison' ? 'Livraison ciblée' : 'Simulation manuelle') + '</strong></div><div>Km / jour : <strong>' + results.kmJour + '</strong></div><div>Prix / km HT : <strong>' + euros(results.prixKm) + '</strong></div><div>Jours travaillés : <strong>' + results.joursTravailles + '</strong></div>' + (results.livraison ? '<div>Livraison : <strong>' + planningEscapeHtml(getRentabiliteLivraisonLabel(results.livraison)) + '</strong></div>' : '') + '</div></div>'
+    + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px"><div style="font-size:.75rem;text-transform:uppercase;color:#6b7280;margin-bottom:10px">Coûts mensuels</div><div style="display:grid;gap:8px;font-size:.92rem"><div>Répartition charges fixes : <strong>' + (config.repartitionCharges === 'prorata' ? 'Proratisée' : 'Mois complet') + '</strong></div><div>Carburant HT : <strong>' + euros(results.coutCarburant) + '</strong></div><div>Charges fixes imputées HT : <strong>' + euros(results.chargesFixes) + '</strong></div><div>Charges fixes mensuelles HT : <strong>' + euros(results.chargesFixesMensuelles) + '</strong></div><div>Coût total HT : <strong>' + euros(results.coutTotal) + '</strong></div></div></div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:18px">'
     + [
       ['CA HT', euros(results.caHT), '#177245'],
       ['CA TTC', euros(results.caTTC), '#2563eb'],
-      ['BÃ©nÃ©fice net', euros(results.beneficeNet), results.beneficeNet >= 0 ? '#177245' : '#e74c3c'],
-      ['Seuil de rentabilitÃ©', rentabiliteFormatJours(results.seuilJours), '#f5a623'],
+      ['Bénéfice net', euros(results.beneficeNet), results.beneficeNet >= 0 ? '#177245' : '#e74c3c'],
+      ['Seuil de rentabilité', rentabiliteFormatJours(results.seuilJours), '#f5a623'],
       ['Point mort', results.pointMortCA != null ? euros(results.pointMortCA) : 'Non atteignable', '#7c3aed'],
-      ['CoÃ»t / km', euros(results.coutParKm) + '/km', '#4b5563'],
+      ['Coût / km', euros(results.coutParKm) + '/km', '#4b5563'],
       ['Marge / km', euros(results.margeParKm) + '/km', results.margeParKm >= 0 ? '#177245' : '#e74c3c'],
       ['Revenu journalier', euros(results.revenuJournalier), '#111827'],
-      ['CoÃ»t variable / jour', euros(results.coutVariableJournalier), '#f97316']
+      ['Coût variable / jour', euros(results.coutVariableJournalier), '#f97316']
     ].map(function(item) {
       return '<div style="background:#f8fafc;border-radius:14px;padding:14px;border-top:3px solid ' + item[2] + '"><div style="font-size:.75rem;color:#6b7280;margin-bottom:6px">' + item[0] + '</div><div style="font-size:1.05rem;font-weight:800;color:' + item[2] + '">' + item[1] + '</div></div>';
     }).join('')
     + '</div>'
     + '<div style="padding:14px 16px;border-radius:14px;background:' + (results.beneficeNet >= 0 ? '#ecfdf5' : '#fef2f2') + ';border:1px solid ' + (results.beneficeNet >= 0 ? '#bbf7d0' : '#fecaca') + ';font-size:.92rem">'
-    + (results.seuilJours != null ? 'Votre activitÃ© devient rentable Ã  partir de <strong>' + rentabiliteFormatJours(results.seuilJours) + '</strong> par mois.' : 'Votre activitÃ© nâ€™atteint pas le seuil de rentabilitÃ© avec les paramÃ¨tres actuels.')
+    + (results.seuilJours != null ? 'Votre activité devient rentable à partir de <strong>' + rentabiliteFormatJours(results.seuilJours) + '</strong> par mois.' : 'Votre activité n’atteint pas le seuil de rentabilité avec les paramètres actuels.')
     + '</div>'
-    + renderFooterEntreprise(params, dateExp, 'Rapport de rentabilitÃ©')
+    + renderFooterEntreprise(params, dateExp, 'Rapport de rentabilité')
     + '</div>';
-  ouvrirFenetreImpression('RentabilitÃ© - ' + (params.nom || 'Entreprise'), html, 'width=1024,height=760');
-  afficherToast('Rapport rentabilitÃ© gÃ©nÃ©rÃ©');
+  ouvrirFenetreImpression('Rentabilité - ' + (params.nom || 'Entreprise'), html, 'width=1024,height=760');
+  afficherToast('Rapport rentabilité généré');
 };
 
