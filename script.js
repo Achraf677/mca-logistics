@@ -1214,10 +1214,13 @@ const STORAGE_REFRESH_QUEUE = new Map();
 function planifierRafraichissementStorage(cle, callback) {
   if (typeof callback !== 'function') return;
   if (STORAGE_REFRESH_QUEUE.has(cle)) return;
-  const timer = setTimeout(function() {
+  const executer = function() {
     STORAGE_REFRESH_QUEUE.delete(cle);
     callback();
-  }, 10);
+  };
+  const timer = document.visibilityState === 'visible' && typeof window.requestAnimationFrame === 'function'
+    ? window.requestAnimationFrame(executer)
+    : setTimeout(executer, 16);
   STORAGE_REFRESH_QUEUE.set(cle, timer);
 }
 
@@ -1232,55 +1235,164 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+function getPageActiveAdminId() {
+  return document.querySelector('.page.active')?.id || '';
+}
+
+function rafraichirVueLivraisonsActive() {
+  if (_vueLivraisons === 'kanban') afficherKanban();
+  else if (_vueLivraisons === 'calendrier') afficherCalendrier();
+  else afficherLivraisons();
+}
+
+function rafraichirVueHeuresEtKm() {
+  afficherCompteurHeures();
+  afficherReleveKm();
+}
+
+function rafraichirVuePlanningAdmin() {
+  afficherPlanning();
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+}
+
+function planifierRafraichissementSiPageActive(pageId, cle, callback) {
+  if (getPageActiveAdminId() !== pageId) return;
+  planifierRafraichissementStorage(cle, callback);
+}
+
+function gererChangementStorageAdmin(key) {
+  if (!key) return;
+
+  if (key === 'livraisons') {
+    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons', rafraichirVueLivraisonsActive);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-livraisons', rafraichirDashboard);
+    planifierRafraichissementSiPageActive('page-relances', 'page-relances-livraisons', afficherRelances);
+    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-livraisons', afficherStatistiques);
+    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-livraisons', calculerPrevision);
+    planifierRafraichissementSiPageActive('page-rentabilite', 'page-rentabilite-livraisons', afficherRentabilite);
+    planifierRafraichissementSiPageActive('page-tva', 'page-tva-livraisons', afficherTva);
+    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-livraisons', afficherChauffeurs);
+    planifierRafraichissementSiPageActive('page-clients', 'page-clients-livraisons', afficherClients);
+    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
+    return;
+  }
+
+  if (key === 'clients') {
+    planifierRafraichissementSiPageActive('page-clients', 'page-clients', afficherClients);
+    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-clients', rafraichirVueLivraisonsActive);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-clients', afficherClientsDashboard);
+    return;
+  }
+
+  if (key === 'salaries') {
+    planifierRafraichissementSiPageActive('page-salaries', 'page-salaries', afficherSalaries);
+    planifierRafraichissementSiPageActive('page-planning', 'page-planning-salaries', rafraichirVuePlanningAdmin);
+    planifierRafraichissementSiPageActive('page-heures', 'page-heures-salaries', rafraichirVueHeuresEtKm);
+    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-salaries', afficherVehicules);
+    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-salaries', rafraichirVueLivraisonsActive);
+    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-salaries', afficherAlertes);
+    planifierRafraichissementSiPageActive('page-incidents', 'page-incidents-salaries', afficherIncidents);
+    return;
+  }
+
+  if (key === 'vehicules') {
+    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules', afficherVehicules);
+    planifierRafraichissementSiPageActive('page-carburant', 'page-carburant-vehicules', afficherCarburant);
+    planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens-vehicules', afficherEntretiens);
+    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-vehicules', rafraichirVueLivraisonsActive);
+    planifierRafraichissementSiPageActive('page-tva', 'page-tva-vehicules', afficherTva);
+    return;
+  }
+
+  if (key === 'carburant') {
+    planifierRafraichissementSiPageActive('page-carburant', 'page-carburant', afficherCarburant);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-carburant', rafraichirDashboard);
+    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-carburant', afficherVehicules);
+    planifierRafraichissementSiPageActive('page-tva', 'page-tva-carburant', afficherTva);
+    planifierRafraichissementSiPageActive('page-rentabilite', 'page-rentabilite-carburant', afficherRentabilite);
+    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-carburant', afficherStatistiques);
+    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-carburant', calculerPrevision);
+    return;
+  }
+
+  if (key === 'charges') {
+    planifierRafraichissementSiPageActive('page-charges', 'page-charges', afficherCharges);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-charges', rafraichirDashboard);
+    planifierRafraichissementSiPageActive('page-tva', 'page-tva-charges', afficherTva);
+    planifierRafraichissementSiPageActive('page-rentabilite', 'page-rentabilite-charges', afficherRentabilite);
+    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-charges', afficherStatistiques);
+    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-charges', calculerPrevision);
+    planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens-charges', afficherEntretiens);
+    return;
+  }
+
+  if (key === 'entretiens') {
+    planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens', afficherEntretiens);
+    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-entretiens', afficherVehicules);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-entretiens', rafraichirDashboard);
+    planifierRafraichissementSiPageActive('page-tva', 'page-tva-entretiens', afficherTva);
+    planifierRafraichissementSiPageActive('page-charges', 'page-charges-entretiens', afficherCharges);
+    return;
+  }
+
+  if (key === 'plannings' || key === 'absences_periodes') {
+    planifierRafraichissementSiPageActive('page-planning', 'page-planning', rafraichirVuePlanningAdmin);
+    planifierRafraichissementSiPageActive('page-heures', 'page-heures-planning', rafraichirVueHeuresEtKm);
+    return;
+  }
+
+  if (key === 'inspections') {
+    planifierRafraichissementSiPageActive('page-inspections', 'page-inspections', afficherInspections);
+    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-inspections', afficherVehicules);
+    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-inspections', afficherAlertes);
+    return;
+  }
+
+  if (key === 'incidents') {
+    planifierRafraichissementSiPageActive('page-incidents', 'page-incidents', afficherIncidents);
+    return;
+  }
+
+  if (key === 'alertes_admin') {
+    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
+    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes', afficherAlertes);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-alertes', rafraichirDashboard);
+    return;
+  }
+
+  if (key === 'postes' || key === 'params_entreprise') {
+    planifierRafraichissementSiPageActive('page-parametres', 'page-parametres', chargerParametres);
+    if (key === 'params_entreprise') planifierRafraichissementStorage('branding-admin', appliquerBranding);
+    return;
+  }
+
+  if (key && (key.indexOf('messages_') === 0 || key === 'messages_admin')) {
+    planifierRafraichissementStorage('badge-messages', mettreAJourBadgeMsgAdmin);
+    planifierRafraichissementSiPageActive('page-messagerie', 'page-messagerie', afficherMessagerie);
+    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-messages', rafraichirDashboard);
+    return;
+  }
+
+  if (key && (key.indexOf('km_sal_') === 0 || key.indexOf('km_report_') === 0)) {
+    planifierRafraichissementSiPageActive('page-salaries', 'page-salaries-km', afficherSalaries);
+    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-km', afficherVehicules);
+    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-km', afficherAlertes);
+    planifierRafraichissementSiPageActive('page-heures', 'page-heures-km', rafraichirVueHeuresEtKm);
+  }
+}
+
 /* ===== SYNCHRO STORAGE (salarié → admin en temps réel) ===== */
 window.addEventListener('storage', function(e) {
   if (e.key) STORAGE_CACHE.delete(e.key);
   else STORAGE_CACHE.clear();
-  // Statut livraison mis à jour par un salarié
-  if (e.key === 'livraisons') {
-    const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-livraisons')  {
-      planifierRafraichissementStorage('page-livraisons', function() {
-        if (_vueLivraisons === 'kanban') afficherKanban();
-        else if (_vueLivraisons === 'calendrier') afficherCalendrier();
-        else afficherLivraisons();
-      });
-    }
-    if (pageActive?.id === 'page-dashboard')   planifierRafraichissementStorage('dashboard-livraisons', rafraichirDashboard);
-    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
-  }
-  // Km saisi par un salarié
-  if (e.key && e.key.startsWith('km_sal_')) {
-    const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-salaries') planifierRafraichissementStorage('page-salaries', afficherSalaries);
-    if (pageActive?.id === 'page-vehicules') planifierRafraichissementStorage('page-vehicules', afficherVehicules);
-    if (pageActive?.id === 'page-alertes') planifierRafraichissementStorage('page-alertes-km', afficherAlertes);
-  }
-  // Carburant saisi/modifié par un salarié
-  if (e.key === 'carburant') {
-    const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-carburant') planifierRafraichissementStorage('page-carburant', afficherCarburant);
-  }
-  // Nouvelles alertes (modif plein, km, inspection)
-  if (e.key === 'alertes_admin') {
-    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
-    const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-alertes') planifierRafraichissementStorage('page-alertes', afficherAlertes);
-    if (pageActive?.id === 'page-dashboard') planifierRafraichissementStorage('dashboard-alertes', rafraichirDashboard);
-  }
-  // Nouvelle inspection
-  if (e.key === 'inspections') {
-    const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-inspections') planifierRafraichissementStorage('page-inspections', afficherInspections);
-    if (pageActive?.id === 'page-vehicules') planifierRafraichissementStorage('page-vehicules-inspections', afficherVehicules);
-  }
-  // Nouveau message d'un salarié
-  if (e.key && e.key.startsWith('messages_')) {
-    planifierRafraichissementStorage('badge-messages', mettreAJourBadgeMsgAdmin);
-    const pageActive = document.querySelector('.page.active');
-    if (pageActive?.id === 'page-messagerie') planifierRafraichissementStorage('page-messagerie', afficherMessagerie);
-    if (pageActive?.id === 'page-dashboard')  planifierRafraichissementStorage('dashboard-messages', rafraichirDashboard);
-  }
+  gererChangementStorageAdmin(e.key);
+});
+
+window.addEventListener('delivpro:storage-sync', function(e) {
+  var key = e && e.detail ? e.detail.key : '';
+  if (key) STORAGE_CACHE.delete(key);
+  else STORAGE_CACHE.clear();
+  gererChangementStorageAdmin(key);
 });
 
 function afficherLivraisons() {
