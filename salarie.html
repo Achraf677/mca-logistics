@@ -446,6 +446,43 @@
 /* ===== ÉTAT ===== */
 let salarieCourant = null;
 
+function confirmDialog(msg, { titre='Confirmation', icone='⚠️', btnLabel='Confirmer', danger=true } = {}) {
+  return new Promise(function(resolve) {
+    const existing = document.getElementById('confirm-dialog-salarie');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'confirm-dialog-salarie';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(6,10,18,.72);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px';
+    overlay.innerHTML = `
+      <div style="width:min(420px,100%);background:#141824;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.35);color:#e8eefc">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="font-size:1.5rem;line-height:1">${icone}</div>
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:1rem;margin-bottom:8px">${titre}</div>
+            <div style="color:#b7c0d8;line-height:1.5">${msg}</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button type="button" data-action="cancel" style="border:1px solid rgba(255,255,255,.12);background:#1d2333;color:#e8eefc;padding:10px 14px;border-radius:10px;cursor:pointer">Annuler</button>
+          <button type="button" data-action="confirm" style="border:1px solid ${danger ? 'rgba(231,76,60,.35)' : 'rgba(79,142,247,.35)'};background:${danger ? '#e74c3c' : '#4f8ef7'};color:#fff;padding:10px 14px;border-radius:10px;cursor:pointer">${btnLabel}</button>
+        </div>
+      </div>`;
+
+    function close(result) {
+      overlay.remove();
+      resolve(result);
+    }
+
+    overlay.addEventListener('click', function(event) {
+      if (event.target === overlay) close(false);
+    });
+    overlay.querySelector('[data-action="cancel"]').addEventListener('click', function() { close(false); });
+    overlay.querySelector('[data-action="confirm"]').addEventListener('click', function() { close(true); });
+    document.body.appendChild(overlay);
+  });
+}
+
 function setBoutonDeconnexionSalarieEtat(enCours) {
   const btn = document.getElementById('btn-salarie-logout');
   if (!btn) return;
@@ -1233,8 +1270,9 @@ function confirmerEditKmSal() {
   toast('✅ Relevé mis à jour — admin notifié');
 }
 
-function supprimerKmSal(id) {
-  if (!confirm('Supprimer ce relevé ?')) return;
+async function supprimerKmSal(id) {
+  const ok = await confirmDialog('Supprimer ce relevé ?', { titre:'Supprimer le relevé', icone:'🛣️', btnLabel:'Supprimer' });
+  if (!ok) return;
   const list = getKmEntries().filter(e => e.id !== id);
   saveKmEntries(list);
   rechargerBlocKm();
@@ -1273,8 +1311,9 @@ function enregistrerPlein() {
   toast('✅ Plein enregistré !');
 }
 
-function supprimerPleinSal(id) {
-  if (!confirm('Supprimer ce plein ?')) return;
+async function supprimerPleinSal(id) {
+  const ok = await confirmDialog('Supprimer ce plein ?', { titre:'Supprimer le plein', icone:'⛽', btnLabel:'Supprimer' });
+  if (!ok) return;
   const cle  = `carb_sal_${salarieCourant.id}`;
   const perso = JSON.parse(localStorage.getItem(cle)||'[]').filter(p => p.id !== id);
   localStorage.setItem(cle, JSON.stringify(perso));
