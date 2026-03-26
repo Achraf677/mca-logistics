@@ -2285,7 +2285,7 @@ kbd {
 }
 .livraisons-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1200px;
   table-layout: fixed;
 }
 .livraisons-table th,

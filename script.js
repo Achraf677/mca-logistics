@@ -865,6 +865,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('delivpro:remote-update', function(event) {
     notifierMajAutreAdmin(event.detail || {});
   });
+  window.addEventListener('offline', function() {
+    afficherToast('⚠️ Connexion perdue — les données sont sauvegardées localement et seront synchronisées dès le retour réseau.', 'error');
+  });
+  window.addEventListener('online', function() {
+    afficherToast('✅ Connexion rétablie — synchronisation en cours…', 'success');
+    if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.flush) {
+      window.DelivProRemoteStorage.flush().catch(function() {});
+    }
+  });
   const fastBootRole = sessionStorage.getItem(FAST_BOOT_ROLE_KEY);
   if (fastBootRole === 'admin') {
     sessionStorage.removeItem(FAST_BOOT_ROLE_KEY);
@@ -883,6 +892,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('input[type="date"]').forEach(el => { el.value = aujourdhui(); });
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', e => { e.preventDefault(); naviguerVers(item.dataset.page); fermerMenuMobile(); });
+    item.addEventListener('keydown', e => { if (e.key === ' ') { e.preventDefault(); naviguerVers(item.dataset.page); fermerMenuMobile(); } });
   });
   document.getElementById('toggleSidebar').addEventListener('click', () => {
     document.getElementById('sidebar').classList.toggle('collapsed');
@@ -919,10 +929,10 @@ function naviguerVers(page) {
   if (!page) return;
   window.__delivproCurrentPage = page;
   mettreAJourBadgesNav();
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.removeAttribute('aria-current'); });
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
-  if (navItem) navItem.classList.add('active');
+  if (navItem) { navItem.classList.add('active'); navItem.setAttribute('aria-current', 'page'); }
   const pageEl = document.getElementById(`page-${page}`);
   if (pageEl) {
     pageEl.classList.add('active', 'route-enter');
