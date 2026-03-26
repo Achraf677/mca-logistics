@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="robots" content="noindex, nofollow" />
   <title>MCA Logistics — Gestion Livraison</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="stylesheet" href="style.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -75,6 +76,7 @@
 
     <!-- DASHBOARD -->
     <section class="page active" id="page-dashboard">
+      <div id="dashboard-ct-banner"></div>
       <div class="kpi-grid">
         <div class="kpi-card green"><div class="kpi-label">CA ce mois (HT)</div><div class="kpi-value" id="kpi-ca-mois">0 €</div><div class="kpi-sub" id="kpi-ca-mois-ttc"></div></div>
         <div class="kpi-card"><div class="kpi-label">Livraisons ce mois</div><div class="kpi-value" id="kpi-livraisons-mois">0</div><div id="kpi-comp-liv" style="font-size:.72rem;color:var(--text-muted);margin-top:4px"></div></div>
@@ -727,7 +729,7 @@
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Définissez les postes disponibles. Ils seront proposés lors de la création d'un salarié et dans les filtres messagerie.</p>
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
-              <input type="text" id="nouveau-poste" placeholder="Ex : Livreur, Dispatcher, Manutentionnaire..." style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" />
+              <input type="text" id="nouveau-poste" placeholder="Ex : Livreur, Dispatcher, Manutentionnaire..." autocomplete="off" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" />
               <button class="btn-primary" onclick="ajouterPoste()" style="padding:8px 16px">+ Ajouter</button>
             </div>
           </div>
@@ -1743,13 +1745,13 @@
   <!-- Sidebar overlay mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="fermerMenuMobile()"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase-config.js"></script>
-  <script src="supabase-client.js"></script>
-  <script src="supabase-auth.js"></script>
-  <script src="supabase-admin.js"></script>
-  <script src="supabase-storage-sync.js"></script>
-  <script src="script.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script defer src="supabase-config.js"></script>
+  <script defer src="supabase-client.js"></script>
+  <script defer src="supabase-auth.js"></script>
+  <script defer src="supabase-admin.js"></script>
+  <script defer src="supabase-storage-sync.js"></script>
+  <script defer src="script.js"></script>
 </body>
 </html>
 

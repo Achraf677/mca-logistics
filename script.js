@@ -2258,6 +2258,29 @@ async function viderAlertes() {
 /* ===== DASHBOARD ===== */
 let chartActivite = null;
 function rafraichirDashboard() {
+  // Bannière CT expiré / proche (< 7 jours)
+  const ctBanner = document.getElementById('dashboard-ct-banner');
+  if (ctBanner) {
+    const vehsCT = charger('vehicules', []);
+    const maintenant = new Date(); maintenant.setHours(0,0,0,0);
+    const dans7j = new Date(maintenant); dans7j.setDate(dans7j.getDate() + 7);
+    const alertesCT = vehsCT.filter(v => v.dateCT).map(v => {
+      const d = new Date(v.dateCT); d.setHours(0,0,0,0);
+      if (d < maintenant) return { immat: v.immat, label: `CT expiré le ${formatDateExport(v.dateCT)}`, urgent: true };
+      if (d <= dans7j) return { immat: v.immat, label: `CT expire le ${formatDateExport(v.dateCT)}`, urgent: false };
+      return null;
+    }).filter(Boolean);
+    if (alertesCT.length) {
+      ctBanner.innerHTML = alertesCT.map(a =>
+        `<div class="info-banner" style="margin-bottom:8px;border-left-color:${a.urgent?'var(--red)':'var(--orange, #f39c12)'}">
+          ⚠️ Véhicule <strong>${a.immat}</strong> — ${a.label}
+        </div>`
+      ).join('');
+    } else {
+      ctBanner.innerHTML = '';
+    }
+  }
+
   const setText = function(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value;

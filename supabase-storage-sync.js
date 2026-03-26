@@ -2,7 +2,7 @@
   var STORAGE_SCOPE = 'global';
   var FLUSH_DELAY_MS = 15;
   var FAST_FLUSH_DELAY_MS = 0;
-  var POLL_INTERVAL_MS = 350;
+  var POLL_INTERVAL_MS = 30000;
   var RETRY_DELAY_MS = 600;
   var suppressLocalSync = false;
   var pendingChanges = {};
