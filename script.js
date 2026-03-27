@@ -2091,7 +2091,10 @@ function afficherAlertes() {
   const traitees = filtered.filter(a => a.traitee);
 
   // Marquer toutes comme lues
+  const toutesDejaLues = toutes.every(a => a.lu);
+if (!toutesDejaLues) {
   sauvegarder('alertes_admin', toutes.map(a => ({ ...a, lu: true })));
+}
   afficherBadgeAlertes();
 
   // Afficher/masquer la section historique selon le filtre
