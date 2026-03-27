@@ -7,7 +7,7 @@
   <title>MCA Logistics — Gestion Livraison</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="stylesheet" href="style.css" />
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script defer src="chart.min.js"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -46,6 +46,7 @@
       <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
       <a href="#" class="nav-item" data-page="previsions"><span class="nav-icon">🔮</span><span class="nav-label">Prévisions</span></a>
       <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
+      <a href="#" class="nav-item" data-page="budget"><span class="nav-icon">📂</span><span class="nav-label">Budget & Trésorerie</span></a>
 
       <div class="nav-section-label">Système</div>
       <a href="#" class="nav-item" data-page="parametres"><span class="nav-icon">⚙️</span><span class="nav-label">Paramètres</span></a>
@@ -681,6 +682,115 @@
         <div class="card-header"><h2>📊 Solde TVA du mois</h2></div>
         <div class="modal-body" id="tva-solde-detail"></div>
       </div>
+    </section>
+
+    <!-- BUDGET & TRÉSORERIE -->
+    <section class="page" id="page-budget">
+      <div class="page-actions">
+        <h2>📂 Budget & Trésorerie</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-rapport" onclick="exporterBudgetPDF()">📄 Rapport PDF</button>
+        </div>
+      </div>
+
+      <!-- Alerte TVA -->
+      <div id="budget-tva-alerte" style="display:none"></div>
+
+      <!-- Navigation mois -->
+      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+          <button class="btn-secondary" onclick="navBudgetMois(-1)" style="padding:5px 12px">◀ Mois préc.</button>
+          <div id="budget-mois-label" style="font-size:1rem;font-weight:700"></div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-secondary" onclick="navBudgetMois(0)" style="padding:5px 12px">Mois en cours</button>
+            <button class="btn-secondary" onclick="navBudgetMois(1)" style="padding:5px 12px">Mois suiv. ▶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs principaux -->
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-label">Encaissements (payé)</div>
+          <div class="kpi-value" id="budget-kpi-encaisse">0 €</div>
+          <div class="kpi-sub" id="budget-kpi-encaisse-sub"></div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Décaissements (dépenses)</div>
+          <div class="kpi-value" id="budget-kpi-depenses">0 €</div>
+          <div class="kpi-sub" id="budget-kpi-depenses-sub"></div>
+        </div>
+        <div class="kpi-card orange">
+          <div class="kpi-label">TVA à reverser</div>
+          <div class="kpi-value" id="budget-kpi-tva">0 €</div>
+          <div class="kpi-sub" id="budget-kpi-tva-sub"></div>
+        </div>
+        <div class="kpi-card blue">
+          <div class="kpi-label">Solde net estimé</div>
+          <div class="kpi-value" id="budget-kpi-solde">0 €</div>
+          <div class="kpi-sub" id="budget-kpi-solde-sub"></div>
+        </div>
+      </div>
+
+      <!-- Prévisionnel 30/60/90j -->
+      <div class="card mt-20">
+        <div class="card-header"><h2>📅 Trésorerie prévisionnelle</h2></div>
+        <div class="modal-body">
+          <p style="color:var(--text-muted);font-size:.83rem;margin-bottom:14px">Projection basée sur la moyenne mensuelle des 3 derniers mois.</p>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
+              <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase">Dans 30 jours</div>
+              <div id="budget-prev-30" style="font-size:1.4rem;font-weight:800">—</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
+              <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase">Dans 60 jours</div>
+              <div id="budget-prev-60" style="font-size:1.4rem;font-weight:800">—</div>
+            </div>
+            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
+              <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase">Dans 90 jours</div>
+              <div id="budget-prev-90" style="font-size:1.4rem;font-weight:800">—</div>
+            </div>
+          </div>
+          <div style="margin-top:14px;padding:10px 14px;background:rgba(245,166,35,.08);border-left:3px solid var(--accent);border-radius:6px;font-size:.82rem;color:var(--text-muted)" id="budget-prev-note"></div>
+        </div>
+      </div>
+
+      <!-- Graphique cashflow 6 mois -->
+      <div class="card mt-20">
+        <div class="card-header"><h2>📊 Cashflow — 6 derniers mois</h2></div>
+        <div class="modal-body">
+          <canvas id="budget-cashflow-chart" height="90"></canvas>
+        </div>
+      </div>
+
+      <!-- Encaissements détail -->
+      <div class="card mt-20">
+        <div class="card-header"><h2>💶 Détail Encaissements</h2></div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>N° Livraison</th><th>Client</th><th>Prix HT</th><th>TVA</th><th>Prix TTC</th><th>Statut</th></tr></thead>
+            <tbody id="tb-budget-encaissements"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Décaissements détail -->
+      <div class="card mt-20">
+        <div class="card-header"><h2>💸 Détail Décaissements</h2></div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant HT</th><th>TVA</th><th>Montant TTC</th></tr></thead>
+            <tbody id="tb-budget-decaissements"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Récap TVA du mois -->
+      <div class="card mt-20">
+        <div class="card-header"><h2>🧾 Récapitulatif TVA du mois</h2></div>
+        <div class="modal-body" id="budget-tva-recap"></div>
+      </div>
+
     </section>
 
     <!-- PARAMÈTRES -->
