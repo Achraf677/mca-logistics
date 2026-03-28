@@ -10991,6 +10991,7 @@ genererRentabilitePDF = function() {
 
 /* ===== BUDGET & TRÉSORERIE ===== */
 var _budgetMoisOffset = 0;
+var _budgetSaisieRapideCat = 'carburant';
 
 function getBudgetMoisStr(offset) {
   offset = offset == null ? _budgetMoisOffset : offset;
@@ -11006,6 +11007,45 @@ function navBudgetMois(direction) {
   afficherBudget();
 }
 
+/* Calcule toutes les données du mois donné */
+function budgetCalculerData(mois) {
+  var livraisons = charger('livraisons').filter(function(l) { return (l.date || '').startsWith(mois); });
+  var charges    = charger('charges').filter(function(c) { return (c.date || '').startsWith(mois); });
+  var carburant  = charger('carburant').filter(function(p) { return (p.date || '').startsWith(mois); });
+  var entretiens = charger('entretiens').filter(function(e) { return (e.date || '').startsWith(mois); });
+
+  var payees        = livraisons.filter(function(l) { return l.statutPaiement === 'payé'; });
+  var enAttente     = livraisons.filter(function(l) { return l.statutPaiement !== 'payé'; });
+  var encaissePayees = payees.reduce(function(s, l) { return s + (l.prix || 0); }, 0);
+  var encaisseAttente = enAttente.reduce(function(s, l) { return s + (l.prix || 0); }, 0);
+
+  var totalCarb  = carburant.reduce(function(s, p) { return s + (p.total || 0); }, 0);
+  var totalCharg = charges.reduce(function(s, c) { return s + (c.montant || 0); }, 0);
+  var totalEntr  = entretiens.reduce(function(s, e) { return s + (e.cout || 0); }, 0);
+  var totalDep   = totalCarb + totalCharg + totalEntr;
+
+  var tvaCollectee = livraisons.filter(function(l) { return l.prix > 0; }).reduce(function(s, l) {
+    var taux = l.tauxTVA || 20; var ht = l.prixHT || (l.prix / (1 + taux / 100));
+    return s + (l.prix - ht);
+  }, 0);
+  var tvaDeductible = 0;
+  charges.forEach(function(c) { var t = c.tauxTVA || 20; var ht = c.montantHT || (c.montant || 0) / (1 + t / 100); tvaDeductible += (c.montant || 0) - ht; });
+  carburant.forEach(function(p) { var ht = (p.total || 0) / 1.2; tvaDeductible += ((p.total || 0) - ht) * (getTauxDeductibiliteCarburant(p) / 100); });
+  entretiens.forEach(function(e) { var t = e.tauxTVA || 20; var ht = e.coutHT || (e.cout || 0) / (1 + t / 100); var tvaM = (e.cout || 0) - ht; tvaDeductible += tvaM * (getTauxDeductibiliteEntretien(e) / 100); });
+  var tvaReverser = Math.max(0, tvaCollectee - tvaDeductible);
+  var tvaCredit   = Math.max(0, tvaDeductible - tvaCollectee);
+  var soldeNet    = encaissePayees - totalDep - tvaReverser;
+
+  return {
+    livraisons: livraisons, charges: charges, carburant: carburant, entretiens: entretiens,
+    payees: payees, enAttente: enAttente,
+    encaissePayees: encaissePayees, encaisseAttente: encaisseAttente,
+    totalCarb: totalCarb, totalCharg: totalCharg, totalEntr: totalEntr, totalDep: totalDep,
+    tvaCollectee: tvaCollectee, tvaDeductible: tvaDeductible, tvaReverser: tvaReverser, tvaCredit: tvaCredit,
+    soldeNet: soldeNet
+  };
+}
+
 function afficherBudget() {
   var mois = getBudgetMoisStr();
   var d = new Date(mois + '-01');
@@ -11013,133 +11053,300 @@ function afficherBudget() {
   var labelEl = document.getElementById('budget-mois-label');
   if (labelEl) labelEl.textContent = label.charAt(0).toUpperCase() + label.slice(1);
 
-  var livraisons = charger('livraisons').filter(function(l) { return (l.date || '').startsWith(mois); });
-  var charges    = charger('charges').filter(function(c) { return (c.date || '').startsWith(mois); });
-  var carburant  = charger('carburant').filter(function(p) { return (p.date || '').startsWith(mois); });
-  var entretiens = charger('entretiens').filter(function(e) { return (e.date || '').startsWith(mois); });
+  var data = budgetCalculerData(mois);
 
-  // --- ENCAISSEMENTS ---
-  var encaissePayees   = livraisons.filter(function(l) { return l.statutPaiement === 'payé'; }).reduce(function(s, l) { return s + (l.prix || 0); }, 0);
-  var encaisseAttente  = livraisons.filter(function(l) { return l.statutPaiement !== 'payé'; }).reduce(function(s, l) { return s + (l.prix || 0); }, 0);
-  var encaisseTotal    = encaissePayees;
+  // Initialise la date de saisie rapide
+  var srDate = document.getElementById('budget-sr-date');
+  if (srDate && !srDate.value) srDate.value = aujourdhui();
 
-  // --- DÉCAISSEMENTS ---
-  var totalCarb  = carburant.reduce(function(s, p) { return s + (p.total || 0); }, 0);
-  var totalCharg = charges.reduce(function(s, c) { return s + (c.montant || 0); }, 0);
-  var totalEntr  = entretiens.reduce(function(s, e) { return s + (e.cout || 0); }, 0);
-  var totalDepenses = totalCarb + totalCharg + totalEntr;
-
-  // --- TVA ---
-  var tvaCollectee   = livraisons.filter(function(l) { return l.prix > 0; }).reduce(function(s, l) {
-    var taux = l.tauxTVA || 20;
-    var ht   = l.prixHT || (l.prix / (1 + taux / 100));
-    return s + (l.prix - ht);
-  }, 0);
-  var tvaDeductible  = 0;
-  charges.forEach(function(c) { var taux = c.tauxTVA || 20; var ht = c.montantHT || (c.montant || 0) / (1 + taux / 100); tvaDeductible += (c.montant || 0) - ht; });
-  carburant.forEach(function(p) { var ht = (p.total || 0) / 1.2; var tvaM = (p.total || 0) - ht; tvaDeductible += tvaM * (getTauxDeductibiliteCarburant(p) / 100); });
-  entretiens.forEach(function(e) { var taux = e.tauxTVA || 20; var ht = e.coutHT || (e.cout || 0) / (1 + taux / 100); var tvaM = (e.cout || 0) - ht; tvaDeductible += tvaM * (getTauxDeductibiliteEntretien(e) / 100); });
-  var tvaReverser    = Math.max(0, tvaCollectee - tvaDeductible);
-  var tvaCredit      = Math.max(0, tvaDeductible - tvaCollectee);
-
-  var soldeNet = encaisseTotal - totalDepenses - tvaReverser;
-
-  // --- KPIs ---
-  function setEl(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
-  function setColor(id, color) { var el = document.getElementById(id); if (el) el.style.color = color; }
-
-  setEl('budget-kpi-encaisse', euros(encaisseTotal));
-  setEl('budget-kpi-encaisse-sub', '+ ' + euros(encaisseAttente) + ' en attente · ' + livraisons.length + ' livraison(s)');
-  setEl('budget-kpi-depenses', euros(totalDepenses));
-  setEl('budget-kpi-depenses-sub', 'Carb. ' + euros(totalCarb) + ' · Charges ' + euros(totalCharg) + ' · Entret. ' + euros(totalEntr));
-  setEl('budget-kpi-tva', tvaReverser > 0 ? euros(tvaReverser) : ('Crédit ' + euros(tvaCredit)));
-  setEl('budget-kpi-tva-sub', 'Collectée ' + euros(tvaCollectee) + ' · Déductible ' + euros(tvaDeductible));
-  setEl('budget-kpi-solde', euros(soldeNet));
-  setColor('budget-kpi-solde', soldeNet >= 0 ? 'var(--green)' : 'var(--red)');
-  setEl('budget-kpi-solde-sub', soldeNet >= 0 ? 'Positif ce mois' : 'Négatif — vérifiez vos charges');
-
-  // --- ALERTE TVA J-10 ---
-  var alerteEl = document.getElementById('budget-tva-alerte');
-  if (alerteEl) {
-    var today    = new Date();
-    var annee    = today.getFullYear();
-    var moisNum  = today.getMonth(); // 0-based
-    // TVA mensuelle : déclaration avant le 15 du mois suivant (régime réel normal)
-    var echeance = new Date(annee, moisNum + 1, 15);
-    var joursRestants = Math.ceil((echeance - today) / (1000 * 60 * 60 * 24));
-    if (joursRestants <= 10 && joursRestants >= 0 && tvaReverser > 0) {
-      alerteEl.style.display = 'block';
-      alerteEl.innerHTML = '<div style="background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.4);border-left:4px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px"><span style="font-size:1.3rem">⚠️</span><div><strong>TVA à reverser dans ' + joursRestants + ' jour(s)</strong> — Échéance le 15/' + String(moisNum + 2).padStart(2,'0') + '/' + (moisNum >= 11 ? annee + 1 : annee) + '<br><span style="font-size:.85rem;color:var(--text-muted)">Montant à reverser : ' + euros(tvaReverser) + '</span></div></div>';
-    } else {
-      alerteEl.style.display = 'none';
-    }
-  }
-
-  // --- TABLEAU ENCAISSEMENTS ---
-  var tbEnc = document.getElementById('tb-budget-encaissements');
-  if (tbEnc) {
-    if (!livraisons.length) {
-      tbEnc.innerHTML = '<tr><td colspan="7" class="empty-row">Aucune livraison ce mois</td></tr>';
-    } else {
-      var badgePay = function(s) { return s === 'payé' ? '<span style="background:rgba(46,204,113,.15);color:var(--green);padding:2px 8px;border-radius:20px;font-size:.78rem">✅ Payé</span>' : '<span style="background:rgba(231,76,60,.12);color:var(--red);padding:2px 8px;border-radius:20px;font-size:.78rem">⏳ En attente</span>'; };
-      tbEnc.innerHTML = livraisons.sort(function(a,b){ return new Date(b.date)-new Date(a.date); }).map(function(l) {
-        var taux = l.tauxTVA || 20;
-        var ht   = l.prixHT || (l.prix / (1 + taux / 100));
-        var tvaM = (l.prix || 0) - ht;
-        return '<tr><td>' + (l.date || '—') + '</td><td>' + (l.numLiv || '—') + '</td><td>' + (l.client || '—') + '</td><td>' + euros(ht) + '</td><td style="font-size:.82rem;color:var(--text-muted)">' + euros(tvaM) + '</td><td><strong>' + euros(l.prix || 0) + '</strong></td><td>' + badgePay(l.statutPaiement) + '</td></tr>';
-      }).join('');
-    }
-  }
-
-  // --- TABLEAU DÉCAISSEMENTS ---
-  var tbDec = document.getElementById('tb-budget-decaissements');
-  if (tbDec) {
-    var rowsDec = '';
-    charges.sort(function(a,b){return new Date(b.date)-new Date(a.date);}).forEach(function(c) {
-      var taux = c.tauxTVA || 20; var ht = c.montantHT || (c.montant||0)/(1+taux/100); var tvaM = (c.montant||0)-ht;
-      rowsDec += '<tr><td>' + (c.date||'—') + '</td><td>💸 Charge</td><td>' + (c.description||c.categorie||'—') + '</td><td>' + euros(ht) + '</td><td style="font-size:.82rem;color:var(--text-muted)">' + euros(tvaM) + '</td><td><strong>' + euros(c.montant||0) + '</strong></td></tr>';
-    });
-    carburant.sort(function(a,b){return new Date(b.date)-new Date(a.date);}).forEach(function(p) {
-      var ht = (p.total||0)/1.2; var tvaM = (p.total||0)-ht;
-      rowsDec += '<tr><td>' + (p.date||'—') + '</td><td>⛽ Carburant</td><td>' + (p.vehNom||'Véhicule') + ' — ' + (p.typeCarburant||p.type||'Gasoil') + '</td><td>' + euros(ht) + '</td><td style="font-size:.82rem;color:var(--text-muted)">' + euros(tvaM) + '</td><td><strong>' + euros(p.total||0) + '</strong></td></tr>';
-    });
-    entretiens.sort(function(a,b){return new Date(b.date)-new Date(a.date);}).forEach(function(e) {
-      var taux = e.tauxTVA||20; var ht = e.coutHT||(e.cout||0)/(1+taux/100); var tvaM = (e.cout||0)-ht;
-      rowsDec += '<tr><td>' + (e.date||'—') + '</td><td>🔧 Entretien</td><td>' + (e.description||getTypeEntretienLabel(e.type)||'—') + '</td><td>' + euros(ht) + '</td><td style="font-size:.82rem;color:var(--text-muted)">' + euros(tvaM) + '</td><td><strong>' + euros(e.cout||0) + '</strong></td></tr>';
-    });
-    tbDec.innerHTML = rowsDec || '<tr><td colspan="6" class="empty-row">Aucune dépense ce mois</td></tr>';
-  }
-
-  // --- RÉCAP TVA ---
-  var tvaRecap = document.getElementById('budget-tva-recap');
-  if (tvaRecap) {
-    var stylCard = 'background:var(--bg-dark);border-radius:10px;padding:14px 18px;';
-    tvaRecap.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px">'
-      + '<div style="' + stylCard + '"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">TVA collectée</div><div style="font-size:1.2rem;font-weight:800;color:var(--green)">' + euros(tvaCollectee) + '</div></div>'
-      + '<div style="' + stylCard + '"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">TVA déductible</div><div style="font-size:1.2rem;font-weight:800;color:var(--accent)">' + euros(tvaDeductible) + '</div></div>'
-      + (tvaReverser > 0
-          ? '<div style="' + stylCard + 'border-left:3px solid var(--red)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">À reverser à l\'État</div><div style="font-size:1.2rem;font-weight:800;color:var(--red)">' + euros(tvaReverser) + '</div></div>'
-          : '<div style="' + stylCard + 'border-left:3px solid var(--green)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:4px">Crédit de TVA</div><div style="font-size:1.2rem;font-weight:800;color:var(--green)">' + euros(tvaCredit) + '</div></div>')
-      + '</div>';
-  }
-
-  // --- PRÉVISIONNEL 30/60/90j ---
-  var soldeMoyMensuel = calculerSoldeMoyenMensuel();
-  var soldeActuel = calculerSoldeTresorerie().solde;
-  var set = function(id, v) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = euros(v);
-    el.style.color = v >= 0 ? 'var(--green)' : 'var(--red)';
-  };
-  set('budget-prev-30', soldeActuel + soldeMoyMensuel);
-  set('budget-prev-60', soldeActuel + soldeMoyMensuel * 2);
-  set('budget-prev-90', soldeActuel + soldeMoyMensuel * 3);
-  var noteEl = document.getElementById('budget-prev-note');
-  if (noteEl) noteEl.textContent = 'Projection basée sur un solde moyen mensuel de ' + euros(soldeMoyMensuel) + ' (3 derniers mois). Hors TVA à reverser et événements exceptionnels.';
-
-  // --- GRAPHIQUE CASHFLOW ---
+  budgetRendreKPIs(data);
+  budgetRendreScoreSante(data, mois);
+  budgetRendreInsights(data, mois);
+  budgetRendreAlerteTVA(data);
+  budgetRendreEncaissements(data);
+  budgetRendreDecaissements(data);
+  budgetRendreChargesFixes(mois);
+  budgetRendrePrevisionnel(data);
+  budgetRendreTvaRecap(data);
   afficherBudgetCashflowChart();
+}
+
+/* ---- KPIs ---- */
+function budgetRendreKPIs(data) {
+  function setEl(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+  function setColor(id, c) { var el = document.getElementById(id); if (el) el.style.color = c; }
+  setEl('budget-kpi-encaisse', euros(data.encaissePayees));
+  setEl('budget-kpi-encaisse-sub', euros(data.encaisseAttente) + ' en attente · ' + data.livraisons.length + ' livraison(s)');
+  setEl('budget-kpi-depenses', euros(data.totalDep));
+  setEl('budget-kpi-depenses-sub', '⛽ ' + euros(data.totalCarb) + ' · 💸 ' + euros(data.totalCharg) + ' · 🔧 ' + euros(data.totalEntr));
+  setEl('budget-kpi-tva', data.tvaReverser > 0 ? euros(data.tvaReverser) : ('Crédit ' + euros(data.tvaCredit)));
+  setColor('budget-kpi-tva', data.tvaReverser > 0 ? 'var(--accent)' : 'var(--green)');
+  setEl('budget-kpi-tva-sub', 'Collectée ' + euros(data.tvaCollectee) + ' · Déductible ' + euros(data.tvaDeductible));
+  setEl('budget-kpi-solde', euros(data.soldeNet));
+  setColor('budget-kpi-solde', data.soldeNet >= 0 ? 'var(--green)' : 'var(--red)');
+  setEl('budget-kpi-solde-sub', data.soldeNet >= 0 ? '✅ Positif ce mois' : '⚠️ Négatif — vérifiez vos charges');
+}
+
+/* ---- Score de santé ---- */
+function budgetRendreScoreSante(data, mois) {
+  // Composantes du score (0-100)
+  var ca = data.encaissePayees + data.encaisseAttente;
+  var margePct  = ca > 0 ? Math.min(100, Math.max(0, (data.soldeNet / ca) * 100)) : 0;
+  var recouvrPct = data.livraisons.length > 0
+    ? (data.payees.length / data.livraisons.length) * 100 : 100;
+
+  // Tendance vs mois précédent
+  var prevMois = getBudgetMoisStr(_budgetMoisOffset - 1);
+  var prevData = budgetCalculerData(prevMois);
+  var tendance  = data.soldeNet >= prevData.soldeNet ? 100 : 30;
+
+  // TVA sous contrôle
+  var tvaOk = data.tvaReverser === 0 || data.tvaCredit > 0 ? 100 : 60;
+
+  var score = Math.round(margePct * 0.40 + recouvrPct * 0.30 + tendance * 0.20 + tvaOk * 0.10);
+  score = Math.max(0, Math.min(100, score));
+
+  var arc    = document.getElementById('budget-score-arc');
+  var valEl  = document.getElementById('budget-score-value');
+  var lblEl  = document.getElementById('budget-score-label');
+  var detEl  = document.getElementById('budget-score-detail');
+  if (!arc) return;
+
+  var circumference = 314;
+  var offset = circumference - (score / 100) * circumference;
+  arc.style.strokeDashoffset = offset;
+
+  var color, label;
+  if (score >= 75)      { color = '#2ecc71'; label = '🟢 Excellente'; }
+  else if (score >= 50) { color = '#f5a623'; label = '🟡 Correcte'; }
+  else if (score >= 25) { color = '#e67e22'; label = '🟠 À surveiller'; }
+  else                  { color = '#e74c3c'; label = '🔴 Critique'; }
+
+  arc.style.stroke = color;
+  if (valEl) { valEl.textContent = score; valEl.style.color = color; }
+  if (lblEl) lblEl.textContent = label;
+  if (detEl) detEl.innerHTML =
+    'Marge : ' + margePct.toFixed(0) + '% · '
+    + 'Recouvrement : ' + recouvrPct.toFixed(0) + '%<br>'
+    + (data.soldeNet >= prevData.soldeNet ? '📈 En progression vs mois préc.' : '📉 En recul vs mois préc.');
+}
+
+/* ---- Insights ---- */
+function budgetRendreInsights(data, mois) {
+  var el = document.getElementById('budget-insights');
+  if (!el) return;
+
+  var prevMois  = getBudgetMoisStr(_budgetMoisOffset - 1);
+  var prevData  = budgetCalculerData(prevMois);
+  var insights  = [];
+
+  var pct = function(v, ref) { return ref > 0 ? ((v - ref) / ref * 100).toFixed(0) : null; };
+  var arrow = function(v, ref) { return v > ref ? '📈 +' : '📉 '; };
+
+  // Encaissements vs mois préc.
+  if (prevData.encaissePayees > 0 || data.encaissePayees > 0) {
+    var diffCA = pct(data.encaissePayees, prevData.encaissePayees);
+    if (diffCA !== null) insights.push({ color: data.encaissePayees >= prevData.encaissePayees ? 'var(--green)' : 'var(--red)', text: arrow(data.encaissePayees, prevData.encaissePayees) + Math.abs(diffCA) + '% de CA encaissé vs mois précédent (' + euros(prevData.encaissePayees) + ')' });
+  }
+
+  // Livraisons en attente
+  if (data.enAttente.length > 0) insights.push({ color: 'var(--accent)', text: '⏳ ' + data.enAttente.length + ' livraison(s) non payée(s) → ' + euros(data.encaisseAttente) + ' à relancer' });
+
+  // Carburant vs mois préc.
+  if (prevData.totalCarb > 0 && data.totalCarb > 0) {
+    var diffCarb = pct(data.totalCarb, prevData.totalCarb);
+    if (diffCarb !== null && Math.abs(parseFloat(diffCarb)) > 5) insights.push({ color: data.totalCarb > prevData.totalCarb ? 'var(--red)' : 'var(--green)', text: '⛽ Carburant ' + (data.totalCarb > prevData.totalCarb ? 'en hausse' : 'en baisse') + ' de ' + Math.abs(diffCarb) + '% vs mois préc.' });
+  }
+
+  // Solde négatif
+  if (data.soldeNet < 0) insights.push({ color: 'var(--red)', text: '🚨 Solde négatif ce mois — vos dépenses dépassent vos encaissements' });
+
+  // TVA bientôt due
+  var today = new Date(); var moisNum = today.getMonth();
+  var echeanceTVA = new Date(today.getFullYear(), moisNum + 1, 15);
+  var joursTV = Math.ceil((echeanceTVA - today) / 86400000);
+  if (joursTV <= 10 && joursTV >= 0 && data.tvaReverser > 0) insights.push({ color: 'var(--accent)', text: '🧾 TVA à reverser (' + euros(data.tvaReverser) + ') — échéance dans ' + joursTV + ' jour(s)' });
+
+  // Pas de charge ce mois
+  if (data.totalDep === 0) insights.push({ color: 'var(--text-muted)', text: 'ℹ️ Aucune dépense enregistrée ce mois' });
+
+  if (!insights.length) insights.push({ color: 'var(--green)', text: '✅ Tout est en ordre pour ce mois' });
+
+  el.innerHTML = insights.map(function(ins) {
+    return '<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;background:var(--bg-dark)">'
+      + '<span style="font-size:.82rem;color:' + ins.color + ';flex:1">' + ins.text + '</span></div>';
+  }).join('');
+}
+
+/* ---- Alerte TVA J-10 ---- */
+function budgetRendreAlerteTVA(data) {
+  var alerteEl = document.getElementById('budget-tva-alerte');
+  if (!alerteEl) return;
+  var today = new Date(); var annee = today.getFullYear(); var moisNum = today.getMonth();
+  var echeance = new Date(annee, moisNum + 1, 15);
+  var joursRestants = Math.ceil((echeance - today) / 86400000);
+  if (joursRestants <= 10 && joursRestants >= 0 && data.tvaReverser > 0) {
+    alerteEl.style.display = 'block';
+    alerteEl.innerHTML = '<div style="background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.4);border-left:4px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px"><span style="font-size:1.3rem">⚠️</span><div><strong>TVA à reverser dans ' + joursRestants + ' jour(s)</strong> — Échéance le 15/' + String(moisNum + 2).padStart(2, '0') + '/' + (moisNum >= 11 ? annee + 1 : annee) + '<br><span style="font-size:.85rem;color:var(--text-muted)">Montant à reverser : ' + euros(data.tvaReverser) + '</span></div></div>';
+  } else {
+    alerteEl.style.display = 'none';
+  }
+}
+
+/* ---- Tableau Encaissements ---- */
+function budgetRendreEncaissements(data) {
+  var tb = document.getElementById('tb-budget-encaissements');
+  if (!tb) return;
+  if (!data.livraisons.length) { tb.innerHTML = '<tr><td colspan="5" class="empty-row">Aucune livraison ce mois — <button class="ei-btn" style="display:inline;padding:3px 10px;font-size:.78rem" onclick="openModal(\'modal-livraison\')">+ Nouvelle</button></td></tr>'; return; }
+  var badgePay = function(s) { return s === 'payé' ? '<span style="background:rgba(46,204,113,.15);color:var(--green);padding:2px 7px;border-radius:20px;font-size:.75rem">✅ Payé</span>' : '<span style="background:rgba(231,76,60,.12);color:var(--red);padding:2px 7px;border-radius:20px;font-size:.75rem">⏳ Attente</span>'; };
+  tb.innerHTML = data.livraisons.sort(function(a, b) { return new Date(b.date) - new Date(a.date); }).map(function(l) {
+    var taux = l.tauxTVA || 20; var ht = l.prixHT || (l.prix / (1 + taux / 100));
+    return '<tr><td style="font-size:.82rem">' + (l.date || '—') + '</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">' + (l.client || '—') + '</td><td>' + euros(ht) + '</td><td><strong>' + euros(l.prix || 0) + '</strong></td><td>' + badgePay(l.statutPaiement) + '</td></tr>';
+  }).join('');
+}
+
+/* ---- Tableau Décaissements ---- */
+function budgetRendreDecaissements(data) {
+  var tb = document.getElementById('tb-budget-decaissements');
+  if (!tb) return;
+  var catIcon = { carburant: '⛽', charge: '💸', entretien: '🔧', assurance: '🛡️', peage: '🛣️', autre: '📝' };
+  var rows = [];
+  data.charges.forEach(function(c) { rows.push({ date: c.date, cat: c.categorie || 'charge', desc: c.description || c.categorie || '—', montant: c.montant || 0 }); });
+  data.carburant.forEach(function(p) { rows.push({ date: p.date, cat: 'carburant', desc: (p.vehNom || 'Véhicule') + ' — ' + (p.typeCarburant || p.type || 'Gasoil'), montant: p.total || 0 }); });
+  data.entretiens.forEach(function(e) { rows.push({ date: e.date, cat: 'entretien', desc: e.description || getTypeEntretienLabel(e.type) || '—', montant: e.cout || 0 }); });
+  rows.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  if (!rows.length) { tb.innerHTML = '<tr><td colspan="4" class="empty-row">Aucune dépense ce mois</td></tr>'; return; }
+  tb.innerHTML = rows.map(function(r) {
+    return '<tr><td style="font-size:.82rem">' + (r.date || '—') + '</td><td style="white-space:nowrap">' + (catIcon[r.cat] || '📝') + ' ' + r.cat + '</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:.82rem">' + r.desc + '</td><td><strong>' + euros(r.montant) + '</strong></td></tr>';
+  }).join('');
+}
+
+/* ---- Charges fixes du mois ---- */
+function budgetRendreChargesFixes(mois) {
+  var el = document.getElementById('budget-charges-fixes');
+  if (!el) return;
+  var fixes = chargerObj('budget_charges_fixes', []);
+  if (!fixes.length) {
+    el.innerHTML = '<div style="color:var(--text-muted);font-size:.85rem;padding:8px 0">Aucune charge fixe définie. '
+      + '<button class="btn-secondary" style="font-size:.78rem;padding:4px 10px;margin-left:8px" onclick="budgetAjouterChargeFixes()">+ Ajouter</button></div>';
+    return;
+  }
+  var charges = charger('charges').filter(function(c) { return (c.date || '').startsWith(mois); });
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-bottom:10px">'
+    + fixes.map(function(f) {
+      var reel = charges.filter(function(c) { return c.description && c.description.toLowerCase().includes(f.nom.toLowerCase()); }).reduce(function(s, c) { return s + (c.montant || 0); }, 0);
+      var ecart = reel - f.montant;
+      var couleur = ecart > 0 ? 'var(--red)' : (reel === 0 ? 'var(--text-muted)' : 'var(--green)');
+      return '<div style="background:var(--bg-dark);border-radius:10px;padding:12px 14px;border-left:3px solid ' + couleur + '">'
+        + '<div style="font-size:.8rem;font-weight:700;margin-bottom:4px">' + f.nom + '</div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:.82rem">'
+        + '<span style="color:var(--text-muted)">Prévu : ' + euros(f.montant) + '</span>'
+        + '<span style="color:' + couleur + '">' + (reel > 0 ? 'Réel : ' + euros(reel) : 'Non saisie') + '</span>'
+        + '</div>'
+        + (ecart !== 0 && reel > 0 ? '<div style="font-size:.75rem;color:' + couleur + ';margin-top:3px">' + (ecart > 0 ? '▲ Dépassement ' : '▼ Économie ') + euros(Math.abs(ecart)) + '</div>' : '')
+        + '</div>';
+    }).join('')
+    + '</div>'
+    + '<button class="btn-secondary" style="font-size:.78rem;padding:4px 10px" onclick="budgetAjouterChargeFixes()">+ Ajouter une charge fixe</button>';
+}
+
+function budgetAjouterChargeFixes() {
+  var nom = prompt('Nom de la charge fixe (ex : Assurance, Loyer) :');
+  if (!nom) return;
+  var montantStr = prompt('Montant mensuel prévu TTC (€) :');
+  var montant = parseFloat(montantStr);
+  if (isNaN(montant) || montant <= 0) { afficherToast('⚠️ Montant invalide', 'error'); return; }
+  var fixes = chargerObj('budget_charges_fixes', []);
+  fixes.push({ id: genId(), nom: nom.trim(), montant: montant });
+  sauvegarder('budget_charges_fixes', fixes);
+  budgetRendreChargesFixes(getBudgetMoisStr());
+  afficherToast('✅ Charge fixe ajoutée');
+}
+
+/* ---- Prévisionnel 30/60/90j ---- */
+function budgetRendrePrevisionnel(data) {
+  var soldeMoyen = calculerSoldeMoyenMensuel();
+  var soldeActuel = data.soldeNet;
+  var set = function(id, v) {
+    var el = document.getElementById(id); if (!el) return;
+    el.textContent = euros(v); el.style.color = v >= 0 ? 'var(--green)' : 'var(--red)';
+  };
+  set('budget-prev-30', soldeActuel + soldeMoyen);
+  set('budget-prev-60', soldeActuel + soldeMoyen * 2);
+  set('budget-prev-90', soldeActuel + soldeMoyen * 3);
+  var noteEl = document.getElementById('budget-prev-note');
+  if (noteEl) noteEl.textContent = 'Projection basée sur un solde moyen de ' + euros(soldeMoyen) + '/mois (3 derniers mois). Hors événements exceptionnels.';
+}
+
+/* ---- Récap TVA ---- */
+function budgetRendreTvaRecap(data) {
+  var el = document.getElementById('budget-tva-recap');
+  if (!el) return;
+  var sc = 'background:var(--bg-dark);border-radius:10px;padding:14px 18px;';
+  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">'
+    + '<div style="' + sc + '"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">TVA collectée</div><div style="font-size:1.1rem;font-weight:800;color:var(--green)">' + euros(data.tvaCollectee) + '</div></div>'
+    + '<div style="' + sc + '"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">TVA déductible</div><div style="font-size:1.1rem;font-weight:800;color:var(--accent)">' + euros(data.tvaDeductible) + '</div></div>'
+    + (data.tvaReverser > 0
+      ? '<div style="' + sc + 'border-left:3px solid var(--red)"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">À reverser à l\'État</div><div style="font-size:1.1rem;font-weight:800;color:var(--red)">' + euros(data.tvaReverser) + '</div></div>'
+      : '<div style="' + sc + 'border-left:3px solid var(--green)"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">Crédit de TVA</div><div style="font-size:1.1rem;font-weight:800;color:var(--green)">' + euros(data.tvaCredit) + '</div></div>')
+    + '</div>';
+}
+
+/* ---- Saisie rapide ---- */
+function budgetToggleSaisieRapide() {
+  var el = document.getElementById('budget-saisie-rapide');
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function budgetSelectCat(btn) {
+  document.querySelectorAll('.btn-cat-budget').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  _budgetSaisieRapideCat = btn.dataset.cat || 'autre';
+}
+
+function ajouterChargeBudgetRapide() {
+  var desc    = (document.getElementById('budget-sr-desc')?.value || '').trim();
+  var montant = parseFloat(document.getElementById('budget-sr-montant')?.value || '0');
+  var date    = document.getElementById('budget-sr-date')?.value || aujourdhui();
+  if (!montant || montant <= 0) { afficherToast('⚠️ Montant obligatoire', 'error'); return; }
+  var charges = charger('charges');
+  charges.push({ id: genId(), date: date, categorie: _budgetSaisieRapideCat, description: desc || _budgetSaisieRapideCat, montant: montant, montantHT: montant / 1.2, tauxTVA: 20, creeLe: new Date().toISOString() });
+  sauvegarder('charges', charges);
+  document.getElementById('budget-sr-desc').value = '';
+  document.getElementById('budget-sr-montant').value = '';
+  afficherBudget();
+  rafraichirDashboard();
+  afficherToast('✅ Charge ajoutée');
+}
+
+/* ---- Simulateur ---- */
+function simulerBudget() {
+  var mois = getBudgetMoisStr();
+  var data = budgetCalculerData(mois);
+  var nbLiv   = parseInt(document.getElementById('sim-livraisons')?.value || '0') || 0;
+  var prixLiv = parseFloat(document.getElementById('sim-prix')?.value || '0') || 0;
+  var charge  = parseFloat(document.getElementById('sim-charge')?.value || '0') || 0;
+
+  var caSupp   = nbLiv * prixLiv;
+  var tvaSupp  = caSupp - (caSupp / 1.2);
+  var newEnc   = data.encaissePayees + caSupp;
+  var newDep   = data.totalDep + charge;
+  var newSolde = newEnc - newDep - (data.tvaReverser + tvaSupp);
+  var delta    = newSolde - data.soldeNet;
+
+  var el = document.getElementById('budget-sim-result');
+  if (!el) return;
+  el.style.display = 'block';
+  var col = newSolde >= 0 ? 'var(--green)' : 'var(--red)';
+  el.innerHTML = '<div style="background:var(--bg-dark);border-radius:10px;padding:14px 16px;border-left:3px solid ' + col + '">'
+    + '<div style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px;text-transform:uppercase">Résultat simulé</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem">'
+    + '<div>CA encaissé simulé<br><strong>' + euros(newEnc) + '</strong></div>'
+    + '<div>Dépenses simulées<br><strong>' + euros(newDep) + '</strong></div>'
+    + '<div>Solde simulé<br><strong style="color:' + col + '">' + euros(newSolde) + '</strong></div>'
+    + '<div>Impact vs actuel<br><strong style="color:' + (delta >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (delta >= 0 ? '+' : '') + euros(delta) + '</strong></div>'
+    + '</div></div>';
 }
 
 function calculerSoldeMoyenMensuel() {

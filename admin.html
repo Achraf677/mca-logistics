@@ -693,7 +693,7 @@
         </div>
       </div>
 
-      <!-- Alerte TVA -->
+      <!-- Alerte TVA J-10 -->
       <div id="budget-tva-alerte" style="display:none"></div>
 
       <!-- Navigation mois -->
@@ -708,50 +708,56 @@
         </div>
       </div>
 
-      <!-- KPIs principaux -->
-      <div class="kpi-grid">
-        <div class="kpi-card green">
-          <div class="kpi-label">Encaissements (payé)</div>
-          <div class="kpi-value" id="budget-kpi-encaisse">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-encaisse-sub"></div>
+      <!-- Score santé + KPIs -->
+      <div class="budget-top-row">
+        <!-- Score de santé financière -->
+        <div class="card budget-score-card">
+          <div class="card-header"><h2>🩺 Santé financière</h2></div>
+          <div class="modal-body" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+            <div class="budget-score-ring" id="budget-score-ring">
+              <svg viewBox="0 0 120 120" width="120" height="120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="10"/>
+                <circle id="budget-score-arc" cx="60" cy="60" r="50" fill="none" stroke="#2ecc71"
+                  stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="314" stroke-dashoffset="314"
+                  transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .6s,stroke .4s"/>
+              </svg>
+              <div class="budget-score-value" id="budget-score-value">0</div>
+            </div>
+            <div id="budget-score-label" style="font-size:.9rem;font-weight:700;text-align:center">—</div>
+            <div id="budget-score-detail" style="font-size:.75rem;color:var(--text-muted);text-align:center;line-height:1.5"></div>
+          </div>
         </div>
-        <div class="kpi-card red">
-          <div class="kpi-label">Décaissements (dépenses)</div>
-          <div class="kpi-value" id="budget-kpi-depenses">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-depenses-sub"></div>
-        </div>
-        <div class="kpi-card orange">
-          <div class="kpi-label">TVA à reverser</div>
-          <div class="kpi-value" id="budget-kpi-tva">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-tva-sub"></div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="kpi-label">Solde net estimé</div>
-          <div class="kpi-value" id="budget-kpi-solde">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-solde-sub"></div>
-        </div>
-      </div>
 
-      <!-- Prévisionnel 30/60/90j -->
-      <div class="card mt-20">
-        <div class="card-header"><h2>📅 Trésorerie prévisionnelle</h2></div>
-        <div class="modal-body">
-          <p style="color:var(--text-muted);font-size:.83rem;margin-bottom:14px">Projection basée sur la moyenne mensuelle des 3 derniers mois.</p>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
-            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
-              <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase">Dans 30 jours</div>
-              <div id="budget-prev-30" style="font-size:1.4rem;font-weight:800">—</div>
+        <!-- KPIs -->
+        <div class="budget-kpis-wrap">
+          <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="kpi-card green">
+              <div class="kpi-label">Encaissements (payé)</div>
+              <div class="kpi-value" id="budget-kpi-encaisse">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-encaisse-sub"></div>
             </div>
-            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
-              <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase">Dans 60 jours</div>
-              <div id="budget-prev-60" style="font-size:1.4rem;font-weight:800">—</div>
+            <div class="kpi-card red">
+              <div class="kpi-label">Décaissements</div>
+              <div class="kpi-value" id="budget-kpi-depenses">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-depenses-sub"></div>
             </div>
-            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
-              <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase">Dans 90 jours</div>
-              <div id="budget-prev-90" style="font-size:1.4rem;font-weight:800">—</div>
+            <div class="kpi-card orange">
+              <div class="kpi-label">TVA nette</div>
+              <div class="kpi-value" id="budget-kpi-tva">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-tva-sub"></div>
+            </div>
+            <div class="kpi-card blue">
+              <div class="kpi-label">Solde net estimé</div>
+              <div class="kpi-value" id="budget-kpi-solde">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-solde-sub"></div>
             </div>
           </div>
-          <div style="margin-top:14px;padding:10px 14px;background:rgba(245,166,35,.08);border-left:3px solid var(--accent);border-radius:6px;font-size:.82rem;color:var(--text-muted)" id="budget-prev-note"></div>
+          <!-- Insights automatiques -->
+          <div class="card" style="margin-top:12px">
+            <div class="card-header" style="padding-bottom:8px"><h2>💡 Insights du mois</h2></div>
+            <div id="budget-insights" class="modal-body" style="padding-top:8px;display:flex;flex-direction:column;gap:6px"></div>
+          </div>
         </div>
       </div>
 
@@ -759,33 +765,104 @@
       <div class="card mt-20">
         <div class="card-header"><h2>📊 Cashflow — 6 derniers mois</h2></div>
         <div class="modal-body">
-          <canvas id="budget-cashflow-chart" height="90"></canvas>
+          <canvas id="budget-cashflow-chart" height="85"></canvas>
         </div>
       </div>
 
-      <!-- Encaissements détail -->
+      <!-- Vue 2 colonnes : Encaissements | Décaissements -->
+      <div class="budget-2col mt-20">
+        <!-- Encaissements -->
+        <div class="card">
+          <div class="card-header"><h2>💶 Encaissements</h2></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Client</th><th>HT</th><th>TTC</th><th>Statut</th></tr></thead>
+              <tbody id="tb-budget-encaissements"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Décaissements -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            <h2>💸 Décaissements</h2>
+            <button class="btn-primary" style="font-size:.78rem;padding:4px 10px" onclick="budgetToggleSaisieRapide()">+ Saisie rapide</button>
+          </div>
+          <!-- Saisie rapide inline -->
+          <div id="budget-saisie-rapide" style="display:none;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-dark)">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+              <button class="btn-cat-budget active" data-cat="carburant" onclick="budgetSelectCat(this)">⛽ Carburant</button>
+              <button class="btn-cat-budget" data-cat="charge" onclick="budgetSelectCat(this)">💸 Charge</button>
+              <button class="btn-cat-budget" data-cat="entretien" onclick="budgetSelectCat(this)">🔧 Entretien</button>
+              <button class="btn-cat-budget" data-cat="assurance" onclick="budgetSelectCat(this)">🛡️ Assurance</button>
+              <button class="btn-cat-budget" data-cat="autre" onclick="budgetSelectCat(this)">📝 Autre</button>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+              <div style="flex:2;min-width:120px"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Description</label><input type="text" id="budget-sr-desc" placeholder="Ex : Plein Total L67" style="width:100%"/></div>
+              <div style="flex:1;min-width:90px"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Montant TTC (€)</label><input type="number" id="budget-sr-montant" placeholder="0.00" min="0" step="0.01" style="width:100%"/></div>
+              <div style="flex:1;min-width:110px"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Date</label><input type="date" id="budget-sr-date" style="width:100%"/></div>
+              <button class="btn-primary" style="padding:8px 14px;white-space:nowrap" onclick="ajouterChargeBudgetRapide()">✅ Ajouter</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>TTC</th></tr></thead>
+              <tbody id="tb-budget-decaissements"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charges fixes du mois -->
       <div class="card mt-20">
-        <div class="card-header"><h2>💶 Détail Encaissements</h2></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Date</th><th>N° Livraison</th><th>Client</th><th>Prix HT</th><th>TVA</th><th>Prix TTC</th><th>Statut</th></tr></thead>
-            <tbody id="tb-budget-encaissements"></tbody>
-          </table>
+        <div class="card-header"><h2>🔒 Charges fixes du mois</h2></div>
+        <div id="budget-charges-fixes" class="modal-body"></div>
+      </div>
+
+      <!-- Trésorerie prévisionnelle + Simulateur -->
+      <div class="budget-2col mt-20">
+        <!-- Prévisionnel -->
+        <div class="card">
+          <div class="card-header"><h2>📅 Trésorerie prévisionnelle</h2></div>
+          <div class="modal-body">
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:14px">Projection basée sur la moyenne mensuelle des 3 derniers mois.</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="budget-prev-row">
+                <span class="budget-prev-label">Dans 30 jours</span>
+                <span id="budget-prev-30" class="budget-prev-val">—</span>
+              </div>
+              <div class="budget-prev-row">
+                <span class="budget-prev-label">Dans 60 jours</span>
+                <span id="budget-prev-60" class="budget-prev-val">—</span>
+              </div>
+              <div class="budget-prev-row">
+                <span class="budget-prev-label">Dans 90 jours</span>
+                <span id="budget-prev-90" class="budget-prev-val">—</span>
+              </div>
+            </div>
+            <div id="budget-prev-note" style="margin-top:12px;font-size:.78rem;color:var(--text-muted);padding:8px 12px;background:rgba(245,166,35,.07);border-radius:6px;border-left:3px solid var(--accent)"></div>
+          </div>
+        </div>
+        <!-- Simulateur -->
+        <div class="card">
+          <div class="card-header"><h2>🔮 Simulateur</h2></div>
+          <div class="modal-body">
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:14px">Projetez l'impact de nouvelles livraisons ou charges sur votre solde.</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;gap:8px;align-items:flex-end">
+                <div style="flex:1"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Livraisons supplémentaires</label><input type="number" id="sim-livraisons" placeholder="0" min="0" step="1" style="width:100%"/></div>
+                <div style="flex:1"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Prix moyen / livraison (€)</label><input type="number" id="sim-prix" placeholder="0" min="0" step="0.01" style="width:100%"/></div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:flex-end">
+                <div style="flex:1"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Charge exceptionnelle (€)</label><input type="number" id="sim-charge" placeholder="0" min="0" step="0.01" style="width:100%"/></div>
+                <button class="btn-primary" style="padding:8px 14px;white-space:nowrap" onclick="simulerBudget()">▶ Simuler</button>
+              </div>
+            </div>
+            <div id="budget-sim-result" style="margin-top:14px;display:none"></div>
+          </div>
         </div>
       </div>
 
-      <!-- Décaissements détail -->
-      <div class="card mt-20">
-        <div class="card-header"><h2>💸 Détail Décaissements</h2></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant HT</th><th>TVA</th><th>Montant TTC</th></tr></thead>
-            <tbody id="tb-budget-decaissements"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Récap TVA du mois -->
+      <!-- Récapitulatif TVA -->
       <div class="card mt-20">
         <div class="card-header"><h2>🧾 Récapitulatif TVA du mois</h2></div>
         <div class="modal-body" id="budget-tva-recap"></div>
