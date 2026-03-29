@@ -221,11 +221,6 @@
       box-shadow: 0 0 0 4px rgba(242, 163, 59, 0.08);
     }
 
-    .auth.salarie-active .field input:focus {
-      border-color: rgba(76, 140, 245, 0.5);
-      box-shadow: 0 0 0 4px rgba(76, 140, 245, 0.08);
-    }
-
     .password-wrap {
       position: relative;
     }
@@ -349,18 +344,18 @@
 <body>
   <div class="shell">
     <section class="hero">
-      <div class="eyebrow">Connexion</div>
-      <div class="brand">
-        <div class="brand-badge" id="brand-badge">
-          <img id="brand-logo" alt="Logo entreprise" />
-          <span class="brand-fallback">🚐</span>
-        </div>
-        <div>
-          <div class="brand-name">MCA Logistics</div>
-        </div>
+    <div class="eyebrow">Connexion</div>
+    <div class="brand">
+      <div class="brand-badge" id="brand-badge">
+        <img id="brand-logo" alt="Logo entreprise" />
+        <span class="brand-fallback">🚐</span>
       </div>
+      <div>
+        <div class="brand-name">MCA Logistics</div>
+      </div>
+    </div>
 
-      <h1>Choisissez votre espace et connectez-vous.</h1>
+    <h1>Choisissez votre espace et connectez-vous.</h1>
     </section>
 
     <section class="auth" id="auth-shell">
@@ -369,33 +364,33 @@
           <h2>Connexion</h2>
         </div>
 
-        <div class="role-switch">
-          <button type="button" class="role-btn active-admin" id="role-admin-btn" onclick="appliquerRoleConnexion('admin')">
-            <strong>Administrateur</strong>
-          </button>
-          <button type="button" class="role-btn" id="role-salarie-btn" onclick="appliquerRoleConnexion('salarie')">
-            <strong>Salarié</strong>
-          </button>
+    <div class="role-switch">
+      <button type="button" class="role-btn active-admin" id="role-admin-btn" onclick="appliquerRoleConnexion('admin')">
+        <strong>Administrateur</strong>
+      </button>
+      <button type="button" class="role-btn" id="role-salarie-btn" onclick="appliquerRoleConnexion('salarie')">
+        <strong>Salarié</strong>
+      </button>
+    </div>
+
+    <form onsubmit="soumettreConnexion(event)">
+      <div class="field">
+        <label id="login-identifiant-label" for="login-identifiant">Identifiant administrateur</label>
+        <input type="text" id="login-identifiant" autocomplete="username" placeholder="Votre identifiant administrateur" />
+      </div>
+
+      <div class="field">
+        <label for="login-password">Mot de passe</label>
+        <div class="password-wrap">
+          <input type="password" id="login-password" autocomplete="current-password" placeholder="Votre mot de passe" />
+          <button type="button" class="toggle-password" onclick="toggleMdpVisible('login-password', this)" title="Afficher le mot de passe">👁️</button>
         </div>
+      </div>
 
-        <form onsubmit="soumettreConnexion(event)">
-          <div class="field">
-            <label id="login-identifiant-label" for="login-identifiant">Identifiant administrateur</label>
-            <input type="text" id="login-identifiant" autocomplete="username" placeholder="Votre identifiant administrateur" />
-          </div>
-
-          <div class="field">
-            <label for="login-password">Mot de passe</label>
-            <div class="password-wrap">
-              <input type="password" id="login-password" autocomplete="current-password" placeholder="Votre mot de passe" />
-              <button type="button" class="toggle-password" onclick="toggleMdpVisible('login-password', this)" title="Afficher le mot de passe">👁️</button>
-            </div>
-          </div>
-
-          <button type="submit" class="submit" id="login-submit">Acceder a l'espace administrateur</button>
-          <div class="error-msg" id="login-error"></div>
-          <div class="status-msg" id="login-status"></div>
-        </form>
+      <button type="submit" class="submit" id="login-submit">Acceder a l'espace administrateur</button>
+      <div class="error-msg" id="login-error"></div>
+      <div class="status-msg" id="login-status"></div>
+    </form>
 
         <div class="auth-footer">MCA Logistics v2</div>
       </div>
