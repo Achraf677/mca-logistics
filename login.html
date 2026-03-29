@@ -4,26 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
-  <title>MCA Logistics - Espace de connexion</title>
+  <title>MCA Logistics - Connexion</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
     :root {
       --bg: #0d1524;
-      --panel: rgba(12, 19, 31, 0.9);
-      --panel-soft: rgba(17, 27, 42, 0.76);
       --border: rgba(139, 157, 184, 0.18);
       --text: #eef3fb;
       --muted: #9aa9bf;
       --accent: #f2a33b;
-      --accent-strong: #da8922;
       --blue: #4c8cf5;
-      --blue-strong: #2d6fdd;
       --danger: #ec5f5f;
       --success: #57c785;
       --shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
       --radius-xl: 28px;
       --radius-lg: 18px;
-      --radius-md: 14px;
       --font: "Segoe UI", system-ui, sans-serif;
     }
 
@@ -62,17 +57,12 @@
     }
 
     .hero {
-      position: relative;
-      padding: 28px 30px 16px;
+      padding: 28px 30px 18px;
       background:
         linear-gradient(145deg, rgba(242, 163, 59, 0.12), transparent 38%),
         linear-gradient(210deg, rgba(76, 140, 245, 0.12), transparent 42%),
         rgba(10, 17, 29, 0.72);
       border-bottom: 1px solid var(--border);
-    }
-
-    .hero::after {
-      display: none;
     }
 
     .eyebrow {
@@ -95,7 +85,7 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      margin-bottom: 14px;
+      margin-bottom: 18px;
     }
 
     .brand-badge {
@@ -103,12 +93,31 @@
       height: 58px;
       border-radius: 18px;
       background: linear-gradient(145deg, var(--accent), #f7bc63);
-      color: #131313;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.7rem;
+      overflow: hidden;
       box-shadow: 0 16px 28px rgba(242, 163, 59, 0.22);
+    }
+
+    .brand-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+    }
+
+    .brand-badge.has-logo img {
+      display: block;
+    }
+
+    .brand-fallback {
+      font-size: 1.7rem;
+      color: #131313;
+    }
+
+    .brand-badge.has-logo .brand-fallback {
+      display: none;
     }
 
     .brand-name {
@@ -117,24 +126,9 @@
       letter-spacing: 0.02em;
     }
 
-    .brand-sub {
-      color: var(--muted);
-      font-size: 0.84rem;
-      margin-top: 3px;
-    }
-
     .hero h1 {
       font-size: clamp(1.45rem, 3vw, 2rem);
       line-height: 1.1;
-      margin-bottom: 10px;
-      max-width: none;
-    }
-
-    .hero-copy {
-      color: #c5d1e2;
-      font-size: 0.9rem;
-      line-height: 1.6;
-      max-width: none;
       margin-bottom: 0;
     }
 
@@ -156,13 +150,7 @@
 
     .auth-head h2 {
       font-size: 1.55rem;
-      margin-bottom: 8px;
-    }
-
-    .auth-head p {
-      color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.6;
+      margin-bottom: 0;
     }
 
     .role-switch {
@@ -187,14 +175,6 @@
     .role-btn strong {
       display: block;
       font-size: 0.94rem;
-      margin-bottom: 4px;
-    }
-
-    .role-btn span {
-      display: block;
-      color: var(--muted);
-      font-size: 0.77rem;
-      line-height: 1.45;
     }
 
     .role-btn.active-admin {
@@ -207,33 +187,6 @@
       border-color: rgba(76, 140, 245, 0.36);
       background: rgba(76, 140, 245, 0.1);
       box-shadow: inset 0 0 0 1px rgba(76, 140, 245, 0.1);
-    }
-
-    .role-summary {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 18px;
-      padding: 12px 14px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--muted);
-      font-size: 0.84rem;
-    }
-
-    .role-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 0 5px rgba(242, 163, 59, 0.12);
-      flex: 0 0 auto;
-    }
-
-    .role-summary.salarie .role-dot {
-      background: var(--blue);
-      box-shadow: 0 0 0 5px rgba(76, 140, 245, 0.12);
     }
 
     .field {
@@ -268,8 +221,7 @@
       box-shadow: 0 0 0 4px rgba(242, 163, 59, 0.08);
     }
 
-    .auth.salarie-active .field input:focus,
-    .role-summary.salarie ~ form .field input:focus {
+    .auth.salarie-active .field input:focus {
       border-color: rgba(76, 140, 245, 0.5);
       box-shadow: 0 0 0 4px rgba(76, 140, 245, 0.08);
     }
@@ -294,13 +246,6 @@
       font-size: 1.05rem;
       padding: 6px;
       line-height: 1;
-    }
-
-    .field-help {
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 0.8rem;
-      line-height: 1.5;
     }
 
     .submit {
@@ -406,51 +351,41 @@
     <section class="hero">
       <div class="eyebrow">Connexion</div>
       <div class="brand">
-        <div class="brand-badge">🚐</div>
+        <div class="brand-badge" id="brand-badge">
+          <img id="brand-logo" alt="Logo entreprise" />
+          <span class="brand-fallback">🚐</span>
+        </div>
         <div>
           <div class="brand-name">MCA Logistics</div>
-          <div class="brand-sub">Un seul point d'entrée pour l'admin et les salariés</div>
         </div>
       </div>
 
       <h1>Choisissez votre espace et connectez-vous.</h1>
-      <p class="hero-copy">
-        L'accès est centralisé ici. Une fois connecté, vous êtes redirigé automatiquement vers la bonne interface.
-      </p>
     </section>
 
     <section class="auth" id="auth-shell">
       <div class="auth-card">
         <div class="auth-head">
           <h2>Connexion</h2>
-          <p>Choisissez votre rôle puis saisissez vos identifiants.</p>
         </div>
 
         <div class="role-switch">
           <button type="button" class="role-btn active-admin" id="role-admin-btn" onclick="appliquerRoleConnexion('admin')">
             <strong>Administrateur</strong>
-            <span>Gestion complète et supervision.</span>
           </button>
           <button type="button" class="role-btn" id="role-salarie-btn" onclick="appliquerRoleConnexion('salarie')">
-            <strong>Salarie</strong>
-            <span>Accès personnel et terrain.</span>
+            <strong>Salarié</strong>
           </button>
-        </div>
-
-        <div class="role-summary" id="role-summary">
-          <span class="role-dot"></span>
-          <span id="role-summary-text">Connexion administrateur. Utilisez votre identifiant ou votre email admin.</span>
         </div>
 
         <form onsubmit="soumettreConnexion(event)">
           <div class="field">
             <label id="login-identifiant-label" for="login-identifiant">Identifiant administrateur</label>
-            <input type="text" id="login-identifiant" autocomplete="username" placeholder="Ex : achraf.chikri" />
-            <div class="field-help" id="login-identifiant-help">Les comptes admin locaux restent acceptes en secours, mais la synchro complete passe par Supabase.</div>
+            <input type="text" id="login-identifiant" autocomplete="username" placeholder="Votre identifiant administrateur" />
           </div>
 
           <div class="field">
-            <label id="login-password-label" for="login-password">Mot de passe</label>
+            <label for="login-password">Mot de passe</label>
             <div class="password-wrap">
               <input type="password" id="login-password" autocomplete="current-password" placeholder="Votre mot de passe" />
               <button type="button" class="toggle-password" onclick="toggleMdpVisible('login-password', this)" title="Afficher le mot de passe">👁️</button>
@@ -462,9 +397,7 @@
           <div class="status-msg" id="login-status"></div>
         </form>
 
-        <div class="auth-footer">
-          MCA Logistics v2
-        </div>
+        <div class="auth-footer">MCA Logistics v2</div>
       </div>
     </section>
   </div>
@@ -527,22 +460,28 @@
       return nom || identifiant || email || 'Admin';
     }
 
+    function appliquerBrandingLogin() {
+      const logo = localStorage.getItem('logo_entreprise') || '';
+      const badge = document.getElementById('brand-badge');
+      const img = document.getElementById('brand-logo');
+      if (badge && img && logo) {
+        img.src = logo;
+        badge.classList.add('has-logo');
+      }
+    }
+
     function getConfigRole(role) {
       if (role === 'salarie') {
         return {
-          identifiantLabel: 'Numero salarie',
-          identifiantPlaceholder: 'Ex : EMP001',
-          identifiantHelp: "Utilisez votre numero salarie tel qu'il a ete active dans la gestion du personnel.",
-          summary: 'Connexion salarie. Utilisez votre numero salarie et votre mot de passe.',
+          identifiantLabel: 'Numéro salarié',
+          identifiantPlaceholder: 'Votre numéro salarié',
           submitLabel: "Acceder a l'espace salarie",
           submitClass: 'submit salarie'
         };
       }
       return {
         identifiantLabel: 'Identifiant administrateur',
-        identifiantPlaceholder: 'Ex : achraf.chikri',
-        identifiantHelp: 'Utilisez votre compte administrateur Supabase.',
-        summary: 'Connexion administrateur. Utilisez votre identifiant ou votre email admin.',
+        identifiantPlaceholder: 'Votre identifiant administrateur',
         submitLabel: "Acceder a l'espace administrateur",
         submitClass: 'submit'
       };
@@ -554,11 +493,8 @@
       const estSalarie = roleConnexionActif === 'salarie';
       document.getElementById('role-admin-btn').className = 'role-btn' + (estSalarie ? '' : ' active-admin');
       document.getElementById('role-salarie-btn').className = 'role-btn' + (estSalarie ? ' active-salarie' : '');
-      document.getElementById('role-summary').className = 'role-summary' + (estSalarie ? ' salarie' : '');
-      document.getElementById('role-summary-text').textContent = config.summary;
       document.getElementById('login-identifiant-label').textContent = config.identifiantLabel;
       document.getElementById('login-identifiant').placeholder = config.identifiantPlaceholder;
-      document.getElementById('login-identifiant-help').textContent = config.identifiantHelp;
       document.getElementById('login-submit').className = config.submitClass;
       document.getElementById('login-submit').textContent = config.submitLabel;
       document.getElementById('auth-shell').classList.toggle('salarie-active', estSalarie);
@@ -698,6 +634,7 @@
     }
 
     document.addEventListener('DOMContentLoaded', async function() {
+      appliquerBrandingLogin();
       terminerSignOutEnArrierePlan();
 
       if (sessionStorage.getItem(LOGOUT_GUARD_KEY) === '1') {
@@ -719,6 +656,7 @@
           return;
         }
       }
+
       appliquerRoleConnexion('admin');
     });
   </script>
