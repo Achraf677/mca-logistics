@@ -1,289 +1,387 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>MCA Logistics — Connexion</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>MCA Logistics - Espace de connexion</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
     :root {
-      --bg: #0f1117;
-      --card: #1a1d27;
-      --accent: #f5a623;
-      --accent-dark: #d4911d;
-      --blue: #3498db;
-      --blue-dark: #2575a7;
-      --border: #2a2d3d;
-      --text: #e8eaf0;
-      --muted: #7c8299;
-      --red: #e74c3c;
-      --font: 'Segoe UI', system-ui, sans-serif;
+      --bg: #0d1524;
+      --panel: rgba(12, 19, 31, 0.9);
+      --panel-soft: rgba(17, 27, 42, 0.76);
+      --border: rgba(139, 157, 184, 0.18);
+      --text: #eef3fb;
+      --muted: #9aa9bf;
+      --accent: #f2a33b;
+      --accent-strong: #da8922;
+      --blue: #4c8cf5;
+      --blue-strong: #2d6fdd;
+      --danger: #ec5f5f;
+      --success: #57c785;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --font: "Segoe UI", system-ui, sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: var(--font);
-      background: var(--bg);
-      color: var(--text);
       min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(242, 163, 59, 0.18), transparent 30%),
+        radial-gradient(circle at 82% 22%, rgba(76, 140, 245, 0.17), transparent 28%),
+        linear-gradient(160deg, #08111d 0%, #101a2a 46%, #0b1321 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 16px;
+      padding: 24px;
     }
 
-    body.route-leaving .login-wrap {
+    body.route-leaving .shell {
       opacity: 0;
-      transform: translateY(-10px) scale(0.985);
+      transform: translateY(-12px) scale(0.985);
     }
 
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background:
-        radial-gradient(ellipse at 30% 50%, rgba(245,166,35,0.05) 0%, transparent 60%),
-        radial-gradient(ellipse at 72% 20%, rgba(52,152,219,0.05) 0%, transparent 52%);
-      pointer-events: none;
-    }
-
-    .login-wrap {
-      width: 100%;
-      max-width: 460px;
-      position: relative;
-      z-index: 1;
-      animation: slideUp 0.4s ease;
+    .shell {
+      width: min(620px, 100%);
+      display: grid;
+      grid-template-columns: 1fr;
+      background: linear-gradient(180deg, rgba(9, 15, 26, 0.82), rgba(8, 14, 23, 0.94));
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
       transition: opacity 0.18s ease, transform 0.18s ease;
     }
 
-    .login-logo {
-      text-align: center;
-      margin-bottom: 28px;
+    .hero {
+      position: relative;
+      padding: 28px 30px 16px;
+      background:
+        linear-gradient(145deg, rgba(242, 163, 59, 0.12), transparent 38%),
+        linear-gradient(210deg, rgba(76, 140, 245, 0.12), transparent 42%),
+        rgba(10, 17, 29, 0.72);
+      border-bottom: 1px solid var(--border);
     }
 
-    .login-logo .icon {
-      font-size: 3rem;
-      display: block;
-      margin-bottom: 8px;
-    }
-
-    .login-logo .name {
-      font-size: 1.85rem;
-      font-weight: 800;
-      color: var(--accent);
-      letter-spacing: 2px;
-    }
-
-    .login-logo .sub {
-      font-size: 0.82rem;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-
-    .login-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 30px;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-    }
-
-    .login-card h2 {
-      font-size: 1.12rem;
-      font-weight: 700;
-      margin-bottom: 12px;
-      color: var(--text);
-      text-align: center;
-    }
-
-    .login-subtitle {
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.86rem;
-      margin-bottom: 22px;
-    }
-
-    .mode-switch {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .mode-btn {
-      border: 1px solid var(--border);
-      background: #11141d;
-      color: var(--text);
-      border-radius: 12px;
-      padding: 12px 14px;
-      cursor: pointer;
-      text-align: left;
-      transition: all 0.2s ease;
-      font-family: var(--font);
-    }
-
-    .mode-btn strong {
-      display: block;
-      font-size: 0.93rem;
-      margin-bottom: 4px;
-    }
-
-    .mode-btn span {
-      display: block;
-      font-size: 0.75rem;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    .mode-btn.active-admin {
-      border-color: rgba(245,166,35,0.5);
-      background: rgba(245,166,35,0.08);
-      box-shadow: 0 0 0 1px rgba(245,166,35,0.15) inset;
-    }
-
-    .mode-btn.active-salarie {
-      border-color: rgba(52,152,219,0.45);
-      background: rgba(52,152,219,0.08);
-      box-shadow: 0 0 0 1px rgba(52,152,219,0.14) inset;
-    }
-
-    .panel {
+    .hero::after {
       display: none;
     }
 
-    .panel.active {
-      display: block;
-    }
-
-    .panel-badge {
+    .eyebrow {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      margin-bottom: 16px;
-      font-size: 0.78rem;
-      padding: 8px 12px;
+      gap: 10px;
+      padding: 8px 14px;
       border-radius: 999px;
-      border: 1px solid var(--border);
-      color: var(--muted);
+      border: 1px solid rgba(242, 163, 59, 0.18);
+      background: rgba(242, 163, 59, 0.08);
+      color: #ffd49e;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
     }
 
-    .panel-badge.admin {
-      background: rgba(245,166,35,0.08);
-      color: var(--accent);
-      border-color: rgba(245,166,35,0.18);
-    }
-
-    .panel-badge.salarie {
-      background: rgba(52,152,219,0.08);
-      color: var(--blue);
-      border-color: rgba(52,152,219,0.18);
-    }
-
-    .form-group {
+    .brand {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .brand-badge {
+      width: 58px;
+      height: 58px;
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--accent), #f7bc63);
+      color: #131313;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      box-shadow: 0 16px 28px rgba(242, 163, 59, 0.22);
+    }
+
+    .brand-name {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-sub {
+      color: var(--muted);
+      font-size: 0.84rem;
+      margin-top: 3px;
+    }
+
+    .hero h1 {
+      font-size: clamp(1.45rem, 3vw, 2rem);
+      line-height: 1.1;
+      margin-bottom: 10px;
+      max-width: none;
+    }
+
+    .hero-copy {
+      color: #c5d1e2;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-width: none;
+      margin-bottom: 0;
+    }
+
+    .auth {
+      padding: 26px 30px 30px;
+      background: linear-gradient(180deg, rgba(10, 17, 29, 0.84), rgba(10, 17, 29, 0.98));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-card {
+      width: min(460px, 100%);
+    }
+
+    .auth-head {
+      margin-bottom: 24px;
+    }
+
+    .auth-head h2 {
+      font-size: 1.55rem;
+      margin-bottom: 8px;
+    }
+
+    .auth-head p {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.6;
+    }
+
+    .role-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .role-btn {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 14px 15px;
+      text-align: left;
+      cursor: pointer;
+      transition: 0.2s ease;
+      font-family: inherit;
+    }
+
+    .role-btn strong {
+      display: block;
+      font-size: 0.94rem;
+      margin-bottom: 4px;
+    }
+
+    .role-btn span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.77rem;
+      line-height: 1.45;
+    }
+
+    .role-btn.active-admin {
+      border-color: rgba(242, 163, 59, 0.4);
+      background: rgba(242, 163, 59, 0.09);
+      box-shadow: inset 0 0 0 1px rgba(242, 163, 59, 0.1);
+    }
+
+    .role-btn.active-salarie {
+      border-color: rgba(76, 140, 245, 0.36);
+      background: rgba(76, 140, 245, 0.1);
+      box-shadow: inset 0 0 0 1px rgba(76, 140, 245, 0.1);
+    }
+
+    .role-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .role-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 5px rgba(242, 163, 59, 0.12);
+      flex: 0 0 auto;
+    }
+
+    .role-summary.salarie .role-dot {
+      background: var(--blue);
+      box-shadow: 0 0 0 5px rgba(76, 140, 245, 0.12);
+    }
+
+    .field {
       margin-bottom: 16px;
     }
 
-    .form-group label {
+    .field label {
+      display: block;
+      margin-bottom: 7px;
       font-size: 0.78rem;
-      color: var(--muted);
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
-    }
-
-    .form-group input {
-      background: #0f1117;
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 12px 14px;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-family: var(--font);
-      transition: border-color 0.2s;
-      width: 100%;
-    }
-
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--accent);
-    }
-
-    .panel.salarie-panel .form-group input:focus {
-      border-color: var(--blue);
-    }
-
-    .form-group input::placeholder { color: var(--muted); }
-
-    .btn-login {
-      width: 100%;
-      padding: 13px;
-      color: #000;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
+      color: var(--muted);
       font-weight: 700;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 14px 15px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(4, 9, 17, 0.66);
+      color: var(--text);
+      font-size: 0.96rem;
+      font-family: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: rgba(242, 163, 59, 0.5);
+      box-shadow: 0 0 0 4px rgba(242, 163, 59, 0.08);
+    }
+
+    .auth.salarie-active .field input:focus,
+    .role-summary.salarie ~ form .field input:focus {
+      border-color: rgba(76, 140, 245, 0.5);
+      box-shadow: 0 0 0 4px rgba(76, 140, 245, 0.08);
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 48px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      color: var(--muted);
       cursor: pointer;
-      transition: all 0.2s;
+      font-size: 1.05rem;
+      padding: 6px;
+      line-height: 1;
+    }
+
+    .field-help {
       margin-top: 8px;
-      font-family: var(--font);
-      letter-spacing: 0.5px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .submit {
+      width: 100%;
+      padding: 14px 18px;
+      border: none;
+      border-radius: 16px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 10px;
+      margin-top: 6px;
+      background: linear-gradient(135deg, var(--accent), #f6b456);
+      color: #121212;
+      box-shadow: 0 18px 30px rgba(242, 163, 59, 0.2);
     }
 
-    .btn-login[disabled] {
+    .submit.salarie {
+      background: linear-gradient(135deg, var(--blue), #6ba5ff);
+      color: #fff;
+      box-shadow: 0 18px 30px rgba(76, 140, 245, 0.18);
+    }
+
+    .submit:hover {
+      transform: translateY(-1px);
+    }
+
+    .submit[disabled] {
+      opacity: 0.8;
       cursor: wait;
-      opacity: 0.78;
-      transform: none !important;
-      box-shadow: none !important;
+      transform: none;
+      box-shadow: none;
     }
 
-    .btn-login.is-loading::after {
-      content: '';
+    .submit.is-loading::after {
+      content: "";
       width: 14px;
       height: 14px;
       border-radius: 50%;
       border: 2px solid currentColor;
       border-right-color: transparent;
-      animation: spin .7s linear infinite;
+      animation: spin 0.7s linear infinite;
     }
 
-    .btn-login.admin {
-      background: var(--accent);
+    .error-msg,
+    .status-msg {
+      display: none;
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-size: 0.84rem;
+      line-height: 1.55;
     }
 
-    .btn-login.admin:hover {
-      background: var(--accent-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(245,166,35,0.3);
-    }
-
-    .btn-login.salarie {
-      background: var(--blue);
-      color: #fff;
-    }
-
-    .btn-login.salarie:hover {
-      background: var(--blue-dark);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(52,152,219,0.28);
+    .error-msg.show,
+    .status-msg.show {
+      display: block;
     }
 
     .error-msg {
-      display: none;
-      background: rgba(231,76,60,0.1);
-      border: 1px solid rgba(231,76,60,0.3);
-      color: var(--red);
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      margin-top: 14px;
+      background: rgba(236, 95, 95, 0.1);
+      border: 1px solid rgba(236, 95, 95, 0.22);
+      color: #ffb8b8;
+    }
+
+    .status-msg {
+      background: rgba(87, 199, 133, 0.08);
+      border: 1px solid rgba(87, 199, 133, 0.18);
+      color: #bcefd0;
+    }
+
+    .auth-footer {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.55;
       text-align: center;
     }
 
@@ -292,96 +390,83 @@
       to { transform: rotate(360deg); }
     }
 
-    .error-msg.show { display: block; }
-
-    .login-footer {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 0.75rem;
-      color: var(--muted);
+    @media (max-width: 920px) {
+      .shell { width: 100%; }
     }
 
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 520px) {
-      .login-card {
-        padding: 24px 18px;
-      }
-
-      .mode-switch {
-        grid-template-columns: 1fr;
-      }
+    @media (max-width: 560px) {
+      body { padding: 14px; }
+      .hero, .auth { padding: 20px; }
+      .role-switch { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <div class="login-wrap">
-    <div class="login-logo">
-      <span class="icon">🚐</span>
-      <div class="name">MCA Logistics</div>
-      <div class="sub">Choisissez votre espace de connexion</div>
-    </div>
-
-    <div class="login-card">
-      <h2>Connexion</h2>
-      <div class="login-subtitle">Accès unique pour l'administration et les salariés</div>
-
-      <div class="mode-switch">
-        <button id="btn-mode-admin" class="mode-btn active-admin" type="button" onclick="basculerMode('admin')">
-          <strong>Administrateur</strong>
-          <span>Gestion complète de l'interface admin</span>
-        </button>
-        <button id="btn-mode-salarie" class="mode-btn" type="button" onclick="basculerMode('salarie')">
-          <strong>Salarié</strong>
-          <span>Accès personnel, planning, km, carburant, inspection</span>
-        </button>
+  <div class="shell">
+    <section class="hero">
+      <div class="eyebrow">Connexion</div>
+      <div class="brand">
+        <div class="brand-badge">🚐</div>
+        <div>
+          <div class="brand-name">MCA Logistics</div>
+          <div class="brand-sub">Un seul point d'entrée pour l'admin et les salariés</div>
+        </div>
       </div>
 
-      <div id="panel-admin" class="panel admin-panel active">
-        <div class="panel-badge admin">🔐 Connexion administrateur</div>
+      <h1>Choisissez votre espace et connectez-vous.</h1>
+      <p class="hero-copy">
+        L'accès est centralisé ici. Une fois connecté, vous êtes redirigé automatiquement vers la bonne interface.
+      </p>
+    </section>
 
-        <div class="form-group">
-          <label>Identifiant administrateur</label>
-          <input type="text" id="input-identifiant" autocomplete="username" onkeydown="if(event.key==='Enter') seConnecterAdmin()" />
+    <section class="auth" id="auth-shell">
+      <div class="auth-card">
+        <div class="auth-head">
+          <h2>Connexion</h2>
+          <p>Choisissez votre rôle puis saisissez vos identifiants.</p>
         </div>
 
-        <div class="form-group">
-          <label>Mot de passe administrateur</label>
-          <div style="position:relative">
-            <input type="password" id="input-mdp" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterAdmin()" style="padding-right:44px;width:100%"/>
-            <button onclick="toggleMdpVisible('input-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">👁️</button>
+        <div class="role-switch">
+          <button type="button" class="role-btn active-admin" id="role-admin-btn" onclick="appliquerRoleConnexion('admin')">
+            <strong>Administrateur</strong>
+            <span>Gestion complète et supervision.</span>
+          </button>
+          <button type="button" class="role-btn" id="role-salarie-btn" onclick="appliquerRoleConnexion('salarie')">
+            <strong>Salarie</strong>
+            <span>Accès personnel et terrain.</span>
+          </button>
+        </div>
+
+        <div class="role-summary" id="role-summary">
+          <span class="role-dot"></span>
+          <span id="role-summary-text">Connexion administrateur. Utilisez votre identifiant ou votre email admin.</span>
+        </div>
+
+        <form onsubmit="soumettreConnexion(event)">
+          <div class="field">
+            <label id="login-identifiant-label" for="login-identifiant">Identifiant administrateur</label>
+            <input type="text" id="login-identifiant" autocomplete="username" placeholder="Ex : achraf.chikri" />
+            <div class="field-help" id="login-identifiant-help">Les comptes admin locaux restent acceptes en secours, mais la synchro complete passe par Supabase.</div>
           </div>
-        </div>
 
-        <button class="btn-login admin" id="btn-login-admin" onclick="seConnecterAdmin()">Se connecter en admin →</button>
-        <div class="error-msg" id="error-admin">❌ Identifiants incorrects</div>
-      </div>
-
-      <div id="panel-salarie" class="panel salarie-panel">
-        <div class="panel-badge salarie">👷 Connexion salarié</div>
-
-        <div class="form-group">
-          <label>Numéro salarié</label>
-          <input type="text" id="login-numero" placeholder="Ex : EMP001" autocomplete="username" onkeydown="if(event.key==='Enter') seConnecterSalarie()" />
-        </div>
-
-        <div class="form-group">
-          <label>Mot de passe</label>
-          <div style="position:relative">
-            <input type="password" id="login-mdp" placeholder="Votre mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter') seConnecterSalarie()" style="padding-right:44px;width:100%"/>
-            <button onclick="toggleMdpVisible('login-mdp', this)" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--muted);padding:4px;line-height:1" title="Afficher le mot de passe">👁️</button>
+          <div class="field">
+            <label id="login-password-label" for="login-password">Mot de passe</label>
+            <div class="password-wrap">
+              <input type="password" id="login-password" autocomplete="current-password" placeholder="Votre mot de passe" />
+              <button type="button" class="toggle-password" onclick="toggleMdpVisible('login-password', this)" title="Afficher le mot de passe">👁️</button>
+            </div>
           </div>
+
+          <button type="submit" class="submit" id="login-submit">Acceder a l'espace administrateur</button>
+          <div class="error-msg" id="login-error"></div>
+          <div class="status-msg" id="login-status"></div>
+        </form>
+
+        <div class="auth-footer">
+          MCA Logistics v2
         </div>
-
-        <button class="btn-login salarie" id="btn-login-salarie" onclick="seConnecterSalarie()">Se connecter en salarié →</button>
-        <div class="error-msg" id="error-salarie">❌ Numéro ou mot de passe incorrect</div>
       </div>
-    </div>
-
-    <div class="login-footer">MCA Logistics v2 — Gestion interne</div>
+    </section>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -390,13 +475,14 @@
   <script src="supabase-auth.js"></script>
   <script>
     let loginEnCours = null;
+    let roleConnexionActif = 'admin';
     const LOGIN_FAST_BOOT_KEY = 'delivpro_fast_boot_role';
     const LOGOUT_GUARD_KEY = 'delivpro_logged_out';
     const PENDING_SIGNOUT_KEY = 'delivpro_pending_signout';
 
     function redirigerAvecTransition(url) {
       document.body.classList.add('route-leaving');
-      setTimeout(function () {
+      setTimeout(function() {
         window.location.href = url;
       }, 24);
     }
@@ -419,7 +505,7 @@
         sessionStorage.removeItem(PENDING_SIGNOUT_KEY);
         return;
       }
-      window.DelivProAuth.signOut().finally(function () {
+      window.DelivProAuth.signOut().finally(function() {
         sessionStorage.removeItem(PENDING_SIGNOUT_KEY);
       });
     }
@@ -434,25 +520,6 @@
       return false;
     }
 
-    function setLoginBusy(mode, busy) {
-      const adminBtn = document.getElementById('btn-login-admin');
-      const salarieBtn = document.getElementById('btn-login-salarie');
-      [adminBtn, salarieBtn].forEach(function (btn) {
-        if (!btn) return;
-        const actif = btn.id === (mode === 'admin' ? 'btn-login-admin' : 'btn-login-salarie');
-        btn.disabled = !!busy;
-        btn.classList.toggle('is-loading', !!busy && actif);
-      });
-      if (!busy) loginEnCours = null;
-    }
-
-    function getDefaultAdminAccounts() {
-      return [
-        { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
-        { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: 'admin123' }
-      ];
-    }
-
     function normaliserNomAdminAffiche(nom, identifiant, email) {
       if (window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function') {
         return window.DelivProAuth.normalizeAdminDisplayName(nom, identifiant, email);
@@ -460,250 +527,189 @@
       return nom || identifiant || email || 'Admin';
     }
 
-    function getAdminAccounts() {
-      const raw = localStorage.getItem('admin_accounts');
-      if (raw) {
-        try {
-          const comptes = JSON.parse(raw);
-          if (Array.isArray(comptes) && comptes.length) return comptes;
-        } catch (_) {}
+    function getConfigRole(role) {
+      if (role === 'salarie') {
+        return {
+          identifiantLabel: 'Numero salarie',
+          identifiantPlaceholder: 'Ex : EMP001',
+          identifiantHelp: "Utilisez votre numero salarie tel qu'il a ete active dans la gestion du personnel.",
+          summary: 'Connexion salarie. Utilisez votre numero salarie et votre mot de passe.',
+          submitLabel: "Acceder a l'espace salarie",
+          submitClass: 'submit salarie'
+        };
       }
-
-      const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
-      const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
-        identifiant: compte.identifiant,
-        nom: compte.nom,
-        motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
-      }));
-
-      localStorage.setItem('admin_accounts', JSON.stringify(comptes));
-      return comptes;
+      return {
+        identifiantLabel: 'Identifiant administrateur',
+        identifiantPlaceholder: 'Ex : achraf.chikri',
+        identifiantHelp: 'Utilisez votre compte administrateur Supabase.',
+        summary: 'Connexion administrateur. Utilisez votre identifiant ou votre email admin.',
+        submitLabel: "Acceder a l'espace administrateur",
+        submitClass: 'submit'
+      };
     }
 
-    function basculerMode(mode) {
-      const estAdmin = mode === 'admin';
-      document.getElementById('panel-admin').classList.toggle('active', estAdmin);
-      document.getElementById('panel-salarie').classList.toggle('active', !estAdmin);
-      document.getElementById('btn-mode-admin').className = 'mode-btn' + (estAdmin ? ' active-admin' : '');
-      document.getElementById('btn-mode-salarie').className = 'mode-btn' + (!estAdmin ? ' active-salarie' : '');
-
-      document.getElementById('error-admin').classList.remove('show');
-      document.getElementById('error-salarie').classList.remove('show');
-
-      if (estAdmin) {
-        document.getElementById('input-identifiant').focus();
-      } else {
-        document.getElementById('login-numero').focus();
-      }
+    function appliquerRoleConnexion(role) {
+      roleConnexionActif = role === 'salarie' ? 'salarie' : 'admin';
+      const config = getConfigRole(roleConnexionActif);
+      const estSalarie = roleConnexionActif === 'salarie';
+      document.getElementById('role-admin-btn').className = 'role-btn' + (estSalarie ? '' : ' active-admin');
+      document.getElementById('role-salarie-btn').className = 'role-btn' + (estSalarie ? ' active-salarie' : '');
+      document.getElementById('role-summary').className = 'role-summary' + (estSalarie ? ' salarie' : '');
+      document.getElementById('role-summary-text').textContent = config.summary;
+      document.getElementById('login-identifiant-label').textContent = config.identifiantLabel;
+      document.getElementById('login-identifiant').placeholder = config.identifiantPlaceholder;
+      document.getElementById('login-identifiant-help').textContent = config.identifiantHelp;
+      document.getElementById('login-submit').className = config.submitClass;
+      document.getElementById('login-submit').textContent = config.submitLabel;
+      document.getElementById('auth-shell').classList.toggle('salarie-active', estSalarie);
+      masquerMessagesConnexion();
+      document.getElementById('login-identifiant').focus();
     }
 
     function toggleMdpVisible(inputId, btn) {
       const input = document.getElementById(inputId);
       if (!input) return;
-      if (input.type === 'password') {
-        input.type = 'text';
-        btn.style.opacity = '1';
-      } else {
-        input.type = 'password';
-        btn.style.opacity = '0.6';
-      }
+      const visible = input.type === 'password';
+      input.type = visible ? 'text' : 'password';
+      btn.style.opacity = visible ? '1' : '0.68';
     }
 
-    async function seConnecterAdmin() {
-      if (loginEnCours) return;
-      loginEnCours = 'admin';
-      const identifiant = document.getElementById('input-identifiant').value.trim().toLowerCase();
-      const mdp = document.getElementById('input-mdp').value.trim();
-      const errEl = document.getElementById('error-admin');
-      const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
-      errEl.classList.remove('show');
-      setLoginBusy('admin', true);
+    function masquerMessagesConnexion() {
+      document.getElementById('login-error').classList.remove('show');
+      document.getElementById('login-status').classList.remove('show');
+    }
 
-      if (!identifiant || !mdp) {
-        errEl.textContent = '❌ Veuillez saisir votre identifiant et votre mot de passe';
-        errEl.classList.add('show');
-        setLoginBusy('admin', false);
-        return;
-      }
-      nettoyerGardeLogout();
+    function afficherErreurConnexion(message) {
+      const el = document.getElementById('login-error');
+      el.textContent = message;
+      el.classList.add('show');
+      document.getElementById('login-status').classList.remove('show');
+    }
 
-      let authResult = null;
-      if (window.DelivProAuth && window.DelivProAuth.signIn) {
-        authResult = await window.DelivProAuth.signIn('admin', identifiant, mdp);
-        if (authResult.ok) {
-          sessionStorage.setItem('role', 'admin');
-          sessionStorage.setItem('auth_mode', 'supabase');
-          sessionStorage.setItem('admin_login', identifiant);
-          sessionStorage.setItem('admin_email', authResult.target.email || '');
-          sessionStorage.setItem('admin_nom', normaliserNomAdminAffiche(
-            authResult.profile?.display_name || authResult.target.display_name || '',
-            identifiant,
-            authResult.target.email || ''
-          ));
-          sessionStorage.removeItem('salarie_id');
-          sessionStorage.removeItem('salarie_numero');
-          memoriserFastBoot('admin');
-          localStorage.setItem('last_admin_identifiant', identifiant);
-          redirigerAvecTransition('admin.html');
-          return;
-        }
-      }
+    function afficherStatutConnexion(message) {
+      const el = document.getElementById('login-status');
+      el.textContent = message;
+      el.classList.add('show');
+      document.getElementById('login-error').classList.remove('show');
+    }
 
-      if (supabaseReady && authResult && authResult.reason !== 'unavailable') {
-        if (authResult.reason === 'invalid_credentials') {
-          errEl.textContent = '❌ Mot de passe Supabase administrateur incorrect. La connexion locale ne permet pas la synchro entre appareils.';
-        } else if (authResult.reason === 'not_found') {
-          errEl.textContent = '❌ Ce compte admin n’est pas configuré dans Supabase. Ajoutez-le d’abord dans Authentication et admin_identities.';
-        } else {
-          errEl.textContent = '❌ Connexion admin Supabase impossible. Vérifiez le compte admin dans Supabase.';
-        }
-        errEl.classList.add('show');
-        setLoginBusy('admin', false);
+    function setLoginBusy(busy) {
+      const btn = document.getElementById('login-submit');
+      btn.disabled = !!busy;
+      btn.classList.toggle('is-loading', !!busy);
+      if (!busy) loginEnCours = null;
+    }
+
+    async function connecterAdmin(identifiant, mdp) {
+      if (!window.DelivProAuth || !window.DelivProAuth.signIn) {
+        afficherErreurConnexion("Le module d'authentification admin est indisponible.");
+        setLoginBusy(false);
         return;
       }
 
-      const compte = getAdminAccounts().find(function (a) {
-        return a.identifiant.toLowerCase() === identifiant;
-      });
-
-      if (compte && mdp === compte.motDePasse) {
+      const authResult = await window.DelivProAuth.signIn('admin', identifiant, mdp);
+      if (authResult.ok) {
         sessionStorage.setItem('role', 'admin');
-        sessionStorage.setItem('auth_mode', 'local');
-        sessionStorage.setItem('admin_login', compte.identifiant);
-        sessionStorage.removeItem('admin_email');
-        sessionStorage.setItem('admin_nom', normaliserNomAdminAffiche(compte.nom, compte.identifiant, ''));
+        sessionStorage.setItem('auth_mode', 'supabase');
+        sessionStorage.setItem('admin_login', identifiant);
+        sessionStorage.setItem('admin_email', authResult.target.email || '');
+        sessionStorage.setItem('admin_nom', normaliserNomAdminAffiche(
+          authResult.profile?.display_name || authResult.target.display_name || '',
+          identifiant,
+          authResult.target.email || ''
+        ));
         sessionStorage.removeItem('salarie_id');
         sessionStorage.removeItem('salarie_numero');
         memoriserFastBoot('admin');
-        localStorage.setItem('last_admin_identifiant', compte.identifiant);
+        localStorage.setItem('last_admin_identifiant', identifiant);
+        afficherStatutConnexion('Connexion admin reussie. Redirection en cours...');
         redirigerAvecTransition('admin.html');
-      } else {
-        errEl.textContent = '❌ Identifiant ou mot de passe administrateur incorrect';
-        errEl.classList.add('show');
-        setLoginBusy('admin', false);
-      }
-    }
-
-    async function seConnecterSalarie() {
-      if (loginEnCours) return;
-      loginEnCours = 'salarie';
-      const numero = document.getElementById('login-numero').value.trim().toUpperCase();
-      const mdp = document.getElementById('login-mdp').value;
-      const errEl = document.getElementById('error-salarie');
-      const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
-      errEl.classList.remove('show');
-      setLoginBusy('salarie', true);
-
-      if (!numero || !mdp) {
-        errEl.textContent = '❌ Veuillez saisir votre numéro salarié et votre mot de passe';
-        errEl.classList.add('show');
-        setLoginBusy('salarie', false);
         return;
       }
+
+      if (authResult.reason === 'invalid_credentials') {
+        afficherErreurConnexion('Identifiant ou mot de passe administrateur incorrect.');
+      } else if (authResult.reason === 'not_found') {
+        afficherErreurConnexion("Ce compte admin n'est pas configure dans Supabase.");
+      } else {
+        afficherErreurConnexion("Connexion administrateur Supabase impossible pour le moment.");
+      }
+      setLoginBusy(false);
+    }
+
+    async function connecterSalarie(numero, mdp) {
+      if (!window.DelivProAuth || !window.DelivProAuth.signIn) {
+        afficherErreurConnexion("Le module d'authentification salarie est indisponible.");
+        setLoginBusy(false);
+        return;
+      }
+
+      const authResult = await window.DelivProAuth.signIn('salarie', numero, mdp);
+      if (authResult.ok && authResult.salarie && authResult.salarie.actif !== false) {
+        localStorage.removeItem('login_attempts_' + numero);
+        sessionStorage.setItem('role', 'salarie');
+        sessionStorage.setItem('auth_mode', 'supabase');
+        sessionStorage.setItem('salarie_id', authResult.salarie.id || authResult.target.salarie_id || '');
+        sessionStorage.setItem('salarie_numero', authResult.salarie.numero || numero);
+        sessionStorage.removeItem('admin_login');
+        sessionStorage.removeItem('admin_email');
+        sessionStorage.removeItem('admin_nom');
+        memoriserFastBoot('salarie');
+        afficherStatutConnexion('Connexion salarie reussie. Redirection en cours...');
+        redirigerAvecTransition('salarie.html');
+        return;
+      }
+
+      if (authResult.reason === 'invalid_credentials') {
+        afficherErreurConnexion('Numero salarie ou mot de passe incorrect.');
+      } else if (authResult.reason === 'not_found') {
+        afficherErreurConnexion("Aucun acces actif trouve pour ce numero salarie. Demandez a l'administrateur d'activer votre compte.");
+      } else if (authResult.reason === 'unavailable') {
+        afficherErreurConnexion("La connexion salarie necessite Supabase, actuellement indisponible.");
+      } else {
+        afficherErreurConnexion("Connexion salarie impossible pour le moment.");
+      }
+      setLoginBusy(false);
+    }
+
+    async function soumettreConnexion(event) {
+      if (event) event.preventDefault();
+      if (loginEnCours) return;
+      loginEnCours = roleConnexionActif;
+      setLoginBusy(true);
+      masquerMessagesConnexion();
+
+      const identifiant = document.getElementById('login-identifiant').value.trim();
+      const mdp = document.getElementById('login-password').value;
+      if (!identifiant || !mdp) {
+        afficherErreurConnexion('Renseignez votre identifiant et votre mot de passe avant de continuer.');
+        setLoginBusy(false);
+        return;
+      }
+
       nettoyerGardeLogout();
 
-      const cle = 'login_attempts_' + numero;
-      const attempts = JSON.parse(localStorage.getItem(cle) || '{"count":0,"time":0}');
-      const maxTent = parseInt(localStorage.getItem('max_tentatives') || '5', 10);
-      const delaiMin = 15;
-
-      if (attempts.count >= maxTent) {
-        const elapsed = (Date.now() - attempts.time) / 60000;
-        if (elapsed < delaiMin) {
-          const restant = Math.ceil(delaiMin - elapsed);
-          errEl.textContent = '❌ Compte temporairement bloqué. Réessayez dans ' + restant + ' min.';
-          errEl.classList.add('show');
-          setLoginBusy('salarie', false);
-          return;
-        }
-        localStorage.removeItem(cle);
-      }
-
-      let authResult = null;
-      if (window.DelivProAuth && window.DelivProAuth.signIn) {
-        authResult = await window.DelivProAuth.signIn('salarie', numero, mdp);
-        if (authResult.ok && authResult.salarie && authResult.salarie.actif !== false) {
-          localStorage.removeItem(cle);
-          sessionStorage.setItem('role', 'salarie');
-          sessionStorage.setItem('auth_mode', 'supabase');
-          sessionStorage.setItem('salarie_id', authResult.salarie.id || authResult.target.salarie_id || '');
-          sessionStorage.setItem('salarie_numero', authResult.salarie.numero || numero);
-          sessionStorage.removeItem('admin_login');
-          sessionStorage.removeItem('admin_email');
-          sessionStorage.removeItem('admin_nom');
-          memoriserFastBoot('salarie');
-          redirigerAvecTransition('salarie.html');
-          return;
-        }
-      }
-
-      if (supabaseReady && authResult && authResult.reason !== 'unavailable') {
-        if (authResult.reason === 'invalid_credentials') {
-          errEl.textContent = '❌ Mot de passe Supabase salarié incorrect. La connexion locale ne permet pas la synchro entre appareils.';
-        } else if (authResult.reason === 'not_found') {
-          errEl.textContent = '❌ Ce salarié n’est pas encore configuré dans Supabase. Utilisez le bouton cloud dans l’admin.';
-        } else {
-          errEl.textContent = '❌ Connexion salarié Supabase impossible. Vérifiez le compte dans Supabase.';
-        }
-        errEl.classList.add('show');
-        setLoginBusy('salarie', false);
+      if (roleConnexionActif === 'salarie') {
+        await connecterSalarie(identifiant.toUpperCase(), mdp);
         return;
       }
 
-      const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
-      const sal = salaries.find(function (s) {
-        return s.numero === numero && s.mdpHash === btoa(mdp);
-      });
-
-      if (!sal) {
-        const att = JSON.parse(localStorage.getItem(cle) || '{"count":0,"time":0}');
-        att.count += 1;
-        att.time = Date.now();
-        localStorage.setItem(cle, JSON.stringify(att));
-        const restantes = Math.max(0, maxTent - att.count);
-        errEl.textContent = restantes > 0
-          ? '❌ Numéro ou mot de passe incorrect. (' + restantes + ' tentative' + (restantes > 1 ? 's' : '') + ' restante' + (restantes > 1 ? 's' : '') + ')'
-          : '❌ Compte bloqué 15 minutes après trop de tentatives.';
-        errEl.classList.add('show');
-        setLoginBusy('salarie', false);
-        return;
-      }
-
-      if (!sal.actif) {
-        errEl.textContent = '❌ Compte désactivé. Contactez l’administrateur.';
-        errEl.classList.add('show');
-        setLoginBusy('salarie', false);
-        return;
-      }
-
-      localStorage.removeItem(cle);
-      sessionStorage.setItem('role', 'salarie');
-      sessionStorage.setItem('auth_mode', 'local');
-      sessionStorage.setItem('salarie_id', sal.id);
-      sessionStorage.setItem('salarie_numero', sal.numero);
-      sessionStorage.removeItem('admin_login');
-      sessionStorage.removeItem('admin_email');
-      sessionStorage.removeItem('admin_nom');
-      memoriserFastBoot('salarie');
-      redirigerAvecTransition('salarie.html');
+      await connecterAdmin(identifiant.toLowerCase(), mdp);
     }
 
-    document.addEventListener('DOMContentLoaded', async function () {
+    document.addEventListener('DOMContentLoaded', async function() {
       terminerSignOutEnArrierePlan();
+
       if (sessionStorage.getItem(LOGOUT_GUARD_KEY) === '1') {
         sessionStorage.removeItem(LOGOUT_GUARD_KEY);
-        getAdminAccounts();
-        basculerMode('admin');
+        appliquerRoleConnexion('admin');
         return;
       }
+
       if (window.DelivProAuth && peutAvoirSessionSupabaseLocale()) {
         const restoredRole = window.DelivProAuth.restoreLegacySessionFromSupabase
           ? await window.DelivProAuth.restoreLegacySessionFromSupabase()
-          : (await window.DelivProAuth.ensureAdminLegacySessionFromSupabase())
-            ? 'admin'
-            : (await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase())
-              ? 'salarie'
-              : '';
+          : '';
         if (restoredRole === 'admin') {
           redirigerAvecTransition('admin.html');
           return;
@@ -713,8 +719,7 @@
           return;
         }
       }
-      getAdminAccounts();
-      basculerMode('admin');
+      appliquerRoleConnexion('admin');
     });
   </script>
 </body>

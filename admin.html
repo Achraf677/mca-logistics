@@ -547,7 +547,7 @@
       <div class="page-actions"><h2>👥 Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
-        <div class="card-header"><h2>➕ Créer un compte salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
+        <div class="card-header"><h2>➕ Créer un salarié et son accès</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group"><label>Nom *</label><input type="text" id="nsal-nom" placeholder="Ex : Benali" /></div>
@@ -557,21 +557,34 @@
               <input type="text" id="nsal-numero" placeholder="Ex : EMP001" oninput="mettreAJourEmailTechniqueSalarie('new')" />
               <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Email technique généré : <code id="nsal-email-technique" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></div>
             </div>
-            <div class="form-group"><label>Mot de passe initial *</label><input type="password" id="nsal-mdp" placeholder="Le salarié pourra le modifier" /></div>
+            <div class="form-group">
+              <label>Mot de passe initial *</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div style="position:relative;flex:1">
+                  <input type="password" id="nsal-mdp" placeholder="Generez ou saisissez un mot de passe" style="padding-right:44px;width:100%" oninput="mettreAJourQualiteMdpSalarie('new')" />
+                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+                </div>
+                <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('new')">Générer</button>
+              </div>
+              <div id="nsal-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Utilisez au moins 8 caractères avec majuscule, minuscule et chiffre.</div>
+            </div>
             <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="Ex : 06 12 34 56 78" /></div>
             <div class="form-group"><label>Poste / Fonction</label><select id="nsal-poste"><option value="">-- Choisir un poste --</option></select></div>
             <div class="form-group"><label>Affecter un véhicule dès la création</label><select id="nsal-vehicule"><option value="">-- Aucun pour l'instant --</option></select></div>
             <div class="form-group"><label>🪪 Expiration permis</label><input type="date" id="nsal-date-permis" /></div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
+          <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:rgba(76,142,247,.08);border:1px solid rgba(76,142,247,.18);color:var(--text-muted);font-size:.82rem;line-height:1.6">
+            L'accès salarié sera créé dans l'espace de connexion centralisé <strong>login.html</strong>. Vous pourrez ensuite gérer le mot de passe ou réactiver l'accès depuis la fiche du salarié.
+          </div>
           <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:12px;">
             <button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Annuler</button>
-            <button class="btn-primary" onclick="creerSalarie()">✅ Créer le compte</button>
+            <button class="btn-primary" onclick="creerSalarie()">✅ Créer le salarié</button>
           </div>
         </div>
       </div>
 
-      <div class="info-banner">📱 Les salariés se connectent sur <strong>salarie.html</strong> avec leur numéro + mot de passe</div>
+      <div class="info-banner">🔐 Tous les accès passent maintenant par <strong>login.html</strong>. La gestion des mots de passe salarié est centralisée dans chaque fiche.</div>
 
       <div class="card mt-20">
         <div class="table-wrapper">
@@ -1001,7 +1014,7 @@
           <div class="modal-body">
             <div style="display:flex;flex-direction:column;gap:0;font-size:.88rem;">
               <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Version</span><span style="font-weight:600">MCA Logistics v21</span></div>
-              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Interface salarié</span><a href="salarie.html" target="_blank" style="color:var(--accent)">Ouvrir →</a></div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Espace de connexion</span><a href="login.html" target="_blank" style="color:var(--accent)">Ouvrir →</a></div>
               <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Stockage</span><span>LocalStorage navigateur</span></div>
               <div style="display:flex;justify-content:space-between;padding:10px 0"><span style="color:var(--text-muted)">Sécurité A2F</span><span style="color:var(--accent)">Disponible sur Firebase →</span></div>
             </div>
@@ -1702,34 +1715,28 @@
     </div>
   </div>
 
-  <!-- Reset MDP -->
+  <!-- Gestion accès salarié -->
   <div class="modal-overlay" id="modal-reset-mdp">
     <div class="modal">
-      <div class="modal-header"><h3>🔑 Réinitialiser le mot de passe</h3><button class="modal-close" onclick="closeModal('modal-reset-mdp')">✕</button></div>
+      <div class="modal-header"><h3>🔑 Gérer l'accès salarié</h3><button class="modal-close" onclick="closeModal('modal-reset-mdp')">✕</button></div>
       <div class="modal-body">
-        <p style="color:var(--text-muted);margin-bottom:16px;">Salarié : <strong id="reset-mdp-nom"></strong></p>
-        <div class="form-group"><label>Nouveau mot de passe *</label><input type="password" id="reset-mdp-val" /></div>
-      </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button class="btn-primary" onclick="confirmerResetMdp()">Enregistrer</button></div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="modal-provision-access">
-    <div class="modal">
-      <div class="modal-header"><h3>☁️ Créer l'accès salarié</h3><button class="modal-close" onclick="closeModal('modal-provision-access')">✕</button></div>
-      <div class="modal-body">
-        <p style="color:var(--text-muted);margin-bottom:10px;">Salarié : <strong id="provision-access-nom"></strong></p>
-        <p style="color:var(--text-muted);margin-bottom:16px;">Email technique : <code id="provision-access-email" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
+        <p style="color:var(--text-muted);margin-bottom:8px;">Salarié : <strong id="reset-mdp-nom"></strong></p>
+        <p style="color:var(--text-muted);margin-bottom:8px;">Numéro de connexion : <code id="reset-mdp-numero" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
+        <p style="color:var(--text-muted);margin-bottom:16px;">Email technique : <code id="reset-mdp-email" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
+        <div id="reset-mdp-statut" style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-muted);font-size:.82rem"></div>
         <div class="form-group">
-          <label>Mot de passe initial *</label>
-          <div style="position:relative">
-            <input type="password" id="provision-access-password" style="padding-right:44px;width:100%" />
-            <button onclick="toggleParamMdp('provision-access-password')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+          <label>Mot de passe à appliquer *</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="position:relative;flex:1">
+              <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:44px;width:100%" />
+              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+            </div>
+            <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('access')">Générer</button>
           </div>
+          <div id="reset-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Le mot de passe mettra à jour l'accès Supabase et la copie locale de secours.</div>
         </div>
-        <p style="color:var(--text-muted);font-size:.8rem;margin-top:12px">Cette action créera ou mettra à jour le compte d'authentification Supabase du salarié.</p>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-provision-access')">Annuler</button><button class="btn-primary" onclick="confirmerProvisionAccesSalarie()">Créer l'accès</button></div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button class="btn-primary" onclick="confirmerResetMdp()">Appliquer</button></div>
     </div>
   </div>
 

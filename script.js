@@ -852,6 +852,9 @@ function lancerWarmupAdmin() {
       if (pageActive === 'page-salaries') afficherSalaries();
       if (pageActive === 'page-dashboard') rafraichirDashboard();
     }
+    nettoyerPhotosInspectionsAnciennes(false).catch(function(error) {
+      console.warn('Nettoyage automatique des photos d’inspection échoué', error);
+    });
     return { syncInitResult: syncInitResult, importResult: importResult };
   })().catch(function(error) {
     console.warn('Warmup admin différé échoué', error);
@@ -2753,13 +2756,14 @@ function calculerPrevision() {
 }
 
 /* ===== GESTION SALARIÉS ===== */
-let resetMdpTargetId=null, provisionAccessTargetId=null, editSalarieId=null;
+let accessSalarieTargetId=null, editSalarieId=null;
 
 function toggleFormulaireNewSalarie() {
   const el=document.getElementById('form-nouveau-salarie');
   if (el.style.display==='none') {
     el.style.display='block';
     mettreAJourEmailTechniqueSalarie('new');
+    genererMotDePasseSalarie('new');
     // Mettre à jour le select véhicule dans le formulaire
     const sv=document.getElementById('nsal-vehicule');
     if (sv) {
@@ -2786,6 +2790,52 @@ function mettreAJourEmailTechniqueSalarie(mode) {
   if (!numeroEl || !labelEl) return;
   const email = genererEmailTechniqueSalarie(numeroEl.value);
   labelEl.textContent = email || '—';
+}
+
+function genererMotDePasseFort(prefix) {
+  const seed = String(prefix || 'MCA').replace(/[^A-Za-z0-9]/g, '').slice(0, 6) || 'MCA';
+  const bloc = Math.random().toString(36).slice(2, 6).toUpperCase();
+  const suffixe = String(Math.floor(1000 + Math.random() * 9000));
+  return seed.charAt(0).toUpperCase() + seed.slice(1).toLowerCase() + '!' + bloc + suffixe;
+}
+
+function evaluerQualiteMotDePasse(value) {
+  const motDePasse = String(value || '');
+  if (!motDePasse) {
+    return { texte: 'Ajoutez un mot de passe initial.', couleur: 'var(--text-muted)' };
+  }
+  const score = [
+    motDePasse.length >= 8,
+    /[A-Z]/.test(motDePasse),
+    /[a-z]/.test(motDePasse),
+    /\d/.test(motDePasse),
+    /[^A-Za-z0-9]/.test(motDePasse)
+  ].filter(Boolean).length;
+
+  if (score >= 5) return { texte: 'Mot de passe solide pour l’accès salarié.', couleur: 'var(--green)' };
+  if (score >= 3) return { texte: 'Mot de passe correct, mais vous pouvez le renforcer.', couleur: 'var(--accent)' };
+  return { texte: 'Ajoutez au moins 8 caractères avec majuscule, minuscule et chiffre.', couleur: 'var(--red)' };
+}
+
+function mettreAJourQualiteMdpSalarie(mode) {
+  const isAccess = mode === 'access';
+  const input = document.getElementById(isAccess ? 'reset-mdp-val' : 'nsal-mdp');
+  const hint = document.getElementById(isAccess ? 'reset-mdp-hint' : 'nsal-mdp-hint');
+  if (!input || !hint) return;
+  const evaluation = evaluerQualiteMotDePasse(input.value);
+  hint.textContent = evaluation.texte;
+  hint.style.color = evaluation.couleur;
+}
+
+function genererMotDePasseSalarie(mode) {
+  const isAccess = mode === 'access';
+  const input = document.getElementById(isAccess ? 'reset-mdp-val' : 'nsal-mdp');
+  if (!input) return;
+  const numero = isAccess
+    ? (document.getElementById('reset-mdp-numero')?.textContent || '')
+    : (document.getElementById('nsal-numero')?.value || '');
+  input.value = genererMotDePasseFort(numero || 'MCA');
+  mettreAJourQualiteMdpSalarie(mode);
 }
 
 function getSupabaseClientSafe() {
@@ -2951,24 +3001,52 @@ function notifierSynchroSalarie(resultat, actionLabel) {
   afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
 }
 
-function ouvrirProvisionAccesSalarie(id, nom) {
-  provisionAccessTargetId = id;
-  const salarie = charger('salaries').find(function(item) { return item.id === id; });
-  document.getElementById('provision-access-nom').textContent = nom || salarie?.nom || 'Salarié';
-  document.getElementById('provision-access-email').textContent = salarie?.email || '—';
-  document.getElementById('provision-access-password').value = '';
-  document.getElementById('modal-provision-access').classList.add('open');
+function getStatutAccesSalarie(salarie) {
+  if (!salarie) return 'Fiche salarié introuvable.';
+  if (salarie.actif === false) return 'Compte désactivé. Réactivez le salarié avant de lui redonner un accès.';
+  if (salarie.profileId) return 'Accès Supabase déjà actif. Vous pouvez appliquer un nouveau mot de passe à tout moment.';
+  return 'Aucun accès Supabase détecté. Définissez un mot de passe pour créer ou réactiver le compte.';
 }
 
-async function confirmerProvisionAccesSalarie() {
-  const salarie = charger('salaries').find(function(item) { return item.id === provisionAccessTargetId; });
-  const password = (document.getElementById('provision-access-password')?.value || '').trim();
-  if (!salarie) { afficherToast('⚠️ Salarié introuvable', 'error'); return; }
-  if (!password) { afficherToast('⚠️ Mot de passe initial obligatoire', 'error'); return; }
-  if (!window.DelivProAdminSupabase || !window.DelivProAdminSupabase.provisionSalarieAccess) {
-    afficherToast('⚠️ Fonction admin Supabase indisponible', 'error');
-    return;
+async function verifierSessionSupabaseAdminPourAcces() {
+  const client = getSupabaseClientSafe();
+  const sessionAdmin = getAdminSession();
+  if (sessionAdmin.authMode !== 'supabase') {
+    return {
+      ok: false,
+      reason: 'admin_local_session',
+      error: { message: 'Reconnectez-vous avec votre compte admin Supabase pour gérer les accès salariés.' }
+    };
   }
+  if (!client) {
+    return {
+      ok: false,
+      reason: 'missing_client',
+      error: { message: 'Client Supabase indisponible.' }
+    };
+  }
+
+  const sessionResult = await client.auth.getSession();
+  if (!sessionResult?.data?.session) {
+    return {
+      ok: false,
+      reason: 'missing_session',
+      error: { message: 'Session Supabase admin expirée. Reconnectez-vous puis réessayez.' }
+    };
+  }
+
+  return { ok: true, client: client, session: sessionResult.data.session };
+}
+
+async function provisionnerAccesSalarie(salarie, password) {
+  if (!salarie) return { ok: false, reason: 'missing_salarie', error: { message: 'Salarié introuvable' } };
+  if (!password) return { ok: false, reason: 'missing_password', error: { message: 'Mot de passe obligatoire' } };
+  if (!window.DelivProAdminSupabase || !window.DelivProAdminSupabase.provisionSalarieAccess) {
+    return { ok: false, reason: 'unavailable', error: { message: 'Fonction admin Supabase indisponible' } };
+  }
+
+  const sessionCheck = await verifierSessionSupabaseAdminPourAcces();
+  if (!sessionCheck.ok) return sessionCheck;
 
   const result = await window.DelivProAdminSupabase.provisionSalarieAccess({
     salarieId: salarie.supabaseId || null,
@@ -2977,25 +3055,51 @@ async function confirmerProvisionAccesSalarie() {
   });
 
   if (!result.ok) {
-    const message = result.error?.message || result.reason || 'Provisionnement impossible';
-    afficherToast(`⚠️ ${message}`, 'error');
-    return;
-  }
-
-  if (result.data?.profileId) {
-    const salaries = charger('salaries');
-    const idx = salaries.findIndex(function(item) { return item.id === salarie.id; });
-    if (idx > -1) {
-      salaries[idx].profileId = result.data.profileId;
-      salaries[idx].email = result.data.email || salaries[idx].email;
-      sauvegarder('salaries', salaries);
+    if (result.error?.status === 401) {
+      return {
+        ok: false,
+        reason: 'missing_session',
+        error: { message: 'Session admin Supabase refusée. Reconnectez-vous puis réessayez.' }
+      };
     }
+    return result;
   }
 
-  closeModal('modal-provision-access');
-  provisionAccessTargetId = null;
-  afficherSalaries();
-  afficherToast('✅ Accès Supabase salarié créé / mis à jour');
+  const salaries = charger('salaries');
+  const idx = salaries.findIndex(function(item) { return item.id === salarie.id; });
+  if (idx > -1) {
+    salaries[idx].profileId = result.data?.profileId || salaries[idx].profileId || '';
+    salaries[idx].email = result.data?.email || salaries[idx].email || genererEmailTechniqueSalarie(salarie.numero);
+    salaries[idx].mdpHash = btoa(password);
+    sauvegarder('salaries', salaries);
+    return { ok: true, data: result.data || null, salarie: salaries[idx] };
+  }
+
+  return { ok: true, data: result.data || null, salarie: salarie };
+}
+
+function ouvrirGestionAccesSalarie(id, nom) {
+  accessSalarieTargetId = id;
+  const salarie = charger('salaries').find(function(item) { return item.id === id; });
+  document.getElementById('reset-mdp-nom').textContent = nom || salarie?.nom || 'Salarié';
+  document.getElementById('reset-mdp-numero').textContent = salarie?.numero || '—';
+  document.getElementById('reset-mdp-email').textContent = salarie?.email || genererEmailTechniqueSalarie(salarie?.numero || '') || '—';
+  const sessionAdmin = getAdminSession();
+  const messageSession = sessionAdmin.authMode === 'supabase'
+    ? getStatutAccesSalarie(salarie)
+    : 'Vous êtes connecté en mode local admin. Pour appliquer un mot de passe salarié, reconnectez-vous avec votre compte admin Supabase.';
+  document.getElementById('reset-mdp-statut').textContent = messageSession;
+  document.getElementById('reset-mdp-val').value = '';
+  genererMotDePasseSalarie('access');
+  document.getElementById('modal-reset-mdp').classList.add('open');
+}
+
+function ouvrirProvisionAccesSalarie(id, nom) {
+  ouvrirGestionAccesSalarie(id, nom);
+}
+
+async function confirmerProvisionAccesSalarie() {
+  await confirmerResetMdp();
 }
 
 async function creerSalarie() {
@@ -3012,6 +3116,7 @@ async function creerSalarie() {
   const emailTechnique = genererEmailTechniqueSalarie(numero);
 
   if (!nom||!numero||!mdp) { afficherToast('⚠️ Nom, numéro et mot de passe obligatoires', 'error'); return; }
+  if (mdp.length < 8) { afficherToast('⚠️ Utilisez un mot de passe salarié plus robuste (8 caractères minimum)', 'error'); return; }
   const salaries=charger('salaries');
   if (salaries.find(s=>s.numero===numero)) { afficherToast('⚠️ Ce numéro existe déjà', 'error'); return; }
 
@@ -3038,30 +3143,24 @@ async function creerSalarie() {
     hydraterSalarieLocalDepuisSupabase(salarie, syncResult.record);
     sauvegarder('salaries', salaries);
   }
-  let provisionResult = null;
-  if (window.DelivProAdminSupabase && window.DelivProAdminSupabase.provisionSalarieAccess) {
-    provisionResult = await window.DelivProAdminSupabase.provisionSalarieAccess({
-      salarieId: salarie.supabaseId || null,
-      numero: salarie.numero,
-      password: mdp
-    });
-    if (provisionResult?.ok && provisionResult.data) {
-      salarie.profileId = provisionResult.data.profileId || salarie.profileId || '';
-      salarie.email = provisionResult.data.email || salarie.email || '';
-      sauvegarder('salaries', salaries);
-    }
+  const provisionResult = await provisionnerAccesSalarie(salarie, mdp);
+  if (provisionResult?.ok && provisionResult.salarie) {
+    salarie.profileId = provisionResult.salarie.profileId || salarie.profileId || '';
+    salarie.email = provisionResult.salarie.email || salarie.email || '';
+    salarie.mdpHash = provisionResult.salarie.mdpHash || salarie.mdpHash;
   }
 
   ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>document.getElementById(id).value='');
   if (document.getElementById('nsal-poste')) document.getElementById('nsal-poste').value='';
   if (document.getElementById('nsal-vehicule')) document.getElementById('nsal-vehicule').value='';
   mettreAJourEmailTechniqueSalarie('new');
+  mettreAJourQualiteMdpSalarie('new');
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
   rafraichirDependancesSalaries();
-  if (provisionResult?.ok) afficherToast(`✅ Compte créé pour ${nomComplet} et accès Supabase activé`);
-  else if (provisionResult && !provisionResult.ok) afficherToast(`⚠️ Compte créé pour ${nomComplet}, mais l'accès Supabase n'a pas pu être activé (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
-  else afficherToast(`✅ Compte créé pour ${nomComplet}`);
+  if (provisionResult?.ok) afficherToast(`✅ Salarié créé pour ${nomComplet} avec accès activé`);
+  else if (provisionResult && !provisionResult.ok) afficherToast(`⚠️ Salarié créé pour ${nomComplet}, mais l'accès n'a pas pu être activé (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
+  else afficherToast(`✅ Salarié créé pour ${nomComplet}`);
   notifierSynchroSalarie(syncResult, 'Salarié');
 }
 
@@ -3086,8 +3185,7 @@ function afficherSalaries() {
       <td>${s.tel||'—'}</td><td>${vehLabel}</td><td>${badge}</td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
         <button class="btn-icon" onclick="ouvrirEditSalarie('${s.id}')" title="Modifier">✏️</button>
-        <button class="btn-icon" onclick="ouvrirProvisionAccesSalarie('${s.id}','${s.nom}')" title="Créer accès Supabase">☁️</button>
-        <button class="btn-icon" onclick="ouvrirResetMdp('${s.id}','${s.nom}')" title="MDP">🔑</button>
+        <button class="btn-icon" onclick="ouvrirGestionAccesSalarie('${s.id}','${s.nom}')" title="Gérer l'accès">🔑</button>
         <button class="btn-icon" onclick="genererFicheTournee('${s.id}')" title="Fiche tournée">📋</button>
         <button class="btn-icon" onclick="ouvrirNoteInterne('${s.id}','${s.nom}')" title="Note interne" style="${chargerNoteInterne(s.id)?'border-color:var(--accent);color:var(--accent)':''}">📝${chargerNoteInterne(s.id)?'<span style="width:6px;height:6px;background:var(--accent);border-radius:50%;display:inline-block;margin-left:2px;vertical-align:middle"></span>':''}</button>
         <button class="btn-icon" onclick="toggleActifSalarie('${s.id}')">${s.actif?'⏸️':'▶️'}</button>
@@ -3191,37 +3289,25 @@ async function confirmerEditSalarie() {
 }
 
 function ouvrirResetMdp(id, nom) {
-  resetMdpTargetId=id;
-  document.getElementById('reset-mdp-nom').textContent=nom;
-  document.getElementById('reset-mdp-val').value='';
-  document.getElementById('modal-reset-mdp').classList.add('open');
+  ouvrirGestionAccesSalarie(id, nom);
 }
 
 async function confirmerResetMdp() {
   const nouveau=document.getElementById('reset-mdp-val').value;
   if(!nouveau){afficherToast('⚠️ Mot de passe vide','error');return;}
-  const salaries=charger('salaries'),idx=salaries.findIndex(s=>s.id===resetMdpTargetId);
-  let syncResult = null;
-  if(idx>-1){
-    salaries[idx].mdpHash=btoa(nouveau);
-    sauvegarder('salaries',salaries);
-    if (window.DelivProAdminSupabase && window.DelivProAdminSupabase.provisionSalarieAccess) {
-      syncResult = await window.DelivProAdminSupabase.provisionSalarieAccess({
-        salarieId: salaries[idx].supabaseId || null,
-        numero: salaries[idx].numero || '',
-        password: nouveau
-      });
-      if (syncResult?.ok && syncResult.data) {
-        salaries[idx].profileId = syncResult.data.profileId || salaries[idx].profileId || '';
-        salaries[idx].email = syncResult.data.email || salaries[idx].email || '';
-        sauvegarder('salaries', salaries);
-      }
-    }
-    if (syncResult?.ok) afficherToast('✅ Mot de passe salarié mis à jour et synchronisé avec Supabase');
-    else if (syncResult && !syncResult.ok) afficherToast(`⚠️ Mot de passe local mis à jour, mais pas Supabase (${syncResult.error?.message || syncResult.reason || 'erreur inconnue'})`, 'error');
-    else afficherToast('✅ Mot de passe mis à jour');
+  if(nouveau.length < 8){afficherToast('⚠️ Utilisez un mot de passe salarié plus robuste (8 caractères minimum)','error');return;}
+  const salarie = charger('salaries').find(s=>s.id===accessSalarieTargetId);
+  if(!salarie){afficherToast('⚠️ Salarié introuvable','error');return;}
+  if(salarie.actif===false){afficherToast('⚠️ Réactivez d’abord ce salarié avant de modifier son accès','error');return;}
+  const syncResult = await provisionnerAccesSalarie(salarie, nouveau);
+  if (syncResult?.ok) {
+    afficherSalaries();
+    afficherToast('✅ Accès salarié mis à jour et synchronisé avec Supabase');
+    closeModal('modal-reset-mdp');
+    accessSalarieTargetId=null;
+    return;
   }
-  closeModal('modal-reset-mdp'); resetMdpTargetId=null;
+  afficherToast(`⚠️ Mise à jour de l'accès impossible (${syncResult?.error?.message || syncResult?.reason || 'erreur inconnue'})`, 'error');
 }
 
 function toggleActifSalarie(id) {
@@ -3311,6 +3397,108 @@ function afficherToast(message, type='success') {
 }
 
 /* ===== INSPECTIONS ===== */
+const INSPECTION_STORAGE_RETENTION_DAYS = 60;
+const INSPECTION_STORAGE_CLEANUP_KEY = 'delivpro_inspection_storage_cleanup_at';
+
+function getInspectionStorageAdminHelper() {
+  return window.DelivProSupabase && window.DelivProSupabase.getInspectionStorage
+    ? window.DelivProSupabase.getInspectionStorage()
+    : null;
+}
+
+function getInspectionPhotoList(insp) {
+  return Array.isArray(insp && insp.photos) ? insp.photos.filter(Boolean) : [];
+}
+
+function isInspectionPhotoBase64(value) {
+  return /^data:image\//.test(String(value || ''));
+}
+
+function getInspectionRemotePhotoPaths(insp) {
+  const storageHelper = getInspectionStorageAdminHelper();
+  if (!storageHelper || typeof storageHelper.extractPathFromPublicUrl !== 'function') return [];
+  return getInspectionPhotoList(insp)
+    .filter(photo => !isInspectionPhotoBase64(photo))
+    .map(photo => storageHelper.extractPathFromPublicUrl(photo))
+    .filter(Boolean);
+}
+
+async function supprimerPhotosInspectionDepuisStorage(insp) {
+  const storageHelper = getInspectionStorageAdminHelper();
+  const paths = getInspectionRemotePhotoPaths(insp);
+  if (!paths.length) return { ok: true, skipped: true };
+  if (!storageHelper || typeof storageHelper.removeInspectionPhotos !== 'function') {
+    return { ok: false, error: { message: 'Supabase Storage indisponible' } };
+  }
+  return await storageHelper.removeInspectionPhotos(paths);
+}
+
+function getInspectionReferenceDate(insp) {
+  const candidates = [insp && insp.creeLe, insp && insp.date];
+  for (let i = 0; i < candidates.length; i += 1) {
+    const value = candidates[i];
+    if (!value) continue;
+    const source = typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value + 'T00:00:00' : value;
+    const date = new Date(source);
+    if (!Number.isNaN(date.getTime())) return date;
+  }
+  return null;
+}
+
+async function nettoyerPhotosInspectionsAnciennes(forceRun) {
+  const storageHelper = getInspectionStorageAdminHelper();
+  if (!storageHelper || typeof storageHelper.removeInspectionPhotos !== 'function') {
+    return { ok: false, skipped: true, reason: 'storage_unavailable' };
+  }
+
+  const now = Date.now();
+  const lastCleanupAt = Number(localStorage.getItem(INSPECTION_STORAGE_CLEANUP_KEY) || '0');
+  if (!forceRun && lastCleanupAt && now - lastCleanupAt < 24 * 60 * 60 * 1000) {
+    return { ok: true, skipped: true, reason: 'recently_cleaned' };
+  }
+
+  const threshold = now - (INSPECTION_STORAGE_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const inspections = charger('inspections');
+  const pathsToDelete = [];
+  let changed = false;
+
+  inspections.forEach(function(insp) {
+    const referenceDate = getInspectionReferenceDate(insp);
+    if (!referenceDate || referenceDate.getTime() > threshold) return;
+
+    const photos = getInspectionPhotoList(insp);
+    if (!photos.length) return;
+
+    const remotePhotos = photos.filter(photo => !isInspectionPhotoBase64(photo));
+    if (!remotePhotos.length) return;
+
+    remotePhotos.forEach(function(photo) {
+      const path = storageHelper.extractPathFromPublicUrl(photo);
+      if (path) pathsToDelete.push(path);
+    });
+
+    insp.photos = photos.filter(isInspectionPhotoBase64);
+    if (!insp.note_cleanup_storage) {
+      insp.note_cleanup_storage = 'Photos Supabase supprimées automatiquement après 60 jours';
+    }
+    insp.photosNettoyeesLe = new Date(now).toISOString();
+    changed = true;
+  });
+
+  if (pathsToDelete.length) {
+    const deleteResult = await storageHelper.removeInspectionPhotos(Array.from(new Set(pathsToDelete)));
+    if (!deleteResult || !deleteResult.ok) {
+      return { ok: false, error: deleteResult && deleteResult.error ? deleteResult.error : { message: 'Suppression Storage impossible' } };
+    }
+  }
+
+  if (changed) {
+    sauvegarder('inspections', inspections);
+  }
+  localStorage.setItem(INSPECTION_STORAGE_CLEANUP_KEY, String(now));
+  return { ok: true, deletedCount: Array.from(new Set(pathsToDelete)).length, changed: changed };
+}
+
 function afficherInspections() {
   let inspections = JSON.parse(localStorage.getItem('inspections') || '[]');
   const salaries  = charger('salaries');
@@ -3343,11 +3531,12 @@ function afficherInspections() {
         </div>
       </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-          ${insp.photos.map((p, i) => `
+          ${getInspectionPhotoList(insp).map((p, i) => `
             <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3;cursor:pointer" onclick="voirPhotoAdmin('${insp.id}',${i})">
               <img src="${p}" style="width:100%;height:100%;object-fit:cover" />
             </div>`).join('')}
         </div>
+        ${insp.note_cleanup_storage ? `<div style="margin-top:10px;font-size:.78rem;color:var(--text-muted)">${insp.note_cleanup_storage}</div>` : ''}
       </div>
     </div>`).join('');
 }
@@ -3365,7 +3554,17 @@ function filtrerInspParSalarieInput() {
 async function supprimerInspectionAdmin(id) {
   const _ok8 = await confirmDialog('Supprimer cette inspection ?', {titre:'Supprimer',icone:'🚗',btnLabel:'Supprimer'});
   if (!_ok8) return;
-  const toutes = JSON.parse(localStorage.getItem('inspections') || '[]').filter(i => i.id !== id);
+  const inspections = JSON.parse(localStorage.getItem('inspections') || '[]');
+  const inspection = inspections.find(i => i.id === id);
+  if (!inspection) return;
+
+  const deleteResult = await supprimerPhotosInspectionDepuisStorage(inspection);
+  if (!deleteResult || !deleteResult.ok) {
+    afficherToast('⚠️ Suppression des photos Supabase impossible. Réessayez.', 'error');
+    return;
+  }
+
+  const toutes = inspections.filter(i => i.id !== id);
   localStorage.setItem('inspections', JSON.stringify(toutes));
   afficherInspections();
   afficherToast('🗑️ Inspection supprimée');
@@ -3477,7 +3676,7 @@ function voirPhotoAdmin(inspId, idx) {
   const inspections = JSON.parse(localStorage.getItem('inspections') || '[]');
   const insp = inspections.find(i => i.id === inspId);
   if (!insp) return;
-  _adminPhotos = insp.photos;
+  _adminPhotos = getInspectionPhotoList(insp);
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
   overlay.innerHTML = `
