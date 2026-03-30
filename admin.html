@@ -547,7 +547,7 @@
       <div class="page-actions"><h2>👥 Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
-        <div class="card-header"><h2>➕ Créer un compte salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
+        <div class="card-header"><h2>➕ Créer un salarié et son accès</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group"><label>Nom *</label><input type="text" id="nsal-nom" placeholder="Ex : Benali" /></div>
@@ -557,21 +557,34 @@
               <input type="text" id="nsal-numero" placeholder="Ex : EMP001" oninput="mettreAJourEmailTechniqueSalarie('new')" />
               <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Email technique généré : <code id="nsal-email-technique" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></div>
             </div>
-            <div class="form-group"><label>Mot de passe initial *</label><input type="password" id="nsal-mdp" placeholder="Le salarié pourra le modifier" /></div>
+            <div class="form-group">
+              <label>Mot de passe initial *</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div style="position:relative;flex:1">
+                  <input type="password" id="nsal-mdp" placeholder="Generez ou saisissez un mot de passe" style="padding-right:44px;width:100%" oninput="mettreAJourQualiteMdpSalarie('new')" />
+                  <button onclick="toggleParamMdp('nsal-mdp')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+                </div>
+                <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('new')">Générer</button>
+              </div>
+              <div id="nsal-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Utilisez au moins 8 caractères avec majuscule, minuscule et chiffre.</div>
+            </div>
             <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="Ex : 06 12 34 56 78" /></div>
             <div class="form-group"><label>Poste / Fonction</label><select id="nsal-poste"><option value="">-- Choisir un poste --</option></select></div>
             <div class="form-group"><label>Affecter un véhicule dès la création</label><select id="nsal-vehicule"><option value="">-- Aucun pour l'instant --</option></select></div>
             <div class="form-group"><label>🪪 Expiration permis</label><input type="date" id="nsal-date-permis" /></div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
+          <div style="margin-top:14px;padding:14px 16px;border-radius:14px;background:rgba(76,142,247,.08);border:1px solid rgba(76,142,247,.18);color:var(--text-muted);font-size:.82rem;line-height:1.6">
+            L'accès salarié sera créé dans l'espace de connexion centralisé <strong>login.html</strong>. Vous pourrez ensuite gérer le mot de passe ou réactiver l'accès depuis la fiche du salarié.
+          </div>
           <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:12px;">
             <button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Annuler</button>
-            <button class="btn-primary" onclick="creerSalarie()">✅ Créer le compte</button>
+            <button class="btn-primary" onclick="creerSalarie()">✅ Créer le salarié</button>
           </div>
         </div>
       </div>
 
-      <div class="info-banner">📱 Les salariés se connectent sur <strong>salarie.html</strong> avec leur numéro + mot de passe</div>
+      <div class="info-banner">🔐 Tous les accès passent maintenant par <strong>login.html</strong>. La gestion des mots de passe salarié est centralisée dans chaque fiche.</div>
 
       <div class="card mt-20">
         <div class="table-wrapper">
@@ -694,8 +707,8 @@
         </div>
       </div>
 
-      <!-- Alertes fiscales & financières -->
-      <div id="budget-alertes"></div>
+      <!-- Alerte TVA J-10 -->
+      <div id="budget-tva-alerte" style="display:none"></div>
 
       <!-- Navigation mois -->
       <div class="card" style="margin-bottom:12px;padding:10px 18px">
@@ -712,146 +725,148 @@
         </div>
       </div>
 
-      <!-- KPIs principaux — ligne 1 -->
-      <div class="kpi-grid">
-        <div class="kpi-card green">
-          <div class="kpi-label">Chiffre d'affaires HT</div>
-          <div class="kpi-value" id="budget-kpi-caht">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-caht-sub"></div>
-        </div>
-        <div class="kpi-card red">
-          <div class="kpi-label">Charges totales HT</div>
-          <div class="kpi-value" id="budget-kpi-depenses">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-depenses-sub"></div>
-        </div>
-        <div class="kpi-card orange">
-          <div class="kpi-label">TVA nette</div>
-          <div class="kpi-value" id="budget-kpi-tva">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-tva-sub"></div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="kpi-label">Résultat net du mois</div>
-          <div class="kpi-value" id="budget-kpi-solde">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-solde-sub"></div>
-        </div>
-      </div>
-
-      <!-- KPIs financiers — ligne 2 -->
-      <div class="kpi-grid" style="margin-top:12px">
-        <div class="kpi-card" style="border-left:3px solid #9b59b6">
-          <div class="kpi-label">Taux de marge nette</div>
-          <div class="kpi-value" id="budget-kpi-taux-marge" style="color:#9b59b6">— %</div>
-          <div class="kpi-sub" id="budget-kpi-taux-marge-sub"></div>
-        </div>
-        <div class="kpi-card" style="border-left:3px solid #1abc9c">
-          <div class="kpi-label">Taux de recouvrement</div>
-          <div class="kpi-value" id="budget-kpi-recouvrement" style="color:#1abc9c">— %</div>
-          <div class="kpi-sub" id="budget-kpi-recouvrement-sub"></div>
-        </div>
-        <div class="kpi-card" style="border-left:3px solid #e67e22">
-          <div class="kpi-label">Créances clients</div>
-          <div class="kpi-value" id="budget-kpi-creances" style="color:#e67e22">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-creances-sub"></div>
-        </div>
-        <div class="kpi-card" style="border-left:3px solid #3498db">
-          <div class="kpi-label">DSO (délai paiement)</div>
-          <div class="kpi-value" id="budget-kpi-dso" style="color:#3498db">— j</div>
-          <div class="kpi-sub" id="budget-kpi-dso-sub"></div>
-        </div>
-      </div>
-
-      <!-- Compte de résultat simplifié -->
-      <div class="card mt-20">
-        <div class="card-header">
-          <h2>📋 Compte de résultat simplifié</h2>
-          <span style="font-size:.78rem;color:var(--text-muted)">Vision P&L du mois sélectionné</span>
-        </div>
-        <div class="modal-body" id="budget-pl-table"></div>
-      </div>
-
-      <!-- Graphiques : Cashflow + Répartition charges -->
-      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-top:20px">
-        <div class="card">
-          <div class="card-header"><h2>📈 Cashflow — 6 derniers mois</h2></div>
-          <div class="modal-body">
-            <canvas id="budget-cashflow-chart" height="110"></canvas>
+      <!-- Score santé + KPIs -->
+      <div class="budget-top-row">
+        <!-- Score de santé financière -->
+        <div class="card budget-score-card">
+          <div class="card-header"><h2>🩺 Santé financière</h2></div>
+          <div class="modal-body" style="display:flex;flex-direction:column;align-items:center;gap:12px">
+            <div class="budget-score-ring" id="budget-score-ring">
+              <svg viewBox="0 0 120 120" width="120" height="120">
+                <circle cx="60" cy="60" r="50" fill="none" stroke="var(--border)" stroke-width="10"/>
+                <circle id="budget-score-arc" cx="60" cy="60" r="50" fill="none" stroke="#2ecc71"
+                  stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="314" stroke-dashoffset="314"
+                  transform="rotate(-90 60 60)" style="transition:stroke-dashoffset .6s,stroke .4s"/>
+              </svg>
+              <div class="budget-score-value" id="budget-score-value">0</div>
+            </div>
+            <div id="budget-score-label" style="font-size:.9rem;font-weight:700;text-align:center">—</div>
+            <div id="budget-score-detail" style="font-size:.75rem;color:var(--text-muted);text-align:center;line-height:1.5"></div>
           </div>
         </div>
-        <div class="card">
-          <div class="card-header"><h2>🥧 Répartition charges</h2></div>
-          <div class="modal-body" style="display:flex;flex-direction:column;align-items:center;gap:10px">
-            <canvas id="budget-charges-donut" height="160" style="max-width:200px"></canvas>
-            <div id="budget-charges-legende" style="font-size:.78rem;width:100%"></div>
+
+        <!-- KPIs -->
+        <div class="budget-kpis-wrap">
+          <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr)">
+            <div class="kpi-card green">
+              <div class="kpi-label">Encaissements (payé)</div>
+              <div class="kpi-value" id="budget-kpi-encaisse">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-encaisse-sub"></div>
+            </div>
+            <div class="kpi-card red">
+              <div class="kpi-label">Décaissements</div>
+              <div class="kpi-value" id="budget-kpi-depenses">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-depenses-sub"></div>
+            </div>
+            <div class="kpi-card orange">
+              <div class="kpi-label">TVA nette</div>
+              <div class="kpi-value" id="budget-kpi-tva">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-tva-sub"></div>
+            </div>
+            <div class="kpi-card blue">
+              <div class="kpi-label">Solde net estimé</div>
+              <div class="kpi-value" id="budget-kpi-solde">0 €</div>
+              <div class="kpi-sub" id="budget-kpi-solde-sub"></div>
+            </div>
+          </div>
+          <!-- Insights automatiques -->
+          <div class="card" style="margin-top:12px">
+            <div class="card-header" style="padding-bottom:8px"><h2>💡 Insights du mois</h2></div>
+            <div id="budget-insights" class="modal-body" style="padding-top:8px;display:flex;flex-direction:column;gap:6px"></div>
           </div>
         </div>
       </div>
 
-      <!-- Trésorerie prévisionnelle -->
+      <!-- Cashflow 6 mois -->
       <div class="card mt-20">
-        <div class="card-header">
-          <h2>🔮 Trésorerie prévisionnelle</h2>
-          <span style="font-size:.78rem;color:var(--text-muted)">Projection pondérée sur 3 mois glissants</span>
-        </div>
+        <div class="card-header"><h2>📊 Cashflow — 6 derniers mois</h2></div>
         <div class="modal-body">
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px">
-            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
-              <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">J+30</div>
-              <div id="budget-prev-30" style="font-size:1.35rem;font-weight:800">—</div>
-              <div id="budget-prev-30-var" style="font-size:.75rem;margin-top:4px;color:var(--text-muted)"></div>
+          <canvas id="budget-cashflow-chart" height="85"></canvas>
+        </div>
+      </div>
+
+      <!-- Vue 2 colonnes : Encaissements | Décaissements -->
+      <div class="budget-2col mt-20">
+        <!-- Encaissements -->
+        <div class="card">
+          <div class="card-header"><h2>💶 Encaissements</h2></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Client</th><th>HT</th><th>TTC</th><th>Statut</th></tr></thead>
+              <tbody id="tb-budget-encaissements"></tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Décaissements -->
+        <div class="card">
+          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
+            <h2>💸 Décaissements</h2>
+            <button class="btn-primary" style="font-size:.78rem;padding:4px 10px" onclick="budgetToggleSaisieRapide()">+ Saisie rapide</button>
+          </div>
+          <!-- Saisie rapide inline -->
+          <div id="budget-saisie-rapide" style="display:none;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-dark)">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+              <button class="btn-cat-budget active" data-cat="carburant" onclick="budgetSelectCat(this)">⛽ Carburant</button>
+              <button class="btn-cat-budget" data-cat="charge" onclick="budgetSelectCat(this)">💸 Charge</button>
+              <button class="btn-cat-budget" data-cat="entretien" onclick="budgetSelectCat(this)">🔧 Entretien</button>
+              <button class="btn-cat-budget" data-cat="assurance" onclick="budgetSelectCat(this)">🛡️ Assurance</button>
+              <button class="btn-cat-budget" data-cat="autre" onclick="budgetSelectCat(this)">📝 Autre</button>
             </div>
-            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
-              <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">J+60</div>
-              <div id="budget-prev-60" style="font-size:1.35rem;font-weight:800">—</div>
-              <div id="budget-prev-60-var" style="font-size:.75rem;margin-top:4px;color:var(--text-muted)"></div>
-            </div>
-            <div style="background:var(--bg-dark);border-radius:12px;padding:16px;text-align:center">
-              <div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">J+90</div>
-              <div id="budget-prev-90" style="font-size:1.35rem;font-weight:800">—</div>
-              <div id="budget-prev-90-var" style="font-size:.75rem;margin-top:4px;color:var(--text-muted)"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+              <div style="flex:2;min-width:120px"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Description</label><input type="text" id="budget-sr-desc" placeholder="Ex : Plein Total L67" style="width:100%"/></div>
+              <div style="flex:1;min-width:90px"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Montant TTC (€)</label><input type="number" id="budget-sr-montant" placeholder="0.00" min="0" step="0.01" style="width:100%"/></div>
+              <div style="flex:1;min-width:110px"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Date</label><input type="date" id="budget-sr-date" style="width:100%"/></div>
+              <button class="btn-primary" style="padding:8px 14px;white-space:nowrap" onclick="ajouterChargeBudgetRapide()">✅ Ajouter</button>
             </div>
           </div>
-          <div style="padding:10px 14px;background:rgba(245,166,35,.07);border-left:3px solid var(--accent);border-radius:6px;font-size:.82rem;color:var(--text-muted)" id="budget-prev-note"></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>TTC</th></tr></thead>
+              <tbody id="tb-budget-decaissements"></tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- Aging créances clients -->
+      <!-- Charges fixes du mois -->
       <div class="card mt-20">
-        <div class="card-header">
-          <h2>⏱️ Aging des créances clients</h2>
-          <span style="font-size:.78rem;color:var(--text-muted)">Livraisons non encaissées par ancienneté</span>
-        </div>
-        <div class="modal-body" id="budget-aging-creances"></div>
+        <div class="card-header"><h2>🔒 Charges fixes du mois</h2></div>
+        <div id="budget-charges-fixes" class="modal-body"></div>
       </div>
 
-      <!-- Encaissements détail -->
-      <div class="card mt-20">
-        <div class="card-header">
-          <h2>💶 Détail Encaissements</h2>
-          <div id="budget-enc-totaux" style="font-size:.82rem;color:var(--text-muted)"></div>
+      <!-- Trésorerie prévisionnelle + Simulateur -->
+      <div class="budget-2col mt-20">
+        <div class="card">
+          <div class="card-header"><h2>📅 Trésorerie prévisionnelle</h2></div>
+          <div class="modal-body">
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:14px">Projection basée sur la moyenne mensuelle des 3 derniers mois.</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="budget-prev-row"><span class="budget-prev-label">Dans 30 jours</span><span id="budget-prev-30" class="budget-prev-val">—</span></div>
+              <div class="budget-prev-row"><span class="budget-prev-label">Dans 60 jours</span><span id="budget-prev-60" class="budget-prev-val">—</span></div>
+              <div class="budget-prev-row"><span class="budget-prev-label">Dans 90 jours</span><span id="budget-prev-90" class="budget-prev-val">—</span></div>
+            </div>
+            <div id="budget-prev-note" style="margin-top:12px;font-size:.78rem;color:var(--text-muted);padding:8px 12px;background:rgba(245,166,35,.07);border-radius:6px;border-left:3px solid var(--accent)"></div>
+          </div>
         </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Date</th><th>N° Livraison</th><th>Client</th><th>Montant HT</th><th>TVA</th><th>TTC</th><th>Mode paiement</th><th>Statut</th></tr></thead>
-            <tbody id="tb-budget-encaissements"></tbody>
-          </table>
+        <div class="card">
+          <div class="card-header"><h2>🔮 Simulateur</h2></div>
+          <div class="modal-body">
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:14px">Projetez l'impact de nouvelles livraisons ou charges sur votre solde.</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;gap:8px;align-items:flex-end">
+                <div style="flex:1"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Livraisons supplémentaires</label><input type="number" id="sim-livraisons" placeholder="0" min="0" step="1" style="width:100%"/></div>
+                <div style="flex:1"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Prix moyen / livraison (€)</label><input type="number" id="sim-prix" placeholder="0" min="0" step="0.01" style="width:100%"/></div>
+              </div>
+              <div style="display:flex;gap:8px;align-items:flex-end">
+                <div style="flex:1"><label style="font-size:.75rem;color:var(--text-muted);display:block;margin-bottom:4px">Charge exceptionnelle (€)</label><input type="number" id="sim-charge" placeholder="0" min="0" step="0.01" style="width:100%"/></div>
+                <button class="btn-primary" style="padding:8px 14px;white-space:nowrap" onclick="simulerBudget()">▶ Simuler</button>
+              </div>
+            </div>
+            <div id="budget-sim-result" style="margin-top:14px;display:none"></div>
+          </div>
         </div>
       </div>
-
-      <!-- Décaissements détail -->
-      <div class="card mt-20">
-        <div class="card-header">
-          <h2>💸 Détail Décaissements</h2>
-          <div id="budget-dec-totaux" style="font-size:.82rem;color:var(--text-muted)"></div>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Montant HT</th><th>TVA déductible</th><th>TTC</th></tr></thead>
-            <tbody id="tb-budget-decaissements"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Récap TVA du mois -->
       <div class="card mt-20">
         <div class="card-header"><h2>🧾 Déclaration TVA du mois</h2></div>
         <div class="modal-body" id="budget-tva-recap"></div>
@@ -990,7 +1005,7 @@
           <div class="modal-body">
             <div style="display:flex;flex-direction:column;gap:0;font-size:.88rem;">
               <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Version</span><span style="font-weight:600">MCA Logistics v21</span></div>
-              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Interface salarié</span><a href="salarie.html" target="_blank" style="color:var(--accent)">Ouvrir →</a></div>
+              <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Espace de connexion</span><a href="login.html" target="_blank" style="color:var(--accent)">Ouvrir →</a></div>
               <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)"><span style="color:var(--text-muted)">Stockage</span><span>LocalStorage navigateur</span></div>
               <div style="display:flex;justify-content:space-between;padding:10px 0"><span style="color:var(--text-muted)">Sécurité A2F</span><span style="color:var(--accent)">Disponible sur Firebase →</span></div>
             </div>
@@ -1691,34 +1706,28 @@
     </div>
   </div>
 
-  <!-- Reset MDP -->
+  <!-- Gestion accès salarié -->
   <div class="modal-overlay" id="modal-reset-mdp">
     <div class="modal">
-      <div class="modal-header"><h3>🔑 Réinitialiser le mot de passe</h3><button class="modal-close" onclick="closeModal('modal-reset-mdp')">✕</button></div>
+      <div class="modal-header"><h3>🔑 Gérer l'accès salarié</h3><button class="modal-close" onclick="closeModal('modal-reset-mdp')">✕</button></div>
       <div class="modal-body">
-        <p style="color:var(--text-muted);margin-bottom:16px;">Salarié : <strong id="reset-mdp-nom"></strong></p>
-        <div class="form-group"><label>Nouveau mot de passe *</label><input type="password" id="reset-mdp-val" /></div>
-      </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button class="btn-primary" onclick="confirmerResetMdp()">Enregistrer</button></div>
-    </div>
-  </div>
-
-  <div class="modal-overlay" id="modal-provision-access">
-    <div class="modal">
-      <div class="modal-header"><h3>☁️ Créer l'accès salarié</h3><button class="modal-close" onclick="closeModal('modal-provision-access')">✕</button></div>
-      <div class="modal-body">
-        <p style="color:var(--text-muted);margin-bottom:10px;">Salarié : <strong id="provision-access-nom"></strong></p>
-        <p style="color:var(--text-muted);margin-bottom:16px;">Email technique : <code id="provision-access-email" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
+        <p style="color:var(--text-muted);margin-bottom:8px;">Salarié : <strong id="reset-mdp-nom"></strong></p>
+        <p style="color:var(--text-muted);margin-bottom:8px;">Numéro de connexion : <code id="reset-mdp-numero" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
+        <p style="color:var(--text-muted);margin-bottom:16px;">Email technique : <code id="reset-mdp-email" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
+        <div id="reset-mdp-statut" style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-muted);font-size:.82rem"></div>
         <div class="form-group">
-          <label>Mot de passe initial *</label>
-          <div style="position:relative">
-            <input type="password" id="provision-access-password" style="padding-right:44px;width:100%" />
-            <button onclick="toggleParamMdp('provision-access-password')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+          <label>Mot de passe à appliquer *</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div style="position:relative;flex:1">
+              <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:44px;width:100%" />
+              <button onclick="toggleParamMdp('reset-mdp-val')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button>
+            </div>
+            <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('access')">Générer</button>
           </div>
+          <div id="reset-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Le mot de passe mettra à jour l'accès Supabase et la copie locale de secours.</div>
         </div>
-        <p style="color:var(--text-muted);font-size:.8rem;margin-top:12px">Cette action créera ou mettra à jour le compte d'authentification Supabase du salarié.</p>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-provision-access')">Annuler</button><button class="btn-primary" onclick="confirmerProvisionAccesSalarie()">Créer l'accès</button></div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button class="btn-primary" onclick="confirmerResetMdp()">Appliquer</button></div>
     </div>
   </div>
 

@@ -1348,27 +1348,59 @@ function chargerHistoriqueCarburant() {
 }
 
 /* ===== CHANGER MDP ===== */
-function changerMonMdp() {
+async function changerMonMdp() {
   const ancien    = document.getElementById('chg-ancien').value;
   const nouveau   = document.getElementById('chg-nouveau').value;
   const confirmer = document.getElementById('chg-confirmer').value;
   if(!ancien||!nouveau||!confirmer){toast('⚠️ Remplissez tous les champs','error');return;}
   if(btoa(ancien)!==salarieCourant.mdpHash){toast('⚠️ Mot de passe actuel incorrect','error');return;}
-  if(nouveau.length<4){toast('⚠️ Nouveau mot de passe trop court (4 min)','error');return;}
+  if(nouveau.length<8){toast('⚠️ Nouveau mot de passe trop court (8 min)','error');return;}
   if(nouveau!==confirmer){toast('⚠️ Les nouveaux mots de passe ne correspondent pas','error');return;}
+  const client = window.DelivProSupabase && window.DelivProSupabase.getClient ? window.DelivProSupabase.getClient() : null;
+  if (!client) { toast('⚠️ Client Supabase indisponible','error'); return; }
+  const sessionResult = await client.auth.getSession();
+  if (!sessionResult?.data?.session) { toast('⚠️ Session expirée, reconnectez-vous','error'); return; }
+  const updateResult = await client.auth.updateUser({ password: nouveau });
+  if (updateResult.error) { toast(`⚠️ Mot de passe Supabase non mis à jour (${updateResult.error.message})`,'error'); return; }
   const salaries=JSON.parse(localStorage.getItem('salaries')||'[]');
   const idx=salaries.findIndex(s=>s.id===salarieCourant.id);
   if(idx>-1){salaries[idx].mdpHash=btoa(nouveau);localStorage.setItem('salaries',JSON.stringify(salaries));salarieCourant.mdpHash=btoa(nouveau);}
   ['chg-ancien','chg-nouveau','chg-confirmer'].forEach(id=>document.getElementById(id).value='');
-  toast('✅ Mot de passe modifié avec succès !');
+  toast('✅ Mot de passe modifié et synchronisé !');
 }
 
 /* ===== INSPECTION VÉHICULE ===== */
-let _inspPhotosB64 = [];
+let _inspPhotos = [];
 
-/* Compresse une image via canvas — retourne une promesse avec le base64 */
+function getInspectionStorageHelper() {
+  return window.DelivProSupabase && window.DelivProSupabase.getInspectionStorage
+    ? window.DelivProSupabase.getInspectionStorage()
+    : null;
+}
+
+function libererPhotosInspectionLocales() {
+  _inspPhotos.forEach(photo => {
+    if (photo && photo.previewUrl && photo.previewUrl.indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(photo.previewUrl); } catch (_) {}
+    }
+  });
+}
+
+function reinitialiserPhotosInspection() {
+  libererPhotosInspectionLocales();
+  _inspPhotos = [];
+}
+
+function sanitiserSegmentStorage(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'inconnu';
+}
+
+/* Compresse une image via canvas — retourne un Blob JPEG + URL de prévisualisation */
 function compresserImage(file, maxW, maxH, qualite) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
       const img = new Image();
@@ -1379,34 +1411,78 @@ function compresserImage(file, maxW, maxH, qualite) {
         const canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', qualite));
+        canvas.toBlob(blob => {
+          if (!blob) {
+            reject(new Error('compression_failed'));
+            return;
+          }
+          resolve({
+            blob: blob,
+            previewUrl: URL.createObjectURL(blob)
+          });
+        }, 'image/jpeg', qualite);
       };
+      img.onerror = () => reject(new Error('image_load_failed'));
       img.src = e.target.result;
     };
+    reader.onerror = () => reject(new Error('file_read_failed'));
     reader.readAsDataURL(file);
   });
+}
+
+async function uploaderPhotosInspection(date) {
+  const storageHelper = getInspectionStorageHelper();
+  if (!storageHelper) throw new Error('storage_unavailable');
+
+  const salarieSegment = sanitiserSegmentStorage(salarieCourant && salarieCourant.id);
+  const dateSegment = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : aujourdhui();
+  const baseTimestamp = Date.now();
+  const uploadedPaths = [];
+  const uploadedUrls = [];
+
+  try {
+    for (let i = 0; i < _inspPhotos.length; i++) {
+      const photo = _inspPhotos[i];
+      const path = salarieSegment + '/' + dateSegment + '/' + baseTimestamp + '_' + i + '.jpg';
+      const result = await storageHelper.uploadInspectionPhoto(path, photo.blob);
+      if (!result || !result.ok || !result.url) {
+        throw (result && result.error) || new Error('upload_failed');
+      }
+      uploadedPaths.push(result.path || path);
+      uploadedUrls.push(result.url);
+    }
+  } catch (error) {
+    if (uploadedPaths.length) {
+      try {
+        await storageHelper.removeInspectionPhotos(uploadedPaths);
+      } catch (_) {}
+    }
+    throw error;
+  }
+
+  return uploadedUrls;
 }
 
 function previsualiserPhotos() {
   const files = document.getElementById('insp-photos').files;
   const container = document.getElementById('insp-previews');
-  _inspPhotosB64 = [];
+  reinitialiserPhotosInspection();
   container.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px">⏳ Chargement des photos...</div>';
   if (!files.length) { container.innerHTML = ''; return; }
 
   const max = Math.min(files.length, 4);
   const promesses = [];
   for (let i = 0; i < max; i++) {
-    promesses.push(compresserImage(files[i], 1200, 900, 0.75));
+    promesses.push(compresserImage(files[i], 800, 600, 0.6));
   }
 
   Promise.all(promesses).then(resultats => {
-    _inspPhotosB64 = resultats;
+    _inspPhotos = resultats;
     container.innerHTML = '';
-    resultats.forEach((b64, i) => {
+    resultats.forEach((photo, i) => {
       const div = document.createElement('div');
       div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3';
-      div.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover" />
+      div.innerHTML = `<img src="${photo.previewUrl}" style="width:100%;height:100%;object-fit:cover" />
         <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
       container.appendChild(div);
     });
@@ -1425,60 +1501,93 @@ function previsualiserPhotos() {
 }
 
 function retirerPhoto(idx) {
-  _inspPhotosB64.splice(idx, 1);
+  const photo = _inspPhotos[idx];
+  if (photo && photo.previewUrl && photo.previewUrl.indexOf('blob:') === 0) {
+    try { URL.revokeObjectURL(photo.previewUrl); } catch (_) {}
+  }
+  _inspPhotos.splice(idx, 1);
   const container = document.getElementById('insp-previews');
   container.innerHTML = '';
-  if (!_inspPhotosB64.length) {
+  if (!_inspPhotos.length) {
     document.getElementById('insp-photos').value = '';
     const label = document.getElementById('insp-label');
     if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
     return;
   }
-  _inspPhotosB64.forEach((b64, i) => {
+  _inspPhotos.forEach((photoItem, i) => {
     const div = document.createElement('div');
     div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3';
-    div.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:cover" />
+    div.innerHTML = `<img src="${photoItem.previewUrl}" style="width:100%;height:100%;object-fit:cover" />
       <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
     container.appendChild(div);
   });
 }
 
-function envoyerInspection() {
+async function envoyerInspection() {
   const date  = document.getElementById('insp-date').value;
   const km    = document.getElementById('insp-km').value;
   const comm  = document.getElementById('insp-commentaire').value.trim();
 
-  if (!_inspPhotosB64.length) { toast('⚠️ Ajoutez au moins une photo', 'error'); return; }
+  if (!_inspPhotos.length) { toast('⚠️ Ajoutez au moins une photo', 'error'); return; }
   if (!date) { toast('⚠️ Sélectionnez une date', 'error'); return; }
 
   const veh = getMonVehicule();
   const inspId = Date.now().toString(36);
+  const bouton = document.querySelector('button[onclick="envoyerInspection()"]');
+
+  if (bouton) bouton.disabled = true;
+  const statut = document.getElementById('insp-statut');
+  if (statut) {
+    statut.style.display = 'block';
+    statut.style.color = 'var(--blue)';
+    statut.textContent = '☁️ Envoi des photos vers le cloud...';
+  }
+
+  let photoUrls = [];
+  try {
+    photoUrls = await uploaderPhotosInspection(date);
+  } catch (error) {
+    if (bouton) bouton.disabled = false;
+    if (statut) {
+      statut.style.display = 'block';
+      statut.style.color = 'var(--red)';
+      statut.textContent = '⚠️ Upload impossible — réessayez';
+    }
+    toast('⚠️ Impossible d’envoyer les photos vers Supabase Storage', 'error');
+    return;
+  }
+
   const inspection = {
     id: inspId,
     salId: salarieCourant.id, salNom: salarieCourant.nom,
     vehId: veh ? veh.id : '', vehImmat: veh ? veh.immat : 'Non affecté',
     date, km: km || null, commentaire: comm,
-    photos: [..._inspPhotosB64],
+    photos: photoUrls,
     creeLe: new Date().toISOString()
   };
   if (km) mettreAJourKmVehiculeAffecte(km);
 
-  // Sauvegarde avec gestion du quota localStorage
+  // Sauvegarde locale légère : seules les URLs Supabase sont conservées
   try {
     const toutes = JSON.parse(localStorage.getItem('inspections') || '[]');
     toutes.push(inspection);
     localStorage.setItem('inspections', JSON.stringify(toutes));
   } catch(e) {
-    // Quota dépassé : stocker sans les photos (juste les métadonnées)
-    try {
-      const toutes = JSON.parse(localStorage.getItem('inspections') || '[]');
-      toutes.push({ ...inspection, photos: [], note_quota: 'Photos non stockées (espace insuffisant)' });
-      localStorage.setItem('inspections', JSON.stringify(toutes));
-      toast('⚠️ Inspection enregistrée mais photos non sauvegardées (mémoire insuffisante)', 'error');
-    } catch(e2) {
-      toast('⚠️ Impossible de sauvegarder — mémoire du navigateur pleine', 'error');
-      return;
+    const storageHelper = getInspectionStorageHelper();
+    const photoPaths = storageHelper && storageHelper.extractPathFromPublicUrl
+      ? photoUrls.map(url => storageHelper.extractPathFromPublicUrl(url)).filter(Boolean)
+      : [];
+    if (photoPaths.length && storageHelper && storageHelper.removeInspectionPhotos) {
+      try { await storageHelper.removeInspectionPhotos(photoPaths); } catch (_) {}
     }
+    if (bouton) bouton.disabled = false;
+    if (statut) {
+      statut.style.display = 'block';
+      statut.style.color = 'var(--red)';
+      statut.textContent = '⚠️ Sauvegarde locale impossible — inspection annulée';
+    }
+    toast('⚠️ Impossible de sauvegarder — mémoire du navigateur pleine', 'error');
+    return;
   }
 
   // Alerte admin
@@ -1486,7 +1595,7 @@ function envoyerInspection() {
     const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
     alertes.push({
       id: inspId + 'i', type: 'inspection',
-      message: `Inspection soumise par ${salarieCourant.nom} — ${veh ? veh.immat : 'sans véhicule'} (${date}) — ${_inspPhotosB64.length} photo(s)`,
+      message: `Inspection soumise par ${salarieCourant.nom} — ${veh ? veh.immat : 'sans véhicule'} (${date}) — ${_inspPhotos.length} photo(s)`,
       meta: { salNom: salarieCourant.nom, salId: salarieCourant.id, inspId },
       lu: false, traitee: false, creeLe: new Date().toISOString()
     });
@@ -1494,15 +1603,15 @@ function envoyerInspection() {
   } catch(e) { /* non bloquant */ }
 
   // Reset formulaire
-  _inspPhotosB64 = [];
+  reinitialiserPhotosInspection();
   document.getElementById('insp-photos').value = '';
   document.getElementById('insp-previews').innerHTML = '';
   document.getElementById('insp-commentaire').value = '';
   document.getElementById('insp-km').value = '';
   const label = document.getElementById('insp-label');
   if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
-  const statut = document.getElementById('insp-statut');
   if (statut) { statut.style.display='none'; statut.textContent=''; }
+  if (bouton) bouton.disabled = false;
 
   chargerHistoriqueInspections();
   toast('✅ Inspection envoyée à l\'administrateur !');
@@ -1524,9 +1633,10 @@ function chargerHistoriqueInspections() {
         <span style="font-size:.78rem;color:var(--muted)">${insp.vehImmat}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
       </div>
       ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">💬 ${insp.commentaire}</p>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(${Math.min(insp.photos.length,4)},1fr);gap:6px">
-        ${insp.photos.map(p => `<img src="${p}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer" onclick="voirPhotoPleinEcran('${p}')" />`).join('')}
+      <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min((insp.photos || []).length,4), 1)},1fr);gap:6px">
+        ${(insp.photos || []).map(p => `<img src="${p}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer" onclick="voirPhotoPleinEcran('${p}')" />`).join('')}
       </div>
+      ${!(insp.photos || []).length && (insp.note_quota || insp.note_cleanup_storage) ? `<p style="font-size:.78rem;color:var(--orange);margin-top:8px">${insp.note_quota || insp.note_cleanup_storage}</p>` : ''}
     </div>`).join('');
 }
 
