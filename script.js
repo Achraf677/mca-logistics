@@ -1599,11 +1599,11 @@ function afficherChauffeurs() {
       <td><strong>${c.nom}</strong></td><td>${c.tel}</td><td>${badgeChauffeur(c.statut)}</td>
       <td>${veh ? `<span style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</span>` : '<span style="color:var(--text-muted);font-size:0.82rem">—</span>'}</td>
       <td>${livs.length}</td><td>${euros(ca)}</td>
-      <td><div class="livraison-actions-panel"><div class="livraison-actions-quick">${actionStatutPropre}${actionPaiementPropre}</div><div class="livraison-actions-main">
+      <td style="display:flex;gap:6px;align-items:center">
         <select class="btn-icon" onchange="changerStatutChauffeur('${c.id}',this.value)">
-          <option value="disponible"   ${c.statut==='disponible'  ?'selected':''}>✅</option>
-          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>🚐</option>
-          <option value="inactif"      ${c.statut==='inactif'     ?'selected':''}>⏸️</option>
+          <option value="disponible"   ${c.statut==='disponible'  ?'selected':''}>✅ Dispo</option>
+          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>🚐 En route</option>
+          <option value="inactif"      ${c.statut==='inactif'     ?'selected':''}>⏸️ Inactif</option>
         </select>
         <button class="btn-icon danger" onclick="supprimerChauffeur('${c.id}')">🗑️</button>
       </td></tr>`;
