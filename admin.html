@@ -700,8 +700,9 @@
     <!-- BUDGET & TRÉSORERIE -->
     <section class="page" id="page-budget">
       <div class="page-actions">
-        <h2>📂 Budget & Trésorerie</h2>
+        <h2>📊 Budget & Trésorerie</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterBudgetExcel()" style="padding:6px 14px">📥 Export CSV</button>
           <button class="btn-rapport" onclick="exporterBudgetPDF()">📄 Rapport PDF</button>
         </div>
       </div>
@@ -711,9 +712,12 @@
 
       <!-- Navigation mois -->
       <div class="card" style="margin-bottom:12px;padding:10px 18px">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-          <button class="btn-secondary" onclick="navBudgetMois(-1)" style="padding:5px 12px">◀ Mois préc.</button>
-          <div id="budget-mois-label" style="font-size:1rem;font-weight:700"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="navBudgetMois(-1)" style="padding:5px 14px">◀ Mois préc.</button>
+          <div style="display:flex;align-items:center;gap:12px">
+            <div id="budget-mois-label" style="font-size:1.05rem;font-weight:700"></div>
+            <div id="budget-mois-badge" style="font-size:.75rem;padding:2px 10px;border-radius:20px;background:rgba(245,166,35,.15);color:var(--accent);font-weight:600"></div>
+          </div>
           <div style="display:flex;gap:6px">
             <button class="btn-secondary" onclick="navBudgetMois(0)" style="padding:5px 12px">Mois en cours</button>
             <button class="btn-secondary" onclick="navBudgetMois(1)" style="padding:5px 12px">Mois suiv. ▶</button>
@@ -774,7 +778,7 @@
         </div>
       </div>
 
-      <!-- Graphique cashflow 6 mois -->
+      <!-- Cashflow 6 mois -->
       <div class="card mt-20">
         <div class="card-header"><h2>📊 Cashflow — 6 derniers mois</h2></div>
         <div class="modal-body">
@@ -833,29 +837,18 @@
 
       <!-- Trésorerie prévisionnelle + Simulateur -->
       <div class="budget-2col mt-20">
-        <!-- Prévisionnel -->
         <div class="card">
           <div class="card-header"><h2>📅 Trésorerie prévisionnelle</h2></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:14px">Projection basée sur la moyenne mensuelle des 3 derniers mois.</p>
             <div style="display:flex;flex-direction:column;gap:10px">
-              <div class="budget-prev-row">
-                <span class="budget-prev-label">Dans 30 jours</span>
-                <span id="budget-prev-30" class="budget-prev-val">—</span>
-              </div>
-              <div class="budget-prev-row">
-                <span class="budget-prev-label">Dans 60 jours</span>
-                <span id="budget-prev-60" class="budget-prev-val">—</span>
-              </div>
-              <div class="budget-prev-row">
-                <span class="budget-prev-label">Dans 90 jours</span>
-                <span id="budget-prev-90" class="budget-prev-val">—</span>
-              </div>
+              <div class="budget-prev-row"><span class="budget-prev-label">Dans 30 jours</span><span id="budget-prev-30" class="budget-prev-val">—</span></div>
+              <div class="budget-prev-row"><span class="budget-prev-label">Dans 60 jours</span><span id="budget-prev-60" class="budget-prev-val">—</span></div>
+              <div class="budget-prev-row"><span class="budget-prev-label">Dans 90 jours</span><span id="budget-prev-90" class="budget-prev-val">—</span></div>
             </div>
             <div id="budget-prev-note" style="margin-top:12px;font-size:.78rem;color:var(--text-muted);padding:8px 12px;background:rgba(245,166,35,.07);border-radius:6px;border-left:3px solid var(--accent)"></div>
           </div>
         </div>
-        <!-- Simulateur -->
         <div class="card">
           <div class="card-header"><h2>🔮 Simulateur</h2></div>
           <div class="modal-body">
@@ -874,10 +867,8 @@
           </div>
         </div>
       </div>
-
-      <!-- Récapitulatif TVA -->
       <div class="card mt-20">
-        <div class="card-header"><h2>🧾 Récapitulatif TVA du mois</h2></div>
+        <div class="card-header"><h2>🧾 Déclaration TVA du mois</h2></div>
         <div class="modal-body" id="budget-tva-recap"></div>
       </div>
 
