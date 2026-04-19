@@ -4274,3 +4274,18 @@ select {
 /* Fix overflow sur les wrappers de tableau */
 .card { overflow: visible !important; }
 .page { overflow: visible; }
+
+.select-actions {
+  padding: 6px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--accent);
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.select-actions option:disabled {
+  color: var(--text-muted);
+}

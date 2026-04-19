@@ -3125,14 +3125,12 @@ function afficherCarburant() {
     return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
       <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
       <td><strong>${euros(p.total)}</strong></td><td>${euros(p.tvaDeductible||0)}</td><td>${p.kmCompteur ? formatKm(p.kmCompteur) : '—'}</td><td>${formatDateExport(p.date)}</td><td>${src}</td>
-      <td><div class="menu-actions-wrap" style="display:inline-block;position:relative">
-  <button class="btn-sm" onclick="event.stopPropagation();toggleMenuCarbAdmin('${p.id}')">Actions ▾</button>
-  <div class="menu-actions-dropdown" id="menu-carb-${p.id}" style="position:absolute;top:100%;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:160px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none;z-index:100">
-    <button style="display:block;width:100%;padding:8px 12px;border:none;background:transparent;text-align:left;color:var(--text-primary);cursor:pointer;border-radius:6px" onclick="ouvrirEditCarburantAdmin('${p.id}')">✏️ Modifier</button>
-    <button style="display:block;width:100%;padding:8px 12px;border:none;background:transparent;text-align:left;color:${p.photoRecu ? 'var(--text-primary)' : 'var(--text-muted)'};cursor:${p.photoRecu ? 'pointer' : 'not-allowed'};opacity:${p.photoRecu ? 1 : 0.5};border-radius:6px" ${p.photoRecu ? `onclick="voirRecuCarburant('${p.id}')"` : ''}>🧾 Voir le reçu ${p.photoRecu ? '' : '(aucun)'}</button>
-    <button style="display:block;width:100%;padding:8px 12px;border:none;background:transparent;text-align:left;color:var(--red);cursor:pointer;border-radius:6px" onclick="supprimerCarburant('${p.id}')">🗑️ Supprimer</button>
-  </div>
-</div></td></tr>`;
+      <td><select class="btn-sm select-actions" onchange="actionCarburant(this.value,'${p.id}');this.value=''">
+  <option value="">Actions ▾</option>
+  <option value="modifier">✏️ Modifier</option>
+  <option value="recu" ${!p.photoRecu ? 'disabled' : ''}>🧾 Voir le reçu${!p.photoRecu ? ' (aucun)' : ''}</option>
+  <option value="supprimer">🗑️ Supprimer</option>
+</select></td></tr>`;
   }).join('');
 }
 
@@ -3157,6 +3155,13 @@ function toggleMenuCarbAdmin(id) {
   });
   const menu = document.getElementById('menu-carb-' + id);
   if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function actionCarburant(action, id) {
+  if (!action) return;
+  if (action === 'modifier') editerPlein(id);
+  else if (action === 'recu') voirRecuCarburant(id);
+  else if (action === 'supprimer') supprimerPlein(id);
 }
 
 function voirRecuCarburant(id) {
@@ -5202,6 +5207,7 @@ function ouvrirConversation(salId) {
       div.innerHTML = `
         <div style="max-width:75%;background:${estAdmin ? 'var(--accent)' : 'var(--bg-dark)'};color:${estAdmin ? '#000' : 'var(--text-primary)'};padding:9px 13px;border-radius:${estAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
           ${m.photo ? `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />` : m.texte}
+          ${m.fichier ? `<a href="${m.fichier}" download="${m.nomFichier||'fichier'}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:10px;color:var(--blue);text-decoration:none;font-size:.85rem;margin-top:6px">📄 ${m.nomFichier || 'Télécharger le fichier'}</a>` : ''}
         </div>
         <span style="font-size:.72rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${estAdmin ? 'Vous' : sal?.nom || 'Salarié'} · ${heure} ${accuse}</span>`;
       fil.appendChild(div);

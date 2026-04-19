@@ -238,7 +238,7 @@ html, body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   margin-bottom: 14px;
-  overflow: hidden;
+  overflow: visible !important;
 }
 .card-header {
   padding: 14px 18px;
@@ -249,7 +249,7 @@ html, body {
   justify-content: space-between;
   align-items: center;
 }
-.card-body { padding: 16px 18px; }
+.card-body { padding: 16px 18px; overflow: visible !important; }
 
 /* ===== BOTTOM NAV ===== */
 #bottom-nav {
@@ -705,16 +705,21 @@ html, body {
   display:flex;align-items:center;gap:6px;
 }
 .menu-actions-dropdown {
-  display:none;position:absolute;
-  top:calc(100% + 4px);right:0;
-  background:var(--card);
-  border:1.5px solid var(--border);
-  border-radius:12px;
-  padding:4px;min-width:160px;
-  box-shadow:0 10px 30px rgba(0,0,0,.5);
-  z-index:100;
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  right: 0;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  min-width: 180px;
+  box-shadow: 0 -10px 30px rgba(0,0,0,.5);
+  z-index: 9999;
 }
-.menu-actions-dropdown.open { display:block; }
+.menu-actions-dropdown.open {
+  display: block;
+}
 .menu-actions-dropdown button {
   display:flex;align-items:center;gap:10px;
   width:100%;padding:10px 12px;
@@ -1100,17 +1105,17 @@ html, body {
             border-top:1px solid var(--border);
             display:flex;gap:8px;align-items:flex-end;
           ">
-            <label for="msg-photo-sal" style="
-              width:44px;height:44px;flex-shrink:0;
-              background:var(--card2);border:1.5px solid var(--border);
-              border-radius:12px;cursor:pointer;
-              display:flex;align-items:center;justify-content:center;
-              font-size:1.1rem;transition:all .2s;
-            " title="Joindre une photo">📎</label>
-            <input type="file" id="msg-photo-sal"
-              accept="image/*" capture="environment"
-              style="display:none"
-              onchange="envoyerPhotoSal(this)" />
+            <div class="pj-menu-wrap" style="position:relative">
+  <button type="button" onclick="event.stopPropagation();togglePjMenu()" style="width:44px;height:44px;flex-shrink:0;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;" title="Joindre">📎</button>
+  <div id="pj-menu" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:4px;min-width:200px;box-shadow:0 -10px 30px rgba(0,0,0,.5);z-index:9999;">
+    <button type="button" onclick="declencherPj('photo')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">📸 Prendre une photo</button>
+    <button type="button" onclick="declencherPj('galerie')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">🖼️ Choisir depuis la galerie</button>
+    <button type="button" onclick="declencherPj('fichier')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">📄 Envoyer un fichier</button>
+  </div>
+</div>
+<input type="file" id="msg-pj-photo" accept="image/*" capture="environment" style="display:none" onchange="envoyerPhotoSal(this)" />
+<input type="file" id="msg-pj-galerie" accept="image/*" style="display:none" onchange="envoyerPhotoSal(this)" />
+<input type="file" id="msg-pj-fichier" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="envoyerFichierSal(this)" />
             <textarea id="msg-input"
               placeholder="Votre message..."
               rows="1"
@@ -1658,6 +1663,54 @@ function afficherResumeJournee() {
 }
 
 /* ===== PHOTO MESSAGERIE SALARIÉ ===== */
+function togglePjMenu() {
+  const menu = document.getElementById('pj-menu');
+  if (!menu) return;
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function declencherPj(type) {
+  document.getElementById('pj-menu').style.display = 'none';
+  const map = { 'photo': 'msg-pj-photo', 'galerie': 'msg-pj-galerie', 'fichier': 'msg-pj-fichier' };
+  const input = document.getElementById(map[type]);
+  if (input) input.click();
+}
+
+function envoyerFichierSal(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) {
+    toast('⚠️ Fichier trop lourd (max 5 Mo)', 'error');
+    input.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const msgs = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+    msgs.push({
+      id: Date.now().toString(36),
+      auteur: 'salarie',
+      texte: '📎 Fichier : ' + file.name,
+      fichier: e.target.result,
+      nomFichier: file.name,
+      lu: false,
+      creeLe: new Date().toISOString()
+    });
+    localStorage.setItem('messages_' + salarieCourant.id, JSON.stringify(msgs));
+    input.value = '';
+    chargerMessagesSal();
+    toast('✅ Fichier envoyé');
+  };
+  reader.readAsDataURL(file);
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.pj-menu-wrap')) {
+    const menu = document.getElementById('pj-menu');
+    if (menu) menu.style.display = 'none';
+  }
+});
+
 function envoyerPhotoSal(input) {
   const file = input.files[0];
   if (!file) return;
@@ -1827,12 +1880,10 @@ function afficherPlanningSal() {
         let contenuHtml = '';
         if (c.contenu?.travail) {
           contenuHtml = `
-            <div style="
-              display:flex;align-items:center;gap:8px;
-              color:var(--green);font-weight:700;font-size:.9rem;
-            ">
-              🟢 ${c.contenu.debut} → ${c.contenu.fin}
-            </div>
+            <div style="display:inline-flex;align-items:center;gap:6px;color:var(--green);font-weight:700;font-size:.88rem;white-space:nowrap;">
+  <span style="width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0;"></span>
+  ${c.contenu.debut} → ${c.contenu.fin}
+</div>
             ${c.contenu.zone ? `
               <div style="font-size:.78rem;color:var(--muted);margin-top:4px">
                 📍 ${c.contenu.zone}
@@ -2358,27 +2409,80 @@ function calculerPlein() {
   else{res.style.display='none';}
 }
 
-function enregistrerPlein() {
-  const litres    = parseFloat(document.getElementById('sal-litres').value);
-  const prixLitre = parseFloat(document.getElementById('sal-prix-litre').value);
-  const date      = document.getElementById('sal-carb-date').value;
-  if (!litres||!prixLitre||isNaN(litres)||isNaN(prixLitre)){toast('⚠️ Litres et prix obligatoires','error');return;}
-  const total   = litres*prixLitre;
-  const veh     = getMonVehicule();
+async function enregistrerPlein() {
+  const litres = parseFloat(document.getElementById('sal-litres').value);
+  const prixL = parseFloat(document.getElementById('sal-prix-litre').value);
+  const date = document.getElementById('sal-carb-date').value;
+
+  if (!litres || !prixL || !date) {
+    toast('⚠️ Litres, prix et date obligatoires', 'error');
+    return;
+  }
+
+  let photoRecu = null;
+  const photoInput = document.getElementById('carb-photo');
+  const photoFile = photoInput?.files?.[0];
+  if (photoFile) {
+    photoRecu = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 1200;
+          let w = img.width, h = img.height;
+          if (w > max || h > max) {
+            const r = Math.min(max/w, max/h);
+            w = Math.round(w*r); h = Math.round(h*r);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(photoFile);
+    });
+  }
+
+  const veh = getMonVehicule();
   const libelle = libelleCarburant();
-  const id      = Date.now().toString(36)+Math.random().toString(36).substr(2);
-  const plein   = { id, salId:salarieCourant.id, salNom:salarieCourant.nom, vehId:veh?veh.id:'', vehNom:libelle, litres, prixLitre, total, date, source:'salarie', modifie:false, creeLe:new Date().toISOString() };
-  // Perso
-  const cle=`carb_sal_${salarieCourant.id}`;
-  const perso=JSON.parse(localStorage.getItem(cle)||'[]'); perso.push(plein); localStorage.setItem(cle,JSON.stringify(perso));
-  // Global
-  const global=JSON.parse(localStorage.getItem('carburant')||'[]'); global.push(plein); localStorage.setItem('carburant',JSON.stringify(global));
-  document.getElementById('sal-litres').value='';
-  document.getElementById('sal-prix-litre').value='';
-  document.getElementById('plein-result').style.display='none';
+  const cle = 'carb_sal_' + salarieCourant.id;
+  const pleins = JSON.parse(localStorage.getItem(cle) || '[]');
+  const nouveauPlein = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    salId: salarieCourant.id,
+    salNom: salarieCourant.nom,
+    vehId: veh ? veh.id : '',
+    vehNom: libelle,
+    litres: litres,
+    prixLitre: prixL,
+    total: litres * prixL,
+    date: date,
+    photoRecu: photoRecu,
+    source: 'salarie',
+    creeLe: new Date().toISOString()
+  };
+  pleins.push(nouveauPlein);
+  localStorage.setItem(cle, JSON.stringify(pleins));
+
+  const carburantGlobal = JSON.parse(localStorage.getItem('carburant') || '[]');
+  carburantGlobal.push(nouveauPlein);
+  localStorage.setItem('carburant', JSON.stringify(carburantGlobal));
+
+  document.getElementById('sal-litres').value = '';
+  document.getElementById('sal-prix-litre').value = '';
+  document.getElementById('plein-result').style.display = 'none';
+  if (photoInput) photoInput.value = '';
+  const label = document.getElementById('carb-photo-label');
+  if (label) label.textContent = 'Photographier le ticket';
+  const labelBox = document.querySelector('label[for=carb-photo]');
+  if (labelBox) labelBox.style.borderColor = 'var(--border)';
+
   chargerHistoriqueCarburant();
-  afficherAccueil(); // Cocher auto pleinFait dans la checklist
-  toast('✅ Plein enregistré !');
+  afficherAccueil();
+  if (window.__syncRefresh) window.__syncRefresh();
+  toast('✅ Plein enregistré' + (photoRecu ? ' avec reçu' : ''));
 }
 
 function supprimerPleinSal(id) {
@@ -3019,7 +3123,7 @@ function chargerHistoriqueInspections() {
 function voirPhotoPleinEcran(src) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px';
-  overlay.innerHTML = `<img src="${src}" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain" />`;
+  overlay.innerHTML = `<button style="position:absolute;top:max(16px,env(safe-area-inset-top));right:16px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border:none;color:#fff;font-size:1.3rem;cursor:pointer;z-index:10001;display:flex;align-items:center;justify-content:center;" onclick="this.parentElement.remove()">✕</button><img src="${src}" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain" />`;
   overlay.onclick = () => overlay.remove();
   document.body.appendChild(overlay);
 }
