@@ -132,21 +132,59 @@
     <!-- DASHBOARD -->
     <section class="page active" id="page-dashboard">
       <div id="dashboard-ct-banner"></div>
-      <div id="kpi-sante-globale" style="background:linear-gradient(135deg,rgba(46,204,113,0.12),rgba(46,204,113,0.04));border:1px solid rgba(46,204,113,0.25);border-radius:16px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;cursor:default">
-        <div>
-          <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:#7c8299;margin-bottom:6px">Santé entreprise</div>
-          <div style="font-size:1.5rem;font-weight:800" id="kpi-sante-label">🟢 Bonne santé</div>
-          <div style="font-size:.82rem;color:#7c8299;margin-top:4px" id="kpi-sante-detail">Chargement...</div>
+
+      <!-- Quick actions bar (Sprint 4) -->
+      <div class="quick-actions-bar" role="toolbar" aria-label="Actions rapides">
+        <button class="quick-action" onclick="openModal('modal-livraison')" title="Créer une livraison (Ctrl+N)">
+          <span class="quick-action-icon">📦</span>
+          <span class="quick-action-label">Nouvelle livraison</span>
+        </button>
+        <button class="quick-action" onclick="openModal('modal-carburant')" title="Saisir un plein">
+          <span class="quick-action-icon">⛽</span>
+          <span class="quick-action-label">Nouveau plein</span>
+        </button>
+        <button class="quick-action" onclick="openModal('modal-entretien')" title="Ajouter un entretien">
+          <span class="quick-action-icon">🔧</span>
+          <span class="quick-action-label">Nouvel entretien</span>
+        </button>
+        <button class="quick-action" onclick="if(typeof ouvrirModalPlanning==='function')ouvrirModalPlanning();else naviguerVers('planning')" title="Gérer le planning">
+          <span class="quick-action-icon">📅</span>
+          <span class="quick-action-label">Planning</span>
+        </button>
+        <button class="quick-action" onclick="naviguerVers('tva')" title="Onglet TVA">
+          <span class="quick-action-icon">🧾</span>
+          <span class="quick-action-label">TVA</span>
+        </button>
+        <button class="quick-action" onclick="naviguerVers('parametres')" title="Paramètres">
+          <span class="quick-action-icon">⚙️</span>
+          <span class="quick-action-label">Paramètres</span>
+        </button>
+      </div>
+
+      <!-- Hero santé avec score ring (Sprint 4) -->
+      <div id="kpi-sante-globale" class="hero-sante">
+        <div class="hero-sante-main">
+          <div class="hero-sante-tag">Santé entreprise</div>
+          <div class="hero-sante-title" id="kpi-sante-label">🟢 Bonne santé</div>
+          <div class="hero-sante-detail" id="kpi-sante-detail">Chargement...</div>
         </div>
-        <div style="text-align:right">
-          <div style="font-size:.72rem;color:#7c8299;margin-bottom:4px">Seuil de rentabilité</div>
-          <div style="font-size:1rem;font-weight:700;color:#2ecc71" id="kpi-seuil-label">—</div>
-          <div style="font-size:.72rem;color:#7c8299;margin-top:8px">Dernier calcul agent</div>
-          <div style="font-size:.78rem;color:#f5a623" id="kpi-agent-derniere-analyse">—</div>
+        <div class="hero-sante-ring-wrap" title="Score de santé calculé">
+          <svg class="sante-ring" viewBox="0 0 120 120" width="128" height="128" aria-label="Score de santé">
+            <circle class="sante-ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
+            <circle class="sante-ring-fg" id="sante-ring-fg" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="0 327"/>
+            <text x="60" y="62" text-anchor="middle" class="sante-ring-score" id="sante-ring-score">—</text>
+            <text x="60" y="80" text-anchor="middle" class="sante-ring-unit">/ 100</text>
+          </svg>
+        </div>
+        <div class="hero-sante-side">
+          <div class="hero-sante-tag">Seuil de rentabilité</div>
+          <div class="hero-sante-seuil" id="kpi-seuil-label">—</div>
+          <div class="hero-sante-tag" style="margin-top:10px">Dernier calcul agent</div>
+          <div class="hero-sante-agent" id="kpi-agent-derniere-analyse">—</div>
         </div>
       </div>
 
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+      <div class="kpi-grid kpi-grid-primary" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
         <div class="kpi-card green">
           <div class="kpi-label">CA ce mois (HT)</div>
           <div class="kpi-value" id="kpi-ca-mois">0 €</div>
@@ -172,52 +210,44 @@
         </div>
       </div>
 
-      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
-        <div class="kpi-card red" style="cursor:pointer" onclick="naviguerVers('relances')">
-          <div class="kpi-label">⚠️ Impayés</div>
-          <div class="kpi-value" id="kpi-solde">0 €</div>
-          <div class="kpi-sub">voir relances →</div>
+      <!-- Stats pills (Sprint 4) - KPI secondaires compacts -->
+      <div class="stats-row-pills" style="margin-bottom:20px">
+        <div class="stat-pill stat-pill-red" style="cursor:pointer" onclick="naviguerVers('relances')">
+          <div class="stat-pill-label">⚠️ Impayés</div>
+          <div class="stat-pill-value" id="kpi-solde">0 €</div>
+          <div class="stat-pill-sub">voir relances →</div>
         </div>
-        <div class="kpi-card orange">
-          <div class="kpi-label">🧾 TVA à reverser</div>
-          <div class="kpi-value" id="kpi-tva-solde">0 €</div>
-          <div class="kpi-sub" id="kpi-tva-detail"></div>
+        <div class="stat-pill stat-pill-orange">
+          <div class="stat-pill-label">🧾 TVA à reverser</div>
+          <div class="stat-pill-value" id="kpi-tva-solde">0 €</div>
+          <div class="stat-pill-sub" id="kpi-tva-detail"></div>
         </div>
-        <div class="kpi-card" style="cursor:pointer;border-top:3px solid #e74c3c" onclick="naviguerVers('alertes')">
-          <div class="kpi-label">🔔 Alertes</div>
-          <div class="kpi-value" id="kpi-alertes">0</div>
-          <div class="kpi-sub">à traiter</div>
+        <div class="stat-pill stat-pill-red" style="cursor:pointer" onclick="naviguerVers('alertes')">
+          <div class="stat-pill-label">🔔 Alertes</div>
+          <div class="stat-pill-value" id="kpi-alertes">0</div>
+          <div class="stat-pill-sub">à traiter</div>
         </div>
-        <div class="kpi-card blue" style="cursor:pointer" onclick="naviguerVers('messagerie')">
-          <div class="kpi-label">💬 Messages</div>
-          <div class="kpi-value" id="kpi-messages">0</div>
-          <div class="kpi-sub">non lus</div>
+        <div class="stat-pill stat-pill-blue" style="cursor:pointer" onclick="naviguerVers('messagerie')">
+          <div class="stat-pill-label">💬 Messages</div>
+          <div class="stat-pill-value" id="kpi-messages">0</div>
+          <div class="stat-pill-sub">non lus</div>
         </div>
       </div>
-      <div class="card mt-20">
-        <div class="card-header"><h2>⚡ Raccourcis administrateur</h2></div>
-        <div class="modal-body">
-          <div class="admin-quick-grid">
-            <button class="admin-quick-btn" onclick="openModal('modal-livraison')"><strong>Nouvelle livraison</strong><span>Créer une course rapidement</span></button>
-            <button class="admin-quick-btn" onclick="openModal('modal-carburant')"><strong>Nouveau plein</strong><span>Saisir un plein carburant</span></button>
-            <button class="admin-quick-btn" onclick="openModal('modal-entretien')"><strong>Nouvel entretien</strong><span>Ajouter une dépense flotte</span></button>
-            <button class="admin-quick-btn" onclick="ouvrirModalPlanning()"><strong>Gérer le planning</strong><span>Modifier les horaires de l'équipe</span></button>
-            <button class="admin-quick-btn" onclick="naviguerVers('tva')"><strong>Onglet TVA</strong><span>Contrôler la ventilation mensuelle</span></button>
-            <button class="admin-quick-btn" onclick="naviguerVers('parametres')"><strong>Paramètres</strong><span>Mettre à jour l'identité et les sauvegardes</span></button>
+
+      <!-- 2-col grid : Qui travaille + Activité (Sprint 4) -->
+      <div class="dashboard-2col">
+        <div class="card">
+          <div class="card-header"><h2>👥 Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
+          <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
+            <span style="font-size:.82rem;color:var(--text-muted)">Chargement...</span>
           </div>
         </div>
-      </div>
-      <!-- Qui travaille aujourd'hui -->
-      <div class="card mt-20">
-        <div class="card-header"><h2>👥 Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
-        <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
-          <span style="font-size:.82rem;color:var(--text-muted)">Chargement...</span>
+        <div class="card">
+          <div class="card-header"><h2>📊 Activité des 7 derniers jours</h2></div>
+          <div class="chart-container"><canvas id="chartActivite"></canvas></div>
         </div>
       </div>
-      <div class="card mt-20">
-        <div class="card-header"><h2>📊 Activité des 7 derniers jours</h2></div>
-        <div class="chart-container"><canvas id="chartActivite"></canvas></div>
-      </div>
+
       <div class="card mt-20">
         <div class="card-header"><h2>🕐 Livraisons récentes</h2></div>
         <div class="table-wrapper">
