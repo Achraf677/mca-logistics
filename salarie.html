@@ -1591,6 +1591,13 @@ function envoyerPhotoSal(input) {
   reader.readAsDataURL(file);
 }
 
+function localDateStr(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return y + '-' + m + '-' + d;
+}
+
 /* ===== PLANNING SALARIÉ ===== */
 function afficherPlanningSal() {
   if (!salarieCourant) return;
@@ -1638,14 +1645,14 @@ function afficherPlanningSal() {
 
   const joursLabels = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
   const joursKeys = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
-  const auj = maintenant.toISOString().slice(0, 10);
+  const auj = localDateStr(maintenant);
 
   const cartes = [];
 
   for (let i = 0; i < 7; i++) {
     const date = new Date(lundi);
     date.setDate(lundi.getDate() + i);
-    const dateStr = date.toISOString().slice(0, 10);
+    const dateStr = localDateStr(date);
     const jourKey = joursKeys[i];
     const estAuj = dateStr === auj;
 
