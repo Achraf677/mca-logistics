@@ -44,16 +44,20 @@ html, body {
 
 /* ===== LOGIN ===== */
 #ecran-login {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   overflow-y: auto;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 24px 20px;
   background:
-    radial-gradient(ellipse at 20% 20%, rgba(245,166,35,0.12) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 80%, rgba(59,130,246,0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 20% 20%,
+      rgba(245,166,35,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%,
+      rgba(59,130,246,0.08) 0%, transparent 50%),
     var(--bg);
+  z-index: 500;
 }
 .login-box {
   width: 100%;
@@ -277,6 +281,8 @@ html, body {
 .bn-item.active .bn-icon { transform: scale(1.1); }
 .bn-icon { font-size: 1.4rem; line-height: 1; transition: transform .2s; display: block; }
 .bn-label { font-size: .6rem; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; }
+.bn-wrap::-webkit-scrollbar { display: none; }
+.bn-item { min-width: 64px; }
 .bn-badge {
   position: absolute;
   top: 8px; right: 16%;
@@ -582,6 +588,23 @@ html, body {
   .form-row { grid-template-columns: 1fr !important; }
   .tab-label-long { display: none !important; }
   .tab-label-court { display: inline !important; }
+
+  /* Fix champs date qui dépassent */
+  input[type="date"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+  .form-row {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+  .form-group {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
 }
 </style>
 </head>
@@ -596,7 +619,20 @@ html, body {
   <!-- TOPBAR -->
   <header class="topbar">
     <div class="topbar-left">
-      <span class="topbar-logo">🚐 MCA</span>
+      <div class="topbar-logo-wrap">
+        <img id="topbar-logo-img" src="" alt="Logo" style="
+          display:none;
+          height:32px;
+          width:32px;
+          object-fit:contain;
+          border-radius:8px;
+        " />
+        <span id="topbar-logo-text" style="
+          font-size:.95rem;
+          font-weight:800;
+          color:var(--accent);
+        ">🚐 MCA</span>
+      </div>
       <span class="topbar-sep">|</span>
       <div class="topbar-info">
         <div class="name" id="sal-nom-display">—</div>
@@ -895,53 +931,55 @@ html, body {
 
   <!-- BOTTOM NAV -->
   <nav id="bottom-nav">
-    <div class="bn-wrap">
-      <button class="bn-item active" id="bn-accueil" onclick="changerOngletMobile('accueil',this)">
+    <div class="bn-wrap" style="
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      height: var(--bottom-nav-h);
+      padding: 0 4px;
+    ">
+      <button class="bn-item active" id="bn-accueil"
+        onclick="changerOngletMobile('accueil',this)">
         <span class="bn-icon">🏠</span>
         <span class="bn-label">Accueil</span>
         <span class="bn-badge" id="bn-badge-accueil"></span>
       </button>
-      <button class="bn-item" id="bn-livraisons" onclick="changerOngletMobile('livraisons',this)">
+      <button class="bn-item" id="bn-livraisons"
+        onclick="changerOngletMobile('livraisons',this)">
         <span class="bn-icon">📦</span>
         <span class="bn-label">Livraisons</span>
         <span class="bn-badge" id="bn-badge-livraisons"></span>
       </button>
-      <button class="bn-item" id="bn-inspection" onclick="changerOngletMobile('inspection',this)">
+      <button class="bn-item" id="bn-inspection"
+        onclick="changerOngletMobile('inspection',this)">
         <span class="bn-icon">🛣️</span>
         <span class="bn-label">Km & Insp.</span>
       </button>
-      <button class="bn-item" id="bn-carburant" onclick="changerOngletMobile('carburant',this)">
+      <button class="bn-item" id="bn-carburant"
+        onclick="changerOngletMobile('carburant',this)">
         <span class="bn-icon">⛽</span>
         <span class="bn-label">Carburant</span>
       </button>
-      <button class="bn-item" id="bn-messages" onclick="changerOngletMobile('messages',this)">
+      <button class="bn-item" id="bn-messages"
+        onclick="changerOngletMobile('messages',this)">
         <span class="bn-icon">💬</span>
         <span class="bn-label">Messages</span>
         <span class="bn-badge" id="bn-badge-messages"></span>
       </button>
-      <button class="bn-item" id="bn-plus" onclick="toggleMenuPlus()">
-        <span class="bn-icon">⋯</span>
-        <span class="bn-label">Plus</span>
+      <button class="bn-item" id="bn-planning"
+        onclick="changerOngletMobile('planning',this)">
+        <span class="bn-icon">📅</span>
+        <span class="bn-label">Planning</span>
+      </button>
+      <button class="bn-item" id="bn-profil"
+        onclick="changerOngletMobile('profil',this)">
+        <span class="bn-icon">👤</span>
+        <span class="bn-label">Profil</span>
       </button>
     </div>
   </nav>
-
-  <!-- MENU PLUS -->
-  <div id="menu-plus-overlay" onclick="toggleMenuPlus()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150;backdrop-filter:blur(4px)"></div>
-  <div id="menu-plus" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:24px 24px 0 0;border-top:1px solid var(--border);z-index:160;padding:0 16px calc(var(--safe-bottom) + 16px)">
-    <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 20px"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <button onclick="changerOngletMobile('planning',null);toggleMenuPlus()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:16px;padding:18px 12px;font-size:.88rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit">
-        <span style="font-size:1.6rem">📅</span><span style="font-weight:700">Planning</span>
-      </button>
-      <button onclick="changerOngletMobile('profil',null);toggleMenuPlus()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:16px;padding:18px 12px;font-size:.88rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit">
-        <span style="font-size:1.6rem">👤</span><span style="font-weight:700">Mon profil</span>
-      </button>
-    </div>
-    <button onclick="seDeconnecter()" style="width:100%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:var(--red);border-radius:14px;padding:16px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:4px">
-      ⏏ Se déconnecter
-    </button>
-  </div>
 
 </div><!-- fin ecran-salarie -->
 
@@ -1067,6 +1105,18 @@ function appliquerBrandingSalarie() {
 }
 
 function lancerInterface() {
+  // Charger le logo depuis localStorage
+  (function() {
+    const logo = localStorage.getItem('logo_entreprise_url')
+      || localStorage.getItem('logo_entreprise');
+    const logoEl = document.getElementById('topbar-logo-img');
+    const logoText = document.getElementById('topbar-logo-text');
+    if (logo && logoEl) {
+      logoEl.src = logo;
+      logoEl.style.display = 'block';
+      if (logoText) logoText.style.display = 'none';
+    }
+  })();
   initMobile();
   appliquerBrandingSalarie();
   document.getElementById('ecran-salarie').style.display = 'flex';
@@ -2719,11 +2769,6 @@ function initMobile() {
 }
 
 function changerOngletMobile(nom, btnNav) {
-  const mp = document.getElementById('menu-plus');
-  const mpo = document.getElementById('menu-plus-overlay');
-  if (mp) mp.style.display = 'none';
-  if (mpo) mpo.style.display = 'none';
-
   document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
   const map = {
     accueil: 'bn-accueil',
@@ -2731,8 +2776,8 @@ function changerOngletMobile(nom, btnNav) {
     inspection: 'bn-inspection',
     carburant: 'bn-carburant',
     messages: 'bn-messages',
-    planning: 'bn-plus',
-    profil: 'bn-plus'
+    planning: 'bn-planning',
+    profil: 'bn-profil'
   };
   const actif = document.getElementById(map[nom]);
   if (actif) actif.classList.add('active');
@@ -2743,18 +2788,6 @@ function changerOngletMobile(nom, btnNav) {
   changerOnglet(nom, null);
 }
 
-function toggleMenuPlus() {
-  const mp = document.getElementById('menu-plus');
-  const mpo = document.getElementById('menu-plus-overlay');
-  if (!mp) return;
-  const open = mp.style.display === 'block';
-  mp.style.display = open ? 'none' : 'block';
-  mpo.style.display = open ? 'none' : 'block';
-  if (!open) {
-    document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
-    document.getElementById('bn-plus')?.classList.add('active');
-  }
-}
 
 function majBadgesBottomNav() {
   if (!salarieCourant) return;
