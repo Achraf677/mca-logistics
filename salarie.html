@@ -1,0 +1,2823 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
+  <meta name="theme-color" content="#0a0d14" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>MCA Logistics — Espace Salarié</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <style>
+  :root {
+  --bg: #0a0d14;
+  --bg2: #111520;
+  --card: #161b27;
+  --card2: #1c2233;
+  --border: #242938;
+  --accent: #f5a623;
+  --accent2: #ff8c00;
+  --green: #22c55e;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --purple: #a855f7;
+  --text: #f0f4ff;
+  --muted: #6b7a99;
+  --radius: 16px;
+  --bottom-nav-h: 72px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== LOGIN ===== */
+#ecran-login {
+  min-height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 20px;
+  background:
+    radial-gradient(ellipse at 20% 20%, rgba(245,166,35,0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(59,130,246,0.08) 0%, transparent 50%),
+    var(--bg);
+}
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  padding: 40px 32px;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+}
+.login-logo { text-align: center; margin-bottom: 32px; }
+.login-logo-img {
+  width: 72px; height: 72px;
+  border-radius: 20px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 2rem;
+}
+.login-logo h1 { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+.login-logo p { font-size: .82rem; color: var(--muted); margin-top: 4px; }
+.login-field { margin-bottom: 16px; }
+.login-field label {
+  display: block;
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.login-field input {
+  width: 100%;
+  padding: 16px;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color .2s;
+}
+.login-field input:focus { outline: none; border-color: var(--accent); }
+.btn-login {
+  width: 100%;
+  padding: 17px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #000;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  margin-top: 8px;
+  letter-spacing: .3px;
+  transition: transform .15s, box-shadow .15s;
+}
+.btn-login:active { transform: scale(0.98); }
+.login-error {
+  background: rgba(239,68,68,.1);
+  border: 1px solid rgba(239,68,68,.3);
+  color: var(--red);
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: .85rem;
+  margin-top: 14px;
+  display: none;
+}
+
+/* ===== APP SHELL ===== */
+#ecran-salarie {
+  display: none;
+  height: 100vh;
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+}
+#ecran-salarie.actif { display: flex; }
+
+/* ===== TOPBAR ===== */
+.topbar {
+  flex-shrink: 0;
+  height: 56px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,.15);
+}
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.topbar-logo { font-size: .95rem; font-weight: 800; color: var(--accent); }
+.topbar-sep { color: var(--border); font-size: .8rem; }
+.topbar-info .name { font-size: .88rem; font-weight: 700; line-height: 1.2; }
+.topbar-info .veh { font-size: .72rem; color: var(--muted); }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.btn-profil {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border: none; border-radius: 50%;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; position: relative;
+  transition: transform .2s;
+}
+.btn-profil:active { transform: scale(0.92); }
+.notif-dot {
+  position: absolute; top: 0; right: 0;
+  width: 10px; height: 10px;
+  background: var(--red); border-radius: 50%;
+  border: 2px solid var(--card); display: none;
+}
+.notif-dot.visible { display: block; }
+
+/* ===== ONGLETS DESKTOP ===== */
+.tabs-wrapper {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 56px;
+  z-index: 99;
+}
+.tabs {
+  display: flex; gap: 2px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 6px 0;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+  font-family: inherit;
+}
+.tab.active { background: var(--accent); color: #000; font-weight: 700; }
+
+/* ===== CONTENU SCROLLABLE ===== */
+.main {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+.main-inner {
+  padding: 16px;
+  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 40px);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ===== PANNEAUX ===== */
+.panneau { display: none; }
+.panneau.active { display: block; }
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: .9rem;
+  font-weight: 700;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-body { padding: 16px 18px; }
+
+/* ===== BOTTOM NAV ===== */
+#bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--bottom-nav-h) + var(--safe-bottom));
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  z-index: 1000;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.12);
+  padding-bottom: var(--safe-bottom);
+}
+.bn-wrap { display: flex; height: var(--bottom-nav-h); }
+.bn-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  position: relative;
+  transition: color .2s;
+  font-family: inherit;
+  min-height: 56px;
+  padding: 0;
+}
+.bn-item.active { color: var(--accent); }
+.bn-item.active .bn-icon { transform: scale(1.1); }
+.bn-icon { font-size: 1.4rem; line-height: 1; transition: transform .2s; display: block; }
+.bn-label { font-size: .6rem; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; }
+.bn-badge {
+  position: absolute;
+  top: 8px; right: 16%;
+  background: var(--red);
+  color: #fff;
+  border-radius: 10px;
+  font-size: .58rem;
+  padding: 1px 5px;
+  font-weight: 800;
+  min-width: 16px;
+  text-align: center;
+  display: none;
+}
+.bn-badge.visible { display: block; }
+
+/* ===== SHEET ===== */
+.sheet-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 200;
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+}
+.sheet-overlay.open { display: block; }
+.sheet {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--card);
+  border-radius: 24px 24px 0 0;
+  border-top: 1px solid var(--border);
+  z-index: 201;
+  transform: translateY(100%);
+  transition: transform .35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 92dvh; overflow-y: auto;
+  padding-bottom: calc(var(--safe-bottom) + 16px);
+}
+.sheet.open { transform: translateY(0); }
+.sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 14px auto 4px; }
+.sheet-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px 16px; border-bottom: 1px solid var(--border);
+}
+.sheet-title { font-size: 1.05rem; font-weight: 800; }
+.sheet-close {
+  width: 32px; height: 32px; background: var(--card2);
+  border: 1px solid var(--border); border-radius: 50%;
+  color: var(--muted); cursor: pointer; font-size: .9rem;
+  display: flex; align-items: center; justify-content: center;
+}
+.sheet-body { padding: 20px; }
+
+/* ===== FORMULAIRES ===== */
+.form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.form-group label {
+  font-size: .72rem; text-transform: uppercase;
+  letter-spacing: .7px; color: var(--muted); font-weight: 700;
+}
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 15px 16px;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 12px; color: var(--text);
+  font-size: .95rem; font-family: inherit;
+  transition: border-color .2s; min-height: 52px;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.12);
+}
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* ===== BOUTONS ===== */
+.btn-primary {
+  width: 100%; padding: 17px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #000; border: none; border-radius: 14px;
+  font-size: 1rem; font-weight: 800; cursor: pointer;
+  font-family: inherit; letter-spacing: .2px;
+  transition: transform .15s, opacity .15s;
+}
+.btn-primary:active { transform: scale(0.98); opacity: .9; }
+.btn-secondary {
+  padding: 13px 20px; background: var(--card2);
+  color: var(--text); border: 1px solid var(--border);
+  border-radius: 12px; font-size: .88rem; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all .2s;
+}
+.btn-secondary:active { opacity: .7; }
+.btn-danger {
+  padding: 13px 20px; background: rgba(239,68,68,.1);
+  color: var(--red); border: 1px solid rgba(239,68,68,.25);
+  border-radius: 12px; font-size: .88rem; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.btn-sm {
+  padding: 8px 14px; background: var(--card2);
+  border: 1px solid var(--border); color: var(--muted);
+  border-radius: 8px; font-size: .8rem; cursor: pointer; font-family: inherit;
+}
+
+/* ===== RESULT BOX ===== */
+.result-box {
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: 12px; padding: 16px;
+  text-align: center; font-size: 1.1rem;
+  font-weight: 700; color: var(--accent); display: none;
+}
+
+/* ===== LIVRAISONS ===== */
+.livraison-item {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px; margin-bottom: 10px;
+}
+.livraison-client { font-weight: 700; font-size: 1rem; margin-bottom: 6px; }
+.livraison-adresses { font-size: .8rem; color: var(--muted); margin-bottom: 12px; line-height: 1.5; }
+.livraison-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.livraison-statut select {
+  flex: 1; padding: 10px 12px; background: var(--bg2);
+  border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; font-size: .85rem; cursor: pointer;
+  font-family: inherit; min-height: 44px;
+}
+
+/* ===== ACTIONS RAPIDES ===== */
+.actions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.action-btn {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 18px 12px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; transition: all .2s; font-family: inherit; color: var(--text);
+}
+.action-btn:active { transform: scale(0.96); background: var(--card); }
+.action-btn .ab-icon { font-size: 1.8rem; }
+.action-btn .ab-label { font-size: .78rem; font-weight: 700; text-align: center; line-height: 1.3; }
+.action-btn.primary {
+  background: linear-gradient(135deg, rgba(245,166,35,0.15), rgba(245,166,35,0.05));
+  border-color: rgba(245,166,35,0.3);
+}
+
+/* ===== CHECKLIST ===== */
+.checklist-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0; border-bottom: 1px solid var(--border);
+}
+.checklist-item:last-child { border-bottom: none; }
+.check-circle {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: .75rem; transition: all .3s;
+}
+.check-circle.done { background: var(--green); border-color: var(--green); color: #fff; }
+.checklist-label { flex: 1; font-size: .88rem; line-height: 1.4; }
+.checklist-label.done { color: var(--muted); text-decoration: line-through; }
+.checklist-action {
+  padding: 8px 14px;
+  background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.25);
+  color: var(--accent); border-radius: 8px;
+  font-size: .78rem; font-weight: 700; cursor: pointer;
+  font-family: inherit; white-space: nowrap;
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-wrap { background: rgba(255,255,255,.06); border-radius: 20px; height: 8px; overflow: hidden; margin-bottom: 16px; }
+.progress-fill { height: 100%; border-radius: 20px; transition: width .4s ease; }
+
+/* ===== PROFIL ===== */
+.profil-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.profil-avatar {
+  width: 60px; height: 60px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 18px; display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; flex-shrink: 0;
+}
+.profil-name { font-size: 1.1rem; font-weight: 800; }
+.profil-sub { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.profil-badge {
+  display: inline-block; background: rgba(34,197,94,.12);
+  color: var(--green); border: 1px solid rgba(34,197,94,.25);
+  border-radius: 20px; font-size: .72rem; padding: 2px 10px; font-weight: 700; margin-top: 4px;
+}
+.profil-section { margin-bottom: 20px; }
+.profil-section h3 {
+  font-size: .7rem; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--muted); font-weight: 700; margin-bottom: 10px;
+}
+.profil-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 0; border-bottom: 1px solid var(--border); font-size: .88rem;
+}
+.profil-row:last-child { border-bottom: none; }
+.profil-row .label { color: var(--muted); }
+.profil-row .value { font-weight: 600; }
+
+/* ===== MESSAGERIE ===== */
+#msg-fil { min-height: 200px; max-height: 50dvh; overflow-y: auto; padding: 8px 0; }
+.msg-bubble { margin-bottom: 12px; display: flex; }
+.msg-bubble.admin { justify-content: flex-start; }
+.msg-bubble.moi { justify-content: flex-end; }
+.msg-content { max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: .88rem; line-height: 1.5; }
+.msg-bubble.admin .msg-content {
+  background: var(--card2); border: 1px solid var(--border); border-bottom-left-radius: 4px;
+}
+.msg-bubble.moi .msg-content {
+  background: rgba(245,166,35,0.15); border: 1px solid rgba(245,166,35,0.2); border-bottom-right-radius: 4px;
+}
+.msg-input-row { display: flex; gap: 10px; align-items: flex-end; margin-top: 12px; }
+.msg-input-row textarea { flex: 1; min-height: 48px; max-height: 120px; resize: none; }
+.btn-send {
+  width: 48px; height: 48px; background: var(--accent);
+  border: none; border-radius: 12px; color: #000;
+  font-size: 1.2rem; cursor: pointer; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; transition: transform .15s;
+}
+.btn-send:active { transform: scale(0.92); }
+
+/* ===== NOTIFS ===== */
+.notif-banner {
+  background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2);
+  border-radius: 10px; padding: 10px 14px; font-size: .83rem;
+  color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 10px;
+}
+.close-notif { background: none; border: none; color: var(--green); cursor: pointer; font-size: .9rem; margin-left: auto; }
+
+/* ===== OFFLINE BANNER ===== */
+#offline-banner {
+  position: fixed; top: 56px; left: 0; right: 0;
+  background: var(--red); color: #fff; padding: 8px 16px;
+  font-size: .8rem; font-weight: 700; text-align: center; z-index: 50;
+  transform: translateY(-100%); transition: transform .3s;
+}
+#offline-banner.visible { transform: translateY(0); }
+
+/* ===== EMPTY STATE ===== */
+.empty { text-align: center; color: var(--muted); padding: 32px 20px; font-size: .88rem; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 16px);
+  left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 20px; border-radius: 40px;
+  font-size: .85rem; font-weight: 600; opacity: 0; transition: all .3s;
+  z-index: 300; white-space: nowrap; max-width: calc(100vw - 40px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: rgba(239,68,68,.9); border-color: var(--red); color: #fff; }
+
+/* ===== MODAL ===== */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 200;
+  align-items: flex-end; justify-content: center; padding: 0;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 24px 24px 0 0; width: 100%; max-width: 600px;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.5); max-height: 92dvh; overflow-y: auto;
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 20px 20px 16px; border-bottom: 1px solid var(--border);
+  font-weight: 700; font-size: 1rem;
+}
+.modal-body { padding: 20px; }
+.modal-footer {
+  padding: 16px 20px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+.btn-close {
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--muted); font-size: .9rem; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ===== PWA ===== */
+.pwa-prompt {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 12px);
+  left: 16px; right: 16px; background: var(--card2);
+  border: 1px solid rgba(245,166,35,0.3); border-radius: 16px;
+  padding: 16px; z-index: 150; display: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+.pwa-prompt.visible { display: block; }
+
+/* ===== DESKTOP ===== */
+@media(min-width: 769px) {
+  html, body { overflow: auto; }
+  #ecran-salarie { height: auto; min-height: 100vh; overflow: visible; }
+  .main { overflow: visible; }
+  .main-inner { padding-bottom: 40px; }
+  .tabs-wrapper { display: block !important; }
+  #bottom-nav { display: none !important; }
+  .form-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ===== MOBILE ===== */
+@media(max-width: 768px) {
+  .tabs-wrapper { display: none !important; }
+  #bottom-nav { display: block !important; }
+  .form-row { grid-template-columns: 1fr !important; }
+  .tab-label-long { display: none !important; }
+  .tab-label-court { display: inline !important; }
+}
+</style>
+</head>
+<body class="app-shell app-booting">
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner">📵 Hors ligne — synchronisation en attente</div>
+
+<!-- ===== ÉCRAN SALARIÉ ===== -->
+<div id="ecran-salarie">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <span class="topbar-logo">🚐 MCA</span>
+      <span class="topbar-sep">|</span>
+      <div class="topbar-info">
+        <div class="name" id="sal-nom-display">—</div>
+        <div class="veh" id="sal-veh-display">Chargement...</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil">
+        👤
+        <span class="notif-dot" id="notif-dot"></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ONGLETS DESKTOP -->
+  <div class="tabs-wrapper">
+    <div class="tabs">
+      <button class="tab active" id="tab-accueil" onclick="changerOnglet('accueil',this)">🏠 Accueil <span id="badge-accueil" style="display:none;background:var(--red);color:#fff;border-radius:20px;font-size:.7rem;padding:1px 6px;font-weight:700"></span></button>
+      <button class="tab" id="tab-livraisons" onclick="changerOnglet('livraisons',this)">📦 Livraisons</button>
+      <button class="tab" id="tab-planning" onclick="changerOnglet('planning',this)">📅 Planning</button>
+      <button class="tab" id="tab-carburant" onclick="changerOnglet('carburant',this)">⛽ Carburant</button>
+      <button class="tab" id="tab-inspection" onclick="changerOnglet('inspection',this)">
+        <span class="tab-label-long">🚗 Inspection & Km</span>
+        <span class="tab-label-court" style="display:none">🚗 Insp.</span>
+      </button>
+      <button class="tab" id="tab-messages" onclick="changerOnglet('messages',this)">💬 Messages <span id="badge-msg-sal" style="display:none;background:var(--red);color:#fff;border-radius:20px;font-size:.7rem;padding:2px 7px;font-weight:700;line-height:1.2;vertical-align:middle"></span></button>
+      <button class="tab" id="tab-profil" onclick="changerOnglet('profil',this)">👤 Profil</button>
+    </div>
+  </div>
+
+  <!-- CONTENU -->
+  <div class="main" id="main-scroll">
+    <div class="main-inner">
+
+      <!-- ACCUEIL -->
+      <div class="panneau active" id="panneau-accueil">
+        <div id="resume-journee-container"></div>
+
+        <div style="margin-bottom:16px">
+          <div style="font-size:1.3rem;font-weight:800" id="accueil-bonjour">Bonjour 👋</div>
+          <div style="font-size:.82rem;color:var(--muted);margin-top:2px" id="accueil-date"></div>
+        </div>
+
+        <div class="actions-grid">
+          <button class="action-btn primary" onclick="changerOnglet('livraisons',document.getElementById('tab-livraisons'))">
+            <span class="ab-icon">📦</span>
+            <span class="ab-label">Mes livraisons</span>
+          </button>
+          <button class="action-btn primary" onclick="changerOnglet('inspection',document.getElementById('tab-inspection'))">
+            <span class="ab-icon">🛣️</span>
+            <span class="ab-label">Km & Inspection</span>
+          </button>
+          <button class="action-btn" onclick="changerOnglet('carburant',document.getElementById('tab-carburant'))">
+            <span class="ab-icon">⛽</span>
+            <span class="ab-label">Carburant</span>
+          </button>
+          <button class="action-btn" onclick="changerOnglet('messages',document.getElementById('tab-messages'))">
+            <span class="ab-icon">💬</span>
+            <span class="ab-label">Messages <span id="badge-msg-action" style="display:none;background:var(--red);color:#fff;border-radius:20px;font-size:.65rem;padding:0 5px;font-weight:700;vertical-align:middle"></span></span>
+          </button>
+        </div>
+
+        <div class="card" id="accueil-planning-card" style="display:none">
+          <div class="card-header">📅 Mon planning aujourd'hui</div>
+          <div class="card-body" id="accueil-planning-content"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            ✅ Tâches du jour
+            <span style="font-size:.78rem;color:var(--muted);font-weight:400" id="accueil-checklist-progress"></span>
+          </div>
+          <div class="card-body">
+            <div class="progress-wrap">
+              <div class="progress-fill" id="checklist-progress-bar" style="width:0%;background:var(--accent)"></div>
+            </div>
+            <div id="accueil-checklist"><div class="empty">Chargement...</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            📦 Mes livraisons du jour
+            <span style="font-size:.78rem;color:var(--muted);font-weight:400" id="accueil-nb-livs"></span>
+          </div>
+          <div class="card-body" id="accueil-livraisons-resume">
+            <div class="empty">Aucune livraison assignée</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVRAISONS -->
+      <div class="panneau" id="panneau-livraisons">
+        <div class="card">
+          <div class="card-header">
+            📦 Mes livraisons du jour
+            <span style="font-size:.78rem;color:var(--muted);font-weight:400" id="badge-nb-livraisons"></span>
+          </div>
+          <div class="card-body" id="liste-livraisons">
+            <div class="empty">Aucune livraison assignée</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PLANNING -->
+      <div class="panneau" id="panneau-planning">
+        <div class="card">
+          <div class="card-header">📅 Mon planning de la semaine</div>
+          <div class="card-body" id="planning-sal-content">
+            <div class="empty">Aucun planning défini</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARBURANT -->
+      <div class="panneau" id="panneau-carburant">
+        <div id="notifs-carburant-container"></div>
+        <div class="card">
+          <div class="card-header">⛽ Enregistrer un plein</div>
+          <div class="card-body">
+            <div id="carb-veh-info" style="margin-bottom:12px"></div>
+            <div class="form-group">
+              <label>Litres *</label>
+              <input type="number" id="sal-litres" placeholder="Ex : 40" min="0" step="0.1" inputmode="decimal" oninput="calculerPlein()" />
+            </div>
+            <div class="form-group">
+              <label>Prix / litre (€) *</label>
+              <input type="number" id="sal-prix-litre" placeholder="Ex : 1.85" min="0" step="0.01" inputmode="decimal" oninput="calculerPlein()" />
+            </div>
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="sal-carb-date" />
+            </div>
+            <div class="result-box" id="plein-result">
+              Total : <strong id="plein-total">0 €</strong>
+            </div>
+            <button class="btn-primary" style="margin-top:16px" onclick="enregistrerPlein()">✅ Enregistrer le plein</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">📋 Mes pleins</div>
+          <div class="card-body" id="historique-carburant"><div class="empty">Aucun plein</div></div>
+        </div>
+      </div>
+
+      <!-- INSPECTION + KM -->
+      <div class="panneau" id="panneau-inspection">
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">🛣️ Relevé kilométrique</div>
+          <div class="card-body">
+            <div class="form-group">
+              <label>Date</label>
+              <input type="date" id="km-date" onchange="rafraichirTourneesSelect()" />
+            </div>
+            <div class="form-group">
+              <label>Tournée concernée</label>
+              <select id="km-tournee-id">
+                <option value="">— Optionnel —</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Km début *</label>
+                <input type="number" id="km-depart" placeholder="Ex : 50 200" min="0" inputmode="numeric" oninput="majDistanceKm()" />
+              </div>
+              <div class="form-group">
+                <label>Km fin</label>
+                <input type="number" id="km-arrivee" placeholder="Ex : 50 650" min="0" inputmode="numeric" oninput="majDistanceKm()" />
+              </div>
+            </div>
+            <div class="result-box" id="km-result" style="margin-bottom:14px">
+              Distance : <strong id="km-distance">0 km</strong>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn-secondary" style="flex:1" onclick="enregistrerKmDepart()">🚦 Km départ</button>
+              <button class="btn-primary" style="flex:1" onclick="enregistrerKmArrivee()">🏁 Km retour</button>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-header">📋 Mes relevés</div>
+          <div class="card-body" id="historique-km"><div class="empty">Aucun relevé</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">🚗 Inspection quotidienne</div>
+          <div class="card-body">
+            <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Photos transmises à l'administrateur à chaque envoi.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date *</label>
+                <input type="date" id="insp-date" />
+              </div>
+              <div class="form-group">
+                <label>Km actuel</label>
+                <input type="number" id="insp-km" placeholder="50 200" inputmode="numeric" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Commentaire</label>
+              <input type="text" id="insp-commentaire" placeholder="Ex : Rayure porte droite..." />
+            </div>
+            <div class="form-group">
+              <label>Photos (1 à 4) *</label>
+              <label for="insp-photos" style="display:flex;align-items:center;gap:12px;padding:20px;background:var(--bg2);border:2px dashed var(--border);border-radius:12px;cursor:pointer;transition:border-color .2s;">
+                <span style="font-size:1.8rem">📸</span>
+                <div>
+                  <div style="font-size:.9rem;font-weight:700;color:var(--accent)">Prendre des photos</div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-top:2px">JPG, PNG — max 4</div>
+                </div>
+              </label>
+              <input type="file" id="insp-photos" accept="image/*" multiple capture="environment" style="display:none" onchange="previewPhotosInspection(this)" />
+              <div id="insp-photos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+            </div>
+            <button class="btn-primary" onclick="soumettreInspection()">📤 Envoyer l'inspection</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">📋 Mes inspections précédentes</div>
+          <div class="card-body" id="historique-inspections"><div class="empty">Aucune inspection</div></div>
+        </div>
+      </div>
+
+      <!-- MESSAGES -->
+      <div class="panneau" id="panneau-messages">
+        <div class="card">
+          <div class="card-header">💬 Messagerie — Administration</div>
+          <div class="card-body" style="padding-bottom:8px">
+            <div id="msg-fil"><div class="empty">Aucun message pour l'instant</div></div>
+            <div class="msg-input-row">
+              <textarea class="form-group" id="msg-input" placeholder="Votre message..." rows="1"
+                style="margin:0;padding:12px 14px;resize:none;min-height:48px;border-radius:12px;font-family:inherit;font-size:.9rem;background:var(--bg2);border:1.5px solid var(--border);color:var(--text);width:100%"
+                oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"
+                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageSal();}"
+              ></textarea>
+              <button class="btn-send" onclick="envoyerMessageSal()">➤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFIL -->
+      <div class="panneau" id="panneau-profil">
+        <div id="mes-incidents-container" style="margin-bottom:14px"></div>
+        <div id="notifs-profil-container"></div>
+        <div class="card">
+          <div class="card-header">👤 Mon profil</div>
+          <div class="card-body">
+            <div class="profil-header">
+              <div class="profil-avatar" id="profil-avatar">👤</div>
+              <div>
+                <div class="profil-name" id="profil-nom-display">—</div>
+                <div class="profil-sub" id="profil-poste-display">—</div>
+                <div class="profil-badge" id="profil-statut-badge">✅ Actif</div>
+              </div>
+            </div>
+            <div class="profil-section">
+              <h3>Informations</h3>
+              <div class="profil-row"><span class="label">N° Salarié</span><span class="value" id="profil-numero">—</span></div>
+              <div class="profil-row"><span class="label">Téléphone</span><span class="value" id="profil-tel">—</span></div>
+              <div class="profil-row"><span class="label">Véhicule</span><span class="value" id="profil-vehicule">—</span></div>
+              <div class="profil-row"><span class="label">Poste</span><span class="value" id="profil-poste">—</span></div>
+              <div class="profil-row"><span class="label">Membre depuis</span><span class="value" id="profil-depuis">—</span></div>
+            </div>
+            <div class="profil-section">
+              <h3>Statistiques du mois</h3>
+              <div class="profil-row"><span class="label">Livraisons ce mois</span><span class="value" id="profil-livs-mois">—</span></div>
+              <div class="profil-row"><span class="label">Livraisons aujourd'hui</span><span class="value" id="profil-livs-auj">—</span></div>
+              <div class="profil-row"><span class="label">Km relevés ce mois</span><span class="value" id="profil-km-mois">—</span></div>
+            </div>
+            <div class="profil-section">
+              <h3>Modifier le mot de passe</h3>
+              <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="chg-ancien" autocomplete="current-password" /></div>
+              <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="chg-nouveau" autocomplete="new-password" /></div>
+              <div class="form-group"><label>Confirmer</label><input type="password" id="chg-confirmer" autocomplete="new-password" /></div>
+              <button class="btn-primary" onclick="changerMonMdp()">🔑 Mettre à jour</button>
+            </div>
+            <div style="margin-top:20px">
+              <button class="btn-danger" style="width:100%" id="btn-salarie-logout" onclick="seDeconnecter()">⏏ Se déconnecter</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" id="pwa-install-card" style="display:none">
+          <div class="card-body" style="text-align:center;padding:20px">
+            <div style="font-size:1.6rem;margin-bottom:10px">📱</div>
+            <div style="font-weight:700;margin-bottom:6px">Installer l'app</div>
+            <div style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Sur iPhone : appuyez sur <strong>Partager</strong> puis <strong>"Sur l'écran d'accueil"</strong></div>
+            <button class="btn-secondary" id="btn-pwa-install" style="width:100%">📲 Installer MCA Logistics</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- fin main-inner -->
+  </div><!-- fin main -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottom-nav">
+    <div class="bn-wrap">
+      <button class="bn-item active" id="bn-accueil" onclick="changerOngletMobile('accueil',this)">
+        <span class="bn-icon">🏠</span>
+        <span class="bn-label">Accueil</span>
+        <span class="bn-badge" id="bn-badge-accueil"></span>
+      </button>
+      <button class="bn-item" id="bn-livraisons" onclick="changerOngletMobile('livraisons',this)">
+        <span class="bn-icon">📦</span>
+        <span class="bn-label">Livraisons</span>
+        <span class="bn-badge" id="bn-badge-livraisons"></span>
+      </button>
+      <button class="bn-item" id="bn-inspection" onclick="changerOngletMobile('inspection',this)">
+        <span class="bn-icon">🛣️</span>
+        <span class="bn-label">Km & Insp.</span>
+      </button>
+      <button class="bn-item" id="bn-carburant" onclick="changerOngletMobile('carburant',this)">
+        <span class="bn-icon">⛽</span>
+        <span class="bn-label">Carburant</span>
+      </button>
+      <button class="bn-item" id="bn-messages" onclick="changerOngletMobile('messages',this)">
+        <span class="bn-icon">💬</span>
+        <span class="bn-label">Messages</span>
+        <span class="bn-badge" id="bn-badge-messages"></span>
+      </button>
+      <button class="bn-item" id="bn-plus" onclick="toggleMenuPlus()">
+        <span class="bn-icon">⋯</span>
+        <span class="bn-label">Plus</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- MENU PLUS -->
+  <div id="menu-plus-overlay" onclick="toggleMenuPlus()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150;backdrop-filter:blur(4px)"></div>
+  <div id="menu-plus" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:24px 24px 0 0;border-top:1px solid var(--border);z-index:160;padding:0 16px calc(var(--safe-bottom) + 16px)">
+    <div style="width:40px;height:4px;background:var(--border);border-radius:2px;margin:14px auto 20px"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+      <button onclick="changerOngletMobile('planning',null);toggleMenuPlus()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:16px;padding:18px 12px;font-size:.88rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit">
+        <span style="font-size:1.6rem">📅</span><span style="font-weight:700">Planning</span>
+      </button>
+      <button onclick="changerOngletMobile('profil',null);toggleMenuPlus()" style="background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:16px;padding:18px 12px;font-size:.88rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:8px;font-family:inherit">
+        <span style="font-size:1.6rem">👤</span><span style="font-weight:700">Mon profil</span>
+      </button>
+    </div>
+    <button onclick="seDeconnecter()" style="width:100%;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:var(--red);border-radius:14px;padding:16px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:4px">
+      ⏏ Se déconnecter
+    </button>
+  </div>
+
+</div><!-- fin ecran-salarie -->
+
+<!-- Modales -->
+<div class="modal-overlay" id="modal-modif-plein">
+  <div class="modal">
+    <div class="modal-header">✏️ Modifier le plein <button class="btn-close" onclick="fermerModal('modal-modif-plein')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="modif-plein-id" />
+      <div class="form-group"><label>Litres *</label><input type="number" id="modif-litres" min="0" step="0.1" /></div>
+      <div class="form-group"><label>Prix / litre (€) *</label><input type="number" id="modif-prix-litre" min="0" step="0.01" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="modif-date" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="fermerModal('modal-modif-plein')">Annuler</button>
+      <button class="btn-primary" onclick="confirmerModifPlein()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-edit-km-sal">
+  <div class="modal">
+    <div class="modal-header">✏️ Modifier le relevé <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-km-id" />
+      <div class="form-group"><label>Km début *</label><input type="number" id="edit-km-dep" min="0" inputmode="numeric" /></div>
+      <div class="form-group"><label>Km fin</label><input type="number" id="edit-km-arr" min="0" inputmode="numeric" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="edit-km-date" /></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="fermerModal('modal-edit-km-sal')">Annuler</button>
+      <button class="btn-primary" onclick="confirmerEditKmSal()">✅ Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast-sal"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
+<script src="supabase-client.js"></script>
+<script src="supabase-auth.js"></script>
+<script src="security-utils.js"></script>
+<script src="supabase-storage-sync.js"></script>
+<script>
+/* ===== ÉTAT ===== */
+let salarieCourant = null;
+
+function setBoutonDeconnexionSalarieEtat(enCours) {
+  const btn = document.getElementById('btn-salarie-logout');
+  if (!btn) return;
+  if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = btn.textContent;
+  btn.disabled = !!enCours;
+  btn.textContent = enCours ? 'Déconnexion...' : btn.dataset.defaultLabel;
+}
+
+function redirigerVersLoginSalarie(raison) {
+  try { sessionStorage.setItem('delivpro_debug_redirect', 'salarie: ' + (raison || 'inconnu') + ' @ ' + new Date().toLocaleTimeString()); } catch(_) {}
+  document.body.classList.add('app-booting');
+  if (window.top && window.top !== window) {
+    window.top.location.href = 'login.html';
+    return;
+  }
+  window.location.href = 'login.html';
+}
+
+function purgerSessionSalarieLocale() {
+  sessionStorage.removeItem('role');
+  sessionStorage.removeItem('auth_mode');
+  sessionStorage.removeItem('salarie_id');
+  sessionStorage.removeItem('salarie_numero');
+  sessionStorage.removeItem('delivpro_fast_boot_role');
+}
+
+function seDeconnecter() {
+  if (window.__delivproSalarieLogoutPending) return;
+  window.__delivproSalarieLogoutPending = true;
+  setBoutonDeconnexionSalarieEtat(true);
+  salarieCourant = null;
+  if (window._msgPollInterval) clearInterval(window._msgPollInterval);
+  sessionStorage.setItem('delivpro_logged_out', '1');
+  sessionStorage.setItem('delivpro_pending_signout', '1');
+  purgerSessionSalarieLocale();
+  redirigerVersLoginSalarie('clic_deconnexion');
+}
+
+let _timerInactiviteSalarie = null;
+function resetTimerInactiviteSalarie() {
+  const security = window.DelivProSecurity || null;
+  const timeoutMs = security && typeof security.getSessionTimeoutMs === 'function'
+    ? security.getSessionTimeoutMs()
+    : 30 * 60 * 1000;
+  clearTimeout(_timerInactiviteSalarie);
+  _timerInactiviteSalarie = setTimeout(function () {
+    sessionStorage.setItem('delivpro_session_expired', '1');
+    sessionStorage.setItem('delivpro_pending_signout', '1');
+    purgerSessionSalarieLocale();
+    redirigerVersLoginSalarie('timer_inactivite');
+  }, timeoutMs);
+}
+['click','keydown','mousemove','scroll','touchstart'].forEach(function (eventName) {
+  document.addEventListener(eventName, resetTimerInactiviteSalarie, { passive: true });
+});
+
+function appliquerBrandingSalarie() {
+  const logo = localStorage.getItem('logo_entreprise_url') || localStorage.getItem('logo_entreprise') || '';
+  const nom = (() => {
+    try {
+      const params = JSON.parse(localStorage.getItem('params_entreprise') || '{}');
+      return params.nom || 'MCA Logistics';
+    } catch (_) {
+      return 'MCA Logistics';
+    }
+  })();
+  const mark = document.getElementById('salarie-brand-mark');
+  const name = document.getElementById('salarie-brand-name');
+  if (mark) mark.innerHTML = logo ? `<img src="${logo}" alt="Logo entreprise" />` : '🚐';
+  if (name) name.textContent = nom;
+  const link = document.querySelector("link[rel='icon']") || document.createElement('link');
+  link.rel = 'icon';
+  link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>";
+  document.head.appendChild(link);
+}
+
+function lancerInterface() {
+  initMobile();
+  appliquerBrandingSalarie();
+  document.getElementById('ecran-salarie').style.display = 'flex';
+  document.getElementById('ecran-salarie').style.flexDirection = 'column';
+  document.getElementById('ecran-salarie').style.height = '100vh';
+
+  document.getElementById('sal-nom-display').textContent = salarieCourant.nom;
+  const veh = getMonVehicule();
+  document.getElementById('sal-veh-display').textContent = veh ? `🚐 ${veh.immat} — ${veh.modele}` : 'Aucun véhicule affecté';
+
+  const infoTxt = veh ? `🚐 Votre véhicule : ${veh.immat} — ${veh.modele}` : '';
+  ['km-veh-info','carb-veh-info'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = infoTxt; el.style.display = infoTxt ? 'block' : 'none'; }
+  });
+
+  const auj = new Date().toISOString().split('T')[0];
+  ['km-date','sal-carb-date'].forEach(id => { const el=document.getElementById(id); if(el) el.value=auj; });
+
+  // Km report auto
+  // Vérifier notifs
+  verifierNotifs();
+
+  changerOnglet('accueil', document.getElementById('tab-accueil'));
+  chargerLivraisons();
+  chargerHistoriqueKm();
+  chargerHistoriqueCarburant();
+  chargerHistoriqueInspections();
+  chargerMessagesSal();
+  mettreAJourBadgeMsgSal();
+  afficherAccueil();
+  rafraichirTourneesSelect(); // Pré-charger les livraisons du jour dans le select km
+
+  // Info véhicule dans inspection + km
+  const infoInsp = document.getElementById('insp-veh-info');
+  if (infoInsp && veh) { infoInsp.textContent = `🚐 Véhicule : ${veh.immat} — ${veh.modele}`; infoInsp.style.display = 'block'; }
+
+  // Date du jour dans inspection
+  const inspDate = document.getElementById('insp-date');
+  if (inspDate) inspDate.value = auj;
+  requestAnimationFrame(function () {
+    document.body.classList.remove('app-booting');
+  });
+
+  // Polling toutes les 10s pour détecter nouveaux messages admin
+  if (window._msgPollInterval) clearInterval(window._msgPollInterval);
+  window._msgPollInterval = setInterval(() => {
+    if (!salarieCourant) { clearInterval(window._msgPollInterval); return; }
+    mettreAJourBadgeMsgSal();
+  }, 10000);
+  initAccueilBonjour();
+  initEtatBoutonsKm();
+  majBadgesBottomNav();
+}
+
+function getMonVehicule() {
+  return (JSON.parse(localStorage.getItem('vehicules')||'[]')).find(v => v.salId===salarieCourant.id) || null;
+}
+
+function mettreAJourKmVehiculeAffecte(km) {
+  const valeur = parseFloat(km) || 0;
+  const veh = getMonVehicule();
+  if (!veh || !valeur) return;
+  const vehicules = JSON.parse(localStorage.getItem('vehicules') || '[]');
+  const idx = vehicules.findIndex(v => v.id === veh.id);
+  if (idx === -1) return;
+  const kmAvant = parseFloat(vehicules[idx].km) || 0;
+  vehicules[idx].km = Math.max(parseFloat(vehicules[idx].km) || 0, valeur);
+  if (vehicules[idx].kmInitial === undefined || vehicules[idx].kmInitial === null || vehicules[idx].kmInitial === '') {
+    vehicules[idx].kmInitial = kmAvant || valeur;
+  }
+  localStorage.setItem('vehicules', JSON.stringify(vehicules));
+}
+
+function libelleCarburant() {
+  const veh = getMonVehicule();
+  return `${veh ? veh.immat : 'SANS-PLAQUE'} — ${salarieCourant.nom}`;
+}
+
+/* ===== NOTIFS ===== */
+function verifierNotifs() {
+  const notifs = (JSON.parse(localStorage.getItem('notifs_sal_'+salarieCourant.id)||'[]')).filter(n=>!n.lu);
+  const dot = document.getElementById('notif-dot');
+  if (dot) dot.classList.toggle('visible', notifs.length > 0);
+}
+
+function afficherNotifsDansOnglet(containerId) {
+  const cle   = 'notifs_sal_'+salarieCourant.id;
+  const notifs = JSON.parse(localStorage.getItem(cle)||'[]').filter(n=>!n.lu);
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+  notifs.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'notif-banner';
+    div.innerHTML = `<span>✅ ${n.message}</span><button class="close-notif" onclick="marquerNotifLue('${n.id}','${containerId}')">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+function marquerNotifLue(notifId, containerId) {
+  const cle    = 'notifs_sal_'+salarieCourant.id;
+  const notifs = JSON.parse(localStorage.getItem(cle)||'[]');
+  const idx    = notifs.findIndex(n => n.id===notifId);
+  if (idx > -1) { notifs[idx].lu = true; localStorage.setItem(cle, JSON.stringify(notifs)); }
+  verifierNotifs();
+  const el = document.getElementById(containerId);
+  if (el) el.innerHTML = '';
+  afficherNotifsDansOnglet(containerId);
+}
+
+/* ===== PROFIL ===== */
+function afficherProfil() {
+  const sal = salarieCourant;
+  const veh = getMonVehicule();
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const mois = new Date().toISOString().slice(0,7);
+  const auj  = new Date().toISOString().split('T')[0];
+  const livsM = livraisons.filter(l => l.chaufId===sal.id && l.date.startsWith(mois)).length;
+  const livsA = livraisons.filter(l => l.chaufId===sal.id && l.date===auj).length;
+
+  // Km ce mois
+  const entrees = JSON.parse(localStorage.getItem('km_sal_'+sal.id)||'[]');
+  const kmMois  = entrees.filter(e => e.date.startsWith(mois)).reduce((s,e)=>s+(e.distance||0),0);
+
+  document.getElementById('profil-nom-display').textContent = sal.nom;
+  document.getElementById('profil-poste-display').textContent = sal.poste || 'Poste non renseigné';
+  document.getElementById('profil-avatar').textContent = sal.nom.charAt(0).toUpperCase();
+  document.getElementById('profil-numero').textContent  = sal.numero;
+  document.getElementById('profil-tel').textContent     = sal.tel || 'Non renseigné';
+  document.getElementById('profil-vehicule').textContent = veh ? `${veh.immat} — ${veh.modele}` : 'Non affecté';
+  document.getElementById('profil-poste').textContent   = sal.poste || 'Non renseigné';
+  document.getElementById('profil-depuis').textContent  = sal.creeLe ? new Date(sal.creeLe).toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}) : '—';
+  document.getElementById('profil-livs-mois').textContent = livsM;
+  document.getElementById('profil-livs-auj').textContent  = livsA;
+  document.getElementById('profil-km-mois').textContent   = kmMois.toFixed(0)+' km';
+
+  // Incidents me concernant
+  const incidents = JSON.parse(localStorage.getItem('incidents')||'[]').filter(i=>i.chaufId===sal.id);
+  const incCont   = document.getElementById('mes-incidents-container');
+  if (incCont) {
+    if (incidents.length === 0) {
+      incCont.innerHTML = '';
+    } else {
+      const ouverts = incidents.filter(i=>i.statut==='ouvert').length;
+      incCont.innerHTML = `
+        <div class="card" style="border-left:3px solid ${ouverts>0?'var(--red)':'var(--green)'}">
+          <div class="card-header"><h2>${ouverts>0?'🚨':'✅'} Incidents / Réclamations me concernant</h2><span style="font-size:.82rem;color:var(--text-muted)">${incidents.length} au total · ${ouverts} ouvert(s)</span></div>
+          <div class="card-body" style="padding:0">
+            ${incidents.slice(0,5).map(i=>`
+              <div style="padding:10px 16px;border-bottom:1px solid var(--border);font-size:.85rem;display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <div style="font-weight:500">${i.description||'—'}</div>
+                  <div style="font-size:.75rem;color:var(--muted)">${i.date} · ${i.client||'—'}</div>
+                </div>
+                <span class="incident-badge ${i.statut==='ouvert'?'incident-ouvert':i.statut==='traite'?'incident-traite':'incident-encours'}">${i.statut==='ouvert'?'🔴 Ouvert':i.statut==='traite'?'✅ Traité':'🟡 En cours'}</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    }
+  }
+
+  // Notifs dans profil
+  const notifsDansOnglet = JSON.parse(localStorage.getItem('notifs_sal_'+sal.id)||'[]').filter(n=>!n.lu);
+  const container = document.getElementById('notifs-profil-container');
+  container.innerHTML = '';
+  notifsDansOnglet.forEach(n => {
+    const div = document.createElement('div');
+    div.className = 'notif-banner';
+    div.innerHTML = `<span>${n.message}</span><button class="close-notif" onclick="marquerNotifLue('${n.id}','notifs-profil-container')">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+/* ===== ONGLETS ===== */
+function changerOnglet(nom, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panneau').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else { const t = document.getElementById('tab-profil'); if(t) t.classList.add('active'); }
+  const p = document.getElementById('panneau-'+nom);
+  if (p) p.classList.add('active');
+
+  if (nom === 'profil') {
+    afficherProfil();
+    const dot = document.getElementById('notif-dot');
+    if (dot) dot.classList.remove('visible');
+  }
+  if (nom === 'carburant')  afficherNotifsDansOnglet('notifs-carburant-container');
+  if (nom === 'messages')   { chargerMessagesSal(); }
+  if (nom === 'inspection') { chargerHistoriqueInspections(); rafraichirTourneesSelect(); }
+  if (nom === 'accueil')    { afficherAccueil(); }
+  if (nom === 'planning')   { afficherPlanningSal(); }
+}
+
+/* ===== SYNCHRO LOCALE (admin → salarié en temps réel) ===== */
+function gererChangementStorageSalarie(key) {
+  if (!salarieCourant) return;
+  // Planning mis à jour par l'admin
+  if (key === 'plannings') {
+    afficherAccueil();
+    const panneau = document.getElementById('panneau-planning');
+    if (panneau && panneau.closest('.panneau.active')) afficherPlanningSal();
+    else afficherPlanningSal(); // toujours mettre à jour en cache
+    toast('📅 Planning mis à jour par l\'administrateur');
+  }
+  // Nouvelles livraisons assignées
+  if (key === 'livraisons') {
+    chargerLivraisons();
+    afficherAccueil();
+  }
+  // Nouveau message de l'admin
+  if (key && key.startsWith('messages_' + salarieCourant.id)) {
+    mettreAJourBadgeMsgSal();
+    const msgs = document.getElementById('msg-fil');
+    if (msgs) chargerMessagesSal();
+  }
+  // Notifs validées par admin
+  if (key && key.startsWith('notifs_sal_' + salarieCourant.id)) {
+    verifierNotifs();
+  }
+}
+
+window.addEventListener('storage', function(e) {
+  gererChangementStorageSalarie(e.key);
+});
+
+window.addEventListener('delivpro:storage-sync', function(e) {
+  const key = e && e.detail ? e.detail.key : '';
+  gererChangementStorageSalarie(key);
+});
+
+/* ===== RÉSUMÉ FIN DE JOURNÉE ===== */
+function afficherResumeJournee() {
+  const auj   = new Date().toISOString().split('T')[0];
+  const heure = new Date().getHours();
+  const cont  = document.getElementById('resume-journee-container');
+  if (!cont) return;
+
+  // Heure de déclenchement : basée sur le planning du salarié
+  const plannings  = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const monPlan    = plannings.find(p=>p.salId===salarieCourant.id);
+  const joursSem   = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const jourNom    = joursSem[new Date().getDay()];
+  const entree     = monPlan?.semaine?.find(j=>j.jour===jourNom);
+  const heureFin   = entree?.heureFin ? parseInt(entree.heureFin.split(':')[0]) : 16;
+  const seuilAffichage = Math.max(heureFin - 1, 14); // 1h avant la fin, min 14h
+
+  if (heure < seuilAffichage) { cont.innerHTML = ''; return; }
+
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]')
+    .filter(l => l.chaufId===salarieCourant.id && l.date===auj);
+  if (!livraisons.length) { cont.innerHTML=''; return; }
+
+  const livrees  = livraisons.filter(l=>l.statut==='livre').length;
+  const kmEntrees= JSON.parse(localStorage.getItem('km_sal_'+salarieCourant.id)||'[]').filter(e=>e.date===auj);
+  const kmTotal  = kmEntrees.reduce((s,e)=>s+(e.distance||0),0);
+  const pleins   = JSON.parse(localStorage.getItem('carb_sal_'+salarieCourant.id)||'[]');
+  const plein    = pleins.some(p=>p.date===auj);
+  const caJour   = livraisons.filter(l=>l.statut==='livre').reduce((s,l)=>s+(l.prix||0),0);
+
+  cont.innerHTML = `
+    <div class="resume-journee">
+      <div class="resume-journee-title">🌅 Résumé de votre journée</div>
+      <div class="resume-grid">
+        <div class="resume-item"><div class="resume-item-val">${livraisons.length}</div><div class="resume-item-label">Livraisons</div></div>
+        <div class="resume-item"><div class="resume-item-val" style="color:var(--green)">${livrees}</div><div class="resume-item-label">Livrées ✅</div></div>
+        <div class="resume-item"><div class="resume-item-val">${kmTotal>0?kmTotal.toFixed(0)+' km':'—'}</div><div class="resume-item-label">Km parcourus</div></div>
+        <div class="resume-item"><div class="resume-item-val">${plein?'✅':'❌'}</div><div class="resume-item-label">Plein fait</div></div>
+        ${caJour > 0 ? `<div class="resume-item" style="grid-column:1/-1"><div class="resume-item-val" style="font-size:1rem">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caJour)}</div><div class="resume-item-label">CA livré</div></div>` : ''}
+      </div>
+    </div>`;
+}
+
+/* ===== PHOTO MESSAGERIE SALARIÉ ===== */
+function envoyerPhotoSal(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const max = 800;
+      let w = img.width, h = img.height;
+      if (w > max || h > max) { const r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r); }
+      const c = document.createElement('canvas'); c.width=w; c.height=h;
+      c.getContext('2d').drawImage(img,0,0,w,h);
+      const compressed = c.toDataURL('image/jpeg',0.72);
+      const msgs = JSON.parse(localStorage.getItem('messages_'+salarieCourant.id)||'[]');
+      msgs.push({ id: Date.now().toString(36), auteur:'salarie', texte:'📷 Photo partagée', photo:compressed, lu:false, creeLe:new Date().toISOString() });
+      localStorage.setItem('messages_'+salarieCourant.id, JSON.stringify(msgs));
+      input.value = '';
+      chargerMessagesSal();
+      toast('✅ Photo envoyée');
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ===== PLANNING SALARIÉ ===== */
+function afficherPlanningSal() {
+  if (!salarieCourant) return;
+  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const monPlan   = plannings.find(p => p.salId === salarieCourant.id);
+  const cont      = document.getElementById('planning-sal-content');
+  if (!cont) return;
+
+  if (!monPlan || !monPlan.semaine || !monPlan.semaine.length) {
+    cont.innerHTML = '<div class="empty">Aucun planning défini — contactez votre administrateur.</div>';
+    return;
+  }
+
+  const joursSemaine = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  const joursLabels  = { lundi:'Lundi', mardi:'Mardi', mercredi:'Mercredi', jeudi:'Jeudi', vendredi:'Vendredi', samedi:'Samedi', dimanche:'Dimanche' };
+  const jourActuel   = joursSemaine[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+
+  cont.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
+      ${joursSemaine.map(jour => {
+        const j = monPlan.semaine.find(s => s.jour === jour);
+        const estAujourdhui = jour === jourActuel;
+        const travaille = j && j.travaille;
+        return `
+          <div style="border-radius:10px;padding:12px;border:2px solid ${estAujourdhui ? 'var(--accent)' : 'var(--border)'};background:${estAujourdhui ? 'rgba(245,166,35,.06)' : 'var(--card2)'}">
+            <div style="font-size:.8rem;font-weight:700;margin-bottom:8px;color:${estAujourdhui ? 'var(--accent)' : 'var(--text)'}">
+              ${joursLabels[jour]}${estAujourdhui ? ' <span style="font-size:.68rem;background:var(--accent);color:#000;padding:1px 6px;border-radius:20px">Aujourd\'hui</span>' : ''}
+            </div>
+            ${travaille ? `
+              <div style="font-size:.82rem;color:var(--green);margin-bottom:4px">🟢 Travaillé</div>
+              ${j.heureDebut ? `<div style="font-size:.78rem;color:var(--muted)">🕐 ${j.heureDebut}${j.heureFin ? ' – ' + j.heureFin : ''}</div>` : ''}
+              ${j.zone ? `<div style="font-size:.78rem;color:var(--muted);margin-top:3px">📍 ${j.zone}</div>` : ''}
+              ${j.note ? `<div style="font-size:.76rem;color:var(--muted);margin-top:3px;font-style:italic">${j.note}</div>` : ''}
+            ` : `<div style="font-size:.82rem;color:var(--muted)">🔴 Repos</div>`}
+          </div>`;
+      }).join('')}
+    </div>
+    <p style="font-size:.76rem;color:var(--muted);margin-top:12px;text-align:right">Mis à jour le ${monPlan.mis_a_jour ? new Date(monPlan.mis_a_jour).toLocaleDateString('fr-FR', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '—'}</p>`;
+}
+
+/* ===== ACCUEIL ===== */
+function afficherAccueil() {
+  const auj      = new Date().toISOString().split('T')[0];
+  const salId    = salarieCourant.id;
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const livsAuj  = livraisons.filter(l => l.chaufId===salId && l.date===auj);
+
+  // ── Planning du jour ──
+  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const monPlan   = plannings.find(p => p.salId===salId);
+  // getDay() : 0=dim,1=lun,...,6=sam — on mappe vers notre convention (lundi=premier)
+  const _joursSem = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'];
+  const jourNom   = _joursSem[new Date().getDay()];
+  const planCard  = document.getElementById('accueil-planning-card');
+  const planCont  = document.getElementById('accueil-planning-content');
+  if (planCard) planCard.style.display = 'none';
+  if (planCont) {
+    if (monPlan) {
+      const entree = (monPlan.semaine||[]).find(j => j.jour === jourNom);
+      planCard.style.display = 'block';
+      if (entree && entree.travaille) {
+        planCont.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
+            ${entree.heureDebut ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">DÉBUT</div><strong>${entree.heureDebut}</strong></div>` : ''}
+            ${entree.heureFin   ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">FIN</div><strong>${entree.heureFin}</strong></div>` : ''}
+            ${entree.zone       ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">ZONE</div><strong>${entree.zone}</strong></div>` : ''}
+          </div>
+          ${entree.note ? `<p style="font-size:.82rem;color:var(--muted);margin-top:8px">📝 ${entree.note}</p>` : ''}
+          <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:10px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
+      } else if (entree && !entree.travaille) {
+        planCont.innerHTML = `<p style="color:var(--green);font-size:.9rem">🏖️ Jour de repos — Bonne journée !</p>
+          <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
+      } else {
+        planCont.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aucune entrée pour aujourd'hui.</p>
+          <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
+      }
+    }
+  }
+
+  // ── Checklist tâches ──
+  const cleCl   = 'checklist_'+salId+'_'+auj;
+  let checklist = JSON.parse(localStorage.getItem(cleCl)||'null');
+  if (!checklist) {
+    checklist = {
+      kmDepart:    false,
+      inspection:  false,
+      kmArrivee:   false,
+      pleinFait:   null   // null = pas répondu, true/false = réponse
+    };
+    localStorage.setItem(cleCl, JSON.stringify(checklist));
+  }
+
+  // Vérifier auto depuis les données réelles
+  const kmEntrees = JSON.parse(localStorage.getItem('km_sal_'+salId)||'[]').filter(e=>e.date===auj);
+  if (kmEntrees.some(e => e.kmDepart != null && e.kmDepart !== '')) checklist.kmDepart = true;
+  if (kmEntrees.some(e => e.kmArrivee != null && e.kmArrivee !== '')) checklist.kmArrivee = true;
+  const inspAuj = JSON.parse(localStorage.getItem('inspections')||'[]').filter(i=>i.salId===salId&&i.date===auj);
+  if (inspAuj.length > 0) checklist.inspection = true;
+  // pleinFait auto si un plein a été enregistré aujourd'hui
+  const pleinsAuj = JSON.parse(localStorage.getItem('carb_sal_'+salId)||'[]').filter(p=>p.date===auj);
+  if (pleinsAuj.length > 0 && checklist.pleinFait === null) checklist.pleinFait = true;
+  localStorage.setItem(cleCl, JSON.stringify(checklist));
+
+  const taches = [
+    { cle:'kmDepart',   fait: checklist.kmDepart,   label:'🛣️ Relevé kilométrique de départ',       action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+    { cle:'inspection', fait: checklist.inspection, label:'📷 Photos d\'inspection du véhicule',     action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Faire l\'inspection' },
+    { cle:'kmArrivee',  fait: checklist.kmArrivee,  label:'🏁 Relevé kilométrique de retour (soir)', action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+  ];
+
+  const done   = taches.filter(t=>t.fait).length + (checklist.pleinFait !== null ? 1 : 0);
+  const total  = taches.length + 1;
+  const pct    = Math.round(done/total*100);
+
+  const cont = document.getElementById('accueil-checklist');
+  const prog = document.getElementById('accueil-checklist-progress');
+  if (prog) prog.textContent = `${done}/${total} complétées`;
+
+  // Badge Accueil si tâches non faites
+  const nonFaites = taches.filter(t => !t.fait).length + (checklist.pleinFait === null ? 1 : 0);
+  const badgeAcc = document.getElementById('badge-accueil');
+  if (badgeAcc) { badgeAcc.textContent = nonFaites; badgeAcc.style.display = nonFaites > 0 ? 'inline-block' : 'none'; }
+
+  cont.innerHTML = `
+    <div style="background:var(--card2);border-radius:8px;padding:8px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+      <div style="flex:1;background:rgba(255,255,255,.08);border-radius:20px;height:8px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'var(--accent)'};border-radius:20px;transition:width .4s"></div>
+      </div>
+      <span style="font-size:.82rem;color:${pct===100?'var(--green)':'var(--muted)'};font-weight:600">${pct}%</span>
+    </div>
+    ${taches.map(t => `
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)">
+        <div style="width:24px;height:24px;border-radius:50%;background:${t.fait?'var(--green)':'rgba(255,255,255,.08)'};border:2px solid ${t.fait?'var(--green)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem">${t.fait?'✓':''}</div>
+        <span style="flex:1;font-size:.88rem;color:${t.fait?'var(--muted)':'var(--text)'};${t.fait?'text-decoration:line-through':''}">${t.label}</span>
+        ${!t.fait ? `<button onclick="${t.action}" style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.3);color:var(--accent);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer;white-space:nowrap">${t.btnLabel} →</button>` : '<span style="font-size:.78rem;color:var(--green)">✅ Fait</span>'}
+      </div>`).join('')}
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 0">
+      <div style="width:24px;height:24px;border-radius:50%;background:${checklist.pleinFait===true?'var(--green)':checklist.pleinFait===false?'rgba(231,76,60,.2)':'rgba(255,255,255,.08)'};border:2px solid ${checklist.pleinFait!==null?checklist.pleinFait?'var(--green)':'var(--red)':'var(--border)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.75rem">${checklist.pleinFait===true?'✓':checklist.pleinFait===false?'✗':''}</div>
+      <span style="flex:1;font-size:.88rem">⛽ Plein de carburant effectué aujourd'hui ?</span>
+      ${checklist.pleinFait===null ? `
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button onclick="repondreChecklistPleinOui()" style="background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);color:var(--green);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">✅ Oui — saisir le plein →</button>
+          <button onclick="repondreChecklist('pleinFait',false)" style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.25);color:var(--red);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Non</button>
+        </div>` : `<div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:.78rem;color:${checklist.pleinFait?'var(--green)':'var(--muted)'}">${checklist.pleinFait?'✅ Oui':'❌ Non'}</span>
+          ${checklist.pleinFait ? `<button onclick="changerOnglet('carburant',document.getElementById('tab-carburant'))" style="background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);color:var(--green);padding:3px 9px;border-radius:6px;font-size:.72rem;cursor:pointer">⛽ Saisir →</button>` : ''}
+          <button onclick="repondreChecklist('pleinFait',null)" style="background:none;border:1px solid var(--border);color:var(--muted);padding:3px 8px;border-radius:6px;font-size:.72rem;cursor:pointer">Modifier</button>
+        </div>`}
+    </div>`;
+
+  // ── Résumé livraisons ──
+  const resumeCont = document.getElementById('accueil-livraisons-resume');
+  const nbEl = document.getElementById('accueil-nb-livs');
+  if (nbEl) nbEl.textContent = `${livsAuj.length} livraison(s)`;
+  if (!livsAuj.length) {
+    resumeCont.innerHTML = '<div class="empty">Aucune livraison assignée pour aujourd\'hui</div>';
+  } else {
+    resumeCont.innerHTML = livsAuj.map(l => `
+      <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+        <span style="font-size:.88rem;flex:1">📦 <strong>${l.client}</strong>${l.arrivee ? ' → ' + l.arrivee : ''}</span>
+        <span style="font-size:.78rem;background:${l.statut==='livre'?'rgba(46,204,113,.12)':l.statut==='en-cours'?'rgba(79,142,247,.12)':'rgba(255,255,255,.06)'};color:${l.statut==='livre'?'var(--green)':l.statut==='en-cours'?'var(--blue)':'var(--muted)'};padding:3px 9px;border-radius:20px">${l.statut==='livre'?'✅ Livré':l.statut==='en-cours'?'🚐 En cours':'⏳ En attente'}</span>
+      </div>`).join('');
+  }
+  // Résumé fin de journée (visible à partir de 15h)
+  afficherResumeJournee();
+}
+
+function repondreChecklist(cle, valeur) {
+  const auj  = new Date().toISOString().split('T')[0];
+  const cleCl = 'checklist_'+salarieCourant.id+'_'+auj;
+  const cl   = JSON.parse(localStorage.getItem(cleCl)||'{}');
+  cl[cle]    = valeur;
+  localStorage.setItem(cleCl, JSON.stringify(cl));
+  afficherAccueil();
+}
+
+function repondreChecklistPleinOui() {
+  repondreChecklist('pleinFait', true);
+  changerOnglet('carburant', document.getElementById('tab-carburant'));
+}
+
+/* ===== LIVRAISONS ===== */
+function chargerLivraisons() {
+  const auj        = new Date().toISOString().split('T')[0];
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const miennes    = livraisons.filter(l => l.chaufId===salarieCourant.id && l.date===auj);
+  document.getElementById('badge-nb-livraisons').textContent = miennes.length+' livraison(s)';
+  const container = document.getElementById('liste-livraisons');
+  if (!miennes.length) { container.innerHTML='<div class="empty">Aucune livraison assignée pour aujourd\'hui</div>'; return; }
+  container.innerHTML = miennes.map(l => `
+    <div class="livraison-item">
+      <div class="livraison-info">
+        <div class="livraison-client">📦 ${l.client}</div>
+        <div class="livraison-adresses">
+          ${l.depart ? '📍 '+l.depart+'<br>' : ''}
+          ${l.arrivee ? '🏁 '+l.arrivee : ''}
+          ${l.distance ? ' · '+l.distance+' km' : ''}
+          ${l.notes ? '<br>📝 '+l.notes : ''}
+        </div>
+      </div>
+      <div class="livraison-statut">
+        <select onchange="changerStatut('${l.id}',this.value)">
+          <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>⏳ En attente</option>
+          <option value="en-cours"   ${l.statut==='en-cours'  ?'selected':''}>🚐 En cours</option>
+          <option value="livre"      ${l.statut==='livre'     ?'selected':''}>✅ Livré</option>
+        </select>
+      </div>
+    </div>`).join('');
+}
+
+function changerStatut(id, statut) {
+  const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
+  const idx = livraisons.findIndex(l => l.id===id);
+  if (idx > -1) {
+    livraisons[idx].statut = statut;
+    localStorage.setItem('livraisons', JSON.stringify(livraisons));
+    toast('✅ Statut mis à jour');
+    chargerLivraisons();
+    afficherAccueil();
+  }
+}
+
+
+/* ===== KM ===== */
+function rafraichirTourneesSelect() {
+  const date = document.getElementById('km-date')?.value || new Date().toISOString().split('T')[0];
+  const sel  = document.getElementById('km-tournee-id');
+  if (!sel || !salarieCourant) return;
+
+  const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+  const miennes    = livraisons.filter(l => l.chaufId === salarieCourant.id && l.date === date);
+
+  sel.innerHTML = '<option value="">— Sélectionner une livraison (optionnel) —</option>';
+  if (!miennes.length) {
+    sel.innerHTML += '<option value="" disabled>Aucune livraison assignée ce jour</option>';
+    return;
+  }
+  miennes.forEach(l => {
+    const label = `📦 ${l.client}${l.arrivee ? ' → ' + l.arrivee : ''}${l.numLiv ? ' ('+l.numLiv+')' : ''}`;
+    sel.innerHTML += `<option value="${l.id}">${label}</option>`;
+  });
+}
+
+function majDistanceKm() {
+  const dep = parseFloat(document.getElementById('km-depart').value)||0;
+  const arr = parseFloat(document.getElementById('km-arrivee').value)||0;
+  const res = document.getElementById('km-result');
+  const calc = document.getElementById('km-calcule');
+  if (dep > 0 && arr > dep) {
+    calc.textContent = (arr - dep).toFixed(0) + ' km';
+    res.style.display = 'block';
+  } else {
+    res.style.display = 'none';
+  }
+}
+
+function getKmStorageKey() {
+  return 'km_sal_' + salarieCourant.id;
+}
+
+function getKmEntries() {
+  return JSON.parse(localStorage.getItem(getKmStorageKey()) || '[]');
+}
+
+function saveKmEntries(list) {
+  localStorage.setItem(getKmStorageKey(), JSON.stringify(list));
+}
+
+function getKmTourneeSelection() {
+  const livId = document.getElementById('km-tournee-id')?.value || '';
+  const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+  const liv = livId ? livraisons.find(l => l.id === livId) : null;
+  return { livId, liv, livraisons };
+}
+
+function trouverReleveKmEnCours(date, livId) {
+  const list = getKmEntries();
+  const candidats = list
+    .filter(e => e.date === date && !e.kmArrivee)
+    .sort((a, b) => new Date(b.creeLe || b.date) - new Date(a.creeLe || a.date));
+  if (!candidats.length) return null;
+  if (livId) {
+    const lie = candidats.find(e => e.livId === livId);
+    if (lie) return lie;
+  }
+  return candidats[0];
+}
+
+function majLivraisonDepuisKm(livId, distance) {
+  if (!livId || !distance) return;
+  const livraisons = JSON.parse(localStorage.getItem('livraisons') || '[]');
+  const idx = livraisons.findIndex(l => l.id === livId);
+  if (idx === -1) return;
+  livraisons[idx].distance = distance;
+  livraisons[idx].profit = (livraisons[idx].prix || 0) - distance * 0.20;
+  localStorage.setItem('livraisons', JSON.stringify(livraisons));
+}
+
+function rechargerBlocKm() {
+  chargerHistoriqueKm();
+  afficherAccueil();
+}
+
+function enregistrerKmDepart() {
+  const dep  = parseFloat(document.getElementById('km-depart').value);
+  const date = document.getElementById('km-date').value;
+  const { livId, liv } = getKmTourneeSelection();
+
+  if (!dep || !date) {
+    toast('⚠️ Saisissez au moins la date et le km de début', 'error');
+    return;
+  }
+  if (trouverReleveKmEnCours(date, livId)) {
+    toast('⚠️ Un km début est déjà en attente de km fin pour cette journée', 'error');
+    return;
+  }
+
+  const list = getKmEntries();
+  list.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    salId: salarieCourant.id,
+    salNom: salarieCourant.nom,
+    kmDepart: dep,
+    kmArrivee: null,
+    distance: 0,
+    date,
+    livId: liv?.id || null,
+    livNom: liv?.client || null,
+    creeLe: new Date().toISOString()
+  });
+  saveKmEntries(list);
+  mettreAJourKmVehiculeAffecte(dep);
+
+  document.getElementById('km-arrivee').value = '';
+  document.getElementById('km-result').style.display = 'none';
+  rechargerBlocKm();
+  toast(liv ? `✅ Km début enregistré pour ${liv.client}` : '✅ Km début enregistré');
+}
+
+function enregistrerKmFin() {
+  const arr  = parseFloat(document.getElementById('km-arrivee').value);
+  const date = document.getElementById('km-date').value;
+  const { livId, liv } = getKmTourneeSelection();
+  const releve = trouverReleveKmEnCours(date, livId);
+
+  if (!releve) {
+    toast('⚠️ Enregistrez d’abord un km début avant le km fin', 'error');
+    return;
+  }
+  if (!arr || arr <= (releve.kmDepart || 0)) {
+    toast('⚠️ Le km de fin doit être supérieur au km de début', 'error');
+    return;
+  }
+
+  const list = getKmEntries();
+  const idx = list.findIndex(e => e.id === releve.id);
+  if (idx === -1) return;
+
+  const distance = arr - list[idx].kmDepart;
+  list[idx].kmArrivee = arr;
+  list[idx].distance = distance;
+  if (livId && !list[idx].livId) {
+    list[idx].livId = livId;
+    list[idx].livNom = liv?.client || null;
+  }
+  saveKmEntries(list);
+  mettreAJourKmVehiculeAffecte(arr);
+
+  majLivraisonDepuisKm(list[idx].livId, distance);
+
+  document.getElementById('km-depart').value = arr;
+  document.getElementById('km-arrivee').value = '';
+  document.getElementById('km-result').style.display = 'none';
+  if (document.getElementById('km-tournee-id')) document.getElementById('km-tournee-id').value = '';
+
+  rechargerBlocKm();
+  const cible = list[idx].livNom || liv?.client;
+  toast(cible ? `✅ ${distance.toFixed(0)} km enregistrés et liés à ${cible}` : `✅ ${distance.toFixed(0)} km enregistrés`);
+}
+
+function chargerHistoriqueKm() {
+  const list = getKmEntries()
+    .sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe))
+    .slice(0, 20);
+  const cont = document.getElementById('historique-km');
+  if (!list.length) { cont.innerHTML = '<div class="empty">Aucun relevé enregistré</div>'; return; }
+
+  cont.innerHTML = list.map(e => {
+    const modTag = e.modifie
+      ? '<span style="font-size:.72rem;background:rgba(231,76,60,.15);color:#e74c3c;padding:1px 6px;border-radius:8px;margin-left:4px">✏️</span>'
+      : '';
+    const livTag = e.livNom
+      ? `<span style="font-size:.74rem;background:rgba(79,142,247,.1);color:var(--blue);padding:1px 7px;border-radius:8px;margin-left:4px">📦 ${e.livNom}</span>`
+      : '';
+    const ligneKm = e.kmArrivee
+      ? `${(e.kmDepart||0).toLocaleString('fr-FR')} → ${(e.kmArrivee||0).toLocaleString('fr-FR')} km`
+      : `${(e.kmDepart||0).toLocaleString('fr-FR')} km · En attente du km fin`;
+    const distanceLib = e.kmArrivee ? `${(e.distance||0).toFixed(0)} km` : 'En cours';
+    return `<div class="hist-row">
+      <span style="font-size:.85rem">${e.date}${modTag}${livTag}</span>
+      <span style="color:var(--muted);font-size:.82rem">${ligneKm}</span>
+      <strong style="color:var(--accent)">${distanceLib}</strong>
+      <div class="hist-actions">
+        <button class="btn-edit" onclick="ouvrirEditKmSal('${e.id}')">✏️</button>
+        <button class="btn-danger" onclick="supprimerKmSal('${e.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function ouvrirEditKmSal(id) {
+  const list = getKmEntries();
+  const e = list.find(x => x.id === id);
+  if (!e) return;
+  document.getElementById('edit-km-id').value   = id;
+  document.getElementById('edit-km-dep').value  = e.kmDepart;
+  document.getElementById('edit-km-arr').value  = e.kmArrivee || '';
+  document.getElementById('edit-km-date').value = e.date;
+  document.getElementById('modal-edit-km-sal').classList.add('open');
+}
+
+function confirmerEditKmSal() {
+  const id  = document.getElementById('edit-km-id').value;
+  const dep = parseFloat(document.getElementById('edit-km-dep').value);
+  const arrRaw = document.getElementById('edit-km-arr').value;
+  const arr = arrRaw === '' ? null : parseFloat(arrRaw);
+  const date= document.getElementById('edit-km-date').value;
+  if (!dep) { toast('⚠️ Km début obligatoire', 'error'); return; }
+  if (arr !== null && arr <= dep) { toast('⚠️ Km fin doit être > km début', 'error'); return; }
+
+  const list = getKmEntries();
+  const idx  = list.findIndex(e => e.id === id);
+  if (idx === -1) return;
+
+  const ancien = { dep: list[idx].kmDepart, arr: list[idx].kmArrivee };
+  list[idx].kmDepart  = dep;
+  list[idx].kmArrivee = arr;
+  list[idx].distance  = arr !== null ? arr - dep : 0;
+  list[idx].date      = date;
+  list[idx].modifie   = true;
+  saveKmEntries(list);
+  if (arr !== null) mettreAJourKmVehiculeAffecte(arr);
+  else mettreAJourKmVehiculeAffecte(dep);
+  majLivraisonDepuisKm(list[idx].livId, list[idx].distance);
+
+  const ancienDep = ancien.dep != null ? ancien.dep.toLocaleString('fr-FR') : '—';
+  const ancienArr = ancien.arr != null ? ancien.arr.toLocaleString('fr-FR') : '—';
+  const nouveauDep = dep.toLocaleString('fr-FR');
+  const nouveauArr = arr != null ? arr.toLocaleString('fr-FR') : '—';
+
+  // Alerte admin
+  const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+  alertes.push({
+    id: Date.now().toString(36), type: 'km_modif',
+    message: `Relevé km modifié par ${salarieCourant.nom} : ${ancienDep}→${ancienArr} km ✏️ ${nouveauDep}→${nouveauArr} km`,
+    meta: { salNom: salarieCourant.nom, salId: salarieCourant.id },
+    lu: false, traitee: false, creeLe: new Date().toISOString()
+  });
+  localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+
+  fermerModal('modal-edit-km-sal');
+  rechargerBlocKm();
+  toast('✅ Relevé mis à jour — admin notifié');
+}
+
+function supprimerKmSal(id) {
+  if (!confirm('Supprimer ce relevé ?')) return;
+  const list = getKmEntries().filter(e => e.id !== id);
+  saveKmEntries(list);
+  rechargerBlocKm();
+  toast('🗑️ Relevé supprimé');
+}
+
+/* ===== CARBURANT ===== */
+function calculerPlein() {
+  const l=parseFloat(document.getElementById('sal-litres').value)||0;
+  const p=parseFloat(document.getElementById('sal-prix-litre').value)||0;
+  const res=document.getElementById('plein-result');
+  if(l>0&&p>0){document.getElementById('plein-total').textContent=(l*p).toFixed(2)+' €';res.style.display='block';}
+  else{res.style.display='none';}
+}
+
+function enregistrerPlein() {
+  const litres    = parseFloat(document.getElementById('sal-litres').value);
+  const prixLitre = parseFloat(document.getElementById('sal-prix-litre').value);
+  const date      = document.getElementById('sal-carb-date').value;
+  if (!litres||!prixLitre||isNaN(litres)||isNaN(prixLitre)){toast('⚠️ Litres et prix obligatoires','error');return;}
+  const total   = litres*prixLitre;
+  const veh     = getMonVehicule();
+  const libelle = libelleCarburant();
+  const id      = Date.now().toString(36)+Math.random().toString(36).substr(2);
+  const plein   = { id, salId:salarieCourant.id, salNom:salarieCourant.nom, vehId:veh?veh.id:'', vehNom:libelle, litres, prixLitre, total, date, source:'salarie', modifie:false, creeLe:new Date().toISOString() };
+  // Perso
+  const cle=`carb_sal_${salarieCourant.id}`;
+  const perso=JSON.parse(localStorage.getItem(cle)||'[]'); perso.push(plein); localStorage.setItem(cle,JSON.stringify(perso));
+  // Global
+  const global=JSON.parse(localStorage.getItem('carburant')||'[]'); global.push(plein); localStorage.setItem('carburant',JSON.stringify(global));
+  document.getElementById('sal-litres').value='';
+  document.getElementById('sal-prix-litre').value='';
+  document.getElementById('plein-result').style.display='none';
+  chargerHistoriqueCarburant();
+  afficherAccueil(); // Cocher auto pleinFait dans la checklist
+  toast('✅ Plein enregistré !');
+}
+
+function supprimerPleinSal(id) {
+  if (!confirm('Supprimer ce plein ?')) return;
+  const cle  = `carb_sal_${salarieCourant.id}`;
+  const perso = JSON.parse(localStorage.getItem(cle)||'[]').filter(p => p.id !== id);
+  localStorage.setItem(cle, JSON.stringify(perso));
+  // Supprimer aussi du global
+  const global = JSON.parse(localStorage.getItem('carburant')||'[]').filter(p => p.id !== id);
+  localStorage.setItem('carburant', JSON.stringify(global));
+  chargerHistoriqueCarburant();
+  afficherAccueil();
+  toast('🗑️ Plein supprimé');
+}
+
+function ouvrirModifPlein(id) {
+  const cle   = `carb_sal_${salarieCourant.id}`;
+  const perso = JSON.parse(localStorage.getItem(cle)||'[]');
+  const p     = perso.find(x => x.id===id); if(!p) return;
+  document.getElementById('modif-plein-id').value   = id;
+  document.getElementById('modif-litres').value     = p.litres;
+  document.getElementById('modif-prix-litre').value = p.prixLitre;
+  document.getElementById('modif-date').value       = p.date;
+  document.getElementById('modal-modif-plein').classList.add('open');
+}
+
+function confirmerModifPlein() {
+  const id        = document.getElementById('modif-plein-id').value;
+  const litres    = parseFloat(document.getElementById('modif-litres').value);
+  const prixLitre = parseFloat(document.getElementById('modif-prix-litre').value);
+  const date      = document.getElementById('modif-date').value;
+  if(!litres||!prixLitre||isNaN(litres)||isNaN(prixLitre)){toast('⚠️ Champs obligatoires','error');return;}
+  const total = litres*prixLitre;
+  const cle   = `carb_sal_${salarieCourant.id}`;
+  const perso = JSON.parse(localStorage.getItem(cle)||'[]');
+  const idx   = perso.findIndex(p => p.id===id);
+  if(idx===-1){toast('⚠️ Plein introuvable','error');return;}
+  const ancL=perso[idx].litres, ancT=perso[idx].total;
+  perso[idx].litres=litres; perso[idx].prixLitre=prixLitre; perso[idx].total=total;
+  perso[idx].date=date; perso[idx].modifie=true; perso[idx].modifieLe=new Date().toISOString();
+  localStorage.setItem(cle,JSON.stringify(perso));
+  // Global
+  const global=JSON.parse(localStorage.getItem('carburant')||'[]');
+  const gi=global.findIndex(p=>p.id===id);
+  if(gi>-1){global[gi].litres=litres;global[gi].prixLitre=prixLitre;global[gi].total=total;global[gi].date=date;global[gi].modifie=true;global[gi].modifieLe=new Date().toISOString();localStorage.setItem('carburant',JSON.stringify(global));}
+  // Alerte admin
+  const alertes=JSON.parse(localStorage.getItem('alertes_admin')||'[]');
+  alertes.push({id:Date.now().toString(36),type:'carburant_modif',
+    message:`Plein modifié par ${salarieCourant.nom} : ${ancL}L / ${ancT.toFixed(2)}€ → ${litres}L / ${total.toFixed(2)}€`,
+    meta:{salNom:salarieCourant.nom,salId:salarieCourant.id,pleinId:id},
+    lu:false,traitee:false,creeLe:new Date().toISOString()});
+  localStorage.setItem('alertes_admin',JSON.stringify(alertes));
+  fermerModal('modal-modif-plein');
+  chargerHistoriqueCarburant();
+  toast('✅ Plein modifié — admin notifié');
+}
+
+function chargerHistoriqueCarburant() {
+  const cle   = `carb_sal_${salarieCourant.id}`;
+  const pleins= JSON.parse(localStorage.getItem(cle)||'[]').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe)).slice(0,15);
+  const cont  = document.getElementById('historique-carburant');
+  if(!pleins.length){cont.innerHTML='<div class="empty">Aucun plein</div>';return;}
+
+  // Récupérer les notifs validées pour associer aux pleins
+  const notifs = JSON.parse(localStorage.getItem(`notifs_sal_${salarieCourant.id}`)||'[]');
+
+  cont.innerHTML = pleins.map(p => {
+    const modTag  = p.modifie ? '<span style="font-size:.72rem;background:rgba(231,76,60,.15);color:#e74c3c;padding:1px 6px;border-radius:8px;margin-left:4px;">✏️ modifié</span>' : '';
+    const valTag  = p.modifie && notifs.find(n=>n.type==='carburant_modif_valide'&&n.meta?.pleinId===p.id)
+      ? '<span style="font-size:.72rem;background:rgba(46,204,113,.12);color:#2ecc71;padding:1px 6px;border-radius:8px;margin-left:4px;">✅ validé admin</span>' : '';
+    return `<div class="hist-row">
+      <span>${p.date}${modTag}${valTag}</span>
+      <span style="color:var(--muted)">${p.litres}L · ${p.prixLitre.toFixed(2)}€/L</span>
+      <strong style="color:var(--accent)">${p.total.toFixed(2)} €</strong>
+      <div class="hist-actions">
+        <button class="btn-edit" onclick="ouvrirModifPlein('${p.id}')">✏️</button>
+        <button class="btn-danger" onclick="supprimerPleinSal('${p.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ===== CHANGER MDP ===== */
+async function changerMonMdp() {
+  const ancien    = document.getElementById('chg-ancien').value;
+  const nouveau   = document.getElementById('chg-nouveau').value;
+  const confirmer = document.getElementById('chg-confirmer').value;
+  if(!ancien||!nouveau||!confirmer){toast('⚠️ Remplissez tous les champs','error');return;}
+  const security = window.DelivProSecurity || null;
+  const ancienOk = security && typeof security.verifyPassword === 'function'
+    ? await security.verifyPassword(ancien, salarieCourant.mdpHash)
+    : (btoa(ancien) === salarieCourant.mdpHash);
+  if(!ancienOk){toast('⚠️ Mot de passe actuel incorrect','error');return;}
+  const evaluation = security && typeof security.evaluatePassword === 'function'
+    ? security.evaluatePassword(nouveau, { minLength: 8 })
+    : { ok: nouveau.length >= 8, message: 'Nouveau mot de passe trop court (8 min)' };
+  if(!evaluation.ok){toast('⚠️ ' + evaluation.message,'error');return;}
+  if(nouveau!==confirmer){toast('⚠️ Les nouveaux mots de passe ne correspondent pas','error');return;}
+  if (sessionStorage.getItem('auth_mode') === 'supabase') {
+    const client = window.DelivProSupabase && window.DelivProSupabase.getClient ? window.DelivProSupabase.getClient() : null;
+    if (!client) { toast('⚠️ Client Supabase indisponible','error'); return; }
+    const sessionResult = await client.auth.getSession();
+    if (!sessionResult?.data?.session) { toast('⚠️ Session expirée, reconnectez-vous','error'); return; }
+    const updateResult = await client.auth.updateUser({ password: nouveau });
+    if (updateResult.error) { toast(`⚠️ Mot de passe Supabase non mis à jour (${updateResult.error.message})`,'error'); return; }
+  }
+  const salaries=JSON.parse(localStorage.getItem('salaries')||'[]');
+  const idx=salaries.findIndex(s=>s.id===salarieCourant.id);
+  const hashedPassword = security && typeof security.hashPassword === 'function'
+    ? await security.hashPassword(nouveau)
+    : btoa(nouveau);
+  if(idx>-1){salaries[idx].mdpHash=hashedPassword;localStorage.setItem('salaries',JSON.stringify(salaries));salarieCourant.mdpHash=hashedPassword;}
+  ['chg-ancien','chg-nouveau','chg-confirmer'].forEach(id=>document.getElementById(id).value='');
+  toast(sessionStorage.getItem('auth_mode') === 'supabase' ? '✅ Mot de passe modifie et synchronise !' : '✅ Mot de passe modifie !');
+}
+
+/* ===== INSPECTION VÉHICULE ===== */
+let _inspPhotos = [];
+
+function getInspectionStorageHelper() {
+  return window.DelivProSupabase && window.DelivProSupabase.getInspectionStorage
+    ? window.DelivProSupabase.getInspectionStorage()
+    : null;
+}
+
+function libererPhotosInspectionLocales() {
+  _inspPhotos.forEach(photo => {
+    if (photo && photo.previewUrl && photo.previewUrl.indexOf('blob:') === 0) {
+      try { URL.revokeObjectURL(photo.previewUrl); } catch (_) {}
+    }
+  });
+}
+
+function reinitialiserPhotosInspection() {
+  libererPhotosInspectionLocales();
+  _inspPhotos = [];
+}
+
+function sanitiserSegmentStorage(value) {
+  return String(value || '')
+    .trim()
+    .replace(/[^\w.-]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'inconnu';
+}
+
+function getInspectionStorageSalarieId() {
+  if (sessionStorage.getItem('auth_mode') === 'supabase') {
+    return sessionStorage.getItem('salarie_id')
+      || salarieCourant?.supabaseId
+      || '';
+  }
+  return salarieCourant?.supabaseId || salarieCourant?.id || '';
+}
+
+function formaterTailleFichierKo(tailleOctets) {
+  const kilo = (Number(tailleOctets) || 0) / 1024;
+  return `${Math.max(kilo, 1).toFixed(kilo >= 100 ? 0 : 1)} Ko`;
+}
+
+function decrireErreurUploadInspection(error) {
+  const brut = String(error?.message || error?.error_description || error?.reason || error || '').trim();
+  const texte = brut.toLowerCase();
+  if (!texte) return "Stockage photo indisponible pour le moment.";
+  if (texte.includes('missing_remote_salarie_id')) return "Le compte salarie distant n'est pas encore completement relie.";
+  if (texte.includes('bucket') && texte.includes('not found')) return "Le coffre photo Supabase n'est pas encore configure.";
+  if (texte.includes('row-level security') || texte.includes('403') || texte.includes('permission')) return "Les droits Supabase Storage des photos d'inspection ne sont pas encore actifs.";
+  if (texte.includes('payload too large') || texte.includes('entity too large') || texte.includes('file size')) return "Les photos sont encore trop lourdes apres compression.";
+  return brut;
+}
+
+/* Compresse une image via canvas — retourne un Blob JPEG + URL de prévisualisation */
+function compresserImage(file, maxW, maxH, qualite, maxBytes) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+        if (h > maxH) { w = Math.round(w * maxH / h); h = maxH; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        const tenterCompression = (quality) => {
+          canvas.toBlob(blob => {
+            if (!blob) {
+              reject(new Error('compression_failed'));
+              return;
+            }
+            if (blob.size > (maxBytes || 380 * 1024) && quality > 0.4) {
+              tenterCompression(Math.max(0.4, quality - 0.08));
+              return;
+            }
+            resolve({
+              blob: blob,
+              previewUrl: URL.createObjectURL(blob),
+              taille: blob.size
+            });
+          }, 'image/jpeg', quality);
+        };
+        tenterCompression(qualite);
+      };
+      img.onerror = () => reject(new Error('image_load_failed'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('file_read_failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function preparerPhotoInspection(file) {
+  const full = await compresserImage(file, 1600, 1200, 0.78, 520 * 1024);
+  const thumb = await compresserImage(file, 520, 390, 0.58, 120 * 1024);
+  return {
+    blob: full.blob,
+    previewUrl: full.previewUrl,
+    taille: full.taille,
+    thumbBlob: thumb.blob,
+    thumbPreviewUrl: thumb.previewUrl,
+    thumbTaille: thumb.taille
+  };
+}
+
+function getInspectionPhotoThumbSrc(photo) {
+  if (!photo) return '';
+  if (typeof photo === 'string') return photo;
+  return photo.thumbUrl || photo.url || '';
+}
+
+function getInspectionPhotoFullSrc(photo) {
+  if (!photo) return '';
+  if (typeof photo === 'string') return photo;
+  return photo.url || photo.thumbUrl || '';
+}
+
+async function uploaderPhotosInspection(date) {
+  const storageHelper = getInspectionStorageHelper();
+  if (!storageHelper) throw new Error('storage_unavailable');
+
+  const salarieStorageId = getInspectionStorageSalarieId();
+  const salarieSegment = sanitiserSegmentStorage(salarieStorageId);
+  const dateSegment = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : aujourdhui();
+  const baseTimestamp = Date.now();
+  const uploadedPaths = [];
+  const uploadedPhotos = [];
+
+  if (!salarieStorageId) throw new Error('missing_remote_salarie_id');
+
+  try {
+    for (let i = 0; i < _inspPhotos.length; i++) {
+      const photo = _inspPhotos[i];
+      const basePath = salarieSegment + '/' + dateSegment + '/' + baseTimestamp + '_' + i;
+      const fullPath = basePath + '_full.jpg';
+      const thumbPath = basePath + '_thumb.jpg';
+
+      const fullResult = await storageHelper.uploadInspectionPhoto(fullPath, photo.blob);
+      if (!fullResult || !fullResult.ok || !fullResult.url) {
+        throw (fullResult && fullResult.error) || new Error('upload_failed');
+      }
+      uploadedPaths.push(fullResult.path || fullPath);
+
+      const thumbResult = await storageHelper.uploadInspectionPhoto(thumbPath, photo.thumbBlob || photo.blob);
+      if (!thumbResult || !thumbResult.ok || !thumbResult.url) {
+        throw (thumbResult && thumbResult.error) || new Error('upload_failed');
+      }
+      uploadedPaths.push(thumbResult.path || thumbPath);
+
+      uploadedPhotos.push({
+        url: fullResult.url,
+        thumbUrl: thumbResult.url,
+        path: fullResult.path || fullPath,
+        thumbPath: thumbResult.path || thumbPath,
+        taille: photo.taille || 0,
+        thumbTaille: photo.thumbTaille || 0
+      });
+    }
+  } catch (error) {
+    if (uploadedPaths.length) {
+      try {
+        await storageHelper.removeInspectionPhotos(uploadedPaths);
+      } catch (_) {}
+    }
+    throw error;
+  }
+
+  return uploadedPhotos;
+}
+
+function previsualiserPhotos() {
+  const files = document.getElementById('insp-photos').files;
+  const container = document.getElementById('insp-previews');
+  reinitialiserPhotosInspection();
+  container.innerHTML = '<div style="color:var(--muted);font-size:.82rem;padding:8px">⏳ Chargement des photos...</div>';
+  if (!files.length) { container.innerHTML = ''; return; }
+
+  const max = Math.min(files.length, 4);
+  const promesses = [];
+  for (let i = 0; i < max; i++) {
+    promesses.push(preparerPhotoInspection(files[i]));
+  }
+
+  Promise.all(promesses).then(resultats => {
+    _inspPhotos = resultats;
+    container.innerHTML = '';
+    const tailleTotale = resultats.reduce((total, photo) => total + (photo.taille || 0) + (photo.thumbTaille || 0), 0);
+    resultats.forEach((photo, i) => {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3';
+      div.innerHTML = `<img src="${photo.thumbPreviewUrl || photo.previewUrl}" style="width:100%;height:100%;object-fit:cover" />
+        <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
+      container.appendChild(div);
+    });
+    const label = document.getElementById('insp-label');
+    if (label) { label.style.borderColor='rgba(46,204,113,.4)'; label.style.background='rgba(46,204,113,.06)'; }
+    // Mettre à jour le statut
+    const statut = document.getElementById('insp-statut');
+    if (statut) {
+      statut.style.display='block';
+      statut.style.color='var(--green)';
+      statut.textContent=`✅ ${resultats.length} photo(s) prêtes (${formaterTailleFichierKo(tailleTotale)}) — envoi cloud léger`;
+    }
+    toast(`✅ ${resultats.length} photo(s) compressée(s)`);
+  }).catch(() => {
+    container.innerHTML = '';
+    const statut = document.getElementById('insp-statut');
+    if (statut) { statut.style.display='block'; statut.style.color='var(--red)'; statut.textContent='⚠️ Erreur de chargement — réessayez'; }
+    toast('⚠️ Erreur lors du chargement des photos', 'error');
+  });
+}
+
+function retirerPhoto(idx) {
+  const photo = _inspPhotos[idx];
+  if (photo && photo.previewUrl && photo.previewUrl.indexOf('blob:') === 0) {
+    try { URL.revokeObjectURL(photo.previewUrl); } catch (_) {}
+  }
+  if (photo && photo.thumbPreviewUrl && photo.thumbPreviewUrl.indexOf('blob:') === 0) {
+    try { URL.revokeObjectURL(photo.thumbPreviewUrl); } catch (_) {}
+  }
+  _inspPhotos.splice(idx, 1);
+  const container = document.getElementById('insp-previews');
+  container.innerHTML = '';
+  if (!_inspPhotos.length) {
+    document.getElementById('insp-photos').value = '';
+    const label = document.getElementById('insp-label');
+    if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
+    return;
+  }
+  _inspPhotos.forEach((photoItem, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:relative;border-radius:8px;overflow:hidden;aspect-ratio:4/3';
+    div.innerHTML = `<img src="${photoItem.thumbPreviewUrl || photoItem.previewUrl}" style="width:100%;height:100%;object-fit:cover" />
+      <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
+    container.appendChild(div);
+  });
+}
+
+async function envoyerInspection() {
+  const date  = document.getElementById('insp-date').value;
+  const km    = document.getElementById('insp-km').value;
+  const comm  = document.getElementById('insp-commentaire').value.trim();
+
+  if (!_inspPhotos.length) { toast('⚠️ Ajoutez au moins une photo', 'error'); return; }
+  if (!date) { toast('⚠️ Sélectionnez une date', 'error'); return; }
+
+  const veh = getMonVehicule();
+  const inspId = Date.now().toString(36);
+  const bouton = document.querySelector('button[onclick="envoyerInspection()"]');
+
+  if (bouton) bouton.disabled = true;
+  const statut = document.getElementById('insp-statut');
+  if (statut) {
+    statut.style.display = 'block';
+    statut.style.color = 'var(--blue)';
+    statut.textContent = '☁️ Envoi des photos vers le cloud...';
+  }
+
+  let photoAssets = [];
+  try {
+    photoAssets = await uploaderPhotosInspection(date);
+  } catch (error) {
+    if (bouton) bouton.disabled = false;
+    const messageErreur = decrireErreurUploadInspection(error);
+    if (statut) {
+      statut.style.display = 'block';
+      statut.style.color = 'var(--red)';
+      statut.textContent = `⚠️ ${messageErreur}`;
+    }
+    toast(`⚠️ ${messageErreur}`, 'error');
+    return;
+  }
+
+  const inspection = {
+    id: inspId,
+    salId: salarieCourant.id, salNom: salarieCourant.nom,
+    vehId: veh ? veh.id : '', vehImmat: veh ? veh.immat : 'Non affecté',
+    date, km: km || null, commentaire: comm,
+    photos: photoAssets,
+    creeLe: new Date().toISOString()
+  };
+  if (km) mettreAJourKmVehiculeAffecte(km);
+
+  // Sauvegarde locale légère : seules les URLs Supabase sont conservées
+  try {
+    const toutes = JSON.parse(localStorage.getItem('inspections') || '[]');
+    toutes.push(inspection);
+    localStorage.setItem('inspections', JSON.stringify(toutes));
+  } catch(e) {
+    const storageHelper = getInspectionStorageHelper();
+    const photoPaths = storageHelper && storageHelper.extractPathFromPublicUrl
+      ? photoAssets.flatMap(function(photo) {
+          const urls = typeof photo === 'string' ? [photo] : [photo.url, photo.thumbUrl];
+          return urls.map(url => storageHelper.extractPathFromPublicUrl(url)).filter(Boolean);
+        })
+      : [];
+    if (photoPaths.length && storageHelper && storageHelper.removeInspectionPhotos) {
+      try { await storageHelper.removeInspectionPhotos(photoPaths); } catch (_) {}
+    }
+    if (bouton) bouton.disabled = false;
+    if (statut) {
+      statut.style.display = 'block';
+      statut.style.color = 'var(--red)';
+      statut.textContent = '⚠️ Sauvegarde locale impossible — inspection annulée';
+    }
+    toast('⚠️ Impossible de sauvegarder — mémoire du navigateur pleine', 'error');
+    return;
+  }
+
+  // Alerte admin
+  try {
+    const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+    alertes.push({
+      id: inspId + 'i', type: 'inspection',
+      message: `Inspection soumise par ${salarieCourant.nom} — ${veh ? veh.immat : 'sans véhicule'} (${date}) — ${_inspPhotos.length} photo(s)`,
+      meta: { salNom: salarieCourant.nom, salId: salarieCourant.id, inspId },
+      lu: false, traitee: false, creeLe: new Date().toISOString()
+    });
+    localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+  } catch(e) { /* non bloquant */ }
+
+  // Reset formulaire
+  reinitialiserPhotosInspection();
+  document.getElementById('insp-photos').value = '';
+  document.getElementById('insp-previews').innerHTML = '';
+  document.getElementById('insp-commentaire').value = '';
+  document.getElementById('insp-km').value = '';
+  const label = document.getElementById('insp-label');
+  if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
+  if (statut) { statut.style.display='none'; statut.textContent=''; }
+  if (bouton) bouton.disabled = false;
+
+  chargerHistoriqueInspections();
+  toast('✅ Inspection envoyée à l\'administrateur !');
+}
+
+function chargerHistoriqueInspections() {
+  const toutes = JSON.parse(localStorage.getItem('inspections') || '[]')
+    .filter(i => i.salId === salarieCourant.id)
+    .sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe))
+    .slice(0, 10);
+
+  const cont = document.getElementById('historique-inspections');
+  if (!toutes.length) { cont.innerHTML = '<div class="empty">Aucune inspection enregistrée</div>'; return; }
+
+  cont.innerHTML = toutes.map(insp => `
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <strong style="font-size:.9rem">🗓️ ${insp.date}</strong>
+        <span style="font-size:.78rem;color:var(--muted)">${insp.vehImmat}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
+      </div>
+      ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">💬 ${insp.commentaire}</p>` : ''}
+      <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min((insp.photos || []).length,4), 1)},1fr);gap:6px">
+        ${(insp.photos || []).map(p => `<img src="${getInspectionPhotoThumbSrc(p)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer" onclick="voirPhotoPleinEcran('${getInspectionPhotoFullSrc(p)}')" />`).join('')}
+      </div>
+      ${!(insp.photos || []).length && (insp.note_quota || insp.note_cleanup_storage) ? `<p style="font-size:.78rem;color:var(--orange);margin-top:8px">${insp.note_quota || insp.note_cleanup_storage}</p>` : ''}
+    </div>`).join('');
+}
+
+function voirPhotoPleinEcran(src) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:16px';
+  overlay.innerHTML = `<img src="${src}" style="max-width:100%;max-height:100%;border-radius:8px;object-fit:contain" />`;
+  overlay.onclick = () => overlay.remove();
+  document.body.appendChild(overlay);
+}
+
+/* ===== MESSAGERIE SALARIÉ ===== */
+function chargerMessagesSal() {
+  const messages = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  const fil = document.getElementById('msg-fil');
+  const vide = document.getElementById('msg-vide');
+
+  if (!messages.length) {
+    if (vide) vide.style.display = 'block';
+    return;
+  }
+  if (vide) vide.style.display = 'none';
+
+  // Marquer les messages admin comme lus avec horodatage
+  let modifie = false;
+  messages.forEach(m => {
+    if (m.auteur === 'admin' && !m.lu) {
+      m.lu = true;
+      m.luLe = new Date().toISOString();
+      modifie = true;
+    }
+  });
+  if (modifie) localStorage.setItem('messages_' + salarieCourant.id, JSON.stringify(messages));
+
+  // Mettre à jour le badge
+  mettreAJourBadgeMsgSal();
+
+  fil.innerHTML = '';
+  messages.forEach(m => {
+    const estMoi = m.auteur === 'salarie';
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex;flex-direction:column;align-items:${estMoi ? 'flex-end' : 'flex-start'}`;
+    const heure = new Date(m.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    div.innerHTML = `
+      <div style="max-width:80%;background:${estMoi ? 'var(--accent)' : 'var(--card2)'};color:${estMoi ? '#000' : 'var(--text)'};padding:9px 13px;border-radius:${estMoi ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
+          ${m.photo ? `<img src="${m.photo}" style="max-width:180px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />` : m.texte}
+        </div>
+      <span style="font-size:.72rem;color:var(--muted);margin-top:3px">${estMoi ? 'Moi' : '⚙️ Admin'} · ${heure}</span>`;
+    fil.appendChild(div);
+  });
+  fil.scrollTop = fil.scrollHeight;
+}
+
+function envoyerMessageSal() {
+  const input = document.getElementById('msg-input');
+  const texte = input.value.trim();
+  if (!texte) return;
+
+  const messages = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  messages.push({
+    id: Date.now().toString(36),
+    auteur: 'salarie', salNom: salarieCourant.nom,
+    texte, lu: false, creeLe: new Date().toISOString()
+  });
+  localStorage.setItem('messages_' + salarieCourant.id, JSON.stringify(messages));
+
+  // Badge admin (nouveau message non lu)
+  const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+  // Éviter les doublons d'alertes message non traité
+  const dejaAlerte = alertes.find(a => a.type === 'message' && !a.traitee && a.meta?.salId === salarieCourant.id);
+  if (!dejaAlerte) {
+    alertes.push({
+      id: Date.now().toString(36) + 'm',
+      type: 'message',
+      message: `Nouveau message de ${salarieCourant.nom}`,
+      meta: { salNom: salarieCourant.nom, salId: salarieCourant.id },
+      lu: false, traitee: false, creeLe: new Date().toISOString()
+    });
+    localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+  }
+
+  input.value = '';
+  chargerMessagesSal();
+}
+
+function mettreAJourBadgeMsgSal() {
+  if (!salarieCourant) return;
+  const messages = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  const nonLus = messages.filter(m => m.auteur === 'admin' && !m.lu).length;
+
+  // Son + vibration si nouveau message non lu
+  const ancienCount = parseInt(window._prevNonLusSal||0);
+  if (nonLus > ancienCount) {
+    // Son de notification
+    try {
+      const ctx = new (window.AudioContext||window.webkitAudioContext)();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.setValueAtTime(880, ctx.currentTime);
+      o.frequency.setValueAtTime(1100, ctx.currentTime + 0.08);
+      g.gain.setValueAtTime(0.25, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.35);
+    } catch(e) {}
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  }
+  window._prevNonLusSal = nonLus;
+
+  // Badge sur l'onglet Messages
+  const badgeMsg = document.getElementById('badge-msg-sal');
+  if (badgeMsg) {
+    badgeMsg.textContent = nonLus;
+    badgeMsg.style.display = nonLus > 0 ? 'inline-flex' : 'none';
+    badgeMsg.style.alignItems = 'center';
+    badgeMsg.style.justifyContent = 'center';
+    badgeMsg.style.minWidth = '18px';
+    badgeMsg.style.height = '18px';
+  }
+
+  // Badge sur l'onglet Accueil (combiné tâches + messages)
+  const tachesNonFaites = parseInt(document.getElementById('badge-accueil')?.textContent || '0');
+  const badgeAcc = document.getElementById('badge-accueil');
+  if (badgeAcc) {
+    const total = tachesNonFaites + nonLus;
+    badgeAcc.textContent = total > 0 ? total : '';
+    badgeAcc.style.display = total > 0 ? 'inline-block' : 'none';
+  }
+
+  // Notif dot sur le bouton profil si messages non lus
+  const dot = document.getElementById('notif-dot');
+  if (dot && nonLus > 0) dot.classList.add('visible');
+}
+
+/* ===== MODALS & TOAST ===== */
+function fermerModal(id){document.getElementById(id).classList.remove('open');}
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))fermerModal(e.target.id);});
+
+function toast(msg, type='success') {
+  const el=document.getElementById('toast-sal');
+  el.textContent=msg; el.className='toast show'+(type==='error'?' error':'');
+  setTimeout(()=>{el.className='toast';},3200);
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (window.DelivProSecurity && typeof window.DelivProSecurity.registerServiceWorker === 'function') {
+    window.DelivProSecurity.registerServiceWorker().catch(function () {});
+  }
+  const embedAutorise = !!(window.top && window.top !== window && window.top.__delivproTabUnlocked);
+
+  // Vérifier le ticket tab_auth dans l'URL (posé par login.html)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabTicket = urlParams.get('tab_auth');
+    const pendingTicket = sessionStorage.getItem('delivpro_tab_auth_pending');
+    if (tabTicket && tabTicket === pendingTicket) {
+      window.__delivproTabUnlocked = true;
+      sessionStorage.removeItem('delivpro_tab_auth_pending');
+      // Nettoyer l'URL pour ne pas laisser le ticket visible
+      const cleanUrl = window.location.pathname + window.location.hash;
+      window.history.replaceState({}, '', cleanUrl);
+    }
+  } catch(_) {}
+
+  // Si pas de ticket valide, tenter restauration Supabase
+  // AVANT de rediriger (pour les nouveaux appareils avec session valide)
+  if (!embedAutorise && !window.__delivproTabUnlocked) {
+    let supabaseSessionValide = false;
+    if (window.DelivProAuth) {
+      try {
+        const restored = window.DelivProAuth.restoreLegacySessionFromSupabase
+          ? await window.DelivProAuth.restoreLegacySessionFromSupabase('salarie')
+          : await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase();
+        if (restored === 'salarie' || restored === true) {
+          supabaseSessionValide = true;
+          window.__delivproTabUnlocked = true;
+          sessionStorage.setItem('auth_mode', 'supabase');
+        }
+      } catch(_) {}
+    }
+
+    // Si aucune session Supabase valide, redirection login
+    if (!supabaseSessionValide) {
+      try { sessionStorage.setItem('delivpro_debug_redirect', 'guard: pas de ticket ni session Supabase @ ' + new Date().toLocaleTimeString()); } catch(_) {}
+      if (window.top && window.top !== window) {
+        window.top.location.href = 'login.html';
+        return;
+      }
+      sessionStorage.removeItem('role');
+      sessionStorage.removeItem('auth_mode');
+      sessionStorage.removeItem('salarie_id');
+      sessionStorage.removeItem('salarie_numero');
+      sessionStorage.removeItem('delivpro_fast_boot_role');
+      window.location.href = 'login.html';
+      return;
+    }
+  }
+  const fastBootRole = sessionStorage.getItem('delivpro_fast_boot_role');
+  if (fastBootRole === 'salarie') {
+    sessionStorage.removeItem('delivpro_fast_boot_role');
+  } else if (embedAutorise) {
+    // L'iframe embarquée vit dans un onglet déjà autorisé, pas besoin de restaurer une session séparée.
+  } else if (window.DelivProAuth) {
+    try {
+      const restored = window.DelivProAuth.restoreLegacySessionFromSupabase
+        ? await window.DelivProAuth.restoreLegacySessionFromSupabase('salarie')
+        : await window.DelivProAuth.ensureSalarieLegacySessionFromSupabase();
+
+      // Si restauration réussie, mettre à jour auth_mode
+      if (restored === 'salarie' || restored === true) {
+        sessionStorage.setItem('auth_mode', 'supabase');
+      }
+    } catch(_) {}
+  }
+  const role = sessionStorage.getItem('role');
+  const salarieId = sessionStorage.getItem('salarie_id');
+  const salarieNumero = sessionStorage.getItem('salarie_numero');
+  const authMode = sessionStorage.getItem('auth_mode');
+
+  // Fonction pour charger le salarié depuis Supabase si localStorage vide
+  async function chargerSalarieDepuisSupabase() {
+    if (!window.DelivProSupabase || !window.DelivProSupabase.getClient) return null;
+    const client = window.DelivProSupabase.getClient();
+    if (!client) return null;
+    try {
+      let query = client.from('salaries')
+        .select('id, numero, nom, prenom, poste, email, actif, telephone, profile_id')
+        .eq('actif', true)
+        .limit(1);
+      if (salarieId) query = query.or(`id.eq.${salarieId},profile_id.eq.${salarieId}`);
+      else if (salarieNumero) query = query.eq('numero', salarieNumero.toUpperCase());
+      const { data, error } = await query.maybeSingle();
+      if (error || !data) return null;
+      // Reconstruire un objet salarié compatible avec le format local
+      return {
+        id: data.id,
+        supabaseId: data.id,
+        profileId: data.profile_id,
+        numero: data.numero,
+        nom: [data.prenom, data.nom].filter(Boolean).join(' ') || data.numero,
+        nomFamille: data.nom,
+        prenom: data.prenom,
+        poste: data.poste,
+        email: data.email,
+        tel: data.telephone,
+        actif: data.actif !== false
+      };
+    } catch(_) { return null; }
+  }
+
+  let salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+
+  if (role === 'salarie' && (salarieId || salarieNumero)) {
+    let sal = salaries.find(function (item) {
+      return item.id === salarieId || item.numero === salarieNumero;
+    });
+
+    // Si pas trouvé en local ET auth Supabase → charger depuis Supabase
+    if (!sal && authMode === 'supabase') {
+      sal = await chargerSalarieDepuisSupabase();
+      if (sal) {
+        // Sauvegarder en local pour les prochaines fois
+        salaries.push(sal);
+        try { localStorage.setItem('salaries', JSON.stringify(salaries)); } catch(_) {}
+      }
+    }
+
+    if (sal && sal.actif) {
+      if (sessionStorage.getItem('auth_mode') === 'supabase' && salarieId) {
+        sal.supabaseId = salarieId;
+        try {
+          const idx = salaries.findIndex(function(item) { return item.id === sal.id; });
+          if (idx > -1) {
+            salaries[idx].supabaseId = salarieId;
+            localStorage.setItem('salaries', JSON.stringify(salaries));
+          }
+        } catch (_) {}
+      }
+      salarieCourant = sal;
+      lancerInterface();
+      resetTimerInactiviteSalarie();
+      if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init && sessionStorage.getItem('auth_mode') === 'supabase') {
+        window.DelivProRemoteStorage.init().then(function(syncInitResult) {
+          if (!syncInitResult?.ok) {
+            toast('⚠️ Session Supabase absente: mode local, synchro inactive.', 'error');
+          }
+        }).catch(function() {
+          toast('⚠️ Synchro distante indisponible.', 'error');
+        });
+      }
+      return;
+    }
+  }
+
+  try { sessionStorage.setItem('delivpro_debug_redirect', 'fallthrough: salarié introuvable (role=' + role + ', id=' + salarieId + ', num=' + salarieNumero + ', authMode=' + authMode + ') @ ' + new Date().toLocaleTimeString()); } catch(_) {}
+  if (window.top && window.top !== window) {
+    window.top.location.href = 'login.html';
+    return;
+  }
+  window.location.href = 'login.html';
+});
+
+/* ===== BOUTONS KM ===== */
+function initEtatBoutonsKm() {
+  const auj = new Date().toISOString().split('T')[0];
+  if (!salarieCourant) return;
+  const entries = JSON.parse(
+    localStorage.getItem('km_sal_'+salarieCourant.id)||'[]'
+  );
+  const entreeAuj = entries.find(e =>
+    e.date === auj &&
+    e.kmDepart != null &&
+    e.kmDepart !== ''
+  );
+  const btnDepart = document.querySelector(
+    'button[onclick*="enregistrerKmDepart"]'
+  );
+  const btnRetour = document.querySelector(
+    'button[onclick*="enregistrerKmArrivee"]'
+  );
+  if (!btnDepart || !btnRetour) return;
+
+  if (entreeAuj && !entreeAuj.kmArrivee) {
+    btnRetour.style.cssText = `
+      flex:1;
+      background:linear-gradient(135deg,#f5a623,#ff8c00);
+      color:#000;border:none;border-radius:14px;
+      padding:17px;font-size:1rem;font-weight:800;
+      cursor:pointer;
+    `;
+    btnDepart.style.cssText = `
+      flex:1;
+      background:#1a2234;color:#e8f0ff;
+      border:1px solid #1e2a3d;border-radius:14px;
+      padding:17px;font-size:.95rem;font-weight:600;
+      cursor:pointer;
+    `;
+  } else {
+    btnDepart.style.cssText = `
+      flex:1;
+      background:linear-gradient(135deg,#f5a623,#ff8c00);
+      color:#000;border:none;border-radius:14px;
+      padding:17px;font-size:1rem;font-weight:800;
+      cursor:pointer;
+    `;
+    btnRetour.style.cssText = `
+      flex:1;
+      background:#1a2234;color:#e8f0ff;
+      border:1px solid #1e2a3d;border-radius:14px;
+      padding:17px;font-size:.95rem;font-weight:600;
+      cursor:pointer;
+    `;
+  }
+}
+
+/* ===== MOBILE ===== */
+function isMobile() { return window.innerWidth <= 768; }
+
+function initMobile() {
+  const nav = document.getElementById('bottom-nav');
+  const tabs = document.querySelector('.tabs-wrapper');
+  if (!nav) return;
+  const appActive = document.getElementById('ecran-salarie')?.classList.contains('actif');
+  if (!appActive) {
+    nav.style.display = 'none';
+    return;
+  }
+  if (isMobile()) {
+    nav.style.display = 'block';
+    if (tabs) tabs.style.display = 'none';
+  } else {
+    nav.style.display = 'none';
+    if (tabs) tabs.style.display = 'block';
+  }
+}
+
+function changerOngletMobile(nom, btnNav) {
+  const mp = document.getElementById('menu-plus');
+  const mpo = document.getElementById('menu-plus-overlay');
+  if (mp) mp.style.display = 'none';
+  if (mpo) mpo.style.display = 'none';
+
+  document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+  const map = {
+    accueil: 'bn-accueil',
+    livraisons: 'bn-livraisons',
+    inspection: 'bn-inspection',
+    carburant: 'bn-carburant',
+    messages: 'bn-messages',
+    planning: 'bn-plus',
+    profil: 'bn-plus'
+  };
+  const actif = document.getElementById(map[nom]);
+  if (actif) actif.classList.add('active');
+
+  const ms = document.getElementById('main-scroll');
+  if (ms) ms.scrollTop = 0;
+
+  changerOnglet(nom, null);
+}
+
+function toggleMenuPlus() {
+  const mp = document.getElementById('menu-plus');
+  const mpo = document.getElementById('menu-plus-overlay');
+  if (!mp) return;
+  const open = mp.style.display === 'block';
+  mp.style.display = open ? 'none' : 'block';
+  mpo.style.display = open ? 'none' : 'block';
+  if (!open) {
+    document.querySelectorAll('.bn-item').forEach(b => b.classList.remove('active'));
+    document.getElementById('bn-plus')?.classList.add('active');
+  }
+}
+
+function majBadgesBottomNav() {
+  if (!salarieCourant) return;
+  const msgs = JSON.parse(localStorage.getItem('messages_' + salarieCourant.id) || '[]');
+  const nonLus = msgs.filter(m => m.auteur === 'admin' && !m.lu).length;
+  const bMsg = document.getElementById('bn-badge-messages');
+  const bMsgAction = document.getElementById('badge-msg-action');
+  if (bMsg) { bMsg.textContent = nonLus || ''; bMsg.classList.toggle('visible', nonLus > 0); }
+  if (bMsgAction) { bMsgAction.textContent = nonLus || ''; bMsgAction.style.display = nonLus > 0 ? 'inline' : 'none'; }
+}
+
+function initOfflineDetection() {
+  const banner = document.getElementById('offline-banner');
+  if (!banner) return;
+  const maj = () => {
+    const appActive = document.getElementById('ecran-salarie')?.classList.contains('actif');
+    if (!appActive) { banner.classList.remove('visible'); return; }
+    banner.classList.toggle('visible', !navigator.onLine);
+  };
+  window.addEventListener('online', maj);
+  window.addEventListener('offline', maj);
+  setTimeout(maj, 1000);
+}
+
+/* PWA */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const card = document.getElementById('pwa-install-card');
+  if (card) card.style.display = 'block';
+  const btn = document.getElementById('btn-pwa-install');
+  if (btn) btn.onclick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    if (card) card.style.display = 'none';
+  };
+});
+
+function initAccueilDate() {
+  const el = document.getElementById('accueil-date');
+  if (!el) return;
+  const opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+  el.textContent = new Date().toLocaleDateString('fr-FR', opts);
+}
+
+function initAccueilBonjour() {
+  const el = document.getElementById('accueil-bonjour');
+  if (!el || !salarieCourant) return;
+  const h = new Date().getHours();
+  const salut = (h >= 5 && h < 12) ? 'Bonjour' : h < 18 ? 'Bon après-midi' : 'Bonsoir';
+  const prenom = salarieCourant.prenom || salarieCourant.nom?.split(' ')[0] || '';
+  el.textContent = `${salut} ${prenom} 👋`;
+}
+
+window.addEventListener('resize', initMobile);
+window.addEventListener('DOMContentLoaded', () => {
+  initMobile();
+  initOfflineDetection();
+  initAccueilDate();
+});
+</script>
+</body>
+</html>
