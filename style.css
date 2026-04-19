@@ -5548,3 +5548,109 @@ body.light-mode .toast-stack .toast-close:hover {
 body.light-mode .toast-stack .toast-progress {
   background: rgba(0,0,0,0.05);
 }
+
+/* ============================================================
+   SPRINT 11 — Formulaires intelligents
+   ============================================================ */
+
+/* Champ requis : astérisque orange */
+.field-required::after {
+  content: ' *';
+  color: #f5a623;
+  font-weight: 700;
+  cursor: help;
+}
+
+/* États de validation sur les inputs */
+.modal .form-group input.field-invalid,
+.modal .form-group select.field-invalid,
+.modal .form-group textarea.field-invalid {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+  animation: fieldShake .28s ease-in-out;
+}
+.modal .form-group input.field-ok,
+.modal .form-group select.field-ok,
+.modal .form-group textarea.field-ok {
+  border-color: rgba(34,197,94,0.55) !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.1);
+}
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+/* Message d'erreur inline */
+.field-error {
+  display: none;
+  margin-top: 4px;
+  font-size: 0.76rem;
+  color: #ef4444;
+  font-weight: 500;
+  line-height: 1.3;
+  animation: fieldErrorIn .2s ease;
+}
+.field-error::before {
+  content: '⚠ ';
+  font-size: 0.72rem;
+}
+@keyframes fieldErrorIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Encadré calcul visible HT + TVA = TTC */
+.calc-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 10px 0 4px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(245,166,35,0.08), rgba(245,166,35,0.03));
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-family: 'DM Sans', sans-serif;
+}
+.calc-summary .calc-piece {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.calc-summary .calc-piece strong {
+  color: var(--text);
+  font-weight: 700;
+  margin-left: 3px;
+  font-variant-numeric: tabular-nums;
+  transition: color .2s;
+}
+.calc-summary .calc-op {
+  color: rgba(245,166,35,0.6);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.calc-summary .calc-total strong {
+  color: #f5a623;
+  font-size: 0.95rem;
+}
+
+/* Light mode overrides */
+body.light-mode .calc-summary {
+  background: linear-gradient(135deg, rgba(245,166,35,0.10), rgba(245,166,35,0.04));
+  border-color: rgba(245,166,35,0.25);
+}
+body.light-mode .field-error {
+  color: #dc2626;
+}
+body.light-mode .modal .form-group input.field-invalid,
+body.light-mode .modal .form-group select.field-invalid {
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.10);
+}
+
+/* Responsive */
+@media (max-width: 560px) {
+  .calc-summary { gap: 8px; font-size: 0.78rem; padding: 8px 10px; }
+  .calc-summary .calc-op { font-size: 0.82rem; }
+}
