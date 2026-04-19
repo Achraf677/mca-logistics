@@ -28,7 +28,7 @@
   --muted: #6b7a99;
   --radius: 16px;
   --bottom-nav-h: 72px;
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -131,7 +131,7 @@ html, body {
 #ecran-salarie {
   display: none;
   height: 100vh;
-  height: 100dvh;
+  height: 100svh;
   flex-direction: column;
   overflow: hidden;
 }
@@ -216,10 +216,15 @@ html, body {
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
+  scroll-padding-bottom: calc(
+    var(--bottom-nav-h) + var(--safe-bottom) + 24px
+  );
 }
 .main-inner {
   padding: 16px;
-  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + 40px);
+  padding-bottom: calc(
+    var(--bottom-nav-h) + var(--safe-bottom) + 32px
+  );
   max-width: 600px;
   margin: 0 auto;
 }
@@ -595,6 +600,11 @@ html, body {
     max-width: 100% !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
+    border-radius: 12px !important;
+    padding: 14px 16px !important;
+    font-size: .95rem !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
   }
   .form-row {
     width: 100% !important;
