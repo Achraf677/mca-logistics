@@ -1473,6 +1473,104 @@ body.light-mode .badge-inactif {
 .favicon-badge { display: none; }
 
 /* ================================================================
+   SIDE DRAWER (Sprint 5) — panneau latéral réutilisable
+   Utilisé pour édition non-modale (bulk, vue 360°, détails)
+   ================================================================ */
+.side-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .25s ease;
+  z-index: 1100;
+}
+.side-drawer-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.side-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  height: 100dvh;
+  width: min(480px, 92vw);
+  background: var(--card, var(--bg-card, #1a1d27));
+  border-left: 1px solid var(--border, rgba(255,255,255,.08));
+  box-shadow: -8px 0 24px rgba(0,0,0,0.3);
+  transform: translateX(100%);
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1);
+  z-index: 1101;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.side-drawer.open { transform: translateX(0); }
+
+.side-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,.08));
+  background: var(--card2, rgba(255,255,255,.02));
+  flex-shrink: 0;
+}
+.side-drawer-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-primary, #e8eaf0);
+  font-family: var(--font-display, 'Syne', sans-serif);
+}
+.side-drawer-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #7c8299);
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+.side-drawer-close:hover {
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+}
+.side-drawer-close:focus-visible {
+  outline: 2px solid var(--accent-orange, var(--orange, #f5a623));
+  outline-offset: 2px;
+}
+
+.side-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 20px;
+  color: var(--text-primary, #e8eaf0);
+}
+
+/* Empêche scroll body quand drawer ouvert */
+body.drawer-open { overflow: hidden; }
+
+/* Responsive mobile : plein écran */
+@media (max-width: 600px) {
+  .side-drawer { width: 100vw; }
+}
+
+/* Light mode */
+body.light-mode .side-drawer { background: #fff; border-left-color: rgba(0,0,0,.08); }
+body.light-mode .side-drawer-header { background: #fafafa; border-bottom-color: rgba(0,0,0,.08); }
+body.light-mode .side-drawer-close:hover { background: rgba(231,76,60,.08); }
+
+/* ================================================================
    DASHBOARD HIÉRARCHISÉ (Sprint 4)
    ================================================================ */
 

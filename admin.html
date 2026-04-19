@@ -2372,6 +2372,16 @@
     </div>
   </div>
 
+  <!-- Side drawer (Sprint 5) : panneau latéral réutilisable -->
+  <div class="side-drawer-overlay" id="side-drawer-overlay" onclick="fermerDrawer()" aria-hidden="true"></div>
+  <aside class="side-drawer" id="side-drawer" role="dialog" aria-labelledby="side-drawer-title" aria-hidden="true">
+    <header class="side-drawer-header">
+      <h3 class="side-drawer-title" id="side-drawer-title">Détails</h3>
+      <button type="button" class="side-drawer-close" onclick="fermerDrawer()" title="Fermer (Échap)" aria-label="Fermer">✕</button>
+    </header>
+    <div class="side-drawer-body" id="side-drawer-body"></div>
+  </aside>
+
   <!-- Zone impression bon de livraison -->
   <div id="print-bon"></div>
 
