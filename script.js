@@ -205,6 +205,7 @@ function getEntrepriseExportParams() {
     nom: params.nom || 'MCA Logistics',
     nomAdmin: sessionAdmin.nom || params.nomAdmin || '',
     siret: params.siret || '',
+    tvaIntracom: params.tvaIntracom || '',
     adresse: params.adresse || '',
     tel: params.tel || '',
     email: params.email || ''
@@ -1857,7 +1858,7 @@ function naviguerVers(page) {
     salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
     alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
     messagerie:'💬 Messagerie interne', parametres:'⚙️ Paramètres',
-    charges:'💸 Charges', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
+    charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
     heures:'⏱️ Heures & Km',
     budget:'📂 Budget & Trésorerie',
     'espace-salarie':'Espace salarié'
@@ -2104,7 +2105,8 @@ function mettreAJourSelects() {
 
 /* ===== LIVRAISONS ===== */
 function ajouterLivraison() {
-  const client   = document.getElementById('liv-client').value.trim();
+  const client      = document.getElementById('liv-client').value.trim();
+  const clientSiren = (document.getElementById('liv-client-siren')?.value || '').replace(/\s+/g, '');
   const zoneGeo  = document.getElementById('liv-zone')?.value.trim() || document.getElementById('liv-depart').value.trim();
   const depart   = zoneGeo;
   const arrivee  = '';
@@ -2141,7 +2143,7 @@ function ajouterLivraison() {
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
-    client, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
+    client, clientSiren, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
     chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
     vehId: affectation.vehId || null, vehNom: affectation.vehNom,
     statut, date, notes,
@@ -3545,8 +3547,14 @@ function rafraichirDashboard() {
   const livsAuj = livraisons.filter(l => l.date===auj);
   const caJour   = livsAuj.reduce((s,l)=>s+getMontantHTLivraison(l),0);
   const caSem    = livraisons.filter(l=>(l.date || '')>=sem).reduce((s,l)=>s+getMontantHTLivraison(l),0);
-  const caMois   = livraisonsMois.reduce((s,l)=>s+getMontantHTLivraison(l),0);
-  const caMoisTTC = livraisonsMois.reduce((s,l)=>s+(parseFloat(l.prix) || 0),0);
+  const caMoisBrut   = livraisonsMois.reduce((s,l)=>s+getMontantHTLivraison(l),0);
+  const caMoisTTCBrut = livraisonsMois.reduce((s,l)=>s+(parseFloat(l.prix) || 0),0);
+  // CA net = CA - avoirs émis ce mois (Sprint 12)
+  const avoirsMois = charger('avoirs_emis').filter(a => (a.date || '').startsWith(mois));
+  const avoirsHTMois = avoirsMois.reduce((s, a) => s + (parseFloat(a.montantHT) || 0), 0);
+  const avoirsTTCMois = avoirsMois.reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
+  const caMois   = Math.max(0, caMoisBrut - avoirsHTMois);
+  const caMoisTTC = Math.max(0, caMoisTTCBrut - avoirsTTCMois);
   const carbMois = budgetData.totalCarb || 0;
   const entretienChargesMois = budgetData.totalEntr || 0;
   const chargesSalarialesMois = budgetData.totalSalaires || 0;
@@ -7932,6 +7940,7 @@ function chargerParametres() {
     'param-nom-entreprise':  params.nom      || '',
     'param-nom-admin':       sessionAdmin.nom || '',
     'param-siret':           params.siret    || '',
+    'param-tva-intracom':    params.tvaIntracom || '',
     'param-adresse':         params.adresse  || '',
     'param-tel-entreprise':  params.tel      || '',
     'param-email':           params.email    || ''
@@ -8019,13 +8028,19 @@ function sauvegarderParametres() {
   const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
     ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
     : adminNomSaisi;
+  const tvaIntracomRaw = (document.getElementById('param-tva-intracom')?.value || '').replace(/\s+/g, '').toUpperCase();
+  if (tvaIntracomRaw && !/^FR\d{11}$/.test(tvaIntracomRaw)) {
+    afficherToast('⚠️ N° TVA intracom invalide (format FR + 11 chiffres)', 'error');
+    return;
+  }
   const params = {
-    nom:      document.getElementById('param-nom-entreprise')?.value.trim() || 'MCA Logistics',
-    nomAdmin: adminNom,
-    siret:    siretRaw,
-    adresse:  document.getElementById('param-adresse')?.value.trim()         || '',
-    tel:      document.getElementById('param-tel-entreprise')?.value.trim()  || '',
-    email:    document.getElementById('param-email')?.value.trim()           || ''
+    nom:         document.getElementById('param-nom-entreprise')?.value.trim() || 'MCA Logistics',
+    nomAdmin:    adminNom,
+    siret:       siretRaw,
+    tvaIntracom: tvaIntracomRaw,
+    adresse:     document.getElementById('param-adresse')?.value.trim()         || '',
+    tel:         document.getElementById('param-tel-entreprise')?.value.trim()  || '',
+    email:       document.getElementById('param-email')?.value.trim()           || ''
   };
   sauvegarder('params_entreprise', params);
   const comptes = getAdminAccounts();
@@ -9335,6 +9350,7 @@ function genererFactureLivraison(livId) {
     + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
     + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
     + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
+    + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
     + '</div></div>'
     + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
     + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + planningEscapeHtml(numeroFacture) + '</div>'
@@ -9345,6 +9361,7 @@ function genererFactureLivraison(livId) {
     + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
     + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
     + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(livraison.client || 'Client') + '</div>'
+    + (livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
     + '</div>'
     + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
     + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
@@ -17524,5 +17541,1000 @@ function exporterPrevisionsPDF() {
     document.addEventListener('DOMContentLoaded', installModalLivraison);
   } else {
     installModalLivraison();
+  }
+})();
+
+/* =========================================================================
+   SPRINT 12 — Encaissements, Avoirs & paiements partiels (conforme FR)
+   Respecte la structure PDF facture existante (FAC-YYYY-NNNN → AV-YYYY-NNNN)
+   ========================================================================= */
+(function() {
+  'use strict';
+
+  /* ---------- Stockage ---------- */
+  function chargerAvoirs() { return charger('avoirs_emis'); }
+  function sauvegarderAvoirs(list) { sauvegarder('avoirs_emis', list); }
+  function chargerPaiements() { return charger('paiements'); }
+  function sauvegarderPaiements(list) { sauvegarder('paiements', list); }
+
+  /* ---------- Compteurs séquentiels ---------- */
+  function anneeReference(dateIso) {
+    const m = String(dateIso || '').match(/^(\d{4})/);
+    return m ? m[1] : String(new Date().getFullYear());
+  }
+  function genererNumeroAvoir(dateIso) {
+    const annee = anneeReference(dateIso || aujourdhui());
+    const list = chargerAvoirs();
+    const lastSeq = list
+      .filter(a => String(a.annee || '') === annee)
+      .reduce((max, a) => Math.max(max, parseInt(a.sequence, 10) || 0), 0);
+    const seq = lastSeq + 1;
+    return { annee, sequence: seq, numero: 'AV-' + annee + '-' + String(seq).padStart(4, '0') };
+  }
+  function genererNumeroEncaissement(dateIso) {
+    const annee = anneeReference(dateIso || aujourdhui());
+    const list = chargerPaiements();
+    const lastSeq = list
+      .filter(p => String(p.annee || '') === annee)
+      .reduce((max, p) => Math.max(max, parseInt(p.sequence, 10) || 0), 0);
+    const seq = lastSeq + 1;
+    return { annee, sequence: seq, numero: 'ENC-' + annee + '-' + String(seq).padStart(4, '0') };
+  }
+
+  /* ---------- Calculs solde ---------- */
+  function getAvoirsForFacture(factureId) {
+    return chargerAvoirs().filter(a => a.factureId === factureId && a.statut !== 'annulé');
+  }
+  function getPaiementsForFacture(factureId) {
+    return chargerPaiements().filter(p => p.sens === 'in' && p.factureId === factureId);
+  }
+  function getPaiementsForCharge(chargeId) {
+    return chargerPaiements().filter(p => p.sens === 'out' && p.chargeId === chargeId);
+  }
+  function getSoldeFacture(facture) {
+    const ttc = parseFloat(facture.montantTTC) || 0;
+    const avoirsTTC = getAvoirsForFacture(facture.id).reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
+    const paye = getPaiementsForFacture(facture.id).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+    const solde = Math.max(0, round2(ttc - avoirsTTC - paye));
+    let statut = 'en-attente';
+    if (solde <= 0.009) statut = 'paye';
+    else if (paye > 0 || avoirsTTC > 0) statut = 'partiel';
+    return { ttc, avoirsTTC, paye, solde, statut };
+  }
+  function getSoldeCharge(charge) {
+    const ttc = parseFloat(charge.montant) || 0;
+    const paye = getPaiementsForCharge(charge.id).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+    const solde = Math.max(0, round2(ttc - paye));
+    let statut = 'en-attente';
+    if (solde <= 0.009) statut = 'paye';
+    else if (paye > 0) statut = 'partiel';
+    return { ttc, paye, solde, statut };
+  }
+
+  /* ---------- CA net (dashboard) : ventes encaissées - avoirs émis ---------- */
+  function getCANetMois(moisPrefix) {
+    const paiementsIn = chargerPaiements()
+      .filter(p => p.sens === 'in' && (p.date || '').startsWith(moisPrefix))
+      .reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+    const avoirsMois = chargerAvoirs()
+      .filter(a => (a.date || '').startsWith(moisPrefix))
+      .reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
+    return round2(paiementsIn - avoirsMois);
+  }
+
+  /* ---------- État onglet ---------- */
+  let currentEncTab = 'paiements';
+  window.switchEncTab = function(tab) {
+    currentEncTab = tab;
+    document.querySelectorAll('.enc-tab').forEach(b => b.classList.toggle('active', b.dataset.encTab === tab));
+    document.getElementById('enc-panel-paiements').style.display = tab === 'paiements' ? 'block' : 'none';
+    document.getElementById('enc-panel-avoirs').style.display = tab === 'avoirs' ? 'block' : 'none';
+    document.getElementById('enc-panel-factures').style.display = tab === 'factures' ? 'block' : 'none';
+    afficherEncaissements();
+  };
+
+  /* ---------- Rendering ---------- */
+  function afficherEncaissements() {
+    renderEncStats();
+    if (currentEncTab === 'paiements') renderTablePaiements();
+    if (currentEncTab === 'avoirs') renderTableAvoirs();
+    if (currentEncTab === 'factures') renderTableFacturesAvecSolde();
+  }
+  window.afficherEncaissements = afficherEncaissements;
+
+  function renderEncStats() {
+    const grid = document.getElementById('enc-stats-grid'); if (!grid) return;
+    const mois = aujourdhui().slice(0, 7);
+    const paiements = chargerPaiements();
+    const avoirs = chargerAvoirs();
+    const totalIn = paiements.filter(p => p.sens === 'in' && (p.date || '').startsWith(mois)).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+    const totalOut = paiements.filter(p => p.sens === 'out' && (p.date || '').startsWith(mois)).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+    const totalAvoirs = avoirs.filter(a => (a.date || '').startsWith(mois)).reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
+    const caNet = round2(totalIn - totalAvoirs);
+    grid.innerHTML =
+      '<div class="stat-card"><div class="stat-label">💰 Encaissé ce mois</div><div class="stat-value" style="color:#22c55e">' + euros(totalIn) + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">💸 Décaissé ce mois</div><div class="stat-value" style="color:#ef4444">' + euros(totalOut) + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">🧾 Avoirs émis ce mois</div><div class="stat-value" style="color:#f59e0b">' + euros(totalAvoirs) + '</div></div>' +
+      '<div class="stat-card"><div class="stat-label">📊 CA net ce mois</div><div class="stat-value" style="color:var(--accent)">' + euros(caNet) + '</div></div>';
+  }
+
+  function renderTablePaiements() {
+    const tbody = document.getElementById('tb-encaissements'); if (!tbody) return;
+    const search = (document.getElementById('enc-search')?.value || '').toLowerCase();
+    const filterSens = document.getElementById('enc-filter-sens')?.value || '';
+    const filterMode = document.getElementById('enc-filter-mode')?.value || '';
+    const factures = chargerFacturesEmises();
+    const charges = charger('charges');
+    let rows = chargerPaiements().slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+    if (filterSens) rows = rows.filter(p => p.sens === filterSens);
+    if (filterMode) rows = rows.filter(p => p.mode === filterMode);
+    if (search) {
+      rows = rows.filter(p => {
+        const s = (p.numero + ' ' + (p.tiers || '') + ' ' + (p.notes || '')).toLowerCase();
+        return s.includes(search);
+      });
+    }
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted)">Aucun paiement enregistré</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(p => {
+      const sensBadge = p.sens === 'in'
+        ? '<span class="badge-sens badge-in">▼ Reçu</span>'
+        : '<span class="badge-sens badge-out">▲ Émis</span>';
+      let lieA = '—';
+      if (p.factureId) {
+        const f = factures.find(x => x.id === p.factureId);
+        if (f) lieA = f.numero;
+      } else if (p.chargeId) {
+        const c = charges.find(x => x.id === p.chargeId);
+        if (c) lieA = (c.categorie || 'Charge') + ' ' + (c.date || '');
+      }
+      return '<tr>'
+        + '<td><strong>' + (p.numero || '—') + '</strong></td>'
+        + '<td>' + formatDateExport(p.date || '') + '</td>'
+        + '<td>' + sensBadge + '</td>'
+        + '<td>' + lieA + '</td>'
+        + '<td>' + (p.tiers || '—') + '</td>'
+        + '<td>' + (p.mode || '—') + '</td>'
+        + '<td style="text-align:right;font-weight:700">' + euros(parseFloat(p.montant) || 0) + '</td>'
+        + '<td><button class="btn-icon" onclick="supprimerPaiement(\'' + p.id + '\')" title="Supprimer">🗑️</button></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function renderTableAvoirs() {
+    const tbody = document.getElementById('tb-avoirs'); if (!tbody) return;
+    const factures = chargerFacturesEmises();
+    const rows = chargerAvoirs().slice().sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">Aucun avoir émis</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(a => {
+      const f = factures.find(x => x.id === a.factureId);
+      return '<tr>'
+        + '<td><strong>' + a.numero + '</strong></td>'
+        + '<td>' + formatDateExport(a.date || '') + '</td>'
+        + '<td>' + (a.client || '—') + '</td>'
+        + '<td>' + (f ? f.numero : (a.factureNumero || '—')) + '</td>'
+        + '<td style="font-size:0.82rem">' + (a.motif || '—') + '</td>'
+        + '<td style="text-align:right">-' + euros(parseFloat(a.montantHT) || 0) + '</td>'
+        + '<td style="text-align:right">-' + euros(parseFloat(a.montantTVA) || 0) + '</td>'
+        + '<td style="text-align:right;font-weight:700;color:#ef4444">-' + euros(parseFloat(a.montantTTC) || 0) + '</td>'
+        + '<td><button class="btn-icon" onclick="genererPDFAvoir(\'' + a.id + '\')" title="PDF">📄</button></td>'
+        + '</tr>';
+    }).join('');
+  }
+
+  function renderTableFacturesAvecSolde() {
+    const tbody = document.getElementById('tb-factures-solde'); if (!tbody) return;
+    const factures = chargerFacturesEmises().slice().sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
+    if (!factures.length) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">Aucune facture émise</td></tr>';
+      return;
+    }
+    tbody.innerHTML = factures.map(f => {
+      const s = getSoldeFacture(f);
+      const statutMap = { 'paye': '<span class="badge-statut badge-paye">Payé</span>', 'partiel': '<span class="badge-statut badge-partiel">Partiel</span>', 'en-attente': '<span class="badge-statut badge-attente">En attente</span>' };
+      return '<tr>'
+        + '<td><strong>' + f.numero + '</strong></td>'
+        + '<td>' + formatDateExport(f.dateLivraison || '') + '</td>'
+        + '<td>' + (f.client || '—') + '</td>'
+        + '<td style="text-align:right">' + euros(s.ttc) + '</td>'
+        + '<td style="text-align:right;color:#22c55e">' + euros(s.paye) + '</td>'
+        + '<td style="text-align:right;color:#f59e0b">' + (s.avoirsTTC > 0 ? '-' + euros(s.avoirsTTC) : '—') + '</td>'
+        + '<td style="text-align:right;font-weight:700">' + euros(s.solde) + '</td>'
+        + '<td>' + (statutMap[s.statut] || '—') + '</td>'
+        + '<td>'
+        + '<button class="btn-icon" onclick="ouvrirModalAvoir(\'' + f.id + '\')" title="Créer un avoir">🧾</button> '
+        + '<button class="btn-icon" onclick="ouvrirModalPaiementPourFacture(\'' + f.id + '\')" title="Enregistrer paiement">💰</button>'
+        + '</td></tr>';
+    }).join('');
+  }
+
+  /* ---------- MODAL AVOIR ---------- */
+  let currentAvoirFactureId = null;
+  window.ouvrirModalAvoir = function(factureId) {
+    const facture = chargerFacturesEmises().find(f => f.id === factureId);
+    if (!facture) { afficherToast('⚠️ Facture introuvable', 'error'); return; }
+    currentAvoirFactureId = factureId;
+    const s = getSoldeFacture(facture);
+    const refBox = document.getElementById('avoir-ref-box');
+    refBox.innerHTML =
+      '<div class="avoir-ref-inner">'
+      + '<div><span class="avoir-ref-label">Avoir sur facture</span><strong>' + facture.numero + '</strong></div>'
+      + '<div><span class="avoir-ref-label">Client</span><strong>' + (facture.client || '—') + '</strong></div>'
+      + '<div><span class="avoir-ref-label">Montant facture TTC</span><strong>' + euros(s.ttc) + '</strong></div>'
+      + '<div><span class="avoir-ref-label">Restant avoir-able</span><strong style="color:var(--accent)">' + euros(s.ttc - s.avoirsTTC) + '</strong></div>'
+      + '</div>';
+    document.getElementById('avoir-type').value = 'total';
+    document.getElementById('avoir-date').value = aujourdhui();
+    document.getElementById('avoir-ht').value = facture.montantHT || '';
+    document.getElementById('avoir-taux-tva').value = String(parseFloat(facture.montantTTC) > 0 ? Math.round(((facture.montantTVA || 0) / (facture.montantHT || 1)) * 100) : 20);
+    document.getElementById('avoir-motif').value = 'Erreur de facturation';
+    document.getElementById('avoir-motif-libre').value = '';
+    document.getElementById('avoir-motif-libre-group').style.display = 'none';
+    document.getElementById('avoir-notes').value = '';
+    majFormAvoir();
+    majMontantsAvoir();
+    openModal('modal-avoir');
+  };
+
+  window.majFormAvoir = function() {
+    const type = document.getElementById('avoir-type').value;
+    const htInput = document.getElementById('avoir-ht');
+    if (type === 'total' && currentAvoirFactureId) {
+      const f = chargerFacturesEmises().find(x => x.id === currentAvoirFactureId);
+      if (f) {
+        htInput.value = f.montantHT;
+        htInput.readOnly = true;
+      }
+    } else {
+      htInput.readOnly = false;
+    }
+    majMontantsAvoir();
+  };
+
+  window.majMotifLibre = function() {
+    const motif = document.getElementById('avoir-motif').value;
+    document.getElementById('avoir-motif-libre-group').style.display = motif === '__autre__' ? 'block' : 'none';
+  };
+
+  window.majMontantsAvoir = function() {
+    const box = document.getElementById('avoir-calc'); if (!box) return;
+    const ht = parseFloat(document.getElementById('avoir-ht').value) || 0;
+    const taux = parseFloat(document.getElementById('avoir-taux-tva').value) || 0;
+    if (ht <= 0) { box.style.display = 'none'; return; }
+    const tva = ht * (taux / 100);
+    const ttc = ht + tva;
+    box.style.display = 'flex';
+    const fmt = v => '-' + euros(v);
+    box.innerHTML =
+      '<span class="calc-piece">HT <strong>' + fmt(ht) + '</strong></span>'
+      + '<span class="calc-op">+</span>'
+      + '<span class="calc-piece">TVA ' + taux + '% <strong>' + fmt(tva) + '</strong></span>'
+      + '<span class="calc-op">=</span>'
+      + '<span class="calc-piece calc-total">TTC <strong style="color:#ef4444">' + fmt(ttc) + '</strong></span>';
+  };
+
+  window.enregistrerAvoir = function() {
+    if (!currentAvoirFactureId) return;
+    const facture = chargerFacturesEmises().find(f => f.id === currentAvoirFactureId);
+    if (!facture) { afficherToast('⚠️ Facture introuvable', 'error'); return; }
+    const type = document.getElementById('avoir-type').value;
+    const date = document.getElementById('avoir-date').value || aujourdhui();
+    const ht = parseFloat(document.getElementById('avoir-ht').value) || 0;
+    const taux = parseFloat(document.getElementById('avoir-taux-tva').value) || 0;
+    const motifKey = document.getElementById('avoir-motif').value;
+    const motifLibre = document.getElementById('avoir-motif-libre').value.trim();
+    const notes = document.getElementById('avoir-notes').value.trim();
+    if (ht <= 0) { afficherToast('⚠️ Montant HT requis', 'error'); return; }
+    if (motifKey === '__autre__' && !motifLibre) { afficherToast('⚠️ Précise le motif libre', 'error'); return; }
+    const s = getSoldeFacture(facture);
+    const disponible = s.ttc - s.avoirsTTC;
+    const ttc = round2(ht * (1 + taux / 100));
+    if (ttc - 0.01 > disponible) {
+      afficherToast('⚠️ Le montant TTC (' + euros(ttc) + ') dépasse le restant avoir-able (' + euros(disponible) + ')', 'error');
+      return;
+    }
+    const motif = motifKey === '__autre__' ? motifLibre : motifKey;
+    const { annee, sequence, numero } = genererNumeroAvoir(date);
+    const avoir = {
+      id: genId(),
+      numero,
+      annee,
+      sequence,
+      factureId: facture.id,
+      factureNumero: facture.numero,
+      livId: facture.livId || null,
+      client: facture.client || '',
+      type,
+      date,
+      tauxTVA: taux,
+      montantHT: round2(ht),
+      montantTVA: round2(ht * taux / 100),
+      montantTTC: ttc,
+      motif,
+      motifInterne: motifKey,
+      notes,
+      creeLe: new Date().toISOString(),
+      statut: 'emis',
+      verrouille: true
+    };
+    const list = chargerAvoirs();
+    list.push(avoir);
+    sauvegarderAvoirs(list);
+    ajouterEntreeAudit('Émission avoir', numero + ' · ' + (facture.client || '') + ' · ' + euros(ttc) + ' · sur ' + facture.numero);
+    closeModal('modal-avoir');
+    afficherEncaissements();
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
+    afficherToast('🧾 Avoir ' + numero + ' émis · ' + euros(ttc), 'success', {
+      action: {
+        label: 'Voir PDF',
+        onClick: function() { genererPDFAvoir(avoir.id); }
+      }
+    });
+  };
+
+  /* ---------- PDF AVOIR (copie exacte template facture) ---------- */
+  window.genererPDFAvoir = function(avoirId) {
+    const avoir = chargerAvoirs().find(a => a.id === avoirId);
+    if (!avoir) { afficherToast('⚠️ Avoir introuvable', 'error'); return; }
+    const params = getEntrepriseExportParams();
+    const siret = String(params.siret || '').replace(/\s+/g, '');
+    if (!/^\d{14}$/.test(siret)) {
+      afficherToast('⚠️ SIRET requis dans Paramètres', 'error');
+      naviguerVers('parametres');
+      return;
+    }
+    const factures = chargerFacturesEmises();
+    const facture = factures.find(f => f.id === avoir.factureId);
+    const livraison = avoir.livId ? charger('livraisons').find(l => l.id === avoir.livId) : null;
+    const dateAvoir = formatDateExport(avoir.date);
+    const motifHtml = (avoir.motifInterne === '__autre__')
+      ? planningEscapeHtml(avoir.motif)
+      : planningEscapeHtml(avoir.motif);
+    const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
+      + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
+      + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
+      + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
+      + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
+      + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
+      + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
+      + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
+      + '</div></div>'
+      + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#ef4444;letter-spacing:.08em;font-weight:700">Facture d\'avoir</div>'
+      + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + planningEscapeHtml(avoir.numero) + '</div>'
+      + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateAvoir + '</strong></div>'
+      + '<div style="font-size:.88rem;color:#4b5563">Sur facture : <strong>' + planningEscapeHtml(avoir.factureNumero || (facture && facture.numero) || '—') + '</strong></div></div>'
+      + '</div>'
+      + '<div style="padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:20px;font-size:.88rem;color:#991b1b">'
+      + '<strong>AVOIR</strong> émis en annulation' + (avoir.type === 'partiel' ? ' partielle' : ' totale') + ' de la facture <strong>' + planningEscapeHtml(avoir.factureNumero || '—') + '</strong>.'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
+      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
+      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Avoir à</div>'
+      + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(avoir.client || 'Client') + '</div>'
+      + (livraison && livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
+      + '</div>'
+      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
+      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Motif</div>'
+      + '<div style="font-size:.92rem;color:#374151;font-weight:600">' + motifHtml + '</div>'
+      + '</div>'
+      + '</div>'
+      + '<table style="width:100%;border-collapse:collapse;margin-bottom:22px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden">'
+      + '<thead><tr style="background:#f8fafc"><th style="padding:12px 14px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280">Description</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">HT</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TVA</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TTC</th></tr></thead>'
+      + '<tbody><tr>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb">Avoir sur ' + planningEscapeHtml(avoir.factureNumero || 'facture') + ' — ' + motifHtml + '</td>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;color:#ef4444;font-weight:700">-' + euros(avoir.montantHT) + '</td>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;color:#ef4444">-' + euros(avoir.montantTVA) + '</td>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;color:#ef4444;font-weight:800">-' + euros(avoir.montantTTC) + '</td>'
+      + '</tr></tbody></table>'
+      + '<div style="display:flex;justify-content:flex-end;margin-bottom:18px"><div style="min-width:320px;border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa">'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total HT</span><strong style="color:#ef4444">-' + euros(avoir.montantHT) + '</strong></div>'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>TVA ' + avoir.tauxTVA + '%</span><strong style="color:#ef4444">-' + euros(avoir.montantTVA) + '</strong></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#ef4444">-' + euros(avoir.montantTTC) + '</strong></div>'
+      + '</div></div>'
+      + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.78rem;color:#6b7280;line-height:1.6">'
+      + '<div>Document conservé 10 ans (exigence comptable française).</div>'
+      + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
+      + '</div>'
+      + '</div>';
+    ouvrirFenetreImpression('Avoir ' + avoir.numero, html, 'width=980,height=820');
+    ajouterEntreeAudit('Génération PDF avoir', avoir.numero + ' · ' + (avoir.client || '') + ' · ' + euros(avoir.montantTTC));
+  };
+
+  /* ---------- MODAL PAIEMENT (sens in/out) ---------- */
+  window.ouvrirModalPaiement = function(sens) {
+    document.getElementById('paiement-sens').value = sens || 'in';
+    document.getElementById('paiement-date').value = aujourdhui();
+    document.getElementById('paiement-montant').value = '';
+    document.getElementById('paiement-notes').value = '';
+    document.getElementById('paiement-mode').value = 'virement';
+    majPaiementListes();
+    openModal('modal-paiement');
+  };
+
+  window.ouvrirModalPaiementPourFacture = function(factureId) {
+    window.ouvrirModalPaiement('in');
+    setTimeout(() => {
+      const select = document.getElementById('paiement-cible');
+      select.value = 'fac:' + factureId;
+      majSoldeInfoPaiement();
+    }, 50);
+  };
+
+  window.majPaiementListes = function() {
+    const sens = document.getElementById('paiement-sens').value;
+    const select = document.getElementById('paiement-cible');
+    if (sens === 'in') {
+      const factures = chargerFacturesEmises().filter(f => getSoldeFacture(f).solde > 0.01);
+      select.innerHTML = '<option value="">-- Choisir facture --</option>' +
+        factures.map(f => {
+          const s = getSoldeFacture(f);
+          return '<option value="fac:' + f.id + '">' + f.numero + ' · ' + (f.client || '—') + ' · solde ' + euros(s.solde) + '</option>';
+        }).join('');
+    } else {
+      const charges = charger('charges').filter(c => getSoldeCharge(c).solde > 0.01);
+      select.innerHTML = '<option value="">-- Choisir charge --</option>' +
+        charges.map(c => {
+          const s = getSoldeCharge(c);
+          return '<option value="cha:' + c.id + '">' + (c.categorie || 'Charge') + ' · ' + (c.date || '') + ' · solde ' + euros(s.solde) + '</option>';
+        }).join('');
+    }
+    select.onchange = majSoldeInfoPaiement;
+    majSoldeInfoPaiement();
+  };
+
+  function majSoldeInfoPaiement() {
+    const val = document.getElementById('paiement-cible').value;
+    const info = document.getElementById('paiement-solde-info');
+    if (!val) { info.textContent = ''; return; }
+    const [type, id] = val.split(':');
+    if (type === 'fac') {
+      const f = chargerFacturesEmises().find(x => x.id === id);
+      if (f) { const s = getSoldeFacture(f); info.innerHTML = 'TTC ' + euros(s.ttc) + ' · payé ' + euros(s.paye) + ' · <strong>solde ' + euros(s.solde) + '</strong>'; }
+    } else if (type === 'cha') {
+      const c = charger('charges').find(x => x.id === id);
+      if (c) { const s = getSoldeCharge(c); info.innerHTML = 'TTC ' + euros(s.ttc) + ' · payé ' + euros(s.paye) + ' · <strong>solde ' + euros(s.solde) + '</strong>'; }
+    }
+  }
+  window.majSoldeInfoPaiement = majSoldeInfoPaiement;
+
+  window.enregistrerPaiement = function() {
+    const sens = document.getElementById('paiement-sens').value;
+    const date = document.getElementById('paiement-date').value || aujourdhui();
+    const cible = document.getElementById('paiement-cible').value;
+    const montant = parseFloat(document.getElementById('paiement-montant').value) || 0;
+    const mode = document.getElementById('paiement-mode').value;
+    const notes = document.getElementById('paiement-notes').value.trim();
+    if (!cible) { afficherToast('⚠️ Choisis une facture ou une charge', 'error'); return; }
+    if (montant <= 0) { afficherToast('⚠️ Montant requis > 0', 'error'); return; }
+    const [type, id] = cible.split(':');
+    let tiers = '', factureId = null, chargeId = null, solde = 0;
+    if (type === 'fac') {
+      const f = chargerFacturesEmises().find(x => x.id === id);
+      if (!f) { afficherToast('⚠️ Facture introuvable', 'error'); return; }
+      tiers = f.client || '';
+      factureId = f.id;
+      solde = getSoldeFacture(f).solde;
+    } else {
+      const c = charger('charges').find(x => x.id === id);
+      if (!c) { afficherToast('⚠️ Charge introuvable', 'error'); return; }
+      tiers = c.fournisseur || c.description || c.categorie || 'Fournisseur';
+      chargeId = c.id;
+      solde = getSoldeCharge(c).solde;
+    }
+    if (montant - 0.01 > solde) {
+      afficherToast('⚠️ Le montant dépasse le solde (' + euros(solde) + ')', 'error');
+      return;
+    }
+    const { annee, sequence, numero } = genererNumeroEncaissement(date);
+    const paiement = {
+      id: genId(),
+      numero, annee, sequence,
+      sens, date, montant: round2(montant), mode, notes, tiers,
+      factureId, chargeId,
+      creeLe: new Date().toISOString()
+    };
+    const list = chargerPaiements();
+    list.push(paiement);
+    sauvegarderPaiements(list);
+    // Si facture soldée → marquer livraison comme payée
+    if (factureId) {
+      const f = chargerFacturesEmises().find(x => x.id === factureId);
+      if (f) {
+        const s = getSoldeFacture(f);
+        if (s.statut === 'paye' && f.livId) {
+          const livs = charger('livraisons');
+          const idx = livs.findIndex(l => l.id === f.livId);
+          if (idx > -1) {
+            livs[idx].statutPaiement = 'payé';
+            livs[idx].modePaiement = livs[idx].modePaiement || mode;
+            livs[idx].datePaiement = livs[idx].datePaiement || date;
+            sauvegarder('livraisons', livs);
+          }
+        }
+      }
+    }
+    ajouterEntreeAudit('Enregistrement paiement', numero + ' · ' + (sens === 'in' ? 'Reçu' : 'Émis') + ' · ' + tiers + ' · ' + euros(montant));
+    closeModal('modal-paiement');
+    afficherEncaissements();
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof afficherCharges === 'function') afficherCharges();
+    if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
+    afficherToast('💰 Paiement ' + numero + ' enregistré · ' + euros(montant));
+  };
+
+  window.supprimerPaiement = async function(id) {
+    const p = chargerPaiements().find(x => x.id === id); if (!p) return;
+    const ok = await confirmDialog('Supprimer le paiement ' + p.numero + ' ?', { titre: 'Supprimer', icone: '💰', btnLabel: 'Supprimer' });
+    if (!ok) return;
+    sauvegarderPaiements(chargerPaiements().filter(x => x.id !== id));
+    ajouterEntreeAudit('Suppression paiement', p.numero + ' · ' + euros(p.montant));
+    afficherEncaissements();
+    if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
+    afficherToast('🗑️ Paiement supprimé');
+  };
+
+  /* ---------- Export CSV ---------- */
+  window.exporterEncaissementsCSV = function() {
+    const paiements = chargerPaiements();
+    const avoirs = chargerAvoirs();
+    const rows = [];
+    rows.push(['Type', 'Numero', 'Date', 'Sens', 'Tiers', 'FactureOrigine', 'Mode', 'Motif', 'MontantHT', 'MontantTVA', 'MontantTTC']);
+    paiements.forEach(p => {
+      const factures = chargerFacturesEmises();
+      const f = p.factureId ? factures.find(x => x.id === p.factureId) : null;
+      rows.push(['Paiement', p.numero, p.date, p.sens, p.tiers || '', f ? f.numero : '', p.mode || '', '', '', '', String(p.montant)]);
+    });
+    avoirs.forEach(a => {
+      rows.push(['Avoir', a.numero, a.date, 'out', a.client || '', a.factureNumero || '', '', a.motif || '', String(-a.montantHT), String(-a.montantTVA), String(-a.montantTTC)]);
+    });
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'encaissements_' + aujourdhui() + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    afficherToast('📤 Export CSV généré');
+  };
+
+  /* ---------- Suppression forcée (force-delete par saisie) ---------- */
+  let forceDeleteContext = null;
+  function ouvrirModalForceDelete(ctx) {
+    forceDeleteContext = ctx;
+    document.getElementById('force-delete-code').textContent = ctx.numero;
+    document.getElementById('force-delete-warn').innerHTML = ctx.warn;
+    document.getElementById('force-delete-input').value = '';
+    document.getElementById('btn-force-delete-confirm').disabled = true;
+    openModal('modal-force-delete');
+  }
+  window.majBoutonForceDelete = function() {
+    const v = document.getElementById('force-delete-input').value.trim();
+    const ok = v === (forceDeleteContext && forceDeleteContext.numero);
+    document.getElementById('btn-force-delete-confirm').disabled = !ok;
+  };
+  window.executerForceDelete = function() {
+    if (!forceDeleteContext || !forceDeleteContext.onConfirm) return;
+    try { forceDeleteContext.onConfirm(); }
+    catch (e) { afficherToast('⚠️ Erreur suppression : ' + e.message, 'error'); }
+    closeModal('modal-force-delete');
+    forceDeleteContext = null;
+  };
+
+  /* Wrapper supprimerLivraison → si facture émise, forcer saisie numéro */
+  if (typeof window.supprimerLivraison === 'function' && !window.supprimerLivraison.__s12) {
+    const orig = window.supprimerLivraison;
+    const wrapped = async function(id) {
+      const liv = charger('livraisons').find(l => l.id === id);
+      if (!liv) return orig.apply(this, arguments);
+      const facture = chargerFacturesEmises().find(f => f.livId === id && f.statut !== 'annulée');
+      if (!facture) return orig.apply(this, arguments);
+      // Facture émise → force delete avec saisie numéro
+      ouvrirModalForceDelete({
+        numero: facture.numero,
+        warn: 'Cette livraison a une <strong>facture émise</strong> (' + facture.numero + '). '
+          + 'Supprimer une livraison déjà facturée est contraire au droit fiscal français : la méthode légale est d\'émettre un <strong>avoir</strong>. '
+          + 'Pour forcer la suppression, recopie exactement le numéro de facture ci-dessous.',
+        onConfirm: function() {
+          orig.call(window, id);
+          ajouterEntreeAudit('Suppression forcée livraison facturée', facture.numero + ' · ' + (liv.client || ''));
+        }
+      });
+    };
+    wrapped.__s12 = true;
+    window.supprimerLivraison = wrapped;
+  }
+
+  /* ---------- Wiring navigation ---------- */
+  if (typeof window.naviguerVers === 'function' && !window.naviguerVers.__s12) {
+    const origNav = window.naviguerVers;
+    const wrapped = function(page) {
+      const r = origNav.apply(this, arguments);
+      if (page === 'encaissements') { setTimeout(afficherEncaissements, 30); }
+      return r;
+    };
+    wrapped.__s12 = true;
+    window.naviguerVers = wrapped;
+  }
+
+  /* ---------- Reset SIREN dans modal création livraison ---------- */
+  if (typeof window.openModal === 'function' && !window.openModal.__s12) {
+    const origOpen = window.openModal;
+    const wrapped = function(id) {
+      origOpen.apply(this, arguments);
+      if (id === 'modal-livraison') {
+        setTimeout(() => {
+          const sir = document.getElementById('liv-client-siren');
+          if (sir) sir.value = '';
+        }, 30);
+      }
+    };
+    wrapped.__s12 = true;
+    window.openModal = wrapped;
+  }
+
+  /* ---------- Exports publics pour le reste de l'app ---------- */
+  window.ENCAISSEMENTS = {
+    chargerAvoirs, chargerPaiements,
+    getSoldeFacture, getSoldeCharge, getCANetMois,
+    afficherEncaissements
+  };
+})();
+
+/* =========================================================================
+   SPRINT 12.1 — Onglet Facturation, workflow aperçu→émission, reset compteur
+   ========================================================================= */
+(function() {
+  'use strict';
+
+  /* ---------- Build HTML facture (extrait de genererFactureLivraison) ---------- */
+  function buildFactureHTML(livraison, numeroFacture, dateFactureFmt, datePaiementFmt, options) {
+    options = options || {};
+    const isPreview = !!options.preview;
+    const params = getEntrepriseExportParams();
+    const profile = getTVAConfig();
+    const siret = String(params.siret || '').replace(/\s+/g, '');
+    const tauxTVA = parseFloat(livraison.tauxTVA ?? profile.defaultRate ?? 20) || 0;
+    const montantHT = round2(getMontantHTLivraison(livraison));
+    const montantTTC = round2(parseFloat(livraison.prix) || 0);
+    const montantTVA = round2(montantTTC - montantHT);
+    const mentionTVA = !profile.isVatEnabled || profile.regime === 'franchise_base'
+      ? 'TVA non applicable, art. 293 B du CGI'
+      : 'TVA ' + (typeof formaterTaux === 'function' ? formaterTaux(tauxTVA) : (tauxTVA + '%'));
+    const numeroAffiche = isPreview
+      ? '<span style="background:#f59e0b;color:#fff;padding:3px 10px;border-radius:6px;font-size:0.85rem">BROUILLON — non émise</span>'
+      : planningEscapeHtml(numeroFacture);
+    return '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827;background:#fff;border-radius:12px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
+      + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
+      + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
+      + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
+      + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
+      + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
+      + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
+      + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
+      + '</div></div>'
+      + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
+      + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + numeroAffiche + '</div>'
+      + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateFactureFmt + '</strong></div>'
+      + '<div style="font-size:.88rem;color:#4b5563">Paiement : <strong>' + planningEscapeHtml(datePaiementFmt) + '</strong></div></div>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
+      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
+      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
+      + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(livraison.client || 'Client') + '</div>'
+      + (livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
+      + '</div>'
+      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
+      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
+      + '<div style="font-size:.92rem;color:#374151">Transport / livraison</div>'
+      + '<div style="font-size:.82rem;color:#6b7280;margin-top:6px">' + planningEscapeHtml((livraison.numLiv || 'Livraison') + (livraison.date ? ' · ' + formatDateExport(livraison.date) : '')) + '</div>'
+      + (livraison.chaufNom ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Chauffeur : ' + planningEscapeHtml(livraison.chaufNom) + '</div>' : '')
+      + '</div>'
+      + '</div>'
+      + '<table style="width:100%;border-collapse:collapse;margin-bottom:22px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden">'
+      + '<thead><tr style="background:#f8fafc"><th style="padding:12px 14px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280">Description</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">HT</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TVA</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TTC</th></tr></thead>'
+      + '<tbody><tr>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb">Prestation de livraison' + (livraison.notes ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">' + planningEscapeHtml(livraison.notes) + '</div>' : '') + '</td>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;font-weight:700">' + euros(montantHT) + '</td>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right">' + euros(montantTVA) + '</td>'
+      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;font-weight:800">' + euros(montantTTC) + '</td>'
+      + '</tr></tbody></table>'
+      + '<div style="display:flex;justify-content:flex-end;margin-bottom:18px"><div style="min-width:320px;border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa">'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total HT</span><strong>' + euros(montantHT) + '</strong></div>'
+      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>' + planningEscapeHtml(mentionTVA) + '</span><strong>' + euros(montantTVA) + '</strong></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#f59e0b">' + euros(montantTTC) + '</strong></div>'
+      + '</div></div>'
+      + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
+      + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
+      + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
+      + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  /* ---------- Wrap genererFactureLivraison : preview avant émission ---------- */
+  let pendingFactureLivId = null;
+  if (typeof window.genererFactureLivraison === 'function' && !window.genererFactureLivraison.__s12_1) {
+    const orig = window.genererFactureLivraison;
+    const wrapped = function(livId) {
+      const livraison = charger('livraisons').find(l => l.id === livId);
+      if (!livraison) return;
+      const params = getEntrepriseExportParams();
+      const siret = String(params.siret || '').replace(/\s+/g, '');
+      if (!/^\d{14}$/.test(siret)) {
+        afficherToast('⚠️ SIRET requis dans Paramètres', 'error');
+        naviguerVers('parametres');
+        return;
+      }
+      // Si déjà émise → aller directement à l'impression
+      const existing = chargerFacturesEmises().find(f => f.livId === livId && f.statut !== 'annulée');
+      if (existing) {
+        return orig.call(window, livId);
+      }
+      // Pas encore émise → preview
+      pendingFactureLivId = livId;
+      const dateFacture = formatDateExport(livraison.date || aujourdhui());
+      const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
+      const html = buildFactureHTML(livraison, null, dateFacture, datePaiement, { preview: true });
+      document.getElementById('preview-fac-content').innerHTML = html;
+      openModal('modal-preview-facture');
+    };
+    wrapped.__s12_1 = true;
+    window.genererFactureLivraison = wrapped;
+  }
+
+  window.emettreFactureConfirmee = function() {
+    if (!pendingFactureLivId) return;
+    const livId = pendingFactureLivId;
+    pendingFactureLivId = null;
+    closeModal('modal-preview-facture');
+    // Appelle la version originale sauvegardée dans la chaîne (récupérer via wrapping)
+    // On doit récupérer l'original dépouillé du wrap — accès via la clé __s12_1 false check impossible.
+    // Solution : assurerArchive + reconstruire HTML et imprimer.
+    const livraison = charger('livraisons').find(l => l.id === livId);
+    if (!livraison) return;
+    const facture = assurerArchiveFactureLivraison(livraison);
+    const dateFacture = formatDateExport(livraison.date || aujourdhui());
+    const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
+    const html = buildFactureHTML(livraison, facture.numero, dateFacture, datePaiement);
+    facture.derniereGenerationLe = new Date().toISOString();
+    facture.dateFacture = livraison.date || aujourdhui();
+    const factures = chargerFacturesEmises();
+    const idx = factures.findIndex(f => f.id === facture.id);
+    if (idx > -1) { factures[idx] = facture; sauvegarderFacturesEmises(factures); }
+    ouvrirFenetreImpression('Facture ' + facture.numero, html, 'width=980,height=820');
+    ajouterEntreeAudit('Émission facture', facture.numero + ' · ' + (livraison.client || 'Client'));
+    afficherToast('📄 Facture ' + facture.numero + ' émise', 'success');
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof afficherFacturation === 'function') afficherFacturation();
+  };
+
+  /* ---------- Onglet Facturation ---------- */
+  function afficherFacturation() {
+    const grid = document.getElementById('fac-stats-grid');
+    const tbody = document.getElementById('tb-facturation');
+    const compteurDisplay = document.getElementById('fac-compteur-display');
+    if (!grid || !tbody) return;
+
+    const factures = chargerFacturesEmises();
+    const annees = Array.from(new Set(factures.map(f => f.annee || '').filter(Boolean))).sort().reverse();
+    const selectAnnee = document.getElementById('fac-filter-annee');
+    if (selectAnnee) {
+      const current = selectAnnee.value;
+      selectAnnee.innerHTML = '<option value="">Toutes années</option>' + annees.map(a => '<option value="' + a + '"' + (current === a ? ' selected' : '') + '>' + a + '</option>').join('');
+    }
+
+    // Stats
+    let emises = 0, annulees = 0, payees = 0, partielles = 0, totalTTC = 0, totalNet = 0;
+    factures.forEach(f => {
+      if (f.statut === 'annulée') { annulees++; return; }
+      emises++;
+      const s = window.ENCAISSEMENTS.getSoldeFacture(f);
+      totalTTC += s.ttc;
+      totalNet += (s.ttc - s.avoirsTTC);
+      if (s.statut === 'paye') payees++;
+      else if (s.statut === 'partiel') partielles++;
+    });
+    grid.innerHTML =
+      '<div class="stat-card"><div class="stat-label">📄 Factures émises</div><div class="stat-value" style="color:var(--accent)">' + emises + '</div></div>'
+      + '<div class="stat-card"><div class="stat-label">✅ Payées</div><div class="stat-value" style="color:#22c55e">' + payees + '</div></div>'
+      + '<div class="stat-card"><div class="stat-label">⏳ Partielles / en attente</div><div class="stat-value" style="color:#f5a623">' + (partielles + (emises - payees - partielles)) + '</div></div>'
+      + '<div class="stat-card"><div class="stat-label">🚫 Annulées</div><div class="stat-value" style="color:#6b7280">' + annulees + '</div></div>'
+      + '<div class="stat-card"><div class="stat-label">💰 CA facturé TTC</div><div class="stat-value">' + euros(totalTTC) + '</div></div>'
+      + '<div class="stat-card"><div class="stat-label">💎 CA net (après avoirs)</div><div class="stat-value" style="color:var(--accent)">' + euros(totalNet) + '</div></div>';
+
+    // Compteur
+    const anneeCur = String(new Date().getFullYear());
+    const lastSeq = factures.filter(f => String(f.annee || '') === anneeCur).reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
+    const nextNum = 'FAC-' + anneeCur + '-' + String(lastSeq + 1).padStart(4, '0');
+    if (compteurDisplay) compteurDisplay.textContent = 'prochaine = ' + nextNum;
+
+    // Filtres
+    const search = (document.getElementById('fac-search')?.value || '').toLowerCase();
+    const filterStatut = document.getElementById('fac-filter-statut')?.value || '';
+    const filterAnnee = document.getElementById('fac-filter-annee')?.value || '';
+
+    let rows = factures.slice().sort((a, b) => String(b.numero || '').localeCompare(String(a.numero || '')));
+    if (filterAnnee) rows = rows.filter(f => String(f.annee || '') === filterAnnee);
+    if (search) {
+      rows = rows.filter(f => ((f.numero || '') + ' ' + (f.client || '') + ' ' + (f.numLiv || '')).toLowerCase().includes(search));
+    }
+    if (filterStatut) {
+      rows = rows.filter(f => {
+        if (filterStatut === 'annulée') return f.statut === 'annulée';
+        if (f.statut === 'annulée') return false;
+        const s = window.ENCAISSEMENTS.getSoldeFacture(f);
+        if (filterStatut === 'emise') return s.statut === 'en-attente';
+        return s.statut === filterStatut;
+      });
+    }
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">Aucune facture</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(f => {
+      let statutBadge, soldeCell, payeCell;
+      if (f.statut === 'annulée') {
+        statutBadge = '<span class="badge-statut" style="background:rgba(107,114,128,.15);color:#6b7280;border:1px solid rgba(107,114,128,.3)">Annulée</span>';
+        soldeCell = '—';
+        payeCell = '—';
+      } else {
+        const s = window.ENCAISSEMENTS.getSoldeFacture(f);
+        const map = {
+          'paye': '<span class="badge-statut badge-paye">Payée</span>',
+          'partiel': '<span class="badge-statut badge-partiel">Partielle</span>',
+          'en-attente': '<span class="badge-statut badge-attente">Émise</span>'
+        };
+        statutBadge = map[s.statut];
+        soldeCell = euros(s.solde);
+        payeCell = euros(s.paye);
+      }
+      const actions = f.statut === 'annulée'
+        ? '<button class="btn-icon" onclick="supprimerFactureForce(\'' + f.id + '\')" title="Supprimer (force)">🗑️</button>'
+        : '<button class="btn-icon" onclick="reimprimerFacture(\'' + f.id + '\')" title="Réimprimer">🖨️</button>'
+        + ' <button class="btn-icon" onclick="ouvrirModalAvoir(\'' + f.id + '\')" title="Créer un avoir">🧾</button>'
+        + ' <button class="btn-icon" onclick="supprimerFactureForce(\'' + f.id + '\')" title="Supprimer (force)">🗑️</button>';
+      return '<tr' + (f.statut === 'annulée' ? ' style="opacity:0.55"' : '') + '>'
+        + '<td><strong>' + (f.numero || '—') + '</strong></td>'
+        + '<td>' + formatDateExport(f.dateLivraison || f.dateFacture || '') + '</td>'
+        + '<td>' + (f.client || '—') + '</td>'
+        + '<td style="text-align:right">' + euros(f.montantHT || 0) + '</td>'
+        + '<td style="text-align:right">' + euros(f.montantTVA || 0) + '</td>'
+        + '<td style="text-align:right;font-weight:700">' + euros(f.montantTTC || 0) + '</td>'
+        + '<td style="text-align:right;color:#22c55e">' + payeCell + '</td>'
+        + '<td style="text-align:right;font-weight:700">' + soldeCell + '</td>'
+        + '<td>' + statutBadge + '</td>'
+        + '<td>' + actions + '</td>'
+        + '</tr>';
+    }).join('');
+  }
+  window.afficherFacturation = afficherFacturation;
+
+  /* ---------- Réimprimer facture existante ---------- */
+  window.reimprimerFacture = function(factureId) {
+    const facture = chargerFacturesEmises().find(f => f.id === factureId);
+    if (!facture || !facture.livId) return;
+    const livraison = charger('livraisons').find(l => l.id === facture.livId);
+    if (!livraison) { afficherToast('⚠️ Livraison origine introuvable', 'error'); return; }
+    const dateFacture = formatDateExport(livraison.date || aujourdhui());
+    const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
+    const html = buildFactureHTML(livraison, facture.numero, dateFacture, datePaiement);
+    ouvrirFenetreImpression('Facture ' + facture.numero, html, 'width=980,height=820');
+  };
+
+  /* ---------- Suppression forcée facture (avec typed number) ---------- */
+  window.supprimerFactureForce = function(factureId) {
+    const facture = chargerFacturesEmises().find(f => f.id === factureId);
+    if (!facture) return;
+    const avoirs = window.ENCAISSEMENTS.chargerAvoirs().filter(a => a.factureId === factureId);
+    const hasAvoirs = avoirs.length > 0;
+    const warnHtml = hasAvoirs
+      ? 'Cette facture a <strong>' + avoirs.length + ' avoir(s) liés</strong>. Supprimer la facture laissera ces avoirs orphelins. En droit fiscal, un avoir <strong>doit</strong> référencer une facture existante.<br><br>Supprimer une facture émise est contraire au droit fiscal (art. 289 CGI). La méthode légale est l\'émission d\'un avoir.'
+      : 'Supprimer une facture émise est contraire au droit fiscal français (art. 289 CGI). La méthode légale pour corriger une erreur est l\'émission d\'un <strong>avoir</strong>.<br><br>Procède à une suppression uniquement en phase de test ou pour une erreur flagrante non reproductible.';
+    const ctx = {
+      numero: facture.numero,
+      warn: warnHtml,
+      onConfirm: function() {
+        sauvegarderFacturesEmises(chargerFacturesEmises().filter(f => f.id !== factureId));
+        // Retirer aussi la ref sur la livraison
+        if (facture.livId) {
+          const livs = charger('livraisons');
+          const idx = livs.findIndex(l => l.id === facture.livId);
+          if (idx > -1) {
+            delete livs[idx].factureNumero;
+            delete livs[idx].factureId;
+            sauvegarder('livraisons', livs);
+          }
+        }
+        ajouterEntreeAudit('Suppression forcée facture', facture.numero + ' · ' + (facture.client || '') + ' · TTC ' + euros(facture.montantTTC || 0));
+        afficherFacturation();
+        if (typeof afficherLivraisons === 'function') afficherLivraisons();
+        if (typeof afficherEncaissements === 'function') afficherEncaissements();
+        afficherToast('🗑️ Facture ' + facture.numero + ' supprimée (forcée)', 'warning');
+      }
+    };
+    // Utilise la logique force-delete de Sprint 12
+    document.getElementById('force-delete-code').textContent = ctx.numero;
+    document.getElementById('force-delete-warn').innerHTML = ctx.warn;
+    document.getElementById('force-delete-input').value = '';
+    document.getElementById('btn-force-delete-confirm').disabled = true;
+    window.__forceDeleteContext = ctx;
+    const origExec = window.executerForceDelete;
+    window.executerForceDelete = function() {
+      try { ctx.onConfirm(); } catch (e) { afficherToast('⚠️ Erreur : ' + e.message, 'error'); }
+      closeModal('modal-force-delete');
+      window.executerForceDelete = origExec;
+    };
+    openModal('modal-force-delete');
+  };
+
+  /* ---------- Export CSV factures ---------- */
+  window.exporterFacturesCSV = function() {
+    const factures = chargerFacturesEmises();
+    const rows = [['Numero', 'Date', 'Client', 'NumLivraison', 'HT', 'TVA', 'TTC', 'Statut', 'AnnuleeLe', 'Motif']];
+    factures.forEach(f => {
+      rows.push([f.numero || '', f.dateLivraison || f.dateFacture || '', f.client || '', f.numLiv || '', String(f.montantHT || 0), String(f.montantTVA || 0), String(f.montantTTC || 0), f.statut || 'émise', f.annuleeLe || '', f.annulationMotif || '']);
+    });
+    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = 'factures_' + aujourdhui() + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    afficherToast('📤 Export CSV factures');
+  };
+
+  /* ---------- Reset compteur factures (mode test) ---------- */
+  window.ouvrirResetCompteurFactures = function() {
+    document.getElementById('reset-compteur-input').value = '';
+    document.getElementById('btn-reset-compteur-confirm').disabled = true;
+    openModal('modal-reset-compteur');
+  };
+  window.majBoutonResetCompteur = function() {
+    const v = document.getElementById('reset-compteur-input').value.trim();
+    document.getElementById('btn-reset-compteur-confirm').disabled = (v !== 'RESET FACTURES');
+  };
+  window.executerResetCompteur = function() {
+    const factures = chargerFacturesEmises();
+    const avoirs = window.ENCAISSEMENTS.chargerAvoirs();
+    const paiements = window.ENCAISSEMENTS.chargerPaiements();
+    // Purge factures, avoirs liés, paiements liés
+    sauvegarderFacturesEmises([]);
+    sauvegarder('avoirs_emis', avoirs.filter(a => !factures.find(f => f.id === a.factureId)));
+    sauvegarder('paiements', paiements.filter(p => !p.factureId || !factures.find(f => f.id === p.factureId)));
+    // Retirer refs sur livraisons
+    const livs = charger('livraisons').map(l => {
+      delete l.factureNumero; delete l.factureId;
+      return l;
+    });
+    sauvegarder('livraisons', livs);
+    ajouterEntreeAudit('RESET compteur factures', factures.length + ' factures purgées · mode test');
+    closeModal('modal-reset-compteur');
+    afficherFacturation();
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof afficherEncaissements === 'function') afficherEncaissements();
+    afficherToast('🧹 Compteur réinitialisé · ' + factures.length + ' facture(s) purgée(s)', 'warning');
+  };
+
+  /* ---------- Wiring nav ---------- */
+  if (typeof window.naviguerVers === 'function' && !window.naviguerVers.__s12_1) {
+    const origNav = window.naviguerVers;
+    const wrapped = function(page) {
+      const r = origNav.apply(this, arguments);
+      if (page === 'facturation') setTimeout(afficherFacturation, 30);
+      return r;
+    };
+    wrapped.__s12_1 = true;
+    window.naviguerVers = wrapped;
   }
 })();

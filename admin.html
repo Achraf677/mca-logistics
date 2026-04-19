@@ -78,6 +78,8 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
+          <a href="#" class="nav-item" data-page="facturation"><span class="nav-icon">📄</span><span class="nav-label">Facturation</span></a>
+          <a href="#" class="nav-item" data-page="encaissements"><span class="nav-icon">💳</span><span class="nav-label">Encaissements</span></a>
           <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
           <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
           <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
@@ -1017,6 +1019,7 @@
               <div class="form-group full-width"><label>Nom de l'entreprise</label><input type="text" id="param-nom-entreprise" placeholder="Nom de votre entreprise" /></div>
               <div class="form-group"><label>Nom de l'admin</label><input type="text" id="param-nom-admin" placeholder="Votre nom" /></div>
               <div class="form-group"><label>SIRET *</label><input type="text" id="param-siret" placeholder="SIRET (14 chiffres)" maxlength="14" inputmode="numeric" /></div>
+              <div class="form-group"><label>N° TVA intracommunautaire</label><input type="text" id="param-tva-intracom" placeholder="FR + 11 chiffres (ex. FR12345678901)" maxlength="13" style="text-transform:uppercase" /></div>
               <div class="form-group full-width"><label>Adresse</label><input type="text" id="param-adresse" placeholder="Adresse compl&egrave;te" /></div>
               <div class="form-group"><label>Téléphone</label><input type="tel" id="param-tel-entreprise" placeholder="T&eacute;l&eacute;phone" /></div>
               <div class="form-group"><label>Email</label><input type="email" id="param-email" placeholder="Email de contact" /></div>
@@ -1281,6 +1284,107 @@
             <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Véhicule</th><th>HT</th><th>TVA</th><th>TTC</th><th>Actions</th></tr></thead>
             <tbody id="tb-charges"></tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FACTURATION (Sprint 12.1) -->
+    <section class="page" id="page-facturation">
+      <div class="page-actions">
+        <h2>📄 Facturation</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:.82rem;color:var(--text-muted)">Compteur : <strong id="fac-compteur-display">—</strong></span>
+          <button class="btn-secondary" onclick="exporterFacturesCSV()">📤 Export CSV</button>
+        </div>
+      </div>
+
+      <div class="enc-stats-grid" id="fac-stats-grid"></div>
+
+      <div class="card" style="margin-top:14px">
+        <div class="enc-filters">
+          <input type="search" id="fac-search" class="searchbar" placeholder="🔍 N° facture, client…" oninput="afficherFacturation()" />
+          <select id="fac-filter-statut" onchange="afficherFacturation()">
+            <option value="">Tous statuts</option>
+            <option value="emise">Émise</option>
+            <option value="partiel">Partiellement payée</option>
+            <option value="paye">Payée</option>
+            <option value="annulée">Annulée</option>
+          </select>
+          <select id="fac-filter-annee" onchange="afficherFacturation()">
+            <option value="">Toutes années</option>
+          </select>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>N° facture</th><th>Date</th><th>Client</th><th>HT</th><th>TVA</th><th>TTC</th><th>Payé</th><th>Solde</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="tb-facturation"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card danger-zone" style="margin-top:14px">
+        <div class="danger-zone-title">⚠️ Zone dangereuse — outils de test</div>
+        <div class="danger-zone-desc">
+          La réinitialisation du compteur est réservée à la <strong>phase de test</strong>. En production, jamais utiliser : la loi fiscale française (art. 289 CGI) impose une numérotation chronologique continue, sans trou, non réutilisable. Un contrôle fiscal peut exiger l'historique complet.
+        </div>
+        <button class="btn-danger" onclick="ouvrirResetCompteurFactures()">🧹 Réinitialiser le compteur de factures</button>
+      </div>
+    </section>
+
+    <!-- ENCAISSEMENTS (Sprint 12) -->
+    <section class="page" id="page-encaissements">
+      <div class="page-actions">
+        <h2>💳 Encaissements &amp; Avoirs</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterEncaissementsCSV()">📤 Export CSV</button>
+          <button class="btn-primary" onclick="ouvrirModalPaiement('in')">+ Enregistrer un paiement</button>
+        </div>
+      </div>
+      <div class="enc-stats-grid" id="enc-stats-grid"></div>
+      <div class="card" style="margin-top:14px">
+        <div class="enc-tabs">
+          <button class="enc-tab active" data-enc-tab="paiements" onclick="switchEncTab('paiements')">💰 Paiements reçus / émis</button>
+          <button class="enc-tab" data-enc-tab="avoirs" onclick="switchEncTab('avoirs')">🧾 Avoirs émis</button>
+          <button class="enc-tab" data-enc-tab="factures" onclick="switchEncTab('factures')">📄 Factures avec solde</button>
+        </div>
+        <div class="enc-panel" id="enc-panel-paiements">
+          <div class="enc-filters">
+            <input type="search" id="enc-search" class="searchbar" placeholder="🔍 Rechercher…" oninput="afficherEncaissements()" />
+            <select id="enc-filter-sens" onchange="afficherEncaissements()">
+              <option value="">Tous sens</option>
+              <option value="in">Reçus (ventes)</option>
+              <option value="out">Émis (achats)</option>
+            </select>
+            <select id="enc-filter-mode" onchange="afficherEncaissements()">
+              <option value="">Tous modes</option>
+              <option value="virement">Virement</option>
+              <option value="especes">Espèces</option>
+              <option value="cheque">Chèque</option>
+              <option value="cb">Carte bancaire</option>
+            </select>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>N°</th><th>Date</th><th>Sens</th><th>Lié à</th><th>Client / Fournisseur</th><th>Mode</th><th>Montant</th><th>Actions</th></tr></thead>
+              <tbody id="tb-encaissements"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="enc-panel" id="enc-panel-avoirs" style="display:none">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>N° avoir</th><th>Date</th><th>Client</th><th>Facture origine</th><th>Motif</th><th>Montant HT</th><th>TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
+              <tbody id="tb-avoirs"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="enc-panel" id="enc-panel-factures" style="display:none">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>N° facture</th><th>Date</th><th>Client</th><th>TTC</th><th>Payé</th><th>Avoirs</th><th>Solde</th><th>Statut</th><th>Actions</th></tr></thead>
+              <tbody id="tb-factures-solde"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -1699,6 +1803,9 @@
           <div class="form-group"><label>Client *</label>
             <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value)" autocomplete="off" />
             <div id="client-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
+          </div>
+          <div class="form-group"><label>SIREN client <span style="color:var(--text-muted);font-size:0.78rem">(optionnel — requis en BtoB 2026)</span></label>
+            <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" />
           </div>
           <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" placeholder="Zone g&eacute;ographique" /></div>
           <input type="hidden" id="liv-depart" />
@@ -2396,6 +2503,156 @@
 
   <!-- Zone impression bon de livraison -->
   <div id="print-bon"></div>
+
+  <!-- Sprint 12 : Créer un avoir -->
+  <div class="modal-overlay" id="modal-avoir">
+    <div class="modal">
+      <div class="modal-header"><h3>🧾 Créer un avoir</h3><button class="modal-close" onclick="closeModal('modal-avoir')">✕</button></div>
+      <div class="modal-body">
+        <div class="avoir-ref" id="avoir-ref-box"></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Type d'avoir</label>
+            <select id="avoir-type" onchange="majFormAvoir()">
+              <option value="total">Avoir total (annulation complète)</option>
+              <option value="partiel">Avoir partiel</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Date</label><input type="date" id="avoir-date" /></div>
+          <div class="form-group"><label>Montant HT (€)</label><input type="number" id="avoir-ht" min="0" step="0.01" placeholder="0,00" oninput="majMontantsAvoir()" /></div>
+          <div class="form-group"><label>Taux TVA</label>
+            <select id="avoir-taux-tva" onchange="majMontantsAvoir()">
+              <option value="0">0 %</option><option value="5.5">5,5 %</option><option value="10">10 %</option><option value="20" selected>20 %</option>
+            </select>
+          </div>
+          <div class="form-group full-width"><label>Motif</label>
+            <select id="avoir-motif" onchange="majMotifLibre()">
+              <option value="Erreur de facturation">Erreur de facturation</option>
+              <option value="Geste commercial">Geste commercial / remise</option>
+              <option value="Retour / prestation non effectuée">Retour / prestation non effectuée</option>
+              <option value="Annulation totale">Annulation totale</option>
+              <option value="__autre__">Autre (texte libre)</option>
+            </select>
+          </div>
+          <div class="form-group full-width" id="avoir-motif-libre-group" style="display:none">
+            <label>Motif libre *</label>
+            <input type="text" id="avoir-motif-libre" placeholder="Précise le motif de l'avoir…" />
+            <div style="font-size:0.76rem;color:var(--text-muted);margin-top:4px">Ce texte apparaîtra tel quel sur l'avoir (rien d'autre).</div>
+          </div>
+          <div class="form-group full-width"><label>Notes internes</label>
+            <input type="text" id="avoir-notes" placeholder="Notes internes (non imprimées)" />
+          </div>
+        </div>
+        <div class="calc-summary" id="avoir-calc" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-avoir')">Annuler</button>
+        <button class="btn-primary" onclick="enregistrerAvoir()">Émettre l'avoir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint 12 : Enregistrer un paiement (ventes ou achats) -->
+  <div class="modal-overlay" id="modal-paiement">
+    <div class="modal">
+      <div class="modal-header"><h3 id="paiement-titre">💰 Enregistrer un paiement</h3><button class="modal-close" onclick="closeModal('modal-paiement')">✕</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label>Sens</label>
+            <select id="paiement-sens" onchange="majPaiementListes()">
+              <option value="in">Reçu d'un client (vente)</option>
+              <option value="out">Émis vers un fournisseur (achat)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Date</label><input type="date" id="paiement-date" /></div>
+          <div class="form-group full-width"><label>Lié à</label>
+            <select id="paiement-cible"><option value="">-- Choisir facture ou charge --</option></select>
+            <div id="paiement-solde-info" style="font-size:0.78rem;color:var(--text-muted);margin-top:4px"></div>
+          </div>
+          <div class="form-group"><label>Montant (€)</label><input type="number" id="paiement-montant" min="0" step="0.01" placeholder="0,00" /></div>
+          <div class="form-group"><label>Mode</label>
+            <select id="paiement-mode">
+              <option value="virement">Virement</option>
+              <option value="especes">Espèces</option>
+              <option value="cheque">Chèque</option>
+              <option value="cb">Carte bancaire</option>
+            </select>
+          </div>
+          <div class="form-group full-width"><label>Notes</label><input type="text" id="paiement-notes" placeholder="Référence chèque, commentaire…" /></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-paiement')">Annuler</button>
+        <button class="btn-primary" onclick="enregistrerPaiement()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint 12.1 : Aperçu facture avant émission -->
+  <div class="modal-overlay" id="modal-preview-facture">
+    <div class="modal modal-large">
+      <div class="modal-header">
+        <h3>📄 Aperçu facture <span id="preview-fac-badge" style="font-size:0.72rem;background:#f59e0b;color:#fff;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle">NON ÉMISE</span></h3>
+        <button class="modal-close" onclick="closeModal('modal-preview-facture')">✕</button>
+      </div>
+      <div class="modal-body" style="max-height:70vh;overflow-y:auto;background:#f3f4f6;padding:20px">
+        <div style="padding:14px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;margin-bottom:14px;font-size:0.88rem;color:#78350f">
+          ⚠️ <strong>Aperçu uniquement</strong>. Aucun numéro n'est encore assigné. Clique sur <strong>Émettre cette facture</strong> pour assigner définitivement le prochain numéro et générer le PDF imprimable.
+        </div>
+        <div id="preview-fac-content"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-preview-facture')">Annuler (pas de numéro consommé)</button>
+        <button class="btn-primary" onclick="emettreFactureConfirmee()">✓ Émettre cette facture</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint 12.1 : Réinitialisation compteur factures -->
+  <div class="modal-overlay" id="modal-reset-compteur">
+    <div class="modal">
+      <div class="modal-header"><h3>🧹 Réinitialiser le compteur factures</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-body">
+        <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
+          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible et fiscalement sensible</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5">
+            Cette action va <strong>supprimer définitivement toutes les factures</strong> stockées (y compris annulées) et remettre le compteur à zéro.<br><br>
+            <strong>N'utilise JAMAIS en production</strong>. Uniquement en phase de test, avant toute première vraie facturation. En cas de contrôle fiscal, l'absence d'historique peut être sanctionnée.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET FACTURES</strong></label>
+          <input type="text" id="reset-compteur-input" placeholder="Recopie la phrase ci-dessus" autocomplete="off" oninput="majBoutonResetCompteur()" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-reset-compteur')">Annuler</button>
+        <button class="btn-primary" id="btn-reset-compteur-confirm" onclick="executerResetCompteur()" disabled style="background:#ef4444">Réinitialiser</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint 12 : Suppression forcée (taper numéro) -->
+  <div class="modal-overlay" id="modal-force-delete">
+    <div class="modal">
+      <div class="modal-header"><h3>⚠️ Suppression forcée</h3><button class="modal-close" onclick="closeModal('modal-force-delete')">✕</button></div>
+      <div class="modal-body">
+        <div style="padding:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
+          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">Action irréversible et non recommandée</div>
+          <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5" id="force-delete-warn">
+            Supprimer un document déjà facturé n'est pas recommandé par le droit fiscal français. L'émission d'un <strong>avoir</strong> est la méthode légale pour corriger une facture.
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Pour confirmer, tape exactement : <strong id="force-delete-code">FAC-XXXX-XXXX</strong></label>
+          <input type="text" id="force-delete-input" placeholder="Recopie le numéro ci-dessus" autocomplete="off" oninput="majBoutonForceDelete()" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-force-delete')">Annuler</button>
+        <button class="btn-primary" id="btn-force-delete-confirm" onclick="executerForceDelete()" disabled style="background:#ef4444">Supprimer définitivement</button>
+      </div>
+    </div>
+  </div>
 
   <div class="modal-overlay" id="modal-recherche-globale">
     <div class="modal modal-search-global">

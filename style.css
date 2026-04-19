@@ -5654,3 +5654,222 @@ body.light-mode .modal .form-group select.field-invalid {
   .calc-summary { gap: 8px; font-size: 0.78rem; padding: 8px 10px; }
   .calc-summary .calc-op { font-size: 0.82rem; }
 }
+
+/* ============================================================
+   SPRINT 12 — Encaissements & Avoirs
+   ============================================================ */
+
+.enc-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.enc-stats-grid .stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.enc-stats-grid .stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.enc-stats-grid .stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sous-onglets */
+.enc-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 0;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.enc-tab {
+  background: none;
+  border: none;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  font-weight: 600;
+  transition: all .15s;
+  font-family: inherit;
+}
+.enc-tab:hover { color: var(--text); }
+.enc-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.enc-panel {
+  padding: 14px;
+}
+
+.enc-filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.enc-filters .searchbar { flex: 1; min-width: 200px; }
+.enc-filters select {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* Badges sens (in/out) */
+.badge-sens {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.badge-sens.badge-in { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.badge-sens.badge-out { background: rgba(239,68,68,0.12); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+
+.badge-statut {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.badge-statut.badge-paye { background: rgba(34,197,94,0.12); color: #22c55e; border: 1px solid rgba(34,197,94,0.3); }
+.badge-statut.badge-partiel { background: rgba(245,166,35,0.14); color: #f5a623; border: 1px solid rgba(245,166,35,0.35); }
+.badge-statut.badge-attente { background: rgba(100,116,139,0.12); color: #94a3b8; border: 1px solid rgba(100,116,139,0.3); }
+
+/* Boîte référence avoir (en tête du modal) */
+.avoir-ref {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.08), rgba(239,68,68,0.02));
+  border: 1px solid rgba(239,68,68,0.22);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+.avoir-ref-inner {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.avoir-ref-inner > div { display: flex; flex-direction: column; gap: 2px; }
+.avoir-ref-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.avoir-ref-inner strong { font-size: 0.95rem; color: var(--text); }
+
+/* Light mode */
+body.light-mode .enc-tabs { border-bottom-color: #e5e7eb; }
+body.light-mode .avoir-ref {
+  background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.02));
+}
+body.light-mode .badge-sens.badge-in { background: #dcfce7; }
+body.light-mode .badge-sens.badge-out { background: #fee2e2; }
+
+@media (max-width: 720px) {
+  .enc-tabs { padding: 8px 8px 0; }
+  .enc-tab { padding: 8px 10px; font-size: 0.82rem; }
+}
+
+/* ===== SPRINT 12.1 — Facturation (danger zone + bouton destructif) ===== */
+.fac-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.danger-zone {
+  margin-top: 32px;
+  padding: 18px 20px;
+  border: 1px dashed rgba(239,68,68,0.45);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(239,68,68,0.06), rgba(239,68,68,0.015));
+}
+.danger-zone-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  color: #ef4444;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.danger-zone-desc {
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #fff !important;
+  border: 1px solid rgba(239,68,68,0.6) !important;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+.btn-danger:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 6px 18px rgba(239,68,68,0.35);
+  transform: translateY(-1px);
+}
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Badge BROUILLON aperçu facture */
+.facture-badge-brouillon {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(245,166,35,0.18);
+  color: #f5a623;
+  border: 1px solid rgba(245,166,35,0.45);
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+body.light-mode .danger-zone {
+  background: linear-gradient(135deg, rgba(239,68,68,0.04), #fff);
+  border-color: rgba(239,68,68,0.35);
+}
+body.light-mode .facture-badge-brouillon {
+  background: #fef3c7;
+  color: #b45309;
+  border-color: #fbbf24;
+}
+
+@media (max-width: 720px) {
+  .fac-stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .danger-zone { padding: 14px; }
+}
