@@ -549,15 +549,36 @@ html, body {
 
 /* ===== MODAL ===== */
 .modal-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,0.6); z-index: 200;
-  align-items: flex-end; justify-content: center; padding: 0;
+  position:fixed;inset:0;z-index:2000;
+  background:rgba(0,0,0,.75);
+  backdrop-filter:blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
 }
-.modal-overlay.open { display: flex; }
+.modal-overlay.open { display:flex; }
 .modal {
-  background: var(--card); border: 1px solid var(--border);
-  border-radius: 24px 24px 0 0; width: 100%; max-width: 600px;
-  box-shadow: 0 -8px 40px rgba(0,0,0,.5); max-height: 92dvh; overflow-y: auto;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:20px;
+  width:100%;
+  max-width:480px;
+  max-height:calc(100dvh - 80px);
+  overflow-y:auto;
+  position:relative;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+@media (max-width:640px) {
+  .modal-overlay {
+    align-items:flex-end;
+    padding:0;
+  }
+  .modal {
+    border-radius:24px 24px 0 0;
+    max-height:92dvh;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
 }
 .modal-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -636,23 +657,6 @@ html, body {
   }
 }
 
-/* Modal plein carburant */
-.modal-overlay {
-  align-items: flex-end !important;
-  padding: 0 !important;
-}
-.modal {
-  border-radius: 24px 24px 0 0 !important;
-  max-height: 85dvh;
-  overflow-y: auto;
-  padding-bottom: calc(var(--safe-bottom) + 8px);
-}
-.modal-header {
-  padding: 20px 20px 16px !important;
-  font-size: 1rem !important;
-  font-weight: 700 !important;
-}
-
 /* Boutons action dans historique carburant et km */
 .btn-action-small {
   width: 36px; height: 36px;
@@ -672,6 +676,85 @@ html, body {
   border-color: rgba(239,68,68,0.25);
   color: var(--red);
   background: rgba(239,68,68,0.08);
+}
+.pill-type {
+  flex-shrink:0;
+  padding:10px 16px;
+  background:var(--card2);
+  border:1.5px solid var(--border);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:.82rem;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+  transition:all .2s;
+  font-family:inherit;
+}
+.pill-type.active {
+  background:linear-gradient(135deg,var(--accent),#ff8c00);
+  color:#000;border-color:var(--accent);
+}
+.menu-actions-wrap { position:relative; }
+.btn-actions-open {
+  padding:8px 14px;
+  background:var(--card2);
+  border:1.5px solid var(--border);
+  border-radius:10px;
+  color:var(--accent);
+  font-size:.82rem;font-weight:700;
+  cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:6px;
+}
+.menu-actions-dropdown {
+  display:none;position:absolute;
+  top:calc(100% + 4px);right:0;
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:12px;
+  padding:4px;min-width:160px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);
+  z-index:100;
+}
+.menu-actions-dropdown.open { display:block; }
+.menu-actions-dropdown button {
+  display:flex;align-items:center;gap:10px;
+  width:100%;padding:10px 12px;
+  background:transparent;border:none;
+  color:var(--text);font-size:.86rem;
+  text-align:left;cursor:pointer;
+  border-radius:8px;font-family:inherit;
+}
+.menu-actions-dropdown button:hover { background:var(--card2); }
+.menu-actions-dropdown button.danger { color:var(--red); }
+.photo-fullscreen {
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(0,0,0,.95);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.photo-fullscreen img {
+  max-width:100%;max-height:100%;
+  border-radius:8px;
+}
+.photo-fullscreen-close {
+  position:absolute;top:max(20px,env(safe-area-inset-top));
+  right:20px;
+  width:44px;height:44px;border-radius:50%;
+  background:rgba(255,255,255,.15);
+  backdrop-filter:blur(10px);
+  border:none;color:#fff;
+  font-size:1.5rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  z-index:10000;
+}
+.modal-close-btn {
+  position:absolute;top:12px;right:12px;
+  width:36px;height:36px;border-radius:50%;
+  background:var(--card2);
+  border:1px solid var(--border);
+  color:var(--muted);font-size:1.1rem;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  z-index:10;
 }
 </style>
 </head>
@@ -892,23 +975,32 @@ html, body {
               <label>Date</label>
               <input type="date" id="km-date" onchange="rafraichirTourneesSelect()" />
             </div>
-            <div class="form-group">
-              <label>TOURNÉE / MOTIF *</label>
-              <select id="km-tournee-id">
-                <option value="">— Optionnel —</option>
-              </select>
-              <div id="km-motif-wrapper" style="display:none;margin-top:8px">
-                <input type="text" id="km-motif"
-                  placeholder="Ex : Livraison hors tournée, Dépôt marchandises..."
-                  style="width:100%;padding:14px 16px;background:var(--bg2);
-                  border:1.5px solid var(--border);border-radius:12px;
-                  color:var(--text);font-size:.95rem;font-family:inherit"
-                />
-                <span style="font-size:.72rem;color:var(--muted);margin-top:4px;display:block">
-                  Précisez le motif professionnel du déplacement
-                </span>
-              </div>
-            </div>
+            <div class="form-group full" style="margin-bottom:16px">
+  <label style="display:block;margin-bottom:10px">TYPE DE TRAJET *</label>
+
+  <div id="km-type-pills" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <button type="button" class="pill-type active" data-type="livraison" onclick="changerTypeTrajet('livraison')">🚚 Livraison</button>
+    <button type="button" class="pill-type" data-type="pro" onclick="changerTypeTrajet('pro')">📋 Déplacement pro</button>
+    <button type="button" class="pill-type" data-type="autre" onclick="changerTypeTrajet('autre')">🔧 Autre</button>
+  </div>
+
+  <!-- Type Livraison -->
+  <div id="km-type-livraison-block">
+    <select id="km-tournee-id" onchange="rafraichirTourneesSelect()" style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit">
+      <option value="">— Sélectionner une livraison —</option>
+    </select>
+  </div>
+
+  <!-- Type Pro -->
+  <div id="km-type-pro-block" style="display:none">
+    <input type="text" id="km-motif-pro" placeholder="Ex : Dépôt marchandise, RDV client, Entretien véhicule..." style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" />
+  </div>
+
+  <!-- Type Autre -->
+  <div id="km-type-autre-block" style="display:none">
+    <input type="text" id="km-motif-autre" placeholder="Précisez le motif..." style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" />
+  </div>
+</div>
             <div class="form-row">
               <div class="form-group">
                 <label>Km début *</label>
@@ -957,13 +1049,13 @@ html, body {
                 <input type="date" id="insp-date" />
               </div>
               <div class="form-group">
-                <label>Km au compteur lors de l'inspection</label>
+                <label>Km au compteur lors de l'inspection *</label>
                 <input type="number" id="insp-km" placeholder="50 200" inputmode="numeric" />
               </div>
             </div>
             <div class="form-group">
-              <label>Commentaire</label>
-              <input type="text" id="insp-commentaire" placeholder="Ex : Rayure porte droite..." />
+              <label>Commentaire *</label>
+              <input type="text" id="insp-commentaire" placeholder="Ex : RAS, Rayure porte droite, Phare cassé..." />
             </div>
             <div class="form-group">
               <label>Photos (1 à 4) *</label>
@@ -1839,9 +1931,12 @@ function afficherAccueil() {
   }
 
   // Vérifier auto depuis les données réelles
-  const kmEntrees = JSON.parse(localStorage.getItem('km_sal_'+salId)||'[]').filter(e=>e.date===auj);
-  if (kmEntrees.some(e => e.kmDepart != null && e.kmDepart !== '')) checklist.kmDepart = true;
-  if (kmEntrees.some(e => e.kmArrivee != null && e.kmArrivee !== '')) checklist.kmArrivee = true;
+  const kmAuj = (JSON.parse(localStorage.getItem('km_sal_'+salId)||'[]'))
+    .filter(e => e.date === new Date().toISOString().slice(0,10));
+  const kmDepartFait = kmAuj.some(e => e.kmDepart != null && e.kmDepart > 0);
+  const kmRetourFait = kmAuj.some(e => e.kmArrivee != null && e.kmArrivee > 0);
+  if (kmDepartFait) checklist.kmDepart = true;
+  if (kmRetourFait) checklist.kmArrivee = true;
   const inspAuj = JSON.parse(localStorage.getItem('inspections')||'[]').filter(i=>i.salId===salId&&i.date===auj);
   if (inspAuj.length > 0) checklist.inspection = true;
   // pleinFait auto si un plein a été enregistré aujourd'hui
@@ -1852,7 +1947,7 @@ function afficherAccueil() {
   const taches = [
     { cle:'kmDepart',   fait: checklist.kmDepart,   label:'🛣️ Relevé kilométrique de départ',       action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
     { cle:'inspection', fait: checklist.inspection, label:'📷 Photos d\'inspection du véhicule',     action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Faire l\'inspection' },
-    { cle:'kmArrivee',  fait: checklist.kmArrivee,  label:'🏁 Relevé kilométrique de retour (soir)', action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+    { cle:'kmArrivee',  fait: checklist.kmArrivee,  label:'🏁 Relevé kilométrique de retour', action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
   ];
 
   const done   = taches.filter(t=>t.fait).length + (checklist.pleinFait !== null ? 1 : 0);
@@ -2051,6 +2146,21 @@ function rechargerBlocKm() {
 function enregistrerKmDepart() {
   const dep  = parseFloat(document.getElementById('km-depart').value);
   const date = document.getElementById('km-date').value;
+  const typeActif = window._kmTypeActif || 'livraison';
+  let motifTrajet = '';
+  if (typeActif === 'pro') {
+    motifTrajet = document.getElementById('km-motif-pro')?.value?.trim() || '';
+    if (!motifTrajet) {
+      toast('⚠️ Précisez le motif du déplacement pro', 'error');
+      return;
+    }
+  } else if (typeActif === 'autre') {
+    motifTrajet = document.getElementById('km-motif-autre')?.value?.trim() || '';
+    if (!motifTrajet) {
+      toast('⚠️ Précisez le motif', 'error');
+      return;
+    }
+  }
   const { livId, liv } = getKmTourneeSelection();
 
   if (!dep || !date) {
@@ -2073,6 +2183,8 @@ function enregistrerKmDepart() {
     date,
     livId: liv?.id || null,
     livNom: liv?.client || null,
+    motifType: typeActif,
+    motifTexte: motifTrajet,
     creeLe: new Date().toISOString()
   });
   saveKmEntries(list);
@@ -2162,9 +2274,12 @@ function chargerHistoriqueKm() {
       <span style="font-size:.85rem">${e.date}${modTag}${livTag}</span>
       <span style="color:var(--muted);font-size:.82rem">${ligneKm}</span>
       <strong style="color:var(--accent)">${distanceLib}</strong>
-      <div class="hist-actions">
-        <button class="btn-edit" onclick="ouvrirEditKmSal('${e.id}')">✏️</button>
-        <button class="btn-danger" onclick="supprimerKmSal('${e.id}')">🗑️</button>
+      <div class="menu-actions-wrap">
+        <button class="btn-actions-open" onclick="event.stopPropagation();toggleMenuActions('km-${e.id}')">Actions ▾</button>
+        <div class="menu-actions-dropdown" id="menu-actions-km-${e.id}">
+          <button onclick="ouvrirEditKmSal('${e.id}')">✏️ Modifier</button>
+          <button class="danger" onclick="supprimerKmSal('${e.id}')">🗑️ Supprimer</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2220,6 +2335,7 @@ function confirmerEditKmSal() {
   });
   localStorage.setItem('alertes_admin', JSON.stringify(alertes));
 
+  ajouterAlerteAdminModif('km', `Relevé km ${ancienDep}→${ancienArr} km ✏️ ${nouveauDep}→${nouveauArr} km`);
   fermerModal('modal-edit-km-sal');
   rechargerBlocKm();
   toast('✅ Relevé mis à jour — admin notifié');
@@ -2315,6 +2431,7 @@ function confirmerModifPlein() {
     meta:{salNom:salarieCourant.nom,salId:salarieCourant.id,pleinId:id},
     lu:false,traitee:false,creeLe:new Date().toISOString()});
   localStorage.setItem('alertes_admin',JSON.stringify(alertes));
+  ajouterAlerteAdminModif('plein', `Plein carburant modifié : ${ancL}L / ${ancT.toFixed(2)}€ → ${litres}L / ${total.toFixed(2)}€`);
   fermerModal('modal-modif-plein');
   chargerHistoriqueCarburant();
   toast('✅ Plein modifié — admin notifié');
@@ -2350,10 +2467,13 @@ function chargerHistoriqueCarburant() {
         <div style="font-size:.95rem;font-weight:800;color:var(--accent);margin-right:8px">
           ${(p.litres * p.prixLitre).toFixed(2)} €
         </div>
-        <button class="btn-action-small"
-          onclick="ouvrirModifPlein('${p.id}')" title="Modifier">✏️</button>
-        <button class="btn-action-small danger"
-          onclick="supprimerPleinSal('${p.id}')" title="Supprimer">🗑️</button>
+        <div class="menu-actions-wrap">
+          <button class="btn-actions-open" onclick="event.stopPropagation();toggleMenuActions('carb-${p.id}')">Actions ▾</button>
+          <div class="menu-actions-dropdown" id="menu-actions-carb-${p.id}">
+            <button onclick="ouvrirModifPlein('${p.id}')">✏️ Modifier</button>
+            <button class="danger" onclick="supprimerPleinSal('${p.id}')">🗑️ Supprimer</button>
+          </div>
+        </div>
       </div>
     `;
   }).join('');
@@ -2600,6 +2720,8 @@ function gererPhotosInspection(input) {
         display:flex;align-items:center;justify-content:center;
       `;
       badge.textContent = idx + 1;
+      div.onclick = function() { ouvrirPhotoPleinEcran(e.target.result); };
+      div.style.cursor = 'pointer';
       div.appendChild(img);
       div.appendChild(badge);
       preview.appendChild(div);
@@ -2687,6 +2809,14 @@ async function soumettreInspection() {
 
   if (!date) {
     toast('⚠️ La date est obligatoire', 'error');
+    return;
+  }
+  if (!km) {
+    toast('⚠️ Le kilométrage est obligatoire', 'error');
+    return;
+  }
+  if (!commentaire || !commentaire.trim()) {
+    toast('⚠️ Le commentaire est obligatoire (mettez "RAS" si rien à signaler)', 'error');
     return;
   }
   if (!photosFiles.length) {
@@ -2966,6 +3096,7 @@ function envoyerMessageSal() {
 
   input.value = '';
   chargerMessagesSal();
+  if (window.__syncRefresh) window.__syncRefresh();
 }
 
 function mettreAJourBadgeMsgSal() {
@@ -3331,12 +3462,139 @@ function initAccueilBonjour() {
   el.textContent = `${salut} ${prenom} 👋`;
 }
 
+function ajouterAlerteAdminModif(type, details) {
+  const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+  alertes.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    type: 'modif_salarie',
+    sousType: type,
+    salId: salarieCourant.id,
+    salNom: salarieCourant.nom,
+    message: `✏️ ${salarieCourant.nom} a modifié : ${details}`,
+    details: details,
+    lu: false,
+    traitee: false,
+    creeLe: new Date().toISOString()
+  });
+  localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+}
+
+function ouvrirPhotoPleinEcran(src) {
+  const overlay = document.createElement('div');
+  overlay.className = 'photo-fullscreen';
+  overlay.onclick = function(e) {
+    if (e.target === overlay) overlay.remove();
+  };
+  overlay.innerHTML = `
+    <button class="photo-fullscreen-close" onclick="this.parentElement.remove()">✕</button>
+    <img src="${src}" />
+  `;
+  document.body.appendChild(overlay);
+}
+
+function toggleMenuActions(id) {
+  document.querySelectorAll('.menu-actions-dropdown').forEach(m => {
+    if (m.id !== 'menu-actions-' + id) m.classList.remove('open');
+  });
+  const menu = document.getElementById('menu-actions-' + id);
+  if (menu) menu.classList.toggle('open');
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.menu-actions-wrap')) {
+    document.querySelectorAll('.menu-actions-dropdown')
+      .forEach(m => m.classList.remove('open'));
+  }
+});
+
+function changerTypeTrajet(type) {
+  document.querySelectorAll('.pill-type').forEach(p =>
+    p.classList.toggle('active', p.dataset.type === type));
+  document.getElementById('km-type-livraison-block').style.display =
+    type === 'livraison' ? 'block' : 'none';
+  document.getElementById('km-type-pro-block').style.display =
+    type === 'pro' ? 'block' : 'none';
+  document.getElementById('km-type-autre-block').style.display =
+    type === 'autre' ? 'block' : 'none';
+  window._kmTypeActif = type;
+}
+window._kmTypeActif = 'livraison';
+
 window.addEventListener('resize', initMobile);
 window.addEventListener('DOMContentLoaded', () => {
   initMobile();
   initOfflineDetection();
   initAccueilDate();
 });
+
+/* ========== SYNCHRONISATION POLLING INTELLIGENT ========== */
+(function() {
+  let pollInterval = null;
+  let pollDelay = 3000;
+  let isActive = true;
+  let lastHashes = {};
+
+  function hashData(key) {
+    const raw = localStorage.getItem(key) || '';
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash.toString();
+  }
+
+  function detecterChangements() {
+    if (!salarieCourant) return;
+
+    const cles = [
+      'livraisons',
+      'plannings',
+      'absences_periodes',
+      'vehicules',
+      'messages_' + salarieCourant.id,
+      'notifs_sal_' + salarieCourant.id
+    ];
+
+    cles.forEach(cle => {
+      const h = hashData(cle);
+      if (lastHashes[cle] !== undefined && lastHashes[cle] !== h) {
+        if (cle === 'livraisons') { chargerLivraisons(); afficherAccueil(); }
+        if (cle === 'plannings' || cle === 'absences_periodes') { afficherPlanningSal(); afficherAccueil(); }
+        if (cle === 'vehicules') { afficherAccueil(); }
+        if (cle.startsWith('messages_')) { chargerMessagesSal(); mettreAJourBadgeMsgSal && mettreAJourBadgeMsgSal(); }
+        if (cle.startsWith('notifs_sal_')) { verifierNotifs && verifierNotifs(); }
+      }
+      lastHashes[cle] = h;
+    });
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollInterval = setInterval(detecterChangements, pollDelay);
+  }
+
+  function stopPolling() {
+    if (pollInterval) clearInterval(pollInterval);
+  }
+
+  document.addEventListener('visibilitychange', function() {
+    isActive = !document.hidden;
+    pollDelay = isActive ? 3000 : 30000;
+    if (isActive) { detecterChangements(); startPolling(); }
+    else { startPolling(); }
+  });
+
+  setTimeout(function() {
+    if (typeof salarieCourant !== 'undefined' && salarieCourant) {
+      detecterChangements();
+      startPolling();
+    } else {
+      setTimeout(arguments.callee, 1000);
+    }
+  }, 2000);
+
+  window.__syncRefresh = detecterChangements;
+})();
 
 /* Fix hauteur viewport dynamique Safari iOS */
 function majHauteurViewport() {

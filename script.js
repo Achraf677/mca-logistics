@@ -3125,7 +3125,14 @@ function afficherCarburant() {
     return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
       <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
       <td><strong>${euros(p.total)}</strong></td><td>${euros(p.tvaDeductible||0)}</td><td>${p.kmCompteur ? formatKm(p.kmCompteur) : '—'}</td><td>${formatDateExport(p.date)}</td><td>${src}</td>
-      <td><button class="btn-icon" onclick="ouvrirEditCarburantAdmin('${p.id}')">✏️</button> <button class="btn-icon danger" onclick="supprimerCarburant('${p.id}')">🗑️</button></td></tr>`;
+      <td><div class="menu-actions-wrap" style="display:inline-block;position:relative">
+  <button class="btn-sm" onclick="event.stopPropagation();toggleMenuCarbAdmin('${p.id}')">Actions ▾</button>
+  <div class="menu-actions-dropdown" id="menu-carb-${p.id}" style="position:absolute;top:100%;right:0;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:4px;min-width:160px;box-shadow:0 10px 30px rgba(0,0,0,.3);display:none;z-index:100">
+    <button style="display:block;width:100%;padding:8px 12px;border:none;background:transparent;text-align:left;color:var(--text-primary);cursor:pointer;border-radius:6px" onclick="ouvrirEditCarburantAdmin('${p.id}')">✏️ Modifier</button>
+    <button style="display:block;width:100%;padding:8px 12px;border:none;background:transparent;text-align:left;color:${p.photoRecu ? 'var(--text-primary)' : 'var(--text-muted)'};cursor:${p.photoRecu ? 'pointer' : 'not-allowed'};opacity:${p.photoRecu ? 1 : 0.5};border-radius:6px" ${p.photoRecu ? `onclick="voirRecuCarburant('${p.id}')"` : ''}>🧾 Voir le reçu ${p.photoRecu ? '' : '(aucun)'}</button>
+    <button style="display:block;width:100%;padding:8px 12px;border:none;background:transparent;text-align:left;color:var(--red);cursor:pointer;border-radius:6px" onclick="supprimerCarburant('${p.id}')">🗑️ Supprimer</button>
+  </div>
+</div></td></tr>`;
   }).join('');
 }
 
@@ -3143,6 +3150,31 @@ async function supprimerCarburant(id) {
   sauvegarder('carburant', charger('carburant').filter(p => p.id !== id));
   afficherCarburant(); afficherToast('🗑️ Supprimé');
 }
+
+function toggleMenuCarbAdmin(id) {
+  document.querySelectorAll('.menu-actions-dropdown').forEach(m => {
+    if (m.id !== 'menu-carb-' + id) m.style.display = 'none';
+  });
+  const menu = document.getElementById('menu-carb-' + id);
+  if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+}
+
+function voirRecuCarburant(id) {
+  const pleins = charger('carburant');
+  const plein = pleins.find(p => p.id === id);
+  if (!plein?.photoRecu) return;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;';
+  overlay.onclick = () => overlay.remove();
+  overlay.innerHTML = `<button style="position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="this.parentElement.remove()">✕</button><img src="${plein.photoRecu}" style="max-width:100%;max-height:100%;border-radius:8px" />`;
+  document.body.appendChild(overlay);
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.menu-actions-wrap')) {
+    document.querySelectorAll('.menu-actions-dropdown').forEach(m => m.style.display = 'none');
+  }
+});
 
 /* ===== RELEVÉS KM — ADMIN ===== */
 function afficherReleveKm() {
@@ -15315,3 +15347,68 @@ function exporterPrevisionsPDF() {
   ouvrirFenetreImpression('Prévisions - ' + (params.nom || 'Entreprise'), html, 'width=1040,height=760');
   afficherToast('Rapport prévisionnel généré');
 }
+
+/* ========== SYNCHRO ADMIN POLLING ========== */
+(function() {
+  let pollInterval = null;
+  let lastHashes = {};
+
+  function hashData(key) {
+    const raw = localStorage.getItem(key) || '';
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+      hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+      hash |= 0;
+    }
+    return hash.toString();
+  }
+
+  function detecterChangementsAdmin() {
+    const sessionRole = sessionStorage.getItem('role');
+    if (sessionRole !== 'admin') return;
+
+    const cles = [
+      'livraisons','plannings','absences_periodes',
+      'inspections','carburant','salaries','vehicules',
+      'incidents'
+    ];
+
+    const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+    salaries.forEach(s => cles.push('messages_' + s.id));
+    salaries.forEach(s => cles.push('km_sal_' + s.id));
+    salaries.forEach(s => cles.push('carb_sal_' + s.id));
+
+    let needsRefresh = false;
+    cles.forEach(cle => {
+      const h = hashData(cle);
+      if (lastHashes[cle] !== undefined && lastHashes[cle] !== h) {
+        needsRefresh = true;
+      }
+      lastHashes[cle] = h;
+    });
+
+    if (needsRefresh) {
+      const pageActive = document.querySelector('.page.active')?.id;
+      if (pageActive === 'page-dashboard' && typeof afficherDashboard === 'function') afficherDashboard();
+      if (pageActive === 'page-livraisons' && typeof afficherLivraisons === 'function') afficherLivraisons();
+      if (pageActive === 'page-heures' && typeof afficherCompteurHeures === 'function') afficherCompteurHeures();
+      if (pageActive === 'page-planning' && typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+      if (pageActive === 'page-inspections' && typeof afficherInspections === 'function') afficherInspections();
+      if (pageActive === 'page-carburant' && typeof afficherCarburant === 'function') afficherCarburant();
+      if (pageActive === 'page-salaries' && typeof afficherSalaries === 'function') afficherSalaries();
+      if (typeof afficherBadgeAlertes === 'function') afficherBadgeAlertes();
+    }
+  }
+
+  document.addEventListener('visibilitychange', function() {
+    const delay = document.hidden ? 30000 : 5000;
+    if (pollInterval) clearInterval(pollInterval);
+    pollInterval = setInterval(detecterChangementsAdmin, delay);
+    if (!document.hidden) detecterChangementsAdmin();
+  });
+
+  setTimeout(function() {
+    detecterChangementsAdmin();
+    pollInterval = setInterval(detecterChangementsAdmin, 5000);
+  }, 3000);
+})();
