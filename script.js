@@ -7653,31 +7653,61 @@ function exporterHistoriqueClientsCSV() {
   const clients = charger('clients');
   const rows = clients.map(function(client) {
     const snapshot = getClientHistoriqueSnapshot(client.id);
+    const stats = (typeof window.getClientStats === 'function') ? window.getClientStats(client.id) : null;
+    const scoring = (typeof window.getClientScoring === 'function') ? window.getClientScoring(client.id) : null;
     return {
       nom: client.nom || '',
+      type: client.type || 'pro',
+      siren: client.siren || '',
+      tvaIntra: client.tvaIntra || '',
       contact: client.contact || client.prenom || '',
       telephone: client.tel || '',
       email: client.email || '',
+      emailFact: client.emailFact || '',
       adresse: client.adresse || '',
+      cp: client.cp || '',
+      ville: client.ville || '',
+      delaiPay: client.delaiPaiementJours != null ? client.delaiPaiementJours : 30,
       livraisons: snapshot?.livraisons.length || 0,
-      caHT: snapshot?.caHT || 0,
-      caTTC: snapshot?.caTTC || 0,
-      encaisse: snapshot?.encaisseTTC || 0,
-      impaye: snapshot?.impayeTTC || 0,
+      caHTLivraisons: snapshot?.caHT || 0,
+      caHTAnnee: stats?.caHTAnnee || 0,
+      nbFactures: stats?.factures?.length || 0,
+      totalFactureTTC: stats?.totalFactureTTC || 0,
+      nbAvoirs: stats?.avoirs?.length || 0,
+      totalAvoirsTTC: stats?.totalAvoirsTTC || 0,
+      nbPaiements: stats?.paiements?.length || 0,
+      totalPaiementsTTC: stats?.totalPaiementsTTC || 0,
+      soldeDu: stats?.soldeDu || 0,
+      echeancesDepassees: stats?.echeancesDepassees || 0,
+      scoring: scoring ? scoring.label : '',
       incidents: snapshot?.incidents.length || 0
     };
   });
   exporterCSV(rows, [
     { label:'Client', get:function(row){ return row.nom; } },
+    { label:'Type', get:function(row){ return row.type; } },
+    { label:'SIREN', get:function(row){ return row.siren; } },
+    { label:'TVA Intracom', get:function(row){ return row.tvaIntra; } },
     { label:'Contact', get:function(row){ return row.contact; } },
     { label:'Téléphone', get:function(row){ return row.telephone; } },
     { label:'Email', get:function(row){ return row.email; } },
+    { label:'Email facturation', get:function(row){ return row.emailFact; } },
     { label:'Adresse', get:function(row){ return row.adresse; } },
-    { label:'Livraisons', get:function(row){ return row.livraisons; } },
-    { label:'CA HT', get:function(row){ return round2(row.caHT); } },
-    { label:'CA TTC', get:function(row){ return round2(row.caTTC); } },
-    { label:'Encaissé TTC', get:function(row){ return round2(row.encaisse); } },
-    { label:'Impayé TTC', get:function(row){ return round2(row.impaye); } },
+    { label:'Code postal', get:function(row){ return row.cp; } },
+    { label:'Ville', get:function(row){ return row.ville; } },
+    { label:'Délai paiement (j)', get:function(row){ return row.delaiPay; } },
+    { label:'Nb livraisons', get:function(row){ return row.livraisons; } },
+    { label:'CA HT livraisons (total)', get:function(row){ return round2(row.caHTLivraisons); } },
+    { label:'CA HT année en cours', get:function(row){ return round2(row.caHTAnnee); } },
+    { label:'Nb factures émises', get:function(row){ return row.nbFactures; } },
+    { label:'Total facturé TTC', get:function(row){ return round2(row.totalFactureTTC); } },
+    { label:'Nb avoirs', get:function(row){ return row.nbAvoirs; } },
+    { label:'Total avoirs TTC', get:function(row){ return round2(row.totalAvoirsTTC); } },
+    { label:'Nb paiements reçus', get:function(row){ return row.nbPaiements; } },
+    { label:'Total encaissé TTC', get:function(row){ return round2(row.totalPaiementsTTC); } },
+    { label:'Solde dû TTC', get:function(row){ return round2(row.soldeDu); } },
+    { label:'Échéances dépassées', get:function(row){ return row.echeancesDepassees; } },
+    { label:'Scoring', get:function(row){ return row.scoring; } },
     { label:'Incidents', get:function(row){ return row.incidents; } }
   ], 'historique-clients-mca-logistics.csv');
   ajouterEntreeAudit('Export clients', 'Export CSV de l’historique clients');
@@ -7789,20 +7819,39 @@ function afficherClients() {
 }
 
 function ajouterClient() {
-  const nom     = document.getElementById('cl-nom')?.value.trim();
-  const prenom  = document.getElementById('cl-prenom')?.value.trim() || '';
-  const tel     = document.getElementById('cl-tel')?.value.trim();
-  const email   = document.getElementById('cl-email')?.value.trim();
-  const adresse = document.getElementById('cl-adresse')?.value.trim();
+  const nom         = document.getElementById('cl-nom')?.value.trim();
+  const prenom      = document.getElementById('cl-prenom')?.value.trim() || '';
+  const tel         = document.getElementById('cl-tel')?.value.trim();
+  const email       = document.getElementById('cl-email')?.value.trim();
+  const adresse     = document.getElementById('cl-adresse')?.value.trim();
+  const cp          = document.getElementById('cl-cp')?.value.trim() || '';
+  const ville       = document.getElementById('cl-ville')?.value.trim() || '';
+  const type        = (document.querySelector('input[name="cl-type"]:checked')?.value) || 'pro';
+  const siren       = (document.getElementById('cl-siren')?.value.trim() || '').replace(/\s+/g,'');
+  const tvaIntra    = (document.getElementById('cl-tva-intra')?.value.trim() || '').replace(/\s+/g,'').toUpperCase();
+  const emailFact   = document.getElementById('cl-email-fact')?.value.trim() || '';
+  const delaiPay    = parseInt(document.getElementById('cl-delai-paiement')?.value) || 30;
+  const notes       = document.getElementById('cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
+  if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
+  if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
   const clients = JSON.parse(localStorage.getItem('clients')||'[]');
   if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Client déjà existant','error'); return; }
-  clients.push({ id:genId(), nom, prenom, contact: prenom, tel, email, adresse, creeLe:new Date().toISOString() });
+  clients.push({
+    id: genId(), nom, prenom, contact: prenom, tel, email, adresse,
+    cp, ville, type, siren, tvaIntra, emailFact, delaiPaiementJours: delaiPay, notes,
+    creeLe: new Date().toISOString()
+  });
   localStorage.setItem('clients', JSON.stringify(clients));
-  ['cl-nom','cl-prenom','cl-tel','cl-email','cl-adresse'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['cl-nom','cl-prenom','cl-tel','cl-email','cl-adresse','cl-cp','cl-ville','cl-siren','cl-tva-intra','cl-email-fact','cl-notes']
+    .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const delaiEl = document.getElementById('cl-delai-paiement'); if (delaiEl) delaiEl.value = '30';
+  const typeRadio = document.querySelector('input[name="cl-type"][value="pro"]'); if (typeRadio) typeRadio.checked = true;
+  if (window.toggleChampsClientPro) window.toggleChampsClientPro(false);
+  const warnBox = document.getElementById('cl-doublons-warning'); if (warnBox) { warnBox.style.display='none'; warnBox.innerHTML=''; }
   closeModal('modal-client');
   afficherClients();
-  ajouterEntreeAudit('Création client', nom + (email ? ' · ' + email : ''));
+  ajouterEntreeAudit('Création client', nom + (email ? ' · ' + email : '') + (siren ? ' · SIREN ' + siren : ''));
   afficherToast('✅ Client ajouté');
 }
 
@@ -9462,12 +9511,23 @@ async function ouvrirEditClient(id) {
     return;
   }
   _editClientId = id;
-  document.getElementById('edit-cl-id').value      = id;
-  document.getElementById('edit-cl-nom').value     = c.nom||'';
-  document.getElementById('edit-cl-prenom').value  = c.prenom||'';
-  document.getElementById('edit-cl-tel').value     = c.tel||'';
-  document.getElementById('edit-cl-email').value   = c.email||'';
-  document.getElementById('edit-cl-adresse').value = c.adresse||'';
+  document.getElementById('edit-cl-id').value        = id;
+  document.getElementById('edit-cl-nom').value       = c.nom||'';
+  document.getElementById('edit-cl-prenom').value    = c.prenom||'';
+  document.getElementById('edit-cl-tel').value       = c.tel||'';
+  document.getElementById('edit-cl-email').value     = c.email||'';
+  document.getElementById('edit-cl-adresse').value   = c.adresse||'';
+  const setV = (id,v)=>{ const e=document.getElementById(id); if(e) e.value = v||''; };
+  setV('edit-cl-cp',         c.cp);
+  setV('edit-cl-ville',      c.ville);
+  setV('edit-cl-siren',      c.siren);
+  setV('edit-cl-tva-intra',  c.tvaIntra);
+  setV('edit-cl-email-fact', c.emailFact);
+  setV('edit-cl-delai-paiement', (c.delaiPaiementJours != null ? String(c.delaiPaiementJours) : '30'));
+  setV('edit-cl-notes',      c.notes);
+  const typeVal = c.type || 'pro';
+  const tR = document.querySelector('input[name="edit-cl-type"][value="'+typeVal+'"]'); if (tR) tR.checked = true;
+  if (window.toggleChampsClientPro) window.toggleChampsClientPro(true);
   document.getElementById('modal-edit-client').classList.add('open');
   afficherAlerteVerrouModal('modal-edit-client', '');
 }
@@ -9480,17 +9540,30 @@ function confirmerEditClient() {
     afficherToast(`⚠️ Ce client est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
     return;
   }
-  const nom     = document.getElementById('edit-cl-nom').value.trim();
-  const prenom  = document.getElementById('edit-cl-prenom').value.trim();
-  const tel     = document.getElementById('edit-cl-tel').value.trim();
-  const email   = document.getElementById('edit-cl-email').value.trim();
-  const adresse = document.getElementById('edit-cl-adresse').value.trim();
+  const nom        = document.getElementById('edit-cl-nom').value.trim();
+  const prenom     = document.getElementById('edit-cl-prenom').value.trim();
+  const tel        = document.getElementById('edit-cl-tel').value.trim();
+  const email      = document.getElementById('edit-cl-email').value.trim();
+  const adresse    = document.getElementById('edit-cl-adresse').value.trim();
+  const cp         = document.getElementById('edit-cl-cp')?.value.trim() || '';
+  const ville      = document.getElementById('edit-cl-ville')?.value.trim() || '';
+  const type       = (document.querySelector('input[name="edit-cl-type"]:checked')?.value) || 'pro';
+  const siren      = (document.getElementById('edit-cl-siren')?.value.trim() || '').replace(/\s+/g,'');
+  const tvaIntra   = (document.getElementById('edit-cl-tva-intra')?.value.trim() || '').replace(/\s+/g,'').toUpperCase();
+  const emailFact  = document.getElementById('edit-cl-email-fact')?.value.trim() || '';
+  const delaiPay   = parseInt(document.getElementById('edit-cl-delai-paiement')?.value) || 30;
+  const notes      = document.getElementById('edit-cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
+  if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
+  if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
   const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
   if (idx>-1) {
     clients[idx].nom=nom; clients[idx].prenom=prenom; clients[idx].tel=tel;
     clients[idx].contact=prenom; clients[idx].email=email; clients[idx].adresse=adresse;
+    clients[idx].cp=cp; clients[idx].ville=ville;
+    clients[idx].type=type; clients[idx].siren=siren; clients[idx].tvaIntra=tvaIntra;
+    clients[idx].emailFact=emailFact; clients[idx].delaiPaiementJours=delaiPay; clients[idx].notes=notes;
     sauvegarder('clients', clients);
   }
   closeModal('modal-edit-client');
@@ -18537,4 +18610,584 @@ function exporterPrevisionsPDF() {
     wrapped.__s12_1 = true;
     window.naviguerVers = wrapped;
   }
+})();
+
+/* =========================================================================
+ * SPRINT 13 — CRM Clients connecté + liaison LIV↔FAC
+ * - Toggle Pro/Particulier, détection doublons, scoring 4 badges
+ * - Fiche historique enrichie (factures + avoirs + paiements)
+ * - Table clients enrichie avec filtres
+ * - Migration clientId sur livraisons existantes
+ * - Auto-complete liv → clientId + échéance auto
+ * - Affichage couplé LIV↔FAC partout + badge décalage
+ * - Hook création client depuis modal livraison si inconnu
+ * =======================================================================*/
+(function(){
+  if (window.__s13Installed) return;
+  window.__s13Installed = true;
+
+  const LS = {
+    clients: 'clients',
+    livraisons: 'livraisons',
+    factures: 'factures_emises',
+    avoirs: 'avoirs_emis',
+    paiements: 'paiements'
+  };
+  const load = k => { try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){ return []; } };
+  const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+  const escHtml = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  const fmtEur = v => { try { return (typeof euros==='function') ? euros(v) : (parseFloat(v)||0).toFixed(2)+' €'; } catch(e){ return (parseFloat(v)||0).toFixed(2)+' €'; } };
+  const fmtDate = v => { try { return (typeof formatDateExport==='function' && v) ? formatDateExport(v) : (v||'—'); } catch(e){ return v||'—'; } };
+
+  /* ---------- Toggle Pro/Particulier ---------- */
+  window.toggleChampsClientPro = function(isEdit) {
+    const prefix = isEdit ? 'edit-' : '';
+    const typeChecked = document.querySelector('input[name="'+prefix+'cl-type"]:checked')?.value || 'pro';
+    const box = document.getElementById(prefix+'cl-champs-pro');
+    if (box) box.style.display = (typeChecked === 'pro') ? '' : 'none';
+  };
+
+  /* ---------- Détection doublons ---------- */
+  function similarity(a, b){
+    a = (a||'').toLowerCase().trim(); b = (b||'').toLowerCase().trim();
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    const la = a.length, lb = b.length;
+    if (Math.abs(la-lb) / Math.max(la,lb) > 0.5) return 0;
+    const bigrams = s => { const g = new Map(); for (let i=0;i<s.length-1;i++){ const bg=s.slice(i,i+2); g.set(bg,(g.get(bg)||0)+1); } return g; };
+    const ga = bigrams(a), gb = bigrams(b);
+    let inter = 0;
+    ga.forEach((v,k)=>{ if (gb.has(k)) inter += Math.min(v, gb.get(k)); });
+    return (2*inter) / ((la-1) + (lb-1));
+  }
+  window.detecterDoublonsClient = function(isEdit) {
+    const prefix = isEdit ? 'edit-' : '';
+    const box = document.getElementById(prefix+'cl-doublons-warning');
+    if (!box) return;
+    const nom = document.getElementById(prefix+'cl-nom')?.value.trim() || '';
+    const siren = (document.getElementById(prefix+'cl-siren')?.value.trim() || '').replace(/\s+/g,'');
+    const selfId = isEdit ? (document.getElementById('edit-cl-id')?.value || '') : '';
+    const clients = load(LS.clients).filter(c => c.id !== selfId);
+    const matches = [];
+    if (siren && /^\d{9}$/.test(siren)) {
+      clients.forEach(c => { if ((c.siren||'').trim() === siren) matches.push({c, reason:'SIREN identique'}); });
+    }
+    if (nom && nom.length >= 3) {
+      clients.forEach(c => {
+        if (matches.find(m => m.c.id === c.id)) return;
+        const sim = similarity(nom, c.nom||'');
+        if (sim >= 0.85) matches.push({c, reason:'Nom très similaire ('+Math.round(sim*100)+'%)'});
+      });
+    }
+    if (!matches.length) { box.style.display='none'; box.innerHTML=''; return; }
+    box.style.display = '';
+    box.innerHTML = '<div class="doublons-warning-title">⚠️ '+matches.length+' client(s) similaire(s) détecté(s)</div>'
+      + '<div class="doublons-warning-list">'
+      + matches.slice(0,5).map(m => '<div class="doublons-warning-item"><strong>'+escHtml(m.c.nom)+'</strong>'
+          + (m.c.siren ? ' · SIREN '+escHtml(m.c.siren) : '')
+          + ' <span style="color:var(--text-muted);font-size:.78rem">— '+escHtml(m.reason)+'</span></div>').join('')
+      + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Tu peux continuer, mais vérifie que ce n\'est pas un doublon.</div>';
+  };
+
+  /* ---------- Scoring auto ---------- */
+  window.getClientScoring = function(clientId) {
+    const c = load(LS.clients).find(x => x.id === clientId);
+    if (!c) return { tag:'inconnu', label:'Inconnu', icon:'⚪', cls:'score-nouveau' };
+    const livs = load(LS.livraisons).filter(l => l.clientId === clientId || ((l.client||'').trim().toLowerCase() === (c.nom||'').trim().toLowerCase()));
+    if (livs.length < 2) return { tag:'nouveau', label:'Nouveau', icon:'⚪', cls:'score-nouveau', reason:'< 2 livraisons' };
+    const delaiRef = parseInt(c.delaiPaiementJours) || 30;
+    let retards = 0; let totalDelaisPaiement = 0; let nbPayees = 0; let impayes = 0;
+    livs.forEach(l => {
+      const statutP = (typeof getLivraisonStatutPaiement === 'function') ? getLivraisonStatutPaiement(l) : l.statutPaiement;
+      if (l.datePaiement && l.date) {
+        const jours = Math.round((new Date(l.datePaiement) - new Date(l.date)) / 86400000);
+        totalDelaisPaiement += jours;
+        nbPayees++;
+        if (jours > delaiRef + 5) retards++;
+      } else if (statutP !== 'payé' && l.date) {
+        const joursEcoules = Math.round((Date.now() - new Date(l.date)) / 86400000);
+        if (joursEcoules > delaiRef) { retards++; impayes++; }
+      }
+    });
+    const moyenne = nbPayees ? (totalDelaisPaiement / nbPayees) : 0;
+    if (retards >= 3 || moyenne > 60) return { tag:'mauvais', label:'Mauvais payeur', icon:'🔴', cls:'score-mauvais', reason:retards+' retard(s), moy '+Math.round(moyenne)+'j' };
+    if (retards >= 1 || moyenne > 30)  return { tag:'surveiller', label:'À surveiller', icon:'🟡', cls:'score-surveiller', reason:retards+' retard(s), moy '+Math.round(moyenne)+'j' };
+    return { tag:'bon', label:'Bon payeur', icon:'🟢', cls:'score-bon', reason:'moy '+Math.round(moyenne)+'j sur '+nbPayees+' paiement(s)' };
+  };
+
+  /* ---------- Stats / solde client ---------- */
+  window.getClientStats = function(clientId) {
+    const c = load(LS.clients).find(x => x.id === clientId);
+    if (!c) return null;
+    const livs = load(LS.livraisons).filter(l => l.clientId === clientId || ((l.client||'').trim().toLowerCase() === (c.nom||'').trim().toLowerCase()));
+    const factures = load(LS.factures).filter(f => livs.find(l => l.id === f.livId) && f.statut !== 'annulée');
+    const avoirs = load(LS.avoirs).filter(a => factures.find(f => f.id === a.factureId));
+    const paiements = load(LS.paiements).filter(p => p.sens === 'in' && factures.find(f => f.id === p.factureId));
+    const anneeEn = new Date().getFullYear();
+    const livsAnnee = livs.filter(l => (l.date||'').startsWith(String(anneeEn)));
+    const caHTAnnee = livsAnnee.reduce((s,l) => s + (typeof getMontantHTLivraison==='function' ? getMontantHTLivraison(l) : (parseFloat(l.prixHT)||0)), 0);
+    const totalFactureTTC = factures.reduce((s,f) => s + (parseFloat(f.montantTTC)||0), 0);
+    const totalAvoirsTTC = avoirs.reduce((s,a) => s + (parseFloat(a.montantTTC)||0), 0);
+    const totalPaiementsTTC = paiements.reduce((s,p) => s + (parseFloat(p.montant)||0), 0);
+    const soldeDu = Math.max(0, totalFactureTTC - totalAvoirsTTC - totalPaiementsTTC);
+    const derniere = livs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
+    const delaiRef = parseInt(c.delaiPaiementJours) || 30;
+    const echeancesDepassees = factures.filter(f => {
+      if (!f.dateLivraison) return false;
+      const dEch = new Date(f.dateLivraison); dEch.setDate(dEch.getDate() + delaiRef);
+      const paye = paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
+      const restant = (parseFloat(f.montantTTC)||0) - paye;
+      return restant > 0.01 && dEch < new Date();
+    }).length;
+    return { client:c, livs, livsAnnee, factures, avoirs, paiements, caHTAnnee, soldeDu, derniere, echeancesDepassees, totalFactureTTC, totalAvoirsTTC, totalPaiementsTTC };
+  };
+
+  /* ---------- Migration clientId sur livraisons existantes ---------- */
+  function migrateLivraisonsClientId() {
+    const livs = load(LS.livraisons);
+    const clients = load(LS.clients);
+    if (!livs.length || !clients.length) return;
+    const byNameLower = new Map();
+    clients.forEach(c => {
+      const k = (c.nom||'').trim().toLowerCase();
+      if (!k) return;
+      if (byNameLower.has(k)) byNameLower.set(k, null);
+      else byNameLower.set(k, c.id);
+    });
+    let changed = 0;
+    livs.forEach(l => {
+      if (l.clientId) return;
+      const k = (l.client||'').trim().toLowerCase();
+      const cid = byNameLower.get(k);
+      if (cid) { l.clientId = cid; changed++; }
+    });
+    if (changed) { save(LS.livraisons, livs); console.log('[S13] Migration clientId : '+changed+' livraison(s) liée(s)'); }
+  }
+
+  /* ---------- Badge décalage LIV↔FAC ---------- */
+  function extractSeq(numero) {
+    const m = String(numero||'').match(/-(\d{4})-(\d+)$/);
+    return m ? { annee: m[1], seq: parseInt(m[2]) } : null;
+  }
+  window.formatLivFacCouple = function(numLiv, numFac) {
+    if (!numFac) return '<span class="lf-couple"><span class="lf-liv">'+escHtml(numLiv||'—')+'</span><span class="lf-sep">·</span><span class="lf-fac-empty">pas de facture</span></span>';
+    const eL = extractSeq(numLiv), eF = extractSeq(numFac);
+    const decalage = (eL && eF && (eL.annee !== eF.annee || eL.seq !== eF.seq));
+    return '<span class="lf-couple'+(decalage?' lf-decalage':'')+'"'
+      + (decalage ? ' title="Décalage : le N° de facture ne correspond pas au N° de livraison"' : '')
+      + '><span class="lf-liv">'+escHtml(numLiv||'—')+'</span><span class="lf-sep">↔</span><span class="lf-fac">'+escHtml(numFac)+'</span>'
+      + (decalage ? '<span class="lf-warn">⚠️</span>' : '')
+      + '</span>';
+  };
+
+  /* ---------- Table Clients enrichie ---------- */
+  function injecterFiltresClients() {
+    const page = document.getElementById('page-clients');
+    if (!page || page.querySelector('#s13-filtres-clients')) return;
+    const card = page.querySelector('.card');
+    if (!card) return;
+    const filters = document.createElement('div');
+    filters.id = 's13-filtres-clients';
+    filters.className = 'filters filters-clients';
+    filters.style.marginBottom = '16px';
+    filters.innerHTML = ''
+      + '<div class="searchbar"><span class="searchbar-icon">🔎</span>'
+      + '<input type="search" id="s13-cl-search" placeholder="Rechercher nom, SIREN, ville, email..." oninput="window.afficherClients && window.afficherClients()" /></div>'
+      + '<select id="s13-cl-type" onchange="window.afficherClients && window.afficherClients()">'
+      + '<option value="">Tous types</option><option value="pro">🏢 Pro</option><option value="particulier">🙋 Particulier</option></select>'
+      + '<select id="s13-cl-score" onchange="window.afficherClients && window.afficherClients()">'
+      + '<option value="">Tous scorings</option>'
+      + '<option value="bon">🟢 Bons payeurs</option>'
+      + '<option value="surveiller">🟡 À surveiller</option>'
+      + '<option value="mauvais">🔴 Mauvais payeurs</option>'
+      + '<option value="nouveau">⚪ Nouveaux</option></select>'
+      + '<select id="s13-cl-tri" onchange="window.afficherClients && window.afficherClients()">'
+      + '<option value="nom">Trier : nom A→Z</option>'
+      + '<option value="ca">Trier : CA année ↓</option>'
+      + '<option value="solde">Trier : solde dû ↓</option>'
+      + '<option value="recente">Trier : dernière livraison</option></select>'
+      + '<button class="btn-secondary" onclick="document.getElementById(\'s13-cl-search\').value=\'\';document.getElementById(\'s13-cl-type\').value=\'\';document.getElementById(\'s13-cl-score\').value=\'\';document.getElementById(\'s13-cl-tri\').value=\'nom\';window.afficherClients && window.afficherClients();">Réinitialiser</button>';
+    card.parentNode.insertBefore(filters, card);
+    // Upgrade table header
+    const thead = card.querySelector('thead tr');
+    if (thead) {
+      thead.innerHTML = '<th>Type</th><th>Nom</th><th>Ville</th><th>Téléphone</th><th>CA année</th><th>Solde dû</th><th>Dernière liv.</th><th>Scoring</th><th>Actions</th>';
+    }
+    const tbody = card.querySelector('tbody');
+    if (tbody) {
+      const emptyRow = tbody.querySelector('.empty-row');
+      if (emptyRow) emptyRow.setAttribute('colspan','9');
+    }
+  }
+
+  if (typeof window.afficherClients === 'function' && !window.afficherClients.__s13) {
+    const origAfficherClients = window.afficherClients;
+    const wrapped = function() {
+      injecterFiltresClients();
+      const tb = document.getElementById('tb-clients');
+      if (!tb) return origAfficherClients.apply(this, arguments);
+      const clients = load(LS.clients);
+      if (!clients.length) return origAfficherClients.apply(this, arguments);
+      if (typeof paginer === 'function') paginer.__reload_tb_clients = window.afficherClients;
+
+      const q = (document.getElementById('s13-cl-search')?.value || '').toLowerCase().trim();
+      const ftype = document.getElementById('s13-cl-type')?.value || '';
+      const fscore = document.getElementById('s13-cl-score')?.value || '';
+      const ftri = document.getElementById('s13-cl-tri')?.value || 'nom';
+
+      let rows = clients.map(c => {
+        const stats = window.getClientStats(c.id) || {};
+        const sc = window.getClientScoring(c.id);
+        return { c, stats, sc };
+      });
+      if (ftype) rows = rows.filter(r => (r.c.type||'pro') === ftype);
+      if (fscore) rows = rows.filter(r => r.sc.tag === fscore);
+      if (q) rows = rows.filter(r => {
+        const c = r.c;
+        return (c.nom||'').toLowerCase().includes(q)
+          || (c.siren||'').toLowerCase().includes(q)
+          || (c.ville||'').toLowerCase().includes(q)
+          || (c.email||'').toLowerCase().includes(q)
+          || (c.tel||'').toLowerCase().includes(q);
+      });
+      rows.sort((a,b) => {
+        if (ftri === 'ca') return (b.stats.caHTAnnee||0) - (a.stats.caHTAnnee||0);
+        if (ftri === 'solde') return (b.stats.soldeDu||0) - (a.stats.soldeDu||0);
+        if (ftri === 'recente') return new Date(b.stats.derniere?.date||0) - new Date(a.stats.derniere?.date||0);
+        return (a.c.nom||'').localeCompare(b.c.nom||'','fr');
+      });
+
+      if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">Aucun client ne correspond aux filtres</td></tr>'; return; }
+
+      const render = items => items.map(r => {
+        const c = r.c, st = r.stats, sc = r.sc;
+        const iconType = (c.type||'pro') === 'pro' ? '🏢' : '🙋';
+        const soldeClass = (st.soldeDu||0) > 0 ? 'solde-positif' : 'solde-zero';
+        const echAlert = (st.echeancesDepassees||0) > 0 ? ' <span class="ech-alert" title="'+st.echeancesDepassees+' échéance(s) dépassée(s)">⏰</span>' : '';
+        const dern = st.derniere ? fmtDate(st.derniere.date) : '—';
+        return '<tr>'
+          + '<td>'+iconType+'</td>'
+          + '<td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient(\''+c.id+'\')" style="font-weight:700">'+escHtml(c.nom||'')+'</button>'
+          +   (c.siren ? '<div style="font-size:.72rem;color:var(--text-muted)">SIREN '+escHtml(c.siren)+'</div>' : '')+'</td>'
+          + '<td>'+escHtml([c.cp, c.ville].filter(Boolean).join(' ')||'—')+'</td>'
+          + '<td>'+escHtml(c.tel||'—')+'</td>'
+          + '<td><strong>'+fmtEur(st.caHTAnnee||0)+'</strong><div style="font-size:.72rem;color:var(--text-muted)">'+(st.livsAnnee?.length||0)+' liv.</div></td>'
+          + '<td class="'+soldeClass+'"><strong>'+fmtEur(st.soldeDu||0)+'</strong>'+echAlert+'</td>'
+          + '<td>'+dern+'</td>'
+          + '<td><span class="score-badge '+sc.cls+'" title="'+escHtml(sc.reason||'')+'">'+sc.icon+' '+escHtml(sc.label)+'</span></td>'
+          + '<td>'+(typeof buildInlineActionsDropdown==='function' ? buildInlineActionsDropdown('Actions', [
+              { icon:'📚', label:'Historique', action:'ouvrirHistoriqueClient(\''+c.id+'\')' },
+              { icon:'✏️', label:'Modifier', action:'ouvrirEditClient(\''+c.id+'\')' },
+              { icon:'📦', label:'Nouvelle livraison', action:'preFillLivraisonClient(\''+c.id+'\')' },
+              { icon:'🗑️', label:'Supprimer', action:'supprimerClient(\''+c.id+'\')', danger:true }
+            ]) : '')+'</td>'
+          + '</tr>';
+      }).join('');
+
+      if (typeof paginer === 'function') paginer(rows, 'tb-clients', render, 12);
+      else tb.innerHTML = render(rows);
+    };
+    wrapped.__s13 = true;
+    window.afficherClients = wrapped;
+  }
+
+  /* ---------- Fiche historique enrichie ---------- */
+  if (typeof window.ouvrirHistoriqueClient === 'function' && !window.ouvrirHistoriqueClient.__s13) {
+    const origOpen = window.ouvrirHistoriqueClient;
+    const wrapped = function(id) {
+      origOpen.apply(this, arguments);
+      setTimeout(() => enrichirFicheClient(id), 20);
+    };
+    wrapped.__s13 = true;
+    window.ouvrirHistoriqueClient = wrapped;
+  }
+  function enrichirFicheClient(id) {
+    const content = document.getElementById('client-history-content');
+    if (!content) return;
+    if (content.querySelector('#s13-fiche-enrichie')) return;
+    const st = window.getClientStats(id);
+    if (!st) return;
+    const sc = window.getClientScoring(id);
+    const c = st.client;
+    const delai = parseInt(c.delaiPaiementJours) || 30;
+    const block = document.createElement('div');
+    block.id = 's13-fiche-enrichie';
+    block.innerHTML = ''
+      + '<div class="fiche-scoring-row">'
+      +   '<span class="score-badge '+sc.cls+' score-badge-xl">'+sc.icon+' '+escHtml(sc.label)+'</span>'
+      +   '<span style="color:var(--text-muted);font-size:.85rem">'+escHtml(sc.reason||'')+'</span>'
+      +   (c.type==='pro' ? '<span class="fiche-info-chip">🏢 Pro'+(c.siren?' · SIREN '+escHtml(c.siren):'')+'</span>' : '<span class="fiche-info-chip">🙋 Particulier</span>')
+      +   (c.tvaIntra ? '<span class="fiche-info-chip">TVA '+escHtml(c.tvaIntra)+'</span>' : '')
+      +   '<span class="fiche-info-chip">Délai paiement : '+delai+'j</span>'
+      +   (st.echeancesDepassees>0 ? '<span class="fiche-info-chip ech-chip">⏰ '+st.echeancesDepassees+' échéance(s) dépassée(s)</span>' : '')
+      + '</div>'
+      + '<div class="kpi-grid" style="margin-bottom:16px">'
+      +   '<div class="kpi-card green"><div class="kpi-label">CA HT année</div><div class="kpi-value">'+fmtEur(st.caHTAnnee)+'</div></div>'
+      +   '<div class="kpi-card blue"><div class="kpi-label">Factures émises</div><div class="kpi-value">'+st.factures.length+'</div></div>'
+      +   '<div class="kpi-card purple"><div class="kpi-label">Avoirs</div><div class="kpi-value">'+st.avoirs.length+'</div></div>'
+      +   '<div class="kpi-card red"><div class="kpi-label">Solde dû TTC</div><div class="kpi-value">'+fmtEur(st.soldeDu)+'</div></div>'
+      + '</div>'
+      + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>🧾 Factures émises (liaison LIV↔FAC)</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° FAC ↔ N° LIV</th><th>Date liv.</th><th>Échéance</th><th>Montant TTC</th><th>Payé</th><th>Solde</th><th>Statut</th></tr></thead><tbody>'
+      +   (st.factures.length
+            ? st.factures.sort((a,b)=> new Date(b.dateLivraison||0) - new Date(a.dateLivraison||0)).map(f => {
+                const pays = st.paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
+                const avs = st.avoirs.filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
+                const solde = Math.max(0, (parseFloat(f.montantTTC)||0) - pays - avs);
+                let ech = '';
+                if (f.dateLivraison) { const d=new Date(f.dateLivraison); d.setDate(d.getDate()+delai); ech = d.toISOString().slice(0,10); }
+                const enRetard = ech && solde > 0.01 && ech < new Date().toISOString().slice(0,10);
+                const stLabel = solde < 0.01 ? '<span class="badge-statut badge-paye">Payée</span>'
+                  : pays > 0 ? '<span class="badge-statut badge-partiel">Partielle</span>'
+                  : enRetard ? '<span class="badge-statut badge-attente" style="color:#ef4444;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)">En retard</span>'
+                  : '<span class="badge-statut badge-attente">En attente</span>';
+                return '<tr>'
+                  + '<td>'+window.formatLivFacCouple(f.numLiv, f.numero)+'</td>'
+                  + '<td>'+fmtDate(f.dateLivraison)+'</td>'
+                  + '<td>'+(ech?fmtDate(ech):'—')+'</td>'
+                  + '<td><strong>'+fmtEur(f.montantTTC)+'</strong></td>'
+                  + '<td>'+fmtEur(pays)+(avs?' <span style="color:var(--text-muted);font-size:.75rem">(avoir '+fmtEur(avs)+')</span>':'')+'</td>'
+                  + '<td>'+fmtEur(solde)+'</td>'
+                  + '<td>'+stLabel+'</td>'
+                  + '</tr>';
+              }).join('')
+            : '<tr><td colspan="7" class="empty-row">Aucune facture émise</td></tr>')
+      + '</tbody></table></div></div>'
+      + (st.avoirs.length ? '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>📉 Avoirs émis</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° Avoir</th><th>Date</th><th>Facture liée</th><th>Type</th><th>Montant TTC</th><th>Motif</th></tr></thead><tbody>'
+      +   st.avoirs.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)).map(a => {
+            const f = st.factures.find(x => x.id === a.factureId);
+            return '<tr>'
+              + '<td><strong>'+escHtml(a.numero)+'</strong></td>'
+              + '<td>'+fmtDate(a.date)+'</td>'
+              + '<td>'+escHtml(f?.numero||a.factureNumero||'—')+'</td>'
+              + '<td>'+escHtml(a.type||'—')+'</td>'
+              + '<td>'+fmtEur(a.montantTTC)+'</td>'
+              + '<td style="font-size:.82rem">'+escHtml(a.motif||'—')+'</td>'
+              + '</tr>';
+          }).join('')
+      + '</tbody></table></div></div>' : '')
+      + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>💰 Paiements reçus</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N°</th><th>Date</th><th>Facture</th><th>Mode</th><th>Montant</th><th>Notes</th></tr></thead><tbody>'
+      +   (st.paiements.length
+            ? st.paiements.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)).map(p => {
+                const f = st.factures.find(x => x.id === p.factureId);
+                return '<tr>'
+                  + '<td><strong>'+escHtml(p.numero||'—')+'</strong></td>'
+                  + '<td>'+fmtDate(p.date)+'</td>'
+                  + '<td>'+escHtml(f?.numero||'—')+'</td>'
+                  + '<td>'+escHtml(p.mode||'—')+'</td>'
+                  + '<td><strong>'+fmtEur(p.montant)+'</strong></td>'
+                  + '<td style="font-size:.82rem">'+escHtml(p.notes||'')+'</td>'
+                  + '</tr>';
+              }).join('')
+            : '<tr><td colspan="6" class="empty-row">Aucun paiement enregistré</td></tr>')
+      + '</tbody></table></div>'
+      + (c.notes ? '<div class="card" style="margin-top:16px"><div class="card-header"><h2>📝 Notes internes</h2></div><div class="modal-body"><div style="white-space:pre-wrap">'+escHtml(c.notes)+'</div></div></div>' : '');
+    content.appendChild(block);
+  }
+
+  /* ---------- Auto-complete livraison → clientId + délai auto ---------- */
+  // Assurer présence d'un input caché clientId dans le modal livraison
+  function ensureHiddenClientId() {
+    const form = document.getElementById('modal-livraison');
+    if (!form) return;
+    if (!document.getElementById('liv-client-id')) {
+      const h = document.createElement('input');
+      h.type='hidden'; h.id='liv-client-id';
+      (form.querySelector('.modal-body') || form).appendChild(h);
+    }
+  }
+  // Wrap autoCompleteClient pour proposer la création si inconnu + injecter clientId
+  if (typeof window.autoCompleteClient === 'function' && !window.autoCompleteClient.__s13) {
+    const orig = window.autoCompleteClient;
+    const wrapped = function(val) {
+      ensureHiddenClientId();
+      orig.apply(this, arguments);
+      const hid = document.getElementById('liv-client-id'); if (hid) hid.value='';
+      const sug = document.getElementById('client-suggestions');
+      if (!sug) return;
+      // Remplacer handlers des suggestions : injecter clientId + SIREN + préremplir
+      sug.querySelectorAll('div').forEach(el => {
+        const nomMatch = el.textContent.split(' — ')[0]?.trim() || el.innerText.trim();
+        const c = load(LS.clients).find(x => (x.nom||'').toLowerCase() === nomMatch.toLowerCase());
+        if (!c) return;
+        el.onclick = function() {
+          const nomInput = document.getElementById('liv-client');
+          if (nomInput) nomInput.value = c.nom || '';
+          const zoneEl = document.getElementById('liv-zone'); if (zoneEl && c.adresse) zoneEl.value = c.adresse;
+          const depEl = document.getElementById('liv-depart'); if (depEl && c.adresse) depEl.value = c.adresse;
+          const sirenEl = document.getElementById('liv-client-siren'); if (sirenEl) sirenEl.value = c.siren || '';
+          const hid = document.getElementById('liv-client-id'); if (hid) hid.value = c.id;
+          sug.innerHTML = '';
+        };
+      });
+      // Si aucune suggestion mais nom saisi → proposer création
+      const clients = load(LS.clients);
+      if (val && val.length >= 3 && !clients.find(c => (c.nom||'').toLowerCase() === val.toLowerCase())) {
+        const existing = sug.querySelector('.s13-create-client');
+        if (!existing) {
+          const div = document.createElement('div');
+          div.className='s13-create-client';
+          div.style.cssText='padding:8px 12px;cursor:pointer;font-size:.85rem;color:#6366f1;font-weight:600;border-top:1px solid var(--border);background:rgba(99,102,241,.06)';
+          div.innerHTML = '➕ Créer la fiche client « '+escHtml(val)+' »';
+          div.onclick = function() {
+            closeModal('modal-livraison');
+            openModal('modal-client');
+            setTimeout(()=>{ const e=document.getElementById('cl-nom'); if(e){ e.value = val; e.focus(); }}, 80);
+          };
+          sug.appendChild(div);
+        }
+      }
+    };
+    wrapped.__s13 = true;
+    window.autoCompleteClient = wrapped;
+  }
+
+  /* ---------- Hook création livraison : capturer clientId + SIREN depuis fiche ---------- */
+  if (typeof window.ajouterLivraison === 'function' && !window.ajouterLivraison.__s13) {
+    const orig = window.ajouterLivraison;
+    const wrapped = function() {
+      // Si user n'a pas cliqué la suggestion mais a tapé un nom exact → match automatique
+      const nom = document.getElementById('liv-client')?.value.trim() || '';
+      const hid = document.getElementById('liv-client-id');
+      if (hid && !hid.value && nom) {
+        const c = load(LS.clients).find(x => (x.nom||'').toLowerCase() === nom.toLowerCase());
+        if (c) {
+          hid.value = c.id;
+          const sirenEl = document.getElementById('liv-client-siren'); if (sirenEl && !sirenEl.value) sirenEl.value = c.siren || '';
+        }
+      }
+      const result = orig.apply(this, arguments);
+      // Après création, relier clientId dans la livraison fraîchement créée (la dernière)
+      if (hid && hid.value) {
+        const livs = load(LS.livraisons);
+        if (livs.length) {
+          livs[livs.length-1].clientId = hid.value;
+          save(LS.livraisons, livs);
+        }
+        hid.value='';
+      }
+      return result;
+    };
+    wrapped.__s13 = true;
+    window.ajouterLivraison = wrapped;
+  }
+
+  /* ---------- preFillLivraisonClient → aussi poser clientId + SIREN ---------- */
+  if (typeof window.preFillLivraisonClient === 'function' && !window.preFillLivraisonClient.__s13) {
+    const orig = window.preFillLivraisonClient;
+    const wrapped = function(id) {
+      orig.apply(this, arguments);
+      setTimeout(() => {
+        ensureHiddenClientId();
+        const c = load(LS.clients).find(x => x.id === id);
+        if (!c) return;
+        const hid = document.getElementById('liv-client-id'); if (hid) hid.value = c.id;
+        const sirenEl = document.getElementById('liv-client-siren'); if (sirenEl) sirenEl.value = c.siren || '';
+      }, 250);
+    };
+    wrapped.__s13 = true;
+    window.preFillLivraisonClient = wrapped;
+  }
+
+  /* ---------- Colonne "Bon de livraison" dans afficherFacturation + tri toggle ---------- */
+  let _s13SortBy = 'fac'; // 'fac' ou 'liv'
+  function injecterTriFacturation() {
+    const page = document.getElementById('page-facturation');
+    if (!page || page.querySelector('#s13-tri-fac')) return;
+    const filtres = page.querySelector('.enc-filters, .filters, .page-actions');
+    if (!filtres) return;
+    const box = document.createElement('div');
+    box.id = 's13-tri-fac';
+    box.className = 's13-tri-box';
+    box.innerHTML = '<span class="s13-tri-label">Trier par :</span>'
+      + '<button type="button" class="btn-toggle-tri active" data-tri="fac">N° FAC</button>'
+      + '<button type="button" class="btn-toggle-tri" data-tri="liv">N° LIV</button>';
+    filtres.appendChild(box);
+    box.querySelectorAll('button').forEach(b => {
+      b.onclick = () => {
+        _s13SortBy = b.dataset.tri;
+        box.querySelectorAll('button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+      };
+    });
+  }
+  window.__s13GetSortBy = () => _s13SortBy;
+
+  /* Wrap afficherFacturation : ajoute colonne Bon de livraison + applique tri _s13SortBy */
+  function hookAfficherFacturation() {
+    if (typeof window.afficherFacturation !== 'function' || window.afficherFacturation.__s13) return;
+    const orig = window.afficherFacturation;
+    const wrapped = function() {
+      const r = orig.apply(this, arguments);
+      postProcessFacturation();
+      return r;
+    };
+    wrapped.__s13 = true;
+    window.afficherFacturation = wrapped;
+  }
+  function postProcessFacturation() {
+    const tbody = document.getElementById('tb-facturation');
+    if (!tbody) return;
+    const thead = tbody.closest('table')?.querySelector('thead tr');
+    if (thead && !thead.querySelector('[data-s13-col]')) {
+      const th = document.createElement('th');
+      th.textContent = 'Bon de livraison';
+      th.setAttribute('data-s13-col','1');
+      if (thead.children[1]) thead.insertBefore(th, thead.children[1]);
+      else thead.appendChild(th);
+    }
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    // Ignorer l'empty state
+    if (rows.length === 1 && rows[0].children.length === 1) {
+      rows[0].children[0].setAttribute('colspan', '11');
+      return;
+    }
+    const factures = load(LS.factures);
+    rows.forEach(tr => {
+      if (tr.querySelector('[data-s13-cell]')) return;
+      const firstCell = tr.children[0];
+      const numFac = firstCell?.textContent.trim() || '';
+      const f = factures.find(x => (x.numero || '') === numFac);
+      const td = document.createElement('td');
+      td.setAttribute('data-s13-cell','1');
+      td.innerHTML = window.formatLivFacCouple(f?.numLiv || '', f?.numero || '');
+      tr.insertBefore(td, tr.children[1] || null);
+    });
+    // Re-tri selon _s13SortBy
+    if (_s13SortBy === 'liv') {
+      const sorted = rows
+        .filter(tr => tr.querySelector('[data-s13-cell]'))
+        .sort((a, b) => {
+          const ka = a.children[1]?.textContent.trim() || '';
+          const kb = b.children[1]?.textContent.trim() || '';
+          return kb.localeCompare(ka);
+        });
+      sorted.forEach(tr => tbody.appendChild(tr));
+    }
+  }
+
+  /* ---------- Init au DOM ready ---------- */
+  function initS13() {
+    migrateLivraisonsClientId();
+    ensureHiddenClientId();
+    hookAfficherFacturation();
+    if (typeof window.afficherClients === 'function') {
+      const page = document.getElementById('page-clients');
+      if (page && !page.classList.contains('hidden')) setTimeout(window.afficherClients, 50);
+    }
+    if (typeof window.naviguerVers === 'function' && !window.naviguerVers.__s13) {
+      const origNav = window.naviguerVers;
+      const wrapped = function(page) {
+        const r = origNav.apply(this, arguments);
+        if (page === 'clients') setTimeout(() => { if (window.afficherClients) window.afficherClients(); }, 30);
+        if (page === 'facturation') setTimeout(() => { injecterTriFacturation(); hookAfficherFacturation(); postProcessFacturation(); }, 50);
+        return r;
+      };
+      wrapped.__s13 = true;
+      window.naviguerVers = wrapped;
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS13);
+  else setTimeout(initS13, 50);
+
 })();

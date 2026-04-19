@@ -5873,3 +5873,238 @@ body.light-mode .facture-badge-brouillon {
   .fac-stats-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
   .danger-zone { padding: 14px; }
 }
+
+/* ===== SPRINT 13 — CRM Clients ===== */
+
+/* Toggle Pro/Particulier */
+.client-type-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.client-type-option {
+  flex: 1;
+  position: relative;
+  cursor: pointer;
+}
+.client-type-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.client-type-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  transition: all 0.18s ease;
+  user-select: none;
+}
+.client-type-option input[type="radio"]:checked + .client-type-label {
+  background: linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.12));
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(99,102,241,0.18);
+  border: 1px solid rgba(99,102,241,0.35);
+}
+.client-champs-pro {
+  margin-top: 14px;
+  padding: 14px;
+  background: rgba(99,102,241,0.04);
+  border-left: 3px solid rgba(99,102,241,0.5);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.form-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+/* Doublons warning */
+.doublons-warning {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(245,166,35,0.1), rgba(245,166,35,0.03));
+  border: 1px solid rgba(245,166,35,0.35);
+  border-radius: 10px;
+}
+.doublons-warning-title {
+  font-weight: 700;
+  color: #f5a623;
+  font-size: 0.88rem;
+  margin-bottom: 8px;
+}
+.doublons-warning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.doublons-warning-item {
+  padding: 4px 8px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  font-size: 0.83rem;
+}
+
+/* Filtres clients */
+.filters-clients {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.filters-clients select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+/* Scoring badges */
+.score-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.score-badge-xl { padding: 6px 14px; font-size: 0.9rem; }
+.score-badge.score-bon        { background: rgba(34,197,94,0.12);  color: #22c55e; border-color: rgba(34,197,94,0.35); }
+.score-badge.score-surveiller { background: rgba(245,166,35,0.12); color: #f5a623; border-color: rgba(245,166,35,0.35); }
+.score-badge.score-mauvais    { background: rgba(239,68,68,0.12);  color: #ef4444; border-color: rgba(239,68,68,0.4); }
+.score-badge.score-nouveau    { background: rgba(148,163,184,0.12); color: #94a3b8; border-color: rgba(148,163,184,0.3); }
+
+/* Solde dû colonne */
+.solde-positif { color: #ef4444; }
+.solde-positif strong { color: #ef4444; }
+.solde-zero strong { color: var(--text-muted); }
+.ech-alert {
+  display: inline-block;
+  margin-left: 6px;
+  color: #f5a623;
+  animation: pulseEch 1.8s infinite ease-in-out;
+}
+@keyframes pulseEch { 0%,100%{opacity:.6;} 50%{opacity:1;} }
+
+/* Fiche enrichie */
+.fiche-scoring-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(99,102,241,0.06), rgba(139,92,246,0.03));
+  border: 1px solid rgba(99,102,241,0.18);
+  border-radius: 12px;
+}
+.fiche-info-chip {
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.fiche-info-chip.ech-chip {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.35);
+  color: #ef4444;
+}
+
+/* Couple LIV↔FAC */
+.lf-couple {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 0.82rem;
+}
+.lf-liv { font-weight: 700; color: var(--text); }
+.lf-sep { color: var(--text-muted); }
+.lf-fac { font-weight: 700; color: #6366f1; }
+.lf-fac-empty { color: var(--text-muted); font-style: italic; font-size: 0.78rem; }
+.lf-couple.lf-decalage .lf-liv { color: #f5a623; }
+.lf-couple.lf-decalage .lf-fac { color: #f5a623; }
+.lf-warn { color: #f5a623; font-size: 0.82rem; margin-left: 2px; }
+
+/* Bouton tri toggle facturation */
+.s13-tri-box {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin-left: 8px;
+  flex-wrap: wrap;
+}
+.s13-tri-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.btn-toggle-tri {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+.btn-toggle-tri:hover {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.4);
+}
+.btn-toggle-tri.active {
+  background: linear-gradient(135deg, rgba(99,102,241,0.22), rgba(139,92,246,0.15));
+  border-color: rgba(99,102,241,0.5);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(99,102,241,0.2);
+}
+/* Light mode : texte sombre */
+body.light-mode .btn-toggle-tri {
+  color: #1f2937;
+  background: #fff;
+}
+body.light-mode .btn-toggle-tri:hover {
+  background: #eef2ff;
+}
+body.light-mode .btn-toggle-tri.active {
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  color: #4f46e5;
+  border-color: #a5b4fc;
+}
+
+/* Light mode */
+body.light-mode .client-champs-pro { background: rgba(99,102,241,0.05); }
+body.light-mode .fiche-scoring-row { background: linear-gradient(135deg, rgba(99,102,241,0.05), #fff); }
+body.light-mode .doublons-warning { background: #fef3c7; }
+body.light-mode .lf-fac { color: #4f46e5; }
+
+/* Responsive */
+@media (max-width: 720px) {
+  .client-type-selector { flex-direction: column; }
+  .filters-clients { flex-direction: column; align-items: stretch; }
+  .filters-clients select, .filters-clients .searchbar { width: 100%; }
+  .fiche-scoring-row { padding: 10px; }
+  .score-badge-xl { font-size: 0.8rem; padding: 4px 10px; }
+}
