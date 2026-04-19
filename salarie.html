@@ -27,7 +27,7 @@
   --text: #f0f4ff;
   --muted: #6b7a99;
   --radius: 16px;
-  --bottom-nav-h: 72px;
+  --bottom-nav-h: 58px;
   --safe-bottom: env(safe-area-inset-bottom, 16px);
   --visual-vh: 100vh;
   --scroll-padding: 140px;
@@ -260,17 +260,26 @@ html, body {
   background: var(--card);
   border-top: 1px solid var(--border);
   z-index: 1000;
-  box-shadow: 0 -2px 12px rgba(0,0,0,.12);
   padding-bottom: var(--safe-bottom);
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.3);
 }
-.bn-wrap { display: flex; height: var(--bottom-nav-h); }
+.bn-wrap {
+  display: flex;
+  height: var(--bottom-nav-h);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 4px;
+}
+.bn-wrap::-webkit-scrollbar { display: none; }
 .bn-item {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -278,15 +287,14 @@ html, body {
   position: relative;
   transition: color .2s;
   font-family: inherit;
-  min-height: 56px;
-  padding: 0;
+  min-height: 54px;
+  min-width: 60px;
+  padding: 6px 2px;
 }
 .bn-item.active { color: var(--accent); }
 .bn-item.active .bn-icon { transform: scale(1.1); }
-.bn-icon { font-size: 1.4rem; line-height: 1; transition: transform .2s; display: block; }
-.bn-label { font-size: .6rem; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; }
-.bn-wrap::-webkit-scrollbar { display: none; }
-.bn-item { min-width: 64px; }
+.bn-icon { font-size: 1.15rem; line-height: 1; transition: transform .2s; display: block; }
+.bn-label { font-size: .58rem; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; white-space: nowrap; }
 .bn-badge {
   position: absolute;
   top: 8px; right: 16%;
@@ -619,7 +627,7 @@ html, body {
 /* Détection Safari mobile pour ajuster le padding */
 @supports (-webkit-touch-callout: none) {
   :root {
-    --scroll-padding: 180px;
+    --scroll-padding: 220px;
   }
 }
 </style>
