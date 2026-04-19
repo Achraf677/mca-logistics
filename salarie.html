@@ -27,7 +27,7 @@
   --text: #f0f4ff;
   --muted: #6b7a99;
   --radius: 16px;
-  --bottom-nav-h: 58px;
+  --bottom-nav-h: 62px;
   --safe-bottom: env(safe-area-inset-bottom, 16px);
   --visual-vh: 100vh;
   --scroll-padding: 140px;
@@ -270,16 +270,17 @@ html, body {
   overflow-y: hidden;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  padding: 0 4px;
+  padding: 0 8px;
+  gap: 4px;
 }
 .bn-wrap::-webkit-scrollbar { display: none; }
 .bn-item {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   background: transparent;
   border: none;
   color: var(--muted);
@@ -288,10 +289,14 @@ html, body {
   transition: color .2s;
   font-family: inherit;
   min-height: 54px;
-  min-width: 60px;
-  padding: 6px 2px;
+  min-width: 68px;
+  padding: 6px 8px;
+  border-radius: 10px;
 }
-.bn-item.active { color: var(--accent); }
+.bn-item.active {
+  color: var(--accent);
+  background: rgba(245,166,35,0.08);
+}
 .bn-item.active .bn-icon { transform: scale(1.1); }
 .bn-icon { font-size: 1.15rem; line-height: 1; transition: transform .2s; display: block; }
 .bn-label { font-size: .58rem; font-weight: 700; letter-spacing: .2px; text-transform: uppercase; white-space: nowrap; }
@@ -627,7 +632,7 @@ html, body {
 /* Détection Safari mobile pour ajuster le padding */
 @supports (-webkit-touch-callout: none) {
   :root {
-    --scroll-padding: 220px;
+    --scroll-padding: 260px;
   }
 }
 </style>
