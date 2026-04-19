@@ -1594,54 +1594,189 @@ function envoyerPhotoSal(input) {
 /* ===== PLANNING SALARIÉ ===== */
 function afficherPlanningSal() {
   if (!salarieCourant) return;
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
-  const monPlan   = plannings.find(p =>
-    p.salId === salarieCourant.id ||
-    p.salId === salarieCourant.supabaseId ||
-    p.salNom === salarieCourant.nom ||
-    (salarieCourant.numero && p.salId === salarieCourant.numero)
-  ) || plannings.find(p => {
-    const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
-    const sal = salaries.find(s =>
-      s.supabaseId === salarieCourant.id ||
-      s.id === salarieCourant.id ||
-      s.numero === salarieCourant.numero
-    );
-    return sal && p.salId === sal.id;
-  });
-  const cont      = document.getElementById('planning-sal-content');
+  const cont = document.getElementById('planning-sal-content');
   if (!cont) return;
 
-  if (!monPlan || !monPlan.semaine || !monPlan.semaine.length) {
-    cont.innerHTML = '<div class="empty">Aucun planning défini — contactez votre administrateur.</div>';
-    return;
+  // Récupérer toutes les sources possibles de planning
+  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const periodes = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+
+  // Identifier le salarié avec tous les IDs possibles
+  const monSalarieLocal = salaries.find(s =>
+    s.id === salarieCourant.id ||
+    s.supabaseId === salarieCourant.id ||
+    s.id === salarieCourant.supabaseId ||
+    s.numero === salarieCourant.numero ||
+    s.nom === salarieCourant.nom
+  );
+
+  const idsPossibles = [
+    salarieCourant.id,
+    salarieCourant.supabaseId,
+    monSalarieLocal?.id,
+    monSalarieLocal?.supabaseId,
+    salarieCourant.numero
+  ].filter(Boolean);
+
+  // Récupérer mon planning hebdomadaire
+  const monPlan = plannings.find(p =>
+    idsPossibles.includes(p.salId) || p.salNom === salarieCourant.nom
+  );
+
+  // Récupérer mes périodes de travail/absence
+  const mesPeriodes = periodes.filter(p =>
+    idsPossibles.includes(p.salId) || p.salNom === salarieCourant.nom
+  );
+
+  // Générer les 7 jours de la semaine actuelle
+  const maintenant = new Date();
+  const jourSemaine = maintenant.getDay();
+  const lundi = new Date(maintenant);
+  lundi.setDate(maintenant.getDate() - (jourSemaine === 0 ? 6 : jourSemaine - 1));
+  lundi.setHours(0, 0, 0, 0);
+
+  const joursLabels = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
+  const joursKeys = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+  const auj = maintenant.toISOString().slice(0, 10);
+
+  const cartes = [];
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(lundi);
+    date.setDate(lundi.getDate() + i);
+    const dateStr = date.toISOString().slice(0, 10);
+    const jourKey = joursKeys[i];
+    const estAuj = dateStr === auj;
+
+    // 1. Chercher dans les périodes datées
+    const periode = mesPeriodes.find(p =>
+      dateStr >= p.debut && dateStr <= p.fin
+    );
+
+    let contenu = null;
+
+    if (periode) {
+      if (periode.type === 'travail') {
+        contenu = {
+          travail: true,
+          debut: periode.heureDebut,
+          fin: periode.heureFin,
+          typeJour: 'travail',
+          zone: periode.zone || ''
+        };
+      } else {
+        contenu = {
+          travail: false,
+          typeJour: periode.type,
+          label: periode.type === 'conge' ? 'Congé'
+            : periode.type === 'maladie' ? 'Maladie'
+            : periode.type === 'repos' ? 'Repos'
+            : 'Absence'
+        };
+      }
+    } else if (monPlan && monPlan.semaine) {
+      // 2. Fallback : planning hebdomadaire récurrent
+      const jour = monPlan.semaine.find(s => s.jour === jourKey);
+      if (jour && jour.travaille) {
+        contenu = {
+          travail: true,
+          debut: jour.heureDebut,
+          fin: jour.heureFin,
+          typeJour: 'travail',
+          zone: jour.zone || ''
+        };
+      }
+    }
+
+    cartes.push({
+      label: joursLabels[i],
+      date: date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+      estAuj,
+      contenu
+    });
   }
 
-  const joursSemaine = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
-  const joursLabels  = { lundi:'Lundi', mardi:'Mardi', mercredi:'Mercredi', jeudi:'Jeudi', vendredi:'Vendredi', samedi:'Samedi', dimanche:'Dimanche' };
-  const jourActuel   = joursSemaine[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
+  // Compter les jours travaillés cette semaine
+  const joursTravailles = cartes.filter(c => c.contenu?.travail).length;
 
   cont.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px">
-      ${joursSemaine.map(jour => {
-        const j = monPlan.semaine.find(s => s.jour === jour);
-        const estAujourdhui = jour === jourActuel;
-        const travaille = j && j.travaille;
-        return `
-          <div style="border-radius:10px;padding:12px;border:2px solid ${estAujourdhui ? 'var(--accent)' : 'var(--border)'};background:${estAujourdhui ? 'rgba(245,166,35,.06)' : 'var(--card2)'}">
-            <div style="font-size:.8rem;font-weight:700;margin-bottom:8px;color:${estAujourdhui ? 'var(--accent)' : 'var(--text)'}">
-              ${joursLabels[jour]}${estAujourdhui ? ' <span style="font-size:.68rem;background:var(--accent);color:#000;padding:1px 6px;border-radius:20px">Aujourd\'hui</span>' : ''}
+    <div style="
+      margin-bottom:16px;padding:14px 16px;
+      background:rgba(245,166,35,0.08);
+      border:1px solid rgba(245,166,35,0.2);
+      border-radius:12px;
+    ">
+      <div style="font-size:.75rem;color:var(--muted);
+        text-transform:uppercase;letter-spacing:.5px;
+        margin-bottom:4px;font-weight:600;">
+        Cette semaine
+      </div>
+      <div style="font-size:1.1rem;font-weight:800;color:var(--accent)">
+        ${joursTravailles} jour${joursTravailles > 1 ? 's' : ''} travaillé${joursTravailles > 1 ? 's' : ''}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${cartes.map(c => {
+        const bgColor = c.estAuj
+          ? 'rgba(245,166,35,0.08)'
+          : 'var(--card2)';
+        const borderColor = c.estAuj
+          ? 'var(--accent)'
+          : 'var(--border)';
+
+        let contenuHtml = '';
+        if (c.contenu?.travail) {
+          contenuHtml = `
+            <div style="
+              display:flex;align-items:center;gap:8px;
+              color:var(--green);font-weight:700;font-size:.9rem;
+            ">
+              🟢 ${c.contenu.debut} → ${c.contenu.fin}
             </div>
-            ${travaille ? `
-              <div style="font-size:.82rem;color:var(--green);margin-bottom:4px">🟢 Travaillé</div>
-              ${j.heureDebut ? `<div style="font-size:.78rem;color:var(--muted)">🕐 ${j.heureDebut}${j.heureFin ? ' – ' + j.heureFin : ''}</div>` : ''}
-              ${j.zone ? `<div style="font-size:.78rem;color:var(--muted);margin-top:3px">📍 ${j.zone}</div>` : ''}
-              ${j.note ? `<div style="font-size:.76rem;color:var(--muted);margin-top:3px;font-style:italic">${j.note}</div>` : ''}
-            ` : `<div style="font-size:.82rem;color:var(--muted)">🔴 Repos</div>`}
-          </div>`;
+            ${c.contenu.zone ? `
+              <div style="font-size:.78rem;color:var(--muted);margin-top:4px">
+                📍 ${c.contenu.zone}
+              </div>` : ''}
+          `;
+        } else if (c.contenu?.typeJour === 'conge') {
+          contenuHtml = `<div style="color:#3b82f6;font-weight:700;font-size:.88rem">🏖️ Congé</div>`;
+        } else if (c.contenu?.typeJour === 'maladie') {
+          contenuHtml = `<div style="color:#a855f7;font-weight:700;font-size:.88rem">🤒 Maladie</div>`;
+        } else if (c.contenu?.typeJour === 'repos') {
+          contenuHtml = `<div style="color:var(--muted);font-weight:600;font-size:.88rem">💤 Repos</div>`;
+        } else {
+          contenuHtml = `<div style="color:var(--muted);font-size:.85rem">—</div>`;
+        }
+
+        return `
+          <div style="
+            padding:14px 16px;
+            background:${bgColor};
+            border:2px solid ${borderColor};
+            border-radius:12px;
+            display:flex;justify-content:space-between;align-items:center;
+          ">
+            <div>
+              <div style="
+                font-size:.88rem;font-weight:800;
+                color:${c.estAuj ? 'var(--accent)' : 'var(--text)'};
+                margin-bottom:2px;
+              ">
+                ${c.label}${c.estAuj ? ' · Aujourd\'hui' : ''}
+              </div>
+              <div style="font-size:.72rem;color:var(--muted)">
+                ${c.date}
+              </div>
+            </div>
+            <div style="text-align:right">
+              ${contenuHtml}
+            </div>
+          </div>
+        `;
       }).join('')}
     </div>
-    <p style="font-size:.76rem;color:var(--muted);margin-top:12px;text-align:right">Mis à jour le ${monPlan.mis_a_jour ? new Date(monPlan.mis_a_jour).toLocaleDateString('fr-FR', {day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}) : '—'}</p>`;
+  `;
 }
 
 /* ===== ACCUEIL ===== */
