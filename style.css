@@ -580,6 +580,28 @@ body.role-salarie-unified .page:not(.active) {
   box-shadow: 0 0 0 3px rgba(143,151,173,.10);
   background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.04));
 }
+/* Croix native webkit sur input[type="search"] — taille + couleur cohérentes */
+.searchbar input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.searchbar input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  margin-right: 14px;
+  border-radius: 999px;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23f5a623'><circle cx='8' cy='8' r='8' fill='%23f5a623' opacity='.15'/><path d='M5.5 5.5l5 5M10.5 5.5l-5 5' stroke='%23f5a623' stroke-width='1.6' stroke-linecap='round' fill='none'/></svg>") no-repeat center / contain;
+  cursor: pointer;
+  opacity: .85;
+  transition: opacity .15s ease, transform .15s ease;
+}
+.searchbar input[type="search"]::-webkit-search-cancel-button:hover {
+  opacity: 1;
+  transform: scale(1.12);
+}
+
 .searchbar-clear {
   width: 30px;
   height: 30px;
@@ -5220,4 +5242,118 @@ body.light-mode .pagination-select {
 
 body.light-mode .data-table th.sortable::after {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 10' fill='%236b7280'><path d='M4 0L0 4h8zM4 10L0 6h8z'/></svg>");
+}
+
+/* ============================================================
+   SPRINT 9 — Empty states riches
+   ============================================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 24px;
+  gap: 14px;
+  animation: fadeInUp .35s ease both;
+}
+.empty-state-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.6rem;
+  background: radial-gradient(circle at 50% 45%, rgba(245,166,35,0.18), rgba(245,166,35,0.04) 70%);
+  border: 1px solid rgba(245,166,35,0.2);
+  box-shadow: 0 4px 24px rgba(245,166,35,0.12);
+  margin-bottom: 4px;
+  position: relative;
+}
+.empty-state-icon::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px dashed rgba(245,166,35,0.18);
+  animation: emptyStateRotate 18s linear infinite;
+}
+.empty-state-title {
+  font-family: var(--font-display, var(--font));
+  font-size: 1.18rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.2px;
+}
+.empty-state-description {
+  font-size: .9rem;
+  color: var(--text-muted);
+  max-width: 440px;
+  line-height: 1.5;
+}
+.empty-state-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.empty-state-cta {
+  font-size: .88rem;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+.empty-state-cell {
+  padding: 0 !important;
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
+/* Variants : couleur subtile de l'halo selon le contexte */
+.empty-state-filtered .empty-state-icon,
+.empty-state-search .empty-state-icon {
+  background: radial-gradient(circle at 50% 45%, rgba(96,165,250,0.18), rgba(96,165,250,0.04) 70%);
+  border-color: rgba(96,165,250,0.2);
+  box-shadow: 0 4px 24px rgba(96,165,250,0.12);
+}
+.empty-state-filtered .empty-state-icon::before,
+.empty-state-search .empty-state-icon::before {
+  border-color: rgba(96,165,250,0.18);
+}
+.empty-state-success .empty-state-icon {
+  background: radial-gradient(circle at 50% 45%, rgba(74,222,128,0.18), rgba(74,222,128,0.04) 70%);
+  border-color: rgba(74,222,128,0.22);
+  box-shadow: 0 4px 24px rgba(74,222,128,0.12);
+}
+.empty-state-success .empty-state-icon::before {
+  border-color: rgba(74,222,128,0.2);
+}
+
+@keyframes emptyStateRotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+  .empty-state {
+    padding: 32px 16px;
+  }
+  .empty-state-icon {
+    width: 72px;
+    height: 72px;
+    font-size: 2.1rem;
+  }
+  .empty-state-title {
+    font-size: 1.05rem;
+  }
+}
+
+body.light-mode .empty-state-icon {
+  background: radial-gradient(circle at 50% 45%, rgba(245,166,35,0.22), rgba(245,166,35,0.04) 70%);
+  box-shadow: 0 4px 20px rgba(245,166,35,0.14);
+}
+body.light-mode .empty-state-filtered .empty-state-icon,
+body.light-mode .empty-state-search .empty-state-icon {
+  background: radial-gradient(circle at 50% 45%, rgba(59,130,246,0.2), rgba(59,130,246,0.04) 70%);
+  box-shadow: 0 4px 20px rgba(59,130,246,0.12);
 }

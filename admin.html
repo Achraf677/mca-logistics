@@ -303,7 +303,6 @@
         <div class="searchbar">
           <span class="searchbar-icon">🔎</span>
           <input type="search" id="filtre-recherche-liv" placeholder="Rechercher un client, un N° LIV ou un chauffeur..." oninput="afficherLivraisons()" />
-          <button class="searchbar-clear" type="button" onclick="document.getElementById('filtre-recherche-liv').value='';afficherLivraisons()" title="Effacer">✕</button>
         </div>
         <select id="filtre-statut" onchange="afficherLivraisons()">
           <option value="">Tous les statuts</option><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option>
@@ -395,7 +394,6 @@
         <div class="searchbar">
           <span class="searchbar-icon">🔎</span>
           <input type="search" id="filtre-veh-search" placeholder="Rechercher un véhicule, une plaque, un modèle..." oninput="afficherVehicules()" />
-          <button class="searchbar-clear" type="button" onclick="document.getElementById('filtre-veh-search').value='';afficherVehicules()" title="Effacer">✕</button>
         </div>
         <select id="filtre-veh-salarie" onchange="afficherVehicules()">
           <option value="">Tous les véhicules</option>
@@ -1274,7 +1272,6 @@
         <div class="searchbar">
           <span class="searchbar-icon">🔎</span>
           <input type="search" id="filtre-charge-search" placeholder="Rechercher une charge, une catégorie ou un véhicule..." oninput="afficherCharges()" />
-          <button class="searchbar-clear" type="button" onclick="document.getElementById('filtre-charge-search').value='';afficherCharges()" title="Effacer">✕</button>
         </div>
         <button class="btn-secondary" onclick="resetFiltresCharges()">Réinitialiser</button>
       </div>
@@ -1422,7 +1419,6 @@
         <div class="searchbar searchbar-heures">
           <span class="searchbar-icon">🔎</span>
           <input type="search" id="filtre-heures-salarie" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="afficherCompteurHeures()" />
-          <button class="searchbar-clear" type="button" onclick="document.getElementById('filtre-heures-salarie').value='';afficherCompteurHeures()" title="Effacer">✕</button>
         </div>
       </div>
 
@@ -1517,7 +1513,6 @@
                     <div class="searchbar planning-searchbar">
                       <span class="searchbar-icon">🔎</span>
                       <input type="search" id="absence-sal-search" placeholder="Rechercher un salarié, un poste ou un matricule..." oninput="filtrerRechercheAbsence()" autocomplete="off" />
-                      <button class="searchbar-clear" type="button" onclick="document.getElementById('absence-sal-search').value='';filtrerRechercheAbsence()" title="Effacer">✕</button>
                     </div>
                     <div id="absence-sal-suggestions" class="planning-search-suggestions" style="display:none"></div>
                   </div>
@@ -2412,7 +2407,6 @@
         <div class="searchbar searchbar-global">
           <span class="searchbar-icon">🔎</span>
           <input type="search" id="barre-recherche-univ" placeholder="Client, N° LIV, chauffeur, véhicule..." oninput="rechercheUniverselle(this.value)" autocomplete="off" />
-          <button class="searchbar-clear" type="button" onclick="fermerRecherche()" title="Effacer">✕</button>
         </div>
         <div id="recherche-resultats" class="search-results-global" style="display:none"></div>
         <div class="search-global-hint">Astuce : utilise <kbd>Ctrl</kbd> + <kbd>K</kbd> pour ouvrir la recherche rapidement.</div>
