@@ -16369,3 +16369,536 @@ function exporterPrevisionsPDF() {
     }
   } catch (e) { /* ignore */ }
 })();
+
+/* =========================================================================
+   SPRINT 7 — Pagination + recherche instantanée
+   ========================================================================= */
+(function() {
+  'use strict';
+
+  const LS_KEY = 'pagination_state';
+  const DEFAULT_PER_PAGE = 25;
+  const PER_PAGE_OPTIONS = [25, 50, 100];
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveState(state) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* quota */ }
+  }
+
+  function getPageState(key) {
+    const all = loadState();
+    const st = all[key] || {};
+    return {
+      page: typeof st.page === 'number' ? st.page : 1,
+      perPage: typeof st.perPage === 'number' ? st.perPage : DEFAULT_PER_PAGE
+    };
+  }
+  function setPageState(key, patch) {
+    const all = loadState();
+    all[key] = Object.assign({}, all[key] || {}, patch);
+    saveState(all);
+  }
+
+  /**
+   * Découpe un tableau selon l'état de pagination.
+   * Retourne { slice, total, page, perPage, totalPages }.
+   */
+  function paginerListe(arr, key) {
+    const total = arr.length;
+    const st = getPageState(key);
+    const perPage = st.perPage;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    let page = Math.min(Math.max(1, st.page), totalPages);
+    if (page !== st.page) setPageState(key, { page });
+    const start = (page - 1) * perPage;
+    const slice = arr.slice(start, start + perPage);
+    return { slice, total, page, perPage, totalPages, start };
+  }
+
+  /**
+   * Construit la barre de pagination dans le conteneur.
+   */
+  function rendrerPagination(key, total, page, perPage, totalPages, start) {
+    const container = document.querySelector('[data-pagination-key="' + key + '"]');
+    if (!container) return;
+    if (total === 0) { container.style.display = 'none'; container.innerHTML = ''; return; }
+    container.style.display = '';
+
+    const end = Math.min(start + perPage, total);
+    const info = 'Affichage <strong>' + (start + 1) + '–' + end + '</strong> sur <strong>' + total + '</strong>';
+
+    const pagesToShow = [];
+    const push = (n) => { if (!pagesToShow.includes(n) && n >= 1 && n <= totalPages) pagesToShow.push(n); };
+    push(1); push(totalPages);
+    for (let i = page - 1; i <= page + 1; i++) push(i);
+    pagesToShow.sort((a, b) => a - b);
+
+    let pagesHtml = '';
+    let prev = 0;
+    pagesToShow.forEach(n => {
+      if (n - prev > 1) pagesHtml += '<span class="pagination-ellipsis">…</span>';
+      pagesHtml += '<button type="button" class="pagination-btn pagination-num' + (n === page ? ' is-active' : '') +
+        '" data-pagination-go="' + n + '">' + n + '</button>';
+      prev = n;
+    });
+
+    const perPageOptions = PER_PAGE_OPTIONS.map(n =>
+      '<option value="' + n + '"' + (n === perPage ? ' selected' : '') + '>' + n + ' / page</option>'
+    ).join('');
+
+    container.innerHTML =
+      '<div class="pagination-info">' + info + '</div>' +
+      '<div class="pagination-controls">' +
+        '<button type="button" class="pagination-btn" data-pagination-go="first" ' + (page === 1 ? 'disabled' : '') + ' aria-label="Première page">«</button>' +
+        '<button type="button" class="pagination-btn" data-pagination-go="prev" ' + (page === 1 ? 'disabled' : '') + ' aria-label="Précédente">‹</button>' +
+        pagesHtml +
+        '<button type="button" class="pagination-btn" data-pagination-go="next" ' + (page === totalPages ? 'disabled' : '') + ' aria-label="Suivante">›</button>' +
+        '<button type="button" class="pagination-btn" data-pagination-go="last" ' + (page === totalPages ? 'disabled' : '') + ' aria-label="Dernière page">»</button>' +
+      '</div>' +
+      '<div class="pagination-per-page">' +
+        '<select class="pagination-select" data-pagination-perpage>' + perPageOptions + '</select>' +
+      '</div>';
+
+    // Bind events (une seule fois, via délégation)
+    if (!container.dataset.bound) {
+      container.addEventListener('click', function(e) {
+        const btn = e.target.closest('[data-pagination-go]');
+        if (!btn || btn.disabled) return;
+        const st = getPageState(key);
+        const action = btn.getAttribute('data-pagination-go');
+        let newPage = st.page;
+        if (action === 'first') newPage = 1;
+        else if (action === 'prev') newPage = Math.max(1, st.page - 1);
+        else if (action === 'next') newPage = st.page + 1;
+        else if (action === 'last') newPage = totalPages;
+        else newPage = parseInt(action, 10) || 1;
+        setPageState(key, { page: newPage });
+        if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+      });
+      container.addEventListener('change', function(e) {
+        const sel = e.target.closest('[data-pagination-perpage]');
+        if (!sel) return;
+        setPageState(key, { perPage: parseInt(sel.value, 10) || DEFAULT_PER_PAGE, page: 1 });
+        if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+      });
+      container.dataset.bound = '1';
+    }
+  }
+
+  // Exposer
+  window.PAGINATION = {
+    getPageState: getPageState,
+    setPageState: setPageState,
+    paginerListe: paginerListe,
+    rendrerPagination: rendrerPagination
+  };
+
+  /* ---------- Patch renderLivraisonsAdminFinal pour paginer ---------- */
+  function patchRender() {
+    const orig = window.renderLivraisonsAdminFinal;
+    if (typeof orig !== 'function' || orig.__paginated) return;
+
+    const patched = function() {
+      let livraisons = charger('livraisons');
+      const tb = document.getElementById('tb-livraisons');
+      if (!tb) return;
+
+      const filtreStatut = document.getElementById('filtre-statut')?.value || '';
+      const filtreDateDeb = document.getElementById('filtre-date-debut')?.value || '';
+      const filtreDateFin = document.getElementById('filtre-date-fin')?.value || '';
+      const filtreRecherche = document.getElementById('filtre-recherche-liv')?.value?.toLowerCase().trim() || '';
+      const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
+      const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
+
+      const selChauf = document.getElementById('filtre-chauffeur');
+      if (selChauf) {
+        const currentValue = selChauf.value;
+        selChauf.innerHTML = '<option value="">Tous les chauffeurs</option>';
+        charger('salaries').forEach(s => { selChauf.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
+        selChauf.value = currentValue;
+      }
+
+      if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+      if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
+      if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
+      if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
+      if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
+      if (filtreRecherche) livraisons = livraisons.filter(l => [l.client, l.chaufNom, l.numLiv, l.depart, l.arrivee].filter(Boolean).join(' ').toLowerCase().includes(filtreRecherche));
+      livraisons.sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe));
+
+      if (!livraisons.length) {
+        tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+        rendrerPagination('livraisons', 0, 1, DEFAULT_PER_PAGE, 1, 0);
+        if (typeof majBulkActions === 'function') majBulkActions();
+        return;
+      }
+
+      // Pagination
+      const paged = paginerListe(livraisons, 'livraisons');
+
+      // Rendu du slice via fonction orig (en remplaçant charger temporairement)
+      // Approche plus simple : on rend directement avec la même logique que orig
+      const escapeAttr = v => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      const escapeHtml = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const formatClientLabel = v => {
+        var raw = String(v || '').trim();
+        if (!raw) return '—';
+        return /^\d+$/.test(raw) ? ('Client #' + raw) : raw;
+      };
+      const formatArchivedDriverHtml = v => {
+        var raw = String(v || '').trim();
+        if (!raw) return '<span class="livraison-cell-text livraison-driver-text">Non assigné</span>';
+        var archived = /\s*\(archivé\)\s*$/i.test(raw);
+        var clean = raw.replace(/\s*\(archivé\)\s*$/i, '').trim();
+        var safeClean = escapeHtml(clean || raw);
+        if (!archived) return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '</span>';
+        return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '<span class="livraison-archived-badge">archivé</span></span>';
+      };
+
+      tb.innerHTML = paged.slice.map(l => {
+        const ht = getMontantHTLivraison(l);
+        const tva = (parseFloat(l.prix) || 0) - ht;
+        const ttc = parseFloat(l.prix) || 0;
+        const statutPaiement = l.statutPaiement || 'en-attente';
+        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const client = formatClientLabel(l.client || '—');
+        const clientText = escapeHtml(client);
+        const depart = l.depart || '';
+        const arrivee = l.arrivee || '';
+        const zoneGeo = depart && arrivee && depart !== arrivee ? depart + ' → ' + arrivee : (arrivee || depart || '—');
+        const zoneGeoText = escapeHtml(zoneGeo || '—');
+        const chauffeur = l.chaufNom || 'Non assigné';
+        const datePaiement = l.datePaiement ? formatDateExport(String(l.datePaiement).slice(0, 10)) : '—';
+        return `<tr data-liv-id="${escapeAttr(l.id)}">
+          <td class="bulk-col"><input type="checkbox" class="bulk-liv-check" data-liv-id="${escapeAttr(l.id)}" onchange="majBulkActions()" aria-label="Sélectionner" /></td>
+          <td class="livraison-ref-cell">${escapeHtml(l.numLiv || '—')}</td>
+          <td><strong class="livraison-cell-text livraison-client-text" title="${escapeAttr(client)}">${clientText}</strong></td>
+          <td><span class="livraison-cell-text livraison-zone-text" title="${escapeAttr(zoneGeo || '—')}">${zoneGeoText}</span></td>
+          <td class="livraison-number-cell">${l.distance ? formatKm(l.distance) : '—'}</td>
+          <td class="livraison-number-cell">${euros(ht)}</td>
+          <td class="livraison-number-cell livraison-muted-cell">${euros(tva)}</td>
+          <td class="livraison-number-cell livraison-total-cell">${euros(ttc)}</td>
+          <td>${formatArchivedDriverHtml(chauffeur)}</td>
+          <td><div class="livraison-select-cell">${selectStatutPropre}</div></td>
+          <td><div class="livraison-select-cell">${selectPaiementPropre}</div></td>
+          <td class="livraison-number-cell">${datePaiement}</td>
+          <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
+            { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
+            { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+            { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
+            { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
+            { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
+          ])}</td>
+        </tr>`;
+      }).join('');
+
+      rendrerPagination('livraisons', paged.total, paged.page, paged.perPage, paged.totalPages, paged.start);
+      if (typeof majBulkActions === 'function') majBulkActions();
+    };
+
+    patched.__paginated = true;
+    window.renderLivraisonsAdminFinal = patched;
+    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = patched;
+  }
+
+  /* ---------- Recherche instantanée (debounce 200ms) ---------- */
+  function installSearchDebounce() {
+    const input = document.getElementById('filtre-recherche-liv');
+    if (!input || input.dataset.instantBound) return;
+    let t;
+    input.addEventListener('input', function() {
+      clearTimeout(t);
+      t = setTimeout(function() {
+        // Reset page 1 quand on tape
+        setPageState('livraisons', { page: 1 });
+        if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+      }, 200);
+    });
+    input.dataset.instantBound = '1';
+  }
+
+  function init() {
+    patchRender();
+    installSearchDebounce();
+    if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    // DOM déjà prêt — patch après micro-délai pour laisser les autres IIFE finir
+    setTimeout(init, 0);
+  }
+})();
+
+/* =========================================================================
+   SPRINT 8 — Tri par colonne cliquable
+   ========================================================================= */
+(function() {
+  'use strict';
+
+  const LS_KEY = 'sort_state';
+
+  function loadState() {
+    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function saveState(state) {
+    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* quota */ }
+  }
+  function getSortState(key) {
+    const all = loadState();
+    return all[key] || { col: null, dir: null };
+  }
+  function setSortState(key, col, dir) {
+    const all = loadState();
+    if (!col || !dir) delete all[key];
+    else all[key] = { col, dir };
+    saveState(all);
+  }
+
+  /**
+   * Config des accesseurs + types par clé de tri, pour la table livraisons.
+   * type: 'string' | 'number' | 'date' | 'enum'
+   */
+  const LIVRAISONS_SORT_CONFIG = {
+    numLiv:       { type: 'string', get: l => l.numLiv || '' },
+    client:       { type: 'string', get: l => l.client || '' },
+    zone:         { type: 'string', get: l => ((l.depart || '') + ' ' + (l.arrivee || '')).trim() },
+    distance:     { type: 'number', get: l => parseFloat(l.distance) || 0 },
+    ht:           { type: 'number', get: l => (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)) },
+    tva:          { type: 'number', get: l => {
+      const ht = typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0);
+      return (parseFloat(l.prix) || 0) - ht;
+    }},
+    ttc:          { type: 'number', get: l => parseFloat(l.prix) || 0 },
+    chauffeur:    { type: 'string', get: l => l.chaufNom || '' },
+    statut:       { type: 'enum',   get: l => l.statut || 'en-attente', order: ['en-attente','en-cours','livre'] },
+    paiement:     { type: 'enum',   get: l => l.statutPaiement || 'en-attente', order: ['en-attente','litige','payé'] },
+    datePaiement: { type: 'date',   get: l => l.datePaiement || '' }
+  };
+
+  /**
+   * Trie un tableau selon la clé et direction demandées.
+   * Retourne un nouveau tableau (ne modifie pas l'original).
+   */
+  function appliquerTri(arr, key, config, fallbackSort) {
+    const st = getSortState(key);
+    if (!st.col || !st.dir || !config[st.col]) {
+      if (typeof fallbackSort === 'function') return arr.slice().sort(fallbackSort);
+      return arr.slice();
+    }
+    const cfg = config[st.col];
+    const dir = st.dir === 'desc' ? -1 : 1;
+    const sorted = arr.slice().sort((a, b) => {
+      const va = cfg.get(a);
+      const vb = cfg.get(b);
+      let cmp = 0;
+      if (cfg.type === 'number') {
+        cmp = (va || 0) - (vb || 0);
+      } else if (cfg.type === 'date') {
+        const da = va ? new Date(va).getTime() : 0;
+        const db = vb ? new Date(vb).getTime() : 0;
+        cmp = da - db;
+      } else if (cfg.type === 'enum') {
+        const ia = cfg.order.indexOf(va);
+        const ib = cfg.order.indexOf(vb);
+        cmp = (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+      } else {
+        cmp = String(va).localeCompare(String(vb), 'fr', { numeric: true, sensitivity: 'base' });
+      }
+      return cmp * dir;
+    });
+    return sorted;
+  }
+
+  /**
+   * Met à jour l'indicateur visuel sur tous les th[data-sort-key] d'un table.
+   */
+  function majIndicateurs(tableEl, key) {
+    if (!tableEl) return;
+    const st = getSortState(key);
+    tableEl.querySelectorAll('th[data-sort-key]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.getAttribute('data-sort-key') === st.col && st.dir) {
+        th.classList.add(st.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      }
+    });
+  }
+
+  /**
+   * Attache les listeners de clic sur les th triables d'une table donnée.
+   * Cycle: null -> asc -> desc -> null
+   */
+  function bindSortableHeaders(tableSelector, key, rerender) {
+    const table = document.querySelector(tableSelector);
+    if (!table || table.dataset.sortBound) return;
+    table.addEventListener('click', function(e) {
+      const th = e.target.closest('th[data-sort-key]');
+      if (!th || !table.contains(th)) return;
+      const col = th.getAttribute('data-sort-key');
+      const st = getSortState(key);
+      let newDir;
+      if (st.col !== col) newDir = 'asc';
+      else if (st.dir === 'asc') newDir = 'desc';
+      else newDir = null;
+      setSortState(key, newDir ? col : null, newDir);
+      // Reset page 1 quand on change de tri
+      if (window.PAGINATION && typeof window.PAGINATION.setPageState === 'function') {
+        window.PAGINATION.setPageState(key, { page: 1 });
+      }
+      if (typeof rerender === 'function') rerender();
+    });
+    table.dataset.sortBound = '1';
+  }
+
+  // Exposer API publique
+  window.SORT = {
+    getSortState: getSortState,
+    setSortState: setSortState,
+    appliquerTri: appliquerTri,
+    majIndicateurs: majIndicateurs,
+    bindSortableHeaders: bindSortableHeaders,
+    LIVRAISONS_CONFIG: LIVRAISONS_SORT_CONFIG
+  };
+
+  /* ---------- Intégration livraisons ---------- */
+  function init() {
+    const rerender = function() {
+      if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+    };
+    bindSortableHeaders('table.livraisons-table', 'livraisons', rerender);
+
+    // Wrap renderLivraisonsAdminFinal : appliquer tri avant pagination
+    const orig = window.renderLivraisonsAdminFinal;
+    if (typeof orig !== 'function' || orig.__sorted) return;
+
+    // Hijack charger pour livraisons: appliquer le tri en amont
+    // Approche propre : patch en wrappant pour post-process avant pagination
+    // Plus simple: on intercepte via un patch global Array.sort ? Non.
+    // Solution : surcharger Array.prototype.sort dans le contexte de orig? trop invasif.
+    // Vraie solution : patch orig entièrement (déjà patché par Sprint 7). On re-patche.
+    const wrapped = function() {
+      // On doit appliquer le tri avant la pagination. Le render Sprint 7 fait déjà
+      // filter -> sort par défaut (creeLe desc) -> paginerListe -> render.
+      // On intercepte en remplaçant temporairement Array.prototype.sort ? Non.
+      // → On va plutôt monkey-patcher charger('livraisons') pour ce seul call :
+      // Trop compliqué. Approche pragmatique : on duplique le flux.
+
+      let livraisons = charger('livraisons');
+      const tb = document.getElementById('tb-livraisons');
+      if (!tb) return;
+
+      const filtreStatut = document.getElementById('filtre-statut')?.value || '';
+      const filtreDateDeb = document.getElementById('filtre-date-debut')?.value || '';
+      const filtreDateFin = document.getElementById('filtre-date-fin')?.value || '';
+      const filtreRecherche = document.getElementById('filtre-recherche-liv')?.value?.toLowerCase().trim() || '';
+      const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
+      const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
+
+      const selChauf = document.getElementById('filtre-chauffeur');
+      if (selChauf) {
+        const currentValue = selChauf.value;
+        selChauf.innerHTML = '<option value="">Tous les chauffeurs</option>';
+        charger('salaries').forEach(s => { selChauf.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
+        selChauf.value = currentValue;
+      }
+
+      if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+      if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
+      if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
+      if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
+      if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
+      if (filtreRecherche) livraisons = livraisons.filter(l => [l.client, l.chaufNom, l.numLiv, l.depart, l.arrivee].filter(Boolean).join(' ').toLowerCase().includes(filtreRecherche));
+
+      // Tri : si utilisateur a choisi une colonne, on applique. Sinon fallback creeLe desc.
+      livraisons = appliquerTri(livraisons, 'livraisons', LIVRAISONS_SORT_CONFIG,
+        (a, b) => new Date(b.creeLe) - new Date(a.creeLe));
+
+      if (!livraisons.length) {
+        tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+        if (window.PAGINATION) window.PAGINATION.rendrerPagination('livraisons', 0, 1, 25, 1, 0);
+        if (typeof majBulkActions === 'function') majBulkActions();
+        majIndicateurs(document.querySelector('table.livraisons-table'), 'livraisons');
+        return;
+      }
+
+      const paged = window.PAGINATION.paginerListe(livraisons, 'livraisons');
+
+      const escapeAttr = v => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+      const escapeHtml = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const formatClientLabel = v => {
+        var raw = String(v || '').trim();
+        if (!raw) return '—';
+        return /^\d+$/.test(raw) ? ('Client #' + raw) : raw;
+      };
+      const formatArchivedDriverHtml = v => {
+        var raw = String(v || '').trim();
+        if (!raw) return '<span class="livraison-cell-text livraison-driver-text">Non assigné</span>';
+        var archived = /\s*\(archivé\)\s*$/i.test(raw);
+        var clean = raw.replace(/\s*\(archivé\)\s*$/i, '').trim();
+        var safeClean = escapeHtml(clean || raw);
+        if (!archived) return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '</span>';
+        return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '<span class="livraison-archived-badge">archivé</span></span>';
+      };
+
+      tb.innerHTML = paged.slice.map(l => {
+        const ht = getMontantHTLivraison(l);
+        const tva = (parseFloat(l.prix) || 0) - ht;
+        const ttc = parseFloat(l.prix) || 0;
+        const statutPaiement = l.statutPaiement || 'en-attente';
+        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const client = formatClientLabel(l.client || '—');
+        const clientText = escapeHtml(client);
+        const depart = l.depart || '';
+        const arrivee = l.arrivee || '';
+        const zoneGeo = depart && arrivee && depart !== arrivee ? depart + ' → ' + arrivee : (arrivee || depart || '—');
+        const zoneGeoText = escapeHtml(zoneGeo || '—');
+        const chauffeur = l.chaufNom || 'Non assigné';
+        const datePaiement = l.datePaiement ? formatDateExport(String(l.datePaiement).slice(0, 10)) : '—';
+        return `<tr data-liv-id="${escapeAttr(l.id)}">
+          <td class="bulk-col"><input type="checkbox" class="bulk-liv-check" data-liv-id="${escapeAttr(l.id)}" onchange="majBulkActions()" aria-label="Sélectionner" /></td>
+          <td class="livraison-ref-cell">${escapeHtml(l.numLiv || '—')}</td>
+          <td><strong class="livraison-cell-text livraison-client-text" title="${escapeAttr(client)}">${clientText}</strong></td>
+          <td><span class="livraison-cell-text livraison-zone-text" title="${escapeAttr(zoneGeo || '—')}">${zoneGeoText}</span></td>
+          <td class="livraison-number-cell">${l.distance ? formatKm(l.distance) : '—'}</td>
+          <td class="livraison-number-cell">${euros(ht)}</td>
+          <td class="livraison-number-cell livraison-muted-cell">${euros(tva)}</td>
+          <td class="livraison-number-cell livraison-total-cell">${euros(ttc)}</td>
+          <td>${formatArchivedDriverHtml(chauffeur)}</td>
+          <td><div class="livraison-select-cell">${selectStatutPropre}</div></td>
+          <td><div class="livraison-select-cell">${selectPaiementPropre}</div></td>
+          <td class="livraison-number-cell">${datePaiement}</td>
+          <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
+            { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
+            { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+            { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
+            { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
+            { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
+          ])}</td>
+        </tr>`;
+      }).join('');
+
+      window.PAGINATION.rendrerPagination('livraisons', paged.total, paged.page, paged.perPage, paged.totalPages, paged.start);
+      if (typeof majBulkActions === 'function') majBulkActions();
+      majIndicateurs(document.querySelector('table.livraisons-table'), 'livraisons');
+    };
+
+    wrapped.__paginated = true;
+    wrapped.__sorted = true;
+    window.renderLivraisonsAdminFinal = wrapped;
+    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = wrapped;
+
+    // Re-render initial pour afficher l'indicateur si tri déjà mémorisé
+    if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(init, 50); });
+  } else {
+    setTimeout(init, 50);
+  }
+})();

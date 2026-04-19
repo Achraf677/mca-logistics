@@ -326,10 +326,11 @@
         <div class="card table-card vehicules-table-card">
           <div class="table-wrapper">
             <table class="data-table livraisons-table">
-              <thead><tr><th class="bulk-col"><input type="checkbox" id="bulk-select-all" onchange="toggleBulkSelectAll(this.checked)" aria-label="Tout sélectionner" /></th><th>N° LIV</th><th>Client</th><th>Zone géographique</th><th>Distance</th><th>HT</th><th>TVA</th><th>TTC</th><th>Salarié</th><th>Statut</th><th>Paiement</th><th>Date de paiement</th><th>Actions</th></tr></thead>
+              <thead><tr><th class="bulk-col"><input type="checkbox" id="bulk-select-all" onchange="toggleBulkSelectAll(this.checked)" aria-label="Tout sélectionner" /></th><th class="sortable" data-sort-key="numLiv">N° LIV</th><th class="sortable" data-sort-key="client">Client</th><th class="sortable" data-sort-key="zone">Zone géographique</th><th class="sortable" data-sort-key="distance">Distance</th><th class="sortable" data-sort-key="ht">HT</th><th class="sortable" data-sort-key="tva">TVA</th><th class="sortable" data-sort-key="ttc">TTC</th><th class="sortable" data-sort-key="chauffeur">Salarié</th><th class="sortable" data-sort-key="statut">Statut</th><th class="sortable" data-sort-key="paiement">Paiement</th><th class="sortable" data-sort-key="datePaiement">Date de paiement</th><th>Actions</th></tr></thead>
               <tbody id="tb-livraisons"><tr><td colspan="13" class="empty-row">Aucune livraison</td></tr></tbody>
             </table>
           </div>
+          <div class="pagination-bar" id="pagination-livraisons" data-pagination-key="livraisons" style="display:none"></div>
         </div>
       </div>
       <!-- VUE KANBAN -->
