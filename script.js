@@ -10003,7 +10003,7 @@ function afficherPlanningSemaine() {
     var plan = plannings.find(function(p){return p.salId===s.id;});
     var aUnJourTravaille = false;
     datesSemaine.forEach(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
       var absJour = absences.find(function(a) {
         return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin;
       });
@@ -10025,7 +10025,7 @@ function afficherPlanningSemaine() {
     var plan = plannings.find(function(p){return p.salId===s.id;});
 
     var cellules = datesSemaine.map(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
 
       // Vérifier si une période d'absence couvre ce jour
       var absJour = absences.find(function(a) {
@@ -10091,7 +10091,7 @@ function exporterPlanningSemainePDF() {
   var rows = salaries.map(function(s) {
     var plan = plannings.find(function(p){return p.salId===s.id;});
     var cells = datesSemaine.map(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
       var absJour = absences.find(function(a){ return a.salId===s.id && dateStr>=a.debut && dateStr<=a.fin; });
       if (absJour) {
         var colors = { conge:'#3498db', maladie:'#9b59b6', absence:'#e74c3c' };
@@ -10945,7 +10945,7 @@ afficherPlanningSemaine = function() {
   var thead = document.getElementById('thead-planning-semaine');
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
-      var isAuj = d.toISOString().split('T')[0] === aujourdhui();
+      var isAuj = dateToLocalISO(d) === aujourdhui();
       return '<th style="text-align:center;' + (isAuj ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
     }).join('') + '</tr>';
   }
@@ -10966,7 +10966,7 @@ afficherPlanningSemaine = function() {
     var plan = plannings.find(function(p){ return p.salId === s.id; });
     var aUnJourTravaille = false;
     datesSemaine.forEach(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
       var absJour = absences.find(function(a) { return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin; });
       if (absJour) totalAbsences++;
       var jour = plan ? (plan.semaine||[]).find(function(j){ return j.jour === JOURS[i]; }) : null;
@@ -10988,7 +10988,7 @@ afficherPlanningSemaine = function() {
   tb.innerHTML = salariesFiltres.map(function(s) {
     var plan = plannings.find(function(p){ return p.salId === s.id; });
     var cellules = datesSemaine.map(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
       var absJour = absences.find(function(a) { return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin; });
       if (absJour) {
         var labelAbs = absJour.type === 'conge' ? 'Congé' : absJour.type === 'maladie' ? 'Maladie' : 'Absence';
@@ -11693,7 +11693,7 @@ window.__planningRewriteFinal = function() {
     if (document.getElementById('planning-semaine-dates')) document.getElementById('planning-semaine-dates').textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
     var thead = document.getElementById('thead-planning-semaine');
     var tbody = document.getElementById('tb-planning-semaine');
-    if (thead) thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) { var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui(); return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>'; }).join('') + '</tr>';
+    if (thead) thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) { var isToday = dateToLocalISO(dateObj) === aujourdhui(); return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>'; }).join('') + '</tr>';
     if (!tbody) return;
     if (!salaries.length) return tbody.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>';
     var filtered = salaries.filter(function(salarie) { return !filtre || [planningBuildEmployeeLabel(salarie), salarie.nom, salarie.prenom, salarie.numero, salarie.poste].filter(Boolean).join(' ').toLowerCase().includes(filtre); });
@@ -11703,7 +11703,7 @@ window.__planningRewriteFinal = function() {
       var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
       var hasWork = false;
       var cells = week.dates.map(function(dateObj, index) {
-        var dateStr = dateObj.toISOString().slice(0, 10);
+        var dateStr = dateToLocalISO(dateObj);
         var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
         if (absence) { totalAbsences += 1; return planningRenderWeekState('is-' + absence.type, absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence', '', ''); }
         var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[index]; }) || null;
@@ -11734,7 +11734,7 @@ window.__planningRewriteFinal = function() {
     var rows = salaries.map(function(salarie, index) {
       var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
       var cells = week.dates.map(function(dateObj, dayIndex) {
-        var dateStr = dateObj.toISOString().slice(0, 10);
+        var dateStr = dateToLocalISO(dateObj);
         var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
         if (absence) return '<td style="padding:8px 10px;text-align:center">' + (absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence') + '</td>';
         var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[dayIndex]; });
@@ -12069,7 +12069,7 @@ afficherPlanningSemaine = function() {
   if (datesLabel) datesLabel.textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) {
-      var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui();
+      var isToday = dateToLocalISO(dateObj) === aujourdhui();
       return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>';
     }).join('') + '</tr>';
   }
@@ -12088,7 +12088,7 @@ afficherPlanningSemaine = function() {
     var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
     var hasWork = false;
     var cells = week.dates.map(function(dateObj, index) {
-      var dateStr = dateObj.toISOString().slice(0, 10);
+      var dateStr = dateToLocalISO(dateObj);
       var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
       if (absence) {
         totalAbsences += 1;
@@ -12131,7 +12131,7 @@ exporterPlanningSemainePDF = function() {
   var rows = salaries.map(function(salarie, index) {
     var planning = plannings.find(function(item) { return item.salId === salarie.id; }) || { semaine: [] };
     var cells = week.dates.map(function(dateObj, dayIndex) {
-      var dateStr = dateObj.toISOString().slice(0, 10);
+      var dateStr = dateToLocalISO(dateObj);
       var absence = absences.find(function(item) { return item.salId === salarie.id && dateStr >= item.debut && dateStr <= item.fin; });
       if (absence) return '<td style="padding:8px 10px;text-align:center">' + (absence.type === 'conge' ? 'Congé' : absence.type === 'maladie' ? 'Maladie' : 'Absence') + '</td>';
       var jour = (planning.semaine || []).find(function(item) { return item.jour === JOURS[dayIndex]; });
@@ -12723,7 +12723,7 @@ afficherPlanningSemaine = function() {
   if (datesLabel) datesLabel.textContent = formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche);
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + week.dates.map(function(dateObj, index) {
-      var isToday = dateObj.toISOString().slice(0, 10) === aujourdhui();
+      var isToday = dateToLocalISO(dateObj) === aujourdhui();
       return '<th style="text-align:center;' + (isToday ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[index].toUpperCase() + ' ' + formatDateExport(dateObj).slice(0, 5) + '</th>';
     }).join('') + '</tr>';
   }
@@ -12810,7 +12810,7 @@ exporterPlanningSemainePDF = function() {
     return 'min-height:56px;display:flex;align-items:center;justify-content:center;padding:8px 6px;border-radius:12px;background:' + style.bg + ';border:1px solid ' + style.border + ';color:' + style.color + ';-webkit-print-color-adjust:exact;print-color-adjust:exact;' + (extra || '');
   };
   var formatCellulePlanning = function(salarie, dateObj, dayIndex, planning) {
-    var dateStr = dateObj.toISOString().slice(0, 10);
+    var dateStr = dateToLocalISO(dateObj);
     var periode = getPlanningPeriodForDate(salarie.id, dateStr, absences);
     if (periode) {
       if (periode.type === 'travail') {
@@ -13128,7 +13128,7 @@ afficherPlanningSemaine = function() {
   var thead = document.getElementById('thead-planning-semaine');
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d, i) {
-      var isAuj = d.toISOString().split('T')[0] === aujourdhui();
+      var isAuj = dateToLocalISO(d) === aujourdhui();
       return '<th style="text-align:center;' + (isAuj ? 'color:var(--accent);font-weight:800' : '') + '">' + JOURS_COURTS[i].toUpperCase() + ' ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '</th>';
     }).join('') + '</tr>';
   }
@@ -13149,7 +13149,7 @@ afficherPlanningSemaine = function() {
     var plan = plannings.find(function(p){ return p.salId === s.id; });
     var aUnJourTravaille = false;
     datesSemaine.forEach(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
       var absJour = getPlanningPeriodForDate(s.id, dateStr, absences);
       if (absJour) {
         if (absJour.type === 'travail') aUnJourTravaille = true;
@@ -13174,7 +13174,7 @@ afficherPlanningSemaine = function() {
   tb.innerHTML = salariesFiltres.map(function(s) {
     var plan = plannings.find(function(p){ return p.salId === s.id; });
     var cellules = datesSemaine.map(function(d, i) {
-      var dateStr = d.toISOString().split('T')[0];
+      var dateStr = dateToLocalISO(d);
       var absJour = getPlanningPeriodForDate(s.id, dateStr, absences);
       if (absJour) {
         if (absJour.type === 'travail') {
@@ -13399,36 +13399,6 @@ window.__planningPeriodOnlyFinal = function() {
       console.error('ajouterPeriodeAbsence', error);
       afficherToast('⚠️ Enregistrement impossible pour cette période', 'error');
     }
-  };
-
-  calculerHeuresSalarieSemaine = function(salId) {
-    var range = getHeuresPeriodeRange();
-    var periodes = charger('absences_periodes').filter(function(item) {
-      return item.salId === salId && item.fin >= range.debut && item.debut <= range.fin;
-    });
-    var planning = (charger('plannings') || []).find(function(item) { return item.salId === salId; }) || { semaine: [] };
-    var details = [];
-    var total = 0;
-    getDateRangeInclusive(range.debut, range.fin).forEach(function(dateObj) {
-      var dateStr = dateObj.toISOString().slice(0, 10);
-      var resolved = planningGetEntryForDate(salId, dateStr, periodes, planning);
-        var entry = resolved.entry;
-        if (!entry) return;
-        if (resolved.source === 'period') {
-        if (entry.type !== 'travail') return;
-        var dureePeriode = calculerDureeJour(entry.heureDebut || '', entry.heureFin || '');
-        if (dureePeriode <= 0) return;
-        total += dureePeriode;
-        details.push({ date: dateStr, jour: JOURS[(dateObj.getDay() + 6) % 7], duree: dureePeriode });
-        return;
-      }
-      if (!entry.travaille || !entry.heureDebut || !entry.heureFin) return;
-      var duree = calculerDureeJour(entry.heureDebut, entry.heureFin);
-      if (duree <= 0) return;
-      total += duree;
-      details.push({ date: dateStr, jour: entry.jour, duree: duree });
-    });
-    return { planifiees: total, details };
   };
 
   afficherPlanningSemaine = function() {
