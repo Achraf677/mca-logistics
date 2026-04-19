@@ -635,6 +635,44 @@ html, body {
     --scroll-padding: 300px;
   }
 }
+
+/* Modal plein carburant */
+.modal-overlay {
+  align-items: flex-end !important;
+  padding: 0 !important;
+}
+.modal {
+  border-radius: 24px 24px 0 0 !important;
+  max-height: 85dvh;
+  overflow-y: auto;
+  padding-bottom: calc(var(--safe-bottom) + 8px);
+}
+.modal-header {
+  padding: 20px 20px 16px !important;
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+}
+
+/* Boutons action dans historique carburant et km */
+.btn-action-small {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .9rem;
+  transition: all .2s;
+}
+.btn-action-small:active { transform: scale(0.92); }
+.btn-action-small.danger {
+  border-color: rgba(239,68,68,0.25);
+  color: var(--red);
+  background: rgba(239,68,68,0.08);
+}
 </style>
 </head>
 <body class="app-shell app-booting">
@@ -798,6 +836,44 @@ html, body {
             <div class="result-box" id="plein-result">
               Total : <strong id="plein-total">0 €</strong>
             </div>
+            <div style="margin-bottom:14px">
+              <label style="
+                font-size:.72rem;text-transform:uppercase;
+                letter-spacing:.7px;color:var(--muted);
+                font-weight:700;display:block;margin-bottom:8px;
+              ">Photo du ticket (optionnel)</label>
+              <label for="carb-photo" style="
+                display:flex;align-items:center;gap:12px;
+                padding:14px 16px;
+                background:var(--bg2);
+                border:2px dashed var(--border);
+                border-radius:12px;cursor:pointer;
+                transition:border-color .2s;
+              ">
+                <span style="font-size:1.5rem">📸</span>
+                <div>
+                  <div style="font-size:.88rem;font-weight:700;
+                    color:var(--accent)" id="carb-photo-label">
+                    Photographier le ticket
+                  </div>
+                  <div style="font-size:.75rem;color:var(--muted);margin-top:2px">
+                    Pour vérification et archivage
+                  </div>
+                </div>
+              </label>
+              <input type="file" id="carb-photo"
+                accept="image/*" capture="environment"
+                style="display:none"
+                onchange="
+                  const f=this.files[0];
+                  if(f){
+                    document.getElementById('carb-photo-label')
+                      .textContent='✅ Photo sélectionnée';
+                    document.querySelector('label[for=carb-photo]')
+                      .style.borderColor='var(--green)';
+                  }
+                " />
+            </div>
             <button class="btn-primary" style="margin-top:16px" onclick="enregistrerPlein()">✅ Enregistrer le plein</button>
           </div>
         </div>
@@ -912,18 +988,54 @@ html, body {
 
       <!-- MESSAGES -->
       <div class="panneau" id="panneau-messages">
-        <div class="card">
-          <div class="card-header">💬 Messagerie — Administration</div>
-          <div class="card-body" style="padding-bottom:8px">
-            <div id="msg-fil"><div class="empty">Aucun message pour l'instant</div></div>
-            <div class="msg-input-row">
-              <textarea class="form-group" id="msg-input" placeholder="Votre message..." rows="1"
-                style="margin:0;padding:12px 14px;resize:none;min-height:48px;border-radius:12px;font-family:inherit;font-size:.9rem;background:var(--bg2);border:1.5px solid var(--border);color:var(--text);width:100%"
-                oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageSal();}"
-              ></textarea>
-              <button class="btn-send" onclick="envoyerMessageSal()">➤</button>
-            </div>
+        <div class="card" style="
+          display:flex;flex-direction:column;
+          min-height:calc(100dvh - 180px);
+        ">
+          <div class="card-header">
+            💬 Messagerie — Administration
+          </div>
+          <div id="msg-fil" style="
+            flex:1;
+            overflow-y:auto;
+            padding:12px 16px;
+            min-height:200px;
+          ">
+            <div class="empty">Aucun message pour l'instant</div>
+          </div>
+          <div style="
+            padding:12px 16px;
+            border-top:1px solid var(--border);
+            display:flex;gap:8px;align-items:flex-end;
+          ">
+            <label for="msg-photo-sal" style="
+              width:44px;height:44px;flex-shrink:0;
+              background:var(--card2);border:1.5px solid var(--border);
+              border-radius:12px;cursor:pointer;
+              display:flex;align-items:center;justify-content:center;
+              font-size:1.1rem;transition:all .2s;
+            " title="Joindre une photo">📎</label>
+            <input type="file" id="msg-photo-sal"
+              accept="image/*" capture="environment"
+              style="display:none"
+              onchange="envoyerPhotoSal(this)" />
+            <textarea id="msg-input"
+              placeholder="Votre message..."
+              rows="1"
+              style="
+                flex:1;min-height:44px;max-height:120px;
+                resize:none;padding:12px 14px;
+                background:var(--bg2);border:1.5px solid var(--border);
+                border-radius:12px;color:var(--text);
+                font-family:inherit;font-size:.9rem;
+                line-height:1.4;
+              "
+              oninput="this.style.height='auto';
+                       this.style.height=Math.min(this.scrollHeight,120)+'px'"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){
+                event.preventDefault();envoyerMessageSal();}"
+            ></textarea>
+            <button class="btn-send" onclick="envoyerMessageSal()">➤</button>
           </div>
         </div>
       </div>
@@ -2067,27 +2179,41 @@ function confirmerModifPlein() {
 }
 
 function chargerHistoriqueCarburant() {
-  const cle   = `carb_sal_${salarieCourant.id}`;
-  const pleins= JSON.parse(localStorage.getItem(cle)||'[]').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe)).slice(0,15);
-  const cont  = document.getElementById('historique-carburant');
-  if(!pleins.length){cont.innerHTML='<div class="empty">Aucun plein</div>';return;}
-
-  // Récupérer les notifs validées pour associer aux pleins
-  const notifs = JSON.parse(localStorage.getItem(`notifs_sal_${salarieCourant.id}`)||'[]');
-
+  const cle = 'carb_sal_' + salarieCourant.id;
+  const pleins = JSON.parse(localStorage.getItem(cle) || '[]')
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 20);
+  const cont = document.getElementById('historique-carburant');
+  if (!cont) return;
+  if (!pleins.length) {
+    cont.innerHTML = '<div class="empty">Aucun plein enregistré</div>';
+    return;
+  }
   cont.innerHTML = pleins.map(p => {
-    const modTag  = p.modifie ? '<span style="font-size:.72rem;background:rgba(231,76,60,.15);color:#e74c3c;padding:1px 6px;border-radius:8px;margin-left:4px;">✏️ modifié</span>' : '';
-    const valTag  = p.modifie && notifs.find(n=>n.type==='carburant_modif_valide'&&n.meta?.pleinId===p.id)
-      ? '<span style="font-size:.72rem;background:rgba(46,204,113,.12);color:#2ecc71;padding:1px 6px;border-radius:8px;margin-left:4px;">✅ validé admin</span>' : '';
-    return `<div class="hist-row">
-      <span>${p.date}${modTag}${valTag}</span>
-      <span style="color:var(--muted)">${p.litres}L · ${p.prixLitre.toFixed(2)}€/L</span>
-      <strong style="color:var(--accent)">${p.total.toFixed(2)} €</strong>
-      <div class="hist-actions">
-        <button class="btn-edit" onclick="ouvrirModifPlein('${p.id}')">✏️</button>
-        <button class="btn-danger" onclick="supprimerPleinSal('${p.id}')">🗑️</button>
+    const date = p.date
+      ? new Date(p.date + 'T00:00:00').toLocaleDateString('fr-FR',
+          { day: 'numeric', month: 'long', year: 'numeric' })
+      : '—';
+    return `
+      <div style="
+        display:flex;align-items:center;gap:12px;
+        padding:12px 0;border-bottom:1px solid var(--border);
+      ">
+        <div style="flex:1">
+          <div style="font-size:.88rem;font-weight:600;margin-bottom:2px">
+            ${p.litres}L · ${p.prixLitre}€/L
+          </div>
+          <div style="font-size:.78rem;color:var(--muted)">${date}</div>
+        </div>
+        <div style="font-size:.95rem;font-weight:800;color:var(--accent);margin-right:8px">
+          ${(p.litres * p.prixLitre).toFixed(2)} €
+        </div>
+        <button class="btn-action-small"
+          onclick="ouvrirModifPlein('${p.id}')" title="Modifier">✏️</button>
+        <button class="btn-action-small danger"
+          onclick="supprimerPleinSal('${p.id}')" title="Supprimer">🗑️</button>
       </div>
-    </div>`;
+    `;
   }).join('');
 }
 
@@ -2408,6 +2534,93 @@ function retirerPhoto(idx) {
       <button onclick="retirerPhoto(${i})" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:.75rem">✕</button>`;
     container.appendChild(div);
   });
+}
+
+async function soumettreInspection() {
+  const photosInput = document.getElementById('insp-photos');
+  const photosFiles = photosInput ? Array.from(photosInput.files || []) : [];
+  const date = document.getElementById('insp-date')?.value;
+  const km = document.getElementById('insp-km')?.value || '';
+  const commentaire = document.getElementById('insp-commentaire')?.value || '';
+
+  if (!date) {
+    toast('⚠️ La date est obligatoire', 'error');
+    return;
+  }
+  if (!photosFiles.length) {
+    toast('⚠️ Au moins une photo est requise', 'error');
+    return;
+  }
+
+  // Convertir les photos en base64 compressé
+  const photosBase64 = await Promise.all(photosFiles.slice(0, 4).map(file => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const max = 1200;
+          let w = img.width, h = img.height;
+          if (w > max || h > max) {
+            const r = Math.min(max/w, max/h);
+            w = Math.round(w * r);
+            h = Math.round(h * r);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.75));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }));
+
+  // Si Supabase disponible, utiliser le pipeline cloud
+  if (window.DelivProSupabase && window.DelivProSupabase.getInspectionStorage) {
+    // Peupler _inspPhotos depuis les files pour envoyerInspection()
+    reinitialiserPhotosInspection();
+    const preparationsPhotos = photosFiles.slice(0, 4).map(f => preparerPhotoInspection(f));
+    _inspPhotos = await Promise.all(preparationsPhotos);
+    return envoyerInspection();
+  }
+
+  // Fallback local : stocker en base64
+  const veh = getMonVehicule();
+  const inspId = Date.now().toString(36);
+  const inspection = {
+    id: inspId,
+    salId: salarieCourant.id, salNom: salarieCourant.nom,
+    vehId: veh ? veh.id : '', vehImmat: veh ? veh.immat : 'Non affecté',
+    date, km: km || null, commentaire,
+    photos: photosBase64,
+    creeLe: new Date().toISOString()
+  };
+  if (km) mettreAJourKmVehiculeAffecte(km);
+  try {
+    const toutes = JSON.parse(localStorage.getItem('inspections') || '[]');
+    toutes.push(inspection);
+    localStorage.setItem('inspections', JSON.stringify(toutes));
+  } catch(e) {
+    toast('⚠️ Mémoire insuffisante — réduisez le nombre de photos', 'error');
+    return;
+  }
+  const alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]');
+  alertes.push({
+    id: inspId + 'i', type: 'inspection',
+    message: `Inspection soumise par ${salarieCourant.nom} — ${veh ? veh.immat : 'sans véhicule'} (${date}) — ${photosBase64.length} photo(s)`,
+    meta: { salNom: salarieCourant.nom, salId: salarieCourant.id, inspId },
+    lu: false, traitee: false, creeLe: new Date().toISOString()
+  });
+  localStorage.setItem('alertes_admin', JSON.stringify(alertes));
+  if (photosInput) photosInput.value = '';
+  document.getElementById('insp-photos-preview').innerHTML = '';
+  document.getElementById('insp-commentaire').value = '';
+  document.getElementById('insp-km').value = '';
+  chargerHistoriqueInspections();
+  afficherAccueil();
+  toast('✅ Inspection enregistrée !');
 }
 
 async function envoyerInspection() {
