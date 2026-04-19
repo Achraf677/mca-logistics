@@ -22,36 +22,78 @@
     <nav class="sidebar-nav" aria-label="Navigation principale">
       <a href="#" class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
 
-      <div class="nav-section-label">Quotidien</div>
-      <a href="#" class="nav-item" data-page="livraisons"><span class="nav-icon">📦</span><span class="nav-label">Livraisons</span></a>
-      <a href="#" class="nav-item" data-page="planning"><span class="nav-icon">📅</span><span class="nav-label">Planning</span></a>
-      <a href="#" class="nav-item" data-page="messagerie"><span class="nav-icon">💬</span><span class="nav-label">Messagerie <span class="badge-alertes-nav" id="badge-msg-admin" style="display:none"></span></span></a>
-      <a href="#" class="nav-item" data-page="alertes"><span class="nav-icon">🔔</span><span class="nav-label">Alertes <span class="badge-alertes-nav" id="badge-alertes"></span></span></a>
+      <div class="nav-section" data-section="quotidien">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('quotidien')" aria-expanded="true">
+          <span class="nav-section-title">Quotidien</span>
+          <span class="nav-section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="livraisons"><span class="nav-icon">📦</span><span class="nav-label">Livraisons</span></a>
+          <a href="#" class="nav-item" data-page="planning"><span class="nav-icon">📅</span><span class="nav-label">Planning</span></a>
+          <a href="#" class="nav-item" data-page="messagerie"><span class="nav-icon">💬</span><span class="nav-label">Messagerie <span class="badge-alertes-nav" id="badge-msg-admin" style="display:none"></span></span></a>
+          <a href="#" class="nav-item" data-page="alertes"><span class="nav-icon">🔔</span><span class="nav-label">Alertes <span class="badge-alertes-nav" id="badge-alertes"></span></span></a>
+        </div>
+      </div>
 
-      <div class="nav-section-label">Clients</div>
-      <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
-      <a href="#" class="nav-item" data-page="relances"><span class="nav-icon">⏰</span><span class="nav-label">Relances <span class="badge-alertes-nav" id="badge-relances" style="display:none"></span></span></a>
+      <div class="nav-section" data-section="clients">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('clients')" aria-expanded="true">
+          <span class="nav-section-title">Clients</span>
+          <span class="nav-section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
+          <a href="#" class="nav-item" data-page="relances"><span class="nav-icon">⏰</span><span class="nav-label">Relances <span class="badge-alertes-nav" id="badge-relances" style="display:none"></span></span></a>
+        </div>
+      </div>
 
-      <div class="nav-section-label">Flotte</div>
-      <a href="#" class="nav-item" data-page="vehicules"><span class="nav-icon">🚐</span><span class="nav-label">Véhicules</span></a>
-      <a href="#" class="nav-item" data-page="carburant"><span class="nav-icon">⛽</span><span class="nav-label">Carburant</span></a>
-      <a href="#" class="nav-item" data-page="entretiens"><span class="nav-icon">🔧</span><span class="nav-label">Entretiens</span></a>
-      <a href="#" class="nav-item" data-page="inspections"><span class="nav-icon">🚗</span><span class="nav-label">Inspections</span></a>
+      <div class="nav-section" data-section="flotte">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('flotte')" aria-expanded="true">
+          <span class="nav-section-title">Flotte</span>
+          <span class="nav-section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="vehicules"><span class="nav-icon">🚐</span><span class="nav-label">Véhicules</span></a>
+          <a href="#" class="nav-item" data-page="carburant"><span class="nav-icon">⛽</span><span class="nav-label">Carburant</span></a>
+          <a href="#" class="nav-item" data-page="entretiens"><span class="nav-icon">🔧</span><span class="nav-label">Entretiens</span></a>
+          <a href="#" class="nav-item" data-page="inspections"><span class="nav-icon">🚗</span><span class="nav-label">Inspections</span></a>
+        </div>
+      </div>
 
-      <div class="nav-section-label">Équipe</div>
-      <a href="#" class="nav-item" data-page="salaries"><span class="nav-icon">👥</span><span class="nav-label">Salariés</span></a>
-      <a href="#" class="nav-item" data-page="heures"><span class="nav-icon">⏱️</span><span class="nav-label">Heures & Km</span></a>
-      <a href="#" class="nav-item" data-page="incidents"><span class="nav-icon">🚨</span><span class="nav-label">Incidents <span class="badge-alertes-nav" id="badge-incidents-nav" style="display:none"></span></span></a>
+      <div class="nav-section" data-section="equipe">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('equipe')" aria-expanded="true">
+          <span class="nav-section-title">Équipe</span>
+          <span class="nav-section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="salaries"><span class="nav-icon">👥</span><span class="nav-label">Salariés</span></a>
+          <a href="#" class="nav-item" data-page="heures"><span class="nav-icon">⏱️</span><span class="nav-label">Heures & Km</span></a>
+          <a href="#" class="nav-item" data-page="incidents"><span class="nav-icon">🚨</span><span class="nav-label">Incidents <span class="badge-alertes-nav" id="badge-incidents-nav" style="display:none"></span></span></a>
+        </div>
+      </div>
 
-      <div class="nav-section-label">Finances</div>
-      <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
-      <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
-      <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
-      <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
-      <a href="#" class="nav-item" data-page="budget"><span class="nav-icon">📂</span><span class="nav-label">Budget & Trésorerie</span></a>
+      <div class="nav-section" data-section="finances">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('finances')" aria-expanded="true">
+          <span class="nav-section-title">Finances</span>
+          <span class="nav-section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
+          <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
+          <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
+          <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
+          <a href="#" class="nav-item" data-page="budget"><span class="nav-icon">📂</span><span class="nav-label">Budget & Trésorerie</span></a>
+        </div>
+      </div>
 
-      <div class="nav-section-label">Système</div>
-      <a href="#" class="nav-item" data-page="parametres"><span class="nav-icon">⚙️</span><span class="nav-label">Paramètres</span></a>
+      <div class="nav-section" data-section="systeme">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('systeme')" aria-expanded="true">
+          <span class="nav-section-title">Système</span>
+          <span class="nav-section-chevron" aria-hidden="true">▾</span>
+        </button>
+        <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="parametres"><span class="nav-icon">⚙️</span><span class="nav-label">Paramètres</span></a>
+        </div>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <button class="btn-hamburger" id="toggleSidebar">☰</button>

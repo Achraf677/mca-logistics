@@ -1472,7 +1472,88 @@ body.light-mode .badge-inactif {
 /* ===== BADGE FAVICON ===== */
 .favicon-badge { display: none; }
 
-/* ===== SIDEBAR SECTIONS ===== */
+/* ===== SIDEBAR SECTIONS REPLIABLES (Sprint 2) ===== */
+.nav-section {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+.nav-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 12px 16px 6px;
+  margin: 0;
+  font-family: inherit;
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted, var(--muted, #9ca3af));
+  cursor: pointer;
+  opacity: .6;
+  transition: opacity .2s, color .2s;
+  text-align: left;
+  user-select: none;
+}
+.nav-section-header:hover {
+  opacity: 1;
+  color: var(--accent-orange, var(--orange, #f5a623));
+}
+.nav-section-header:focus-visible {
+  outline: 2px solid var(--accent-orange, var(--orange, #f5a623));
+  outline-offset: -2px;
+  opacity: 1;
+}
+.nav-section-title { white-space: nowrap; flex: 1; }
+.nav-section-chevron {
+  font-size: .7rem;
+  transition: transform .25s ease;
+  display: inline-block;
+  line-height: 1;
+}
+.nav-section.collapsed .nav-section-chevron { transform: rotate(-90deg); }
+.nav-section-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-height: 1000px;
+  transition: max-height .3s ease;
+}
+.nav-section.collapsed .nav-section-content { max-height: 0; }
+
+/* Sidebar iconifiée : on masque les headers mais on ré-ouvre les contenus */
+.sidebar.collapsed .nav-section-header {
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.sidebar.collapsed .nav-section.collapsed .nav-section-content { max-height: 1000px; }
+
+/* Badge numérique pour headers de section (ex: "Alertes 3") */
+.nav-badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 6px;
+  height: 18px;
+  line-height: 18px;
+  font-size: .66rem;
+  font-weight: 700;
+  background: var(--danger, #e74c3c);
+  color: #fff;
+  border-radius: 10px;
+  text-align: center;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Legacy — conservé pour compat si d'autres pages utilisent encore */
 .nav-section-label {
   font-size: .62rem;
   font-weight: 700;
