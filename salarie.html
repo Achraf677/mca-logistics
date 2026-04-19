@@ -817,10 +817,21 @@ html, body {
               <input type="date" id="km-date" onchange="rafraichirTourneesSelect()" />
             </div>
             <div class="form-group">
-              <label>Tournée concernée</label>
+              <label>TOURNÉE / MOTIF *</label>
               <select id="km-tournee-id">
                 <option value="">— Optionnel —</option>
               </select>
+              <div id="km-motif-wrapper" style="display:none;margin-top:8px">
+                <input type="text" id="km-motif"
+                  placeholder="Ex : Livraison hors tournée, Dépôt marchandises..."
+                  style="width:100%;padding:14px 16px;background:var(--bg2);
+                  border:1.5px solid var(--border);border-radius:12px;
+                  color:var(--text);font-size:.95rem;font-family:inherit"
+                />
+                <span style="font-size:.72rem;color:var(--muted);margin-top:4px;display:block">
+                  Précisez le motif professionnel du déplacement
+                </span>
+              </div>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -836,8 +847,22 @@ html, body {
               Distance : <strong id="km-distance">0 km</strong>
             </div>
             <div style="display:flex;gap:10px">
-              <button class="btn-secondary" style="flex:1" onclick="enregistrerKmDepart()">🚦 Km départ</button>
-              <button class="btn-primary" style="flex:1" onclick="enregistrerKmArrivee()">🏁 Km retour</button>
+              <button id="btn-km-depart" onclick="enregistrerKmDepart()" style="
+                flex:1;
+                background:linear-gradient(135deg,#f5a623,#ff8c00);
+                color:#000;border:none;border-radius:14px;
+                padding:17px;font-size:1rem;font-weight:800;
+                cursor:pointer;font-family:inherit;
+                transition:all .3s;
+              ">🚦 Km départ</button>
+              <button id="btn-km-retour" onclick="enregistrerKmFin()" style="
+                flex:1;
+                background:#1a2234;color:#e8f0ff;
+                border:1px solid #1e2a3d;border-radius:14px;
+                padding:17px;font-size:.95rem;font-weight:600;
+                cursor:pointer;font-family:inherit;
+                transition:all .3s;
+              ">🏁 Km retour</button>
             </div>
           </div>
         </div>
@@ -849,14 +874,14 @@ html, body {
         <div class="card">
           <div class="card-header">🚗 Inspection quotidienne</div>
           <div class="card-body">
-            <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Photos transmises à l'administrateur à chaque envoi.</p>
+            <p style="font-size:.82rem;color:var(--muted);margin-bottom:16px">Chaque inspection est transmise à l'administrateur.</p>
             <div class="form-row">
               <div class="form-group">
                 <label>Date *</label>
                 <input type="date" id="insp-date" />
               </div>
               <div class="form-group">
-                <label>Km actuel</label>
+                <label>Km au compteur lors de l'inspection</label>
                 <input type="number" id="insp-km" placeholder="50 200" inputmode="numeric" />
               </div>
             </div>
@@ -873,7 +898,7 @@ html, body {
                   <div style="font-size:.75rem;color:var(--muted);margin-top:2px">JPG, PNG — max 4</div>
                 </div>
               </label>
-              <input type="file" id="insp-photos" accept="image/*" multiple capture="environment" style="display:none" onchange="previewPhotosInspection(this)" />
+              <input type="file" id="insp-photos" accept="image/*" multiple capture="environment" style="display:none" onchange="gererPhotosInspection(this)" />
               <div id="insp-photos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
             </div>
             <button class="btn-primary" onclick="soumettreInspection()">📤 Envoyer l'inspection</button>
@@ -1199,6 +1224,14 @@ function lancerInterface() {
   initAccueilBonjour();
   initEtatBoutonsKm();
   majBadgesBottomNav();
+  const selTournee = document.getElementById('km-tournee-id');
+  if (selTournee) {
+    selTournee.addEventListener('change', function() {
+      const motifWrapper = document.getElementById('km-motif-wrapper');
+      if (!motifWrapper) return;
+      motifWrapper.style.display = this.value === '' ? 'block' : 'none';
+    });
+  }
 }
 
 function getMonVehicule() {
@@ -1450,7 +1483,20 @@ function envoyerPhotoSal(input) {
 function afficherPlanningSal() {
   if (!salarieCourant) return;
   const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
-  const monPlan   = plannings.find(p => p.salId === salarieCourant.id);
+  const monPlan   = plannings.find(p =>
+    p.salId === salarieCourant.id ||
+    p.salId === salarieCourant.supabaseId ||
+    p.salNom === salarieCourant.nom ||
+    (salarieCourant.numero && p.salId === salarieCourant.numero)
+  ) || plannings.find(p => {
+    const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+    const sal = salaries.find(s =>
+      s.supabaseId === salarieCourant.id ||
+      s.id === salarieCourant.id ||
+      s.numero === salarieCourant.numero
+    );
+    return sal && p.salId === sal.id;
+  });
   const cont      = document.getElementById('planning-sal-content');
   if (!cont) return;
 
@@ -1781,6 +1827,21 @@ function enregistrerKmDepart() {
   document.getElementById('km-arrivee').value = '';
   document.getElementById('km-result').style.display = 'none';
   rechargerBlocKm();
+  // Griser le bouton départ, activer le bouton retour
+  const btnDep = document.getElementById('btn-km-depart');
+  const btnRet = document.getElementById('btn-km-retour');
+  if (btnDep) {
+    btnDep.style.background = '#1a2234';
+    btnDep.style.color = '#5a6a85';
+    btnDep.style.border = '1px solid #1e2a3d';
+    btnDep.disabled = false;
+  }
+  if (btnRet) {
+    btnRet.style.background = 'linear-gradient(135deg,#f5a623,#ff8c00)';
+    btnRet.style.color = '#000';
+    btnRet.style.border = 'none';
+    btnRet.style.fontWeight = '800';
+  }
   toast(liv ? `✅ Km début enregistré pour ${liv.client}` : '✅ Km début enregistré');
 }
 
@@ -2234,6 +2295,51 @@ async function uploaderPhotosInspection(date) {
   }
 
   return uploadedPhotos;
+}
+
+function gererPhotosInspection(input) {
+  const files = Array.from(input.files || []);
+  if (!files.length) return;
+
+  const preview = document.getElementById('insp-photos-preview');
+  if (!preview) return;
+
+  preview.innerHTML = '';
+
+  const limited = files.slice(0, 4);
+  if (files.length > 4) {
+    toast('⚠️ Maximum 4 photos — seules les 4 premières sont conservées', 'error');
+  }
+
+  limited.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const div = document.createElement('div');
+      div.style.cssText = `
+        position:relative;width:72px;height:72px;
+        border-radius:10px;overflow:hidden;
+        border:2px solid var(--accent);
+      `;
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+      const badge = document.createElement('div');
+      badge.style.cssText = `
+        position:absolute;top:3px;right:3px;
+        background:var(--accent);color:#000;
+        border-radius:50%;width:18px;height:18px;
+        font-size:.6rem;font-weight:800;
+        display:flex;align-items:center;justify-content:center;
+      `;
+      badge.textContent = idx + 1;
+      div.appendChild(img);
+      div.appendChild(badge);
+      preview.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  toast(`✅ ${limited.length} photo(s) sélectionnée(s)`);
 }
 
 function previsualiserPhotos() {
@@ -2735,12 +2841,8 @@ function initEtatBoutonsKm() {
     e.kmDepart != null &&
     e.kmDepart !== ''
   );
-  const btnDepart = document.querySelector(
-    'button[onclick*="enregistrerKmDepart"]'
-  );
-  const btnRetour = document.querySelector(
-    'button[onclick*="enregistrerKmArrivee"]'
-  );
+  const btnDepart = document.getElementById('btn-km-depart');
+  const btnRetour = document.getElementById('btn-km-retour');
   if (!btnDepart || !btnRetour) return;
 
   if (entreeAuj && !entreeAuj.kmArrivee) {
