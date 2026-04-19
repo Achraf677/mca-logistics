@@ -1473,6 +1473,157 @@ body.light-mode .badge-inactif {
 .favicon-badge { display: none; }
 
 /* ================================================================
+   BULK ACTIONS (Sprint 6) — multi-sélection livraisons
+   ================================================================ */
+.bulk-col {
+  width: 44px;
+  min-width: 44px;
+  text-align: center !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+}
+.bulk-col input[type="checkbox"] {
+  display: block;
+  margin: 0 auto;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent-orange, var(--orange, #f5a623));
+  vertical-align: middle;
+}
+.livraisons-table thead .bulk-col { vertical-align: middle !important; }
+.livraisons-table tbody td.bulk-col { padding: 10px 0 !important; }
+tr.bulk-selected {
+  background: rgba(245, 166, 35, 0.08) !important;
+}
+tr.bulk-selected td { border-top-color: rgba(245,166,35,0.2); }
+
+.bulk-action-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(120%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px 12px 20px;
+  background: var(--card, #1a1d27);
+  border: 1px solid var(--accent-orange, var(--orange, #f5a623));
+  border-radius: 14px;
+  box-shadow: 0 12px 28px rgba(0,0,0,.35), 0 0 0 4px rgba(245,166,35,0.08);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1), opacity .2s;
+  z-index: 1090;
+  max-width: calc(100vw - 32px);
+  flex-wrap: wrap;
+}
+.bulk-action-bar.visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+.bulk-action-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.bulk-action-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--accent-orange, var(--orange, #f5a623));
+  color: #1a1d27;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: .9rem;
+}
+.bulk-action-label {
+  color: var(--text-primary, #e8eaf0);
+  font-size: .88rem;
+  font-weight: 500;
+}
+.bulk-action-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.btn-bulk {
+  font-family: inherit;
+  font-size: .8rem;
+  font-weight: 600;
+  padding: 7px 12px;
+  white-space: nowrap;
+  background: var(--card2, rgba(255,255,255,.05));
+  border: 1px solid var(--border, rgba(255,255,255,.08));
+  color: var(--text-primary, #e8eaf0);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.btn-bulk:hover {
+  background: rgba(245,166,35,0.12);
+  border-color: rgba(245,166,35,0.35);
+}
+.btn-bulk:active { transform: translateY(1px); }
+.btn-bulk:focus-visible {
+  outline: 2px solid var(--accent-orange, var(--orange, #f5a623));
+  outline-offset: 2px;
+}
+.btn-bulk-danger:hover {
+  background: rgba(231, 76, 60, 0.12);
+  border-color: rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+}
+body.light-mode .btn-bulk { background: #fafafa; border-color: rgba(0,0,0,.08); color: #1a1d27; }
+body.light-mode .btn-bulk:hover { background: rgba(245,166,35,.1); }
+.bulk-action-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #7c8299);
+  font-size: 1.1rem;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s, color .15s;
+}
+.bulk-action-close:hover {
+  background: rgba(231, 76, 60, 0.12);
+  color: #e74c3c;
+}
+
+/* Light mode */
+body.light-mode .bulk-action-bar { background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.15), 0 0 0 4px rgba(245,166,35,.1); }
+body.light-mode .bulk-action-count { color: #fff; }
+body.light-mode tr.bulk-selected { background: rgba(245,166,35,.12) !important; }
+
+/* Responsive mobile : barre full-width */
+@media (max-width: 640px) {
+  .bulk-action-bar {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    transform: translateY(120%);
+    max-width: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .bulk-action-bar.visible { transform: translateY(0); }
+  .bulk-action-buttons { width: 100%; justify-content: space-between; }
+  .bulk-action-buttons button { flex: 1; }
+  .bulk-action-close { position: absolute; top: 8px; right: 8px; }
+}
+
+/* ================================================================
    SIDE DRAWER (Sprint 5) — panneau latéral réutilisable
    Utilisé pour édition non-modale (bulk, vue 360°, détails)
    ================================================================ */
@@ -3513,11 +3664,26 @@ kbd {
 }
 .livraisons-table th,
 .livraisons-table td {
-  padding: 8px 8px;
-  vertical-align: top;
+  padding: 9px 8px;
+  vertical-align: middle;
+}
+.livraisons-table th {
+  white-space: nowrap;
 }
 .livraisons-table td {
   white-space: normal;
+}
+/* Colonnes numériques alignées à droite : Distance, HT, TVA, TTC */
+.livraisons-table th:nth-child(5),
+.livraisons-table td:nth-child(5),
+.livraisons-table th:nth-child(6),
+.livraisons-table td:nth-child(6),
+.livraisons-table th:nth-child(7),
+.livraisons-table td:nth-child(7),
+.livraisons-table th:nth-child(8),
+.livraisons-table td:nth-child(8) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .livraisons-table td.actions-cell {
   text-align: right;
@@ -3526,8 +3692,8 @@ kbd {
 }
 .livraisons-table td:last-child,
 .livraisons-table th:last-child {
-  width: 148px;
-  min-width: 148px;
+  width: 128px;
+  min-width: 128px;
   white-space: nowrap;
   overflow: visible;
   position: relative;
@@ -3548,13 +3714,13 @@ kbd {
   white-space: nowrap;
 }
 .livraison-client-text {
-  max-width: 180px;
+  max-width: 140px;
 }
 .livraison-zone-text {
-  max-width: 240px;
+  max-width: 180px;
 }
 .livraison-driver-text {
-  max-width: 160px;
+  max-width: 130px;
 }
 .livraison-ref-cell {
   font-size: .78rem;
@@ -3639,21 +3805,39 @@ kbd {
   border: 1px solid rgba(148, 163, 184, 0.28);
   vertical-align: middle;
 }
-.livraisons-table th:nth-child(1),
-.livraisons-table td:nth-child(1) {
-  width: 92px;
+/* nth-child après bulk-col : 1=bulk, 2=N°LIV, 3=Client, 4=Zone, 5=Distance, 6=HT, 7=TVA, 8=TTC, 9=Salarié, 10=Statut, 11=Paiement, 12=Date, 13=Actions */
+.livraisons-table th:nth-child(2),
+.livraisons-table td:nth-child(2) {
+  width: 86px;
 }
-.livraisons-table th:nth-child(4),
-.livraisons-table td:nth-child(4),
 .livraisons-table th:nth-child(5),
 .livraisons-table td:nth-child(5),
 .livraisons-table th:nth-child(6),
 .livraisons-table td:nth-child(6),
 .livraisons-table th:nth-child(7),
 .livraisons-table td:nth-child(7),
+.livraisons-table th:nth-child(8),
+.livraisons-table td:nth-child(8) {
+  width: 84px;
+}
+.livraisons-table th:nth-child(12),
+.livraisons-table td:nth-child(12) {
+  width: 100px;
+}
+/* Statut et Paiement : selects compacts */
+.livraisons-table th:nth-child(10),
+.livraisons-table td:nth-child(10),
 .livraisons-table th:nth-child(11),
 .livraisons-table td:nth-child(11) {
-  width: 92px;
+  width: 130px;
+}
+.livraisons-table .livraison-inline-select {
+  min-height: 34px;
+  padding: 6px 8px;
+  font-size: .78rem;
+}
+.livraisons-table .livraison-select-cell {
+  min-width: auto;
 }
 .export-logo {
   width: 58px;
@@ -3828,22 +4012,40 @@ kbd {
 }
 
 .filters-livraisons {
-  display: grid;
-  grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(160px, .75fr)) auto minmax(145px, .65fr) auto minmax(145px, .65fr) auto auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.filters-livraisons .searchbar {
+  flex: 1 1 260px;
+  min-width: 240px;
+  max-width: 360px;
+}
+.filters-livraisons select,
+.filters-livraisons input[type="date"],
+.filters-livraisons input[type="text"]:not(.searchbar) {
+  flex: 0 1 160px;
+  min-width: 140px;
+}
+.filters-livraisons .btn,
+.filters-livraisons button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  min-width: auto;
+}
+.filters-livraisons .filter-label,
+.filters-livraisons label {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: .82rem;
+  color: var(--text-muted);
 }
 .filters-vehicules {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(220px, 260px) auto;
   gap: 12px;
   align-items: center;
-}
-.filters-livraisons > * {
-  min-width: 0;
-}
-.filters-livraisons .searchbar,
-.filters-vehicules .searchbar {
-  min-width: 0;
-  width: 100%;
 }
 .filters-vehicules .searchbar {
   min-width: 0;
@@ -3854,30 +4056,23 @@ kbd {
   min-width: 170px;
 }
 
-@media (max-width: 1400px) {
-  .filters-livraisons {
-    grid-template-columns: minmax(240px, 1fr) repeat(3, minmax(150px, .8fr)) auto minmax(140px, .7fr) auto minmax(140px, .7fr);
-  }
-}
-
 @media (max-width: 1180px) {
-  .filters-livraisons {
-    grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(150px, .8fr)) minmax(150px, .8fr) auto minmax(140px, .7fr) auto minmax(140px, .7fr) auto auto;
-  }
   .filters-vehicules {
     grid-template-columns: 1fr 240px auto;
   }
 }
 
 @media (max-width: 900px) {
-  .filters-livraisons {
-    grid-template-columns: 1fr;
+  .filters-livraisons .searchbar {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .filters-livraisons select,
+  .filters-livraisons input[type="date"] {
+    flex: 1 1 calc(50% - 5px);
   }
   .filters-vehicules {
     grid-template-columns: 1fr;
-  }
-  .filters-livraisons .searchbar {
-    width: 100%;
   }
   .table-wrapper {
     overflow-x: auto;

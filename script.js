@@ -10705,33 +10705,94 @@ function exporterTvaPDF() {
 var _origGenererRapportMensuel = typeof genererRapportMensuel === 'function' ? genererRapportMensuel : null;
 function genererRapportMensuelPeriode() {
   var livraisons = getLivraisonsFiltresActifs();
-
   var params = getEntrepriseExportParams();
   var nom = params.nom;
   var dateExp = formatDateHeureExport();
-  var totalHT = livraisons.reduce(function(s,l){return s + (l.prixHT || (l.prix||0)/(1+(l.tauxTVA||20)/100));},0);
-  var totalTVA = livraisons.reduce(function(s,l){var ht=l.prixHT||(l.prix||0)/(1+(l.tauxTVA||20)/100); return s+((l.prix||0)-ht);},0);
-  var totalTTC = livraisons.reduce(function(s,l){return s+(l.prix||0);},0);
   var periode = getLivraisonsPeriodeActiveLabel();
 
-  var rows = livraisons.map(function(l,i) {
+  var escape = function(s) {
+    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  };
+  var nomEntr = escape(nom);
+
+  var cellCss = 'padding:8px 10px;border-bottom:1px solid #f3f4f6';
+  var badgeCss = 'padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600';
+
+  var totalHT = 0, totalTVA = 0, totalTTC = 0;
+  var rows = livraisons.map(function(l) {
     var ht = l.prixHT || (l.prix||0)/(1+(l.tauxTVA||20)/100);
-    var tvaM = (l.prix||0) - ht;
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px;font-size:.82rem">'+formatDateExport(l.date)+'</td><td style="padding:6px 10px">'+(l.numLiv||'&mdash;')+'</td><td style="padding:6px 10px">'+l.client+'</td><td style="padding:6px 10px">'+(l.chaufNom||'—')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(l.prix||0)+'</td><td style="padding:6px 10px;text-align:center">'+(l.statut==='livre'?'✅':l.statut==='en-cours'?'🚐':'⏳')+'</td></tr>';
+    var ttc = l.prix || 0;
+    var tva = ttc - ht;
+    totalHT += ht; totalTVA += tva; totalTTC += ttc;
+
+    var badgeStatut = l.statut === 'livre' ? '<span style="'+badgeCss+';background:#d1fae5;color:#065f46">Livrée</span>'
+                    : l.statut === 'en-cours' ? '<span style="'+badgeCss+';background:#dbeafe;color:#1e40af">En cours</span>'
+                    : '<span style="'+badgeCss+';background:#fef3c7;color:#92400e">En attente</span>';
+    var badgePay = l.statutPaiement === 'payé' ? '<span style="'+badgeCss+';background:#d1fae5;color:#065f46">Payé</span>'
+                 : l.statutPaiement === 'litige' ? '<span style="'+badgeCss+';background:#fee2e2;color:#991b1b">Litige</span>'
+                 : '<span style="'+badgeCss+';background:#fef3c7;color:#92400e">Attente</span>';
+
+    return '<tr>' +
+      '<td style="'+cellCss+'">' + escape(l.numLiv || '—') + '</td>' +
+      '<td style="'+cellCss+'">' + escape(formatDateExport(l.date)) + '</td>' +
+      '<td style="'+cellCss+'">' + escape(l.client || '—') + '</td>' +
+      '<td style="'+cellCss+'">' + escape(l.chaufNom || '—') + '</td>' +
+      '<td style="'+cellCss+';text-align:right">' + euros(ht) + '</td>' +
+      '<td style="'+cellCss+';text-align:right;color:#6b7280">' + euros(tva) + '</td>' +
+      '<td style="'+cellCss+';text-align:right;font-weight:700">' + euros(ttc) + '</td>' +
+      '<td style="'+cellCss+'">' + badgeStatut + '</td>' +
+      '<td style="'+cellCss+'">' + badgePay + '</td>' +
+    '</tr>';
   }).join('');
 
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Rapport livraisons</div><div style="font-size:.88rem;font-weight:600">'+periode+'</div></div></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px">'+
-      '<div style="background:#e8f5e9;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800;color:#2ecc71">'+euros(totalHT)+'</div></div>'+
-      '<div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TVA</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div>'+
-      '<div style="background:#e3f2fd;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800;color:#2196F3">'+euros(totalTTC)+'</div></div></div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">N&deg; livraison</th><th style="padding:6px 10px;text-align:left">Client</th><th style="padding:6px 10px;text-align:left">Chauffeur</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th><th style="padding:6px 10px;text-align:center">Statut</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+' — '+livraisons.length+' livraison(s)</span><span>'+dateExp+'</span></div></div>';
+  var html =
+    '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
+        '<div>' +
+          '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">'+nomEntr+'</div>' +
+          '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Rapport livraisons — '+escape(periode)+'</div>' +
+        '</div>' +
+        '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
+          '<div>Généré le <strong>'+escape(dateExp)+'</strong></div>' +
+          '<div>'+livraisons.length+' livraison(s)</div>' +
+        '</div>' +
+      '</div>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:.82rem">' +
+        '<thead>' +
+          '<tr style="background:#f3f4f6;text-align:left">' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">N° LIV</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Date</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Client</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Chauffeur</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">HT</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TVA</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TTC</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Statut</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Paiement</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody style="background:#fff">' + rows + '</tbody>' +
+        '<tfoot>' +
+          '<tr style="background:#fef3c7;font-weight:700">' +
+            '<td colspan="4" style="padding:10px;text-align:right">TOTAUX</td>' +
+            '<td style="padding:10px;text-align:right">' + euros(totalHT) + '</td>' +
+            '<td style="padding:10px;text-align:right;color:#6b7280">' + euros(totalTVA) + '</td>' +
+            '<td style="padding:10px;text-align:right">' + euros(totalTTC) + '</td>' +
+            '<td colspan="2"></td>' +
+          '</tr>' +
+        '</tfoot>' +
+      '</table>' +
+      '<div style="margin-top:16px;font-size:.72rem;color:#9ca3af;text-align:center">Document généré par '+nomEntr+'</div>' +
+    '</div>';
 
-  var scriptAttenteExport = "(function(){function lancer(){setTimeout(function(){window.print();},250);}function attendre(){var images=Array.prototype.slice.call(document.images||[]);if(!images.length){lancer();return;}var restantes=images.length;function fini(){restantes-=1;if(restantes<=0) lancer();}images.forEach(function(img){if(img.complete){fini();return;}img.addEventListener('load',fini,{once:true});img.addEventListener('error',fini,{once:true});});}window.addEventListener('load',attendre);})();";
-  var win = window.open('','_blank','width=850,height=700');
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>'+scriptAttenteExport+'<\/script></body></html>');
+  var win = window.open('','_blank','width=1100,height=750');
+  if (!win) { afficherToast('⚠️ Autorise les popups pour exporter en PDF','error'); return; }
+  win.document.write(
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons — '+nomEntr+'</title>' +
+    '<style>body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}@page{margin:10mm;size:landscape}@media print{.no-print{display:none}}</style>' +
+    '</head><body>' + html +
+    '<script>setTimeout(function(){window.print();},400);<\/script></body></html>'
+  );
   win.document.close();
   afficherToast('📄 Rapport livraisons généré');
 }
@@ -11295,7 +11356,8 @@ window.renderLivraisonsAdminFinal = function() {
 
   if (!tb) return;
   if (!livraisons.length) {
-    tb.innerHTML = '<tr><td colspan="12" class="empty-row">Aucune livraison</td></tr>';
+    tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+    if (typeof majBulkActions === 'function') majBulkActions();
     return;
   }
 
@@ -11343,7 +11405,8 @@ window.renderLivraisonsAdminFinal = function() {
     const zoneGeoText = escapeHtml(zoneGeo || '—');
     const chauffeur = l.chaufNom || 'Non assigné';
     const datePaiement = l.datePaiement ? formatDateExport(String(l.datePaiement).slice(0, 10)) : '—';
-    return `<tr>
+    return `<tr data-liv-id="${escapeAttr(l.id)}">
+      <td class="bulk-col"><input type="checkbox" class="bulk-liv-check" data-liv-id="${escapeAttr(l.id)}" onchange="majBulkActions()" aria-label="Sélectionner" /></td>
       <td class="livraison-ref-cell">${escapeHtml(l.numLiv || '—')}</td>
       <td><strong class="livraison-cell-text livraison-client-text" title="${escapeAttr(client)}">${clientText}</strong></td>
       <td><span class="livraison-cell-text livraison-zone-text" title="${escapeAttr(zoneGeo || '—')}">${zoneGeoText}</span></td>
@@ -11364,6 +11427,7 @@ window.renderLivraisonsAdminFinal = function() {
       ])}</td>
     </tr>`;
   }).join('');
+  if (typeof majBulkActions === 'function') majBulkActions();
 };
 afficherLivraisons = window.renderLivraisonsAdminFinal;
 
@@ -15964,6 +16028,343 @@ function exporterPrevisionsPDF() {
             localStorage.setItem('sprint5_toast_vu', '1');
           }
         }, 3200);
+      });
+    }
+  } catch (e) { /* ignore */ }
+})();
+
+/* ================================================================
+   SPRINT 6 — BULK ACTIONS SUR LIVRAISONS
+   toggleBulkSelectAll, majBulkActions, bulkMarquerPayees,
+   bulkSupprimer, bulkExporter, bulkClear
+   ================================================================ */
+(function() {
+  function getCheckboxes() {
+    return document.querySelectorAll('#tb-livraisons .bulk-liv-check');
+  }
+  function getSelectedIds() {
+    const ids = [];
+    getCheckboxes().forEach(function(cb) {
+      if (cb.checked) ids.push(cb.getAttribute('data-liv-id'));
+    });
+    return ids;
+  }
+
+  window.toggleBulkSelectAll = function(checked) {
+    getCheckboxes().forEach(function(cb) {
+      cb.checked = !!checked;
+      const tr = cb.closest('tr');
+      if (tr) tr.classList.toggle('bulk-selected', !!checked);
+    });
+    window.majBulkActions();
+  };
+
+  window.majBulkActions = function() {
+    const bar = document.getElementById('bulk-action-bar');
+    const countEl = document.getElementById('bulk-count-num');
+    const selectAll = document.getElementById('bulk-select-all');
+    const cbs = getCheckboxes();
+    const selected = [];
+
+    cbs.forEach(function(cb) {
+      const tr = cb.closest('tr');
+      if (cb.checked) {
+        selected.push(cb.getAttribute('data-liv-id'));
+        if (tr) tr.classList.add('bulk-selected');
+      } else {
+        if (tr) tr.classList.remove('bulk-selected');
+      }
+    });
+
+    const n = selected.length;
+    if (countEl) countEl.textContent = String(n);
+
+    if (bar) {
+      if (n > 0) {
+        bar.classList.add('visible');
+        bar.setAttribute('aria-hidden', 'false');
+      } else {
+        bar.classList.remove('visible');
+        bar.setAttribute('aria-hidden', 'true');
+      }
+    }
+
+    // État "intermédiaire" du select-all
+    if (selectAll) {
+      if (n === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      } else if (n === cbs.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+      } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+      }
+    }
+  };
+
+  window.bulkClear = function() {
+    getCheckboxes().forEach(function(cb) {
+      cb.checked = false;
+      const tr = cb.closest('tr');
+      if (tr) tr.classList.remove('bulk-selected');
+    });
+    const selectAll = document.getElementById('bulk-select-all');
+    if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
+    window.majBulkActions();
+  };
+
+  window.bulkMarquerPayees = async function() {
+    const ids = getSelectedIds();
+    if (!ids.length) return;
+
+    const ok = typeof confirmDialog === 'function'
+      ? await confirmDialog('Marquer ' + ids.length + ' livraison(s) comme payée(s) ?', { titre:'Marquer payées', icone:'💳', btnLabel:'Confirmer' })
+      : window.confirm('Marquer ' + ids.length + ' livraison(s) comme payée(s) ?');
+    if (!ok) return;
+
+    const livraisons = charger('livraisons');
+    let count = 0;
+    const today = new Date().toISOString().slice(0, 10);
+
+    livraisons.forEach(function(l) {
+      if (ids.indexOf(l.id) !== -1) {
+        l.statutPaiement = 'payé';
+        if (!l.datePaiement) l.datePaiement = today;
+        count++;
+        if (typeof ajouterEntreeAudit === 'function') {
+          try { ajouterEntreeAudit('Paiement livraison (bulk)', (l.numLiv || 'Livraison') + ' · payé'); } catch (e) {}
+        }
+      }
+    });
+
+    sauvegarder('livraisons', livraisons);
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof afficherToast === 'function') afficherToast('💳 ' + count + ' livraison(s) marquée(s) payée(s)');
+    window.bulkClear();
+  };
+
+  window.bulkMarquerLivrees = async function() {
+    const ids = getSelectedIds();
+    if (!ids.length) return;
+
+    const ok = typeof confirmDialog === 'function'
+      ? await confirmDialog('Marquer ' + ids.length + ' livraison(s) comme livrée(s) ?', { titre:'Marquer livrées', icone:'✅', btnLabel:'Confirmer' })
+      : window.confirm('Marquer ' + ids.length + ' livraison(s) comme livrée(s) ?');
+    if (!ok) return;
+
+    const livraisons = charger('livraisons');
+    let count = 0;
+    livraisons.forEach(function(l) {
+      if (ids.indexOf(l.id) !== -1) {
+        l.statut = 'livre';
+        count++;
+        if (typeof ajouterEntreeAudit === 'function') {
+          try { ajouterEntreeAudit('Statut livraison (bulk)', (l.numLiv || 'Livraison') + ' · livrée'); } catch (e) {}
+        }
+      }
+    });
+
+    sauvegarder('livraisons', livraisons);
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof afficherToast === 'function') afficherToast('✅ ' + count + ' livraison(s) marquée(s) livrée(s)');
+    window.bulkClear();
+  };
+
+  window.bulkSupprimer = async function() {
+    const ids = getSelectedIds();
+    if (!ids.length) return;
+
+    const ok = typeof confirmDialog === 'function'
+      ? await confirmDialog('Supprimer définitivement ' + ids.length + ' livraison(s) ? Cette action est irréversible.', { titre:'Suppression en masse', icone:'🗑️', btnLabel:'Supprimer' })
+      : window.confirm('Supprimer ' + ids.length + ' livraison(s) ?');
+    if (!ok) return;
+
+    const livraisons = charger('livraisons');
+    const restantes = livraisons.filter(function(l) {
+      if (ids.indexOf(l.id) !== -1) {
+        if (typeof annulerArchiveFactureLivraison === 'function') {
+          try { annulerArchiveFactureLivraison(l); } catch (e) {}
+        }
+        if (typeof ajouterEntreeAudit === 'function') {
+          try { ajouterEntreeAudit('Suppression livraison (bulk)', (l.numLiv || 'Livraison') + ' · ' + (l.client || 'Client')); } catch (e) {}
+        }
+        return false;
+      }
+      return true;
+    });
+
+    sauvegarder('livraisons', restantes);
+    if (typeof afficherLivraisons === 'function') afficherLivraisons();
+    if (typeof afficherToast === 'function') afficherToast('🗑️ ' + ids.length + ' livraison(s) supprimée(s)');
+    window.bulkClear();
+  };
+
+  window.bulkExporter = function() {
+    const ids = getSelectedIds();
+    if (!ids.length) return;
+
+    const livraisons = charger('livraisons').filter(function(l) {
+      return ids.indexOf(l.id) !== -1;
+    });
+
+    if (typeof exporterCSV !== 'function') {
+      if (typeof afficherToast === 'function') afficherToast('⚠️ Export indisponible', 'error');
+      return;
+    }
+
+    const filename = 'livraisons_selection_' + new Date().toISOString().slice(0, 10) + '.csv';
+    exporterCSV(livraisons, [
+      { label: 'N° LIV',       get: function(l) { return l.numLiv || ''; } },
+      { label: 'Date',          get: function(l) { return l.date || ''; } },
+      { label: 'Client',        get: function(l) { return l.client || ''; } },
+      { label: 'Départ',        get: function(l) { return l.depart || ''; } },
+      { label: 'Arrivée',       get: function(l) { return l.arrivee || ''; } },
+      { label: 'Distance km',   get: function(l) { return l.distance || ''; } },
+      { label: 'Prix €',        get: function(l) { return l.prix || ''; } },
+      { label: 'Chauffeur',     get: function(l) { return l.chaufNom || ''; } },
+      { label: 'Statut',        get: function(l) { return l.statut || ''; } },
+      { label: 'Paiement',      get: function(l) { return l.statutPaiement || ''; } },
+      { label: 'Date paiement', get: function(l) { return l.datePaiement || ''; } }
+    ], filename);
+
+    if (typeof afficherToast === 'function') afficherToast('📥 Export de ' + ids.length + ' livraison(s)');
+  };
+
+  window.bulkExporterPDF = function() {
+    const ids = getSelectedIds();
+    if (!ids.length) return;
+
+    const livraisons = charger('livraisons').filter(function(l) {
+      return ids.indexOf(l.id) !== -1;
+    }).sort(function(a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    });
+
+    const fmtDate = typeof formatDateExport === 'function' ? formatDateExport : function(d) { return d || ''; };
+    const fmtEur  = typeof euros === 'function' ? euros : function(v) { return (v || 0) + ' €'; };
+    const escape  = function(s) {
+      return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    };
+
+    const params = typeof getEntrepriseExportParams === 'function' ? getEntrepriseExportParams() : {};
+    const nomEntr = escape(params.nom || 'MCA Logistics');
+
+    const cellCss = 'padding:8px 10px;border-bottom:1px solid #f3f4f6';
+    const badgeCss = 'padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600';
+
+    let totalHT = 0, totalTVA = 0, totalTTC = 0;
+    const rows = livraisons.map(function(l) {
+      const ht = typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0);
+      const ttc = parseFloat(l.prix) || 0;
+      const tva = ttc - ht;
+      totalHT += ht; totalTVA += tva; totalTTC += ttc;
+
+      const badgeStatut = l.statut === 'livre' ? '<span style="' + badgeCss + ';background:#d1fae5;color:#065f46">Livrée</span>'
+                      : l.statut === 'en-cours' ? '<span style="' + badgeCss + ';background:#dbeafe;color:#1e40af">En cours</span>'
+                      : '<span style="' + badgeCss + ';background:#fef3c7;color:#92400e">En attente</span>';
+      const badgePay = l.statutPaiement === 'payé' ? '<span style="' + badgeCss + ';background:#d1fae5;color:#065f46">Payé</span>'
+                     : l.statutPaiement === 'litige' ? '<span style="' + badgeCss + ';background:#fee2e2;color:#991b1b">Litige</span>'
+                     : '<span style="' + badgeCss + ';background:#fef3c7;color:#92400e">Attente</span>';
+
+      return '<tr>' +
+        '<td style="' + cellCss + '">' + escape(l.numLiv || '—') + '</td>' +
+        '<td style="' + cellCss + '">' + escape(fmtDate(l.date)) + '</td>' +
+        '<td style="' + cellCss + '">' + escape(l.client || '—') + '</td>' +
+        '<td style="' + cellCss + '">' + escape(l.chaufNom || '—') + '</td>' +
+        '<td style="' + cellCss + ';text-align:right">' + fmtEur(ht) + '</td>' +
+        '<td style="' + cellCss + ';text-align:right;color:#6b7280">' + fmtEur(tva) + '</td>' +
+        '<td style="' + cellCss + ';text-align:right;font-weight:700">' + fmtEur(ttc) + '</td>' +
+        '<td style="' + cellCss + '">' + badgeStatut + '</td>' +
+        '<td style="' + cellCss + '">' + badgePay + '</td>' +
+      '</tr>';
+    }).join('');
+
+    const now = new Date();
+    const dateGen = now.toLocaleDateString('fr-FR') + ' ' + now.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+
+    const html =
+      '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
+          '<div>' +
+            '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + nomEntr + '</div>' +
+            '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Récapitulatif livraisons</div>' +
+          '</div>' +
+          '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
+            '<div>Généré le <strong>' + escape(dateGen) + '</strong></div>' +
+            '<div>' + livraisons.length + ' livraison(s)</div>' +
+          '</div>' +
+        '</div>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:.82rem">' +
+          '<thead>' +
+            '<tr style="background:#f3f4f6;text-align:left">' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">N° LIV</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Date</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Client</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Chauffeur</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">HT</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TVA</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TTC</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Statut</th>' +
+              '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Paiement</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody style="background:#fff">' + rows + '</tbody>' +
+          '<tfoot>' +
+            '<tr style="background:#fef3c7;font-weight:700">' +
+              '<td colspan="4" style="padding:10px;text-align:right">TOTAUX</td>' +
+              '<td style="padding:10px;text-align:right">' + fmtEur(totalHT) + '</td>' +
+              '<td style="padding:10px;text-align:right;color:#6b7280">' + fmtEur(totalTVA) + '</td>' +
+              '<td style="padding:10px;text-align:right">' + fmtEur(totalTTC) + '</td>' +
+              '<td colspan="2"></td>' +
+            '</tr>' +
+          '</tfoot>' +
+        '</table>' +
+        '<div style="margin-top:16px;font-size:.72rem;color:#9ca3af;text-align:center">Document généré par MCA Logistics</div>' +
+      '</div>';
+
+    const win = window.open('', '_blank');
+    if (!win) {
+      if (typeof afficherToast === 'function') afficherToast('⚠️ Autorise les popups pour exporter en PDF', 'error');
+      return;
+    }
+    win.document.write(
+      '<!DOCTYPE html><html><head><title>Livraisons — ' + nomEntr + '</title>' +
+      '<style>body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}@page{margin:10mm;size:landscape}@media print{.no-print{display:none}}</style>' +
+      '</head><body>' + html +
+      '<script>setTimeout(function(){window.print();},400);<\/script>' +
+      '</body></html>'
+    );
+    win.document.close();
+
+    if (typeof afficherToast === 'function') afficherToast('📄 PDF de ' + ids.length + ' livraison(s) prêt à imprimer');
+  };
+
+  // Touche Échap pour vider la sélection
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const bar = document.getElementById('bulk-action-bar');
+      if (bar && bar.classList.contains('visible')) {
+        const drawer = document.getElementById('side-drawer');
+        if (drawer && drawer.classList.contains('open')) return;
+        window.bulkClear();
+      }
+    }
+  });
+
+  // Toast Sprint 6
+  try {
+    if (!localStorage.getItem('sprint6_toast_vu')) {
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          if (typeof afficherToast === 'function') {
+            afficherToast('✅ Sprint 6 appliqué — actions en masse', 'success');
+            localStorage.setItem('sprint6_toast_vu', '1');
+          }
+        }, 4000);
       });
     }
   } catch (e) { /* ignore */ }

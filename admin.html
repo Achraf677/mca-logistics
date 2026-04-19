@@ -326,8 +326,8 @@
         <div class="card table-card vehicules-table-card">
           <div class="table-wrapper">
             <table class="data-table livraisons-table">
-              <thead><tr><th>N° LIV</th><th>Client</th><th>Zone géographique</th><th>Distance</th><th>HT</th><th>TVA</th><th>TTC</th><th>Salarié</th><th>Statut</th><th>Paiement</th><th>Date de paiement</th><th>Actions</th></tr></thead>
-              <tbody id="tb-livraisons"><tr><td colspan="12" class="empty-row">Aucune livraison</td></tr></tbody>
+              <thead><tr><th class="bulk-col"><input type="checkbox" id="bulk-select-all" onchange="toggleBulkSelectAll(this.checked)" aria-label="Tout sélectionner" /></th><th>N° LIV</th><th>Client</th><th>Zone géographique</th><th>Distance</th><th>HT</th><th>TVA</th><th>TTC</th><th>Salarié</th><th>Statut</th><th>Paiement</th><th>Date de paiement</th><th>Actions</th></tr></thead>
+              <tbody id="tb-livraisons"><tr><td colspan="13" class="empty-row">Aucune livraison</td></tr></tbody>
             </table>
           </div>
         </div>
@@ -2370,6 +2370,22 @@
         <button id="confirm-ok-btn" class="btn-primary" style="min-width:100px" onclick="confirmResolve()">Confirmer</button>
       </div>
     </div>
+  </div>
+
+  <!-- Bulk action bar (Sprint 6) : barre flottante multi-sélection -->
+  <div class="bulk-action-bar" id="bulk-action-bar" role="toolbar" aria-hidden="true" aria-label="Actions en masse">
+    <div class="bulk-action-info">
+      <span class="bulk-action-count"><span id="bulk-count-num">0</span></span>
+      <span class="bulk-action-label">sélectionnée(s)</span>
+    </div>
+    <div class="bulk-action-buttons">
+      <button type="button" class="btn-bulk" onclick="bulkMarquerLivrees()" title="Marquer comme livrées">✅ Livrées</button>
+      <button type="button" class="btn-bulk" onclick="bulkMarquerPayees()" title="Marquer comme payées">💳 Payées</button>
+      <button type="button" class="btn-bulk" onclick="bulkExporter()" title="Exporter en CSV">📥 CSV</button>
+      <button type="button" class="btn-bulk" onclick="bulkExporterPDF()" title="Exporter en PDF">📄 PDF</button>
+      <button type="button" class="btn-bulk btn-bulk-danger" onclick="bulkSupprimer()" title="Supprimer la sélection">🗑️</button>
+    </div>
+    <button type="button" class="bulk-action-close" onclick="bulkClear()" title="Annuler la sélection (Échap)" aria-label="Désélectionner tout">✕</button>
   </div>
 
   <!-- Side drawer (Sprint 5) : panneau latéral réutilisable -->
