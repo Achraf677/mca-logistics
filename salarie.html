@@ -29,6 +29,8 @@
   --radius: 16px;
   --bottom-nav-h: 72px;
   --safe-bottom: env(safe-area-inset-bottom, 16px);
+  --visual-vh: 100vh;
+  --scroll-padding: 140px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -130,8 +132,7 @@ html, body {
 /* ===== APP SHELL ===== */
 #ecran-salarie {
   display: none;
-  height: 100vh;
-  height: 100svh;
+  height: var(--visual-vh);
   flex-direction: column;
   overflow: hidden;
 }
@@ -222,9 +223,7 @@ html, body {
 }
 .main-inner {
   padding: 16px;
-  padding-bottom: calc(
-    var(--bottom-nav-h) + var(--safe-bottom) + 32px
-  );
+  padding-bottom: var(--scroll-padding);
   max-width: 600px;
   margin: 0 auto;
 }
@@ -614,6 +613,13 @@ html, body {
   .form-group {
     min-width: 0 !important;
     overflow: hidden !important;
+  }
+}
+
+/* Détection Safari mobile pour ajuster le padding */
+@supports (-webkit-touch-callout: none) {
+  :root {
+    --scroll-padding: 180px;
   }
 }
 </style>
@@ -1567,7 +1573,7 @@ function afficherAccueil() {
       <span style="flex:1;font-size:.88rem">⛽ Plein de carburant effectué aujourd'hui ?</span>
       ${checklist.pleinFait===null ? `
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button onclick="repondreChecklistPleinOui()" style="background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);color:var(--green);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">✅ Oui — saisir le plein →</button>
+          <button onclick="repondreChecklistPleinOui()" style="background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.3);color:var(--green);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">✅ Oui — Saisir →</button>
           <button onclick="repondreChecklist('pleinFait',false)" style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.25);color:var(--red);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Non</button>
         </div>` : `<div style="display:flex;align-items:center;gap:8px">
           <span style="font-size:.78rem;color:${checklist.pleinFait?'var(--green)':'var(--muted)'}">${checklist.pleinFait?'✅ Oui':'❌ Non'}</span>
@@ -2861,6 +2867,27 @@ window.addEventListener('DOMContentLoaded', () => {
   initOfflineDetection();
   initAccueilDate();
 });
+
+/* Fix hauteur viewport dynamique Safari iOS */
+function majHauteurViewport() {
+  const vh = window.innerHeight;
+  document.documentElement.style.setProperty(
+    '--visual-vh', vh + 'px'
+  );
+}
+
+majHauteurViewport();
+window.addEventListener('resize', majHauteurViewport);
+window.addEventListener('orientationchange', majHauteurViewport);
+
+// Sur iOS, quand la barre Safari se masque/apparaît
+let lastHeight = window.innerHeight;
+setInterval(() => {
+  if (window.innerHeight !== lastHeight) {
+    lastHeight = window.innerHeight;
+    majHauteurViewport();
+  }
+}, 500);
 </script>
 </body>
 </html>
