@@ -6765,7 +6765,10 @@ function calculerHeuresSalarieSemaine(salId, contexte) {
   let total = 0;
 
   ctx.dates.forEach(dateObj => {
-    const dateStr = dateObj.toISOString().slice(0, 10);
+    const _fy = dateObj.getFullYear();
+    const _fm = String(dateObj.getMonth()+1).padStart(2,'0');
+    const _fd = String(dateObj.getDate()).padStart(2,'0');
+    const dateStr = _fy+'-'+_fm+'-'+_fd;
     const periode = getPlanningPeriodForDate(salId, dateStr, periodes);
     if (periode) {
       if (periode.type === 'travail') {
@@ -9952,10 +9955,12 @@ function afficherPlanningSemaine() {
   var JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
   // Calculer les 7 dates de la semaine
+  lundi.setHours(0,0,0,0);
   var datesSemaine = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(lundi);
     d.setDate(lundi.getDate() + i);
+    d.setHours(0,0,0,0);
     datesSemaine.push(d);
   }
 
@@ -9972,7 +9977,10 @@ function afficherPlanningSemaine() {
   var thead = document.getElementById('thead-planning-semaine');
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
-      var isAuj = d.toISOString().split('T')[0] === aujourdhui();
+      const _y = d.getFullYear();
+      const _m = String(d.getMonth()+1).padStart(2,'0');
+      const _d = String(d.getDate()).padStart(2,'0');
+      var isAuj = (_y+'-'+_m+'-'+_d) === aujourdhui();
       return '<th style="text-align:center;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
     }).join('') + '</tr>';
   }
