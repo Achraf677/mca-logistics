@@ -462,8 +462,101 @@ function getEntrepriseExportParams() {
     tvaIntracom: params.tvaIntracom || '',
     adresse: params.adresse || '',
     tel: params.tel || '',
-    email: params.email || ''
+    email: params.email || '',
+    // BUG-002 fix : mentions légales CGI 242 nonies A / R123-237 C.com
+    formeJuridique: params.formeJuridique || '',
+    capital: params.capital || '',
+    codeAPE: params.codeAPE || '',
+    rcs: params.rcs || '',
+    adresseLigne: params.adresseLigne || '',
+    codePostal: params.codePostal || '',
+    ville: params.ville || '',
+    pays: params.pays || 'FR',
+    iban: params.iban || '',
+    bic: params.bic || '',
+    tauxPenalitesRetard: params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15,
+    delaiPaiementDefaut: params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30
   };
+}
+
+// BUG-010 fix : validation du numéro de TVA intracommunautaire FR (clé + SIREN).
+// Algorithme officiel : clé = (12 + 3 × (SIREN mod 97)) mod 97.
+// Les numéros "new TVA" (clé non-numérique comme "H2", "L1"...) passent le format
+// mais on ne valide pas la checksum dans ce cas (rare, principalement pour les
+// doublons administratifs). On rejette uniquement les cas où la clé EST numérique
+// mais invalide.
+function validerTVAIntracomFR(tva) {
+  const val = String(tva || '').replace(/\s+/g, '').toUpperCase();
+  if (!val) return { valid: true, empty: true };
+  const m = /^FR([A-Z0-9]{2})(\d{9})$/.exec(val);
+  if (!m) return { valid: false, raison: 'format', message: 'Format attendu : FR + 2 caractères + 9 chiffres du SIREN.' };
+  const cle = m[1];
+  const siren = m[2];
+  if (!/^\d{2}$/.test(cle)) {
+    return { valid: true, normalized: val, note: 'Clé alphanumérique non vérifiée (format "new TVA").' };
+  }
+  const attendu = String((12 + 3 * (parseInt(siren, 10) % 97)) % 97).padStart(2, '0');
+  if (attendu !== cle) {
+    return {
+      valid: false,
+      raison: 'checksum',
+      message: 'Clé TVA incorrecte. Attendu : FR' + attendu + siren + '.',
+      attendu: 'FR' + attendu + siren
+    };
+  }
+  return { valid: true, normalized: val };
+}
+
+// BUG-002 helpers : blocs HTML partagés entre buildFactureHTML et genererFactureLivraison
+function __formatEurFR(n) {
+  const val = parseFloat(n);
+  if (!Number.isFinite(val)) return '';
+  return val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+function renderFactureMentionsEntrepriseHeader(params) {
+  const parts = [];
+  if (params.formeJuridique) parts.push(params.formeJuridique);
+  if (params.capital) parts.push('capital ' + __formatEurFR(params.capital));
+  if (params.rcs) parts.push('RCS ' + params.rcs);
+  if (params.codeAPE) parts.push('APE ' + params.codeAPE);
+  if (!parts.length) return '';
+  return '<div style="font-size:.72rem;color:#9ca3af;margin-top:4px">' + planningEscapeHtml(parts.join(' · ')) + '</div>';
+}
+function renderFactureClientBlock(livraison, clientFiche) {
+  const c = clientFiche || {};
+  const nom = livraison.client || c.nom || 'Client';
+  const adresse = c.adresse || '';
+  const cp = c.cp || '';
+  const ville = c.ville || '';
+  const siren = livraison.clientSiren || c.siren || '';
+  const tvaClient = livraison.clientTvaIntracom || c.tvaIntra || '';
+  let html = '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(nom) + '</div>';
+  if (adresse) html += '<div style="font-size:.82rem;color:#4b5563;margin-top:4px">' + planningEscapeHtml(adresse) + '</div>';
+  if (cp || ville) html += '<div style="font-size:.82rem;color:#4b5563">' + planningEscapeHtml((cp + ' ' + ville).trim()) + '</div>';
+  if (siren) html += '<div style="font-size:.78rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(siren) + '</div>';
+  if (tvaClient) html += '<div style="font-size:.78rem;color:#6b7280">TVA intracom : ' + planningEscapeHtml(tvaClient) + '</div>';
+  return html;
+}
+function renderFacturePiedMentionsLegales(params, livraison, clientFiche) {
+  const delaiClient = clientFiche && parseInt(clientFiche.delaiPaiementJours, 10);
+  const delai = (delaiClient && delaiClient > 0)
+    ? delaiClient
+    : (parseInt(params.delaiPaiementDefaut, 10) || 30);
+  const tauxPenalites = parseFloat(params.tauxPenalitesRetard);
+  const tauxFmt = (Number.isFinite(tauxPenalites) ? tauxPenalites : 10.15).toFixed(2).replace('.', ',');
+  const lignesBanque = [];
+  if (params.iban) lignesBanque.push('IBAN : ' + params.iban);
+  if (params.bic) lignesBanque.push('BIC : ' + params.bic);
+  const dateLivraison = livraison && livraison.date ? formatDateExport(livraison.date) : '';
+  return '<div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;font-size:.72rem;color:#4b5563;line-height:1.55">'
+    + '<div style="font-weight:700;color:#111827;margin-bottom:4px">Conditions de règlement</div>'
+    + (dateLivraison ? '<div>Date de livraison / prestation : <strong>' + planningEscapeHtml(dateLivraison) + '</strong></div>' : '')
+    + '<div>Paiement à <strong>' + delai + ' jours</strong> à compter de la date d\'émission (art. L441-10 Code de commerce).</div>'
+    + '<div>En cas de retard de paiement, application de pénalités de retard au taux annuel de <strong>' + tauxFmt + ' %</strong> (taux BCE majoré de 10 points, art. L441-10 C. com.).</div>'
+    + '<div>Indemnité forfaitaire de recouvrement de <strong>40 €</strong> due de plein droit en cas de retard (art. D441-5 C. com.).</div>'
+    + '<div>Pas d\'escompte pour paiement anticipé.</div>'
+    + (lignesBanque.length ? '<div style="margin-top:6px">' + planningEscapeHtml(lignesBanque.join(' · ')) + '</div>' : '')
+    + '</div>';
 }
 function renderBlocInfosEntreprise(params) {
   const logo = renderLogoEntrepriseExport();
@@ -8625,7 +8718,11 @@ function ajouterClient() {
   const notes       = document.getElementById('cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
-  if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
+  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
+  if (tvaIntra) {
+    const __validTva = validerTVAIntracomFR(tvaIntra);
+    if (!__validTva.valid) { afficherToast('⚠️ TVA intracom invalide : ' + (__validTva.message || 'format incorrect'), 'error'); return; }
+  }
   const clients = loadSafe('clients', []);
   if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Client déjà existant','error'); return; }
   clients.push({
@@ -8874,11 +8971,17 @@ function sauvegarderParametres() {
     ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
     : adminNomSaisi;
   const tvaIntracomRaw = (document.getElementById('param-tva-intracom')?.value || '').replace(/\s+/g, '').toUpperCase();
-  if (tvaIntracomRaw && !/^FR\d{11}$/.test(tvaIntracomRaw)) {
-    afficherToast('⚠️ N° TVA intracom invalide (format FR + 11 chiffres)', 'error');
-    return;
+  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
+  if (tvaIntracomRaw) {
+    const validation = validerTVAIntracomFR(tvaIntracomRaw);
+    if (!validation.valid) {
+      afficherToast('⚠️ N° TVA intracom invalide : ' + (validation.message || 'format incorrect'), 'error');
+      return;
+    }
   }
-  const params = {
+  // BUG-002 fix : merge (ne pas écraser les champs Factur-X déjà saisis)
+  const paramsExistants = chargerObj('params_entreprise', {});
+  const params = Object.assign({}, paramsExistants, {
     nom:         document.getElementById('param-nom-entreprise')?.value.trim() || 'MCA Logistics',
     nomAdmin:    adminNom,
     siret:       siretRaw,
@@ -8886,7 +8989,7 @@ function sauvegarderParametres() {
     adresse:     document.getElementById('param-adresse')?.value.trim()         || '',
     tel:         document.getElementById('param-tel-entreprise')?.value.trim()  || '',
     email:       document.getElementById('param-email')?.value.trim()           || ''
-  };
+  });
   sauvegarder('params_entreprise', params);
   const comptes = getAdminAccounts();
   const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
@@ -10202,26 +10305,31 @@ function genererFactureLivraison(livId) {
   const numeroFacture = facture.numero;
   const clientFiche = (typeof trouverClientParLivraison === 'function') ? trouverClientParLivraison(livraison) : null;
   const mentionTVA = choisirMentionTVALegale(profile, clientFiche || { pays: livraison.clientPays, tvaIntracom: livraison.clientTvaIntracom }, tauxTVA);
+  // BUG-002 fix : template unifié avec mentions légales complètes (CGI 242 nonies A + L441-10 + D441-5)
+  const adresseEntreprise = [params.adresseLigne, (params.codePostal + ' ' + params.ville).trim(), params.pays && params.pays !== 'FR' ? params.pays : '']
+    .filter(Boolean).join(', ') || params.adresse;
   const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
     + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
     + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
-    + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
+    + (adresseEntreprise ? '<div>' + planningEscapeHtml(adresseEntreprise) + '</div>' : '')
     + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
     + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
     + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
     + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
-    + '</div></div>'
+    + '</div>'
+    + renderFactureMentionsEntrepriseHeader(params)
+    + '</div>'
     + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
     + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + planningEscapeHtml(numeroFacture) + '</div>'
-    + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateFacture + '</strong></div>'
-    + '<div style="font-size:.88rem;color:#4b5563">Paiement : <strong>' + planningEscapeHtml(datePaiement) + '</strong></div></div>'
+    + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date d\'émission : <strong>' + dateFacture + '</strong></div>'
+    + (livraison.date ? '<div style="font-size:.88rem;color:#4b5563">Date de livraison : <strong>' + planningEscapeHtml(formatDateExport(livraison.date)) + '</strong></div>' : '')
+    + '<div style="font-size:.88rem;color:#4b5563">Échéance : <strong>' + planningEscapeHtml(datePaiement) + '</strong></div></div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
     + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
     + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
-    + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(livraison.client || 'Client') + '</div>'
-    + (livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
+    + renderFactureClientBlock(livraison, clientFiche)
     + '</div>'
     + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
     + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
@@ -10243,7 +10351,8 @@ function genererFactureLivraison(livId) {
     + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>' + planningEscapeHtml(mentionTVA) + '</span><strong>' + euros(montantTVA) + '</strong></div>'
     + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#f59e0b">' + euros(montantTTC) + '</strong></div>'
     + '</div></div>'
-    + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
+    + renderFacturePiedMentionsLegales(params, livraison, clientFiche)
+    + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
     + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
     + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
     + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
@@ -10366,7 +10475,11 @@ function confirmerEditClient() {
   const notes      = document.getElementById('edit-cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
-  if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
+  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
+  if (tvaIntra) {
+    const __validTva = validerTVAIntracomFR(tvaIntra);
+    if (!__validTva.valid) { afficherToast('⚠️ TVA intracom invalide : ' + (__validTva.message || 'format incorrect'), 'error'); return; }
+  }
   const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
   if (idx>-1) {
@@ -19103,26 +19216,30 @@ function exporterPrevisionsPDF() {
     const numeroAffiche = isPreview
       ? '<span style="background:#f59e0b;color:#fff;padding:3px 10px;border-radius:6px;font-size:0.85rem">BROUILLON — non émise</span>'
       : planningEscapeHtml(numeroFacture);
+    const adresseComplete = [params.adresseLigne, (params.codePostal + ' ' + params.ville).trim(), params.pays && params.pays !== 'FR' ? params.pays : '']
+      .filter(Boolean).join(', ') || params.adresse;
     return '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827;background:#fff;border-radius:12px">'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
       + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
       + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
-      + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
+      + (adresseComplete ? '<div>' + planningEscapeHtml(adresseComplete) + '</div>' : '')
       + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
       + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
       + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
       + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
-      + '</div></div>'
+      + '</div>'
+      + renderFactureMentionsEntrepriseHeader(params)
+      + '</div>'
       + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
       + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + numeroAffiche + '</div>'
-      + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateFactureFmt + '</strong></div>'
-      + '<div style="font-size:.88rem;color:#4b5563">Paiement : <strong>' + planningEscapeHtml(datePaiementFmt) + '</strong></div></div>'
+      + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date d\'émission : <strong>' + dateFactureFmt + '</strong></div>'
+      + (livraison.date ? '<div style="font-size:.88rem;color:#4b5563">Date de livraison : <strong>' + planningEscapeHtml(formatDateExport(livraison.date)) + '</strong></div>' : '')
+      + '<div style="font-size:.88rem;color:#4b5563">Échéance : <strong>' + planningEscapeHtml(datePaiementFmt) + '</strong></div></div>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
       + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
       + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
-      + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(livraison.client || 'Client') + '</div>'
-      + (livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
+      + renderFactureClientBlock(livraison, clientFichePdf)
       + '</div>'
       + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
       + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
@@ -19144,7 +19261,8 @@ function exporterPrevisionsPDF() {
       + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>' + planningEscapeHtml(mentionTVA) + '</span><strong>' + euros(montantTVA) + '</strong></div>'
       + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#f59e0b">' + euros(montantTTC) + '</strong></div>'
       + '</div></div>'
-      + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
+      + renderFacturePiedMentionsLegales(params, livraison, clientFichePdf)
+      + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
       + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
       + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
       + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
