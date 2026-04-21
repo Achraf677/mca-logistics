@@ -18,14 +18,14 @@
   <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
   <link rel="apple-touch-icon" href="icon.svg" />
   <style>
-    /* Critical CSS inline — anti-FOUC (masque les sections .page avant que style.css ne soit parsé) */
+    /* Critical CSS inline — anti-FOUC (masque tout le body pendant le boot JS) */
     html { background: #0d1524; }
     body.app-shell { background: #0d1524; color: #e5e7eb; margin: 0; }
     section.page { display: none; }
     section.page.active { display: block; }
-    body.app-shell.app-booting .main-content { opacity: 0; }
-    body.app-shell.app-booting .sidebar,
-    body.app-shell.app-booting .topbar { visibility: hidden; }
+    /* Masquage dur : aucune section .page n'est visible tant que le boot n'a pas terminé */
+    body.app-shell.app-booting { visibility: hidden !important; opacity: 0 !important; }
+    body.app-shell:not(.app-booting) { transition: opacity .25s ease; }
   </style>
   <link rel="stylesheet" href="style.css?v=20260412-3" />
   <script defer src="chart.min.js"></script>

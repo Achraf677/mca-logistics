@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mca-logistics-shell-v3';
+const CACHE_NAME = 'mca-logistics-shell-v4';
 const OFFLINE_ASSETS = [
   './',
   './index.html',
