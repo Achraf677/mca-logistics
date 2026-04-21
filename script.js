@@ -2643,9 +2643,13 @@ function openModal(id)  {
   mettreAJourSelects();
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  // BUG-022 fix : éviter de pousser 2× la même modale dans le focus stack.
+  const existsInStack = __modalFocusStack.some(function(s){ return s.modalId === id; });
   overlay.classList.add('open');
   __appliquerA11yModale(overlay);
-  __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
+  if (!existsInStack) {
+    __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
+  }
   if (__modalFocusStack.length === 1) {
     document.addEventListener('keydown', __modalTrapKeydown);
   }
@@ -2694,6 +2698,14 @@ function closeModal(id) {
   if (id === 'modal-edit-client') { _editClientId = null; }
   if (id === 'modal-vehicule') { window._editVehId = null; resetModalVehiculeToCreateMode(); }
   ['alerte-rent','profit-recap'].forEach(i => { const e = document.getElementById(i); if (e) e.style.display='none'; });
+  // BUG-023 fix : purge défensive des backdrops orphelins (injectés par des modales
+  // externes type tippy, swal, etc.) quand le stack devient vide.
+  if (!__modalFocusStack.length) {
+    document.body.classList.remove('modal-open');
+    document.querySelectorAll('.modal-backdrop:not([data-keep])').forEach(function(el){
+      try { el.parentNode && el.parentNode.removeChild(el); } catch(_) {}
+    });
+  }
 }
 document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id); });
 
@@ -9000,6 +9012,11 @@ function sauvegarderParametres() {
   sessionStorage.setItem('admin_nom', adminNom);
   chargerNomEntreprise();
   appliquerBranding();
+  // BUG-020 fix : rafraîchir le formulaire pour refléter immédiatement la valeur
+  // normalisée (ex. TVA intracom nettoyée, SIRET formaté, capital, forme juridique).
+  if (typeof chargerParametres === 'function') {
+    try { chargerParametres(); } catch (_) { /* silencieux : non bloquant */ }
+  }
   ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + ' · SIRET ' + siretRaw);
   afficherToast('✅ Paramètres enregistrés');
 }
@@ -30149,10 +30166,13 @@ function exporterPrevisionsPDF() {
   window.s30_3InjectParamsEntreprise = function() {
     const page = document.getElementById('page-parametres');
     if (!page) return;
+    // BUG-003 fix : garde globale sur l'ID (le bloc peut être appendé à un parent
+    // différent de celui qui est inspecté → ancienne garde locale produisait les
+    // duplications observées toutes les 6 s via setInterval).
+    if (document.getElementById('s303-params-ext')) return;
     // Chercher le bloc params entreprise existant
     const blocEnt = page.querySelector('[data-s29-section="entreprise"]') || page.querySelector('.params-card-wide');
     if (!blocEnt) return;
-    if (blocEnt.querySelector('#s303-params-ext')) return;
     const p = getParams();
     const box = document.createElement('div');
     box.id = 's303-params-ext';
@@ -30201,8 +30221,12 @@ function exporterPrevisionsPDF() {
     // depuis les menus dropdown existants via events custom.
   }
 
+  // BUG-003 fix : arrête le polling dès que le formulaire est injecté.
   setTimeout(() => window.s30_3InjectParamsEntreprise(), 2500);
-  setInterval(() => window.s30_3InjectParamsEntreprise(), 6000);
+  const __s303Poll = setInterval(() => {
+    window.s30_3InjectParamsEntreprise();
+    if (document.getElementById('s303-params-ext')) clearInterval(__s303Poll);
+  }, 6000);
 })();
 
 /* =====================================================================
