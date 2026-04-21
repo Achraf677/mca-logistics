@@ -1,0 +1,53 @@
+{
+  "name": "MCA Logistics — Gestion Livraison",
+  "short_name": "MCA Logistics",
+  "description": "Mini-ERP transport/logistique : livraisons, facturation, planning, conformité fiscale FR.",
+  "lang": "fr-FR",
+  "dir": "ltr",
+  "start_url": "./login.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#0d1524",
+  "theme_color": "#0d1524",
+  "categories": ["business", "productivity", "finance"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouvelle livraison",
+      "short_name": "Livraison",
+      "description": "Créer une livraison rapidement",
+      "url": "./admin.html#livraisons?action=new",
+      "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Facturation",
+      "short_name": "Factures",
+      "description": "Voir les factures émises",
+      "url": "./admin.html#facturation",
+      "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Planning",
+      "short_name": "Planning",
+      "description": "Gérer le planning chauffeurs",
+      "url": "./admin.html#planning",
+      "icons": [{ "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

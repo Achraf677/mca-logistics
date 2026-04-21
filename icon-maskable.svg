@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0d1524"/>
+  <g transform="translate(256 256)">
+    <g transform="translate(-90 -32)">
+      <rect x="0" y="0" width="115" height="64" rx="6" fill="#f2a33b"/>
+      <rect x="115" y="16" width="65" height="48" rx="6" fill="#f2a33b"/>
+      <rect x="125" y="26" width="45" height="28" rx="3" fill="#0d1524"/>
+      <circle cx="32" cy="72" r="14" fill="#0d1524"/>
+      <circle cx="32" cy="72" r="7" fill="#f2a33b"/>
+      <circle cx="148" cy="72" r="14" fill="#0d1524"/>
+      <circle cx="148" cy="72" r="7" fill="#f2a33b"/>
+    </g>
+  </g>
+  <text x="256" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="800" fill="#f2a33b" letter-spacing="2">MCA</text>
+</svg>
