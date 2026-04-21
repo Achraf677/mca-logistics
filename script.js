@@ -290,6 +290,49 @@ function sauvegarder(cle, val) {
   }
 }
 function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
+
+// BUG-050 fix : purge défensive de données corrompues ou de test résiduelles en localStorage.
+// Exécuté une seule fois au chargement du script, avant toute lecture métier.
+(function purgerDonneesCorrompuesAuBoot() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const MARQUEURS_INVALIDES = ['xxxxxxxGAR', 'xxxxxxGAR', 'undefined', '[object Object]'];
+    const CLES_JSON = [
+      'factures_emises', 'livraisons', 'clients', 'fournisseurs',
+      'vehicules', 'salaries', 'employes', 'charges', 'entretiens',
+      'paiements', 'avoirs_emis', 'immobilisations', 'amortissements_dotations',
+      'cloture_ajustements', 'audit_log'
+    ];
+    let purges = 0;
+    CLES_JSON.forEach(function (cle) {
+      const raw = localStorage.getItem(cle);
+      if (!raw) return;
+      // Marqueurs de corruption connus (données de test DEMO non purgées)
+      const contientMarqueur = MARQUEURS_INVALIDES.some(function (m) {
+        return raw.indexOf(m) !== -1;
+      });
+      if (contientMarqueur) {
+        console.warn('[MCA] Purge "' + cle + '" (données de test détectées).');
+        localStorage.removeItem(cle);
+        purges++;
+        return;
+      }
+      // JSON invalide
+      try { JSON.parse(raw); }
+      catch (_) {
+        console.warn('[MCA] Purge "' + cle + '" (JSON invalide).');
+        localStorage.removeItem(cle);
+        purges++;
+      }
+    });
+    if (purges > 0) {
+      console.info('[MCA] ' + purges + ' clé(s) de stockage corrompue(s) purgée(s).');
+    }
+  } catch (e) {
+    console.warn('[MCA] Purge boot stockage : échec silencieux.', e);
+  }
+})();
+
 // genId — identifiant unique. Préfère crypto.randomUUID() (RFC 4122 v4, collision ~0).
 // Fallback getRandomValues pour 16 octets aléatoires, puis Math.random en dernier recours.
 function genId() {
@@ -1279,9 +1322,23 @@ function getDefaultAdminAccounts() {
     { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: '' }
   ];
 }
+function adminCompteEstConfigureLocal(compte) {
+  if (!compte) return false;
+  const hash = typeof compte.motDePasseHash === 'string' ? compte.motDePasseHash.trim() : '';
+  if (hash.length >= 10) return true;
+  const legacy = typeof compte.motDePasse === 'string' ? compte.motDePasse.trim() : '';
+  return legacy.length > 0;
+}
 function getAdminAccounts() {
   const comptesExistants = chargerObj('admin_accounts', null);
-  if (Array.isArray(comptesExistants) && comptesExistants.length) return comptesExistants;
+  if (Array.isArray(comptesExistants) && comptesExistants.length) {
+    // BUG-052 : purge les comptes sans mot de passe configuré (hash vide ou trop court)
+    const valides = comptesExistants.filter(adminCompteEstConfigureLocal);
+    if (valides.length !== comptesExistants.length) {
+      sauvegarder('admin_accounts', valides);
+    }
+    if (valides.length) return valides;
+  }
   // BUG-020 : si une clé legacy 'mdp_admin' existe (migration), on l'utilise pour le 1er compte.
   // Sinon, comptes créés sans mot de passe → login.html force le setup initial.
   const legacyPassword = localStorage.getItem('mdp_admin') || '';
@@ -1293,7 +1350,9 @@ function getAdminAccounts() {
   return comptes;
 }
 function saveAdminAccounts(comptes) {
-  sauvegarder('admin_accounts', comptes);
+  // BUG-052 : ne jamais persister un compte admin sans mot de passe
+  const valides = Array.isArray(comptes) ? comptes.filter(adminCompteEstConfigureLocal) : [];
+  sauvegarder('admin_accounts', valides);
 }
 function getSecurityHelper() {
   return window.DelivProSecurity || null;
@@ -6597,29 +6656,81 @@ function construireLignesFEC() {
   });
 }
 
+// BUG-049 fix : FEC au format normé DGFiP (arrêté 29/07/2013)
+// - séparateur pipe `|`, encodage UTF-8 avec BOM
+// - extension .txt, nom `{SIREN}FEC{AAAAMMJJ}.txt`
+// - montants en format français (virgule, 2 décimales)
+// - dates au format AAAAMMJJ
+function fmtMontantFEC(valeur) {
+  const n = parseFloat(valeur);
+  if (!valeur || !Number.isFinite(n) || n === 0) return '';
+  return n.toFixed(2).replace('.', ',');
+}
+function nettoyerChampFEC(valeur) {
+  return String(valeur == null ? '' : valeur).replace(/[\r\n\t|]/g, ' ').trim();
+}
 function exporterFEC() {
+  const COLONNES_FEC = [
+    'JournalCode', 'JournalLib', 'EcritureNum', 'EcritureDate',
+    'CompteNum', 'CompteLib', 'CompAuxNum', 'CompAuxLib',
+    'PieceRef', 'PieceDate', 'EcritureLib', 'Debit', 'Credit',
+    'EcritureLet', 'DateLet', 'ValidDate', 'Montantdevise', 'Idevise'
+  ];
   const lignes = construireLignesFEC();
-  exporterCSV(lignes, [
-    { label:'JournalCode', get:function(r){ return r.JournalCode; } },
-    { label:'JournalLib', get:function(r){ return r.JournalLib; } },
-    { label:'EcritureNum', get:function(r){ return r.EcritureNum; } },
-    { label:'EcritureDate', get:function(r){ return r.EcritureDate; } },
-    { label:'CompteNum', get:function(r){ return r.CompteNum; } },
-    { label:'CompteLib', get:function(r){ return r.CompteLib; } },
-    { label:'CompAuxNum', get:function(r){ return r.CompAuxNum; } },
-    { label:'CompAuxLib', get:function(r){ return r.CompAuxLib; } },
-    { label:'PieceRef', get:function(r){ return r.PieceRef; } },
-    { label:'PieceDate', get:function(r){ return r.PieceDate; } },
-    { label:'EcritureLib', get:function(r){ return r.EcritureLib; } },
-    { label:'Debit', get:function(r){ return r.Debit; } },
-    { label:'Credit', get:function(r){ return r.Credit; } },
-    { label:'EcritureLet', get:function(r){ return r.EcritureLet; } },
-    { label:'DateLet', get:function(r){ return r.DateLet; } },
-    { label:'ValidDate', get:function(r){ return r.ValidDate; } },
-    { label:'Montantdevise', get:function(r){ return r.Montantdevise; } },
-    { label:'Idevise', get:function(r){ return r.Idevise; } }
-  ], 'fec-mca-logistics.csv');
-  ajouterEntreeAudit('Export FEC', lignes.length + ' ligne(s) exportée(s)');
+  const params = chargerObj('params_entreprise', {});
+  const siretClean = String(params.siret || '').replace(/\D/g, '');
+  const siren = siretClean.length >= 9 ? siretClean.slice(0, 9) : 'SIREN00000';
+
+  // Date de clôture = plus grande date de pièce, sinon fin d'année courante
+  let dateCloture = '';
+  for (const l of lignes) {
+    if (l.PieceDate && l.PieceDate > dateCloture) dateCloture = l.PieceDate;
+  }
+  if (!dateCloture) {
+    const an = new Date().getFullYear();
+    dateCloture = String(an) + '1231';
+  }
+
+  const entete = COLONNES_FEC.join('|');
+  const corps = lignes.map(function (r) {
+    return [
+      nettoyerChampFEC(r.JournalCode),
+      nettoyerChampFEC(r.JournalLib),
+      nettoyerChampFEC(r.EcritureNum),
+      nettoyerChampFEC(r.EcritureDate),
+      nettoyerChampFEC(r.CompteNum),
+      nettoyerChampFEC(r.CompteLib),
+      nettoyerChampFEC(r.CompAuxNum),
+      nettoyerChampFEC(r.CompAuxLib),
+      nettoyerChampFEC(r.PieceRef),
+      nettoyerChampFEC(r.PieceDate),
+      nettoyerChampFEC(r.EcritureLib),
+      fmtMontantFEC(r.Debit),
+      fmtMontantFEC(r.Credit),
+      nettoyerChampFEC(r.EcritureLet),
+      nettoyerChampFEC(r.DateLet),
+      nettoyerChampFEC(r.ValidDate),
+      fmtMontantFEC(r.Montantdevise),
+      nettoyerChampFEC(r.Idevise)
+    ].join('|');
+  });
+
+  const contenu = '﻿' + [entete].concat(corps).join('\r\n');
+  const nomFichier = siren + 'FEC' + dateCloture + '.txt';
+  const blob = new Blob([contenu], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nomFichier;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+  ajouterEntreeAudit('Export FEC', lignes.length + ' ligne(s) exportée(s) → ' + nomFichier);
+  if (typeof afficherToast === 'function') {
+    afficherToast('✅ FEC exporté (' + lignes.length + ' ligne' + (lignes.length > 1 ? 's' : '') + ')');
+  }
 }
 
 function getLivraisonsFiltresActifs() {
