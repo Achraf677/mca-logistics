@@ -3,6 +3,189 @@
    ===================================================== */
 
 /* ===== UTILITAIRES ===== */
+// BUG-022 fix : toISOString() convertit en UTC → décalage d'un jour si fuseau != UTC.
+// toLocalISODate() retourne YYYY-MM-DD dans le fuseau local (utilisé partout à la place de toISOString().slice(0,10)).
+if (!Date.prototype.toLocalISODate) {
+  Date.prototype.toLocalISODate = function() {
+    if (isNaN(this.getTime())) return '';
+    const y = this.getFullYear();
+    const m = String(this.getMonth() + 1).padStart(2, '0');
+    const d = String(this.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  };
+}
+if (!Date.prototype.toLocalISOMonth) {
+  Date.prototype.toLocalISOMonth = function() {
+    if (isNaN(this.getTime())) return '';
+    const y = this.getFullYear();
+    const m = String(this.getMonth() + 1).padStart(2, '0');
+    return y + '-' + m;
+  };
+}
+
+// BUG-012 fix : escape HTML/attribute centralisés — source unique de vérité pour prévenir XSS.
+// Exposés sur window + fonctions nommées hoistées (disponibles dans tous les scopes IIFE/helpers).
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&<>"']/g, function(c) {
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+function escapeAttr(s) {
+  if (s == null) return '';
+  return String(s).replace(/[&"<>]/g, function(c) {
+    return ({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'})[c];
+  });
+}
+window.escapeHtml = escapeHtml;
+window.escapeAttr = escapeAttr;
+window.escHtml = escapeHtml; // alias attendu par certains call sites existants
+
+// BUG-009 fix : validateurs SIRET (Luhn) + IBAN (mod-97)
+function validerSIRET(siret) {
+  const s = String(siret || '').replace(/\s+/g, '');
+  if (!/^\d{14}$/.test(s)) return false;
+  // Algorithme de Luhn : positions impaires (depuis la droite) ×1, paires ×2
+  let sum = 0;
+  for (let i = 0; i < 14; i++) {
+    let n = parseInt(s[13 - i], 10);
+    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+  }
+  // Exception La Poste : SIRET 356000000XXXXX accepté par DGFiP si somme chiffres = multiple de 5
+  if (s.startsWith('356000000')) {
+    let sumPoste = 0;
+    for (const c of s) sumPoste += parseInt(c, 10);
+    return sumPoste % 5 === 0;
+  }
+  return sum % 10 === 0;
+}
+
+function validerIBAN(iban) {
+  const s = String(iban || '').replace(/\s+/g, '').toUpperCase();
+  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+  // Longueurs officielles ISO 13616 par pays (principaux)
+  const longueurs = { FR: 27, BE: 16, DE: 22, IT: 27, ES: 24, PT: 25, NL: 18, LU: 20, CH: 21, MC: 27, GB: 22, IE: 22, AT: 20, FI: 18, DK: 18, SE: 24, NO: 15, PL: 28, AD: 24, MT: 31 };
+  const pays = s.slice(0, 2);
+  if (longueurs[pays] && s.length !== longueurs[pays]) return false;
+  // Mod-97 : déplace 4 premiers en fin, convertit lettres → nombres (A=10…Z=35), vérifie mod 97 === 1
+  const rearrange = s.slice(4) + s.slice(0, 4);
+  let numeric = '';
+  for (const c of rearrange) {
+    if (/\d/.test(c)) numeric += c;
+    else numeric += (c.charCodeAt(0) - 55).toString();
+  }
+  // Calcul mod 97 par morceaux (BigInt alternative)
+  let remainder = '';
+  for (const d of numeric) {
+    remainder = (remainder + d);
+    if (remainder.length >= 9) {
+      remainder = String(parseInt(remainder, 10) % 97);
+    }
+  }
+  return parseInt(remainder, 10) % 97 === 1;
+}
+
+// BUG-014 fix : guard double-clic — debounce sur boutons d'action (Créer/Générer/Valider/Enregistrer/Payer/Sauvegarder).
+// Détecte via label + attributs. Ignore les boutons de fermeture, navigation, tri, etc.
+(function() {
+  if (window.__delivproDoubleClickGuardInstalled) return;
+  window.__delivproDoubleClickGuardInstalled = true;
+  const GUARD_DELAY_MS = 700;
+  const DECLENCHEURS = /^(cr[ée]er|g[ée]n[ée]rer|valider|enregistrer|sauvegarder|payer|confirmer|envoyer|ajouter|soumettre|transmettre)/i;
+  function estBoutonAction(el) {
+    if (!(el instanceof HTMLElement)) return false;
+    if (el.tagName !== 'BUTTON') return false;
+    if (el.type === 'reset') return false;
+    if (el.hasAttribute('data-no-guard')) return false;
+    if (el.closest('.modal-header, .modal-close, .sidebar, .topbar-user-menu, .pagination, thead, .filters')) return false;
+    const txt = (el.textContent || '').trim();
+    if (!txt) return false;
+    if (el.classList.contains('btn-primary') || el.classList.contains('btn-success')) return DECLENCHEURS.test(txt);
+    return DECLENCHEURS.test(txt);
+  }
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('button');
+    if (!estBoutonAction(btn)) return;
+    if (btn.__delivproBusy) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    btn.__delivproBusy = true;
+    const prevDisabled = btn.disabled;
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    setTimeout(function() {
+      btn.__delivproBusy = false;
+      btn.disabled = prevDisabled;
+      btn.removeAttribute('aria-busy');
+    }, GUARD_DELAY_MS);
+  }, true);
+})();
+
+// BUG-029 fix : garde popup blocker — toute ouverture passe par ouvrirPopupSecure() qui détecte le blocage et notifie.
+// Centralisation : un seul site à auditer si on change le message / le fallback.
+function ouvrirPopupSecure(url, cible, opts) {
+  var win = null;
+  try {
+    win = window.open(url || '', cible || '_blank', opts || '');
+  } catch (e) {
+    win = null;
+  }
+  if (!win || win.closed || typeof win.closed === 'undefined') {
+    if (typeof afficherToast === 'function') {
+      afficherToast('⚠️ Fenêtre bloquée par le navigateur — autorisez les popups pour ce site', 'error');
+    } else {
+      console.warn('[MCA] Popup bloquée par le navigateur:', url);
+    }
+    return null;
+  }
+  return win;
+}
+window.ouvrirPopupSecure = ouvrirPopupSecure;
+
+// BUG-018/019/031 fix : registre global + cleanup au unload (timers + observers orphelins).
+// Monkey-patch non invasif : les 35 setInterval et les MutationObserver existants sont captés automatiquement.
+if (!window.__delivproLifecyclePatched) {
+  window.__delivproLifecyclePatched = true;
+  window.__delivproIntervals = new Set();
+  window.__delivproObservers = new Set();
+
+  const nativeSetInterval = window.setInterval;
+  const nativeClearInterval = window.clearInterval;
+  window.setInterval = function() {
+    const id = nativeSetInterval.apply(this, arguments);
+    try { window.__delivproIntervals.add(id); } catch(e) {}
+    return id;
+  };
+  window.clearInterval = function(id) {
+    try { window.__delivproIntervals.delete(id); } catch(e) {}
+    return nativeClearInterval.call(this, id);
+  };
+
+  if (typeof window.MutationObserver === 'function') {
+    const NativeMO = window.MutationObserver;
+    function PatchedMO(cb) {
+      const inst = new NativeMO(cb);
+      try { window.__delivproObservers.add(inst); } catch(e) {}
+      const nativeDisc = inst.disconnect.bind(inst);
+      inst.disconnect = function() {
+        try { window.__delivproObservers.delete(inst); } catch(e) {}
+        return nativeDisc();
+      };
+      return inst;
+    }
+    PatchedMO.prototype = NativeMO.prototype;
+    window.MutationObserver = PatchedMO;
+  }
+
+  window.addEventListener('beforeunload', function() {
+    try { window.__delivproIntervals.forEach(function(id){ try { nativeClearInterval(id); } catch(e) {} }); } catch(e) {}
+    try { window.__delivproObservers.forEach(function(o){ try { o.disconnect(); } catch(e) {} }); } catch(e) {}
+  });
+}
+
 const STORAGE_CACHE = new Map();
 let lastStorageWarningAt = 0;
 
@@ -77,7 +260,19 @@ function lireStockageJSON(cle, fallback) {
   }
 }
 
+// logMCA — wrapper console.log conditionnel. Désactivé en prod (BUG-034).
+// Activer via : localStorage.setItem('mca_debug', '1') puis recharger.
+window.__MCA_DEBUG = window.__MCA_DEBUG || (function(){ try { return localStorage.getItem('mca_debug') === '1'; } catch(e){ return false; } })();
+function logMCA() { if (window.__MCA_DEBUG && typeof console !== 'undefined' && console.log) console.log.apply(console, arguments); }
+window.logMCA = logMCA;
+
 function charger(cle)          { return lireStockageJSON(cle, []); }
+// loadSafe : alias global pour JSON.parse résilient du localStorage.
+// Usage : loadSafe('factures_emises', []) ou loadSafe('params', {}).
+// Toujours préférer à loadSafe(..., []) qui crash sur corruption.
+function loadSafe(cle, fallback) { return lireStockageJSON(cle, fallback !== undefined ? fallback : []); }
+window.loadSafe = loadSafe;
+window.lireStockageJSON = lireStockageJSON;
 function sauvegarder(cle, val) {
   try {
     const raw = JSON.stringify(val);
@@ -95,7 +290,23 @@ function sauvegarder(cle, val) {
   }
 }
 function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
-function genId()               { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+// genId — identifiant unique. Préfère crypto.randomUUID() (RFC 4122 v4, collision ~0).
+// Fallback getRandomValues pour 16 octets aléatoires, puis Math.random en dernier recours.
+function genId() {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+      const b = new Uint8Array(16);
+      crypto.getRandomValues(b);
+      b[6] = (b[6] & 0x0f) | 0x40; // version 4
+      b[8] = (b[8] & 0x3f) | 0x80; // variant 10
+      const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
+      return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
+    }
+  } catch(e) {}
+  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
+}
+window.genId = genId;
 function dateToLocalISO(date)  {
   const d = date instanceof Date ? new Date(date) : new Date(date);
   if (Number.isNaN(d.getTime())) return '';
@@ -237,49 +448,156 @@ function renderLogoEntrepriseExport() {
     ? `<img src="${logo}" alt="Logo entreprise" class="export-logo" style="width:62px;height:62px;object-fit:contain;border-radius:14px;border:1px solid #e5e7eb;background:#fff;padding:6px" />`
     : '';
 }
-function calculerAmortissementVehicule(veh) {
-  const ht = parseFloat(veh?.prixAchatHT) || 0;
-  const duree = parseFloat(veh?.dureeAmortissement) || 0;
-  const mode = veh?.modeAmortissement === 'degressif' ? 'degressif' : 'lineaire';
-  const valeurRebut = parseFloat(veh?.valeurMiseAuRebut) || 0;
-  const baseAmortissable = Math.max(0, ht - valeurRebut);
-  if (!baseAmortissable || !duree) {
-    return { annuel: 0, mensuel: 0, cumule: 0, reste: baseAmortissable, mode, prorataPremierExercice: 0 };
+// ==========================================================================
+// AMORTISSEMENT — moteur unifié (CGI art. 39 A, PCG base 360)
+// Sert aux véhicules (calculerAmortissementVehicule) ET aux immobilisations
+// générales (s30CalculerPlan). Coefficients dégressifs fiscaux :
+//   durée 3-4 ans → 1.25 · 5-6 ans → 1.75 · 7+ ans → 2.25
+// Switchover automatique vers le taux linéaire résiduel en dégressif.
+// ==========================================================================
+function coefAmortissementDegressif(duree) {
+  const d = Number(duree) || 0;
+  if (d >= 3 && d <= 4) return 1.25;
+  if (d >= 5 && d <= 6) return 1.75;
+  if (d >= 7) return 2.25;
+  return 1;
+}
+window.coefAmortissementDegressif = coefAmortissementDegressif;
+
+function construirePlanAmortissement(opts) {
+  opts = opts || {};
+  const valeurHT = parseFloat(opts.valeurHT) || 0;
+  const valeurRebut = parseFloat(opts.valeurRebut) || 0;
+  const base = Math.max(0, valeurHT - valeurRebut);
+  const duree = Math.max(0, Math.round(Number(opts.dureeAnnees) || 0));
+  const mode = opts.mode === 'degressif' ? 'degressif' : 'lineaire';
+  const parseISO = (s) => {
+    if (!s) return null;
+    const str = String(s);
+    const d = new Date(str.length <= 10 ? str + 'T00:00:00' : str);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+  const dateMes = parseISO(opts.dateMiseEnService);
+  const dateCession = parseISO(opts.dateCession);
+  const refDate = parseISO(opts.dateReference) || new Date();
+  const plan = [];
+  const empty = {
+    plan, mode, base, duree,
+    coefficient: mode === 'degressif' ? coefAmortissementDegressif(duree) : 1,
+    dotationAnnuelleTheorique: 0, dotationMensuelleTheorique: 0,
+    cumuleAujourdHui: 0, reste: base,
+    prorataPremierExercice: 0
+  };
+  if (!base || !duree || !dateMes) return empty;
+
+  const anneeStart = dateMes.getFullYear();
+  const jourDebut = dateMes.getDate();
+  const moisDebut = dateMes.getMonth() + 1;
+  const joursAnnee1 = Math.max(0, (12 - moisDebut) * 30 + (30 - jourDebut + 1));
+  const proRata1 = joursAnnee1 / 360;
+
+  if (mode === 'lineaire') {
+    const dotationComplete = round2(base / duree);
+    const dotationAnnee1 = round2(dotationComplete * proRata1);
+    let vnc = base, restant = base;
+    const d1 = Math.min(dotationAnnee1, restant);
+    vnc = round2(vnc - d1); restant = round2(restant - d1);
+    plan.push({ annee: anneeStart, dotation: d1, vnc, base, proRata: Math.round(proRata1 * 100) });
+    let anneesUtilisees = proRata1;
+    let year = anneeStart + 1;
+    while (restant > 0.01 && anneesUtilisees < duree + 1.1) {
+      const anneesRestantes = Math.max(1, duree - anneesUtilisees);
+      let dot = (anneesRestantes >= 1) ? dotationComplete : round2(dotationComplete * anneesRestantes);
+      if (dot > restant) dot = round2(restant);
+      vnc = round2(vnc - dot); restant = round2(restant - dot);
+      plan.push({ annee: year, dotation: dot, vnc, base, proRata: 100 });
+      year++; anneesUtilisees += 1;
+      if (plan.length > 40) break;
+    }
+  } else {
+    const coef = coefAmortissementDegressif(duree);
+    const tauxDegressif = duree > 0 ? (1 / duree) * coef : 0;
+    let vnc = base;
+    for (let i = 0; i < duree; i++) {
+      const annee = anneeStart + i;
+      const anneesRestantes = duree - i;
+      const tauxLineaireResid = anneesRestantes > 0 ? 1 / anneesRestantes : 0;
+      const tauxEffectif = Math.max(tauxDegressif, tauxLineaireResid);
+      let dot = vnc * tauxEffectif;
+      if (i === 0) {
+        const moisRestants = 13 - moisDebut;
+        dot = vnc * tauxDegressif * (moisRestants / 12);
+      }
+      dot = round2(dot);
+      if (dot > vnc) dot = round2(vnc);
+      vnc = round2(vnc - dot);
+      plan.push({ annee, dotation: dot, vnc, base, proRata: i === 0 ? Math.round(((13 - moisDebut) / 12) * 100) : 100 });
+      if (vnc <= 0.01) break;
+    }
+    if (vnc > 0.01 && plan.length > 0) {
+      plan[plan.length - 1].dotation = round2(plan[plan.length - 1].dotation + vnc);
+      plan[plan.length - 1].vnc = 0;
+    }
   }
-  const annees = parseFloat(duree) || 0;
-  const coefficientDegressif = annees >= 7 ? 2.25 : annees >= 5 ? 1.75 : annees >= 3 ? 1.25 : 1;
-  const tauxLineaire = annees > 0 ? 1 / annees : 0;
-  const tauxAnnuel = mode === 'degressif' ? (tauxLineaire * coefficientDegressif) : tauxLineaire;
-  const annuel = baseAmortissable * tauxAnnuel;
-  const mensuel = annuel / 12;
-  const dateAcq = veh?.dateAcquisition ? new Date(veh.dateAcquisition + 'T00:00:00') : null;
-  let moisEcoules = 0;
-  let prorataPremierExercice = 0;
-  if (dateAcq && !Number.isNaN(dateAcq.getTime())) {
-    const now = new Date();
-    moisEcoules = Math.max(0, (now.getFullYear() - dateAcq.getFullYear()) * 12 + (now.getMonth() - dateAcq.getMonth()));
-    if (now.getDate() < dateAcq.getDate()) moisEcoules = Math.max(0, moisEcoules - 1);
-    const finExercice = new Date(dateAcq.getFullYear(), 11, 31);
-    const debutExercice = new Date(dateAcq.getFullYear(), 0, 1);
-    const joursExercice = Math.max(1, Math.round((finExercice - debutExercice) / 86400000) + 1);
-    const joursRestants = Math.max(0, Math.round((finExercice - dateAcq) / 86400000) + 1);
-    prorataPremierExercice = joursRestants / joursExercice;
-  }
-  const dateRebut = veh?.dateMiseAuRebut ? new Date(veh.dateMiseAuRebut + 'T00:00:00') : null;
-  if (dateRebut && dateAcq && !Number.isNaN(dateRebut.getTime()) && dateRebut > dateAcq) {
-    const moisRebut = Math.max(0, (dateRebut.getFullYear() - dateAcq.getFullYear()) * 12 + (dateRebut.getMonth() - dateAcq.getMonth()));
-    moisEcoules = Math.min(moisEcoules, moisRebut);
-  }
-  const cumule = Math.min(baseAmortissable, mensuel * Math.min(moisEcoules, Math.round(duree * 12)));
+
+  // Synthèse (dotations "typiques" + cumul à la date de référence)
+  const dotationAnnuelleTheorique = round2(base / Math.max(1, duree));
+  const dotationMensuelleTheorique = round2(dotationAnnuelleTheorique / 12);
+  const stopDate = (dateCession && dateCession < refDate) ? dateCession : refDate;
+  let cumule = 0;
+  plan.forEach(l => {
+    if (l.annee < stopDate.getFullYear()) {
+      cumule += l.dotation;
+    } else if (l.annee === stopDate.getFullYear()) {
+      const moisEcoulesDansAnnee = stopDate.getMonth() + 1;
+      cumule += l.dotation * (moisEcoulesDansAnnee / 12);
+    }
+  });
+  cumule = Math.min(base, round2(cumule));
+
   return {
-    annuel,
-    mensuel,
-    cumule,
-    reste: Math.max(0, baseAmortissable - cumule),
-    mode,
-    prorataPremierExercice
+    plan, mode, base, duree,
+    coefficient: mode === 'degressif' ? coefAmortissementDegressif(duree) : 1,
+    dotationAnnuelleTheorique,
+    dotationMensuelleTheorique,
+    cumuleAujourdHui: cumule,
+    reste: Math.max(0, round2(base - cumule)),
+    prorataPremierExercice: proRata1
   };
 }
+window.construirePlanAmortissement = construirePlanAmortissement;
+
+function calculerAmortissementVehicule(veh) {
+  const ht = parseFloat(veh?.prixAchatHT) || 0;
+  const valeurRebut = parseFloat(veh?.valeurMiseAuRebut) || 0;
+  const duree = parseFloat(veh?.dureeAmortissement) || 0;
+  const mode = veh?.modeAmortissement === 'degressif' ? 'degressif' : 'lineaire';
+  const base = Math.max(0, ht - valeurRebut);
+  if (!base || !duree) {
+    return { annuel: 0, mensuel: 0, cumule: 0, reste: base, mode, prorataPremierExercice: 0 };
+  }
+  const built = construirePlanAmortissement({
+    valeurHT: ht,
+    valeurRebut,
+    dureeAnnees: duree,
+    mode,
+    dateMiseEnService: veh?.dateAcquisition || '',
+    dateCession: veh?.dateMiseAuRebut || ''
+  });
+  // "Annuel" = annuité théorique affichée en flotte (base × taux nominal)
+  const tauxLineaire = duree > 0 ? 1 / duree : 0;
+  const coef = mode === 'degressif' ? coefAmortissementDegressif(duree) : 1;
+  const annuel = base * tauxLineaire * coef;
+  return {
+    annuel,
+    mensuel: annuel / 12,
+    cumule: built.cumuleAujourdHui,
+    reste: built.reste,
+    mode,
+    prorataPremierExercice: built.prorataPremierExercice
+  };
+}
+window.calculerAmortissementVehicule = calculerAmortissementVehicule;
 function formaterTaux(value) {
   const n = parseFloat(value);
   return Number.isFinite(n) ? n.toFixed(n % 1 === 0 ? 0 : 2) + ' %' : '—';
@@ -399,6 +717,43 @@ function getTVARegimeLabel(regime) {
 
 function getTVAActiviteLabel(type) {
   return type === 'goods' ? 'Livraisons de biens' : 'Prestations de services';
+}
+
+// BUG-011 : retrouve la fiche client liée à une livraison via clientId (priorité) ou nom (fallback).
+function trouverClientParLivraison(livraison) {
+  if (!livraison || typeof charger !== 'function') return null;
+  try {
+    const clients = charger('clients') || [];
+    if (livraison.clientId) {
+      const byId = clients.find(c => c && c.id === livraison.clientId);
+      if (byId) return byId;
+    }
+    if (livraison.client) {
+      const byName = clients.find(c => c && (c.nom || '').toLowerCase() === String(livraison.client).toLowerCase());
+      if (byName) return byName;
+    }
+  } catch (e) {}
+  return null;
+}
+
+// BUG-011 : mention TVA légale (CGI art. 242 nonies A II) selon régime et client destinataire.
+// Retourne le texte à afficher sur le PDF / facture HTML. Si taux > 0 et pas d'exonération, retourne "TVA <taux>%".
+function choisirMentionTVALegale(profile, client, tauxDefaut) {
+  const UE = new Set(['FR','DE','BE','NL','LU','IT','ES','PT','AT','IE','DK','SE','FI','EE','LV','LT','PL','CZ','SK','HU','SI','HR','BG','RO','GR','CY','MT']);
+  const t = (tauxDefaut == null) ? 20 : Number(tauxDefaut);
+  if (!profile || !profile.isVatEnabled || profile.regime === 'franchise_base') {
+    return 'TVA non applicable, art. 293 B du CGI';
+  }
+  const cp = String((client && client.pays) || 'FR').toUpperCase();
+  if (cp && cp !== 'FR') {
+    if (UE.has(cp) && client && client.tvaIntracom) {
+      return 'Exonération TVA — livraison intracommunautaire (art. 262 ter I du CGI)';
+    }
+    if (!UE.has(cp)) {
+      return 'Exonération TVA — exportation hors UE (art. 262 I du CGI)';
+    }
+  }
+  return 'TVA ' + (typeof formaterTaux === 'function' ? formaterTaux(t) : (t + '%'));
 }
 
 function getTVAExigibiliteLabel(profile) {
@@ -918,18 +1273,21 @@ function getLogoEntreprise() {
   return localStorage.getItem('logo_entreprise_url') || localStorage.getItem('logo_entreprise') || '';
 }
 function getDefaultAdminAccounts() {
+  // BUG-020 fix : plus aucun mot de passe par défaut. Premier démarrage = setup obligatoire.
   return [
-    { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: 'admin123' },
-    { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: 'admin123' }
+    { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: '' },
+    { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: '' }
   ];
 }
 function getAdminAccounts() {
   const comptesExistants = chargerObj('admin_accounts', null);
   if (Array.isArray(comptesExistants) && comptesExistants.length) return comptesExistants;
-  const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
+  // BUG-020 : si une clé legacy 'mdp_admin' existe (migration), on l'utilise pour le 1er compte.
+  // Sinon, comptes créés sans mot de passe → login.html force le setup initial.
+  const legacyPassword = localStorage.getItem('mdp_admin') || '';
   const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
     ...compte,
-    motDePasse: idx === 0 ? legacyPassword : compte.motDePasse
+    motDePasse: idx === 0 && legacyPassword ? legacyPassword : compte.motDePasse
   }));
   sauvegarder('admin_accounts', comptes);
   return comptes;
@@ -957,19 +1315,29 @@ function evaluerQualiteMotDePasseFort(value) {
   if (motDePasse.length >= 8) return { ok: true, message: 'Mot de passe conforme.', color: 'var(--green)' };
   return { ok: false, message: 'Utilisez au moins 8 caractères.', color: 'var(--red)' };
 }
+// BUG-021 fix : fallback btoa casse sur Unicode (emoji, accents). UTF-8 encode avant btoa.
+function btoaUnicodeSafe(str) {
+  try {
+    return btoa(unescape(encodeURIComponent(String(str || ''))));
+  } catch (e) {
+    try { return btoa(String(str || '')); } catch (_) { return ''; }
+  }
+}
 async function hasherMotDePasseLocal(value) {
   const security = getSecurityHelper();
   if (security && typeof security.hashPassword === 'function') {
     return security.hashPassword(value);
   }
-  return btoa(String(value || ''));
+  return btoaUnicodeSafe(value);
 }
 async function verifierMotDePasseLocal(value, storedValue) {
   const security = getSecurityHelper();
   if (security && typeof security.verifyPassword === 'function') {
     return security.verifyPassword(value, storedValue);
   }
-  return String(storedValue || '') === String(value || '') || String(storedValue || '') === btoa(String(value || ''));
+  const stored = String(storedValue || '');
+  const plain = String(value || '');
+  return stored === plain || stored === btoaUnicodeSafe(plain);
 }
 function getAdminSession() {
   const identifiant = sessionStorage.getItem('admin_login') || '';
@@ -1338,7 +1706,7 @@ async function uploaderLogoEntreprise(file) {
 function genNumLivraison() {
   const annee = new Date().getFullYear();
   const livs  = charger('livraisons');
-  const max   = livs.map(l => parseInt((l.numLiv||'').split('-')[2])||0).reduce((a,b)=>Math.max(a,b),0);
+  const max   = livs.map(l => parseInt((l.numLiv||'').split('-')[2], 10)||0).reduce((a,b)=>Math.max(a,b),0);
   return `LIV-${annee}-${String(max+1).padStart(4,'0')}`;
 }
 
@@ -1417,6 +1785,61 @@ function confirmDialog(msg, { titre='Confirmation', icone='⚠️', btnLabel='Co
 }
 function confirmResolve() { document.getElementById('modal-confirm').classList.remove('open'); if(_confirmResolve) _confirmResolve(true); }
 function confirmReject()  { document.getElementById('modal-confirm').classList.remove('open'); if(_confirmResolve) _confirmResolve(false); }
+
+// BUG-010 fix : promptDialog stylée (remplace window.prompt). DOM créé à la volée, focus trap via listeners locaux.
+function promptDialog(msg, { titre='Saisir une valeur', icone='✍️', btnLabel='Valider', defaultValue='', placeholder='', type='text', validate=null } = {}) {
+  return new Promise(resolve => {
+    const esc = window.escapeHtml;
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay open';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.zIndex = '10000';
+    overlay.innerHTML =
+      '<div class="modal" style="max-width:440px">' +
+        '<div class="modal-body" style="padding:28px 24px 8px;text-align:center">' +
+          '<div class="confirm-icon" style="font-size:2rem">' + esc(icone) + '</div>' +
+          '<div class="confirm-title" style="font-size:1.05rem;font-weight:700;margin-top:6px">' + esc(titre) + '</div>' +
+          '<p style="font-size:.88rem;color:var(--text-muted);margin:10px 0 14px;line-height:1.5">' + esc(msg) + '</p>' +
+          '<input class="__prompt-input" type="' + esc(type) + '" placeholder="' + esc(placeholder) + '" value="' + esc(defaultValue) + '" ' +
+                 'style="width:100%;padding:10px 12px;border:1px solid var(--border,#2a3349);border-radius:8px;background:var(--bg,#0f1626);color:var(--text,#e5e7eb);font-size:.95rem" />' +
+          '<p class="__prompt-err" style="color:var(--red,#ef4444);font-size:.78rem;margin-top:6px;min-height:1em" aria-live="polite"></p>' +
+        '</div>' +
+        '<div class="modal-footer" style="justify-content:center;gap:12px">' +
+          '<button type="button" class="btn-secondary __prompt-cancel" style="min-width:100px">Annuler</button>' +
+          '<button type="button" class="btn-primary __prompt-ok" style="min-width:100px">' + esc(btnLabel) + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('.__prompt-input');
+    const err = overlay.querySelector('.__prompt-err');
+    const btnOk = overlay.querySelector('.__prompt-ok');
+    const btnCancel = overlay.querySelector('.__prompt-cancel');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+    function cleanup(result) {
+      document.removeEventListener('keydown', onKey, true);
+      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      resolve(result);
+    }
+    function submit() {
+      const val = input.value;
+      if (typeof validate === 'function') {
+        const r = validate(val);
+        if (r !== true && r !== null && r !== undefined) { err.textContent = String(r); return; }
+      }
+      cleanup(val);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
+      else if (e.key === 'Enter' && document.activeElement === input) { e.preventDefault(); submit(); }
+    }
+    btnOk.addEventListener('click', submit);
+    btnCancel.addEventListener('click', () => cleanup(null));
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(null); });
+    document.addEventListener('keydown', onKey, true);
+  });
+}
+window.promptDialog = promptDialog;
 
 /* ===== SCROLL TO TOP ===== */
 function initScrollTop() {
@@ -1546,7 +1969,7 @@ function getPilotageEntretienVehicule(veh) {
       const d = new Date(baseDate + 'T00:00:00');
       if (!Number.isNaN(d.getTime())) {
         d.setMonth(d.getMonth() + intervalMois);
-        dateEcheance = d.toISOString().slice(0, 10);
+        dateEcheance = d.toLocalISODate();
       }
     }
   }
@@ -1557,7 +1980,7 @@ function getPilotageEntretienVehicule(veh) {
     prochainKm,
     dateEcheance,
     estEnRetard: Boolean((prochainKm && kmActuel >= prochainKm) || (dateEcheance && dateEcheance < auj)),
-    estProche: Boolean((prochainKm && kmRestants !== null && kmRestants > 0 && kmRestants <= 1000) || (dateEcheance && dateEcheance >= auj && dateEcheance <= new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10))),
+    estProche: Boolean((prochainKm && kmRestants !== null && kmRestants > 0 && kmRestants <= 1000) || (dateEcheance && dateEcheance >= auj && dateEcheance <= new Date(Date.now() + 30 * 86400000).toLocalISODate())),
     kmRestants
   };
 }
@@ -1755,6 +2178,41 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   if (window.DelivProSecurity && typeof window.DelivProSecurity.registerServiceWorker === 'function') {
     window.DelivProSecurity.registerServiceWorker().catch(function() {});
+  }
+  // BUG-005 PWA : prompt d'installation via beforeinstallprompt
+  if (!window.__delivproPwaInstallSetup) {
+    window.__delivproPwaInstallSetup = true;
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      window.__delivproDeferredPrompt = e;
+      try {
+        const btn = document.getElementById('btn-install-pwa');
+        if (btn) btn.style.display = 'inline-flex';
+      } catch(_) {}
+    });
+    window.addEventListener('appinstalled', function() {
+      window.__delivproDeferredPrompt = null;
+      try {
+        const btn = document.getElementById('btn-install-pwa');
+        if (btn) btn.style.display = 'none';
+      } catch(_) {}
+      if (typeof afficherToast === 'function') afficherToast('📲 MCA Logistics installé sur votre appareil', 'success');
+      if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('PWA', 'Application installée en mode standalone');
+    });
+    window.declencherInstallPWA = function() {
+      const prompt = window.__delivproDeferredPrompt;
+      if (!prompt) {
+        if (typeof afficherToast === 'function') afficherToast('Installation déjà effectuée ou non disponible sur ce navigateur.', 'info');
+        return;
+      }
+      prompt.prompt();
+      prompt.userChoice.then(function(choice) {
+        window.__delivproDeferredPrompt = null;
+        if (choice && choice.outcome === 'accepted' && typeof afficherToast === 'function') {
+          afficherToast('📲 Installation en cours…', 'success');
+        }
+      });
+    };
   }
   const fastBootRole = sessionStorage.getItem(FAST_BOOT_ROLE_KEY);
   if (fastBootRole === 'admin' || fastBootRole === 'salarie') {
@@ -1987,9 +2445,65 @@ function ouvrirMenuMobile()  { document.getElementById('sidebar').classList.add(
 function fermerMenuMobile()  { document.getElementById('sidebar').classList.remove('mobile-open'); document.getElementById('sidebarOverlay').classList.remove('active'); }
 
 /* ===== MODALS ===== */
+// BUG-006 fix : a11y — role="dialog", aria-modal, focus trap, Échap pour fermer, restauration focus.
+const MODAL_FOCUSABLES = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const __modalFocusStack = [];
+
+function __appliquerA11yModale(overlay) {
+  if (!overlay) return;
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  const title = overlay.querySelector('.modal-header h3, .modal-header h2');
+  if (title) {
+    if (!title.id) title.id = 'modal-title-' + (overlay.id || Math.random().toString(36).slice(2, 8));
+    overlay.setAttribute('aria-labelledby', title.id);
+  }
+}
+
+function __modalTrapKeydown(e) {
+  if (e.key === 'Escape') {
+    const top = __modalFocusStack[__modalFocusStack.length - 1];
+    if (top && top.modalId) {
+      e.preventDefault();
+      closeModal(top.modalId);
+    }
+    return;
+  }
+  if (e.key !== 'Tab') return;
+  const top = __modalFocusStack[__modalFocusStack.length - 1];
+  if (!top) return;
+  const overlay = document.getElementById(top.modalId);
+  if (!overlay) return;
+  const focusables = Array.from(overlay.querySelectorAll(MODAL_FOCUSABLES)).filter(function(el) {
+    return el.offsetParent !== null || el === document.activeElement;
+  });
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault(); last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault(); first.focus();
+  }
+}
+
 function openModal(id)  {
   mettreAJourSelects();
-  document.getElementById(id).classList.add('open');
+  const overlay = document.getElementById(id);
+  if (!overlay) return;
+  overlay.classList.add('open');
+  __appliquerA11yModale(overlay);
+  __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
+  if (__modalFocusStack.length === 1) {
+    document.addEventListener('keydown', __modalTrapKeydown);
+  }
+  setTimeout(function() {
+    const focusables = overlay.querySelectorAll(MODAL_FOCUSABLES);
+    const btnClose = overlay.querySelector('.modal-close');
+    const target = Array.from(focusables).find(function(el){ return el !== btnClose; }) || btnClose || focusables[0];
+    if (target) try { target.focus(); } catch(_){}
+  }, 50);
+
   if (id === 'modal-vehicule') {
     if (!window._editVehId) {
       resetModalVehiculeToCreateMode();
@@ -2011,7 +2525,18 @@ function openModal(id)  {
 function closeModal(id) {
   const editLockContext = getEditLockContextForModal(id);
   if (editLockContext) libererVerrouEdition(editLockContext.type, editLockContext.id);
-  document.getElementById(id).classList.remove('open');
+  const overlay = document.getElementById(id);
+  if (overlay) overlay.classList.remove('open');
+  const idx = __modalFocusStack.findIndex(function(s){ return s.modalId === id; });
+  if (idx > -1) {
+    const state = __modalFocusStack.splice(idx, 1)[0];
+    if (state && state.previousFocus && typeof state.previousFocus.focus === 'function') {
+      try { state.previousFocus.focus(); } catch(_){}
+    }
+  }
+  if (!__modalFocusStack.length) {
+    document.removeEventListener('keydown', __modalTrapKeydown);
+  }
   if (id === 'modal-edit-salarie') { editSalarieId = null; window._editSalarieId = null; }
   if (id === 'modal-edit-livraison') { window._editLivId = null; }
   if (id === 'modal-edit-client') { _editClientId = null; }
@@ -2038,7 +2563,7 @@ function mettreAJourSelects() {
   const incSel = document.getElementById('inc-livraison');
   if (incSel) {
     const v = incSel.value;
-    const dateMin = new Date(Date.now()-30*24*60*60*1000).toISOString().split('T')[0];
+    const dateMin = new Date(Date.now()-30*24*60*60*1000).toLocalISODate();
     incSel.innerHTML = '<option value="">— Aucune livraison spécifique —</option>';
     charger('livraisons').filter(l=>l.date>=dateMin).sort((a,b)=>new Date(b.date)-new Date(a.date))
       .forEach(l => incSel.innerHTML += `<option value="${l.id}">${l.numLiv||''} — ${l.client} (${l.date})</option>`);
@@ -3608,7 +4133,7 @@ function rafraichirDashboard() {
   // KPI nouveaux messages
   let totalMsgsNonLus = 0;
   salaries.forEach(s => {
-    const msgs = JSON.parse(localStorage.getItem('messages_' + s.id) || '[]');
+    const msgs = loadSafe('messages_' + s.id, []);
     totalMsgsNonLus += msgs.filter(m => m.auteur === 'salarie' && !m.lu).length;
   });
   setText('kpi-messages', totalMsgsNonLus);
@@ -3627,7 +4152,7 @@ function rafraichirDashboard() {
 
   // Qui travaille aujourd'hui
   const jourSemaine = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][new Date().getDay()];
-  const plannings   = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const plannings   = loadSafe('plannings', []);
   const travaillent = salaries.filter(s => {
     const plan = plannings.find(p => p.salId === s.id);
     const jour = plan?.semaine?.find(j => j.jour === jourSemaine);
@@ -3650,7 +4175,7 @@ function rafraichirDashboard() {
   if (compLivEl) compLivEl.innerHTML = `vs mois préc. ${comp.livPrec} ${badgeEvol(comp.livActuel, comp.livPrec)}`;
 
   // Objectif livraisons
-  const objLiv = parseInt(localStorage.getItem('objectif_livraisons_mensuel')||'0');
+  const objLiv = parseInt(localStorage.getItem('objectif_livraisons_mensuel')||'0', 10);
   const objLivEl = document.getElementById('kpi-objectif-liv-pct');
   if (objLivEl && objLiv > 0) {
     const pct = Math.min(Math.round(comp.livActuel / objLiv * 100), 100);
@@ -3714,7 +4239,7 @@ function rafraichirDashboard() {
     const caMoisVal = parseFloat(document.getElementById('kpi-ca-mois')?.textContent?.replace(/[^0-9,-]/g,'')?.replace(',','.')) || 0;
     const beneficeEl = document.getElementById('kpi-benefice');
     const beneficeVal = parseFloat(beneficeEl?.textContent?.replace(/[^0-9,-]/g,'')?.replace(',','.')) || 0;
-    const alertesVal = parseInt(document.getElementById('kpi-alertes')?.textContent) || 0;
+    const alertesVal = parseInt(document.getElementById('kpi-alertes')?.textContent, 10) || 0;
     const impayes = parseFloat(document.getElementById('kpi-solde')?.textContent?.replace(/[^0-9,-]/g,'')?.replace(',','.')) || 0;
 
     const santeLabel = document.getElementById('kpi-sante-label');
@@ -3755,7 +4280,7 @@ function rafraichirDashboard() {
 }
 function getSemaineDebut() {
   const d=new Date(), j=d.getDay(), diff=d.getDate()-j+(j===0?-6:1);
-  return new Date(new Date().setDate(diff)).toISOString().split('T')[0];
+  return new Date(new Date().setDate(diff)).toLocalISODate();
 }
 
 /* ===== RENTABILITÉ ===== */
@@ -3765,9 +4290,9 @@ function getRentMoisRange() {
   var d = new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() + _rentMoisOffset);
-  var debut = d.toISOString().slice(0,10);
+  var debut = d.toLocalISODate();
   var finDate = new Date(d.getFullYear(), d.getMonth()+1, 0);
-  var fin = finDate.toISOString().slice(0,10);
+  var fin = finDate.toLocalISODate();
   return { debut, fin, label: d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}), dates: formatDateExport(debut) + ' au ' + formatDateExport(fin) };
 }
 function navRentMois(delta) {
@@ -3878,13 +4403,13 @@ function afficherStatistiques() {
   const labels=[],donnees=[];
   const nbJours = Math.max(1, Math.round((new Date(dateMaxStr) - new Date(dateMinStr)) / (1000*60*60*24)));
   if (nbJours <= 31) {
-    for(let i=nbJours-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toISOString().split('T')[0];labels.push(d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));donnees.push(livraisons.filter(l=>l.date===ds).reduce((s,l)=>s+(l.prix||0),0));}
+    for(let i=nbJours-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toLocalISODate();labels.push(d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));donnees.push(livraisons.filter(l=>l.date===ds).reduce((s,l)=>s+(l.prix||0),0));}
   } else {
     // Par semaine
     for(let i=Math.floor(nbJours/7)-1;i>=0;i--){
       const fin=new Date(); fin.setDate(fin.getDate()-i*7);
       const debut=new Date(fin); debut.setDate(debut.getDate()-6);
-      const dStr=debut.toISOString().split('T')[0], fStr=fin.toISOString().split('T')[0];
+      const dStr=debut.toLocalISODate(), fStr=fin.toLocalISODate();
       labels.push(debut.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));
       donnees.push(livraisons.filter(l=>l.date>=dStr&&l.date<=fStr).reduce((s,l)=>s+(l.prix||0),0));
     }
@@ -3945,7 +4470,7 @@ function calculerPrevision() {
     const d = new Date();
     d.setDate(1);
     d.setMonth(d.getMonth() - i);
-    const moisStr = d.toISOString().slice(0,7);
+    const moisStr = d.toLocalISOMonth();
     const livsM   = livraisons.filter(l=>(l.date||'').startsWith(moisStr));
     const caM     = livsM.reduce((s,l)=>s+(l.prix||0),0);
     const carbM   = carburant.filter(p=>(p.date||'').startsWith(moisStr)).reduce((s,p)=>s+(p.total||0),0);
@@ -3995,7 +4520,7 @@ function calculerPrevision() {
   const labels = [], dataCA = [], dataBen = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i);
-    const mStr = d.toISOString().slice(0,7);
+    const mStr = d.toLocalISOMonth();
     const caM  = livraisons.filter(l=>(l.date||'').startsWith(mStr)).reduce((s,l)=>s+(l.prix||0),0);
     const depM = carburant.filter(p=>(p.date||'').startsWith(mStr)).reduce((s,p)=>s+(p.total||0),0)
                + charges.filter(c=>(c.date||'').startsWith(mStr)).reduce((s,c)=>s+(c.montant||0),0);
@@ -4519,11 +5044,11 @@ async function supprimerSalarie(id) {
   Object.keys(localStorage).filter(k => k.startsWith(`checklist_${id}_`)).forEach(k => localStorage.removeItem(k));
 
   // 6. Supprimer ses inspections du global
-  const inspections = JSON.parse(localStorage.getItem('inspections') || '[]').filter(i => i.salId !== id);
+  const inspections = loadSafe('inspections', []).filter(i => i.salId !== id);
   localStorage.setItem('inspections', JSON.stringify(inspections));
 
   // 7. Supprimer son planning
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]').filter(p => p.salId !== id);
+  const plannings = loadSafe('plannings', []).filter(p => p.salId !== id);
   localStorage.setItem('plannings', JSON.stringify(plannings));
 
   // 8. Supprimer ses pleins du global carburant (garder les pleins admin)
@@ -4560,7 +5085,7 @@ function togglePanneauAgent() {
   panneau.style.right = isOpen ? '-420px' : '0px';
   overlay.style.display = isOpen ? 'none' : 'block';
   if (!isOpen) {
-    const decisions = JSON.parse(localStorage.getItem('agent_decisions') || '[]');
+    const decisions = loadSafe('agent_decisions', []);
     decisions.forEach(d => d.lu = true);
     localStorage.setItem('agent_decisions', JSON.stringify(decisions));
     majBadgeAgent();
@@ -4568,7 +5093,7 @@ function togglePanneauAgent() {
 }
 
 function majBadgeAgent() {
-  const decisions = JSON.parse(localStorage.getItem('agent_decisions') || '[]');
+  const decisions = loadSafe('agent_decisions', []);
   const nonLues = decisions.filter(d => !d.lu).length;
   const badge = document.getElementById('ai-decisions-badge');
   if (!badge) return;
@@ -4577,7 +5102,7 @@ function majBadgeAgent() {
 }
 
 function ajouterDecisionAgent(decision) {
-  const decisions = JSON.parse(localStorage.getItem('agent_decisions') || '[]');
+  const decisions = loadSafe('agent_decisions', []);
   decisions.unshift({ ...decision, id: genId(), creeLe: new Date().toISOString(), lu: false });
   localStorage.setItem('agent_decisions', JSON.stringify(decisions));
   majBadgeAgent();
@@ -4585,7 +5110,7 @@ function ajouterDecisionAgent(decision) {
 }
 
 function afficherDecisionsAgent() {
-  const decisions = JSON.parse(localStorage.getItem('agent_decisions') || '[]');
+  const decisions = loadSafe('agent_decisions', []);
   const container = document.getElementById('agent-decisions-list');
   if (!container) return;
   if (!decisions.length) {
@@ -4606,7 +5131,7 @@ function afficherDecisionsAgent() {
 }
 
 function executerActionAgent(decisionId, actionId) {
-  const decisions = JSON.parse(localStorage.getItem('agent_decisions') || '[]');
+  const decisions = loadSafe('agent_decisions', []);
   const idx = decisions.findIndex(d => d.id === decisionId);
   if (idx === -1) return;
   decisions[idx].lu = true;
@@ -4620,6 +5145,10 @@ function executerActionAgent(decisionId, actionId) {
 
 function afficherToast(message, type='success') {
   const t=document.getElementById('toast');
+  if (!t) return;
+  // BUG-006 a11y : erreurs en assertive pour lecture immédiate par screen reader
+  t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+  t.setAttribute('role', type === 'error' ? 'alert' : 'status');
   t.textContent=message; t.className='toast show'+(type==='error'?' error':'');
   setTimeout(()=>{t.className='toast';},3000);
 }
@@ -4746,7 +5275,7 @@ async function nettoyerPhotosInspectionsAnciennes(forceRun) {
 }
 
 function afficherInspections() {
-  let inspections = JSON.parse(localStorage.getItem('inspections') || '[]');
+  let inspections = loadSafe('inspections', []);
   const salaries  = charger('salaries');
   const container = document.getElementById('inspections-container');
   const filtreSal = document.getElementById('filtre-insp-sal')?.value || '';
@@ -4775,7 +5304,7 @@ function afficherInspections() {
       <div class="card-header">
         <span>👤 <strong>${insp.salNom}</strong> — ${insp.vehImmat}${insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : ''}</span>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.82rem;color:var(--text-muted)">🗓️ ${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
+          <span style="font-size:.82rem;color:var(--text-muted)">🗓️ ${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
           <button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button>
         </div>
       </div>
@@ -4881,7 +5410,7 @@ function filtrerInspParSalarieInput() {
 async function supprimerInspectionAdmin(id) {
   const _ok8 = await confirmDialog('Supprimer cette inspection ?', {titre:'Supprimer',icone:'🚗',btnLabel:'Supprimer'});
   if (!_ok8) return;
-  const inspections = JSON.parse(localStorage.getItem('inspections') || '[]');
+  const inspections = loadSafe('inspections', []);
   const inspection = inspections.find(i => i.id === id);
   if (!inspection) return;
 
@@ -5003,7 +5532,7 @@ function confirmerEditCarburantAdmin() {
   sauvegarder('carburant', pleins);
   if (salId) {
     const cle  = 'carb_sal_' + salId;
-    const perso = JSON.parse(localStorage.getItem(cle) || '[]');
+    const perso = loadSafe(cle, []);
     const pi    = perso.findIndex(p => p.id === id);
     if (pi > -1) {
       perso[pi].litres = litres; perso[pi].prixLitre = prixLitre;
@@ -5030,7 +5559,7 @@ function confirmerEditCarburantAdmin() {
 }
 
 function voirPhotoAdmin(inspId, idx) {
-  const inspections = JSON.parse(localStorage.getItem('inspections') || '[]');
+  const inspections = loadSafe('inspections', []);
   const insp = inspections.find(i => i.id === inspId);
   if (!insp) return;
   _adminPhotos = getInspectionPhotoList(insp);
@@ -5071,7 +5600,7 @@ function afficherMessagerie() {
   }
 
   liste.innerHTML = salaries.filter(s=>s.actif).map(s => {
-    const messages = JSON.parse(localStorage.getItem('messages_' + s.id) || '[]');
+    const messages = loadSafe('messages_' + s.id, []);
     const nonLus   = messages.filter(m => m.auteur === 'salarie' && !m.lu).length;
     const dernier  = messages.length ? messages[messages.length - 1] : null;
     const actif    = _msgSalarieActif === s.id;
@@ -5169,14 +5698,14 @@ function getBroadcastDestinataires() {
 
 function ouvrirConversation(salId) {
   // Marquer tous les messages salarie→admin comme lus
-  const msgs = JSON.parse(localStorage.getItem('messages_'+salId)||'[]');
+  const msgs = loadSafe('messages_'+salId, []);
   let changed = false;
   msgs.forEach(m => { if (m.auteur==='salarie' && !m.lu) { m.lu=true; m.luLe=new Date().toISOString(); changed=true; } });
   if (changed) localStorage.setItem('messages_'+salId, JSON.stringify(msgs));
   _msgSalarieActif = salId;
   const salaries = charger('salaries');
   const sal = salaries.find(s => s.id === salId);
-  const messages = JSON.parse(localStorage.getItem('messages_' + salId) || '[]');
+  const messages = loadSafe('messages_' + salId, []);
 
   // Marquer les messages salarié comme lus
   let modifie = false;
@@ -5214,7 +5743,7 @@ function ouvrirConversation(salId) {
         : estAdmin ? '<span style="font-size:.68rem;color:var(--text-muted);opacity:.5">✓</span>' : '';
       div.innerHTML = `
         <div style="max-width:75%;background:${estAdmin ? 'var(--accent)' : 'var(--bg-dark)'};color:${estAdmin ? '#000' : 'var(--text-primary)'};padding:9px 13px;border-radius:${estAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
-          ${m.photo ? `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />` : m.texte}
+          ${m.photo ? `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="ouvrirPopupSecure('${m.photo}','_blank')" />` : m.texte}
           ${m.fichier ? `<a href="${m.fichier}" download="${m.nomFichier||'fichier'}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:10px;color:var(--blue);text-decoration:none;font-size:.85rem;margin-top:6px">📄 ${m.nomFichier || 'Télécharger le fichier'}</a>` : ''}
         </div>
         <span style="font-size:.72rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${estAdmin ? 'Vous' : sal?.nom || 'Salarié'} · ${heure} ${accuse}</span>`;
@@ -5234,7 +5763,7 @@ function envoyerMessageAdmin() {
   // Son d'envoi discret
   try { const ctx=new(window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value=1200; g.gain.setValueAtTime(0.15,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12); o.start(ctx.currentTime); o.stop(ctx.currentTime+0.12); } catch(e) {}
 
-  const messages = JSON.parse(localStorage.getItem('messages_' + _msgSalarieActif) || '[]');
+  const messages = loadSafe('messages_' + _msgSalarieActif, []);
   messages.push({
     id: genId(), auteur: 'admin',
     texte, lu: false, creeLe: new Date().toISOString()
@@ -5249,7 +5778,7 @@ function mettreAJourBadgeMsgAdmin() {
   const salaries = charger('salaries');
   let total = 0;
   salaries.forEach(s => {
-    const msgs = JSON.parse(localStorage.getItem('messages_' + s.id) || '[]');
+    const msgs = loadSafe('messages_' + s.id, []);
     total += msgs.filter(m => m.auteur === 'salarie' && !m.lu).length;
   });
   const badge = document.getElementById('badge-msg-admin');
@@ -5269,7 +5798,7 @@ const JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
 function afficherPlanning() {
   const salaries  = charger('salaries');
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const plannings = loadSafe('plannings', []);
   const tb = document.getElementById('tb-planning');
 
   // Mettre à jour le select du modal
@@ -5307,7 +5836,7 @@ function genererGrilleJours() {
   const grid  = document.getElementById('plan-jours-grid');
   if (!grid) return;
 
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const plannings = loadSafe('plannings', []);
   const plan = plannings.find(p => p.salId === salId);
 
   grid.innerHTML = JOURS.map((jour, i) => {
@@ -5383,6 +5912,42 @@ function ouvrirEditPlanning(salId) {
   document.getElementById('modal-planning').classList.add('open');
 }
 
+// BUG-008 fix : contrôles Règlement CE 561/2006 (temps de conduite).
+// Alertes non bloquantes affichées après sauvegarde planning + audit.
+function verifierConformiteConduiteCE561(semaine) {
+  const warnings = [];
+  if (!Array.isArray(semaine)) return { ok: true, warnings: warnings, totalHebdoMin: 0 };
+  let totalHebdoMin = 0;
+  let nbJoursSupA9h = 0;
+  (semaine || []).forEach(function(j) {
+    if (!j || !j.travaille || j.typeJour && j.typeJour !== 'travail') return;
+    const hd = String(j.heureDebut || '').trim();
+    const hf = String(j.heureFin || '').trim();
+    if (!hd || !hf) return;
+    const [h1, m1] = hd.split(':').map(function(x){ return parseInt(x, 10) || 0; });
+    const [h2, m2] = hf.split(':').map(function(x){ return parseInt(x, 10) || 0; });
+    let minJour = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (minJour < 0) minJour += 24 * 60;
+    if (minJour > 9 * 60) {
+      nbJoursSupA9h++;
+      warnings.push('⚠️ ' + j.jour + ' : ' + (minJour / 60).toFixed(1) + 'h — dépasse le max journalier de 9h (CE 561/2006 art. 6.1)');
+    }
+    if (minJour > 10 * 60) {
+      warnings.push('🛑 ' + j.jour + ' : ' + (minJour / 60).toFixed(1) + 'h — dépasse le plafond absolu 10h (même avec dérogation 2×/sem)');
+    }
+    totalHebdoMin += minJour;
+  });
+  if (nbJoursSupA9h > 2) {
+    warnings.push('🛑 ' + nbJoursSupA9h + ' jours > 9h cette semaine — max 2 dérogations autorisées (CE 561/2006 art. 6.1)');
+  }
+  if (totalHebdoMin > 56 * 60) {
+    warnings.push('🛑 Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — dépasse la limite 56h/sem (CE 561/2006 art. 6.2)');
+  } else if (totalHebdoMin > 48 * 60) {
+    warnings.push('⚠️ Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — au-delà de la moyenne 48h/sem recommandée (directive 2002/15/CE)');
+  }
+  return { ok: warnings.length === 0, warnings: warnings, totalHebdoMin: totalHebdoMin };
+}
+
 function sauvegarderPlanning() {
   const salId = document.getElementById('plan-salarie').value;
   if (!salId) { afficherToast('⚠️ Choisissez un salarié', 'error'); return; }
@@ -5401,7 +5966,7 @@ function sauvegarderPlanning() {
     };
   });
 
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+  const plannings = loadSafe('plannings', []);
   const idx = plannings.findIndex(p => p.salId === salId);
   const sal = charger('salaries').find(s => s.id === salId);
   const entry = { salId, salNom: sal?.nom || '', semaine, mis_a_jour: new Date().toISOString() };
@@ -5415,12 +5980,24 @@ function sauvegarderPlanning() {
   afficherPlanningSemaine();
   afficherCompteurHeures();
   afficherToast(`✅ Planning de ${sal?.nom || 'salarié'} enregistré`);
+
+  // Contrôle CE 561/2006 après save (non bloquant)
+  try {
+    const conf = verifierConformiteConduiteCE561(semaine);
+    if (!conf.ok && conf.warnings.length) {
+      conf.warnings.forEach(function(w) { afficherToast(w, 'warning'); });
+      if (typeof ajouterEntreeAudit === 'function') {
+        ajouterEntreeAudit('Conformité CE 561/2006',
+          'Planning ' + (sal?.nom || salId) + ' — ' + conf.warnings.length + ' alerte(s) temps de conduite');
+      }
+    }
+  } catch (e) { console.warn('[CE561]', e); }
 }
 
 async function supprimerPlanning(salId) {
   const _ok9 = await confirmDialog('Supprimer le planning de ce salarié ?', {titre:'Supprimer le planning',icone:'📅',btnLabel:'Supprimer'});
   if (!_ok9) return;
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]').filter(p => p.salId !== salId);
+  const plannings = loadSafe('plannings', []).filter(p => p.salId !== salId);
   localStorage.setItem('plannings', JSON.stringify(plannings));
   afficherPlanning();
   afficherPlanningSemaine();
@@ -5554,7 +6131,7 @@ function afficherCalendrier() {
   // Cases vides avant le 1er
   for (let i = 0; i < offset; i++) {
     const d = new Date(annee, mois, -offset+i+1);
-    const ds = d.toISOString().split('T')[0];
+    const ds = d.toLocalISODate();
     const livs = parDate[ds]||[];
     html += `<div class="cal-day autre-mois" onclick="filtrerCalJour('${ds}')">
       <div class="cal-day-num">${d.getDate()}</div>
@@ -5581,7 +6158,7 @@ function afficherCalendrier() {
   const reste = total % 7 === 0 ? 0 : 7 - (total % 7);
   for (let i = 1; i <= reste; i++) {
     const d = new Date(annee, mois+1, i);
-    html += `<div class="cal-day autre-mois" onclick="filtrerCalJour('${d.toISOString().split('T')[0]}')">
+    html += `<div class="cal-day autre-mois" onclick="filtrerCalJour('${d.toLocalISODate()}')">
       <div class="cal-day-num">${i}</div>
     </div>`;
   }
@@ -5637,7 +6214,7 @@ function ouvrirRecurrence(id) {
 
 function confirmerRecurrence() {
   const id      = document.getElementById('rec-liv-id').value;
-  const nb      = parseInt(document.getElementById('rec-semaines').value) || 1;
+  const nb      = parseInt(document.getElementById('rec-semaines').value, 10) || 1;
   const source  = charger('livraisons').find(l => l.id === id);
   if (!source || nb < 1 || nb > 52) { afficherToast('⚠️ Nombre de semaines invalide (1-52)', 'error'); return; }
 
@@ -5652,7 +6229,7 @@ function confirmerRecurrence() {
       ...source,
       id: genId(),
       numLiv: genNumLivraison(),
-      date: d.toISOString().split('T')[0],
+      date: d.toLocalISODate(),
       statut: 'en-attente',
       statutPaiement: 'en-attente',
       creeLe: new Date().toISOString()
@@ -5803,15 +6380,24 @@ function majBadgeFavicon(count) {
 }
 
 /* ===== EXPORT CSV ===== */
+// csvCelluleSecurisee — neutralise l'injection de formules Excel/LibreOffice (OWASP CSV Injection).
+// Préfixe une apostrophe devant =, +, -, @, tab, CR : Excel n'exécute plus la formule, affiche le texte littéral.
+// Puis échappe les guillemets et encadre si la cellule contient séparateur, guillemet ou saut de ligne.
+function csvCelluleSecurisee(value, separator) {
+  const sep = separator || ';';
+  const raw = value == null ? '' : String(value);
+  const neutralise = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
+  const needsQuote = neutralise.includes(sep) || neutralise.includes('"') || neutralise.includes('\n') || neutralise.includes('\r');
+  const echappe = neutralise.replace(/"/g, '""');
+  return needsQuote ? '"' + echappe + '"' : echappe;
+}
+window.csvCelluleSecurisee = csvCelluleSecurisee;
+
 function exporterCSV(data, colonnes, nomFichier) {
   const sep = ';';
-  const header = colonnes.map(c => c.label).join(sep);
+  const header = colonnes.map(c => csvCelluleSecurisee(c.label, sep)).join(sep);
   const rows = data.map(row =>
-    colonnes.map(c => {
-      const val = c.get(row) ?? '';
-      const str = String(val).replace(/"/g, '""');
-      return str.includes(sep) || str.includes('\n') ? `"${str}"` : str;
-    }).join(sep)
+    colonnes.map(c => csvCelluleSecurisee(c.get(row) ?? '', sep)).join(sep)
   );
   const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM pour Excel français
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -5819,6 +6405,7 @@ function exporterCSV(data, colonnes, nomFichier) {
   a.href = URL.createObjectURL(blob);
   a.download = nomFichier;
   a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 function formatDateFEC(val) {
@@ -6121,7 +6708,7 @@ function exporterEntretiens() {
 /* ===== RAPPORT MENSUEL PDF ===== */
 function genererRapportMensuel() {
   const auj    = new Date();
-  const mois   = auj.toISOString().slice(0,7);
+  const mois   = auj.toLocalISOMonth();
   const moisLabel = auj.toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
   const params = getEntrepriseExportParams();
   const nom    = params.nom;
@@ -6231,7 +6818,8 @@ function genererRapportMensuel() {
     </div>
   </div>`;
 
-  const win = window.open('', '_blank', 'width=850,height:950');
+  const win = ouvrirPopupSecure('', '_blank', 'width=850,height=950');
+  if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><title>Rapport ${moisLabel} — ${nom}</title>
     <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm} @media print{body{padding:0}}</style>
     </head><body>${html}
@@ -6296,9 +6884,9 @@ function mettreAJourBadgesNav() {
   if (badgeInc) { badgeInc.textContent=incOpen; badgeInc.style.display=incOpen>0?'inline-flex':'none'; }
 
   // Badge relances
-  const delai   = parseInt(localStorage.getItem('relance_delai')||'7');
+  const delai   = parseInt(localStorage.getItem('relance_delai')||'7', 10);
   const limite  = new Date(); limite.setDate(limite.getDate()-delai);
-  const limStr  = limite.toISOString().split('T')[0];
+  const limStr  = limite.toLocalISODate();
   const relOpen = charger('livraisons').filter(l=>
     l.statut==='livre' && (l.statutPaiement==='en-attente'||!l.statutPaiement) && l.prix>0 && l.date<=limStr
   ).length;
@@ -6341,7 +6929,7 @@ function afficherPonctualite() {
 
 /* ===== TABLEAU DE BORD CLIENT ENRICHI ===== */
 function afficherClientsDashboard() {
-  const clients    = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients    = loadSafe('clients', []);
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
   if (!clients.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
@@ -6477,7 +7065,7 @@ function togglePanelModeles() {
 
 /* ===== RH — COMPTEUR HEURES ===== */
 function calculerHeuresSalarie(salId) {
-  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const plannings = loadSafe('plannings', []);
   const plan = plannings.find(p => p.salId === salId);
   if (!plan?.semaine) return { planifiees: 0, details: [] };
 
@@ -6718,8 +7306,8 @@ function planningOuvrirFicheSalarie(salId) {
 
 function construireContexteHeures(range) {
   const periodeRange = range || getHeuresPeriodeRange();
-  const plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
-  const absencesPeriodes = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  const plannings = loadSafe('plannings', []);
+  const absencesPeriodes = loadSafe('absences_periodes', []);
   const dates = getDateRangeInclusive(periodeRange.debut, periodeRange.fin);
   const planningsParSalarie = new Map();
   const absencesParSalarie = new Map();
@@ -6932,12 +7520,12 @@ function exporterRecapHeures() {
 
 /* ===== RH — NOTE INTERNE SALARIÉ ===== */
 function charger_note_interne(salId) {
-  const notes = JSON.parse(localStorage.getItem('notes_internes')||'{}');
+  const notes = loadSafe('notes_internes', {});
   return notes[salId]?.texte || '';
 }
 
 function chargerNoteInterne(salId) {
-  const notes = JSON.parse(localStorage.getItem('notes_internes')||'{}');
+  const notes = loadSafe('notes_internes', {});
   return notes[salId]?.texte || '';
 }
 
@@ -6951,7 +7539,7 @@ function ouvrirNoteInterne(salId, salNom) {
 function confirmerNoteInterne() {
   const salId = document.getElementById('note-interne-sal-id').value;
   const texte = document.getElementById('note-interne-texte').value;
-  const notes = JSON.parse(localStorage.getItem('notes_internes')||'{}');
+  const notes = loadSafe('notes_internes', {});
   notes[salId] = { texte, date: new Date().toISOString() };
   localStorage.setItem('notes_internes', JSON.stringify(notes));
   closeModal('modal-note-interne');
@@ -6989,7 +7577,7 @@ function ouvrirHistoriqueConducteurs(vehId) {
 function enregistrerConduite(livraison) {
   if (!livraison.vehId || !livraison.chaufId) return;
   const cle  = 'conducteurs_veh_' + livraison.vehId;
-  const hist = JSON.parse(localStorage.getItem(cle)||'[]');
+  const hist = loadSafe(cle, []);
   hist.push({
     salId:    livraison.chaufId,
     salNom:   livraison.chaufNom,
@@ -7004,7 +7592,7 @@ function enregistrerConduite(livraison) {
 
 function afficherHistoriqueConducteurs(vehId) {
   const cle  = 'conducteurs_veh_' + vehId;
-  const hist = JSON.parse(localStorage.getItem(cle)||'[]').reverse().slice(0, 50);
+  const hist = loadSafe(cle, []).reverse().slice(0, 50);
   // Afficher dans la modal ou dans un container inline
   const cont = document.getElementById('hist-conducteurs-modal') ||
                document.getElementById('hist-conducteurs-' + vehId);
@@ -7036,9 +7624,9 @@ function verifierMessagesAuto() {
 /* Côté admin : vérifier si un salarié commence bientôt (H-15min) ou vient de finir (H+30min) */
 function verifierTriggersPlanningAuto() {
   const salaries  = charger('salaries').filter(s=>s.actif);
-  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const plannings = loadSafe('plannings', []);
   const maintenant= new Date();
-  const auj       = maintenant.toISOString().split('T')[0];
+  const auj       = maintenant.toLocalISODate();
   const jourSem   = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][maintenant.getDay()];
   const hMin      = maintenant.getHours()*60 + maintenant.getMinutes();
 
@@ -7057,7 +7645,7 @@ function verifierTriggersPlanningAuto() {
 
     // H-15min avant départ → message de rappel tournée
     if (hMin >= debutMin-15 && hMin < debutMin && !localStorage.getItem(cleDep)) {
-      const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
+      const msgs = loadSafe('messages_'+s.id, []);
       const prenom = s.nom.split(' ')[0];
       msgs.push({ id:genId(), auteur:'admin',
         texte:`Bonjour ${prenom} 👋 Votre tournée démarre à ${jour.heureDebut}. Pensez à faire votre inspection véhicule et votre relevé km de départ. Bonne journée !`,
@@ -7069,7 +7657,7 @@ function verifierTriggersPlanningAuto() {
 
     // H+30min après fin → rappel km retour
     if (hMin >= finMin+30 && hMin < finMin+60 && !localStorage.getItem(cleFin)) {
-      const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
+      const msgs = loadSafe('messages_'+s.id, []);
       const prenom = s.nom.split(' ')[0];
       msgs.push({ id:genId(), auteur:'admin',
         texte:`Bonsoir ${prenom}, n'oubliez pas d'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci 🙏`,
@@ -7144,7 +7732,7 @@ function envoyerMessageAvecPhoto(salId, input) {
   const reader = new FileReader();
   reader.onload = e => {
     compresserImage(e.target.result, compressed => {
-      const messages = JSON.parse(localStorage.getItem('messages_'+salId)||'[]');
+      const messages = loadSafe('messages_'+salId, []);
       messages.push({
         id: genId(), auteur: 'admin',
         texte: '📷 Photo partagée',
@@ -7243,7 +7831,8 @@ function genererFicheTournee(salId, date) {
     </div>
   </div>`;
 
-  const win = window.open('', '_blank', 'width=850,height:950');
+  const win = ouvrirPopupSecure('', '_blank', 'width=850,height=950');
+  if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><title>Tournée ${sal.nom} — ${date}</title>
     <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm}</style>
     </head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
@@ -7290,12 +7879,12 @@ function afficherTemplatesMsg(salNom) {
 function verifierMessagesAutomatiques() {
   if (!document || document.hidden) return; // Ne pas jouer si l'onglet est en arrière-plan
   const salaries  = charger('salaries').filter(s => s.actif);
-  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const plannings = loadSafe('plannings', []);
   const auj       = aujourdhui();
   const heure     = new Date().getHours();
   const minute    = new Date().getMinutes();
   const cle       = 'msg_auto_' + auj;
-  const deja      = JSON.parse(localStorage.getItem(cle)||'{}');
+  const deja      = loadSafe(cle, {});
 
   salaries.forEach(s => {
     const plan = plannings.find(p => p.salId === s.id);
@@ -7311,7 +7900,7 @@ function verifierMessagesAutomatiques() {
 
     // Rappel départ : fenêtre H-20min à H-10min
     if (maintenant >= minutesDep - 20 && maintenant <= minutesDep - 10 && !deja[s.id + '_depart']) {
-      const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
+      const msgs = loadSafe('messages_'+s.id, []);
       msgs.push({ id:genId(), auteur:'admin', texte:`🚀 Rappel automatique — Votre tournée commence à ${jour.heureDebut}. Pensez à faire votre inspection et votre relevé km de départ. Bonne journée ${s.nom} !`, lu:false, creeLe:new Date().toISOString(), auto:true });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       deja[s.id + '_depart'] = true;
@@ -7319,7 +7908,7 @@ function verifierMessagesAutomatiques() {
 
     // Rappel retour : fenêtre H+25min à H+35min
     if (maintenant >= minutesFin + 25 && maintenant <= minutesFin + 35 && !deja[s.id + '_retour']) {
-      const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
+      const msgs = loadSafe('messages_'+s.id, []);
       msgs.push({ id:genId(), auteur:'admin', texte:`🌙 Fin de journée ${s.nom} — N'oubliez pas d'enregistrer votre km de retour et votre plein si effectué. Bonne soirée ! 🙏`, lu:false, creeLe:new Date().toISOString(), auto:true });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       deja[s.id + '_retour'] = true;
@@ -7341,7 +7930,7 @@ function calculerTauxPonctualite() {
 /* ===== TABLEAU DE BORD CLIENTS ===== */
 function afficherTopClients() {
   const livraisons = charger('livraisons');
-  const clients    = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients    = loadSafe('clients', []);
   const cont       = document.getElementById('top-clients-list');
   if (!cont) return;
 
@@ -7380,7 +7969,7 @@ function envoyerBroadcast() {
   const destinataires = getBroadcastDestinataires();
   if (!destinataires.length) { afficherToast('⚠️ Aucun destinataire sélectionné', 'error'); return; }
   destinataires.forEach(s => {
-    const msgs = JSON.parse(localStorage.getItem('messages_'+s.id)||'[]');
+    const msgs = loadSafe('messages_'+s.id, []);
     msgs.push({ id: genId(), auteur:'admin', texte, lu:false, creeLe: new Date().toISOString() });
     localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
   });
@@ -7534,7 +8123,7 @@ function afficherTemplatesSMS() {
 }
 
 function copierTemplateSMS(id) {
-  const t = TEMPLATES_SMS.find(x=>x.id===parseInt(id));
+  const t = TEMPLATES_SMS.find(x=>x.id===parseInt(id, 10));
   if (!t) return;
   navigator.clipboard?.writeText(t.texte).then(()=>{
     afficherToast('📋 Template SMS copié dans le presse-papier');
@@ -7550,10 +8139,8 @@ function copierTemplateSMS(id) {
 /* ===== RACCOURCIS CLAVIER ===== */
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey) {
-    switch(e.key) {
-      case 'n': e.preventDefault(); openModal('modal-livraison'); break;
-      case 'k': e.preventDefault(); ouvrirRechercheGlobale(); break;
-    }
+    // Ctrl+K est géré par la palette S15 (plus riche) — ne pas doubler
+    if (e.key === 'n') { e.preventDefault(); openModal('modal-livraison'); }
   }
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
   if (e.key === 'Escape') {
@@ -7592,7 +8179,7 @@ function rechercheUniverselle(q) {
   const livraisons = charger('livraisons');
   const salaries   = charger('salaries');
   const vehicules  = charger('vehicules');
-  const clients    = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients    = loadSafe('clients', []);
   const res = [];
 
   livraisons.filter(l => (l.client||'').toLowerCase().includes(q)||(l.numLiv||'').toLowerCase().includes(q)||(l.chaufNom||'').toLowerCase().includes(q))
@@ -7785,8 +8372,101 @@ function exporterHistoriqueClientCourant() {
   ajouterEntreeAudit('Export client', 'Export historique du client ' + (snapshot.client.nom || '—'));
 }
 
+// BUG-007 fix : RGPD art. 20 — droit à la portabilité. Export JSON structuré de toutes les données du client.
+function collecterDonneesRGPDClient(clientId) {
+  const client = (charger('clients') || []).find(function(c){ return c.id === clientId; });
+  if (!client) return null;
+  const nomNorm = String(client.nom || '').trim().toLowerCase();
+  const matchNom = function(champ) { return String(champ || '').trim().toLowerCase() === nomNorm; };
+  const livraisons = (charger('livraisons') || []).filter(function(l){
+    return l.clientId === client.id || matchNom(l.client);
+  });
+  const factures = (loadSafe('factures_emises', []) || []).filter(function(f){
+    return f.clientId === client.id || matchNom(f.client) || matchNom(f.clientNom);
+  });
+  const avoirs = (loadSafe('avoirs', []) || []).filter(function(a){
+    return a.clientId === client.id || matchNom(a.client) || matchNom(a.clientNom);
+  });
+  const encaissements = (loadSafe('encaissements', []) || []).filter(function(e){
+    return e.clientId === client.id || matchNom(e.client) || matchNom(e.clientNom);
+  });
+  const acomptes = (loadSafe('acomptes', []) || []).filter(function(a){
+    return a.clientId === client.id || matchNom(a.client) || matchNom(a.clientNom);
+  });
+  const incidents = (charger('incidents') || []).filter(function(i){
+    return i.clientId === client.id || matchNom(i.client) || matchNom(i.clientNom);
+  });
+  const relances = (loadSafe('relances', []) || []).filter(function(r){
+    return r.clientId === client.id || matchNom(r.client) || matchNom(r.clientNom);
+  });
+
+  return {
+    meta: {
+      exportType: 'RGPD-art20-portabilite',
+      dateExport: new Date().toISOString(),
+      regulation: 'Règlement (UE) 2016/679 (RGPD) — article 20 : droit à la portabilité',
+      format: 'JSON UTF-8',
+      responsable: 'MCA Logistics',
+      contactDPO: null,
+      clientId: client.id,
+      clientNom: client.nom || ''
+    },
+    donneesPersonnelles: {
+      identifiant: client.id,
+      nom: client.nom || '',
+      prenom: client.prenom || '',
+      contact: client.contact || '',
+      telephone: client.tel || '',
+      email: client.email || '',
+      adresse: client.adresse || '',
+      siret: client.siret || '',
+      tvaIntracom: client.tvaIntracom || '',
+      notesInternes: client.notes || '',
+      creeLe: client.creeLe || '',
+      majLe: client.majLe || ''
+    },
+    livraisons: livraisons,
+    factures: factures,
+    avoirs: avoirs,
+    encaissements: encaissements,
+    acomptes: acomptes,
+    incidents: incidents,
+    relances: relances,
+    resumeFinancier: {
+      nbLivraisons: livraisons.length,
+      nbFactures: factures.length,
+      caHT: Number((livraisons.reduce(function(s,l){ return s + getMontantHTLivraison(l); }, 0)).toFixed(2)),
+      caTTC: Number((livraisons.reduce(function(s,l){ return s + (parseFloat(l.prix)||0); }, 0)).toFixed(2))
+    }
+  };
+}
+
+function exporterDonneesRGPDClientCourant() {
+  if (!_clientHistoryCurrentId) return;
+  const payload = collecterDonneesRGPDClient(_clientHistoryCurrentId);
+  if (!payload) { if (typeof afficherToast === 'function') afficherToast('⚠️ Client introuvable', 'error'); return; }
+  try {
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const nomFichier = 'RGPD_export_' + (payload.meta.clientNom || 'client').toLowerCase().replace(/[^a-z0-9]+/gi, '-')
+                     + '_' + new Date().toLocalISODate() + '.json';
+    a.href = url; a.download = nomFichier;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+    if (typeof ajouterEntreeAudit === 'function') {
+      ajouterEntreeAudit('Export RGPD', 'Export portabilité art. 20 — client ' + (payload.meta.clientNom || '—'));
+    }
+    if (typeof afficherToast === 'function') afficherToast('🛡️ Export RGPD généré', 'success');
+  } catch (e) {
+    console.warn('[RGPD]', e);
+    if (typeof afficherToast === 'function') afficherToast('❌ Échec export RGPD', 'error');
+  }
+}
+
 function afficherClients() {
-  const clients = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients = loadSafe('clients', []);
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
   paginer.__reload_tb_clients = afficherClients;
@@ -7830,12 +8510,12 @@ function ajouterClient() {
   const siren       = (document.getElementById('cl-siren')?.value.trim() || '').replace(/\s+/g,'');
   const tvaIntra    = (document.getElementById('cl-tva-intra')?.value.trim() || '').replace(/\s+/g,'').toUpperCase();
   const emailFact   = document.getElementById('cl-email-fact')?.value.trim() || '';
-  const delaiPay    = parseInt(document.getElementById('cl-delai-paiement')?.value) || 30;
+  const delaiPay    = parseInt(document.getElementById('cl-delai-paiement')?.value, 10) || 30;
   const notes       = document.getElementById('cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
   if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
-  const clients = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients = loadSafe('clients', []);
   if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Client déjà existant','error'); return; }
   clients.push({
     id: genId(), nom, prenom, contact: prenom, tel, email, adresse,
@@ -7859,7 +8539,7 @@ async function supprimerClient(id) {
   const _ok6 = await confirmDialog('Supprimer ce client ?', {titre:'Supprimer le client',icone:'🧑‍💼',btnLabel:'Supprimer'});
   if (!_ok6) return;
   const client = charger('clients').find(function(item) { return item.id === id; });
-  const clients = JSON.parse(localStorage.getItem('clients')||'[]').filter(c=>c.id!==id);
+  const clients = loadSafe('clients', []).filter(c=>c.id!==id);
   localStorage.setItem('clients', JSON.stringify(clients));
   afficherClients();
   ajouterEntreeAudit('Suppression client', (client?.nom || 'Client') + ' supprimé');
@@ -7867,7 +8547,7 @@ async function supprimerClient(id) {
 }
 
 function preFillLivraisonClient(id) {
-  const c = JSON.parse(localStorage.getItem('clients')||'[]').find(x=>x.id===id);
+  const c = loadSafe('clients', []).find(x=>x.id===id);
   if (!c) return;
   naviguerVers('livraisons');
   setTimeout(()=>{
@@ -7883,7 +8563,7 @@ function preFillLivraisonClient(id) {
 
 /* Auto-complétion client dans modal livraison */
 function autoCompleteClient(val) {
-  const clients = JSON.parse(localStorage.getItem('clients')||'[]');
+  const clients = loadSafe('clients', []);
   const sug = document.getElementById('client-suggestions');
   if (!sug || !val || val.length < 2) { if(sug) sug.innerHTML=''; return; }
   const matches = clients.filter(c=>c.nom.toLowerCase().includes(val.toLowerCase())).slice(0,5);
@@ -7894,7 +8574,7 @@ function autoCompleteClient(val) {
 function copierSemainePrecedente() {
   const salId = document.getElementById('plan-salarie').value;
   if (!salId) { afficherToast('⚠️ Choisissez un salarié','error'); return; }
-  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const plannings = loadSafe('plannings', []);
   const plan = plannings.find(p=>p.salId===salId);
   if (!plan?.semaine?.length) { afficherToast('⚠️ Aucun planning précédent à copier','error'); return; }
   // Pré-remplir la grille avec les données existantes
@@ -8014,7 +8694,7 @@ function chargerParametres() {
 }
 
 /* ===== GESTION DES POSTES ===== */
-function getPostes() { return JSON.parse(localStorage.getItem('postes')||'["Livreur","Dispatcher"]'); }
+function getPostes() { return loadSafe('postes', ["Livreur","Dispatcher"]); }
 function sauvegarderPostes(postes) { localStorage.setItem('postes', JSON.stringify(postes)); }
 
 function afficherPostes() {
@@ -8072,6 +8752,11 @@ function sauvegarderParametres() {
   const siretRaw = (document.getElementById('param-siret')?.value || '').replace(/\s+/g, '');
   if (!/^\d{14}$/.test(siretRaw)) {
     afficherToast('⚠️ Le SIRET est obligatoire et doit contenir 14 chiffres', 'error');
+    return;
+  }
+  // BUG-009 : validation Luhn
+  if (!validerSIRET(siretRaw)) {
+    afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
     return;
   }
   const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
@@ -8222,13 +8907,13 @@ function sauvegarderConfigurationTresorerie() {
 }
 
 function sauvegarderObjectifLivraisons() {
-  const val = parseInt(document.getElementById('param-objectif-livraisons')?.value) || 0;
+  const val = parseInt(document.getElementById('param-objectif-livraisons')?.value, 10) || 0;
   localStorage.setItem('objectif_livraisons_mensuel', val);
   afficherToast('✅ Objectif ' + val + ' livraisons/mois enregistré');
 }
 
 function sauvegarderMaxTentatives() {
-  const val = parseInt(document.getElementById('param-max-tentatives')?.value) || 5;
+  const val = parseInt(document.getElementById('param-max-tentatives')?.value, 10) || 5;
   const timeoutVal = Math.min(240, Math.max(5, parseInt(document.getElementById('param-session-timeout')?.value || '30', 10) || 30));
   localStorage.setItem('max_tentatives', val);
   localStorage.setItem('session_timeout_min', timeoutVal);
@@ -8237,7 +8922,7 @@ function sauvegarderMaxTentatives() {
 }
 
 function sauvegarderRelanceDelai() {
-  const val = parseInt(document.getElementById('relance-delai-input')?.value || document.getElementById('param-relance-delai')?.value) || 7;
+  const val = parseInt(document.getElementById('relance-delai-input')?.value || document.getElementById('param-relance-delai')?.value, 10) || 7;
   localStorage.setItem('relance_delai', val);
   // Synchroniser les deux inputs
   const p = document.getElementById('param-relance-delai'); if (p) p.value = val;
@@ -8601,7 +9286,8 @@ function exporterChargesPDF() {
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong style="font-size:1rem">Total : ${euros(total)}</strong></div>
     <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Généré par MCA Logistics — ${nom}</span><span>${dateExp}</span></div>
   </div>`;
-  const win = window.open('','_blank','width=800,height=700');
+  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
+  if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><title>Charges — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
   afficherToast('📄 PDF charges généré');
@@ -8670,7 +9356,7 @@ function afficherRelances() {
   if (!tb) return;
   paginer.__reload_tb_relances = afficherRelances;
   peuplerTemplatesRelance();
-  const delai = parseInt(localStorage.getItem('relance_delai')||'7');
+  const delai = parseInt(localStorage.getItem('relance_delai')||'7', 10);
 
   // Synchroniser l'input délai dans la page relances
   const inputDelai = document.getElementById('relance-delai-input');
@@ -9064,7 +9750,7 @@ function ajouterIncident() {
   ajouterEntreeAudit('Création incident', (incident.client || finalSalNom || 'Incident') + ' · ' + gravite);
 
   if (finalSalId) {
-    const msgs = JSON.parse(localStorage.getItem('messages_'+finalSalId)||'[]');
+    const msgs = loadSafe('messages_'+finalSalId, []);
     msgs.push({ id:genId(), auteur:'admin', texte:`⚠️ Un incident a été signalé${liv?' sur votre livraison du '+date+' ('+liv.client+')':' vous concernant le '+date}. Motif : ${desc}`, lu:false, creeLe:new Date().toISOString() });
     localStorage.setItem('messages_'+finalSalId, JSON.stringify(msgs));
   }
@@ -9091,7 +9777,7 @@ async function supprimerIncident(id) {
 /* ===== HISTORIQUE MODIFICATIONS LIVRAISON ===== */
 function logModifLivraison(livId, champ, ancienne, nouvelle) {
   const cle  = 'modifs_liv_' + livId;
-  const logs = JSON.parse(localStorage.getItem(cle)||'[]');
+  const logs = loadSafe(cle, []);
   logs.push({ date:new Date().toISOString(), champ, ancienne: String(ancienne), nouvelle: String(nouvelle), par:'Admin' });
   if (logs.length > 20) logs.shift();
   localStorage.setItem(cle, JSON.stringify(logs));
@@ -9104,7 +9790,7 @@ function nettoyerHistoriqueModifsLivraisons() {
     const cle = localStorage.key(i);
     if (!cle || !cle.startsWith('modifs_liv_')) continue;
     try {
-      const logs = JSON.parse(localStorage.getItem(cle) || '[]');
+      const logs = loadSafe(cle, []);
       const derniereDate = Array.isArray(logs) && logs.length ? Date.parse(logs[logs.length - 1]?.date || logs[0]?.date || '') : 0;
       if (!derniereDate || Number.isNaN(derniereDate) || derniereDate < limite) aSupprimer.push(cle);
     } catch (_) {
@@ -9116,7 +9802,7 @@ function nettoyerHistoriqueModifsLivraisons() {
 
 function afficherHistoriqueModifs(livId) {
   const cle  = 'modifs_liv_' + livId;
-  const logs = JSON.parse(localStorage.getItem(cle)||'[]').reverse();
+  const logs = loadSafe(cle, []).reverse();
   const cont = document.getElementById('historique-modifs-liv');
   if (!cont) return;
   if (!logs.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune modification enregistrée</div>'; return; }
@@ -9134,7 +9820,7 @@ function ajouterCommentaireLiv(livId) {
   const texte = input?.value.trim();
   if (!texte) return;
   const cle  = 'commentaires_liv_' + livId;
-  const list = JSON.parse(localStorage.getItem(cle)||'[]');
+  const list = loadSafe(cle, []);
   list.push({ id:genId(), texte, date:new Date().toISOString(), par:'Admin' });
   localStorage.setItem(cle, JSON.stringify(list));
   if (input) input.value = '';
@@ -9144,7 +9830,7 @@ function ajouterCommentaireLiv(livId) {
 
 function afficherCommentairesLiv(livId) {
   const cle  = 'commentaires_liv_' + livId;
-  const list = JSON.parse(localStorage.getItem(cle)||'[]').reverse();
+  const list = loadSafe(cle, []).reverse();
   const cont = document.getElementById('commentaires-liv-list');
   if (!cont) return;
   if (!list.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Aucun commentaire</div>'; return; }
@@ -9160,8 +9846,8 @@ function calculerComparatif() {
   const livraisons = charger('livraisons');
   const carburant  = charger('carburant');
   const auj        = new Date();
-  const moisActuel = auj.toISOString().slice(0,7);
-  const moisPrec   = new Date(auj.getFullYear(), auj.getMonth()-1, 1).toISOString().slice(0,7);
+  const moisActuel = auj.toLocalISOMonth();
+  const moisPrec   = new Date(auj.getFullYear(), auj.getMonth()-1, 1).toLocalISOMonth();
 
   const caActuel = livraisons.filter(l=>(l.date||'').startsWith(moisActuel)).reduce((s,l)=>s+(l.prix||0),0);
   const caPrec   = livraisons.filter(l=>(l.date||'').startsWith(moisPrec)).reduce((s,l)=>s+(l.prix||0),0);
@@ -9311,6 +9997,25 @@ function formatNumeroFacture(annee, sequence) {
   return 'FAC-' + annee + '-' + String(sequence || 0).padStart(4, '0');
 }
 
+// BUG-001 — compteur facture persistant par année (CGI art. 289)
+// La séquence ne régresse jamais, même après suppression.
+const COMPTEURS_FACTURES_KEY = 'compteurs_factures_annee';
+function incrementerCompteurFactureAnnee(annee) {
+  const key = String(annee || new Date().getFullYear());
+  let compteurs = {};
+  try { compteurs = loadSafe(COMPTEURS_FACTURES_KEY, {}) || {}; } catch(e){ compteurs = {}; }
+  // Synchro de sécurité : si tableau factures contient un numéro plus grand (migration), on part de là
+  try {
+    const maxLive = (loadSafe('factures_emises', []) || [])
+      .filter(f => String(f.annee || '') === key)
+      .reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
+    if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
+  } catch(e) {}
+  compteurs[key] = (compteurs[key] || 0) + 1;
+  localStorage.setItem(COMPTEURS_FACTURES_KEY, JSON.stringify(compteurs));
+  return compteurs[key];
+}
+
 function assurerArchiveFactureLivraison(livraison) {
   const factures = chargerFacturesEmises();
   const annee = getAnneeFactureReference(livraison);
@@ -9320,17 +10025,13 @@ function assurerArchiveFactureLivraison(livraison) {
   const nowIso = new Date().toISOString();
   let facture = factures.find(function(item) { return item.livId === livraison.id; }) || null;
   if (!facture) {
-    const lastSeq = factures
-      .filter(function(item) { return String(item.annee || '') === annee; })
-      .reduce(function(max, item) {
-        return Math.max(max, parseInt(item.sequence, 10) || 0);
-      }, 0);
+    const nextSeq = incrementerCompteurFactureAnnee(annee);
     facture = {
       id: genId(),
       livId: livraison.id,
       annee: annee,
-      sequence: lastSeq + 1,
-      numero: formatNumeroFacture(annee, lastSeq + 1),
+      sequence: nextSeq,
+      numero: formatNumeroFacture(annee, nextSeq),
       creeLe: nowIso,
       statut: 'émise'
     };
@@ -9388,9 +10089,8 @@ function genererFactureLivraison(livId) {
   const montantTTC = round2(parseFloat(livraison.prix) || 0);
   const facture = assurerArchiveFactureLivraison(livraison);
   const numeroFacture = facture.numero;
-  const mentionTVA = !profile.isVatEnabled || profile.regime === 'franchise_base'
-    ? 'TVA non applicable, art. 293 B du CGI'
-    : 'TVA ' + formaterTaux(tauxTVA);
+  const clientFiche = (typeof trouverClientParLivraison === 'function') ? trouverClientParLivraison(livraison) : null;
+  const mentionTVA = choisirMentionTVALegale(profile, clientFiche || { pays: livraison.clientPays, tvaIntracom: livraison.clientTvaIntracom }, tauxTVA);
   const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
     + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
@@ -9551,7 +10251,7 @@ function confirmerEditClient() {
   const siren      = (document.getElementById('edit-cl-siren')?.value.trim() || '').replace(/\s+/g,'');
   const tvaIntra   = (document.getElementById('edit-cl-tva-intra')?.value.trim() || '').replace(/\s+/g,'').toUpperCase();
   const emailFact  = document.getElementById('edit-cl-email-fact')?.value.trim() || '';
-  const delaiPay   = parseInt(document.getElementById('edit-cl-delai-paiement')?.value) || 30;
+  const delaiPay   = parseInt(document.getElementById('edit-cl-delai-paiement')?.value, 10) || 30;
   const notes      = document.getElementById('edit-cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
@@ -9594,7 +10294,8 @@ function exporterStatsPDF() {
     </div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = window.open('','_blank','width=800,height=600');
+  const win = ouvrirPopupSecure('','_blank','width=800,height=600');
+  if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><title>Statistiques — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
   afficherToast('📄 Rapport statistiques généré');
@@ -9713,7 +10414,7 @@ function exporterRecapHeuresPDF() { exporterHeuresPDF(); }
 /* ===== EXPORT PLANNING PDF ===== */
 function exporterPlanningPDF() {
   const salaries = charger('salaries');
-  const plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
+  const plannings = loadSafe('plannings', []);
   const params = getEntrepriseExportParams();
   const nom = params.nom;
   const dateExp = formatDateHeureExport();
@@ -9767,7 +10468,8 @@ function exporterEntretiensPDF() {
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong>Total : ${euros(total)}</strong></div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = window.open('','_blank','width=800,height=700');
+  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
+  if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><title>Entretiens — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
   afficherToast('📄 Rapport entretiens généré');
@@ -9806,7 +10508,8 @@ function exporterVehiculesPDF() {
     </table>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = window.open('','_blank','width=850,height=700');
+  const win = ouvrirPopupSecure('','_blank','width=850,height=700');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>Véhicules — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(()=>{window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport véhicules généré');
@@ -9898,7 +10601,7 @@ function ajouterPeriodeAbsence() {
   var fin   = document.getElementById('absence-fin') ? document.getElementById('absence-fin').value : '';
   if (!salId || !debut || !fin) { afficherToast('⚠️ Salarié, date début et date fin obligatoires','error'); return; }
   if (fin < debut) { afficherToast('⚠️ La date de fin doit être après la date de début','error'); return; }
-  var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+  var absences = loadSafe('absences_periodes', []);
   absences.push({ id:genId(), salId:salId, type:type, debut:debut, fin:fin, creeLe:new Date().toISOString() });
   localStorage.setItem('absences_periodes', JSON.stringify(absences));
   if (document.getElementById('absence-debut')) document.getElementById('absence-debut').value = '';
@@ -9914,7 +10617,7 @@ function ajouterPeriodeAbsence() {
 function afficherAbsencesPeriodes() {
   var cont = document.getElementById('liste-absences-periodes');
   if (!cont) return;
-  var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+  var absences = loadSafe('absences_periodes', []);
   var salaries = charger('salaries');
   var typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
   var typeLabels = { conge:'Congé', absence:'Absence', maladie:'Maladie' };
@@ -9931,7 +10634,7 @@ function afficherAbsencesPeriodes() {
 }
 
 function supprimerAbsencePeriode(id) {
-  var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]').filter(function(a){return a.id!==id;});
+  var absences = loadSafe('absences_periodes', []).filter(function(a){return a.id!==id;});
   localStorage.setItem('absences_periodes', JSON.stringify(absences));
   afficherAbsencesPeriodes();
   afficherPlanningSemaine();
@@ -10076,8 +10779,8 @@ function afficherPlanningSemaine() {
   var planningSelect = document.getElementById('vue-planning-select');
   if (planningSelect) planningSelect.value = _planningPeriode.mode;
   var salaries  = charger('salaries');
-  var plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
-  var absences  = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+  var plannings = loadSafe('plannings', []);
+  var absences  = loadSafe('absences_periodes', []);
 
   var JOURS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
   var JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
@@ -10195,8 +10898,8 @@ function getNumSemaine(d) {
 function exporterPlanningSemainePDF() {
   var lundi = getLundiDeSemaine(_planningSemaineOffset);
   var salaries  = charger('salaries');
-  var plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
-  var absences  = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+  var plannings = loadSafe('plannings', []);
+  var absences  = loadSafe('absences_periodes', []);
   var params    = getEntrepriseExportParams();
   var nom       = params.nom;
   var dateExp   = formatDateHeureExport();
@@ -10249,7 +10952,8 @@ function exporterPlanningSemainePDF() {
       '<tbody>' + rows + '</tbody></table>' +
     '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>' + nom + '</span><span>' + dateExp + '</span></div></div>';
 
-  var win = window.open('','_blank','width=950,height=700');
+  var win = ouvrirPopupSecure('','_blank','width=950,height=700');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>Planning ' + titreSemaine + '</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:10mm;size:landscape}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport planning semaine généré');
@@ -10470,7 +11174,7 @@ function exporterReleveKmPDF() {
   var range = getHeuresPeriodeRange();
   var allKm = [];
   salaries.forEach(function(s) {
-    var entrees = JSON.parse(localStorage.getItem('km_sal_'+s.id)||'[]');
+    var entrees = loadSafe('km_sal_'+s.id, []);
     entrees.forEach(function(e) {
       if ((e.date || '') < range.debut || (e.date || '') > range.fin) return;
       var distance = e.kmArrivee != null ? (e.distance || (e.kmArrivee - e.kmDepart)) : 0;
@@ -10493,7 +11197,8 @@ function exporterReleveKmPDF() {
       '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km départ</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km arrivée</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Distance</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table>'+
     '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
-  var win = window.open('','_blank','width=800,height=700');
+  var win = ouvrirPopupSecure('','_blank','width=800,height=700');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>Relevés km — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport relevés km généré');
@@ -10523,7 +11228,7 @@ function exporterRapportHeuresEtKmPDF() {
 
   var allKm = [];
   salaries.forEach(function(s) {
-    var entrees = JSON.parse(localStorage.getItem('km_sal_' + s.id) || '[]');
+    var entrees = loadSafe('km_sal_' + s.id, []);
     entrees.forEach(function(e) {
       if ((e.date || '') < range.debut || (e.date || '') > range.fin) return;
       var distance = e.kmArrivee != null ? (e.distance || (e.kmArrivee - e.kmDepart)) : 0;
@@ -10781,7 +11486,8 @@ function exporterTvaPDF() {
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0"><div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Collectée</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">'+euros(totalCollectee)+'</div></div><div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Déductible</div><div style="font-size:1.2rem;font-weight:800;color:#e67e22">'+euros(totalDeductible)+'</div></div><div style="padding:14px;background:#eff6ff;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Planifiée / réglée</div><div style="font-size:1.2rem;font-weight:800;color:#2563eb">'+euros(summary.totalTVAPlanifiee)+'</div></div><div style="padding:14px;background:'+(solde>=0?'#ffebee':'#f5edff')+';border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">'+(solde>=0?'Reste non planifié':'Crédit TVA')+'</div><div style="font-size:1.2rem;font-weight:800;color:'+(solde>=0?'#e74c3c':'#8e44ad')+'">'+euros(solde>=0 ? summary.tvaReverser : summary.tvaCredit)+'</div></div></div>' +
     '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
 
-  var win = window.open('','_blank','width=800,height=800');
+  var win = ouvrirPopupSecure('','_blank','width=800,height=800');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>TVA '+moisLabel+' — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport TVA généré');
@@ -10800,9 +11506,7 @@ function genererRapportMensuelPeriode() {
   var dateExp = formatDateHeureExport();
   var periode = getLivraisonsPeriodeActiveLabel();
 
-  var escape = function(s) {
-    return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  };
+  var escape = window.escapeHtml;
   var nomEntr = escape(nom);
 
   var cellCss = 'padding:8px 10px;border-bottom:1px solid #f3f4f6';
@@ -10875,7 +11579,7 @@ function genererRapportMensuelPeriode() {
       '<div style="margin-top:16px;font-size:.72rem;color:#9ca3af;text-align:center">Document généré par '+nomEntr+'</div>' +
     '</div>';
 
-  var win = window.open('','_blank','width=1100,height=750');
+  var win = ouvrirPopupSecure('','_blank','width=1100,height=750');
   if (!win) { afficherToast('⚠️ Autorise les popups pour exporter en PDF','error'); return; }
   win.document.write(
     '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons — '+nomEntr+'</title>' +
@@ -10911,7 +11615,8 @@ function exporterChargesPDFMois() {
     '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Catégorie</th><th style="padding:6px 10px;text-align:left">Description</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
 
-  var win = window.open('','_blank','width=800,height=700');
+  var win = ouvrirPopupSecure('','_blank','width=800,height=700');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>Charges '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport charges généré');
@@ -10944,7 +11649,8 @@ function exporterCarburantPDF() {
     '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Véhicule</th><th style="padding:6px 10px">Type</th><th style="padding:6px 10px;text-align:right">Litres</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA déd.</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
     '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
 
-  var win = window.open('','_blank','width=850,height:700');
+  var win = ouvrirPopupSecure('','_blank','width=850,height=700');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>Carburant '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport carburant généré');
@@ -10961,7 +11667,7 @@ ajouterPeriodeAbsence = function() {
   if (type === 'travail') {
     if (!heureDebut || !heureFin) { afficherToast('⚠️ Renseignez les heures de travail','error'); return; }
     if (calculerDureeJour(heureDebut, heureFin) <= 0) { afficherToast('⚠️ Les heures de travail sont invalides','error'); return; }
-    var plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
+    var plannings = loadSafe('plannings', []);
     var planIndex = plannings.findIndex(function(p){ return p.salId === salId; });
     var plan = planIndex > -1 ? plannings[planIndex] : { salId: salId, salNom: '', semaine: [] };
     var sal = charger('salaries').find(function(s){ return s.id === salId; });
@@ -10989,7 +11695,7 @@ ajouterPeriodeAbsence = function() {
     afficherToast('✅ Horaires de travail enregistrés');
     return;
   }
-  var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  var absences = loadSafe('absences_periodes', []);
   absences.push({ id: genId(), salId: salId, type: type, debut: debut, fin: fin, creeLe: new Date().toISOString() });
   localStorage.setItem('absences_periodes', JSON.stringify(absences));
   ['absence-debut','absence-fin','absence-heure-debut','absence-heure-fin','absence-sal-search'].forEach(function(id) {
@@ -11068,7 +11774,7 @@ afficherStatistiques = function() {
   const labels = [];
   const donnees = [];
   getDateRangeInclusive(dateMinStr, dateMaxStr).forEach(function(dateObj) {
-    const ds = dateObj.toISOString().split('T')[0];
+    const ds = dateObj.toLocalISODate();
     labels.push(dateObj.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }));
     donnees.push(livsFiltrees.filter(l => l.date === ds).reduce((s, l) => s + getMontantHTLivraison(l), 0));
   });
@@ -11112,8 +11818,8 @@ afficherPlanningSemaine = function() {
   var planningSelect = document.getElementById('vue-planning-select');
   if (planningSelect) planningSelect.value = _planningPeriode.mode;
   var salaries = charger('salaries');
-  var plannings = JSON.parse(localStorage.getItem('plannings')||'[]');
-  var absences = JSON.parse(localStorage.getItem('absences_periodes')||'[]');
+  var plannings = loadSafe('plannings', []);
+  var absences = loadSafe('absences_periodes', []);
   var datesSemaine = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(lundi);
@@ -11201,7 +11907,7 @@ afficherPlanningSemaine = function() {
 };
 window.__adminFinalLock = function() {
   ouvrirFenetreImpression = function(titre, html, options) {
-    const win = window.open('', '_blank', options || 'width=900,height=700');
+    const win = ouvrirPopupSecure('', '_blank', options || 'width=900,height=700');
     if (!win) return;
     win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>body{margin:0;padding:20px;background:#fff;font-family:Segoe UI,Arial,sans-serif}.export-logo{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff;padding:6px}@page{margin:12mm}</style></head><body>' + html + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},700);});<\/script></body></html>');
     win.document.close();
@@ -11265,12 +11971,8 @@ window.__adminFinalLock = function() {
       return;
     }
 
-    const escapeAttr = function(value) {
-      return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-    };
-    const escapeHtml = function(value) {
-      return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    };
+    const escapeAttr = window.escapeAttr;
+    const escapeHtml = window.escapeHtml;
     const formatClientLabel = function(value) {
       var raw = String(value || '').trim();
       if (!raw) return '—';
@@ -11328,7 +12030,7 @@ window.__adminFinalLock = function() {
 };
 /* ===== FINAL ADMIN LOCK ===== */
 ouvrirFenetreImpression = function(titre, html, options) {
-  const win = window.open('', '_blank', options || 'width=900,height=700');
+  const win = ouvrirPopupSecure('', '_blank', options || 'width=900,height=700');
   if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>html,body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}body{padding:20px}.export-logo{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff;padding:6px}table,thead,tbody,tr,th,td,div,span{print-color-adjust:exact !important;-webkit-print-color-adjust:exact !important}@page{margin:12mm}</style></head><body>' + html + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},700);});<\/script></body></html>');
   win.document.close();
@@ -11384,7 +12086,7 @@ calculerPrevision = function() {
     const d = new Date();
     d.setDate(1);
     d.setMonth(d.getMonth() - i);
-    const moisStr = d.toISOString().slice(0, 7);
+    const moisStr = d.toLocalISOMonth();
     const livsM = livraisons.filter(l => (l.date || '').startsWith(moisStr));
     const caM = livsM.reduce((s, l) => s + getMontantHTLivraison(l), 0);
     const carbM = carburant.filter(p => (p.date || '').startsWith(moisStr)).reduce((s, p) => s + getMontantHTCarburant(p), 0);
@@ -11451,18 +12153,8 @@ window.renderLivraisonsAdminFinal = function() {
     return;
   }
 
-  const escapeAttr = function(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;');
-  };
-  const escapeHtml = function(value) {
-    return String(value || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  };
+  const escapeAttr = window.escapeAttr;
+  const escapeHtml = window.escapeHtml;
   const formatClientLabel = function(value) {
     var raw = String(value || '').trim();
     if (!raw) return '—';
@@ -11593,7 +12285,7 @@ calculerPrevision = function() {
     const d = new Date();
     d.setDate(1);
     d.setMonth(d.getMonth() - i);
-    const moisStr = d.toISOString().slice(0,7);
+    const moisStr = d.toLocalISOMonth();
     const livsM = livraisons.filter(l => (l.date || '').startsWith(moisStr));
     const caM = livsM.reduce((s, l) => s + getMontantHTLivraison(l), 0);
     const carbM = carburant.filter(p => (p.date || '').startsWith(moisStr)).reduce((s, p) => s + getMontantHTCarburant(p), 0);
@@ -11630,7 +12322,7 @@ calculerPrevision = function() {
     const d = new Date();
     d.setDate(1);
     d.setMonth(d.getMonth() - i);
-    const mStr = d.toISOString().slice(0,7);
+    const mStr = d.toLocalISOMonth();
     const caM = livraisons.filter(l => (l.date || '').startsWith(mStr)).reduce((s, l) => s + getMontantHTLivraison(l), 0);
     const depM = carburant.filter(p => (p.date || '').startsWith(mStr)).reduce((s, p) => s + getMontantHTCarburant(p), 0)
       + charges.filter(c => (c.date || '').startsWith(mStr)).reduce((s, c) => s + (parseFloat(c.montantHT) || ((parseFloat(c.montant) || 0) / (1 + (parseFloat(c.tauxTVA) || 0) / 100))), 0);
@@ -11937,7 +12629,7 @@ window.__planningRewriteFinal = function() {
       return '<tr style="background:' + (index % 2 === 0 ? '#fff' : '#fafafa') + ';border-bottom:1px solid #e5e7eb"><td style="padding:8px 10px;font-weight:600">' + (salarie.nom || '') + (salarie.numero ? '<br><span style="font-size:.75rem;color:#6b7280">#' + salarie.numero + '</span>' : '') + '</td>' + cells + '</tr>';
     }).join('');
     var html = '<html><head><meta charset="utf-8"><title>Planning hebdomadaire</title></head><body style="font-family:Arial,sans-serif;padding:28px;color:#111827"><h1 style="margin:0 0 6px;font-size:22px">' + params.nom + '</h1><div style="color:#6b7280;margin-bottom:16px">Planning hebdomadaire - Semaine ' + getNumSemaine(week.lundi) + ' - ' + week.lundi.getFullYear() + '</div>' + renderBlocInfosEntreprise(params) + '<div style="margin-bottom:16px;font-size:14px;color:#374151">Période : ' + formatDateExport(week.lundi) + ' au ' + formatDateExport(week.dimanche) + '</div><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f3f4f6"><th style="padding:8px 10px;text-align:left">Salarié</th>' + cols + '</tr></thead><tbody>' + rows + '</tbody></table>' + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire') + '</body></html>';
-    var popup = window.open('', '_blank');
+    var popup = ouvrirPopupSecure('', '_blank');
     if (!popup) return afficherToast('Autorise les popups pour générer le PDF', 'error');
     popup.document.write(html);
     popup.document.close();
@@ -12341,7 +13033,7 @@ exporterPlanningSemainePDF = function() {
     + '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f3f4f6"><th style="padding:8px 10px;text-align:left">Salarié</th>' + cols + '</tr></thead><tbody>' + rows + '</tbody></table>'
     + renderFooterEntreprise(params, dateExp, 'Planning hebdomadaire')
     + '</body></html>';
-  var popup = window.open('', '_blank');
+  var popup = ouvrirPopupSecure('', '_blank');
   if (!popup) return afficherToast('Autorise les popups pour générer le PDF', 'error');
   popup.document.write(html);
   popup.document.close();
@@ -13276,7 +13968,7 @@ ajouterPeriodeAbsence = function() {
     return;
   }
 
-  var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  var absences = loadSafe('absences_periodes', []);
   var payload = { id: editId || genId(), salId: salId, type: type, debut: debut, fin: fin, creeLe: editId ? (absences.find(function(a){ return a.id === editId; })?.creeLe || new Date().toISOString()) : new Date().toISOString(), modifieLe: new Date().toISOString() };
   var idx = absences.findIndex(function(a){ return a.id === payload.id; });
   if (idx > -1) absences[idx] = payload;
@@ -13298,8 +13990,8 @@ ajouterPeriodeAbsence = function() {
 afficherPlanningSemaine = function() {
   var lundi = getLundiDeSemaine(_planningSemaineOffset);
   var salaries = charger('salaries');
-  var plannings = JSON.parse(localStorage.getItem('plannings') || '[]');
-  var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]');
+  var plannings = loadSafe('plannings', []);
+  var absences = loadSafe('absences_periodes', []);
   var datesSemaine = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(lundi);
@@ -15107,7 +15799,7 @@ function calculerSoldeMoyenMensuel(referenceMonthStr) {
   var soldes = [];
   for (var i = 1; i <= 3; i++) {
     var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    var moisStr = d.toISOString().slice(0, 7);
+    var moisStr = d.toLocalISOMonth();
     var data = budgetCalculerData(moisStr);
     soldes.push(data.variationMensuelle);
   }
@@ -15159,7 +15851,8 @@ function exporterBudgetPDF() {
     + '</tbody></table>'
     + '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Document interne — ' + nom + '</span><span>' + dateExp + '</span></div>'
     + '</div>';
-  var win = window.open('', '_blank', 'width=800,height=600');
+  var win = ouvrirPopupSecure('', '_blank', 'width=800,height=600');
+  if (!win) return;
   win.document.write('<!DOCTYPE html><html><head><title>Budget ' + label + '</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
   win.document.close();
   afficherToast('📄 Rapport budget généré');
@@ -15533,7 +16226,7 @@ function exporterPrevisionsPDF() {
       'incidents'
     ];
 
-    const salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
+    const salaries = loadSafe('salaries', []);
     salaries.forEach(s => cles.push('messages_' + s.id));
     salaries.forEach(s => cles.push('km_sal_' + s.id));
     salaries.forEach(s => cles.push('carb_sal_' + s.id));
@@ -15711,13 +16404,26 @@ function exporterPrevisionsPDF() {
            '</div>';
   }
 
+  // BUG-025/026/027 fix : dispatcher whitelisté + escape HTML (plus de new Function, plus d'innerHTML brut)
+  const CMD_ENTITY_HANDLERS = {
+    rechercheOuvrirLivraison: function(id) { if (typeof rechercheOuvrirLivraison === 'function') rechercheOuvrirLivraison(id); },
+    ouvrirEditSalarie: function(id) { if (typeof ouvrirEditSalarie === 'function') ouvrirEditSalarie(id); },
+    ouvrirFicheVehiculeDepuisTableau: function(id) { if (typeof ouvrirFicheVehiculeDepuisTableau === 'function') ouvrirFicheVehiculeDepuisTableau(id); },
+    rechercheOuvrirClient: function(id) { if (typeof rechercheOuvrirClient === 'function') rechercheOuvrirClient(id); }
+  };
+  function escCmd(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
   function calculerEntites(q) {
     try {
       const livraisons = typeof charger === 'function' ? (charger('livraisons') || []) : [];
       const salaries   = typeof charger === 'function' ? (charger('salaries')   || []) : [];
       const vehicules  = typeof charger === 'function' ? (charger('vehicules')  || []) : [];
       let clients = [];
-      try { clients = JSON.parse(localStorage.getItem('clients') || '[]'); } catch (_) { clients = []; }
+      try { clients = loadSafe('clients', []); } catch (_) { clients = []; }
 
       const res = [];
       const qn = normalize(q);
@@ -15730,7 +16436,8 @@ function exporterPrevisionsPDF() {
         res.push({
           label: '📦 ' + (l.numLiv || '') + ' — ' + (l.client || ''),
           sub: sub,
-          action: "rechercheOuvrirLivraison('" + l.id + "')"
+          handler: 'rechercheOuvrirLivraison',
+          arg: l.id
         });
       });
 
@@ -15741,7 +16448,8 @@ function exporterPrevisionsPDF() {
         res.push({
           label: '👤 ' + nom,
           sub: 'N° ' + (s.numero || '—'),
-          action: "ouvrirEditSalarie('" + s.id + "')"
+          handler: 'ouvrirEditSalarie',
+          arg: s.id
         });
       });
 
@@ -15751,7 +16459,8 @@ function exporterPrevisionsPDF() {
         res.push({
           label: '🚐 ' + (v.immat || ''),
           sub: v.modele || '',
-          action: "ouvrirFicheVehiculeDepuisTableau('" + v.id + "')"
+          handler: 'ouvrirFicheVehiculeDepuisTableau',
+          arg: v.id
         });
       });
 
@@ -15761,7 +16470,8 @@ function exporterPrevisionsPDF() {
         res.push({
           label: '🧑‍💼 ' + (c.nom || ''),
           sub: c.adresse || c.tel || '',
-          action: "rechercheOuvrirClient('" + c.id + "')"
+          handler: 'rechercheOuvrirClient',
+          arg: c.id
         });
       });
 
@@ -15772,9 +16482,9 @@ function exporterPrevisionsPDF() {
   }
 
   function rendrerEntiteRow(r) {
-    const sub = r.sub ? '<div class="cmd-entity-sub">' + r.sub + '</div>' : '';
-    return '<div class="cmd-entity-row" data-cmd-entity="' + encodeURIComponent(r.action) + '" role="option" tabindex="-1">' +
-             '<div class="cmd-entity-main">' + r.label + '</div>' +
+    const sub = r.sub ? '<div class="cmd-entity-sub">' + escCmd(r.sub) + '</div>' : '';
+    return '<div class="cmd-entity-row" data-cmd-handler="' + escCmd(r.handler) + '" data-cmd-arg="' + escCmd(r.arg) + '" role="option" tabindex="-1">' +
+             '<div class="cmd-entity-main">' + escCmd(r.label) + '</div>' +
              sub +
            '</div>';
   }
@@ -15815,12 +16525,16 @@ function exporterPrevisionsPDF() {
       };
     });
 
-    // Bind entités
-    cont.querySelectorAll('[data-cmd-entity]').forEach(function(el) {
-      const code = decodeURIComponent(el.getAttribute('data-cmd-entity') || '');
+    // Bind entités (dispatcher whitelisté, plus de new Function)
+    cont.querySelectorAll('[data-cmd-handler]').forEach(function(el) {
+      const handler = el.getAttribute('data-cmd-handler') || '';
+      const arg = el.getAttribute('data-cmd-arg') || '';
       el.onclick = function() {
         if (typeof fermerRechercheGlobale === 'function') fermerRechercheGlobale();
-        try { (new Function(code))(); } catch (err) { console.warn('[cmd-palette]', err); }
+        const fn = CMD_ENTITY_HANDLERS[handler];
+        if (typeof fn === 'function') {
+          try { fn(arg); } catch (err) { console.warn('[cmd-palette]', err); }
+        }
       };
     });
   };
@@ -16209,14 +16923,12 @@ function exporterPrevisionsPDF() {
     const ids = getSelectedIds();
     if (!ids.length) return;
 
-    const ok = typeof confirmDialog === 'function'
-      ? await confirmDialog('Marquer ' + ids.length + ' livraison(s) comme payée(s) ?', { titre:'Marquer payées', icone:'💳', btnLabel:'Confirmer' })
-      : window.confirm('Marquer ' + ids.length + ' livraison(s) comme payée(s) ?');
+    const ok = await confirmDialog('Marquer ' + ids.length + ' livraison(s) comme payée(s) ?', { titre:'Marquer payées', icone:'💳', btnLabel:'Confirmer', danger:false });
     if (!ok) return;
 
     const livraisons = charger('livraisons');
     let count = 0;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = new Date().toLocalISODate();
 
     livraisons.forEach(function(l) {
       if (ids.indexOf(l.id) !== -1) {
@@ -16239,9 +16951,7 @@ function exporterPrevisionsPDF() {
     const ids = getSelectedIds();
     if (!ids.length) return;
 
-    const ok = typeof confirmDialog === 'function'
-      ? await confirmDialog('Marquer ' + ids.length + ' livraison(s) comme livrée(s) ?', { titre:'Marquer livrées', icone:'✅', btnLabel:'Confirmer' })
-      : window.confirm('Marquer ' + ids.length + ' livraison(s) comme livrée(s) ?');
+    const ok = await confirmDialog('Marquer ' + ids.length + ' livraison(s) comme livrée(s) ?', { titre:'Marquer livrées', icone:'✅', btnLabel:'Confirmer', danger:false });
     if (!ok) return;
 
     const livraisons = charger('livraisons');
@@ -16266,9 +16976,7 @@ function exporterPrevisionsPDF() {
     const ids = getSelectedIds();
     if (!ids.length) return;
 
-    const ok = typeof confirmDialog === 'function'
-      ? await confirmDialog('Supprimer définitivement ' + ids.length + ' livraison(s) ? Cette action est irréversible.', { titre:'Suppression en masse', icone:'🗑️', btnLabel:'Supprimer' })
-      : window.confirm('Supprimer ' + ids.length + ' livraison(s) ?');
+    const ok = await confirmDialog('Supprimer définitivement ' + ids.length + ' livraison(s) ? Cette action est irréversible.', { titre:'Suppression en masse', icone:'🗑️', btnLabel:'Supprimer' });
     if (!ok) return;
 
     const livraisons = charger('livraisons');
@@ -16304,7 +17012,7 @@ function exporterPrevisionsPDF() {
       return;
     }
 
-    const filename = 'livraisons_selection_' + new Date().toISOString().slice(0, 10) + '.csv';
+    const filename = 'livraisons_selection_' + new Date().toLocalISODate() + '.csv';
     exporterCSV(livraisons, [
       { label: 'N° LIV',       get: function(l) { return l.numLiv || ''; } },
       { label: 'Date',          get: function(l) { return l.date || ''; } },
@@ -16334,11 +17042,7 @@ function exporterPrevisionsPDF() {
 
     const fmtDate = typeof formatDateExport === 'function' ? formatDateExport : function(d) { return d || ''; };
     const fmtEur  = typeof euros === 'function' ? euros : function(v) { return (v || 0) + ' €'; };
-    const escape  = function(s) {
-      return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    };
+    const escape  = window.escapeHtml;
 
     const params = typeof getEntrepriseExportParams === 'function' ? getEntrepriseExportParams() : {};
     const nomEntr = escape(params.nom || 'MCA Logistics');
@@ -16416,7 +17120,7 @@ function exporterPrevisionsPDF() {
         '<div style="margin-top:16px;font-size:.72rem;color:#9ca3af;text-align:center">Document généré par MCA Logistics</div>' +
       '</div>';
 
-    const win = window.open('', '_blank');
+    const win = ouvrirPopupSecure('', '_blank');
     if (!win) {
       if (typeof afficherToast === 'function') afficherToast('⚠️ Autorise les popups pour exporter en PDF', 'error');
       return;
@@ -16471,7 +17175,7 @@ function exporterPrevisionsPDF() {
   const PER_PAGE_OPTIONS = [25, 50, 100];
 
   function loadState() {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+    try { return loadSafe(LS_KEY, {}); } catch (e) { return {}; }
   }
   function saveState(state) {
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* quota */ }
@@ -16630,8 +17334,8 @@ function exporterPrevisionsPDF() {
 
       // Rendu du slice via fonction orig (en remplaçant charger temporairement)
       // Approche plus simple : on rend directement avec la même logique que orig
-      const escapeAttr = v => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-      const escapeHtml = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const escapeAttr = window.escapeAttr;
+      const escapeHtml = window.escapeHtml;
       const formatClientLabel = v => {
         var raw = String(v || '').trim();
         if (!raw) return '—';
@@ -16733,7 +17437,7 @@ function exporterPrevisionsPDF() {
   const LS_KEY = 'sort_state';
 
   function loadState() {
-    try { return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); } catch (e) { return {}; }
+    try { return loadSafe(LS_KEY, {}); } catch (e) { return {}; }
   }
   function saveState(state) {
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) { /* quota */ }
@@ -16917,8 +17621,8 @@ function exporterPrevisionsPDF() {
 
       const paged = window.PAGINATION.paginerListe(livraisons, 'livraisons');
 
-      const escapeAttr = v => String(v || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-      const escapeHtml = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const escapeAttr = window.escapeAttr;
+      const escapeHtml = window.escapeHtml;
       const formatClientLabel = v => {
         var raw = String(v || '').trim();
         if (!raw) return '—';
@@ -17630,27 +18334,32 @@ function exporterPrevisionsPDF() {
   function chargerPaiements() { return charger('paiements'); }
   function sauvegarderPaiements(list) { sauvegarder('paiements', list); }
 
-  /* ---------- Compteurs séquentiels ---------- */
+  /* ---------- Compteurs séquentiels (BUG-001/030 : persistants par série, CGI art. 289) ---------- */
   function anneeReference(dateIso) {
     const m = String(dateIso || '').match(/^(\d{4})/);
     return m ? m[1] : String(new Date().getFullYear());
   }
+  function incrementerCompteurSerie(lsKey, annee, fallbackList) {
+    const key = String(annee);
+    let compteurs = {};
+    try { compteurs = loadSafe(lsKey, {}) || {}; } catch(e){ compteurs = {}; }
+    // Garde-fou migration : prendre max(compteur, max sequence des données vivantes)
+    const maxLive = (fallbackList || [])
+      .filter(x => String(x.annee || '') === key)
+      .reduce((m, x) => Math.max(m, parseInt(x.sequence, 10) || 0), 0);
+    if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
+    compteurs[key] = (compteurs[key] || 0) + 1;
+    localStorage.setItem(lsKey, JSON.stringify(compteurs));
+    return compteurs[key];
+  }
   function genererNumeroAvoir(dateIso) {
     const annee = anneeReference(dateIso || aujourdhui());
-    const list = chargerAvoirs();
-    const lastSeq = list
-      .filter(a => String(a.annee || '') === annee)
-      .reduce((max, a) => Math.max(max, parseInt(a.sequence, 10) || 0), 0);
-    const seq = lastSeq + 1;
+    const seq = incrementerCompteurSerie('compteurs_avoirs_annee', annee, chargerAvoirs());
     return { annee, sequence: seq, numero: 'AV-' + annee + '-' + String(seq).padStart(4, '0') };
   }
   function genererNumeroEncaissement(dateIso) {
     const annee = anneeReference(dateIso || aujourdhui());
-    const list = chargerPaiements();
-    const lastSeq = list
-      .filter(p => String(p.annee || '') === annee)
-      .reduce((max, p) => Math.max(max, parseInt(p.sequence, 10) || 0), 0);
-    const seq = lastSeq + 1;
+    const seq = incrementerCompteurSerie('compteurs_encaissements_annee', annee, chargerPaiements());
     return { annee, sequence: seq, numero: 'ENC-' + annee + '-' + String(seq).padStart(4, '0') };
   }
 
@@ -18167,7 +18876,8 @@ function exporterPrevisionsPDF() {
     avoirs.forEach(a => {
       rows.push(['Avoir', a.numero, a.date, 'out', a.client || '', a.factureNumero || '', '', a.motif || '', String(-a.montantHT), String(-a.montantTVA), String(-a.montantTTC)]);
     });
-    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+    const csvCell = (typeof window.csvCelluleSecurisee === 'function') ? window.csvCelluleSecurisee : (c) => '"' + String(c==null?'':c).replace(/"/g, '""') + '"';
+    const csv = rows.map(r => r.map(c => csvCell(c, ';')).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
@@ -18277,9 +18987,8 @@ function exporterPrevisionsPDF() {
     const montantHT = round2(getMontantHTLivraison(livraison));
     const montantTTC = round2(parseFloat(livraison.prix) || 0);
     const montantTVA = round2(montantTTC - montantHT);
-    const mentionTVA = !profile.isVatEnabled || profile.regime === 'franchise_base'
-      ? 'TVA non applicable, art. 293 B du CGI'
-      : 'TVA ' + (typeof formaterTaux === 'function' ? formaterTaux(tauxTVA) : (tauxTVA + '%'));
+    const clientFichePdf = (typeof trouverClientParLivraison === 'function') ? trouverClientParLivraison(livraison) : null;
+    const mentionTVA = choisirMentionTVALegale(profile, clientFichePdf || { pays: livraison.clientPays, tvaIntracom: livraison.clientTvaIntracom }, tauxTVA);
     const numeroAffiche = isPreview
       ? '<span style="background:#f59e0b;color:#fff;padding:3px 10px;border-radius:6px;font-size:0.85rem">BROUILLON — non émise</span>'
       : planningEscapeHtml(numeroFacture);
@@ -18423,9 +19132,12 @@ function exporterPrevisionsPDF() {
       + '<div class="stat-card"><div class="stat-label">💰 CA facturé TTC</div><div class="stat-value">' + euros(totalTTC) + '</div></div>'
       + '<div class="stat-card"><div class="stat-label">💎 CA net (après avoirs)</div><div class="stat-value" style="color:var(--accent)">' + euros(totalNet) + '</div></div>';
 
-    // Compteur
+    // Compteur (BUG-001 : lit le compteur persistant, pas Math.max des factures vivantes)
     const anneeCur = String(new Date().getFullYear());
-    const lastSeq = factures.filter(f => String(f.annee || '') === anneeCur).reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
+    let compteursPers = {};
+    try { compteursPers = loadSafe(COMPTEURS_FACTURES_KEY, {}) || {}; } catch(e){ compteursPers = {}; }
+    const lastSeqLive = factures.filter(f => String(f.annee || '') === anneeCur).reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
+    const lastSeq = Math.max(compteursPers[anneeCur] || 0, lastSeqLive);
     const nextNum = 'FAC-' + anneeCur + '-' + String(lastSeq + 1).padStart(4, '0');
     if (compteurDisplay) compteurDisplay.textContent = 'prochaine = ' + nextNum;
 
@@ -18471,11 +19183,15 @@ function exporterPrevisionsPDF() {
         soldeCell = euros(s.solde);
         payeCell = euros(s.paye);
       }
-      const actions = f.statut === 'annulée'
-        ? '<button class="btn-icon" onclick="supprimerFactureForce(\'' + f.id + '\')" title="Supprimer (force)">🗑️</button>'
-        : '<button class="btn-icon" onclick="reimprimerFacture(\'' + f.id + '\')" title="Réimprimer">🖨️</button>'
-        + ' <button class="btn-icon" onclick="ouvrirModalAvoir(\'' + f.id + '\')" title="Créer un avoir">🧾</button>'
-        + ' <button class="btn-icon" onclick="supprimerFactureForce(\'' + f.id + '\')" title="Supprimer (force)">🗑️</button>';
+      const actionItems = [];
+      if (f.statut !== 'annulée') {
+        actionItems.push({ icon:'🖨️', label:'Réimprimer', action:"reimprimerFacture('"+f.id+"')" });
+        actionItems.push({ icon:'📥', label:'Factur-X (XML)', action:"window.s30_3ValiderFacture('"+f.id+"')" });
+        actionItems.push({ icon:'📅', label:(f.periodeDebut?'Modifier période':'Définir période'), action:"window.s30_2_1EditerPeriodeFacture('"+f.id+"')" });
+        actionItems.push({ icon:'🧾', label:'Créer un avoir', action:"ouvrirModalAvoir('"+f.id+"')" });
+      }
+      actionItems.push({ icon:'🗑️', label:'Supprimer (force)', action:"supprimerFactureForce('"+f.id+"')", danger:true });
+      const actions = (typeof buildInlineActionsDropdown === 'function') ? buildInlineActionsDropdown('Actions', actionItems) : actionItems.map(i => '<button class="btn-icon" onclick="'+i.action+'" title="'+i.label+'">'+i.icon+'</button>').join(' ');
       return '<tr' + (f.statut === 'annulée' ? ' style="opacity:0.55"' : '') + '>'
         + '<td><strong>' + (f.numero || '—') + '</strong></td>'
         + '<td>' + formatDateExport(f.dateLivraison || f.dateFacture || '') + '</td>'
@@ -18557,7 +19273,8 @@ function exporterPrevisionsPDF() {
     factures.forEach(f => {
       rows.push([f.numero || '', f.dateLivraison || f.dateFacture || '', f.client || '', f.numLiv || '', String(f.montantHT || 0), String(f.montantTVA || 0), String(f.montantTTC || 0), f.statut || 'émise', f.annuleeLe || '', f.annulationMotif || '']);
     });
-    const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';')).join('\n');
+    const csvCell = (typeof window.csvCelluleSecurisee === 'function') ? window.csvCelluleSecurisee : (c) => '"' + String(c==null?'':c).replace(/"/g, '""') + '"';
+    const csv = rows.map(r => r.map(c => csvCell(c, ';')).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
@@ -18581,22 +19298,48 @@ function exporterPrevisionsPDF() {
     const factures = chargerFacturesEmises();
     const avoirs = window.ENCAISSEMENTS.chargerAvoirs();
     const paiements = window.ENCAISSEMENTS.chargerPaiements();
+    const includeLivs = !!document.getElementById('reset-include-livraisons')?.checked;
+    const includeAcomptes = !!document.getElementById('reset-include-acomptes')?.checked;
+    const livsAvant = charger('livraisons');
     // Purge factures, avoirs liés, paiements liés
     sauvegarderFacturesEmises([]);
     sauvegarder('avoirs_emis', avoirs.filter(a => !factures.find(f => f.id === a.factureId)));
-    sauvegarder('paiements', paiements.filter(p => !p.factureId || !factures.find(f => f.id === p.factureId)));
-    // Retirer refs sur livraisons
-    const livs = charger('livraisons').map(l => {
-      delete l.factureNumero; delete l.factureId;
-      return l;
-    });
-    sauvegarder('livraisons', livs);
-    ajouterEntreeAudit('RESET compteur factures', factures.length + ' factures purgées · mode test');
+    let paiementsRestants = paiements.filter(p => !p.factureId || !factures.find(f => f.id === p.factureId));
+    let acomptesPurged = 0;
+    if (includeAcomptes) {
+      // Purge totale des acomptes + paiements liés
+      let acomptes = [];
+      try { acomptes = loadSafe('factures_acomptes', []); } catch(e){ acomptes = []; }
+      acomptesPurged = acomptes.length;
+      localStorage.setItem('factures_acomptes', JSON.stringify([]));
+      // Purger les paiements liés aux acomptes
+      paiementsRestants = paiementsRestants.filter(p => !p.acompteId && !(p.cible==='acompte'));
+    }
+    sauvegarder('paiements', paiementsRestants);
+    let livsPurged = 0;
+    if (includeLivs) {
+      livsPurged = livsAvant.length;
+      sauvegarder('livraisons', []);
+      try { localStorage.removeItem('relances_log'); } catch(e){}
+    } else {
+      const livs = livsAvant.map(l => { delete l.factureNumero; delete l.factureId; return l; });
+      sauvegarder('livraisons', livs);
+    }
+    const parts = [factures.length + ' facture(s)'];
+    if (includeLivs) parts.push(livsPurged + ' livraison(s)');
+    if (includeAcomptes) parts.push(acomptesPurged + ' acompte(s)');
+    const msg = parts.join(' · ') + ' purgée(s) · mode test';
+    const tags = ['FAC'];
+    if (includeLivs) tags.push('LIV');
+    if (includeAcomptes) tags.push('ACP');
+    ajouterEntreeAudit('RESET compteurs ' + tags.join('+'), msg);
     closeModal('modal-reset-compteur');
     afficherFacturation();
     if (typeof afficherLivraisons === 'function') afficherLivraisons();
     if (typeof afficherEncaissements === 'function') afficherEncaissements();
-    afficherToast('🧹 Compteur réinitialisé · ' + factures.length + ' facture(s) purgée(s)', 'warning');
+    if (typeof window.afficherRelancesV2 === 'function') window.afficherRelancesV2();
+    if (typeof window.s30RenderAcomptes === 'function') window.s30RenderAcomptes();
+    afficherToast('🧹 Compteurs réinitialisés · ' + msg, 'warning');
   };
 
   /* ---------- Wiring nav ---------- */
@@ -18633,9 +19376,9 @@ function exporterPrevisionsPDF() {
     avoirs: 'avoirs_emis',
     paiements: 'paiements'
   };
-  const load = k => { try { return JSON.parse(localStorage.getItem(k)||'[]'); } catch(e){ return []; } };
+  const load = k => { try { return loadSafe(k, []); } catch(e){ return []; } };
   const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-  const escHtml = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  const escHtml = window.escapeHtml;
   const fmtEur = v => { try { return (typeof euros==='function') ? euros(v) : (parseFloat(v)||0).toFixed(2)+' €'; } catch(e){ return (parseFloat(v)||0).toFixed(2)+' €'; } };
   const fmtDate = v => { try { return (typeof formatDateExport==='function' && v) ? formatDateExport(v) : (v||'—'); } catch(e){ return v||'—'; } };
 
@@ -18695,7 +19438,7 @@ function exporterPrevisionsPDF() {
     if (!c) return { tag:'inconnu', label:'Inconnu', icon:'⚪', cls:'score-nouveau' };
     const livs = load(LS.livraisons).filter(l => l.clientId === clientId || ((l.client||'').trim().toLowerCase() === (c.nom||'').trim().toLowerCase()));
     if (livs.length < 2) return { tag:'nouveau', label:'Nouveau', icon:'⚪', cls:'score-nouveau', reason:'< 2 livraisons' };
-    const delaiRef = parseInt(c.delaiPaiementJours) || 30;
+    const delaiRef = parseInt(c.delaiPaiementJours, 10) || 30;
     let retards = 0; let totalDelaisPaiement = 0; let nbPayees = 0; let impayes = 0;
     livs.forEach(l => {
       const statutP = (typeof getLivraisonStatutPaiement === 'function') ? getLivraisonStatutPaiement(l) : l.statutPaiement;
@@ -18731,7 +19474,7 @@ function exporterPrevisionsPDF() {
     const totalPaiementsTTC = paiements.reduce((s,p) => s + (parseFloat(p.montant)||0), 0);
     const soldeDu = Math.max(0, totalFactureTTC - totalAvoirsTTC - totalPaiementsTTC);
     const derniere = livs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
-    const delaiRef = parseInt(c.delaiPaiementJours) || 30;
+    const delaiRef = parseInt(c.delaiPaiementJours, 10) || 30;
     const echeancesDepassees = factures.filter(f => {
       if (!f.dateLivraison) return false;
       const dEch = new Date(f.dateLivraison); dEch.setDate(dEch.getDate() + delaiRef);
@@ -18761,13 +19504,13 @@ function exporterPrevisionsPDF() {
       const cid = byNameLower.get(k);
       if (cid) { l.clientId = cid; changed++; }
     });
-    if (changed) { save(LS.livraisons, livs); console.log('[S13] Migration clientId : '+changed+' livraison(s) liée(s)'); }
+    if (changed) { save(LS.livraisons, livs); logMCA('[S13] Migration clientId : '+changed+' livraison(s) liée(s)'); }
   }
 
   /* ---------- Badge décalage LIV↔FAC ---------- */
   function extractSeq(numero) {
     const m = String(numero||'').match(/-(\d{4})-(\d+)$/);
-    return m ? { annee: m[1], seq: parseInt(m[2]) } : null;
+    return m ? { annee: m[1], seq: parseInt(m[2], 10) } : null;
   }
   window.formatLivFacCouple = function(numLiv, numFac) {
     if (!numFac) return '<span class="lf-couple"><span class="lf-liv">'+escHtml(numLiv||'—')+'</span><span class="lf-sep">·</span><span class="lf-fac-empty">pas de facture</span></span>';
@@ -18801,12 +19544,7 @@ function exporterPrevisionsPDF() {
       + '<option value="surveiller">🟡 À surveiller</option>'
       + '<option value="mauvais">🔴 Mauvais payeurs</option>'
       + '<option value="nouveau">⚪ Nouveaux</option></select>'
-      + '<select id="s13-cl-tri" onchange="window.afficherClients && window.afficherClients()">'
-      + '<option value="nom">Trier : nom A→Z</option>'
-      + '<option value="ca">Trier : CA année ↓</option>'
-      + '<option value="solde">Trier : solde dû ↓</option>'
-      + '<option value="recente">Trier : dernière livraison</option></select>'
-      + '<button class="btn-secondary" onclick="document.getElementById(\'s13-cl-search\').value=\'\';document.getElementById(\'s13-cl-type\').value=\'\';document.getElementById(\'s13-cl-score\').value=\'\';document.getElementById(\'s13-cl-tri\').value=\'nom\';window.afficherClients && window.afficherClients();">Réinitialiser</button>';
+      + '<button class="btn-secondary" onclick="document.getElementById(\'s13-cl-search\').value=\'\';document.getElementById(\'s13-cl-type\').value=\'\';document.getElementById(\'s13-cl-score\').value=\'\';window.afficherClients && window.afficherClients();">Réinitialiser</button>';
     card.parentNode.insertBefore(filters, card);
     // Upgrade table header
     const thead = card.querySelector('thead tr');
@@ -18909,7 +19647,7 @@ function exporterPrevisionsPDF() {
     if (!st) return;
     const sc = window.getClientScoring(id);
     const c = st.client;
-    const delai = parseInt(c.delaiPaiementJours) || 30;
+    const delai = parseInt(c.delaiPaiementJours, 10) || 30;
     const block = document.createElement('div');
     block.id = 's13-fiche-enrichie';
     block.innerHTML = ''
@@ -18934,8 +19672,8 @@ function exporterPrevisionsPDF() {
                 const avs = st.avoirs.filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
                 const solde = Math.max(0, (parseFloat(f.montantTTC)||0) - pays - avs);
                 let ech = '';
-                if (f.dateLivraison) { const d=new Date(f.dateLivraison); d.setDate(d.getDate()+delai); ech = d.toISOString().slice(0,10); }
-                const enRetard = ech && solde > 0.01 && ech < new Date().toISOString().slice(0,10);
+                if (f.dateLivraison) { const d=new Date(f.dateLivraison); d.setDate(d.getDate()+delai); ech = d.toLocalISODate(); }
+                const enRetard = ech && solde > 0.01 && ech < new Date().toLocalISODate();
                 const stLabel = solde < 0.01 ? '<span class="badge-statut badge-paye">Payée</span>'
                   : pays > 0 ? '<span class="badge-statut badge-partiel">Partielle</span>'
                   : enRetard ? '<span class="badge-statut badge-attente" style="color:#ef4444;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)">En retard</span>'
@@ -19190,4 +19928,10598 @@ function exporterPrevisionsPDF() {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS13);
   else setTimeout(initS13, 50);
 
+})();
+
+/* =========================================================================
+ * SPRINT 14 — Relances & Impayés (sous-onglet Encaissements)
+ * - 4 niveaux (0=confirmation réception, 1=amiable, 2=ferme, 3=mise en demeure)
+ * - Basé sur factures_emises + délaiPaiementJours du client (fallback 30j)
+ * - Intérêts de retard art. L441-10 (taux BCE + 10 pts) + forfait 40€
+ * - Historique relances_log, PDF + mailto, confirmations réception
+ * - Bandeau dashboard + badge sous-onglet + redirect ancien /relances
+ * =======================================================================*/
+(function(){
+  if (window.__s14Installed) return;
+  window.__s14Installed = true;
+
+  const LS = { clients:'clients', livraisons:'livraisons', factures:'factures_emises', avoirs:'avoirs_emis', paiements:'paiements', relances:'relances_log', templates:'relance_templates_v2', params:'params_entreprise' };
+  const load = k => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
+  const escHtml = window.escapeHtml;
+  const fmtEur = v => (typeof euros==='function') ? euros(v) : (parseFloat(v)||0).toFixed(2)+' €';
+  const fmtDate = v => { try { return (typeof formatDateExport==='function' && v) ? formatDateExport(v) : (v||'—'); } catch(e){ return v||'—'; } };
+  const isoDate = d => d instanceof Date ? d.toLocalISODate() : (typeof d==='string' ? d.slice(0,10) : '');
+  const joursEntre = (a,b) => Math.floor((new Date(b) - new Date(a)) / 86400000);
+
+  // Taux BCE + 10 points (simplifié 14.5%/an) + forfait 40€ art. L441-10
+  const TAUX_RETARD_ANNUEL = 0.145;
+  const FORFAIT_RECOUVREMENT = 40;
+
+  /* ---------- Templates par défaut (non-agressifs) ---------- */
+  function getTemplatesDefaut() {
+    return {
+      '0': 'Bonjour{contact},\n\nNous avons émis à votre attention la facture {numFacture} d\'un montant de {montantTTC} correspondant à la livraison {numLiv} du {dateLivraison}.\n\nPourriez-vous nous confirmer sa bonne réception ? Cela nous permet de valider ensemble le point de départ du délai de règlement.\n\nSi vous avez la moindre question, nous restons à votre disposition.\n\nCordialement,\n{societe}',
+      '1': 'Bonjour{contact},\n\nSauf erreur de notre part, la facture {numFacture} d\'un montant de {montantTTC} émise le {dateLivraison} (échéance {dateEcheance}) est toujours en attente de règlement ({joursRetard} jour(s) de retard).\n\nIl est possible que ce courrier se croise avec votre paiement ; dans ce cas, merci de ne pas en tenir compte.\n\nDans le cas contraire, nous vous saurions gré de bien vouloir procéder au règlement dès que possible, ou nous indiquer la date prévue.\n\nBien cordialement,\n{societe}',
+      '2': 'Bonjour{contact},\n\nMalgré notre précédent rappel, nous constatons que la facture {numFacture} d\'un montant de {montantTTC} (échéance {dateEcheance}) demeure impayée à ce jour ({joursRetard} jours de retard).\n\nNous vous remercions de bien vouloir régulariser la situation sous 8 jours, ou à défaut de nous contacter pour convenir d\'un échéancier.\n\nÀ votre disposition pour tout échange,\n{societe}',
+      '3': 'Objet : Mise en demeure de payer — Facture {numFacture}\n\nMadame, Monsieur{contact},\n\nMalgré nos précédents rappels restés sans effet, la facture {numFacture} d\'un montant de {montantTTC}, émise le {dateLivraison} et exigible au {dateEcheance}, demeure impayée à ce jour ({joursRetard} jours de retard).\n\nPar la présente, nous vous mettons en demeure de procéder au règlement intégral sous 8 jours à réception de ce courrier.\n\nConformément à l\'article L.441-10 du Code de commerce, en cas de retard de paiement entre professionnels, sont dus de plein droit :\n  • des intérêts de retard calculés au taux de la BCE majoré de 10 points, soit {interets} au titre de la présente créance ;\n  • une indemnité forfaitaire pour frais de recouvrement de 40 €.\n\nÀ défaut de règlement dans le délai imparti, nous nous réservons le droit d\'engager toute procédure utile au recouvrement de notre créance, par voie judiciaire et aux frais exclusifs du débiteur.\n\nVeuillez agréer, Madame, Monsieur, l\'expression de nos salutations distinguées.\n\n{societe}'
+    };
+  }
+  function chargerTemplatesV2() {
+    const defauts = getTemplatesDefaut();
+    const saved = (()=>{ try { return loadSafe(LS.templates, {}); } catch(e){ return {}; } })();
+    return { '0': saved['0'] || defauts['0'], '1': saved['1'] || defauts['1'], '2': saved['2'] || defauts['2'], '3': saved['3'] || defauts['3'] };
+  }
+  window.ouvrirModalTemplatesRelanceV2 = function() {
+    const t = chargerTemplatesV2();
+    ['0','1','2','3'].forEach(lv => { const el = document.getElementById('rel-tpl-'+lv); if (el) el.value = t[lv]; });
+    if (typeof openModal === 'function') openModal('modal-relance-templates-v2');
+    else document.getElementById('modal-relance-templates-v2')?.classList.add('open');
+  };
+  window.sauvegarderTemplatesRelanceV2 = function() {
+    const defauts = getTemplatesDefaut();
+    const payload = {};
+    ['0','1','2','3'].forEach(lv => {
+      const el = document.getElementById('rel-tpl-'+lv);
+      payload[lv] = (el?.value || '').trim() || defauts[lv];
+    });
+    localStorage.setItem(LS.templates, JSON.stringify(payload));
+    if (typeof afficherToast === 'function') afficherToast('✅ Modèles de relance enregistrés');
+    if (typeof closeModal === 'function') closeModal('modal-relance-templates-v2');
+  };
+  window.reinitialiserTemplatesRelanceV2 = function() {
+    const def = getTemplatesDefaut();
+    ['0','1','2','3'].forEach(lv => { const el = document.getElementById('rel-tpl-'+lv); if (el) el.value = def[lv]; });
+    localStorage.setItem(LS.templates, JSON.stringify(def));
+    if (typeof afficherToast === 'function') afficherToast('🔄 Modèles réinitialisés');
+  };
+
+  /* ---------- Analyse factures en retard ---------- */
+  function soldeFacture(f) {
+    if (!f) return 0;
+    if (f.statut === 'annulée') return 0;
+    const pays = load(LS.paiements).filter(p => p.factureId === f.id && p.sens === 'in').reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
+    const avs = load(LS.avoirs).filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
+    return Math.max(0, (parseFloat(f.montantTTC)||0) - pays - avs);
+  }
+  function clientOfFacture(f) {
+    const livs = load(LS.livraisons);
+    const liv = livs.find(l => l.id === f.livId);
+    const clients = load(LS.clients);
+    if (liv?.clientId) return clients.find(c => c.id === liv.clientId) || null;
+    const nom = (liv?.client || f.client || '').trim().toLowerCase();
+    return clients.find(c => (c.nom||'').trim().toLowerCase() === nom) || null;
+  }
+  function delaiPaiementFacture(f) {
+    const c = clientOfFacture(f);
+    if (c && parseInt(c.delaiPaiementJours, 10) > 0) return parseInt(c.delaiPaiementJours, 10);
+    return parseInt(localStorage.getItem('relance_delai'), 10) || 30;
+  }
+  function echeanceFacture(f) {
+    const base = f.dateLivraison || f.dateFacture;
+    if (!base) return null;
+    const d = new Date(base + 'T00:00:00');
+    d.setDate(d.getDate() + delaiPaiementFacture(f));
+    return d;
+  }
+  function niveauRelance(joursRetard) {
+    if (joursRetard <= 0) return 0;
+    if (joursRetard <= 30) return 1;
+    if (joursRetard <= 60) return 2;
+    return 3;
+  }
+  function interetsRetard(montantTTC, joursRetard) {
+    if (joursRetard <= 0) return 0;
+    return Math.round((montantTTC * TAUX_RETARD_ANNUEL * joursRetard / 365) * 100) / 100;
+  }
+  function derniereRelanceEnvoyee(factureId) {
+    return load(LS.relances)
+      .filter(r => r.factureId === factureId && r.statut === 'envoyee')
+      .sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0] || null;
+  }
+  function getFacturesEnRetard(filterNiveau) {
+    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
+    const today = new Date(); today.setHours(0,0,0,0);
+    const rows = [];
+    factures.forEach(f => {
+      const solde = soldeFacture(f);
+      if (solde < 0.01) return;
+      const ech = echeanceFacture(f);
+      const joursRetard = ech ? Math.floor((today - ech) / 86400000) : 0;
+      const niveau = niveauRelance(joursRetard);
+      if (filterNiveau !== '' && filterNiveau != null && parseInt(filterNiveau, 10) !== niveau) return;
+      rows.push({
+        facture: f,
+        solde, ech, joursRetard, niveau,
+        client: clientOfFacture(f),
+        derniereRelance: derniereRelanceEnvoyee(f.id)
+      });
+    });
+    return rows;
+  }
+  window.getFacturesEnRetard = getFacturesEnRetard;
+
+  /* ---------- Rendu sous-onglet Relances ---------- */
+  window.afficherRelancesV2 = function() {
+    const tb = document.getElementById('tb-relances-v2');
+    if (!tb) return;
+    const q = (document.getElementById('rel-search')?.value || '').toLowerCase();
+    const fNiv = document.getElementById('rel-filter-niveau')?.value || '';
+    const tri = document.getElementById('rel-tri')?.value || 'retard';
+
+    let rows = getFacturesEnRetard('');
+    if (fNiv !== '') rows = rows.filter(r => r.niveau === parseInt(fNiv, 10));
+    if (q) rows = rows.filter(r =>
+      (r.facture.numero||'').toLowerCase().includes(q)
+      || (r.facture.client||'').toLowerCase().includes(q)
+      || (r.client?.nom||'').toLowerCase().includes(q)
+    );
+    const seqOf = (s) => { const m = String(s||'').match(/-(\d{4})-(\d+)$/); return m ? parseInt(m[1], 10)*100000 + parseInt(m[2], 10) : Number.MAX_SAFE_INTEGER; };
+    rows.sort((a,b) => {
+      if (tri === 'montant') return b.solde - a.solde;
+      if (tri === 'client')  return (a.facture.client||'').localeCompare(b.facture.client||'','fr');
+      if (tri === 'liv')     return seqOf(a.facture.numLiv) - seqOf(b.facture.numLiv);
+      if (tri === 'fac')     return seqOf(a.facture.numero) - seqOf(b.facture.numero);
+      return b.joursRetard - a.joursRetard;
+    });
+
+    // Stats globales
+    const allRetards = getFacturesEnRetard('').filter(r => r.niveau > 0);
+    const totalImp = allRetards.reduce((s,r)=>s+r.solde,0);
+    const nbRetard = allRetards.length;
+    const since30 = Date.now() - 30*86400000;
+    const nbEnvoyees30 = load(LS.relances).filter(r => r.statut === 'envoyee' && new Date(r.date).getTime() > since30).length;
+    const setTxt = (id,v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    setTxt('rel-total-impaye', fmtEur(totalImp));
+    setTxt('rel-total-retard', nbRetard);
+    setTxt('rel-total-envoyees', nbEnvoyees30);
+
+    // Badge sous-onglet
+    const badge = document.getElementById('enc-tab-badge-relances');
+    if (badge) {
+      if (nbRetard > 0) { badge.textContent = nbRetard; badge.style.display = ''; }
+      else { badge.style.display = 'none'; badge.textContent = ''; }
+    }
+
+    if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">✅ Aucune facture en retard pour ces filtres</td></tr>'; return; }
+
+    tb.innerHTML = rows.map(r => {
+      const f = r.facture; const c = r.client;
+      const nivLabels = ['🔵 À jour','🟢 Niv 1 — Amiable','🟡 Niv 2 — Ferme','🔴 Niv 3 — Mise en demeure'];
+      const nivCls = ['niv-0','niv-1','niv-2','niv-3'];
+      const derLabel = r.derniereRelance ? 'Niv '+r.derniereRelance.niveau+' le '+fmtDate(r.derniereRelance.date) : '—';
+      const canRelance = r.niveau > 0;
+      const coupleCell = (typeof window.formatLivFacCouple === 'function')
+        ? window.formatLivFacCouple(f.numLiv||'', f.numero||'')
+        : '<strong>'+escHtml(f.numero||'—')+'</strong><div style="font-size:.7rem;color:var(--text-muted)">'+escHtml(f.numLiv||'')+'</div>';
+      return '<tr>'
+        + '<td>'+coupleCell+'</td>'
+        + '<td>'+escHtml(f.client||c?.nom||'—')+'</td>'
+        + '<td>'+fmtDate(f.dateLivraison)+'</td>'
+        + '<td>'+(r.ech ? fmtDate(isoDate(r.ech)) : '—')+'</td>'
+        + '<td><strong>'+fmtEur(r.solde)+'</strong></td>'
+        + '<td>'+(r.joursRetard > 0 ? '<span class="retard-pill" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 8px;border-radius:12px;font-weight:700;font-size:.78rem">+'+r.joursRetard+' j</span>' : '<span style="color:var(--text-muted)">—</span>')+'</td>'
+        + '<td><span class="niv-pill '+nivCls[r.niveau]+'">'+nivLabels[r.niveau]+'</span></td>'
+        + '<td style="font-size:.82rem">'+escHtml(derLabel)+'</td>'
+        + '<td>'
+        +   (canRelance ? '<button class="btn-icon" onclick="ouvrirEnvoiRelance(\''+f.id+'\','+r.niveau+')" title="Relancer niv. '+r.niveau+'">📧</button>' : '')
+        +   ' <button class="btn-icon" onclick="ouvrirEnvoiRelance(\''+f.id+'\',0)" title="Demander confirmation réception">📨</button>'
+        +   ' <button class="btn-icon" onclick="voirHistoriqueRelances(\''+f.id+'\')" title="Historique relances">📋</button>'
+        + '</td>'
+        + '</tr>';
+    }).join('');
+  };
+
+  /* ---------- Historique relances par facture ---------- */
+  window.voirHistoriqueRelances = function(factureId) {
+    const f = load(LS.factures).find(x => x.id === factureId);
+    if (!f) return;
+    const log = load(LS.relances).filter(r => r.factureId === factureId).sort((a,b)=> new Date(b.date||0)-new Date(a.date||0));
+    if (!log.length) { if (typeof afficherToast === 'function') afficherToast('Aucune relance envoyée pour cette facture', 'info'); return; }
+    const html = '<div style="max-width:640px"><h3 style="margin:0 0 14px 0">📋 Historique relances — '+escHtml(f.numero||'')+'</h3>'
+      + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">'
+      + log.map(r => '<div style="padding:12px;background:rgba(255,255,255,0.04);border-left:3px solid var(--primary);border-radius:8px">'
+          + '<div style="font-weight:700;display:flex;justify-content:space-between;align-items:center"><span>Niveau '+r.niveau+' — '+fmtDate(r.date)+'</span>'
+          + '<span class="niv-pill niv-'+r.niveau+'" style="font-size:.72rem">'+(r.statut==='envoyee'?'✉️ Envoyée':'📝 Brouillon')+'</span></div>'
+          + (r.email ? '<div style="font-size:.82rem;color:var(--text-muted);margin-top:4px">→ '+escHtml(r.email)+'</div>' : '')
+          + '<div style="font-size:.8rem;margin-top:6px;white-space:pre-wrap;max-height:120px;overflow-y:auto;padding:8px;background:rgba(0,0,0,0.15);border-radius:6px">'+escHtml((r.corps||'').slice(0,400))+(r.corps && r.corps.length>400?'…':'')+'</div>'
+          + '</div>').join('')
+      + '</div></div>';
+    if (typeof modalInfo === 'function') modalInfo(html);
+    else alert(log.map(r => 'Niv '+r.niveau+' le '+fmtDate(r.date)+' — '+(r.statut==='envoyee'?'envoyée':'brouillon')).join('\n'));
+  };
+
+  /* ---------- Construction du texte ---------- */
+  function buildVars(f, r) {
+    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e){ return {}; } })();
+    const c = clientOfFacture(f) || {};
+    const contact = (c.contact || c.prenom || '').trim();
+    const interets = interetsRetard(r.solde, Math.max(0, r.joursRetard));
+    return {
+      client: f.client || c.nom || '',
+      contact: contact ? ' '+contact : '',
+      numFacture: f.numero || '',
+      numLiv: f.numLiv || '',
+      dateLivraison: fmtDate(f.dateLivraison),
+      dateEcheance: r.ech ? fmtDate(isoDate(r.ech)) : '',
+      montantTTC: fmtEur(f.montantTTC||0),
+      soldeDu: fmtEur(r.solde),
+      joursRetard: Math.max(0, r.joursRetard),
+      societe: params.nom || params.raisonSociale || 'MCA Logistics',
+      interets: fmtEur(interets),
+      forfait: fmtEur(FORFAIT_RECOUVREMENT)
+    };
+  }
+  function appliquerVars(template, vars) {
+    return String(template||'').replace(/\{(\w+)\}/g, (m,k) => vars[k] != null ? vars[k] : m);
+  }
+  function emailDestinataire(f) {
+    const c = clientOfFacture(f);
+    return c?.emailFact || c?.email || '';
+  }
+
+  /* ---------- Modal envoi relance ---------- */
+  let _currentFactureRelance = null;
+  let _currentNiveauRelance = 0;
+  window.ouvrirEnvoiRelance = function(factureId, niveau) {
+    const f = load(LS.factures).find(x => x.id === factureId);
+    if (!f) { if (typeof afficherToast === 'function') afficherToast('Facture introuvable', 'error'); return; }
+    const allRows = getFacturesEnRetard('');
+    const r = allRows.find(x => x.facture.id === factureId) || {
+      facture: f, solde: soldeFacture(f), ech: echeanceFacture(f), joursRetard: 0, niveau: 0, client: clientOfFacture(f)
+    };
+    _currentFactureRelance = f;
+    _currentNiveauRelance = niveau;
+    const tpl = chargerTemplatesV2()[String(niveau)] || '';
+    const vars = buildVars(f, r);
+    const corps = appliquerVars(tpl, vars);
+    const titres = ['📨 Confirmation de réception','📧 Rappel amiable — Niveau 1','📧 Relance ferme — Niveau 2','⚠️ Mise en demeure — Niveau 3'];
+    const objets = [
+      'Confirmation de réception — Facture '+(f.numero||''),
+      'Rappel — Facture '+(f.numero||'')+' en attente',
+      'Relance — Facture '+(f.numero||'')+' impayée',
+      'Mise en demeure — Facture '+(f.numero||'')
+    ];
+    const setV = (id,v) => { const e=document.getElementById(id); if (e) e.value = v; };
+    setV('envoi-rel-fac-id', f.id);
+    setV('envoi-rel-niveau', String(niveau));
+    setV('envoi-rel-email', emailDestinataire(f));
+    setV('envoi-rel-objet', objets[niveau]);
+    setV('envoi-rel-corps', corps);
+    const titreEl = document.getElementById('envoi-rel-titre'); if (titreEl) titreEl.textContent = titres[niveau];
+    const resumeEl = document.getElementById('envoi-rel-resume');
+    if (resumeEl) {
+      resumeEl.innerHTML = '<div class="envoi-rel-grid">'
+        + '<div><span>Client</span><strong>'+escHtml(f.client||'—')+'</strong></div>'
+        + '<div><span>Facture</span><strong>'+escHtml(f.numero||'')+'</strong></div>'
+        + '<div><span>Montant TTC</span><strong>'+fmtEur(f.montantTTC||0)+'</strong></div>'
+        + '<div><span>Solde dû</span><strong>'+fmtEur(r.solde)+'</strong></div>'
+        + (niveau>0 ? '<div><span>Retard</span><strong style="color:#ef4444">+'+Math.max(0,r.joursRetard)+' j</strong></div>' : '<div><span>Statut</span><strong>Émise</strong></div>')
+        + '</div>';
+    }
+    const legalEl = document.getElementById('envoi-rel-legal');
+    if (legalEl) {
+      if (niveau === 3) {
+        const interets = interetsRetard(r.solde, Math.max(0, r.joursRetard));
+        legalEl.style.display = '';
+        legalEl.innerHTML = '<strong>⚖️ Mentions légales automatiquement incluses</strong>'
+          + '<div>Intérêts de retard (BCE + 10 pts, prorata temporis) : <strong>'+fmtEur(interets)+'</strong></div>'
+          + '<div>Indemnité forfaitaire de recouvrement (art. L441-10) : <strong>'+fmtEur(FORFAIT_RECOUVREMENT)+'</strong></div>'
+          + '<div style="font-size:.75rem;margin-top:4px;color:var(--text-muted)">Conforme art. L441-10 du Code de commerce — à conserver en cas de contentieux.</div>';
+      } else { legalEl.style.display = 'none'; legalEl.innerHTML=''; }
+    }
+    if (typeof openModal === 'function') openModal('modal-envoi-relance');
+    else document.getElementById('modal-envoi-relance')?.classList.add('open');
+  };
+
+  function logRelance(statut) {
+    if (!_currentFactureRelance) return null;
+    const corps = document.getElementById('envoi-rel-corps')?.value || '';
+    const email = document.getElementById('envoi-rel-email')?.value || '';
+    const objet = document.getElementById('envoi-rel-objet')?.value || '';
+    const entry = {
+      id: (typeof genId === 'function' ? genId() : 'rel_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)),
+      factureId: _currentFactureRelance.id,
+      factureNumero: _currentFactureRelance.numero,
+      client: _currentFactureRelance.client,
+      niveau: _currentNiveauRelance,
+      date: new Date().toISOString(),
+      statut: statut,
+      email, objet, corps
+    };
+    const log = load(LS.relances); log.push(entry); save(LS.relances, log);
+    if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Relance '+(statut==='envoyee'?'envoyée':'téléchargée'), (_currentFactureRelance.numero||'') + ' · niveau '+_currentNiveauRelance);
+    return entry;
+  }
+
+  window.envoyerRelanceMailto = function() {
+    if (!_currentFactureRelance) return;
+    const email = document.getElementById('envoi-rel-email')?.value.trim() || '';
+    const objet = document.getElementById('envoi-rel-objet')?.value.trim() || '';
+    const corps = document.getElementById('envoi-rel-corps')?.value || '';
+    if (!email) { if (typeof afficherToast === 'function') afficherToast('⚠️ Email du destinataire requis', 'error'); return; }
+    logRelance('envoyee');
+    const mailto = 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(objet)+'&body='+encodeURIComponent(corps);
+    window.location.href = mailto;
+    if (typeof closeModal === 'function') closeModal('modal-envoi-relance');
+    if (typeof afficherToast === 'function') afficherToast('✉️ Relance enregistrée + messagerie ouverte');
+    window.afficherRelancesV2 && window.afficherRelancesV2();
+  };
+
+  window.telechargerPDFRelance = function() {
+    if (!_currentFactureRelance) return;
+    const corps = document.getElementById('envoi-rel-corps')?.value || '';
+    const objet = document.getElementById('envoi-rel-objet')?.value || '';
+    const f = _currentFactureRelance;
+    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e){ return {}; } })();
+    const societe = params.nom || params.raisonSociale || 'MCA Logistics';
+    const adresseSoc = [params.adresse, params.cp, params.ville].filter(Boolean).join(' · ');
+    const dateAjd = fmtDate(new Date().toLocalISODate());
+    const c = clientOfFacture(f) || {};
+    const adresseClient = [c.adresse, [c.cp,c.ville].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
+    const titreNiv = _currentNiveauRelance === 0 ? 'Confirmation de réception' : _currentNiveauRelance === 3 ? 'Mise en demeure de payer' : 'Rappel de règlement — Niveau '+_currentNiveauRelance;
+    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+escHtml(objet)+'</title>'
+      + '<style>body{font-family:Arial,sans-serif;max-width:780px;margin:40px auto;padding:30px;color:#1f2937;line-height:1.6}'
+      + 'h1{font-size:1.3rem;margin:0 0 24px;color:#4f46e5}.h-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px}'
+      + '.from{font-size:.9rem}.to{font-size:.9rem;text-align:right}.date{margin:20px 0;text-align:right;font-size:.85rem;color:#6b7280}'
+      + '.obj{font-weight:700;margin:24px 0 14px;padding:10px 14px;background:#f3f4f6;border-left:3px solid #4f46e5;border-radius:4px}'
+      + '.body{white-space:pre-wrap;font-size:.95rem}.ft{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:.78rem;color:#6b7280}'
+      + '@media print{body{margin:0}}</style></head><body>'
+      + '<div class="h-top"><div class="from"><strong>'+escHtml(societe)+'</strong><br>'+escHtml(adresseSoc)+'</div>'
+      + '<div class="to"><strong>'+escHtml(f.client||c.nom||'')+'</strong>'+(adresseClient?'<br>'+adresseClient:'')+(c.siren?'<br>SIREN : '+escHtml(c.siren):'')+'</div></div>'
+      + '<div class="date">'+(params.ville ? escHtml(params.ville)+', le ' : 'Le ')+dateAjd+'</div>'
+      + '<h1>'+escHtml(titreNiv)+'</h1>'
+      + '<div class="obj">'+escHtml(objet)+'</div>'
+      + '<div class="body">'+escHtml(corps)+'</div>'
+      + '<div class="ft">Document généré par MCA Logistics — '+dateAjd+' · Facture référencée : '+escHtml(f.numero||'')+'</div>'
+      + '</body></html>';
+    const w = ouvrirPopupSecure('', '_blank');
+    if (!w) { if (typeof afficherToast === 'function') afficherToast('⚠️ Popup bloqué', 'error'); return; }
+    w.document.write(html); w.document.close();
+    setTimeout(() => { try { w.print(); } catch(e){} }, 300);
+    logRelance('envoyee');
+    if (typeof afficherToast === 'function') afficherToast('📄 PDF de relance ouvert — à imprimer ou enregistrer');
+    window.afficherRelancesV2 && window.afficherRelancesV2();
+  };
+
+  /* ---------- Confirmations de réception à envoyer ---------- */
+  window.ouvrirModalConfirmationsAEnvoyer = function() {
+    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
+    const log = load(LS.relances);
+    const rows = factures.map(f => {
+      const dejaConfirm = log.find(r => r.factureId === f.id && r.niveau === 0 && r.statut === 'envoyee');
+      return { facture: f, dejaConfirm };
+    }).sort((a,b) => new Date(b.facture.dateLivraison||0) - new Date(a.facture.dateLivraison||0));
+    const tb = document.getElementById('tb-confirmations');
+    if (tb) {
+      tb.innerHTML = rows.length ? rows.map(r => {
+        const f = r.facture;
+        const statut = r.dejaConfirm ? '<span class="badge-statut badge-paye">✉️ '+fmtDate(r.dejaConfirm.date)+'</span>' : '<span class="badge-statut badge-attente">À envoyer</span>';
+        return '<tr>'
+          + '<td><strong>'+escHtml(f.numero||'')+'</strong></td>'
+          + '<td>'+escHtml(f.client||'')+'</td>'
+          + '<td>'+fmtDate(f.dateLivraison)+'</td>'
+          + '<td><strong>'+fmtEur(f.montantTTC||0)+'</strong></td>'
+          + '<td>'+statut+'</td>'
+          + '<td><button class="btn-icon" onclick="closeModal(\'modal-confirmations\');setTimeout(()=>ouvrirEnvoiRelance(\''+f.id+'\',0),80)" title="Envoyer confirmation">📨</button></td>'
+          + '</tr>';
+      }).join('') : '<tr><td colspan="6" class="empty-row">Aucune facture émise</td></tr>';
+    }
+    if (typeof openModal === 'function') openModal('modal-confirmations');
+    else document.getElementById('modal-confirmations')?.classList.add('open');
+  };
+
+  /* ---------- Wrap switchEncTab pour gérer le panel relances ---------- */
+  function hookSwitchEncTab() {
+    if (typeof window.switchEncTab !== 'function' || window.switchEncTab.__s14) return;
+    const orig = window.switchEncTab;
+    const wrapped = function(tab) {
+      const r = orig.apply(this, arguments);
+      const relPanel = document.getElementById('enc-panel-relances');
+      if (relPanel) relPanel.style.display = (tab === 'relances') ? 'block' : 'none';
+      if (tab === 'relances') window.afficherRelancesV2();
+      return r;
+    };
+    wrapped.__s14 = true;
+    window.switchEncTab = wrapped;
+  }
+
+  /* ---------- Wrap naviguerVers : redirige relances → encaissements+sub-tab ---------- */
+  function hookNaviguerVersS14() {
+    if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__s14) return;
+    const orig = window.naviguerVers;
+    const wrapped = function(page) {
+      if (page === 'relances') {
+        const r = orig.call(this, 'encaissements');
+        setTimeout(() => { try { window.switchEncTab('relances'); } catch(e){} }, 80);
+        return r;
+      }
+      const r = orig.apply(this, arguments);
+      if (page === 'encaissements') setTimeout(() => { if (window.afficherRelancesV2) window.afficherRelancesV2(); }, 60);
+      return r;
+    };
+    wrapped.__s14 = true;
+    window.naviguerVers = wrapped;
+  }
+
+  /* ---------- Bandeau dashboard ---------- */
+  function injecterBandeauDashboard() {
+    const dash = document.getElementById('page-dashboard');
+    if (!dash) return;
+    const rows = getFacturesEnRetard('').filter(r => r.niveau > 0);
+    let banner = dash.querySelector('#s14-banner-retards');
+    if (!rows.length) { if (banner) banner.remove(); return; }
+    const total = rows.reduce((s,r)=>s+r.solde,0);
+    const niv3 = rows.filter(r => r.niveau === 3).length;
+    const html = '<div class="s14-banner-content">'
+      + '<div class="s14-banner-icon">⏰</div>'
+      + '<div class="s14-banner-text"><strong>'+rows.length+' facture'+(rows.length>1?'s':'')+' en retard</strong> — '+fmtEur(total)+' à recouvrer'
+      + (niv3>0 ? ' · <span style="color:#ef4444;font-weight:700">'+niv3+' en mise en demeure</span>' : '')
+      + '</div>'
+      + '<button class="btn-primary" onclick="naviguerVers(\'encaissements\');setTimeout(()=>switchEncTab(\'relances\'),100)">Voir les relances →</button>'
+      + '</div>';
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 's14-banner-retards';
+      banner.className = 's14-banner s14-banner-warning';
+      const firstCard = dash.querySelector('.page-actions');
+      if (firstCard?.nextSibling) firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
+      else dash.appendChild(banner);
+    }
+    banner.innerHTML = html;
+  }
+  window.__s14RefreshBanner = injecterBandeauDashboard;
+
+  /* ---------- Init ---------- */
+  function initS14() {
+    hookSwitchEncTab();
+    hookNaviguerVersS14();
+    setTimeout(injecterBandeauDashboard, 200);
+    // Refresh bandeau après changement de page
+    if (typeof window.rafraichirDashboard === 'function' && !window.rafraichirDashboard.__s14) {
+      const origD = window.rafraichirDashboard;
+      const w = function() { const r = origD.apply(this, arguments); setTimeout(injecterBandeauDashboard, 40); return r; };
+      w.__s14 = true;
+      window.rafraichirDashboard = w;
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS14);
+  else setTimeout(initS14, 80);
+
+})();
+
+/* ============================================================
+   SPRINT 15 — Productivité PGI
+   1. Auto-création client depuis facture
+   2. Badge facture orpheline (sans LIV)
+   3. Alerte échéance imminente dashboard (J-5/3/1)
+   4. Bouton rappel préventif (niv 0, avant échéance)
+   5. Copie rapide au clic (N° facture / SIREN / IBAN)
+   6. Recherche globale Ctrl+K
+   7. Historique modifications (factures / livraisons / clients)
+   8. Export Z quotidien
+   ============================================================ */
+(function(){
+  if (window.__s15Installed) return;
+  window.__s15Installed = true;
+
+  const LS = {
+    clients: 'clients', livraisons: 'livraisons', factures: 'factures_emises',
+    avoirs: 'avoirs_emis', paiements: 'paiements', params: 'params_entreprise',
+    history: 'history_log'
+  };
+
+  /* ---------- Helpers ---------- */
+  const load = (k) => { try { return loadSafe(k, []); } catch(e) { return []; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const escHtml = window.escapeHtml;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
+  const isoDate = (d) => { const x = new Date(d); return isNaN(x) ? '' : x.toLocalISODate(); };
+  const genId = () => (typeof window.genId === 'function' ? window.genId() : 's15_'+Date.now()+'_'+Math.random().toString(36).slice(2,8));
+  const toast = (msg, type) => { if (typeof window.afficherToast === 'function') window.afficherToast(msg, type||'info'); };
+  const audit = (act, det) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(act, det); };
+
+  /* ---------- Modal générique (utilisé par echeances, historique, Export Z) ---------- */
+  window.modalInfo = window.modalInfo || function(htmlContent) {
+    let modal = document.getElementById('s15-modal-info');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 's15-modal-info';
+      modal.className = 's15-modal-info-overlay';
+      modal.innerHTML = '<div class="s15-modal-info-box"><button class="s15-modal-info-close" aria-label="Fermer">✕</button><div class="s15-modal-info-body"></div></div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('open'); });
+      modal.querySelector('.s15-modal-info-close').addEventListener('click', () => modal.classList.remove('open'));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.classList.contains('open')) modal.classList.remove('open'); });
+    }
+    modal.querySelector('.s15-modal-info-body').innerHTML = htmlContent;
+    modal.classList.add('open');
+    return modal;
+  };
+  // closeModal compat pour 'modal-info'
+  const _origCloseModal = window.closeModal;
+  window.closeModal = function(id) {
+    if (id === 'modal-info') { document.getElementById('s15-modal-info')?.classList.remove('open'); return; }
+    if (typeof _origCloseModal === 'function') return _origCloseModal.apply(this, arguments);
+  };
+
+  /* ============================================================
+     1. AUTO-CRÉATION CLIENT DEPUIS FACTURE
+     Si une facture est émise et qu'aucun client DB ne correspond,
+     propose de créer la fiche à la volée.
+     ============================================================ */
+  function findClientByName(nom) {
+    if (!nom) return null;
+    const k = nom.trim().toLowerCase();
+    return load(LS.clients).find(c => (c.nom||'').trim().toLowerCase() === k) || null;
+  }
+
+  window.creerFicheClientDepuisFacture = function(factureId) {
+    const f = load(LS.factures).find(x => x.id === factureId);
+    if (!f) return;
+    if (findClientByName(f.client)) { toast('Fiche client déjà existante', 'info'); return; }
+    const newClient = {
+      id: genId(),
+      nom: f.client || 'Client sans nom',
+      type: 'professionnel',
+      siren: f.clientSiren || '',
+      tvaIntra: f.clientTVA || '',
+      email: '', emailFact: '',
+      telephone: '', adresse: '', cp: '', ville: '',
+      delaiPaiementJours: 30,
+      notes: 'Créée automatiquement depuis la facture ' + (f.numero||'—'),
+      dateCreation: new Date().toISOString()
+    };
+    const list = load(LS.clients);
+    list.push(newClient);
+    save(LS.clients, list);
+    // Rattacher la facture au client
+    const factures = load(LS.factures);
+    const fi = factures.findIndex(x => x.id === factureId);
+    if (fi > -1) { factures[fi].clientId = newClient.id; save(LS.factures, factures); }
+    // Rattacher aussi la livraison liée
+    const livs = load(LS.livraisons);
+    let linkedLivs = 0;
+    livs.forEach(l => { if ((l.client||'').trim().toLowerCase() === (f.client||'').trim().toLowerCase() && !l.clientId) { l.clientId = newClient.id; linkedLivs++; } });
+    if (linkedLivs) save(LS.livraisons, livs);
+    audit('Auto-création client', newClient.nom + ' depuis facture ' + (f.numero||''));
+    toast('✅ Fiche client créée : ' + newClient.nom + (linkedLivs ? ' · '+linkedLivs+' livraison(s) rattachée(s)' : ''), 'success');
+    if (typeof window.afficherClients === 'function') window.afficherClients();
+    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  };
+
+  /* ============================================================
+     2. BADGE FACTURE ORPHELINE (sans LIV)
+     ============================================================ */
+  function postProcessFacturationOrphelines() {
+    const tbody = document.getElementById('tb-facturation');
+    if (!tbody) return;
+    const livs = load(LS.livraisons);
+    const livNumSet = new Set(livs.map(l => l.numero).filter(Boolean));
+    const livIdSet = new Set(livs.map(l => l.id).filter(Boolean));
+    const factures = load(LS.factures);
+    const byNumero = new Map();
+    factures.forEach(f => { if (f.numero) byNumero.set(f.numero, f); });
+    tbody.querySelectorAll('tr').forEach(tr => {
+      if (tr.querySelector('.s15-orphan-badge')) return; // already done
+      const strong = tr.querySelector('td:first-child strong, td:first-child');
+      const numeroText = (strong ? strong.textContent : '').trim();
+      const f = byNumero.get(numeroText);
+      if (!f) return;
+      const hasLiv = !!(f.numLiv && livNumSet.has(f.numLiv)) || !!(f.livraisonId && livIdSet.has(f.livraisonId));
+      if (!hasLiv) {
+        const badge = document.createElement('span');
+        badge.className = 's15-orphan-badge';
+        badge.title = 'Facture orpheline : aucun bon de livraison associé';
+        badge.textContent = '🔗❌ Orpheline';
+        const target = tr.querySelector('td:first-child');
+        if (target) target.appendChild(badge);
+      }
+    });
+  }
+
+  /* ============================================================
+     3. BANDEAU ÉCHÉANCES IMMINENTES (J-5 / J-3 / J-1)
+     ============================================================ */
+  function getFacturesEcheanceProche() {
+    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
+    const avoirs = load(LS.avoirs);
+    const paiements = load(LS.paiements);
+    const clients = load(LS.clients);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const out = [];
+    factures.forEach(f => {
+      const ttc = Number(f.totalTTC || f.total || 0);
+      const paid = paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+Number(p.montant||0),0);
+      const avoir = avoirs.filter(a => a.factureId === f.id).reduce((s,a)=>s+Number(a.totalTTC||a.total||0),0);
+      const solde = Math.max(0, ttc - paid - avoir);
+      if (solde <= 0.01) return;
+      const client = f.clientId ? clients.find(c => c.id === f.clientId) : (clients.find(c => (c.nom||'').trim().toLowerCase() === (f.client||'').trim().toLowerCase()) || null);
+      const delai = Number(client?.delaiPaiementJours) || 30;
+      const baseDate = new Date(f.dateFacture || f.date || f.dateLivraison || f.dateCreation || Date.now());
+      if (isNaN(baseDate)) return;
+      const ech = new Date(baseDate); ech.setDate(ech.getDate() + delai); ech.setHours(0,0,0,0);
+      const joursRestants = Math.round((ech - today) / 86400000);
+      if (joursRestants > 0 && joursRestants <= 5) {
+        out.push({ facture: f, client, solde, echeance: ech, joursRestants });
+      }
+    });
+    return out.sort((a,b) => a.joursRestants - b.joursRestants);
+  }
+
+  function injecterBandeauEcheances() {
+    const dash = document.getElementById('page-dashboard');
+    if (!dash) return;
+    const rows = getFacturesEcheanceProche();
+    let banner = dash.querySelector('#s15-banner-echeances');
+    if (!rows.length) { if (banner) banner.remove(); return; }
+    const total = rows.reduce((s,r)=>s+r.solde,0);
+    const j1 = rows.filter(r => r.joursRestants <= 1).length;
+    const html = '<div class="s15-banner-content">'
+      + '<div class="s15-banner-icon">🔔</div>'
+      + '<div class="s15-banner-text"><strong>'+rows.length+' échéance'+(rows.length>1?'s':'')+' imminente'+(rows.length>1?'s':'')+'</strong> · '+fmtEur(total)+' attendus'
+      + (j1>0 ? ' · <span style="color:#f97316;font-weight:700">'+j1+' à J-1 ou échéance aujourd\'hui</span>' : '')
+      + '</div>'
+      + '<button class="btn-secondary" onclick="window.voirEcheancesImminentes()">Voir le détail</button>'
+      + '</div>';
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 's15-banner-echeances';
+      banner.className = 's15-banner s15-banner-info';
+      const s14 = dash.querySelector('#s14-banner-retards');
+      if (s14 && s14.nextSibling) s14.parentNode.insertBefore(banner, s14.nextSibling);
+      else {
+        const firstCard = dash.querySelector('.page-actions');
+        if (firstCard?.nextSibling) firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
+        else dash.appendChild(banner);
+      }
+    }
+    banner.innerHTML = html;
+  }
+  window.__s15RefreshEcheances = injecterBandeauEcheances;
+
+  window.voirEcheancesImminentes = function() {
+    const rows = getFacturesEcheanceProche();
+    if (!rows.length) { toast('Aucune échéance à venir dans les 5 jours', 'info'); return; }
+    const html = '<div style="max-width:720px">'
+      + '<h3 style="margin:0 0 6px 0">🔔 Échéances imminentes (J-5 à J0)</h3>'
+      + '<p style="color:var(--text-muted);font-size:.88rem;margin:6px 0 12px">Factures à échéance dans les 5 jours — considère un rappel préventif (niv 0) pour sécuriser le paiement.</p>'
+      + '<div style="display:flex;flex-direction:column;gap:8px">'
+      + rows.map(r => {
+          const color = r.joursRestants <= 1 ? '#ef4444' : (r.joursRestants <= 3 ? '#f97316' : '#eab308');
+          return '<div style="padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid '+color+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+            + '<div><strong>'+escHtml(r.facture.numero||'—')+'</strong> · '+escHtml(r.facture.client||'')
+            + '<div style="font-size:.78rem;color:var(--text-muted)">Échéance : '+fmtDate(r.echeance)+' — <span style="color:'+color+';font-weight:700">J-'+r.joursRestants+'</span></div></div>'
+            + '<div style="display:flex;gap:8px;align-items:center">'
+            + '<span style="font-weight:700">'+fmtEur(r.solde)+'</span>'
+            + '<button class="btn-secondary" style="padding:4px 10px;font-size:.8rem" onclick="closeModal(\'modal-info\');ouvrirEnvoiRelance(\''+r.facture.id+'\',0)">📨 Rappel préventif</button>'
+            + '</div></div>';
+        }).join('')
+      + '</div></div>';
+    if (typeof window.modalInfo === 'function') window.modalInfo(html);
+    else alert(rows.map(r=>r.facture.numero+' J-'+r.joursRestants).join('\n'));
+  };
+
+  /* ============================================================
+     4. BOUTON RAPPEL PRÉVENTIF dans Facturation
+     Action directe depuis la table facturation pour factures J-5
+     ============================================================ */
+  function postProcessFacturationRappelsPreventifs() {
+    const tbody = document.getElementById('tb-facturation');
+    if (!tbody) return;
+    const proches = getFacturesEcheanceProche();
+    const ids = new Set(proches.map(r => r.facture.id));
+    const factures = load(LS.factures);
+    const byNumero = new Map();
+    factures.forEach(f => { if (f.numero) byNumero.set(f.numero, f); });
+    tbody.querySelectorAll('tr').forEach(tr => {
+      if (tr.querySelector('.s15-preventif-badge')) return;
+      const numeroText = (tr.querySelector('td:first-child')?.textContent || '').trim();
+      const f = byNumero.get(numeroText.split(/\s|\n/)[0]) || Array.from(byNumero.values()).find(ff => numeroText.includes(ff.numero));
+      if (!f) return;
+      const proche = proches.find(r => r.facture.id === f.id);
+      if (!proche) return;
+      const cell = tr.querySelector('td:first-child');
+      if (!cell) return;
+      const badge = document.createElement('span');
+      badge.className = 's15-preventif-badge';
+      badge.title = 'Échéance dans '+proche.joursRestants+' jour(s) · clic pour rappel préventif';
+      badge.innerHTML = '🔔 J-'+proche.joursRestants;
+      badge.onclick = (e) => { e.stopPropagation(); if (typeof window.ouvrirEnvoiRelance === 'function') window.ouvrirEnvoiRelance(f.id, 0); };
+      cell.appendChild(badge);
+    });
+  }
+
+  /* ============================================================
+     5. COPIE RAPIDE AU CLIC (délégation sur [data-copy])
+     ============================================================ */
+  function copyToClipboard(text) {
+    if (!text) return Promise.reject();
+    if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+    // Fallback textarea
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); } catch(e){}
+    ta.remove();
+    return Promise.resolve();
+  }
+
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('[data-copy]');
+    if (!el) return;
+    const text = el.getAttribute('data-copy') || el.textContent.trim();
+    copyToClipboard(text).then(() => {
+      toast('📋 Copié : '+ (text.length > 40 ? text.slice(0,40)+'…' : text), 'success');
+      el.classList.add('s15-copy-flash');
+      setTimeout(() => el.classList.remove('s15-copy-flash'), 600);
+    }).catch(() => toast('Impossible de copier', 'error'));
+  });
+
+  // Rend copiables les éléments correspondant à certains patterns
+  function enrichCopyables() {
+    // N° facture dans tb-facturation (1re colonne strong)
+    document.querySelectorAll('#tb-facturation td:first-child strong').forEach(el => {
+      if (el.hasAttribute('data-copy')) return;
+      const txt = el.textContent.trim();
+      if (/^FAC-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
+    });
+    // N° livraisons LIV-...
+    document.querySelectorAll('.lf-liv').forEach(el => {
+      if (el.hasAttribute('data-copy')) return;
+      const txt = el.textContent.trim();
+      if (/^LIV-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
+    });
+    document.querySelectorAll('.lf-fac').forEach(el => {
+      if (el.hasAttribute('data-copy')) return;
+      const txt = el.textContent.trim();
+      if (/^FAC-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
+    });
+  }
+
+  /* ============================================================
+     6. RECHERCHE GLOBALE Ctrl+K
+     ============================================================ */
+  function buildSearchIndex() {
+    const clients = load(LS.clients).map(c => ({ type:'client', id:c.id, label:c.nom||'(sans nom)', sub: (c.siren||c.email||c.ville||''), obj:c }));
+    const livs = load(LS.livraisons).map(l => ({ type:'livraison', id:l.id, label:l.numero||'(sans N°)', sub: (l.client||'')+' · '+fmtDate(l.date), obj:l }));
+    const factures = load(LS.factures).map(f => ({ type:'facture', id:f.id, label:f.numero||'(sans N°)', sub: (f.client||'')+' · '+fmtEur(f.totalTTC||f.total||0), obj:f }));
+    const paiements = load(LS.paiements).map(p => ({ type:'paiement', id:p.id, label:'Paiement '+(p.numero||p.id?.slice(-4)||''), sub: fmtEur(p.montant||0)+' · '+fmtDate(p.date), obj:p }));
+    return [...clients, ...livs, ...factures, ...paiements];
+  }
+
+  function openPalette() {
+    let modal = document.getElementById('s15-palette');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 's15-palette';
+      modal.className = 's15-palette-overlay';
+      modal.innerHTML = ''
+        + '<div class="s15-palette-box" role="dialog" aria-label="Recherche globale">'
+        + '  <div class="s15-palette-header">'
+        + '    <span style="font-size:1.2rem">🔍</span>'
+        + '    <input type="text" id="s15-palette-input" placeholder="Rechercher client, facture, livraison, paiement…" autocomplete="off" />'
+        + '    <kbd class="s15-palette-kbd">Esc</kbd>'
+        + '  </div>'
+        + '  <div class="s15-palette-results" id="s15-palette-results"></div>'
+        + '  <div class="s15-palette-footer"><kbd>↑↓</kbd> naviguer · <kbd>↵</kbd> ouvrir · <kbd>Ctrl+K</kbd> fermer</div>'
+        + '</div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closePalette(); });
+      const input = modal.querySelector('#s15-palette-input');
+      input.addEventListener('input', refreshPaletteResults);
+      input.addEventListener('keydown', handlePaletteKey);
+    }
+    modal.classList.add('open');
+    const input = modal.querySelector('#s15-palette-input');
+    input.value = '';
+    refreshPaletteResults();
+    setTimeout(()=>input.focus(), 30);
+  }
+  function closePalette() {
+    const modal = document.getElementById('s15-palette');
+    if (modal) modal.classList.remove('open');
+  }
+  let _paletteSel = 0;
+  function refreshPaletteResults() {
+    const q = (document.getElementById('s15-palette-input')?.value || '').toLowerCase().trim();
+    const box = document.getElementById('s15-palette-results');
+    if (!box) return;
+    const idx = buildSearchIndex();
+    const filt = !q ? idx.slice(0, 20) : idx.filter(r => (r.label+' '+r.sub).toLowerCase().includes(q)).slice(0, 30);
+    _paletteSel = 0;
+    if (!filt.length) { box.innerHTML = '<div class="s15-palette-empty">Aucun résultat pour "'+escHtml(q)+'"</div>'; return; }
+    const icons = { client:'👤', livraison:'📦', facture:'📄', paiement:'💰' };
+    box.innerHTML = filt.map((r,i) => '<div class="s15-palette-item'+(i===0?' selected':'')+'" data-idx="'+i+'" data-type="'+r.type+'" data-id="'+escHtml(r.id||'')+'">'
+      + '<span class="s15-palette-icon">'+icons[r.type]+'</span>'
+      + '<span class="s15-palette-lbl"><strong>'+escHtml(r.label)+'</strong>'
+      + (r.sub ? '<span class="s15-palette-sub">'+escHtml(r.sub)+'</span>' : '')
+      + '</span>'
+      + '<span class="s15-palette-type">'+r.type+'</span>'
+      + '</div>').join('');
+    box.querySelectorAll('.s15-palette-item').forEach(it => {
+      it.addEventListener('click', () => { _paletteSel = parseInt(it.dataset.idx, 10); activatePaletteItem(filt); });
+      it.addEventListener('mouseenter', () => { _paletteSel = parseInt(it.dataset.idx, 10); updatePaletteSelection(); });
+    });
+    box.__filt = filt;
+  }
+  function updatePaletteSelection() {
+    const box = document.getElementById('s15-palette-results');
+    if (!box) return;
+    box.querySelectorAll('.s15-palette-item').forEach((it,i) => it.classList.toggle('selected', i === _paletteSel));
+    const sel = box.querySelector('.s15-palette-item.selected');
+    sel?.scrollIntoView({ block:'nearest' });
+  }
+  function handlePaletteKey(e) {
+    const box = document.getElementById('s15-palette-results');
+    const filt = box?.__filt || [];
+    if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); _paletteSel = Math.min(filt.length-1, _paletteSel+1); updatePaletteSelection(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _paletteSel = Math.max(0, _paletteSel-1); updatePaletteSelection(); }
+    else if (e.key === 'Enter') { e.preventDefault(); activatePaletteItem(filt); }
+  }
+  function activatePaletteItem(filt) {
+    const r = filt[_paletteSel]; if (!r) return;
+    closePalette();
+    const navTo = (page, cb) => { if (typeof window.naviguerVers === 'function') window.naviguerVers(page); if (cb) setTimeout(cb, 160); };
+    if (r.type === 'client') navTo('clients', () => { if (typeof window.ouvrirHistoriqueClient === 'function') window.ouvrirHistoriqueClient(r.id); });
+    else if (r.type === 'livraison') navTo('livraisons', () => { const row = document.querySelector('[data-livraison-id="'+r.id+'"]'); row?.scrollIntoView({behavior:'smooth',block:'center'}); row?.classList.add('s15-pulse'); setTimeout(()=>row?.classList.remove('s15-pulse'), 1500); });
+    else if (r.type === 'facture') navTo('facturation', () => { toast('Facture '+r.label, 'info'); });
+    else if (r.type === 'paiement') navTo('encaissements');
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      const modal = document.getElementById('s15-palette');
+      if (modal?.classList.contains('open')) closePalette(); else openPalette();
+    }
+  });
+
+  /* ============================================================
+     7. HISTORIQUE MODIFICATIONS (factures / livraisons / clients)
+     ============================================================ */
+  function logChange(entity, entityId, field, oldV, newV, label) {
+    const log = load(LS.history);
+    log.push({
+      id: genId(), entity, entityId, field, oldValue: oldV, newValue: newV, label,
+      date: new Date().toISOString()
+    });
+    // cap at 2000 entries
+    if (log.length > 2000) log.splice(0, log.length - 2000);
+    save(LS.history, log);
+  }
+  window.logChange = logChange;
+
+  // Hook confirmerEditClient (Sprint 13)
+  if (typeof window.confirmerEditClient === 'function' && !window.confirmerEditClient.__s15) {
+    const orig = window.confirmerEditClient;
+    const w = function() {
+      const id = document.getElementById('edit-client-id')?.value || '';
+      const before = load(LS.clients).find(c => c.id === id);
+      const r = orig.apply(this, arguments);
+      const after = load(LS.clients).find(c => c.id === id);
+      if (before && after) {
+        ['nom','siren','tvaIntra','email','emailFact','telephone','adresse','delaiPaiementJours','type'].forEach(k => {
+          if (String(before[k]||'') !== String(after[k]||'')) logChange('client', id, k, before[k], after[k], after.nom||'Client');
+        });
+      }
+      return r;
+    };
+    w.__s15 = true;
+    window.confirmerEditClient = w;
+  }
+
+  window.voirHistoriqueEntite = function(entity, entityId, titreLabel) {
+    const log = load(LS.history).filter(e => e.entity === entity && e.entityId === entityId).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if (!log.length) { toast('Aucune modification enregistrée', 'info'); return; }
+    const icons = { client:'👤', livraison:'📦', facture:'📄' };
+    const html = '<div style="padding:14px;max-width:640px">'
+      + '<h3>'+icons[entity]+' Historique · '+escHtml(titreLabel||entityId)+'</h3>'
+      + '<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">'
+      + log.map(e => '<div style="padding:10px 12px;background:rgba(255,255,255,.03);border-left:3px solid var(--primary);border-radius:8px">'
+          + '<div style="font-size:.78rem;color:var(--text-muted)">'+fmtDate(e.date)+' · '+new Date(e.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div>'
+          + '<div style="margin-top:4px"><strong>'+escHtml(e.field||'modification')+'</strong> : '
+          + '<span style="color:#ef4444;text-decoration:line-through">'+escHtml(String(e.oldValue||'—').slice(0,60))+'</span>'
+          + ' → <span style="color:#22c55e">'+escHtml(String(e.newValue||'—').slice(0,60))+'</span></div>'
+          + '</div>').join('')
+      + '</div></div>';
+    if (typeof window.modalInfo === 'function') window.modalInfo(html);
+    else alert(log.map(e => e.field+': '+e.oldValue+' → '+e.newValue).join('\n'));
+  };
+
+  /* ============================================================
+     8. EXPORT Z QUOTIDIEN (synthèse journée)
+     ============================================================ */
+  window.ouvrirExportZ = function() {
+    const today = new Date().toLocalISODate();
+    const html = '<div>'
+      + '<h3 style="margin:0 0 6px 0">📊 Export Z — Synthèse quotidienne</h3>'
+      + '<p style="color:var(--text-muted);font-size:.88rem;margin:0 0 16px">Récap livraisons + factures émises + paiements encaissés pour la date choisie.</p>'
+      + '<div class="form-group" style="margin-bottom:18px"><label>Date</label><input type="date" id="s15-z-date" value="'+today+'" style="width:100%" /></div>'
+      + '<div style="display:flex;gap:8px;justify-content:flex-end">'
+      + '<button class="btn-secondary" onclick="closeModal(\'modal-info\')">Annuler</button>'
+      + '<button class="btn-primary" onclick="window.genererExportZ()">📄 Générer</button>'
+      + '</div></div>';
+    if (typeof window.modalInfo === 'function') {
+      const modal = window.modalInfo(html);
+      const box = modal && modal.querySelector && modal.querySelector('.s15-modal-info-box');
+      if (box) box.classList.add('narrow');
+    }
+  };
+
+  window.genererExportZ = function() {
+    const d = document.getElementById('s15-z-date')?.value;
+    if (!d) { toast('Sélectionne une date', 'warning'); return; }
+    const livs = load(LS.livraisons).filter(l => (l.date||'').slice(0,10) === d);
+    const factures = load(LS.factures).filter(f => (f.dateFacture || f.date || '').slice(0,10) === d && f.statut !== 'annulée');
+    const paiements = load(LS.paiements).filter(p => (p.date||'').slice(0,10) === d);
+    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e) { return {}; } })();
+    const totalFact = factures.reduce((s,f)=>s+Number(f.totalTTC||f.total||0), 0);
+    const totalPaye = paiements.reduce((s,p)=>s+Number(p.montant||0), 0);
+    const totalLiv = livs.reduce((s,l)=>s+Number(l.montant||l.totalHT||0), 0);
+    const w = ouvrirPopupSecure('', 'export_z', 'width=780,height=920');
+    if (!w) { toast('Popup bloquée', 'error'); return; }
+    const dFmt = new Date(d).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Export Z — '+d+'</title><style>'
+      + 'body{font-family:Arial,sans-serif;padding:28px;color:#1f2937} h1{margin:0 0 4px;color:#4f46e5} h2{font-size:1rem;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid #e5e7eb}'
+      + 'table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:6px} th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb} th{background:#f3f4f6}'
+      + '.tot{background:#eef2ff;font-weight:700} .meta{color:#6b7280;font-size:.85rem} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}'
+      + '.card{padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px} .card-label{font-size:.72rem;color:#6b7280;text-transform:uppercase} .card-val{font-size:1.3rem;font-weight:700;color:#4f46e5;margin-top:4px}'
+      + '@media print{button{display:none}} button{padding:8px 14px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer}'
+      + '</style></head><body>'
+      + '<div style="display:flex;justify-content:space-between;align-items:flex-start"><div>'
+      + '<h1>📊 Export Z — Synthèse journée</h1><div class="meta">'+escHtml(params.nom||'MCA Logistics')+(params.siren?' · SIREN '+params.siren:'')+'</div></div>'
+      + '<button onclick="window.print()">🖨️ Imprimer</button></div>'
+      + '<p class="meta" style="margin-top:8px">📅 '+dFmt+' — généré le '+new Date().toLocaleString('fr-FR')+'</p>'
+      + '<div class="grid">'
+      + '<div class="card"><div class="card-label">Livraisons</div><div class="card-val">'+livs.length+'</div><div class="meta">'+fmtEur(totalLiv)+' HT</div></div>'
+      + '<div class="card"><div class="card-label">Factures émises</div><div class="card-val">'+factures.length+'</div><div class="meta">'+fmtEur(totalFact)+' TTC</div></div>'
+      + '<div class="card"><div class="card-label">Paiements encaissés</div><div class="card-val">'+paiements.length+'</div><div class="meta">'+fmtEur(totalPaye)+'</div></div>'
+      + '</div>'
+      + (livs.length ? '<h2>📦 Livraisons ('+livs.length+')</h2><table><thead><tr><th>N°</th><th>Client</th><th>Montant HT</th><th>Statut</th></tr></thead><tbody>'
+          + livs.map(l => '<tr><td>'+escHtml(l.numero||'—')+'</td><td>'+escHtml(l.client||'')+'</td><td>'+fmtEur(l.montant||l.totalHT||0)+'</td><td>'+escHtml(l.statut||'—')+'</td></tr>').join('')
+          + '<tr class="tot"><td colspan="2">TOTAL LIVRAISONS</td><td colspan="2">'+fmtEur(totalLiv)+' HT</td></tr></tbody></table>' : '')
+      + (factures.length ? '<h2>📄 Factures ('+factures.length+')</h2><table><thead><tr><th>N°</th><th>Client</th><th>Total TTC</th><th>Statut</th></tr></thead><tbody>'
+          + factures.map(f => '<tr><td>'+escHtml(f.numero||'—')+'</td><td>'+escHtml(f.client||'')+'</td><td>'+fmtEur(f.totalTTC||f.total||0)+'</td><td>'+escHtml(f.statut||'—')+'</td></tr>').join('')
+          + '<tr class="tot"><td colspan="2">TOTAL FACTURÉ</td><td colspan="2">'+fmtEur(totalFact)+' TTC</td></tr></tbody></table>' : '')
+      + (paiements.length ? '<h2>💰 Paiements ('+paiements.length+')</h2><table><thead><tr><th>Date</th><th>Facture</th><th>Mode</th><th>Montant</th></tr></thead><tbody>'
+          + paiements.map(p => '<tr><td>'+fmtDate(p.date)+'</td><td>'+escHtml(p.factureNumero||'—')+'</td><td>'+escHtml(p.mode||'—')+'</td><td>'+fmtEur(p.montant||0)+'</td></tr>').join('')
+          + '<tr class="tot"><td colspan="3">TOTAL ENCAISSÉ</td><td>'+fmtEur(totalPaye)+'</td></tr></tbody></table>' : '')
+      + (!livs.length && !factures.length && !paiements.length ? '<p style="padding:30px;text-align:center;color:#6b7280">Aucun mouvement pour cette date.</p>' : '')
+      + '</body></html>');
+    w.document.close();
+    audit('Export Z', dFmt + ' · ' + livs.length + ' livs, ' + factures.length + ' facts, ' + paiements.length + ' paiements');
+  };
+
+  /* ============================================================
+     HOOKS & INIT
+     ============================================================ */
+  function hookFacturationPostProcess() {
+    if (typeof window.afficherFacturation === 'function' && !window.afficherFacturation.__s15) {
+      const orig = window.afficherFacturation;
+      const w = function() {
+        const r = orig.apply(this, arguments);
+        setTimeout(() => { postProcessFacturationOrphelines(); postProcessFacturationRappelsPreventifs(); enrichCopyables(); }, 30);
+        return r;
+      };
+      w.__s15 = true;
+      window.afficherFacturation = w;
+    }
+  }
+  function hookDashboardS15() {
+    if (typeof window.afficherDashboard === 'function' && !window.afficherDashboard.__s15) {
+      const orig = window.afficherDashboard;
+      const w = function() { const r = orig.apply(this, arguments); setTimeout(injecterBandeauEcheances, 50); return r; };
+      w.__s15 = true;
+      window.afficherDashboard = w;
+    }
+  }
+
+  function initS15() {
+    hookFacturationPostProcess();
+    hookDashboardS15();
+    setTimeout(injecterBandeauEcheances, 250);
+    setTimeout(enrichCopyables, 400);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS15);
+  else setTimeout(initS15, 90);
+})();
+
+/* ============================================================
+   SPRINT 16 — Calendrier opérationnel
+   Vue jour/semaine/mois/année · events agrégés (livraisons,
+   factures, échéances, relances, paiements, jours fériés FR 2000-2100)
+   · drag & drop livraisons · filtres · impression
+   ============================================================ */
+(function(){
+  if (window.__s16Installed) return;
+  window.__s16Installed = true;
+
+  const LS = {
+    clients:'clients', livraisons:'livraisons', factures:'factures_emises',
+    avoirs:'avoirs_emis', paiements:'paiements', relances:'relances_log', params:'params_entreprise'
+  };
+
+  /* ---------- Helpers ---------- */
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+  const escHtml = window.escapeHtml;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const pad = (n) => String(n).padStart(2,'0');
+  const isoDate = (d) => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const parseISO = (s) => { if (!s) return null; const d = new Date(s); return isNaN(d) ? null : d; };
+  const startOfDay = (d) => { const x = new Date(d); x.setHours(0,0,0,0); return x; };
+  const sameDay = (a,b) => a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+  const toast = (msg, type) => { if (typeof window.afficherToast === 'function') window.afficherToast(msg, type||'info'); };
+
+  const MOIS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const JOURS = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  const JOURS_COURT = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+
+  /* ---------- Jours fériés FR (algo Pâques Meeus, 2000-2100) ---------- */
+  function paquesDate(year) {
+    const a = year % 19;
+    const b = Math.floor(year/100), c = year % 100;
+    const d = Math.floor(b/4), e = b % 4;
+    const f = Math.floor((b+8)/25), g = Math.floor((b-f+1)/3);
+    const h = (19*a + b - d - g + 15) % 30;
+    const i = Math.floor(c/4), k = c % 4;
+    const L = (32 + 2*e + 2*i - h - k) % 7;
+    const m = Math.floor((a + 11*h + 22*L)/451);
+    const month = Math.floor((h + L - 7*m + 114) / 31);
+    const day = ((h + L - 7*m + 114) % 31) + 1;
+    return new Date(year, month-1, day);
+  }
+  const _feriesCache = {};
+  function feriesDeLAnnee(year) {
+    if (_feriesCache[year]) return _feriesCache[year];
+    const paques = paquesDate(year);
+    const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+    const list = [
+      { date: new Date(year, 0, 1),   nom: 'Jour de l\'An' },
+      { date: addDays(paques, 1),     nom: 'Lundi de Pâques' },
+      { date: new Date(year, 4, 1),   nom: 'Fête du Travail' },
+      { date: new Date(year, 4, 8),   nom: 'Victoire 1945' },
+      { date: addDays(paques, 39),    nom: 'Ascension' },
+      { date: addDays(paques, 50),    nom: 'Lundi de Pentecôte' },
+      { date: new Date(year, 6, 14),  nom: 'Fête Nationale' },
+      { date: new Date(year, 7, 15),  nom: 'Assomption' },
+      { date: new Date(year, 10, 1),  nom: 'Toussaint' },
+      { date: new Date(year, 10, 11), nom: 'Armistice 1918' },
+      { date: new Date(year, 11, 25), nom: 'Noël' }
+    ];
+    _feriesCache[year] = list;
+    return list;
+  }
+  function feriePourDate(d) {
+    const list = feriesDeLAnnee(d.getFullYear());
+    return list.find(f => sameDay(f.date, d)) || null;
+  }
+
+  /* ---------- Agrégation events ---------- */
+  function getClientById(id) { return load(LS.clients).find(c => c.id === id) || null; }
+  function echeanceFacture(f) {
+    const client = f.clientId ? getClientById(f.clientId) : null;
+    const delai = Number(client?.delaiPaiementJours) || 30;
+    const base = parseISO(f.dateFacture || f.date || f.dateLivraison);
+    if (!base) return null;
+    const d = new Date(base); d.setDate(d.getDate() + delai); d.setHours(0,0,0,0);
+    return d;
+  }
+  function soldeFacture(f) {
+    if (f.statut === 'annulée') return 0;
+    const ttc = Number(f.totalTTC || f.total || 0);
+    const paid = load(LS.paiements).filter(p => p.factureId === f.id).reduce((s,p)=>s+Number(p.montant||0),0);
+    const av = load(LS.avoirs).filter(a => a.factureId === f.id).reduce((s,a)=>s+Number(a.totalTTC||a.total||0),0);
+    return Math.max(0, ttc - paid - av);
+  }
+
+  function getEventsForRange(start, end) {
+    const events = [];
+    const startT = start.getTime(), endT = end.getTime();
+    // Livraisons
+    load(LS.livraisons).forEach(l => {
+      const d = parseISO(l.date); if (!d) return;
+      d.setHours(0,0,0,0);
+      if (d.getTime() < startT || d.getTime() > endT) return;
+      events.push({ type:'livraisons', date:d, icon:'📦', label: (l.numero||'Liv')+' · '+(l.client||''), color:'#22c55e',
+        id:l.id, draggable:true, onclick: () => navToLivraison(l.id) });
+    });
+    // Factures émises
+    load(LS.factures).forEach(f => {
+      if (f.statut === 'annulée') return;
+      const d = parseISO(f.dateFacture || f.date || f.dateLivraison); if (!d) return;
+      d.setHours(0,0,0,0);
+      if (d.getTime() >= startT && d.getTime() <= endT) {
+        events.push({ type:'factures', date:d, icon:'📄', label:(f.numero||'Fac')+' · '+(f.client||''), color:'#6366f1',
+          id:f.id, onclick: () => navToFacture(f.id) });
+      }
+      // Échéance
+      const ech = echeanceFacture(f);
+      if (ech && ech.getTime() >= startT && ech.getTime() <= endT) {
+        const solde = soldeFacture(f);
+        if (solde > 0.01) {
+          events.push({ type:'echeances', date:ech, icon:'⏰', label:'Éch. '+(f.numero||'')+' · '+fmtEur(solde), color:'#ef4444',
+            id:'ech_'+f.id, onclick: () => navToFacture(f.id) });
+        }
+      }
+    });
+    // Relances
+    load(LS.relances).forEach(r => {
+      const d = parseISO(r.date); if (!d) return;
+      d.setHours(0,0,0,0);
+      if (d.getTime() < startT || d.getTime() > endT) return;
+      events.push({ type:'relances', date:d, icon:'🔔', label:'Relance N'+r.niveau+' · '+(r.factureNumero||''), color:'#f97316',
+        id:r.id, onclick: () => navToRelance(r.factureId) });
+    });
+    // Paiements
+    load(LS.paiements).forEach(p => {
+      const d = parseISO(p.date); if (!d) return;
+      d.setHours(0,0,0,0);
+      if (d.getTime() < startT || d.getTime() > endT) return;
+      events.push({ type:'paiements', date:d, icon:'💰', label:fmtEur(p.montant||0)+' · '+(p.factureNumero||p.mode||''), color:'#eab308',
+        id:p.id, onclick: () => navToEncaissements() });
+    });
+    return events;
+  }
+
+  function navToLivraison(id) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('livraisons');
+    setTimeout(() => {
+      const row = document.querySelector('[data-livraison-id="'+id+'"]');
+      row?.scrollIntoView({behavior:'smooth',block:'center'});
+      row?.classList.add('s15-pulse');
+      setTimeout(()=>row?.classList.remove('s15-pulse'), 1500);
+    }, 160);
+  }
+  function navToFacture(id) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('facturation');
+  }
+  function navToRelance(factureId) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('encaissements');
+    setTimeout(() => { if (typeof window.switchEncTab === 'function') window.switchEncTab('relances'); }, 120);
+  }
+  function navToEncaissements() {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('encaissements');
+  }
+
+  /* ---------- State ---------- */
+  const state = {
+    vue: 'mois',
+    curseur: startOfDay(new Date())
+  };
+
+  function getFiltresActifs() {
+    const out = { livraisons:true, factures:true, echeances:true, relances:true, paiements:true, feries:true };
+    document.querySelectorAll('[data-cal-filter]').forEach(c => {
+      out[c.dataset.calFilter] = c.checked;
+    });
+    return out;
+  }
+
+  /* ---------- Bounds période ---------- */
+  function getBounds() {
+    const c = state.curseur;
+    if (state.vue === 'jour') {
+      const s = startOfDay(c), e = new Date(s); e.setHours(23,59,59,999);
+      return { start:s, end:e };
+    }
+    if (state.vue === 'semaine') {
+      const dow = (c.getDay()+6) % 7; // 0=lundi
+      const s = startOfDay(new Date(c)); s.setDate(s.getDate()-dow);
+      const e = new Date(s); e.setDate(e.getDate()+6); e.setHours(23,59,59,999);
+      return { start:s, end:e };
+    }
+    if (state.vue === 'mois') {
+      const s = new Date(c.getFullYear(), c.getMonth(), 1);
+      const e = new Date(c.getFullYear(), c.getMonth()+1, 0, 23, 59, 59, 999);
+      return { start:s, end:e };
+    }
+    // année
+    const s = new Date(c.getFullYear(), 0, 1);
+    const e = new Date(c.getFullYear(), 11, 31, 23, 59, 59, 999);
+    return { start:s, end:e };
+  }
+
+  /* ---------- Label titre ---------- */
+  function setLabels() {
+    const { start, end } = getBounds();
+    const lbl = document.getElementById('cal16-label');
+    const sub = document.getElementById('cal16-sub');
+    if (!lbl) return;
+    if (state.vue === 'jour') {
+      const d = start;
+      lbl.textContent = JOURS[(d.getDay()+6)%7] + ' ' + d.getDate() + ' ' + MOIS[d.getMonth()] + ' ' + d.getFullYear();
+      sub.textContent = '';
+    } else if (state.vue === 'semaine') {
+      lbl.textContent = 'Semaine du ' + start.getDate() + ' ' + MOIS[start.getMonth()] + ' au ' + end.getDate() + ' ' + MOIS[end.getMonth()];
+      sub.textContent = 'Semaine ' + numeroSemaine(start) + ' · ' + start.getFullYear();
+    } else if (state.vue === 'mois') {
+      lbl.textContent = MOIS[start.getMonth()] + ' ' + start.getFullYear();
+      sub.textContent = '';
+    } else {
+      lbl.textContent = 'Année ' + start.getFullYear();
+      sub.textContent = '';
+    }
+  }
+  function numeroSemaine(d) {
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = (t.getUTCDay()+6)%7;
+    t.setUTCDate(t.getUTCDate()-dayNum+3);
+    const firstThu = new Date(Date.UTC(t.getUTCFullYear(),0,4));
+    return 1 + Math.round(((t-firstThu)/86400000 - 3 + ((firstThu.getUTCDay()+6)%7))/7);
+  }
+
+  /* ---------- KPI mois courant ---------- */
+  function setKPIMoisCourant() {
+    const c = state.curseur;
+    const s = new Date(c.getFullYear(), c.getMonth(), 1);
+    const e = new Date(c.getFullYear(), c.getMonth()+1, 0, 23,59,59,999);
+    const events = getEventsForRange(s, e);
+    const cntLiv = events.filter(ev => ev.type==='livraisons').length;
+    const cntFac = events.filter(ev => ev.type==='factures').length;
+    const cntEch = events.filter(ev => ev.type==='echeances').length;
+    const pai = load(LS.paiements).filter(p => {
+      const d = parseISO(p.date); if(!d) return false;
+      return d >= s && d <= e;
+    }).reduce((s,p)=>s+Number(p.montant||0),0);
+    const set = (id,v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('cal16-kpi-liv', cntLiv);
+    set('cal16-kpi-fac', cntFac);
+    set('cal16-kpi-ech', cntEch);
+    set('cal16-kpi-pai', fmtEur(pai));
+  }
+
+  /* ---------- Rendu vue mois ---------- */
+  function renderMois() {
+    const grid = document.getElementById('cal16-grid');
+    if (!grid) return;
+    const c = state.curseur;
+    const firstDay = new Date(c.getFullYear(), c.getMonth(), 1);
+    const dowStart = (firstDay.getDay()+6)%7;
+    const gridStart = new Date(firstDay); gridStart.setDate(gridStart.getDate() - dowStart);
+    const gridEnd = new Date(gridStart); gridEnd.setDate(gridEnd.getDate()+41); gridEnd.setHours(23,59,59,999);
+    const events = getEventsForRange(gridStart, gridEnd);
+    const filtres = getFiltresActifs();
+    const today = startOfDay(new Date());
+
+    let html = '<div class="cal16-mois">';
+    // Header jours
+    html += '<div class="cal16-mois-header">' + JOURS_COURT.map(j => '<div class="cal16-mois-hcell">'+j+'</div>').join('') + '</div>';
+    html += '<div class="cal16-mois-body">';
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart); d.setDate(d.getDate()+i);
+      const isCurMonth = d.getMonth() === c.getMonth();
+      const isToday = sameDay(d, today);
+      const ferie = filtres.feries ? feriePourDate(d) : null;
+      const evsJour = events.filter(ev => sameDay(ev.date, d) && filtres[ev.type]);
+      const cls = ['cal16-day'];
+      if (!isCurMonth) cls.push('cal16-day-other');
+      if (isToday) cls.push('cal16-day-today');
+      if (ferie) cls.push('cal16-day-ferie');
+      if (d.getDay() === 0 || d.getDay() === 6) cls.push('cal16-day-weekend');
+      html += '<div class="'+cls.join(' ')+'" data-date="'+isoDate(d)+'">';
+      html += '<div class="cal16-day-head">'
+        + '<span class="cal16-day-num">'+d.getDate()+'</span>'
+        + '</div>';
+      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'">🎉 '+escHtml(ferie.nom)+'</div>';
+      const maxShow = 4;
+      evsJour.slice(0, maxShow).forEach(ev => {
+        html += '<div class="cal16-event cal16-event-'+ev.type+'" '
+          + (ev.draggable ? 'draggable="true" data-drag-id="'+escHtml(ev.id)+'" data-drag-type="'+ev.type+'"' : '')
+          + ' data-ev-id="'+escHtml(ev.id)+'" title="'+escHtml(ev.label)+'">'
+          + '<span class="cal16-event-icon">'+ev.icon+'</span>'
+          + '<span class="cal16-event-lbl">'+escHtml(ev.label)+'</span>'
+          + '</div>';
+      });
+      if (evsJour.length > maxShow) {
+        html += '<div class="cal16-event-more" data-more-date="'+isoDate(d)+'">+'+(evsJour.length-maxShow)+' autres…</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div></div>';
+    grid.innerHTML = html;
+    wireInteractions(grid, events);
+  }
+
+  /* ---------- Rendu vue semaine ---------- */
+  function renderSemaine() {
+    const grid = document.getElementById('cal16-grid');
+    if (!grid) return;
+    const { start, end } = getBounds();
+    const events = getEventsForRange(start, end);
+    const filtres = getFiltresActifs();
+    const today = startOfDay(new Date());
+
+    let html = '<div class="cal16-semaine">';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(d.getDate()+i);
+      const isToday = sameDay(d, today);
+      const ferie = filtres.feries ? feriePourDate(d) : null;
+      const evsJour = events.filter(ev => sameDay(ev.date, d) && filtres[ev.type]);
+      const cls = ['cal16-sem-col']; if (isToday) cls.push('cal16-day-today'); if (ferie) cls.push('cal16-day-ferie');
+      if (d.getDay()===0 || d.getDay()===6) cls.push('cal16-day-weekend');
+      html += '<div class="'+cls.join(' ')+'" data-date="'+isoDate(d)+'">';
+      html += '<div class="cal16-sem-head"><strong>'+JOURS_COURT[(d.getDay()+6)%7]+' '+d.getDate()+'</strong>'
+        + (ferie ? '<div class="cal16-day-ferie-tag" title="'+escHtml(ferie.nom)+'">'+escHtml(ferie.nom)+'</div>' : '')
+        + '</div>';
+      html += '<div class="cal16-sem-events">';
+      evsJour.forEach(ev => {
+        html += '<div class="cal16-event cal16-event-'+ev.type+'" '
+          + (ev.draggable ? 'draggable="true" data-drag-id="'+escHtml(ev.id)+'" data-drag-type="'+ev.type+'"' : '')
+          + ' data-ev-id="'+escHtml(ev.id)+'" title="'+escHtml(ev.label)+'">'
+          + '<span class="cal16-event-icon">'+ev.icon+'</span>'
+          + '<span class="cal16-event-lbl">'+escHtml(ev.label)+'</span>'
+          + '</div>';
+      });
+      if (!evsJour.length) html += '<div class="cal16-empty">Aucun événement</div>';
+      html += '</div></div>';
+    }
+    html += '</div>';
+    grid.innerHTML = html;
+    wireInteractions(grid, events);
+  }
+
+  /* ---------- Rendu vue jour ---------- */
+  function renderJour() {
+    const grid = document.getElementById('cal16-grid');
+    if (!grid) return;
+    const { start, end } = getBounds();
+    const events = getEventsForRange(start, end);
+    const filtres = getFiltresActifs();
+    const ferie = filtres.feries ? feriePourDate(start) : null;
+
+    let html = '<div class="cal16-jour" data-date="'+isoDate(start)+'">';
+    html += '<div class="cal16-jour-back">'
+      + '<button class="btn-secondary" onclick="window.cal16.retourMois()" title="Retour à la vue mois">← Retour au mois</button>'
+      + '<button class="cal16-jour-close" onclick="window.cal16.retourMois()" title="Fermer" aria-label="Fermer">✕</button>'
+      + '</div>';
+    if (ferie) html += '<div class="cal16-jour-ferie">🎉 '+escHtml(ferie.nom)+' (jour férié)</div>';
+    const groups = [['livraisons','📦 Livraisons'],['factures','📄 Factures émises'],['echeances','⏰ Échéances'],['relances','🔔 Relances'],['paiements','💰 Paiements']];
+    groups.forEach(([t, titre]) => {
+      if (!filtres[t]) return;
+      const evs = events.filter(ev => ev.type === t);
+      if (!evs.length) return;
+      html += '<div class="cal16-jour-section"><h3>'+titre+' <span class="cal16-count">('+evs.length+')</span></h3>';
+      evs.forEach(ev => {
+        html += '<div class="cal16-event cal16-event-'+ev.type+' cal16-event-big" '
+          + (ev.draggable ? 'draggable="true" data-drag-id="'+escHtml(ev.id)+'" data-drag-type="'+ev.type+'"' : '')
+          + ' data-ev-id="'+escHtml(ev.id)+'">'
+          + '<span class="cal16-event-icon">'+ev.icon+'</span>'
+          + '<span class="cal16-event-lbl">'+escHtml(ev.label)+'</span>'
+          + '</div>';
+      });
+      html += '</div>';
+    });
+    if (!events.length) html += '<div class="cal16-empty" style="padding:40px;text-align:center">Aucun événement ce jour</div>';
+    html += '</div>';
+    grid.innerHTML = html;
+    wireInteractions(grid, events);
+  }
+
+  /* ---------- Rendu vue année ---------- */
+  function renderAnnee() {
+    const grid = document.getElementById('cal16-grid');
+    if (!grid) return;
+    const c = state.curseur;
+    const filtres = getFiltresActifs();
+    let html = '<div class="cal16-annee">';
+    for (let m = 0; m < 12; m++) {
+      const s = new Date(c.getFullYear(), m, 1);
+      const e = new Date(c.getFullYear(), m+1, 0, 23,59,59,999);
+      const events = getEventsForRange(s, e).filter(ev => filtres[ev.type]);
+      const ecount = events.filter(ev => ev.type==='echeances').length;
+      const lcount = events.filter(ev => ev.type==='livraisons').length;
+      const fcount = events.filter(ev => ev.type==='factures').length;
+      const feriesM = filtres.feries ? feriesDeLAnnee(c.getFullYear()).filter(f => f.date.getMonth() === m) : [];
+      html += '<div class="cal16-annee-mois" onclick="window.cal16.allerA('+c.getFullYear()+','+m+')">';
+      html += '<div class="cal16-annee-mois-title">'+MOIS[m]+'</div>';
+      html += '<div class="cal16-annee-mini">' + renderMiniMois(c.getFullYear(), m, events, feriesM) + '</div>';
+      html += '<div class="cal16-annee-kpis">'
+        + '<span title="Livraisons">📦'+lcount+'</span>'
+        + '<span title="Factures">📄'+fcount+'</span>'
+        + '<span title="Échéances">⏰'+ecount+'</span>'
+        + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    grid.innerHTML = html;
+  }
+  function renderMiniMois(year, month, events, feriesM) {
+    const first = new Date(year, month, 1);
+    const dow = (first.getDay()+6)%7;
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    let out = '<div class="cal16-mini-header">' + JOURS_COURT.map(j => '<span>'+j[0]+'</span>').join('') + '</div>';
+    out += '<div class="cal16-mini-grid">';
+    for (let i = 0; i < dow; i++) out += '<span class="cal16-mini-pad"></span>';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      const hasEv = events.some(ev => sameDay(ev.date, date));
+      const hasEch = events.some(ev => ev.type==='echeances' && sameDay(ev.date, date));
+      const ferie = feriesM.some(f => sameDay(f.date, date));
+      const today = sameDay(date, new Date());
+      const cls = ['cal16-mini-day'];
+      if (today) cls.push('t');
+      if (hasEch) cls.push('ech');
+      else if (hasEv) cls.push('ev');
+      if (ferie) cls.push('fer');
+      out += '<span class="'+cls.join(' ')+'">'+d+'</span>';
+    }
+    out += '</div>';
+    return out;
+  }
+
+  /* ---------- Interactions (click events, drag/drop) ---------- */
+  function wireInteractions(grid, events) {
+    const byId = new Map();
+    events.forEach(ev => byId.set(ev.id, ev));
+    // Click sur event
+    grid.querySelectorAll('.cal16-event').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = el.dataset.evId;
+        const ev = byId.get(id);
+        if (ev?.onclick) ev.onclick();
+      });
+    });
+    // "voir plus" sur un jour
+    grid.querySelectorAll('.cal16-event-more').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const date = el.dataset.moreDate;
+        ouvrirDetailJour(date);
+      });
+    });
+    // Drag & drop livraisons
+    grid.querySelectorAll('[draggable="true"][data-drag-type="livraisons"]').forEach(el => {
+      el.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', el.dataset.dragId);
+        e.dataTransfer.effectAllowed = 'move';
+        el.classList.add('cal16-dragging');
+      });
+      el.addEventListener('dragend', () => el.classList.remove('cal16-dragging'));
+    });
+    // Zones drop
+    grid.querySelectorAll('[data-date]').forEach(cell => {
+      cell.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        cell.classList.add('cal16-drop-hover');
+      });
+      cell.addEventListener('dragleave', () => cell.classList.remove('cal16-drop-hover'));
+      cell.addEventListener('drop', (e) => {
+        e.preventDefault();
+        cell.classList.remove('cal16-drop-hover');
+        const livId = e.dataTransfer.getData('text/plain');
+        const newDate = cell.dataset.date;
+        if (!livId || !newDate) return;
+        deplacerLivraison(livId, newDate);
+      });
+    });
+    // Click sur numéro du jour (mois) → vue jour filtrée sur ce jour
+    grid.querySelectorAll('.cal16-day[data-date]').forEach(cell => {
+      const num = cell.querySelector('.cal16-day-num');
+      num?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const d = cell.dataset.date;
+        if (!d) return;
+        state.curseur = parseISO(d);
+        state.vue = 'jour';
+        const s = document.getElementById('cal16-vue'); if (s) s.value = 'jour';
+        render();
+      });
+    });
+    // Click sur en-tête jour (semaine) → vue jour
+    grid.querySelectorAll('.cal16-sem-col[data-date]').forEach(cell => {
+      const head = cell.querySelector('.cal16-sem-head strong');
+      head?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const d = cell.dataset.date;
+        if (!d) return;
+        state.curseur = parseISO(d);
+        state.vue = 'jour';
+        const s = document.getElementById('cal16-vue'); if (s) s.value = 'jour';
+        render();
+      });
+    });
+  }
+
+  function deplacerLivraison(livId, newDateISO) {
+    const livs = load(LS.livraisons);
+    const l = livs.find(x => x.id === livId);
+    if (!l) return;
+    const old = l.date;
+    if ((old||'').slice(0,10) === newDateISO) return;
+    l.date = newDateISO;
+    save(LS.livraisons, livs);
+    if (typeof window.logChange === 'function') window.logChange('livraison', livId, 'date', old, newDateISO, l.numero || 'Livraison');
+    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Déplacement livraison', (l.numero||'')+' : '+(old||'')+' → '+newDateISO);
+    toast('📦 '+(l.numero||'Livraison')+' déplacée au '+new Date(newDateISO).toLocaleDateString('fr-FR'), 'success');
+    render();
+    if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+    if (typeof window.__s14RefreshBanner === 'function') window.__s14RefreshBanner();
+    if (typeof window.__s15RefreshEcheances === 'function') window.__s15RefreshEcheances();
+  }
+
+  function ouvrirDetailJour(dateISO) {
+    state.curseur = parseISO(dateISO);
+    state.vue = 'jour';
+    document.getElementById('cal16-vue').value = 'jour';
+    render();
+  }
+
+  /* ---------- Navigation ---------- */
+  function naviguer(delta) {
+    const c = state.curseur;
+    if (state.vue === 'jour') c.setDate(c.getDate()+delta);
+    else if (state.vue === 'semaine') c.setDate(c.getDate()+delta*7);
+    else if (state.vue === 'mois') c.setMonth(c.getMonth()+delta);
+    else c.setFullYear(c.getFullYear()+delta);
+    render();
+  }
+  function aujourdhui() { state.curseur = startOfDay(new Date()); render(); }
+  function changerVue(v) { state.vue = v; render(); }
+  function allerA(year, month, day) { state.curseur = new Date(year, month, day||1); state.vue = 'mois'; const s = document.getElementById('cal16-vue'); if (s) s.value = 'mois'; render(); }
+  function retourMois() { state.vue = 'mois'; const s = document.getElementById('cal16-vue'); if (s) s.value = 'mois'; render(); }
+
+  /* ---------- Impression ---------- */
+  function imprimer() {
+    const { start, end } = getBounds();
+    const events = getEventsForRange(start, end);
+    const filtres = getFiltresActifs();
+    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e){ return {}; } })();
+    const evsFiltres = events.filter(ev => filtres[ev.type]);
+    const titre = (state.vue === 'mois' ? MOIS[start.getMonth()]+' '+start.getFullYear()
+      : state.vue === 'semaine' ? 'Semaine du '+start.toLocaleDateString('fr-FR')+' au '+end.toLocaleDateString('fr-FR')
+      : state.vue === 'annee' ? 'Année '+start.getFullYear()
+      : start.toLocaleDateString('fr-FR'));
+    const w = ouvrirPopupSecure('','cal16_print','width=1100,height=820');
+    if (!w) { toast('Popup bloquée','error'); return; }
+    let body = '';
+    if (state.vue === 'mois') {
+      const firstDay = new Date(start);
+      const dowStart = (firstDay.getDay()+6)%7;
+      const gridStart = new Date(firstDay); gridStart.setDate(gridStart.getDate()-dowStart);
+      body = '<table class="mois"><tr>' + JOURS_COURT.map(j => '<th>'+j+'</th>').join('') + '</tr>';
+      for (let w2 = 0; w2 < 6; w2++) {
+        body += '<tr>';
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(gridStart); d.setDate(d.getDate()+w2*7+i);
+          const inMonth = d.getMonth() === start.getMonth();
+          const ferie = filtres.feries ? feriePourDate(d) : null;
+          const evs = evsFiltres.filter(ev => sameDay(ev.date, d));
+          body += '<td class="'+(inMonth?'':'other')+(ferie?' fer':'')+'">';
+          body += '<div class="dn">'+d.getDate()+'</div>';
+          if (ferie) body += '<div class="fer-lbl">'+escHtml(ferie.nom)+'</div>';
+          evs.slice(0,5).forEach(ev => { body += '<div class="ev" style="border-left:3px solid '+ev.color+'">'+escHtml(ev.label)+'</div>'; });
+          if (evs.length > 5) body += '<div class="more">+'+(evs.length-5)+' autres</div>';
+          body += '</td>';
+        }
+        body += '</tr>';
+      }
+      body += '</table>';
+    } else {
+      body = evsFiltres.sort((a,b) => a.date-b.date).map(ev =>
+        '<div class="ev-print" style="border-left:4px solid '+ev.color+'"><span>'+ev.date.toLocaleDateString('fr-FR')+'</span> '+ev.icon+' '+escHtml(ev.label)+'</div>'
+      ).join('') || '<p style="text-align:center;color:#888">Aucun événement</p>';
+    }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Calendrier — '+titre+'</title><style>'
+      + 'body{font-family:Arial,sans-serif;padding:22px;color:#111827} h1{margin:0 0 4px;color:#111827;font-size:1.3rem;font-weight:600} .meta{color:#6b7280;font-size:.82rem;margin-bottom:18px}'
+      + 'table.mois{width:100%;border-collapse:collapse;font-size:.76rem} table.mois th{background:#f9fafb;color:#374151;padding:7px 4px;text-align:center;font-weight:600;border-bottom:2px solid #d1d5db;border-right:1px solid #e5e7eb} table.mois th:last-child{border-right:none}'
+      + 'table.mois td{border:1px solid #e5e7eb;vertical-align:top;padding:5px;height:92px;width:14.28%} td.other{background:#fafafa;color:#d1d5db} td.fer{background:#fafaf9}'
+      + '.dn{font-weight:600;margin-bottom:2px;color:#374151;font-size:.82rem}'
+      + '.fer-lbl{font-size:.62rem;color:#b91c1c;background:#fee2e2;padding:1px 4px;border-radius:3px;margin-bottom:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}'
+      + '.ev{background:#f9fafb;padding:2px 5px;margin:2px 0;border-radius:3px;font-size:.68rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .more{font-size:.66rem;color:#9ca3af;font-style:italic;margin-top:2px}'
+      + '.ev-print{padding:7px 12px;margin:5px 0;background:#f9fafb;border-radius:4px;font-size:.86rem;color:#374151} .ev-print span{color:#6b7280;font-weight:600;margin-right:10px;min-width:85px;display:inline-block}'
+      + 'button{margin-bottom:10px;padding:7px 14px;background:#374151;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.85rem} button:hover{background:#1f2937} @media print{button{display:none}}'
+      + '</style></head><body>'
+      + '<div style="display:flex;justify-content:space-between;align-items:center">'
+      + '<div><h1>🗓️ Calendrier — '+titre+'</h1><div class="meta">'+escHtml(params.nom||'MCA Logistics')+' · généré le '+new Date().toLocaleString('fr-FR')+'</div></div>'
+      + '<button onclick="window.print()">🖨️ Imprimer</button></div>'
+      + body + '</body></html>');
+    w.document.close();
+    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Impression calendrier', titre);
+  }
+
+  /* ---------- Orchestration ---------- */
+  function render() {
+    setLabels();
+    setKPIMoisCourant();
+    if (state.vue === 'mois') renderMois();
+    else if (state.vue === 'semaine') renderSemaine();
+    else if (state.vue === 'jour') renderJour();
+    else renderAnnee();
+  }
+
+  window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer };
+
+  /* ---------- Hook navigation ---------- */
+  function hookNav() {
+    if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__s16) return;
+    const orig = window.naviguerVers;
+    const w = function(page) {
+      const r = orig.apply(this, arguments);
+      if (page === 'calendrier') setTimeout(render, 80);
+      return r;
+    };
+    w.__s16 = true;
+    // Preserver les marqueurs précédents
+    ['__s12_1','__s14','__s15'].forEach(m => { if (orig[m]) w[m] = true; });
+    window.naviguerVers = w;
+  }
+
+  function init() {
+    hookNav();
+    // Si déjà sur la page calendrier à l'init
+    setTimeout(() => {
+      const page = document.getElementById('page-calendrier');
+      if (page && page.classList.contains('active')) render();
+    }, 150);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 100);
+})();
+
+/* ============================================================================
+ * Sprint 17 — Module FOURNISSEURS (miroir Clients)
+ * - CRUD complet + historique via logChange
+ * - Auto-création fiche fournisseur depuis saisie charge (pattern S15 client)
+ * - Indexation palette Ctrl+K (S15)
+ * - Bandeau dashboard "Fournisseurs à payer"
+ * - Hook naviguerVers('fournisseurs')
+ * ========================================================================== */
+(function installS17(){
+  if (window.__s17Installed) return;
+  window.__s17Installed = true;
+
+  const LS_KEY = 'fournisseurs';
+
+  /* ---------- helpers storage ---------- */
+  function loadFourn() {
+    try { return loadSafe(LS_KEY, []); } catch(e) { return []; }
+  }
+  function saveFourn(arr) {
+    localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
+  }
+  const escHtml = window.escapeHtml;
+  function toEuros(n) {
+    try { return (typeof euros === 'function') ? euros(n) : (Number(n||0).toFixed(2) + ' €'); }
+    catch(e) { return Number(n||0).toFixed(2) + ' €'; }
+  }
+  function newId() {
+    return (typeof genId === 'function') ? genId() : 'F' + Date.now() + Math.random().toString(36).slice(2, 6);
+  }
+  function toast(msg, type) {
+    if (typeof afficherToast === 'function') afficherToast(msg, type);
+    else logMCA('[Fourn]', msg);
+  }
+  function audit(action, detail) {
+    if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit(action, detail);
+  }
+  function confirmAsync(msg, opts) {
+    if (typeof confirmDialog === 'function') return confirmDialog(msg, opts);
+    return Promise.resolve(true);
+  }
+
+  const CAT_LABELS = {
+    carburant:'⛽ Carburant', entretien:'🔧 Entretien', assurance:'🛡️ Assurance',
+    'loa-lld':'🚐 LOA / LLD', peage:'🛣️ Péage', telecom:'📡 Télécom',
+    banque:'🏦 Banque', fournitures:'📦 Fournitures', autre:'📝 Autre'
+  };
+
+  /* ---------- Toggle Pro / Particulier ---------- */
+  function toggleChampsFournisseurPro(edit) {
+    const radios = document.getElementsByName(edit ? 'edit-fo-type' : 'fo-type');
+    let type = 'pro';
+    for (const r of radios) { if (r.checked) { type = r.value; break; } }
+    const wrap = document.getElementById(edit ? 'edit-fo-champs-pro' : 'fo-champs-pro');
+    if (wrap) wrap.style.display = (type === 'particulier') ? 'none' : '';
+    // Si particulier, vider SIREN/TVA pour que validation ne les re-valide pas
+    if (type === 'particulier') {
+      const prefix = edit ? 'edit-fo-' : 'fo-';
+      const sirenEl = document.getElementById(prefix + 'siren');
+      const tvaEl = document.getElementById(prefix + 'tva-intra');
+      if (sirenEl) sirenEl.value = '';
+      if (tvaEl) tvaEl.value = '';
+    }
+  }
+  window.toggleChampsFournisseurPro = toggleChampsFournisseurPro;
+
+  /* ---------- calcul dépense totale + solde dû ---------- */
+  function getDepenseTotale(fournisseurId) {
+    // Agrège sur charges[], carburants[], entretiens[] qui peuvent référencer fournisseurId
+    let total = 0;
+    try {
+      const charges = loadSafe('charges', []);
+      total += charges.filter(c => c.fournisseurId === fournisseurId).reduce((s, c) => s + (parseFloat(c.ttc) || parseFloat(c.montant) || 0), 0);
+    } catch(e){}
+    try {
+      const carbs = loadSafe('carburants', []);
+      total += carbs.filter(c => c.fournisseurId === fournisseurId).reduce((s, c) => s + (parseFloat(c.total) || 0), 0);
+    } catch(e){}
+    try {
+      const entrs = loadSafe('entretiens', []);
+      total += entrs.filter(c => c.fournisseurId === fournisseurId).reduce((s, c) => s + (parseFloat(c.ttc) || parseFloat(c.cout) || 0), 0);
+    } catch(e){}
+    return total;
+  }
+  function getSoldeDu(fournisseurId) {
+    // À affiner avec futur module Compta — pour l'instant : somme dépenses non encore payées (via paiements sens=out)
+    try {
+      const paiements = loadSafe('paiements', []);
+      const payes = paiements.filter(p => p.sens === 'out' && p.fournisseurId === fournisseurId)
+        .reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
+      const total = getDepenseTotale(fournisseurId);
+      return Math.max(0, total - payes);
+    } catch(e) { return 0; }
+  }
+
+  /* ---------- détection doublons ---------- */
+  function detecterDoublonsFournisseur(edit) {
+    const pref = edit ? 'edit-fo-' : 'fo-';
+    const nom = (document.getElementById(pref + 'nom')?.value || '').trim().toLowerCase();
+    const siren = (document.getElementById(pref + 'siren')?.value || '').replace(/\s+/g, '');
+    const warnBox = document.getElementById(edit ? 'edit-fo-doublons-warning' : 'fo-doublons-warning');
+    if (!warnBox) return;
+    if (!nom && !siren) { warnBox.style.display = 'none'; warnBox.innerHTML = ''; return; }
+    const currId = edit ? (document.getElementById('edit-fo-id')?.value || '') : '';
+    const doublons = loadFourn().filter(f => f.id !== currId && (
+      (nom && (f.nom || '').toLowerCase() === nom) ||
+      (siren && (f.siren || '') === siren)
+    ));
+    if (doublons.length) {
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = '⚠️ <strong>Doublon potentiel :</strong> ' + doublons.map(d => escHtml(d.nom)).join(', ');
+    } else { warnBox.style.display = 'none'; warnBox.innerHTML = ''; }
+  }
+  window.detecterDoublonsFournisseur = detecterDoublonsFournisseur;
+
+  /* ---------- CRUD ---------- */
+  function ajouterFournisseur() {
+    const get = id => (document.getElementById(id)?.value || '').trim();
+    const nom = get('fo-nom');
+    if (!nom) { toast('⚠️ Nom obligatoire', 'error'); return; }
+    const type = (document.querySelector('input[name="fo-type"]:checked')?.value) || 'pro';
+    const siren = type === 'pro' ? get('fo-siren').replace(/\s+/g, '') : '';
+    if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { toast('⚠️ SIREN invalide (9 chiffres)', 'error'); return; }
+    const tvaIntra = type === 'pro' ? get('fo-tva-intra').replace(/\s+/g, '').toUpperCase() : '';
+    if (type === 'pro' && tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { toast('⚠️ TVA intracom invalide', 'error'); return; }
+    const ibanFo = get('fo-iban').replace(/\s+/g, '').toUpperCase();
+    if (ibanFo && typeof validerIBAN === 'function' && !validerIBAN(ibanFo)) {
+      toast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error'); return;
+    }
+    const arr = loadFourn();
+    if (arr.find(f => (f.nom || '').toLowerCase() === nom.toLowerCase())) {
+      toast('⚠️ Fournisseur déjà existant', 'error'); return;
+    }
+    const fourn = {
+      id: newId(),
+      nom,
+      type,
+      categorie: get('fo-categorie') || 'autre',
+      contact: get('fo-contact'),
+      tel: get('fo-tel'),
+      email: get('fo-email'),
+      emailFact: get('fo-email-fact'),
+      adresse: get('fo-adresse'),
+      cp: get('fo-cp'),
+      ville: get('fo-ville'),
+      siren,
+      tvaIntra,
+      delaiPaiementJours: parseInt(get('fo-delai-paiement'), 10) || 30,
+      modePaiement: get('fo-mode-paiement') || 'virement',
+      iban: ibanFo,
+      compteCompta: get('fo-compte-compta') || '401000',
+      notes: get('fo-notes'),
+      creeLe: new Date().toISOString()
+    };
+    arr.push(fourn);
+    saveFourn(arr);
+    // Reset form
+    ['fo-nom','fo-contact','fo-tel','fo-email','fo-email-fact','fo-adresse','fo-cp','fo-ville','fo-siren','fo-tva-intra','fo-iban','fo-notes']
+      .forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+    const d = document.getElementById('fo-delai-paiement'); if (d) d.value = '30';
+    const c = document.getElementById('fo-compte-compta'); if (c) c.value = '401000';
+    const cat = document.getElementById('fo-categorie'); if (cat) cat.value = '';
+    const mp = document.getElementById('fo-mode-paiement'); if (mp) mp.value = 'virement';
+    const proRadio = document.querySelector('input[name="fo-type"][value="pro"]'); if (proRadio) proRadio.checked = true;
+    toggleChampsFournisseurPro(false);
+    const warn = document.getElementById('fo-doublons-warning'); if (warn) { warn.style.display = 'none'; warn.innerHTML = ''; }
+    if (typeof closeModal === 'function') closeModal('modal-fournisseur');
+    afficherFournisseurs();
+    audit('Création fournisseur', nom + (type === 'particulier' ? ' (particulier)' : (siren ? ' · SIREN ' + siren : '')) + ' · ' + (CAT_LABELS[fourn.categorie] || fourn.categorie));
+    if (typeof window.logChange === 'function') {
+      window.logChange('fournisseur', fourn.id, 'creation', null, nom, '🏭 Fournisseur créé : ' + nom);
+    }
+    toast('✅ Fournisseur ajouté');
+    return fourn;
+  }
+  window.ajouterFournisseur = ajouterFournisseur;
+
+  function ouvrirEditFournisseur(id) {
+    const f = loadFourn().find(x => x.id === id);
+    if (!f) { toast('Fournisseur introuvable', 'error'); return; }
+    const set = (eid, val) => { const e = document.getElementById(eid); if (e) e.value = val == null ? '' : val; };
+    set('edit-fo-id', f.id);
+    const typeVal = f.type || 'pro';
+    const proRadio = document.querySelector('input[name="edit-fo-type"][value="pro"]');
+    const partRadio = document.querySelector('input[name="edit-fo-type"][value="particulier"]');
+    if (proRadio) proRadio.checked = (typeVal === 'pro');
+    if (partRadio) partRadio.checked = (typeVal === 'particulier');
+    set('edit-fo-nom', f.nom);
+    set('edit-fo-categorie', f.categorie || 'autre');
+    set('edit-fo-contact', f.contact);
+    set('edit-fo-tel', f.tel);
+    set('edit-fo-email', f.email);
+    set('edit-fo-email-fact', f.emailFact);
+    set('edit-fo-adresse', f.adresse);
+    set('edit-fo-cp', f.cp);
+    set('edit-fo-ville', f.ville);
+    set('edit-fo-siren', f.siren);
+    set('edit-fo-tva-intra', f.tvaIntra);
+    set('edit-fo-delai-paiement', f.delaiPaiementJours || 30);
+    set('edit-fo-mode-paiement', f.modePaiement || 'virement');
+    set('edit-fo-iban', f.iban);
+    set('edit-fo-compte-compta', f.compteCompta || '401000');
+    set('edit-fo-notes', f.notes);
+    toggleChampsFournisseurPro(true);
+    if (typeof openModal === 'function') openModal('modal-edit-fournisseur');
+  }
+  window.ouvrirEditFournisseur = ouvrirEditFournisseur;
+
+  function confirmerEditFournisseur() {
+    const get = id => (document.getElementById(id)?.value || '').trim();
+    const id = get('edit-fo-id');
+    const arr = loadFourn();
+    const idx = arr.findIndex(f => f.id === id);
+    if (idx < 0) { toast('Fournisseur introuvable', 'error'); return; }
+    const old = arr[idx];
+    const nom = get('edit-fo-nom');
+    if (!nom) { toast('⚠️ Nom obligatoire', 'error'); return; }
+    const type = (document.querySelector('input[name="edit-fo-type"]:checked')?.value) || 'pro';
+    const siren = type === 'pro' ? get('edit-fo-siren').replace(/\s+/g, '') : '';
+    if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { toast('⚠️ SIREN invalide', 'error'); return; }
+    const tvaIntra = type === 'pro' ? get('edit-fo-tva-intra').replace(/\s+/g, '').toUpperCase() : '';
+    if (type === 'pro' && tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { toast('⚠️ TVA intracom invalide', 'error'); return; }
+    const ibanEditFo = get('edit-fo-iban').replace(/\s+/g, '').toUpperCase();
+    if (ibanEditFo && typeof validerIBAN === 'function' && !validerIBAN(ibanEditFo)) {
+      toast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error'); return;
+    }
+    const updated = {
+      ...old,
+      nom,
+      type,
+      categorie: get('edit-fo-categorie') || 'autre',
+      contact: get('edit-fo-contact'),
+      tel: get('edit-fo-tel'),
+      email: get('edit-fo-email'),
+      emailFact: get('edit-fo-email-fact'),
+      adresse: get('edit-fo-adresse'),
+      cp: get('edit-fo-cp'),
+      ville: get('edit-fo-ville'),
+      siren, tvaIntra,
+      delaiPaiementJours: parseInt(get('edit-fo-delai-paiement'), 10) || 30,
+      modePaiement: get('edit-fo-mode-paiement') || 'virement',
+      iban: ibanEditFo,
+      compteCompta: get('edit-fo-compte-compta') || '401000',
+      notes: get('edit-fo-notes'),
+      modifieLe: new Date().toISOString()
+    };
+    // Historique diff champ par champ
+    if (typeof window.logChange === 'function') {
+      ['nom','type','categorie','contact','tel','email','adresse','delaiPaiementJours','modePaiement','siren','tvaIntra','iban','compteCompta'].forEach(k => {
+        if ((old[k] || '') !== (updated[k] || '')) {
+          window.logChange('fournisseur', id, k, old[k], updated[k], '🏭 ' + nom + ' — ' + k);
+        }
+      });
+    }
+    arr[idx] = updated;
+    saveFourn(arr);
+    if (typeof closeModal === 'function') closeModal('modal-edit-fournisseur');
+    afficherFournisseurs();
+    audit('Modification fournisseur', nom);
+    toast('✅ Fournisseur modifié');
+  }
+  window.confirmerEditFournisseur = confirmerEditFournisseur;
+
+  async function supprimerFournisseur(id) {
+    const f = loadFourn().find(x => x.id === id);
+    if (!f) return;
+    // Vérifier s'il y a des dépenses liées
+    const depense = getDepenseTotale(id);
+    let msg = 'Supprimer ' + f.nom + ' ?';
+    if (depense > 0) {
+      msg += '\n\n⚠️ ' + toEuros(depense) + ' de dépenses liées seront détachées (pas supprimées). Continuer ?';
+    }
+    const ok = await confirmAsync(msg, { titre:'Supprimer le fournisseur', icone:'🏭', btnLabel:'Supprimer' });
+    if (!ok) return;
+    // Détacher les refs (pas supprimer les dépenses — elles restent dans charges/carburants/entretiens)
+    ['charges','carburants','entretiens'].forEach(k => {
+      try {
+        const arr = loadSafe(k, []);
+        let changed = false;
+        arr.forEach(x => { if (x.fournisseurId === id) { delete x.fournisseurId; changed = true; } });
+        if (changed) localStorage.setItem(k, JSON.stringify(arr));
+      } catch(e){}
+    });
+    try {
+      const pai = loadSafe('paiements', []);
+      let changed = false;
+      pai.forEach(p => { if (p.fournisseurId === id) { delete p.fournisseurId; changed = true; } });
+      if (changed) localStorage.setItem('paiements', JSON.stringify(pai));
+    } catch(e){}
+    saveFourn(loadFourn().filter(x => x.id !== id));
+    afficherFournisseurs();
+    audit('Suppression fournisseur', f.nom);
+    if (typeof window.logChange === 'function') {
+      window.logChange('fournisseur', id, 'suppression', f.nom, null, '🗑️ Fournisseur supprimé : ' + f.nom);
+    }
+    toast('🗑️ Fournisseur supprimé');
+  }
+  window.supprimerFournisseur = supprimerFournisseur;
+
+  /* ---------- Affichage tableau ---------- */
+  function afficherFournisseurs() {
+    const tb = document.getElementById('tb-fournisseurs');
+    if (!tb) return;
+    const search = (document.getElementById('fourn-search')?.value || '').toLowerCase().trim();
+    const catFilter = document.getElementById('fourn-filter-categorie')?.value || '';
+    let arr = loadFourn();
+    if (catFilter) arr = arr.filter(f => f.categorie === catFilter);
+    if (search) {
+      arr = arr.filter(f => (
+        (f.nom || '').toLowerCase().includes(search) ||
+        (f.siren || '').includes(search) ||
+        (f.ville || '').toLowerCase().includes(search) ||
+        (f.contact || '').toLowerCase().includes(search) ||
+        (CAT_LABELS[f.categorie] || '').toLowerCase().includes(search)
+      ));
+    }
+    arr.sort((a,b) => (a.nom||'').localeCompare(b.nom||'','fr',{sensitivity:'base'}));
+    const countEl = document.getElementById('fourn-count');
+    if (countEl) countEl.textContent = arr.length;
+    if (!arr.length) {
+      tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun fournisseur ' + (search || catFilter ? 'ne correspond aux filtres' : 'enregistré') + '</td></tr>';
+      return;
+    }
+    tb.innerHTML = arr.map(f => {
+      const depense = getDepenseTotale(f.id);
+      const solde = getSoldeDu(f.id);
+      const soldeBadge = solde > 0
+        ? '<span style="color:#dc2626;font-weight:700">' + toEuros(solde) + '</span>'
+        : '<span style="color:#059669">Soldé</span>';
+      const actions = (typeof buildInlineActionsDropdown === 'function')
+        ? buildInlineActionsDropdown('Actions', [
+            { icon:'📚', label:'Historique', action:"ouvrirHistoriqueFournisseur('" + f.id + "')" },
+            { icon:'✏️', label:'Modifier', action:"ouvrirEditFournisseur('" + f.id + "')" },
+            { icon:'🗑️', label:'Supprimer', action:"supprimerFournisseur('" + f.id + "')", danger:true }
+          ])
+        : '<button class="btn-secondary" onclick="ouvrirEditFournisseur(\'' + f.id + '\')">Modifier</button>';
+      return '<tr>' +
+        '<td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueFournisseur(\'' + f.id + '\')" style="font-weight:700">' + escHtml(f.nom) + '</button>' +
+          (f.siren ? '<div style="font-size:.72rem;color:var(--text-muted)">SIREN ' + escHtml(f.siren) + '</div>' : '') + '</td>' +
+        '<td><span class="fourn-cat-badge fourn-cat-' + escHtml(f.categorie || 'autre') + '">' + escHtml(CAT_LABELS[f.categorie] || f.categorie || '—') + '</span></td>' +
+        '<td>' + escHtml(f.contact || '—') + (f.email ? '<div style="font-size:.72rem;color:var(--text-muted)">' + escHtml(f.email) + '</div>' : '') + '</td>' +
+        '<td>' + escHtml(f.tel || '—') + '</td>' +
+        '<td style="font-weight:600">' + toEuros(depense) + '</td>' +
+        '<td>' + soldeBadge + '</td>' +
+        '<td>' + (f.delaiPaiementJours || 30) + ' j</td>' +
+        '<td>' + actions + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+  window.afficherFournisseurs = afficherFournisseurs;
+
+  /* ---------- Historique fournisseur ---------- */
+  function ouvrirHistoriqueFournisseur(id) {
+    const f = loadFourn().find(x => x.id === id);
+    if (!f) return;
+    // Récupère toutes dépenses liées
+    const rows = [];
+    try {
+      const charges = loadSafe('charges', []);
+      charges.filter(c => c.fournisseurId === id).forEach(c => {
+        rows.push({ date: c.date, type: 'Charge', desc: c.description || c.categorie, montant: parseFloat(c.ttc) || parseFloat(c.montant) || 0 });
+      });
+    } catch(e){}
+    try {
+      const carbs = loadSafe('carburants', []);
+      carbs.filter(c => c.fournisseurId === id).forEach(c => {
+        rows.push({ date: c.date, type: '⛽ Carburant', desc: (c.litres || '?') + ' L — ' + (c.immat || c.vehicule || ''), montant: parseFloat(c.total) || 0 });
+      });
+    } catch(e){}
+    try {
+      const entrs = loadSafe('entretiens', []);
+      entrs.filter(c => c.fournisseurId === id).forEach(c => {
+        rows.push({ date: c.date, type: '🔧 Entretien', desc: (c.type || '') + ' — ' + (c.description || ''), montant: parseFloat(c.ttc) || parseFloat(c.cout) || 0 });
+      });
+    } catch(e){}
+    try {
+      const pai = loadSafe('paiements', []);
+      pai.filter(p => p.sens === 'out' && p.fournisseurId === id).forEach(p => {
+        rows.push({ date: p.date, type: '💸 Paiement émis', desc: (p.mode || '') + ' — ' + (p.reference || ''), montant: -Math.abs(parseFloat(p.montant) || 0) });
+      });
+    } catch(e){}
+    rows.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+    const total = getDepenseTotale(id);
+    const solde = getSoldeDu(id);
+    const paye = total - solde;
+    const lines = rows.length
+      ? '<table class="data-table" style="margin-top:10px"><thead><tr><th>Date</th><th>Type</th><th>Description</th><th style="text-align:right">Montant</th></tr></thead><tbody>' +
+        rows.map(r => '<tr><td>' + escHtml(r.date || '—') + '</td><td>' + escHtml(r.type) + '</td><td>' + escHtml(r.desc) + '</td><td style="text-align:right;font-weight:600;color:' + (r.montant < 0 ? '#059669' : 'var(--text-primary)') + '">' + toEuros(r.montant) + '</td></tr>').join('') +
+        '</tbody></table>'
+      : '<p style="color:var(--text-muted);text-align:center;padding:20px">Aucune dépense enregistrée pour ce fournisseur.</p>';
+    const html = '<div>' +
+      '<h3 style="margin:0 0 4px">🏭 ' + escHtml(f.nom) + '</h3>' +
+      '<div style="color:var(--text-muted);font-size:.88rem;margin-bottom:12px">' + escHtml(CAT_LABELS[f.categorie] || f.categorie || '') + (f.siren ? ' · SIREN ' + escHtml(f.siren) : '') + '</div>' +
+      '<div class="enc-stats-grid" style="margin-bottom:12px">' +
+        '<div class="kpi-card"><div class="kpi-label">Dépense totale</div><div class="kpi-value">' + toEuros(total) + '</div></div>' +
+        '<div class="kpi-card green"><div class="kpi-label">Payé</div><div class="kpi-value">' + toEuros(paye) + '</div></div>' +
+        '<div class="kpi-card ' + (solde > 0 ? 'red' : '') + '"><div class="kpi-label">Solde dû</div><div class="kpi-value">' + toEuros(solde) + '</div></div>' +
+        '<div class="kpi-card blue"><div class="kpi-label">Délai accordé</div><div class="kpi-value">' + (f.delaiPaiementJours || 30) + ' j</div></div>' +
+      '</div>' +
+      lines +
+    '</div>';
+    if (typeof window.modalInfo === 'function') window.modalInfo(html);
+    else alert('Dépenses : ' + toEuros(total) + '\nSolde dû : ' + toEuros(solde));
+  }
+  window.ouvrirHistoriqueFournisseur = ouvrirHistoriqueFournisseur;
+
+  /* ---------- Export CSV ---------- */
+  function exporterFournisseursCSV() {
+    const arr = loadFourn();
+    if (!arr.length) { toast('Aucun fournisseur à exporter'); return; }
+    const headers = ['Nom','Catégorie','Contact','Tél','Email','Email fact','Adresse','CP','Ville','SIREN','TVA intracom','Délai (j)','Mode paiement','IBAN','Compte compta','Dépense totale','Solde dû','Notes'];
+    const esc = (typeof window.csvCelluleSecurisee === 'function') ? (v) => window.csvCelluleSecurisee(v, ';') : (v) => { const s = String(v == null ? '' : v); const neutr = /^[=+\-@\t\r]/.test(s) ? "'" + s : s; return /[",\n;]/.test(neutr) ? '"' + neutr.replace(/"/g,'""') + '"' : neutr; };
+    const rows = arr.map(f => [
+      f.nom, CAT_LABELS[f.categorie] || f.categorie, f.contact, f.tel, f.email, f.emailFact,
+      f.adresse, f.cp, f.ville, f.siren, f.tvaIntra,
+      f.delaiPaiementJours, f.modePaiement, f.iban, f.compteCompta,
+      getDepenseTotale(f.id).toFixed(2), getSoldeDu(f.id).toFixed(2),
+      (f.notes || '').replace(/\n/g, ' ')
+    ].map(esc).join(';')).join('\n');
+    const csv = headers.join(';') + '\n' + rows;
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'fournisseurs_' + new Date().toLocalISODate() + '.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('📤 Export CSV téléchargé');
+  }
+  window.exporterFournisseursCSV = exporterFournisseursCSV;
+
+  /* ---------- Auto-création fournisseur (pattern S15 ↔ clients) ---------- */
+  function trouverOuCreerFournisseur(nom, categorieSuggeree) {
+    if (!nom || !nom.trim()) return null;
+    const arr = loadFourn();
+    const existing = arr.find(f => (f.nom || '').toLowerCase().trim() === nom.toLowerCase().trim());
+    if (existing) return existing;
+    const fourn = {
+      id: newId(),
+      nom: nom.trim(),
+      categorie: categorieSuggeree || 'autre',
+      contact: '', tel: '', email: '', emailFact: '',
+      adresse: '', cp: '', ville: '',
+      siren: '', tvaIntra: '',
+      delaiPaiementJours: 30,
+      modePaiement: 'virement',
+      iban: '',
+      compteCompta: '401000',
+      notes: '(Auto-créé depuis une saisie de dépense)',
+      creeLe: new Date().toISOString(),
+      autoCreated: true
+    };
+    arr.push(fourn);
+    saveFourn(arr);
+    audit('Création auto fournisseur', nom + ' (depuis saisie dépense)');
+    if (typeof window.logChange === 'function') {
+      window.logChange('fournisseur', fourn.id, 'creation-auto', null, nom, '🤖 Fournisseur auto-créé : ' + nom);
+    }
+    toast('🏭 Fournisseur "' + nom + '" auto-créé', 'info');
+    return fourn;
+  }
+  window.trouverOuCreerFournisseur = trouverOuCreerFournisseur;
+
+  /* ---------- Bandeau dashboard "Fournisseurs à payer" ---------- */
+  function getFournisseursAPayer() {
+    const arr = loadFourn();
+    return arr.map(f => ({ fourn: f, solde: getSoldeDu(f.id) })).filter(x => x.solde > 0);
+  }
+  function injecterBandeauFournisseurs() {
+    const pageDash = document.getElementById('page-dashboard');
+    if (!pageDash) return;
+    let banner = document.getElementById('s17-fourn-banner');
+    const dus = getFournisseursAPayer();
+    if (!dus.length) { if (banner) banner.remove(); return; }
+    const totalDu = dus.reduce((s, x) => s + x.solde, 0);
+    const html = '<div class="s17-banner">' +
+      '<div class="s17-banner-icon">🏭</div>' +
+      '<div class="s17-banner-body">' +
+        '<div class="s17-banner-title">' + dus.length + ' fournisseur' + (dus.length > 1 ? 's' : '') + ' à payer</div>' +
+        '<div class="s17-banner-sub">Solde dû total : <strong>' + toEuros(totalDu) + '</strong></div>' +
+      '</div>' +
+      '<button class="btn-secondary" onclick="naviguerVers(\'fournisseurs\')">Voir</button>' +
+    '</div>';
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 's17-fourn-banner';
+      // Inséré après les bandeaux S14/S15 s'ils existent
+      const s15b = document.getElementById('s15-echeances-banner');
+      const s14b = document.getElementById('s14-retards-banner');
+      const ref = s15b || s14b;
+      if (ref && ref.parentNode) ref.parentNode.insertBefore(banner, ref.nextSibling);
+      else pageDash.insertBefore(banner, pageDash.firstChild);
+    }
+    banner.innerHTML = html;
+  }
+
+  /* ---------- Hook palette Ctrl+K (S15) ---------- */
+  function hookPalette() {
+    // Si la palette S15 existe, on s'incruste dans son index
+    if (typeof window.buildSearchIndex !== 'function' || window.buildSearchIndex.__s17) return;
+    const orig = window.buildSearchIndex;
+    window.buildSearchIndex = function() {
+      const base = orig() || [];
+      const fs = loadFourn();
+      fs.forEach(f => {
+        base.push({
+          label: '🏭 ' + f.nom,
+          sub: (CAT_LABELS[f.categorie] || '') + (f.ville ? ' · ' + f.ville : ''),
+          search: f.nom + ' ' + (f.siren || '') + ' ' + (f.ville || '') + ' ' + (CAT_LABELS[f.categorie] || ''),
+          action: () => { naviguerVers('fournisseurs'); setTimeout(() => ouvrirEditFournisseur(f.id), 200); }
+        });
+      });
+      return base;
+    };
+    window.buildSearchIndex.__s17 = true;
+  }
+
+  /* ---------- Hook naviguerVers ---------- */
+  function hookNav() {
+    if (typeof window.naviguerVers !== 'function') { setTimeout(hookNav, 200); return; }
+    if (window.naviguerVers.__s17) return;
+    const orig = window.naviguerVers;
+    const wrapped = function(page) {
+      const ret = orig.apply(this, arguments);
+      if (page === 'fournisseurs') {
+        requestAnimationFrame(() => { requestAnimationFrame(() => { afficherFournisseurs(); }); });
+        const titleEl = document.getElementById('pageTitle');
+        if (titleEl) titleEl.textContent = '🏭 Carnet Fournisseurs';
+      }
+      if (page === 'dashboard') {
+        setTimeout(injecterBandeauFournisseurs, 150);
+      }
+      return ret;
+    };
+    wrapped.__s17 = true;
+    ['__s12_1','__s14','__s15','__s16'].forEach(m => { if (orig[m]) wrapped[m] = true; });
+    window.naviguerVers = wrapped;
+  }
+
+  /* ---------- Init ---------- */
+  function init() {
+    hookNav();
+    setTimeout(hookPalette, 300);
+    // Si déjà sur page-fournisseurs à l'init
+    setTimeout(() => {
+      const page = document.getElementById('page-fournisseurs');
+      if (page && page.classList.contains('active')) afficherFournisseurs();
+      // Bandeau dashboard si déjà affiché
+      const dash = document.getElementById('page-dashboard');
+      if (dash && dash.classList.contains('active')) injecterBandeauFournisseurs();
+    }, 200);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 100);
+})();
+
+/* ============================================================================
+ * Sprint 17.1 — Comptes comptables (411 clients · 401 fournisseurs)
+ * - Auto-incrément à chaque création (prefill DOM à l'ouverture modale)
+ * - Unicité croisée (pas 2 tiers différents avec même compte, même entre
+ *   clients et fournisseurs si malgré tout on veut l'éviter)
+ * - Règle métier FR : clients = racine 411, fournisseurs = racine 401
+ * - Monkey-patch de ajouterClient / confirmerEditClient / openModal
+ * ========================================================================== */
+(function installS171(){
+  if (window.__s171Installed) return;
+  window.__s171Installed = true;
+
+  const BASE_CLIENT = 411000;
+  const BASE_FOURN  = 401000;
+
+  function loadClients() {
+    try { return loadSafe('clients', []); } catch(e){ return []; }
+  }
+  function loadFourn() {
+    try { return loadSafe('fournisseurs', []); } catch(e){ return []; }
+  }
+  function toast(m, t) {
+    if (typeof afficherToast === 'function') afficherToast(m, t);
+    else logMCA('[S17.1]', m);
+  }
+
+  /* ---------- Helpers ---------- */
+  function getAllComptesUsed(excludeKind, excludeId) {
+    const set = new Map(); // compte -> { kind, nom, id }
+    if (excludeKind !== 'client') {
+      loadClients().forEach(c => {
+        if (c.compteCompta && c.id !== excludeId) set.set(String(c.compteCompta), { kind:'client', nom:c.nom, id:c.id });
+      });
+    } else {
+      loadClients().forEach(c => {
+        if (c.compteCompta && c.id !== excludeId) set.set(String(c.compteCompta), { kind:'client', nom:c.nom, id:c.id });
+      });
+    }
+    if (excludeKind !== 'fournisseur') {
+      loadFourn().forEach(f => {
+        if (f.compteCompta && f.id !== excludeId) set.set(String(f.compteCompta), { kind:'fournisseur', nom:f.nom, id:f.id });
+      });
+    } else {
+      loadFourn().forEach(f => {
+        if (f.compteCompta && f.id !== excludeId) set.set(String(f.compteCompta), { kind:'fournisseur', nom:f.nom, id:f.id });
+      });
+    }
+    return set;
+  }
+  // Compte déjà utilisé par un tiers DIFFÉRENT (autre id) → bloqué
+  function isCompteDisponible(compte, currentId) {
+    if (!compte) return false;
+    const set = getAllComptesUsed(null, currentId);
+    return !set.has(String(compte));
+  }
+  function getConflitCompte(compte, currentId) {
+    const set = getAllComptesUsed(null, currentId);
+    return set.get(String(compte)) || null;
+  }
+  // Calcule prochain compte libre pour un kind (client ou fournisseur)
+  function getNextCompteCompta(kind) {
+    const base = (kind === 'fournisseur') ? BASE_FOURN : BASE_CLIENT;
+    const used = new Set();
+    loadClients().forEach(c => { if (c.compteCompta) used.add(String(c.compteCompta)); });
+    loadFourn().forEach(f => { if (f.compteCompta) used.add(String(f.compteCompta)); });
+    // Cherche le premier compte libre à partir de base (incrément)
+    let n = base;
+    while (used.has(String(n))) n++;
+    return String(n);
+  }
+  window.getNextCompteCompta = getNextCompteCompta;
+  window.isCompteDisponible = isCompteDisponible;
+
+  /* ---------- Prefill à l'ouverture des modales de création ---------- */
+  function prefillCompteFor(kind) {
+    const fieldId = (kind === 'fournisseur') ? 'fo-compte-compta' : 'cl-compte-compta';
+    const el = document.getElementById(fieldId);
+    if (!el) return;
+    // Ne remplit que si vide (respect de ce que tape l'utilisateur)
+    if (!el.value || !el.value.trim()) el.value = getNextCompteCompta(kind);
+  }
+
+  function hookOpenModal() {
+    if (typeof window.openModal !== 'function') { setTimeout(hookOpenModal, 200); return; }
+    if (window.openModal.__s171) return;
+    const orig = window.openModal;
+    const wrapped = function(modalId) {
+      const ret = orig.apply(this, arguments);
+      if (modalId === 'modal-client') setTimeout(() => prefillCompteFor('client'), 40);
+      else if (modalId === 'modal-fournisseur') setTimeout(() => prefillCompteFor('fournisseur'), 40);
+      return ret;
+    };
+    wrapped.__s171 = true;
+    // Préserver les marqueurs des précédents sprints
+    Object.keys(orig).forEach(k => { if (k.startsWith('__s')) wrapped[k] = orig[k]; });
+    window.openModal = wrapped;
+  }
+
+  /* ---------- Validation live (feedback visuel) ---------- */
+  function wireLiveValidation() {
+    const wire = (id, kind, idField) => {
+      const el = document.getElementById(id);
+      if (!el || el.__s171Wired) return;
+      el.__s171Wired = true;
+      el.addEventListener('input', () => {
+        const v = el.value.trim();
+        const curId = idField ? (document.getElementById(idField)?.value || null) : null;
+        el.style.borderColor = '';
+        el.title = '';
+        if (!v) return;
+        if (!/^\d{4,8}$/.test(v)) {
+          el.style.borderColor = '#dc2626';
+          el.title = 'Format attendu : 4 à 8 chiffres';
+          return;
+        }
+        const conflit = getConflitCompte(v, curId);
+        if (conflit) {
+          el.style.borderColor = '#dc2626';
+          el.title = '⚠️ Compte déjà utilisé par ' + (conflit.kind === 'client' ? 'le client ' : 'le fournisseur ') + conflit.nom;
+        } else {
+          el.style.borderColor = '#059669';
+          el.title = '✅ Compte disponible';
+        }
+      });
+    };
+    wire('cl-compte-compta', 'client', null);
+    wire('edit-cl-compte-compta', 'client', 'edit-cl-id');
+    wire('fo-compte-compta', 'fournisseur', null);
+    wire('edit-fo-compte-compta', 'fournisseur', 'edit-fo-id');
+  }
+
+  /* ---------- Validation bloquante à la soumission ---------- */
+  function validerCompteOrToast(value, currentId) {
+    const v = (value || '').trim();
+    if (!v) { toast('⚠️ N° compte comptable obligatoire', 'error'); return false; }
+    if (!/^\d{4,8}$/.test(v)) { toast('⚠️ Compte comptable : 4 à 8 chiffres attendus', 'error'); return false; }
+    const conflit = getConflitCompte(v, currentId);
+    if (conflit) {
+      toast('⚠️ Compte ' + v + ' déjà utilisé par ' + (conflit.kind === 'client' ? 'client ' : 'fournisseur ') + conflit.nom, 'error');
+      return false;
+    }
+    return true;
+  }
+
+  /* ---------- Monkey-patch ajouterClient ---------- */
+  function hookAjouterClient() {
+    if (typeof window.ajouterClient !== 'function') { setTimeout(hookAjouterClient, 200); return; }
+    if (window.ajouterClient.__s171) return;
+    const orig = window.ajouterClient;
+    const wrapped = function() {
+      // Pré-valide compte
+      const compte = (document.getElementById('cl-compte-compta')?.value || '').trim();
+      if (!validerCompteOrToast(compte, null)) return;
+      // Capture extras avant sauvegarde
+      const iban = (document.getElementById('cl-iban')?.value || '').replace(/\s+/g, '').toUpperCase();
+      // BUG-009 : validation mod-97 IBAN (non bloquant si vide)
+      if (iban && typeof validerIBAN === 'function' && !validerIBAN(iban)) {
+        if (typeof afficherToast === 'function') afficherToast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error');
+        return;
+      }
+      const modePaiement = document.getElementById('cl-mode-paiement')?.value || 'virement';
+      const nom = (document.getElementById('cl-nom')?.value || '').trim();
+      const beforeCount = loadClients().length;
+      // Appel original (qui fait le vrai enregistrement)
+      const ret = orig.apply(this, arguments);
+      // Si création réussie (count a augmenté), enrichir le dernier créé
+      const arr = loadClients();
+      if (arr.length > beforeCount) {
+        const last = arr.filter(c => (c.nom || '').toLowerCase() === nom.toLowerCase())
+          .sort((a,b)=> new Date(b.creeLe||0) - new Date(a.creeLe||0))[0];
+        if (last) {
+          last.iban = iban;
+          last.modePaiement = modePaiement;
+          last.compteCompta = compte;
+          localStorage.setItem('clients', JSON.stringify(arr));
+          if (typeof window.logChange === 'function') {
+            window.logChange('client', last.id, 'creation', null, nom, '🧑‍💼 Client créé : ' + nom + ' · cpte ' + compte);
+          }
+        }
+      }
+      // Reset des champs ajoutés S17.1
+      const ib = document.getElementById('cl-iban'); if (ib) ib.value = '';
+      const mp = document.getElementById('cl-mode-paiement'); if (mp) mp.value = 'virement';
+      const cc = document.getElementById('cl-compte-compta'); if (cc) cc.value = '';
+      return ret;
+    };
+    wrapped.__s171 = true;
+    window.ajouterClient = wrapped;
+  }
+
+  /* ---------- Monkey-patch confirmerEditClient ---------- */
+  function hookConfirmerEditClient() {
+    if (typeof window.confirmerEditClient !== 'function') { setTimeout(hookConfirmerEditClient, 200); return; }
+    if (window.confirmerEditClient.__s171) return;
+    const orig = window.confirmerEditClient;
+    const wrapped = function() {
+      const id = document.getElementById('edit-cl-id')?.value || null;
+      const compte = (document.getElementById('edit-cl-compte-compta')?.value || '').trim();
+      if (!validerCompteOrToast(compte, id)) return;
+      const iban = (document.getElementById('edit-cl-iban')?.value || '').replace(/\s+/g, '').toUpperCase();
+      if (iban && typeof validerIBAN === 'function' && !validerIBAN(iban)) {
+        if (typeof afficherToast === 'function') afficherToast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error');
+        return;
+      }
+      const modePaiement = document.getElementById('edit-cl-mode-paiement')?.value || 'virement';
+      const ret = orig.apply(this, arguments);
+      // Update extras sur le client édité
+      const arr = loadClients();
+      const idx = arr.findIndex(c => c.id === id);
+      if (idx > -1) {
+        const oldCompte = arr[idx].compteCompta;
+        const oldIban = arr[idx].iban;
+        const oldMode = arr[idx].modePaiement;
+        arr[idx].iban = iban;
+        arr[idx].modePaiement = modePaiement;
+        arr[idx].compteCompta = compte;
+        localStorage.setItem('clients', JSON.stringify(arr));
+        if (typeof window.logChange === 'function') {
+          if (oldCompte !== compte) window.logChange('client', id, 'compteCompta', oldCompte, compte, '🧑‍💼 ' + arr[idx].nom + ' — compte compta');
+          if (oldIban !== iban) window.logChange('client', id, 'iban', oldIban, iban, '🧑‍💼 ' + arr[idx].nom + ' — IBAN');
+          if (oldMode !== modePaiement) window.logChange('client', id, 'modePaiement', oldMode, modePaiement, '🧑‍💼 ' + arr[idx].nom + ' — mode paiement');
+        }
+      }
+      return ret;
+    };
+    wrapped.__s171 = true;
+    window.confirmerEditClient = wrapped;
+  }
+
+  /* ---------- Injection extras au chargement (pré-remplir édition client) ---------- */
+  function hookOuvrirEditClient() {
+    if (typeof window.ouvrirEditClient !== 'function') { setTimeout(hookOuvrirEditClient, 200); return; }
+    if (window.ouvrirEditClient.__s171) return;
+    const orig = window.ouvrirEditClient;
+    const wrapped = function(id) {
+      const ret = orig.apply(this, arguments);
+      setTimeout(() => {
+        const c = loadClients().find(x => x.id === id);
+        if (!c) return;
+        const ib = document.getElementById('edit-cl-iban'); if (ib) ib.value = c.iban || '';
+        const mp = document.getElementById('edit-cl-mode-paiement'); if (mp) mp.value = c.modePaiement || 'virement';
+        const cc = document.getElementById('edit-cl-compte-compta');
+        if (cc) cc.value = c.compteCompta || getNextCompteCompta('client');
+      }, 60);
+      return ret;
+    };
+    wrapped.__s171 = true;
+    window.ouvrirEditClient = wrapped;
+  }
+
+  /* ---------- Patch ajouter/confirm Fournisseurs pour unicité ---------- */
+  function hookFournisseursUnique() {
+    if (typeof window.ajouterFournisseur !== 'function') { setTimeout(hookFournisseursUnique, 200); return; }
+    if (window.ajouterFournisseur.__s171) return;
+
+    const origAdd = window.ajouterFournisseur;
+    const wrappedAdd = function() {
+      const compte = (document.getElementById('fo-compte-compta')?.value || '').trim();
+      if (!validerCompteOrToast(compte, null)) return;
+      return origAdd.apply(this, arguments);
+    };
+    wrappedAdd.__s171 = true;
+    window.ajouterFournisseur = wrappedAdd;
+
+    const origEdit = window.confirmerEditFournisseur;
+    const wrappedEdit = function() {
+      const id = document.getElementById('edit-fo-id')?.value || null;
+      const compte = (document.getElementById('edit-fo-compte-compta')?.value || '').trim();
+      if (!validerCompteOrToast(compte, id)) return;
+      return origEdit.apply(this, arguments);
+    };
+    wrappedEdit.__s171 = true;
+    window.confirmerEditFournisseur = wrappedEdit;
+  }
+
+  /* ---------- Init ---------- */
+  function init() {
+    hookOpenModal();
+    hookAjouterClient();
+    hookConfirmerEditClient();
+    hookOuvrirEditClient();
+    hookFournisseursUnique();
+    setTimeout(wireLiveValidation, 400);
+    // Si des clients existants n'ont pas encore de compteCompta (migration silencieuse), les numéroter
+    try {
+      const arr = loadClients();
+      let changed = false;
+      const used = new Set();
+      arr.forEach(c => { if (c.compteCompta) used.add(String(c.compteCompta)); });
+      let next = BASE_CLIENT;
+      arr.forEach(c => {
+        if (!c.compteCompta) {
+          while (used.has(String(next))) next++;
+          c.compteCompta = String(next);
+          used.add(String(next));
+          next++;
+          changed = true;
+        }
+      });
+      if (changed) localStorage.setItem('clients', JSON.stringify(arr));
+    } catch(e){}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 150);
+})();
+
+/* ============================================================
+   SPRINT 17.2 — Mirror parity Clients ⇄ Fournisseurs
+   - Champ "secteur" persisté sur clients
+   - Table clients 8 colonnes (mirror Fournisseurs)
+   - Recherche + filtre secteur
+   - exporterClientsCSV + exporterHistoriqueFournisseursCSV
+   ============================================================ */
+(function installS172(){
+  if (window.__s172Installed) return;
+  window.__s172Installed = true;
+
+  const SECTEUR_LABELS = {
+    transport: '🚚 Transport / logistique',
+    industrie: '🏭 Industrie / usine',
+    btp: '🏗️ BTP / chantier',
+    commerce: '🏪 Commerce / retail',
+    ecommerce: '🛒 E-commerce',
+    agro: '🌾 Agro-alimentaire',
+    sante: '⚕️ Santé / pharma',
+    public: '🏛️ Public / collectivité',
+    evenement: '🎪 Événementiel',
+    particulier: '🙋 Particulier',
+    autre: '📝 Autre'
+  };
+
+  function loadClients() { try { return loadSafe('clients', []); } catch(e){ return []; } }
+  const esc = window.escapeHtml;
+  function fmtEuro(n){ return (typeof window.euros === 'function') ? window.euros(n) : ((parseFloat(n)||0).toFixed(2) + ' €'); }
+
+  /* ---------- Persist secteur à la création ---------- */
+  function hookAjouterClientSecteur() {
+    if (typeof window.ajouterClient !== 'function') { setTimeout(hookAjouterClientSecteur, 200); return; }
+    if (window.ajouterClient.__s172) return;
+    const orig = window.ajouterClient;
+    const wrapped = function() {
+      const secteur = document.getElementById('cl-secteur')?.value || '';
+      const nom = (document.getElementById('cl-nom')?.value || '').trim();
+      const beforeCount = loadClients().length;
+      const ret = orig.apply(this, arguments);
+      const arr = loadClients();
+      if (arr.length > beforeCount) {
+        const last = arr.filter(function(c){ return (c.nom||'').toLowerCase() === nom.toLowerCase(); })
+          .sort(function(a,b){ return new Date(b.creeLe||0) - new Date(a.creeLe||0); })[0];
+        if (last) {
+          last.secteur = secteur;
+          localStorage.setItem('clients', JSON.stringify(arr));
+        }
+      }
+      return ret;
+    };
+    wrapped.__s172 = true;
+    window.ajouterClient = wrapped;
+  }
+
+  /* ---------- Persist secteur à l'édition ---------- */
+  function hookConfirmerEditClientSecteur() {
+    if (typeof window.confirmerEditClient !== 'function') { setTimeout(hookConfirmerEditClientSecteur, 200); return; }
+    if (window.confirmerEditClient.__s172) return;
+    const orig = window.confirmerEditClient;
+    const wrapped = function() {
+      const id = document.getElementById('edit-cl-id')?.value || '';
+      const secteurNew = document.getElementById('edit-cl-secteur')?.value || '';
+      const before = loadClients().find(function(c){ return c.id === id; });
+      const secteurOld = before ? (before.secteur || '') : '';
+      const ret = orig.apply(this, arguments);
+      setTimeout(function(){
+        const arr = loadClients();
+        const c = arr.find(function(x){ return x.id === id; });
+        if (!c) return;
+        c.secteur = secteurNew;
+        localStorage.setItem('clients', JSON.stringify(arr));
+        if (secteurOld !== secteurNew && typeof window.logChange === 'function') {
+          try { window.logChange('clients', id, 'secteur', secteurOld, secteurNew, 'Secteur'); } catch(e){}
+        }
+      }, 60);
+      return ret;
+    };
+    wrapped.__s172 = true;
+    window.confirmerEditClient = wrapped;
+  }
+
+  /* ---------- Prefill edit-cl-secteur ---------- */
+  function hookOuvrirEditClientSecteur() {
+    if (typeof window.ouvrirEditClient !== 'function') { setTimeout(hookOuvrirEditClientSecteur, 200); return; }
+    if (window.ouvrirEditClient.__s172) return;
+    const orig = window.ouvrirEditClient;
+    const wrapped = function(id) {
+      const ret = orig.apply(this, arguments);
+      setTimeout(function(){
+        const c = loadClients().find(function(x){ return x.id === id; });
+        if (!c) return;
+        const sel = document.getElementById('edit-cl-secteur');
+        if (sel) sel.value = c.secteur || '';
+      }, 80);
+      return ret;
+    };
+    wrapped.__s172 = true;
+    window.ouvrirEditClient = wrapped;
+  }
+
+  /* ---------- Export Historique Fournisseurs (mirror long) ---------- */
+  window.exporterHistoriqueFournisseursCSV = function() {
+    let fourns = [];
+    try { fourns = loadSafe('fournisseurs', []); } catch(e){}
+    const charges = (function(){ try { return loadSafe('charges', []); } catch(e){ return []; } })();
+    const carburants = (function(){ try { return loadSafe('carburants', []); } catch(e){ return []; } })();
+    const entretiens = (function(){ try { return loadSafe('entretiens', []); } catch(e){ return []; } })();
+    const paiements = (function(){ try { return loadSafe('paiements', []); } catch(e){ return []; } })();
+
+    const rows = fourns.map(function(f){
+      const ch = charges.filter(function(x){ return x.fournisseurId === f.id; });
+      const ca = carburants.filter(function(x){ return x.fournisseurId === f.id; });
+      const en = entretiens.filter(function(x){ return x.fournisseurId === f.id; });
+      const pa = paiements.filter(function(p){ return p.sens === 'out' && p.fournisseurId === f.id; });
+      const sum = function(arr, key){ return arr.reduce(function(s,x){ return s + (parseFloat(x[key])||0); }, 0); };
+      const depenseTotale = sum(ch,'montant') + sum(ca,'montant') + sum(en,'cout');
+      const paye = sum(pa,'montant');
+      return {
+        nom: f.nom || '',
+        categorie: f.categorie || '',
+        type: f.type || 'pro',
+        siren: f.siren || '',
+        tvaIntra: f.tvaIntra || '',
+        contact: f.contact || '',
+        tel: f.tel || '',
+        email: f.email || '',
+        emailFact: f.emailFact || '',
+        adresse: f.adresse || '',
+        cp: f.cp || '',
+        ville: f.ville || '',
+        delaiPay: f.delaiPaiementJours != null ? f.delaiPaiementJours : 30,
+        modePaiement: f.modePaiement || 'virement',
+        iban: f.iban || '',
+        compteCompta: f.compteCompta || '',
+        nbCharges: ch.length,
+        nbCarburants: ca.length,
+        nbEntretiens: en.length,
+        depenseTotale: depenseTotale,
+        nbPaiements: pa.length,
+        totalPaye: paye,
+        soldeDu: Math.max(0, depenseTotale - paye)
+      };
+    });
+    if (typeof window.exporterCSV === 'function') {
+      const r2 = (typeof window.round2 === 'function') ? window.round2 : function(n){ return Math.round((n||0)*100)/100; };
+      window.exporterCSV(rows, [
+        { label:'Fournisseur', get:function(r){ return r.nom; } },
+        { label:'Catégorie', get:function(r){ return r.categorie; } },
+        { label:'Type', get:function(r){ return r.type; } },
+        { label:'SIREN', get:function(r){ return r.siren; } },
+        { label:'TVA Intracom', get:function(r){ return r.tvaIntra; } },
+        { label:'Contact', get:function(r){ return r.contact; } },
+        { label:'Téléphone', get:function(r){ return r.tel; } },
+        { label:'Email', get:function(r){ return r.email; } },
+        { label:'Email facturation', get:function(r){ return r.emailFact; } },
+        { label:'Adresse', get:function(r){ return r.adresse; } },
+        { label:'Code postal', get:function(r){ return r.cp; } },
+        { label:'Ville', get:function(r){ return r.ville; } },
+        { label:'Délai paiement (j)', get:function(r){ return r.delaiPay; } },
+        { label:'Mode paiement', get:function(r){ return r.modePaiement; } },
+        { label:'IBAN', get:function(r){ return r.iban; } },
+        { label:'Compte compta', get:function(r){ return r.compteCompta; } },
+        { label:'Nb charges', get:function(r){ return r.nbCharges; } },
+        { label:'Nb carburants', get:function(r){ return r.nbCarburants; } },
+        { label:'Nb entretiens', get:function(r){ return r.nbEntretiens; } },
+        { label:'Dépense totale', get:function(r){ return r2(r.depenseTotale); } },
+        { label:'Nb paiements', get:function(r){ return r.nbPaiements; } },
+        { label:'Total payé', get:function(r){ return r2(r.totalPaye); } },
+        { label:'Solde dû', get:function(r){ return r2(r.soldeDu); } }
+      ], 'fournisseurs_historique_' + new Date().toLocalISODate() + '.csv');
+      if (typeof window.afficherToast === 'function') window.afficherToast('📚 Export historique Fournisseurs prêt','success');
+    }
+  };
+
+  /* ---------- Init ---------- */
+  function init() {
+    hookAjouterClientSecteur();
+    hookConfirmerEditClientSecteur();
+    hookOuvrirEditClientSecteur();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 200);
+})();
+
+/* ============================================================
+   SPRINT 18 — Tri universel par clic sur les <th>
+   - Remplace tous les dropdowns "Trier par ..."
+   - Détecte auto nombre/€/date/texte
+   - Persiste le tri en mémoire par table
+   - Re-applique le tri après chaque re-render (MutationObserver)
+   ============================================================ */
+(function installS18SortableHeaders(){
+  if (window.__s18SortInstalled) return;
+  window.__s18SortInstalled = true;
+
+  const state = new Map();
+  const EXCLUDE_LABELS = new Set(['actions','action','', 'menu', '…']);
+
+  function cellText(tr, idx) {
+    const td = tr.children[idx];
+    if (!td) return '';
+    return (td.textContent || '').replace(/\s+/g, ' ').trim();
+  }
+
+  function parseDateMaybe(s) {
+    let m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (m) return new Date(+m[3], +m[2] - 1, +m[1]).getTime();
+    m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (m) return new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+    return null;
+  }
+
+  function parseNumMaybe(s) {
+    if (!s) return null;
+    const cleaned = s.replace(/[€$£%\s\u202f\u00a0]/g, '').replace(/\.(?=\d{3}(\D|$))/g, '').replace(',', '.');
+    if (!/^-?\d+(\.\d+)?$/.test(cleaned)) return null;
+    return parseFloat(cleaned);
+  }
+
+  function compareValues(a, b) {
+    const da = parseDateMaybe(a), db = parseDateMaybe(b);
+    if (da !== null && db !== null) return da - db;
+    const na = parseNumMaybe(a), nb = parseNumMaybe(b);
+    if (na !== null && nb !== null) return na - nb;
+    return a.localeCompare(b, 'fr', { sensitivity: 'base', numeric: true });
+  }
+
+  function sortTable(table, colIdx, dir) {
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    const allRows = Array.from(tbody.children);
+    const dataRows = allRows.filter(tr => tr.tagName === 'TR' && !tr.querySelector('.empty-row') && !tr.classList.contains('pagination-row'));
+    if (dataRows.length < 2) return;
+    const paginationRows = allRows.filter(tr => tr.tagName === 'TR' && tr.classList.contains('pagination-row'));
+    const factor = (dir === 'desc') ? -1 : 1;
+    dataRows.sort(function(a, b){
+      return compareValues(cellText(a, colIdx), cellText(b, colIdx)) * factor;
+    });
+    tbody.__s18Sorting = true;
+    dataRows.forEach(r => tbody.appendChild(r));
+    paginationRows.forEach(r => tbody.appendChild(r));
+    tbody.__s18Sorting = false;
+  }
+
+  function updateIndicators(table, colIdx, dir) {
+    const ths = table.querySelectorAll('thead th');
+    ths.forEach(t => t.classList.remove('sort-asc','sort-desc'));
+    if (colIdx != null && dir) {
+      const th = ths[colIdx];
+      if (th) th.classList.add('sort-' + dir);
+    }
+  }
+
+  function onThClick(table, ths, idx) {
+    const cur = state.get(table) || {};
+    let dir;
+    if (cur.colIdx !== idx) dir = 'asc';
+    else if (cur.dir === 'asc') dir = 'desc';
+    else if (cur.dir === 'desc') dir = null;
+    else dir = 'asc';
+
+    if (dir == null) {
+      state.delete(table);
+      updateIndicators(table, null, null);
+    } else {
+      state.set(table, { colIdx: idx, dir: dir });
+      updateIndicators(table, idx, dir);
+      sortTable(table, idx, dir);
+    }
+  }
+
+  function makeSortable(table) {
+    if (table.__s18Sortable) return;
+    const ths = table.querySelectorAll('thead th');
+    if (!ths.length) return;
+    table.__s18Sortable = true;
+    ths.forEach(function(th, idx){
+      const label = (th.textContent || '').trim().toLowerCase();
+      if (EXCLUDE_LABELS.has(label)) return;
+      th.classList.add('th-sortable');
+      th.setAttribute('title', 'Trier par ' + (th.textContent || '').trim());
+      th.addEventListener('click', function(){ onThClick(table, ths, idx); });
+    });
+  }
+
+  const reapplyObs = new MutationObserver(function(muts){
+    const touchedTables = new Set();
+    muts.forEach(function(m){
+      if (m.type !== 'childList') return;
+      const target = m.target;
+      if (!target || target.__s18Sorting) return;
+      const table = (target.closest && target.closest('table.data-table')) || null;
+      if (table) touchedTables.add(table);
+    });
+    touchedTables.forEach(function(table){
+      const cur = state.get(table);
+      if (cur) {
+        updateIndicators(table, cur.colIdx, cur.dir);
+        sortTable(table, cur.colIdx, cur.dir);
+      }
+    });
+  });
+
+  function scan() {
+    document.querySelectorAll('table.data-table').forEach(function(table){
+      makeSortable(table);
+      const tbody = table.querySelector('tbody');
+      if (tbody && !tbody.__s18Observed) {
+        tbody.__s18Observed = true;
+        reapplyObs.observe(tbody, { childList: true });
+      }
+    });
+  }
+
+  function init() {
+    scan();
+    // Rescan périodique : certaines tables sont créées dynamiquement
+    setInterval(scan, 2500);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 250);
+})();
+
+/* ============================================================
+   SPRINT 19 — Centre d'alertes unifié (Alertes ⊕ Incidents)
+   - Agrège : alertes_admin (système), incidents, dérivées calculées
+   - Timeline chronologique unique avec filtres source/gravité/statut
+   - Auto-clôture quand la cause disparaît
+   - Refresh auto toutes les 60s
+   ============================================================ */
+(function installS19Centre(){
+  if (window.__s19Installed) return;
+  window.__s19Installed = true;
+
+  const loadJSON = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const saveJSON = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const fmtEuro = (n) => (typeof window.euros === 'function') ? window.euros(n) : ((parseFloat(n)||0).toFixed(2) + ' €');
+  const esc = window.escapeHtml;
+  const daysBetween = (d1, d2) => Math.floor((d2 - d1) / 86400000);
+
+  /* ---------- Collectors : retourne un tableau unifié d'alertes ---------- */
+  function collectSysteme() {
+    const arr = loadJSON('alertes_admin');
+    return arr.map(a => ({
+      id: 'sys_' + a.id,
+      rawId: a.id,
+      source: 'systeme',
+      sourceLabel: 'Système',
+      sourceIcon: '🤖',
+      type: a.type || 'autre',
+      title: a.message || a.type || 'Alerte',
+      sub: a.salNom || a.client || '',
+      gravite: graviteFromType(a.type),
+      statut: a.traitee ? 'traite' : 'ouvert',
+      creeLe: a.creeLe || new Date().toISOString(),
+      meta: a.meta || {},
+      actions: [
+        ...(a.traitee ? [] : [{ icon:'✅', label:'Marquer traité', handler:"window.s19MarquerTraitee('" + a.id + "')" }]),
+        ...(a.traitee ? [{ icon:'↺', label:'Rouvrir', handler:"window.s19Rouvrir('" + a.id + "')" }] : []),
+        { icon:'🗑️', label:'Supprimer', handler:"window.s19Supprimer('" + a.id + "')", danger:true }
+      ]
+    }));
+  }
+
+  function graviteFromType(type) {
+    if (!type) return 'moyen';
+    if (/_expire$|expire$/.test(type)) return 'critique';
+    if (/_proche$|proche$/.test(type)) return 'haute';
+    if (/prix_manquant/.test(type)) return 'haute';
+    return 'moyen';
+  }
+
+  function collectIncidents() {
+    const arr = loadJSON('incidents');
+    return arr.map(i => ({
+      id: 'inc_' + i.id,
+      rawId: i.id,
+      source: 'incident',
+      sourceLabel: 'Incident',
+      sourceIcon: '🚨',
+      type: 'incident_' + (i.gravite || 'moyen'),
+      title: 'Incident' + (i.client ? ' · ' + i.client : ''),
+      sub: (i.description || '').slice(0, 140) + ((i.description||'').length > 140 ? '…' : ''),
+      gravite: i.gravite === 'grave' ? 'critique' : (i.gravite === 'faible' ? 'basse' : 'moyen'),
+      statut: i.statut === 'traite' ? 'traite' : (i.statut === 'encours' ? 'encours' : 'ouvert'),
+      creeLe: i.creeLe || i.date || new Date().toISOString(),
+      meta: { incidentId: i.id, salNom: i.salNom, chaufNom: i.chaufNom, client: i.client },
+      actions: [
+        { icon:'🟡', label:'En cours', handler:"window.s19IncidentStatut('" + i.id + "','encours')" },
+        { icon:'✅', label:'Traité', handler:"window.s19IncidentStatut('" + i.id + "','traite')" },
+        { icon:'🗑️', label:'Supprimer', handler:"window.s19IncidentSupprimer('" + i.id + "')", danger:true }
+      ]
+    }));
+  }
+
+  function collectFacturesRetard() {
+    const factures = loadJSON('factures').filter(f => f.statut !== 'annulée');
+    const paiements = loadJSON('paiements').filter(p => p.sens === 'in');
+    const clients = loadJSON('clients');
+    const today = new Date();
+    const out = [];
+    factures.forEach(f => {
+      if (!f.dateLivraison && !f.dateEmission) return;
+      const client = clients.find(c => c.id === f.clientId) || null;
+      const delai = (client && client.delaiPaiementJours != null) ? parseInt(client.delaiPaiementJours, 10) : 30;
+      const dBase = new Date(f.dateLivraison || f.dateEmission);
+      const dEch = new Date(dBase); dEch.setDate(dEch.getDate() + delai);
+      const payeSum = paiements.filter(p => p.factureId === f.id).reduce((s,p) => s + (parseFloat(p.montant)||0), 0);
+      const restant = (parseFloat(f.montantTTC)||0) - payeSum;
+      if (restant <= 0.01) return;
+      const jRetard = daysBetween(dEch, today);
+      if (jRetard <= 0) return;
+      let grav = 'moyen';
+      if (jRetard > 60) grav = 'critique';
+      else if (jRetard > 30) grav = 'haute';
+      out.push({
+        id: 'fac_' + f.id,
+        rawId: f.id,
+        source: 'facture',
+        sourceLabel: 'Facture impayée',
+        sourceIcon: '💶',
+        type: 'facture_retard',
+        title: 'Facture ' + (f.numero || f.id.slice(0,6)) + ' en retard de ' + jRetard + ' j',
+        sub: (client ? client.nom : (f.client || 'Client inconnu')) + ' · reste ' + fmtEuro(restant),
+        gravite: grav,
+        statut: 'ouvert',
+        creeLe: dEch.toISOString(),
+        meta: { factureId: f.id, clientId: f.clientId, restant: restant, jRetard: jRetard },
+        actions: [
+          { icon:'🔗', label:'Voir facture', handler:"window.s19GoFacture('" + f.id + "')" },
+          { icon:'💳', label:'Encaisser', handler:"window.s19EncaisserFacture('" + f.id + "')" }
+        ]
+      });
+    });
+    return out;
+  }
+
+  function collectFournisseursDu() {
+    const fourns = loadJSON('fournisseurs');
+    const charges = loadJSON('charges');
+    const carburants = loadJSON('carburant');
+    const entretiens = loadJSON('entretiens');
+    const paiements = loadJSON('paiements').filter(p => p.sens === 'out');
+    const today = new Date();
+    const out = [];
+    fourns.forEach(f => {
+      const ch = charges.filter(x => x.fournisseurId === f.id);
+      const ca = carburants.filter(x => x.fournisseurId === f.id);
+      const en = entretiens.filter(x => x.fournisseurId === f.id);
+      const pa = paiements.filter(p => p.fournisseurId === f.id);
+      const depense = ch.reduce((s,x)=>s+(parseFloat(x.montant)||0),0)
+                    + ca.reduce((s,x)=>s+(parseFloat(x.montant)||0),0)
+                    + en.reduce((s,x)=>s+(parseFloat(x.cout)||0),0);
+      const paye = pa.reduce((s,x)=>s+(parseFloat(x.montant)||0),0);
+      const solde = depense - paye;
+      if (solde <= 0.01) return;
+      const delai = (f.delaiPaiementJours != null) ? parseInt(f.delaiPaiementJours, 10) : 30;
+      const items = [...ch, ...ca, ...en].sort((a,b) => new Date(a.date||0) - new Date(b.date||0));
+      const oldest = items[0];
+      if (!oldest || !oldest.date) return;
+      const dEch = new Date(oldest.date); dEch.setDate(dEch.getDate() + delai);
+      const jRetard = daysBetween(dEch, today);
+      if (jRetard <= 0) return;
+      let grav = 'moyen';
+      if (jRetard > 60) grav = 'critique';
+      else if (jRetard > 15) grav = 'haute';
+      out.push({
+        id: 'frs_' + f.id,
+        rawId: f.id,
+        source: 'fournisseur',
+        sourceLabel: 'Fournisseur à payer',
+        sourceIcon: '🏭',
+        type: 'fournisseur_du',
+        title: f.nom + ' · dû depuis ' + jRetard + ' j',
+        sub: 'Solde à régler ' + fmtEuro(solde),
+        gravite: grav,
+        statut: 'ouvert',
+        creeLe: dEch.toISOString(),
+        meta: { fournisseurId: f.id, solde: solde },
+        actions: [
+          { icon:'🔗', label:'Voir fournisseur', handler:"window.s19GoFournisseur('" + f.id + "')" }
+        ]
+      });
+    });
+    return out;
+  }
+
+  function collectLivraisonsSansPrix() {
+    const livs = loadJSON('livraisons');
+    const today = new Date();
+    return livs.filter(l => {
+      const prix = parseFloat(l.prix) || 0;
+      const prixHT = parseFloat(l.prixHT) || 0;
+      return prix === 0 && prixHT === 0;
+    }).map(l => ({
+      id: 'liv_' + l.id,
+      rawId: l.id,
+      source: 'livraison',
+      sourceLabel: 'Livraison sans prix',
+      sourceIcon: '📦',
+      type: 'livraison_sans_prix',
+      title: 'Livraison sans prix · ' + (l.client || 'Client inconnu'),
+      sub: (l.date || '') + (l.chaufNom ? ' · ' + l.chaufNom : ''),
+      gravite: 'haute',
+      statut: 'ouvert',
+      creeLe: l.creeLe || l.date || today.toISOString(),
+      meta: { livId: l.id },
+      actions: [
+        { icon:'🔗', label:'Ouvrir livraison', handler:"window.s19GoLivraison('" + l.id + "')" }
+      ]
+    }));
+  }
+
+  /* ---------- Agrégation + filtres ---------- */
+  function collectAll() {
+    let list = [];
+    try { list = list.concat(collectSysteme()); } catch(e){ console.warn('[S19] systeme', e); }
+    try { list = list.concat(collectIncidents()); } catch(e){ console.warn('[S19] incidents', e); }
+    try { list = list.concat(collectFacturesRetard()); } catch(e){ console.warn('[S19] factures', e); }
+    try { list = list.concat(collectFournisseursDu()); } catch(e){ console.warn('[S19] fournisseurs', e); }
+    try { list = list.concat(collectLivraisonsSansPrix()); } catch(e){ console.warn('[S19] livraisons', e); }
+    list.sort((a,b) => new Date(b.creeLe) - new Date(a.creeLe));
+    return list;
+  }
+
+  const GRAV_ORDER = { critique: 4, haute: 3, moyen: 2, basse: 1 };
+  const GRAV_LABEL = { critique: '🔴 Critique', haute: '🟠 Haute', moyen: '🟡 Moyenne', basse: '🟢 Basse' };
+  const SOURCE_LABELS = {
+    systeme: '🤖 Système auto',
+    incident: '🚨 Incidents',
+    facture: '💶 Factures clients',
+    fournisseur: '🏭 Fournisseurs',
+    livraison: '📦 Livraisons'
+  };
+
+  function applyFilters(list) {
+    const q = (document.getElementById('s19-search')?.value || '').trim().toLowerCase();
+    const fSrc = document.getElementById('s19-filter-source')?.value || '';
+    const fGrav = document.getElementById('s19-filter-gravite')?.value || '';
+    const fStat = document.getElementById('s19-filter-statut')?.value || 'ouvert';
+    return list.filter(a => {
+      if (fStat === 'ouvert' && a.statut === 'traite') return false;
+      if (fStat === 'traite' && a.statut !== 'traite') return false;
+      if (fSrc && a.source !== fSrc) return false;
+      if (fGrav && a.gravite !== fGrav) return false;
+      if (q) {
+        const hay = (a.title + ' ' + a.sub + ' ' + a.sourceLabel).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  /* ---------- Render ---------- */
+  function renderCentre() {
+    const host = document.getElementById('s19-centre-body');
+    if (!host) return;
+    const all = collectAll();
+    const filtered = applyFilters(all);
+
+    // KPIs (basés sur TOUT, pas filtré)
+    const actifs = all.filter(a => a.statut !== 'traite');
+    const kCrit = actifs.filter(a => a.gravite === 'critique').length;
+    const kHaute = actifs.filter(a => a.gravite === 'haute').length;
+    const kMoyen = actifs.filter(a => a.gravite === 'moyen').length;
+    const kTr = all.filter(a => a.statut === 'traite').length;
+    const kpi = document.getElementById('s19-kpis');
+    if (kpi) {
+      kpi.innerHTML =
+        '<div class="s19-kpi s19-kpi-critique"><div class="s19-kpi-val">' + kCrit + '</div><div class="s19-kpi-lbl">🔴 Critiques</div></div>' +
+        '<div class="s19-kpi s19-kpi-haute"><div class="s19-kpi-val">' + kHaute + '</div><div class="s19-kpi-lbl">🟠 Hautes</div></div>' +
+        '<div class="s19-kpi s19-kpi-moyen"><div class="s19-kpi-val">' + kMoyen + '</div><div class="s19-kpi-lbl">🟡 Moyennes</div></div>' +
+        '<div class="s19-kpi s19-kpi-traitee"><div class="s19-kpi-val">' + kTr + '</div><div class="s19-kpi-lbl">✅ Traitées</div></div>';
+    }
+
+    // Badge nav
+    const badgeNav = document.getElementById('badge-alertes');
+    if (badgeNav) {
+      const n = actifs.length;
+      badgeNav.textContent = n > 0 ? n : '';
+      badgeNav.style.display = n > 0 ? '' : 'none';
+    }
+    const badgeIncNav = document.getElementById('badge-incidents-nav');
+    if (badgeIncNav) { badgeIncNav.style.display = 'none'; }
+
+    if (!filtered.length) {
+      host.innerHTML = '<div class="s19-empty">' +
+        (all.length ? '<div class="s19-empty-ic">🔎</div><div><strong>Aucune alerte ne correspond</strong></div><div style="color:var(--text-muted);font-size:.86rem">Modifiez vos filtres pour voir d\'autres résultats.</div>'
+                    : '<div class="s19-empty-ic">🎉</div><div><strong>Tout est nickel</strong></div><div style="color:var(--text-muted);font-size:.86rem">Aucune alerte active — le système surveille en continu.</div>') +
+        '</div>';
+      return;
+    }
+
+    host.innerHTML = filtered.map(a => {
+      const rel = relTime(a.creeLe);
+      const gravClass = 's19-card-' + a.gravite;
+      const statutBadge = a.statut === 'traite' ? '<span class="s19-badge s19-badge-traite">✅ Traité</span>'
+                        : a.statut === 'encours' ? '<span class="s19-badge s19-badge-encours">🟡 En cours</span>'
+                        : '';
+      const actions = (a.actions || []).map(act => {
+        const cls = act.danger ? 's19-act s19-act-danger' : 's19-act';
+        return '<button class="' + cls + '" onclick="' + act.handler + '" title="' + esc(act.label) + '">' + act.icon + ' ' + esc(act.label) + '</button>';
+      }).join('');
+      return '<div class="s19-card ' + gravClass + (a.statut === 'traite' ? ' s19-card-traite' : '') + '">' +
+        '<div class="s19-card-icn">' + a.sourceIcon + '</div>' +
+        '<div class="s19-card-body">' +
+          '<div class="s19-card-head">' +
+            '<strong>' + esc(a.title) + '</strong>' +
+            '<span class="s19-card-src">' + esc(a.sourceLabel) + '</span>' +
+            '<span class="s19-card-grav s19-grav-' + a.gravite + '">' + (GRAV_LABEL[a.gravite] || a.gravite) + '</span>' +
+            statutBadge +
+          '</div>' +
+          (a.sub ? '<div class="s19-card-sub">' + esc(a.sub) + '</div>' : '') +
+          '<div class="s19-card-foot">' +
+            '<span class="s19-card-time">' + rel + '</span>' +
+            '<div class="s19-card-acts">' + actions + '</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function relTime(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 60) return 'à l\'instant';
+    if (diff < 3600) return 'il y a ' + Math.floor(diff/60) + ' min';
+    if (diff < 86400) return 'il y a ' + Math.floor(diff/3600) + ' h';
+    if (diff < 2592000) return 'il y a ' + Math.floor(diff/86400) + ' j';
+    return d.toLocaleDateString('fr-FR');
+  }
+
+  /* ---------- Auto-clôture ---------- */
+  function autoCloture() {
+    let changed = false;
+    const alertes = loadJSON('alertes_admin');
+    const paiements = loadJSON('paiements').filter(p => p.sens === 'in');
+    const livs = loadJSON('livraisons');
+    alertes.forEach(a => {
+      if (a.traitee) return;
+      if (a.type === 'prix_manquant' && a.meta?.livId) {
+        const l = livs.find(x => x.id === a.meta.livId);
+        if (l && ((parseFloat(l.prix)||0) > 0 || (parseFloat(l.prixHT)||0) > 0)) {
+          a.traitee = true; a.traiteLe = new Date().toISOString(); a.autoCloture = true;
+          changed = true;
+        }
+      }
+    });
+    if (changed) saveJSON('alertes_admin', alertes);
+    return changed;
+  }
+
+  /* ---------- Actions ---------- */
+  window.s19MarquerTraitee = function(rawId) {
+    const arr = loadJSON('alertes_admin');
+    const a = arr.find(x => x.id === rawId);
+    if (a) { a.traitee = true; a.traiteLe = new Date().toISOString(); saveJSON('alertes_admin', arr); }
+    renderCentre();
+    if (typeof window.afficherToast === 'function') window.afficherToast('✅ Marquée traitée','success');
+  };
+  window.s19Rouvrir = function(rawId) {
+    const arr = loadJSON('alertes_admin');
+    const a = arr.find(x => x.id === rawId);
+    if (a) { a.traitee = false; delete a.traiteLe; saveJSON('alertes_admin', arr); }
+    renderCentre();
+  };
+  window.s19Supprimer = async function(rawId) {
+    const ok = await confirmDialog('Supprimer définitivement cette alerte ?', { titre:'Supprimer', icone:'🗑️', btnLabel:'Supprimer' });
+    if (!ok) return;
+    saveJSON('alertes_admin', loadJSON('alertes_admin').filter(x => x.id !== rawId));
+    renderCentre();
+  };
+  window.s19IncidentStatut = function(rawId, statut) {
+    const arr = loadJSON('incidents');
+    const i = arr.find(x => x.id === rawId);
+    if (i) { i.statut = statut; saveJSON('incidents', arr); }
+    renderCentre();
+    if (typeof window.afficherToast === 'function') window.afficherToast('✅ Statut incident mis à jour','success');
+  };
+  window.s19IncidentSupprimer = async function(rawId) {
+    const ok = await confirmDialog('Supprimer cet incident ?', { titre:'Supprimer', icone:'🚨', btnLabel:'Supprimer' });
+    if (!ok) return;
+    saveJSON('incidents', loadJSON('incidents').filter(x => x.id !== rawId));
+    renderCentre();
+  };
+  window.s19GoFacture = function(id) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('facturation');
+    setTimeout(() => { if (typeof window.ouvrirFacture === 'function') window.ouvrirFacture(id); }, 300);
+  };
+  window.s19EncaisserFacture = function(id) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('encaissements');
+    setTimeout(() => { if (typeof window.ouvrirModalEncaissement === 'function') window.ouvrirModalEncaissement(id); }, 300);
+  };
+  window.s19GoFournisseur = function(id) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('fournisseurs');
+    setTimeout(() => { if (typeof window.ouvrirHistoriqueFournisseur === 'function') window.ouvrirHistoriqueFournisseur(id); }, 300);
+  };
+  window.s19GoLivraison = function(id) {
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('livraisons');
+    setTimeout(() => { if (typeof window.ouvrirEditLivraison === 'function') window.ouvrirEditLivraison(id); }, 300);
+  };
+  window.s19RefreshNow = function() {
+    autoCloture();
+    renderCentre();
+    if (typeof window.afficherToast === 'function') window.afficherToast('🔄 Centre d\'alertes rafraîchi','success');
+  };
+  window.s19RenderCentre = renderCentre;
+
+  /* ---------- Injection UI au-dessus de page-alertes ---------- */
+  function injecterUI() {
+    const page = document.getElementById('page-alertes');
+    if (!page || document.getElementById('s19-centre')) return;
+
+    // Masquer l'ancienne UI
+    const oldActions = page.querySelector('.page-actions');
+    const oldFilters = page.querySelector('.filters');
+    const oldCats = document.getElementById('alertes-categories');
+    const oldTraitees = document.getElementById('card-alertes-traitees');
+    [oldActions, oldFilters, oldCats, oldTraitees].forEach(el => { if (el) el.style.display = 'none'; });
+
+    const el = document.createElement('div');
+    el.id = 's19-centre';
+    el.innerHTML =
+      '<div class="page-actions">' +
+        '<h2>🔔 Centre d\'alertes</h2>' +
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+          '<button class="btn-secondary" onclick="window.s19RefreshNow()">🔄 Rafraîchir</button>' +
+          '<button class="btn-primary" onclick="openModal(\'modal-incident\')">+ Signaler un incident</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="s19-kpi-grid" id="s19-kpis"></div>' +
+      '<div class="filters" style="margin-bottom:16px;margin-top:14px">' +
+        '<div class="searchbar"><span class="searchbar-icon">🔎</span><input type="search" id="s19-search" placeholder="Rechercher dans les alertes…" oninput="window.s19RenderCentre && window.s19RenderCentre()" /></div>' +
+        '<select id="s19-filter-source" onchange="window.s19RenderCentre && window.s19RenderCentre()">' +
+          '<option value="">Toutes sources</option>' +
+          Object.entries(SOURCE_LABELS).map(([k,v]) => '<option value="' + k + '">' + v + '</option>').join('') +
+        '</select>' +
+        '<select id="s19-filter-gravite" onchange="window.s19RenderCentre && window.s19RenderCentre()">' +
+          '<option value="">Toutes gravités</option>' +
+          '<option value="critique">🔴 Critique</option>' +
+          '<option value="haute">🟠 Haute</option>' +
+          '<option value="moyen">🟡 Moyenne</option>' +
+          '<option value="basse">🟢 Basse</option>' +
+        '</select>' +
+        '<select id="s19-filter-statut" onchange="window.s19RenderCentre && window.s19RenderCentre()">' +
+          '<option value="ouvert" selected>🔓 Actives</option>' +
+          '<option value="traite">✅ Traitées</option>' +
+          '<option value="toutes">📋 Toutes</option>' +
+        '</select>' +
+        '<button class="btn-secondary" onclick="document.getElementById(\'s19-search\').value=\'\';document.getElementById(\'s19-filter-source\').value=\'\';document.getElementById(\'s19-filter-gravite\').value=\'\';document.getElementById(\'s19-filter-statut\').value=\'ouvert\';window.s19RenderCentre && window.s19RenderCentre();">Réinitialiser</button>' +
+      '</div>' +
+      '<div id="s19-centre-body" class="s19-timeline"></div>';
+
+    page.insertBefore(el, page.firstChild);
+  }
+
+  /* ---------- Hook navigation incidents → centre alertes avec filtre ---------- */
+  function hookNavigation() {
+    if (typeof window.naviguerVers !== 'function') { setTimeout(hookNavigation, 300); return; }
+    if (window.naviguerVers.__s19) return;
+    const orig = window.naviguerVers;
+    const wrapped = function(page) {
+      if (page === 'incidents') {
+        const ret = orig.call(this, 'alertes');
+        setTimeout(() => {
+          const sel = document.getElementById('s19-filter-source');
+          if (sel) { sel.value = 'incident'; renderCentre(); }
+        }, 150);
+        return ret;
+      }
+      const ret = orig.apply(this, arguments);
+      if (page === 'alertes') setTimeout(renderCentre, 100);
+      return ret;
+    };
+    wrapped.__s19 = true;
+    window.naviguerVers = wrapped;
+  }
+
+  /* ---------- Init + auto-refresh 60s ---------- */
+  function init() {
+    injecterUI();
+    hookNavigation();
+    autoCloture();
+    renderCentre();
+    setInterval(() => { autoCloture(); renderCentre(); }, 60000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 300);
+})();
+
+/* ==========================================================================
+   Sprint 20 — RH 360° : Fiche unifiée salarié + 3 auto-alertes RH
+   ========================================================================== */
+(function installS20RH360(){
+  if (window.__s20Installed) return;
+  window.__s20Installed = true;
+
+  const loadJSON = (k, def='[]') => { try { return JSON.parse(localStorage.getItem(k) || def); } catch(e){ return JSON.parse(def); } };
+  const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const esc = window.escapeHtml;
+  const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('fr-FR'); } catch(e){ return ''; } };
+  const fmtDateTime = (d) => { try { return new Date(d).toLocaleString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } };
+
+  /* ---------- 1. Auto-alertes RH (alimentent alertes_admin → S19) ----------
+     Stratégie : on ne purge PAS — on additionne, et on auto-clôt (traitee=true)
+     les alertes dont la cause a disparu. Ça laisse l'admin rouvrir sans être écrasé. */
+  function genererAlertesRH() {
+    const salaries = loadJSON('salaries');
+    const livraisons = loadJSON('livraisons');
+    const alertes = loadJSON('alertes_admin');
+
+    const nowMs = Date.now();
+    const J14 = 14 * 86400000;
+    const J2  = 2 * 86400000;
+    const nouvelles = [];
+    const causeToujoursActive = new Set(); // ids d'alertes rh_ dont la cause existe encore
+
+    salaries.forEach(s => {
+      if (s.actif === false) return;
+
+      // 1a. Inactivité : pas de livraison et aucun message depuis 14j
+      const livs = livraisons.filter(l => l.chaufId === s.id);
+      const derniereLiv = livs.length ? Math.max(...livs.map(l => new Date(l.date || l.creeLe || 0).getTime())) : 0;
+      const msgs = loadJSON('messages_' + s.id);
+      const derniereMsg = msgs.length ? Math.max(...msgs.map(m => new Date(m.creeLe || 0).getTime())) : 0;
+      const lastActiv = Math.max(derniereLiv, derniereMsg);
+      const createdMs = s.creeLe ? new Date(s.creeLe).getTime() : 0;
+      // on ne signale pas les salariés créés depuis moins de 14j s'ils n'ont jamais eu d'activité
+      if (lastActiv > 0 && lastActiv < nowMs - J14) {
+        const key = 'rh_inactivite_' + s.id;
+        causeToujoursActive.add(key);
+        if (!alertes.find(a => a.id === key)) {
+          const jours = Math.floor((nowMs - lastActiv) / 86400000);
+          nouvelles.push({
+            id: key, type: 'rh_inactivite',
+            message: `💤 ${s.nom} — aucune activité depuis ${jours}j`,
+            salNom: s.nom, salId: s.id,
+            creeLe: new Date().toISOString(), traitee: false
+          });
+        }
+      } else if (lastActiv === 0 && createdMs && createdMs < nowMs - J14) {
+        const key = 'rh_inactivite_' + s.id;
+        causeToujoursActive.add(key);
+        if (!alertes.find(a => a.id === key)) {
+          nouvelles.push({
+            id: key, type: 'rh_inactivite',
+            message: `💤 ${s.nom} — aucune activité enregistrée`,
+            salNom: s.nom, salId: s.id,
+            creeLe: new Date().toISOString(), traitee: false
+          });
+        }
+      }
+
+      // 1b. Message salarié non répondu > 48h
+      if (msgs.length) {
+        const ordered = [...msgs].sort((a,b) => new Date(a.creeLe||0) - new Date(b.creeLe||0));
+        const dernierMsgSal = [...ordered].reverse().find(m => m.auteur === 'salarie');
+        if (dernierMsgSal) {
+          const tSal = new Date(dernierMsgSal.creeLe || 0).getTime();
+          const repApres = ordered.find(m => m.auteur === 'admin' && new Date(m.creeLe || 0).getTime() > tSal);
+          if (!repApres && (nowMs - tSal) > J2) {
+            const key = 'rh_msg_non_repondu_' + s.id;
+            causeToujoursActive.add(key);
+            if (!alertes.find(a => a.id === key)) {
+              const h = Math.floor((nowMs - tSal) / 3600000);
+              nouvelles.push({
+                id: key, type: 'rh_msg_non_repondu',
+                message: `💬 Message de ${s.nom} non répondu depuis ${h}h`,
+                salNom: s.nom, salId: s.id,
+                creeLe: new Date().toISOString(), traitee: false
+              });
+            }
+          }
+        }
+      }
+
+      // 1c. Heures hebdo excessives (> 48h)
+      try {
+        if (typeof window.construireContexteHeures === 'function'
+            && typeof window.calculerHeuresSalarieSemaine === 'function'
+            && typeof window.getHeuresPeriodeRange === 'function') {
+          // On force semaine courante pour cette détection
+          const oldVue = window._heuresVue;
+          const oldOff = window._heuresSemaineOffset;
+          window._heuresVue = 'semaine'; window._heuresSemaineOffset = 0;
+          try {
+            const range = window.getHeuresPeriodeRange();
+            const ctx = window.construireContexteHeures(range);
+            const r = window.calculerHeuresSalarieSemaine(s.id, ctx);
+            const h = r && typeof r.planifiees === 'number' ? r.planifiees : 0;
+            if (h > 48) {
+              const key = 'rh_heures_excess_' + s.id;
+              causeToujoursActive.add(key);
+              if (!alertes.find(a => a.id === key)) {
+                nouvelles.push({
+                  id: key, type: 'rh_heures_excess',
+                  message: `⏱️ ${s.nom} — ${h.toFixed(1)}h planifiées cette semaine (> 48h)`,
+                  salNom: s.nom, salId: s.id,
+                  creeLe: new Date().toISOString(), traitee: false
+                });
+              }
+            }
+          } finally {
+            window._heuresVue = oldVue; window._heuresSemaineOffset = oldOff;
+          }
+        }
+      } catch(e) { /* silencieux */ }
+    });
+
+    // Auto-clôture : alertes rh_* existantes non-traitées dont la cause a disparu
+    let modifBase = false;
+    alertes.forEach(a => {
+      if (a.type && typeof a.type === 'string' && a.type.startsWith('rh_') && !a.traitee) {
+        if (!causeToujoursActive.has(a.id)) {
+          a.traitee = true;
+          a.autoCloseLe = new Date().toISOString();
+          modifBase = true;
+        }
+      }
+    });
+
+    if (nouvelles.length || modifBase) {
+      saveJSON('alertes_admin', [...alertes, ...nouvelles]);
+    }
+    if (typeof window.renderCentre === 'function') { try { window.renderCentre(); } catch(e){} }
+  }
+
+  /* ---------- 2. Drawer 360° ---------- */
+  function ensureDrawer() {
+    if (document.getElementById('s20-drawer')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 's20-drawer-overlay';
+    overlay.id = 's20-drawer-overlay';
+    overlay.onclick = () => window.fermerFiche360();
+
+    const drawer = document.createElement('aside');
+    drawer.className = 's20-drawer';
+    drawer.id = 's20-drawer';
+    drawer.innerHTML = `
+      <div class="s20-drawer-header">
+        <h3 id="s20-drawer-title">Fiche 360° salarié</h3>
+        <button class="s20-drawer-close" onclick="window.fermerFiche360()" aria-label="Fermer">✕</button>
+      </div>
+      <div class="s20-drawer-content" id="s20-drawer-content"></div>`;
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(drawer);
+
+    // ESC pour fermer
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && drawer.classList.contains('open')) window.fermerFiche360();
+    });
+  }
+
+  window.ouvrirFiche360Salarie = function(salId) {
+    const sal = loadJSON('salaries').find(s => s.id === salId);
+    if (!sal) { if (typeof window.afficherToast === 'function') window.afficherToast('Salarié introuvable', 'error'); return; }
+    ensureDrawer();
+    const content = document.getElementById('s20-drawer-content');
+    const title = document.getElementById('s20-drawer-title');
+    if (title) title.textContent = `👤 ${sal.nom}`;
+    if (content) content.innerHTML = renderFicheContent(sal);
+    document.getElementById('s20-drawer').classList.add('open');
+    document.getElementById('s20-drawer-overlay').classList.add('open');
+  };
+
+  window.fermerFiche360 = function() {
+    const d = document.getElementById('s20-drawer');
+    const o = document.getElementById('s20-drawer-overlay');
+    if (d) d.classList.remove('open');
+    if (o) o.classList.remove('open');
+  };
+
+  window.s20SwitchTab = function(tab) {
+    document.querySelectorAll('.s20-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.s20-tab-content').forEach(c => c.classList.toggle('hidden', c.id !== 's20-tab-' + tab));
+  };
+
+  function renderFicheContent(sal) {
+    const livraisons = loadJSON('livraisons').filter(l => l.chaufId === sal.id);
+    const vehicules = loadJSON('vehicules');
+    const veh = vehicules.find(v => v.salId === sal.id);
+    const messages = loadJSON('messages_' + sal.id);
+    const incidents = loadJSON('incidents').filter(i => i.salId === sal.id || i.chaufId === sal.id);
+    const alertes = loadJSON('alertes_admin').filter(a => a.salId === sal.id && !a.traitee);
+
+    // KPIs
+    const now = Date.now();
+    const J30 = 30 * 86400000;
+    const liv30 = livraisons.filter(l => now - new Date(l.date || 0).getTime() < J30);
+    const ca30 = liv30.reduce((s, l) => s + (parseFloat(l.prixHT || l.prix || 0) || 0), 0);
+    const msgNonLus = messages.filter(m => m.auteur === 'salarie' && !m.lu).length;
+
+    // Heures semaine
+    let heuresSem = 0;
+    try {
+      if (typeof window.construireContexteHeures === 'function' && typeof window.calculerHeuresSalarieSemaine === 'function' && typeof window.getHeuresPeriodeRange === 'function') {
+        const range = window.getHeuresPeriodeRange();
+        const ctx = window.construireContexteHeures(range);
+        const r = window.calculerHeuresSalarieSemaine(sal.id, ctx);
+        heuresSem = r && typeof r.planifiees === 'number' ? r.planifiees : 0;
+      }
+    } catch(e) {}
+
+    const initial = (sal.nom || '?').trim().charAt(0).toUpperCase();
+    const badgeActif = sal.actif !== false
+      ? '<span class="badge badge-dispo">✅ Actif</span>'
+      : '<span class="badge badge-inactif">⏸️ Inactif</span>';
+
+    return `
+      <div class="s20-fiche-id">
+        <div class="s20-fiche-avatar">${esc(initial)}</div>
+        <div>
+          <div class="s20-fiche-nom">${esc(sal.nom)}</div>
+          <div class="s20-fiche-meta">${esc(sal.poste || '—')} · ${esc(sal.numero || '')}${sal.tel ? ' · ' + esc(sal.tel) : ''}</div>
+          ${veh ? `<div class="s20-fiche-veh">🚐 <button type="button" class="s21-btn-360" onclick="window.ouvrirFiche360Vehicule('${esc(veh.id)}')">${esc(veh.immat)}${veh.modele ? ' — ' + esc(veh.modele) : ''}</button></div>` : '<div class="s20-fiche-veh muted">Sans véhicule affecté</div>'}
+        </div>
+        <div class="s20-fiche-badges">
+          ${badgeActif}
+          ${alertes.length ? `<span class="s20-badge-alert">⚠️ ${alertes.length} alerte${alertes.length > 1 ? 's' : ''}</span>` : ''}
+        </div>
+      </div>
+
+      <div class="s20-kpi-row">
+        <div class="s20-kpi"><div class="s20-kpi-val">${heuresSem.toFixed(1)} h</div><div class="s20-kpi-lbl">Semaine</div></div>
+        <div class="s20-kpi"><div class="s20-kpi-val">${liv30.length}</div><div class="s20-kpi-lbl">Livr. 30j</div></div>
+        <div class="s20-kpi"><div class="s20-kpi-val">${Math.round(ca30)} €</div><div class="s20-kpi-lbl">CA 30j</div></div>
+        <div class="s20-kpi ${msgNonLus ? 's20-kpi-alert' : ''}"><div class="s20-kpi-val">${msgNonLus}</div><div class="s20-kpi-lbl">Msg non lus</div></div>
+      </div>
+
+      <div class="s20-tabs">
+        <button class="s20-tab active" data-tab="activite" onclick="window.s20SwitchTab('activite')">📅 Activité</button>
+        <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab('livraisons')">📦 Livraisons (${livraisons.length})</button>
+        <button class="s20-tab" data-tab="messages" onclick="window.s20SwitchTab('messages')">💬 Messages (${messages.length})</button>
+        <button class="s20-tab" data-tab="conformite" onclick="window.s20SwitchTab('conformite')">🪪 Conformité</button>
+        <button class="s20-tab" data-tab="incidents" onclick="window.s20SwitchTab('incidents')">🚨 Incidents (${incidents.length})</button>
+      </div>
+
+      <div class="s20-tab-content" id="s20-tab-activite">${renderActivite(livraisons, messages, incidents, alertes)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-livraisons">${renderLivraisons(livraisons)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-messages">${renderMessages(messages)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-conformite">${renderConformite(sal)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-incidents">${renderIncidentsList(incidents)}</div>
+
+      <div class="s20-fiche-actions">
+        <button class="btn-secondary" onclick="window.s20GoToHeures('${esc(sal.nom)}')">⏱️ Heures</button>
+        <button class="btn-secondary" onclick="window.s20GoToMessagerie('${sal.id}')">💬 Conversation</button>
+        <button class="btn-primary" onclick="window.s20GoToEdit('${sal.id}')">✏️ Modifier</button>
+      </div>`;
+  }
+
+  function renderActivite(livraisons, messages, incidents, alertes) {
+    const items = [];
+    livraisons.forEach(l => {
+      const t = new Date(l.date || l.creeLe || 0).getTime();
+      if (!t) return;
+      items.push({ t, icon:'📦', label: `Livraison · ${esc(l.client || '—')} · ${(parseFloat(l.prixHT || l.prix) || 0).toFixed(0)} €` + (l.statut ? ' <span class="s20-timeline-date" style="margin-left:6px">['+esc(l.statut)+']</span>' : '') });
+    });
+    messages.slice(-15).forEach(m => {
+      const t = new Date(m.creeLe || 0).getTime();
+      if (!t) return;
+      const ic = m.auteur === 'salarie' ? '📩' : '📤';
+      const extrait = String(m.texte || (m.photo ? '📷 Photo' : '') || '').slice(0, 100);
+      items.push({ t, icon: ic, label: (m.auteur === 'salarie' ? '<em>Salarié : </em>' : '<em>Admin : </em>') + esc(extrait) });
+    });
+    incidents.forEach(i => {
+      const t = new Date(i.creeLe || i.date || 0).getTime();
+      if (!t) return;
+      items.push({ t, icon:'🚨', label: `Incident (${esc(i.gravite || 'moyen')}) · ${esc(String(i.description || '').slice(0, 80))}` });
+    });
+    alertes.forEach(a => {
+      const t = new Date(a.creeLe || 0).getTime();
+      if (!t) return;
+      items.push({ t, icon:'⚠️', label: esc(a.message || a.type || '') });
+    });
+
+    items.sort((a,b) => b.t - a.t);
+    const recent = items.slice(0, 30);
+    if (!recent.length) return '<div class="s20-empty">Aucune activité récente</div>';
+
+    return `<div class="s20-timeline">${recent.map(it => `
+      <div class="s20-timeline-item">
+        <span class="s20-timeline-ic">${it.icon}</span>
+        <div class="s20-timeline-body">
+          <div class="s20-timeline-label">${it.label}</div>
+          <div class="s20-timeline-date">${fmtDateTime(it.t)}</div>
+        </div>
+      </div>`).join('')}</div>`;
+  }
+
+  function renderLivraisons(livraisons) {
+    if (!livraisons.length) return '<div class="s20-empty">Aucune livraison</div>';
+    const recent = [...livraisons].sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 20);
+    return `<div style="overflow-x:auto"><table class="data-table" style="font-size:.82rem">
+      <thead><tr><th>Date</th><th>Client</th><th>Statut</th><th style="text-align:right">HT</th></tr></thead>
+      <tbody>${recent.map(l => `<tr>
+        <td>${esc(l.date || '—')}</td>
+        <td>${esc(l.client || '—')}</td>
+        <td>${esc(l.statut || '—')}</td>
+        <td style="text-align:right">${(parseFloat(l.prixHT || l.prix) || 0).toFixed(2)} €</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderMessages(messages) {
+    if (!messages.length) return '<div class="s20-empty">Aucun message</div>';
+    const recent = [...messages].slice(-30);
+    return `<div class="s20-msg-list">${recent.map(m => {
+      const who = m.auteur === 'salarie' ? 'in' : 'out';
+      const txt = m.photo ? '<img src="' + esc(m.photo) + '" style="max-width:180px;border-radius:6px;display:block" />' : esc(m.texte || '');
+      return `<div class="s20-msg s20-msg-${who}">
+        <div class="s20-msg-txt">${txt}</div>
+        <div class="s20-msg-date">${fmtDateTime(m.creeLe || '')}</div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  function renderConformite(sal) {
+    const now = Date.now();
+    const row = (dateStr, label) => {
+      if (!dateStr) return `<div class="s20-conf-row"><span>${label}</span><span class="muted">Non renseigné</span></div>`;
+      const exp = new Date(dateStr).getTime();
+      const jours = Math.floor((exp - now) / 86400000);
+      let cl = 'ok', emoji = '✅';
+      if (jours < 0) { cl = 'ko'; emoji = '❌'; }
+      else if (jours < 30) { cl = 'warn'; emoji = '⚠️'; }
+      const etat = jours >= 0 ? `J+${jours}` : `expiré depuis ${Math.abs(jours)}j`;
+      return `<div class="s20-conf-row s20-conf-${cl}"><span>${label}</span><span>${emoji} ${esc(fmtDate(dateStr))} · ${etat}</span></div>`;
+    };
+    return `<div class="s20-conf-list">
+      ${row(sal.datePermis, '🪪 Permis de conduire')}
+      ${row(sal.dateAssurance, '🛡️ Assurance')}
+      ${sal.visiteMedicale ? row(sal.visiteMedicale, '⚕️ Visite médicale') : ''}
+    </div>`;
+  }
+
+  function renderIncidentsList(incidents) {
+    if (!incidents.length) return '<div class="s20-empty">Aucun incident</div>';
+    return [...incidents].sort((a,b) => new Date(b.creeLe || b.date || 0) - new Date(a.creeLe || a.date || 0)).slice(0, 10).map(i => `
+      <div class="s20-incident">
+        <div class="s20-incident-head">
+          <strong>${esc(i.client || 'Incident')}</strong>
+          <span class="s20-incident-grav s20-grav-${esc(i.gravite || 'moyen')}">${esc(i.gravite || 'moyen')}</span>
+        </div>
+        <div class="s20-incident-desc">${esc(i.description || '')}</div>
+        <div class="s20-incident-date">${esc(i.date || fmtDate(i.creeLe) || '')}</div>
+      </div>`).join('');
+  }
+
+  /* ---------- 3. Navigation raccourcis depuis drawer ---------- */
+  window.s20GoToHeures = function(nom) {
+    window.fermerFiche360();
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('heures');
+    setTimeout(() => {
+      const i = document.getElementById('filtre-heures-salarie');
+      if (i) {
+        i.value = nom;
+        if (typeof window.afficherCompteurHeures === 'function') window.afficherCompteurHeures();
+      }
+    }, 200);
+  };
+
+  window.s20GoToMessagerie = function(salId) {
+    window.fermerFiche360();
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('messagerie');
+    setTimeout(() => {
+      if (typeof window.ouvrirConversation === 'function') window.ouvrirConversation(salId);
+    }, 200);
+  };
+
+  window.s20GoToEdit = function(salId) {
+    window.fermerFiche360();
+    if (typeof window.ouvrirEditSalarie === 'function') window.ouvrirEditSalarie(salId);
+  };
+
+  /* ---------- 4. Injection bouton 👁️ dans tableaux RH ---------- */
+  function injecterBoutons360() {
+    // Table salariés — hijack du nom : clic ouvre la fiche 360° au lieu des livraisons
+    const tb = document.getElementById('tb-salaries');
+    if (tb) {
+      tb.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s20Hooked) return;
+        const btnLink = tr.querySelector('td:first-child button.table-link-button[onclick*="ouvrirLivraisonsSalarie"]');
+        if (!btnLink) return;
+        const m = btnLink.getAttribute('onclick').match(/ouvrirLivraisonsSalarie\('([^']+)'\)/);
+        if (!m) return;
+        const salId = m[1];
+        // Redirige le clic du nom vers la fiche 360°
+        btnLink.setAttribute('onclick', `window.ouvrirFiche360Salarie('${salId}')`);
+        btnLink.setAttribute('title', 'Ouvrir la fiche 360°');
+        // Nettoyer tout ancien bouton 360° redondant ajouté par versions précédentes
+        const oldBtn = tr.querySelector('.s20-btn-360');
+        if (oldBtn) oldBtn.remove();
+        tr.__s20Hooked = true;
+      });
+    }
+
+    // Table heures — rendre le nom cliquable
+    const tbh = document.getElementById('tb-heures');
+    if (tbh) {
+      const salaries = loadJSON('salaries');
+      tbh.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s20Hooked) return;
+        const strong = tr.querySelector('td:first-child strong');
+        if (!strong) return;
+        const nom = strong.textContent.trim();
+        const sal = salaries.find(s => s.nom === nom);
+        if (!sal) return;
+        strong.style.cursor = 'pointer';
+        strong.style.color = 'var(--accent)';
+        strong.style.textDecoration = 'underline';
+        strong.style.textDecorationStyle = 'dotted';
+        strong.title = 'Ouvrir la fiche 360°';
+        strong.onclick = () => window.ouvrirFiche360Salarie(sal.id);
+        tr.__s20Hooked = true;
+      });
+    }
+
+    // Table chauffeurs
+    const tbc = document.getElementById('tb-chauffeurs');
+    if (tbc) {
+      tbc.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s20Hooked) return;
+        const firstTd = tr.querySelector('td:first-child');
+        if (!firstTd) return;
+        // On ne cible que les lignes qui ont un salarié lié (via data-sal-id si présent)
+        const salId = tr.getAttribute('data-sal-id') || tr.dataset.salId;
+        if (!salId) { tr.__s20Hooked = true; return; }
+        if (firstTd.querySelector('.s20-btn-360')) { tr.__s20Hooked = true; return; }
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 's20-btn-360';
+        b.textContent = '👁️';
+        b.title = 'Fiche 360°';
+        b.onclick = (ev) => { ev.stopPropagation(); window.ouvrirFiche360Salarie(salId); };
+        firstTd.appendChild(b);
+        tr.__s20Hooked = true;
+      });
+    }
+  }
+
+  function setupObservers() {
+    ['tb-salaries', 'tb-heures', 'tb-chauffeurs'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el || el.__s20Obs) return;
+      const obs = new MutationObserver(() => setTimeout(injecterBoutons360, 40));
+      obs.observe(el, { childList: true, subtree: true });
+      el.__s20Obs = obs;
+    });
+  }
+
+  /* ---------- Init ---------- */
+  function init() {
+    try { genererAlertesRH(); } catch(e) { console.warn('S20 alertes RH:', e); }
+    setTimeout(() => {
+      injecterBoutons360();
+      setupObservers();
+    }, 600);
+    // Re-génération périodique (5 min)
+    setInterval(() => { try { genererAlertesRH(); } catch(e){} }, 5 * 60 * 1000);
+    // Re-injection périodique au cas où un observer aurait raté (pagination, etc.)
+    setInterval(injecterBoutons360, 3000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 900);
+})();
+
+/* ==========================================================================
+   Sprint 21 — Parc 360° : Fiche unifiée véhicule + auto-alertes Parc
+   Réutilise l'infrastructure drawer #s20-drawer de S20 (ouverture exclusive)
+   ========================================================================== */
+(function installS21Parc360(){
+  if (window.__s21Installed) return;
+  window.__s21Installed = true;
+
+  const loadJSON = (k, def='[]') => { try { return JSON.parse(localStorage.getItem(k) || def); } catch(e){ return JSON.parse(def); } };
+  const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const esc = window.escapeHtml;
+  const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('fr-FR'); } catch(e){ return ''; } };
+  const fmtDateTime = (d) => { try { return new Date(d).toLocaleString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } };
+  const euro = (n) => (typeof window.euros === 'function') ? window.euros(n) : ((parseFloat(n)||0).toFixed(2) + ' €');
+
+  /* ---------- 1. Auto-alertes Parc (alimentent alertes_admin → S19) ---------- */
+  function genererAlertesParc() {
+    const vehicules = loadJSON('vehicules');
+    const carburants = loadJSON('carburant');
+    const alertes = loadJSON('alertes_admin');
+    const nowMs = Date.now();
+    const causeActive = new Set();
+    const nouvelles = [];
+
+    vehicules.forEach(v => {
+      // 1. Entretien dû (via helper existant)
+      try {
+        const pilotage = typeof window.getPilotageEntretienVehicule === 'function'
+          ? window.getPilotageEntretienVehicule(v) : null;
+        if (pilotage && pilotage.estEnRetard) {
+          const key = 'parc_entretien_expire_' + v.id;
+          causeActive.add(key);
+          if (!alertes.find(a => a.id === key)) {
+            const motif = pilotage.prochainKm && pilotage.kmActuel >= pilotage.prochainKm
+              ? `km dépassés (${pilotage.kmActuel} / ${pilotage.prochainKm})`
+              : `échéance dépassée (${pilotage.dateEcheance || '—'})`;
+            nouvelles.push({
+              id: key, type: 'parc_entretien_expire',
+              message: `🔧 ${v.immat} — entretien en retard : ${motif}`,
+              vehId: v.id, vehImmat: v.immat,
+              creeLe: new Date().toISOString(), traitee: false
+            });
+          }
+        } else if (pilotage && pilotage.estProche) {
+          const key = 'parc_entretien_proche_' + v.id;
+          causeActive.add(key);
+          if (!alertes.find(a => a.id === key)) {
+            const detail = pilotage.kmRestants !== null && pilotage.kmRestants > 0
+              ? ` (reste ${Math.round(pilotage.kmRestants)} km)`
+              : pilotage.dateEcheance ? ` (d’ici le ${fmtDate(pilotage.dateEcheance)})` : '';
+            nouvelles.push({
+              id: key, type: 'parc_entretien_proche',
+              message: `🔧 ${v.immat} — entretien bientôt dû${detail}`,
+              vehId: v.id, vehImmat: v.immat,
+              creeLe: new Date().toISOString(), traitee: false
+            });
+          }
+        }
+      } catch(e) {}
+
+      // 2. Conso anormale (conso réelle 60j vs théorique)
+      if (v.conso && parseFloat(v.conso) > 0) {
+        const pleinsVeh = carburants.filter(c => c.vehId === v.id);
+        const J60 = 60 * 86400000;
+        const recents = pleinsVeh.filter(c => c.date && (nowMs - new Date(c.date).getTime()) < J60);
+        if (recents.length >= 3) {
+          const kmVals = recents.map(c => parseFloat(c.kmCompteur)).filter(k => !isNaN(k) && k > 0);
+          if (kmVals.length >= 2) {
+            const deltaKm = Math.max(...kmVals) - Math.min(...kmVals);
+            if (deltaKm > 100) {
+              const totalL = recents.reduce((s, c) => s + (parseFloat(c.litres) || 0), 0);
+              const consoReelle = (totalL / deltaKm) * 100;
+              const seuil = parseFloat(v.conso) * 1.3;
+              if (consoReelle > seuil) {
+                const key = 'parc_conso_excess_' + v.id;
+                causeActive.add(key);
+                if (!alertes.find(a => a.id === key)) {
+                  nouvelles.push({
+                    id: key, type: 'parc_conso_excess',
+                    message: `⛽ ${v.immat} — conso réelle ${consoReelle.toFixed(1)} L/100 (théo ${v.conso})`,
+                    vehId: v.id, vehImmat: v.immat,
+                    creeLe: new Date().toISOString(), traitee: false
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // Auto-clôture : parc_* non-traitées dont cause a disparu
+    let modif = false;
+    alertes.forEach(a => {
+      if (a.type && typeof a.type === 'string' && a.type.startsWith('parc_') && !a.traitee) {
+        if (!causeActive.has(a.id)) {
+          a.traitee = true;
+          a.autoCloseLe = new Date().toISOString();
+          modif = true;
+        }
+      }
+    });
+
+    if (nouvelles.length || modif) saveJSON('alertes_admin', [...alertes, ...nouvelles]);
+    if (typeof window.renderCentre === 'function') { try { window.renderCentre(); } catch(e){} }
+  }
+
+  /* ---------- 2. Fiche 360° Véhicule (réutilise drawer S20) ---------- */
+  function ensureDrawer() {
+    // Le drawer est créé par S20. Si S20 pas encore initialisé, on le crée ici.
+    if (document.getElementById('s20-drawer')) return;
+    const overlay = document.createElement('div');
+    overlay.className = 's20-drawer-overlay';
+    overlay.id = 's20-drawer-overlay';
+    overlay.onclick = () => window.fermerFiche360 && window.fermerFiche360();
+    const drawer = document.createElement('aside');
+    drawer.className = 's20-drawer';
+    drawer.id = 's20-drawer';
+    drawer.innerHTML = `
+      <div class="s20-drawer-header">
+        <h3 id="s20-drawer-title">Fiche</h3>
+        <button class="s20-drawer-close" onclick="window.fermerFiche360()" aria-label="Fermer">✕</button>
+      </div>
+      <div class="s20-drawer-content" id="s20-drawer-content"></div>`;
+    document.body.appendChild(overlay);
+    document.body.appendChild(drawer);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && drawer.classList.contains('open')) window.fermerFiche360 && window.fermerFiche360();
+    });
+    // Fallback fermerFiche360 si S20 absent
+    if (typeof window.fermerFiche360 !== 'function') {
+      window.fermerFiche360 = function() {
+        const d = document.getElementById('s20-drawer');
+        const o = document.getElementById('s20-drawer-overlay');
+        if (d) d.classList.remove('open');
+        if (o) o.classList.remove('open');
+      };
+    }
+  }
+
+  window.ouvrirFiche360Vehicule = function(vehId) {
+    const veh = loadJSON('vehicules').find(v => v.id === vehId);
+    if (!veh) { if (typeof window.afficherToast === 'function') window.afficherToast('Véhicule introuvable', 'error'); return; }
+    ensureDrawer();
+    const content = document.getElementById('s20-drawer-content');
+    const title = document.getElementById('s20-drawer-title');
+    if (title) title.textContent = `🚐 ${veh.immat}`;
+    if (content) content.innerHTML = renderFicheVehicule(veh);
+    document.getElementById('s20-drawer').classList.add('open');
+    document.getElementById('s20-drawer-overlay').classList.add('open');
+  };
+
+  function renderFicheVehicule(veh) {
+    const salaries = loadJSON('salaries');
+    const sal = veh.salId ? salaries.find(s => s.id === veh.salId) : null;
+    const carburants = loadJSON('carburant').filter(c => c.vehId === veh.id);
+    const entretiens = loadJSON('entretiens').filter(e => e.vehId === veh.id);
+    const inspections = loadJSON('inspections').filter(i => i.vehId === veh.id);
+    const livraisons = loadJSON('livraisons').filter(l => l.vehId === veh.id);
+    const alertes = loadJSON('alertes_admin').filter(a => a.vehId === veh.id && !a.traitee);
+
+    // KPIs
+    const now = Date.now();
+    const J30 = 30 * 86400000;
+    const carb30 = carburants.filter(c => c.date && (now - new Date(c.date).getTime()) < J30);
+    const totalCarb30 = carb30.reduce((s, c) => s + (parseFloat(c.total) || 0), 0);
+    const liv30 = livraisons.filter(l => l.date && (now - new Date(l.date).getTime()) < J30);
+
+    let pilotage = null, kmActuel = parseFloat(veh.km) || 0;
+    try {
+      if (typeof window.getPilotageEntretienVehicule === 'function') {
+        pilotage = window.getPilotageEntretienVehicule(veh);
+        if (pilotage) kmActuel = pilotage.kmActuel || kmActuel;
+      }
+    } catch(e) {}
+
+    // Conso réelle
+    let consoReelle = null;
+    const kmVals = carb30.map(c => parseFloat(c.kmCompteur)).filter(k => !isNaN(k) && k > 0);
+    if (kmVals.length >= 2) {
+      const delta = Math.max(...kmVals) - Math.min(...kmVals);
+      const totalL = carb30.reduce((s, c) => s + (parseFloat(c.litres) || 0), 0);
+      if (delta > 100) consoReelle = (totalL / delta) * 100;
+    }
+
+    // CT statut
+    let ctStatus = 'ok', ctLabel = 'OK';
+    if (veh.dateCT) {
+      const jours = Math.floor((new Date(veh.dateCT).getTime() - now) / 86400000);
+      if (jours < 0) { ctStatus = 'ko'; ctLabel = `Expiré ${Math.abs(jours)}j`; }
+      else if (jours <= 30) { ctStatus = 'warn'; ctLabel = `J-${jours}`; }
+      else ctLabel = `J+${jours}`;
+    } else { ctStatus = 'warn'; ctLabel = 'Non renseigné'; }
+
+    const initial = (veh.modele || veh.immat || '?').trim().charAt(0).toUpperCase();
+
+    return `
+      <div class="s20-fiche-id">
+        <div class="s20-fiche-avatar s21-fiche-avatar">${esc(initial)}</div>
+        <div>
+          <div class="s20-fiche-nom">${esc(veh.immat)} <span style="font-weight:400;color:var(--text-muted);font-size:.88rem">· ${esc(veh.modele || '')}</span></div>
+          <div class="s20-fiche-meta">${Math.round(kmActuel).toLocaleString('fr-FR')} km · ${esc(veh.modeAcquisition || 'achat')}${veh.dateAcquisition ? ' depuis ' + fmtDate(veh.dateAcquisition) : ''}</div>
+          ${sal
+            ? `<div class="s20-fiche-veh">👤 Affecté à <button type="button" class="s20-btn-360" onclick="window.ouvrirFiche360Salarie('${esc(sal.id)}')">${esc(sal.nom)}</button></div>`
+            : '<div class="s20-fiche-veh muted">Aucun salarié affecté</div>'}
+        </div>
+        <div class="s20-fiche-badges">
+          ${alertes.length ? `<span class="s20-badge-alert">⚠️ ${alertes.length} alerte${alertes.length > 1 ? 's' : ''}</span>` : '<span class="badge badge-dispo">✅ OK</span>'}
+        </div>
+      </div>
+
+      <div class="s20-kpi-row">
+        <div class="s20-kpi ${ctStatus === 'ko' ? 's20-kpi-alert' : ''}"><div class="s20-kpi-val" style="font-size:.95rem">${esc(ctLabel)}</div><div class="s20-kpi-lbl">Contrôle tech.</div></div>
+        <div class="s20-kpi"><div class="s20-kpi-val">${liv30.length}</div><div class="s20-kpi-lbl">Livr. 30j</div></div>
+        <div class="s20-kpi"><div class="s20-kpi-val">${Math.round(totalCarb30)} €</div><div class="s20-kpi-lbl">Carb. 30j</div></div>
+        <div class="s20-kpi ${consoReelle && veh.conso && consoReelle > parseFloat(veh.conso) * 1.3 ? 's20-kpi-alert' : ''}">
+          <div class="s20-kpi-val">${consoReelle !== null ? consoReelle.toFixed(1) + ' L' : '—'}</div>
+          <div class="s20-kpi-lbl">Conso 30j</div>
+        </div>
+      </div>
+
+      <div class="s20-tabs">
+        <button class="s20-tab active" data-tab="specs" onclick="window.s20SwitchTab && window.s20SwitchTab('specs')">📋 Specs</button>
+        <button class="s20-tab" data-tab="entretiens" onclick="window.s20SwitchTab && window.s20SwitchTab('entretiens')">🔧 Entretiens (${entretiens.length})</button>
+        <button class="s20-tab" data-tab="carburant" onclick="window.s20SwitchTab && window.s20SwitchTab('carburant')">⛽ Carburant (${carburants.length})</button>
+        <button class="s20-tab" data-tab="inspections" onclick="window.s20SwitchTab && window.s20SwitchTab('inspections')">🚗 Inspections (${inspections.length})</button>
+        <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab && window.s20SwitchTab('livraisons')">📦 Livraisons (${livraisons.length})</button>
+      </div>
+
+      <div class="s20-tab-content" id="s20-tab-specs">${renderSpecs(veh, pilotage)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-entretiens">${renderEntretiens(entretiens, pilotage)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-carburant">${renderCarburant(carburants, veh, consoReelle)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-inspections">${renderInspections(inspections)}</div>
+      <div class="s20-tab-content hidden" id="s20-tab-livraisons">${renderLivraisonsVeh(livraisons)}</div>
+
+      <div class="s20-fiche-actions">
+        <button class="btn-secondary" onclick="window.s21GoToCarburant('${esc(veh.id)}')">⛽ Carburant</button>
+        <button class="btn-secondary" onclick="window.s21GoToEntretiens('${esc(veh.id)}')">🔧 Entretiens</button>
+        <button class="btn-primary" onclick="window.s21GoToEdit('${esc(veh.id)}')">✏️ Modifier</button>
+      </div>`;
+  }
+
+  function renderSpecs(veh, pilotage) {
+    const specs = [
+      ['Immatriculation', esc(veh.immat || '—')],
+      ['Modèle', esc(veh.modele || '—')],
+      ['Kilométrage actuel', (parseFloat((pilotage && pilotage.kmActuel) || veh.km) || 0).toLocaleString('fr-FR') + ' km'],
+      ['Km initial', (parseFloat(veh.kmInitial) || 0).toLocaleString('fr-FR') + ' km'],
+      ['Conso théorique', veh.conso ? parseFloat(veh.conso).toFixed(1) + ' L/100' : 'Non définie'],
+      ['Contrôle technique', veh.dateCT ? fmtDate(veh.dateCT) : 'Non renseigné'],
+      ['Mode d’acquisition', esc(veh.modeAcquisition || 'achat')],
+      ['Date d’acquisition', veh.dateAcquisition ? fmtDate(veh.dateAcquisition) : '—'],
+      ['Intervalle entretien', veh.entretienIntervalKm ? veh.entretienIntervalKm + ' km' : '—'],
+      ['TVA carburant déductible', (veh.tvaCarbDeductible || 80) + ' %']
+    ];
+    const html = specs.map(([l, v]) => `<div class="s21-spec"><div class="s21-spec-lbl">${l}</div><div class="s21-spec-val">${v}</div></div>`).join('');
+
+    let pilotageHtml = '';
+    if (pilotage) {
+      if (pilotage.estEnRetard) pilotageHtml = `<div class="s20-conf-row s20-conf-ko"><span>🔧 Entretien</span><span>❌ En retard</span></div>`;
+      else if (pilotage.estProche) {
+        const detail = pilotage.kmRestants !== null && pilotage.kmRestants > 0
+          ? `reste ${Math.round(pilotage.kmRestants)} km`
+          : (pilotage.dateEcheance ? 'échéance ' + fmtDate(pilotage.dateEcheance) : '');
+        pilotageHtml = `<div class="s20-conf-row s20-conf-warn"><span>🔧 Entretien</span><span>⚠️ ${detail}</span></div>`;
+      } else pilotageHtml = `<div class="s20-conf-row s20-conf-ok"><span>🔧 Entretien</span><span>✅ À jour</span></div>`;
+    }
+
+    return `<div class="s21-spec-grid">${html}</div>${pilotageHtml ? '<div class="s20-conf-list">' + pilotageHtml + '</div>' : ''}`;
+  }
+
+  function renderEntretiens(entretiens, pilotage) {
+    if (!entretiens.length) return '<div class="s20-empty">Aucun entretien enregistré</div>';
+    const sorted = [...entretiens].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+    const prochain = pilotage && pilotage.prochainKm
+      ? `<div class="s21-link-card" style="border-left:3px solid ${pilotage.estEnRetard ? '#ef4444' : (pilotage.estProche ? '#f59e0b' : '#10b981')}">
+          <div class="s21-link-card-body">
+            <div class="s21-link-card-lbl">Prochain entretien</div>
+            <div class="s21-link-card-val">${pilotage.prochainKm.toLocaleString('fr-FR')} km${pilotage.dateEcheance ? ' · ' + fmtDate(pilotage.dateEcheance) : ''}</div>
+          </div>
+          <div style="font-size:.82rem;color:var(--text-muted)">${pilotage.kmRestants !== null && pilotage.kmRestants > 0 ? 'reste ' + Math.round(pilotage.kmRestants) + ' km' : (pilotage.estEnRetard ? 'En retard' : 'À jour')}</div>
+        </div>` : '';
+    return prochain + `<div style="overflow-x:auto"><table class="data-table" style="font-size:.82rem">
+      <thead><tr><th>Date</th><th>Type</th><th>Description</th><th style="text-align:right">Km</th><th style="text-align:right">TTC</th></tr></thead>
+      <tbody>${sorted.slice(0, 20).map(e => `<tr>
+        <td>${esc(e.date || '')}</td>
+        <td>${esc(e.type || '—')}</td>
+        <td>${esc((e.description || '').slice(0, 60))}</td>
+        <td style="text-align:right">${parseInt(e.km || 0, 10).toLocaleString('fr-FR')}</td>
+        <td style="text-align:right">${euro(e.ttc || 0)}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderCarburant(carburants, veh, consoReelle) {
+    if (!carburants.length) return '<div class="s20-empty">Aucun plein enregistré</div>';
+    const sorted = [...carburants].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 25);
+
+    let consoBar = '';
+    if (consoReelle !== null && veh.conso && parseFloat(veh.conso) > 0) {
+      const ratio = consoReelle / parseFloat(veh.conso);
+      const pct = Math.min(ratio * 100 / 1.5, 100);
+      const cl = ratio > 1.3 ? 's21-conso-ko' : (ratio > 1.1 ? 's21-conso-warn' : 's21-conso-ok');
+      consoBar = `
+        <div class="s21-link-card">
+          <div class="s21-link-card-body">
+            <div class="s21-link-card-lbl">Conso réelle vs théorique (30j)</div>
+            <div class="s21-link-card-val">${consoReelle.toFixed(1)} L / 100 <span style="color:var(--text-muted);font-weight:400">(théo ${parseFloat(veh.conso).toFixed(1)})</span></div>
+            <div class="s21-conso-bar"><div class="s21-conso-fill ${cl}" style="width:${pct}%"></div></div>
+          </div>
+        </div>`;
+    }
+
+    return consoBar + `<div style="overflow-x:auto"><table class="data-table" style="font-size:.82rem">
+      <thead><tr><th>Date</th><th>Type</th><th style="text-align:right">L</th><th style="text-align:right">€/L</th><th style="text-align:right">Total</th><th style="text-align:right">Km</th></tr></thead>
+      <tbody>${sorted.map(c => `<tr>
+        <td>${esc(c.date || '')}</td>
+        <td>${esc(c.typeCarburant || c.type || '—')}</td>
+        <td style="text-align:right">${(parseFloat(c.litres) || 0).toFixed(1)}</td>
+        <td style="text-align:right">${(parseFloat(c.prixLitre || c.prix) || 0).toFixed(3)}</td>
+        <td style="text-align:right">${euro(c.total || 0)}</td>
+        <td style="text-align:right">${c.kmCompteur ? parseInt(c.kmCompteur, 10).toLocaleString('fr-FR') : '—'}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  function renderInspections(inspections) {
+    if (!inspections.length) return '<div class="s20-empty">Aucune inspection</div>';
+    const sorted = [...inspections].sort((a, b) => new Date(b.creeLe || b.date || 0) - new Date(a.creeLe || a.date || 0)).slice(0, 8);
+    return sorted.map(i => {
+      const photos = (typeof window.getInspectionPhotoList === 'function') ? window.getInspectionPhotoList(i) : (i.photos || []);
+      const thumbSrc = (p) => (typeof window.getInspectionPhotoThumb === 'function') ? window.getInspectionPhotoThumb(p) : (typeof p === 'string' ? p : (p.thumbUrl || p.url || ''));
+      return `<div class="s21-link-card" style="flex-direction:column;align-items:stretch">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <strong>${esc(i.salNom || '—')}</strong>
+          <span style="font-size:.78rem;color:var(--text-muted)">${esc(i.date || '')}${i.km ? ' · ' + parseInt(i.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
+        </div>
+        ${photos.length ? `<div class="s21-photo-grid">${photos.slice(0, 6).map((p, idx) => `<img src="${esc(thumbSrc(p))}" onclick="window.voirPhotoAdmin && window.voirPhotoAdmin('${esc(i.id)}',${idx})" />`).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.82rem">Aucune photo</div>'}
+      </div>`;
+    }).join('');
+  }
+
+  function renderLivraisonsVeh(livraisons) {
+    if (!livraisons.length) return '<div class="s20-empty">Aucune livraison</div>';
+    const sorted = [...livraisons].sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0)).slice(0, 20);
+    return `<div style="overflow-x:auto"><table class="data-table" style="font-size:.82rem">
+      <thead><tr><th>Date</th><th>Client</th><th>Chauffeur</th><th>Statut</th><th style="text-align:right">HT</th></tr></thead>
+      <tbody>${sorted.map(l => `<tr>
+        <td>${esc(l.date || '')}</td>
+        <td>${esc(l.client || '—')}</td>
+        <td>${esc(l.chaufNom || '—')}</td>
+        <td>${esc(l.statut || '—')}</td>
+        <td style="text-align:right">${euro(l.prixHT || l.prix || 0)}</td>
+      </tr>`).join('')}</tbody></table></div>`;
+  }
+
+  /* ---------- 3. Navigation raccourcis ---------- */
+  window.s21GoToCarburant = function(vehId) {
+    if (typeof window.fermerFiche360 === 'function') window.fermerFiche360();
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('carburant');
+    setTimeout(() => {
+      const sel = document.getElementById('filtre-carb-vehicule');
+      if (sel) { sel.value = vehId; if (typeof window.afficherCarburant === 'function') window.afficherCarburant(); }
+    }, 200);
+  };
+
+  window.s21GoToEntretiens = function(vehId) {
+    if (typeof window.fermerFiche360 === 'function') window.fermerFiche360();
+    if (typeof window.naviguerVers === 'function') window.naviguerVers('entretiens');
+    setTimeout(() => {
+      const sel = document.getElementById('filtre-entr-vehicule');
+      if (sel) { sel.value = vehId; if (typeof window.afficherEntretiens === 'function') window.afficherEntretiens(); }
+    }, 200);
+  };
+
+  window.s21GoToEdit = function(vehId) {
+    if (typeof window.fermerFiche360 === 'function') window.fermerFiche360();
+    if (typeof window.ouvrirEditVehicule === 'function') window.ouvrirEditVehicule(vehId);
+    else if (typeof window.ouvrirFicheVehiculeDepuisTableau === 'function') window.ouvrirFicheVehiculeDepuisTableau(vehId);
+  };
+
+  /* ---------- 4. Hijack du clic immat dans tb-vehicules → 360° ---------- */
+  function injecterBoutons360() {
+    const tb = document.getElementById('tb-vehicules');
+    if (!tb) return;
+    tb.querySelectorAll('tr').forEach(tr => {
+      if (tr.__s21Hooked) return;
+      const btnOld = tr.querySelector('button.table-link-button[onclick*="ouvrirFicheVehiculeDepuisTableau"]');
+      if (!btnOld) return;
+      const m = btnOld.getAttribute('onclick').match(/ouvrirFicheVehiculeDepuisTableau\('([^']+)'\)/);
+      if (!m) return;
+      const vehId = m[1];
+      btnOld.setAttribute('onclick', `window.ouvrirFiche360Vehicule('${vehId}')`);
+      btnOld.setAttribute('title', 'Ouvrir la fiche 360°');
+      const oldBtn = tr.querySelector('.s21-btn-360');
+      if (oldBtn) oldBtn.remove();
+      tr.__s21Hooked = true;
+    });
+  }
+
+  function setupObservers() {
+    const el = document.getElementById('tb-vehicules');
+    if (!el || el.__s21Obs) return;
+    const obs = new MutationObserver(() => setTimeout(injecterBoutons360, 40));
+    obs.observe(el, { childList: true, subtree: true });
+    el.__s21Obs = obs;
+  }
+
+  /* ---------- Init ---------- */
+  function init() {
+    try { genererAlertesParc(); } catch(e) { console.warn('S21 alertes parc:', e); }
+    setTimeout(() => {
+      injecterBoutons360();
+      setupObservers();
+    }, 700);
+    setInterval(() => { try { genererAlertesParc(); } catch(e){} }, 5 * 60 * 1000);
+    setInterval(injecterBoutons360, 3000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1000);
+})();
+
+/* ==========================================================================
+   Sprint 22+23 — Fusion Équipe (+Planning) + Parc auto + Comptabilité
+   - Masque 16 anciens liens sidebar (5 Équipe + 4 Parc + 7 Finances)
+   - Injecte 3 nouveaux liens (rh / parc / compta) — Calendrier reste standalone
+   - Affiche un bandeau de sous-onglets quand on est dans une page du hub
+   - Config data-driven (HUBS) — aucune manipulation destructive du DOM, réversible
+   ========================================================================== */
+(function installS22Fusion(){
+  if (window.__s22Installed) return;
+  window.__s22Installed = true;
+
+  /* Config data-driven : 3 hubs (Équipe, Parc auto, Comptabilité) — Calendrier reste standalone */
+  const HUBS = {
+    rh: {
+      alias: 'rh',
+      title: '👥 Équipe',
+      icon: '👥',
+      label: 'Équipe',
+      section: 'equipe',
+      pages: ['salaries', 'heures', 'planning', 'messagerie', 'incidents'],
+      labels: { salaries: '👥 Salariés', heures: '⏱️ Heures & Km', planning: '📋 Planning', messagerie: '💬 Messagerie', incidents: '🚨 Incidents' },
+      defaultPage: 'salaries',
+      storageKey: 's22_last_rh',
+    },
+    parc: {
+      alias: 'parc',
+      title: '🚐 Parc auto',
+      icon: '🚐',
+      label: 'Parc auto',
+      section: 'flotte',
+      pages: ['vehicules', 'carburant', 'entretiens', 'inspections'],
+      labels: { vehicules: '🚐 Véhicules', carburant: '⛽ Carburant', entretiens: '🔧 Entretiens', inspections: '🚗 Inspections' },
+      defaultPage: 'vehicules',
+      storageKey: 's22_last_parc',
+    },
+    compta: {
+      alias: 'compta',
+      title: '💼 Comptabilité',
+      icon: '💼',
+      label: 'Comptabilité',
+      section: 'finances',
+      pages: ['charges', 'facturation', 'encaissements', 'rentabilite', 'statistiques', 'tva', 'budget'],
+      labels: {
+        charges: '💸 Charges',
+        facturation: '📄 Facturation',
+        encaissements: '💳 Encaissements',
+        rentabilite: '💰 Rentabilité',
+        statistiques: '📈 Statistiques',
+        tva: '🧾 TVA',
+        budget: '📂 Budget',
+      },
+      defaultPage: 'facturation',
+      storageKey: 's22_last_compta',
+    },
+  };
+  const HUB_ALIASES = Object.keys(HUBS);
+  const ALL_SUB_PAGES = HUB_ALIASES.flatMap(a => HUBS[a].pages);
+
+  function hubFromPage(page) {
+    if (!page) return null;
+    for (const a of HUB_ALIASES) if (HUBS[a].pages.includes(page)) return a;
+    return null;
+  }
+
+  /* 1. Masquer tous les anciens liens sidebar (display:none — réversible) */
+  function masquerAnciensLiens() {
+    ALL_SUB_PAGES.forEach(p => {
+      document.querySelectorAll('.nav-item[data-page="' + p + '"]').forEach(el => {
+        el.style.display = 'none';
+        el.dataset.s22Hidden = '1';
+      });
+    });
+  }
+
+  /* 2. Injecter les nouveaux liens sidebar (1 par hub) */
+  function injecterNouveauxLiens() {
+    HUB_ALIASES.forEach(alias => {
+      const hub = HUBS[alias];
+      const container = document.querySelector('[data-section="' + hub.section + '"] .nav-section-content');
+      if (!container || container.querySelector('[data-page="' + alias + '"]')) return;
+      const a = document.createElement('a');
+      a.href = '#'; a.className = 'nav-item'; a.dataset.page = alias;
+      a.innerHTML = '<span class="nav-icon">' + hub.icon + '</span><span class="nav-label">' + hub.label + '</span>';
+      a.addEventListener('click', (e) => { e.preventDefault(); window.naviguerVers(alias); });
+      container.insertBefore(a, container.firstChild);
+    });
+  }
+
+  /* 3. Bandeau de sous-onglets */
+  function ensureBandeau() {
+    if (document.getElementById('s22-bandeau')) return;
+    const main = document.getElementById('mainContent') || document.querySelector('.main-content');
+    if (!main) return;
+    const bandeau = document.createElement('div');
+    bandeau.id = 's22-bandeau';
+    bandeau.className = 's22-bandeau';
+    bandeau.style.display = 'none';
+    const topbar = main.querySelector('.topbar');
+    if (topbar && topbar.parentNode === main) {
+      topbar.insertAdjacentElement('afterend', bandeau);
+    } else {
+      main.insertBefore(bandeau, main.firstChild);
+    }
+  }
+
+  function renderBandeau(hubAlias, currentPage) {
+    const bandeau = document.getElementById('s22-bandeau');
+    if (!bandeau) return;
+    if (!hubAlias) { bandeau.style.display = 'none'; bandeau.innerHTML = ''; return; }
+    const hub = HUBS[hubAlias];
+    if (!hub) return;
+    bandeau.innerHTML = `
+      <div class="s22-bandeau-title">${hub.title}</div>
+      <div class="s22-bandeau-tabs">
+        ${hub.pages.map(p => `<button type="button" class="s22-bandeau-tab ${p === currentPage ? 'active' : ''}" data-page="${p}">${hub.labels[p]}</button>`).join('')}
+      </div>`;
+    bandeau.querySelectorAll('.s22-bandeau-tab').forEach(b => {
+      b.onclick = () => window.naviguerVers(b.dataset.page);
+    });
+    bandeau.style.display = '';
+  }
+
+  /* 4. Mise à jour du lien actif sidebar (hub surligné au lieu de l'ancien) */
+  function majLiensActifs(hubAlias) {
+    document.querySelectorAll('.nav-item').forEach(el => {
+      const p = el.dataset.page;
+      if (HUB_ALIASES.includes(p)) el.classList.toggle('active', p === hubAlias);
+    });
+  }
+
+  /* 5. Hook naviguerVers pour gérer les alias hub + bandeau auto */
+  function hookNav() {
+    const orig = window.naviguerVers;
+    if (!orig || orig.__s22Hooked) return;
+    const wrapped = function(page) {
+      // Alias hub → restaure dernière sous-page visitée
+      if (HUB_ALIASES.includes(page)) {
+        const hub = HUBS[page];
+        const last = localStorage.getItem(hub.storageKey) || hub.defaultPage;
+        const ret = orig.call(this, last);
+        setTimeout(() => { renderBandeau(page, last); majLiensActifs(page); }, 50);
+        return ret;
+      }
+      const ret = orig.apply(this, arguments);
+      const hubAlias = hubFromPage(page);
+      setTimeout(() => {
+        if (hubAlias) {
+          localStorage.setItem(HUBS[hubAlias].storageKey, page);
+          renderBandeau(hubAlias, page);
+          majLiensActifs(hubAlias);
+        } else {
+          renderBandeau(null);
+          majLiensActifs(null);
+        }
+      }, 50);
+      return ret;
+    };
+    wrapped.__s22Hooked = true;
+    window.naviguerVers = wrapped;
+  }
+
+  /* Expose helper pour désactiver S22 en cas de souci */
+  window.s22Desactiver = function() {
+    document.querySelectorAll('.nav-item[data-s22-hidden="1"]').forEach(el => { el.style.display = ''; delete el.dataset.s22Hidden; });
+    HUB_ALIASES.forEach(a => {
+      const el = document.querySelector('.nav-item[data-page="' + a + '"]');
+      if (el) el.remove();
+    });
+    const b = document.getElementById('s22-bandeau'); if (b) b.remove();
+    if (typeof afficherToast === 'function') afficherToast('S22 désactivée — rechargez la page', 'success');
+  };
+
+  function init() {
+    masquerAnciensLiens();
+    injecterNouveauxLiens();
+    ensureBandeau();
+    hookNav();
+    // Si déjà sur une sous-page au load → afficher bandeau
+    const pageActiveEl = document.querySelector('.page.active') || document.querySelector('.page[style*="display: block"]');
+    if (pageActiveEl) {
+      const id = (pageActiveEl.id || '').replace('page-', '');
+      const hubAlias = hubFromPage(id);
+      if (hubAlias) { renderBandeau(hubAlias, id); majLiensActifs(hubAlias); }
+    }
+    // Re-appliquer en cas d'injection tardive d'items nav
+    setInterval(() => { masquerAnciensLiens(); injecterNouveauxLiens(); }, 5000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1100);
+})();
+
+/* ==========================================================================
+   Sprint 24 — Automatisations 16.1 + raccourcis clavier
+   1. Rappel J-5 automatique sur échéances (crée alertes admin)
+   2. Escalade relances niv 0→1→2→3 selon délai écoulé
+   3. Clôture auto facture quand solde = 0 (100% payé)
+   4. Décalage férié/weekend : fonction ajusterEcheance exposée
+   5. Auto-facture à clôture livraison (si option activée dans Paramètres)
+   6. Raccourcis clavier : Enter, Esc, N, E, Ctrl+S
+   ========================================================================== */
+(function installS24(){
+  if (window.__s24Installed) return;
+  window.__s24Installed = true;
+
+  const LS = {
+    factures: 'factures_emises',
+    livraisons: 'livraisons',
+    paiements: 'paiements',
+    avoirs: 'avoirs_emis',
+    clients: 'clients',
+    relances: 'relances_log',
+    alertes: 'alertes_admin',
+    params: 'params_entreprise',
+  };
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
+  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+  const audit = (a, d) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(a, d); };
+  const todayISO = () => new Date().toLocalISODate();
+  const parseD = (s) => { if (!s) return null; const d = new Date(s); return isNaN(d) ? null : d; };
+  const daysBetween = (a, b) => Math.floor((b - a) / 86400000);
+  const genId = () => 's24_' + (typeof window.genId === 'function' ? window.genId() : Date.now()+'_'+Math.random().toString(36).slice(2,8));
+
+  /* ----- Jours fériés FR (Meeus/Pâques) ----- */
+  function paques(y) {
+    const a = y%19, b = Math.floor(y/100), c = y%100, d = Math.floor(b/4), e = b%4;
+    const f = Math.floor((b+8)/25), g = Math.floor((b-f+1)/3);
+    const h = (19*a+b-d-g+15)%30, i = Math.floor(c/4), k = c%4;
+    const L = (32+2*e+2*i-h-k)%7, m = Math.floor((a+11*h+22*L)/451);
+    return new Date(y, Math.floor((h+L-7*m+114)/31)-1, ((h+L-7*m+114)%31)+1);
+  }
+  const _fcache = {};
+  function feriesY(y) {
+    if (_fcache[y]) return _fcache[y];
+    const p = paques(y);
+    const add = (d, n) => ({ d: new Date(d).toLocalISODate(), n });
+    const lundiPq = new Date(p); lundiPq.setDate(p.getDate()+1);
+    const ascension = new Date(p); ascension.setDate(p.getDate()+39);
+    const lundiPent = new Date(p); lundiPent.setDate(p.getDate()+50);
+    const list = [
+      add(new Date(y,0,1), "Jour de l'An"),
+      add(lundiPq, 'Lundi de Pâques'),
+      add(new Date(y,4,1), 'Fête du Travail'),
+      add(new Date(y,4,8), 'Victoire 1945'),
+      add(ascension, 'Ascension'),
+      add(lundiPent, 'Lundi de Pentecôte'),
+      add(new Date(y,6,14), 'Fête nationale'),
+      add(new Date(y,7,15), 'Assomption'),
+      add(new Date(y,10,1), 'Toussaint'),
+      add(new Date(y,10,11), 'Armistice 1918'),
+      add(new Date(y,11,25), 'Noël'),
+    ];
+    _fcache[y] = list;
+    return list;
+  }
+  function estFerie(isoDate) {
+    if (!isoDate) return null;
+    const d = new Date(isoDate);
+    return feriesY(d.getFullYear()).find(f => f.d === isoDate.slice(0,10)) || null;
+  }
+  function estWeekend(isoDate) {
+    const d = new Date(isoDate);
+    const j = d.getDay();
+    return j === 0 || j === 6;
+  }
+
+  /* ----- API exposée : ajuster une échéance (reporte au prochain jour ouvré) ----- */
+  window.ajusterEcheance = function(isoDate) {
+    if (!isoDate) return isoDate;
+    let d = new Date(isoDate + 'T00:00:00');
+    let safety = 0;
+    while (safety < 10) {
+      const iso = d.toLocalISODate();
+      if (!estFerie(iso) && !estWeekend(iso)) return iso;
+      d.setDate(d.getDate() + 1);
+      safety++;
+    }
+    return isoDate;
+  };
+
+  /* ----- Helpers factures ----- */
+  function soldeFacture(f) {
+    if (!f || f.statut === 'annulée') return 0;
+    const pays = load(LS.paiements).filter(p => p.factureId === f.id && (p.sens==='in'||!p.sens)).reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
+    const avs = load(LS.avoirs).filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
+    return Math.max(0, (parseFloat(f.montantTTC||f.totalTTC||0)||0) - pays - avs);
+  }
+  function delaiPaiement(f) {
+    const livs = load(LS.livraisons);
+    const liv = livs.find(l => l.id === f.livId);
+    const clients = load(LS.clients);
+    let c = null;
+    if (liv?.clientId) c = clients.find(x => x.id === liv.clientId);
+    if (!c) c = clients.find(x => (x.nom||'').trim().toLowerCase() === (liv?.client||f.client||'').trim().toLowerCase());
+    if (c && parseInt(c.delaiPaiementJours, 10) > 0) return parseInt(c.delaiPaiementJours, 10);
+    return parseInt(localStorage.getItem('relance_delai'), 10) || 30;
+  }
+  function echeanceOf(f) {
+    const base = f.dateEcheance || f.dateLivraison || f.dateFacture;
+    if (!base) return null;
+    const d = new Date(base + 'T00:00:00');
+    if (!f.dateEcheance) d.setDate(d.getDate() + delaiPaiement(f));
+    return d;
+  }
+
+  /* ----- 1. Rappels J-5 auto → alertes admin ----- */
+  function autoRappelsJ5() {
+    if (!getOption('auto_rappel_j5', true)) return;
+    const auj = new Date();
+    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
+    const alertes = load(LS.alertes);
+    let modif = false;
+    factures.forEach(f => {
+      const solde = soldeFacture(f);
+      if (solde <= 0.01) return;
+      const ech = echeanceOf(f); if (!ech) return;
+      const jours = daysBetween(auj, ech);
+      if (jours > 5 || jours < 0) return;
+      const existing = alertes.find(a => a.type === 'fact_echeance_j5' && a.refId === f.id && !a.traitee);
+      if (existing) return;
+      alertes.push({
+        id: genId(), type: 'fact_echeance_j5', refId: f.id,
+        titre: '⏰ Facture ' + (f.numero||'—') + ' à échéance J-' + jours,
+        message: 'Client ' + (f.client||'—') + ' · Solde dû : ' + (solde.toFixed(2)) + ' € · Échéance ' + ech.toLocalISODate(),
+        gravite: jours <= 1 ? 'high' : (jours <= 3 ? 'medium' : 'low'),
+        traitee: false, dateCreation: new Date().toISOString(), auto: true
+      });
+      modif = true;
+    });
+    if (modif) save(LS.alertes, alertes);
+  }
+
+  /* ----- 2. Escalade relances niv 0→1→2→3 ----- */
+  function autoEscaladeRelances() {
+    if (!getOption('auto_escalade_relances', true)) return;
+    const delais = {
+      0: parseInt(localStorage.getItem('escalade_j0_niv1'), 10) || 7,   // J+7 après échéance → niv 1
+      1: parseInt(localStorage.getItem('escalade_niv1_niv2'), 10) || 7,  // +7j → niv 2
+      2: parseInt(localStorage.getItem('escalade_niv2_niv3'), 10) || 10, // +10j → niv 3
+      3: parseInt(localStorage.getItem('escalade_niv3_conten'), 10) || 15, // +15j → contentieux
+    };
+    const auj = new Date();
+    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
+    const relances = load(LS.relances);
+    const alertes = load(LS.alertes);
+    let modif = false;
+    factures.forEach(f => {
+      const solde = soldeFacture(f);
+      if (solde <= 0.01) return;
+      const ech = echeanceOf(f); if (!ech || ech > auj) return;
+      const rf = relances.filter(r => r.factureId === f.id).sort((a,b) => new Date(b.date) - new Date(a.date));
+      const niveauActuel = rf.length ? Math.max(...rf.map(r => parseInt(r.niveau, 10)||0)) : -1;
+      const prochain = niveauActuel + 1;
+      if (prochain > 4) return;
+      const dateReference = niveauActuel < 0 ? ech : new Date(rf[0].date);
+      const seuil = delais[Math.max(0, niveauActuel)] || 7;
+      const joursDepuis = daysBetween(dateReference, auj);
+      if (joursDepuis < seuil) return;
+      // Crée alerte "escalade à lancer"
+      const alertExist = alertes.find(a => a.type === 'relance_escalade' && a.refId === f.id && a.niveauCible === prochain && !a.traitee);
+      if (!alertExist) {
+        alertes.push({
+          id: genId(), type: 'relance_escalade', refId: f.id, niveauCible: prochain,
+          titre: '🔔 Relance niv. ' + prochain + ' à lancer — ' + (f.numero||'—'),
+          message: 'Client ' + (f.client||'—') + ' · Solde ' + solde.toFixed(2) + ' € · ' + joursDepuis + 'j depuis ' + (niveauActuel<0?'échéance':'niv. '+niveauActuel),
+          gravite: prochain >= 3 ? 'high' : 'medium',
+          traitee: false, dateCreation: new Date().toISOString(), auto: true
+        });
+        modif = true;
+      }
+    });
+    if (modif) save(LS.alertes, alertes);
+  }
+
+  /* ----- 3. Clôture auto facture si solde 0 ----- */
+  function autoClotureFactures() {
+    if (!getOption('auto_cloture_factures', true)) return;
+    const factures = load(LS.factures);
+    let modif = false;
+    factures.forEach(f => {
+      if (f.statut === 'annulée' || f.statut === 'payée' || f.statut === 'payee') return;
+      const solde = soldeFacture(f);
+      if (solde <= 0.01) {
+        f.statut = 'payée';
+        f.datePaiementComplet = f.datePaiementComplet || todayISO();
+        modif = true;
+        audit('Clôture auto facture', (f.numero||'—') + ' — solde atteint 0');
+      }
+    });
+    if (modif) save(LS.factures, factures);
+  }
+
+  /* ----- 4. Auto-facture à clôture livraison ----- */
+  function hookLivraisonStatut() {
+    if (typeof window.genererFactureLivraison !== 'function') return;
+    if (window.__s24HookedLiv) return;
+    window.__s24HookedLiv = true;
+    // Observer les changements de livraison statut='livre'
+    setInterval(() => {
+      if (!getOption('auto_facture_livraison', false)) return;
+      const livs = load(LS.livraisons);
+      const factures = load(LS.factures);
+      let compteur = 0;
+      livs.forEach(l => {
+        if (l.statut !== 'livre' && l.statut !== 'livrée' && l.statut !== 'termine') return;
+        if (l.factureId || factures.find(f => f.livId === l.id && f.statut !== 'annulée')) return;
+        if (l.__s24AutoFactAttempted) return;
+        try {
+          window.genererFactureLivraison(l.id);
+          l.__s24AutoFactAttempted = true;
+          compteur++;
+        } catch(e) {}
+      });
+      if (compteur) {
+        save(LS.livraisons, livs);
+        toast('📄 ' + compteur + ' facture(s) auto-générée(s) depuis livraisons clôturées', 'success');
+      }
+    }, 60000);
+  }
+
+  /* ----- Options Paramètres (lecture) ----- */
+  function getOption(key, def) {
+    const params = loadObj(LS.params);
+    const optsS24 = params.s24 || {};
+    return (optsS24[key] !== undefined) ? !!optsS24[key] : def;
+  }
+  window.s24GetOption = getOption;
+  window.s24SetOption = function(key, val) {
+    const params = loadObj(LS.params);
+    params.s24 = params.s24 || {};
+    params.s24[key] = val;
+    localStorage.setItem(LS.params, JSON.stringify(params));
+  };
+
+  /* ----- 6. Raccourcis clavier globaux ----- */
+  function setupKeyboardShortcuts() {
+    if (window.__s24KeysBound) return;
+    window.__s24KeysBound = true;
+
+    document.addEventListener('keydown', function(e) {
+      const tgt = e.target;
+      const tag = (tgt.tagName||'').toUpperCase();
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tgt.isContentEditable;
+      const openModal = findOpenModal();
+
+      // Esc : ferme modal visible (ou drawer)
+      if (e.key === 'Escape') {
+        if (openModal) { e.preventDefault(); closeModal(openModal); return; }
+        const drawer = document.querySelector('.s20-drawer.open, .s21-drawer.open, .s25-drawer.open');
+        if (drawer) { e.preventDefault(); drawer.classList.remove('open'); return; }
+      }
+
+      // Enter dans input (hors textarea) d'un modal → submit
+      if (e.key === 'Enter' && tag === 'INPUT' && tgt.type !== 'button' && tgt.type !== 'submit' && openModal && !e.shiftKey) {
+        // Si le modal contient un bouton primary visible → clic
+        const btnPrim = openModal.querySelector('.btn-primary:not([disabled])');
+        if (btnPrim) { e.preventDefault(); btnPrim.click(); }
+      }
+
+      // Ignorer raccourcis globaux si focus input
+      if (isInput) return;
+      // Ctrl+S : sauvegarder export (déclenche bouton Export CSV de la page si présent)
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        const exportBtn = document.querySelector('.page.active .btn-secondary[onclick*="export"], .page[style*="block"] .btn-secondary[onclick*="export"]');
+        if (exportBtn) { e.preventDefault(); exportBtn.click(); toast('💾 Export lancé (Ctrl+S)'); }
+        return;
+      }
+      // N : Nouveau (contextuel — cherche bouton + sur la page active)
+      if (e.key.toLowerCase() === 'n' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const pageActive = document.querySelector('.page.active, .page[style*="block"]');
+        if (!pageActive) return;
+        const btnNouv = pageActive.querySelector('.btn-primary[onclick*="ouvrir"], .btn-primary[onclick*="nouveau"], .btn-primary[onclick*="Nouveau"]');
+        if (btnNouv) { e.preventDefault(); btnNouv.click(); }
+      }
+      // E : Éditer sélection (focus sur première ligne table, ouvre édition si bouton)
+      if (e.key.toLowerCase() === 'e' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const pageActive = document.querySelector('.page.active, .page[style*="block"]');
+        if (!pageActive) return;
+        const rowSel = pageActive.querySelector('tr.selected, tr:focus');
+        const btnEdit = rowSel?.querySelector('.btn-edit, button[onclick*="modifier"], button[onclick*="editer"]');
+        if (btnEdit) { e.preventDefault(); btnEdit.click(); }
+      }
+    });
+  }
+  function findOpenModal() {
+    return document.querySelector('.modal[style*="block"], .modal.open, #s15-modal-info.open');
+  }
+  function closeModal(m) {
+    if (m.id === 's15-modal-info') { m.classList.remove('open'); return; }
+    if (typeof window.closeModal === 'function') window.closeModal(m.id);
+    else { m.style.display = 'none'; m.classList.remove('open'); }
+  }
+
+  /* ----- Cron tick ----- */
+  function cronTick() {
+    try { autoRappelsJ5(); } catch(e){ console.warn('S24 rappelsJ5', e); }
+    try { autoEscaladeRelances(); } catch(e){ console.warn('S24 escalade', e); }
+    try { autoClotureFactures(); } catch(e){ console.warn('S24 cloture', e); }
+  }
+  window.s24CronTick = cronTick;
+
+  /* ----- UI Paramètres : injecter section Automatisations ----- */
+  function injectParamsUI() {
+    const pageParams = document.getElementById('page-parametres');
+    if (!pageParams) return;
+    if (pageParams.querySelector('#s24-params-section')) return;
+    const container = pageParams.querySelector('.settings-content') || pageParams;
+    const section = document.createElement('div');
+    section.id = 's24-params-section';
+    section.className = 'settings-section';
+    section.innerHTML = `
+      <h2 style="margin-top:32px">⚙️ Automatisations</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Règles qui tournent en arrière-plan. Désactivez une règle pour reprendre la main manuellement.</p>
+      <div class="s24-toggles">
+        ${renderToggle('auto_rappel_j5', '⏰ Rappel J-5 sur échéances', 'Crée une alerte admin quand une facture arrive à échéance dans 5 jours', true)}
+        ${renderToggle('auto_escalade_relances', '🔔 Escalade relances automatique', 'Propose la relance niv. suivant selon délais écoulés (niv 0→1 : J+7, niv 1→2 : J+7, niv 2→3 : J+10, niv 3→contentieux : J+15)', true)}
+        ${renderToggle('auto_cloture_factures', '✅ Clôture auto facture payée', 'Passe le statut à "payée" dès que le solde atteint 0 €', true)}
+        ${renderToggle('auto_facture_livraison', '📄 Facture auto à clôture livraison', 'Génère une facture dès qu une livraison passe en statut livré', false)}
+      </div>
+      <h3 style="margin-top:24px">📅 Décalage férié / weekend</h3>
+      <p style="color:var(--text-muted);font-size:.88rem">Les nouvelles échéances créées sont automatiquement repoussées au prochain jour ouvré (hors weekends et jours fériés FR).</p>
+      <h3 style="margin-top:24px">⌨️ Raccourcis clavier</h3>
+      <div class="s24-keyboard-help">
+        <div><kbd>Enter</kbd> dans un champ → valider le modal</div>
+        <div><kbd>Esc</kbd> → fermer modal / drawer</div>
+        <div><kbd>N</kbd> → Nouveau (contextuel)</div>
+        <div><kbd>E</kbd> → Éditer ligne sélectionnée</div>
+        <div><kbd>Ctrl</kbd>+<kbd>S</kbd> → Exporter page active</div>
+        <div><kbd>Ctrl</kbd>+<kbd>K</kbd> → Palette de recherche</div>
+      </div>
+    `;
+    container.appendChild(section);
+    section.querySelectorAll('input[type=checkbox][data-s24-key]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        window.s24SetOption(cb.dataset.s24Key, cb.checked);
+        toast(cb.checked ? '✅ Activé : '+cb.dataset.s24Label : '⏸️ Désactivé : '+cb.dataset.s24Label, 'success');
+        if (cb.dataset.s24Key === 'auto_facture_livraison' && cb.checked) hookLivraisonStatut();
+      });
+    });
+  }
+  function renderToggle(key, label, desc, def) {
+    const val = getOption(key, def);
+    return `<label class="s24-toggle">
+      <input type="checkbox" data-s24-key="${key}" data-s24-label="${label}" ${val?'checked':''} />
+      <span class="s24-toggle-switch"></span>
+      <span class="s24-toggle-body"><strong>${label}</strong><br><small>${desc}</small></span>
+    </label>`;
+  }
+
+  function init() {
+    setupKeyboardShortcuts();
+    hookLivraisonStatut();
+    setTimeout(cronTick, 3500);
+    setInterval(cronTick, 5 * 60 * 1000);
+    setTimeout(injectParamsUI, 800);
+    setInterval(injectParamsUI, 4000); // re-injecte si params re-rendus
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1300);
+})();
+
+/* ==========================================================================
+   Sprint 25 — Drawer 360° Client & Fournisseur + Règles d'alertes perso
+   - ouvrirFiche360Client(id) / ouvrirFiche360Fournisseur(id)
+   - Hijack clic sur nom dans tables → drawer 360°
+   - 5 onglets : Vue, Factures/Commandes, Livraisons/Charges, Paiements, Historique
+   - Règles alertes perso : UI Paramètres + évaluation dans cron S24
+   ========================================================================== */
+(function installS25(){
+  if (window.__s25Installed) return;
+  window.__s25Installed = true;
+
+  const LS = {
+    clients: 'clients', fournisseurs: 'fournisseurs', livraisons: 'livraisons',
+    factures: 'factures_emises', avoirs: 'avoirs_emis', paiements: 'paiements',
+    relances: 'relances_log', charges: 'charges', alertes: 'alertes_admin',
+    rules: 's25_alert_rules',
+  };
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const esc = window.escapeHtml;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
+  const genId = () => 's25_' + (typeof window.genId === 'function' ? window.genId() : Date.now()+'_'+Math.random().toString(36).slice(2,8));
+  const toast = (m,t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+
+  function initials(nom) {
+    return (nom||'?').split(/\s+/).filter(Boolean).slice(0,2).map(w => w[0].toUpperCase()).join('') || '?';
+  }
+
+  /* ---------- Drawer infrastructure ---------- */
+  function ensureDrawer() {
+    if (document.getElementById('s25-drawer')) return;
+    const d = document.createElement('div');
+    d.id = 's25-drawer-overlay'; d.className = 's25-drawer-overlay';
+    d.innerHTML = '<div id="s25-drawer" class="s25-drawer"></div>';
+    document.body.appendChild(d);
+    d.addEventListener('click', e => { if (e.target === d) fermerDrawer(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && d.classList.contains('open')) fermerDrawer(); });
+  }
+  function fermerDrawer() {
+    const o = document.getElementById('s25-drawer-overlay'); if (o) o.classList.remove('open');
+  }
+  window.s25FermerDrawer = fermerDrawer;
+
+  function renderDrawer(html) {
+    ensureDrawer();
+    const o = document.getElementById('s25-drawer-overlay');
+    const d = document.getElementById('s25-drawer');
+    d.innerHTML = html;
+    o.classList.add('open');
+  }
+
+  /* ---------- Calculs Client ---------- */
+  function factClient(c) {
+    const livs = load(LS.livraisons);
+    return load(LS.factures).filter(f => {
+      if (f.statut === 'annulée') return false;
+      if (f.clientId === c.id) return true;
+      const liv = livs.find(l => l.id === f.livId);
+      if (liv?.clientId === c.id) return true;
+      const nom = (c.nom||'').trim().toLowerCase();
+      return (f.client||'').trim().toLowerCase() === nom || (liv?.client||'').trim().toLowerCase() === nom;
+    });
+  }
+  function livsClient(c) {
+    return load(LS.livraisons).filter(l => {
+      if (l.clientId === c.id) return true;
+      return (l.client||'').trim().toLowerCase() === (c.nom||'').trim().toLowerCase();
+    });
+  }
+  function paiementsClient(c) {
+    const fs = factClient(c).map(f => f.id);
+    return load(LS.paiements).filter(p => fs.includes(p.factureId));
+  }
+  function relancesClient(c) {
+    const fs = factClient(c).map(f => f.id);
+    return load(LS.relances).filter(r => fs.includes(r.factureId));
+  }
+  function soldeFact(f) {
+    if (f.statut === 'annulée') return 0;
+    const pays = load(LS.paiements).filter(p => p.factureId === f.id && (p.sens==='in'||!p.sens)).reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
+    const avs = load(LS.avoirs).filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
+    return Math.max(0, (parseFloat(f.montantTTC||f.totalTTC||0)||0) - pays - avs);
+  }
+
+  /* ---------- Fiche 360° Client ---------- */
+  window.ouvrirFiche360Client = function(clientId) {
+    const c = load(LS.clients).find(x => x.id === clientId);
+    if (!c) { toast('Client introuvable', 'error'); return; }
+    const factures = factClient(c);
+    const livs = livsClient(c);
+    const paiements = paiementsClient(c);
+    const relances = relancesClient(c);
+    const totalFact = factures.reduce((s,f) => s + (parseFloat(f.montantTTC||f.totalTTC)||0), 0);
+    const totalPaye = paiements.reduce((s,p) => s + (parseFloat(p.montant)||0), 0);
+    const solde = factures.reduce((s,f) => s + soldeFact(f), 0);
+    const ca12 = (() => {
+      const il = new Date(); il.setMonth(il.getMonth()-12);
+      return factures.filter(f => new Date(f.dateFacture||f.date||0) >= il).reduce((s,f) => s + (parseFloat(f.montantTTC||f.totalTTC)||0), 0);
+    })();
+    const retardJ = factures.filter(f => {
+      if (soldeFact(f) <= 0.01) return false;
+      const base = f.dateEcheance || f.dateLivraison || f.dateFacture;
+      if (!base) return false;
+      return new Date(base) < new Date();
+    }).length;
+
+    const tabs = [
+      { k: 'vue', label: '📊 Vue d\'ensemble' },
+      { k: 'fact', label: '📄 Factures ('+factures.length+')' },
+      { k: 'livs', label: '📦 Livraisons ('+livs.length+')' },
+      { k: 'pay', label: '💳 Paiements ('+paiements.length+')' },
+      { k: 'com', label: '📨 Communications ('+relances.length+')' },
+    ];
+
+    const html = `
+      <div class="s25-drawer-head">
+        <button class="s25-close" onclick="window.s25FermerDrawer()" aria-label="Fermer">✕</button>
+        <div class="s25-avatar">${esc(initials(c.nom))}</div>
+        <div class="s25-head-body">
+          <div class="s25-head-title">👤 ${esc(c.nom||'—')}</div>
+          <div class="s25-head-meta">
+            ${c.categorie ? '<span class="s25-badge">'+esc(c.categorie)+'</span>' : ''}
+            ${c.email ? '<span>✉️ <a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a></span>' : ''}
+            ${c.tel ? '<span>📞 '+esc(c.tel)+'</span>' : ''}
+            ${c.siren ? '<span>🏢 SIREN '+esc(c.siren)+'</span>' : ''}
+          </div>
+        </div>
+        <div class="s25-head-actions">
+          <button class="btn-secondary" onclick="ouvrirEditClient('${c.id}');setTimeout(()=>window.s25FermerDrawer(),100)">✏️ Modifier</button>
+        </div>
+      </div>
+      <div class="s25-kpi-row">
+        <div class="s25-kpi"><div class="kpi-label">CA total</div><div class="kpi-val">${fmtEur(totalFact)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">CA 12 mois</div><div class="kpi-val">${fmtEur(ca12)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">Encaissé</div><div class="kpi-val" style="color:#22c55e">${fmtEur(totalPaye)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">Solde dû</div><div class="kpi-val" style="color:${solde>0?'#ef4444':'inherit'}">${fmtEur(solde)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">Fact. en retard</div><div class="kpi-val" style="color:${retardJ>0?'#f97316':'inherit'}">${retardJ}</div></div>
+      </div>
+      <div class="s25-tabs">
+        ${tabs.map(t => '<button class="s25-tab" data-tab="'+t.k+'">'+t.label+'</button>').join('')}
+      </div>
+      <div class="s25-tab-content">
+        ${renderVueClient(c, factures, livs, paiements, relances)}
+        ${renderFactTab(factures)}
+        ${renderLivsTab(livs)}
+        ${renderPayTab(paiements)}
+        ${renderComTab(relances, c)}
+      </div>`;
+    renderDrawer(html);
+    wireTabs();
+  };
+
+  function renderVueClient(c, factures, livs, paiements, relances) {
+    const lastLiv = livs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
+    const lastFact = factures.sort((a,b) => new Date(b.dateFacture||0) - new Date(a.dateFacture||0))[0];
+    const lastPay = paiements.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
+    const lastRel = relances.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
+    const delai = parseInt(c.delaiPaiementJours, 10) || 30;
+    return `
+      <div class="s25-tab-panel active" data-panel="vue">
+        <div class="s25-section">
+          <h4>📅 Dernières interactions</h4>
+          <div class="s25-timeline">
+            ${lastLiv ? '<div class="s25-tl-item">📦 <strong>Livraison</strong> '+esc(lastLiv.numero||'—')+' · '+fmtDate(lastLiv.date)+' · '+fmtEur(lastLiv.montant||lastLiv.totalHT||0)+'</div>' : ''}
+            ${lastFact ? '<div class="s25-tl-item">📄 <strong>Facture</strong> '+esc(lastFact.numero||'—')+' · '+fmtDate(lastFact.dateFacture)+' · '+fmtEur(lastFact.montantTTC||lastFact.totalTTC||0)+'</div>' : ''}
+            ${lastPay ? '<div class="s25-tl-item">💳 <strong>Paiement</strong> '+fmtDate(lastPay.date)+' · '+fmtEur(lastPay.montant||0)+' · '+esc(lastPay.mode||'—')+'</div>' : ''}
+            ${lastRel ? '<div class="s25-tl-item">📨 <strong>Relance niv '+(lastRel.niveau||0)+'</strong> '+fmtDate(lastRel.date)+'</div>' : ''}
+            ${!lastLiv && !lastFact && !lastPay && !lastRel ? '<div style="color:var(--text-muted);padding:12px;text-align:center">Aucune interaction</div>' : ''}
+          </div>
+        </div>
+        <div class="s25-section">
+          <h4>ℹ️ Infos clés</h4>
+          <div class="s25-infos">
+            <div><span>Délai paiement</span><strong>${delai} jours</strong></div>
+            <div><span>Adresse</span><strong>${esc(c.adresse||'—')}</strong></div>
+            <div><span>Code postal</span><strong>${esc(c.codePostal||'—')} ${esc(c.ville||'')}</strong></div>
+            <div><span>Créé le</span><strong>${fmtDate(c.dateCreation)}</strong></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderFactTab(factures) {
+    if (!factures.length) return '<div class="s25-tab-panel" data-panel="fact"><div class="s25-empty">Aucune facture</div></div>';
+    const rows = factures.sort((a,b) => new Date(b.dateFacture||0) - new Date(a.dateFacture||0))
+      .map(f => {
+        const s = soldeFact(f);
+        const pillCls = f.statut === 'payée' || s <= 0.01 ? 'pill-ok' : (s > 0 ? 'pill-due' : 'pill-neutral');
+        return '<tr><td>'+fmtDate(f.dateFacture)+'</td><td><strong>'+esc(f.numero||'—')+'</strong></td><td>'+fmtEur(f.montantTTC||f.totalTTC||0)+'</td><td style="color:'+(s>0?'#ef4444':'inherit')+'">'+fmtEur(s)+'</td><td><span class="s25-pill '+pillCls+'">'+esc(f.statut||'—')+'</span></td></tr>';
+      }).join('');
+    return '<div class="s25-tab-panel" data-panel="fact"><table class="s25-table"><thead><tr><th>Date</th><th>N°</th><th>Total TTC</th><th>Solde dû</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function renderLivsTab(livs) {
+    if (!livs.length) return '<div class="s25-tab-panel" data-panel="livs"><div class="s25-empty">Aucune livraison</div></div>';
+    const rows = livs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))
+      .map(l => '<tr><td>'+fmtDate(l.date)+'</td><td><strong>'+esc(l.numero||'—')+'</strong></td><td>'+fmtEur(l.montant||l.totalHT||0)+'</td><td>'+esc(l.statut||'—')+'</td></tr>').join('');
+    return '<div class="s25-tab-panel" data-panel="livs"><table class="s25-table"><thead><tr><th>Date</th><th>N°</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function renderPayTab(paiements) {
+    if (!paiements.length) return '<div class="s25-tab-panel" data-panel="pay"><div class="s25-empty">Aucun paiement</div></div>';
+    const rows = paiements.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))
+      .map(p => '<tr><td>'+fmtDate(p.date)+'</td><td>'+esc(p.factureNumero||p.factureId||'—')+'</td><td>'+fmtEur(p.montant||0)+'</td><td>'+esc(p.mode||'—')+'</td></tr>').join('');
+    return '<div class="s25-tab-panel" data-panel="pay"><table class="s25-table"><thead><tr><th>Date</th><th>Facture</th><th>Montant</th><th>Mode</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function renderComTab(relances, c) {
+    if (!relances.length) return '<div class="s25-tab-panel" data-panel="com"><div class="s25-empty">Aucune relance envoyée</div></div>';
+    const rows = relances.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))
+      .map(r => '<div class="s25-tl-item">📨 <strong>Niv '+(r.niveau||0)+'</strong> '+fmtDate(r.date)+(r.statut === 'envoyee' ? ' · ✉️ envoyée' : ' · 📝 brouillon')+(r.email ? '<div style="font-size:.82rem;color:var(--text-muted)">→ '+esc(r.email)+'</div>' : '')+'</div>').join('');
+    return '<div class="s25-tab-panel" data-panel="com"><div class="s25-timeline">'+rows+'</div></div>';
+  }
+
+  /* ---------- Calculs Fournisseur ---------- */
+  function chargesFourn(f) {
+    return load(LS.charges).filter(c => c.fournisseurId === f.id || (c.fournisseur||'').trim().toLowerCase() === (f.nom||'').trim().toLowerCase());
+  }
+  function paiementsFourn(f) {
+    const cs = chargesFourn(f).map(c => c.id);
+    return load(LS.paiements).filter(p => cs.includes(p.chargeId) || (p.beneficiaire||'').trim().toLowerCase() === (f.nom||'').trim().toLowerCase() || p.sens === 'out');
+  }
+
+  /* ---------- Fiche 360° Fournisseur ---------- */
+  window.ouvrirFiche360Fournisseur = function(fournId) {
+    const f = load(LS.fournisseurs).find(x => x.id === fournId);
+    if (!f) { toast('Fournisseur introuvable', 'error'); return; }
+    const charges = chargesFourn(f);
+    const paiements = paiementsFourn(f).filter(p => {
+      const cs = charges.map(c => c.id);
+      return cs.includes(p.chargeId);
+    });
+    const totalDep = charges.reduce((s,c) => s + (parseFloat(c.montantTTC||c.montant)||0), 0);
+    const totalPaye = paiements.reduce((s,p) => s + (parseFloat(p.montant)||0), 0);
+    const solde = Math.max(0, totalDep - totalPaye);
+    const dep12 = (() => {
+      const il = new Date(); il.setMonth(il.getMonth()-12);
+      return charges.filter(c => new Date(c.date||0) >= il).reduce((s,c) => s + (parseFloat(c.montantTTC||c.montant)||0), 0);
+    })();
+
+    const tabs = [
+      { k: 'vue', label: '📊 Vue d\'ensemble' },
+      { k: 'charges', label: '💸 Charges ('+charges.length+')' },
+      { k: 'pay', label: '💳 Paiements ('+paiements.length+')' },
+      { k: 'docs', label: '📎 Documents' },
+    ];
+
+    const html = `
+      <div class="s25-drawer-head">
+        <button class="s25-close" onclick="window.s25FermerDrawer()" aria-label="Fermer">✕</button>
+        <div class="s25-avatar" style="background:rgba(245,166,35,0.18);color:#f5a623">${esc(initials(f.nom))}</div>
+        <div class="s25-head-body">
+          <div class="s25-head-title">🏭 ${esc(f.nom||'—')}</div>
+          <div class="s25-head-meta">
+            ${f.categorie ? '<span class="s25-badge">'+esc(f.categorie)+'</span>' : ''}
+            ${f.email ? '<span>✉️ <a href="mailto:'+esc(f.email)+'">'+esc(f.email)+'</a></span>' : ''}
+            ${f.tel ? '<span>📞 '+esc(f.tel)+'</span>' : ''}
+            ${f.siren ? '<span>🏢 SIREN '+esc(f.siren)+'</span>' : ''}
+          </div>
+        </div>
+      </div>
+      <div class="s25-kpi-row">
+        <div class="s25-kpi"><div class="kpi-label">Dépense totale</div><div class="kpi-val">${fmtEur(totalDep)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">12 derniers mois</div><div class="kpi-val">${fmtEur(dep12)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">Payé</div><div class="kpi-val" style="color:#22c55e">${fmtEur(totalPaye)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">Solde dû</div><div class="kpi-val" style="color:${solde>0?'#ef4444':'inherit'}">${fmtEur(solde)}</div></div>
+        <div class="s25-kpi"><div class="kpi-label">Délai accordé</div><div class="kpi-val">${parseInt(f.delaiPaiementJours, 10)||30} j</div></div>
+      </div>
+      <div class="s25-tabs">
+        ${tabs.map(t => '<button class="s25-tab" data-tab="'+t.k+'">'+t.label+'</button>').join('')}
+      </div>
+      <div class="s25-tab-content">
+        <div class="s25-tab-panel active" data-panel="vue">
+          <div class="s25-section"><h4>📅 Dernières charges</h4>
+            ${charges.slice(0,5).map(c => '<div class="s25-tl-item">💸 '+fmtDate(c.date)+' · '+esc(c.description||c.categorie||'—')+' · '+fmtEur(c.montantTTC||c.montant||0)+'</div>').join('') || '<div class="s25-empty">Aucune charge enregistrée</div>'}
+          </div>
+          <div class="s25-section"><h4>ℹ️ Infos clés</h4>
+            <div class="s25-infos">
+              <div><span>Adresse</span><strong>${esc(f.adresse||'—')}</strong></div>
+              <div><span>IBAN</span><strong>${esc(f.iban||'—')}</strong></div>
+              <div><span>Créé le</span><strong>${fmtDate(f.dateCreation)}</strong></div>
+            </div>
+          </div>
+        </div>
+        ${renderChargesTab(charges)}
+        ${renderPayTabF(paiements)}
+        <div class="s25-tab-panel" data-panel="docs"><div class="s25-empty">Documents à venir (contrats, factures scannées)</div></div>
+      </div>`;
+    renderDrawer(html);
+    wireTabs();
+  };
+  function renderChargesTab(charges) {
+    if (!charges.length) return '<div class="s25-tab-panel" data-panel="charges"><div class="s25-empty">Aucune charge</div></div>';
+    const rows = charges.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))
+      .map(c => '<tr><td>'+fmtDate(c.date)+'</td><td>'+esc(c.description||c.categorie||'—')+'</td><td>'+fmtEur(c.montantTTC||c.montant||0)+'</td><td>'+esc(c.statut||'—')+'</td></tr>').join('');
+    return '<div class="s25-tab-panel" data-panel="charges"><table class="s25-table"><thead><tr><th>Date</th><th>Libellé</th><th>Montant</th><th>Statut</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function renderPayTabF(paiements) {
+    if (!paiements.length) return '<div class="s25-tab-panel" data-panel="pay"><div class="s25-empty">Aucun paiement</div></div>';
+    const rows = paiements.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))
+      .map(p => '<tr><td>'+fmtDate(p.date)+'</td><td>'+esc(p.reference||p.chargeId||'—')+'</td><td>'+fmtEur(p.montant||0)+'</td><td>'+esc(p.mode||'—')+'</td></tr>').join('');
+    return '<div class="s25-tab-panel" data-panel="pay"><table class="s25-table"><thead><tr><th>Date</th><th>Réf</th><th>Montant</th><th>Mode</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+
+  function wireTabs() {
+    const drawer = document.getElementById('s25-drawer');
+    if (!drawer) return;
+    const tabs = drawer.querySelectorAll('.s25-tab');
+    const panels = drawer.querySelectorAll('.s25-tab-panel');
+    if (!tabs.length) return;
+    tabs[0].classList.add('active');
+    tabs.forEach(t => {
+      t.addEventListener('click', () => {
+        tabs.forEach(x => x.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+        t.classList.add('active');
+        const p = drawer.querySelector('.s25-tab-panel[data-panel="'+t.dataset.tab+'"]');
+        if (p) p.classList.add('active');
+      });
+    });
+  }
+
+  /* ---------- Hijack tables : clic nom → drawer 360° ---------- */
+  function injecterHijack() {
+    const tbCli = document.getElementById('tb-clients');
+    if (tbCli) {
+      tbCli.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s25Hooked) return;
+        const btn = tr.querySelector('button.btn-link-inline[onclick*="ouvrirHistoriqueClient"]');
+        if (!btn) return;
+        const m = btn.getAttribute('onclick').match(/ouvrirHistoriqueClient\('([^']+)'\)/);
+        if (!m) return;
+        btn.setAttribute('onclick', "window.ouvrirFiche360Client('"+m[1]+"')");
+        btn.setAttribute('title', 'Ouvrir la fiche 360°');
+        tr.__s25Hooked = true;
+      });
+    }
+    const tbF = document.getElementById('tb-fournisseurs');
+    if (tbF) {
+      tbF.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s25Hooked) return;
+        const btn = tr.querySelector('button.btn-link-inline[onclick*="ouvrirHistoriqueFournisseur"]');
+        if (!btn) return;
+        const m = btn.getAttribute('onclick').match(/ouvrirHistoriqueFournisseur\('([^']+)'\)/);
+        if (!m) return;
+        btn.setAttribute('onclick', "window.ouvrirFiche360Fournisseur('"+m[1]+"')");
+        btn.setAttribute('title', 'Ouvrir la fiche 360°');
+        tr.__s25Hooked = true;
+      });
+    }
+  }
+
+  /* ==========================================================================
+     Règles d'alertes perso (S25 — volet B)
+     Stockées dans localStorage 's25_alert_rules'
+     Structure : { id, nom, actif, trigger:'facture|livraison|vehicule|salarie', condition:{field, op, value}, action:'alerte|toast', graviteOutput }
+     Évaluées par s24CronTick toutes les 5 min
+     ========================================================================== */
+  const RULE_SCOPES = {
+    facture: { key: LS.factures, label: '📄 Facture', fields: ['montantTTC','statut','dateFacture','dateEcheance','client'] },
+    livraison: { key: LS.livraisons, label: '📦 Livraison', fields: ['montant','statut','date','client'] },
+    charge: { key: LS.charges, label: '💸 Charge', fields: ['montantTTC','statut','date','fournisseur'] },
+  };
+  const OPS = {
+    '>': (a,b) => parseFloat(a) > parseFloat(b),
+    '>=': (a,b) => parseFloat(a) >= parseFloat(b),
+    '<': (a,b) => parseFloat(a) < parseFloat(b),
+    '<=': (a,b) => parseFloat(a) <= parseFloat(b),
+    '==': (a,b) => String(a).trim().toLowerCase() === String(b).trim().toLowerCase(),
+    '!=': (a,b) => String(a).trim().toLowerCase() !== String(b).trim().toLowerCase(),
+    'contains': (a,b) => String(a||'').toLowerCase().includes(String(b||'').toLowerCase()),
+    'jours_depuis': (a,b) => { if (!a) return false; return Math.floor((new Date() - new Date(a))/86400000) >= parseInt(b, 10); },
+  };
+
+  function evaluerRegles() {
+    const rules = load(LS.rules).filter(r => r.actif);
+    if (!rules.length) return;
+    const alertes = load(LS.alertes);
+    let modif = false;
+    rules.forEach(rule => {
+      const scope = RULE_SCOPES[rule.trigger];
+      if (!scope) return;
+      const items = load(scope.key);
+      items.forEach(it => {
+        const fn = OPS[rule.condition.op];
+        if (!fn) return;
+        const val = it[rule.condition.field];
+        if (!fn(val, rule.condition.value)) return;
+        const itemId = it.id || it.numero || JSON.stringify(it).slice(0,40);
+        const exist = alertes.find(a => a.type === 'rule_'+rule.id && a.refId === itemId && !a.traitee);
+        if (exist) return;
+        alertes.push({
+          id: 's25_rule_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+          type: 'rule_'+rule.id, refId: itemId,
+          titre: '🔔 '+rule.nom,
+          message: scope.label+' · '+(it.numero||it.nom||'—')+' · '+rule.condition.field+' '+rule.condition.op+' '+rule.condition.value+' (val: '+(val||'—')+')',
+          gravite: rule.graviteOutput||'medium',
+          traitee: false, dateCreation: new Date().toISOString(), auto: true, regleSource: rule.id
+        });
+        modif = true;
+      });
+    });
+    if (modif) save(LS.alertes, alertes);
+  }
+  window.s25EvaluerRegles = evaluerRegles;
+
+  /* ---------- UI Règles dans Paramètres ---------- */
+  function injectRulesUI() {
+    const pageParams = document.getElementById('page-parametres');
+    if (!pageParams) return;
+    if (pageParams.querySelector('#s25-rules-section')) return;
+    const container = pageParams.querySelector('.settings-content') || pageParams;
+    const section = document.createElement('div');
+    section.id = 's25-rules-section'; section.className = 'settings-section';
+    section.innerHTML = `
+      <h2 style="margin-top:32px">🔔 Règles d'alertes personnalisées</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Créez vos propres règles : quand une condition est vraie, une alerte est ajoutée au Centre d'alertes.</p>
+      <div id="s25-rules-list"></div>
+      <button class="btn-primary" onclick="window.s25NewRule()" style="margin-top:12px">+ Nouvelle règle</button>
+    `;
+    container.appendChild(section);
+    renderRulesList();
+  }
+  function renderRulesList() {
+    const list = document.getElementById('s25-rules-list');
+    if (!list) return;
+    const rules = load(LS.rules);
+    if (!rules.length) { list.innerHTML = '<div style="padding:16px;color:var(--text-muted);text-align:center;border:1px dashed var(--border);border-radius:10px">Aucune règle pour le moment. Cliquez + Nouvelle règle</div>'; return; }
+    list.innerHTML = rules.map(r => {
+      const scope = RULE_SCOPES[r.trigger]?.label || r.trigger;
+      return `<div class="s25-rule-card ${r.actif?'on':''}">
+        <div class="s25-rule-head">
+          <div><strong>${esc(r.nom)}</strong><div class="s25-rule-meta">${scope} · ${esc(r.condition.field)} ${esc(r.condition.op)} ${esc(r.condition.value)}</div></div>
+          <div class="s25-rule-actions">
+            <label class="s25-rule-toggle"><input type="checkbox" ${r.actif?'checked':''} onchange="window.s25ToggleRule('${r.id}',this.checked)"/><span class="s24-toggle-switch"></span></label>
+            <button class="btn-icon" onclick="window.s25DelRule('${r.id}')" title="Supprimer">🗑️</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  window.s25ToggleRule = function(id, val) {
+    const rules = load(LS.rules);
+    const r = rules.find(x => x.id === id); if (!r) return;
+    r.actif = val; save(LS.rules, rules);
+    toast(val ? '✅ Règle activée' : '⏸️ Règle désactivée', 'success');
+    renderRulesList();
+  };
+  window.s25DelRule = async function(id) {
+    const ok = await confirmDialog('Supprimer cette règle ?', { titre:'Supprimer la règle', icone:'🧩', btnLabel:'Supprimer' });
+    if (!ok) return;
+    save(LS.rules, load(LS.rules).filter(r => r.id !== id));
+    toast('🗑️ Règle supprimée', 'success');
+    renderRulesList();
+  };
+  window.s25NewRule = function() {
+    const scopes = Object.keys(RULE_SCOPES);
+    const html = `<div>
+      <h3 style="margin:0 0 14px">🔔 Nouvelle règle d'alerte</h3>
+      <div class="form-group"><label>Nom de la règle</label><input type="text" id="s25-rule-nom" placeholder="ex. Facture > 5000€ en retard"/></div>
+      <div class="form-group"><label>Déclencheur</label><select id="s25-rule-trigger">${scopes.map(k => '<option value="'+k+'">'+RULE_SCOPES[k].label+'</option>').join('')}</select></div>
+      <div class="form-group"><label>Champ</label><select id="s25-rule-field"></select></div>
+      <div class="form-group"><label>Opérateur</label><select id="s25-rule-op">${Object.keys(OPS).map(o => '<option value="'+o+'">'+o+'</option>').join('')}</select></div>
+      <div class="form-group"><label>Valeur</label><input type="text" id="s25-rule-value" placeholder="ex. 5000 ou payée"/></div>
+      <div class="form-group"><label>Gravité de l'alerte</label><select id="s25-rule-grav"><option value="low">Basse</option><option value="medium" selected>Moyenne</option><option value="high">Haute</option></select></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px">
+        <button class="btn-secondary" onclick="window.closeModal && window.closeModal('modal-info');document.getElementById('s15-modal-info')?.classList.remove('open')">Annuler</button>
+        <button class="btn-primary" onclick="window.s25SaveRule()">Créer</button>
+      </div>
+    </div>`;
+    if (typeof window.modalInfo === 'function') {
+      const m = window.modalInfo(html);
+      const b = m?.querySelector?.('.s15-modal-info-box'); if (b) b.classList.add('narrow');
+      setTimeout(() => {
+        const trig = document.getElementById('s25-rule-trigger');
+        const fld = document.getElementById('s25-rule-field');
+        function refreshFields() {
+          const sc = RULE_SCOPES[trig.value];
+          fld.innerHTML = sc.fields.map(f => '<option value="'+f+'">'+f+'</option>').join('');
+        }
+        trig.addEventListener('change', refreshFields);
+        refreshFields();
+      }, 40);
+    }
+  };
+  window.s25SaveRule = function() {
+    const nom = document.getElementById('s25-rule-nom').value.trim();
+    const trigger = document.getElementById('s25-rule-trigger').value;
+    const field = document.getElementById('s25-rule-field').value;
+    const op = document.getElementById('s25-rule-op').value;
+    const value = document.getElementById('s25-rule-value').value.trim();
+    const grav = document.getElementById('s25-rule-grav').value;
+    if (!nom || !value) { toast('Nom et valeur requis', 'warning'); return; }
+    const rules = load(LS.rules);
+    rules.push({ id: genId(), nom, trigger, condition: { field, op, value }, graviteOutput: grav, actif: true, dateCreation: new Date().toISOString() });
+    save(LS.rules, rules);
+    document.getElementById('s15-modal-info')?.classList.remove('open');
+    toast('✅ Règle créée et activée', 'success');
+    renderRulesList();
+  };
+
+  /* ---------- Init ---------- */
+  function init() {
+    setTimeout(injecterHijack, 800);
+    setInterval(injecterHijack, 3000);
+    setTimeout(injectRulesUI, 900);
+    setInterval(injectRulesUI, 4000);
+    // Hook cron S24
+    const origTick = window.s24CronTick;
+    if (typeof origTick === 'function' && !origTick.__s25Hooked) {
+      const wrapped = function() { try { origTick(); } catch(e){} try { evaluerRegles(); } catch(e){} };
+      wrapped.__s25Hooked = true;
+      window.s24CronTick = wrapped;
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1400);
+})();
+
+/* ==========================================================================
+   Sprint 26 — Timeline globale + Stats comparées + Double-clic inline + Signature BL
+   - Timeline consolide factures, livraisons, paiements, avoirs, charges, relances
+   - Stats comparées : KPI mini-delta M vs M-1 injectés sur dashboard
+   - Double-clic : édition inline sur cellules marquées data-s26-edit
+   - Signature BL : toggle Paramètres ; si activé → canvas capture + archivage + audit + PDF
+   ========================================================================== */
+(function installS26(){
+  if (window.__s26Installed) return;
+  window.__s26Installed = true;
+
+  const LS = {
+    factures: 'factures_emises', livraisons: 'livraisons', paiements: 'paiements',
+    avoirs: 'avoirs_emis', charges: 'charges', relances: 'relances_log',
+    clients: 'clients', fournisseurs: 'fournisseurs', alertes: 'alertes_admin',
+    params: 'params_entreprise', signatures: 's26_signatures_bl', audit: 'audit_log',
+  };
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const esc = window.escapeHtml;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
+  const fmtDateTime = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR')+' '+x.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); };
+  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+  const audit = (a, d) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(a, d); };
+  const todayISO = () => new Date().toLocalISODate();
+
+  function getOpt(key, def) {
+    const p = loadObj(LS.params); const o = p.s26 || {};
+    return (o[key] !== undefined) ? !!o[key] : def;
+  }
+  function setOpt(key, val) {
+    const p = loadObj(LS.params); p.s26 = p.s26 || {}; p.s26[key] = !!val; save(LS.params, p);
+  }
+
+  /* ================================================================
+     BLOC 1 — TIMELINE GLOBALE (filtres acteur/type/date)
+     ================================================================ */
+  function collectTimelineEvents() {
+    const evts = [];
+    load(LS.factures).forEach(f => {
+      evts.push({ date: f.dateFacture || f.dateCreation, type: 'facture', action: 'Facture émise',
+        acteur: f.client||'—', acteurType: 'client',
+        details: (f.numero||'')+' · '+fmtEur(f.montantTTC||f.totalTTC||0),
+        ref: f.numero, statut: f.statut, icon: '📄', couleur: '#2563eb' });
+    });
+    load(LS.livraisons).forEach(l => {
+      evts.push({ date: l.dateLivraison || l.dateCreation, type: 'livraison', action: 'Livraison '+(l.statut||'créée'),
+        acteur: l.client||l.donneurOrdre||'—', acteurType: 'client',
+        details: (l.referenceBL||l.bl||'')+' · '+(l.depart||'')+' → '+(l.arrivee||''),
+        ref: l.referenceBL||l.id, statut: l.statut, icon: '🚚', couleur: '#16a34a' });
+    });
+    load(LS.paiements).forEach(p => {
+      evts.push({ date: p.datePaiement || p.date, type: 'paiement', action: 'Encaissement',
+        acteur: p.client||'—', acteurType: 'client',
+        details: fmtEur(p.montant)+(p.mode?' · '+p.mode:''),
+        ref: p.reference||p.id, icon: '💰', couleur: '#0891b2' });
+    });
+    load(LS.avoirs).forEach(a => {
+      evts.push({ date: a.dateAvoir || a.dateCreation, type: 'avoir', action: 'Avoir émis',
+        acteur: a.client||'—', acteurType: 'client',
+        details: (a.numero||'')+' · '+fmtEur(a.montantTTC||0),
+        ref: a.numero, icon: '↩️', couleur: '#f59e0b' });
+    });
+    load(LS.charges).forEach(c => {
+      evts.push({ date: c.date || c.dateCreation, type: 'charge', action: 'Charge '+(c.categorie||''),
+        acteur: c.fournisseur||'—', acteurType: 'fournisseur',
+        details: (c.libelle||'')+' · '+fmtEur(c.montantTTC||c.montant||0),
+        ref: c.id, icon: '💸', couleur: '#dc2626' });
+    });
+    load(LS.relances).forEach(r => {
+      evts.push({ date: r.date, type: 'relance', action: 'Relance niv. '+(r.niveau||'1'),
+        acteur: r.client||'—', acteurType: 'client',
+        details: 'Facture '+(r.facture||'')+(r.canal?' ('+r.canal+')':''),
+        ref: r.id, icon: '🔔', couleur: '#7c3aed' });
+    });
+    return evts
+      .filter(e => e.date)
+      .sort((a,b) => new Date(b.date) - new Date(a.date));
+  }
+
+  const TIMELINE_TYPES = [
+    { k: 'facture', lbl: '📄 Factures' },
+    { k: 'livraison', lbl: '🚚 Livraisons' },
+    { k: 'paiement', lbl: '💰 Paiements' },
+    { k: 'avoir', lbl: '↩️ Avoirs' },
+    { k: 'charge', lbl: '💸 Charges' },
+    { k: 'relance', lbl: '🔔 Relances' },
+  ];
+
+  function ouvrirTimelineGlobale() {
+    const evts = collectTimelineEvents();
+    const today = todayISO();
+    const d30 = new Date(Date.now() - 30*86400000).toLocalISODate();
+    const acteursUniques = Array.from(new Set(evts.map(e => e.acteur).filter(Boolean))).sort();
+    const html = `
+      <div class="s15-modal-info-box" style="max-width:1100px;width:96vw;max-height:92vh">
+        <div class="s15-modal-info-header">
+          <h2>📊 Timeline globale — activité consolidée</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body" style="overflow:auto;max-height:calc(92vh - 70px)">
+          <div class="s26-timeline-filters">
+            <div class="s26-tlf-row">
+              <label>Du <input type="date" id="s26-tl-du" value="${d30}"></label>
+              <label>Au <input type="date" id="s26-tl-au" value="${today}"></label>
+              <label>Acteur
+                <select id="s26-tl-acteur">
+                  <option value="">Tous</option>
+                  ${acteursUniques.map(a => `<option>${esc(a)}</option>`).join('')}
+                </select>
+              </label>
+              <label>Recherche <input type="text" id="s26-tl-search" placeholder="Réf, détail…"></label>
+            </div>
+            <div class="s26-tlf-types">
+              ${TIMELINE_TYPES.map(t => `
+                <label class="s26-tl-chip">
+                  <input type="checkbox" data-s26-type="${t.k}" checked>
+                  <span>${t.lbl}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          <div class="s26-timeline-summary" id="s26-tl-summary"></div>
+          <div class="s26-timeline-list" id="s26-tl-list"></div>
+        </div>
+      </div>
+    `;
+    ouvrirModal(html);
+    const refresh = () => renderTimeline(evts);
+    document.querySelectorAll('#s26-tl-du, #s26-tl-au, #s26-tl-acteur, #s26-tl-search, [data-s26-type]')
+      .forEach(el => el.addEventListener('input', refresh));
+    refresh();
+  }
+
+  function renderTimeline(allEvts) {
+    const du = document.getElementById('s26-tl-du')?.value;
+    const au = document.getElementById('s26-tl-au')?.value;
+    const acteur = document.getElementById('s26-tl-acteur')?.value || '';
+    const search = (document.getElementById('s26-tl-search')?.value||'').toLowerCase();
+    const typesActifs = new Set(
+      Array.from(document.querySelectorAll('[data-s26-type]:checked')).map(cb => cb.dataset.s26Type)
+    );
+    const filtered = allEvts.filter(e => {
+      const d = (e.date||'').slice(0,10);
+      if (du && d < du) return false;
+      if (au && d > au) return false;
+      if (acteur && e.acteur !== acteur) return false;
+      if (!typesActifs.has(e.type)) return false;
+      if (search) {
+        const hay = (e.action+' '+e.acteur+' '+e.details+' '+(e.ref||'')).toLowerCase();
+        if (!hay.includes(search)) return false;
+      }
+      return true;
+    });
+    const summary = document.getElementById('s26-tl-summary');
+    if (summary) {
+      const parType = {};
+      filtered.forEach(e => { parType[e.type] = (parType[e.type]||0)+1; });
+      summary.innerHTML = `
+        <strong>${filtered.length}</strong> événement${filtered.length>1?'s':''}
+        ${Object.entries(parType).map(([k,v]) => {
+          const t = TIMELINE_TYPES.find(x => x.k===k);
+          return `<span class="s26-tl-pill">${t?t.lbl:k} : ${v}</span>`;
+        }).join('')}
+      `;
+    }
+    const list = document.getElementById('s26-tl-list');
+    if (!list) return;
+    if (!filtered.length) {
+      list.innerHTML = '<div class="s26-tl-empty">Aucun événement sur la période / les filtres choisis.</div>';
+      return;
+    }
+    let grp = {};
+    filtered.forEach(e => {
+      const d = (e.date||'').slice(0,10);
+      (grp[d] = grp[d] || []).push(e);
+    });
+    list.innerHTML = Object.entries(grp).map(([d, items]) => `
+      <div class="s26-tl-day">
+        <div class="s26-tl-date">${fmtDate(d)}</div>
+        <div class="s26-tl-events">
+          ${items.map(e => `
+            <div class="s26-tl-evt" style="border-left-color:${e.couleur}">
+              <div class="s26-tl-evt-icon">${e.icon}</div>
+              <div class="s26-tl-evt-body">
+                <div class="s26-tl-evt-head">
+                  <strong>${esc(e.action)}</strong>
+                  <span class="s26-tl-evt-acteur">${esc(e.acteur)}</span>
+                  ${e.statut ? `<span class="s26-tl-evt-statut">${esc(e.statut)}</span>` : ''}
+                </div>
+                <div class="s26-tl-evt-details">${esc(e.details)}</div>
+                ${e.ref ? `<div class="s26-tl-evt-ref">Réf : ${esc(e.ref)}</div>` : ''}
+              </div>
+              <div class="s26-tl-evt-time">${fmtDateTime(e.date).split(' ').slice(1).join(' ')||''}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function ouvrirModal(html) {
+    if (typeof window.modalInfo === 'function') {
+      const m = window.modalInfo(html);
+      // window.modalInfo wraps html in .s15-modal-info-body ; our html already provides its own box
+      // so we override the inner structure:
+      m.innerHTML = html;
+      // re-bind close + backdrop
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }, { once: true });
+      m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
+        btn.addEventListener('click', () => m.classList.remove('open'));
+      });
+      return m;
+    }
+    let m = document.getElementById('s15-modal-info');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 's15-modal-info';
+      m.className = 's15-modal-info-overlay';
+      document.body.appendChild(m);
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && m.classList.contains('open')) m.classList.remove('open'); });
+    } else {
+      m.className = 's15-modal-info-overlay';
+    }
+    m.innerHTML = html;
+    m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
+      btn.addEventListener('click', () => m.classList.remove('open'));
+    });
+    m.classList.add('open');
+    return m;
+  }
+
+  window.ouvrirTimelineGlobale = ouvrirTimelineGlobale;
+
+  /* ================================================================
+     BLOC 2 — STATS COMPARÉES (dashboard delta M vs M-1)
+     ================================================================ */
+  function calcStatsPeriode(mois) {
+    const [y,m] = mois.split('-').map(Number);
+    const inMonth = (iso) => {
+      if (!iso) return false;
+      const d = new Date(iso);
+      return d.getFullYear()===y && d.getMonth()===m-1;
+    };
+    let ca = 0, nbLiv = 0, nbFact = 0, encaisse = 0, charges = 0;
+    load(LS.factures).forEach(f => {
+      if (inMonth(f.dateFacture)) { ca += Number(f.montantHT||f.totalHT||0); nbFact++; }
+    });
+    load(LS.livraisons).forEach(l => { if (inMonth(l.dateLivraison||l.dateCreation)) nbLiv++; });
+    load(LS.paiements).forEach(p => { if (inMonth(p.datePaiement||p.date)) encaisse += Number(p.montant||0); });
+    load(LS.charges).forEach(c => { if (inMonth(c.date)) charges += Number(c.montantHT||c.montant||0); });
+    return { ca, nbLiv, nbFact, encaisse, charges, marge: ca - charges };
+  }
+
+  function moisAvant(ref, n) {
+    const [y,m] = ref.split('-').map(Number);
+    const d = new Date(y, m-1-n, 1);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+  }
+
+  function renderStatsComparees() {
+    const target = document.querySelector('#page-dashboard');
+    if (!target) return;
+    if (target.querySelector('#s26-stats-comparees')) return;
+    const anchor = target.querySelector('.kpi-grid-primary') || target.querySelector('.kpi-grid') || target.firstElementChild;
+    if (!anchor) return;
+    const mois = todayISO().slice(0,7);
+    const moisPrec = moisAvant(mois, 1);
+    const cur = calcStatsPeriode(mois);
+    const prev = calcStatsPeriode(moisPrec);
+    const delta = (a,b) => {
+      if (!b && !a) return { cls:'neutral', txt:'—' };
+      if (!b) return { cls:'up', txt:'Nouveau' };
+      const pct = ((a-b)/Math.abs(b))*100;
+      const cls = pct > 1 ? 'up' : pct < -1 ? 'down' : 'neutral';
+      const sign = pct > 0 ? '+' : '';
+      return { cls, txt: sign+pct.toFixed(1)+'%' };
+    };
+    const rows = [
+      { lbl: 'CA (HT)', a: cur.ca, b: prev.ca, fmt: fmtEur, d: delta(cur.ca, prev.ca) },
+      { lbl: 'Livraisons', a: cur.nbLiv, b: prev.nbLiv, fmt: n=>n, d: delta(cur.nbLiv, prev.nbLiv) },
+      { lbl: 'Factures', a: cur.nbFact, b: prev.nbFact, fmt: n=>n, d: delta(cur.nbFact, prev.nbFact) },
+      { lbl: 'Encaissé', a: cur.encaisse, b: prev.encaisse, fmt: fmtEur, d: delta(cur.encaisse, prev.encaisse) },
+      { lbl: 'Charges', a: cur.charges, b: prev.charges, fmt: fmtEur, d: delta(cur.charges, prev.charges), inv: true },
+      { lbl: 'Marge', a: cur.marge, b: prev.marge, fmt: fmtEur, d: delta(cur.marge, prev.marge) },
+    ];
+    const wrap = document.createElement('div');
+    wrap.id = 's26-stats-comparees';
+    wrap.className = 's26-stats-comparees';
+    wrap.innerHTML = `
+      <div class="s26-sc-head">
+        <strong>📈 Mois en cours vs mois précédent</strong>
+        <button type="button" class="s26-sc-link" onclick="window.ouvrirTimelineGlobale()">📊 Timeline globale →</button>
+      </div>
+      <div class="s26-sc-grid">
+        ${rows.map(r => {
+          const cls = r.inv ? (r.d.cls==='up'?'down':r.d.cls==='down'?'up':'neutral') : r.d.cls;
+          return `
+            <div class="s26-sc-card">
+              <div class="s26-sc-lbl">${r.lbl}</div>
+              <div class="s26-sc-val">${r.fmt(r.a)}</div>
+              <div class="s26-sc-delta ${cls}">${r.d.txt}</div>
+              <div class="s26-sc-prev">M-1 : ${r.fmt(r.b)}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+    anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+  }
+
+  /* ================================================================
+     BLOC 3 — DOUBLE-CLIC INLINE EDIT
+     ================================================================ */
+  function onDblClickCell(e) {
+    const cell = e.target.closest('[data-s26-edit]');
+    if (!cell) return;
+    if (cell.querySelector('input, select, textarea')) return;
+    const kind = cell.dataset.s26Edit; // 'text' | 'number' | 'date' | 'select'
+    const orig = cell.textContent.trim();
+    const raw = cell.dataset.s26Value != null ? cell.dataset.s26Value : orig;
+    const saveFn = cell.dataset.s26Save; // name of global fn (id, newVal, cell) => bool
+    let input;
+    if (kind === 'select') {
+      input = document.createElement('select');
+      const opts = (cell.dataset.s26Options||'').split('|');
+      opts.forEach(o => {
+        const op = document.createElement('option');
+        op.value = o; op.textContent = o;
+        if (o === raw) op.selected = true;
+        input.appendChild(op);
+      });
+    } else {
+      input = document.createElement('input');
+      input.type = kind === 'number' ? 'number' : kind === 'date' ? 'date' : 'text';
+      if (kind === 'number') input.step = '0.01';
+      input.value = raw;
+    }
+    input.className = 's26-inline-edit';
+    cell.innerHTML = '';
+    cell.appendChild(input);
+    input.focus();
+    if (input.select) input.select();
+    const commit = () => {
+      const nv = input.value.trim();
+      if (nv === raw) { cell.textContent = orig; return; }
+      const id = cell.dataset.s26Id;
+      const fn = saveFn && window[saveFn];
+      let ok = false;
+      if (typeof fn === 'function') {
+        try { ok = !!fn(id, nv, cell); } catch(err) { console.warn('S26 inline save', err); }
+      }
+      if (ok) {
+        cell.dataset.s26Value = nv;
+        cell.textContent = nv;
+        toast('✏️ Modifié', 'success');
+        audit('edit_inline', { cell: cell.dataset.s26Field||'', id, nv });
+      } else {
+        cell.textContent = orig;
+        toast('❌ Modification refusée', 'warning');
+      }
+    };
+    const cancel = () => { cell.textContent = orig; };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+      else if (ev.key === 'Escape') { ev.preventDefault(); input.removeEventListener('blur', commit); cancel(); }
+    });
+  }
+
+  // Savers de base pour les entités courantes
+  window.s26SaveFactureMontant = function(id, nv) {
+    const arr = load(LS.factures);
+    const i = arr.findIndex(f => String(f.id)===String(id) || f.numero===id);
+    if (i<0) return false;
+    const n = parseFloat(nv); if (isNaN(n) || n < 0) return false;
+    arr[i].montantTTC = n;
+    save(LS.factures, arr);
+    return true;
+  };
+  window.s26SaveFactureStatut = function(id, nv) {
+    const arr = load(LS.factures);
+    const i = arr.findIndex(f => String(f.id)===String(id) || f.numero===id);
+    if (i<0) return false;
+    arr[i].statut = nv;
+    save(LS.factures, arr);
+    return true;
+  };
+  window.s26SaveFactureEcheance = function(id, nv) {
+    const arr = load(LS.factures);
+    const i = arr.findIndex(f => String(f.id)===String(id) || f.numero===id);
+    if (i<0) return false;
+    arr[i].dateEcheance = nv;
+    save(LS.factures, arr);
+    return true;
+  };
+  window.s26SaveLivraisonStatut = function(id, nv) {
+    const arr = load(LS.livraisons);
+    const i = arr.findIndex(l => String(l.id)===String(id) || l.referenceBL===id);
+    if (i<0) return false;
+    arr[i].statut = nv;
+    save(LS.livraisons, arr);
+    return true;
+  };
+
+  /* ================================================================
+     BLOC 4 — SIGNATURE BL (canvas, toggle Paramètres, automatisations)
+     ================================================================ */
+  function signatureActive() { return getOpt('signature_bl', false); }
+
+  function ouvrirSignatureBL(livraisonId) {
+    if (!signatureActive()) { toast('Signature désactivée dans Paramètres', 'warning'); return; }
+    const liv = load(LS.livraisons).find(l => String(l.id)===String(livraisonId) || l.referenceBL===livraisonId);
+    if (!liv) { toast('Livraison introuvable', 'error'); return; }
+    const existing = load(LS.signatures).find(s => s.livraisonId === liv.id);
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:560px">
+        <div class="s15-modal-info-header">
+          <h2>✍️ Signature BL ${esc(liv.numLiv||liv.referenceBL||liv.id)}</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="font-size:.88rem;color:var(--text-muted);margin-bottom:10px">
+            Destinataire : <strong>${esc(liv.client||liv.donneurOrdre||'—')}</strong><br>
+            ${liv.arrivee ? 'Lieu : '+esc(liv.arrivee)+'<br>' : ''}
+            Signataire requis : nom et prénom puis signature au stylet / doigt.
+          </p>
+          <label>Nom du signataire
+            <input type="text" id="s26-sig-nom" value="${esc(existing?.signataire||'')}" placeholder="NOM Prénom">
+          </label>
+          <label>Qualité (optionnel)
+            <input type="text" id="s26-sig-qualite" value="${esc(existing?.qualite||'')}" placeholder="Chef de dépôt, réceptionniste…">
+          </label>
+          <div class="s26-sig-canvas-wrap">
+            <canvas id="s26-sig-canvas" width="500" height="180"></canvas>
+            <div class="s26-sig-canvas-hint">Signez ci-dessus</div>
+          </div>
+          <div class="s26-sig-actions">
+            <button class="btn btn-ghost" onclick="window.s26EffacerSig()">🗑️ Effacer</button>
+            <button class="btn btn-primary" onclick="window.s26EnregistrerSig('${esc(liv.id)}')">✅ Valider & archiver</button>
+          </div>
+          ${existing ? `<div class="s26-sig-meta">Déjà signée le ${fmtDateTime(existing.date)} par ${esc(existing.signataire||'')}</div>` : ''}
+        </div>
+      </div>
+    `;
+    ouvrirModal(html);
+    setTimeout(() => {
+      initCanvas();
+      if (existing?.dataUrl) restoreCanvas(existing.dataUrl);
+    }, 50);
+  }
+  window.ouvrirSignatureBL = ouvrirSignatureBL;
+
+  let sigCtx = null, sigDrawing = false, sigEmpty = true;
+  function initCanvas() {
+    const c = document.getElementById('s26-sig-canvas');
+    if (!c) return;
+    sigCtx = c.getContext('2d');
+    sigCtx.lineWidth = 2.2; sigCtx.lineCap = 'round'; sigCtx.strokeStyle = '#111';
+    sigEmpty = true;
+    const pos = ev => {
+      const r = c.getBoundingClientRect();
+      const x = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
+      const y = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
+      return { x: x * (c.width/r.width), y: y * (c.height/r.height) };
+    };
+    const start = ev => { ev.preventDefault(); sigDrawing = true; sigEmpty = false; const p = pos(ev); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); };
+    const move = ev => { if (!sigDrawing) return; ev.preventDefault(); const p = pos(ev); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); };
+    const end = () => { sigDrawing = false; };
+    c.addEventListener('mousedown', start); c.addEventListener('mousemove', move); c.addEventListener('mouseup', end); c.addEventListener('mouseleave', end);
+    c.addEventListener('touchstart', start); c.addEventListener('touchmove', move); c.addEventListener('touchend', end);
+  }
+  function restoreCanvas(dataUrl) {
+    const c = document.getElementById('s26-sig-canvas');
+    if (!c || !sigCtx) return;
+    const img = new Image();
+    img.onload = () => { sigCtx.drawImage(img, 0, 0, c.width, c.height); sigEmpty = false; };
+    img.src = dataUrl;
+  }
+  window.s26EffacerSig = function() {
+    const c = document.getElementById('s26-sig-canvas');
+    if (!c || !sigCtx) return;
+    sigCtx.clearRect(0, 0, c.width, c.height);
+    sigEmpty = true;
+  };
+  // Hash SHA-256 hex (Web Crypto) — BUG-039
+  async function sha256Hex(str) {
+    try {
+      const buf = new TextEncoder().encode(String(str||''));
+      const dig = await crypto.subtle.digest('SHA-256', buf);
+      return Array.from(new Uint8Array(dig)).map(b => b.toString(16).padStart(2,'0')).join('');
+    } catch (e) { return ''; }
+  }
+  // Compression canvas → WebP 0.6 (BUG-042) — fallback JPEG puis PNG
+  function canvasVersDataUrlCompresse(canvas) {
+    return new Promise((resolve) => {
+      try {
+        if (canvas.toBlob) {
+          canvas.toBlob((blob) => {
+            if (!blob) { resolve(canvas.toDataURL('image/png')); return; }
+            const r = new FileReader();
+            r.onload = () => resolve(r.result);
+            r.onerror = () => resolve(canvas.toDataURL('image/png'));
+            r.readAsDataURL(blob);
+          }, 'image/webp', 0.6);
+        } else {
+          try { resolve(canvas.toDataURL('image/webp', 0.6)); }
+          catch(_) { resolve(canvas.toDataURL('image/jpeg', 0.7)); }
+        }
+      } catch(_) { resolve(canvas.toDataURL('image/png')); }
+    });
+  }
+
+  window.s26EnregistrerSig = async function(livId) {
+    const nom = (document.getElementById('s26-sig-nom')?.value||'').trim();
+    const qualite = (document.getElementById('s26-sig-qualite')?.value||'').trim();
+    const c = document.getElementById('s26-sig-canvas');
+    if (!nom) { toast('Nom du signataire requis', 'warning'); return; }
+    if (sigEmpty) { toast('Signature manquante', 'warning'); return; }
+    // BUG-042 : compression (WebP 0.6 → ~3-8 Ko vs 30-60 Ko PNG)
+    const dataUrl = await canvasVersDataUrlCompresse(c);
+    const sigs = load(LS.signatures);
+    const idx = sigs.findIndex(s => s.livraisonId === livId);
+    // BUG-039 : preuve infalsifiable (eIDAS + art. 1366 CC)
+    // — snapshot de la livraison signée (preuve WHAT)
+    // — hash SHA-256 du snapshot (preuve INTEGRITY)
+    // — chaînage avec la signature précédente (preuve ORDER — horodatage immutable)
+    const livs0 = load(LS.livraisons);
+    const livSnap = livs0.find(l => String(l.id)===String(livId)) || { id: livId };
+    const snapshotStr = JSON.stringify(livSnap);
+    const documentHash = await sha256Hex(snapshotStr);
+    const precedente = sigs.length ? sigs[sigs.length-1] : null;
+    const previousHash = precedente ? (precedente.chainHash || '') : '';
+    const date = new Date().toISOString();
+    const chainPayload = [documentHash, previousHash, nom, qualite, date].join('|');
+    const chainHash = await sha256Hex(chainPayload);
+    const entry = {
+      id: (typeof window.genId === 'function' ? window.genId() : 's26_sig_' + Date.now()),
+      livraisonId: livId,
+      signataire: nom, qualite, dataUrl,
+      date,
+      userAgent: navigator.userAgent.slice(0,80),
+      documentSnapshot: snapshotStr,
+      documentHash,
+      previousHash,
+      chainHash,
+      hashAlgo: 'SHA-256',
+      chainVersion: 1
+    };
+    if (idx >= 0) sigs[idx] = entry; else sigs.push(entry);
+    save(LS.signatures, sigs);
+    // Automatisations : met la livraison en livré, horodate, audit, alerte admin si config
+    const livs = load(LS.livraisons);
+    const li = livs.findIndex(l => String(l.id)===String(livId));
+    if (li >= 0) {
+      livs[li].statut = 'livré';
+      livs[li].dateLivraisonEffective = new Date().toISOString();
+      livs[li].signatureId = entry.id;
+      livs[li].signataireNom = nom;
+      livs[li].signatureDocumentHash = documentHash;
+      save(LS.livraisons, livs);
+    }
+    audit('signature_bl', { livraisonId: livId, signataire: nom, qualite, horodatage: entry.date, documentHash, chainHash });
+    toast('✅ Signature archivée & livraison clôturée', 'success');
+    document.getElementById('s15-modal-info')?.classList.remove('open');
+    if (typeof window.afficherLivraisons === 'function') try { window.afficherLivraisons(); } catch(e){}
+    if (typeof window.s24CronTick === 'function') try { window.s24CronTick(); } catch(e){}
+  };
+
+  // Vérification d'intégrité de la chaîne (BUG-039) — utilisable pour audit / support
+  window.s26VerifierChaineSignatures = async function() {
+    const sigs = load(LS.signatures);
+    const resultats = [];
+    let prevHash = '';
+    for (const s of sigs) {
+      if (!s.chainHash) { resultats.push({ id:s.id, ok:false, raison:'Signature pré-BUG-039 (pas de hash)' }); prevHash = ''; continue; }
+      if ((s.previousHash||'') !== prevHash) {
+        resultats.push({ id:s.id, ok:false, raison:'Chaînage rompu (previousHash inattendu)' });
+      } else {
+        const recomputed = await sha256Hex([s.documentHash, s.previousHash, s.signataire, s.qualite, s.date].join('|'));
+        resultats.push({ id:s.id, ok: recomputed === s.chainHash, raison: recomputed === s.chainHash ? 'OK' : 'chainHash ne correspond pas au contenu (falsification probable)' });
+      }
+      prevHash = s.chainHash;
+    }
+    return resultats;
+  };
+
+  // Injecte bouton Signer sur les drawers/livraisons si activé
+  function injecterBoutonSignature() {
+    if (!signatureActive()) return;
+    document.querySelectorAll('[data-livraison-id]:not(.__s26SigBtn)').forEach(el => {
+      const id = el.dataset.livraisonId;
+      if (!id) return;
+      el.classList.add('__s26SigBtn');
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm btn-ghost s26-btn-sig';
+      btn.innerHTML = '✍️ Signer';
+      btn.onclick = (e) => { e.stopPropagation(); ouvrirSignatureBL(id); };
+      el.appendChild(btn);
+    });
+  }
+
+  /* ================================================================
+     BLOC 5 — PARAMÈTRES : section S26
+     ================================================================ */
+  function injectParamsUI() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    if (page.querySelector('#s26-params-section')) return;
+    const container = page.querySelector('.settings-content') || page;
+    const section = document.createElement('div');
+    section.id = 's26-params-section';
+    section.className = 'settings-section';
+    section.innerHTML = `
+      <h2 style="margin-top:32px">📋 Pilotage & Traçabilité</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">
+        Outils de vision transverse et options de capture.
+      </p>
+      <div class="s26-params-actions">
+        <button class="btn btn-primary" onclick="window.ouvrirTimelineGlobale()">📊 Ouvrir la Timeline globale</button>
+      </div>
+      <h3 style="margin-top:24px">✍️ Signature BL sur tablette / mobile</h3>
+      <p style="color:var(--text-muted);font-size:.88rem">Capture d'une signature manuscrite au moment de la livraison.</p>
+      <div class="s26-toggles">
+        ${renderToggle('signature_bl', '✍️ Signature BL (canvas)', 'Bouton Signer sur chaque livraison. À la validation : clôture auto + archive horodatée.', false)}
+        ${renderToggle('signature_obligatoire', '🔒 Signature obligatoire pour clôturer', 'Bloque le passage au statut livré sans signature capturée.', false)}
+      </div>
+    `;
+    container.appendChild(section);
+    section.querySelectorAll('input[type=checkbox][data-s26-key]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        setOpt(cb.dataset.s26Key, cb.checked);
+        toast(cb.checked ? '✅ Activé : '+cb.dataset.s26Label : '⏸️ Désactivé : '+cb.dataset.s26Label, 'success');
+        if (cb.dataset.s26Key === 'signature_bl' && cb.checked) injecterBoutonSignature();
+      });
+    });
+  }
+  function renderToggle(key, label, desc, def) {
+    const val = getOpt(key, def);
+    return `<label class="s24-toggle">
+      <input type="checkbox" data-s26-key="${key}" data-s26-label="${label}" ${val?'checked':''} />
+      <span class="s24-toggle-switch"></span>
+      <span class="s24-toggle-body"><strong>${label}</strong><br><small>${desc}</small></span>
+    </label>`;
+  }
+
+  /* ================================================================
+     INIT
+     ================================================================ */
+  function init() {
+    document.addEventListener('dblclick', onDblClickCell);
+    setTimeout(renderStatsComparees, 1200);
+    setInterval(renderStatsComparees, 60*1000);
+    setTimeout(injectParamsUI, 1300);
+    setInterval(injectParamsUI, 4000);
+    setInterval(injecterBoutonSignature, 2500);
+    // Re-render stats si localStorage mute
+    window.addEventListener('storage', () => {
+      const el = document.getElementById('s26-stats-comparees');
+      if (el) el.remove();
+      renderStatsComparees();
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1500);
+})();
+
+/* ==========================================================================
+   Sprint 27 — Pack fiscal ZIP (cases à cocher)
+   Génère une archive ZIP contenant les éléments sélectionnés :
+   - FEC (Fichier des Écritures Comptables — CGI art. A47 A-1, 18 colonnes)
+   - Journal des ventes (factures émises)
+   - Journal des achats (charges)
+   - Avoirs émis
+   - Paiements / Encaissements
+   - Relevé bancaire simulé (rapprochement)
+   - Liste clients / fournisseurs
+   - Mentions légales (RGPD, registre traitements minimal)
+   Nécessite JSZip (CDN chargé dans admin.html)
+   ========================================================================== */
+(function installS27(){
+  if (window.__s27Installed) return;
+  window.__s27Installed = true;
+
+  const LS = {
+    factures: 'factures_emises', livraisons: 'livraisons', paiements: 'paiements',
+    avoirs: 'avoirs_emis', charges: 'charges', clients: 'clients', fournisseurs: 'fournisseurs',
+    params: 'params_entreprise', audit: 'audit_log',
+  };
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
+  const esc = window.escapeHtml;
+  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+  const audit = (a, d) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(a, d); };
+
+  const PACKS = [
+    { k: 'fec', lbl: '📊 FEC — Écritures comptables (A47 A-1)', def: true, legal: 'Obligatoire si contrôle fiscal (CGI art. L47 A). Format TXT, 18 colonnes, séparateur tabulation.' },
+    { k: 'journal_ventes', lbl: '💰 Journal des ventes', def: true, legal: 'Document comptable obligatoire (Code de commerce L123-12).' },
+    { k: 'journal_achats', lbl: '🧾 Journal des achats', def: true, legal: 'Document comptable obligatoire.' },
+    { k: 'factures', lbl: '📄 Liste factures émises (CSV)', def: true, legal: 'Conservation 10 ans (Code de commerce L123-22).' },
+    { k: 'avoirs', lbl: '↩️ Liste avoirs émis (CSV)', def: true, legal: 'Conservation 10 ans, doivent référencer la facture initiale.' },
+    { k: 'paiements', lbl: '💸 Encaissements / paiements', def: true, legal: 'Traçabilité des flux financiers.' },
+    { k: 'livraisons', lbl: '🚚 Livraisons / BL', def: false, legal: 'Preuve de prestation transport — conservation 5 ans minimum.' },
+    { k: 'clients', lbl: '👥 Base clients', def: false, legal: 'Attention RGPD : supprimer les données inutiles (droit effacement).' },
+    { k: 'fournisseurs', lbl: '🏭 Base fournisseurs', def: false, legal: 'Données nécessaires à la comptabilité fournisseur.' },
+    { k: 'synthese_tva', lbl: '🧮 Synthèse TVA collectée / déductible', def: true, legal: 'Utile pour déclaration CA3 mensuelle / trimestrielle.' },
+    { k: 'audit', lbl: '🔍 Journal d\u2019audit (traçabilité)', def: false, legal: 'Horodatage des actions admin — preuve interne.' },
+    { k: 'mentions_legales', lbl: '⚖️ Mentions légales & registre RGPD', def: true, legal: 'Registre traitements (RGPD art. 30) + mentions facturation obligatoires.' },
+  ];
+
+  function ouvrirPackFiscal() {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const defStart = yyyy + '-01-01';
+    const defEnd = today.toLocalISODate();
+    const html = `
+      <div class="s15-modal-info-box" style="max-width:820px">
+        <div class="s15-modal-info-header">
+          <h2>📦 Pack fiscal — Export archive ZIP</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body" style="max-height:75vh;overflow:auto">
+          <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:14px">
+            Cochez les éléments à inclure. L'archive sera générée en local (aucun envoi réseau) et téléchargée.
+          </p>
+          <div class="s27-periode">
+            <label>Du <input type="date" id="s27-du" value="${defStart}"></label>
+            <label>Au <input type="date" id="s27-au" value="${defEnd}"></label>
+            <div class="s27-presets">
+              <button class="btn btn-xs btn-ghost" data-s27-preset="annee">Année N</button>
+              <button class="btn btn-xs btn-ghost" data-s27-preset="trim">Trimestre</button>
+              <button class="btn btn-xs btn-ghost" data-s27-preset="mois">Mois</button>
+              <button class="btn btn-xs btn-ghost" data-s27-preset="tout">Tout</button>
+            </div>
+          </div>
+          <div class="s27-toolbar">
+            <button class="btn btn-xs btn-ghost" id="s27-all">✓ Tout cocher</button>
+            <button class="btn btn-xs btn-ghost" id="s27-none">✗ Tout décocher</button>
+            <button class="btn btn-xs btn-ghost" id="s27-default">🔄 Défaut fiscal</button>
+          </div>
+          <div class="s27-items">
+            ${PACKS.map(p => `
+              <label class="s27-item">
+                <input type="checkbox" data-s27-k="${p.k}" ${p.def?'checked':''}>
+                <div class="s27-item-body">
+                  <strong>${p.lbl}</strong>
+                  <small>${esc(p.legal)}</small>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+          <div class="s27-footer">
+            <div class="s27-counter" id="s27-counter"></div>
+            <button class="btn btn-primary" id="s27-generate">🗜️ Générer & télécharger le ZIP</button>
+          </div>
+        </div>
+      </div>
+    `;
+    ouvrirModal(html);
+    const updateCounter = () => {
+      const n = document.querySelectorAll('[data-s27-k]:checked').length;
+      document.getElementById('s27-counter').textContent = n + ' élément' + (n>1?'s':'') + ' sélectionné' + (n>1?'s':'');
+    };
+    document.querySelectorAll('[data-s27-k]').forEach(cb => cb.addEventListener('change', updateCounter));
+    document.getElementById('s27-all').onclick = () => { document.querySelectorAll('[data-s27-k]').forEach(cb => cb.checked = true); updateCounter(); };
+    document.getElementById('s27-none').onclick = () => { document.querySelectorAll('[data-s27-k]').forEach(cb => cb.checked = false); updateCounter(); };
+    document.getElementById('s27-default').onclick = () => {
+      document.querySelectorAll('[data-s27-k]').forEach(cb => {
+        const p = PACKS.find(x => x.k === cb.dataset.s27K);
+        cb.checked = !!(p && p.def);
+      });
+      updateCounter();
+    };
+    document.querySelectorAll('[data-s27-preset]').forEach(btn => {
+      btn.onclick = () => {
+        const now = new Date();
+        const du = document.getElementById('s27-du');
+        const au = document.getElementById('s27-au');
+        const preset = btn.dataset.s27Preset;
+        if (preset === 'annee') {
+          du.value = now.getFullYear() + '-01-01';
+          au.value = now.toLocalISODate();
+        } else if (preset === 'trim') {
+          const q = Math.floor(now.getMonth()/3);
+          du.value = now.getFullYear() + '-' + String(q*3+1).padStart(2,'0') + '-01';
+          au.value = now.toLocalISODate();
+        } else if (preset === 'mois') {
+          du.value = now.toLocalISOMonth() + '-01';
+          au.value = now.toLocalISODate();
+        } else if (preset === 'tout') {
+          du.value = '2000-01-01';
+          au.value = now.toLocalISODate();
+        }
+      };
+    });
+    document.getElementById('s27-generate').onclick = () => {
+      const du = document.getElementById('s27-du').value;
+      const au = document.getElementById('s27-au').value;
+      const selected = Array.from(document.querySelectorAll('[data-s27-k]:checked')).map(cb => cb.dataset.s27K);
+      if (!selected.length) { toast('Sélectionnez au moins 1 élément', 'warning'); return; }
+      genererZip(selected, du, au);
+    };
+    updateCounter();
+  }
+  window.ouvrirPackFiscal = ouvrirPackFiscal;
+
+  function ouvrirModal(html) {
+    if (typeof window.modalInfo === 'function') {
+      const m = window.modalInfo(html);
+      // window.modalInfo wraps html in .s15-modal-info-body ; our html already provides its own box
+      // so we override the inner structure:
+      m.innerHTML = html;
+      // re-bind close + backdrop
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }, { once: true });
+      m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
+        btn.addEventListener('click', () => m.classList.remove('open'));
+      });
+      return m;
+    }
+    let m = document.getElementById('s15-modal-info');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 's15-modal-info';
+      m.className = 's15-modal-info-overlay';
+      document.body.appendChild(m);
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && m.classList.contains('open')) m.classList.remove('open'); });
+    } else {
+      m.className = 's15-modal-info-overlay';
+    }
+    m.innerHTML = html;
+    m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
+      btn.addEventListener('click', () => m.classList.remove('open'));
+    });
+    m.classList.add('open');
+    return m;
+  }
+
+  /* ---- Générateurs par bloc ---- */
+  function inRange(iso, du, au) {
+    if (!iso) return false;
+    const d = iso.slice(0,10);
+    return (!du || d >= du) && (!au || d <= au);
+  }
+  function csvEscape(s) {
+    // Neutralisation formule + échappement (BUG-016) — délègue au helper global
+    if (typeof window.csvCelluleSecurisee === 'function') return window.csvCelluleSecurisee(s, ';');
+    const raw = String(s==null?'':s);
+    const neutr = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
+    if (/[",;\n\r]/.test(neutr)) return '"' + neutr.replace(/"/g,'""') + '"';
+    return neutr;
+  }
+  function toCsv(rows) {
+    return rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
+  }
+  function toFec(rows) {
+    // 18 colonnes FEC séparées par TAB (CGI art. A47 A-1)
+    return rows.map(r => r.join('\t')).join('\r\n');
+  }
+
+  function genFEC(du, au) {
+    // BUG-002/023/024/036/037/038/040 fix : FEC conforme CGI art. A47 A-1
+    const entete = [
+      'JournalCode','JournalLib','EcritureNum','EcritureDate','CompteNum','CompteLib',
+      'CompAuxNum','CompAuxLib','PieceRef','PieceDate','EcritureLib','Debit','Credit',
+      'EcritureLet','DateLet','ValidDate','Montantdevise','Idevise'
+    ];
+    // ValidDate : si exercice clôturé, date de validation ; sinon vide (mode brouillard)
+    const clotureInfo = (function(){ try { return loadSafe('cloture_exercice', null) || {}; } catch(e){ return {}; } })();
+    const validDate = (clotureInfo && clotureInfo.validee && clotureInfo.dateValidation) ? String(clotureInfo.dateValidation).replace(/-/g,'') : '';
+
+    // Mapping TVA collectée par taux (cohérent avec Pennylane)
+    const compteTVACol = (taux) => {
+      const t = Number(taux);
+      if (t === 20) return '445710';
+      if (t === 10) return '445711';
+      if (t === 5.5) return '445712';
+      if (t === 2.1) return '445713';
+      return '445700';
+    };
+    // Mapping TVA déductible par taux
+    const compteTVADed = (taux) => {
+      const t = Number(taux);
+      if (t === 20) return '445660';
+      if (t === 10) return '445661';
+      if (t === 5.5) return '445662';
+      if (t === 2.1) return '445663';
+      return '445660';
+    };
+    // Mapping compte charge par catégorie (réutilise helper global)
+    const compteCharge = (cat) => (typeof getCompteChargeFEC === 'function')
+      ? getCompteChargeFEC(cat) : { num:'628000', lib:'Autres services extérieurs' };
+
+    const pieces = [];
+    // Factures (prestations transport : compte 706)
+    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => {
+      const date = (f.dateFacture||'').replace(/-/g,'');
+      const ht = Number(f.montantHT||f.totalHT||0);
+      const tva = Number(f.montantTVA||f.totalTVA||0);
+      const ttc = Number(f.montantTTC||f.totalTTC||0);
+      const lettrage = f.lettrage || ''; // renseigné si facture soldée, voir paiements
+      const tauxTVA = Number(f.tauxTVA != null ? f.tauxTVA : 20);
+      pieces.push({ sortKey: date+'_VE_'+(f.numero||''), rows: [
+        ['VE','Ventes','__N__',date,'411000','Clients','C'+(f.clientCode||''),(f.client||''),f.numero||'',date,'Facture '+(f.numero||''),ttc.toFixed(2).replace('.',','),'0,00',lettrage,lettrage?date:'',validDate,ttc.toFixed(2).replace('.',','),'EUR'],
+        ['VE','Ventes','__N__',date,'706000','Prestations de services','','',f.numero||'',date,'Prestation transport',(0).toFixed(2).replace('.',','),ht.toFixed(2).replace('.',','),'','',validDate,ht.toFixed(2).replace('.',','),'EUR'],
+        ...(tva>0 ? [['VE','Ventes','__N__',date,compteTVACol(tauxTVA),'TVA collectée '+tauxTVA+'%','','',f.numero||'',date,'TVA '+tauxTVA+'%',(0).toFixed(2).replace('.',','),tva.toFixed(2).replace('.',','),'','',validDate,tva.toFixed(2).replace('.',','),'EUR']] : [])
+      ]});
+    });
+
+    // Charges (facture fournisseur reçue = écriture 607/445/401 ; libellé "Facture reçue")
+    load(LS.charges).filter(c => inRange(c.date, du, au)).forEach(c => {
+      const date = (c.date||'').replace(/-/g,'');
+      const ht = Number(c.montantHT||c.montant||0);
+      const tva = Number(c.montantTVA||0);
+      const ttc = Number(c.montantTTC||c.montant||0);
+      const tauxTVA = ht > 0 && tva > 0 ? Math.round((tva/ht)*1000)/10 : 20;
+      const cc = compteCharge(c.categorie);
+      const libPiece = c.libelle || cc.lib || 'Charge';
+      pieces.push({ sortKey: date+'_AC_'+(c.id||''), rows: [
+        ['AC','Achats','__N__',date,cc.num,cc.lib,'','',c.id||'',date,libPiece,ht.toFixed(2).replace('.',','),'0,00','','',validDate,ht.toFixed(2).replace('.',','),'EUR'],
+        ...(tva>0 ? [['AC','Achats','__N__',date,compteTVADed(tauxTVA),'TVA déductible '+tauxTVA+'%','','',c.id||'',date,'TVA déductible '+tauxTVA+'%',tva.toFixed(2).replace('.',','),'0,00','','',validDate,tva.toFixed(2).replace('.',','),'EUR']] : []),
+        ['AC','Achats','__N__',date,'401000','Fournisseurs','F'+(c.fournisseurCode||''),(c.fournisseur||''),c.id||'',date,'Facture reçue '+(c.fournisseur||''),'0,00',ttc.toFixed(2).replace('.',','),'','',validDate,ttc.toFixed(2).replace('.',','),'EUR']
+      ]});
+      // BUG-024 : si la charge est marquée payée → 2e écriture banque 401 → 512
+      if (c.payee || c.datePaiement || c.modePaiement === 'cb' || c.modePaiement === 'virement' || c.modePaiement === 'especes') {
+        const datePai = ((c.datePaiement || c.date) || '').replace(/-/g,'');
+        const ref = c.referencePaiement || c.id || '';
+        pieces.push({ sortKey: datePai+'_BQ_F_'+(c.id||''), rows: [
+          ['BQ','Banque','__N__',datePai,'401000','Fournisseurs','F'+(c.fournisseurCode||''),(c.fournisseur||''),ref,datePai,'Règlement fournisseur '+(c.fournisseur||''),ttc.toFixed(2).replace('.',','),'0,00','','',validDate,ttc.toFixed(2).replace('.',','),'EUR'],
+          ['BQ','Banque','__N__',datePai,'512000','Banque','','',ref,datePai,'Paiement '+(c.fournisseur||''),'0,00',ttc.toFixed(2).replace('.',','),'','',validDate,ttc.toFixed(2).replace('.',','),'EUR']
+        ]});
+      }
+    });
+
+    // Paiements clients (encaissements) — lettrage automatique L<id>
+    load(LS.paiements).filter(p => inRange(p.datePaiement||p.date, du, au)).forEach(p => {
+      const date = ((p.datePaiement||p.date)||'').replace(/-/g,'');
+      const m = Number(p.montant||0);
+      const lettre = 'L' + String(p.id||'').slice(-6).toUpperCase();
+      pieces.push({ sortKey: date+'_BQ_C_'+(p.reference||p.id||''), rows: [
+        ['BQ','Banque','__N__',date,'512000','Banque','','',p.reference||'',date,'Encaissement '+(p.client||''),m.toFixed(2).replace('.',','),'0,00','','',validDate,m.toFixed(2).replace('.',','),'EUR'],
+        ['BQ','Banque','__N__',date,'411000','Clients','C'+(p.clientCode||''),(p.client||''),p.reference||'',date,'Règlement '+(p.client||''),'0,00',m.toFixed(2).replace('.',','),lettre,date,validDate,m.toFixed(2).replace('.',','),'EUR']
+      ]});
+    });
+
+    // BUG-040 : tri chronologique stable par sortKey
+    // BUG-041 : numérotation continue à l'échelle de l'exercice entier (année du `du`)
+    //           → re-générer n'importe quel sous-intervalle produit les MÊMES EcritureNum
+    //           pour les mêmes écritures (numérotation déterministe, zéro collision).
+    const anneeExercice = (du||'').slice(0,4) || String((new Date()).getFullYear());
+    const debutExo = anneeExercice + '-01-01';
+    const finExo = anneeExercice + '-12-31';
+    // On recalcule TOUT l'exercice pour numéroter, puis on filtre à [du, au]
+    const piecesExo = [];
+    load(LS.factures).filter(f => inRange(f.dateFacture, debutExo, finExo)).forEach(f => {
+      const date = (f.dateFacture||'').replace(/-/g,'');
+      const tauxTVA = Number(f.tauxTVA != null ? f.tauxTVA : 20);
+      const tvaV = Number(f.montantTVA||f.totalTVA||0);
+      piecesExo.push({ sortKey: date+'_VE_'+(f.numero||''), dateFactureISO: f.dateFacture||'' });
+    });
+    load(LS.charges).filter(c => inRange(c.date, debutExo, finExo)).forEach(c => {
+      const date = (c.date||'').replace(/-/g,'');
+      piecesExo.push({ sortKey: date+'_AC_'+(c.id||''), dateFactureISO: c.date||'' });
+      if (c.payee || c.datePaiement || c.modePaiement === 'cb' || c.modePaiement === 'virement' || c.modePaiement === 'especes') {
+        const datePai = ((c.datePaiement || c.date) || '').replace(/-/g,'');
+        piecesExo.push({ sortKey: datePai+'_BQ_F_'+(c.id||''), dateFactureISO: (c.datePaiement||c.date||'') });
+      }
+    });
+    load(LS.paiements).filter(p => inRange(p.datePaiement||p.date, debutExo, finExo)).forEach(p => {
+      const date = ((p.datePaiement||p.date)||'').replace(/-/g,'');
+      piecesExo.push({ sortKey: date+'_BQ_C_'+(p.reference||p.id||''), dateFactureISO: (p.datePaiement||p.date||'') });
+    });
+    piecesExo.sort((a,b) => a.sortKey.localeCompare(b.sortKey));
+    const numByKey = new Map();
+    piecesExo.forEach((p, i) => numByKey.set(p.sortKey, i + 1));
+
+    pieces.sort((a,b) => a.sortKey.localeCompare(b.sortKey));
+    const rows = [entete];
+    pieces.forEach(p => {
+      const n = String(numByKey.get(p.sortKey) || 0);
+      p.rows.forEach(r => { r[2] = n; rows.push(r); });
+    });
+    return toFec(rows);
+  }
+
+  function genJournalVentes(du, au) {
+    const header = ['Date','Numéro','Client','Libellé','HT','TVA','TTC','Statut','Échéance'];
+    const rows = [header];
+    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => {
+      rows.push([
+        f.dateFacture||'', f.numero||'', f.client||'', f.libelle||f.prestation||'Prestation transport',
+        (Number(f.montantHT||f.totalHT||0)).toFixed(2),
+        (Number(f.montantTVA||f.totalTVA||0)).toFixed(2),
+        (Number(f.montantTTC||f.totalTTC||0)).toFixed(2),
+        f.statut||'', f.dateEcheance||''
+      ]);
+    });
+    return toCsv(rows);
+  }
+  function genJournalAchats(du, au) {
+    const header = ['Date','Fournisseur','Catégorie','Libellé','HT','TVA','TTC','Mode paiement'];
+    const rows = [header];
+    load(LS.charges).filter(c => inRange(c.date, du, au)).forEach(c => {
+      rows.push([c.date||'', c.fournisseur||'', c.categorie||'', c.libelle||'',
+        (Number(c.montantHT||c.montant||0)).toFixed(2),
+        (Number(c.montantTVA||0)).toFixed(2),
+        (Number(c.montantTTC||c.montant||0)).toFixed(2),
+        c.modePaiement||'']);
+    });
+    return toCsv(rows);
+  }
+  function genFacturesCSV(du, au) {
+    const header = ['Date','Numéro','Client','SIRET','HT','TVA','TTC','Statut','Échéance','Mode règlement'];
+    const rows = [header];
+    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => {
+      rows.push([f.dateFacture||'', f.numero||'', f.client||'', f.siret||'',
+        (Number(f.montantHT||f.totalHT||0)).toFixed(2),
+        (Number(f.montantTVA||f.totalTVA||0)).toFixed(2),
+        (Number(f.montantTTC||f.totalTTC||0)).toFixed(2),
+        f.statut||'', f.dateEcheance||'', f.modeReglement||'']);
+    });
+    return toCsv(rows);
+  }
+  function genAvoirsCSV(du, au) {
+    const header = ['Date','Numéro avoir','Facture initiale','Client','Motif','HT','TVA','TTC'];
+    const rows = [header];
+    load(LS.avoirs).filter(a => inRange(a.dateAvoir, du, au)).forEach(a => {
+      rows.push([a.dateAvoir||'', a.numero||'', a.factureInitiale||'', a.client||'', a.motif||'',
+        (Number(a.montantHT||0)).toFixed(2),
+        (Number(a.montantTVA||0)).toFixed(2),
+        (Number(a.montantTTC||0)).toFixed(2)]);
+    });
+    return toCsv(rows);
+  }
+  function genPaiementsCSV(du, au) {
+    const header = ['Date','Référence','Client','Facture','Mode','Montant','Banque'];
+    const rows = [header];
+    load(LS.paiements).filter(p => inRange(p.datePaiement||p.date, du, au)).forEach(p => {
+      rows.push([p.datePaiement||p.date||'', p.reference||'', p.client||'', p.factureReferencee||p.facture||'',
+        p.mode||'', (Number(p.montant||0)).toFixed(2), p.banque||'']);
+    });
+    return toCsv(rows);
+  }
+  function genLivraisonsCSV(du, au) {
+    const header = ['Date','Référence BL','Client','Départ','Arrivée','Chauffeur','Véhicule','Statut','Montant'];
+    const rows = [header];
+    load(LS.livraisons).filter(l => inRange(l.dateLivraison||l.dateCreation, du, au)).forEach(l => {
+      rows.push([l.dateLivraison||l.dateCreation||'', l.referenceBL||l.id||'', l.client||l.donneurOrdre||'',
+        l.depart||'', l.arrivee||'', l.chauffeur||'', l.vehicule||'', l.statut||'',
+        (Number(l.montant||l.prixHT||0)).toFixed(2)]);
+    });
+    return toCsv(rows);
+  }
+  function genClientsCSV() {
+    const header = ['Raison sociale','SIRET','TVA intra','Adresse','CP','Ville','Email','Téléphone','Conditions paiement'];
+    const rows = [header];
+    load(LS.clients).forEach(c => {
+      rows.push([c.raisonSociale||c.nom||'', c.siret||'', c.tvaIntra||'', c.adresse||'', c.cp||'', c.ville||'',
+        c.email||'', c.telephone||'', c.conditionsPaiement||'']);
+    });
+    return toCsv(rows);
+  }
+  function genFournisseursCSV() {
+    const header = ['Raison sociale','SIRET','TVA intra','Adresse','CP','Ville','Email','Téléphone','Catégorie'];
+    const rows = [header];
+    load(LS.fournisseurs).forEach(f => {
+      rows.push([f.raisonSociale||f.nom||'', f.siret||'', f.tvaIntra||'', f.adresse||'', f.cp||'', f.ville||'',
+        f.email||'', f.telephone||'', f.categorie||'']);
+    });
+    return toCsv(rows);
+  }
+  function genSyntheseTVA(du, au) {
+    let collectee = 0, deductible = 0;
+    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => { collectee += Number(f.montantTVA||f.totalTVA||0); });
+    load(LS.charges).filter(c => inRange(c.date, du, au)).forEach(c => { deductible += Number(c.montantTVA||0); });
+    const net = collectee - deductible;
+    return [
+      'SYNTHÈSE TVA',
+      'Période : '+du+' → '+au,
+      '',
+      'TVA collectée (ventes)    : '+collectee.toFixed(2)+' €',
+      'TVA déductible (achats)   : '+deductible.toFixed(2)+' €',
+      '─────────────────────────────────────',
+      'TVA due (à reverser)      : '+net.toFixed(2)+' €',
+      '',
+      'Code CA3 : 08 (collectée standard 20%), 20 (déductible)',
+      'À reporter sur déclaration mensuelle / trimestrielle selon régime.',
+    ].join('\r\n');
+  }
+  function genAuditLog() {
+    const header = ['Date','Action','Détails'];
+    const rows = [header];
+    load(LS.audit).forEach(e => {
+      rows.push([e.date||e.timestamp||'', e.action||'', JSON.stringify(e.details||e.data||{})]);
+    });
+    return toCsv(rows);
+  }
+  function genMentionsLegales() {
+    const p = loadObj(LS.params) || {};
+    const raisonSociale = p.raisonSociale || 'MCA Logistics';
+    const siret = p.siret || '—';
+    const tva = p.tvaIntra || '—';
+    return [
+      'MENTIONS LÉGALES & REGISTRE RGPD',
+      '=================================',
+      '',
+      'Entité       : '+raisonSociale,
+      'SIRET        : '+siret,
+      'TVA intra    : '+tva,
+      'Adresse      : '+(p.adresse||'—')+' '+(p.cp||'')+' '+(p.ville||''),
+      'Activité     : Transport routier de marchandises',
+      '',
+      'MENTIONS OBLIGATOIRES FACTURES (CGI art. 242 nonies A)',
+      '- Identité vendeur et acheteur',
+      '- Numéro TVA intracommunautaire si > 150 € HT',
+      '- Date facture + date prestation',
+      '- Numéro unique et continu',
+      '- Désignation et quantité',
+      '- Prix unitaire HT, taux TVA, montant TVA, total TTC',
+      '- Conditions de règlement, pénalités de retard, indemnité forfaitaire 40 €',
+      '',
+      'REGISTRE TRAITEMENTS RGPD (art. 30)',
+      '-----------------------------------',
+      '1. Gestion clientèle',
+      '   Finalité : facturation, livraison, relance commerciale',
+      '   Base légale : exécution contrat + obligation légale comptable',
+      '   Durée : 10 ans après dernière transaction (prescription comptable)',
+      '   Destinataires : comptable, admin, (éventuel prestataire de paiement)',
+      '',
+      '2. Gestion salariés',
+      '   Finalité : paie, planning, heures, km',
+      '   Base légale : contrat de travail',
+      '   Durée : 5 ans post-sortie (paie) / 6 ans (heures) / règles CNIL',
+      '',
+      '3. Géolocalisation (si applicable)',
+      '   Finalité : suivi flotte, preuve livraison',
+      '   Base légale : intérêt légitime entreprise, info salarié obligatoire',
+      '   Durée : 2 mois maximum (CNIL)',
+      '',
+      'DROITS DES PERSONNES : accès, rectification, effacement, opposition, portabilité.',
+      'Contact DPO/responsable : '+ (p.emailResponsable||p.email||'—'),
+      '',
+      'Archivage : 10 ans factures / 6 ans documents comptables / 5 ans paies / 3 ans courriers commerciaux.',
+      '',
+      'Document généré le '+new Date().toLocaleString('fr-FR')+' depuis MCA Logistics.',
+    ].join('\r\n');
+  }
+  function genManifest(selected, du, au) {
+    return [
+      'PACK FISCAL — MANIFESTE',
+      '=======================',
+      '',
+      'Généré le : '+new Date().toLocaleString('fr-FR'),
+      'Période   : '+du+' → '+au,
+      '',
+      'Contenu de l archive :',
+      ...selected.map(k => {
+        const p = PACKS.find(x => x.k === k);
+        return ' - '+(p?p.lbl:k);
+      }),
+      '',
+      'Conservation recommandée : 10 ans minimum pour les documents comptables',
+      '(Code de commerce art. L123-22, CGI art. L102 B).',
+      '',
+      'IMPORTANT : cette archive doit être stockée sur support pérenne (cloud',
+      'sauvegardé OU disque externe chiffré). Conservez également le hash SHA',
+      'du fichier ZIP pour preuve d intégrité en cas de contrôle.',
+    ].join('\r\n');
+  }
+
+  async function genererZip(selected, du, au) {
+    if (typeof window.JSZip === 'undefined') {
+      toast('JSZip non chargé — rechargez la page', 'error');
+      return;
+    }
+    toast('🗜️ Génération du pack fiscal…', 'info');
+    const zip = new window.JSZip();
+    const base = 'pack-fiscal_'+du+'_'+au;
+    zip.file(base+'/MANIFESTE.txt', genManifest(selected, du, au));
+    try {
+      if (selected.includes('fec'))            zip.file(base+'/FEC_'+du+'_'+au+'.txt', '\uFEFF' + genFEC(du, au));
+      if (selected.includes('journal_ventes')) zip.file(base+'/journal_ventes.csv', genJournalVentes(du, au));
+      if (selected.includes('journal_achats')) zip.file(base+'/journal_achats.csv', genJournalAchats(du, au));
+      if (selected.includes('factures'))       zip.file(base+'/factures_emises.csv', genFacturesCSV(du, au));
+      if (selected.includes('avoirs'))         zip.file(base+'/avoirs_emis.csv', genAvoirsCSV(du, au));
+      if (selected.includes('paiements'))      zip.file(base+'/paiements.csv', genPaiementsCSV(du, au));
+      if (selected.includes('livraisons'))     zip.file(base+'/livraisons.csv', genLivraisonsCSV(du, au));
+      if (selected.includes('clients'))        zip.file(base+'/clients.csv', genClientsCSV());
+      if (selected.includes('fournisseurs'))   zip.file(base+'/fournisseurs.csv', genFournisseursCSV());
+      if (selected.includes('synthese_tva'))   zip.file(base+'/synthese_tva.txt', genSyntheseTVA(du, au));
+      if (selected.includes('audit'))          zip.file(base+'/audit_log.csv', genAuditLog());
+      if (selected.includes('mentions_legales')) zip.file(base+'/mentions_legales_RGPD.txt', genMentionsLegales());
+    } catch(e) {
+      console.error('S27 gen error', e);
+      toast('❌ Erreur génération : '+e.message, 'error');
+      return;
+    }
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = base+'.zip';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+    audit('export_pack_fiscal', { periode: du+'→'+au, items: selected });
+    toast('✅ Pack fiscal téléchargé ('+selected.length+' éléments)', 'success');
+    document.getElementById('s15-modal-info')?.classList.remove('open');
+  }
+
+  /* ---- UI Paramètres : bouton Pack fiscal ---- */
+  function injectParamsUI() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    if (page.querySelector('#s27-params-section')) return;
+    const container = page.querySelector('.settings-content') || page;
+    const section = document.createElement('div');
+    section.id = 's27-params-section';
+    section.className = 'settings-section';
+    section.innerHTML = `
+      <h2 style="margin-top:32px">📦 Pack fiscal & conformité</h2>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
+        Archive ZIP complète pour l'expert-comptable ou un contrôle fiscal. Généré en local, aucune donnée ne quitte le navigateur.
+      </p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="window.ouvrirPackFiscal()">🗜️ Ouvrir le pack fiscal</button>
+      </div>
+    `;
+    container.appendChild(section);
+  }
+
+  /* ---- Ajout raccourci depuis Facturation ---- */
+  function injectFacturationBtn() {
+    const page = document.getElementById('page-facturation');
+    if (!page) return;
+    if (page.querySelector('#s27-fact-btn')) return;
+    const toolbar = page.querySelector('.toolbar, .page-header, .filters');
+    if (!toolbar) return;
+    const btn = document.createElement('button');
+    btn.id = 's27-fact-btn';
+    btn.className = 'btn btn-sm btn-ghost';
+    btn.innerHTML = '📦 Pack fiscal';
+    btn.onclick = () => ouvrirPackFiscal();
+    toolbar.appendChild(btn);
+  }
+
+  function init() {
+    setTimeout(injectParamsUI, 1400);
+    setInterval(injectParamsUI, 4000);
+    setTimeout(injectFacturationBtn, 1500);
+    setInterval(injectFacturationBtn, 4000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1600);
+})();
+
+/* ==========================================================================
+   Sprint 28 — Bugs critiques & cleanup
+   1. Extension drawer 360° à tous les onglets (liv, fact, paie, charges)
+   2. MutationObserver pour re-injection instantanée dans Paramètres
+   3. Bouton Signature BL sur rows page Livraisons (+ action inline)
+   4. Nettoyage encarts légaux pédagogiques (centralisation Conformité)
+   5. Amélioration visuelle drawer tabs (scroll fluide)
+   ========================================================================== */
+(function installS28(){
+  if (window.__s28Installed) return;
+  window.__s28Installed = true;
+
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
+  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+
+  /* ---------- 1. Extension drawer 360° à tous les onglets ---------- */
+  function findClientByName(nom) {
+    if (!nom) return null;
+    const k = nom.trim().toLowerCase();
+    return load('clients').find(c => (c.nom||'').trim().toLowerCase() === k) || null;
+  }
+  function findFournByName(nom) {
+    if (!nom) return null;
+    const k = nom.trim().toLowerCase();
+    return load('fournisseurs').find(f => (f.nom||'').trim().toLowerCase() === k) || null;
+  }
+
+  // Délégation clic global : tout élément avec data-client-open ou data-fourn-open ouvre drawer
+  document.addEventListener('click', function(e) {
+    const cel = e.target.closest('[data-s28-client]');
+    const fel = e.target.closest('[data-s28-fourn]');
+    if (cel && typeof window.ouvrirFiche360Client === 'function') {
+      e.preventDefault(); e.stopPropagation();
+      const id = cel.dataset.s28Client;
+      window.ouvrirFiche360Client(id);
+      return;
+    }
+    if (fel && typeof window.ouvrirFiche360Fournisseur === 'function') {
+      e.preventDefault(); e.stopPropagation();
+      const id = fel.dataset.s28Fourn;
+      window.ouvrirFiche360Fournisseur(id);
+      return;
+    }
+  }, true);
+
+  // Injection attribut data-s28-client sur les cellules nom client dans toutes les tables
+  function hookClientCells() {
+    // Table Livraisons (colonne client)
+    const tbLiv = document.getElementById('tb-livraisons');
+    const tbLivR = document.getElementById('tb-livraisons-recentes');
+    [tbLiv, tbLivR].forEach(tb => {
+      if (!tb) return;
+      tb.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s28ClientHook) return;
+        // Chercher cellule avec un nom client
+        const tds = tr.querySelectorAll('td');
+        tds.forEach(td => {
+          const txt = (td.textContent||'').trim();
+          if (!txt || txt === '—' || td.querySelector('select, input, button')) return;
+          const c = findClientByName(txt);
+          if (c) {
+            td.setAttribute('data-s28-client', c.id);
+            td.style.cursor = 'pointer';
+            td.title = '👤 Ouvrir fiche client 360°';
+            td.classList.add('s28-link-cell');
+          }
+        });
+        tr.__s28ClientHook = true;
+      });
+    });
+    // Table Factures émises
+    const tbFact = document.getElementById('tb-factures');
+    if (tbFact) {
+      tbFact.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s28ClientHook) return;
+        tr.querySelectorAll('td').forEach(td => {
+          const txt = (td.textContent||'').trim();
+          if (!txt || txt === '—' || td.querySelector('select, input, button')) return;
+          const c = findClientByName(txt);
+          if (c) {
+            td.setAttribute('data-s28-client', c.id);
+            td.style.cursor = 'pointer';
+            td.title = '👤 Ouvrir fiche client 360°';
+            td.classList.add('s28-link-cell');
+          }
+        });
+        tr.__s28ClientHook = true;
+      });
+    }
+    // Charges → fournisseur
+    const tbCh = document.getElementById('tb-charges');
+    if (tbCh) {
+      tbCh.querySelectorAll('tr').forEach(tr => {
+        if (tr.__s28FournHook) return;
+        tr.querySelectorAll('td').forEach(td => {
+          const txt = (td.textContent||'').trim();
+          if (!txt || txt === '—' || td.querySelector('select, input, button')) return;
+          const f = findFournByName(txt);
+          if (f) {
+            td.setAttribute('data-s28-fourn', f.id);
+            td.style.cursor = 'pointer';
+            td.title = '🏭 Ouvrir fiche fournisseur 360°';
+            td.classList.add('s28-link-cell');
+          }
+        });
+        tr.__s28FournHook = true;
+      });
+    }
+  }
+
+  /* ---------- 2. Bouton Signature BL sur rows livraisons ---------- */
+  function signatureActive() {
+    const p = loadObj('params_entreprise');
+    const o = p.s26 || {};
+    return !!o.signature_bl;
+  }
+
+  function hookSignatureLivraisons() {
+    if (!signatureActive()) return;
+    const tbLiv = document.getElementById('tb-livraisons');
+    if (!tbLiv) return;
+    tbLiv.querySelectorAll('tr').forEach(tr => {
+      if (tr.__s28SigHook) return;
+      // Cherche l'ID de la livraison dans la ligne
+      const editBtn = tr.querySelector('button[onclick*="ouvrirEditLivraison"], button[onclick*="modifierLivraison"]');
+      let livId = null;
+      if (editBtn) {
+        const m = editBtn.getAttribute('onclick').match(/['"]([a-zA-Z0-9_-]+)['"]/);
+        if (m) livId = m[1];
+      }
+      if (!livId) {
+        const anyBtn = tr.querySelector('button[onclick*="supprimerLivraison"], button[onclick*="imprimer"]');
+        if (anyBtn) {
+          const m = anyBtn.getAttribute('onclick').match(/['"]([a-zA-Z0-9_-]+)['"]/);
+          if (m) livId = m[1];
+        }
+      }
+      if (!livId) return;
+      // Chercher le menu dropdown Actions (S27 pattern .inline-dropdown-menu)
+      const menu = tr.querySelector('.inline-dropdown-menu');
+      if (!menu) return;
+      if (menu.querySelector('.s28-sig-item')) return;
+      // Vérifier si déjà signée
+      const sigs = load('s26_signatures_bl');
+      const hasSig = sigs.some(s => String(s.livraisonId) === String(livId));
+      // Créer un item cohérent avec la classe inline-dropdown-item
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'inline-dropdown-item s28-sig-item';
+      item.innerHTML = (hasSig ? '✅ ' : '✍️ ') + (hasSig ? 'Voir signature BL' : 'Signer BL');
+      item.title = hasSig ? 'Signature déjà archivée — ouvrir' : 'Capturer la signature du destinataire';
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.fermerInlineDropdowns === 'function') window.fermerInlineDropdowns();
+        window.ouvrirSignatureBL(livId);
+      });
+      // Insérer en haut du menu (avant Modifier)
+      menu.insertBefore(item, menu.firstChild);
+      tr.__s28SigHook = true;
+    });
+  }
+
+  /* ---------- 3. Garde anti-overlay résiduel (fix écran noir Paramètres) ---------- */
+  // Si un modal .s15-modal-info-overlay reste en .open sans contenu visible
+  // (peut arriver après écriture storage/re-render), on le ferme proprement.
+  function gardeOverlay() {
+    const m = document.getElementById('s15-modal-info');
+    if (!m) return;
+    if (!m.classList.contains('open')) return;
+    const box = m.querySelector('.s15-modal-info-box, .s15-modal-info-body');
+    const visible = box && box.offsetParent !== null && (box.textContent||'').trim().length > 0;
+    if (!visible) m.classList.remove('open');
+  }
+
+  /* ---------- 4. Scan permanent ---------- */
+  function tick() {
+    hookClientCells();
+    hookSignatureLivraisons();
+    gardeOverlay();
+  }
+
+  function init() {
+    setTimeout(tick, 1200);
+    setInterval(tick, 2000);
+    // Re-hook quand on change de page
+    document.addEventListener('click', (e) => {
+      const navBtn = e.target.closest('[data-page], .nav-item');
+      if (navBtn) setTimeout(tick, 300);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 1700);
+})();
+
+/* ==========================================================================
+   Sprint 29 — Refonte Paramètres pro
+   - Sidebar interne 8 sections (Entreprise, Facturation, Comptabilité,
+     Transport, Automatisations, Sécurité & RGPD, Conformité, À propos)
+   - Recherche live (Ctrl + /) qui filtre les cartes
+   - Catégorisation auto des cartes existantes (par titre h2)
+   - Section Conformité = seul endroit légal centralisé (RGPD / FEC / eIDAS /
+     CMR / archivage), regroupe aussi pack fiscal S27 + signature BL S26
+   - Mémorisation section active (localStorage : s29_section_active)
+   ========================================================================== */
+(function installS29(){
+  if (window.__s29Installed) return;
+  window.__s29Installed = true;
+
+  const LS_SECTION = 's29_section_active';
+  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+
+  const SECTIONS = [
+    { id:'entreprise',    icon:'🏢', label:'Entreprise',      desc:'Identité, logo, postes' },
+    { id:'facturation',   icon:'🧾', label:'Facturation',     desc:'TVA, trésorerie, numérotation' },
+    { id:'comptabilite',  icon:'📊', label:'Comptabilité',    desc:'Exercice, PCG, Factur-X' },
+    { id:'transport',     icon:'🚚', label:'Transport',       desc:'Règles calculs, livraison' },
+    { id:'automatisations', icon:'⚙️', label:'Automatisations', desc:'Cron, rappels, clôtures' },
+    { id:'securite',      icon:'🔐', label:'Sécurité & RGPD', desc:'Mot de passe, sessions, audit' },
+    { id:'conformite',    icon:'📋', label:'Conformité',      desc:'Pack fiscal, obligations légales' },
+    { id:'apropos',       icon:'ℹ️', label:'À propos',        desc:'Version, support, mentions' },
+  ];
+
+  /* ---------- Catégorisation automatique par titre h2 ---------- */
+  function categoriseCard(card) {
+    if (card.dataset.s29Section) return card.dataset.s29Section;
+    const h2 = card.querySelector('.card-header h2, h2');
+    const title = h2 ? (h2.textContent||'').toLowerCase() : '';
+    if (/entreprise|identit|poste|apparence|th[eè]me|logo/.test(title)) return 'entreprise';
+    if (/tva|fiscalit|trésorerie|num[eé]rotation|facture|facturation/.test(title)) return 'facturation';
+    if (/comptab|exercice|pcg|factur-x|amortis/.test(title)) return 'comptabilite';
+    if (/transport|livraison|heure|km|cmr|lettre de voiture/.test(title)) return 'transport';
+    if (/automatisation|cron|rappel|pilotage|tra[cç]abilit/.test(title)) return 'automatisations';
+    if (/mot de passe|blocage|session|journal|audit|sauvegarde|restauration|s[eé]curit|rgpd/.test(title)) return 'securite';
+    if (/conformit|pack fiscal|eidas|fec|signature bl|rgpd|mentions/.test(title)) return 'conformite';
+    return 'entreprise'; // fallback
+  }
+
+  /* ---------- Encart Conformité centralisé ---------- */
+  function buildConformiteCard() {
+    const card = document.createElement('div');
+    card.className = 'card params-card-wide s29-conformite-card';
+    card.dataset.s29Section = 'conformite';
+    card.innerHTML = `
+      <div class="card-header"><h2>📋 Conformité & obligations légales</h2></div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:18px">
+          Tableau de bord centralisé des obligations légales françaises applicables à votre activité transport/logistique.
+          Cette page remplace les encarts pédagogiques éparpillés dans l'app.
+        </p>
+        <div class="s29-conformite-grid">
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">🗄️ Archivage documents (Code de commerce art. L123-22 / CGI art. L102 B)</div>
+            <ul class="s29-conf-list">
+              <li><strong>Factures émises & reçues :</strong> 10 ans (support numérique ou papier)</li>
+              <li><strong>Pièces comptables (livre journal, grand livre) :</strong> 10 ans</li>
+              <li><strong>Bulletins de paie :</strong> 5 ans (50 ans côté salarié)</li>
+              <li><strong>Contrats commerciaux :</strong> 5 ans après fin du contrat</li>
+              <li><strong>Lettres de voiture (CMR, BL) :</strong> 5 ans (Code des transports art. L3222-1)</li>
+              <li><strong>Journal d'audit des actions :</strong> 6 ans (preuve fiscale)</li>
+            </ul>
+          </div>
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">📘 Fichier des Écritures Comptables — FEC (CGI art. A47 A-1)</div>
+            <p>Format normé 18 colonnes, tab-separated, encodage ISO-8859-15 ou UTF-8 BOM.
+            Obligatoire en cas de contrôle fiscal pour toute entreprise soumise à TVA.
+            L'export FEC est disponible dans l'onglet Charges et via le Pack fiscal ci-dessous.</p>
+          </div>
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">✍️ Signature électronique BL (Règlement eIDAS n°910/2014)</div>
+            <p>La signature capturée via canvas tactile est une <strong>signature électronique simple</strong>.
+            Elle constitue un commencement de preuve par écrit (art. 1366 C. civ.) mais sa valeur probante
+            repose sur le faisceau d'indices : horodatage, IP, user-agent, hash du document associé.
+            Pour une valeur probante renforcée, prévoir un prestataire de service de confiance qualifié (PSCo).</p>
+          </div>
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">🛡️ RGPD — Règlement UE 2016/679</div>
+            <ul class="s29-conf-list">
+              <li><strong>Registre des traitements :</strong> art. 30 RGPD, obligatoire dès le premier salarié</li>
+              <li><strong>Consentement signature/géoloc :</strong> à recueillir lors de la collecte (base légale)</li>
+              <li><strong>Droit d'accès, rectification, effacement :</strong> procédure à documenter</li>
+              <li><strong>DPO :</strong> obligatoire si traitement à grande échelle ou données sensibles</li>
+              <li><strong>localStorage :</strong> aucun cookie de tracking dans cette app — consentement non requis</li>
+            </ul>
+          </div>
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">🚚 Transport routier (Code des transports)</div>
+            <ul class="s29-conf-list">
+              <li><strong>Lettre de voiture :</strong> obligatoire pour tout transport rémunéré (art. L3222-1)</li>
+              <li><strong>CMR :</strong> convention applicable dès qu'il y a transport international</li>
+              <li><strong>Temps de conduite/repos :</strong> Règlement CE 561/2006 (à tracer pour contrôles)</li>
+              <li><strong>Contrats-types :</strong> décrets spécifiques selon type de marchandises</li>
+            </ul>
+          </div>
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">🧾 Réforme de la facturation électronique</div>
+            <p>Généralisation de la facture électronique B2B en France : <strong>obligation de réception dès septembre 2026</strong>
+            pour toutes les entreprises, obligation d'émission progressive jusqu'à septembre 2027.
+            Format structuré attendu : Factur-X (PDF/A-3 + XML CII), UBL ou CII. Plateforme de dématérialisation partenaire (PDP) requise.
+            MCA Logistics émet déjà vos factures PDF avec mentions obligatoires ; l'étape Factur-X sera livrée avant l'échéance.</p>
+          </div>
+        </div>
+        <div class="s29-conf-actions">
+          <button class="btn btn-primary" onclick="window.ouvrirPackFiscal && window.ouvrirPackFiscal()">📦 Générer le pack fiscal (ZIP)</button>
+          <button class="btn btn-ghost" onclick="window.ouvrirTimelineGlobale && window.ouvrirTimelineGlobale()">📊 Ouvrir la timeline d'audit</button>
+        </div>
+      </div>
+    `;
+    return card;
+  }
+
+  /* ---------- Encart À propos ---------- */
+  function buildAproposCard() {
+    const card = document.createElement('div');
+    card.className = 'card s29-apropos-card';
+    card.dataset.s29Section = 'apropos';
+    card.innerHTML = `
+      <div class="card-header"><h2>ℹ️ À propos de MCA Logistics</h2></div>
+      <div class="modal-body">
+        <p style="font-size:.92rem;margin-bottom:10px"><strong>MCA Logistics</strong> — ERP transport & logistique</p>
+        <ul class="s29-apropos-list">
+          <li><strong>Version :</strong> 29.0 (Sprint 29 — Paramètres pro)</li>
+          <li><strong>Stockage :</strong> 100% local (localStorage) — aucune donnée envoyée</li>
+          <li><strong>Synchronisation optionnelle :</strong> Supabase (désactivable)</li>
+          <li><strong>Licence :</strong> Propriétaire — usage interne uniquement</li>
+        </ul>
+        <p style="font-size:.82rem;color:var(--text-muted);margin-top:14px">
+          Support & documentation : contactez l'administrateur de votre instance.
+        </p>
+      </div>
+    `;
+    return card;
+  }
+
+  /* ---------- Encart Transport placeholder ---------- */
+  function buildTransportCard() {
+    const card = document.createElement('div');
+    card.className = 'card s29-transport-card';
+    card.dataset.s29Section = 'transport';
+    card.innerHTML = `
+      <div class="card-header"><h2>🚚 Règles transport & livraison</h2></div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
+          Les règles de calcul (heures, km, indemnités) sont pilotées depuis les onglets Heures, KM et Chauffeurs.
+          Les options de livraison (signature BL, clôture auto) sont dans Automatisations et Pilotage.
+        </p>
+        <ul class="s29-apropos-list">
+          <li>Barème kilométrique → onglet <strong>Compteur KM</strong></li>
+          <li>Temps de conduite → onglet <strong>Compteur heures</strong></li>
+          <li>Lettre de voiture → généré à l'émission du BL</li>
+        </ul>
+      </div>
+    `;
+    return card;
+  }
+
+  /* ---------- Encart Comptabilité placeholder ---------- */
+  function buildComptaCard() {
+    const card = document.createElement('div');
+    card.className = 'card s29-compta-card';
+    card.dataset.s29Section = 'comptabilite';
+    card.innerHTML = `
+      <div class="card-header"><h2>📊 Comptabilité</h2></div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
+          Module comptabilité pro (acomptes, amortissements, CCA/FNP/PCA, Factur-X) — livraison Sprint 30.
+          En attendant, le Pack fiscal (section Conformité) fournit un FEC conforme CGI A47 A-1.
+        </p>
+        <ul class="s29-apropos-list">
+          <li>Export FEC 18 colonnes → onglet <strong>Charges</strong> ou Pack fiscal</li>
+          <li>Mentions légales factures → conformes Code de commerce art. L441-9</li>
+          <li>Numérotation continue sans rupture → automatique</li>
+        </ul>
+      </div>
+    `;
+    return card;
+  }
+
+  /* ---------- Refonte DOM : wrap params-grid dans sidebar + content ---------- */
+  function buildShell(page) {
+    if (page.querySelector('.s29-shell')) return null;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return null;
+
+    const shell = document.createElement('div');
+    shell.className = 's29-shell';
+
+    const sidebar = document.createElement('aside');
+    sidebar.className = 's29-sidebar';
+    sidebar.innerHTML = `
+      <div class="s29-search-wrap">
+        <input type="text" class="s29-search" placeholder="🔍 Rechercher (Ctrl + /)…" autocomplete="off" />
+      </div>
+      <nav class="s29-nav">
+        ${SECTIONS.map(s => `
+          <button type="button" class="s29-nav-item" data-s29-target="${s.id}">
+            <span class="s29-nav-icon">${s.icon}</span>
+            <span class="s29-nav-body">
+              <strong>${s.label}</strong>
+              <small>${s.desc}</small>
+            </span>
+          </button>
+        `).join('')}
+      </nav>
+    `;
+
+    const content = document.createElement('div');
+    content.className = 's29-content';
+    content.appendChild(grid);
+
+    shell.appendChild(sidebar);
+    shell.appendChild(content);
+    page.appendChild(shell);
+    return { shell, sidebar, content, grid };
+  }
+
+  function ensureExtraCards(grid) {
+    if (!grid.querySelector('[data-s29-section="conformite"]')) {
+      grid.appendChild(buildConformiteCard());
+    }
+    if (!grid.querySelector('[data-s29-section="comptabilite"]')) {
+      grid.appendChild(buildComptaCard());
+    }
+    if (!grid.querySelector('[data-s29-section="transport"]')) {
+      grid.appendChild(buildTransportCard());
+    }
+    if (!grid.querySelector('[data-s29-section="apropos"]')) {
+      grid.appendChild(buildAproposCard());
+    }
+  }
+
+  function tagAllCards(grid) {
+    grid.querySelectorAll('.card').forEach(card => {
+      if (!card.dataset.s29Section) card.dataset.s29Section = categoriseCard(card);
+    });
+    // Aussi les sections S24/S26/S27 injectées
+    const page = grid.closest('#page-parametres');
+    if (page) {
+      page.querySelectorAll('.settings-section').forEach(sec => {
+        if (sec.dataset.s29Section) return;
+        const id = sec.id || '';
+        if (id === 's24-params-section') sec.dataset.s29Section = 'automatisations';
+        else if (id === 's26-params-section') sec.dataset.s29Section = 'automatisations';
+        else if (id === 's27-params-section') sec.dataset.s29Section = 'conformite';
+        else sec.dataset.s29Section = categoriseCard(sec);
+        // Déplacer ces sections dans la grille
+        if (grid && sec.parentElement !== grid) grid.appendChild(sec);
+      });
+    }
+  }
+
+  function setActive(sectionId) {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    localStorage.setItem(LS_SECTION, sectionId);
+    page.querySelectorAll('.s29-nav-item').forEach(b => {
+      b.classList.toggle('active', b.dataset.s29Target === sectionId);
+    });
+    grid.querySelectorAll('[data-s29-section]').forEach(el => {
+      el.style.display = (el.dataset.s29Section === sectionId) ? '' : 'none';
+    });
+    // Reset search
+    const search = page.querySelector('.s29-search');
+    if (search) search.value = '';
+    const headerTitle = page.querySelector('.page-actions h2');
+    const section = SECTIONS.find(s => s.id === sectionId);
+    if (headerTitle && section) headerTitle.textContent = '⚙️ Paramètres · ' + section.label;
+  }
+
+  function applySearch(q) {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    const needle = (q||'').trim().toLowerCase();
+    if (!needle) {
+      const active = localStorage.getItem(LS_SECTION) || 'entreprise';
+      setActive(active);
+      return;
+    }
+    // En mode recherche, on ignore la section active et on montre toutes les cartes matchant
+    page.querySelectorAll('.s29-nav-item').forEach(b => b.classList.remove('active'));
+    grid.querySelectorAll('[data-s29-section]').forEach(el => {
+      const text = (el.textContent||'').toLowerCase();
+      el.style.display = text.includes(needle) ? '' : 'none';
+    });
+    const headerTitle = page.querySelector('.page-actions h2');
+    if (headerTitle) headerTitle.textContent = '⚙️ Paramètres · 🔍 ' + q;
+  }
+
+  function wireEvents(page) {
+    if (page.__s29Wired) return;
+    page.__s29Wired = true;
+    page.addEventListener('click', (e) => {
+      const btn = e.target.closest('.s29-nav-item');
+      if (btn) { setActive(btn.dataset.s29Target); return; }
+    });
+    const search = page.querySelector('.s29-search');
+    if (search) {
+      search.addEventListener('input', () => applySearch(search.value));
+      search.addEventListener('keydown', (e) => { if (e.key === 'Escape') { search.value=''; applySearch(''); } });
+    }
+    // Raccourci Ctrl+/
+    document.addEventListener('keydown', (e) => {
+      if (!page.classList.contains('active')) return;
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        const s = page.querySelector('.s29-search');
+        if (s) { s.focus(); s.select(); }
+      }
+    });
+  }
+
+  function render() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const built = buildShell(page);
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    ensureExtraCards(grid);
+    tagAllCards(grid);
+    wireEvents(page);
+    // Restaurer section active
+    if (built || !page.dataset.s29Booted) {
+      page.dataset.s29Booted = '1';
+      const saved = localStorage.getItem(LS_SECTION) || 'entreprise';
+      setActive(saved);
+    } else {
+      // Juste garantir que les nouvelles cartes S24/S26/S27 sont correctement filtrées
+      const current = localStorage.getItem(LS_SECTION) || 'entreprise';
+      const search = page.querySelector('.s29-search');
+      if (search && search.value) applySearch(search.value);
+      else setActive(current);
+    }
+  }
+
+  function init() {
+    // Attendre que S24/S26/S27 aient injecté leurs sections (ils tournent à 800-1700ms)
+    setTimeout(render, 2200);
+    setInterval(render, 4000);
+    // Re-render sur navigation vers la page
+    document.addEventListener('click', (e) => {
+      const nav = e.target.closest('[data-page="parametres"], .nav-item[data-page="parametres"], [onclick*="parametres"]');
+      if (nav) setTimeout(render, 250);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 2000);
+})();
+
+/* ==========================================================================
+   Sprint 30.1 — Comptabilité pro · Acomptes + Immobilisations
+   - Acomptes clients : CGI art. 242 nonies A — facture d'acompte séparée,
+     numérotation ACP-YYYY-NNNN, TVA calculée, déduction auto sur facture finale
+   - Immobilisations : PCG — linéaire/dégressif avec coef (1.25/1.75/2.25),
+     plan pluriannuel calculé, dotation annuelle auto en charge d'exploitation,
+     catégories pré-paramétrées (véhicule, info, mobilier, matériel, outillage)
+   ========================================================================== */
+(function installS30_1(){
+  if (window.__s30_1Installed) return;
+  window.__s30_1Installed = true;
+
+  const LS = {
+    acomptes: 'factures_acomptes',
+    factures: 'factures_emises',
+    clients: 'clients',
+    livraisons: 'livraisons',
+    immos: 'immobilisations',
+    dotations: 'amortissements_dotations',
+    charges: 'charges',
+    paiements: 'paiements',
+    params: 'params_entreprise',
+  };
+
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const esc = window.escapeHtml;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
+  const fmtPct = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2}) + ' %';
+  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
+  const audit = (a, d) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(a, d); };
+  const genId = () => (typeof window.genId === 'function' ? window.genId() : 's30_'+Date.now()+'_'+Math.random().toString(36).slice(2,8));
+  const round2 = (n) => Math.round((Number(n)||0)*100)/100;
+  const todayISO = () => new Date().toLocalISODate();
+
+  function getEntreprise() {
+    const p = loadObj(LS.params);
+    return { nom: p.nom||'MCA Logistics', siret: p.siret||'', tva: p.tvaIntracom||'', adresse: p.adresse||'', tel: p.tel||'', email: p.email||'' };
+  }
+
+  function ouvrirModalHTML(html) {
+    if (typeof window.modalInfo === 'function') {
+      const m = window.modalInfo(html);
+      m.innerHTML = html;
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }, { once: true });
+      m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
+        btn.addEventListener('click', () => m.classList.remove('open'));
+      });
+      return m;
+    }
+    let m = document.getElementById('s15-modal-info');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 's15-modal-info';
+      m.className = 's15-modal-info-overlay';
+      document.body.appendChild(m);
+      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
+    }
+    m.innerHTML = html;
+    m.classList.add('open');
+    m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
+      btn.addEventListener('click', () => m.classList.remove('open'));
+    });
+    return m;
+  }
+  function fermerModal() { document.getElementById('s15-modal-info')?.classList.remove('open'); }
+
+  /* ================================================================
+     BLOC 1 — ACOMPTES
+     ================================================================ */
+  function nextNumeroAcompte(annee) {
+    // BUG-030 : compteur persistant (CGI art. 289 — numérotation continue sans rupture)
+    const key = String(annee);
+    const lsKey = 'compteurs_acomptes_annee';
+    let compteurs = {};
+    try { compteurs = loadSafe(lsKey, {}) || {}; } catch(e){ compteurs = {}; }
+    const maxLive = load(LS.acomptes)
+      .filter(a => String(a.annee) === key)
+      .reduce((m, a) => Math.max(m, parseInt(a.sequence, 10) || 0), 0);
+    if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
+    compteurs[key] = (compteurs[key] || 0) + 1;
+    localStorage.setItem(lsKey, JSON.stringify(compteurs));
+    const seq = compteurs[key];
+    return { annee: key, sequence: seq, numero: 'ACP-' + annee + '-' + String(seq).padStart(4, '0') };
+  }
+
+  function creerAcompte(data) {
+    const dateFacture = data.dateFacture || todayISO();
+    const annee = String(new Date(dateFacture).getFullYear());
+    const num = nextNumeroAcompte(annee);
+    const montantHT = round2(data.montantHT || 0);
+    const tauxTVA = Number(data.tauxTVA != null ? data.tauxTVA : 20);
+    const montantTVA = round2(montantHT * tauxTVA / 100);
+    const montantTTC = round2(montantHT + montantTVA);
+    const acompte = {
+      id: genId(),
+      typeFacture: 'acompte',
+      annee: num.annee,
+      sequence: num.sequence,
+      numero: num.numero,
+      client: data.client || '',
+      clientId: data.clientId || '',
+      reference: data.reference || '',
+      description: data.description || '',
+      pourcentage: Number(data.pourcentage || 0),
+      montantReference: round2(data.montantReference || 0),
+      montantHT, tauxTVA, montantTVA, montantTTC,
+      dateFacture,
+      creeLe: new Date().toISOString(),
+      statut: 'émise',
+      encaisse: 0,
+      factureFinaleId: null,
+      factureFinaleNum: null,
+      livraisonId: data.livraisonId || null,
+    };
+    const list = load(LS.acomptes);
+    list.push(acompte);
+    save(LS.acomptes, list);
+    audit('Émission acompte', num.numero + ' · ' + (data.client||'') + ' · ' + fmtEur(montantTTC));
+    toast('✅ Acompte ' + num.numero + ' émis', 'success');
+    return acompte;
+  }
+  window.s30CreerAcompte = creerAcompte;
+
+  function majStatutAcompte(acompteId) {
+    const list = load(LS.acomptes);
+    const idx = list.findIndex(a => a.id === acompteId);
+    if (idx < 0) return;
+    const ac = list[idx];
+    const paiements = load(LS.paiements).filter(p => p.acompteId === acompteId || (p.cible==='acompte' && p.cibleId===acompteId));
+    const encaisse = round2(paiements.reduce((s, p) => s + (Number(p.montant)||0), 0));
+    ac.encaisse = encaisse;
+    if (ac.factureFinaleId) ac.statut = 'soldée';
+    else if (encaisse >= ac.montantTTC) ac.statut = 'encaissée';
+    else if (encaisse > 0) ac.statut = 'partielle';
+    else ac.statut = 'émise';
+    list[idx] = ac;
+    save(LS.acomptes, list);
+  }
+  window.s30MajAcompte = majStatutAcompte;
+
+  async function annulerAcompte(acompteId) {
+    const ok = await confirmDialog('Annuler cet acompte ? (conservé dans l\'historique — non supprimable)', { titre:'Annuler l\'acompte', icone:'💶', btnLabel:'Annuler l\'acompte' });
+    if (!ok) return;
+    const list = load(LS.acomptes);
+    const idx = list.findIndex(a => a.id === acompteId);
+    if (idx < 0) return;
+    if (list[idx].factureFinaleId) { toast('⚠️ Acompte déjà rattaché à une facture — utiliser avoir', 'warning'); return; }
+    list[idx].statut = 'annulée';
+    list[idx].annuleLe = new Date().toISOString();
+    save(LS.acomptes, list);
+    audit('Annulation acompte', list[idx].numero);
+    toast('🚫 Acompte annulé', 'info');
+    renderAcomptesList();
+  }
+  window.s30AnnulerAcompte = annulerAcompte;
+
+  // Suppression dure (mode test / erreur flagrante — avertissement CGI)
+  function effectuerSuppressionDure(acompteId) {
+    const list = load(LS.acomptes);
+    const idx = list.findIndex(a => a.id === acompteId);
+    if (idx < 0) return;
+    const ac = list[idx];
+    if (ac.factureFinaleId) {
+      const factures = load(LS.factures);
+      const fIdx = factures.findIndex(f => f.id === ac.factureFinaleId);
+      if (fIdx >= 0) {
+        const fac = factures[fIdx];
+        fac.acomptesIds = (fac.acomptesIds||[]).filter(id => id !== acompteId);
+        fac.acomptesTTC = round2((fac.acomptesTTC||0) - (ac.montantTTC||0));
+        fac.acomptesHT = round2((fac.acomptesHT||0) - (ac.montantHT||0));
+        fac.acomptesTVA = round2((fac.acomptesTVA||0) - (ac.montantTVA||0));
+        fac.netAPayerTTC = round2((fac.montantTTC||0) - (fac.acomptesTTC||0));
+        factures[fIdx] = fac;
+        save(LS.factures, factures);
+      }
+    }
+    const paiements = load(LS.paiements);
+    const nbPaies = paiements.filter(p => p.acompteId === acompteId || (p.cible==='acompte' && p.cibleId===acompteId)).length;
+    save(LS.paiements, paiements.filter(p => p.acompteId !== acompteId && !(p.cible==='acompte' && p.cibleId===acompteId)));
+    list.splice(idx, 1);
+    save(LS.acomptes, list);
+    audit('Suppression dure acompte', ac.numero + ' · ' + (ac.client||'') + (nbPaies?(' · '+nbPaies+' paiement(s) purgé(s)'):''));
+    toast('🗑️ Acompte ' + ac.numero + ' supprimé (dure)', 'warning');
+    renderAcomptesList();
+    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  }
+
+  function supprimerAcompte(acompteId) {
+    const list = load(LS.acomptes);
+    const ac = list.find(a => a.id === acompteId);
+    if (!ac) return;
+    const codeEl = document.getElementById('force-delete-code');
+    const warnEl = document.getElementById('force-delete-warn');
+    const inputEl = document.getElementById('force-delete-input');
+    const btnEl = document.getElementById('btn-force-delete-confirm');
+    if (!codeEl || !warnEl || !inputEl || !btnEl) {
+      // Fallback : si la modale n'existe pas, on annule proprement sans prompt()
+      toast('⚠️ Modale de confirmation introuvable', 'error');
+      return;
+    }
+    codeEl.textContent = ac.numero;
+    warnEl.innerHTML = '<div style="margin-bottom:10px"><strong>⚠️ Suppression dure de l\'acompte ' + esc(ac.numero) + '</strong></div>'
+      + '<div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">'
+      + 'Supprimer une facture d\'acompte émise est <strong>contraire au droit fiscal français</strong> '
+      + '(CGI art. 289 — numérotation chronologique continue sans rupture).<br><br>'
+      + 'La méthode légale est <strong>l\'annulation (🚫)</strong> qui conserve la trace dans l\'historique.<br>'
+      + 'Utilise la suppression dure <strong>uniquement en phase de test</strong> ou pour une erreur flagrante non reproductible.'
+      + (ac.factureFinaleId ? '<br><br>🔗 Cet acompte est <strong>rattaché à ' + esc(ac.factureFinaleNum||'une facture') + '</strong> — le rattachement sera automatiquement retiré.' : '')
+      + '</div>';
+    inputEl.value = '';
+    btnEl.disabled = true;
+    window.__forceDeleteContext = { type:'acompte', id: acompteId, numero: ac.numero };
+    const origExec = window.executerForceDelete;
+    window.executerForceDelete = function() {
+      try { effectuerSuppressionDure(acompteId); }
+      catch (e) { toast('⚠️ Erreur : ' + e.message, 'error'); }
+      closeModal('modal-force-delete');
+      window.executerForceDelete = origExec;
+    };
+    openModal('modal-force-delete');
+  }
+  window.s30SupprimerAcompte = supprimerAcompte;
+
+  function buildAcomptePDFHTML(ac) {
+    const ent = getEntreprise();
+    const mentions = [];
+    if (ent.siret) mentions.push('SIRET : '+esc(ent.siret));
+    if (ent.tva) mentions.push('N° TVA : '+esc(ent.tva));
+    return `
+      <div style="font-family:Arial,sans-serif;color:#111;max-width:760px;margin:20px auto;padding:30px;background:#fff">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #f5a623;padding-bottom:14px">
+          <div>
+            <div style="font-size:1.4rem;font-weight:800">${esc(ent.nom)}</div>
+            <div style="font-size:.85rem;color:#555;white-space:pre-line">${esc(ent.adresse)}</div>
+            <div style="font-size:.82rem;color:#666;margin-top:6px">${mentions.join(' · ')}</div>
+            ${ent.tel?`<div style="font-size:.82rem;color:#666">Tél : ${esc(ent.tel)}</div>`:''}
+            ${ent.email?`<div style="font-size:.82rem;color:#666">${esc(ent.email)}</div>`:''}
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:1.2rem;font-weight:800;background:#f5a623;color:#fff;padding:8px 16px;border-radius:6px">FACTURE D'ACOMPTE</div>
+            <div style="font-size:1.3rem;font-weight:700;margin-top:10px">${esc(ac.numero)}</div>
+            <div style="font-size:.85rem;color:#555;margin-top:4px">Émise le ${fmtDate(ac.dateFacture)}</div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
+          <div>
+            <div style="font-size:.8rem;color:#777;text-transform:uppercase;margin-bottom:4px">Client</div>
+            <div style="font-weight:700;font-size:1rem">${esc(ac.client)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.8rem;color:#777;text-transform:uppercase;margin-bottom:4px">Référence commande</div>
+            <div style="font-weight:600">${esc(ac.reference||'—')}</div>
+          </div>
+        </div>
+
+        <table style="width:100%;border-collapse:collapse;margin:20px 0">
+          <thead>
+            <tr style="background:#fef3e0">
+              <th style="text-align:left;padding:10px;border:1px solid #ddd">Désignation</th>
+              <th style="text-align:right;padding:10px;border:1px solid #ddd;width:110px">Montant HT</th>
+              <th style="text-align:right;padding:10px;border:1px solid #ddd;width:70px">TVA</th>
+              <th style="text-align:right;padding:10px;border:1px solid #ddd;width:110px">Montant TTC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding:10px;border:1px solid #ddd">
+                <strong>Acompte sur prestation</strong>
+                ${ac.description?`<div style="font-size:.85rem;color:#555;margin-top:4px">${esc(ac.description)}</div>`:''}
+                ${ac.pourcentage>0?`<div style="font-size:.82rem;color:#777;margin-top:3px">${ac.pourcentage}% de ${fmtEur(ac.montantReference)}</div>`:''}
+              </td>
+              <td style="text-align:right;padding:10px;border:1px solid #ddd">${fmtEur(ac.montantHT)}</td>
+              <td style="text-align:right;padding:10px;border:1px solid #ddd">${ac.tauxTVA}%</td>
+              <td style="text-align:right;padding:10px;border:1px solid #ddd;font-weight:700">${fmtEur(ac.montantTTC)}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr><td colspan="3" style="text-align:right;padding:8px 10px;border:1px solid #ddd;font-size:.9rem">Total HT</td><td style="text-align:right;padding:8px 10px;border:1px solid #ddd">${fmtEur(ac.montantHT)}</td></tr>
+            <tr><td colspan="3" style="text-align:right;padding:8px 10px;border:1px solid #ddd;font-size:.9rem">TVA ${ac.tauxTVA}%</td><td style="text-align:right;padding:8px 10px;border:1px solid #ddd">${fmtEur(ac.montantTVA)}</td></tr>
+            <tr style="background:#f5a623;color:#fff;font-weight:700"><td colspan="3" style="text-align:right;padding:12px 10px;border:1px solid #f5a623">TOTAL À PAYER TTC</td><td style="text-align:right;padding:12px 10px;border:1px solid #f5a623">${fmtEur(ac.montantTTC)}</td></tr>
+          </tfoot>
+        </table>
+
+        <div style="margin-top:22px;padding:14px;background:#fffbeb;border-left:3px solid #f5a623;font-size:.82rem;color:#78350f;line-height:1.55">
+          <strong>Facture d'acompte — CGI article 242 nonies A</strong><br>
+          Cette facture matérialise un versement d'acompte encaissé avant exécution totale de la prestation.
+          La TVA est exigible à l'encaissement de l'acompte pour les prestations de services (CGI art. 269-2).
+          Une facture définitive sera émise à l'achèvement de la prestation, avec déduction du présent acompte.
+        </div>
+
+        <div style="margin-top:20px;font-size:.8rem;color:#666;line-height:1.6">
+          <strong>Conditions de règlement :</strong> à réception de la facture.<br>
+          <strong>Pénalités de retard :</strong> 3 fois le taux d'intérêt légal (L441-10 C. com.).
+          <strong>Indemnité forfaitaire de recouvrement :</strong> 40 € (D441-5 C. com.).
+        </div>
+
+        <div style="margin-top:30px;border-top:1px solid #e5e7eb;padding-top:10px;font-size:.75rem;color:#9ca3af;display:flex;justify-content:space-between">
+          <span>${esc(ent.nom)}</span>
+          <span>Acompte ${esc(ac.numero)}</span>
+          <span>Page 1/1</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function genererPDFAcompte(acompteId) {
+    const ac = load(LS.acomptes).find(a => a.id === acompteId);
+    if (!ac) { toast('Acompte introuvable', 'error'); return; }
+    const html = buildAcomptePDFHTML(ac);
+    if (typeof window.ouvrirFenetreImpression === 'function') {
+      window.ouvrirFenetreImpression('Acompte ' + ac.numero, html, 'width=980,height=820');
+    } else {
+      const w = ouvrirPopupSecure('', '_blank', 'width=980,height=820');
+      if (!w) return;
+      if (w) { w.document.write('<!DOCTYPE html><html><head><title>Acompte '+ac.numero+'</title></head><body>'+html+'</body></html>'); w.document.close(); }
+    }
+    audit('Impression acompte', ac.numero);
+  }
+  window.s30ImprimerAcompte = genererPDFAcompte;
+
+  function ouvrirModalCreationAcompte(prefill) {
+    prefill = prefill || {};
+    const clients = load(LS.clients);
+    const livraisons = load(LS.livraisons).filter(l => l.statut !== 'annulée').slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
+    // Si prefill.livraisonId, pré-sélectionner la livraison
+    const livPre = prefill.livraisonId ? livraisons.find(l => l.id === prefill.livraisonId) : null;
+    if (livPre) {
+      prefill.client = livPre.client || '';
+      prefill.reference = livPre.numLiv || '';
+      prefill.montantReference = Number(livPre.prix)||0;
+    }
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:640px">
+        <div class="s15-modal-info-header">
+          <h2>💶 Nouvel acompte</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">
+            Sélectionne une livraison → tout est pré-rempli. L'acompte sera <strong>automatiquement déduit</strong> lors de l'émission de la facture finale.
+          </p>
+          <div class="form-grid">
+            <div class="form-group full-width" style="background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.3);padding:12px;border-radius:10px">
+              <label style="font-weight:700;color:#f5a623">🚚 Rattacher à une livraison (recommandé)</label>
+              <select id="s30-ac-liv" onchange="window.s30AutoFillFromLiv()" style="margin-top:4px">
+                <option value="">— Acompte libre (saisir client manuellement) —</option>
+                ${livraisons.slice(0, 50).map(l => `<option value="${l.id}" ${livPre&&livPre.id===l.id?'selected':''}>${esc(l.numLiv||'')} · ${esc(l.client||'')} · ${fmtEur(Number(l.prix)||0)} TTC · ${fmtDate(l.date||'')}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group full-width">
+              <label>Client *</label>
+              <input list="s30-clients-list" id="s30-ac-client" placeholder="Nom du client" value="${esc(prefill.client||'')}" autocomplete="off" />
+              <datalist id="s30-clients-list">
+                ${clients.map(c => '<option value="'+esc(c.nom||'')+'"></option>').join('')}
+              </datalist>
+            </div>
+            <div class="form-group">
+              <label>Date d'émission</label>
+              <input type="date" id="s30-ac-date" value="${todayISO()}" />
+            </div>
+            <div class="form-group">
+              <label>Référence commande / devis</label>
+              <input type="text" id="s30-ac-ref" placeholder="DEV-2026-001 ou numéro commande" value="${esc(prefill.reference||'')}" />
+            </div>
+            <div class="form-group">
+              <label>Montant total prévu HT</label>
+              <input type="number" id="s30-ac-totalht" placeholder="0.00" step="0.01" min="0" value="${prefill.montantReference||''}" oninput="window.s30RecalcAcompte()" />
+            </div>
+            <div class="form-group">
+              <label>Pourcentage acompte (%)</label>
+              <input type="number" id="s30-ac-pct" value="30" step="1" min="0" max="100" oninput="window.s30RecalcAcompte()" />
+            </div>
+            <div class="form-group">
+              <label>Montant acompte HT</label>
+              <input type="number" id="s30-ac-ht" placeholder="0.00" step="0.01" min="0" oninput="window.s30RecalcTTC()" />
+            </div>
+            <div class="form-group">
+              <label>TVA (%)</label>
+              <select id="s30-ac-tva" onchange="window.s30RecalcTTC()">
+                <option value="0">0 %</option>
+                <option value="2.1">2,1 %</option>
+                <option value="5.5">5,5 %</option>
+                <option value="10">10 %</option>
+                <option value="20" selected>20 %</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Montant TTC</label>
+              <input type="text" id="s30-ac-ttc" readonly style="background:rgba(245,166,35,0.1);font-weight:700" />
+            </div>
+            <div class="form-group full-width">
+              <label>Description / objet</label>
+              <textarea id="s30-ac-desc" rows="2" placeholder="Prestation transport...">${esc(prefill.description||'')}</textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+            <button class="btn btn-ghost" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
+            <button class="btn btn-primary" onclick="window.s30ValiderAcompte()">✅ Émettre l'acompte</button>
+          </div>
+        </div>
+      </div>
+    `;
+    ouvrirModalHTML(html);
+    setTimeout(() => { window.s30RecalcTTC(); }, 50);
+  }
+  window.s30NouvelAcompte = ouvrirModalCreationAcompte;
+
+  window.s30AutoFillFromLiv = function() {
+    const livId = document.getElementById('s30-ac-liv')?.value;
+    if (!livId) return;
+    const liv = load(LS.livraisons).find(l => l.id === livId);
+    if (!liv) return;
+    const totalTTC = Number(liv.prix)||0;
+    const tauxTVA = Number(liv.tauxTVA != null ? liv.tauxTVA : 20) || 0;
+    const totalHT = tauxTVA > 0 ? round2(totalTTC / (1 + tauxTVA/100)) : totalTTC;
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    setVal('s30-ac-client', liv.client || '');
+    setVal('s30-ac-ref', liv.numLiv || '');
+    setVal('s30-ac-totalht', totalHT.toFixed(2));
+    setVal('s30-ac-tva', String(tauxTVA));
+    const descEl = document.getElementById('s30-ac-desc');
+    if (descEl && !descEl.value) descEl.value = 'Acompte sur livraison ' + (liv.numLiv || '') + (liv.date ? ' (prévue le ' + fmtDate(liv.date) + ')' : '');
+    window.s30RecalcAcompte();
+  };
+
+  window.s30RecalcAcompte = function() {
+    const total = parseFloat(document.getElementById('s30-ac-totalht')?.value) || 0;
+    const pct = parseFloat(document.getElementById('s30-ac-pct')?.value) || 0;
+    if (total > 0 && pct > 0) {
+      const ht = round2(total * pct / 100);
+      const el = document.getElementById('s30-ac-ht');
+      if (el) el.value = ht.toFixed(2);
+    }
+    window.s30RecalcTTC();
+  };
+  window.s30RecalcTTC = function() {
+    const ht = parseFloat(document.getElementById('s30-ac-ht')?.value) || 0;
+    const tva = parseFloat(document.getElementById('s30-ac-tva')?.value) || 0;
+    const ttc = round2(ht * (1 + tva / 100));
+    const el = document.getElementById('s30-ac-ttc');
+    if (el) el.value = fmtEur(ttc);
+  };
+  window.s30ValiderAcompte = function() {
+    const client = (document.getElementById('s30-ac-client')?.value||'').trim();
+    const dateFacture = document.getElementById('s30-ac-date')?.value || todayISO();
+    const reference = (document.getElementById('s30-ac-ref')?.value||'').trim();
+    const montantReference = parseFloat(document.getElementById('s30-ac-totalht')?.value) || 0;
+    const pourcentage = parseFloat(document.getElementById('s30-ac-pct')?.value) || 0;
+    const montantHT = parseFloat(document.getElementById('s30-ac-ht')?.value) || 0;
+    const tauxTVA = parseFloat(document.getElementById('s30-ac-tva')?.value) || 0;
+    const description = (document.getElementById('s30-ac-desc')?.value||'').trim();
+    const livraisonId = document.getElementById('s30-ac-liv')?.value || null;
+    if (!client) { toast('⚠️ Client requis', 'warning'); return; }
+    if (montantHT <= 0) { toast('⚠️ Montant HT invalide', 'warning'); return; }
+    const c = load(LS.clients).find(x => (x.nom||'').toLowerCase() === client.toLowerCase());
+    const ac = creerAcompte({
+      client, clientId: c?.id || '', reference, description,
+      montantReference, pourcentage, montantHT, tauxTVA, dateFacture,
+      livraisonId,
+    });
+    fermerModal();
+    setTimeout(async () => {
+      const ok = await confirmDialog('Acompte émis ' + ac.numero + '. Imprimer / exporter PDF maintenant ?', { titre:'PDF acompte', icone:'📄', btnLabel:'Générer', danger:false });
+      if (ok) genererPDFAcompte(ac.id);
+      renderAcomptesList();
+    }, 100);
+  };
+
+  function renderAcomptesList() {
+    const box = document.getElementById('s30-acomptes-content');
+    if (!box) return;
+    const list = load(LS.acomptes);
+    list.forEach(a => majStatutAcompte(a.id));
+    const refreshed = load(LS.acomptes);
+
+    const annees = Array.from(new Set(refreshed.map(a => a.annee).filter(Boolean))).sort().reverse();
+    const search = (document.getElementById('s30-ac-search')?.value||'').toLowerCase();
+    const filterAnnee = document.getElementById('s30-ac-filter-annee')?.value || '';
+    const filterStatut = document.getElementById('s30-ac-filter-statut')?.value || '';
+    let rows = refreshed.slice().sort((a,b) => String(b.numero||'').localeCompare(String(a.numero||'')));
+    if (filterAnnee) rows = rows.filter(a => String(a.annee) === filterAnnee);
+    if (filterStatut) rows = rows.filter(a => a.statut === filterStatut);
+    if (search) rows = rows.filter(a => (a.numero+' '+(a.client||'')+' '+(a.reference||'')).toLowerCase().includes(search));
+
+    let emises = 0, encaissees = 0, soldees = 0, totalTTC = 0, totalEncaisse = 0;
+    refreshed.forEach(a => {
+      if (a.statut === 'annulée') return;
+      totalTTC += a.montantTTC || 0;
+      totalEncaisse += a.encaisse || 0;
+      if (a.statut === 'émise' || a.statut === 'partielle') emises++;
+      else if (a.statut === 'encaissée') encaissees++;
+      else if (a.statut === 'soldée') soldees++;
+    });
+
+    const anneeCur = String(new Date().getFullYear());
+    const prochain = nextNumeroAcompte(anneeCur).numero;
+
+    const badgeStatut = (s) => {
+      const map = {
+        'émise': '<span class="badge-statut badge-attente">Émise</span>',
+        'partielle': '<span class="badge-statut badge-partiel">Partielle</span>',
+        'encaissée': '<span class="badge-statut badge-paye">Encaissée</span>',
+        'soldée': '<span class="badge-statut" style="background:rgba(99,102,241,.15);color:#6366f1;border:1px solid rgba(99,102,241,.3)">Soldée</span>',
+        'annulée': '<span class="badge-statut" style="background:rgba(107,114,128,.15);color:#6b7280;border:1px solid rgba(107,114,128,.3)">Annulée</span>',
+      };
+      return map[s] || s;
+    };
+
+    // Compteurs par statut (sur base filtrée par année/recherche mais pas par statut)
+    let baseRows = refreshed.slice();
+    if (filterAnnee) baseRows = baseRows.filter(a => String(a.annee) === filterAnnee);
+    if (search) baseRows = baseRows.filter(a => (a.numero+' '+(a.client||'')+' '+(a.reference||'')).toLowerCase().includes(search));
+    const nbBy = { '': baseRows.length };
+    ['émise','partielle','encaissée','soldée','annulée'].forEach(s => {
+      nbBy[s] = baseRows.filter(a => a.statut === s).length;
+    });
+    const tab = (val, label) => `<button class="s30-ac-filter-tab ${filterStatut===val?'active':''}" data-ac-statut="${val}">${label} <span class="s30-ac-filter-tab-count">${nbBy[val]||0}</span></button>`;
+
+    box.innerHTML = `
+      <div class="enc-stats-grid" style="margin-bottom:12px">
+        <div class="stat-card"><div class="stat-label">📄 Émises / partielles</div><div class="stat-value" style="color:#f5a623">${emises}</div></div>
+        <div class="stat-card"><div class="stat-label">💰 Encaissées</div><div class="stat-value" style="color:#22c55e">${encaissees}</div></div>
+        <div class="stat-card"><div class="stat-label">🔗 Soldées sur FAC</div><div class="stat-value" style="color:#6366f1">${soldees}</div></div>
+        <div class="stat-card"><div class="stat-label">💶 Total TTC</div><div class="stat-value">${fmtEur(totalTTC)}</div></div>
+        <div class="stat-card"><div class="stat-label">✅ Total encaissé</div><div class="stat-value" style="color:var(--accent)">${fmtEur(totalEncaisse)}</div></div>
+      </div>
+      <div class="s30-ac-filters-tabs" id="s30-ac-filters-tabs">
+        ${tab('', '🗂️ Toutes')}
+        ${tab('émise', '📄 Émises')}
+        ${tab('partielle', '⏳ Partielles')}
+        ${tab('encaissée', '💰 Encaissées')}
+        ${tab('soldée', '🔗 Soldées')}
+        ${tab('annulée', '🚫 Annulées')}
+      </div>
+      <div class="card">
+        <div class="enc-filters" style="margin-bottom:8px">
+          <input type="search" id="s30-ac-search" class="searchbar" placeholder="🔍 N° acompte, client…" value="${esc(search)}" />
+          <select id="s30-ac-filter-annee" onchange="window.s30RenderAcomptes()">
+            <option value="">Toutes années</option>
+            ${annees.map(a => '<option value="'+a+'"'+(filterAnnee===a?' selected':'')+'>'+a+'</option>').join('')}
+          </select>
+          <input type="hidden" id="s30-ac-filter-statut" value="${esc(filterStatut)}" />
+          <span style="font-size:.82rem;color:var(--text-muted);margin-left:auto">Prochain : <strong>${prochain}</strong></span>
+        </div>
+        <div class="table-wrapper s30-ac-scroll">
+          <table class="data-table">
+            <thead><tr>
+              <th>N° Acompte</th><th>Date</th><th>Client</th><th>Réf</th>
+              <th style="text-align:right">HT</th><th style="text-align:right">TVA</th>
+              <th style="text-align:right">TTC</th><th style="text-align:right">Encaissé</th>
+              <th>Statut</th><th>Facture finale</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${rows.length ? rows.map(a => `
+                <tr ${a.statut==='annulée'?'style="opacity:.5"':''}>
+                  <td><strong>${esc(a.numero)}</strong></td>
+                  <td>${fmtDate(a.dateFacture)}</td>
+                  <td>${esc(a.client||'—')}</td>
+                  <td style="font-size:.82rem;color:var(--text-muted)">${esc(a.reference||'—')}</td>
+                  <td style="text-align:right">${fmtEur(a.montantHT)}</td>
+                  <td style="text-align:right">${a.tauxTVA}%</td>
+                  <td style="text-align:right;font-weight:700">${fmtEur(a.montantTTC)}</td>
+                  <td style="text-align:right;color:#22c55e">${fmtEur(a.encaisse||0)}</td>
+                  <td>${badgeStatut(a.statut)}</td>
+                  <td style="font-size:.82rem">${a.factureFinaleNum?esc(a.factureFinaleNum):'<span style="color:var(--text-muted)">—</span>'}</td>
+                  <td>${(function(){
+                    const items = [];
+                    items.push({ icon:'🖨️', label:'Imprimer / PDF', action:"window.s30ImprimerAcompte('"+a.id+"')" });
+                    if (a.statut!=='annulée' && !a.factureFinaleId) items.push({ icon:'🔗', label:'Rattacher à une facture', action:"window.s30RattacherAcompte('"+a.id+"')" });
+                    if (a.statut!=='annulée' && a.factureFinaleId) items.push({ icon:'🔓', label:'Détacher de la facture', action:"window.s30DetacherAcompte('"+a.id+"')" });
+                    if (a.statut!=='annulée' && !a.factureFinaleId) items.push({ icon:'🚫', label:'Annuler (conserver trace)', action:"window.s30AnnulerAcompte('"+a.id+"')" });
+                    items.push({ icon:'🗑️', label:'Supprimer (mode test)', action:"window.s30SupprimerAcompte('"+a.id+"')", danger:true });
+                    return buildInlineActionsDropdown('Actions', items);
+                  })()}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)">Aucun acompte</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    const sInput = document.getElementById('s30-ac-search');
+    if (sInput) sInput.oninput = () => window.s30RenderAcomptes();
+    // Wiring tabs de filtres par statut
+    const tabsBox = document.getElementById('s30-ac-filters-tabs');
+    if (tabsBox) {
+      tabsBox.addEventListener('click', (e) => {
+        const b = e.target.closest('.s30-ac-filter-tab');
+        if (!b) return;
+        const hidden = document.getElementById('s30-ac-filter-statut');
+        if (hidden) hidden.value = b.dataset.acStatut || '';
+        window.s30RenderAcomptes();
+      });
+    }
+  }
+  window.s30RenderAcomptes = renderAcomptesList;
+
+  function rattacherAcompteAFacture(acompteId) {
+    const ac = load(LS.acomptes).find(a => a.id === acompteId);
+    if (!ac) return;
+    const factures = load(LS.factures).filter(f => f.statut !== 'annulée' && !f.acomptesIds?.includes(acompteId));
+    const sameClient = factures.filter(f => (f.client||'').toLowerCase() === (ac.client||'').toLowerCase());
+    const list = sameClient.length ? sameClient : factures;
+    if (!list.length) { toast('Aucune facture disponible pour rattachement', 'warning'); return; }
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:640px">
+        <div class="s15-modal-info-header">
+          <h2>🔗 Rattacher acompte ${esc(ac.numero)} à une facture</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">
+            L'acompte de <strong>${fmtEur(ac.montantTTC)}</strong> sera déduit du montant dû de la facture finale sélectionnée.
+            Cette opération est réversible tant que la facture n'est pas clôturée.
+          </p>
+          <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
+            ${list.map(f => `
+              <label class="s30-fac-row" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer">
+                <input type="radio" name="s30-fac" value="${f.id}" />
+                <div style="flex:1">
+                  <div style="font-weight:600">${esc(f.numero||'—')}</div>
+                  <div style="font-size:.82rem;color:var(--text-muted)">${esc(f.client||'')} · ${fmtDate(f.dateFacture||f.dateLivraison||'')}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-weight:700">${fmtEur(f.montantTTC||0)}</div>
+                  <div style="font-size:.78rem;color:var(--text-muted)">TTC</div>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+            <button class="btn btn-ghost" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
+            <button class="btn btn-primary" onclick="window.s30ConfirmerRattachement('${acompteId}')">✅ Rattacher</button>
+          </div>
+        </div>
+      </div>
+    `;
+    ouvrirModalHTML(html);
+  }
+  window.s30RattacherAcompte = rattacherAcompteAFacture;
+
+  window.s30ConfirmerRattachement = function(acompteId) {
+    const chosen = document.querySelector('input[name="s30-fac"]:checked');
+    if (!chosen) { toast('⚠️ Sélectionnez une facture', 'warning'); return; }
+    const factureId = chosen.value;
+    const acomptes = load(LS.acomptes);
+    const factures = load(LS.factures);
+    const aIdx = acomptes.findIndex(a => a.id === acompteId);
+    const fIdx = factures.findIndex(f => f.id === factureId);
+    if (aIdx < 0 || fIdx < 0) return;
+    const ac = acomptes[aIdx];
+    const fac = factures[fIdx];
+    fac.acomptesIds = Array.isArray(fac.acomptesIds) ? fac.acomptesIds : [];
+    if (!fac.acomptesIds.includes(acompteId)) fac.acomptesIds.push(acompteId);
+    fac.acomptesTTC = round2((fac.acomptesTTC||0) + (ac.montantTTC||0));
+    fac.acomptesHT = round2((fac.acomptesHT||0) + (ac.montantHT||0));
+    fac.acomptesTVA = round2((fac.acomptesTVA||0) + (ac.montantTVA||0));
+    fac.netAPayerTTC = round2((fac.montantTTC||0) - fac.acomptesTTC);
+    ac.factureFinaleId = factureId;
+    ac.factureFinaleNum = fac.numero;
+    ac.statut = 'soldée';
+    ac.solderLe = new Date().toISOString();
+    acomptes[aIdx] = ac;
+    factures[fIdx] = fac;
+    save(LS.acomptes, acomptes);
+    save(LS.factures, factures);
+    audit('Rattachement acompte', ac.numero + ' → ' + fac.numero + ' · ' + fmtEur(ac.montantTTC));
+    toast('✅ Acompte rattaché à ' + fac.numero, 'success');
+    fermerModal();
+    renderAcomptesList();
+    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  };
+
+  /* ---- Injection sous-onglet Acomptes dans page-facturation ---- */
+  function injectAcomptesTab() {
+    const page = document.getElementById('page-facturation');
+    if (!page) return;
+    if (page.querySelector('#s30-fac-tabs')) return;
+
+    // Wrapper onglets au-dessus des stats
+    const tabs = document.createElement('div');
+    tabs.id = 's30-fac-tabs';
+    tabs.className = 's30-fac-tabs';
+    tabs.innerHTML = `
+      <button class="s30-fac-tab active" data-s30-tab="factures">📄 Factures</button>
+      <button class="s30-fac-tab" data-s30-tab="acomptes">💶 Acomptes</button>
+      <button class="s30-fac-tab-spacer"></button>
+      <button class="btn btn-primary btn-sm" id="s30-btn-new-ac" style="display:none">+ Nouvel acompte</button>
+    `;
+
+    const anchor = page.querySelector('.enc-stats-grid') || page.querySelector('.card');
+    if (anchor) page.insertBefore(tabs, anchor);
+    else page.appendChild(tabs);
+
+    // Content holder for acomptes
+    const acompteContent = document.createElement('div');
+    acompteContent.id = 's30-acomptes-content';
+    acompteContent.style.display = 'none';
+    anchor?.parentNode.insertBefore(acompteContent, anchor.nextSibling) || page.appendChild(acompteContent);
+
+    // Group original content (stats + cards) so we can toggle
+    const factCards = Array.from(page.querySelectorAll(':scope > .enc-stats-grid, :scope > .card:not(#s30-acomptes-content)'));
+    factCards.forEach(c => c.dataset.s30Tab = 'factures');
+
+    function showTab(tab) {
+      tabs.querySelectorAll('.s30-fac-tab').forEach(b => b.classList.toggle('active', b.dataset.s30Tab === tab));
+      factCards.forEach(c => { c.style.display = (tab === 'factures') ? '' : 'none'; });
+      acompteContent.style.display = (tab === 'acomptes') ? '' : 'none';
+      const btnNew = document.getElementById('s30-btn-new-ac');
+      if (btnNew) btnNew.style.display = (tab === 'acomptes') ? '' : 'none';
+      if (tab === 'acomptes') renderAcomptesList();
+    }
+    tabs.addEventListener('click', (e) => {
+      const b = e.target.closest('.s30-fac-tab');
+      if (!b) return;
+      showTab(b.dataset.s30Tab);
+    });
+    document.getElementById('s30-btn-new-ac')?.addEventListener('click', () => ouvrirModalCreationAcompte());
+  }
+
+  /* ================================================================
+     BLOC 2 — IMMOBILISATIONS
+     ================================================================ */
+  // Catégories préfigurées (durées et modes d'usage les plus courants en France)
+  const CATEGORIES_IMMO = [
+    { id:'vehicule',    libelle:'🚐 Véhicule utilitaire',  duree:5,  mode:'lineaire',  cg:'2182' },
+    { id:'pl',          libelle:'🚛 Poids lourd / VUL',    duree:5,  mode:'degressif', cg:'2182' },
+    { id:'informatique',libelle:'💻 Matériel informatique',duree:3,  mode:'degressif', cg:'2183' },
+    { id:'mobilier',    libelle:'🪑 Mobilier de bureau',   duree:10, mode:'lineaire',  cg:'2184' },
+    { id:'outillage',   libelle:'🔧 Outillage',            duree:5,  mode:'lineaire',  cg:'2154' },
+    { id:'agencements', libelle:'🏗️ Agencements',         duree:10, mode:'lineaire',  cg:'2135' },
+    { id:'autre',       libelle:'📦 Autre',                duree:5,  mode:'lineaire',  cg:'215' },
+  ];
+
+  // Coefficients dégressifs (CGI art. 39 A) — alias local vers le moteur global
+  const coefDegressif = (typeof window.coefAmortissementDegressif === 'function')
+    ? window.coefAmortissementDegressif
+    : function(d){ if (d>=3&&d<=4) return 1.25; if (d>=5&&d<=6) return 1.75; if (d>=7) return 2.25; return 1; };
+
+  // Wrapper mince vers le moteur unifié construirePlanAmortissement
+  function calculerPlanAmortissement(immo) {
+    const engine = (typeof window.construirePlanAmortissement === 'function')
+      ? window.construirePlanAmortissement
+      : null;
+    if (!engine) return [];
+    const built = engine({
+      valeurHT: Number(immo.valeurHT) || 0,
+      valeurRebut: 0,
+      dureeAnnees: Math.max(1, Math.round(Number(immo.dureeAnnees)||5)),
+      mode: immo.mode === 'degressif' ? 'degressif' : 'lineaire',
+      dateMiseEnService: immo.dateMiseEnService
+    });
+    return built.plan || [];
+  }
+  window.s30CalculerPlan = calculerPlanAmortissement;
+
+  function creerImmo(data) {
+    const immo = {
+      id: genId(),
+      libelle: data.libelle || 'Immobilisation',
+      categorie: data.categorie || 'autre',
+      valeurHT: round2(data.valeurHT || 0),
+      tauxTVA: Number(data.tauxTVA != null ? data.tauxTVA : 20),
+      dateAcquisition: data.dateAcquisition || todayISO(),
+      dateMiseEnService: data.dateMiseEnService || data.dateAcquisition || todayISO(),
+      dureeAnnees: Math.round(Number(data.dureeAnnees)||5),
+      mode: data.mode === 'degressif' ? 'degressif' : 'lineaire',
+      fournisseur: data.fournisseur || '',
+      reference: data.reference || '',
+      notes: data.notes || '',
+      compteCG: data.compteCG || '',
+      vehId: data.vehId || '',
+      statut: 'en_service',
+      creeLe: new Date().toISOString(),
+    };
+    const list = load(LS.immos);
+    list.push(immo);
+    save(LS.immos, list);
+    audit('Création immobilisation', immo.libelle + ' · ' + fmtEur(immo.valeurHT) + ' · ' + immo.dureeAnnees + ' ans ' + immo.mode);
+    toast('✅ Immobilisation créée', 'success');
+    return immo;
+  }
+
+  async function supprimerImmo(id) {
+    const ok = await confirmDialog('Supprimer cette immobilisation ? Les dotations déjà générées (charges) seront conservées pour conformité fiscale.', { titre:'Supprimer l\'immobilisation', icone:'🏢', btnLabel:'Supprimer' });
+    if (!ok) return;
+    const list = load(LS.immos).filter(i => i.id !== id);
+    save(LS.immos, list);
+    audit('Suppression immobilisation', id);
+    toast('🗑️ Immobilisation supprimée', 'info');
+    renderImmosList();
+  }
+  window.s30SupprimerImmo = supprimerImmo;
+
+  function genererDotationsExercice(anneeCible) {
+    const annee = Number(anneeCible) || new Date().getFullYear();
+    const immos = load(LS.immos);
+    const dotations = load(LS.dotations);
+    const charges = load(LS.charges);
+    let count = 0, total = 0;
+    immos.forEach(immo => {
+      if (immo.statut === 'cedee') return;
+      const plan = calculerPlanAmortissement(immo);
+      const ligne = plan.find(l => l.annee === annee);
+      if (!ligne || ligne.dotation <= 0.01) return;
+      // Déjà générée ?
+      if (dotations.some(d => d.immoId === immo.id && d.annee === annee)) return;
+      const chargeId = genId();
+      const dotationId = genId();
+      const dateCharge = annee + '-12-31';
+      charges.push({
+        id: chargeId,
+        date: dateCharge,
+        categorie: 'amortissement',
+        description: 'Dotation amortissement ' + annee + ' — ' + immo.libelle,
+        montant: ligne.dotation,
+        montantHT: ligne.dotation,
+        tauxTVA: 0,
+        montantTVA: 0,
+        immoId: immo.id,
+        dotationId,
+        annee,
+        vehId: immo.vehId || '',
+        creeLe: new Date().toISOString(),
+      });
+      dotations.push({
+        id: dotationId,
+        immoId: immo.id,
+        annee,
+        montant: ligne.dotation,
+        vnc: ligne.vnc,
+        base: ligne.base,
+        chargeId,
+        creeLe: new Date().toISOString(),
+      });
+      count++;
+      total += ligne.dotation;
+    });
+    save(LS.dotations, dotations);
+    save(LS.charges, charges);
+    if (count > 0) {
+      audit('Dotations amortissements ' + annee, count + ' lignes · ' + fmtEur(total));
+      toast('✅ ' + count + ' dotations générées pour ' + annee + ' (' + fmtEur(total) + ')', 'success');
+    }
+    return { count, total };
+  }
+  window.s30GenererDotations = genererDotationsExercice;
+
+  function ouvrirModalImmo(editId) {
+    const existing = editId ? load(LS.immos).find(i => i.id === editId) : null;
+    const html = `
+      <div class="s15-modal-info-box" style="max-width:720px">
+        <div class="s15-modal-info-header">
+          <h2>${existing?'✏️ Modifier':'➕ Nouvelle'} immobilisation</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">
+            Plan d'amortissement conforme PCG — linéaire ou dégressif (CGI art. 39 A).
+            Base 360 jours, pro rata temporis automatique sur l'année de mise en service.
+          </p>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label>Libellé *</label>
+              <input type="text" id="s30-im-libelle" placeholder="Ex : Camion Renault Master 2024" value="${esc(existing?.libelle||'')}" />
+            </div>
+            <div class="form-group">
+              <label>Catégorie</label>
+              <select id="s30-im-categorie" onchange="window.s30RemplirCategorie()">
+                ${CATEGORIES_IMMO.map(c => `<option value="${c.id}" ${existing?.categorie===c.id?'selected':''}>${c.libelle}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Valeur d'achat HT *</label>
+              <input type="number" id="s30-im-valeur" step="0.01" min="0" value="${existing?.valeurHT||''}" />
+            </div>
+            <div class="form-group">
+              <label>Date d'acquisition</label>
+              <input type="date" id="s30-im-dateacq" value="${existing?.dateAcquisition||todayISO()}" />
+            </div>
+            <div class="form-group">
+              <label>Date de mise en service *</label>
+              <input type="date" id="s30-im-datemes" value="${existing?.dateMiseEnService||todayISO()}" />
+            </div>
+            <div class="form-group">
+              <label>Durée (années)</label>
+              <input type="number" id="s30-im-duree" min="1" max="30" value="${existing?.dureeAnnees||5}" oninput="window.s30PreviewPlan()" />
+            </div>
+            <div class="form-group">
+              <label>Mode d'amortissement</label>
+              <select id="s30-im-mode" onchange="window.s30PreviewPlan()">
+                <option value="lineaire" ${existing?.mode!=='degressif'?'selected':''}>Linéaire</option>
+                <option value="degressif" ${existing?.mode==='degressif'?'selected':''}>Dégressif</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Compte comptable</label>
+              <input type="text" id="s30-im-cg" placeholder="Ex : 2182" value="${esc(existing?.compteCG||'')}" />
+            </div>
+            <div class="form-group">
+              <label>Fournisseur</label>
+              <input type="text" id="s30-im-four" placeholder="Fournisseur" value="${esc(existing?.fournisseur||'')}" />
+            </div>
+            <div class="form-group">
+              <label>Référence / facture</label>
+              <input type="text" id="s30-im-ref" placeholder="FAC-XXXX" value="${esc(existing?.reference||'')}" />
+            </div>
+            <div class="form-group full-width">
+              <label>Notes</label>
+              <textarea id="s30-im-notes" rows="2">${esc(existing?.notes||'')}</textarea>
+            </div>
+          </div>
+
+          <h3 style="margin-top:18px;font-size:.95rem">📊 Prévisualisation plan d'amortissement</h3>
+          <div id="s30-im-preview" style="border:1px solid var(--border);border-radius:10px;padding:10px;max-height:220px;overflow:auto;font-size:.85rem"></div>
+
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
+            <button class="btn btn-ghost" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
+            <button class="btn btn-primary" onclick="window.s30ValiderImmo('${editId||''}')">✅ ${existing?'Enregistrer':'Créer & planifier'}</button>
+          </div>
+        </div>
+      </div>
+    `;
+    ouvrirModalHTML(html);
+    setTimeout(() => { if (!existing) window.s30RemplirCategorie(); window.s30PreviewPlan(); }, 60);
+  }
+  window.s30NouvelleImmo = ouvrirModalImmo;
+
+  window.s30RemplirCategorie = function() {
+    const catId = document.getElementById('s30-im-categorie')?.value;
+    const cat = CATEGORIES_IMMO.find(c => c.id === catId);
+    if (!cat) return;
+    const elD = document.getElementById('s30-im-duree');
+    const elM = document.getElementById('s30-im-mode');
+    const elCG = document.getElementById('s30-im-cg');
+    if (elD && !elD.dataset.userEdited) elD.value = cat.duree;
+    if (elM && !elM.dataset.userEdited) elM.value = cat.mode;
+    if (elCG && !elCG.value) elCG.value = cat.cg;
+    window.s30PreviewPlan();
+  };
+
+  window.s30PreviewPlan = function() {
+    const data = {
+      valeurHT: parseFloat(document.getElementById('s30-im-valeur')?.value) || 0,
+      dateMiseEnService: document.getElementById('s30-im-datemes')?.value || todayISO(),
+      dureeAnnees: parseInt(document.getElementById('s30-im-duree')?.value, 10) || 5,
+      mode: document.getElementById('s30-im-mode')?.value || 'lineaire',
+    };
+    const box = document.getElementById('s30-im-preview');
+    if (!box) return;
+    if (data.valeurHT <= 0) { box.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Renseignez la valeur pour prévisualiser</div>'; return; }
+    const plan = calculerPlanAmortissement(data);
+    if (!plan.length) { box.innerHTML = '<div style="color:var(--text-muted)">Plan indisponible</div>'; return; }
+    const coef = data.mode === 'degressif' ? ' (coef ' + coefDegressif(data.dureeAnnees) + ')' : '';
+    box.innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:rgba(99,102,241,0.08)">
+          <th style="text-align:left;padding:6px">Exercice</th>
+          <th style="text-align:right;padding:6px">Dotation</th>
+          <th style="text-align:right;padding:6px">VNC fin</th>
+          <th style="text-align:right;padding:6px">Pro rata</th>
+        </tr></thead>
+        <tbody>
+          ${plan.map(l => `
+            <tr>
+              <td style="padding:5px 6px;border-bottom:1px solid var(--border)">${l.annee}</td>
+              <td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:right;font-weight:600">${fmtEur(l.dotation)}</td>
+              <td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-muted)">${fmtEur(l.vnc)}</td>
+              <td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:right;font-size:.8rem">${l.proRata}%</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="margin-top:8px;font-size:.78rem;color:var(--text-muted);text-align:right">Mode ${data.mode}${coef}</div>
+    `;
+  };
+
+  window.s30ValiderImmo = function(editId) {
+    const data = {
+      libelle: (document.getElementById('s30-im-libelle')?.value||'').trim(),
+      categorie: document.getElementById('s30-im-categorie')?.value || 'autre',
+      valeurHT: parseFloat(document.getElementById('s30-im-valeur')?.value) || 0,
+      dateAcquisition: document.getElementById('s30-im-dateacq')?.value || todayISO(),
+      dateMiseEnService: document.getElementById('s30-im-datemes')?.value || todayISO(),
+      dureeAnnees: parseInt(document.getElementById('s30-im-duree')?.value, 10) || 5,
+      mode: document.getElementById('s30-im-mode')?.value || 'lineaire',
+      compteCG: (document.getElementById('s30-im-cg')?.value||'').trim(),
+      fournisseur: (document.getElementById('s30-im-four')?.value||'').trim(),
+      reference: (document.getElementById('s30-im-ref')?.value||'').trim(),
+      notes: (document.getElementById('s30-im-notes')?.value||'').trim(),
+    };
+    if (!data.libelle) { toast('⚠️ Libellé requis', 'warning'); return; }
+    if (data.valeurHT <= 0) { toast('⚠️ Valeur HT invalide', 'warning'); return; }
+    if (editId) {
+      const list = load(LS.immos);
+      const idx = list.findIndex(i => i.id === editId);
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...data };
+        save(LS.immos, list);
+        audit('Modification immobilisation', data.libelle);
+        toast('✅ Immobilisation modifiée', 'success');
+      }
+    } else {
+      creerImmo(data);
+    }
+    fermerModal();
+    renderImmosList();
+  };
+
+  function renderImmosList() {
+    const box = document.getElementById('s30-immos-section');
+    if (!box) return;
+    const immos = load(LS.immos);
+    const dotations = load(LS.dotations);
+    const anneeCur = new Date().getFullYear();
+    const totalVNC = immos.reduce((s, i) => {
+      const plan = calculerPlanAmortissement(i);
+      const ligne = plan.find(l => l.annee === anneeCur);
+      return s + (ligne ? ligne.vnc : i.valeurHT);
+    }, 0);
+    const totalValeur = immos.reduce((s, i) => s + (i.valeurHT || 0), 0);
+    const totalDotCurr = immos.reduce((s, i) => {
+      const plan = calculerPlanAmortissement(i);
+      const ligne = plan.find(l => l.annee === anneeCur);
+      return s + (ligne ? ligne.dotation : 0);
+    }, 0);
+
+    box.innerHTML = `
+      <div class="card-header"><h2>📊 Immobilisations & amortissements</h2></div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
+          Plan d'amortissement linéaire ou dégressif. Les dotations génèrent automatiquement des charges
+          en date du 31 décembre de chaque exercice (conformité CGI art. 39 B et PCG art. 214).
+        </p>
+        <div class="enc-stats-grid" style="margin-bottom:14px">
+          <div class="stat-card"><div class="stat-label">📦 Nombre d'immos</div><div class="stat-value">${immos.length}</div></div>
+          <div class="stat-card"><div class="stat-label">💼 Valeur d'achat totale</div><div class="stat-value">${fmtEur(totalValeur)}</div></div>
+          <div class="stat-card"><div class="stat-label">📉 VNC ${anneeCur}</div><div class="stat-value" style="color:var(--accent)">${fmtEur(totalVNC)}</div></div>
+          <div class="stat-card"><div class="stat-label">💶 Dotation ${anneeCur}</div><div class="stat-value" style="color:#f5a623">${fmtEur(totalDotCurr)}</div></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+          <button class="btn btn-primary" onclick="window.s30NouvelleImmo()">+ Nouvelle immobilisation</button>
+          <button class="btn btn-secondary" onclick="window.s30AfficherDotations()">📋 Afficher les dotations générées</button>
+          <button class="btn btn-ghost" onclick="window.s30GenererDotationsInteractif()">⚙️ Générer dotations manuellement</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr>
+              <th>Libellé</th><th>Catégorie</th><th>Date MES</th>
+              <th style="text-align:right">Valeur HT</th><th style="text-align:right">Durée</th>
+              <th>Mode</th><th style="text-align:right">Dotation ${anneeCur}</th>
+              <th style="text-align:right">VNC ${anneeCur}</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              ${immos.length ? immos.map(i => {
+                const plan = calculerPlanAmortissement(i);
+                const ligne = plan.find(l => l.annee === anneeCur);
+                const cat = CATEGORIES_IMMO.find(c => c.id === i.categorie);
+                return `
+                  <tr>
+                    <td><strong>${esc(i.libelle)}</strong>${i.reference?`<div style="font-size:.78rem;color:var(--text-muted)">${esc(i.reference)}</div>`:''}</td>
+                    <td>${cat?cat.libelle:esc(i.categorie)}</td>
+                    <td>${fmtDate(i.dateMiseEnService)}</td>
+                    <td style="text-align:right">${fmtEur(i.valeurHT)}</td>
+                    <td style="text-align:right">${i.dureeAnnees} ans</td>
+                    <td>${i.mode}</td>
+                    <td style="text-align:right;color:#f5a623;font-weight:600">${ligne?fmtEur(ligne.dotation):'—'}</td>
+                    <td style="text-align:right">${ligne?fmtEur(ligne.vnc):fmtEur(i.valeurHT)}</td>
+                    <td>
+                      <button class="btn-icon" onclick="window.s30VoirPlanImmo('${i.id}')" title="Plan d'amortissement">📊</button>
+                      <button class="btn-icon" onclick="window.s30NouvelleImmo('${i.id}')" title="Modifier">✏️</button>
+                      <button class="btn-icon" onclick="window.s30SupprimerImmo('${i.id}')" title="Supprimer">🗑️</button>
+                    </td>
+                  </tr>
+                `;
+              }).join('') : '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">Aucune immobilisation — <a href="#" onclick="window.s30NouvelleImmo();return false">en ajouter une</a></td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+  window.s30RenderImmos = renderImmosList;
+
+  window.s30VoirPlanImmo = function(immoId) {
+    const immo = load(LS.immos).find(i => i.id === immoId);
+    if (!immo) return;
+    const plan = calculerPlanAmortissement(immo);
+    const dotations = load(LS.dotations).filter(d => d.immoId === immoId);
+    const coef = immo.mode === 'degressif' ? ' (coef ' + coefDegressif(immo.dureeAnnees) + ')' : '';
+    const html = `
+      <div class="s15-modal-info-box" style="max-width:620px">
+        <div class="s15-modal-info-header">
+          <h2>📊 Plan d'amortissement — ${esc(immo.libelle)}</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;font-size:.88rem">
+            <div><span style="color:var(--text-muted)">Valeur HT :</span> <strong>${fmtEur(immo.valeurHT)}</strong></div>
+            <div><span style="color:var(--text-muted)">Durée :</span> <strong>${immo.dureeAnnees} ans</strong></div>
+            <div><span style="color:var(--text-muted)">Mode :</span> <strong>${immo.mode}${coef}</strong></div>
+            <div><span style="color:var(--text-muted)">MES :</span> <strong>${fmtDate(immo.dateMiseEnService)}</strong></div>
+          </div>
+          <table class="data-table">
+            <thead><tr>
+              <th>Exercice</th><th style="text-align:right">Dotation</th>
+              <th style="text-align:right">VNC fin</th><th style="text-align:right">Pro rata</th>
+              <th>État</th>
+            </tr></thead>
+            <tbody>
+              ${plan.map(l => {
+                const d = dotations.find(x => x.annee === l.annee);
+                return `<tr>
+                  <td><strong>${l.annee}</strong></td>
+                  <td style="text-align:right;font-weight:600">${fmtEur(l.dotation)}</td>
+                  <td style="text-align:right;color:var(--text-muted)">${fmtEur(l.vnc)}</td>
+                  <td style="text-align:right">${l.proRata}%</td>
+                  <td>${d ? '<span class="badge-statut badge-paye">Générée</span>' : (l.annee <= new Date().getFullYear() ? '<span class="badge-statut badge-attente">En attente</span>' : '<span style="color:var(--text-muted)">À venir</span>')}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    ouvrirModalHTML(html);
+  };
+
+  window.s30AfficherDotations = function() {
+    const dotations = load(LS.dotations).slice().sort((a,b) => b.annee - a.annee || String(b.creeLe).localeCompare(String(a.creeLe)));
+    const immos = load(LS.immos);
+    const html = `
+      <div class="s15-modal-info-box" style="max-width:820px">
+        <div class="s15-modal-info-header">
+          <h2>📋 Dotations générées</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">
+            Dotations aux amortissements enregistrées comme charges d'exploitation. Intégrées au FEC et aux exports fiscaux.
+          </p>
+          <table class="data-table">
+            <thead><tr>
+              <th>Exercice</th><th>Immobilisation</th>
+              <th style="text-align:right">Dotation</th><th style="text-align:right">VNC</th>
+              <th>Charge liée</th>
+            </tr></thead>
+            <tbody>
+              ${dotations.length ? dotations.map(d => {
+                const im = immos.find(x => x.id === d.immoId);
+                return `<tr>
+                  <td><strong>${d.annee}</strong></td>
+                  <td>${esc(im?.libelle||'(supprimée)')}</td>
+                  <td style="text-align:right;font-weight:600">${fmtEur(d.montant)}</td>
+                  <td style="text-align:right;color:var(--text-muted)">${fmtEur(d.vnc)}</td>
+                  <td style="font-size:.82rem">${d.chargeId ? '<span class="badge-statut badge-paye">✓ charge</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
+                </tr>`;
+              }).join('') : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">Aucune dotation générée</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+    ouvrirModalHTML(html);
+  };
+
+  window.s30GenererDotationsInteractif = async function() {
+    const annee = await promptDialog('Année d\'exercice à clôturer pour générer les dotations aux amortissements ?', {
+      titre:'Générer les dotations', icone:'📒', btnLabel:'Générer', defaultValue:String(new Date().getFullYear()),
+      type:'number', placeholder:'Année',
+      validate: v => (/^\d{4}$/.test(String(v||'').trim()) ? true : 'Année sur 4 chiffres attendue')
+    });
+    if (!annee) return;
+    const res = genererDotationsExercice(parseInt(annee, 10));
+    if (res.count === 0) toast('Aucune dotation à générer (déjà créées ou aucune immo active)', 'info');
+    renderImmosList();
+  };
+
+  /* ---- Injection section Comptabilité dans Paramètres ---- */
+  function injectImmosInParams() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    // Supprimer le placeholder S29 "Comptabilité (Sprint 30 à venir)" si présent
+    const placeholder = grid.querySelector('.s29-compta-card');
+    if (placeholder) placeholder.remove();
+    if (!grid.querySelector('#s30-immos-section')) {
+      const section = document.createElement('div');
+      section.id = 's30-immos-section';
+      section.className = 'card params-card-wide';
+      section.dataset.s29Section = 'comptabilite';
+      // Insérer en premier dans la section comptabilité (donc en haut de la grille)
+      grid.insertBefore(section, grid.firstChild);
+    }
+    renderImmosList();
+    // Force re-synchro de la section S29 active (pour que la carte reçoive display:none/'' correct)
+    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
+    grid.querySelectorAll('[data-s29-section]').forEach(el => {
+      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
+    });
+    // Si recherche active, ne pas override
+    const search = page.querySelector('.s29-search');
+    if (search && search.value.trim()) {
+      const needle = search.value.trim().toLowerCase();
+      grid.querySelectorAll('[data-s29-section]').forEach(el => {
+        el.style.display = (el.textContent||'').toLowerCase().includes(needle) ? '' : 'none';
+      });
+    }
+  }
+
+  /* ---- Auto-génération des dotations au 31 décembre ---- */
+  function cronAmortissements() {
+    const today = new Date();
+    const annee = today.getFullYear();
+    // Si on est après le 25 décembre → proposer dotations de l'année courante
+    if (today.getMonth() !== 11 || today.getDate() < 25) return;
+    const immos = load(LS.immos);
+    if (!immos.length) return;
+    const dotations = load(LS.dotations);
+    const aGenerer = immos.filter(i => {
+      if (i.statut === 'cedee') return false;
+      const plan = calculerPlanAmortissement(i);
+      const ligne = plan.find(l => l.annee === annee);
+      if (!ligne || ligne.dotation <= 0.01) return false;
+      return !dotations.some(d => d.immoId === i.id && d.annee === annee);
+    });
+    if (!aGenerer.length) return;
+    const already = loadObj('s30_cron_flags');
+    if (already['dotations_'+annee]) return;
+    // Silencieux mais générer directement (automatisation)
+    genererDotationsExercice(annee);
+    already['dotations_'+annee] = new Date().toISOString();
+    save('s30_cron_flags', already);
+  }
+
+  /* ================================================================
+     INIT
+     ================================================================ */
+  function init() {
+    setTimeout(injectAcomptesTab, 2500);
+    setInterval(injectAcomptesTab, 5000);
+    setTimeout(injectImmosInParams, 2700);
+    setInterval(injectImmosInParams, 5000);
+    setTimeout(cronAmortissements, 6000);
+    setInterval(cronAmortissements, 3600 * 1000); // 1h
+    // Re-render acomptes si changement storage
+    window.addEventListener('delivpro:storage-sync', (e) => {
+      const k = e?.detail?.key;
+      if (k === LS.acomptes || k === LS.factures || k === LS.paiements) {
+        const box = document.getElementById('s30-acomptes-content');
+        if (box && box.offsetParent !== null) renderAcomptesList();
+      }
+      if (k === LS.immos || k === LS.dotations) {
+        const box = document.getElementById('s30-immos-section');
+        if (box && box.offsetParent !== null) renderImmosList();
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else setTimeout(init, 2300);
+})();
+
+/* ==========================================================================
+   Sprint 30.1 (suite) — Patch buildFactureHTML : déduction acomptes
+   - Monkey-patch de la fn existante pour injecter un bloc "Acomptes versés"
+   - Réversibilité : fonction s30DetacherAcompte qui dissocie l'acompte de la
+     facture (le rattachement se fait déjà via s30RattacherAcompte)
+   ========================================================================== */
+(function patchFacturePDFAcomptes(){
+  if (window.__s30_1PdfPatched) return;
+  window.__s30_1PdfPatched = true;
+
+  const LS_AC = 'factures_acomptes';
+  const LS_FAC = 'factures_emises';
+  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
+  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+  const round2 = (n) => Math.round((Number(n)||0)*100)/100;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
+
+  function tryPatch() {
+    if (typeof window.buildFactureHTML !== 'function' || window.buildFactureHTML.__s30Patched) return;
+    const orig = window.buildFactureHTML;
+    const patched = function(livraison, numeroFacture, dateFactureFmt, datePaiementFmt, options) {
+      let html = orig.apply(this, arguments);
+      if (!numeroFacture || (options && options.preview)) return html;
+      const fac = load(LS_FAC).find(f => f.numero === numeroFacture || f.livId === livraison?.id);
+      if (!fac || !Array.isArray(fac.acomptesIds) || !fac.acomptesIds.length) return html;
+      const acomptes = load(LS_AC).filter(a => fac.acomptesIds.includes(a.id));
+      if (!acomptes.length) return html;
+      const totHT = round2(acomptes.reduce((s,a)=> s+(Number(a.montantHT)||0), 0));
+      const totTVA = round2(acomptes.reduce((s,a)=> s+(Number(a.montantTVA)||0), 0));
+      const totTTC = round2(acomptes.reduce((s,a)=> s+(Number(a.montantTTC)||0), 0));
+      const netTTC = round2((Number(fac.montantTTC)||0) - totTTC);
+      const rowsHtml = acomptes.map(a =>
+        '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:.84rem">'
+        + '<span>Acompte <strong>'+(a.numero||'—')+'</strong> du '+fmtDate(a.dateFacture)+'</span>'
+        + '<strong>-'+fmtEur(a.montantTTC)+'</strong>'
+        + '</div>'
+      ).join('');
+      const injection =
+        '<div style="margin:14px 0;padding:14px 16px;background:#eef2ff;border-left:3px solid #6366f1;border-radius:8px;font-size:.88rem;color:#1e1b4b">'
+        + '<div style="font-weight:700;margin-bottom:6px;color:#4338ca">💶 Acomptes déjà versés (CGI art. 242 nonies A)</div>'
+        + rowsHtml
+        + '<div style="border-top:1px solid #c7d2fe;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:700">'
+        + '<span>Total acomptes TTC</span><span>-'+fmtEur(totTTC)+'</span>'
+        + '</div>'
+        + '<div style="font-size:.76rem;color:#4338ca;margin-top:6px;font-style:italic">TVA acomptes déjà facturée : '+fmtEur(totTVA)+' — déduite du montant à régler ce jour.</div>'
+        + '</div>'
+        + '<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
+        + '<div style="min-width:320px;background:linear-gradient(135deg,#f59e0b,#f5a623);color:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 4px 12px rgba(245,158,11,.25)">'
+        + '<div style="display:flex;justify-content:space-between;font-size:.92rem;opacity:.9"><span>Montant facture TTC</span><span>'+fmtEur(fac.montantTTC||0)+'</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:.92rem;opacity:.9"><span>Acomptes déduits</span><span>-'+fmtEur(totTTC)+'</span></div>'
+        + '<div style="display:flex;justify-content:space-between;font-size:1.15rem;font-weight:800;border-top:1px solid rgba(255,255,255,.35);margin-top:6px;padding-top:6px"><span>NET À PAYER</span><span>'+fmtEur(netTTC)+'</span></div>'
+        + '</div></div>';
+      // Insérer juste avant la section "Mode de paiement"
+      const anchor = '<div style="border-top:1px solid #e5e7eb;padding-top:12px';
+      const idx = html.indexOf(anchor);
+      if (idx >= 0) html = html.slice(0, idx) + injection + html.slice(idx);
+      else html = html.replace(/<\/div>\s*$/, injection + '</div>');
+      return html;
+    };
+    patched.__s30Patched = true;
+    window.buildFactureHTML = patched;
+  }
+
+  // Fn détacher un acompte d'une facture (réversibilité)
+  window.s30DetacherAcompte = async function(acompteId) {
+    const ok = await confirmDialog('Détacher cet acompte de la facture ? La facture sera recalculée sans déduction et l\'acompte redeviendra rattachable.', { titre:'Détacher l\'acompte', icone:'🔗', btnLabel:'Détacher' });
+    if (!ok) return;
+    const acomptes = load(LS_AC);
+    const factures = load(LS_FAC);
+    const aIdx = acomptes.findIndex(a => a.id === acompteId);
+    if (aIdx < 0) return;
+    const ac = acomptes[aIdx];
+    if (!ac.factureFinaleId) return;
+    const fIdx = factures.findIndex(f => f.id === ac.factureFinaleId);
+    if (fIdx >= 0) {
+      const fac = factures[fIdx];
+      fac.acomptesIds = (fac.acomptesIds||[]).filter(id => id !== acompteId);
+      fac.acomptesTTC = round2((fac.acomptesTTC||0) - (ac.montantTTC||0));
+      fac.acomptesHT = round2((fac.acomptesHT||0) - (ac.montantHT||0));
+      fac.acomptesTVA = round2((fac.acomptesTVA||0) - (ac.montantTVA||0));
+      fac.netAPayerTTC = round2((fac.montantTTC||0) - (fac.acomptesTTC||0));
+      factures[fIdx] = fac;
+      save(LS_FAC, factures);
+    }
+    ac.factureFinaleId = null;
+    ac.factureFinaleNum = null;
+    ac.statut = (Number(ac.encaisse||0) >= Number(ac.montantTTC||0)) ? 'encaissée'
+             : (Number(ac.encaisse||0) > 0 ? 'partielle' : 'émise');
+    delete ac.solderLe;
+    acomptes[aIdx] = ac;
+    save(LS_AC, acomptes);
+    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Détachement acompte', ac.numero);
+    if (typeof window.afficherToast === 'function') window.afficherToast('🔓 Acompte détaché', 'info');
+    if (typeof window.s30RenderAcomptes === 'function') window.s30RenderAcomptes();
+    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  };
+
+  // Retenter le patch régulièrement (buildFactureHTML peut être défini tard)
+  setTimeout(tryPatch, 1500);
+  setInterval(tryPatch, 4000);
+
+  /* ---- Auto-rattachement acompte → facture finale ---- */
+  // On wrappe genererFactureLivraison pour détecter les acomptes pendants
+  // du même client / de la même livraison, et proposer l'auto-déduction.
+  function patchGenererFacture() {
+    if (typeof window.genererFactureLivraison !== 'function' || window.genererFactureLivraison.__s30_1AutoLink) return;
+    const orig = window.genererFactureLivraison;
+    const wrapped = function(livId) {
+      const livs = loadSafe('livraisons', []);
+      const liv = livs.find(l => l.id === livId);
+      if (!liv) return orig.call(window, livId);
+      // Chercher acomptes pendants : même livraisonId OU même client sans facture finale
+      const acomptes = load(LS_AC).filter(a => {
+        if (a.statut === 'annulée' || a.factureFinaleId) return false;
+        if (a.livraisonId && a.livraisonId === livId) return true;
+        if (!a.livraisonId && (a.client||'').toLowerCase() === (liv.client||'').toLowerCase()) return true;
+        return false;
+      });
+      if (!acomptes.length) return orig.call(window, livId);
+      // Identifier la facture qui va être émise ou est déjà émise
+      const facturesAvant = load(LS_FAC).map(f => f.id);
+      const result = orig.call(window, livId);
+      // Retrouver la facture fraîchement liée à cette livraison
+      setTimeout(async () => {
+        const factures = load(LS_FAC);
+        const fac = factures.find(f => f.livId === livId && f.statut !== 'annulée');
+        if (!fac) return;
+        // Éviter ré-proposer si déjà rattachée
+        const restants = acomptes.filter(a => {
+          const cur = load(LS_AC).find(x => x.id === a.id);
+          return cur && !cur.factureFinaleId;
+        });
+        if (!restants.length) return;
+        const totTTC = round2(restants.reduce((s,a)=> s+(Number(a.montantTTC)||0), 0));
+        const list = restants.map(a => '• ' + (a.numero||'—') + ' · ' + fmtEur(a.montantTTC||0)).join(' · ');
+        const msg = 'Acompte(s) détecté(s) pour ' + (liv.client||'ce client') + ' : ' + list +
+          '. Total à déduire : ' + fmtEur(totTTC) +
+          ' — Facture ' + (fac.numero||'—') + ' (' + fmtEur(fac.montantTTC||0) + ' TTC).' +
+          ' Net à payer après déduction : ' + fmtEur((fac.montantTTC||0) - totTTC) +
+          '. Rattacher automatiquement ces acomptes à cette facture ?';
+        const ok = await confirmDialog(msg, { titre:'Rattacher les acomptes', icone:'💶', btnLabel:'Rattacher', danger:false });
+        if (!ok) return;
+        // Rattacher tous les acomptes restants
+        const acList = load(LS_AC);
+        const facList = load(LS_FAC);
+        const fIdx = facList.findIndex(f => f.id === fac.id);
+        if (fIdx < 0) return;
+        const facCur = facList[fIdx];
+        facCur.acomptesIds = Array.isArray(facCur.acomptesIds) ? facCur.acomptesIds : [];
+        restants.forEach(a => {
+          const aIdx = acList.findIndex(x => x.id === a.id);
+          if (aIdx < 0) return;
+          const acCur = acList[aIdx];
+          if (acCur.factureFinaleId) return;
+          if (!facCur.acomptesIds.includes(acCur.id)) facCur.acomptesIds.push(acCur.id);
+          facCur.acomptesTTC = round2((facCur.acomptesTTC||0) + (acCur.montantTTC||0));
+          facCur.acomptesHT = round2((facCur.acomptesHT||0) + (acCur.montantHT||0));
+          facCur.acomptesTVA = round2((facCur.acomptesTVA||0) + (acCur.montantTVA||0));
+          acCur.factureFinaleId = facCur.id;
+          acCur.factureFinaleNum = facCur.numero;
+          acCur.statut = 'soldée';
+          acCur.solderLe = new Date().toISOString();
+          acList[aIdx] = acCur;
+        });
+        facCur.netAPayerTTC = round2((facCur.montantTTC||0) - (facCur.acomptesTTC||0));
+        facList[fIdx] = facCur;
+        save(LS_AC, acList);
+        save(LS_FAC, facList);
+        if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Auto-rattachement acomptes', restants.length + ' acompte(s) → ' + facCur.numero);
+        if (typeof window.afficherToast === 'function') window.afficherToast('✅ ' + restants.length + ' acompte(s) rattaché(s) — réimprimer la facture pour voir la déduction', 'success');
+        if (typeof window.s30RenderAcomptes === 'function') window.s30RenderAcomptes();
+        if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+      }, 400);
+      return result;
+    };
+    wrapped.__s30_1AutoLink = true;
+    window.genererFactureLivraison = wrapped;
+  }
+  setTimeout(patchGenererFacture, 1800);
+  setInterval(patchGenererFacture, 5000);
+
+  /* ---- Bouton "+ Acompte" dans toolbar page Facturation (accès direct) ---- */
+  function injectHeaderBtn() {
+    const page = document.getElementById('page-facturation');
+    if (!page || page.querySelector('#s30-header-ac-btn')) return;
+    const header = page.querySelector('.page-actions, .page-header, h2')?.parentElement;
+    const anchor = page.querySelector('.page-actions') || page.querySelector('h2')?.parentElement;
+    if (!anchor) return;
+    const btn = document.createElement('button');
+    btn.id = 's30-header-ac-btn';
+    btn.className = 'btn btn-primary';
+    btn.style.cssText = 'margin-left:auto';
+    btn.innerHTML = '💶 Nouvel acompte';
+    btn.onclick = () => { if (typeof window.s30NouvelAcompte === 'function') window.s30NouvelAcompte(); };
+    anchor.appendChild(btn);
+  }
+  setTimeout(injectHeaderBtn, 2000);
+  setInterval(injectHeaderBtn, 5000);
+})();
+
+/* =====================================================================
+   Sprint 30.2 · Clôture d'exercice FR (CCA / FNP / PCA)
+   Principe d'indépendance des exercices (PCG art. 313-1, CGI art. 38-2 bis)
+   CCA = Charges Constatées d'Avance (486) — charge facturée N concernant N+1
+   FNP = Factures Non Parvenues (408) — charge consommée N pas encore facturée
+   PCA = Produits Constatés d'Avance (487) — produit facturé N concernant N+1
+   ===================================================================== */
+(function installS30_2(){
+  if (window.__s30_2Installed) return;
+  window.__s30_2Installed = true;
+
+  const LS = { ajustements:'cloture_ajustements', exercices:'exercices_fiscaux' };
+  const load = (k) => { try { return loadSafe(k, []); } catch { return []; } };
+  const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+  const round2 = (n) => Math.round((Number(n)||0)*100)/100;
+  const esc = window.escapeHtml;
+  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const fmtDate = (d) => { if (!d) return ''; const dt = new Date(d); return isNaN(dt)?d:dt.toLocaleDateString('fr-FR'); };
+  const toast = (m,t) => (typeof window.afficherToast==='function') ? window.afficherToast(m,t||'info') : (window.logMCA || function(){})(m);
+  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
+  const uuid = () => 'clo-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+  /* ---- Calcul prorata selon date de clôture ---- */
+  function calculerProrata(dateDebut, dateFin, dateCloture) {
+    if (!dateDebut || !dateFin || !dateCloture) return null;
+    const dD = new Date(dateDebut), dF = new Date(dateFin), dC = new Date(dateCloture);
+    if (isNaN(dD)||isNaN(dF)||isNaN(dC)) return null;
+    if (dF < dD) return null;
+    const JOUR = 86400000;
+    const total = Math.round((dF - dD) / JOUR) + 1;
+    // Jours sur exercice N (avant ou = dateCloture)
+    let jours_N = 0;
+    if (dD <= dC) {
+      const finN = dF < dC ? dF : dC;
+      jours_N = Math.round((finN - dD) / JOUR) + 1;
+    }
+    const jours_N1 = total - jours_N;
+    return {
+      total,
+      jours_N: Math.max(0, jours_N),
+      jours_N1: Math.max(0, jours_N1),
+      ratio_N1: total > 0 ? jours_N1 / total : 0,
+      ratio_N: total > 0 ? jours_N / total : 1
+    };
+  }
+
+  /* ---- Création / édition d'un ajustement ---- */
+  function creerAjustement(data) {
+    const list = load(LS.ajustements);
+    const aj = Object.assign({
+      id: uuid(),
+      creeLe: new Date().toISOString(),
+      statut: 'brouillon'
+    }, data);
+    list.push(aj);
+    save(LS.ajustements, list);
+    audit('Création ajustement clôture', aj.type + ' · ' + aj.libelle + ' · ' + fmtEur(aj.montantReporte));
+    return aj;
+  }
+
+  async function supprimerAjustement(id) {
+    const list = load(LS.ajustements);
+    const idx = list.findIndex(a => a.id === id);
+    if (idx < 0) return;
+    if (list[idx].statut === 'valide' || list[idx].extournePar) {
+      toast('⚠️ Ajustement validé — impossible de supprimer, utiliser l\'extourne', 'warning');
+      return;
+    }
+    const okSup = await confirmDialog('Supprimer cet ajustement de clôture ?', { titre:'Supprimer l\'ajustement', icone:'📒', btnLabel:'Supprimer' });
+    if (!okSup) return;
+    const aj = list[idx];
+    list.splice(idx,1);
+    save(LS.ajustements, list);
+    audit('Suppression ajustement clôture', aj.type + ' · ' + aj.libelle);
+    toast('🗑️ Ajustement supprimé', 'info');
+    render();
+  }
+  window.s30_2SupprimerAjustement = supprimerAjustement;
+
+  function validerAjustement(id) {
+    const list = load(LS.ajustements);
+    const idx = list.findIndex(a => a.id === id);
+    if (idx < 0) return;
+    list[idx].statut = 'valide';
+    list[idx].valideLe = new Date().toISOString();
+    save(LS.ajustements, list);
+    audit('Validation ajustement clôture', list[idx].type + ' · ' + list[idx].libelle);
+    toast('✅ Ajustement validé', 'success');
+    render();
+  }
+  window.s30_2ValiderAjustement = validerAjustement;
+
+  /* ---- Extourne automatique en N+1 ---- */
+  async function extournerAjustement(id) {
+    const list = load(LS.ajustements);
+    const idx = list.findIndex(a => a.id === id);
+    if (idx < 0) return;
+    const aj = list[idx];
+    if (aj.statut !== 'valide') { toast('⚠️ Valider avant d\'extourner', 'warning'); return; }
+    if (aj.extournePar) { toast('Déjà extourné', 'info'); return; }
+    const okExt = await confirmDialog('Extourner ' + aj.type + ' « ' + aj.libelle + ' » en exercice ' + (aj.exercice + 1) + ' ? L\'écriture inverse sera créée au 01/01/' + (aj.exercice + 1) + '.', { titre:'Extourner l\'ajustement', icone:'🔄', btnLabel:'Extourner', danger:false });
+    if (!okExt) return;
+    const extourne = creerAjustement({
+      type: aj.type,
+      exercice: aj.exercice + 1,
+      libelle: '[EXTOURNE] ' + aj.libelle,
+      montantHT: -(aj.montantHT||0),
+      montantTVA: -(aj.montantTVA||0),
+      montantReporte: -(aj.montantReporte||0),
+      tauxTVA: aj.tauxTVA,
+      dateCloture: String(aj.exercice + 1) + '-01-01',
+      estExtourne: true,
+      extournDe: aj.id,
+      sourceType: aj.sourceType,
+      sourceId: aj.sourceId
+    });
+    extourne.statut = 'valide';
+    extourne.valideLe = new Date().toISOString();
+    const list2 = load(LS.ajustements);
+    const idx2 = list2.findIndex(a => a.id === extourne.id);
+    if (idx2 >= 0) { list2[idx2] = extourne; save(LS.ajustements, list2); }
+    // Marquer l'original
+    const list3 = load(LS.ajustements);
+    const iO = list3.findIndex(a => a.id === id);
+    if (iO >= 0) { list3[iO].extournePar = extourne.id; list3[iO].statut = 'extourne'; save(LS.ajustements, list3); }
+    audit('Extourne ajustement', aj.type + ' · ' + aj.libelle + ' → ' + (aj.exercice + 1));
+    toast('🔄 Extourne créée en ' + (aj.exercice + 1), 'success');
+    render();
+  }
+  window.s30_2ExtournerAjustement = extournerAjustement;
+
+  /* ---- Extourne automatique en masse (BUG-017) ---------------------------
+     Au démarrage de l'app, si l'année en cours est N et qu'il existe des
+     ajustements validés sur exercice ≤ N-1 non-extournés, proposer l'action.
+     Gardé idempotent via flag cloture_auto_check_${N} (une alerte par an).
+     ---------------------------------------------------------------------- */
+  function detecterAjustementsEnAttenteExtourne() {
+    const annee = (new Date()).getFullYear();
+    const list = load(LS.ajustements);
+    return list.filter(a =>
+      a.statut === 'valide'
+      && !a.extournePar
+      && !a.estExtourne
+      && Number(a.exercice) > 0
+      && Number(a.exercice) < annee
+    );
+  }
+  window.s30_2DetecterExtournesEnAttente = detecterAjustementsEnAttenteExtourne;
+
+  async function extournerEnMasse(ids) {
+    const list = load(LS.ajustements);
+    let count = 0;
+    ids.forEach(id => {
+      const idx = list.findIndex(a => a.id === id);
+      if (idx < 0) return;
+      const aj = list[idx];
+      if (aj.statut !== 'valide' || aj.extournePar) return;
+      const extId = uuid();
+      const extourne = {
+        id: extId,
+        creeLe: new Date().toISOString(),
+        statut: 'valide',
+        valideLe: new Date().toISOString(),
+        type: aj.type,
+        exercice: aj.exercice + 1,
+        libelle: '[EXTOURNE] ' + (aj.libelle || ''),
+        montantHT: -(aj.montantHT||0),
+        montantTVA: -(aj.montantTVA||0),
+        montantReporte: -(aj.montantReporte||0),
+        tauxTVA: aj.tauxTVA,
+        dateCloture: String(aj.exercice + 1) + '-01-01',
+        estExtourne: true,
+        extournDe: aj.id,
+        sourceType: aj.sourceType,
+        sourceId: aj.sourceId
+      };
+      list.push(extourne);
+      aj.extournePar = extId;
+      aj.statut = 'extourne';
+      count++;
+    });
+    save(LS.ajustements, list);
+    audit('Extourne automatique N+1', count + ' ajustement(s) extourné(s)');
+    toast('🔄 ' + count + ' extourne(s) créée(s) au 01/01/' + (new Date()).getFullYear(), 'success');
+    if (typeof render === 'function') render();
+    return count;
+  }
+  window.s30_2ExtournerEnMasse = extournerEnMasse;
+
+  async function proposerExtourneAuto() {
+    const annee = (new Date()).getFullYear();
+    const flagKey = 'cloture_auto_check_' + annee;
+    if (localStorage.getItem(flagKey) === 'ok') return;
+    const pending = detecterAjustementsEnAttenteExtourne();
+    if (!pending.length) { localStorage.setItem(flagKey, 'ok'); return; }
+    // Throttle : attendre que l'app soit prête (toast dispo)
+    if (typeof window.confirmDialog !== 'function') {
+      setTimeout(proposerExtourneAuto, 2000);
+      return;
+    }
+    const total = pending.reduce((s,a) => s + Math.abs(Number(a.montantReporte)||0), 0);
+    const libsApercu = pending.slice(0,3).map(a => '• ' + (a.libelle||'(sans libellé)') + ' (ex. ' + a.exercice + ')').join('\n');
+    const suite = pending.length > 3 ? '\n… et ' + (pending.length - 3) + ' autre(s)' : '';
+    const msg = pending.length + ' ajustement(s) de clôture N-1 validé(s) ne sont pas encore extourné(s) en ' + annee + '. '
+      + 'Extourner automatiquement maintenant ?\n\n' + libsApercu + suite
+      + '\n\nMontant total : ' + fmtEur(total);
+    const ok = await window.confirmDialog(msg, { titre: '🔄 Extourne exercice ' + annee, icone:'🔄', btnLabel:'Extourner ' + pending.length + ' ajustement(s)' });
+    localStorage.setItem(flagKey, 'ok');
+    if (!ok) { audit('Extourne auto ignorée', pending.length + ' ajustements N-1 en attente'); return; }
+    await extournerEnMasse(pending.map(a => a.id));
+  }
+  window.s30_2ProposerExtourneAuto = proposerExtourneAuto;
+
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    setTimeout(proposerExtourneAuto, 3000);
+  } else {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(proposerExtourneAuto, 3000));
+  }
+
+  /* ---- UI : Wizard création ---- */
+  function ouvrirModalHTML(html) {
+    let modal = document.getElementById('s15-modal-info');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 's15-modal-info';
+      modal.className = 's15-modal-info-overlay';
+      modal.innerHTML = '<div class="s15-modal-info-box"><button class="s15-modal-info-close" aria-label="Fermer">✕</button><div class="s15-modal-info-body"></div></div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+      modal.querySelector('.s15-modal-info-close').addEventListener('click', () => modal.classList.remove('open'));
+    }
+    const body = modal.querySelector('.s15-modal-info-body');
+    if (body) body.innerHTML = html;
+    modal.classList.add('open');
+  }
+  function fermerModal() { const m = document.getElementById('s15-modal-info'); if (m) m.classList.remove('open'); }
+
+  window.s30_2NouvelAjustement = function(preType) {
+    const annee = (new Date()).getFullYear();
+    const charges = load('charges');
+    const factures = load('factures_emises');
+    const chargesOptions = charges.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0, 100);
+    const facturesOptions = factures.filter(f => f.statut !== 'annulée').slice().sort((a,b)=> (b.dateFacture||'').localeCompare(a.dateFacture||'')).slice(0, 100);
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:760px">
+        <div class="s15-modal-info-header">
+          <h2>📅 Nouvel ajustement de clôture</h2>
+          <button class="btn-close" onclick="window.s30_2FermerModal()">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <div class="form-group">
+            <label>Type d'ajustement *</label>
+            <select id="s302-type" onchange="window.s30_2UpdateTypeFields()">
+              <option value="CCA" ${preType==='CCA'?'selected':''}>CCA — Charge Constatée d'Avance (charge payée en N concernant N+1)</option>
+              <option value="FNP" ${preType==='FNP'?'selected':''}>FNP — Facture Non Parvenue (charge consommée N pas encore facturée)</option>
+              <option value="PCA" ${preType==='PCA'?'selected':''}>PCA — Produit Constaté d'Avance (facture émise N pour prestation N+1)</option>
+            </select>
+          </div>
+          <div id="s302-help" style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:.86rem;line-height:1.5"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Exercice *</label>
+              <input type="number" id="s302-exercice" value="${annee}" min="2020" max="2099" />
+              <small style="color:var(--text-muted)">Date de clôture : 31/12/<span id="s302-exYear">${annee}</span></small>
+            </div>
+            <div class="form-group">
+              <label>Taux TVA</label>
+              <select id="s302-tva">
+                <option value="20">20 %</option>
+                <option value="10">10 %</option>
+                <option value="5.5">5,5 %</option>
+                <option value="0">0 % (exonéré)</option>
+              </select>
+            </div>
+          </div>
+          <div id="s302-sourceBlock"></div>
+          <div class="form-group">
+            <label>Libellé *</label>
+            <input type="text" id="s302-libelle" placeholder="Ex: Assurance véhicule 2026-2027" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date début période *</label>
+              <input type="date" id="s302-debut" oninput="window.s30_2CalcProrata()" />
+            </div>
+            <div class="form-group">
+              <label>Date fin période *</label>
+              <input type="date" id="s302-fin" oninput="window.s30_2CalcProrata()" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Montant total HT concerné par la période *</label>
+            <input type="number" step="0.01" id="s302-montantHT" oninput="window.s30_2CalcProrata()" placeholder="0.00" />
+          </div>
+          <div id="s302-prorata" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.05));border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:14px;margin-bottom:14px;display:none"></div>
+          <div class="form-group">
+            <label>Note / justificatif</label>
+            <textarea id="s302-note" rows="2" placeholder="Référence contrat, date facture d'origine, etc."></textarea>
+          </div>
+        </div>
+        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn-secondary" onclick="window.s30_2FermerModal()">Annuler</button>
+          <button class="btn-primary" onclick="window.s30_2EnregistrerAjustement()">💾 Enregistrer</button>
+        </div>
+      </div>`;
+    ouvrirModalHTML(html);
+    // Stocker options source pour les fields
+    window.__s302ChargesOpts = chargesOptions;
+    window.__s302FacturesOpts = facturesOptions;
+    setTimeout(() => window.s30_2UpdateTypeFields(), 50);
+    const exIn = document.getElementById('s302-exercice');
+    if (exIn) exIn.oninput = () => { const y = document.getElementById('s302-exYear'); if (y) y.textContent = exIn.value; };
+  };
+  window.s30_2FermerModal = fermerModal;
+
+  window.s30_2UpdateTypeFields = function() {
+    const type = document.getElementById('s302-type').value;
+    const help = document.getElementById('s302-help');
+    const src = document.getElementById('s302-sourceBlock');
+    if (!help || !src) return;
+    const texts = {
+      CCA: '<strong>📘 CCA — Charge Constatée d\'Avance (compte 486)</strong><br>Tu sélectionnes une charge déjà enregistrée. La part de la charge correspondant à la période <strong>après le 31/12</strong> sera reportée en N+1 (écriture D 486 / C 6xx).<br><em>Ex : assurance annuelle payée en octobre 2026 → 9 mois relèvent de 2027.</em>',
+      FNP: '<strong>📕 FNP — Facture Non Parvenue (compte 408)</strong><br>Charge consommée en N mais non facturée au 31/12. Provision estimée (écriture D 6xx + D 4456 TVA / C 408).<br><em>Ex : électricité décembre consommée mais facturée en janvier N+1.</em>',
+      PCA: '<strong>📗 PCA — Produit Constaté d\'Avance (compte 487)</strong><br>Tu sélectionnes une facture émise. La part correspondant à la période <strong>après le 31/12</strong> est reportée en N+1 (écriture D 7xx / C 487).<br><em>Ex : abonnement annuel facturé en juin 2026 → 5 mois relèvent de 2027.</em>'
+    };
+    help.innerHTML = texts[type] || '';
+    let srcHtml = '';
+    if (type === 'CCA') {
+      const opts = (window.__s302ChargesOpts||[]).map(c => `<option value="${c.id}" data-montant="${c.montantHT||c.montant||0}" data-tva="${c.tauxTVA||20}" data-libelle="${esc((c.description||c.categorie||'Charge')+' · '+fmtDate(c.date))}">${esc(c.description||c.categorie||'Charge')} — ${fmtEur(c.montantHT||c.montant)} (${fmtDate(c.date)})</option>`).join('');
+      srcHtml = `
+        <div class="form-group">
+          <label>Charge source (optionnel — sinon saisie manuelle)</label>
+          <select id="s302-source" onchange="window.s30_2RemplirDepuisSource('charge')">
+            <option value="">— Saisie manuelle —</option>
+            ${opts}
+          </select>
+        </div>`;
+    } else if (type === 'PCA') {
+      const opts = (window.__s302FacturesOpts||[]).map(f => `<option value="${f.id}" data-montant="${f.montantHT||0}" data-tva="${f.tauxTVA||20}" data-libelle="${esc((f.numero||'Facture')+' · '+(f.client||''))}">${esc(f.numero||'—')} — ${esc(f.client||'')} — ${fmtEur(f.montantHT)} (${fmtDate(f.dateFacture)})</option>`).join('');
+      srcHtml = `
+        <div class="form-group">
+          <label>Facture source (optionnel)</label>
+          <select id="s302-source" onchange="window.s30_2RemplirDepuisSource('facture')">
+            <option value="">— Saisie manuelle —</option>
+            ${opts}
+          </select>
+        </div>`;
+    } else {
+      srcHtml = '<div style="font-size:.82rem;color:var(--text-muted);margin-bottom:10px;font-style:italic">FNP = saisie manuelle (pas de pièce justificative au 31/12).</div>';
+    }
+    src.innerHTML = srcHtml;
+  };
+
+  window.s30_2RemplirDepuisSource = function(kind) {
+    const sel = document.getElementById('s302-source');
+    if (!sel || !sel.value) return;
+    const opt = sel.options[sel.selectedIndex];
+    const montant = opt.dataset.montant;
+    const tva = opt.dataset.tva;
+    const libelle = opt.dataset.libelle;
+    if (montant) document.getElementById('s302-montantHT').value = montant;
+    if (tva) document.getElementById('s302-tva').value = tva;
+    if (libelle) document.getElementById('s302-libelle').value = libelle;
+    window.s30_2CalcProrata();
+  };
+
+  window.s30_2CalcProrata = function() {
+    const type = document.getElementById('s302-type')?.value || 'CCA';
+    const debut = document.getElementById('s302-debut')?.value;
+    const fin = document.getElementById('s302-fin')?.value;
+    const montant = parseFloat(document.getElementById('s302-montantHT')?.value) || 0;
+    const exercice = parseInt(document.getElementById('s302-exercice')?.value, 10) || new Date().getFullYear();
+    const dateCloture = exercice + '-12-31';
+    const box = document.getElementById('s302-prorata');
+    if (!box) return;
+    const tva = parseFloat(document.getElementById('s302-tva')?.value) || 0;
+    // FNP : pas de prorata — le montant est 100% provisionné en N (compte 408)
+    if (type === 'FNP') {
+      if (!montant) { box.style.display = 'none'; return; }
+      const montantTVA = round2(montant * tva / 100);
+      box.style.display = '';
+      box.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px">📕 Provision à constituer au 31/12/${exercice}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.88rem">
+          <div>Charge estimée HT : <strong>${fmtEur(montant)}</strong></div>
+          <div>TVA ${tva}% : <strong>${fmtEur(montantTVA)}</strong></div>
+          <div style="color:#ef4444;grid-column:1/-1">🎯 Provision totale (compte 408) : <strong>${fmtEur(montant+montantTVA)}</strong> (HT + TVA)</div>
+        </div>
+        <input type="hidden" id="s302-montantReporte" value="${montant}" />
+        <input type="hidden" id="s302-montantTVAReporte" value="${montantTVA}" />`;
+      return;
+    }
+    // Validation date
+    if (debut && fin && new Date(debut) > new Date(fin)) {
+      box.style.display = '';
+      box.style.background = 'rgba(239,68,68,.1)';
+      box.style.borderColor = 'rgba(239,68,68,.4)';
+      box.innerHTML = '<div style="color:#ef4444;font-weight:700">⚠️ Date de début postérieure à la date de fin</div>';
+      return;
+    }
+    box.style.background = '';
+    box.style.borderColor = '';
+    const pr = calculerProrata(debut, fin, dateCloture);
+    if (!pr || !montant) { box.style.display = 'none'; return; }
+    const montantN = round2(montant * pr.ratio_N);
+    const montantN1 = round2(montant - montantN);
+    const montantTVAN1 = round2(montantN1 * tva / 100);
+    box.style.display = '';
+    const alert100 = pr.jours_N1 === pr.total ? '<div style="color:#f5a623;font-size:.82rem;margin-top:6px">⚠️ Période 100% en ' + (exercice+1) + ' — vérifier que cette pièce ne relève pas entièrement de l\'exercice suivant (auquel cas ce n\'est pas un ajustement de clôture).</div>' : '';
+    const alert0 = pr.jours_N1 === 0 ? '<div style="color:#22c55e;font-size:.82rem;margin-top:6px">✅ Période entièrement sur ' + exercice + ' — aucun ajustement nécessaire.</div>' : '';
+    box.innerHTML = `
+      <div style="font-weight:700;margin-bottom:8px">📊 Calcul prorata au 31/12/${exercice}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.88rem">
+        <div>Période totale : <strong>${pr.total} jours</strong></div>
+        <div>Montant HT total : <strong>${fmtEur(montant)}</strong></div>
+        <div>Jours en ${exercice} (N) : <strong>${pr.jours_N}</strong></div>
+        <div>Part N (reste en charge/produit) : <strong>${fmtEur(montantN)}</strong></div>
+        <div style="color:#22c55e">Jours en ${exercice+1} (N+1) : <strong>${pr.jours_N1}</strong></div>
+        <div style="color:#22c55e">🎯 Montant à reporter : <strong>${fmtEur(montantN1)}</strong> HT ${tva>0?('+ '+fmtEur(montantTVAN1)+' TVA'):''}</div>
+      </div>
+      ${alert100}${alert0}
+      <input type="hidden" id="s302-montantReporte" value="${montantN1}" />
+      <input type="hidden" id="s302-montantTVAReporte" value="${montantTVAN1}" />`;
+  };
+
+  window.s30_2EnregistrerAjustement = function() {
+    const type = document.getElementById('s302-type').value;
+    const libelle = document.getElementById('s302-libelle').value.trim();
+    const exercice = parseInt(document.getElementById('s302-exercice').value, 10);
+    const debut = document.getElementById('s302-debut').value;
+    const fin = document.getElementById('s302-fin').value;
+    const montantHT = parseFloat(document.getElementById('s302-montantHT').value) || 0;
+    const tauxTVA = parseFloat(document.getElementById('s302-tva').value) || 0;
+    const montantReporte = parseFloat(document.getElementById('s302-montantReporte')?.value) || 0;
+    const montantTVAReporte = parseFloat(document.getElementById('s302-montantTVAReporte')?.value) || 0;
+    const note = document.getElementById('s302-note').value.trim();
+    const sourceEl = document.getElementById('s302-source');
+    const sourceId = sourceEl ? sourceEl.value : '';
+    if (!libelle) { toast('⚠️ Libellé requis', 'warning'); return; }
+    if (!debut || !fin) { toast('⚠️ Période requise', 'warning'); return; }
+    if (new Date(debut) > new Date(fin)) { toast('⚠️ Date début postérieure à la date fin', 'error'); return; }
+    if (!montantHT || montantHT <= 0) { toast('⚠️ Montant HT > 0 requis', 'warning'); return; }
+    if (!montantReporte) {
+      if (type === 'FNP') { toast('⚠️ Montant à provisionner invalide', 'warning'); return; }
+      toast('⚠️ La période ne déborde pas sur ' + (exercice+1) + ' — pas d\'ajustement nécessaire', 'warning');
+      return;
+    }
+    const aj = {
+      type, libelle, exercice,
+      dateCloture: exercice + '-12-31',
+      dateDebut: debut, dateFin: fin,
+      montantHT: round2(montantHT),
+      tauxTVA,
+      montantTVA: type === 'FNP' ? round2(montantHT * tauxTVA / 100) : 0,
+      montantReporte: round2(montantReporte),
+      montantTVAReporte: round2(montantTVAReporte),
+      sourceType: type==='CCA'?'charge':(type==='PCA'?'facture':'manuel'),
+      sourceId: sourceId || null,
+      note
+    };
+    creerAjustement(aj);
+    toast('✅ Ajustement ' + type + ' créé — pense à le valider pour la clôture', 'success');
+    fermerModal();
+    render();
+  };
+
+  /* ---- Scan auto : détecte charges/factures avec période débordante ---- */
+  window.s30_2ScanAuto = async function() {
+    const raw = await promptDialog('Exercice à analyser pour détecter les CCA / FNP / PCA à constater ?', {
+      titre:'Scan auto de clôture', icone:'🔎', btnLabel:'Analyser', defaultValue:String(new Date().getFullYear()),
+      type:'number', placeholder:'Exercice',
+      validate: v => (/^\d{4}$/.test(String(v||'').trim()) ? true : 'Exercice sur 4 chiffres attendu')
+    });
+    const exercice = parseInt(raw, 10);
+    if (!exercice || isNaN(exercice)) return;
+    const dateCloture = exercice + '-12-31';
+    const charges = load('charges').filter(c => {
+      const y = (c.date||'').slice(0,4);
+      return y === String(exercice) && c.periodeDebut && c.periodeFin;
+    });
+    const factures = load('factures_emises').filter(f => {
+      const y = (f.dateFacture||'').slice(0,4);
+      return y === String(exercice) && f.statut !== 'annulée' && f.periodeDebut && f.periodeFin;
+    });
+    const suggestions = [];
+    charges.forEach(c => {
+      const pr = calculerProrata(c.periodeDebut, c.periodeFin, dateCloture);
+      if (pr && pr.jours_N1 > 0) {
+        const montantReporte = round2((c.montantHT||c.montant||0) * pr.ratio_N1);
+        suggestions.push({ type:'CCA', source:c, pr, montantReporte, libelle: c.description||c.categorie });
+      }
+    });
+    factures.forEach(f => {
+      const pr = calculerProrata(f.periodeDebut, f.periodeFin, dateCloture);
+      if (pr && pr.jours_N1 > 0) {
+        const montantReporte = round2((f.montantHT||0) * pr.ratio_N1);
+        suggestions.push({ type:'PCA', source:f, pr, montantReporte, libelle: (f.numero||'')+' · '+(f.client||'') });
+      }
+    });
+    if (!suggestions.length) {
+      toast('Aucune suggestion auto — aucune charge/facture avec période qui déborde sur ' + (exercice+1), 'info');
+      return;
+    }
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:820px">
+        <div class="s15-modal-info-header">
+          <h2>🤖 ${suggestions.length} ajustement(s) suggéré(s) pour ${exercice}</h2>
+          <button class="btn-close" onclick="window.s30_2FermerModal()">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="color:var(--text-muted);font-size:.88rem">Coche les ajustements à créer. Le prorata est calculé automatiquement selon la période saisie sur la pièce.</p>
+          <div style="max-height:460px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
+            ${suggestions.map((s,i) => `
+              <label style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer">
+                <input type="checkbox" class="s302-sugg" data-i="${i}" checked />
+                <div style="flex:1">
+                  <div><span class="badge" style="background:${s.type==='CCA'?'#f5a623':'#22c55e'};color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700">${s.type}</span> <strong>${esc(s.libelle)}</strong></div>
+                  <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px">Période : ${fmtDate(s.source.periodeDebut)} → ${fmtDate(s.source.periodeFin)} · ${s.pr.jours_N1} j sur N+1 · À reporter : <strong>${fmtEur(s.montantReporte)}</strong></div>
+                </div>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:14px">
+          <button class="btn-secondary" onclick="window.s30_2FermerModal()">Annuler</button>
+          <button class="btn-primary" onclick="window.s30_2AppliquerSuggestions(${exercice})">✅ Créer les ajustements cochés</button>
+        </div>
+      </div>`;
+    window.__s302Sugg = suggestions;
+    ouvrirModalHTML(html);
+  };
+
+  window.s30_2AppliquerSuggestions = function(exercice) {
+    const checks = document.querySelectorAll('.s302-sugg:checked');
+    const sugg = window.__s302Sugg || [];
+    let count = 0;
+    checks.forEach(chk => {
+      const i = parseInt(chk.dataset.i, 10);
+      const s = sugg[i];
+      if (!s) return;
+      const tva = parseFloat(s.source.tauxTVA||20);
+      creerAjustement({
+        type: s.type,
+        libelle: s.libelle,
+        exercice,
+        dateCloture: exercice + '-12-31',
+        dateDebut: s.source.periodeDebut,
+        dateFin: s.source.periodeFin,
+        montantHT: round2(s.source.montantHT || s.source.montant || 0),
+        tauxTVA: tva,
+        montantTVA: 0,
+        montantReporte: s.montantReporte,
+        montantTVAReporte: 0,
+        sourceType: s.type==='CCA'?'charge':'facture',
+        sourceId: s.source.id,
+        note: 'Créé par scan auto ' + new Date().toLocaleDateString('fr-FR')
+      });
+      count++;
+    });
+    toast('✅ ' + count + ' ajustement(s) créé(s)', 'success');
+    fermerModal();
+    render();
+  };
+
+  /* ---- Génération OD de clôture (PDF imprimable) ---- */
+  window.s30_2GenererOD = async function(exercice) {
+    if (!exercice) {
+      const raw = await promptDialog('Exercice à clôturer pour générer l\'OD (écriture de régularisation) ?', {
+        titre:'OD de clôture', icone:'📋', btnLabel:'Générer', defaultValue:String(new Date().getFullYear()),
+        type:'number', placeholder:'Exercice',
+        validate: v => (/^\d{4}$/.test(String(v||'').trim()) ? true : 'Exercice sur 4 chiffres attendu')
+      });
+      exercice = parseInt(raw, 10);
+    }
+    if (!exercice || isNaN(exercice)) return;
+    const ents = (typeof window.getEntreprise === 'function' ? window.getEntreprise() : {nom:'Entreprise', adresse:'', siret:'', tva:''});
+    const list = load(LS.ajustements).filter(a => a.exercice === exercice && a.statut !== 'extourne' && !a.estExtourne);
+    if (!list.length) { toast('Aucun ajustement pour ' + exercice, 'info'); return; }
+    const cca = list.filter(a => a.type==='CCA');
+    const fnp = list.filter(a => a.type==='FNP');
+    const pca = list.filter(a => a.type==='PCA');
+    const totCCA = round2(cca.reduce((s,a)=>s+(a.montantReporte||0),0));
+    const totFNP = round2(fnp.reduce((s,a)=>s+(a.montantReporte||0),0));
+    const totFNPTVA = round2(fnp.reduce((s,a)=>s+(a.montantTVAReporte||0),0));
+    const totPCA = round2(pca.reduce((s,a)=>s+(a.montantReporte||0),0));
+    const row = (cpt, intitule, d, c) => `<tr><td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace">${cpt}</td><td style="padding:6px 10px;border:1px solid #ddd">${intitule}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${d?fmtEur(d):''}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${c?fmtEur(c):''}</td></tr>`;
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OD Clôture ${exercice}</title></head>
+      <body style="font-family:Arial,sans-serif;padding:30px;max-width:900px;margin:auto;color:#111">
+        <div style="border-bottom:3px solid #f5a623;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between">
+          <div>
+            <div style="font-weight:800;font-size:1.3rem">${esc(ents.nom||'')}</div>
+            <div style="font-size:.85rem;color:#555">${esc(ents.adresse||'')}</div>
+            ${ents.siret?`<div style="font-size:.82rem;color:#666">SIRET : ${esc(ents.siret)}</div>`:''}
+          </div>
+          <div style="text-align:right">
+            <div style="background:#f5a623;color:#fff;padding:8px 16px;border-radius:6px;font-weight:800">ÉCRITURES D'INVENTAIRE</div>
+            <div style="margin-top:8px;font-weight:700">Exercice ${exercice}</div>
+            <div style="font-size:.85rem;color:#555">Clôture au 31/12/${exercice}</div>
+          </div>
+        </div>
+        ${cca.length ? `
+          <h3 style="color:#f5a623;border-bottom:1px solid #eee;padding-bottom:4px">📘 Charges Constatées d'Avance — ${fmtEur(totCCA)}</h3>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.88rem">
+            <thead><tr style="background:#faf3e3"><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Compte</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Intitulé</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Débit</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Crédit</th></tr></thead>
+            <tbody>
+              ${cca.map(a => row('486', 'CCA — '+esc(a.libelle), a.montantReporte, 0)).join('')}
+              ${cca.map(a => row('6xxx', 'Contrepasse charge — '+esc(a.libelle), 0, a.montantReporte)).join('')}
+              <tr style="background:#fef9ec;font-weight:700"><td colspan="2" style="padding:8px 10px;border:1px solid #ddd">Total CCA</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totCCA)}</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totCCA)}</td></tr>
+            </tbody>
+          </table>
+        ` : ''}
+        ${fnp.length ? `
+          <h3 style="color:#ef4444;border-bottom:1px solid #eee;padding-bottom:4px">📕 Factures Non Parvenues — ${fmtEur(totFNP)} HT</h3>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.88rem">
+            <thead><tr style="background:#fde8e8"><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Compte</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Intitulé</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Débit</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Crédit</th></tr></thead>
+            <tbody>
+              ${fnp.map(a => row('6xxx', 'Charge à rattacher — '+esc(a.libelle), a.montantReporte, 0)).join('')}
+              ${totFNPTVA ? fnp.filter(a=>a.montantTVAReporte).map(a => row('44586', 'TVA sur FNP — '+esc(a.libelle), a.montantTVAReporte, 0)).join('') : ''}
+              ${fnp.map(a => row('408', 'FNP — '+esc(a.libelle), 0, (a.montantReporte||0)+(a.montantTVAReporte||0))).join('')}
+              <tr style="background:#fef3f3;font-weight:700"><td colspan="2" style="padding:8px 10px;border:1px solid #ddd">Total FNP</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totFNP+totFNPTVA)}</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totFNP+totFNPTVA)}</td></tr>
+            </tbody>
+          </table>
+        ` : ''}
+        ${pca.length ? `
+          <h3 style="color:#22c55e;border-bottom:1px solid #eee;padding-bottom:4px">📗 Produits Constatés d'Avance — ${fmtEur(totPCA)}</h3>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.88rem">
+            <thead><tr style="background:#e8f5e9"><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Compte</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Intitulé</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Débit</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Crédit</th></tr></thead>
+            <tbody>
+              ${pca.map(a => row('7xxx', 'Contrepasse produit — '+esc(a.libelle), a.montantReporte, 0)).join('')}
+              ${pca.map(a => row('487', 'PCA — '+esc(a.libelle), 0, a.montantReporte)).join('')}
+              <tr style="background:#f0fdf4;font-weight:700"><td colspan="2" style="padding:8px 10px;border:1px solid #ddd">Total PCA</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totPCA)}</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totPCA)}</td></tr>
+            </tbody>
+          </table>
+        ` : ''}
+        <div style="margin-top:30px;padding:14px;background:#f9fafb;border-left:4px solid #f5a623;font-size:.82rem;color:#555;line-height:1.6">
+          <strong>Références légales :</strong> PCG art. 313-1 (indépendance des exercices), CGI art. 38-2 bis (produits rattachés à l'exercice pendant lequel ils sont acquis), CGI art. 39 (charges déductibles de l'exercice de rattachement). Les comptes 486, 487 et 408 sont à extourner au 01/01/${exercice+1} (utiliser le bouton 🔄 <em>Extourner en N+1</em>).
+        </div>
+        <div style="margin-top:20px;text-align:right;font-size:.82rem;color:#777">Édité le ${new Date().toLocaleDateString('fr-FR')} · ${esc(ents.nom||'')}</div>
+        <script>setTimeout(()=>window.print(),400);</script>
+      </body></html>`;
+    const w = ouvrirPopupSecure('', '_blank');
+    if (!w) { toast('Popup bloqué — autoriser les popups', 'warning'); return; }
+    w.document.open(); w.document.write(html); w.document.close();
+    audit('Génération OD clôture', 'Exercice ' + exercice);
+  };
+
+  /* ---- Render UI dans Paramètres > Comptabilité ---- */
+  const EMPTY_HINTS = {
+    CCA: { emoji:'📘', titre:'Aucune CCA', sub:'Une Charge Constatée d\'Avance = charge payée en N pour une période qui déborde sur N+1.', ex:'Ex : assurance annuelle, loyer avancé, abonnement logiciel prépayé.' },
+    FNP: { emoji:'📕', titre:'Aucune FNP', sub:'Une Facture Non Parvenue = charge consommée en N pas encore facturée au 31/12.', ex:'Ex : électricité de décembre, prestation fournisseur livrée mais non facturée.' },
+    PCA: { emoji:'📗', titre:'Aucun PCA', sub:'Un Produit Constaté d\'Avance = prestation facturée en N dont la période déborde sur N+1.', ex:'Ex : abonnement annuel, contrat de maintenance, avance sur prestation.' }
+  };
+
+  function render() {
+    const section = document.getElementById('s30_2-cloture-section');
+    if (!section) return;
+    const ajAll = load(LS.ajustements);
+    const annees = [...new Set(ajAll.map(a => a.exercice))].sort((a,b) => b-a);
+    const anneeActive = parseInt(section.dataset.activeYear, 10) || (annees[0] || new Date().getFullYear());
+    const showExtournes = section.dataset.showExtournes === '1';
+    const search = (section.dataset.search || '').toLowerCase();
+    const sortKey = section.dataset.sortKey || 'dateFin';
+    const sortDir = section.dataset.sortDir || 'desc';
+    const ajExercice = ajAll.filter(a => a.exercice === anneeActive);
+    const activeFilter = (t,a) => a.type===t && (showExtournes || (a.statut !== 'extourne' && !a.estExtourne));
+    const cca = ajExercice.filter(a => activeFilter('CCA',a));
+    const fnp = ajExercice.filter(a => activeFilter('FNP',a));
+    const pca = ajExercice.filter(a => activeFilter('PCA',a));
+    const totCCA = round2(cca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).reduce((s,a)=>s+(a.montantReporte||0),0));
+    const totFNP = round2(fnp.filter(a=>a.statut!=='extourne'&&!a.estExtourne).reduce((s,a)=>s+(a.montantReporte||0),0));
+    const totPCA = round2(pca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).reduce((s,a)=>s+(a.montantReporte||0),0));
+    const anneesOpts = (annees.length ? annees : [new Date().getFullYear()]).map(y => `<option value="${y}" ${y===anneeActive?'selected':''}>${y}</option>`).join('');
+    const activeTab = section.dataset.activeTab || 'CCA';
+    let tabList = (activeTab==='CCA'?cca:(activeTab==='FNP'?fnp:pca));
+    if (search) tabList = tabList.filter(a => (a.libelle||'').toLowerCase().includes(search) || (a.note||'').toLowerCase().includes(search));
+    const cmp = (a,b) => {
+      const va = sortKey==='montant' ? (a.montantReporte||0) : (sortKey==='libelle' ? (a.libelle||'').toLowerCase() : (a[sortKey]||''));
+      const vb = sortKey==='montant' ? (b.montantReporte||0) : (sortKey==='libelle' ? (b.libelle||'').toLowerCase() : (b[sortKey]||''));
+      if (va < vb) return sortDir==='asc' ? -1 : 1;
+      if (va > vb) return sortDir==='asc' ? 1 : -1;
+      return 0;
+    };
+    tabList = tabList.slice().sort(cmp);
+    const statutBadge = (s) => {
+      const map = { brouillon:['#94a3b8','📝 Brouillon'], valide:['#22c55e','✅ Validé'], extourne:['#6366f1','🔄 Extourné'] };
+      const [color,label] = map[s] || ['#94a3b8', s];
+      return `<span style="background:${color};color:#fff;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700">${label}</span>`;
+    };
+    const sortArrow = (key) => sortKey===key ? (sortDir==='asc'?' ▲':' ▼') : '';
+    const th = (key, label, align) => `<th style="cursor:pointer;user-select:none${align?';text-align:'+align:''}" onclick="window.s30_2Sort('${key}')">${label}${sortArrow(key)}</th>`;
+    const empty = EMPTY_HINTS[activeTab];
+    section.innerHTML = `
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin:0">📅 Clôture d'exercice — CCA / FNP / PCA</h3>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">Principe d'indépendance des exercices · PCG art. 313-1 · CGI art. 38-2 bis</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <select id="s302-annee-select" onchange="window.s30_2ChangeYear(this.value)" style="padding:6px 10px;border-radius:8px">${anneesOpts}</select>
+          <button class="btn-secondary" onclick="window.s30_2ScanAuto()" title="Scanner charges/factures avec période qui déborde sur N+1">🤖 Scan auto</button>
+          <button class="btn-secondary" onclick="window.s30_2GenererOD(${anneeActive})" title="Générer PDF des écritures d'inventaire">📄 Générer OD</button>
+          <button class="btn-primary" onclick="window.s30_2NouvelAjustement()">➕ Nouvel ajustement</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0">
+        <div style="padding:14px;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(245,166,35,.04));border:${activeTab==='CCA'?'2px solid #f5a623':'1px solid rgba(245,166,35,.3)'};border-radius:10px;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" onclick="window.s30_2ChangeTab('CCA')">
+          <div style="font-size:.75rem;color:#b45309;font-weight:700">📘 CCA · Charges Constatées d'Avance</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#b45309">${fmtEur(totCCA)}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${cca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).length} actif(s) · Compte 486 (actif circ.)</div>
+        </div>
+        <div style="padding:14px;background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.04));border:${activeTab==='FNP'?'2px solid #ef4444':'1px solid rgba(239,68,68,.3)'};border-radius:10px;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" onclick="window.s30_2ChangeTab('FNP')">
+          <div style="font-size:.75rem;color:#b91c1c;font-weight:700">📕 FNP · Factures Non Parvenues</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#b91c1c">${fmtEur(totFNP)}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${fnp.filter(a=>a.statut!=='extourne'&&!a.estExtourne).length} actif(s) · Compte 408 (dette)</div>
+        </div>
+        <div style="padding:14px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:${activeTab==='PCA'?'2px solid #22c55e':'1px solid rgba(34,197,94,.3)'};border-radius:10px;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" onclick="window.s30_2ChangeTab('PCA')">
+          <div style="font-size:.75rem;color:#15803d;font-weight:700">📗 PCA · Produits Constatés d'Avance</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#15803d">${fmtEur(totPCA)}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${pca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).length} actif(s) · Compte 487 (passif circ.)</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+        <input type="search" id="s302-search" class="searchbar" placeholder="🔎 Rechercher libellé ou note..." value="${esc(search)}" style="flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--border);border-radius:8px" />
+        <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-muted);cursor:pointer">
+          <input type="checkbox" id="s302-show-ex" ${showExtournes?'checked':''} onchange="window.s30_2ToggleExtournes(this.checked)" />
+          Afficher extournes
+        </label>
+      </div>
+      <div style="max-height:440px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
+        ${tabList.length ? `
+          <table class="table" style="width:100%;font-size:.86rem;margin:0">
+            <thead style="position:sticky;top:0;background:var(--bg-secondary,#fafafa);z-index:1">
+              <tr>
+                ${th('libelle','Libellé')}
+                ${th('dateDebut','Début')}
+                ${th('dateFin','Fin')}
+                ${th('montant','Montant'+(activeTab==='FNP'?' provisionné':' reporté'),'right')}
+                ${th('statut','Statut')}
+                <th style="width:120px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tabList.map(a => `
+                <tr style="${(a.statut==='extourne'||a.estExtourne)?'opacity:.55':''}">
+                  <td><strong>${esc(a.libelle)}</strong>${a.estExtourne?'<span style="color:#6366f1;font-size:.72rem;margin-left:6px">🔄 extourne</span>':''}${a.note?`<div style="font-size:.75rem;color:var(--text-muted)">${esc(a.note)}</div>`:''}</td>
+                  <td style="font-size:.8rem;white-space:nowrap">${fmtDate(a.dateDebut)}</td>
+                  <td style="font-size:.8rem;white-space:nowrap">${fmtDate(a.dateFin)}</td>
+                  <td style="text-align:right;font-weight:700;white-space:nowrap">${fmtEur(a.montantReporte)}${a.montantTVAReporte?`<div style="font-size:.72rem;color:var(--text-muted);font-weight:400">+ ${fmtEur(a.montantTVAReporte)} TVA</div>`:''}</td>
+                  <td>${statutBadge(a.statut)}</td>
+                  <td>${buildInlineActionsDropdown('Actions', [
+                    ...(a.statut==='brouillon' ? [{icon:'✅', label:'Valider', action:"window.s30_2ValiderAjustement('"+a.id+"')"}] : []),
+                    ...(a.statut==='valide' && !a.extournePar && !a.estExtourne ? [{icon:'🔄', label:'Extourner en '+(a.exercice+1), action:"window.s30_2ExtournerAjustement('"+a.id+"')"}] : []),
+                    ...(a.sourceId ? [{icon:'🔗', label:'Voir pièce source', action:"window.s30_2VoirSource('"+a.id+"')"}] : []),
+                    {icon:'🗑️', label:'Supprimer', action:"window.s30_2SupprimerAjustement('"+a.id+"')", danger:true}
+                  ])}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : (search ? `
+          <div style="padding:40px;text-align:center;color:var(--text-muted)">
+            <div style="font-size:2rem;margin-bottom:8px">🔎</div>
+            <div>Aucun résultat pour "<strong>${esc(search)}</strong>"</div>
+            <button class="btn-secondary" style="margin-top:10px" onclick="window.s30_2ClearSearch()">Effacer la recherche</button>
+          </div>
+        ` : `
+          <div style="padding:40px;text-align:center;color:var(--text-muted)">
+            <div style="font-size:2.5rem;margin-bottom:10px">${empty.emoji}</div>
+            <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">${empty.titre} pour ${anneeActive}</div>
+            <div style="max-width:420px;margin:0 auto 6px;line-height:1.5">${empty.sub}</div>
+            <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:14px;font-style:italic">${empty.ex}</div>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <button class="btn-primary" onclick="window.s30_2NouvelAjustement('${activeTab}')">➕ Créer un ajustement ${activeTab}</button>
+              ${activeTab!=='FNP' ? `<button class="btn-secondary" onclick="window.s30_2ScanAuto()">🤖 Scan auto</button>` : ''}
+            </div>
+          </div>
+        `)}
+      </div>
+      <div style="margin-top:12px;padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
+        💡 <strong>Workflow :</strong> créer ajustement → valider → générer OD → extourner au 01/01/${anneeActive+1}. Les ajustements sont comptabilisés en écritures d'inventaire au 31/12 et extournés au 01/01 de l'exercice suivant (principe d'indépendance des exercices, PCG art. 313-1).
+      </div>
+    `;
+    const sInput = document.getElementById('s302-search');
+    if (sInput) {
+      sInput.oninput = () => { section.dataset.search = sInput.value; render(); setTimeout(()=>{ const s2=document.getElementById('s302-search'); if(s2){s2.focus();s2.setSelectionRange(s2.value.length,s2.value.length);} },10); };
+    }
+  }
+
+  window.s30_2Render = render;
+  window.s30_2ChangeYear = function(y) {
+    const section = document.getElementById('s30_2-cloture-section');
+    if (section) { section.dataset.activeYear = parseInt(y, 10); render(); }
+  };
+  window.s30_2ChangeTab = function(t) {
+    const section = document.getElementById('s30_2-cloture-section');
+    if (section) { section.dataset.activeTab = t; render(); }
+  };
+  window.s30_2ToggleExtournes = function(show) {
+    const section = document.getElementById('s30_2-cloture-section');
+    if (section) { section.dataset.showExtournes = show ? '1' : '0'; render(); }
+  };
+  window.s30_2ClearSearch = function() {
+    const section = document.getElementById('s30_2-cloture-section');
+    if (section) { section.dataset.search = ''; render(); }
+  };
+  window.s30_2Sort = function(key) {
+    const section = document.getElementById('s30_2-cloture-section');
+    if (!section) return;
+    if (section.dataset.sortKey === key) {
+      section.dataset.sortDir = section.dataset.sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      section.dataset.sortKey = key;
+      section.dataset.sortDir = key==='libelle'?'asc':'desc';
+    }
+    render();
+  };
+  window.s30_2VoirSource = function(ajId) {
+    const aj = load(LS.ajustements).find(a => a.id === ajId);
+    if (!aj || !aj.sourceId) return;
+    if (aj.sourceType === 'charge') {
+      toast('Charge source : ' + esc(aj.libelle), 'info');
+      // Ouvrir page charges si disponible
+      if (typeof window.afficherCharges === 'function') window.afficherCharges();
+    } else if (aj.sourceType === 'facture') {
+      const fac = load('factures_emises').find(f => f.id === aj.sourceId);
+      if (fac && typeof window.imprimerFacture === 'function') window.imprimerFacture(fac.id);
+    }
+  };
+
+  /* ---- Injection dans Paramètres > Comptabilité (après S30.1 Immos) ---- */
+  function injectClotureSection() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    if (!grid.querySelector('#s30_2-cloture-section')) {
+      const section = document.createElement('div');
+      section.id = 's30_2-cloture-section';
+      section.className = 'card params-card-wide';
+      section.dataset.s29Section = 'comptabilite';
+      // Insérer juste après Immos
+      const immos = grid.querySelector('#s30-immos-section');
+      if (immos && immos.nextSibling) grid.insertBefore(section, immos.nextSibling);
+      else if (immos) grid.appendChild(section);
+      else grid.insertBefore(section, grid.firstChild);
+    }
+    render();
+    // Re-synchro S29 section active
+    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
+    grid.querySelectorAll('[data-s29-section]').forEach(el => {
+      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
+    });
+  }
+  setTimeout(injectClotureSection, 2200);
+  setInterval(injectClotureSection, 6000);
+})();
+
+/* =====================================================================
+   Sprint 30.2.1 — Patch : champs periodeDebut/periodeFin
+   Objectif : permettre au scan auto S30.2 de détecter les CCA/PCA
+   automatiquement. Injection non-invasive dans modal-charge +
+   éditeur de période sur factures.
+   ===================================================================== */
+(function installS30_2_1(){
+  if (window.__s30_2_1Installed) return;
+  window.__s30_2_1Installed = true;
+
+  /* ---- Inject periode fields dans modal-charge ---- */
+  function injectChargeFields() {
+    const modal = document.getElementById('modal-charge');
+    if (!modal) return;
+    const grid = modal.querySelector('.form-grid');
+    if (!grid) return;
+    if (grid.querySelector('#charge-periode-debut')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'form-group full-width';
+    wrap.innerHTML = `
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="charge-has-periode" onchange="window.s30_2_1ToggleChargePeriode()" />
+        Période de prestation / consommation <span style="color:var(--text-muted);font-size:.78rem;font-weight:normal">(active l'aide automatique à la clôture d'exercice CCA)</span>
+      </label>
+      <div id="charge-periode-box" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+        <input type="date" id="charge-periode-debut" placeholder="Début" />
+        <input type="date" id="charge-periode-fin" placeholder="Fin" />
+      </div>`;
+    grid.appendChild(wrap);
+  }
+  window.s30_2_1ToggleChargePeriode = function() {
+    const chk = document.getElementById('charge-has-periode');
+    const box = document.getElementById('charge-periode-box');
+    if (box) box.style.display = chk && chk.checked ? 'grid' : 'none';
+  };
+
+  /* ---- Wrap ajouterCharge pour persister les champs ---- */
+  function wrapAjouterCharge() {
+    if (typeof window.ajouterCharge !== 'function' || window.ajouterCharge.__s30_2_1) return;
+    const orig = window.ajouterCharge;
+    const wrapped = function() {
+      const editId = document.getElementById('charge-edit-id')?.value || '';
+      const pd = document.getElementById('charge-periode-debut')?.value || '';
+      const pf = document.getElementById('charge-periode-fin')?.value || '';
+      const has = document.getElementById('charge-has-periode')?.checked;
+      // Validation : si activé, les 2 dates doivent être renseignées et pd <= pf
+      if (has && (!pd || !pf)) {
+        if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Période activée : renseigne début ET fin', 'warning');
+        return;
+      }
+      if (has && pd && pf && new Date(pd) > new Date(pf)) {
+        if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Date début > date fin', 'error');
+        return;
+      }
+      const result = orig.apply(this, arguments);
+      // Post-save : retrouver et patcher la charge
+      if (has && pd && pf) {
+        const charges = loadSafe('charges', []);
+        let target = null;
+        if (editId) target = charges.find(c => c.id === editId);
+        else target = charges[charges.length - 1];
+        if (target) {
+          target.periodeDebut = pd;
+          target.periodeFin = pf;
+          localStorage.setItem('charges', JSON.stringify(charges));
+        }
+      }
+      return result;
+    };
+    wrapped.__s30_2_1 = true;
+    window.ajouterCharge = wrapped;
+  }
+
+  /* ---- Wrap reset form + edit pour pré-remplir période ---- */
+  function wrapResetCharge() {
+    if (typeof window.resetFormulaireCharge !== 'function' || window.resetFormulaireCharge.__s30_2_1) return;
+    const orig = window.resetFormulaireCharge;
+    const wrapped = function() {
+      const result = orig.apply(this, arguments);
+      const chk = document.getElementById('charge-has-periode');
+      const pd = document.getElementById('charge-periode-debut');
+      const pf = document.getElementById('charge-periode-fin');
+      const box = document.getElementById('charge-periode-box');
+      if (chk) chk.checked = false;
+      if (pd) pd.value = '';
+      if (pf) pf.value = '';
+      if (box) box.style.display = 'none';
+      return result;
+    };
+    wrapped.__s30_2_1 = true;
+    window.resetFormulaireCharge = wrapped;
+  }
+
+  /* ---- Hook edit charge : remplit les champs ---- */
+  function wrapEditCharge() {
+    if (typeof window.editerCharge !== 'function' || window.editerCharge.__s30_2_1) return;
+    const orig = window.editerCharge;
+    const wrapped = function(chargeId) {
+      const result = orig.apply(this, arguments);
+      setTimeout(() => {
+        const charges = loadSafe('charges', []);
+        const c = charges.find(x => x.id === chargeId);
+        if (!c) return;
+        if (c.periodeDebut && c.periodeFin) {
+          const chk = document.getElementById('charge-has-periode');
+          const pd = document.getElementById('charge-periode-debut');
+          const pf = document.getElementById('charge-periode-fin');
+          const box = document.getElementById('charge-periode-box');
+          if (chk) chk.checked = true;
+          if (pd) pd.value = c.periodeDebut;
+          if (pf) pf.value = c.periodeFin;
+          if (box) box.style.display = 'grid';
+        }
+      }, 100);
+      return result;
+    };
+    wrapped.__s30_2_1 = true;
+    window.editerCharge = wrapped;
+  }
+
+  /* ---- Éditeur de période sur facture (accessible via action) ---- */
+  window.s30_2_1EditerPeriodeFacture = function(factureId) {
+    const factures = loadSafe('factures_emises', []);
+    const f = factures.find(x => x.id === factureId);
+    if (!f) { if (typeof window.afficherToast === 'function') window.afficherToast('Facture introuvable', 'error'); return; }
+    const pd = f.periodeDebut || '';
+    const pf = f.periodeFin || '';
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:520px">
+        <div class="s15-modal-info-header">
+          <h2>📅 Période de prestation</h2>
+          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
+        </div>
+        <div class="s15-modal-info-body">
+          <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
+            Facture <strong>${window.escapeHtml(f.numero)}</strong> — définir la période concernée par la prestation.
+            Utile pour le calcul automatique des PCA à la clôture d'exercice (abonnements, contrats multi-périodes).
+          </p>
+          <div class="form-row">
+            <div class="form-group"><label>Date début *</label><input type="date" id="s302_1-fac-pd" value="${pd}" /></div>
+            <div class="form-group"><label>Date fin *</label><input type="date" id="s302_1-fac-pf" value="${pf}" /></div>
+          </div>
+          <div style="padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted)">
+            💡 Si la période déborde sur l'exercice suivant, le <strong>Scan auto</strong> (Comptabilité → Clôture) proposera un PCA automatique.
+          </div>
+        </div>
+        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:14px">
+          ${(pd||pf)?`<button class="btn-secondary" style="color:#ef4444" onclick="window.s30_2_1SupprimerPeriodeFacture('${factureId}')">🗑️ Retirer période</button>`:''}
+          <button class="btn-secondary" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
+          <button class="btn-primary" onclick="window.s30_2_1SauvegarderPeriodeFacture('${factureId}')">💾 Enregistrer</button>
+        </div>
+      </div>`;
+    let modal = document.getElementById('s15-modal-info');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 's15-modal-info';
+      modal.className = 's15-modal-info-overlay';
+      modal.innerHTML = '<div class="s15-modal-info-box"><div class="s15-modal-info-body"></div></div>';
+      document.body.appendChild(modal);
+    }
+    const body = modal.querySelector('.s15-modal-info-body');
+    if (body) body.innerHTML = html;
+    modal.classList.add('open');
+  };
+  window.s30_2_1SauvegarderPeriodeFacture = function(factureId) {
+    const pd = document.getElementById('s302_1-fac-pd')?.value;
+    const pf = document.getElementById('s302_1-fac-pf')?.value;
+    if (!pd || !pf) { if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Début et fin requis', 'warning'); return; }
+    if (new Date(pd) > new Date(pf)) { if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Date début > date fin', 'error'); return; }
+    const factures = loadSafe('factures_emises', []);
+    const idx = factures.findIndex(x => x.id === factureId);
+    if (idx < 0) return;
+    factures[idx].periodeDebut = pd;
+    factures[idx].periodeFin = pf;
+    localStorage.setItem('factures_emises', JSON.stringify(factures));
+    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Période facture', factures[idx].numero + ' · ' + pd + ' → ' + pf);
+    if (typeof window.afficherToast === 'function') window.afficherToast('✅ Période enregistrée', 'success');
+    document.getElementById('s15-modal-info')?.classList.remove('open');
+    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  };
+  window.s30_2_1SupprimerPeriodeFacture = function(factureId) {
+    const factures = loadSafe('factures_emises', []);
+    const idx = factures.findIndex(x => x.id === factureId);
+    if (idx < 0) return;
+    delete factures[idx].periodeDebut;
+    delete factures[idx].periodeFin;
+    localStorage.setItem('factures_emises', JSON.stringify(factures));
+    if (typeof window.afficherToast === 'function') window.afficherToast('🗑️ Période retirée', 'info');
+    document.getElementById('s15-modal-info')?.classList.remove('open');
+    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  };
+
+  function tick() { injectChargeFields(); wrapAjouterCharge(); wrapResetCharge(); wrapEditCharge(); }
+  setTimeout(tick, 1500);
+  setInterval(tick, 4000);
+})();
+
+/* =====================================================================
+   Extension reset-compteur : purger ajustements clôture
+   ===================================================================== */
+(function installResetExtCloture(){
+  if (window.__resetClotureExt) return;
+  window.__resetClotureExt = true;
+
+  function injectCheckbox() {
+    const modal = document.getElementById('modal-reset-compteur');
+    if (!modal) return;
+    if (modal.querySelector('#reset-include-cloture')) return;
+    const body = modal.querySelector('.modal-body');
+    if (!body) return;
+    const acCheck = body.querySelector('#reset-include-acomptes');
+    const wrap = document.createElement('label');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
+    wrap.innerHTML = '<input type="checkbox" id="reset-include-cloture" /> Purger aussi les ajustements de clôture (CCA / FNP / PCA)';
+    if (acCheck && acCheck.parentElement && acCheck.parentElement.parentElement) {
+      acCheck.parentElement.parentElement.appendChild(wrap);
+    } else {
+      body.appendChild(wrap);
+    }
+  }
+
+  function wrapExec() {
+    if (typeof window.executerResetCompteur !== 'function' || window.executerResetCompteur.__clotureExt) return;
+    const orig = window.executerResetCompteur;
+    const wrapped = function() {
+      const incCloture = document.getElementById('reset-include-cloture')?.checked;
+      const result = orig.apply(this, arguments);
+      if (incCloture) {
+        try {
+          const n = (loadSafe('cloture_ajustements', [])).length;
+          localStorage.setItem('cloture_ajustements', '[]');
+          if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Reset ajustements clôture', n + ' ajustement(s) purgé(s)');
+          if (typeof window.afficherToast === 'function') window.afficherToast('🗑️ ' + n + ' ajustement(s) de clôture purgé(s)', 'info');
+          if (typeof window.s30_2Render === 'function') window.s30_2Render();
+          else {
+            const section = document.getElementById('s30_2-cloture-section');
+            if (section) section.innerHTML = '';
+          }
+        } catch(e) {}
+      }
+      return result;
+    };
+    wrapped.__clotureExt = true;
+    window.executerResetCompteur = wrapped;
+  }
+
+  function tick() { injectCheckbox(); wrapExec(); }
+  setTimeout(tick, 1800);
+  setInterval(tick, 5000);
+})();
+
+/* =====================================================================
+   Sprint 30.3 — Facture électronique Factur-X (XML BASIC)
+   Format : UN/CEFACT Cross Industry Invoice D16B — profil BASIC EN 16931
+   Conformité : ordonnance 2021-1190, arrêté 7 oct. 2022. Obligation
+   réception : 09/2026 ; émission : 09/2026 GE, 09/2027 PME/TPE.
+   En localStorage pur, génération du XML BASIC téléchargeable. L'intégration
+   PDF/A-3 (embedding XML dans PDF) nécessite un outil tiers de signature
+   (ex : Chorus Pro, dématérialiseurs agréés).
+   ===================================================================== */
+(function installS30_3(){
+  if (window.__s30_3Installed) return;
+  window.__s30_3Installed = true;
+
+  const esc = window.escapeHtml;
+  const round2 = (n) => (Math.round((Number(n)||0)*100)/100).toFixed(2);
+  const toIsoDateCompact = (s) => { if (!s) return ''; const d = new Date(s); if (isNaN(d)) return ''; const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return y+m+dd; };
+  const toast = (m,t) => (typeof window.afficherToast==='function') && window.afficherToast(m,t||'info');
+  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
+  const getParams = () => loadSafe('params_entreprise', {});
+  const saveParams = (p) => localStorage.setItem('params_entreprise', JSON.stringify(p));
+
+  /* ---- Validation params avant export ---- */
+  function validerParamsPourFacturX() {
+    const p = getParams();
+    const missing = [];
+    if (!p.nom) missing.push('Nom');
+    if (!p.siret || !/^\d{14}$/.test(String(p.siret).replace(/\s/g,''))) missing.push('SIRET (14 chiffres)');
+    if (!p.adresse) missing.push('Adresse');
+    if (!p.codePostal) missing.push('Code postal');
+    if (!p.ville) missing.push('Ville');
+    if (!p.pays) missing.push('Pays (FR par défaut)');
+    return missing;
+  }
+
+  /* ---- Génération XML Factur-X BASIC ---- */
+  function genererXMLFacturX(facture, client) {
+    const p = getParams();
+    const siret = String(p.siret||'').replace(/\s/g,'');
+    const tvaIntra = p.tvaIntracom || '';
+    const pays = p.pays || 'FR';
+    const codePostal = p.codePostal || '';
+    const ville = p.ville || '';
+    const adresseLigne = p.adresseLigne || (p.adresse||'').split(/\n|,/)[0] || '';
+    // Buyer info
+    const cli = client || {};
+    const cliNom = cli.nom || facture.client || 'Client';
+    const cliAdresse = cli.adresse || '';
+    const cliCP = cli.codePostal || '';
+    const cliVille = cli.ville || '';
+    const cliPays = cli.pays || 'FR';
+    const cliSiret = cli.siret || '';
+
+    // BUG-011 fix : CategoryCode EN 16931 / UNTDID 5305 — support S, Z, E, AE, K, G, O avec ExemptionReason.
+    // Règles de déduction automatique (si facture.tvaExoneration non défini) :
+    //   - franchise_base (art. 293 B CGI)                     → E + motif "TVA non applicable, art. 293 B du CGI"
+    //   - client pays != FR & dans UE & TVA intracom acheteur → K (livraison intracommunautaire, art. 262 ter I CGI)
+    //   - client pays != FR & hors UE                         → G (export, art. 262 I CGI)
+    //   - taux > 0, régime normal                             → S
+    //   - taux = 0, régime normal, pas d'autre catégorie      → Z
+    const tvaCfg = (typeof getTVAConfig === 'function') ? getTVAConfig() : { isVatEnabled: true, regime: 'reel_normal' };
+    const UE_COUNTRY = new Set(['FR','DE','BE','NL','LU','IT','ES','PT','AT','IE','DK','SE','FI','EE','LV','LT','PL','CZ','SK','HU','SI','HR','BG','RO','GR','CY','MT']);
+    function determinerCategorieTVA(taux) {
+      if (facture.tvaExoneration && typeof facture.tvaExoneration === 'object') {
+        return {
+          code: facture.tvaExoneration.code || 'E',
+          reason: facture.tvaExoneration.reason || '',
+          reasonCode: facture.tvaExoneration.reasonCode || ''
+        };
+      }
+      if (!tvaCfg.isVatEnabled || tvaCfg.regime === 'franchise_base') {
+        return { code:'E', reason:'TVA non applicable, art. 293 B du CGI', reasonCode:'VATEX-FR-FRANCHISE' };
+      }
+      const cp = String(cliPays||'FR').toUpperCase();
+      if (cp && cp !== 'FR') {
+        if (UE_COUNTRY.has(cp) && cli.tvaIntracom) {
+          return { code:'K', reason:'Exonération TVA — livraison intracommunautaire (art. 262 ter I du CGI)', reasonCode:'VATEX-EU-IC' };
+        }
+        if (!UE_COUNTRY.has(cp)) {
+          return { code:'G', reason:'Exonération TVA — exportation hors UE (art. 262 I du CGI)', reasonCode:'VATEX-EU-G' };
+        }
+      }
+      if (Number(taux) > 0) return { code:'S', reason:'', reasonCode:'' };
+      return { code:'Z', reason:'', reasonCode:'' };
+    }
+
+    const lignes = Array.isArray(facture.lignes) && facture.lignes.length ? facture.lignes : [
+      { description: facture.description || facture.libelle || 'Prestation de transport', quantite: 1, prixHT: facture.montantHT || 0, tauxTVA: facture.tauxTVA || 20 }
+    ];
+    const totalHT = round2(facture.montantHT || lignes.reduce((s,l) => s + (Number(l.quantite||1)*Number(l.prixHT||0)), 0));
+    const totalTVA = round2(facture.montantTVA || (Number(totalHT) * Number(facture.tauxTVA||20) / 100));
+    const totalTTC = round2(facture.montantTTC || (Number(totalHT) + Number(totalTVA)));
+    const tauxTVA = Number(facture.tauxTVA || 20);
+    const netAPayer = round2(facture.netAPayerTTC || totalTTC);
+    const dateIssue = toIsoDateCompact(facture.dateFacture || new Date().toISOString());
+    const echeance = facture.dateEcheance || '';
+
+    // BUG-004 fix : agréger par taux pour émettre autant de <ram:ApplicableTradeTax> que de taux distincts (EN 16931 § 7.4)
+    const groupesTVA = {};
+    lignes.forEach((l) => {
+      const qte = Number(l.quantite||1);
+      const prix = Number(l.prixHT||0);
+      const lineTotal = round2(qte * prix);
+      const taux = Number(l.tauxTVA != null ? l.tauxTVA : tauxTVA);
+      const key = taux.toFixed(2);
+      if (!groupesTVA[key]) groupesTVA[key] = { taux: taux, basis: 0 };
+      groupesTVA[key].basis = round2(groupesTVA[key].basis + lineTotal);
+    });
+    const tauxList = Object.keys(groupesTVA).map(k => groupesTVA[k]);
+    // Calcul des totaux recalculés à partir des lignes (source de vérité si multi-taux)
+    // BUG-011 : si la catégorie TVA ≠ S (franchise, export, intracom), la TVA effective est 0 même si taux>0
+    const totalHTLignes = round2(tauxList.reduce((s, g) => s + g.basis, 0));
+    const totalTVALignes = round2(tauxList.reduce((s, g) => {
+      const cat = determinerCategorieTVA(g.taux);
+      return s + (cat.code === 'S' ? (g.basis * g.taux / 100) : 0);
+    }, 0));
+    const totalHTFinal = Math.abs(totalHTLignes - totalHT) < 0.02 ? totalHT : totalHTLignes;
+    const totalTVAFinal = Math.abs(totalTVALignes - totalTVA) < 0.02 ? totalTVA : totalTVALignes;
+    const totalTTCFinal = round2(totalHTFinal + totalTVAFinal);
+    const netAPayerFinal = round2(facture.netAPayerTTC || totalTTCFinal);
+
+    // Ordre des éléments imposé par le schéma CII D16B : CalculatedAmount, TypeCode, ExemptionReason,
+    // BasisAmount, CategoryCode, ExemptionReasonCode, RateApplicablePercent.
+    const applicableTradeTaxXml = tauxList.map(g => {
+      const cat = determinerCategorieTVA(g.taux);
+      const effectiveRate = (cat.code === 'S') ? g.taux : 0;
+      const montant = round2(g.basis * effectiveRate / 100);
+      const reasonXml = cat.reason ? `\n        <ram:ExemptionReason>${esc(cat.reason)}</ram:ExemptionReason>` : '';
+      const reasonCodeXml = cat.reasonCode ? `\n        <ram:ExemptionReasonCode>${esc(cat.reasonCode)}</ram:ExemptionReasonCode>` : '';
+      return `
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${montant}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>${reasonXml}
+        <ram:BasisAmount>${round2(g.basis)}</ram:BasisAmount>
+        <ram:CategoryCode>${cat.code}</ram:CategoryCode>${reasonCodeXml}
+        <ram:RateApplicablePercent>${effectiveRate}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`;
+    }).join('');
+
+    const linesXml = lignes.map((l, i) => {
+      const qte = Number(l.quantite||1);
+      const prix = Number(l.prixHT||0);
+      const lineTotal = round2(qte * prix);
+      const taux = Number(l.tauxTVA != null ? l.tauxTVA : tauxTVA);
+      return `
+        <ram:IncludedSupplyChainTradeLineItem>
+          <ram:AssociatedDocumentLineDocument><ram:LineID>${i+1}</ram:LineID></ram:AssociatedDocumentLineDocument>
+          <ram:SpecifiedTradeProduct>
+            <ram:Name>${esc(l.description||'Prestation')}</ram:Name>
+          </ram:SpecifiedTradeProduct>
+          <ram:SpecifiedLineTradeAgreement>
+            <ram:NetPriceProductTradePrice><ram:ChargeAmount>${round2(prix)}</ram:ChargeAmount></ram:NetPriceProductTradePrice>
+          </ram:SpecifiedLineTradeAgreement>
+          <ram:SpecifiedLineTradeDelivery>
+            <ram:BilledQuantity unitCode="C62">${qte}</ram:BilledQuantity>
+          </ram:SpecifiedLineTradeDelivery>
+          <ram:SpecifiedLineTradeSettlement>
+            <ram:ApplicableTradeTax>
+              <ram:TypeCode>VAT</ram:TypeCode>
+              <ram:CategoryCode>${determinerCategorieTVA(taux).code}</ram:CategoryCode>
+              <ram:RateApplicablePercent>${determinerCategorieTVA(taux).code === 'S' ? taux : 0}</ram:RateApplicablePercent>
+            </ram:ApplicableTradeTax>
+            <ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${lineTotal}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation>
+          </ram:SpecifiedLineTradeSettlement>
+        </ram:IncludedSupplyChainTradeLineItem>`;
+    }).join('');
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice
+  xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+  xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+  xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+    <ram:ID>${esc(facture.numero||'')}</ram:ID>
+    <ram:TypeCode>380</ram:TypeCode>
+    <ram:IssueDateTime><udt:DateTimeString format="102">${dateIssue}</udt:DateTimeString></ram:IssueDateTime>
+    ${facture.note ? '<ram:IncludedNote><ram:Content>'+esc(facture.note)+'</ram:Content></ram:IncludedNote>' : ''}
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+    ${linesXml}
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:Name>${esc(p.nom||'')}</ram:Name>
+        <ram:SpecifiedLegalOrganization>
+          <ram:ID schemeID="0002">${esc(siret)}</ram:ID>
+          ${p.formeJuridique ? '<ram:TradingBusinessName>'+esc(p.formeJuridique)+'</ram:TradingBusinessName>' : ''}
+        </ram:SpecifiedLegalOrganization>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>${esc(codePostal)}</ram:PostcodeCode>
+          <ram:LineOne>${esc(adresseLigne)}</ram:LineOne>
+          <ram:CityName>${esc(ville)}</ram:CityName>
+          <ram:CountryID>${esc(pays)}</ram:CountryID>
+        </ram:PostalTradeAddress>
+        ${tvaIntra ? '<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">'+esc(tvaIntra)+'</ram:ID></ram:SpecifiedTaxRegistration>' : ''}
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>${esc(cliNom)}</ram:Name>
+        ${cliSiret ? '<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">'+esc(cliSiret.replace(/\s/g,''))+'</ram:ID></ram:SpecifiedLegalOrganization>' : ''}
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>${esc(cliCP)}</ram:PostcodeCode>
+          <ram:LineOne>${esc(cliAdresse)}</ram:LineOne>
+          <ram:CityName>${esc(cliVille)}</ram:CityName>
+          <ram:CountryID>${esc(cliPays)}</ram:CountryID>
+        </ram:PostalTradeAddress>
+        ${cli.tvaIntracom ? '<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">'+esc(cli.tvaIntracom)+'</ram:ID></ram:SpecifiedTaxRegistration>' : ''}
+      </ram:BuyerTradeParty>
+      ${facture.referenceAcheteur ? '<ram:BuyerOrderReferencedDocument><ram:IssuerAssignedID>'+esc(facture.referenceAcheteur)+'</ram:IssuerAssignedID></ram:BuyerOrderReferencedDocument>' : ''}
+    </ram:ApplicableHeaderTradeAgreement>
+    <ram:ApplicableHeaderTradeDelivery>
+      ${facture.dateLivraison ? '<ram:ActualDeliverySupplyChainEvent><ram:OccurrenceDateTime><udt:DateTimeString format="102">'+toIsoDateCompact(facture.dateLivraison)+'</udt:DateTimeString></ram:OccurrenceDateTime></ram:ActualDeliverySupplyChainEvent>' : ''}
+    </ram:ApplicableHeaderTradeDelivery>
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      ${p.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans>
+        <ram:TypeCode>30</ram:TypeCode>
+        <ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${esc(p.iban.replace(/\s/g,''))}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount>
+        ${p.bic ? '<ram:PayeeSpecifiedCreditorFinancialInstitution><ram:BICID>'+esc(p.bic)+'</ram:BICID></ram:PayeeSpecifiedCreditorFinancialInstitution>' : ''}
+      </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
+      ${applicableTradeTaxXml}
+      ${echeance ? '<ram:SpecifiedTradePaymentTerms><ram:DueDateDateTime><udt:DateTimeString format="102">'+toIsoDateCompact(echeance)+'</udt:DateTimeString></ram:DueDateDateTime></ram:SpecifiedTradePaymentTerms>' : ''}
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>${totalHTFinal}</ram:LineTotalAmount>
+        <ram:TaxBasisTotalAmount>${totalHTFinal}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">${totalTVAFinal}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${totalTTCFinal}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>${netAPayerFinal}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>`;
+    return xml;
+  }
+
+  /* ---- Action : télécharger XML Factur-X ---- */
+  window.s30_3TelechargerXML = function(factureId) {
+    const missing = validerParamsPourFacturX();
+    if (missing.length) {
+      toast('⚠️ Paramètres entreprise incomplets pour Factur-X : ' + missing.join(', '), 'error');
+      if (typeof window.naviguerVers === 'function') window.naviguerVers('parametres');
+      return;
+    }
+    const factures = loadSafe('factures_emises', []);
+    const fac = factures.find(f => f.id === factureId);
+    if (!fac) { toast('Facture introuvable', 'error'); return; }
+    const clients = loadSafe('clients', []);
+    const client = clients.find(c => (c.nom||'').toLowerCase() === (fac.client||'').toLowerCase()) || null;
+    const xml = genererXMLFacturX(fac, client);
+    const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'factur-x_' + (fac.numero||'facture').replace(/[^a-zA-Z0-9-]/g,'_') + '.xml';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    audit('Export Factur-X XML', fac.numero);
+    toast('📥 XML Factur-X téléchargé — à intégrer dans un PDF/A-3 via Chorus Pro ou un dématérialiseur agréé', 'success');
+  };
+
+  /* ---- Action : valider qu'une facture est Factur-X ready ---- */
+  window.s30_3ValiderFacture = function(factureId) {
+    const missing = validerParamsPourFacturX();
+    const factures = loadSafe('factures_emises', []);
+    const fac = factures.find(f => f.id === factureId);
+    if (!fac) { toast('Facture introuvable', 'error'); return; }
+    const erreurs = [...missing.map(m => 'Paramètre entreprise manquant : ' + m)];
+    if (!fac.numero) erreurs.push('Numéro facture manquant');
+    if (!fac.dateFacture) erreurs.push('Date facture manquante');
+    if (!fac.client) erreurs.push('Client manquant');
+    if (!fac.montantHT || !fac.montantTTC) erreurs.push('Montants HT/TTC manquants');
+    if (erreurs.length) {
+      const html = `
+        <div class="s15-modal-info-box narrow" style="max-width:560px">
+          <div class="s15-modal-info-header"><h2>❌ Facture non conforme Factur-X</h2><button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button></div>
+          <div class="s15-modal-info-body">
+            <p style="font-size:.9rem;color:var(--text-muted)">Cette facture présente ${erreurs.length} erreur(s) bloquante(s) pour l'émission Factur-X :</p>
+            <ul style="margin-left:20px;line-height:1.8">${erreurs.map(e => '<li style="color:#ef4444">'+esc(e)+'</li>').join('')}</ul>
+            <div style="padding:12px;background:rgba(245,166,35,.1);border-left:3px solid #f5a623;border-radius:6px;margin-top:10px;font-size:.85rem">
+              📚 <strong>Référence :</strong> Ordonnance n°2021-1190 du 15 sept. 2021, arrêté 7 oct. 2022. Obligation de réception et émission progressive de 09/2026 (grandes entreprises) à 09/2027 (PME/TPE).
+            </div>
+          </div>
+        </div>`;
+      ouvrirModalHTML(html);
+      return;
+    }
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:560px">
+        <div class="s15-modal-info-header"><h2>✅ Facture conforme Factur-X BASIC</h2><button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button></div>
+        <div class="s15-modal-info-body">
+          <div style="padding:14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;margin-bottom:12px">
+            <div style="font-weight:700;color:#15803d">Tous les champs obligatoires sont présents</div>
+            <div style="font-size:.85rem;color:var(--text-muted);margin-top:4px">Profil : BASIC · Norme : EN 16931 · Format : UN/CEFACT Cross Industry Invoice D16B</div>
+          </div>
+          <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="window.s30_3TelechargerXML('${factureId}');document.getElementById('s15-modal-info').classList.remove('open')">📥 Télécharger le XML Factur-X</button>
+          <div style="padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.82rem;color:var(--text-muted);line-height:1.5">
+            ℹ️ Le XML seul n'est pas une Factur-X complète. Pour émission, il faut l'<strong>intégrer dans un PDF/A-3</strong> via un outil tiers agréé (Chorus Pro, Sage, Cegid, ou plateforme de dématérialisation partenaire). MCA Logistics génère le XML conforme ; l'embedding PDF est une opération serveur.
+          </div>
+        </div>
+      </div>`;
+    ouvrirModalHTML(html);
+  };
+
+  function ouvrirModalHTML(html) {
+    let modal = document.getElementById('s15-modal-info');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 's15-modal-info';
+      modal.className = 's15-modal-info-overlay';
+      modal.innerHTML = '<div class="s15-modal-info-box"><div class="s15-modal-info-body"></div></div>';
+      document.body.appendChild(modal);
+      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+    }
+    const body = modal.querySelector('.s15-modal-info-body');
+    if (body) body.innerHTML = html;
+    modal.classList.add('open');
+  }
+
+  /* ---- Injection champs entreprise manquants pour Factur-X ---- */
+  window.s30_3InjectParamsEntreprise = function() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    // Chercher le bloc params entreprise existant
+    const blocEnt = page.querySelector('[data-s29-section="entreprise"]') || page.querySelector('.params-card-wide');
+    if (!blocEnt) return;
+    if (blocEnt.querySelector('#s303-params-ext')) return;
+    const p = getParams();
+    const box = document.createElement('div');
+    box.id = 's303-params-ext';
+    box.dataset.s29Section = 'entreprise';
+    box.style.cssText = 'margin-top:18px;padding:16px;border:1px solid var(--border);border-radius:10px;background:rgba(245,166,35,.04)';
+    box.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-weight:700">📋 Données Factur-X / e-facturation</div>
+        <span style="font-size:.72rem;background:#f5a623;color:#fff;padding:2px 8px;border-radius:5px;font-weight:700">Obligatoire 09/2026</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+        <div class="form-group"><label>Adresse (ligne 1)</label><input type="text" id="s303-adresseLigne" value="${esc(p.adresseLigne||'')}" placeholder="Ex : 12 rue de la Paix" /></div>
+        <div class="form-group"><label>Code postal</label><input type="text" id="s303-codePostal" value="${esc(p.codePostal||'')}" placeholder="75001" /></div>
+        <div class="form-group"><label>Ville</label><input type="text" id="s303-ville" value="${esc(p.ville||'')}" placeholder="Paris" /></div>
+        <div class="form-group"><label>Pays (ISO 2)</label><input type="text" id="s303-pays" value="${esc(p.pays||'FR')}" maxlength="2" placeholder="FR" /></div>
+        <div class="form-group"><label>Forme juridique</label><input type="text" id="s303-formeJuridique" value="${esc(p.formeJuridique||'')}" placeholder="SARL / SAS / EI..." /></div>
+        <div class="form-group"><label>Capital social (€)</label><input type="number" step="0.01" id="s303-capital" value="${esc(p.capital||'')}" placeholder="0.00" /></div>
+        <div class="form-group"><label>Code APE / NAF</label><input type="text" id="s303-ape" value="${esc(p.codeAPE||'')}" placeholder="4941A" /></div>
+        <div class="form-group"><label>RCS (ville + numéro)</label><input type="text" id="s303-rcs" value="${esc(p.rcs||'')}" placeholder="Paris B 123 456 789" /></div>
+        <div class="form-group"><label>IBAN</label><input type="text" id="s303-iban" value="${esc(p.iban||'')}" placeholder="FR76 ..." /></div>
+        <div class="form-group"><label>BIC</label><input type="text" id="s303-bic" value="${esc(p.bic||'')}" placeholder="BNPAFRPP" /></div>
+      </div>
+      <button class="btn-primary" style="margin-top:10px" onclick="window.s30_3SauvegarderParams()">💾 Enregistrer données Factur-X</button>
+      <div style="margin-top:10px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
+        Ces données sont utilisées pour : mentions obligatoires factures (CGI art. 242 nonies), export Factur-X BASIC, génération OD de clôture, export Pennylane.
+      </div>`;
+    const grid = page.querySelector('.params-grid');
+    const firstEnt = grid ? grid.querySelector('[data-s29-section="entreprise"]') : null;
+    if (firstEnt) firstEnt.appendChild(box);
+    else if (grid) grid.appendChild(box);
+  };
+  window.s30_3SauvegarderParams = function() {
+    const p = getParams();
+    ['adresseLigne','codePostal','ville','pays','formeJuridique','capital','codeAPE','rcs','iban','bic'].forEach(k => {
+      const el = document.getElementById('s303-' + k);
+      if (el) p[k] = el.value.trim();
+    });
+    saveParams(p);
+    audit('MAJ params Factur-X', Object.keys(p).filter(k => p[k]).length + ' champs');
+    toast('✅ Paramètres Factur-X enregistrés', 'success');
+  };
+
+  /* ---- Injection bouton sur chaque facture de la liste ---- */
+  function patchFactureActions() {
+    // Approche non-invasive : exposer une fonction globale utilisable
+    // depuis les menus dropdown existants via events custom.
+  }
+
+  setTimeout(() => window.s30_3InjectParamsEntreprise(), 2500);
+  setInterval(() => window.s30_3InjectParamsEntreprise(), 6000);
+})();
+
+/* =====================================================================
+   Sprint 31 — Export Pennylane-ready
+   Génère un ZIP contenant les CSV compatibles import Pennylane :
+   - factures_ventes.csv (journal ventes)
+   - factures_achats.csv (journal achats depuis charges)
+   - journal_ecritures.csv (OD, paiements, clôture)
+   - plan_comptable_utilise.csv
+   - mouvements_bancaires.csv
+   Format : UTF-8 BOM, séparateur ; (standard FR Excel)
+   ===================================================================== */
+(function installS31(){
+  if (window.__s31Installed) return;
+  window.__s31Installed = true;
+
+  const esc = (s) => String(s==null?'':s);
+  const csvEsc = (v) => {
+    if (typeof window.csvCelluleSecurisee === 'function') return window.csvCelluleSecurisee(v, ';');
+    const raw = String(v==null?'':v);
+    const neutr = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
+    if (neutr.includes(';') || neutr.includes('"') || neutr.includes('\n') || neutr.includes('\r')) return '"' + neutr.replace(/"/g,'""') + '"';
+    return neutr;
+  };
+  const round2 = (n) => (Math.round((Number(n)||0)*100)/100).toFixed(2).replace('.',',');
+  const fmtDateISO = (d) => { if (!d) return ''; const dt = new Date(d); if (isNaN(dt)) return String(d); return dt.toLocalISODate(); };
+  const load = (k) => { try { return loadSafe(k, []); } catch { return []; } };
+  const toast = (m,t) => (typeof window.afficherToast==='function') && window.afficherToast(m,t||'info');
+  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
+  const BOM = '\uFEFF';
+
+  /* ---- Mapping comptes Pennylane ---- */
+  function mapCompteClient(cliNom) { return '411000'; /* Clients - collectif */ }
+  function mapCompteFournisseur() { return '401000'; }
+  function mapCompteProduitVente(facture) {
+    // Transport : 706 (prestations de services) — ou 707 (ventes de marchandises) si négoce
+    return '706000';
+  }
+  function mapCompteTVAcollectee(taux) {
+    if (Number(taux) === 20) return '445710';
+    if (Number(taux) === 10) return '445711';
+    if (Number(taux) === 5.5) return '445712';
+    return '445700';
+  }
+  function mapCompteTVAdeductible(taux) {
+    if (Number(taux) === 20) return '445660';
+    if (Number(taux) === 10) return '445661';
+    if (Number(taux) === 5.5) return '445662';
+    return '445660';
+  }
+  function mapCompteCharge(cat) {
+    const m = {
+      carburant:'606100', peage:'624100', entretien:'615500', assurance:'616000',
+      salaires:'641000', lld_credit:'613000', tva:'445510', autre:'628000'
+    };
+    return m[cat] || '628000';
+  }
+  function mapBanque() { return '512000'; }
+
+  /* ---- Export factures ventes (journal VTE) ---- */
+  function buildCSVVentes(du, au) {
+    const factures = load('factures_emises').filter(f => {
+      if (f.statut === 'annulée') return false;
+      const d = f.dateFacture || '';
+      return (!du || d >= du) && (!au || d <= au);
+    });
+    const header = ['JournalCode','Date','Numero','Libelle','Client','CompteDebit','CompteCredit','Debit','Credit','CodeTVA','MontantTVA','Reference'].join(';');
+    const lignes = [header];
+    factures.forEach(f => {
+      const d = fmtDateISO(f.dateFacture);
+      const client = esc(f.client||'');
+      const ht = Number(f.montantHT||0);
+      const tva = Number(f.montantTVA||0);
+      const ttc = Number(f.montantTTC||0);
+      const taux = Number(f.tauxTVA||20);
+      const compteClient = mapCompteClient(f.client);
+      const compteProduit = mapCompteProduitVente(f);
+      const compteTVA = mapCompteTVAcollectee(taux);
+      // 1 facture = 3 lignes (client débité TTC, produit crédité HT, TVA créditée)
+      lignes.push(['VTE', d, csvEsc(f.numero), csvEsc('Facture '+(f.numero||'')), csvEsc(client), compteClient, '', round2(ttc), '', '', '', csvEsc(f.numero||'')].join(';'));
+      lignes.push(['VTE', d, csvEsc(f.numero), csvEsc('Prestation '+(f.numero||'')), csvEsc(client), '', compteProduit, '', round2(ht), 'N'+taux, '', csvEsc(f.numero||'')].join(';'));
+      if (tva > 0) lignes.push(['VTE', d, csvEsc(f.numero), csvEsc('TVA '+taux+'% '+(f.numero||'')), csvEsc(client), '', compteTVA, '', round2(tva), 'N'+taux, round2(tva), csvEsc(f.numero||'')].join(';'));
+    });
+    return BOM + lignes.join('\r\n');
+  }
+
+  /* ---- Export factures achats (journal ACH depuis charges) ---- */
+  function buildCSVAchats(du, au) {
+    const charges = load('charges').filter(c => {
+      if (c.categorie === 'tva') return false;
+      const d = c.date || '';
+      return (!du || d >= du) && (!au || d <= au);
+    });
+    const header = ['JournalCode','Date','Numero','Libelle','Fournisseur','CompteDebit','CompteCredit','Debit','Credit','CodeTVA','MontantTVA'].join(';');
+    const lignes = [header];
+    charges.forEach(c => {
+      const d = fmtDateISO(c.date);
+      const num = 'CH-' + (c.id||'').slice(-6);
+      const ht = Number(c.montantHT||c.montant||0);
+      const tva = Number(c.montant||0) - ht;
+      const ttc = Number(c.montant||0);
+      const taux = Number(c.tauxTVA||20);
+      const compteFrs = mapCompteFournisseur();
+      const compteCharge = mapCompteCharge(c.categorie);
+      const compteTVA = mapCompteTVAdeductible(taux);
+      const lib = c.description || c.categorie || 'Charge';
+      lignes.push(['ACH', d, num, csvEsc(lib), csvEsc(c.fournisseur||''), compteCharge, '', round2(ht), '', 'N'+taux, '', ''].join(';'));
+      if (tva > 0.01) lignes.push(['ACH', d, num, csvEsc('TVA déd. '+lib), csvEsc(c.fournisseur||''), compteTVA, '', round2(tva), '', 'N'+taux, round2(tva), ''].join(';'));
+      lignes.push(['ACH', d, num, csvEsc(lib), csvEsc(c.fournisseur||''), '', compteFrs, '', round2(ttc), '', '', ''].join(';'));
+    });
+    return BOM + lignes.join('\r\n');
+  }
+
+  /* ---- Export encaissements / décaissements ---- */
+  function buildCSVBanque(du, au) {
+    const paiements = load('paiements').filter(p => {
+      const d = p.date || '';
+      return (!du || d >= du) && (!au || d <= au);
+    });
+    const header = ['JournalCode','Date','Libelle','CompteDebit','CompteCredit','Debit','Credit','Reference'].join(';');
+    const lignes = [header];
+    paiements.forEach(p => {
+      const d = fmtDateISO(p.date);
+      const lib = 'Règlement ' + (p.cible==='facture'?'facture ':'acompte ') + (p.factureNumero||p.acompteNumero||'');
+      const mt = round2(Number(p.montant||0));
+      // Encaissement : D 512 / C 411
+      lignes.push(['BNQ', d, csvEsc(lib), mapBanque(), '', mt, '', csvEsc(p.id||'')].join(';'));
+      lignes.push(['BNQ', d, csvEsc(lib), '', mapCompteClient(p.client), '', mt, csvEsc(p.id||'')].join(';'));
+    });
+    return BOM + lignes.join('\r\n');
+  }
+
+  /* ---- Export plan comptable utilisé ---- */
+  function buildCSVPlan() {
+    const comptes = [
+      ['411000','Clients'], ['401000','Fournisseurs'],
+      ['512000','Banque'], ['530000','Caisse'],
+      ['445710','TVA collectée 20%'], ['445711','TVA collectée 10%'], ['445712','TVA collectée 5,5%'],
+      ['445660','TVA déductible 20%'], ['445661','TVA déductible 10%'], ['445662','TVA déductible 5,5%'],
+      ['445510','TVA à décaisser'],
+      ['706000','Prestations de services'], ['707000','Ventes de marchandises'],
+      ['606100','Carburant'], ['615500','Entretien matériel'], ['616000','Primes d\'assurance'],
+      ['624100','Transports sur ventes'], ['641000','Rémunérations'], ['613000','Locations'],
+      ['628000','Divers services extérieurs'],
+      ['486000','Charges constatées d\'avance'], ['487000','Produits constatés d\'avance'], ['408000','Fournisseurs factures non parvenues'],
+      ['218000','Matériel de transport'], ['281800','Amortissements matériel transport'],
+      ['681000','Dotations aux amortissements']
+    ];
+    const header = ['Compte','Intitule','Classe'].join(';');
+    const lignes = [header, ...comptes.map(c => [c[0], csvEsc(c[1]), c[0].charAt(0)].join(';'))];
+    return BOM + lignes.join('\r\n');
+  }
+
+  /* ---- Export ajustements clôture (journal OD) ---- */
+  function buildCSVCloture(annee) {
+    const list = load('cloture_ajustements').filter(a => annee ? a.exercice === annee : true);
+    const header = ['JournalCode','Date','Libelle','CompteDebit','CompteCredit','Debit','Credit','Type','Statut'].join(';');
+    const lignes = [header];
+    list.forEach(a => {
+      const d = a.dateCloture || (a.exercice + '-12-31');
+      const mt = round2(Math.abs(a.montantReporte||0));
+      const lib = a.type + ' ' + (a.libelle||'');
+      if (a.type === 'CCA') {
+        lignes.push(['OD', d, csvEsc(lib), '486000', '', mt, '', a.type, a.statut].join(';'));
+        lignes.push(['OD', d, csvEsc(lib), '', '6xxxxx', '', mt, a.type, a.statut].join(';'));
+      } else if (a.type === 'FNP') {
+        const mtTVA = round2(Math.abs(a.montantTVAReporte||0));
+        lignes.push(['OD', d, csvEsc(lib), '6xxxxx', '', mt, '', a.type, a.statut].join(';'));
+        if (a.montantTVAReporte) lignes.push(['OD', d, csvEsc('TVA '+lib), '445860', '', mtTVA, '', a.type, a.statut].join(';'));
+        lignes.push(['OD', d, csvEsc(lib), '', '408000', '', round2(Number(mt.replace(',','.'))+Number(mtTVA.replace(',','.'))).toString().replace('.',','), a.type, a.statut].join(';'));
+      } else if (a.type === 'PCA') {
+        lignes.push(['OD', d, csvEsc(lib), '7xxxxx', '', mt, '', a.type, a.statut].join(';'));
+        lignes.push(['OD', d, csvEsc(lib), '', '487000', '', mt, a.type, a.statut].join(';'));
+      }
+    });
+    return BOM + lignes.join('\r\n');
+  }
+
+  /* ---- MANIFESTE ---- */
+  function buildManifeste(du, au, stats) {
+    const p = loadSafe('params_entreprise', {});
+    return BOM + [
+      'EXPORT COMPTABLE MCA LOGISTICS → PENNYLANE',
+      '=============================================',
+      '',
+      'Entreprise : ' + (p.nom||''),
+      'SIRET : ' + (p.siret||''),
+      'Exporté le : ' + new Date().toLocaleString('fr-FR'),
+      'Période : ' + (du||'depuis le début') + ' → ' + (au||'jusqu\'à aujourd\'hui'),
+      '',
+      'FICHIERS INCLUS',
+      '---------------',
+      '- factures_ventes.csv : ' + stats.ventes + ' factures (journal VTE)',
+      '- factures_achats.csv : ' + stats.achats + ' charges (journal ACH)',
+      '- mouvements_bancaires.csv : ' + stats.paiements + ' mouvements (journal BNQ)',
+      '- ajustements_cloture.csv : ' + stats.cloture + ' écritures OD',
+      '- plan_comptable.csv : référentiel des comptes utilisés',
+      '',
+      'FORMAT',
+      '------',
+      'Encodage : UTF-8 avec BOM',
+      'Séparateur : point-virgule (;)',
+      'Décimales : virgule (,)',
+      'Dates : ISO 8601 (YYYY-MM-DD)',
+      'Codes TVA : N20, N10, N5.5, N0',
+      '',
+      'IMPORT PENNYLANE',
+      '----------------',
+      '1. Se connecter à Pennylane → Comptabilité → Import',
+      '2. Choisir "Import de journal comptable" pour chaque fichier',
+      '3. Mapping des colonnes : auto-détecté pour la plupart',
+      '4. Valider l\'import',
+      '',
+      'ℹ️  Les comptes "6xxxxx" et "7xxxxx" dans ajustements_cloture.csv',
+      '    doivent être affinés selon la nature de la charge/produit d\'origine.',
+      '',
+      'CONFORMITÉ LÉGALE',
+      '-----------------',
+      '- CGI art. A47 A-1 : format d\'échange conforme',
+      '- PCG : comptes au plan comptable général',
+      '- Conservation obligatoire : 10 ans (CGI art. L102 B)',
+      ''
+    ].join('\r\n');
+  }
+
+  /* ---- Export ZIP ---- */
+  window.s31ExportPennylane = function() {
+    if (typeof window.JSZip === 'undefined') {
+      toast('JSZip non chargé — recharger la page', 'error');
+      return;
+    }
+    const html = `
+      <div class="s15-modal-info-box narrow" style="max-width:560px">
+        <div class="s15-modal-info-header"><h2>💼 Export Pennylane-ready</h2><button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button></div>
+        <div class="s15-modal-info-body">
+          <p style="color:var(--text-muted);font-size:.88rem">Exporte un ZIP contenant les journaux comptables au format Pennylane (CSV séparateur ;, UTF-8 BOM).</p>
+          <div class="form-row">
+            <div class="form-group"><label>Du *</label><input type="date" id="s31-du" value="${new Date().getFullYear()}-01-01" /></div>
+            <div class="form-group"><label>Au *</label><input type="date" id="s31-au" value="${new Date().toLocalISODate()}" /></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-ventes" checked /> Journal ventes (VTE)</label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-achats" checked /> Journal achats (ACH)</label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-banque" checked /> Mouvements bancaires (BNQ)</label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-cloture" checked /> Ajustements clôture (OD)</label>
+          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-plan" checked /> Plan comptable utilisé</label>
+          <div style="padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted);margin-top:10px">
+            📚 <strong>Conformité :</strong> CGI art. L102 B (conservation 10 ans), PCG, format compatible import Pennylane standard.
+          </div>
+        </div>
+        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:14px">
+          <button class="btn-secondary" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
+          <button class="btn-primary" onclick="window.s31ExecuterExport()">📦 Générer ZIP</button>
+        </div>
+      </div>`;
+    let modal = document.getElementById('s15-modal-info');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 's15-modal-info';
+      modal.className = 's15-modal-info-overlay';
+      modal.innerHTML = '<div class="s15-modal-info-box"><div class="s15-modal-info-body"></div></div>';
+      document.body.appendChild(modal);
+    }
+    modal.querySelector('.s15-modal-info-body').innerHTML = html;
+    modal.classList.add('open');
+  };
+
+  window.s31ExecuterExport = function() {
+    const du = document.getElementById('s31-du')?.value;
+    const au = document.getElementById('s31-au')?.value;
+    const opts = {
+      ventes: document.getElementById('s31-inc-ventes')?.checked,
+      achats: document.getElementById('s31-inc-achats')?.checked,
+      banque: document.getElementById('s31-inc-banque')?.checked,
+      cloture: document.getElementById('s31-inc-cloture')?.checked,
+      plan: document.getElementById('s31-inc-plan')?.checked
+    };
+    if (!Object.values(opts).some(Boolean)) { toast('Sélectionne au moins 1 journal', 'warning'); return; }
+    const zip = new window.JSZip();
+    const dossier = zip.folder('export_pennylane_' + (du||'') + '_' + (au||''));
+    const stats = { ventes:0, achats:0, paiements:0, cloture:0 };
+    if (opts.ventes) {
+      const csv = buildCSVVentes(du, au);
+      dossier.file('factures_ventes.csv', csv);
+      stats.ventes = csv.split('\n').length - 1;
+    }
+    if (opts.achats) {
+      const csv = buildCSVAchats(du, au);
+      dossier.file('factures_achats.csv', csv);
+      stats.achats = csv.split('\n').length - 1;
+    }
+    if (opts.banque) {
+      const csv = buildCSVBanque(du, au);
+      dossier.file('mouvements_bancaires.csv', csv);
+      stats.paiements = csv.split('\n').length - 1;
+    }
+    if (opts.cloture) {
+      const annee = new Date(du||'').getFullYear();
+      const csv = buildCSVCloture(annee);
+      dossier.file('ajustements_cloture.csv', csv);
+      stats.cloture = csv.split('\n').length - 1;
+    }
+    if (opts.plan) dossier.file('plan_comptable.csv', buildCSVPlan());
+    dossier.file('MANIFESTE.txt', buildManifeste(du, au, stats));
+    zip.generateAsync({ type:'blob' }).then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pennylane_export_' + (du||'debut') + '_' + (au||'fin') + '.zip';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      audit('Export Pennylane', 'du ' + (du||'?') + ' au ' + (au||'?'));
+      toast('📦 Export Pennylane téléchargé', 'success');
+      document.getElementById('s15-modal-info')?.classList.remove('open');
+    }).catch(err => {
+      toast('⚠️ Erreur ZIP : ' + err.message, 'error');
+    });
+  };
+
+  /* ---- Injection bouton dans Paramètres > Comptabilité ---- */
+  function injectButton() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    if (grid.querySelector('#s31-export-section')) return;
+    const section = document.createElement('div');
+    section.id = 's31-export-section';
+    section.className = 'card params-card-wide';
+    section.dataset.s29Section = 'comptabilite';
+    section.innerHTML = `
+      <div class="card-header">
+        <h3>💼 Export comptable (Pennylane-ready)</h3>
+      </div>
+      <p style="color:var(--text-muted);font-size:.88rem">Exporte un ZIP complet avec les journaux comptables (ventes, achats, banque, clôture, plan comptable) au format Pennylane standard. Idéal pour transmettre à ton expert-comptable ou importer directement.</p>
+      <button class="btn-primary" onclick="window.s31ExportPennylane()">📦 Générer export Pennylane</button>
+      <div style="margin-top:10px;padding:8px 12px;background:rgba(245,166,35,.08);border-left:3px solid #f5a623;border-radius:6px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
+        Format : UTF-8 BOM · séparateur <code>;</code> · décimales <code>,</code> · dates ISO 8601. Conservation légale 10 ans (CGI art. L102 B).
+      </div>`;
+    grid.appendChild(section);
+    // Re-synchro S29
+    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
+    grid.querySelectorAll('[data-s29-section]').forEach(el => {
+      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
+    });
+  }
+  setTimeout(injectButton, 2700);
+  setInterval(injectButton, 7000);
+})();
+
+/* =====================================================================
+   Sprint 32 — Pack ANC 2026
+   Règlement ANC 2022-06 modifié, applicable 01/01/2025. Restructuration
+   du plan comptable général : nouvelles rubriques, comptes renommés,
+   regroupements. Valide que l'app utilise des comptes conformes.
+   ===================================================================== */
+(function installS32(){
+  if (window.__s32Installed) return;
+  window.__s32Installed = true;
+
+  const esc = window.escapeHtml;
+  const toast = (m,t) => (typeof window.afficherToast==='function') && window.afficherToast(m,t||'info');
+  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
+
+  /* ---- Référentiel ANC 2025/2026 (extrait des comptes utilisés par l'app) ---- */
+  const PCG_ANC = {
+    classe1: [
+      ['101000','Capital'],
+      ['108000','Compte de l\'exploitant'],
+      ['164000','Emprunts auprès des établissements de crédit']
+    ],
+    classe2: [
+      ['205000','Concessions, brevets, licences, logiciels'],
+      ['213000','Constructions'],
+      ['215000','Installations techniques, matériel et outillage'],
+      ['218200','Matériel de transport'],
+      ['218300','Matériel de bureau et informatique'],
+      ['281820','Amortissements matériel de transport'],
+      ['281830','Amortissements matériel de bureau']
+    ],
+    classe4: [
+      ['401000','Fournisseurs'],
+      ['408000','Fournisseurs - Factures non parvenues (FNP)'],
+      ['411000','Clients'],
+      ['416000','Clients douteux ou litigieux'],
+      ['445510','TVA à décaisser'],
+      ['445660','TVA déductible sur autres biens et services (20%)'],
+      ['445710','TVA collectée (20%)'],
+      ['445860','Taxes sur le chiffre d\'affaires sur FNP'],
+      ['486000','Charges constatées d\'avance (CCA)'],
+      ['487000','Produits constatés d\'avance (PCA)']
+    ],
+    classe5: [
+      ['512000','Banque'],
+      ['530000','Caisse']
+    ],
+    classe6: [
+      ['606100','Achats non stockés - Carburant'],
+      ['613000','Locations (LLD, crédit-bail)'],
+      ['615500','Entretien et réparations sur biens mobiliers'],
+      ['616000','Primes d\'assurances'],
+      ['624100','Transports sur ventes (péages)'],
+      ['628000','Divers services extérieurs'],
+      ['641000','Rémunérations du personnel'],
+      ['681200','Dotations aux amortissements sur immobilisations corporelles']
+    ],
+    classe7: [
+      ['706000','Prestations de services'],
+      ['707000','Ventes de marchandises'],
+      ['708500','Ports et frais accessoires facturés']
+    ]
+  };
+
+  /* ---- Audit de conformité : liste les comptes utilisés dans l'app ---- */
+  function auditConformite() {
+    const utilises = new Set();
+    // Mapping charges → comptes
+    const chargesCat = new Set((loadSafe('charges', [])).map(c => c.categorie));
+    const mapCat = { carburant:'606100', peage:'624100', entretien:'615500', assurance:'616000', salaires:'641000', lld_credit:'613000', tva:'445510', autre:'628000' };
+    chargesCat.forEach(c => { if (mapCat[c]) utilises.add(mapCat[c]); });
+    // Factures → 706/707
+    if ((loadSafe('factures_emises', [])).length) {
+      utilises.add('706000'); utilises.add('411000'); utilises.add('445710');
+    }
+    // Paiements → 512
+    if ((loadSafe('paiements', [])).length) utilises.add('512000');
+    // Immos
+    const immos = loadSafe('immobilisations', []);
+    if (immos.length) { utilises.add('218200'); utilises.add('281820'); utilises.add('681200'); }
+    // Clôture
+    const aj = loadSafe('cloture_ajustements', []);
+    aj.forEach(a => {
+      if (a.type === 'CCA') utilises.add('486000');
+      if (a.type === 'PCA') utilises.add('487000');
+      if (a.type === 'FNP') { utilises.add('408000'); utilises.add('445860'); }
+    });
+    // Construire liste complète avec libellé
+    const tous = [];
+    Object.values(PCG_ANC).forEach(cls => cls.forEach(c => tous.push(c)));
+    const result = Array.from(utilises).sort().map(num => {
+      const match = tous.find(c => c[0] === num);
+      return { compte: num, libelle: match ? match[1] : '(non référencé ANC)', conforme: !!match };
+    });
+    return result;
+  }
+
+  /* ---- Render audit ANC ---- */
+  function renderAncSection() {
+    const page = document.getElementById('page-parametres');
+    if (!page) return;
+    const grid = page.querySelector('.params-grid');
+    if (!grid) return;
+    let section = document.getElementById('s32-anc-section');
+    if (!section) {
+      section = document.createElement('div');
+      section.id = 's32-anc-section';
+      section.className = 'card params-card-wide';
+      section.dataset.s29Section = 'comptabilite';
+      grid.appendChild(section);
+    }
+    const audit = auditConformite();
+    const conformes = audit.filter(a => a.conforme).length;
+    const nonConformes = audit.length - conformes;
+    const score = audit.length ? Math.round(conformes * 100 / audit.length) : 100;
+    const pcgTotal = Object.values(PCG_ANC).reduce((s,cls) => s + cls.length, 0);
+    section.innerHTML = `
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 style="margin:0">📚 Pack ANC 2025-2026 — Plan comptable général</h3>
+          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">Règlement ANC 2022-06 · applicable aux exercices ouverts à compter du 01/01/2025</div>
+        </div>
+        <button class="btn-secondary" onclick="window.s32TelechargerPCG()">📥 Télécharger PCG (CSV)</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0">
+        <div style="padding:14px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.3);border-radius:10px">
+          <div style="font-size:.75rem;color:#15803d;font-weight:700">✅ Score conformité</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#15803d">${score}%</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">${conformes} / ${audit.length} comptes utilisés</div>
+        </div>
+        <div style="padding:14px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.3);border-radius:10px">
+          <div style="font-size:.75rem;color:#4338ca;font-weight:700">📖 Référentiel ANC</div>
+          <div style="font-size:1.6rem;font-weight:800;color:#4338ca">${pcgTotal}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">comptes dans le pack</div>
+        </div>
+        <div style="padding:14px;background:linear-gradient(135deg,${nonConformes?'rgba(239,68,68,.12),rgba(239,68,68,.04)':'rgba(245,166,35,.12),rgba(245,166,35,.04)'});border:1px solid ${nonConformes?'rgba(239,68,68,.3)':'rgba(245,166,35,.3)'};border-radius:10px">
+          <div style="font-size:.75rem;color:${nonConformes?'#b91c1c':'#b45309'};font-weight:700">${nonConformes?'⚠️ Écarts':'📊 Utilisation'}</div>
+          <div style="font-size:1.6rem;font-weight:800;color:${nonConformes?'#b91c1c':'#b45309'}">${audit.length}</div>
+          <div style="font-size:.75rem;color:var(--text-muted)">comptes actifs sur données</div>
+        </div>
+      </div>
+      <details style="margin-top:12px">
+        <summary style="cursor:pointer;font-weight:600;padding:8px 0">📋 Détail des comptes utilisés (${audit.length})</summary>
+        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px">
+          <table class="table" style="width:100%;margin:0;font-size:.86rem">
+            <thead style="position:sticky;top:0;background:var(--bg-secondary,#fafafa)"><tr><th>N° compte</th><th>Intitulé</th><th>Conformité</th></tr></thead>
+            <tbody>
+              ${audit.map(a => `
+                <tr>
+                  <td style="font-family:monospace;font-weight:700">${esc(a.compte)}</td>
+                  <td>${esc(a.libelle)}</td>
+                  <td>${a.conforme?'<span style="color:#22c55e">✅ ANC 2026</span>':'<span style="color:#ef4444">❌ Hors référentiel</span>'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <details style="margin-top:10px">
+        <summary style="cursor:pointer;font-weight:600;padding:8px 0">📖 Référentiel complet ANC (${pcgTotal} comptes)</summary>
+        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px">
+          <table class="table" style="width:100%;margin:0;font-size:.86rem">
+            <thead style="position:sticky;top:0;background:var(--bg-secondary,#fafafa)"><tr><th>Classe</th><th>N°</th><th>Intitulé</th></tr></thead>
+            <tbody>
+              ${Object.entries(PCG_ANC).map(([cls,comptes]) => comptes.map(c => `
+                <tr><td>${cls.replace('classe','Classe ')}</td><td style="font-family:monospace">${esc(c[0])}</td><td>${esc(c[1])}</td></tr>
+              `).join('')).join('')}
+            </tbody>
+          </table>
+        </div>
+      </details>
+      <div style="margin-top:12px;padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
+        💡 <strong>Note :</strong> ce pack couvre les comptes utilisés par MCA Logistics (transport/logistique). Pour une comptabilité complète, compléter avec l'expert-comptable. Référentiel officiel : <strong>ANC 2022-06</strong> modifié par 2024-07, consolidé 2026-01.
+      </div>`;
+    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
+    grid.querySelectorAll('[data-s29-section]').forEach(el => {
+      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
+    });
+  }
+
+  window.s32TelechargerPCG = function() {
+    const BOM = '\uFEFF';
+    const header = ['Classe','Numero','Intitule'].join(';');
+    const lignes = [header];
+    const csvCellPCG = (typeof window.csvCelluleSecurisee === 'function') ? window.csvCelluleSecurisee : (v) => '"'+String(v||'').replace(/"/g,'""')+'"';
+    Object.entries(PCG_ANC).forEach(([cls,comptes]) => {
+      comptes.forEach(c => lignes.push([cls.replace('classe','Classe '), c[0], csvCellPCG(c[1], ';')].join(';')));
+    });
+    const blob = new Blob([BOM + lignes.join('\r\n')], { type:'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'PCG_ANC_2025_2026.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    audit('Export PCG ANC', Object.values(PCG_ANC).reduce((s,c)=>s+c.length,0) + ' comptes');
+    toast('📥 PCG téléchargé', 'success');
+  };
+
+  setTimeout(renderAncSection, 3200);
+  setInterval(renderAncSection, 8000);
 })();

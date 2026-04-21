@@ -9,8 +9,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <!-- BUG-005 PWA : manifest + theme + install -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d1524" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <link rel="stylesheet" href="style.css?v=20260412-2" />
   <script defer src="chart.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -29,20 +38,21 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="livraisons"><span class="nav-icon">📦</span><span class="nav-label">Livraisons</span></a>
+          <a href="#" class="nav-item" data-page="calendrier"><span class="nav-icon">🗓️</span><span class="nav-label">Calendrier</span></a>
           <a href="#" class="nav-item" data-page="planning"><span class="nav-icon">📅</span><span class="nav-label">Planning</span></a>
           <a href="#" class="nav-item" data-page="messagerie"><span class="nav-icon">💬</span><span class="nav-label">Messagerie <span class="badge-alertes-nav" id="badge-msg-admin" style="display:none"></span></span></a>
           <a href="#" class="nav-item" data-page="alertes"><span class="nav-icon">🔔</span><span class="nav-label">Alertes <span class="badge-alertes-nav" id="badge-alertes"></span></span></a>
         </div>
       </div>
 
-      <div class="nav-section" data-section="clients">
-        <button type="button" class="nav-section-header" onclick="toggleNavSection('clients')" aria-expanded="true">
-          <span class="nav-section-title">Clients</span>
+      <div class="nav-section" data-section="tiers">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('tiers')" aria-expanded="true">
+          <span class="nav-section-title">Tiers</span>
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
-          <a href="#" class="nav-item" data-page="relances"><span class="nav-icon">⏰</span><span class="nav-label">Relances <span class="badge-alertes-nav" id="badge-relances" style="display:none"></span></span></a>
+          <a href="#" class="nav-item" data-page="fournisseurs"><span class="nav-icon">🏭</span><span class="nav-label">Fournisseurs</span></a>
         </div>
       </div>
 
@@ -112,6 +122,7 @@
       </div>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
       <button class="btn-secondary topbar-search-trigger" type="button" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)">⌘ Rechercher</button>
+      <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil">📲 Installer</button>
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre">🌙</button>
       <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
         <span style="width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;animation:pulse-green 2s infinite;display:inline-block"></span>
@@ -135,33 +146,9 @@
     <section class="page active" id="page-dashboard">
       <div id="dashboard-ct-banner"></div>
 
-      <!-- Quick actions bar (Sprint 4) -->
-      <div class="quick-actions-bar" role="toolbar" aria-label="Actions rapides">
-        <button class="quick-action" onclick="openModal('modal-livraison')" title="Créer une livraison (Ctrl+N)">
-          <span class="quick-action-icon">📦</span>
-          <span class="quick-action-label">Nouvelle livraison</span>
-        </button>
-        <button class="quick-action" onclick="openModal('modal-carburant')" title="Saisir un plein">
-          <span class="quick-action-icon">⛽</span>
-          <span class="quick-action-label">Nouveau plein</span>
-        </button>
-        <button class="quick-action" onclick="openModal('modal-entretien')" title="Ajouter un entretien">
-          <span class="quick-action-icon">🔧</span>
-          <span class="quick-action-label">Nouvel entretien</span>
-        </button>
-        <button class="quick-action" onclick="if(typeof ouvrirModalPlanning==='function')ouvrirModalPlanning();else naviguerVers('planning')" title="Gérer le planning">
-          <span class="quick-action-icon">📅</span>
-          <span class="quick-action-label">Planning</span>
-        </button>
-        <button class="quick-action" onclick="naviguerVers('tva')" title="Onglet TVA">
-          <span class="quick-action-icon">🧾</span>
-          <span class="quick-action-label">TVA</span>
-        </button>
-        <button class="quick-action" onclick="naviguerVers('parametres')" title="Paramètres">
-          <span class="quick-action-icon">⚙️</span>
-          <span class="quick-action-label">Paramètres</span>
-        </button>
-      </div>
+      <!-- Quick actions bar retirée (Sprint 16) — raccourcis jugés inutiles
+           Export Z reste accessible depuis Facturation, Ctrl+K reste en keybind global -->
+
 
       <!-- Hero santé avec score ring (Sprint 4) -->
       <div id="kpi-sante-globale" class="hero-sante">
@@ -214,7 +201,7 @@
 
       <!-- Stats pills (Sprint 4) - KPI secondaires compacts -->
       <div class="stats-row-pills" style="margin-bottom:20px">
-        <div class="stat-pill stat-pill-red" style="cursor:pointer" onclick="naviguerVers('relances')">
+        <div class="stat-pill stat-pill-red" style="cursor:pointer" onclick="naviguerVers('encaissements');setTimeout(()=>{try{switchEncTab('relances')}catch(e){}},80)">
           <div class="stat-pill-label">⚠️ Impayés</div>
           <div class="stat-pill-value" id="kpi-solde">0 €</div>
           <div class="stat-pill-sub">voir relances →</div>
@@ -356,12 +343,53 @@
 
     <!-- CLIENTS -->
     <section class="page" id="page-clients">
-      <div class="page-actions"><h2>🧑‍💼 Carnet Clients</h2><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">📚 Historique clients</button><button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button></div></div>
+      <div class="page-actions">
+        <h2>🧑‍💼 Carnet Clients</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">📚 Historique clients</button>
+          <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
+        </div>
+      </div>
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Activité</th><th>Actions</th></tr></thead>
             <tbody id="tb-clients"><tr><td colspan="6" class="empty-row">Aucun client enregistré</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOURNISSEURS (Sprint 17) -->
+    <section class="page" id="page-fournisseurs">
+      <div class="page-actions">
+        <h2>🏭 Carnet Fournisseurs</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="if(typeof exporterHistoriqueFournisseursCSV==='function')exporterHistoriqueFournisseursCSV()">📚 Historique fournisseurs</button>
+          <button class="btn-primary" onclick="openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
+        </div>
+      </div>
+      <div class="filters filters-fournisseurs" style="margin-bottom:16px">
+        <div class="searchbar"><span class="searchbar-icon">🔎</span><input type="search" id="fourn-search" placeholder="Rechercher nom, SIREN, contact, ville..." oninput="if(typeof afficherFournisseurs==='function')afficherFournisseurs()" /></div>
+        <select id="fourn-filter-categorie" onchange="if(typeof afficherFournisseurs==='function')afficherFournisseurs()">
+          <option value="">Toutes catégories</option>
+          <option value="carburant">⛽ Carburant</option>
+          <option value="entretien">🔧 Entretien / garage</option>
+          <option value="assurance">🛡️ Assurance</option>
+          <option value="loa-lld">🚐 LOA / LLD</option>
+          <option value="peage">🛣️ Péage / autoroute</option>
+          <option value="telecom">📡 Télécom</option>
+          <option value="banque">🏦 Banque / finance</option>
+          <option value="fournitures">📦 Fournitures</option>
+          <option value="autre">📝 Autre</option>
+        </select>
+        <button class="btn-secondary" onclick="document.getElementById('fourn-search').value='';document.getElementById('fourn-filter-categorie').value='';if(typeof afficherFournisseurs==='function')afficherFournisseurs();">Réinitialiser</button>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Nom</th><th>Catégorie</th><th>Contact</th><th>Téléphone</th><th>Dépense totale</th><th>Solde dû</th><th>Délai accordé</th><th>Actions</th></tr></thead>
+            <tbody id="tb-fournisseurs"><tr><td colspan="8" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1294,6 +1322,7 @@
         <h2>📄 Facturation</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="font-size:.82rem;color:var(--text-muted)">Compteur : <strong id="fac-compteur-display">—</strong></span>
+          <button class="btn-secondary" onclick="if(typeof ouvrirExportZ==='function')ouvrirExportZ()">📊 Export Z</button>
           <button class="btn-secondary" onclick="exporterFacturesCSV()">📤 Export CSV</button>
         </div>
       </div>
@@ -1346,6 +1375,7 @@
           <button class="enc-tab active" data-enc-tab="paiements" onclick="switchEncTab('paiements')">💰 Paiements reçus / émis</button>
           <button class="enc-tab" data-enc-tab="avoirs" onclick="switchEncTab('avoirs')">🧾 Avoirs émis</button>
           <button class="enc-tab" data-enc-tab="factures" onclick="switchEncTab('factures')">📄 Factures avec solde</button>
+          <button class="enc-tab" data-enc-tab="relances" onclick="switchEncTab('relances')">⏰ Relances <span class="enc-tab-badge" id="enc-tab-badge-relances" style="display:none"></span></button>
         </div>
         <div class="enc-panel" id="enc-panel-paiements">
           <div class="enc-filters">
@@ -1386,31 +1416,55 @@
             </table>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- RELANCES -->
-    <section class="page" id="page-relances">
-      <div class="page-actions"><h2>⏰ Relances paiement</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:.88rem;color:var(--text-muted)">Total impayé : <strong id="relances-total" style="color:var(--red)">0 €</strong></span>
-          <button class="btn-secondary" onclick="ouvrirModalTemplatesRelance()">✍️ Texte de relance</button>
-          <div style="display:flex;align-items:center;gap:6px">
-            <span style="font-size:.82rem;color:var(--text-muted)">Délai :</span>
-            <input type="number" id="relance-delai-input" value="7" min="1" max="90" style="width:55px;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:4px 8px;border-radius:6px;font-size:.85rem;text-align:center" onchange="sauvegarderRelanceDelai();afficherRelances()" />
-            <span style="font-size:.82rem;color:var(--text-muted)">jours</span>
+        <div class="enc-panel" id="enc-panel-relances" style="display:none">
+          <div class="relances-header">
+            <div class="relances-stats">
+              <div class="relances-stat-item">
+                <div class="relances-stat-label">Total impayé</div>
+                <div class="relances-stat-val" id="rel-total-impaye">0 €</div>
+              </div>
+              <div class="relances-stat-item">
+                <div class="relances-stat-label">Factures en retard</div>
+                <div class="relances-stat-val" id="rel-total-retard">0</div>
+              </div>
+              <div class="relances-stat-item">
+                <div class="relances-stat-label">Relances envoyées (30j)</div>
+                <div class="relances-stat-val" id="rel-total-envoyees">0</div>
+              </div>
+            </div>
+            <div class="relances-actions">
+              <button class="btn-secondary" onclick="ouvrirModalTemplatesRelanceV2()">✍️ Modèles de relance</button>
+              <button class="btn-secondary" onclick="ouvrirModalConfirmationsAEnvoyer()">📨 Confirmations de réception</button>
+            </div>
+          </div>
+          <div class="enc-filters">
+            <input type="search" id="rel-search" class="searchbar" placeholder="🔍 Client, N° facture…" oninput="afficherRelancesV2()" />
+            <select id="rel-filter-niveau" onchange="afficherRelancesV2()">
+              <option value="">Tous niveaux</option>
+              <option value="0">🔵 Non dépassé</option>
+              <option value="1">🟢 Niveau 1 — Rappel amiable</option>
+              <option value="2">🟡 Niveau 2 — Relance ferme</option>
+              <option value="3">🔴 Niveau 3 — Mise en demeure</option>
+            </select>
+            <select id="rel-tri" onchange="afficherRelancesV2()">
+              <option value="retard">Tri : retard ↓</option>
+              <option value="montant">Tri : montant ↓</option>
+              <option value="client">Tri : client A→Z</option>
+              <option value="liv">Tri : N° livraison ↑</option>
+              <option value="fac">Tri : N° facture ↑</option>
+            </select>
+          </div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>N° livraison ↔ facture</th><th>Client</th><th>Date liv.</th><th>Échéance</th><th>Montant dû</th><th>Retard</th><th>Niveau</th><th>Dernière relance</th><th>Actions</th></tr></thead>
+              <tbody id="tb-relances-v2"></tbody>
+            </table>
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>N° LIV</th><th>Client</th><th>Date liv.</th><th>Montant</th><th>Retard</th><th>Actions</th></tr></thead>
-            <tbody id="tb-relances"></tbody>
-          </table>
-        </div>
-      </div>
     </section>
+
+<!-- Section "Relances" supprimée — déplacée en sous-onglet dans Encaissements (Sprint 14) -->
 
     <!-- INCIDENTS -->
     <section class="page" id="page-incidents">
@@ -1545,6 +1599,70 @@
             <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
             <tbody id="tb-releve-km"><tr><td colspan="7" class="empty-row">Aucun relevé km</td></tr></tbody>
           </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALENDRIER (Sprint 16) -->
+    <section class="page" id="page-calendrier">
+      <div class="page-actions">
+        <h2>🗓️ Calendrier opérationnel</h2>
+        <div class="page-actions-toolbar">
+          <button class="btn-secondary" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
+          <button class="btn-rapport" onclick="window.cal16?.imprimer()">🖨️ Imprimer</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;padding:12px 18px">
+        <div class="nav-periode-bar">
+          <div class="nav-periode-left">
+            <select class="period-selector" id="cal16-vue" onchange="window.cal16?.changerVue(this.value)">
+              <option value="jour">Par jour</option>
+              <option value="semaine">Par semaine</option>
+              <option value="mois" selected>Par mois</option>
+              <option value="annee">Par année</option>
+            </select>
+            <button class="btn-secondary" onclick="window.cal16?.naviguer(-1)" style="padding:6px 14px">Précédent</button>
+          </div>
+          <div class="nav-periode-center">
+            <div id="cal16-label" style="font-size:1rem;font-weight:700"></div>
+            <div id="cal16-sub" style="font-size:.82rem;color:var(--text-muted)"></div>
+          </div>
+          <div class="nav-periode-right">
+            <button class="btn-secondary" onclick="window.cal16?.aujourdhui()" style="padding:6px 14px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" style="padding:6px 14px">Suivant</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="cal16-layout">
+        <!-- Sidebar filtres -->
+        <aside class="cal16-sidebar card">
+          <h3 style="margin:0 0 10px;font-size:1rem">🎛️ Filtres</h3>
+          <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
+          <label class="cal16-filter"><input type="checkbox" data-cal-filter="factures" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fac"></span> Factures émises</label>
+          <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
+          <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
+          <label class="cal16-filter"><input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-pai"></span> Paiements</label>
+          <label class="cal16-filter"><input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fer"></span> Jours fériés</label>
+
+          <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
+          <h3 style="margin:0 0 10px;font-size:1rem">📊 Mois en cours</h3>
+          <div class="cal16-kpi-grid">
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">📦 Livs</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">📄 Facts</div><div class="cal16-kpi-val" id="cal16-kpi-fac">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">⏰ Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
+            <div class="cal16-kpi"><div class="cal16-kpi-lbl">💰 Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
+          </div>
+
+          <div class="cal16-help">
+            <strong>💡 Astuce</strong> : glisse une livraison sur un autre jour pour la déplacer.
+          </div>
+        </aside>
+
+        <!-- Grid calendrier -->
+        <div class="cal16-main card">
+          <div id="cal16-grid"></div>
         </div>
       </div>
     </section>
@@ -1888,20 +2006,55 @@
         </div>
         <div class="form-grid">
           <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="cl-nom" placeholder="Nom / Raison sociale" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" /></div>
+          <div class="form-group">
+            <label>Secteur d'activité *</label>
+            <select id="cl-secteur">
+              <option value="">-- Choisir --</option>
+              <option value="transport">🚚 Transport / logistique</option>
+              <option value="industrie">🏭 Industrie / usine</option>
+              <option value="btp">🏗️ BTP / chantier</option>
+              <option value="commerce">🏪 Commerce / retail</option>
+              <option value="ecommerce">🛒 E-commerce</option>
+              <option value="agro">🌾 Agro-alimentaire</option>
+              <option value="sante">⚕️ Santé / pharma</option>
+              <option value="public">🏛️ Public / collectivité</option>
+              <option value="evenement">🎪 Événementiel</option>
+              <option value="particulier">🙋 Particulier</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
           <div class="form-group"><label>Contact</label><input type="text" id="cl-prenom" placeholder="Contact" /></div>
           <div class="form-group"><label>Téléphone</label><input type="tel" id="cl-tel" placeholder="T&eacute;l&eacute;phone" /></div>
           <div class="form-group"><label>Email</label><input type="email" id="cl-email" placeholder="Email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="cl-email-fact" placeholder="compta@client.fr" /></div>
           <div class="form-group full-width"><label>Adresse</label><input type="text" id="cl-adresse" placeholder="Numéro + rue" /></div>
           <div class="form-group"><label>Code postal</label><input type="text" id="cl-cp" placeholder="75001" maxlength="5" /></div>
           <div class="form-group"><label>Ville</label><input type="text" id="cl-ville" placeholder="Paris" /></div>
         </div>
         <div id="cl-champs-pro" class="client-champs-pro">
-          <div class="form-section-title">🏢 Informations professionnelles</div>
+          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
           <div class="form-grid">
             <div class="form-group"><label>SIREN</label><input type="text" id="cl-siren" placeholder="9 chiffres" maxlength="9" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" /></div>
             <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="cl-tva-intra" placeholder="FR + 11 chiffres" /></div>
-            <div class="form-group"><label>Email facturation</label><input type="email" id="cl-email-fact" placeholder="compta@client.fr" /></div>
-            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+          </div>
+        </div>
+        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Délai paiement (jours) *</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+          <div class="form-group"><label>Mode paiement préféré</label>
+            <select id="cl-mode-paiement">
+              <option value="virement">Virement</option>
+              <option value="prelevement">Prélèvement SEPA</option>
+              <option value="cb">Carte bancaire</option>
+              <option value="cheque">Chèque</option>
+              <option value="especes">Espèces</option>
+            </select>
+          </div>
+          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
+          <div class="form-group">
+            <label>N° compte client (compta) *</label>
+            <input type="text" id="cl-compte-compta" placeholder="411000 (auto-incrémenté)" />
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto-incrément depuis 411000 — doit être unique</div>
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
@@ -1929,20 +2082,55 @@
         </div>
         <div class="form-grid">
           <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="edit-cl-nom" /></div>
+          <div class="form-group">
+            <label>Secteur d'activité *</label>
+            <select id="edit-cl-secteur">
+              <option value="">-- Choisir --</option>
+              <option value="transport">🚚 Transport / logistique</option>
+              <option value="industrie">🏭 Industrie / usine</option>
+              <option value="btp">🏗️ BTP / chantier</option>
+              <option value="commerce">🏪 Commerce / retail</option>
+              <option value="ecommerce">🛒 E-commerce</option>
+              <option value="agro">🌾 Agro-alimentaire</option>
+              <option value="sante">⚕️ Santé / pharma</option>
+              <option value="public">🏛️ Public / collectivité</option>
+              <option value="evenement">🎪 Événementiel</option>
+              <option value="particulier">🙋 Particulier</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
           <div class="form-group"><label>Contact</label><input type="text" id="edit-cl-prenom" /></div>
           <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-cl-tel" /></div>
           <div class="form-group"><label>Email</label><input type="email" id="edit-cl-email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="edit-cl-email-fact" /></div>
           <div class="form-group full-width"><label>Adresse</label><input type="text" id="edit-cl-adresse" placeholder="Numéro + rue" /></div>
           <div class="form-group"><label>Code postal</label><input type="text" id="edit-cl-cp" maxlength="5" /></div>
           <div class="form-group"><label>Ville</label><input type="text" id="edit-cl-ville" /></div>
         </div>
         <div id="edit-cl-champs-pro" class="client-champs-pro">
-          <div class="form-section-title">🏢 Informations professionnelles</div>
+          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
           <div class="form-grid">
             <div class="form-group"><label>SIREN</label><input type="text" id="edit-cl-siren" maxlength="9" /></div>
             <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-cl-tva-intra" /></div>
-            <div class="form-group"><label>Email facturation</label><input type="email" id="edit-cl-email-fact" /></div>
-            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="edit-cl-delai-paiement" min="0" max="180" /></div>
+          </div>
+        </div>
+        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Délai paiement (jours) *</label><input type="number" id="edit-cl-delai-paiement" min="0" max="180" /></div>
+          <div class="form-group"><label>Mode paiement préféré</label>
+            <select id="edit-cl-mode-paiement">
+              <option value="virement">Virement</option>
+              <option value="prelevement">Prélèvement SEPA</option>
+              <option value="cb">Carte bancaire</option>
+              <option value="cheque">Chèque</option>
+              <option value="especes">Espèces</option>
+            </select>
+          </div>
+          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="edit-cl-iban" /></div>
+          <div class="form-group">
+            <label>N° compte client (compta) *</label>
+            <input type="text" id="edit-cl-compte-compta" />
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Doit être unique — modifiable avec prudence</div>
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-cl-notes" rows="2"></textarea></div>
@@ -1958,9 +2146,156 @@
         <div id="client-history-content"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="exporterHistoriqueClientCourant()">📥 Exporter</button>
+        <button class="btn-secondary" onclick="exporterHistoriqueClientCourant()">📥 Exporter CSV</button>
+        <button class="btn-secondary" onclick="exporterDonneesRGPDClientCourant()" title="Export RGPD portable (art. 20) — toutes les données du client au format JSON">🛡️ Export RGPD</button>
         <button class="btn-primary" onclick="closeModal('modal-client-history')">Fermer</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal Fournisseur (Sprint 17) -->
+  <div class="modal-overlay" id="modal-fournisseur">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>🏭 Nouveau fournisseur</h3><button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-body">
+        <div class="client-type-selector">
+          <label class="client-type-option">
+            <input type="radio" name="fo-type" value="pro" checked onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(false)" />
+            <span class="client-type-label">🏢 Professionnel</span>
+          </label>
+          <label class="client-type-option">
+            <input type="radio" name="fo-type" value="particulier" onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(false)" />
+            <span class="client-type-label">🙋 Particulier</span>
+          </label>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Raison sociale *</label><input type="text" id="fo-nom" placeholder="Ex. Total Énergies, Garage Martin…" oninput="if(window.detecterDoublonsFournisseur)window.detecterDoublonsFournisseur(false)" /></div>
+          <div class="form-group">
+            <label>Catégorie principale *</label>
+            <select id="fo-categorie">
+              <option value="">-- Choisir --</option>
+              <option value="carburant">⛽ Carburant (stations, pétrolier)</option>
+              <option value="entretien">🔧 Entretien / garage</option>
+              <option value="assurance">🛡️ Assurance</option>
+              <option value="loa-lld">🚐 LOA / LLD</option>
+              <option value="peage">🛣️ Péage / autoroute</option>
+              <option value="telecom">📡 Télécom / internet</option>
+              <option value="banque">🏦 Banque / finance</option>
+              <option value="fournitures">📦 Fournitures / consommables</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Contact</label><input type="text" id="fo-contact" placeholder="Nom du contact commercial" /></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="fo-tel" placeholder="Téléphone" /></div>
+          <div class="form-group"><label>Email</label><input type="email" id="fo-email" placeholder="Email contact" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="fo-email-fact" placeholder="compta@fournisseur.fr" /></div>
+          <div class="form-group full-width"><label>Adresse</label><input type="text" id="fo-adresse" placeholder="Numéro + rue" /></div>
+          <div class="form-group"><label>Code postal</label><input type="text" id="fo-cp" placeholder="75001" maxlength="5" /></div>
+          <div class="form-group"><label>Ville</label><input type="text" id="fo-ville" placeholder="Paris" /></div>
+        </div>
+        <div id="fo-champs-pro" class="client-champs-pro">
+          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
+          <div class="form-grid">
+            <div class="form-group"><label>SIREN</label><input type="text" id="fo-siren" placeholder="9 chiffres" maxlength="9" oninput="if(window.detecterDoublonsFournisseur)window.detecterDoublonsFournisseur(false)" /></div>
+            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="fo-tva-intra" placeholder="FR + 11 chiffres" /></div>
+          </div>
+        </div>
+        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Délai paiement accordé (jours) *</label><input type="number" id="fo-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+          <div class="form-group"><label>Mode paiement préféré</label>
+            <select id="fo-mode-paiement">
+              <option value="virement">Virement</option>
+              <option value="prelevement">Prélèvement SEPA</option>
+              <option value="cb">Carte bancaire</option>
+              <option value="cheque">Chèque</option>
+              <option value="especes">Espèces</option>
+            </select>
+          </div>
+          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="fo-iban" placeholder="FR76 …" /></div>
+          <div class="form-group">
+            <label>N° compte fournisseur (compta) *</label>
+            <input type="text" id="fo-compte-compta" placeholder="401000 (auto-incrémenté)" />
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto-incrément depuis 401000 — doit être unique</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="fo-notes" rows="2" placeholder="Remarques, conditions particulières, références contrat…"></textarea></div>
+        <div id="fo-doublons-warning" class="doublons-warning" style="display:none"></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-fournisseur')">Annuler</button><button class="btn-primary" onclick="if(typeof ajouterFournisseur==='function')ajouterFournisseur()">✅ Enregistrer</button></div>
+    </div>
+  </div>
+
+  <!-- Modal édition fournisseur -->
+  <div class="modal-overlay" id="modal-edit-fournisseur">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-fo-id" />
+        <div class="client-type-selector">
+          <label class="client-type-option">
+            <input type="radio" name="edit-fo-type" value="pro" checked onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(true)" />
+            <span class="client-type-label">🏢 Professionnel</span>
+          </label>
+          <label class="client-type-option">
+            <input type="radio" name="edit-fo-type" value="particulier" onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(true)" />
+            <span class="client-type-label">🙋 Particulier</span>
+          </label>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Raison sociale *</label><input type="text" id="edit-fo-nom" /></div>
+          <div class="form-group">
+            <label>Catégorie principale *</label>
+            <select id="edit-fo-categorie">
+              <option value="">-- Choisir --</option>
+              <option value="carburant">⛽ Carburant</option>
+              <option value="entretien">🔧 Entretien / garage</option>
+              <option value="assurance">🛡️ Assurance</option>
+              <option value="loa-lld">🚐 LOA / LLD</option>
+              <option value="peage">🛣️ Péage / autoroute</option>
+              <option value="telecom">📡 Télécom / internet</option>
+              <option value="banque">🏦 Banque / finance</option>
+              <option value="fournitures">📦 Fournitures / consommables</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Contact</label><input type="text" id="edit-fo-contact" /></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-fo-tel" /></div>
+          <div class="form-group"><label>Email</label><input type="email" id="edit-fo-email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="edit-fo-email-fact" /></div>
+          <div class="form-group full-width"><label>Adresse</label><input type="text" id="edit-fo-adresse" /></div>
+          <div class="form-group"><label>Code postal</label><input type="text" id="edit-fo-cp" maxlength="5" /></div>
+          <div class="form-group"><label>Ville</label><input type="text" id="edit-fo-ville" /></div>
+        </div>
+        <div id="edit-fo-champs-pro" class="client-champs-pro">
+          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
+          <div class="form-grid">
+            <div class="form-group"><label>SIREN</label><input type="text" id="edit-fo-siren" maxlength="9" /></div>
+            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-fo-tva-intra" /></div>
+          </div>
+        </div>
+        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Délai paiement accordé (jours) *</label><input type="number" id="edit-fo-delai-paiement" min="0" max="180" /></div>
+          <div class="form-group"><label>Mode paiement préféré</label>
+            <select id="edit-fo-mode-paiement">
+              <option value="virement">Virement</option>
+              <option value="prelevement">Prélèvement SEPA</option>
+              <option value="cb">Carte bancaire</option>
+              <option value="cheque">Chèque</option>
+              <option value="especes">Espèces</option>
+            </select>
+          </div>
+          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="edit-fo-iban" /></div>
+          <div class="form-group">
+            <label>N° compte fournisseur (compta) *</label>
+            <input type="text" id="edit-fo-compte-compta" />
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Doit être unique — modifiable avec prudence</div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-fo-notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button class="btn-primary" onclick="if(typeof confirmerEditFournisseur==='function')confirmerEditFournisseur()">✅ Enregistrer</button></div>
     </div>
   </div>
 
@@ -2429,7 +2764,7 @@
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Modal Historique conducteurs -->
   <div class="modal-overlay" id="modal-hist-conducteurs">
@@ -2652,17 +2987,109 @@
     </div>
   </div>
 
+  <!-- Sprint 14 : Modèles de relance v2 (4 niveaux dont confirmation) -->
+  <div class="modal-overlay" id="modal-relance-templates-v2">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>✍️ Modèles de relance & confirmation</h3><button class="modal-close" onclick="closeModal('modal-relance-templates-v2')">✕</button></div>
+      <div class="modal-body">
+        <div class="relance-var-help">
+          Variables disponibles : <code>{client}</code> <code>{contact}</code> <code>{numFacture}</code> <code>{numLiv}</code> <code>{dateLivraison}</code> <code>{dateEcheance}</code> <code>{montantTTC}</code> <code>{soldeDu}</code> <code>{joursRetard}</code> <code>{societe}</code> <code>{interets}</code> <code>{forfait}</code>
+        </div>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label><span class="lvl-pill lvl-0">0</span> Confirmation de réception <span class="lvl-desc">(envoyée à l'émission facture)</span></label>
+            <textarea id="rel-tpl-0" rows="4"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label><span class="lvl-pill lvl-1">1</span> Rappel amiable <span class="lvl-desc">(J+1 à J+30 après échéance)</span></label>
+            <textarea id="rel-tpl-1" rows="4"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label><span class="lvl-pill lvl-2">2</span> Relance ferme <span class="lvl-desc">(J+30 à J+60)</span></label>
+            <textarea id="rel-tpl-2" rows="4"></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label><span class="lvl-pill lvl-3">3</span> Mise en demeure <span class="lvl-desc">(J+60+ avec mention art. L441-10 et intérêts de retard)</span></label>
+            <textarea id="rel-tpl-3" rows="5"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="reinitialiserTemplatesRelanceV2()">🔄 Valeurs par défaut</button>
+        <button class="btn-primary" onclick="sauvegarderTemplatesRelanceV2()">💾 Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint 14 : Envoi relance (aperçu + PDF + mailto) -->
+  <div class="modal-overlay" id="modal-envoi-relance">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3 id="envoi-rel-titre">📧 Envoyer une relance</h3><button class="modal-close" onclick="closeModal('modal-envoi-relance')">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="envoi-rel-fac-id" />
+        <input type="hidden" id="envoi-rel-niveau" />
+        <div class="envoi-rel-resume" id="envoi-rel-resume"></div>
+        <div class="form-grid">
+          <div class="form-group"><label>Destinataire (email)</label><input type="email" id="envoi-rel-email" placeholder="contact@client.fr" /></div>
+          <div class="form-group"><label>Objet</label><input type="text" id="envoi-rel-objet" /></div>
+        </div>
+        <div class="form-group" style="margin-top:12px">
+          <label>Corps du message (modifiable avant envoi)</label>
+          <textarea id="envoi-rel-corps" rows="12" style="font-family:inherit"></textarea>
+        </div>
+        <div class="envoi-rel-legal" id="envoi-rel-legal" style="display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-envoi-relance')">Annuler</button>
+        <button class="btn-secondary" onclick="telechargerPDFRelance()">📄 Télécharger PDF</button>
+        <button class="btn-primary" onclick="envoyerRelanceMailto()">✉️ Ouvrir dans ma messagerie</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint 14 : Confirmations de réception à envoyer -->
+  <div class="modal-overlay" id="modal-confirmations">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>📨 Confirmations de réception</h3><button class="modal-close" onclick="closeModal('modal-confirmations')">✕</button></div>
+      <div class="modal-body">
+        <div class="info-banner" style="margin-bottom:14px">
+          💡 Envoie un message à tes clients pour leur demander de confirmer la bonne réception de la facture. Utile pour éviter les "je ne l'ai jamais reçue" et documenter le point de départ du délai de paiement.
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>N° facture</th><th>Client</th><th>Date émise</th><th>Montant TTC</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody id="tb-confirmations"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="closeModal('modal-confirmations')">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Sprint 12.1 : Réinitialisation compteur factures -->
   <div class="modal-overlay" id="modal-reset-compteur">
     <div class="modal">
-      <div class="modal-header"><h3>🧹 Réinitialiser le compteur factures</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3>🧹 Réinitialiser compteurs (LIV + FAC + ACP)</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
           <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible et fiscalement sensible</div>
           <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5">
-            Cette action va <strong>supprimer définitivement toutes les factures</strong> stockées (y compris annulées) et remettre le compteur à zéro.<br><br>
-            <strong>N'utilise JAMAIS en production</strong>. Uniquement en phase de test, avant toute première vraie facturation. En cas de contrôle fiscal, l'absence d'historique peut être sanctionnée.
+            Cette action va <strong>supprimer toutes les factures, acomptes et/ou bons de livraison</strong> (y compris annulés), purger les avoirs/paiements liés, et remettre les compteurs à zéro (FAC, ACP, LIV).<br><br>
+            <strong>N'utilise JAMAIS en production</strong>. Uniquement en phase de test, avant toute première vraie facturation. En cas de contrôle fiscal, l'absence d'historique peut être sanctionnée (CGI art. 289 — numérotation chronologique continue).
           </div>
+        </div>
+        <div class="form-group">
+          <label>Options :</label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
+            <input type="checkbox" id="reset-include-livraisons" checked />
+            <span>Supprimer aussi les bons de livraison (remet compteur LIV à 0)</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin-top:6px">
+            <input type="checkbox" id="reset-include-acomptes" checked />
+            <span>Supprimer aussi les acomptes clients (remet compteur ACP à 0)</span>
+          </label>
         </div>
         <div class="form-group">
           <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET FACTURES</strong></label>

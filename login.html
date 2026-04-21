@@ -6,6 +6,14 @@
   <meta name="robots" content="noindex, nofollow" />
   <title>MCA Logistics - Connexion</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f2a33b'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-size='24' font-family='Arial' font-weight='700' fill='%230d1524'%3EMCA%3C/text%3E%3C/svg%3E" />
+  <!-- BUG-005 PWA : manifest + theme + install -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d1524" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <style>
     :root {
       --bg: #0d1524;
@@ -387,10 +395,10 @@
     <section class="auth" id="auth-shell">
       <div class="auth-card">
         <div class="auth-head">
-          <h2>Connexion</h2>
+          <h2 id="auth-title">Connexion</h2>
         </div>
 
-    <form onsubmit="soumettreConnexion(event)">
+    <form id="login-form" onsubmit="soumettreConnexion(event)">
       <div class="field">
         <label id="login-identifiant-label" for="login-identifiant">Identifiant</label>
         <input type="text" id="login-identifiant" autocomplete="username" placeholder="Identifiant admin ou numero salarie" />
@@ -407,6 +415,35 @@
       <button type="submit" class="submit" id="login-submit">Se connecter</button>
       <div class="error-msg" id="login-error"></div>
       <div class="status-msg" id="login-status"></div>
+    </form>
+
+    <form id="setup-form" onsubmit="soumettreSetupInitial(event)" style="display:none">
+      <div style="background:rgba(242,163,59,0.08);border:1px solid rgba(242,163,59,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:.88rem;line-height:1.5">
+        <strong style="color:#ffd49e">🔐 Premier démarrage</strong><br />
+        Créez le mot de passe administrateur du compte <strong id="setup-identifiant-display">achraf.chikri</strong>.<br />
+        <span style="color:var(--muted);font-size:.82rem">Minimum 8 caractères, une majuscule, une minuscule, un chiffre.</span>
+      </div>
+
+      <div class="field">
+        <label for="setup-password">Nouveau mot de passe</label>
+        <div class="password-wrap">
+          <input type="password" id="setup-password" autocomplete="new-password" placeholder="Au moins 8 caractères" />
+          <button type="button" class="toggle-password" onclick="toggleMdpVisible('setup-password', this)" title="Afficher le mot de passe">Voir</button>
+        </div>
+        <div id="setup-strength" style="font-size:.78rem;margin-top:6px;color:var(--muted)"></div>
+      </div>
+
+      <div class="field">
+        <label for="setup-password-confirm">Confirmer le mot de passe</label>
+        <div class="password-wrap">
+          <input type="password" id="setup-password-confirm" autocomplete="new-password" placeholder="Retapez votre mot de passe" />
+          <button type="button" class="toggle-password" onclick="toggleMdpVisible('setup-password-confirm', this)" title="Afficher le mot de passe">Voir</button>
+        </div>
+      </div>
+
+      <button type="submit" class="submit" id="setup-submit">Créer le mot de passe</button>
+      <div class="error-msg" id="setup-error"></div>
+      <div class="status-msg" id="setup-status"></div>
     </form>
 
       </div>
@@ -505,11 +542,26 @@
     }
 
     function getDefaultAdminAccounts() {
-      const legacyPassword = localStorage.getItem('mdp_admin') || 'admin123';
+      // BUG-020 fix : pas de mot de passe par défaut. Le setup initial est requis.
+      const legacyPassword = localStorage.getItem('mdp_admin') || '';
       return [
         { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: legacyPassword },
-        { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: 'admin123' }
+        { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: '' }
       ];
+    }
+
+    function adminCompteEstConfigure(compte) {
+      if (!compte) return false;
+      return !!(compte.motDePasseHash || (compte.motDePasse && String(compte.motDePasse).length > 0));
+    }
+
+    function admin_AucunMotDePasseConfigure() {
+      const comptes = JSON.parse(localStorage.getItem('admin_accounts') || 'null');
+      if (!Array.isArray(comptes) || !comptes.length) {
+        // Comptes par défaut → considérer non configuré sauf si legacy mdp_admin existe
+        return !localStorage.getItem('mdp_admin');
+      }
+      return comptes.every(function (c) { return !adminCompteEstConfigure(c); });
     }
 
     function appliquerRoleConnexion() {
@@ -748,6 +800,82 @@
       loginEnCours = null;
     }
 
+    // BUG-020 — Setup initial du mot de passe admin
+    function basculerVersSetupInitial() {
+      const defauts = getDefaultAdminAccounts();
+      const cible = defauts[0] || {};
+      document.getElementById('setup-identifiant-display').textContent = cible.identifiant || '—';
+      document.getElementById('auth-title').textContent = 'Premier démarrage';
+      document.getElementById('login-form').style.display = 'none';
+      document.getElementById('setup-form').style.display = '';
+    }
+
+    function basculerVersConnexion() {
+      document.getElementById('auth-title').textContent = 'Connexion';
+      document.getElementById('setup-form').style.display = 'none';
+      document.getElementById('login-form').style.display = '';
+    }
+
+    function evaluerForceMdp(mdp) {
+      const security = window.DelivProSecurity || null;
+      if (security && typeof security.evaluatePassword === 'function') {
+        return security.evaluatePassword(mdp, { minLength: 8 });
+      }
+      const ok = String(mdp || '').length >= 8;
+      return { ok: ok, message: ok ? 'Mot de passe accepté.' : 'Mot de passe trop court (8 minimum).', color: ok ? 'var(--success)' : 'var(--danger)' };
+    }
+
+    async function soumettreSetupInitial(event) {
+      if (event) event.preventDefault();
+      const pwd = document.getElementById('setup-password').value;
+      const confirm = document.getElementById('setup-password-confirm').value;
+      const errEl = document.getElementById('setup-error');
+      const statusEl = document.getElementById('setup-status');
+      errEl.classList.remove('show'); statusEl.classList.remove('show');
+
+      const evaluation = evaluerForceMdp(pwd);
+      if (!evaluation.ok) {
+        errEl.textContent = evaluation.message || 'Mot de passe trop faible.';
+        errEl.classList.add('show');
+        return;
+      }
+      if (pwd !== confirm) {
+        errEl.textContent = 'Les deux mots de passe ne correspondent pas.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const security = window.DelivProSecurity || null;
+      let hash = '';
+      if (security && typeof security.hashPassword === 'function') {
+        hash = await security.hashPassword(pwd);
+      } else {
+        errEl.textContent = 'Navigateur non supporté (SubtleCrypto manquant). Utilisez Chrome/Firefox/Edge récent.';
+        errEl.classList.add('show');
+        return;
+      }
+
+      const defauts = getDefaultAdminAccounts();
+      const comptes = defauts.map(function (c, idx) {
+        return {
+          identifiant: c.identifiant,
+          nom: c.nom,
+          motDePasseHash: idx === 0 ? hash : ''
+        };
+      });
+      localStorage.setItem('admin_accounts', JSON.stringify(comptes));
+      localStorage.removeItem('mdp_admin');
+
+      statusEl.textContent = '✅ Mot de passe créé. Connexion en cours...';
+      statusEl.classList.add('show');
+      // Auto-connexion avec le compte fraîchement configuré
+      const ident = (defauts[0] && defauts[0].identifiant) || '';
+      document.getElementById('login-identifiant').value = ident;
+      document.getElementById('login-password').value = pwd;
+      basculerVersConnexion();
+      setTimeout(function () { soumettreConnexion(null); }, 300);
+    }
+
     document.addEventListener('DOMContentLoaded', async function() {
       appliquerBrandingLogin();
       terminerSignOutEnArrierePlan();
@@ -771,6 +899,20 @@
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', masquerMessagesConnexion);
       });
+
+      const setupPwd = document.getElementById('setup-password');
+      if (setupPwd) {
+        setupPwd.addEventListener('input', function () {
+          const evalRes = evaluerForceMdp(setupPwd.value);
+          const el = document.getElementById('setup-strength');
+          if (el) { el.textContent = evalRes.message || ''; el.style.color = evalRes.color || 'var(--muted)'; }
+        });
+      }
+
+      // BUG-020 — premier démarrage : basculer automatiquement si aucun mdp admin n'existe
+      if (admin_AucunMotDePasseConfigure()) {
+        basculerVersSetupInitial();
+      }
     });
   </script>
 </body>
