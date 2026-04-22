@@ -2129,34 +2129,6 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-relance-templates">
-    <div class="modal" style="max-width:780px">
-      <div class="modal-header"><h3>✍️ Texte automatique de relance</h3><button class="modal-close" onclick="closeModal('modal-relance-templates')">✕</button></div>
-      <div class="modal-body">
-        <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px">
-          Variables disponibles : <code>{client}</code>, <code>{numLiv}</code>, <code>{dateLivraison}</code>, <code>{montant}</code>, <code>{joursRetard}</code>, <code>{societe}</code>
-        </div>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label>Relance amiable</label>
-            <textarea id="relance-template-1" rows="4" placeholder="Texte de relance amiable..."></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label>Mise en demeure</label>
-            <textarea id="relance-template-2" rows="4" placeholder="Texte de mise en demeure..."></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label>Dernier avis</label>
-            <textarea id="relance-template-3" rows="4" placeholder="Texte de dernier avis..."></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="reinitialiserTemplatesRelance()">Réinitialiser</button>
-        <button class="btn-primary" onclick="sauvegarderTemplatesRelance()">💾 Enregistrer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Modifier relevé km (admin) -->
   <div class="modal-overlay" id="modal-edit-km">
@@ -2397,188 +2369,16 @@
   <div id="print-bon"></div>
 
   <!-- Sprint 12 : Créer un avoir -->
-  <div class="modal-overlay" id="modal-avoir">
-    <div class="modal">
-      <div class="modal-header"><h3>🧾 Créer un avoir</h3><button class="modal-close" onclick="closeModal('modal-avoir')">✕</button></div>
-      <div class="modal-body">
-        <div class="avoir-ref" id="avoir-ref-box"></div>
-        <div class="form-grid">
-          <div class="form-group"><label>Type d'avoir</label>
-            <select id="avoir-type" onchange="majFormAvoir()">
-              <option value="total">Avoir total (annulation complète)</option>
-              <option value="partiel">Avoir partiel</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Date</label><input type="date" id="avoir-date" /></div>
-          <div class="form-group"><label>Montant HT (€)</label><input type="number" id="avoir-ht" min="0" step="0.01" placeholder="0,00" oninput="majMontantsAvoir()" /></div>
-          <div class="form-group"><label>Taux TVA</label>
-            <select id="avoir-taux-tva" onchange="majMontantsAvoir()">
-              <option value="0">0 %</option><option value="5.5">5,5 %</option><option value="10">10 %</option><option value="20" selected>20 %</option>
-            </select>
-          </div>
-          <div class="form-group full-width"><label>Motif</label>
-            <select id="avoir-motif" onchange="majMotifLibre()">
-              <option value="Erreur de facturation">Erreur de facturation</option>
-              <option value="Geste commercial">Geste commercial / remise</option>
-              <option value="Retour / prestation non effectuée">Retour / prestation non effectuée</option>
-              <option value="Annulation totale">Annulation totale</option>
-              <option value="__autre__">Autre (texte libre)</option>
-            </select>
-          </div>
-          <div class="form-group full-width" id="avoir-motif-libre-group" style="display:none">
-            <label>Motif libre *</label>
-            <input type="text" id="avoir-motif-libre" placeholder="Précise le motif de l'avoir…" />
-            <div style="font-size:0.76rem;color:var(--text-muted);margin-top:4px">Ce texte apparaîtra tel quel sur l'avoir (rien d'autre).</div>
-          </div>
-          <div class="form-group full-width"><label>Notes internes</label>
-            <input type="text" id="avoir-notes" placeholder="Notes internes (non imprimées)" />
-          </div>
-        </div>
-        <div class="calc-summary" id="avoir-calc" style="display:none"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-avoir')">Annuler</button>
-        <button class="btn-primary" onclick="enregistrerAvoir()">Émettre l'avoir</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 12 : Enregistrer un paiement (ventes ou achats) -->
-  <div class="modal-overlay" id="modal-paiement">
-    <div class="modal">
-      <div class="modal-header"><h3 id="paiement-titre">💰 Enregistrer un paiement</h3><button class="modal-close" onclick="closeModal('modal-paiement')">✕</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group"><label>Sens</label>
-            <select id="paiement-sens" onchange="majPaiementListes()">
-              <option value="in">Reçu d'un client (vente)</option>
-              <option value="out">Émis vers un fournisseur (achat)</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Date</label><input type="date" id="paiement-date" /></div>
-          <div class="form-group full-width"><label>Lié à</label>
-            <select id="paiement-cible"><option value="">-- Choisir facture ou charge --</option></select>
-            <div id="paiement-solde-info" style="font-size:0.78rem;color:var(--text-muted);margin-top:4px"></div>
-          </div>
-          <div class="form-group"><label>Montant (€)</label><input type="number" id="paiement-montant" min="0" step="0.01" placeholder="0,00" /></div>
-          <div class="form-group"><label>Mode</label>
-            <select id="paiement-mode">
-              <option value="virement">Virement</option>
-              <option value="especes">Espèces</option>
-              <option value="cheque">Chèque</option>
-              <option value="cb">Carte bancaire</option>
-            </select>
-          </div>
-          <div class="form-group full-width"><label>Notes</label><input type="text" id="paiement-notes" placeholder="Référence chèque, commentaire…" /></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-paiement')">Annuler</button>
-        <button class="btn-primary" onclick="enregistrerPaiement()">Enregistrer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 12.1 : Aperçu facture avant émission -->
-  <div class="modal-overlay" id="modal-preview-facture">
-    <div class="modal modal-large">
-      <div class="modal-header">
-        <h3>📄 Aperçu facture <span id="preview-fac-badge" style="font-size:0.72rem;background:#f59e0b;color:#fff;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle">NON ÉMISE</span></h3>
-        <button class="modal-close" onclick="closeModal('modal-preview-facture')">✕</button>
-      </div>
-      <div class="modal-body" style="max-height:70vh;overflow-y:auto;background:#f3f4f6;padding:20px">
-        <div style="padding:14px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;margin-bottom:14px;font-size:0.88rem;color:#78350f">
-          ⚠️ <strong>Aperçu uniquement</strong>. Aucun numéro n'est encore assigné. Clique sur <strong>Émettre cette facture</strong> pour assigner définitivement le prochain numéro et générer le PDF imprimable.
-        </div>
-        <div id="preview-fac-content"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-preview-facture')">Annuler (pas de numéro consommé)</button>
-        <button class="btn-primary" onclick="emettreFactureConfirmee()">✓ Émettre cette facture</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 14 : Modèles de relance v2 (4 niveaux dont confirmation) -->
-  <div class="modal-overlay" id="modal-relance-templates-v2">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3>✍️ Modèles de relance & confirmation</h3><button class="modal-close" onclick="closeModal('modal-relance-templates-v2')">✕</button></div>
-      <div class="modal-body">
-        <div class="relance-var-help">
-          Variables disponibles : <code>{client}</code> <code>{contact}</code> <code>{numFacture}</code> <code>{numLiv}</code> <code>{dateLivraison}</code> <code>{dateEcheance}</code> <code>{montantTTC}</code> <code>{soldeDu}</code> <code>{joursRetard}</code> <code>{societe}</code> <code>{interets}</code> <code>{forfait}</code>
-        </div>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-0">0</span> Confirmation de réception <span class="lvl-desc">(envoyée à l'émission facture)</span></label>
-            <textarea id="rel-tpl-0" rows="4"></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-1">1</span> Rappel amiable <span class="lvl-desc">(J+1 à J+30 après échéance)</span></label>
-            <textarea id="rel-tpl-1" rows="4"></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-2">2</span> Relance ferme <span class="lvl-desc">(J+30 à J+60)</span></label>
-            <textarea id="rel-tpl-2" rows="4"></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-3">3</span> Mise en demeure <span class="lvl-desc">(J+60+ avec mention art. L441-10 et intérêts de retard)</span></label>
-            <textarea id="rel-tpl-3" rows="5"></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="reinitialiserTemplatesRelanceV2()">🔄 Valeurs par défaut</button>
-        <button class="btn-primary" onclick="sauvegarderTemplatesRelanceV2()">💾 Enregistrer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 14 : Envoi relance (aperçu + PDF + mailto) -->
-  <div class="modal-overlay" id="modal-envoi-relance">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3 id="envoi-rel-titre">📧 Envoyer une relance</h3><button class="modal-close" onclick="closeModal('modal-envoi-relance')">✕</button></div>
-      <div class="modal-body">
-        <input type="hidden" id="envoi-rel-fac-id" />
-        <input type="hidden" id="envoi-rel-niveau" />
-        <div class="envoi-rel-resume" id="envoi-rel-resume"></div>
-        <div class="form-grid">
-          <div class="form-group"><label>Destinataire (email)</label><input type="email" id="envoi-rel-email" placeholder="contact@client.fr" /></div>
-          <div class="form-group"><label>Objet</label><input type="text" id="envoi-rel-objet" /></div>
-        </div>
-        <div class="form-group" style="margin-top:12px">
-          <label>Corps du message (modifiable avant envoi)</label>
-          <textarea id="envoi-rel-corps" rows="12" style="font-family:inherit"></textarea>
-        </div>
-        <div class="envoi-rel-legal" id="envoi-rel-legal" style="display:none"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-envoi-relance')">Annuler</button>
-        <button class="btn-secondary" onclick="telechargerPDFRelance()">📄 Télécharger PDF</button>
-        <button class="btn-primary" onclick="envoyerRelanceMailto()">✉️ Ouvrir dans ma messagerie</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 14 : Confirmations de réception à envoyer -->
-  <div class="modal-overlay" id="modal-confirmations">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3>📨 Confirmations de réception</h3><button class="modal-close" onclick="closeModal('modal-confirmations')">✕</button></div>
-      <div class="modal-body">
-        <div class="info-banner" style="margin-bottom:14px">
-          💡 Envoie un message à tes clients pour leur demander de confirmer la bonne réception de la facture. Utile pour éviter les "je ne l'ai jamais reçue" et documenter le point de départ du délai de paiement.
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>N° facture</th><th>Client</th><th>Date émise</th><th>Montant TTC</th><th>Statut</th><th>Actions</th></tr></thead>
-            <tbody id="tb-confirmations"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary" onclick="closeModal('modal-confirmations')">Fermer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Réinitialisation compteur livraisons (test uniquement) -->
   <div class="modal-overlay" id="modal-reset-compteur">
@@ -2605,27 +2405,6 @@
   </div>
 
   <!-- Sprint 12 : Suppression forcée (taper numéro) -->
-  <div class="modal-overlay" id="modal-force-delete">
-    <div class="modal">
-      <div class="modal-header"><h3>⚠️ Suppression forcée</h3><button class="modal-close" onclick="closeModal('modal-force-delete')">✕</button></div>
-      <div class="modal-body">
-        <div style="padding:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
-          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">Action irréversible et non recommandée</div>
-          <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5" id="force-delete-warn">
-            Supprimer un document déjà facturé n'est pas recommandé par le droit fiscal français. L'émission d'un <strong>avoir</strong> est la méthode légale pour corriger une facture.
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Pour confirmer, tape exactement : <strong id="force-delete-code">FAC-XXXX-XXXX</strong></label>
-          <input type="text" id="force-delete-input" placeholder="Recopie le numéro ci-dessus" autocomplete="off" oninput="majBoutonForceDelete()" />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-force-delete')">Annuler</button>
-        <button class="btn-primary" id="btn-force-delete-confirm" onclick="executerForceDelete()" disabled style="background:#ef4444">Supprimer définitivement</button>
-      </div>
-    </div>
-  </div>
 
   <div class="modal-overlay" id="modal-recherche-globale">
     <div class="modal modal-search-global">
