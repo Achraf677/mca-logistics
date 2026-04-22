@@ -2852,6 +2852,37 @@ function ajouterLivraison() {
     }
   } catch (_) { /* silencieux : ne bloque pas la création de la livraison */ }
 
+  // BUG-012/013 fix : champs lettre de voiture conforme arrêté 09/11/1999
+  const getVal = (id) => (document.getElementById(id)?.value || '').trim();
+  const expediteur = {
+    nom: getVal('liv-exp-nom'),
+    contact: getVal('liv-exp-contact'),
+    adresse: getVal('liv-exp-adresse'),
+    cp: getVal('liv-exp-cp'),
+    ville: getVal('liv-exp-ville'),
+    pays: getVal('liv-exp-pays') || 'FR'
+  };
+  const destinataire = {
+    nom: getVal('liv-dest-nom'),
+    contact: getVal('liv-dest-contact'),
+    adresse: getVal('liv-dest-adresse'),
+    cp: getVal('liv-dest-cp'),
+    ville: getVal('liv-dest-ville'),
+    pays: getVal('liv-dest-pays') || 'FR'
+  };
+  const marchandise = {
+    nature: getVal('liv-marchandise-nature'),
+    poidsKg: parseFloat(getVal('liv-marchandise-poids')) || 0,
+    volumeM3: parseFloat(getVal('liv-marchandise-volume')) || 0,
+    nbColis: parseInt(getVal('liv-marchandise-colis'), 10) || 0
+  };
+  const adr = {
+    estADR: !!document.getElementById('liv-adr-est')?.checked,
+    codeONU: getVal('liv-adr-onu'),
+    classe: getVal('liv-adr-classe'),
+    groupeEmballage: getVal('liv-adr-groupe')
+  };
+
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
@@ -2862,6 +2893,7 @@ function ajouterLivraison() {
     statutPaiement: 'en-attente',
     modePaiement:   document.getElementById('liv-mode-paiement')?.value || '',
     heureDebut:     document.getElementById('liv-heure-debut')?.value || '',
+    expediteur, destinataire, marchandise, adr,
     creeLe: new Date().toISOString()
   };
 
@@ -2895,12 +2927,23 @@ function ajouterLivraison() {
 }
 
 function viderFormulaireLivraison() {
-  ['liv-client','liv-zone','liv-depart','liv-arrivee','liv-distance','liv-prix','liv-prix-ht','liv-notes','liv-heure-debut'].forEach(id => {
+  ['liv-client','liv-client-siren','liv-zone','liv-depart','liv-arrivee','liv-distance','liv-prix','liv-prix-ht','liv-notes','liv-heure-debut',
+    // BUG-012/013 : champs lettre de voiture
+    'liv-exp-nom','liv-exp-contact','liv-exp-adresse','liv-exp-cp','liv-exp-ville',
+    'liv-dest-nom','liv-dest-contact','liv-dest-adresse','liv-dest-cp','liv-dest-ville',
+    'liv-marchandise-nature','liv-marchandise-poids','liv-marchandise-volume','liv-marchandise-colis',
+    'liv-adr-onu','liv-adr-classe'
+  ].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  ['liv-chauffeur','liv-vehicule','liv-mode-paiement'].forEach(id => {
+  ['liv-chauffeur','liv-vehicule','liv-mode-paiement','liv-adr-groupe'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const expPays = document.getElementById('liv-exp-pays'); if (expPays) expPays.value = 'FR';
+  const destPays = document.getElementById('liv-dest-pays'); if (destPays) destPays.value = 'FR';
+  const adrChk = document.getElementById('liv-adr-est');
+  if (adrChk) { adrChk.checked = false; const det = document.getElementById('liv-adr-details'); if (det) det.style.display = 'none'; }
+  const ldvSec = document.getElementById('liv-ldv-section'); if (ldvSec) ldvSec.open = false;
   const tvaSel = document.getElementById('liv-taux-tva'); if (tvaSel) tvaSel.value = '20';
   document.getElementById('liv-statut').value = 'en-attente';
   document.getElementById('liv-date').value   = aujourdhui();
@@ -10412,6 +10455,113 @@ function genererFactureLivraison(livId) {
   afficherToast('📄 Facture générée');
 }
 
+/* ============================================================
+   Lettre de voiture — arrêté 09/11/1999 modifié + décret 2017-443
+   + ADR 2025 chapitre 5.4 pour matières dangereuses
+   Mentions obligatoires : date, nom+adresse expéditeur, nom+adresse
+   destinataire, lieu+date chargement et déchargement, nature
+   marchandise, poids brut, nombre de colis, prix transport, nom+
+   immat transporteur, signatures.
+   ============================================================ */
+function genererLettreDeVoiture(livId) {
+  const livraison = charger('livraisons').find(l => l.id === livId);
+  if (!livraison) { afficherToast('⚠️ Livraison introuvable', 'error'); return; }
+  const params = getEntrepriseExportParams();
+  const exp = livraison.expediteur || {};
+  const dest = livraison.destinataire || {};
+  const merch = livraison.marchandise || {};
+  const adr = livraison.adr || {};
+  const dateLiv = livraison.date ? formatDateExport(livraison.date) : '—';
+  const dateEmission = formatDateHeureExport();
+  const numLDV = livraison.numLiv ? 'LDV-' + livraison.numLiv.replace(/^LIV-/, '') : 'LDV-' + (livraison.id || '').slice(0, 8);
+
+  const esc = planningEscapeHtml;
+  const adresseComplete = function(obj) {
+    const parts = [obj.adresse, ((obj.cp || '') + ' ' + (obj.ville || '')).trim(), (obj.pays && obj.pays !== 'FR') ? obj.pays : ''];
+    return parts.filter(Boolean).map(esc).join('<br>');
+  };
+
+  const manques = [];
+  if (!exp.nom) manques.push('expéditeur');
+  if (!exp.adresse || !exp.ville) manques.push('adresse chargement');
+  if (!dest.nom) manques.push('destinataire');
+  if (!dest.adresse || !dest.ville) manques.push('adresse déchargement');
+  if (!merch.nature) manques.push('nature marchandise');
+  if (!merch.poidsKg) manques.push('poids');
+  if (!merch.nbColis) manques.push('nombre de colis');
+
+  const bandeauAlerte = manques.length
+    ? '<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.85rem"><strong>⚠️ Lettre de voiture incomplète.</strong> Champs manquants : ' + esc(manques.join(', ')) + '. Complétez-les sur la fiche livraison pour un document légalement conforme (arrêté 09/11/1999).</div>'
+    : '';
+
+  const blocADR = adr.estADR
+    ? '<div style="margin-top:14px;padding:12px;border:2px solid #dc2626;background:#fef2f2;border-radius:8px">'
+      + '<div style="font-weight:800;color:#dc2626;font-size:.95rem;margin-bottom:6px">⚠️ TRANSPORT ADR — MATIÈRES DANGEREUSES (chapitre 5.4 ADR 2025)</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:.85rem">'
+      + '<div><strong>Code ONU :</strong> ' + esc(adr.codeONU || '—') + '</div>'
+      + '<div><strong>Classe :</strong> ' + esc(adr.classe || '—') + '</div>'
+      + '<div><strong>Groupe emballage :</strong> ' + esc(adr.groupeEmballage || '—') + '</div>'
+      + '</div></div>'
+    : '';
+
+  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827;background:#fff">'
+    + bandeauAlerte
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #111827;padding-bottom:12px">'
+    + '<div><div style="font-size:1.4rem;font-weight:900">LETTRE DE VOITURE</div>'
+    + '<div style="font-size:.8rem;color:#6b7280;margin-top:4px">N° ' + esc(numLDV) + ' · ' + esc(dateLiv) + '</div>'
+    + '<div style="font-size:.72rem;color:#9ca3af;margin-top:2px">Document obligatoire — arrêté 09/11/1999 modifié + décret 2017-443</div></div>'
+    + '<div style="text-align:right;font-size:.82rem"><div><strong>' + esc(params.nom || '') + '</strong></div>'
+    + (params.siret ? '<div>SIRET : ' + esc(params.siret) + '</div>' : '')
+    + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">'
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Expéditeur / Chargeur</div>'
+    + '<div style="font-weight:700;font-size:.95rem">' + esc(exp.nom || '—') + '</div>'
+    + '<div style="font-size:.82rem;color:#4b5563;margin-top:6px">' + adresseComplete(exp) + '</div>'
+    + (exp.contact ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">Contact : ' + esc(exp.contact) + '</div>' : '')
+    + '<div style="font-size:.78rem;color:#6b7280;margin-top:8px"><strong>Date chargement :</strong> ' + esc(dateLiv) + '</div>'
+    + '</div>'
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Destinataire</div>'
+    + '<div style="font-weight:700;font-size:.95rem">' + esc(dest.nom || '—') + '</div>'
+    + '<div style="font-size:.82rem;color:#4b5563;margin-top:6px">' + adresseComplete(dest) + '</div>'
+    + (dest.contact ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">Contact : ' + esc(dest.contact) + '</div>' : '')
+    + '<div style="font-size:.78rem;color:#6b7280;margin-top:8px"><strong>Date déchargement prévue :</strong> ' + esc(dateLiv) + '</div>'
+    + '</div></div>'
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Marchandise</div>'
+    + '<div style="font-size:.9rem;margin-bottom:8px"><strong>Nature :</strong> ' + esc(merch.nature || '—') + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:.85rem">'
+    + '<div><strong>Poids brut :</strong> ' + (merch.poidsKg ? merch.poidsKg + ' kg' : '—') + '</div>'
+    + '<div><strong>Volume :</strong> ' + (merch.volumeM3 ? merch.volumeM3 + ' m³' : '—') + '</div>'
+    + '<div><strong>Nombre de colis :</strong> ' + (merch.nbColis || '—') + '</div>'
+    + '</div></div>'
+    + blocADR
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Transporteur</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem">'
+    + '<div><strong>Société :</strong> ' + esc(params.nom || '—') + '</div>'
+    + '<div><strong>SIRET :</strong> ' + esc(params.siret || '—') + '</div>'
+    + '<div><strong>Chauffeur :</strong> ' + esc(livraison.chaufNom || '—') + '</div>'
+    + '<div><strong>Immatriculation :</strong> ' + esc(livraison.vehNom || '—') + '</div>'
+    + '<div><strong>Prix du transport :</strong> ' + euros(livraison.prixHT || livraison.prix || 0) + ' HT</div>'
+    + '<div><strong>Distance :</strong> ' + (livraison.distance ? livraison.distance + ' km' : '—') + '</div>'
+    + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px">'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature expéditeur</div></div>'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature transporteur</div></div>'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature destinataire (+ éventuelles réserves)</div></div>'
+    + '</div>'
+    + '<div style="margin-top:16px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Édité le ' + esc(dateEmission) + ' · Conservation obligatoire 5 ans (R.3411-13 Code des transports)</div>'
+    + '</div>';
+  ouvrirFenetreImpression('Lettre de voiture ' + numLDV, html, 'width=1000,height=820');
+  ajouterEntreeAudit('Lettre de voiture', numLDV + ' · ' + (livraison.client || 'Client') + (manques.length ? ' (incomplète : ' + manques.length + ' champs)' : ''));
+  afficherToast(manques.length
+    ? '⚠️ Lettre de voiture générée avec ' + manques.length + ' champ(s) manquant(s)'
+    : '📋 Lettre de voiture générée');
+}
+window.genererLettreDeVoiture = genererLettreDeVoiture;
+
 /* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
 function autoRemplirVehicule() {
   const chaufId = document.getElementById('liv-chauffeur').value;
@@ -12283,6 +12433,7 @@ window.__adminFinalLock = function() {
         <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
           { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+          { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
           { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
           { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
           { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -12468,6 +12619,7 @@ window.renderLivraisonsAdminFinal = function() {
       <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
         { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
         { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+        { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
         { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
         { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
         { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -16703,6 +16855,7 @@ genererRentabilitePDF = function() {
           <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
             { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
             { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+            { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
             { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
             { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
             { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -16990,6 +17143,7 @@ genererRentabilitePDF = function() {
           <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
             { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
             { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+            { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
             { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
             { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
             { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }

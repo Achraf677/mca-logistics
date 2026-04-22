@@ -1824,6 +1824,48 @@
           </div>
           <div class="form-group full-width"><label>Notes</label><input type="text" id="liv-notes" placeholder="Informations supplémentaires..." /></div>
         </div>
+        <!-- BUG-012/013 fix : détails lettre de voiture (arrêté 09/11/1999 + décret 2017-443) -->
+        <details id="liv-ldv-section" style="margin-top:12px;border:1px solid var(--border);border-radius:10px;padding:0">
+          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
+            📋 Détails pour lettre de voiture <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(obligatoire transport &gt; 3,5 t · arrêté 09/11/1999)</span>
+          </summary>
+          <div style="padding:14px;border-top:1px solid var(--border)">
+            <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">Expéditeur / chargeur</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Nom expéditeur</label><input type="text" id="liv-exp-nom" placeholder="Raison sociale" /></div>
+              <div class="form-group"><label>Contact expéditeur</label><input type="text" id="liv-exp-contact" placeholder="Nom + tél" /></div>
+              <div class="form-group full-width"><label>Adresse chargement</label><input type="text" id="liv-exp-adresse" placeholder="Rue + numéro" /></div>
+              <div class="form-group"><label>Code postal</label><input type="text" id="liv-exp-cp" placeholder="75001" maxlength="10" /></div>
+              <div class="form-group"><label>Ville</label><input type="text" id="liv-exp-ville" placeholder="Paris" /></div>
+              <div class="form-group"><label>Pays</label><input type="text" id="liv-exp-pays" placeholder="FR" maxlength="3" value="FR" /></div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Destinataire</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Nom destinataire</label><input type="text" id="liv-dest-nom" placeholder="Raison sociale" /></div>
+              <div class="form-group"><label>Contact destinataire</label><input type="text" id="liv-dest-contact" placeholder="Nom + tél" /></div>
+              <div class="form-group full-width"><label>Adresse déchargement</label><input type="text" id="liv-dest-adresse" placeholder="Rue + numéro" /></div>
+              <div class="form-group"><label>Code postal</label><input type="text" id="liv-dest-cp" placeholder="69003" maxlength="10" /></div>
+              <div class="form-group"><label>Ville</label><input type="text" id="liv-dest-ville" placeholder="Lyon" /></div>
+              <div class="form-group"><label>Pays</label><input type="text" id="liv-dest-pays" placeholder="FR" maxlength="3" value="FR" /></div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Marchandise</div>
+            <div class="form-grid">
+              <div class="form-group full-width"><label>Nature de la marchandise</label><input type="text" id="liv-marchandise-nature" placeholder="Palettes alimentaires, pièces mécaniques…" /></div>
+              <div class="form-group"><label>Poids brut (kg)</label><input type="number" id="liv-marchandise-poids" min="0" step="0.1" placeholder="ex : 1500" /></div>
+              <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="ex : 12.5" /></div>
+              <div class="form-group"><label>Nombre de colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="ex : 8" /></div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Matières dangereuses (ADR 2025)</div>
+            <div class="form-grid">
+              <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR (matières dangereuses)</span></label></div>
+              <div class="form-grid full-width" id="liv-adr-details" style="display:none;grid-column:1/-1">
+                <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" /></div>
+                <div class="form-group"><label>Classe ADR</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" /></div>
+                <div class="form-group"><label>Groupe emballage</label><select id="liv-adr-groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
+              </div>
+            </div>
+          </div>
+        </details>
         <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
         <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
       </div>
