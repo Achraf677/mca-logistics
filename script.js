@@ -2969,7 +2969,7 @@ function viderFormulaireLivraison() {
   const destPays = document.getElementById('liv-dest-pays'); if (destPays) destPays.value = 'FR';
   const adrChk = document.getElementById('liv-adr-est');
   if (adrChk) { adrChk.checked = false; const det = document.getElementById('liv-adr-details'); if (det) det.style.display = 'none'; }
-  const ldvSec = document.getElementById('liv-ldv-section'); if (ldvSec) ldvSec.open = false;
+  // liv-ldv-section n'est plus un <details> collapsible — lettre de voiture toujours visible en full-page
   const tvaSel = document.getElementById('liv-taux-tva'); if (tvaSel) tvaSel.value = '20';
   document.getElementById('liv-statut').value = 'en-attente';
   document.getElementById('liv-date').value   = aujourdhui();
