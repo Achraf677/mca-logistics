@@ -2019,7 +2019,31 @@
           <div class="form-group"><label>Véhicule affecté</label><select id="edit-sal-vehicule"><option value="">-- Retirer l'affectation --</option></select></div>
           <div class="form-group"><label>🪪 Expiration permis</label><input type="date" id="edit-sal-date-permis" /></div>
           <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="edit-sal-date-assurance" /></div>
+          <div class="form-group"><label>Catégorie permis</label>
+            <select id="edit-sal-cat-permis">
+              <option value="">—</option>
+              <option value="B">B (VL ≤ 3,5 t)</option>
+              <option value="autre">Autre (permis étranger ou licence équivalente)</option>
+            </select>
+          </div>
         </div>
+        <details style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
+          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">🩺 Suivi médical du travail</summary>
+          <div style="padding:14px;border-top:1px solid var(--border)">
+            <div class="form-grid">
+              <div class="form-group"><label>Date dernière visite</label><input type="date" id="edit-sal-visite-date" /></div>
+              <div class="form-group"><label>Aptitude</label>
+                <select id="edit-sal-visite-aptitude">
+                  <option value="">—</option>
+                  <option value="apte">Apte</option>
+                  <option value="apte_restrictions">Apte avec restrictions</option>
+                  <option value="inapte">Inapte</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Date prochaine visite</label><input type="date" id="edit-sal-visite-date-exp" /></div>
+            </div>
+          </div>
+        </details>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-salarie')">Annuler</button><button class="btn-primary" onclick="confirmerEditSalarie()">✅ Enregistrer</button></div>
     </div>

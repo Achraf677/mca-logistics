@@ -5231,6 +5231,11 @@ async function ouvrirEditSalarie(id) {
   if (document.getElementById('edit-sal-poste')) document.getElementById('edit-sal-poste').value = sal.poste||'';
   if (document.getElementById('edit-sal-date-permis')) document.getElementById('edit-sal-date-permis').value = sal.datePermis||'';
   if (document.getElementById('edit-sal-date-assurance')) document.getElementById('edit-sal-date-assurance').value = sal.dateAssurance||'';
+  if (document.getElementById('edit-sal-cat-permis')) document.getElementById('edit-sal-cat-permis').value = sal.categoriePermis || '';
+  const vm = sal.visiteMedicale || {};
+  if (document.getElementById('edit-sal-visite-date')) document.getElementById('edit-sal-visite-date').value = vm.date || '';
+  if (document.getElementById('edit-sal-visite-aptitude')) document.getElementById('edit-sal-visite-aptitude').value = vm.aptitude || '';
+  if (document.getElementById('edit-sal-visite-date-exp')) document.getElementById('edit-sal-visite-date-exp').value = vm.dateExpiration || '';
 
   // Charger select véhicule
   const vehicules=charger('vehicules');
@@ -5273,6 +5278,12 @@ async function confirmerEditSalarie() {
     salaries[idx].nom=nomComplet; salaries[idx].nomFamille=nomFamille; salaries[idx].prenom=prenom;
     salaries[idx].numero=numero; salaries[idx].email=genererEmailTechniqueSalarie(numero); salaries[idx].tel=tel; salaries[idx].poste=poste;
     salaries[idx].datePermis=datePermis; salaries[idx].dateAssurance=dateAssurance;
+    salaries[idx].categoriePermis = document.getElementById('edit-sal-cat-permis')?.value || '';
+    salaries[idx].visiteMedicale = {
+      date: document.getElementById('edit-sal-visite-date')?.value || '',
+      aptitude: document.getElementById('edit-sal-visite-aptitude')?.value || '',
+      dateExpiration: document.getElementById('edit-sal-visite-date-exp')?.value || ''
+    };
     salaries[idx].previousNumero = ancienNumero;
     sauvegarder('salaries', salaries);
     // Propager dans chauffeurs
@@ -10911,11 +10922,22 @@ async function ouvrirEditVehicule(vehId) {
   if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 80;
   const sv = document.getElementById('veh-salarie');
   if (sv) sv.value = veh.salId||'';
+  // Flotte étendue (genre, PTAC, Crit'Air, VIN, carte grise...)
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val != null ? val : ''); };
+  setVal('veh-genre', veh.genre);
+  setVal('veh-carburant', veh.carburant);
+  setVal('veh-ptac', veh.ptac);
+  setVal('veh-ptra', veh.ptra);
+  setVal('veh-essieux', veh.essieux);
+  setVal('veh-critair', veh.critAir);
+  setVal('veh-date-1immat', veh.date1Immat);
+  setVal('veh-vin', veh.vin);
+  setVal('veh-carte-grise', veh.carteGrise);
   // Assurance / carte verte
   const assu = veh.assurance || {};
-  const assCompEl = document.getElementById('veh-assurance-compagnie'); if (assCompEl) assCompEl.value = assu.compagnie || '';
-  const assNumEl = document.getElementById('veh-assurance-numero'); if (assNumEl) assNumEl.value = assu.numeroContrat || '';
-  const assExpEl = document.getElementById('veh-assurance-date-exp'); if (assExpEl) assExpEl.value = assu.dateExpiration || '';
+  setVal('veh-assurance-compagnie', assu.compagnie);
+  setVal('veh-assurance-numero', assu.numeroContrat);
+  setVal('veh-assurance-date-exp', assu.dateExpiration);
   mettreAJourFormulaireVehicule();
   const modal = document.getElementById('modal-vehicule');
   modal.querySelector('h3').textContent = '✏️ Modifier le véhicule';
@@ -10957,6 +10979,17 @@ function confirmerEditVehicule() {
     numeroContrat: (document.getElementById('veh-assurance-numero')?.value || '').trim(),
     dateExpiration: document.getElementById('veh-assurance-date-exp')?.value || ''
   };
+  // Flotte étendue
+  const getV2 = (id) => (document.getElementById(id)?.value || '').trim();
+  vehicules[idx].genre = getV2('veh-genre');
+  vehicules[idx].carburant = getV2('veh-carburant');
+  vehicules[idx].ptac = parseInt(getV2('veh-ptac'), 10) || 0;
+  vehicules[idx].ptra = parseInt(getV2('veh-ptra'), 10) || 0;
+  vehicules[idx].essieux = parseInt(getV2('veh-essieux'), 10) || 0;
+  vehicules[idx].critAir = getV2('veh-critair');
+  vehicules[idx].date1Immat = getV2('veh-date-1immat');
+  vehicules[idx].vin = getV2('veh-vin').toUpperCase();
+  vehicules[idx].carteGrise = getV2('veh-carte-grise');
   sauvegarder('vehicules', vehicules);
   closeModal('modal-vehicule');
   const modal = document.getElementById('modal-vehicule');
