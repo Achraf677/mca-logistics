@@ -9156,6 +9156,14 @@ function chargerParametres() {
   Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
   const colorEl = document.getElementById('param-accent-color');
   if (colorEl) colorEl.value = localStorage.getItem('accent_color') || '#f5a623';
+  const bgColorEl = document.getElementById('param-bg-color');
+  const bgStored = localStorage.getItem('bg_color') || '#0a0d14';
+  if (bgColorEl) bgColorEl.value = bgStored;
+  document.querySelectorAll('.bg-preset').forEach(btn => {
+    btn.style.borderColor = btn.dataset.bg && btn.dataset.bg.toLowerCase() === bgStored.toLowerCase()
+      ? 'var(--accent)'
+      : 'var(--border)';
+  });
   const maxTentEl = document.getElementById('param-max-tentatives');
   if (maxTentEl) maxTentEl.value = localStorage.getItem('max_tentatives') || '5';
   const sessionTimeoutEl = document.getElementById('param-session-timeout');
@@ -9455,6 +9463,71 @@ function appliquerAccentColor() {
   localStorage.setItem('accent_color', color);
   afficherToast('🎨 Couleur appliquée');
 }
+
+// Dérive des teintes plus claires pour bg-card et bg-elevated à partir du bg principal
+function _deriveBgShades(hex) {
+  hex = String(hex || '').replace('#', '');
+  if (hex.length !== 6) return null;
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const lighten = (v, pct) => Math.min(255, Math.round(v + (255 - v) * pct));
+  const toHex = (v) => v.toString(16).padStart(2, '0');
+  const shade = (pct) => '#' + toHex(lighten(r, pct)) + toHex(lighten(g, pct)) + toHex(lighten(b, pct));
+  return {
+    bg: '#' + hex,
+    elevated: shade(0.03),
+    card: shade(0.06),
+    cardHover: shade(0.10),
+    border: shade(0.09),
+    borderStrong: shade(0.15)
+  };
+}
+
+function appliquerBgColor(color) {
+  color = color || document.getElementById('param-bg-color')?.value || '#0a0d14';
+  if (!/^#[0-9a-fA-F]{6}$/.test(color)) return;
+  const shades = _deriveBgShades(color);
+  if (!shades) return;
+  const root = document.documentElement.style;
+  root.setProperty('--bg', shades.bg);
+  root.setProperty('--bg-dark', shades.bg);
+  root.setProperty('--bg-elevated', shades.elevated);
+  root.setProperty('--bg-card', shades.card);
+  root.setProperty('--bg-card-hover', shades.cardHover);
+  root.setProperty('--border', shades.border);
+  root.setProperty('--border-strong', shades.borderStrong);
+  root.setProperty('--bg-sidebar', shades.elevated);
+  localStorage.setItem('bg_color', color);
+  const bgColorInput = document.getElementById('param-bg-color');
+  if (bgColorInput) bgColorInput.value = color;
+  // Met à jour la bordure des preset actif
+  document.querySelectorAll('.bg-preset').forEach(btn => {
+    btn.style.borderColor = btn.dataset.bg && btn.dataset.bg.toLowerCase() === color.toLowerCase()
+      ? 'var(--accent)'
+      : 'var(--border)';
+  });
+  afficherToast('🎨 Couleur de fond appliquée');
+}
+
+// Restore au boot
+(function restoreBgColor() {
+  const stored = localStorage.getItem('bg_color');
+  if (stored && /^#[0-9a-fA-F]{6}$/.test(stored) && stored !== '#0a0d14') {
+    const shades = _deriveBgShades(stored);
+    if (shades) {
+      const root = document.documentElement.style;
+      root.setProperty('--bg', shades.bg);
+      root.setProperty('--bg-dark', shades.bg);
+      root.setProperty('--bg-elevated', shades.elevated);
+      root.setProperty('--bg-card', shades.card);
+      root.setProperty('--bg-card-hover', shades.cardHover);
+      root.setProperty('--border', shades.border);
+      root.setProperty('--border-strong', shades.borderStrong);
+      root.setProperty('--bg-sidebar', shades.elevated);
+    }
+  }
+})();
 
 function majResumeSauvegardeAdmin() {
   const dateEl = document.getElementById('backup-stat-date');
@@ -21043,16 +21116,25 @@ genererRentabilitePDF = function() {
     const orig = window.naviguerVers;
     if (!orig || orig.__s22Hooked) return;
     const wrapped = function(page) {
-      // Alias hub → restaure dernière sous-page visitée
+      // Alias hub → ouvre TOUJOURS la page par défaut (reset au clic sur le hub)
       if (HUB_ALIASES.includes(page)) {
         const hub = HUBS[page];
-        const last = localStorage.getItem(hub.storageKey) || hub.defaultPage;
-        const ret = orig.call(this, last);
-        setTimeout(() => { renderBandeau(page, last); majLiensActifs(page); }, 50);
+        const defaultPage = hub.defaultPage;
+        localStorage.removeItem(hub.storageKey);
+        const ret = orig.call(this, defaultPage);
+        setTimeout(() => { renderBandeau(page, defaultPage); majLiensActifs(page); }, 50);
         return ret;
       }
+      // Navigation vers une page hors hub → reset storage des hubs précédents
+      const hubAliasDest = hubFromPage(page);
+      if (!hubAliasDest) {
+        HUB_ALIASES.forEach(a => localStorage.removeItem(HUBS[a].storageKey));
+      } else {
+        // Changement de hub : clear les autres hubs (reset)
+        HUB_ALIASES.forEach(a => { if (a !== hubAliasDest) localStorage.removeItem(HUBS[a].storageKey); });
+      }
       const ret = orig.apply(this, arguments);
-      const hubAlias = hubFromPage(page);
+      const hubAlias = hubAliasDest;
       setTimeout(() => {
         if (hubAlias) {
           localStorage.setItem(HUBS[hubAlias].storageKey, page);

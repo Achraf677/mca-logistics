@@ -920,6 +920,26 @@
                 <button class="btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:.82rem">Appliquer</button>
               </div>
             </div>
+            <div style="padding:14px 0;border-top:1px solid var(--border)">
+              <div style="margin-bottom:10px">
+                <div style="font-size:.9rem;font-weight:500">Couleur de fond</div>
+                <div style="font-size:.78rem;color:var(--text-muted)">Teinte du thème sombre — cliquez une préselection ou choisissez votre couleur</div>
+              </div>
+              <div id="bg-presets" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+                <button type="button" class="bg-preset" data-bg="#0a0d14" onclick="appliquerBgColor('#0a0d14')" title="Nuit — sobre, classique" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#0a0d14;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#0a0d14;border:1px solid rgba(255,255,255,0.1)"></span>Nuit</button>
+                <button type="button" class="bg-preset" data-bg="#0f172a" onclick="appliquerBgColor('#0f172a')" title="Slate — bleu nuit moderne" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#0f172a;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#0f172a;border:1px solid rgba(255,255,255,0.1)"></span>Slate</button>
+                <button type="button" class="bg-preset" data-bg="#18181b" onclick="appliquerBgColor('#18181b')" title="Charbon — gris pur élégant" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#18181b;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#18181b;border:1px solid rgba(255,255,255,0.1)"></span>Charbon</button>
+                <button type="button" class="bg-preset" data-bg="#1a0b1d" onclick="appliquerBgColor('#1a0b1d')" title="Prune — violet foncé original" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#1a0b1d;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#1a0b1d;border:1px solid rgba(255,255,255,0.1)"></span>Prune</button>
+                <button type="button" class="bg-preset" data-bg="#0d1a12" onclick="appliquerBgColor('#0d1a12')" title="Forêt — vert foncé atypique" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#0d1a12;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#0d1a12;border:1px solid rgba(255,255,255,0.1)"></span>Forêt</button>
+                <button type="button" class="bg-preset" data-bg="#121212" onclick="appliquerBgColor('#121212')" title="Anthracite — quasi noir minimaliste" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#121212;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#121212;border:1px solid rgba(255,255,255,0.1)"></span>Anthracite</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:.82rem;color:var(--text-muted)">Personnalisée :</span>
+                <input type="color" id="param-bg-color" value="#0a0d14" style="width:40px;height:36px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px" />
+                <button class="btn-secondary" onclick="appliquerBgColor(document.getElementById('param-bg-color').value)" style="padding:7px 14px;font-size:.82rem">Appliquer</button>
+                <button class="btn-secondary" onclick="appliquerBgColor('#0a0d14')" title="Revenir à la couleur par défaut" style="padding:7px 14px;font-size:.82rem">↺ Défaut</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1519,21 +1539,15 @@
 
   <!-- ========== MODALS ========== -->
 
-  <!-- Nouvelle livraison — vue pleine page (fullpage variant) -->
-  <div class="modal-overlay modal-fullpage-variant" id="modal-livraison">
-    <div class="modal modal-fullpage">
-      <div class="modal-header modal-header-fullpage">
-        <button class="modal-back-arrow" onclick="closeModal('modal-livraison')" title="Retour" aria-label="Retour">←</button>
-        <h3>📦 Nouvelle livraison</h3>
-      </div>
+  <!-- Nouvelle livraison -->
+  <div class="modal-overlay" id="modal-livraison">
+    <div class="modal modal-large modal-livraison-enriched">
+      <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
         <div class="fp-progress" id="liv-progress">
           <div class="fp-progress-bar"><div class="fp-progress-fill" id="liv-progress-fill" style="width:0%"></div></div>
           <div class="fp-progress-label"><span id="liv-progress-count">0</span> / 12 champs renseignés · <span id="liv-progress-pct">0%</span></div>
         </div>
-        <div class="fp-container fp-container-2col">
-
-          <div class="fp-col fp-col-left">
 
             <section class="fp-section fp-section-compact">
               <h4 class="fp-section-title">🗺️ Informations générales</h4>
@@ -1609,10 +1623,6 @@
             <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
             <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
 
-          </div>
-
-          <div class="fp-col fp-col-right">
-
             <section class="fp-section fp-section-compact fp-section-ldv">
               <h4 class="fp-section-title">🧾 Lettre de voiture</h4>
 
@@ -1660,9 +1670,6 @@
               </div>
             </section>
 
-          </div>
-
-        </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-primary" onclick="ajouterLivraison()">✅ Enregistrer la livraison</button></div>
     </div>

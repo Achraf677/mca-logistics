@@ -57,7 +57,7 @@
   --space-8: 32px;
 
   /* Layout */
-  --sidebar-width: 208px;
+  --sidebar-width: 236px;
   --sidebar-collapsed: 64px;
   --topbar-height: 56px;
 
@@ -144,12 +144,13 @@ body.app-shell.app-booting .main-content {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 18px 16px 18px 12px;
+  padding: 18px 12px 18px 12px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
-  overflow: hidden;
   min-width: 0;
+  overflow: hidden;
 }
+.sidebar-header .logo-icon { width: 42px; height: 42px; min-width: 42px; border-radius: 12px; font-size: 1rem; }
 
 .logo-icon {
   width: 48px;
@@ -174,15 +175,16 @@ body.app-shell.app-booting .main-content {
 }
 .logo-text {
   display: block;
-  font-size: 1.05rem;
+  font-size: 0.98rem;
   font-weight: 800;
   color: var(--accent);
-  letter-spacing: .2px;
+  letter-spacing: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-  flex: 1 1 0;
+  flex: 1 1 auto;
+  width: 0;
 }
 
 .sidebar-nav {
@@ -1580,9 +1582,32 @@ body.light-mode .card            { background: #ffffff; }
 body.light-mode .modal           { background: #ffffff; }
 body.light-mode .modal-overlay   { background: rgba(0,0,0,0.45); }
 body.light-mode .toast           { background: #ffffff; color: #1a1d27; }
-body.light-mode .nav-item        { color: #e8eaf0; }
-body.light-mode .nav-item:hover  { color: var(--accent); }
-body.light-mode .nav-item.active { color: var(--accent); }
+/* Light mode : sidebar reste sombre pour contraste fort (pattern commun, cf Notion/Linear) */
+body.light-mode { --bg-sidebar: #0f172a; }
+body.light-mode .sidebar { background: #0f172a; border-right-color: #1e293b; }
+body.light-mode .sidebar-header { border-bottom-color: #1e293b; }
+body.light-mode .nav-item        { color: #cbd5e1; }
+body.light-mode .nav-item:hover  { color: var(--accent); background: rgba(255,255,255,0.04); }
+body.light-mode .nav-item.active { color: var(--accent); background: rgba(245,166,35,0.12); }
+body.light-mode .nav-section-header { color: #94a3b8; }
+body.light-mode .nav-section-title { color: #94a3b8; }
+body.light-mode .nav-section-chevron { color: #64748b; }
+body.light-mode .sidebar-footer { border-top-color: #1e293b; color: #cbd5e1; }
+body.light-mode .btn-collapse-sidebar { color: #94a3b8; }
+
+/* Textes globaux en light mode — assure la lisibilité sur fonds clairs */
+body.light-mode .kpi-label { color: #64748b; }
+body.light-mode .kpi-value { color: #0f172a; }
+body.light-mode .kpi-sub { color: #64748b; }
+body.light-mode h1, body.light-mode h2, body.light-mode h3, body.light-mode h4 { color: #0f172a; }
+body.light-mode .card-header h2 { color: #0f172a; }
+body.light-mode .page-actions h2 { color: #0f172a; }
+body.light-mode .fp-section-title { color: #0f172a; }
+body.light-mode .fp-progress-label { color: #475569; }
+body.light-mode .empty-state { color: #64748b; }
+body.light-mode .table-link-button,
+body.light-mode .data-table td { color: #0f172a; }
+body.light-mode .data-table td.text-muted { color: #64748b; }
 body.light-mode .badge-attente {
   background: #fff3d6;
   color: #a25900;
