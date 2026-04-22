@@ -2482,7 +2482,6 @@ function naviguerVers(page) {
         case 'carburant':    navCarbMois(0); break;
         case 'rentabilite':  afficherRentabilite(); break;
         case 'statistiques': afficherStatistiques(); break;
-        case 'tva':          navTvaMois(0); break;
         case 'salaries':
           afficherSalaries();
           break;
@@ -2490,11 +2489,9 @@ function naviguerVers(page) {
         case 'planning':     afficherPlanning(); afficherPlanningSemaine(); peuplerAbsenceSal(); afficherAbsencesPeriodes(); initFormulairePlanningRapide(); break;
         case 'alertes':      verifierNotificationsAutomatiquesMois2(); verifierDocumentsSalaries(); afficherAlertes(); break;
         case 'inspections':  navInspSemaine(0); break;
-        case 'messagerie':   afficherMessagerie(); break;
         case 'clients':      afficherClientsDashboard(); break;
         case 'charges':      navChargesMois(0); break;
         case 'incidents':    afficherIncidents(); break;
-        case 'relances':     afficherRelances(); break;
         case 'entretiens':   navEntrMois(0); break;
         case 'parametres':   chargerParametres(); break;
         case 'espace-salarie': chargerCadreSalarieUnifie(); break;
