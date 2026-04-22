@@ -2327,9 +2327,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.DelivProRemoteStorage.flush().catch(function() {});
     }
   });
-  if (window.DelivProSecurity && typeof window.DelivProSecurity.registerServiceWorker === 'function') {
-    window.DelivProSecurity.registerServiceWorker().catch(function() {});
-  }
   // BUG-005 PWA : prompt d'installation via beforeinstallprompt
   if (!window.__delivproPwaInstallSetup) {
     window.__delivproPwaInstallSetup = true;

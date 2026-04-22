@@ -169,15 +169,6 @@
     return getSessionTimeoutMinutes() * 60 * 1000;
   }
 
-  function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) return Promise.resolve(false);
-    return navigator.serviceWorker.register('./sw.js').then(function () {
-      return true;
-    }).catch(function () {
-      return false;
-    });
-  }
-
   window.DelivProSecurity = {
     HASH_PREFIX: SHA256_PREFIX,
     SHA256_PREFIX: SHA256_PREFIX,
@@ -187,7 +178,6 @@
     verifyPassword: verifyPassword,
     evaluatePassword: evaluatePassword,
     getSessionTimeoutMinutes: getSessionTimeoutMinutes,
-    getSessionTimeoutMs: getSessionTimeoutMs,
-    registerServiceWorker: registerServiceWorker
+    getSessionTimeoutMs: getSessionTimeoutMs
   };
 })();

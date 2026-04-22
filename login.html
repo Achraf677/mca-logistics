@@ -6,14 +6,6 @@
   <meta name="robots" content="noindex, nofollow" />
   <title>MCA Logistics - Connexion</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f2a33b'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-size='24' font-family='Arial' font-weight='700' fill='%230d1524'%3EMCA%3C/text%3E%3C/svg%3E" />
-  <!-- BUG-005 PWA : manifest + theme + install -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0d1524" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
-  <link rel="apple-touch-icon" href="icon.svg" />
   <style>
     :root {
       --bg: #0d1524;
@@ -912,9 +904,6 @@
     document.addEventListener('DOMContentLoaded', async function() {
       appliquerBrandingLogin();
       terminerSignOutEnArrierePlan();
-      if (window.DelivProSecurity && typeof window.DelivProSecurity.registerServiceWorker === 'function') {
-        window.DelivProSecurity.registerServiceWorker().catch(function () {});
-      }
       if (sessionStorage.getItem(LOGOUT_GUARD_KEY) === '1') {
         sessionStorage.removeItem(LOGOUT_GUARD_KEY);
       }

@@ -7,11 +7,3 @@
   Permissions-Policy: camera=(), microphone=(), geolocation=(self), interest-cohort=(), payment=(), usb=(), bluetooth=(), accelerometer=(), gyroscope=()
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Resource-Policy: same-origin
-
-/sw.js
-  Cache-Control: public, max-age=0, must-revalidate
-  Service-Worker-Allowed: /
-
-/manifest.json
-  Cache-Control: public, max-age=3600
-  Content-Type: application/manifest+json
