@@ -3583,11 +3583,15 @@ function ajouterVehicule() {
   const date1Immat = getV('veh-date-1immat');
   const vin = getV('veh-vin').toUpperCase();
   const carteGrise = getV('veh-carte-grise');
-  const taxeEssieu = !!document.getElementById('veh-taxe-essieu')?.checked;
+  const assurance = {
+    compagnie: getV('veh-assurance-compagnie'),
+    numeroContrat: getV('veh-assurance-numero'),
+    dateExpiration: getV('veh-assurance-date-exp')
+  };
   const vehicule = Object.assign({
     id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
-    genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, taxeEssieu,
+    genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
@@ -3599,7 +3603,8 @@ function ajouterVehicule() {
   }
 
   closeModal('modal-vehicule');
-  ['veh-immat','veh-modele','veh-km','veh-conso','veh-entretien-interval-km','veh-entretien-interval-mois'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
+  ['veh-immat','veh-modele','veh-km','veh-conso','veh-entretien-interval-km','veh-entretien-interval-mois',
+   'veh-assurance-compagnie','veh-assurance-numero','veh-assurance-date-exp'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
   reinitialiserFinanceVehiculeForm();
   if (document.getElementById('veh-mode-acquisition')) document.getElementById('veh-mode-acquisition').value = 'achat';
   if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
@@ -3663,6 +3668,13 @@ function afficherVehicules() {
       const dateCT = new Date(v.dateCT);
       if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${v.immat}`, { vehId: v.id });
       else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `🔔 CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
+    }
+    // Carte verte / assurance (art. L211-1 Code des assurances — circulation interdite sans assurance)
+    const assurance = v.assurance || {};
+    if (assurance.dateExpiration) {
+      const dateAssu = new Date(assurance.dateExpiration);
+      if (dateAssu < auj) ajouterAlerteSiAbsente('assu_veh_expire_' + v.id, `⚠️ Carte verte expirée — ${v.immat} (circulation interdite L211-1 C. assur.)`, { vehId: v.id });
+      else if (dateAssu < dans30j) ajouterAlerteSiAbsente('assu_veh_proche_' + v.id, `🛡️ Carte verte expire dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
     }
     if (pilotageEntretien.estEnRetard && pilotageEntretien.prochainKm) {
       ajouterAlerteSiAbsente('vidange', `🔧 Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
@@ -5030,12 +5042,10 @@ function hydraterSalarieLocalDepuisSupabase(salarie, record) {
 
 function notifierSynchroSalarie(resultat, actionLabel) {
   if (!resultat || resultat.skipped) return;
-  if (resultat.ok) {
-    afficherToast(`☁️ ${actionLabel} synchronise avec Supabase`, 'success');
-    return;
-  }
+  // Succès sync Supabase = silencieux (opération normale, pas de bruit user)
+  if (resultat.ok) return;
   const message = resultat.error?.message || 'Synchronisation Supabase indisponible';
-  afficherToast(`⚠️ ${actionLabel} enregistre localement uniquement (${message})`, 'error');
+  afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
 }
 
 async function provisionnerAccesSalarie(salarie, password) {
@@ -5475,9 +5485,21 @@ function executerActionAgent(decisionId, actionId) {
   afficherToast('✅ Action enregistrée');
 }
 
+const __toastRecents = new Map();
 function afficherToast(message, type='success') {
   const t=document.getElementById('toast');
   if (!t) return;
+  // Dédup : même message émis dans les 2s = ignoré (anti-spam)
+  const now = Date.now();
+  const cle = type + '|' + message;
+  const dernier = __toastRecents.get(cle);
+  if (dernier && (now - dernier) < 2000) return;
+  __toastRecents.set(cle, now);
+  if (__toastRecents.size > 40) {
+    for (const [k, v] of __toastRecents) {
+      if (now - v > 10000) __toastRecents.delete(k);
+    }
+  }
   // BUG-006 a11y : erreurs en assertive pour lecture immédiate par screen reader
   t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   t.setAttribute('role', type === 'error' ? 'alert' : 'status');
@@ -10520,8 +10542,12 @@ function genererLettreDeVoiture(livId) {
     + '<div><div style="font-size:1.4rem;font-weight:900">LETTRE DE VOITURE</div>'
     + '<div style="font-size:.8rem;color:#6b7280;margin-top:4px">N° ' + esc(numLDV) + ' · ' + esc(dateLiv) + '</div>'
     + '<div style="font-size:.72rem;color:#9ca3af;margin-top:2px">Document obligatoire — arrêté 09/11/1999 modifié + décret 2017-443</div></div>'
-    + '<div style="text-align:right;font-size:.82rem"><div><strong>' + esc(params.nom || '') + '</strong></div>'
-    + (params.siret ? '<div>SIRET : ' + esc(params.siret) + '</div>' : '')
+    + '<div style="text-align:right;font-size:.82rem"><div><strong>' + esc(params.nom || '') + '</strong>'
+    + (params.formeJuridique ? ' <span style="color:#6b7280;font-weight:500">' + esc(params.formeJuridique) + '</span>' : '')
+    + '</div>'
+    + (params.adresse ? '<div style="color:#6b7280">' + esc(params.adresse) + '</div>' : '')
+    + ((params.codePostal || params.ville) ? '<div style="color:#6b7280">' + esc(((params.codePostal || '') + ' ' + (params.ville || '')).trim()) + '</div>' : '')
+    + (params.siret ? '<div style="color:#6b7280;margin-top:2px">SIRET : ' + esc(params.siret) + '</div>' : (params.rcsVille && !params.rcsNumero ? '<div style="color:#6b7280;margin-top:2px">En cours d\'immatriculation RCS ' + esc(params.rcsVille) + '</div>' : ''))
     + '</div></div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">'
     + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px">'
@@ -10550,8 +10576,10 @@ function genererLettreDeVoiture(livId) {
     + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:14px">'
     + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Transporteur</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem">'
-    + '<div><strong>Société :</strong> ' + esc(params.nom || '—') + '</div>'
-    + '<div><strong>SIRET :</strong> ' + esc(params.siret || '—') + '</div>'
+    + '<div><strong>Société :</strong> ' + esc(params.nom || '—') + (params.formeJuridique ? ' ' + esc(params.formeJuridique) : '') + '</div>'
+    + '<div><strong>SIRET :</strong> ' + esc(params.siret || 'En cours') + '</div>'
+    + (params.ltiNumero ? '<div><strong>Licence Transport (LTI) :</strong> ' + esc(params.ltiNumero) + '</div>' : (params.drealDossier ? '<div><strong>Dossier DREAL :</strong> ' + esc(params.drealDossier) + '</div>' : ''))
+    + (params.gestionnaireNom ? '<div><strong>Gestionnaire de transport :</strong> ' + esc(params.gestionnaireNom) + '</div>' : '')
     + '<div><strong>Chauffeur :</strong> ' + esc(livraison.chaufNom || '—') + '</div>'
     + '<div><strong>Immatriculation :</strong> ' + esc(livraison.vehNom || '—') + '</div>'
     + '<div><strong>Prix du transport :</strong> ' + euros(livraison.prixHT || livraison.prix || 0) + ' HT</div>'
@@ -10883,6 +10911,11 @@ async function ouvrirEditVehicule(vehId) {
   if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 80;
   const sv = document.getElementById('veh-salarie');
   if (sv) sv.value = veh.salId||'';
+  // Assurance / carte verte
+  const assu = veh.assurance || {};
+  const assCompEl = document.getElementById('veh-assurance-compagnie'); if (assCompEl) assCompEl.value = assu.compagnie || '';
+  const assNumEl = document.getElementById('veh-assurance-numero'); if (assNumEl) assNumEl.value = assu.numeroContrat || '';
+  const assExpEl = document.getElementById('veh-assurance-date-exp'); if (assExpEl) assExpEl.value = assu.dateExpiration || '';
   mettreAJourFormulaireVehicule();
   const modal = document.getElementById('modal-vehicule');
   modal.querySelector('h3').textContent = '✏️ Modifier le véhicule';
@@ -10919,6 +10952,11 @@ function confirmerEditVehicule() {
   const salId = document.getElementById('veh-salarie')?.value||'';
   vehicules[idx].salId = salId||null;
   vehicules[idx].salNom = salId ? (charger('salaries').find(s=>s.id===salId)?.nom||null) : null;
+  vehicules[idx].assurance = {
+    compagnie: (document.getElementById('veh-assurance-compagnie')?.value || '').trim(),
+    numeroContrat: (document.getElementById('veh-assurance-numero')?.value || '').trim(),
+    dateExpiration: document.getElementById('veh-assurance-date-exp')?.value || ''
+  };
   sauvegarder('vehicules', vehicules);
   closeModal('modal-vehicule');
   const modal = document.getElementById('modal-vehicule');

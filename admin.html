@@ -687,10 +687,7 @@
               <select id="nsal-cat-permis">
                 <option value="">—</option>
                 <option value="B">B (VL ≤ 3,5 t)</option>
-                <option value="C">C (PL 3,5-7,5 t)</option>
-                <option value="CE">CE (PL + remorque &gt; 750 kg)</option>
-                <option value="C1">C1 (PL ≤ 7,5 t)</option>
-                <option value="D">D (transport personnes)</option>
+                <option value="autre">Autre (permis étranger ou licence équivalente)</option>
               </select>
             </div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
@@ -1569,10 +1566,10 @@
           </div>
           <div class="form-group full-width"><label>Notes</label><input type="text" id="liv-notes" placeholder="Informations supplémentaires..." /></div>
         </div>
-        <!-- BUG-012/013 fix : détails lettre de voiture (arrêté 09/11/1999 + décret 2017-443) -->
+        <!-- Lettre de voiture nationale (arrêté 09/11/1999 + décret 99-269 contrat type général) -->
         <details id="liv-ldv-section" style="margin-top:12px;border:1px solid var(--border);border-radius:10px;padding:0">
           <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
-            📋 Détails pour lettre de voiture <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(obligatoire transport &gt; 3,5 t · arrêté 09/11/1999)</span>
+            📋 Détails pour lettre de voiture <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(obligatoire transport public routier · arrêté 09/11/1999)</span>
           </summary>
           <div style="padding:14px;border-top:1px solid var(--border)">
             <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">Expéditeur / chargeur</div>
@@ -1856,12 +1853,12 @@
               <div class="form-group"><label>Date 1ʳᵉ mise en circulation</label><input type="date" id="veh-date-1immat" /></div>
               <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
               <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
-              <div class="form-group">
-                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
-                  <input type="checkbox" id="veh-taxe-essieu" />
-                  <span>Assujetti taxe à l'essieu (&gt; 12 t, CGI art. 1007 ter)</span>
-                </label>
-              </div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte (art. L211-1 Code assurances — obligatoire)</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Compagnie d'assurance</label><input type="text" id="veh-assurance-compagnie" placeholder="ex : AXA, MAIF, Allianz..." /></div>
+              <div class="form-group"><label>N° contrat / carte verte</label><input type="text" id="veh-assurance-numero" placeholder="N° de police" /></div>
+              <div class="form-group"><label>Date expiration carte verte</label><input type="date" id="veh-assurance-date-exp" /></div>
             </div>
             <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.55">
               💡 La TVA carburant déductible est calculée automatiquement selon le genre :
