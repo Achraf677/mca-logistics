@@ -12403,7 +12403,6 @@ window.__adminFinalLock = function() {
         <td class="livraison-number-cell">${datePaiement}</td>
         <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-          { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
           { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
           { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
           { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
@@ -12589,7 +12588,6 @@ window.renderLivraisonsAdminFinal = function() {
       <td class="livraison-number-cell">${datePaiement}</td>
       <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
         { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-        { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
         { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
         { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
         { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
@@ -16822,8 +16820,7 @@ genererRentabilitePDF = function() {
           <td class="livraison-number-cell">${datePaiement}</td>
           <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
             { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-            { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
-            { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
+              { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
             { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
             { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
             { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -17110,8 +17107,7 @@ genererRentabilitePDF = function() {
           <td class="livraison-number-cell">${datePaiement}</td>
           <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
             { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-            { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
-            { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
+              { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
             { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
             { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
             { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
