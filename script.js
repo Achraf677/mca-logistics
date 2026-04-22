@@ -12112,15 +12112,41 @@ function genererRapportMensuelPeriode() {
   var escape = window.escapeHtml;
   var nomEntr = escape(nom);
 
+  if (!livraisons.length) {
+    afficherToast('⚠️ Aucune livraison sur la période sélectionnée', 'error');
+    return;
+  }
+
   var cellCss = 'padding:8px 10px;border-bottom:1px solid #f3f4f6';
   var badgeCss = 'padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600';
 
-  var totalHT = 0, totalTVA = 0, totalTTC = 0;
+  // Agrégats
+  var totalHT = 0, totalTVA = 0, totalTTC = 0, totalKm = 0;
+  var tvaParTaux = {};   // { "20": { ht, tva, ttc }, "10": {...} }
+  var parClient = {};    // { "Nom": { nb, ht, tva, ttc, paye, attente } }
+  var nbPaye = 0, nbAttente = 0, nbLitige = 0;
+
   var rows = livraisons.map(function(l) {
     var ht = l.prixHT || (l.prix||0)/(1+(l.tauxTVA||20)/100);
     var ttc = l.prix || 0;
     var tva = ttc - ht;
+    var taux = String(l.tauxTVA != null ? l.tauxTVA : 20);
     totalHT += ht; totalTVA += tva; totalTTC += ttc;
+    totalKm += parseFloat(l.distance) || 0;
+
+    if (!tvaParTaux[taux]) tvaParTaux[taux] = { ht: 0, tva: 0, ttc: 0, nb: 0 };
+    tvaParTaux[taux].ht += ht; tvaParTaux[taux].tva += tva; tvaParTaux[taux].ttc += ttc; tvaParTaux[taux].nb++;
+
+    var cleClient = l.client || '—';
+    if (!parClient[cleClient]) parClient[cleClient] = { nb: 0, ht: 0, tva: 0, ttc: 0, paye: 0, attente: 0 };
+    parClient[cleClient].nb++;
+    parClient[cleClient].ht += ht;
+    parClient[cleClient].tva += tva;
+    parClient[cleClient].ttc += ttc;
+
+    if (l.statutPaiement === 'payé' || l.statutPaiement === 'paye') { nbPaye++; parClient[cleClient].paye += ttc; }
+    else if (l.statutPaiement === 'litige') { nbLitige++; }
+    else { nbAttente++; parClient[cleClient].attente += ttc; }
 
     var badgeStatut = l.statut === 'livre' ? '<span style="'+badgeCss+';background:#d1fae5;color:#065f46">Livrée</span>'
                     : l.statut === 'en-cours' ? '<span style="'+badgeCss+';background:#dbeafe;color:#1e40af">En cours</span>'
@@ -12134,33 +12160,71 @@ function genererRapportMensuelPeriode() {
       '<td style="'+cellCss+'">' + escape(formatDateExport(l.date)) + '</td>' +
       '<td style="'+cellCss+'">' + escape(l.client || '—') + '</td>' +
       '<td style="'+cellCss+'">' + escape(l.chaufNom || '—') + '</td>' +
+      '<td style="'+cellCss+';text-align:right">' + (l.distance ? escape(String(l.distance)) + ' km' : '—') + '</td>' +
       '<td style="'+cellCss+';text-align:right">' + euros(ht) + '</td>' +
-      '<td style="'+cellCss+';text-align:right;color:#6b7280">' + euros(tva) + '</td>' +
+      '<td style="'+cellCss+';text-align:right;color:#6b7280">' + euros(tva) + ' <span style="font-size:.68rem">('+taux+'%)</span></td>' +
       '<td style="'+cellCss+';text-align:right;font-weight:700">' + euros(ttc) + '</td>' +
       '<td style="'+cellCss+'">' + badgeStatut + '</td>' +
       '<td style="'+cellCss+'">' + badgePay + '</td>' +
     '</tr>';
   }).join('');
 
+  // Bloc synthèse cards
+  var cardCss = 'background:#f8f9fc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb';
+  var blocResume =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0">' +
+      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">CA HT</div><div style="font-size:1.15rem;font-weight:800;color:#111827">'+euros(totalHT)+'</div></div>' +
+      '<div style="'+cardCss+';background:#fff3e0"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">TVA collectée</div><div style="font-size:1.15rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div>' +
+      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">CA TTC</div><div style="font-size:1.15rem;font-weight:800;color:#111827">'+euros(totalTTC)+'</div></div>' +
+      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Missions · Km</div><div style="font-size:1.15rem;font-weight:800">'+livraisons.length+' · '+totalKm.toLocaleString('fr-FR')+' km</div></div>' +
+    '</div>';
+
+  // Ventilation TVA par taux (pour déclaration CA3)
+  var tauxKeys = Object.keys(tvaParTaux).sort(function(a,b){return parseFloat(b)-parseFloat(a);});
+  var blocTVA = '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Ventilation TVA par taux (pour déclaration CA3)</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px">' +
+      '<thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:6px 10px">Taux</th><th style="padding:6px 10px;text-align:right">Nb missions</th><th style="padding:6px 10px;text-align:right">Base HT</th><th style="padding:6px 10px;text-align:right">TVA collectée</th><th style="padding:6px 10px;text-align:right">Total TTC</th></tr></thead>' +
+      '<tbody>' + tauxKeys.map(function(t){ var x = tvaParTaux[t]; return '<tr><td style="padding:6px 10px;font-weight:600">'+t+' %</td><td style="padding:6px 10px;text-align:right">'+x.nb+'</td><td style="padding:6px 10px;text-align:right">'+euros(x.ht)+'</td><td style="padding:6px 10px;text-align:right;color:#e67e22">'+euros(x.tva)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(x.ttc)+'</td></tr>'; }).join('') + '</tbody>' +
+    '</table>';
+
+  // Récap par client
+  var clientsArr = Object.entries(parClient).sort(function(a,b){return b[1].ttc - a[1].ttc;});
+  var blocClients = '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Récap par client</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px">' +
+      '<thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:6px 10px">Client</th><th style="padding:6px 10px;text-align:right">Missions</th><th style="padding:6px 10px;text-align:right">CA HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">CA TTC</th><th style="padding:6px 10px;text-align:right">Encaissé</th><th style="padding:6px 10px;text-align:right">En attente</th></tr></thead>' +
+      '<tbody>' + clientsArr.map(function(e){ var c = e[1]; return '<tr><td style="padding:6px 10px;font-weight:600">'+escape(e[0])+'</td><td style="padding:6px 10px;text-align:right">'+c.nb+'</td><td style="padding:6px 10px;text-align:right">'+euros(c.ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(c.tva)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.ttc)+'</td><td style="padding:6px 10px;text-align:right;color:#065f46">'+euros(c.paye)+'</td><td style="padding:6px 10px;text-align:right;color:'+(c.attente>0?'#92400e':'#9ca3af')+'">'+euros(c.attente)+'</td></tr>'; }).join('') + '</tbody>' +
+    '</table>';
+
+  // Mentions société (pieds de document comme en facture)
+  var mentionsHeader = renderFactureMentionsEntrepriseHeader(params);
+  var siege = [params.adresse, ((params.codePostal||'')+' '+(params.ville||'')).trim()].filter(Boolean).map(escape).join(' · ');
+
   var html =
     '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
         '<div>' +
           '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">'+nomEntr+'</div>' +
-          '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Rapport livraisons — '+escape(periode)+'</div>' +
+          (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">'+siege+'</div>' : '') +
+          mentionsHeader +
+          '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">Récapitulatif livraisons — '+escape(periode)+'</div>' +
         '</div>' +
         '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
           '<div>Généré le <strong>'+escape(dateExp)+'</strong></div>' +
-          '<div>'+livraisons.length+' livraison(s)</div>' +
+          '<div>'+livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'') + '</div>' +
         '</div>' +
       '</div>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:.82rem">' +
+      blocResume +
+      blocTVA +
+      blocClients +
+      '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Détail des livraisons</h3>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' +
         '<thead>' +
           '<tr style="background:#f3f4f6;text-align:left">' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">N° LIV</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Date</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Client</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Chauffeur</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">Distance</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">HT</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TVA</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TTC</th>' +
@@ -12172,6 +12236,7 @@ function genererRapportMensuelPeriode() {
         '<tfoot>' +
           '<tr style="background:#fef3c7;font-weight:700">' +
             '<td colspan="4" style="padding:10px;text-align:right">TOTAUX</td>' +
+            '<td style="padding:10px;text-align:right">'+totalKm.toLocaleString('fr-FR')+' km</td>' +
             '<td style="padding:10px;text-align:right">' + euros(totalHT) + '</td>' +
             '<td style="padding:10px;text-align:right;color:#6b7280">' + euros(totalTVA) + '</td>' +
             '<td style="padding:10px;text-align:right">' + euros(totalTTC) + '</td>' +
@@ -12179,19 +12244,21 @@ function genererRapportMensuelPeriode() {
           '</tr>' +
         '</tfoot>' +
       '</table>' +
-      '<div style="margin-top:16px;font-size:.72rem;color:#9ca3af;text-align:center">Document généré par '+nomEntr+'</div>' +
+      '<div style="margin-top:20px;padding:12px;background:#f8f9fc;border-radius:8px;font-size:.72rem;color:#6b7280;line-height:1.55">' +
+        '<strong style="color:#111827">Usage comptable :</strong> ce récapitulatif agrège les livraisons de la période pour rapprochement avec les factures émises. La ventilation TVA par taux correspond aux bases à reporter sur la déclaration CA3 (cases 01-05A selon taux). Import Pennylane possible via export CSV (bouton 📥 CSV).' +
+      '</div>' +
+      '<div style="margin-top:12px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Document généré par '+nomEntr+' le '+escape(dateExp)+'</div>' +
     '</div>';
 
   var win = ouvrirPopupSecure('','_blank','width=1100,height=750');
   if (!win) { afficherToast('⚠️ Autorise les popups pour exporter en PDF','error'); return; }
   win.document.write(
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons — '+nomEntr+'</title>' +
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Récap livraisons — '+nomEntr+'</title>' +
     '<style>body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}@page{margin:10mm;size:landscape}@media print{.no-print{display:none}}</style>' +
     '</head><body>' + html +
     '<script>setTimeout(function(){window.print();},400);<\/script></body></html>'
   );
   win.document.close();
-  afficherToast('📄 Rapport livraisons généré');
 }
 
 /* --- Charges export suit le mois navigué + HT/TVA/TTC --- */
