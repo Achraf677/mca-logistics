@@ -1546,7 +1546,7 @@ body.light-mode {
   --text-muted: #64748b;
   --text-disabled: #cbd5e1;
 }
-body.light-mode .main-content { background: var(--bg-dark); }
+body.light-mode .main-content { background: #f0f2f7; }
 body.light-mode .topbar        { background: #ffffff; }
 body.light-mode .data-table thead { background: rgba(0,0,0,0.03); }
 body.light-mode .data-table th { color: #6b7280; }

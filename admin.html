@@ -13,8 +13,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
     /* Critical CSS inline — anti-FOUC (masque tout le body pendant le boot JS) */
-    html { background: var(--bg, #0a0d14); }
-    body.app-shell { background: var(--bg, #0a0d14); color: #e5e7eb; margin: 0; }
+    html { background: #0d1524; }
+    body.app-shell { background: #0d1524; color: #e5e7eb; margin: 0; }
     section.page { display: none; }
     section.page.active { display: block; }
     /* Masquage dur : aucune section .page n'est visible tant que le boot n'a pas terminé */
@@ -917,26 +917,6 @@
               <div style="display:flex;align-items:center;gap:10px">
                 <input type="color" id="param-accent-color" value="#f5a623" style="width:40px;height:36px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px" />
                 <button class="btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:.82rem">Appliquer</button>
-              </div>
-            </div>
-            <div style="padding:14px 0;border-top:1px solid var(--border)">
-              <div style="margin-bottom:10px">
-                <div style="font-size:.9rem;font-weight:500">Couleur de fond</div>
-                <div style="font-size:.78rem;color:var(--text-muted)">Teinte du thème sombre — cliquez une préselection ou choisissez votre couleur</div>
-              </div>
-              <div id="bg-presets" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
-                <button type="button" class="bg-preset" data-bg="#0a0d14" onclick="appliquerBgColor('#0a0d14')" title="Nuit — sobre, classique" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#0a0d14;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#0a0d14;border:1px solid rgba(255,255,255,0.1)"></span>Nuit</button>
-                <button type="button" class="bg-preset" data-bg="#0f172a" onclick="appliquerBgColor('#0f172a')" title="Slate — bleu nuit moderne" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#0f172a;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#0f172a;border:1px solid rgba(255,255,255,0.1)"></span>Slate</button>
-                <button type="button" class="bg-preset" data-bg="#18181b" onclick="appliquerBgColor('#18181b')" title="Charbon — gris pur élégant" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#18181b;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#18181b;border:1px solid rgba(255,255,255,0.1)"></span>Charbon</button>
-                <button type="button" class="bg-preset" data-bg="#1a0b1d" onclick="appliquerBgColor('#1a0b1d')" title="Prune — violet foncé original" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#1a0b1d;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#1a0b1d;border:1px solid rgba(255,255,255,0.1)"></span>Prune</button>
-                <button type="button" class="bg-preset" data-bg="#0d1a12" onclick="appliquerBgColor('#0d1a12')" title="Forêt — vert foncé atypique" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#0d1a12;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#0d1a12;border:1px solid rgba(255,255,255,0.1)"></span>Forêt</button>
-                <button type="button" class="bg-preset" data-bg="#121212" onclick="appliquerBgColor('#121212')" title="Anthracite — quasi noir minimaliste" style="display:flex;align-items:center;gap:8px;padding:8px 14px;border:2px solid var(--border);background:#121212;border-radius:10px;color:#e5e7eb;font-size:.82rem;cursor:pointer;transition:border-color .2s"><span style="width:14px;height:14px;border-radius:4px;background:#121212;border:1px solid rgba(255,255,255,0.1)"></span>Anthracite</button>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px">
-                <span style="font-size:.82rem;color:var(--text-muted)">Personnalisée :</span>
-                <input type="color" id="param-bg-color" value="#0a0d14" style="width:40px;height:36px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px" />
-                <button class="btn-secondary" onclick="appliquerBgColor(document.getElementById('param-bg-color').value)" style="padding:7px 14px;font-size:.82rem">Appliquer</button>
-                <button class="btn-secondary" onclick="appliquerBgColor('#0a0d14')" title="Revenir à la couleur par défaut" style="padding:7px 14px;font-size:.82rem">↺ Défaut</button>
               </div>
             </div>
           </div>
