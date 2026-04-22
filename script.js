@@ -61,6 +61,19 @@ function validerSIRET(siret) {
   return sum % 10 === 0;
 }
 
+// Validation SIREN (9 chiffres, Luhn) — utilisée pour la validation inline du formulaire livraison
+function validerSIREN(siren) {
+  const s = String(siren || '').replace(/\s+/g, '');
+  if (!/^\d{9}$/.test(s)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    let n = parseInt(s[8 - i], 10);
+    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+  }
+  return sum % 10 === 0;
+}
+
 function validerIBAN(iban) {
   const s = String(iban || '').replace(/\s+/g, '').toUpperCase();
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
@@ -23216,4 +23229,102 @@ genererRentabilitePDF = function() {
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 2000);
+})();
+
+/* ============================================================
+   Form Nouvelle Livraison — progress + validation inline
+   ============================================================ */
+(function installFormLivraisonEnhancements() {
+  // 12 champs "principaux" dont on suit la complétude
+  const TRACKED_FIELDS = [
+    'liv-client', 'liv-client-siren', 'liv-date', 'liv-heure-debut',
+    'liv-distance', 'liv-prix-ht', 'liv-chauffeur', 'liv-vehicule',
+    'liv-exp-nom', 'liv-dest-nom', 'liv-dest-adresse', 'liv-marchandise-nature'
+  ];
+
+  function updateProgress() {
+    let filled = 0;
+    for (const id of TRACKED_FIELDS) {
+      const el = document.getElementById(id);
+      if (el && String(el.value || '').trim() !== '') filled++;
+    }
+    const total = TRACKED_FIELDS.length;
+    const pct = Math.round(filled / total * 100);
+    const fillEl = document.getElementById('liv-progress-fill');
+    const countEl = document.getElementById('liv-progress-count');
+    const pctEl = document.getElementById('liv-progress-pct');
+    if (fillEl) fillEl.style.width = pct + '%';
+    if (countEl) countEl.textContent = String(filled);
+    if (pctEl) pctEl.textContent = pct + '%';
+  }
+
+  function setFieldState(input, ok, hintMsg) {
+    if (!input) return;
+    input.classList.remove('fp-invalid', 'fp-valid');
+    if (input.value === '') {
+      // vide = neutre
+    } else if (ok) {
+      input.classList.add('fp-valid');
+    } else {
+      input.classList.add('fp-invalid');
+    }
+    const hint = document.getElementById(input.id + '-hint');
+    if (hint) {
+      hint.classList.remove('fp-hint-ok', 'fp-hint-err');
+      if (input.value === '') { hint.textContent = ''; }
+      else if (ok) { hint.textContent = hintMsg || '✓ Valide'; hint.classList.add('fp-hint-ok'); }
+      else { hint.textContent = hintMsg || '✗ Invalide'; hint.classList.add('fp-hint-err'); }
+    }
+  }
+
+  function validateSiren(input) {
+    const val = String(input.value || '').replace(/\s+/g, '');
+    if (val === '') { setFieldState(input, true, ''); updateProgress(); return; }
+    if (!/^\d+$/.test(val)) { setFieldState(input, false, '✗ Uniquement des chiffres'); updateProgress(); return; }
+    if (val.length < 9) { setFieldState(input, false, val.length + '/9 chiffres'); updateProgress(); return; }
+    const ok = typeof validerSIREN === 'function' ? validerSIREN(val) : /^\d{9}$/.test(val);
+    setFieldState(input, ok, ok ? '✓ SIREN valide' : '✗ Clé Luhn incorrecte');
+    updateProgress();
+  }
+
+  // Pays ISO 3166-1 alpha-2 — liste étendue (cf. datalist pays-iso-list dans admin.html)
+  const PAYS_ISO2 = new Set(['FR','BE','LU','CH','DE','IT','ES','PT','NL','GB','IE','AT','DK','SE','FI','NO','IS','PL','CZ','SK','HU','RO','BG','GR','SI','HR','RS','BA','AL','MK','ME','EE','LV','LT','MT','CY','MC','AD','SM','VA','LI','TR','MA','DZ','TN','EG','IL','SN','CI','US','CA','MX','BR','AR','CN','JP','KR','IN','AU','NZ']);
+
+  function validatePays(input) {
+    const val = String(input.value || '').toUpperCase();
+    if (val === '') { setFieldState(input, true, ''); return; }
+    if (val.length < 2) { setFieldState(input, false, 'Code à 2 lettres'); return; }
+    const ok = PAYS_ISO2.has(val);
+    setFieldState(input, ok, ok ? '' : '✗ Code inconnu');
+  }
+
+  function reset() {
+    // Reset des états visuels à l'ouverture du form ou après submit
+    TRACKED_FIELDS.concat(['liv-exp-pays','liv-dest-pays']).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('fp-invalid', 'fp-valid');
+      const hint = document.getElementById(id + '-hint');
+      if (hint) { hint.textContent = ''; hint.classList.remove('fp-hint-ok', 'fp-hint-err'); }
+    });
+    updateProgress();
+  }
+
+  window.mcaLivForm = {
+    onInput: function() { updateProgress(); },
+    validateSiren: validateSiren,
+    validatePays: validatePays,
+    updateProgress: updateProgress,
+    reset: reset
+  };
+
+  // Hook : quand la modale s'ouvre, reset + update progress
+  if (typeof window.openModal === 'function') {
+    const originalOpenModal = window.openModal;
+    window.openModal = function(id) {
+      const result = originalOpenModal.apply(this, arguments);
+      if (id === 'modal-livraison') { setTimeout(function(){ try { reset(); } catch(_){} }, 60); }
+      return result;
+    };
+  }
 })();
