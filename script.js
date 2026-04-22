@@ -2461,7 +2461,7 @@ function naviguerVers(page) {
   }
   const titres = {
     dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients',
-    chauffeurs:'👤 Chauffeurs', vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
+    vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
     rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
     salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
     alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
@@ -2477,7 +2477,6 @@ function naviguerVers(page) {
       switch (page) {
         case 'dashboard':    rafraichirDashboard(); break;
         case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
-        case 'chauffeurs':   afficherChauffeurs(); break;
         case 'vehicules':    afficherVehicules(); break;
         case 'carburant':    navCarbMois(0); break;
         case 'rentabilite':  afficherRentabilite(); break;

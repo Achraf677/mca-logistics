@@ -365,24 +365,6 @@
     </section>
 
     </section>
-
-    <!-- CHAUFFEURS -->
-    <section class="page" id="page-chauffeurs">
-      <div class="page-actions"><h2>👤 Gestion des Chauffeurs</h2><button class="btn-primary" onclick="openModal('modal-chauffeur')">+ Ajouter</button></div>
-      <div class="info-banner" style="margin-bottom:16px;">
-        👥 Salariés sans véhicule : <select id="sel-affecter-chauffeur" style="margin-left:8px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:4px 10px;border-radius:6px;font-size:0.85rem;"></select>
-        <em style="color:var(--text-muted);font-size:0.8rem;margin-left:6px;">— Affectez un véhicule depuis la page Véhicules</em>
-      </div>
-      <div class="card">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Nom</th><th>Téléphone</th><th>Statut</th><th>Véhicule</th><th>Livraisons</th><th>CA généré</th><th>Actions</th></tr></thead>
-            <tbody id="tb-chauffeurs"><tr><td colspan="7" class="empty-row">Aucun chauffeur</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
     <!-- VÉHICULES -->
     <section class="page" id="page-vehicules">
       <div class="page-actions"><h2>🚐 Gestion des Véhicules</h2>
@@ -1601,22 +1583,6 @@
         <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-primary" onclick="ajouterLivraison()">Enregistrer</button></div>
-    </div>
-  </div>
-
-  <!-- Nouveau chauffeur -->
-  <div class="modal-overlay" id="modal-chauffeur">
-    <div class="modal">
-      <div class="modal-header"><h3>👤 Nouveau Chauffeur</h3><button class="modal-close" onclick="closeModal('modal-chauffeur')">✕</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group"><label>Nom *</label><input type="text" id="chauf-nom" /></div>
-          <div class="form-group"><label>Prénom *</label><input type="text" id="chauf-prenom" /></div>
-          <div class="form-group"><label>Téléphone *</label><input type="tel" id="chauf-tel" /></div>
-          <div class="form-group"><label>Statut</label><select id="chauf-statut"><option value="disponible">Disponible</option><option value="en-livraison">En livraison</option><option value="inactif">Inactif</option></select></div>
-        </div>
-      </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-chauffeur')">Annuler</button><button class="btn-primary" onclick="ajouterChauffeur()">Enregistrer</button></div>
     </div>
   </div>
 
