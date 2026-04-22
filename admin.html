@@ -1549,7 +1549,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Véhicule <span style="color:var(--text-muted);font-size:0.78rem">(auto-rempli si salarié affecté)</span></label>
+            <label>Véhicule</label>
             <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule()"><option value="">-- Choisir un véhicule --</option></select>
           </div>
           <div class="form-group"><label>Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
@@ -1579,7 +1579,7 @@
               <div class="form-group full-width"><label>Adresse chargement</label><input type="text" id="liv-exp-adresse" placeholder="Rue + numéro" /></div>
               <div class="form-group"><label>Code postal</label><input type="text" id="liv-exp-cp" placeholder="75001" maxlength="10" /></div>
               <div class="form-group"><label>Ville</label><input type="text" id="liv-exp-ville" placeholder="Paris" /></div>
-              <div class="form-group"><label>Pays</label><input type="text" id="liv-exp-pays" placeholder="FR" maxlength="3" value="FR" /></div>
+              <div class="form-group"><label>Pays</label><input type="text" id="liv-exp-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" /></div>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Destinataire</div>
             <div class="form-grid">
@@ -1588,7 +1588,7 @@
               <div class="form-group full-width"><label>Adresse déchargement</label><input type="text" id="liv-dest-adresse" placeholder="Rue + numéro" /></div>
               <div class="form-group"><label>Code postal</label><input type="text" id="liv-dest-cp" placeholder="69003" maxlength="10" /></div>
               <div class="form-group"><label>Ville</label><input type="text" id="liv-dest-ville" placeholder="Lyon" /></div>
-              <div class="form-group"><label>Pays</label><input type="text" id="liv-dest-pays" placeholder="FR" maxlength="3" value="FR" /></div>
+              <div class="form-group"><label>Pays</label><input type="text" id="liv-dest-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" /></div>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Marchandise</div>
             <div class="form-grid">
@@ -2278,6 +2278,70 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Datalist ISO 3166-1 alpha-2 — partagée pour les champs Pays (lettre de voiture, clients, etc.) -->
+  <datalist id="pays-iso-list">
+    <option value="FR">France</option>
+    <option value="BE">Belgique</option>
+    <option value="LU">Luxembourg</option>
+    <option value="CH">Suisse</option>
+    <option value="DE">Allemagne</option>
+    <option value="IT">Italie</option>
+    <option value="ES">Espagne</option>
+    <option value="PT">Portugal</option>
+    <option value="NL">Pays-Bas</option>
+    <option value="GB">Royaume-Uni</option>
+    <option value="IE">Irlande</option>
+    <option value="AT">Autriche</option>
+    <option value="DK">Danemark</option>
+    <option value="SE">Suède</option>
+    <option value="FI">Finlande</option>
+    <option value="NO">Norvège</option>
+    <option value="IS">Islande</option>
+    <option value="PL">Pologne</option>
+    <option value="CZ">Tchéquie</option>
+    <option value="SK">Slovaquie</option>
+    <option value="HU">Hongrie</option>
+    <option value="RO">Roumanie</option>
+    <option value="BG">Bulgarie</option>
+    <option value="GR">Grèce</option>
+    <option value="SI">Slovénie</option>
+    <option value="HR">Croatie</option>
+    <option value="RS">Serbie</option>
+    <option value="BA">Bosnie-Herzégovine</option>
+    <option value="AL">Albanie</option>
+    <option value="MK">Macédoine du Nord</option>
+    <option value="ME">Monténégro</option>
+    <option value="EE">Estonie</option>
+    <option value="LV">Lettonie</option>
+    <option value="LT">Lituanie</option>
+    <option value="MT">Malte</option>
+    <option value="CY">Chypre</option>
+    <option value="MC">Monaco</option>
+    <option value="AD">Andorre</option>
+    <option value="SM">Saint-Marin</option>
+    <option value="VA">Vatican</option>
+    <option value="LI">Liechtenstein</option>
+    <option value="TR">Turquie</option>
+    <option value="MA">Maroc</option>
+    <option value="DZ">Algérie</option>
+    <option value="TN">Tunisie</option>
+    <option value="EG">Égypte</option>
+    <option value="IL">Israël</option>
+    <option value="SN">Sénégal</option>
+    <option value="CI">Côte d'Ivoire</option>
+    <option value="US">États-Unis</option>
+    <option value="CA">Canada</option>
+    <option value="MX">Mexique</option>
+    <option value="BR">Brésil</option>
+    <option value="AR">Argentine</option>
+    <option value="CN">Chine</option>
+    <option value="JP">Japon</option>
+    <option value="KR">Corée du Sud</option>
+    <option value="IN">Inde</option>
+    <option value="AU">Australie</option>
+    <option value="NZ">Nouvelle-Zélande</option>
+  </datalist>
 
   <!-- Modal Historique conducteurs -->
   <div class="modal-overlay" id="modal-hist-conducteurs">
