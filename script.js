@@ -5064,17 +5064,7 @@ async function creerSalarie() {
   const dateAssurance = document.getElementById('nsal-date-assurance')?.value || '';
   const vehId  = document.getElementById('nsal-vehicule')?.value || '';
   const categoriePermis = document.getElementById('nsal-cat-permis')?.value || '';
-  // BUG-041 fix : FIMO/FCO + carte tachygraphe + visite médicale
   const getV = (id) => (document.getElementById(id)?.value || '').trim();
-  const fimoFco = {
-    numero: getV('nsal-fimo-numero'),
-    dateObtention: getV('nsal-fimo-date-obt'),
-    dateExpiration: getV('nsal-fimo-date-exp')
-  };
-  const carteTachygraphe = {
-    numero: getV('nsal-tachy-numero'),
-    dateExpiration: getV('nsal-tachy-date-exp')
-  };
   const visiteMedicale = {
     date: getV('nsal-visite-date'),
     aptitude: getV('nsal-visite-aptitude'),
@@ -5093,7 +5083,7 @@ async function creerSalarie() {
     emailPersonnel: emailSaisi || '',
     mdpHash:await hasherMotDePasseLocal(mdp),
     tel, poste, datePermis, dateAssurance, categoriePermis,
-    fimoFco, carteTachygraphe, visiteMedicale,
+    visiteMedicale,
     actif:true, creeLe:new Date().toISOString()
   };
   salaries.push(salarie);
@@ -5128,8 +5118,6 @@ async function creerSalarie() {
 
   ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel','nsal-email',
     'nsal-date-permis','nsal-date-assurance',
-    'nsal-fimo-numero','nsal-fimo-date-obt','nsal-fimo-date-exp',
-    'nsal-tachy-numero','nsal-tachy-date-exp',
     'nsal-visite-date','nsal-visite-date-exp'
   ].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
   ['nsal-poste','nsal-vehicule','nsal-cat-permis','nsal-visite-aptitude'].forEach(id => {
@@ -8145,11 +8133,8 @@ function verifierDocumentsSalaries() {
         );
       }
     }
-    // BUG-041/045 : alertes FIMO/FCO, carte tachygraphe, visite médicale
-    // (sanctions DREAL / gendarmerie + responsabilité pénale employeur L121-1 C.pén.)
+    // Alerte visite médicale (R.4624-10 — obligation employeur visite d'embauche + périodique)
     const docsExp = [
-      { key: 'fimo', dateStr: s.fimoFco?.dateExpiration, labelExp: 'FIMO/FCO expiré', labelProche: 'FIMO/FCO expire', seuil: 90 },
-      { key: 'tachy', dateStr: s.carteTachygraphe?.dateExpiration, labelExp: 'Carte tachygraphe expirée', labelProche: 'Carte tachygraphe expire', seuil: 60 },
       { key: 'visite', dateStr: s.visiteMedicale?.dateExpiration, labelExp: 'Visite médicale expirée', labelProche: 'Visite médicale expire', seuil: 60 }
     ];
     docsExp.forEach(function(doc) {
@@ -10505,9 +10490,9 @@ function genererRegistreRGPD() {
   const traitements = [
     {
       nom: 'Gestion des salariés et contrats',
-      finalite: 'Suivi des contrats, permis, FIMO/FCO, carte tachygraphe, visite médicale, incidents, paie externalisée',
-      base: 'Exécution du contrat de travail (art. 6.1.b) + obligation légale (art. 6.1.c — R.3315-7 Code transports, règlement UE 2022/1699)',
-      categories: 'Identité, contact, nº SS, permis, FIMO/FCO, tachy, visite médicale, incidents, kilométrage, heures travaillées',
+      finalite: 'Suivi des contrats, permis B, visite médicale du travail, incidents, paie externalisée',
+      base: 'Exécution du contrat de travail (art. 6.1.b) + obligation légale (art. 6.1.c — R.4624-10 Code travail, L.3211-1 Code transports)',
+      categories: 'Identité, contact, nº SS, permis B, visite médicale, incidents, kilométrage, heures travaillées',
       destinataires: 'Direction, gestionnaire paie externe (logiciel de paie), URSSAF via DSN, DREAL sur demande',
       duree: 'Durée du contrat + 5 ans (L1471-1 Code travail) / 10 ans documents sociaux',
       securite: 'Authentification PBKDF2 (210 000 itérations), chiffrement transport HTTPS, Supabase Row-Level Security, journal d\'audit'
@@ -10527,12 +10512,12 @@ function genererRegistreRGPD() {
       base: 'Exécution du contrat (art. 6.1.b) + obligation légale (art. 6.1.c — Code des transports)',
       categories: 'Immatriculation, VIN, carte grise, PTAC, Crit\'Air, consommation, trajets, km, marchandises transportées',
       destinataires: 'Direction, chauffeurs, DREAL / gendarmerie sur contrôle routier, assureur en cas de sinistre',
-      duree: 'Lettre de voiture : 5 ans (R.3411-13 Code transports). Données tachygraphe : 1 an (R.3313-12)',
+      duree: 'Lettre de voiture : 5 ans (R.3411-13 Code transports). Documents véhicule (carte grise, CT, entretien) : durée d\'usage + 3 ans',
       securite: 'Authentification PBKDF2, chiffrement transport, Supabase RLS, journal d\'audit'
     },
     {
       nom: 'Gestion des alertes et incidents',
-      finalite: 'Détection automatique des expirations permis / FIMO / tachy / assurance / visite médicale. Enregistrement des incidents transport',
+      finalite: 'Détection automatique des expirations permis / assurance / visite médicale. Enregistrement des incidents transport',
       base: 'Intérêt légitime (prévention des risques professionnels, L121-1 Code pénal — responsabilité exploitant)',
       categories: 'Dates d\'expiration documents obligatoires, nature incidents, gravité, description',
       destinataires: 'Direction, chauffeur concerné (notification), assurance en cas de sinistre',
