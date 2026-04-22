@@ -798,17 +798,68 @@
         <div class="card params-card-wide">
           <div class="card-header"><h2>🏢 Informations entreprise</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Ces informations apparaissent sur les bons de livraison et les documents PDF.</p>
+            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Ces informations apparaissent sur les factures, lettres de voiture et documents PDF. Les mentions légales sont générées automatiquement conformément au CGI art. 242 nonies A et au Code de commerce R.123-237.</p>
+
+            <div class="form-section-title" style="margin-bottom:10px">📇 Identification</div>
             <div class="form-grid">
-              <div class="form-group full-width"><label>Nom de l'entreprise</label><input type="text" id="param-nom-entreprise" placeholder="Nom de votre entreprise" /></div>
-              <div class="form-group"><label>Nom de l'admin</label><input type="text" id="param-nom-admin" placeholder="Votre nom" /></div>
-              <div class="form-group"><label>SIRET *</label><input type="text" id="param-siret" placeholder="SIRET (14 chiffres)" maxlength="14" inputmode="numeric" /></div>
-              <div class="form-group"><label>N° TVA intracommunautaire</label><input type="text" id="param-tva-intracom" placeholder="FR + 11 chiffres (ex. FR12345678901)" maxlength="13" style="text-transform:uppercase" /></div>
-              <div class="form-group full-width"><label>Adresse</label><input type="text" id="param-adresse" placeholder="Adresse compl&egrave;te" /></div>
-              <div class="form-group"><label>Téléphone</label><input type="tel" id="param-tel-entreprise" placeholder="T&eacute;l&eacute;phone" /></div>
+              <div class="form-group full-width"><label>Dénomination sociale *</label><input type="text" id="param-nom-entreprise" placeholder="ex : MCA LOGISTICS" /></div>
+              <div class="form-group"><label>Forme juridique</label>
+                <select id="param-forme-juridique">
+                  <option value="">—</option>
+                  <option value="SAS">SAS</option>
+                  <option value="SASU">SASU</option>
+                  <option value="SARL">SARL</option>
+                  <option value="EURL">EURL</option>
+                  <option value="SA">SA</option>
+                  <option value="SNC">SNC</option>
+                  <option value="EI">Entreprise individuelle</option>
+                  <option value="EIRL">EIRL</option>
+                  <option value="Micro-entreprise">Micro-entreprise</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Nom du dirigeant / admin</label><input type="text" id="param-nom-admin" placeholder="Votre nom" /></div>
+              <div class="form-group"><label>SIRET *</label><input type="text" id="param-siret" placeholder="14 chiffres (laissez vide si en cours)" maxlength="14" inputmode="numeric" /></div>
+              <div class="form-group"><label>Code APE / NAF</label><input type="text" id="param-code-ape" placeholder="ex : 5229B" maxlength="5" /></div>
+              <div class="form-group"><label>N° TVA intracommunautaire</label><input type="text" id="param-tva-intracom" placeholder="FR + 11 chiffres" maxlength="13" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>RCS (ville)</label><input type="text" id="param-rcs-ville" placeholder="ex : Strasbourg" /></div>
+              <div class="form-group"><label>N° RCS</label><input type="text" id="param-rcs-numero" placeholder="Laisser vide si en cours d'immatriculation" /></div>
+              <div class="form-group"><label>Capital social (€)</label><input type="number" id="param-capital" placeholder="ex : 7200" min="0" step="0.01" /></div>
+              <div class="form-group"><label>Capital libéré (€)</label><input type="number" id="param-capital-libere" placeholder="ex : 3600" min="0" step="0.01" /></div>
+            </div>
+
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">📍 Siège social & contact</div>
+            <div class="form-grid">
+              <div class="form-group full-width"><label>Adresse (numéro + rue)</label><input type="text" id="param-adresse" placeholder="ex : 17 rue de la Chapelle" /></div>
+              <div class="form-group"><label>Code postal</label><input type="text" id="param-code-postal" placeholder="67540" maxlength="5" /></div>
+              <div class="form-group"><label>Ville</label><input type="text" id="param-ville" placeholder="Ostwald" /></div>
+              <div class="form-group"><label>Pays</label><input type="text" id="param-pays" placeholder="FR" value="FR" maxlength="2" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>Téléphone</label><input type="tel" id="param-tel-entreprise" placeholder="Téléphone" /></div>
               <div class="form-group"><label>Email</label><input type="email" id="param-email" placeholder="Email de contact" /></div>
             </div>
-            <button class="btn-primary" style="margin-top:16px" onclick="sauvegarderParametres()">✅ Enregistrer</button>
+
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">🚛 Transport routier léger (≤3,5t PTAC)</div>
+            <p style="color:var(--text-muted);font-size:.78rem;margin-bottom:10px">Conformément au Règlement (CE) 1071/2009 et L.3211-1 Code des transports, l'accès à la profession de transporteur public routier léger nécessite une licence délivrée par la DREAL.</p>
+            <div class="form-grid">
+              <div class="form-group"><label>N° Licence Transport Intérieur léger (LTI)</label><input type="text" id="param-lti-numero" placeholder="Attribué par la DREAL après autorisation" /></div>
+              <div class="form-group"><label>Date émission LTI</label><input type="date" id="param-lti-date-emission" /></div>
+              <div class="form-group"><label>Date expiration LTI (10 ans)</label><input type="date" id="param-lti-date-expiration" /></div>
+              <div class="form-group"><label>N° dossier DREAL</label><input type="text" id="param-dreal-dossier" placeholder="ex : 2026-15119" /></div>
+              <div class="form-group"><label>N° inscription registre transporteurs</label><input type="text" id="param-registre-transporteurs" placeholder="Section transporteurs légers" /></div>
+              <div class="form-group"><label>Gestionnaire de transport</label><input type="text" id="param-gestionnaire-nom" placeholder="Nom et prénom (art. 4 Règl. CE 1071/2009)" /></div>
+              <div class="form-group"><label>N° attestation capacité professionnelle</label><input type="text" id="param-capacite-pro-numero" placeholder="Capacité transport léger — titulaire : gestionnaire" /></div>
+              <div class="form-group"><label>Date obtention capacité</label><input type="date" id="param-capacite-pro-date" /></div>
+            </div>
+
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">💳 Coordonnées bancaires & facturation</div>
+            <div class="form-grid">
+              <div class="form-group"><label>IBAN</label><input type="text" id="param-iban" placeholder="FR76 …" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>BIC</label><input type="text" id="param-bic" placeholder="ex : QNTOFRP1XXX" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>Banque</label><input type="text" id="param-banque" placeholder="ex : Qonto" /></div>
+              <div class="form-group"><label>Délai paiement par défaut (jours)</label><input type="number" id="param-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+              <div class="form-group"><label>Taux pénalités retard (%)</label><input type="number" id="param-taux-penalites" placeholder="10.15" min="0" max="50" step="0.01" value="10.15" /></div>
+            </div>
+
+            <button class="btn-primary" style="margin-top:18px" onclick="sauvegarderParametres()">✅ Enregistrer</button>
           </div>
         </div>
 

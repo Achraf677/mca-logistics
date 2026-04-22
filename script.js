@@ -455,25 +455,39 @@ function notifierSalarieSiAbsente(salId, type, message, meta) {
 function getEntrepriseExportParams() {
   const params = chargerObj('params_entreprise', {});
   const sessionAdmin = getAdminSession();
+  const rcsCompose = params.rcs || [params.rcsVille, params.rcsNumero].filter(Boolean).join(' ');
   return {
-    nom: params.nom || 'MCA Logistics',
+    nom: params.nom || 'MCA LOGISTICS',
     nomAdmin: sessionAdmin.nom || params.nomAdmin || '',
     siret: params.siret || '',
     tvaIntracom: params.tvaIntracom || '',
     adresse: params.adresse || '',
     tel: params.tel || '',
     email: params.email || '',
-    // BUG-002 fix : mentions légales CGI 242 nonies A / R123-237 C.com
+    // Mentions légales CGI 242 nonies A / R123-237 C.com
     formeJuridique: params.formeJuridique || '',
     capital: params.capital || '',
+    capitalLibere: params.capitalLibere || '',
     codeAPE: params.codeAPE || '',
-    rcs: params.rcs || '',
+    rcs: rcsCompose,
+    rcsVille: params.rcsVille || '',
+    rcsNumero: params.rcsNumero || '',
     adresseLigne: params.adresseLigne || '',
     codePostal: params.codePostal || '',
     ville: params.ville || '',
     pays: params.pays || 'FR',
     iban: params.iban || '',
     bic: params.bic || '',
+    banque: params.banque || '',
+    // Transport léger (Règl. CE 1071/2009 + L.3211-1 Code transports)
+    ltiNumero: params.ltiNumero || '',
+    ltiDateEmission: params.ltiDateEmission || '',
+    ltiDateExpiration: params.ltiDateExpiration || '',
+    drealDossier: params.drealDossier || '',
+    registreTransporteurs: params.registreTransporteurs || '',
+    gestionnaireNom: params.gestionnaireNom || '',
+    capaciteProNumero: params.capaciteProNumero || '',
+    capaciteProDate: params.capaciteProDate || '',
     tauxPenalitesRetard: params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15,
     delaiPaiementDefaut: params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30
   };
@@ -517,8 +531,16 @@ function renderFactureMentionsEntrepriseHeader(params) {
   const parts = [];
   if (params.formeJuridique) parts.push(params.formeJuridique);
   if (params.capital) parts.push('capital ' + __formatEurFR(params.capital));
-  if (params.rcs) parts.push('RCS ' + params.rcs);
+  // Mention RCS : si numéro présent -> "RCS <ville> <numéro>", sinon si ville seule -> "Société en cours d'immatriculation au RCS <ville>"
+  if (params.rcsNumero && params.rcsVille) {
+    parts.push('RCS ' + params.rcsVille + ' ' + params.rcsNumero);
+  } else if (params.rcs && !params.rcsVille && !params.rcsNumero) {
+    parts.push('RCS ' + params.rcs);
+  } else if (params.rcsVille && !params.rcsNumero) {
+    parts.push('Société en cours d\'immatriculation au RCS ' + params.rcsVille);
+  }
   if (params.codeAPE) parts.push('APE ' + params.codeAPE);
+  if (params.siret) parts.push('SIRET ' + params.siret);
   if (!parts.length) return '';
   return '<div style="font-size:.72rem;color:#9ca3af;margin-top:4px">' + planningEscapeHtml(parts.join(' · ')) + '</div>';
 }
@@ -8864,17 +8886,63 @@ function sauvegarderObjectifCA() {
   afficherToast('✅ Objectif CA enregistré : ' + euros(val));
 }
 
+// Valeurs par défaut MCA LOGISTICS (Statuts SAS signés 22/03/2026, PV désignation
+// gestionnaire transport 17/04/2026, dossier DREAL 2026-15119). Utilisées uniquement
+// si aucun paramètre n'a encore été saisi côté utilisateur.
+const MCA_DEFAULTS_ENTREPRISE = {
+  nom: 'MCA LOGISTICS',
+  formeJuridique: 'SAS',
+  capital: 7200,
+  capitalLibere: 3600,
+  adresse: '17 rue de la Chapelle',
+  codePostal: '67540',
+  ville: 'Ostwald',
+  pays: 'FR',
+  rcsVille: 'Strasbourg',
+  drealDossier: '2026-15119',
+  gestionnaireNom: 'Mohammed CHIKRI',
+  banque: 'Qonto',
+  delaiPaiementDefaut: 30,
+  tauxPenalitesRetard: 10.15
+};
+
 function chargerParametres() {
-  const params = chargerObj('params_entreprise', {});
+  let params = chargerObj('params_entreprise', {});
+  // Pré-remplissage initial MCA au premier affichage (ne stocke pas tant que l'utilisateur n'a pas cliqué Enregistrer)
+  if (!params || !Object.keys(params).length) {
+    params = Object.assign({}, MCA_DEFAULTS_ENTREPRISE);
+  }
   const sessionAdmin = getAdminSession();
   const map = {
-    'param-nom-entreprise':  params.nom      || '',
-    'param-nom-admin':       sessionAdmin.nom || '',
-    'param-siret':           params.siret    || '',
-    'param-tva-intracom':    params.tvaIntracom || '',
-    'param-adresse':         params.adresse  || '',
-    'param-tel-entreprise':  params.tel      || '',
-    'param-email':           params.email    || ''
+    'param-nom-entreprise':       params.nom || '',
+    'param-nom-admin':             sessionAdmin.nom || '',
+    'param-forme-juridique':       params.formeJuridique || '',
+    'param-siret':                 params.siret || '',
+    'param-code-ape':              params.codeAPE || '',
+    'param-tva-intracom':          params.tvaIntracom || '',
+    'param-rcs-ville':             params.rcsVille || '',
+    'param-rcs-numero':            params.rcsNumero || '',
+    'param-capital':               params.capital != null ? params.capital : '',
+    'param-capital-libere':        params.capitalLibere != null ? params.capitalLibere : '',
+    'param-adresse':               params.adresse || '',
+    'param-code-postal':           params.codePostal || '',
+    'param-ville':                 params.ville || '',
+    'param-pays':                  params.pays || 'FR',
+    'param-tel-entreprise':        params.tel || '',
+    'param-email':                 params.email || '',
+    'param-lti-numero':            params.ltiNumero || '',
+    'param-lti-date-emission':     params.ltiDateEmission || '',
+    'param-lti-date-expiration':   params.ltiDateExpiration || '',
+    'param-dreal-dossier':         params.drealDossier || '',
+    'param-registre-transporteurs':params.registreTransporteurs || '',
+    'param-gestionnaire-nom':      params.gestionnaireNom || '',
+    'param-capacite-pro-numero':   params.capaciteProNumero || '',
+    'param-capacite-pro-date':     params.capaciteProDate || '',
+    'param-iban':                  params.iban || '',
+    'param-bic':                   params.bic || '',
+    'param-banque':                params.banque || '',
+    'param-delai-paiement':        params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30,
+    'param-taux-penalites':        params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15
   };
   Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
   const colorEl = document.getElementById('param-accent-color');
@@ -8952,20 +9020,21 @@ function sauvegarderParametres() {
   const sessionAdmin = getAdminSession();
   const adminNomSaisi = document.getElementById('param-nom-admin')?.value.trim() || 'Admin';
   const siretRaw = (document.getElementById('param-siret')?.value || '').replace(/\s+/g, '');
-  if (!/^\d{14}$/.test(siretRaw)) {
-    afficherToast('⚠️ Le SIRET est obligatoire et doit contenir 14 chiffres', 'error');
-    return;
-  }
-  // BUG-009 : validation Luhn
-  if (!validerSIRET(siretRaw)) {
-    afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
-    return;
+  // SIRET optionnel tant que la société n'est pas immatriculée — validation uniquement si saisi
+  if (siretRaw) {
+    if (!/^\d{14}$/.test(siretRaw)) {
+      afficherToast('⚠️ Le SIRET doit contenir 14 chiffres (ou laissez vide si en cours d\'immatriculation)', 'error');
+      return;
+    }
+    if (!validerSIRET(siretRaw)) {
+      afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
+      return;
+    }
   }
   const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
     ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
     : adminNomSaisi;
   const tvaIntracomRaw = (document.getElementById('param-tva-intracom')?.value || '').replace(/\s+/g, '').toUpperCase();
-  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
   if (tvaIntracomRaw) {
     const validation = validerTVAIntracomFR(tvaIntracomRaw);
     if (!validation.valid) {
@@ -8973,16 +9042,46 @@ function sauvegarderParametres() {
       return;
     }
   }
-  // BUG-002 fix : merge (ne pas écraser les champs étendus déjà saisis : RCS, capital, IBAN…)
+  const getParamVal = (id) => (document.getElementById(id)?.value || '').trim();
+  const getParamNum = (id) => {
+    const v = getParamVal(id);
+    if (v === '') return null;
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
   const paramsExistants = chargerObj('params_entreprise', {});
   const params = Object.assign({}, paramsExistants, {
-    nom:         document.getElementById('param-nom-entreprise')?.value.trim() || 'MCA Logistics',
-    nomAdmin:    adminNom,
-    siret:       siretRaw,
-    tvaIntracom: tvaIntracomRaw,
-    adresse:     document.getElementById('param-adresse')?.value.trim()         || '',
-    tel:         document.getElementById('param-tel-entreprise')?.value.trim()  || '',
-    email:       document.getElementById('param-email')?.value.trim()           || ''
+    nom:                   getParamVal('param-nom-entreprise') || 'MCA LOGISTICS',
+    nomAdmin:              adminNom,
+    formeJuridique:        getParamVal('param-forme-juridique'),
+    siret:                 siretRaw,
+    codeAPE:               getParamVal('param-code-ape').toUpperCase(),
+    tvaIntracom:           tvaIntracomRaw,
+    rcsVille:              getParamVal('param-rcs-ville'),
+    rcsNumero:             getParamVal('param-rcs-numero').replace(/\s+/g, ''),
+    capital:               getParamNum('param-capital'),
+    capitalLibere:         getParamNum('param-capital-libere'),
+    adresse:               getParamVal('param-adresse'),
+    codePostal:            getParamVal('param-code-postal'),
+    ville:                 getParamVal('param-ville'),
+    pays:                  (getParamVal('param-pays') || 'FR').toUpperCase(),
+    tel:                   getParamVal('param-tel-entreprise'),
+    email:                 getParamVal('param-email'),
+    ltiNumero:             getParamVal('param-lti-numero'),
+    ltiDateEmission:       getParamVal('param-lti-date-emission'),
+    ltiDateExpiration:     getParamVal('param-lti-date-expiration'),
+    drealDossier:          getParamVal('param-dreal-dossier'),
+    registreTransporteurs: getParamVal('param-registre-transporteurs'),
+    gestionnaireNom:       getParamVal('param-gestionnaire-nom'),
+    capaciteProNumero:     getParamVal('param-capacite-pro-numero'),
+    capaciteProDate:       getParamVal('param-capacite-pro-date'),
+    iban:                  getParamVal('param-iban').replace(/\s+/g, '').toUpperCase(),
+    bic:                   getParamVal('param-bic').toUpperCase(),
+    banque:                getParamVal('param-banque'),
+    delaiPaiementDefaut:   (getParamNum('param-delai-paiement') != null) ? getParamNum('param-delai-paiement') : 30,
+    tauxPenalitesRetard:   (getParamNum('param-taux-penalites') != null) ? getParamNum('param-taux-penalites') : 10.15,
+    // Compat : champ legacy "rcs" = "Ville Numéro" (consommé par renderFactureMentionsEntrepriseHeader existant)
+    rcs: [getParamVal('param-rcs-ville'), getParamVal('param-rcs-numero').replace(/\s+/g,'')].filter(Boolean).join(' ')
   });
   sauvegarder('params_entreprise', params);
   const comptes = getAdminAccounts();
@@ -8999,7 +9098,7 @@ function sauvegarderParametres() {
   if (typeof chargerParametres === 'function') {
     try { chargerParametres(); } catch (_) { /* silencieux : non bloquant */ }
   }
-  ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + ' · SIRET ' + siretRaw);
+  ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + (siretRaw ? ' · SIRET ' + siretRaw : ' · en cours d\'immatriculation'));
   afficherToast('✅ Paramètres enregistrés');
 }
 
