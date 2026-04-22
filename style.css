@@ -867,8 +867,24 @@ body.light-mode .searchbar-clear:hover {
 }
 .modal-overlay.modal-fullpage-variant.open .modal { animation: none; }
 .modal-fullpage .modal-header-fullpage {
-  padding: 16px 32px;
+  padding: 18px 32px;
   gap: 14px;
+  position: relative;
+  justify-content: center;
+}
+.modal-fullpage .modal-header-fullpage .modal-back-arrow {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.modal-fullpage .modal-header-fullpage h3 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+  text-align: center;
 }
 .modal-back-arrow {
   background: none;
