@@ -1527,117 +1527,125 @@
         <h3>📦 Nouvelle livraison</h3>
       </div>
       <div class="modal-body">
-        <div class="fp-container">
+        <div class="fp-container fp-container-2col">
 
-          <section class="fp-section">
-            <h4 class="fp-section-title">📋 Informations générales</h4>
-            <div class="form-grid fp-grid">
-              <div class="form-group"><label>Client *</label>
-                <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value)" autocomplete="off" />
-                <div id="client-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
+          <div class="fp-col fp-col-left">
+
+            <section class="fp-section fp-section-compact">
+              <h4 class="fp-section-title">📋 Informations générales</h4>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group"><label>Client *</label>
+                  <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value)" autocomplete="off" />
+                  <div id="client-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
+                </div>
+                <div class="form-group"><label>SIREN</label>
+                  <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" />
+                </div>
+                <div class="form-group"><label>Date</label><input type="date" id="liv-date" /></div>
+                <div class="form-group"><label>Heure début</label><input type="time" id="liv-heure-debut" /></div>
+                <div class="form-group"><label>Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
+                <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" /></div>
+                <input type="hidden" id="liv-depart" />
+                <input type="hidden" id="liv-arrivee" />
+                <div class="form-group full-width"><label>Notes</label><input type="text" id="liv-notes" placeholder="Informations supplémentaires..." /></div>
               </div>
-              <div class="form-group"><label>SIREN client</label>
-                <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" />
+            </section>
+
+            <section class="fp-section fp-section-compact">
+              <h4 class="fp-section-title">💰 Prix & TVA</h4>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group"><label>Distance (km)</label>
+                  <input type="number" id="liv-distance" placeholder="km" min="0" step="0.1" oninput="alerteRentabilite()" />
+                </div>
+                <div class="form-group"><label>Prix HT (€) *</label><input type="number" id="liv-prix-ht" placeholder="Montant HT" min="0" step="0.01" oninput="calculerTTCDepuisHT('liv')" /></div>
+                <div class="form-group"><label>Taux TVA</label>
+                  <select id="liv-taux-tva" onchange="calculerTTCDepuisHT('liv')">
+                    <option value="0">0 %</option>
+                    <option value="5.5">5,5 %</option>
+                    <option value="10">10 %</option>
+                    <option value="20" selected>20 %</option>
+                  </select>
+                  <div id="liv-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
+                </div>
+                <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="liv-prix" placeholder="Montant TTC" min="0" step="0.01" oninput="calculerHTDepuisTTC('liv')" /></div>
+                <div class="form-group full-width"><label>Mode de paiement</label>
+                  <select id="liv-mode-paiement">
+                    <option value="">— Non renseigné —</option>
+                    <option value="virement">Virement</option>
+                    <option value="especes">Espèces</option>
+                    <option value="cheque">Chèque</option>
+                    <option value="cb">Carte bancaire</option>
+                  </select>
+                </div>
               </div>
-              <div class="form-group"><label>Date</label><input type="date" id="liv-date" /></div>
-              <div class="form-group"><label>Heure de début</label><input type="time" id="liv-heure-debut" /></div>
-              <div class="form-group"><label>Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
-              <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" /></div>
-              <input type="hidden" id="liv-depart" />
-              <input type="hidden" id="liv-arrivee" />
-              <div class="form-group full-width"><label>Notes</label><input type="text" id="liv-notes" placeholder="Informations supplémentaires..." /></div>
-            </div>
-          </section>
+            </section>
 
-          <section class="fp-section">
-            <h4 class="fp-section-title">💰 Prix & TVA</h4>
-            <div class="form-grid fp-grid">
-              <div class="form-group"><label>Distance (km)</label>
-                <input type="number" id="liv-distance" placeholder="km" min="0" step="0.1" oninput="alerteRentabilite()" />
+            <section class="fp-section fp-section-compact">
+              <h4 class="fp-section-title">🚚 Affectation</h4>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group">
+                  <label>Chauffeur</label>
+                  <select id="liv-chauffeur" onchange="autoRemplirVehicule()">
+                    <option value="">-- Choisir --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Véhicule</label>
+                  <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule()"><option value="">-- Choisir --</option></select>
+                </div>
               </div>
-              <div class="form-group"><label>Prix HT (€) *</label><input type="number" id="liv-prix-ht" placeholder="Montant HT" min="0" step="0.01" oninput="calculerTTCDepuisHT('liv')" /></div>
-              <div class="form-group"><label>Taux TVA</label>
-                <select id="liv-taux-tva" onchange="calculerTTCDepuisHT('liv')">
-                  <option value="0">0 %</option>
-                  <option value="5.5">5,5 %</option>
-                  <option value="10">10 %</option>
-                  <option value="20" selected>20 %</option>
-                </select>
-                <div id="liv-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
+            </section>
+
+            <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
+            <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
+
+          </div>
+
+          <div class="fp-col fp-col-right">
+
+            <section class="fp-section fp-section-compact fp-section-ldv">
+              <h4 class="fp-section-title">📋 Lettre de voiture</h4>
+
+              <div class="fp-subsection-title">Expéditeur</div>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group"><label>Nom</label><input type="text" id="liv-exp-nom" placeholder="Raison sociale" /></div>
+                <div class="form-group"><label>Contact</label><input type="text" id="liv-exp-contact" placeholder="Nom + tél" /></div>
+                <div class="form-group full-width"><label>Adresse chargement</label><input type="text" id="liv-exp-adresse" placeholder="Rue + numéro" /></div>
+                <div class="form-group"><label>CP</label><input type="text" id="liv-exp-cp" placeholder="75001" maxlength="10" /></div>
+                <div class="form-group"><label>Ville</label><input type="text" id="liv-exp-ville" placeholder="Paris" /></div>
+                <div class="form-group"><label>Pays</label><input type="text" id="liv-exp-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" /></div>
               </div>
-              <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="liv-prix" placeholder="Montant TTC" min="0" step="0.01" oninput="calculerHTDepuisTTC('liv')" /></div>
-              <div class="form-group"><label>Mode de paiement</label>
-                <select id="liv-mode-paiement">
-                  <option value="">— Non renseigné —</option>
-                  <option value="virement">Virement</option>
-                  <option value="especes">Espèces</option>
-                  <option value="cheque">Chèque</option>
-                  <option value="cb">Carte bancaire</option>
-                </select>
+
+              <div class="fp-subsection-title">Destinataire</div>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group"><label>Nom</label><input type="text" id="liv-dest-nom" placeholder="Raison sociale" /></div>
+                <div class="form-group"><label>Contact</label><input type="text" id="liv-dest-contact" placeholder="Nom + tél" /></div>
+                <div class="form-group full-width"><label>Adresse déchargement</label><input type="text" id="liv-dest-adresse" placeholder="Rue + numéro" /></div>
+                <div class="form-group"><label>CP</label><input type="text" id="liv-dest-cp" placeholder="69003" maxlength="10" /></div>
+                <div class="form-group"><label>Ville</label><input type="text" id="liv-dest-ville" placeholder="Lyon" /></div>
+                <div class="form-group"><label>Pays</label><input type="text" id="liv-dest-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" /></div>
               </div>
-            </div>
-          </section>
 
-          <section class="fp-section">
-            <h4 class="fp-section-title">🚚 Affectation</h4>
-            <div class="form-grid fp-grid">
-              <div class="form-group">
-                <label>Salarié / Chauffeur assigné</label>
-                <select id="liv-chauffeur" onchange="autoRemplirVehicule()">
-                  <option value="">-- Choisir --</option>
-                </select>
+              <div class="fp-subsection-title">Marchandise</div>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group full-width"><label>Nature</label><input type="text" id="liv-marchandise-nature" placeholder="Palettes alimentaires, pièces mécaniques…" /></div>
+                <div class="form-group"><label>Poids (kg)</label><input type="number" id="liv-marchandise-poids" min="0" step="0.1" placeholder="1500" /></div>
+                <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="12.5" /></div>
+                <div class="form-group"><label>Colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="8" /></div>
               </div>
-              <div class="form-group">
-                <label>Véhicule</label>
-                <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule()"><option value="">-- Choisir un véhicule --</option></select>
+
+              <div class="fp-subsection-title">Matières dangereuses (ADR)</div>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group full-width"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin:0"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR — matières dangereuses</span></label></div>
+                <div class="form-grid full-width fp-grid fp-grid-dense" id="liv-adr-details" style="display:none;grid-column:1/-1">
+                  <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" /></div>
+                  <div class="form-group"><label>Classe</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" /></div>
+                  <div class="form-group"><label>Emballage</label><select id="liv-adr-groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <section class="fp-section">
-            <h4 class="fp-section-title">📋 Lettre de voiture</h4>
-
-            <div class="fp-subsection-title">Expéditeur / chargeur</div>
-            <div class="form-grid fp-grid">
-              <div class="form-group"><label>Nom expéditeur</label><input type="text" id="liv-exp-nom" placeholder="Raison sociale" /></div>
-              <div class="form-group"><label>Contact expéditeur</label><input type="text" id="liv-exp-contact" placeholder="Nom + tél" /></div>
-              <div class="form-group full-width"><label>Adresse chargement</label><input type="text" id="liv-exp-adresse" placeholder="Rue + numéro" /></div>
-              <div class="form-group"><label>Code postal</label><input type="text" id="liv-exp-cp" placeholder="75001" maxlength="10" /></div>
-              <div class="form-group"><label>Ville</label><input type="text" id="liv-exp-ville" placeholder="Paris" /></div>
-              <div class="form-group"><label>Pays</label><input type="text" id="liv-exp-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" /></div>
-            </div>
-
-            <div class="fp-subsection-title">Destinataire</div>
-            <div class="form-grid fp-grid">
-              <div class="form-group"><label>Nom destinataire</label><input type="text" id="liv-dest-nom" placeholder="Raison sociale" /></div>
-              <div class="form-group"><label>Contact destinataire</label><input type="text" id="liv-dest-contact" placeholder="Nom + tél" /></div>
-              <div class="form-group full-width"><label>Adresse déchargement</label><input type="text" id="liv-dest-adresse" placeholder="Rue + numéro" /></div>
-              <div class="form-group"><label>Code postal</label><input type="text" id="liv-dest-cp" placeholder="69003" maxlength="10" /></div>
-              <div class="form-group"><label>Ville</label><input type="text" id="liv-dest-ville" placeholder="Lyon" /></div>
-              <div class="form-group"><label>Pays</label><input type="text" id="liv-dest-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" /></div>
-            </div>
-
-            <div class="fp-subsection-title">Marchandise</div>
-            <div class="form-grid fp-grid">
-              <div class="form-group full-width"><label>Nature de la marchandise</label><input type="text" id="liv-marchandise-nature" placeholder="Palettes alimentaires, pièces mécaniques…" /></div>
-              <div class="form-group"><label>Poids brut (kg)</label><input type="number" id="liv-marchandise-poids" min="0" step="0.1" placeholder="ex : 1500" /></div>
-              <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="ex : 12.5" /></div>
-              <div class="form-group"><label>Nombre de colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="ex : 8" /></div>
-            </div>
-
-            <div class="fp-subsection-title">Matières dangereuses</div>
-            <div class="form-grid fp-grid">
-              <div class="form-group full-width"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR (matières dangereuses)</span></label></div>
-              <div class="form-grid full-width fp-grid" id="liv-adr-details" style="display:none;grid-column:1/-1">
-                <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" /></div>
-                <div class="form-group"><label>Classe ADR</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" /></div>
-                <div class="form-group"><label>Groupe emballage</label><select id="liv-adr-groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
-              </div>
-            </div>
-          </section>
-
-          <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
-          <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
+          </div>
 
         </div>
       </div>
