@@ -2461,6 +2461,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   naviguerVers('dashboard');
   majBadgeAgent();
   afficherDecisionsAgent();
+  // PERF anti-FOUC : exécute S22 (hubs sidebar) et S26 (timeline dashboard)
+  // synchrone avant de révéler le body, pour éviter le flash
+  // "anciens onglets → nouveaux onglets" et l'apparition retardée de la timeline.
+  try { if (typeof window.__s22InitSidebar === 'function') window.__s22InitSidebar(); } catch (_) {}
+  try { if (typeof window.__s26InitDashboard === 'function') window.__s26InitDashboard(); } catch (_) {}
   requestAnimationFrame(() => {
     document.body.classList.remove('app-booting');
   });
@@ -21073,8 +21078,10 @@ genererRentabilitePDF = function() {
     // Re-appliquer en cas d'injection tardive d'items nav
     setInterval(() => { masquerAnciensLiens(); injecterNouveauxLiens(); }, 5000);
   }
+  // PERF: exposé pour appel synchrone depuis le bootstrap principal (anti-FOUC sidebar)
+  window.__s22InitSidebar = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 1100);
+  else Promise.resolve().then(init);
 })();
 
 /* ==========================================================================
@@ -22625,8 +22632,9 @@ genererRentabilitePDF = function() {
       renderStatsComparees();
     });
   }
+  window.__s26InitDashboard = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 1500);
+  else Promise.resolve().then(init);
 })();
 
 /* ==========================================================================

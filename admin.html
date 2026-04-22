@@ -20,6 +20,20 @@
     /* Masquage dur : aucune section .page n'est visible tant que le boot n'a pas terminé */
     body.app-shell.app-booting { visibility: hidden !important; opacity: 0 !important; }
     body.app-shell:not(.app-booting) { transition: opacity .25s ease; }
+    /* Pré-masquage des anciens items sidebar fusionnés dans les hubs (Sprint 22) —
+       empêche le flash "anciens onglets puis nouveaux" à chaque reload. */
+    .nav-item[data-page="salaries"],
+    .nav-item[data-page="heures"],
+    .nav-item[data-page="planning"],
+    .nav-item[data-page="messagerie"],
+    .nav-item[data-page="incidents"],
+    .nav-item[data-page="vehicules"],
+    .nav-item[data-page="carburant"],
+    .nav-item[data-page="entretiens"],
+    .nav-item[data-page="inspections"],
+    .nav-item[data-page="charges"],
+    .nav-item[data-page="rentabilite"],
+    .nav-item[data-page="statistiques"] { display: none; }
   </style>
   <link rel="stylesheet" href="style.css?v=20260412-3" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
