@@ -4329,6 +4329,57 @@ async function viderAlertes() {
   afficherAlertes(); afficherToast('🗑️ Historique effacé');
 }
 
+/* ===== HELPERS CHART.JS — gradient fill + animations smooth partagés ===== */
+function mcaChartGradient(canvas, colorHex, opacityTop, opacityBottom) {
+  if (!canvas) return colorHex;
+  const ctx = canvas.getContext && canvas.getContext('2d');
+  if (!ctx) return colorHex;
+  const height = canvas.clientHeight || canvas.height || 280;
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  const hexToRgb = (h) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h || '');
+    if (!m) return '245,166,35';
+    const i = parseInt(m[1], 16);
+    return [(i>>16)&255, (i>>8)&255, i&255].join(',');
+  };
+  const rgb = hexToRgb(colorHex);
+  gradient.addColorStop(0, `rgba(${rgb},${opacityTop != null ? opacityTop : 0.55})`);
+  gradient.addColorStop(1, `rgba(${rgb},${opacityBottom != null ? opacityBottom : 0.02})`);
+  return gradient;
+}
+function mcaChartBaseOptions(isLight, extra) {
+  const tickColor = isLight ? '#334155' : '#e2e8f0';
+  const gridColor = isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.07)';
+  const legendColor = isLight ? '#0f172a' : '#f8fafc';
+  const tooltipBg = isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)';
+  return Object.assign({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 700, easing: 'easeOutQuart' },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: legendColor, font: { weight: '600', size: 12 }, boxWidth: 14, padding: 14 } },
+      tooltip: {
+        backgroundColor: tooltipBg,
+        titleColor: '#ffffff',
+        bodyColor: '#e2e8f0',
+        borderColor: 'rgba(245,166,35,0.4)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        titleFont: { weight: '700' },
+        bodyFont: { size: 12 },
+        displayColors: true,
+        boxPadding: 4
+      }
+    },
+    scales: {
+      x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 } } },
+      y: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 } } }
+    }
+  }, extra || {});
+}
+
 /* ===== DASHBOARD ===== */
 let chartActivite = null;
 function rafraichirDashboard() {
@@ -4546,14 +4597,33 @@ function rafraichirDashboard() {
     donnees.push(livraisons.filter(l=>l.date===ds).reduce((s,l)=>s+getMontantHTLivraison(l),0));
   }
   if (chartActivite) chartActivite.destroy();
-  chartActivite = new Chart(document.getElementById('chartActivite'), {
-    type:'bar', data:{ labels, datasets:[{ label:'CA (€)', data:donnees,
-      backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{color:chartGridColor},ticks:{color:chartTickColor}},
-        y:{beginAtZero:true,grid:{color:chartGridColor},ticks:{color:chartTickColor}}
-      } }
+  const _cvActivite = document.getElementById('chartActivite');
+  chartActivite = new Chart(_cvActivite, {
+    type:'bar', data:{ labels, datasets:[{
+      label:'CA (€)', data:donnees,
+      backgroundColor: mcaChartGradient(_cvActivite, '#f5a623', 0.85, 0.15),
+      borderColor:'rgba(245,166,35,1)',
+      borderWidth:0,
+      borderRadius:8,
+      borderSkipped:false,
+      hoverBackgroundColor: mcaChartGradient(_cvActivite, '#ffb94d', 1, 0.25)
+    }] },
+    options: mcaChartBaseOptions(isLight, {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
+          titleColor: '#ffffff', bodyColor: '#e2e8f0',
+          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
+          padding: 12, cornerRadius: 8,
+          callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) }
+        }
+      },
+      scales: {
+        x: { grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 }, callback: v => euros(v) } }
+      }
+    })
   });
 
   // Carte santé globale
@@ -4647,12 +4717,33 @@ function afficherRentabilite() {
   if (chartRentab) chartRentab.destroy();
   const isLight = document.body.classList.contains('light-mode');
   chartRentab = new Chart(document.getElementById('chartRentabilite'), {
-    type:'doughnut', data:{ labels:['Carburant','Entretien','Autres charges','Profit net'],
-      datasets:[{ data:[carb,entr,autresCharges,Math.max(profit,0)],
-        backgroundColor:['rgba(230,126,34,0.8)','rgba(52,152,219,0.8)','rgba(155,89,182,0.8)','rgba(46,204,113,0.8)'],
-        borderColor: isLight ? '#ffffff' : '#1a1d27', borderWidth:3 }] },
-    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{labels:{color: isLight ? '#1a1d27' : '#e8eaf0'}},
-      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${euros(ctx.parsed||0)}`}}} }
+    type:'doughnut',
+    data:{
+      labels:['Carburant','Entretien','Autres charges','Profit net'],
+      datasets:[{
+        data:[carb,entr,autresCharges,Math.max(profit,0)],
+        backgroundColor:['rgba(230,126,34,0.9)','rgba(52,152,219,0.9)','rgba(155,89,182,0.9)','rgba(46,204,113,0.9)'],
+        borderColor: isLight ? '#ffffff' : '#1a1d27',
+        borderWidth:4,
+        hoverOffset: 12,
+        spacing: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      cutout: '62%',
+      animation: { animateScale: true, animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: isLight ? '#1a1d27' : '#e8eaf0', font: { weight: '600', size: 12 }, padding: 14, boxWidth: 14, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: {
+          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
+          titleColor: '#ffffff', bodyColor: '#e2e8f0',
+          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
+          padding: 12, cornerRadius: 8,
+          callbacks: { label: ctx => ' ' + ctx.label + ' : ' + euros(ctx.parsed || 0) }
+        }
+      }
+    }
   });
 }
 
@@ -4737,33 +4828,69 @@ function afficherStatistiques() {
     }
   }
   if(chartCA)chartCA.destroy();
-  chartCA=new Chart(document.getElementById('chartCA'),{
+  const _cvCA = document.getElementById('chartCA');
+  chartCA = new Chart(_cvCA, {
     type:'line',
-    data:{labels,datasets:[
-      {label:'CA (€)',data:donnees,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:'#4f8ef7',borderWidth:2.5}
-    ]},
-    options:{responsive:true,plugins:{legend:{labels:{color:legendColor}}},
-      scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,maxTicksLimit:12}},y:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>euros(v)}}}}
+    data:{ labels, datasets:[{
+      label:'CA (€)', data:donnees,
+      borderColor:'#4f8ef7',
+      backgroundColor: mcaChartGradient(_cvCA, '#4f8ef7', 0.35, 0),
+      fill:true, tension:0.35,
+      pointRadius:4, pointHoverRadius:7,
+      pointBackgroundColor:'#4f8ef7', pointBorderColor:'#fff', pointBorderWidth:2,
+      borderWidth:3
+    }]},
+    options: mcaChartBaseOptions(isLight, {
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) } } },
+      scales: {
+        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, maxTicksLimit: 12, font: { size: 11 } } },
+        y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, callback: v => euros(v) } }
+      }
+    })
   });
 
   // Chauffeurs — horizontal bar
   const ch=charger('chauffeurs');
   if(chartChauff)chartChauff.destroy();
   const chData = ch.length ? ch.map(c=>({nom:c.nom, nb:livsFiltrees.filter(l=>l.chaufId===c.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
-  chartChauff=new Chart(document.getElementById('chartChauffeurs'),{
+  const _cvChauff = document.getElementById('chartChauffeurs');
+  chartChauff = new Chart(_cvChauff, {
     type:'bar',
-    data:{labels:chData.map(c=>c.nom),datasets:[{label:'Livraisons',data:chData.map(c=>c.nb),backgroundColor:'rgba(155,89,182,0.65)',borderColor:'rgba(155,89,182,1)',borderWidth:1.5,borderRadius:8}]},
-    options:{indexAxis:'horizontal',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor}},y:{grid:{color:gridColor},ticks:{color:tickColor}}}}
+    data:{ labels:chData.map(c=>c.nom), datasets:[{
+      label:'Livraisons', data:chData.map(c=>c.nb),
+      backgroundColor: mcaChartGradient(_cvChauff, '#9b59b6', 0.9, 0.25),
+      borderColor:'rgba(155,89,182,1)', borderWidth:0, borderRadius:8, borderSkipped:false
+    }] },
+    options: mcaChartBaseOptions(isLight, {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, precision: 0 } },
+        y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
+      }
+    })
   });
 
   // Véhicules
   const veh=charger('vehicules');
   if(chartVeh)chartVeh.destroy();
   const vehData = veh.length ? veh.map(v=>({nom:v.immat,nb:livsFiltrees.filter(l=>l.vehId===v.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
-  chartVeh=new Chart(document.getElementById('chartVehicules'),{
+  const _cvVeh = document.getElementById('chartVehicules');
+  chartVeh = new Chart(_cvVeh, {
     type:'bar',
-    data:{labels:vehData.map(v=>v.nom),datasets:[{label:'Livraisons',data:vehData.map(v=>v.nb),backgroundColor:'rgba(230,126,34,0.65)',borderColor:'rgba(230,126,34,1)',borderWidth:1.5,borderRadius:8}]},
-    options:{indexAxis:'horizontal',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor}},y:{grid:{color:gridColor},ticks:{color:tickColor}}}}
+    data:{ labels:vehData.map(v=>v.nom), datasets:[{
+      label:'Livraisons', data:vehData.map(v=>v.nb),
+      backgroundColor: mcaChartGradient(_cvVeh, '#e67e22', 0.9, 0.25),
+      borderColor:'rgba(230,126,34,1)', borderWidth:0, borderRadius:8, borderSkipped:false
+    }] },
+    options: mcaChartBaseOptions(isLight, {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, precision: 0 } },
+        y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
+      }
+    })
   });
 
   // CA par chauffeur (nouveau graphique)
