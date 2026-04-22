@@ -22382,7 +22382,7 @@ genererRentabilitePDF = function() {
     { id:'transport',     icon:'🚚', label:'Transport',       desc:'Règles calculs, livraison' },
     { id:'automatisations', icon:'⚙️', label:'Automatisations', desc:'Cron, rappels, clôtures' },
     { id:'securite',      icon:'🔐', label:'Sécurité & RGPD', desc:'Mot de passe, sessions, audit' },
-    { id:'conformite',    icon:'📋', label:'Conformité',      desc:'Pack fiscal, obligations légales' },
+    { id:'conformite',    icon:'📋', label:'Conformité',      desc:'RGPD, transport, obligations légales' },
     { id:'apropos',       icon:'ℹ️', label:'À propos',        desc:'Version, support, mentions' },
   ];
 
@@ -22427,9 +22427,9 @@ genererRentabilitePDF = function() {
           </div>
           <div class="s29-conf-item">
             <div class="s29-conf-title">📘 Fichier des Écritures Comptables — FEC (CGI art. A47 A-1)</div>
-            <p>Format normé 18 colonnes, tab-separated, encodage ISO-8859-15 ou UTF-8 BOM.
-            Obligatoire en cas de contrôle fiscal pour toute entreprise soumise à TVA.
-            L'export FEC est disponible dans l'onglet Charges et via le Pack fiscal ci-dessous.</p>
+            <p>Format normé 18 colonnes, obligatoire en cas de contrôle fiscal pour toute entreprise soumise à TVA.
+            Le FEC officiel est produit par Pennylane depuis ses données comptables complètes. Ne pas produire un FEC depuis MCA Logistics :
+            il serait incomplet (MCA n'ayant plus les factures) et risquerait un conflit avec la comptabilité officielle.</p>
           </div>
           <div class="s29-conf-item">
             <div class="s29-conf-title">✍️ Signature électronique BL (Règlement eIDAS n°910/2014)</div>
@@ -22535,19 +22535,18 @@ genererRentabilitePDF = function() {
     card.className = 'card s29-compta-card';
     card.dataset.s29Section = 'comptabilite';
     card.innerHTML = `
-      <div class="card-header"><h2>📊 Comptabilité</h2></div>
+      <div class="card-header"><h2>📊 Comptabilité (déléguée)</h2></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
-          MCA Logistics se concentre sur l'opérationnel transport. La comptabilité
-          avancée (OD de clôture, amortissements, CCA/PCA, CA3 TVA détaillée,
-          Factur-X) est déléguée à votre logiciel comptable (Pennylane et autres
-          PDP agréées DGFiP) via l'export Pennylane-ready.
+          MCA Logistics se concentre sur l'opérationnel transport.
+          La comptabilité complète — facturation, encaissements, TVA, amortissements,
+          clôture d'exercice, FEC, Factur-X — est gérée par votre logiciel comptable
+          (Pennylane ou PDP agréée DGFiP).
         </p>
         <ul class="s29-apropos-list">
-          <li>Export FEC 18 colonnes → onglet <strong>Charges</strong> ou Pack fiscal</li>
-          <li>Export Pennylane-ready (journal ventes/achats/écritures CSV)</li>
-          <li>Mentions légales factures → CGI 242 nonies A, L441-10, D441-5 (complètes)</li>
-          <li>Numérotation continue sans rupture → automatique</li>
+          <li>Export des charges → onglet <strong>Charges</strong> (CSV pour import Pennylane)</li>
+          <li>Livraisons exportables en CSV (base pour réconciliation Pennylane)</li>
+          <li>Données entreprise synchronisées (SIRET, TVA intracom, RCS, capital)</li>
         </ul>
       </div>
     `;
