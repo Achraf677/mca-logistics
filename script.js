@@ -2829,10 +2829,37 @@ function ajouterLivraison() {
   const affectation = synchroniserAffectationLivraison(chaufId, vehId);
   const conflitPlanning = affectation.chaufId ? planningGetIndisponibilitePourDate(affectation.chaufId, date) : null;
 
+  // BUG-006 fix : auto-création du client dans le carnet si le nom ne correspond
+  // à aucun client existant. Évite les livraisons orphelines (sans clientId)
+  // qui cassent l'agrégation CA par client + relances.
+  let clientId = null;
+  let clientCreeAuto = false;
+  try {
+    const clientsExistants = charger('clients');
+    const cible = client.toLowerCase();
+    const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
+    if (match) {
+      clientId = match.id;
+    } else {
+      const nouveau = {
+        id: genId(),
+        nom: client,
+        type: 'pro',
+        siren: clientSiren || '',
+        creeLe: new Date().toISOString(),
+        creeDepuis: 'livraison'
+      };
+      clientsExistants.push(nouveau);
+      sauvegarder('clients', clientsExistants);
+      clientId = nouveau.id;
+      clientCreeAuto = true;
+    }
+  } catch (_) { /* silencieux : ne bloque pas la création de la livraison */ }
+
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
-    client, clientSiren, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
+    client, clientSiren, clientId, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
     chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
     vehId: affectation.vehId || null, vehNom: affectation.vehNom,
     statut, date, notes,
@@ -2858,12 +2885,17 @@ function ajouterLivraison() {
   closeModal('modal-livraison');
   viderFormulaireLivraison();
   afficherLivraisons();
+  if (clientCreeAuto && typeof afficherClients === 'function') {
+    try { afficherClients(); } catch (_) {}
+  }
   if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
   if (conflitPlanning) {
     afficherToast(`⚠️ ${livraison.chaufNom || 'Ce salarié'} est noté ${conflitPlanning.label.toLowerCase()} le ${formatDateExport(date)}`, 'warning');
     return;
   }
-  afficherToast('✅ Livraison enregistrée !');
+  afficherToast(clientCreeAuto
+    ? '✅ Livraison enregistrée + client « ' + client + ' » ajouté au carnet'
+    : '✅ Livraison enregistrée !');
 }
 
 function viderFormulaireLivraison() {
