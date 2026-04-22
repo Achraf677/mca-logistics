@@ -13,8 +13,8 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
     /* Critical CSS inline — anti-FOUC (masque tout le body pendant le boot JS) */
-    html { background: #0d1524; }
-    body.app-shell { background: #0d1524; color: #e5e7eb; margin: 0; }
+    html { background: var(--bg, #0a0d14); }
+    body.app-shell { background: var(--bg, #0a0d14); color: #e5e7eb; margin: 0; }
     section.page { display: none; }
     section.page.active { display: block; }
     /* Masquage dur : aucune section .page n'est visible tant que le boot n'a pas terminé */
@@ -43,7 +43,6 @@
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header" onclick="naviguerVers('dashboard')" style="cursor:pointer" title="Retour Dashboard">
-      <span class="logo-icon">🚐</span>
       <span class="logo-text" id="sidebar-nom-entreprise">MCA Logistics</span>
     </div>
     <nav class="sidebar-nav" aria-label="Navigation principale">

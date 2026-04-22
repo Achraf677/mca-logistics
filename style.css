@@ -144,13 +144,13 @@ body.app-shell.app-booting .main-content {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 18px 12px 18px 12px;
+  padding: 18px 16px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
   min-width: 0;
   overflow: hidden;
 }
-.sidebar-header .logo-icon { width: 42px; height: 42px; min-width: 42px; border-radius: 12px; font-size: 1rem; }
+.sidebar-header .logo-icon { display: none; }
 
 .logo-icon {
   width: 48px;
@@ -175,10 +175,10 @@ body.app-shell.app-booting .main-content {
 }
 .logo-text {
   display: block;
-  font-size: 0.98rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--accent);
-  letter-spacing: 0;
+  letter-spacing: .2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1546,7 +1546,7 @@ body.light-mode {
   --text-muted: #64748b;
   --text-disabled: #cbd5e1;
 }
-body.light-mode .main-content { background: #f0f2f7; }
+body.light-mode .main-content { background: var(--bg-dark); }
 body.light-mode .topbar        { background: #ffffff; }
 body.light-mode .data-table thead { background: rgba(0,0,0,0.03); }
 body.light-mode .data-table th { color: #6b7280; }

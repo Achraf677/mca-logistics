@@ -9507,8 +9507,10 @@ function appliquerBgColor(color) {
       ? 'var(--accent)'
       : 'var(--border)';
   });
-  afficherToast('🎨 Couleur de fond appliquée');
+  if (typeof afficherToast === 'function') afficherToast('🎨 Couleur de fond appliquée');
 }
+window.appliquerBgColor = appliquerBgColor;
+window.appliquerAccentColor = window.appliquerAccentColor || appliquerAccentColor;
 
 // Restore au boot
 (function restoreBgColor() {
