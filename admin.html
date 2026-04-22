@@ -7,16 +7,10 @@
   <title>MCA Logistics — Gestion Livraison</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="style.css?v=20260412-3">
+  <link rel="preload" as="script" href="script.js?v=20260412-4">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
-  <!-- BUG-005 PWA : manifest + theme + install -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0d1524" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
-  <link rel="apple-touch-icon" href="icon.svg" />
   <style>
     /* Critical CSS inline — anti-FOUC (masque tout le body pendant le boot JS) */
     html { background: #0d1524; }
@@ -26,16 +20,29 @@
     /* Masquage dur : aucune section .page n'est visible tant que le boot n'a pas terminé */
     body.app-shell.app-booting { visibility: hidden !important; opacity: 0 !important; }
     body.app-shell:not(.app-booting) { transition: opacity .25s ease; }
+    /* Pré-masquage des anciens items sidebar fusionnés dans les hubs (Sprint 22) —
+       empêche le flash "anciens onglets puis nouveaux" à chaque reload. */
+    .nav-item[data-page="salaries"],
+    .nav-item[data-page="heures"],
+    .nav-item[data-page="planning"],
+    .nav-item[data-page="messagerie"],
+    .nav-item[data-page="incidents"],
+    .nav-item[data-page="vehicules"],
+    .nav-item[data-page="carburant"],
+    .nav-item[data-page="entretiens"],
+    .nav-item[data-page="inspections"],
+    .nav-item[data-page="charges"],
+    .nav-item[data-page="rentabilite"],
+    .nav-item[data-page="statistiques"] { display: none; }
   </style>
   <link rel="stylesheet" href="style.css?v=20260412-3" />
-  <script defer src="chart.min.js"></script>
+  <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="app-shell app-booting">
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header" onclick="naviguerVers('dashboard')" style="cursor:pointer" title="Retour Dashboard">
-      <span class="logo-icon">🚐</span>
       <span class="logo-text" id="sidebar-nom-entreprise">MCA Logistics</span>
     </div>
     <nav class="sidebar-nav" aria-label="Navigation principale">
@@ -50,7 +57,6 @@
           <a href="#" class="nav-item" data-page="livraisons"><span class="nav-icon">📦</span><span class="nav-label">Livraisons</span></a>
           <a href="#" class="nav-item" data-page="calendrier"><span class="nav-icon">🗓️</span><span class="nav-label">Calendrier</span></a>
           <a href="#" class="nav-item" data-page="planning"><span class="nav-icon">📅</span><span class="nav-label">Planning</span></a>
-          <a href="#" class="nav-item" data-page="messagerie"><span class="nav-icon">💬</span><span class="nav-label">Messagerie <span class="badge-alertes-nav" id="badge-msg-admin" style="display:none"></span></span></a>
           <a href="#" class="nav-item" data-page="alertes"><span class="nav-icon">🔔</span><span class="nav-label">Alertes <span class="badge-alertes-nav" id="badge-alertes"></span></span></a>
         </div>
       </div>
@@ -62,7 +68,6 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
-          <a href="#" class="nav-item" data-page="fournisseurs"><span class="nav-icon">🏭</span><span class="nav-label">Fournisseurs</span></a>
         </div>
       </div>
 
@@ -98,12 +103,8 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
-          <a href="#" class="nav-item" data-page="facturation"><span class="nav-icon">📄</span><span class="nav-label">Facturation</span></a>
-          <a href="#" class="nav-item" data-page="encaissements"><span class="nav-icon">💳</span><span class="nav-label">Encaissements</span></a>
           <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
           <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
-          <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
-          <a href="#" class="nav-item" data-page="budget"><span class="nav-icon">📂</span><span class="nav-label">Budget & Trésorerie</span></a>
         </div>
       </div>
 
@@ -370,58 +371,7 @@
       </div>
     </section>
 
-    <!-- FOURNISSEURS (Sprint 17) -->
-    <section class="page" id="page-fournisseurs">
-      <div class="page-actions">
-        <h2>🏭 Carnet Fournisseurs</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-secondary" onclick="if(typeof exporterHistoriqueFournisseursCSV==='function')exporterHistoriqueFournisseursCSV()">📚 Historique fournisseurs</button>
-          <button class="btn-primary" onclick="openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
-        </div>
-      </div>
-      <div class="filters filters-fournisseurs" style="margin-bottom:16px">
-        <div class="searchbar"><span class="searchbar-icon">🔎</span><input type="search" id="fourn-search" placeholder="Rechercher nom, SIREN, contact, ville..." oninput="if(typeof afficherFournisseurs==='function')afficherFournisseurs()" /></div>
-        <select id="fourn-filter-categorie" onchange="if(typeof afficherFournisseurs==='function')afficherFournisseurs()">
-          <option value="">Toutes catégories</option>
-          <option value="carburant">⛽ Carburant</option>
-          <option value="entretien">🔧 Entretien / garage</option>
-          <option value="assurance">🛡️ Assurance</option>
-          <option value="loa-lld">🚐 LOA / LLD</option>
-          <option value="peage">🛣️ Péage / autoroute</option>
-          <option value="telecom">📡 Télécom</option>
-          <option value="banque">🏦 Banque / finance</option>
-          <option value="fournitures">📦 Fournitures</option>
-          <option value="autre">📝 Autre</option>
-        </select>
-        <button class="btn-secondary" onclick="document.getElementById('fourn-search').value='';document.getElementById('fourn-filter-categorie').value='';if(typeof afficherFournisseurs==='function')afficherFournisseurs();">Réinitialiser</button>
-      </div>
-      <div class="card">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Nom</th><th>Catégorie</th><th>Contact</th><th>Téléphone</th><th>Dépense totale</th><th>Solde dû</th><th>Délai accordé</th><th>Actions</th></tr></thead>
-            <tbody id="tb-fournisseurs"><tr><td colspan="8" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
-          </table>
-        </div>
-      </div>
     </section>
-
-    <!-- CHAUFFEURS -->
-    <section class="page" id="page-chauffeurs">
-      <div class="page-actions"><h2>👤 Gestion des Chauffeurs</h2><button class="btn-primary" onclick="openModal('modal-chauffeur')">+ Ajouter</button></div>
-      <div class="info-banner" style="margin-bottom:16px;">
-        👥 Salariés sans véhicule : <select id="sel-affecter-chauffeur" style="margin-left:8px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:4px 10px;border-radius:6px;font-size:0.85rem;"></select>
-        <em style="color:var(--text-muted);font-size:0.8rem;margin-left:6px;">— Affectez un véhicule depuis la page Véhicules</em>
-      </div>
-      <div class="card">
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Nom</th><th>Téléphone</th><th>Statut</th><th>Véhicule</th><th>Livraisons</th><th>CA généré</th><th>Actions</th></tr></thead>
-            <tbody id="tb-chauffeurs"><tr><td colspan="7" class="empty-row">Aucun chauffeur</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-
     <!-- VÉHICULES -->
     <section class="page" id="page-vehicules">
       <div class="page-actions"><h2>🚐 Gestion des Véhicules</h2>
@@ -744,11 +694,39 @@
               <div id="nsal-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Utilisez 8 caractères minimum avec majuscule, minuscule et chiffre.</div>
             </div>
             <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="T&eacute;l&eacute;phone" /></div>
+            <div class="form-group"><label>Email</label><input type="email" id="nsal-email" placeholder="exemple@mca-logistics.fr" /></div>
             <div class="form-group"><label>Poste / Fonction</label><select id="nsal-poste"><option value="">-- Choisir un poste --</option></select></div>
             <div class="form-group"><label>Affecter un véhicule dès la création</label><select id="nsal-vehicule"><option value="">-- Aucun pour l'instant --</option></select></div>
             <div class="form-group"><label>🪪 Expiration permis</label><input type="date" id="nsal-date-permis" /></div>
+            <div class="form-group"><label>Catégorie permis</label>
+              <select id="nsal-cat-permis">
+                <option value="">—</option>
+                <option value="B">B (VL ≤ 3,5 t)</option>
+                <option value="autre">Autre (permis étranger ou licence équivalente)</option>
+              </select>
+            </div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
+          <!-- Suivi médical (R.4624-10 Code travail — visite d'embauche obligatoire tout salarié) -->
+          <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
+            <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
+              🩺 Suivi médical du travail
+            </summary>
+            <div style="padding:14px;border-top:1px solid var(--border)">
+              <div class="form-grid">
+                <div class="form-group"><label>Date dernière visite</label><input type="date" id="nsal-visite-date" /></div>
+                <div class="form-group"><label>Aptitude</label>
+                  <select id="nsal-visite-aptitude">
+                    <option value="">—</option>
+                    <option value="apte">Apte</option>
+                    <option value="apte_restrictions">Apte avec restrictions</option>
+                    <option value="inapte">Inapte</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Date prochaine visite</label><input type="date" id="nsal-visite-date-exp" /></div>
+              </div>
+            </div>
+          </details>
           <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:12px;">
             <button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Annuler</button>
             <button class="btn-primary" onclick="creerSalarie()">✅ Créer le salarié</button>
@@ -821,228 +799,6 @@
         </div>
       </div>
     </section>
-
-    <!-- TVA -->
-    <section class="page" id="page-tva">
-      <div class="page-actions"><h2>🧾 Récapitulatif TVA</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-export" onclick="exporterTvaCSV()">📥 CSV</button>
-          <button class="btn-rapport" onclick="exporterTvaPDF()">📄 Rapport TVA</button>
-        </div>
-      </div>
-
-      <!-- Navigation mois -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center"><div id="tva-mois-label" style="font-size:1rem;font-weight:700"></div><div id="tva-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="padding:5px 12px">Réinitialiser</button>
-            <button class="btn-secondary" onclick="navTvaPeriode(1)" style="padding:5px 12px">Suivant</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPIs TVA -->
-      <div class="kpi-grid">
-        <div class="kpi-card green"><div class="kpi-label">TVA collectée (sur ventes)</div><div class="kpi-value" id="tva-collectee">0 €</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">TVA déductible (sur achats)</div><div class="kpi-value" id="tva-deductible">0 €</div></div>
-      </div>
-
-      <div class="card mt-20">
-        <div class="modal-body" id="tva-mode-info"></div>
-      </div>
-
-      <!-- TVA Collectée détail -->
-      <div class="card mt-20">
-        <div class="card-header"><h2 id="tva-collectee-title">📤 TVA Collectée</h2></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
-            <tbody id="tb-tva-collectee"></tbody>
-          </table>
-        </div>
-        <div class="modal-body" id="tva-non-exigible-info" style="padding-top:0"></div>
-      </div>
-
-      <!-- TVA Déductible détail -->
-      <div class="card mt-20">
-        <div class="card-header"><h2 id="tva-deductible-title">📥 TVA Déductible (charges, carburant, entretiens)</h2></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
-            <tbody id="tb-tva-deductible"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Solde -->
-      <div class="card mt-20" id="tva-solde-card">
-        <div class="card-header">
-          <h2>📊 Solde TVA du mois</h2>
-        </div>
-        <div class="modal-body" id="tva-solde-detail"></div>
-      </div>
-    </section>
-
-    <!-- BUDGET & TRÉSORERIE -->
-    <section class="page" id="page-budget">
-      <div class="page-actions">
-        <h2>📊 Budget & Trésorerie</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-secondary" onclick="exporterBudgetExcel()" style="padding:6px 14px">📥 Export CSV</button>
-          <button class="btn-rapport" onclick="exporterBudgetPDF()">📄 Rapport PDF</button>
-        </div>
-      </div>
-
-      <!-- Alerte TVA J-10 -->
-      <div id="budget-tva-alerte" style="display:none"></div>
-
-      <!-- Navigation mois -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-budget-select" onchange="changerVueBudget(this.value)">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navBudgetPeriode(-1)" style="padding:5px 14px">Précédent</button>
-          </div>
-          <div class="nav-periode-center" style="display:flex;align-items:center;justify-content:center;gap:12px">
-            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-              <div id="budget-mois-label" style="font-size:1.05rem;font-weight:700"></div>
-              <div id="budget-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
-            </div>
-            <div id="budget-mois-badge" style="font-size:.75rem;padding:2px 10px;border-radius:20px;background:rgba(245,166,35,.15);color:var(--accent);font-weight:600"></div>
-          </div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserBudgetPeriode()" style="padding:5px 12px">Réinitialiser</button>
-            <button class="btn-secondary" onclick="navBudgetPeriode(1)" style="padding:5px 12px">Suivant</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPIs -->
-      <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-top:16px">
-        <div class="kpi-card green">
-          <div class="kpi-label">Encaissements encaissés</div>
-          <div class="kpi-value" id="budget-kpi-encaisse">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-encaisse-sub"></div>
-        </div>
-        <div class="kpi-card red">
-          <div class="kpi-label">Décaissements</div>
-          <div class="kpi-value" id="budget-kpi-depenses">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-depenses-sub"></div>
-        </div>
-        <div class="kpi-card orange">
-          <div class="kpi-label">TVA nette</div>
-          <div class="kpi-value" id="budget-kpi-tva">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-tva-sub"></div>
-        </div>
-        <div class="kpi-card blue">
-          <div class="kpi-label">Solde net estimé</div>
-          <div class="kpi-value" id="budget-kpi-solde">0 €</div>
-          <div class="kpi-sub" id="budget-kpi-solde-sub"></div>
-        </div>
-      </div>
-
-      <!-- Vue 2 colonnes : Encaissements | Décaissements -->
-      <div class="budget-2col mt-20">
-        <!-- Encaissements -->
-        <div class="card table-card">
-          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-            <h2>💶 Encaissements</h2>
-            <button class="btn-primary" style="font-size:.78rem;padding:4px 10px" onclick="budgetToggleEncaissementRapide()">+ Saisie rapide</button>
-          </div>
-          <div id="budget-encaissement-rapide" class="budget-quick-panel" style="display:none">
-            <div class="budget-quick-grid">
-              <div class="budget-quick-field budget-quick-field-wide"><label>Client</label><input type="text" id="budget-enc-client" placeholder="Ex : Amazon" /></div>
-              <div class="budget-quick-field"><label>Montant TTC (€)</label><input type="number" id="budget-enc-montant" placeholder="0.00" min="0" step="0.01" /></div>
-              <div class="budget-quick-field"><label>TVA (%)</label><input type="number" id="budget-enc-tva" value="20" min="0" step="0.1" /></div>
-              <div class="budget-quick-field"><label>Date de paiement</label><input type="date" id="budget-enc-date" /></div>
-              <button class="btn-primary budget-quick-submit" onclick="ajouterEncaissementBudgetRapide()">✅ Ajouter</button>
-            </div>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>Date de paiement</th><th>Client</th><th>HT</th><th>TTC</th><th>Statut</th><th>Actions</th></tr></thead>
-              <tbody id="tb-budget-encaissements"></tbody>
-            </table>
-          </div>
-        </div>
-        <!-- Décaissements -->
-        <div class="card">
-          <div class="card-header" style="display:flex;align-items:center;justify-content:space-between">
-            <h2>💸 Décaissements</h2>
-            <button class="btn-primary" style="font-size:.78rem;padding:4px 10px" onclick="budgetToggleSaisieRapide()">+ Saisie rapide</button>
-          </div>
-          <!-- Saisie rapide inline -->
-          <div id="budget-saisie-rapide" class="budget-quick-panel" style="display:none">
-            <div class="budget-quick-cats">
-              <button class="btn-cat-budget active" data-cat="carburant" onclick="budgetSelectCat(this)">⛽ Carburant</button>
-              <button class="btn-cat-budget" data-cat="peage" onclick="budgetSelectCat(this)">🛣️ Péage</button>
-              <button class="btn-cat-budget" data-cat="entretien" onclick="budgetSelectCat(this)">🔧 Entretien</button>
-              <button class="btn-cat-budget" data-cat="assurance" onclick="budgetSelectCat(this)">🛡️ Assurance</button>
-              <button class="btn-cat-budget" data-cat="salaires" onclick="budgetSelectCat(this)">👥 Salaires</button>
-              <button class="btn-cat-budget" data-cat="lld-credit" onclick="budgetSelectCat(this)">🚐 LLD / Crédit</button>
-              <button class="btn-cat-budget" data-cat="tva" onclick="budgetSelectCat(this)">🧾 TVA</button>
-              <button class="btn-cat-budget" data-cat="autre" onclick="budgetSelectCat(this)">📝 Autre</button>
-            </div>
-            <div class="budget-quick-grid">
-              <div class="budget-quick-field budget-quick-field-wide"><label>Description</label><input type="text" id="budget-sr-desc" placeholder="Ex : Plein Total L67" /></div>
-              <div class="budget-quick-field"><label>Montant TTC (€)</label><input type="number" id="budget-sr-montant" placeholder="0.00" min="0" step="0.01" /></div>
-              <div class="budget-quick-field"><label>TVA (%)</label><input type="number" id="budget-sr-tva" value="20" min="0" step="0.1" /></div>
-              <div class="budget-quick-field" id="budget-sr-tva-period-wrap" style="display:none"><label>Période TVA</label><input type="month" id="budget-sr-tva-period" /></div>
-              <div class="budget-quick-field"><label id="budget-sr-date-label">Date</label><input type="date" id="budget-sr-date" /></div>
-              <button class="btn-primary budget-quick-submit" onclick="ajouterChargeBudgetRapide()">✅ Ajouter</button>
-            </div>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>TTC</th><th>Actions</th></tr></thead>
-              <tbody id="tb-budget-decaissements"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- Trésorerie prévisionnelle -->
-      <div class="mt-20">
-        <div class="card">
-          <div class="card-header"><h2>📅 Trésorerie prévisionnelle</h2></div>
-          <div class="modal-body">
-            <div class="budget-base-box">
-              <div class="budget-base-copy">
-                <div class="budget-base-title">Base de trésorerie</div>
-                <div class="budget-base-sub">Montant disponible avant les mouvements de la période.</div>
-              </div>
-              <div class="budget-base-controls">
-                <input type="number" id="budget-base-treso" step="0.01" placeholder="0.00" />
-                <button class="btn-primary" onclick="enregistrerBaseTresorerieBudget()">💾 Enregistrer</button>
-              </div>
-            </div>
-            <div id="budget-prev-table" style="margin-top:14px"></div>
-            <div id="budget-prev-infos" style="margin-top:12px"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card mt-20">
-        <div class="card-header"><h2>🧾 Déclaration TVA du mois</h2></div>
-        <div class="modal-body" id="budget-tva-recap"></div>
-      </div>
-
-    </section>
-
     <!-- PARAMÈTRES -->
     <section class="page" id="page-parametres">
       <div class="page-actions"><h2>⚙️ Paramètres</h2></div>
@@ -1052,24 +808,71 @@
         <div class="card params-card-wide">
           <div class="card-header"><h2>🏢 Informations entreprise</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Ces informations apparaissent sur les bons de livraison et les documents PDF.</p>
+            <div class="form-section-title" style="margin-bottom:10px">📇 Identification</div>
             <div class="form-grid">
-              <div class="form-group full-width"><label>Nom de l'entreprise</label><input type="text" id="param-nom-entreprise" placeholder="Nom de votre entreprise" /></div>
-              <div class="form-group"><label>Nom de l'admin</label><input type="text" id="param-nom-admin" placeholder="Votre nom" /></div>
-              <div class="form-group"><label>SIRET *</label><input type="text" id="param-siret" placeholder="SIRET (14 chiffres)" maxlength="14" inputmode="numeric" /></div>
-              <div class="form-group"><label>N° TVA intracommunautaire</label><input type="text" id="param-tva-intracom" placeholder="FR + 11 chiffres (ex. FR12345678901)" maxlength="13" style="text-transform:uppercase" /></div>
-              <div class="form-group full-width"><label>Adresse</label><input type="text" id="param-adresse" placeholder="Adresse compl&egrave;te" /></div>
-              <div class="form-group"><label>Téléphone</label><input type="tel" id="param-tel-entreprise" placeholder="T&eacute;l&eacute;phone" /></div>
+              <div class="form-group full-width"><label>Dénomination sociale *</label><input type="text" id="param-nom-entreprise" placeholder="ex : MCA LOGISTICS" /></div>
+              <div class="form-group"><label>Forme juridique</label>
+                <select id="param-forme-juridique">
+                  <option value="">—</option>
+                  <option value="SAS">SAS</option>
+                  <option value="SASU">SASU</option>
+                  <option value="SARL">SARL</option>
+                  <option value="EURL">EURL</option>
+                  <option value="SA">SA</option>
+                  <option value="SNC">SNC</option>
+                  <option value="EI">Entreprise individuelle</option>
+                  <option value="EIRL">EIRL</option>
+                  <option value="Micro-entreprise">Micro-entreprise</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Nom du dirigeant / admin</label><input type="text" id="param-nom-admin" placeholder="Votre nom" /></div>
+              <div class="form-group"><label>SIRET</label><input type="text" id="param-siret" placeholder="14 chiffres" maxlength="14" inputmode="numeric" /></div>
+              <div class="form-group"><label>Code APE / NAF</label><input type="text" id="param-code-ape" placeholder="ex : 5229B" maxlength="5" /></div>
+              <div class="form-group"><label>N° TVA intracommunautaire</label><input type="text" id="param-tva-intracom" placeholder="FR + 11 chiffres" maxlength="13" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>RCS (ville)</label><input type="text" id="param-rcs-ville" placeholder="ex : Strasbourg" /></div>
+              <div class="form-group"><label>N° RCS</label><input type="text" id="param-rcs-numero" placeholder="Après immatriculation" /></div>
+              <div class="form-group"><label>Capital social (€)</label><input type="number" id="param-capital" placeholder="ex : 7200" min="0" step="0.01" /></div>
+              <div class="form-group"><label>Capital libéré (€)</label><input type="number" id="param-capital-libere" placeholder="ex : 3600" min="0" step="0.01" /></div>
+            </div>
+
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">📍 Siège social & contact</div>
+            <div class="form-grid">
+              <div class="form-group full-width"><label>Adresse (numéro + rue)</label><input type="text" id="param-adresse" placeholder="ex : 17 rue de la Chapelle" /></div>
+              <div class="form-group"><label>Code postal</label><input type="text" id="param-code-postal" placeholder="67540" maxlength="5" /></div>
+              <div class="form-group"><label>Ville</label><input type="text" id="param-ville" placeholder="Ostwald" /></div>
+              <div class="form-group"><label>Pays</label><input type="text" id="param-pays" placeholder="FR" value="FR" maxlength="2" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>Téléphone</label><input type="tel" id="param-tel-entreprise" placeholder="Téléphone" /></div>
               <div class="form-group"><label>Email</label><input type="email" id="param-email" placeholder="Email de contact" /></div>
             </div>
-            <button class="btn-primary" style="margin-top:16px" onclick="sauvegarderParametres()">✅ Enregistrer</button>
+
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">🚛 Transport routier léger</div>
+            <div class="form-grid">
+              <div class="form-group"><label>N° Licence Transport Intérieur léger (LTI)</label><input type="text" id="param-lti-numero" /></div>
+              <div class="form-group"><label>Date émission LTI</label><input type="date" id="param-lti-date-emission" /></div>
+              <div class="form-group"><label>Date expiration LTI (10 ans)</label><input type="date" id="param-lti-date-expiration" /></div>
+              <div class="form-group"><label>N° dossier DREAL</label><input type="text" id="param-dreal-dossier" placeholder="ex : 2026-15119" /></div>
+              <div class="form-group"><label>N° inscription registre transporteurs</label><input type="text" id="param-registre-transporteurs" placeholder="Section transporteurs légers" /></div>
+              <div class="form-group"><label>Gestionnaire de transport</label><input type="text" id="param-gestionnaire-nom" placeholder="Nom et prénom" /></div>
+              <div class="form-group"><label>N° attestation capacité professionnelle</label><input type="text" id="param-capacite-pro-numero" placeholder="Capacité transport léger — titulaire : gestionnaire" /></div>
+              <div class="form-group"><label>Date obtention capacité</label><input type="date" id="param-capacite-pro-date" /></div>
+            </div>
+
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">💳 Coordonnées bancaires & facturation</div>
+            <div class="form-grid">
+              <div class="form-group"><label>IBAN</label><input type="text" id="param-iban" placeholder="FR76 …" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>BIC</label><input type="text" id="param-bic" placeholder="ex : QNTOFRP1XXX" style="text-transform:uppercase" /></div>
+              <div class="form-group"><label>Banque</label><input type="text" id="param-banque" placeholder="ex : Qonto" /></div>
+              <div class="form-group"><label>Délai paiement par défaut (jours)</label><input type="number" id="param-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+              <div class="form-group"><label>Taux pénalités retard (%)</label><input type="number" id="param-taux-penalites" placeholder="10.15" min="0" max="50" step="0.01" value="10.15" /></div>
+            </div>
+
+            <button class="btn-primary" style="margin-top:18px" onclick="sauvegarderParametres()">✅ Enregistrer</button>
           </div>
         </div>
 
         <div class="card">
           <div class="card-header"><h2>🖼️ Identité visuelle</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Personnalisez le logo affiché dans l’application et l’icône de l’onglet navigateur.</p>
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
               <div id="param-logo-preview" style="width:72px;height:72px;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:2rem">🚐</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1087,7 +890,6 @@
         <div class="card">
           <div class="card-header"><h2>🏷️ Postes / Fonctions</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Définissez les postes disponibles. Ils seront proposés lors de la création d'un salarié et dans les filtres messagerie.</p>
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
               <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" />
@@ -1193,7 +995,6 @@
         <div class="card params-card-wide">
           <div class="card-header"><h2>📜 Journal d'audit</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Historique des actions sensibles de gestion : modifications, suppressions, exports et validations métier.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
               <button class="btn-secondary" onclick="exporterJournalAuditCSV()">📥 Export CSV</button>
               <button class="btn-secondary" onclick="viderJournalAudit()">🗑️ Vider</button>
@@ -1210,7 +1011,6 @@
         <div class="card">
           <div class="card-header"><h2>💾 Sauvegarde & restauration</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Télécharge une sauvegarde complète des données admin, puis restaure-la sur le même navigateur si besoin.</p>
             <div class="param-backup-stats" id="param-backup-stats">
               <div class="param-backup-stat"><span>Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
             </div>
@@ -1270,7 +1070,6 @@
       <div class="page-actions"><h2>💸 Charges</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="font-size:.88rem;color:var(--text-muted)">Total : <strong id="charges-total-mois">0 €</strong></span>
-          <button class="btn-secondary" onclick="exporterFEC()">📘 Export FEC</button>
           <button class="btn-export" onclick="exporterCharges()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterChargesPDFMois()">📄 Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalCharge()">+ Nouvelle charge</button>
@@ -1325,156 +1124,6 @@
         </div>
       </div>
     </section>
-
-    <!-- FACTURATION (Sprint 12.1) -->
-    <section class="page" id="page-facturation">
-      <div class="page-actions">
-        <h2>📄 Facturation</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:.82rem;color:var(--text-muted)">Compteur : <strong id="fac-compteur-display">—</strong></span>
-          <button class="btn-secondary" onclick="if(typeof ouvrirExportZ==='function')ouvrirExportZ()">📊 Export Z</button>
-          <button class="btn-secondary" onclick="exporterFacturesCSV()">📤 Export CSV</button>
-        </div>
-      </div>
-
-      <div class="enc-stats-grid" id="fac-stats-grid"></div>
-
-      <div class="card" style="margin-top:14px">
-        <div class="enc-filters">
-          <input type="search" id="fac-search" class="searchbar" placeholder="🔍 N° facture, client…" oninput="afficherFacturation()" />
-          <select id="fac-filter-statut" onchange="afficherFacturation()">
-            <option value="">Tous statuts</option>
-            <option value="emise">Émise</option>
-            <option value="partiel">Partiellement payée</option>
-            <option value="paye">Payée</option>
-            <option value="annulée">Annulée</option>
-          </select>
-          <select id="fac-filter-annee" onchange="afficherFacturation()">
-            <option value="">Toutes années</option>
-          </select>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>N° facture</th><th>Date</th><th>Client</th><th>HT</th><th>TVA</th><th>TTC</th><th>Payé</th><th>Solde</th><th>Statut</th><th>Actions</th></tr></thead>
-            <tbody id="tb-facturation"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card danger-zone" style="margin-top:14px">
-        <div class="danger-zone-title">⚠️ Zone dangereuse — outils de test</div>
-        <div class="danger-zone-desc">
-          La réinitialisation du compteur est réservée à la <strong>phase de test</strong>. En production, jamais utiliser : la loi fiscale française (art. 289 CGI) impose une numérotation chronologique continue, sans trou, non réutilisable. Un contrôle fiscal peut exiger l'historique complet.
-        </div>
-        <button class="btn-danger" onclick="ouvrirResetCompteurFactures()">🧹 Réinitialiser le compteur de factures</button>
-      </div>
-    </section>
-
-    <!-- ENCAISSEMENTS (Sprint 12) -->
-    <section class="page" id="page-encaissements">
-      <div class="page-actions">
-        <h2>💳 Encaissements &amp; Avoirs</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-secondary" onclick="exporterEncaissementsCSV()">📤 Export CSV</button>
-          <button class="btn-primary" onclick="ouvrirModalPaiement('in')">+ Enregistrer un paiement</button>
-        </div>
-      </div>
-      <div class="enc-stats-grid" id="enc-stats-grid"></div>
-      <div class="card" style="margin-top:14px">
-        <div class="enc-tabs">
-          <button class="enc-tab active" data-enc-tab="paiements" onclick="switchEncTab('paiements')">💰 Paiements reçus / émis</button>
-          <button class="enc-tab" data-enc-tab="avoirs" onclick="switchEncTab('avoirs')">🧾 Avoirs émis</button>
-          <button class="enc-tab" data-enc-tab="factures" onclick="switchEncTab('factures')">📄 Factures avec solde</button>
-          <button class="enc-tab" data-enc-tab="relances" onclick="switchEncTab('relances')">⏰ Relances <span class="enc-tab-badge" id="enc-tab-badge-relances" style="display:none"></span></button>
-        </div>
-        <div class="enc-panel" id="enc-panel-paiements">
-          <div class="enc-filters">
-            <input type="search" id="enc-search" class="searchbar" placeholder="🔍 Rechercher…" oninput="afficherEncaissements()" />
-            <select id="enc-filter-sens" onchange="afficherEncaissements()">
-              <option value="">Tous sens</option>
-              <option value="in">Reçus (ventes)</option>
-              <option value="out">Émis (achats)</option>
-            </select>
-            <select id="enc-filter-mode" onchange="afficherEncaissements()">
-              <option value="">Tous modes</option>
-              <option value="virement">Virement</option>
-              <option value="especes">Espèces</option>
-              <option value="cheque">Chèque</option>
-              <option value="cb">Carte bancaire</option>
-            </select>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>N°</th><th>Date</th><th>Sens</th><th>Lié à</th><th>Client / Fournisseur</th><th>Mode</th><th>Montant</th><th>Actions</th></tr></thead>
-              <tbody id="tb-encaissements"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="enc-panel" id="enc-panel-avoirs" style="display:none">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>N° avoir</th><th>Date</th><th>Client</th><th>Facture origine</th><th>Motif</th><th>Montant HT</th><th>TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
-              <tbody id="tb-avoirs"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="enc-panel" id="enc-panel-factures" style="display:none">
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>N° facture</th><th>Date</th><th>Client</th><th>TTC</th><th>Payé</th><th>Avoirs</th><th>Solde</th><th>Statut</th><th>Actions</th></tr></thead>
-              <tbody id="tb-factures-solde"></tbody>
-            </table>
-          </div>
-        </div>
-        <div class="enc-panel" id="enc-panel-relances" style="display:none">
-          <div class="relances-header">
-            <div class="relances-stats">
-              <div class="relances-stat-item">
-                <div class="relances-stat-label">Total impayé</div>
-                <div class="relances-stat-val" id="rel-total-impaye">0 €</div>
-              </div>
-              <div class="relances-stat-item">
-                <div class="relances-stat-label">Factures en retard</div>
-                <div class="relances-stat-val" id="rel-total-retard">0</div>
-              </div>
-              <div class="relances-stat-item">
-                <div class="relances-stat-label">Relances envoyées (30j)</div>
-                <div class="relances-stat-val" id="rel-total-envoyees">0</div>
-              </div>
-            </div>
-            <div class="relances-actions">
-              <button class="btn-secondary" onclick="ouvrirModalTemplatesRelanceV2()">✍️ Modèles de relance</button>
-              <button class="btn-secondary" onclick="ouvrirModalConfirmationsAEnvoyer()">📨 Confirmations de réception</button>
-            </div>
-          </div>
-          <div class="enc-filters">
-            <input type="search" id="rel-search" class="searchbar" placeholder="🔍 Client, N° facture…" oninput="afficherRelancesV2()" />
-            <select id="rel-filter-niveau" onchange="afficherRelancesV2()">
-              <option value="">Tous niveaux</option>
-              <option value="0">🔵 Non dépassé</option>
-              <option value="1">🟢 Niveau 1 — Rappel amiable</option>
-              <option value="2">🟡 Niveau 2 — Relance ferme</option>
-              <option value="3">🔴 Niveau 3 — Mise en demeure</option>
-            </select>
-            <select id="rel-tri" onchange="afficherRelancesV2()">
-              <option value="retard">Tri : retard ↓</option>
-              <option value="montant">Tri : montant ↓</option>
-              <option value="client">Tri : client A→Z</option>
-              <option value="liv">Tri : N° livraison ↑</option>
-              <option value="fac">Tri : N° facture ↑</option>
-            </select>
-          </div>
-          <div class="table-wrapper">
-            <table class="data-table">
-              <thead><tr><th>N° livraison ↔ facture</th><th>Client</th><th>Date liv.</th><th>Échéance</th><th>Montant dû</th><th>Retard</th><th>Niveau</th><th>Dernière relance</th><th>Actions</th></tr></thead>
-              <tbody id="tb-relances-v2"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </section>
-
-<!-- Section "Relances" supprimée — déplacée en sous-onglet dans Encaissements (Sprint 14) -->
 
     <!-- INCIDENTS -->
     <section class="page" id="page-incidents">
@@ -1865,137 +1514,143 @@
       </div>
     </section>
 
-    <!-- MESSAGERIE -->
-    <section class="page" id="page-messagerie">
-      <div class="page-actions" style="margin-bottom:0"><h2>💬 Messagerie interne</h2></div>
-      <!-- Broadcast amélioré — par poste ou sélection multiple -->
-      <div class="card mt-20" style="margin-bottom:16px;padding:14px 18px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-          <span style="font-size:.82rem;font-weight:600;color:var(--text-muted);white-space:nowrap">📢 Envoyer à :</span>
-          <select id="broadcast-cible" style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:6px 12px;border-radius:8px;font-size:.85rem;min-width:180px" onchange="majBroadcastSelection()">
-            <option value="tous">👥 Tous les salariés actifs</option>
-            <option value="poste">🏷️ Par poste...</option>
-            <option value="selection">☑️ Sélection manuelle...</option>
-          </select>
-          <select id="broadcast-poste" style="display:none;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:6px 12px;border-radius:8px;font-size:.85rem" onchange="majBroadcastSelection()">
-            <option value="">-- Choisir un poste --</option>
-          </select>
-          <div id="broadcast-selection-wrap" style="display:none;flex:1;min-width:200px">
-            <div id="broadcast-checkboxes" style="display:flex;flex-wrap:wrap;gap:6px"></div>
-          </div>
-          <span id="broadcast-count" style="font-size:.75rem;color:var(--accent)"></span>
-        </div>
-        <div style="display:flex;gap:8px">
-          <textarea id="broadcast-texte" rows="1" placeholder="Votre message..." style="background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.85rem;font-family:inherit;resize:none;outline:none;flex:1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerBroadcast();}"></textarea>
-          <button class="btn-primary" onclick="envoyerBroadcast()" style="padding:8px 16px;flex-shrink:0">📤 Envoyer</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:260px 1fr;gap:16px;height:calc(100vh - 220px);min-height:500px">
-        <!-- Liste salariés -->
-        <div class="card" style="overflow-y:auto">
-          <div class="card-header" style="font-size:.88rem">Conversations</div>
-          <div id="msg-liste-salaries" style="padding:8px">
-            <div style="text-align:center;color:var(--text-muted);padding:20px;font-size:.85rem">Aucun salarié</div>
-          </div>
-        </div>
-        <!-- Conversation -->
-        <div class="card" style="display:flex;flex-direction:column;overflow:hidden">
-          <div class="card-header" id="msg-admin-header">
-            <span id="msg-admin-nom" style="color:var(--text-muted)">Sélectionnez un salarié</span>
-          </div>
-          <div id="msg-admin-fil" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px">
-            <div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.88rem">← Choisissez une conversation</div>
-          </div>
-          <div style="border-top:1px solid var(--border);padding:12px;display:flex;gap:8px;align-items:flex-end">
-            <label for="msg-admin-photo" style="cursor:pointer;padding:8px;color:var(--text-muted);font-size:1.1rem;flex-shrink:0" title="Envoyer une photo">📷</label>
-            <input type="file" id="msg-admin-photo" accept="image/*" style="display:none" onchange="envoyerMessageAvecPhoto(_msgSalarieActif, this)" />
-            <textarea id="msg-admin-input" placeholder="Répondre..." rows="2" disabled
-              style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:.88rem;font-family:inherit;resize:none;outline:none;opacity:.5;transition:all .2s"
-              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();envoyerMessageAdmin();}"></textarea>
-            <button onclick="envoyerMessageAdmin()" class="btn-primary" style="padding:10px 16px;flex-shrink:0" id="btn-envoyer-admin" disabled>➤</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
   </main>
 
   <!-- ========== MODALS ========== -->
 
   <!-- Nouvelle livraison -->
   <div class="modal-overlay" id="modal-livraison">
-    <div class="modal">
-      <div class="modal-header"><h3>📦 Nouvelle Livraison</h3><button class="modal-close" onclick="closeModal('modal-livraison')">✕</button></div>
+    <div class="modal modal-large modal-livraison-enriched">
+      <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group"><label>Client *</label>
-            <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value)" autocomplete="off" />
-            <div id="client-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
-          </div>
-          <div class="form-group"><label>SIREN client <span style="color:var(--text-muted);font-size:0.78rem">(optionnel — requis en BtoB 2026)</span></label>
-            <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" />
-          </div>
-          <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" placeholder="Zone g&eacute;ographique" /></div>
-          <input type="hidden" id="liv-depart" />
-          <input type="hidden" id="liv-arrivee" />
-          <div class="form-group"><label>Distance (km)</label>
-            <input type="number" id="liv-distance" placeholder="km" min="0" step="0.1" oninput="alerteRentabilite()" />
-          </div>
-          <div class="form-group"><label>Prix HT (€) *</label><input type="number" id="liv-prix-ht" placeholder="Montant HT" min="0" step="0.01" oninput="calculerTTCDepuisHT('liv')" /></div>
-          <div class="form-group"><label>Taux TVA</label>
-            <select id="liv-taux-tva" onchange="calculerTTCDepuisHT('liv')">
-              <option value="0">0 %</option>
-              <option value="5.5">5,5 %</option>
-              <option value="10">10 %</option>
-              <option value="20" selected>20 %</option>
-            </select>
-            <div id="liv-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
-          </div>
-          <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="liv-prix" placeholder="Montant TTC" min="0" step="0.01" oninput="calculerHTDepuisTTC('liv')" /></div>
-          <div class="form-group">
-            <label>Salarié / Chauffeur assigné</label>
-            <select id="liv-chauffeur" onchange="autoRemplirVehicule()">
-              <option value="">-- Choisir --</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Véhicule <span style="color:var(--text-muted);font-size:0.78rem">(auto-rempli si salarié affecté)</span></label>
-            <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule()"><option value="">-- Choisir un véhicule --</option></select>
-          </div>
-          <div class="form-group"><label>Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
-          <div class="form-group"><label>Date</label><input type="date" id="liv-date" /></div>
-          <div class="form-group"><label>Heure de début</label><input type="time" id="liv-heure-debut" /></div>
-          <div class="form-group"><label>Mode de paiement</label>
-            <select id="liv-mode-paiement">
-              <option value="">— Non renseigné —</option>
-              <option value="virement">Virement</option>
-              <option value="especes">Espèces</option>
-              <option value="cheque">Chèque</option>
-              <option value="cb">Carte bancaire</option>
-            </select>
-          </div>
-          <div class="form-group full-width"><label>Notes</label><input type="text" id="liv-notes" placeholder="Informations supplémentaires..." /></div>
+        <div class="fp-progress" id="liv-progress">
+          <div class="fp-progress-bar"><div class="fp-progress-fill" id="liv-progress-fill" style="width:0%"></div></div>
+          <div class="fp-progress-label"><span id="liv-progress-count">0</span> / 12 champs renseignés · <span id="liv-progress-pct">0%</span></div>
         </div>
-        <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
-        <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
-      </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-primary" onclick="ajouterLivraison()">Enregistrer</button></div>
-    </div>
-  </div>
 
-  <!-- Nouveau chauffeur -->
-  <div class="modal-overlay" id="modal-chauffeur">
-    <div class="modal">
-      <div class="modal-header"><h3>👤 Nouveau Chauffeur</h3><button class="modal-close" onclick="closeModal('modal-chauffeur')">✕</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group"><label>Nom *</label><input type="text" id="chauf-nom" /></div>
-          <div class="form-group"><label>Prénom *</label><input type="text" id="chauf-prenom" /></div>
-          <div class="form-group"><label>Téléphone *</label><input type="tel" id="chauf-tel" /></div>
-          <div class="form-group"><label>Statut</label><select id="chauf-statut"><option value="disponible">Disponible</option><option value="en-livraison">En livraison</option><option value="inactif">Inactif</option></select></div>
-        </div>
+            <section class="fp-section fp-section-compact">
+              <h4 class="fp-section-title">🗺️ Informations générales</h4>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group"><label>Client *</label>
+                  <input type="text" id="liv-client" placeholder="Nom du client" oninput="autoCompleteClient(this.value);window.mcaLivForm&&window.mcaLivForm.onInput('liv-client')" autocomplete="off" />
+                  <div id="client-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
+                </div>
+                <div class="form-group"><label>SIREN</label>
+                  <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" oninput="window.mcaLivForm&&window.mcaLivForm.validateSiren(this)" />
+                  <div class="fp-field-hint" id="liv-client-siren-hint"></div>
+                </div>
+                <div class="form-group"><label>Date</label><input type="date" id="liv-date" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-date')" /></div>
+                <div class="form-group"><label>Heure début</label><input type="time" id="liv-heure-debut" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-heure-debut')" /></div>
+                <div class="form-group"><label>Statut</label><select id="liv-statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
+                <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" /></div>
+                <input type="hidden" id="liv-depart" />
+                <input type="hidden" id="liv-arrivee" />
+              </div>
+              <details class="fp-notes-toggle">
+                <summary>+ Ajouter une note interne</summary>
+                <div class="form-group" style="margin-top:10px"><input type="text" id="liv-notes" placeholder="Commentaire, instruction particulière..." /></div>
+              </details>
+            </section>
+
+            <section class="fp-section fp-section-compact">
+              <h4 class="fp-section-title">💰 Prix & TVA</h4>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group"><label>Distance (km)</label>
+                  <input type="number" id="liv-distance" placeholder="km" min="0" step="0.1" oninput="alerteRentabilite();window.mcaLivForm&&window.mcaLivForm.onInput('liv-distance')" />
+                </div>
+                <div class="form-group"><label>Prix HT (€) *</label><input type="number" id="liv-prix-ht" placeholder="Montant HT" min="0" step="0.01" oninput="calculerTTCDepuisHT('liv');window.mcaLivForm&&window.mcaLivForm.onInput('liv-prix-ht')" /></div>
+                <div class="form-group"><label>Taux TVA</label>
+                  <select id="liv-taux-tva" onchange="calculerTTCDepuisHT('liv')">
+                    <option value="0">0 %</option>
+                    <option value="5.5">5,5 %</option>
+                    <option value="10">10 %</option>
+                    <option value="20" selected>20 %</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="liv-prix" placeholder="Montant TTC" min="0" step="0.01" oninput="calculerHTDepuisTTC('liv')" /></div>
+                <div class="form-group full-width fp-tva-row">
+                  <div class="fp-tva-calc" id="liv-montant-tva">TVA : —</div>
+                </div>
+                <div class="form-group full-width"><label>Mode de paiement</label>
+                  <select id="liv-mode-paiement">
+                    <option value="">— Non renseigné —</option>
+                    <option value="virement">Virement</option>
+                    <option value="especes">Espèces</option>
+                    <option value="cheque">Chèque</option>
+                    <option value="cb">Carte bancaire</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section class="fp-section fp-section-compact">
+              <h4 class="fp-section-title">🚚 Affectation</h4>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group">
+                  <label>Chauffeur</label>
+                  <select id="liv-chauffeur" onchange="autoRemplirVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-chauffeur')">
+                    <option value="">-- Choisir --</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Véhicule</label>
+                  <select id="liv-vehicule" onchange="autoRemplirChauffeurDepuisVehicule();window.mcaLivForm&&window.mcaLivForm.onInput('liv-vehicule')"><option value="">-- Choisir --</option></select>
+                </div>
+              </div>
+            </section>
+
+            <div class="alerte-rentabilite" id="alerte-rent" style="display:none">⚠️ <strong>Livraison peu rentable</strong> — Le coût carburant estimé est proche ou supérieur au prix.</div>
+            <div class="profit-recap" id="profit-recap" style="display:none">💰 Profit estimé : <strong id="profit-estime">0 €</strong></div>
+
+            <section class="fp-section fp-section-compact fp-section-ldv">
+              <h4 class="fp-section-title">🧾 Lettre de voiture</h4>
+
+              <div class="fp-ldv-expdest">
+                <div class="fp-ldv-card">
+                  <div class="fp-subsection-title">Expéditeur</div>
+                  <div class="form-grid fp-grid fp-grid-dense">
+                    <div class="form-group full-width"><label>Nom</label><input type="text" id="liv-exp-nom" placeholder="Raison sociale" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-exp-nom')" /></div>
+                    <div class="form-group full-width"><label>Contact</label><input type="text" id="liv-exp-contact" placeholder="Nom + tél" /></div>
+                    <div class="form-group full-width"><label>Adresse</label><input type="text" id="liv-exp-adresse" placeholder="Rue + numéro" /></div>
+                    <div class="form-group"><label>CP</label><input type="text" id="liv-exp-cp" placeholder="75001" maxlength="10" /></div>
+                    <div class="form-group"><label>Ville</label><input type="text" id="liv-exp-ville" placeholder="Paris" /></div>
+                    <div class="form-group"><label>Pays</label><input type="text" id="liv-exp-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" oninput="window.mcaLivForm&&window.mcaLivForm.validatePays(this)" /></div>
+                  </div>
+                </div>
+                <div class="fp-ldv-card">
+                  <div class="fp-subsection-title">Destinataire</div>
+                  <div class="form-grid fp-grid fp-grid-dense">
+                    <div class="form-group full-width"><label>Nom</label><input type="text" id="liv-dest-nom" placeholder="Raison sociale" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-dest-nom')" /></div>
+                    <div class="form-group full-width"><label>Contact</label><input type="text" id="liv-dest-contact" placeholder="Nom + tél" /></div>
+                    <div class="form-group full-width"><label>Adresse</label><input type="text" id="liv-dest-adresse" placeholder="Rue + numéro" /></div>
+                    <div class="form-group"><label>CP</label><input type="text" id="liv-dest-cp" placeholder="69003" maxlength="10" /></div>
+                    <div class="form-group"><label>Ville</label><input type="text" id="liv-dest-ville" placeholder="Lyon" /></div>
+                    <div class="form-group"><label>Pays</label><input type="text" id="liv-dest-pays" list="pays-iso-list" placeholder="FR" maxlength="3" value="FR" autocomplete="off" oninput="window.mcaLivForm&&window.mcaLivForm.validatePays(this)" /></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="fp-subsection-title" style="margin-top:18px">Marchandise</div>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group full-width"><label>Nature</label><input type="text" id="liv-marchandise-nature" placeholder="Palettes alimentaires, pièces mécaniques…" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-marchandise-nature')" /></div>
+                <div class="form-group"><label>Poids (kg)</label><input type="number" id="liv-marchandise-poids" min="0" step="0.1" placeholder="1500" /></div>
+                <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="12.5" /></div>
+                <div class="form-group"><label>Colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="8" /></div>
+              </div>
+
+              <div class="fp-subsection-title" style="margin-top:14px">Matières dangereuses (ADR)</div>
+              <div class="form-grid fp-grid fp-grid-dense">
+                <div class="form-group full-width"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin:0"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR — matières dangereuses</span></label></div>
+                <div class="form-grid full-width fp-grid fp-grid-dense" id="liv-adr-details" style="display:none;grid-column:1/-1">
+                  <div class="form-group"><label>Code ONU</label><input type="text" id="liv-adr-onu" placeholder="UN1202" maxlength="10" /></div>
+                  <div class="form-group"><label>Classe</label><input type="text" id="liv-adr-classe" placeholder="3" maxlength="5" /></div>
+                  <div class="form-group"><label>Emballage</label><select id="liv-adr-groupe"><option value="">—</option><option value="I">I</option><option value="II">II</option><option value="III">III</option></select></div>
+                </div>
+              </div>
+            </section>
+
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-chauffeur')">Annuler</button><button class="btn-primary" onclick="ajouterChauffeur()">Enregistrer</button></div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-livraison')">Annuler</button><button class="btn-primary" onclick="ajouterLivraison()">✅ Enregistrer la livraison</button></div>
     </div>
   </div>
 
@@ -2063,8 +1718,7 @@
           <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
           <div class="form-group">
             <label>N° compte client (compta) *</label>
-            <input type="text" id="cl-compte-compta" placeholder="411000 (auto-incrémenté)" />
-            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto-incrément depuis 411000 — doit être unique</div>
+            <input type="text" id="cl-compte-compta" placeholder="411000" />
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
@@ -2162,153 +1816,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Modal Fournisseur (Sprint 17) -->
-  <div class="modal-overlay" id="modal-fournisseur">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3>🏭 Nouveau fournisseur</h3><button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button></div>
-      <div class="modal-body">
-        <div class="client-type-selector">
-          <label class="client-type-option">
-            <input type="radio" name="fo-type" value="pro" checked onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(false)" />
-            <span class="client-type-label">🏢 Professionnel</span>
-          </label>
-          <label class="client-type-option">
-            <input type="radio" name="fo-type" value="particulier" onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(false)" />
-            <span class="client-type-label">🙋 Particulier</span>
-          </label>
-        </div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nom / Raison sociale *</label><input type="text" id="fo-nom" placeholder="Ex. Total Énergies, Garage Martin…" oninput="if(window.detecterDoublonsFournisseur)window.detecterDoublonsFournisseur(false)" /></div>
-          <div class="form-group">
-            <label>Catégorie principale *</label>
-            <select id="fo-categorie">
-              <option value="">-- Choisir --</option>
-              <option value="carburant">⛽ Carburant (stations, pétrolier)</option>
-              <option value="entretien">🔧 Entretien / garage</option>
-              <option value="assurance">🛡️ Assurance</option>
-              <option value="loa-lld">🚐 LOA / LLD</option>
-              <option value="peage">🛣️ Péage / autoroute</option>
-              <option value="telecom">📡 Télécom / internet</option>
-              <option value="banque">🏦 Banque / finance</option>
-              <option value="fournitures">📦 Fournitures / consommables</option>
-              <option value="autre">📝 Autre</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Contact</label><input type="text" id="fo-contact" placeholder="Nom du contact commercial" /></div>
-          <div class="form-group"><label>Téléphone</label><input type="tel" id="fo-tel" placeholder="Téléphone" /></div>
-          <div class="form-group"><label>Email</label><input type="email" id="fo-email" placeholder="Email contact" /></div>
-          <div class="form-group"><label>Email facturation</label><input type="email" id="fo-email-fact" placeholder="compta@fournisseur.fr" /></div>
-          <div class="form-group full-width"><label>Adresse</label><input type="text" id="fo-adresse" placeholder="Numéro + rue" /></div>
-          <div class="form-group"><label>Code postal</label><input type="text" id="fo-cp" placeholder="75001" maxlength="5" /></div>
-          <div class="form-group"><label>Ville</label><input type="text" id="fo-ville" placeholder="Paris" /></div>
-        </div>
-        <div id="fo-champs-pro" class="client-champs-pro">
-          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
-          <div class="form-grid">
-            <div class="form-group"><label>SIREN</label><input type="text" id="fo-siren" placeholder="9 chiffres" maxlength="9" oninput="if(window.detecterDoublonsFournisseur)window.detecterDoublonsFournisseur(false)" /></div>
-            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="fo-tva-intra" placeholder="FR + 11 chiffres" /></div>
-          </div>
-        </div>
-        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Délai paiement accordé (jours) *</label><input type="number" id="fo-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
-          <div class="form-group"><label>Mode paiement préféré</label>
-            <select id="fo-mode-paiement">
-              <option value="virement">Virement</option>
-              <option value="prelevement">Prélèvement SEPA</option>
-              <option value="cb">Carte bancaire</option>
-              <option value="cheque">Chèque</option>
-              <option value="especes">Espèces</option>
-            </select>
-          </div>
-          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="fo-iban" placeholder="FR76 …" /></div>
-          <div class="form-group">
-            <label>N° compte fournisseur (compta) *</label>
-            <input type="text" id="fo-compte-compta" placeholder="401000 (auto-incrémenté)" />
-            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto-incrément depuis 401000 — doit être unique</div>
-          </div>
-        </div>
-        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="fo-notes" rows="2" placeholder="Remarques, conditions particulières, références contrat…"></textarea></div>
-        <div id="fo-doublons-warning" class="doublons-warning" style="display:none"></div>
-      </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-fournisseur')">Annuler</button><button class="btn-primary" onclick="if(typeof ajouterFournisseur==='function')ajouterFournisseur()">✅ Enregistrer</button></div>
-    </div>
-  </div>
-
-  <!-- Modal édition fournisseur -->
-  <div class="modal-overlay" id="modal-edit-fournisseur">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
-      <div class="modal-body">
-        <input type="hidden" id="edit-fo-id" />
-        <div class="client-type-selector">
-          <label class="client-type-option">
-            <input type="radio" name="edit-fo-type" value="pro" checked onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(true)" />
-            <span class="client-type-label">🏢 Professionnel</span>
-          </label>
-          <label class="client-type-option">
-            <input type="radio" name="edit-fo-type" value="particulier" onchange="if(window.toggleChampsFournisseurPro)window.toggleChampsFournisseurPro(true)" />
-            <span class="client-type-label">🙋 Particulier</span>
-          </label>
-        </div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nom / Raison sociale *</label><input type="text" id="edit-fo-nom" /></div>
-          <div class="form-group">
-            <label>Catégorie principale *</label>
-            <select id="edit-fo-categorie">
-              <option value="">-- Choisir --</option>
-              <option value="carburant">⛽ Carburant</option>
-              <option value="entretien">🔧 Entretien / garage</option>
-              <option value="assurance">🛡️ Assurance</option>
-              <option value="loa-lld">🚐 LOA / LLD</option>
-              <option value="peage">🛣️ Péage / autoroute</option>
-              <option value="telecom">📡 Télécom / internet</option>
-              <option value="banque">🏦 Banque / finance</option>
-              <option value="fournitures">📦 Fournitures / consommables</option>
-              <option value="autre">📝 Autre</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Contact</label><input type="text" id="edit-fo-contact" /></div>
-          <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-fo-tel" /></div>
-          <div class="form-group"><label>Email</label><input type="email" id="edit-fo-email" /></div>
-          <div class="form-group"><label>Email facturation</label><input type="email" id="edit-fo-email-fact" /></div>
-          <div class="form-group full-width"><label>Adresse</label><input type="text" id="edit-fo-adresse" /></div>
-          <div class="form-group"><label>Code postal</label><input type="text" id="edit-fo-cp" maxlength="5" /></div>
-          <div class="form-group"><label>Ville</label><input type="text" id="edit-fo-ville" /></div>
-        </div>
-        <div id="edit-fo-champs-pro" class="client-champs-pro">
-          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
-          <div class="form-grid">
-            <div class="form-group"><label>SIREN</label><input type="text" id="edit-fo-siren" maxlength="9" /></div>
-            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-fo-tva-intra" /></div>
-          </div>
-        </div>
-        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Délai paiement accordé (jours) *</label><input type="number" id="edit-fo-delai-paiement" min="0" max="180" /></div>
-          <div class="form-group"><label>Mode paiement préféré</label>
-            <select id="edit-fo-mode-paiement">
-              <option value="virement">Virement</option>
-              <option value="prelevement">Prélèvement SEPA</option>
-              <option value="cb">Carte bancaire</option>
-              <option value="cheque">Chèque</option>
-              <option value="especes">Espèces</option>
-            </select>
-          </div>
-          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="edit-fo-iban" /></div>
-          <div class="form-group">
-            <label>N° compte fournisseur (compta) *</label>
-            <input type="text" id="edit-fo-compte-compta" />
-            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Doit être unique — modifiable avec prudence</div>
-          </div>
-        </div>
-        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-fo-notes" rows="2"></textarea></div>
-      </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button class="btn-primary" onclick="if(typeof confirmerEditFournisseur==='function')confirmerEditFournisseur()">✅ Enregistrer</button></div>
-    </div>
-  </div>
-
   <!-- Nouveau véhicule -->
   <div class="modal-overlay" id="modal-vehicule">
     <div class="modal">
@@ -2336,6 +1843,63 @@
           <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
           <div class="form-group full-width"><label>Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
+        <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
+        <details id="veh-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
+          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
+            🚚 Données flotte & conformité
+          </summary>
+          <div style="padding:14px;border-top:1px solid var(--border)">
+            <div class="form-grid">
+              <div class="form-group"><label>Genre</label>
+                <select id="veh-genre" onchange="ajusterTVACarburantSelonGenre()">
+                  <option value="">—</option>
+                  <option value="VP">VP — Voiture particulière</option>
+                  <option value="VU">VU — Véhicule utilitaire ≤ 3,5 t</option>
+                  <option value="CTTE">CTTE — Camionnette</option>
+                  <option value="CAM">CAM — Camion</option>
+                  <option value="TRR">TRR — Tracteur routier</option>
+                  <option value="REM">REM — Remorque</option>
+                  <option value="SREM">SREM — Semi-remorque</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Carburant</label>
+                <select id="veh-carburant" onchange="ajusterTVACarburantSelonGenre()">
+                  <option value="">—</option>
+                  <option value="diesel">Diesel / Gazole</option>
+                  <option value="essence">Essence</option>
+                  <option value="gnv">GNV / BioGNV</option>
+                  <option value="electrique">Électrique</option>
+                  <option value="hybride">Hybride</option>
+                  <option value="h2">Hydrogène</option>
+                </select>
+              </div>
+              <div class="form-group"><label>PTAC (kg)</label><input type="number" id="veh-ptac" min="0" step="1" placeholder="Ex : 7500" /></div>
+              <div class="form-group"><label>PTRA (kg)</label><input type="number" id="veh-ptra" min="0" step="1" placeholder="Ex : 44000" /></div>
+              <div class="form-group"><label>Nombre d'essieux</label><input type="number" id="veh-essieux" min="1" max="10" step="1" placeholder="2" /></div>
+              <div class="form-group"><label>Vignette Crit'Air</label>
+                <select id="veh-critair">
+                  <option value="">—</option>
+                  <option value="E">E — 100% électrique / H₂</option>
+                  <option value="1">1 — Essence Euro 5-6, GNV</option>
+                  <option value="2">2 — Diesel Euro 5-6, essence Euro 4</option>
+                  <option value="3">3 — Diesel Euro 4, essence Euro 2-3</option>
+                  <option value="4">4 — Diesel Euro 3</option>
+                  <option value="5">5 — Diesel Euro 2</option>
+                  <option value="hc">Hors classement — interdit ZFE</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Date 1ʳᵉ mise en circulation</label><input type="date" id="veh-date-1immat" /></div>
+              <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
+              <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
+            </div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte</div>
+            <div class="form-grid">
+              <div class="form-group"><label>Compagnie d'assurance</label><input type="text" id="veh-assurance-compagnie" placeholder="ex : AXA, MAIF, Allianz..." /></div>
+              <div class="form-group"><label>N° contrat / carte verte</label><input type="text" id="veh-assurance-numero" placeholder="N° de police" /></div>
+              <div class="form-group"><label>Date expiration carte verte</label><input type="date" id="veh-assurance-date-exp" /></div>
+            </div>
+          </div>
+        </details>
         <div class="card" id="veh-bloc-achat" style="margin-top:16px">
           <div class="card-header"><h2>Achat & amortissement</h2></div>
           <div class="modal-body">
@@ -2503,7 +2067,31 @@
           <div class="form-group"><label>Véhicule affecté</label><select id="edit-sal-vehicule"><option value="">-- Retirer l'affectation --</option></select></div>
           <div class="form-group"><label>🪪 Expiration permis</label><input type="date" id="edit-sal-date-permis" /></div>
           <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="edit-sal-date-assurance" /></div>
+          <div class="form-group"><label>Catégorie permis</label>
+            <select id="edit-sal-cat-permis">
+              <option value="">—</option>
+              <option value="B">B (VL ≤ 3,5 t)</option>
+              <option value="autre">Autre (permis étranger ou licence équivalente)</option>
+            </select>
+          </div>
         </div>
+        <details style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
+          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">🩺 Suivi médical du travail</summary>
+          <div style="padding:14px;border-top:1px solid var(--border)">
+            <div class="form-grid">
+              <div class="form-group"><label>Date dernière visite</label><input type="date" id="edit-sal-visite-date" /></div>
+              <div class="form-group"><label>Aptitude</label>
+                <select id="edit-sal-visite-aptitude">
+                  <option value="">—</option>
+                  <option value="apte">Apte</option>
+                  <option value="apte_restrictions">Apte avec restrictions</option>
+                  <option value="inapte">Inapte</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Date prochaine visite</label><input type="date" id="edit-sal-visite-date-exp" /></div>
+            </div>
+          </div>
+        </details>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-salarie')">Annuler</button><button class="btn-primary" onclick="confirmerEditSalarie()">✅ Enregistrer</button></div>
     </div>
@@ -2627,34 +2215,6 @@
     </div>
   </div>
 
-  <div class="modal-overlay" id="modal-relance-templates">
-    <div class="modal" style="max-width:780px">
-      <div class="modal-header"><h3>✍️ Texte automatique de relance</h3><button class="modal-close" onclick="closeModal('modal-relance-templates')">✕</button></div>
-      <div class="modal-body">
-        <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:12px">
-          Variables disponibles : <code>{client}</code>, <code>{numLiv}</code>, <code>{dateLivraison}</code>, <code>{montant}</code>, <code>{joursRetard}</code>, <code>{societe}</code>
-        </div>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label>Relance amiable</label>
-            <textarea id="relance-template-1" rows="4" placeholder="Texte de relance amiable..."></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label>Mise en demeure</label>
-            <textarea id="relance-template-2" rows="4" placeholder="Texte de mise en demeure..."></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label>Dernier avis</label>
-            <textarea id="relance-template-3" rows="4" placeholder="Texte de dernier avis..."></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="reinitialiserTemplatesRelance()">Réinitialiser</button>
-        <button class="btn-primary" onclick="sauvegarderTemplatesRelance()">💾 Enregistrer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Modifier relevé km (admin) -->
   <div class="modal-overlay" id="modal-edit-km">
@@ -2776,6 +2336,70 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
+  <!-- Datalist ISO 3166-1 alpha-2 — partagée pour les champs Pays (lettre de voiture, clients, etc.) -->
+  <datalist id="pays-iso-list">
+    <option value="FR">France</option>
+    <option value="BE">Belgique</option>
+    <option value="LU">Luxembourg</option>
+    <option value="CH">Suisse</option>
+    <option value="DE">Allemagne</option>
+    <option value="IT">Italie</option>
+    <option value="ES">Espagne</option>
+    <option value="PT">Portugal</option>
+    <option value="NL">Pays-Bas</option>
+    <option value="GB">Royaume-Uni</option>
+    <option value="IE">Irlande</option>
+    <option value="AT">Autriche</option>
+    <option value="DK">Danemark</option>
+    <option value="SE">Suède</option>
+    <option value="FI">Finlande</option>
+    <option value="NO">Norvège</option>
+    <option value="IS">Islande</option>
+    <option value="PL">Pologne</option>
+    <option value="CZ">Tchéquie</option>
+    <option value="SK">Slovaquie</option>
+    <option value="HU">Hongrie</option>
+    <option value="RO">Roumanie</option>
+    <option value="BG">Bulgarie</option>
+    <option value="GR">Grèce</option>
+    <option value="SI">Slovénie</option>
+    <option value="HR">Croatie</option>
+    <option value="RS">Serbie</option>
+    <option value="BA">Bosnie-Herzégovine</option>
+    <option value="AL">Albanie</option>
+    <option value="MK">Macédoine du Nord</option>
+    <option value="ME">Monténégro</option>
+    <option value="EE">Estonie</option>
+    <option value="LV">Lettonie</option>
+    <option value="LT">Lituanie</option>
+    <option value="MT">Malte</option>
+    <option value="CY">Chypre</option>
+    <option value="MC">Monaco</option>
+    <option value="AD">Andorre</option>
+    <option value="SM">Saint-Marin</option>
+    <option value="VA">Vatican</option>
+    <option value="LI">Liechtenstein</option>
+    <option value="TR">Turquie</option>
+    <option value="MA">Maroc</option>
+    <option value="DZ">Algérie</option>
+    <option value="TN">Tunisie</option>
+    <option value="EG">Égypte</option>
+    <option value="IL">Israël</option>
+    <option value="SN">Sénégal</option>
+    <option value="CI">Côte d'Ivoire</option>
+    <option value="US">États-Unis</option>
+    <option value="CA">Canada</option>
+    <option value="MX">Mexique</option>
+    <option value="BR">Brésil</option>
+    <option value="AR">Argentine</option>
+    <option value="CN">Chine</option>
+    <option value="JP">Japon</option>
+    <option value="KR">Corée du Sud</option>
+    <option value="IN">Inde</option>
+    <option value="AU">Australie</option>
+    <option value="NZ">Nouvelle-Zélande</option>
+  </datalist>
+
   <!-- Modal Historique conducteurs -->
   <div class="modal-overlay" id="modal-hist-conducteurs">
     <div class="modal" style="max-width:560px">
@@ -2895,214 +2519,31 @@
   <div id="print-bon"></div>
 
   <!-- Sprint 12 : Créer un avoir -->
-  <div class="modal-overlay" id="modal-avoir">
-    <div class="modal">
-      <div class="modal-header"><h3>🧾 Créer un avoir</h3><button class="modal-close" onclick="closeModal('modal-avoir')">✕</button></div>
-      <div class="modal-body">
-        <div class="avoir-ref" id="avoir-ref-box"></div>
-        <div class="form-grid">
-          <div class="form-group"><label>Type d'avoir</label>
-            <select id="avoir-type" onchange="majFormAvoir()">
-              <option value="total">Avoir total (annulation complète)</option>
-              <option value="partiel">Avoir partiel</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Date</label><input type="date" id="avoir-date" /></div>
-          <div class="form-group"><label>Montant HT (€)</label><input type="number" id="avoir-ht" min="0" step="0.01" placeholder="0,00" oninput="majMontantsAvoir()" /></div>
-          <div class="form-group"><label>Taux TVA</label>
-            <select id="avoir-taux-tva" onchange="majMontantsAvoir()">
-              <option value="0">0 %</option><option value="5.5">5,5 %</option><option value="10">10 %</option><option value="20" selected>20 %</option>
-            </select>
-          </div>
-          <div class="form-group full-width"><label>Motif</label>
-            <select id="avoir-motif" onchange="majMotifLibre()">
-              <option value="Erreur de facturation">Erreur de facturation</option>
-              <option value="Geste commercial">Geste commercial / remise</option>
-              <option value="Retour / prestation non effectuée">Retour / prestation non effectuée</option>
-              <option value="Annulation totale">Annulation totale</option>
-              <option value="__autre__">Autre (texte libre)</option>
-            </select>
-          </div>
-          <div class="form-group full-width" id="avoir-motif-libre-group" style="display:none">
-            <label>Motif libre *</label>
-            <input type="text" id="avoir-motif-libre" placeholder="Précise le motif de l'avoir…" />
-            <div style="font-size:0.76rem;color:var(--text-muted);margin-top:4px">Ce texte apparaîtra tel quel sur l'avoir (rien d'autre).</div>
-          </div>
-          <div class="form-group full-width"><label>Notes internes</label>
-            <input type="text" id="avoir-notes" placeholder="Notes internes (non imprimées)" />
-          </div>
-        </div>
-        <div class="calc-summary" id="avoir-calc" style="display:none"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-avoir')">Annuler</button>
-        <button class="btn-primary" onclick="enregistrerAvoir()">Émettre l'avoir</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 12 : Enregistrer un paiement (ventes ou achats) -->
-  <div class="modal-overlay" id="modal-paiement">
-    <div class="modal">
-      <div class="modal-header"><h3 id="paiement-titre">💰 Enregistrer un paiement</h3><button class="modal-close" onclick="closeModal('modal-paiement')">✕</button></div>
-      <div class="modal-body">
-        <div class="form-grid">
-          <div class="form-group"><label>Sens</label>
-            <select id="paiement-sens" onchange="majPaiementListes()">
-              <option value="in">Reçu d'un client (vente)</option>
-              <option value="out">Émis vers un fournisseur (achat)</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Date</label><input type="date" id="paiement-date" /></div>
-          <div class="form-group full-width"><label>Lié à</label>
-            <select id="paiement-cible"><option value="">-- Choisir facture ou charge --</option></select>
-            <div id="paiement-solde-info" style="font-size:0.78rem;color:var(--text-muted);margin-top:4px"></div>
-          </div>
-          <div class="form-group"><label>Montant (€)</label><input type="number" id="paiement-montant" min="0" step="0.01" placeholder="0,00" /></div>
-          <div class="form-group"><label>Mode</label>
-            <select id="paiement-mode">
-              <option value="virement">Virement</option>
-              <option value="especes">Espèces</option>
-              <option value="cheque">Chèque</option>
-              <option value="cb">Carte bancaire</option>
-            </select>
-          </div>
-          <div class="form-group full-width"><label>Notes</label><input type="text" id="paiement-notes" placeholder="Référence chèque, commentaire…" /></div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-paiement')">Annuler</button>
-        <button class="btn-primary" onclick="enregistrerPaiement()">Enregistrer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 12.1 : Aperçu facture avant émission -->
-  <div class="modal-overlay" id="modal-preview-facture">
-    <div class="modal modal-large">
-      <div class="modal-header">
-        <h3>📄 Aperçu facture <span id="preview-fac-badge" style="font-size:0.72rem;background:#f59e0b;color:#fff;padding:3px 10px;border-radius:20px;margin-left:8px;vertical-align:middle">NON ÉMISE</span></h3>
-        <button class="modal-close" onclick="closeModal('modal-preview-facture')">✕</button>
-      </div>
-      <div class="modal-body" style="max-height:70vh;overflow-y:auto;background:#f3f4f6;padding:20px">
-        <div style="padding:14px;background:#fef3c7;border:1px solid #fcd34d;border-radius:10px;margin-bottom:14px;font-size:0.88rem;color:#78350f">
-          ⚠️ <strong>Aperçu uniquement</strong>. Aucun numéro n'est encore assigné. Clique sur <strong>Émettre cette facture</strong> pour assigner définitivement le prochain numéro et générer le PDF imprimable.
-        </div>
-        <div id="preview-fac-content"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-preview-facture')">Annuler (pas de numéro consommé)</button>
-        <button class="btn-primary" onclick="emettreFactureConfirmee()">✓ Émettre cette facture</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 14 : Modèles de relance v2 (4 niveaux dont confirmation) -->
-  <div class="modal-overlay" id="modal-relance-templates-v2">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3>✍️ Modèles de relance & confirmation</h3><button class="modal-close" onclick="closeModal('modal-relance-templates-v2')">✕</button></div>
-      <div class="modal-body">
-        <div class="relance-var-help">
-          Variables disponibles : <code>{client}</code> <code>{contact}</code> <code>{numFacture}</code> <code>{numLiv}</code> <code>{dateLivraison}</code> <code>{dateEcheance}</code> <code>{montantTTC}</code> <code>{soldeDu}</code> <code>{joursRetard}</code> <code>{societe}</code> <code>{interets}</code> <code>{forfait}</code>
-        </div>
-        <div class="form-grid">
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-0">0</span> Confirmation de réception <span class="lvl-desc">(envoyée à l'émission facture)</span></label>
-            <textarea id="rel-tpl-0" rows="4"></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-1">1</span> Rappel amiable <span class="lvl-desc">(J+1 à J+30 après échéance)</span></label>
-            <textarea id="rel-tpl-1" rows="4"></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-2">2</span> Relance ferme <span class="lvl-desc">(J+30 à J+60)</span></label>
-            <textarea id="rel-tpl-2" rows="4"></textarea>
-          </div>
-          <div class="form-group full-width">
-            <label><span class="lvl-pill lvl-3">3</span> Mise en demeure <span class="lvl-desc">(J+60+ avec mention art. L441-10 et intérêts de retard)</span></label>
-            <textarea id="rel-tpl-3" rows="5"></textarea>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="reinitialiserTemplatesRelanceV2()">🔄 Valeurs par défaut</button>
-        <button class="btn-primary" onclick="sauvegarderTemplatesRelanceV2()">💾 Enregistrer</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 14 : Envoi relance (aperçu + PDF + mailto) -->
-  <div class="modal-overlay" id="modal-envoi-relance">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3 id="envoi-rel-titre">📧 Envoyer une relance</h3><button class="modal-close" onclick="closeModal('modal-envoi-relance')">✕</button></div>
-      <div class="modal-body">
-        <input type="hidden" id="envoi-rel-fac-id" />
-        <input type="hidden" id="envoi-rel-niveau" />
-        <div class="envoi-rel-resume" id="envoi-rel-resume"></div>
-        <div class="form-grid">
-          <div class="form-group"><label>Destinataire (email)</label><input type="email" id="envoi-rel-email" placeholder="contact@client.fr" /></div>
-          <div class="form-group"><label>Objet</label><input type="text" id="envoi-rel-objet" /></div>
-        </div>
-        <div class="form-group" style="margin-top:12px">
-          <label>Corps du message (modifiable avant envoi)</label>
-          <textarea id="envoi-rel-corps" rows="12" style="font-family:inherit"></textarea>
-        </div>
-        <div class="envoi-rel-legal" id="envoi-rel-legal" style="display:none"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-envoi-relance')">Annuler</button>
-        <button class="btn-secondary" onclick="telechargerPDFRelance()">📄 Télécharger PDF</button>
-        <button class="btn-primary" onclick="envoyerRelanceMailto()">✉️ Ouvrir dans ma messagerie</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Sprint 14 : Confirmations de réception à envoyer -->
-  <div class="modal-overlay" id="modal-confirmations">
-    <div class="modal modal-large">
-      <div class="modal-header"><h3>📨 Confirmations de réception</h3><button class="modal-close" onclick="closeModal('modal-confirmations')">✕</button></div>
-      <div class="modal-body">
-        <div class="info-banner" style="margin-bottom:14px">
-          💡 Envoie un message à tes clients pour leur demander de confirmer la bonne réception de la facture. Utile pour éviter les "je ne l'ai jamais reçue" et documenter le point de départ du délai de paiement.
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>N° facture</th><th>Client</th><th>Date émise</th><th>Montant TTC</th><th>Statut</th><th>Actions</th></tr></thead>
-            <tbody id="tb-confirmations"></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary" onclick="closeModal('modal-confirmations')">Fermer</button>
-      </div>
-    </div>
-  </div>
 
-  <!-- Sprint 12.1 : Réinitialisation compteur factures -->
+  <!-- Réinitialisation compteur livraisons (test uniquement) -->
   <div class="modal-overlay" id="modal-reset-compteur">
     <div class="modal">
-      <div class="modal-header"><h3>🧹 Réinitialiser compteurs (LIV + FAC + ACP)</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3>🧹 Réinitialiser le compteur de livraisons</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
-          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible et fiscalement sensible</div>
+          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
           <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5">
-            Cette action va <strong>supprimer toutes les factures, acomptes et/ou bons de livraison</strong> (y compris annulés), purger les avoirs/paiements liés, et remettre les compteurs à zéro (FAC, ACP, LIV).<br><br>
-            <strong>N'utilise JAMAIS en production</strong>. Uniquement en phase de test, avant toute première vraie facturation. En cas de contrôle fiscal, l'absence d'historique peut être sanctionnée (CGI art. 289 — numérotation chronologique continue).
+            Cette action va <strong>supprimer toutes les livraisons enregistrées</strong> et remettre le compteur LIV à 0.<br><br>
+            <strong>À utiliser uniquement en phase de test</strong>, avant toute exploitation réelle.
           </div>
         </div>
         <div class="form-group">
-          <label>Options :</label>
-          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
-            <input type="checkbox" id="reset-include-livraisons" checked />
-            <span>Supprimer aussi les bons de livraison (remet compteur LIV à 0)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin-top:6px">
-            <input type="checkbox" id="reset-include-acomptes" checked />
-            <span>Supprimer aussi les acomptes clients (remet compteur ACP à 0)</span>
-          </label>
-        </div>
-        <div class="form-group">
-          <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET FACTURES</strong></label>
+          <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET LIVRAISONS</strong></label>
           <input type="text" id="reset-compteur-input" placeholder="Recopie la phrase ci-dessus" autocomplete="off" oninput="majBoutonResetCompteur()" />
         </div>
       </div>
@@ -3114,27 +2555,6 @@
   </div>
 
   <!-- Sprint 12 : Suppression forcée (taper numéro) -->
-  <div class="modal-overlay" id="modal-force-delete">
-    <div class="modal">
-      <div class="modal-header"><h3>⚠️ Suppression forcée</h3><button class="modal-close" onclick="closeModal('modal-force-delete')">✕</button></div>
-      <div class="modal-body">
-        <div style="padding:12px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
-          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">Action irréversible et non recommandée</div>
-          <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5" id="force-delete-warn">
-            Supprimer un document déjà facturé n'est pas recommandé par le droit fiscal français. L'émission d'un <strong>avoir</strong> est la méthode légale pour corriger une facture.
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Pour confirmer, tape exactement : <strong id="force-delete-code">FAC-XXXX-XXXX</strong></label>
-          <input type="text" id="force-delete-input" placeholder="Recopie le numéro ci-dessus" autocomplete="off" oninput="majBoutonForceDelete()" />
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="closeModal('modal-force-delete')">Annuler</button>
-        <button class="btn-primary" id="btn-force-delete-confirm" onclick="executerForceDelete()" disabled style="background:#ef4444">Supprimer définitivement</button>
-      </div>
-    </div>
-  </div>
 
   <div class="modal-overlay" id="modal-recherche-globale">
     <div class="modal modal-search-global">
@@ -3185,6 +2605,15 @@
   <script defer src="security-utils.js?v=20260412-2"></script>
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
-  <script defer src="script.js?v=20260412-2"></script>
+  <script defer src="script.js?v=20260412-4"></script>
+  <script>
+    // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
+    // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

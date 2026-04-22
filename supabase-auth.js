@@ -15,20 +15,21 @@
   }
 
   function normalizeAdminDisplayName(displayName, identifier, email) {
-    var known = getKnownAdminName(identifier) || getKnownAdminName(email) || getKnownAdminName(displayName);
-    if (known) return known;
-
+    // BUG-005/016 fix : respecte le displayName saisi par l'utilisateur.
+    // Ne ré-applique le mapping hardcodé (compat prod legacy) qu'en dernier recours,
+    // quand aucun nom n'est défini côté compte.
     var candidate = String(displayName || '').trim();
-    if (!candidate) {
-      return String(identifier || email || 'Admin').trim() || 'Admin';
+    if (candidate) {
+      var normalized = candidate.toLowerCase();
+      // Si le displayName est en fait un identifiant technique connu, on remonte le vrai nom
+      if (normalized === 'admin.achraf' || normalized === 'admin.mohammed') {
+        return getKnownAdminName(candidate) || candidate;
+      }
+      return candidate;
     }
-
-    var normalized = candidate.toLowerCase();
-    if (normalized === 'admin.achraf' || normalized === 'admin.mohammed') {
-      return getKnownAdminName(candidate) || candidate;
-    }
-
-    return candidate;
+    var known = getKnownAdminName(identifier) || getKnownAdminName(email);
+    if (known) return known;
+    return String(identifier || email || 'Admin').trim() || 'Admin';
   }
 
   function getClient() {

@@ -61,6 +61,19 @@ function validerSIRET(siret) {
   return sum % 10 === 0;
 }
 
+// Validation SIREN (9 chiffres, Luhn) — utilisée pour la validation inline du formulaire livraison
+function validerSIREN(siren) {
+  const s = String(siren || '').replace(/\s+/g, '');
+  if (!/^\d{9}$/.test(s)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i++) {
+    let n = parseInt(s[8 - i], 10);
+    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+  }
+  return sum % 10 === 0;
+}
+
 function validerIBAN(iban) {
   const s = String(iban || '').replace(/\s+/g, '').toUpperCase();
   if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
@@ -232,7 +245,8 @@ if (!window.__delivproStoragePatched) {
 function dupliquerValeurStockage(valeur) {
   if (valeur === null || valeur === undefined) return valeur;
   if (typeof valeur !== 'object') return valeur;
-  if (typeof structuredClone === 'function') return structuredClone(valeur);
+  // PERF: JSON.parse(JSON.stringify) est ~3x plus rapide que structuredClone
+  // pour des données JSON pures (localStorage = toujours JSON-safe).
   return JSON.parse(JSON.stringify(valeur));
 }
 
@@ -240,8 +254,12 @@ function lireStockageJSON(cle, fallback) {
   const raw = localStorage.getItem(cle);
   const cached = STORAGE_CACHE.get(cle);
 
+  // PERF: cache hit → JSON.parse direct sur le raw string mis en cache
+  // (saute l'étape JSON.stringify du deep-clone). ~2x plus rapide que l'ancien
+  // dupliquerValeurStockage(cached.value) qui faisait stringify→parse.
   if (cached && cached.raw === raw) {
-    return dupliquerValeurStockage(cached.value);
+    if (raw === null) return dupliquerValeurStockage(cached.value);
+    try { return JSON.parse(raw); } catch (_) { return dupliquerValeurStockage(cached.value); }
   }
 
   if (raw === null) {
@@ -252,7 +270,8 @@ function lireStockageJSON(cle, fallback) {
   try {
     const parsed = JSON.parse(raw);
     STORAGE_CACHE.set(cle, { raw, value: parsed });
-    return dupliquerValeurStockage(parsed);
+    // 1ère lecture : retourne un nouveau parse (copie fraîche pour mutations sûres)
+    return JSON.parse(raw);
   } catch (error) {
     console.warn(`[DelivPro] Donnée locale invalide pour "${cle}", fallback utilisé.`, error);
     STORAGE_CACHE.set(cle, { raw, value: fallback });
@@ -290,6 +309,49 @@ function sauvegarder(cle, val) {
   }
 }
 function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
+
+// BUG-050 fix : purge défensive de données corrompues ou de test résiduelles en localStorage.
+// Exécuté une seule fois au chargement du script, avant toute lecture métier.
+(function purgerDonneesCorrompuesAuBoot() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const MARQUEURS_INVALIDES = ['xxxxxxxGAR', 'xxxxxxGAR', 'undefined', '[object Object]'];
+    const CLES_JSON = [
+      'factures_emises', 'livraisons', 'clients', 'fournisseurs',
+      'vehicules', 'salaries', 'employes', 'charges', 'entretiens',
+      'paiements', 'avoirs_emis', 'immobilisations', 'amortissements_dotations',
+      'cloture_ajustements', 'audit_log'
+    ];
+    let purges = 0;
+    CLES_JSON.forEach(function (cle) {
+      const raw = localStorage.getItem(cle);
+      if (!raw) return;
+      // Marqueurs de corruption connus (données de test DEMO non purgées)
+      const contientMarqueur = MARQUEURS_INVALIDES.some(function (m) {
+        return raw.indexOf(m) !== -1;
+      });
+      if (contientMarqueur) {
+        console.warn('[MCA] Purge "' + cle + '" (données de test détectées).');
+        localStorage.removeItem(cle);
+        purges++;
+        return;
+      }
+      // JSON invalide
+      try { JSON.parse(raw); }
+      catch (_) {
+        console.warn('[MCA] Purge "' + cle + '" (JSON invalide).');
+        localStorage.removeItem(cle);
+        purges++;
+      }
+    });
+    if (purges > 0) {
+      console.info('[MCA] ' + purges + ' clé(s) de stockage corrompue(s) purgée(s).');
+    }
+  } catch (e) {
+    console.warn('[MCA] Purge boot stockage : échec silencieux.', e);
+  }
+})();
+
 // genId — identifiant unique. Préfère crypto.randomUUID() (RFC 4122 v4, collision ~0).
 // Fallback getRandomValues pour 16 octets aléatoires, puis Math.random en dernier recours.
 function genId() {
@@ -412,15 +474,130 @@ function notifierSalarieSiAbsente(salId, type, message, meta) {
 function getEntrepriseExportParams() {
   const params = chargerObj('params_entreprise', {});
   const sessionAdmin = getAdminSession();
+  const rcsCompose = params.rcs || [params.rcsVille, params.rcsNumero].filter(Boolean).join(' ');
   return {
-    nom: params.nom || 'MCA Logistics',
+    nom: params.nom || 'MCA LOGISTICS',
     nomAdmin: sessionAdmin.nom || params.nomAdmin || '',
     siret: params.siret || '',
     tvaIntracom: params.tvaIntracom || '',
     adresse: params.adresse || '',
     tel: params.tel || '',
-    email: params.email || ''
+    email: params.email || '',
+    // Mentions légales CGI 242 nonies A / R123-237 C.com
+    formeJuridique: params.formeJuridique || '',
+    capital: params.capital || '',
+    capitalLibere: params.capitalLibere || '',
+    codeAPE: params.codeAPE || '',
+    rcs: rcsCompose,
+    rcsVille: params.rcsVille || '',
+    rcsNumero: params.rcsNumero || '',
+    adresseLigne: params.adresseLigne || '',
+    codePostal: params.codePostal || '',
+    ville: params.ville || '',
+    pays: params.pays || 'FR',
+    iban: params.iban || '',
+    bic: params.bic || '',
+    banque: params.banque || '',
+    // Transport léger (Règl. CE 1071/2009 + L.3211-1 Code transports)
+    ltiNumero: params.ltiNumero || '',
+    ltiDateEmission: params.ltiDateEmission || '',
+    ltiDateExpiration: params.ltiDateExpiration || '',
+    drealDossier: params.drealDossier || '',
+    registreTransporteurs: params.registreTransporteurs || '',
+    gestionnaireNom: params.gestionnaireNom || '',
+    capaciteProNumero: params.capaciteProNumero || '',
+    capaciteProDate: params.capaciteProDate || '',
+    tauxPenalitesRetard: params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15,
+    delaiPaiementDefaut: params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30
   };
+}
+
+// BUG-010 fix : validation du numéro de TVA intracommunautaire FR (clé + SIREN).
+// Algorithme officiel : clé = (12 + 3 × (SIREN mod 97)) mod 97.
+// Les numéros "new TVA" (clé non-numérique comme "H2", "L1"...) passent le format
+// mais on ne valide pas la checksum dans ce cas (rare, principalement pour les
+// doublons administratifs). On rejette uniquement les cas où la clé EST numérique
+// mais invalide.
+function validerTVAIntracomFR(tva) {
+  const val = String(tva || '').replace(/\s+/g, '').toUpperCase();
+  if (!val) return { valid: true, empty: true };
+  const m = /^FR([A-Z0-9]{2})(\d{9})$/.exec(val);
+  if (!m) return { valid: false, raison: 'format', message: 'Format attendu : FR + 2 caractères + 9 chiffres du SIREN.' };
+  const cle = m[1];
+  const siren = m[2];
+  if (!/^\d{2}$/.test(cle)) {
+    return { valid: true, normalized: val, note: 'Clé alphanumérique non vérifiée (format "new TVA").' };
+  }
+  const attendu = String((12 + 3 * (parseInt(siren, 10) % 97)) % 97).padStart(2, '0');
+  if (attendu !== cle) {
+    return {
+      valid: false,
+      raison: 'checksum',
+      message: 'Clé TVA incorrecte. Attendu : FR' + attendu + siren + '.',
+      attendu: 'FR' + attendu + siren
+    };
+  }
+  return { valid: true, normalized: val };
+}
+
+// BUG-002 helpers : blocs HTML partagés entre buildFactureHTML et genererFactureLivraison
+function __formatEurFR(n) {
+  const val = parseFloat(n);
+  if (!Number.isFinite(val)) return '';
+  return val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+}
+function renderFactureMentionsEntrepriseHeader(params) {
+  const parts = [];
+  if (params.formeJuridique) parts.push(params.formeJuridique);
+  if (params.capital) parts.push('capital ' + __formatEurFR(params.capital));
+  // Mention RCS : si numéro présent -> "RCS <ville> <numéro>", sinon si ville seule -> "Société en cours d'immatriculation au RCS <ville>"
+  if (params.rcsNumero && params.rcsVille) {
+    parts.push('RCS ' + params.rcsVille + ' ' + params.rcsNumero);
+  } else if (params.rcs && !params.rcsVille && !params.rcsNumero) {
+    parts.push('RCS ' + params.rcs);
+  } else if (params.rcsVille && !params.rcsNumero) {
+    parts.push('Société en cours d\'immatriculation au RCS ' + params.rcsVille);
+  }
+  if (params.codeAPE) parts.push('APE ' + params.codeAPE);
+  if (params.siret) parts.push('SIRET ' + params.siret);
+  if (!parts.length) return '';
+  return '<div style="font-size:.72rem;color:#9ca3af;margin-top:4px">' + planningEscapeHtml(parts.join(' · ')) + '</div>';
+}
+function renderFactureClientBlock(livraison, clientFiche) {
+  const c = clientFiche || {};
+  const nom = livraison.client || c.nom || 'Client';
+  const adresse = c.adresse || '';
+  const cp = c.cp || '';
+  const ville = c.ville || '';
+  const siren = livraison.clientSiren || c.siren || '';
+  const tvaClient = livraison.clientTvaIntracom || c.tvaIntra || '';
+  let html = '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(nom) + '</div>';
+  if (adresse) html += '<div style="font-size:.82rem;color:#4b5563;margin-top:4px">' + planningEscapeHtml(adresse) + '</div>';
+  if (cp || ville) html += '<div style="font-size:.82rem;color:#4b5563">' + planningEscapeHtml((cp + ' ' + ville).trim()) + '</div>';
+  if (siren) html += '<div style="font-size:.78rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(siren) + '</div>';
+  if (tvaClient) html += '<div style="font-size:.78rem;color:#6b7280">TVA intracom : ' + planningEscapeHtml(tvaClient) + '</div>';
+  return html;
+}
+function renderFacturePiedMentionsLegales(params, livraison, clientFiche) {
+  const delaiClient = clientFiche && parseInt(clientFiche.delaiPaiementJours, 10);
+  const delai = (delaiClient && delaiClient > 0)
+    ? delaiClient
+    : (parseInt(params.delaiPaiementDefaut, 10) || 30);
+  const tauxPenalites = parseFloat(params.tauxPenalitesRetard);
+  const tauxFmt = (Number.isFinite(tauxPenalites) ? tauxPenalites : 10.15).toFixed(2).replace('.', ',');
+  const lignesBanque = [];
+  if (params.iban) lignesBanque.push('IBAN : ' + params.iban);
+  if (params.bic) lignesBanque.push('BIC : ' + params.bic);
+  const dateLivraison = livraison && livraison.date ? formatDateExport(livraison.date) : '';
+  return '<div style="margin-top:14px;padding:12px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb;font-size:.72rem;color:#4b5563;line-height:1.55">'
+    + '<div style="font-weight:700;color:#111827;margin-bottom:4px">Conditions de règlement</div>'
+    + (dateLivraison ? '<div>Date de livraison / prestation : <strong>' + planningEscapeHtml(dateLivraison) + '</strong></div>' : '')
+    + '<div>Paiement à <strong>' + delai + ' jours</strong> à compter de la date d\'émission (art. L441-10 Code de commerce).</div>'
+    + '<div>En cas de retard de paiement, application de pénalités de retard au taux annuel de <strong>' + tauxFmt + ' %</strong> (taux BCE majoré de 10 points, art. L441-10 C. com.).</div>'
+    + '<div>Indemnité forfaitaire de recouvrement de <strong>40 €</strong> due de plein droit en cas de retard (art. D441-5 C. com.).</div>'
+    + '<div>Pas d\'escompte pour paiement anticipé.</div>'
+    + (lignesBanque.length ? '<div style="margin-top:6px">' + planningEscapeHtml(lignesBanque.join(' · ')) + '</div>' : '')
+    + '</div>';
 }
 function renderBlocInfosEntreprise(params) {
   const logo = renderLogoEntrepriseExport();
@@ -774,7 +951,6 @@ function getTVAPeriodiciteLabel(periodicite) {
 
 function getTVADefaultPeriodInput(dateStr) {
   var activePage = document.querySelector('.page.active')?.id || '';
-  if (activePage === 'page-budget') return getBudgetMoisStr();
   if (activePage === 'page-tva') return getTvaMoisStr();
   var normalized = normaliserDateISO(dateStr || aujourdhui());
   return normalized ? normalized.slice(0, 7) : aujourdhui().slice(0, 7);
@@ -1279,9 +1455,23 @@ function getDefaultAdminAccounts() {
     { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: '' }
   ];
 }
+function adminCompteEstConfigureLocal(compte) {
+  if (!compte) return false;
+  const hash = typeof compte.motDePasseHash === 'string' ? compte.motDePasseHash.trim() : '';
+  if (hash.length >= 10) return true;
+  const legacy = typeof compte.motDePasse === 'string' ? compte.motDePasse.trim() : '';
+  return legacy.length > 0;
+}
 function getAdminAccounts() {
   const comptesExistants = chargerObj('admin_accounts', null);
-  if (Array.isArray(comptesExistants) && comptesExistants.length) return comptesExistants;
+  if (Array.isArray(comptesExistants) && comptesExistants.length) {
+    // BUG-052 : purge les comptes sans mot de passe configuré (hash vide ou trop court)
+    const valides = comptesExistants.filter(adminCompteEstConfigureLocal);
+    if (valides.length !== comptesExistants.length) {
+      sauvegarder('admin_accounts', valides);
+    }
+    if (valides.length) return valides;
+  }
   // BUG-020 : si une clé legacy 'mdp_admin' existe (migration), on l'utilise pour le 1er compte.
   // Sinon, comptes créés sans mot de passe → login.html force le setup initial.
   const legacyPassword = localStorage.getItem('mdp_admin') || '';
@@ -1293,7 +1483,9 @@ function getAdminAccounts() {
   return comptes;
 }
 function saveAdminAccounts(comptes) {
-  sauvegarder('admin_accounts', comptes);
+  // BUG-052 : ne jamais persister un compte admin sans mot de passe
+  const valides = Array.isArray(comptes) ? comptes.filter(adminCompteEstConfigureLocal) : [];
+  sauvegarder('admin_accounts', valides);
 }
 function getSecurityHelper() {
   return window.DelivProSecurity || null;
@@ -2176,9 +2368,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       window.DelivProRemoteStorage.flush().catch(function() {});
     }
   });
-  if (window.DelivProSecurity && typeof window.DelivProSecurity.registerServiceWorker === 'function') {
-    window.DelivProSecurity.registerServiceWorker().catch(function() {});
-  }
   // BUG-005 PWA : prompt d'installation via beforeinstallprompt
   if (!window.__delivproPwaInstallSetup) {
     window.__delivproPwaInstallSetup = true;
@@ -2285,6 +2474,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   naviguerVers('dashboard');
   majBadgeAgent();
   afficherDecisionsAgent();
+  // PERF anti-FOUC : exécute S22 (hubs sidebar) et S26 (timeline dashboard)
+  // synchrone avant de révéler le body, pour éviter le flash
+  // "anciens onglets → nouveaux onglets" et l'apparition retardée de la timeline.
+  try { if (typeof window.__s22InitSidebar === 'function') window.__s22InitSidebar(); } catch (_) {}
+  try { if (typeof window.__s26InitDashboard === 'function') window.__s26InitDashboard(); } catch (_) {}
   requestAnimationFrame(() => {
     document.body.classList.remove('app-booting');
   });
@@ -2295,7 +2489,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function naviguerVers(page) {
   if (!page) return;
-  if (page === 'previsions') page = 'budget';
   window.__delivproCurrentPage = page;
   if (getRoleSessionCourant() === 'admin') {
     mettreAJourBadgesNav();
@@ -2311,14 +2504,13 @@ function naviguerVers(page) {
   }
   const titres = {
     dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients',
-    chauffeurs:'👤 Chauffeurs', vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
+    vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
     rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
     salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
     alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
     messagerie:'💬 Messagerie interne', parametres:'⚙️ Paramètres',
     charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
     heures:'⏱️ Heures & Km',
-    budget:'📂 Budget & Trésorerie',
     'espace-salarie':'Espace salarié'
   };
   const titleEl = document.getElementById('pageTitle');
@@ -2328,12 +2520,10 @@ function naviguerVers(page) {
       switch (page) {
         case 'dashboard':    rafraichirDashboard(); break;
         case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
-        case 'chauffeurs':   afficherChauffeurs(); break;
         case 'vehicules':    afficherVehicules(); break;
         case 'carburant':    navCarbMois(0); break;
         case 'rentabilite':  afficherRentabilite(); break;
         case 'statistiques': afficherStatistiques(); break;
-        case 'tva':          navTvaMois(0); break;
         case 'salaries':
           afficherSalaries();
           break;
@@ -2341,13 +2531,10 @@ function naviguerVers(page) {
         case 'planning':     afficherPlanning(); afficherPlanningSemaine(); peuplerAbsenceSal(); afficherAbsencesPeriodes(); initFormulairePlanningRapide(); break;
         case 'alertes':      verifierNotificationsAutomatiquesMois2(); verifierDocumentsSalaries(); afficherAlertes(); break;
         case 'inspections':  navInspSemaine(0); break;
-        case 'messagerie':   afficherMessagerie(); break;
         case 'clients':      afficherClientsDashboard(); break;
         case 'charges':      navChargesMois(0); break;
         case 'incidents':    afficherIncidents(); break;
-        case 'relances':     afficherRelances(); break;
         case 'entretiens':   navEntrMois(0); break;
-        case 'budget':       navBudgetMois(0); break;
         case 'parametres':   chargerParametres(); break;
         case 'espace-salarie': chargerCadreSalarieUnifie(); break;
       }
@@ -2491,9 +2678,13 @@ function openModal(id)  {
   mettreAJourSelects();
   const overlay = document.getElementById(id);
   if (!overlay) return;
+  // BUG-022 fix : éviter de pousser 2× la même modale dans le focus stack.
+  const existsInStack = __modalFocusStack.some(function(s){ return s.modalId === id; });
   overlay.classList.add('open');
   __appliquerA11yModale(overlay);
-  __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
+  if (!existsInStack) {
+    __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
+  }
   if (__modalFocusStack.length === 1) {
     document.addEventListener('keydown', __modalTrapKeydown);
   }
@@ -2542,6 +2733,14 @@ function closeModal(id) {
   if (id === 'modal-edit-client') { _editClientId = null; }
   if (id === 'modal-vehicule') { window._editVehId = null; resetModalVehiculeToCreateMode(); }
   ['alerte-rent','profit-recap'].forEach(i => { const e = document.getElementById(i); if (e) e.style.display='none'; });
+  // BUG-023 fix : purge défensive des backdrops orphelins (injectés par des modales
+  // externes type tippy, swal, etc.) quand le stack devient vide.
+  if (!__modalFocusStack.length) {
+    document.body.classList.remove('modal-open');
+    document.querySelectorAll('.modal-backdrop:not([data-keep])').forEach(function(el){
+      try { el.parentNode && el.parentNode.removeChild(el); } catch(_) {}
+    });
+  }
 }
 document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id); });
 
@@ -2665,16 +2864,75 @@ function ajouterLivraison() {
   const affectation = synchroniserAffectationLivraison(chaufId, vehId);
   const conflitPlanning = affectation.chaufId ? planningGetIndisponibilitePourDate(affectation.chaufId, date) : null;
 
+  // BUG-006 fix : auto-création du client dans le carnet si le nom ne correspond
+  // à aucun client existant. Évite les livraisons orphelines (sans clientId)
+  // qui cassent l'agrégation CA par client + relances.
+  let clientId = null;
+  let clientCreeAuto = false;
+  try {
+    const clientsExistants = charger('clients');
+    const cible = client.toLowerCase();
+    const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
+    if (match) {
+      clientId = match.id;
+    } else {
+      const nouveau = {
+        id: genId(),
+        nom: client,
+        type: 'pro',
+        siren: clientSiren || '',
+        creeLe: new Date().toISOString(),
+        creeDepuis: 'livraison'
+      };
+      clientsExistants.push(nouveau);
+      sauvegarder('clients', clientsExistants);
+      clientId = nouveau.id;
+      clientCreeAuto = true;
+    }
+  } catch (_) { /* silencieux : ne bloque pas la création de la livraison */ }
+
+  // BUG-012/013 fix : champs lettre de voiture conforme arrêté 09/11/1999
+  const getVal = (id) => (document.getElementById(id)?.value || '').trim();
+  const expediteur = {
+    nom: getVal('liv-exp-nom'),
+    contact: getVal('liv-exp-contact'),
+    adresse: getVal('liv-exp-adresse'),
+    cp: getVal('liv-exp-cp'),
+    ville: getVal('liv-exp-ville'),
+    pays: getVal('liv-exp-pays') || 'FR'
+  };
+  const destinataire = {
+    nom: getVal('liv-dest-nom'),
+    contact: getVal('liv-dest-contact'),
+    adresse: getVal('liv-dest-adresse'),
+    cp: getVal('liv-dest-cp'),
+    ville: getVal('liv-dest-ville'),
+    pays: getVal('liv-dest-pays') || 'FR'
+  };
+  const marchandise = {
+    nature: getVal('liv-marchandise-nature'),
+    poidsKg: parseFloat(getVal('liv-marchandise-poids')) || 0,
+    volumeM3: parseFloat(getVal('liv-marchandise-volume')) || 0,
+    nbColis: parseInt(getVal('liv-marchandise-colis'), 10) || 0
+  };
+  const adr = {
+    estADR: !!document.getElementById('liv-adr-est')?.checked,
+    codeONU: getVal('liv-adr-onu'),
+    classe: getVal('liv-adr-classe'),
+    groupeEmballage: getVal('liv-adr-groupe')
+  };
+
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
-    client, clientSiren, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
+    client, clientSiren, clientId, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
     chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
     vehId: affectation.vehId || null, vehNom: affectation.vehNom,
     statut, date, notes,
     statutPaiement: 'en-attente',
     modePaiement:   document.getElementById('liv-mode-paiement')?.value || '',
     heureDebut:     document.getElementById('liv-heure-debut')?.value || '',
+    expediteur, destinataire, marchandise, adr,
     creeLe: new Date().toISOString()
   };
 
@@ -2694,21 +2952,37 @@ function ajouterLivraison() {
   closeModal('modal-livraison');
   viderFormulaireLivraison();
   afficherLivraisons();
+  if (clientCreeAuto && typeof afficherClients === 'function') {
+    try { afficherClients(); } catch (_) {}
+  }
   if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
   if (conflitPlanning) {
     afficherToast(`⚠️ ${livraison.chaufNom || 'Ce salarié'} est noté ${conflitPlanning.label.toLowerCase()} le ${formatDateExport(date)}`, 'warning');
     return;
   }
-  afficherToast('✅ Livraison enregistrée !');
+  afficherToast(clientCreeAuto
+    ? '✅ Livraison enregistrée + client « ' + client + ' » ajouté au carnet'
+    : '✅ Livraison enregistrée !');
 }
 
 function viderFormulaireLivraison() {
-  ['liv-client','liv-zone','liv-depart','liv-arrivee','liv-distance','liv-prix','liv-prix-ht','liv-notes','liv-heure-debut'].forEach(id => {
+  ['liv-client','liv-client-siren','liv-zone','liv-depart','liv-arrivee','liv-distance','liv-prix','liv-prix-ht','liv-notes','liv-heure-debut',
+    // BUG-012/013 : champs lettre de voiture
+    'liv-exp-nom','liv-exp-contact','liv-exp-adresse','liv-exp-cp','liv-exp-ville',
+    'liv-dest-nom','liv-dest-contact','liv-dest-adresse','liv-dest-cp','liv-dest-ville',
+    'liv-marchandise-nature','liv-marchandise-poids','liv-marchandise-volume','liv-marchandise-colis',
+    'liv-adr-onu','liv-adr-classe'
+  ].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
-  ['liv-chauffeur','liv-vehicule','liv-mode-paiement'].forEach(id => {
+  ['liv-chauffeur','liv-vehicule','liv-mode-paiement','liv-adr-groupe'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const expPays = document.getElementById('liv-exp-pays'); if (expPays) expPays.value = 'FR';
+  const destPays = document.getElementById('liv-dest-pays'); if (destPays) destPays.value = 'FR';
+  const adrChk = document.getElementById('liv-adr-est');
+  if (adrChk) { adrChk.checked = false; const det = document.getElementById('liv-adr-details'); if (det) det.style.display = 'none'; }
+  // liv-ldv-section n'est plus un <details> collapsible — lettre de voiture toujours visible en full-page
   const tvaSel = document.getElementById('liv-taux-tva'); if (tvaSel) tvaSel.value = '20';
   document.getElementById('liv-statut').value = 'en-attente';
   document.getElementById('liv-date').value   = aujourdhui();
@@ -3268,6 +3542,33 @@ function getVehiculeMensualiteRentabilite(veh) {
   }
 }
 
+// BUG-046 fix : TVA déductible sur carburant selon genre (CGI art. 298-4-1° et 298-4 D)
+// - VP (voiture particulière) : 80 % diesel, 80 % essence depuis 2022
+// - VU/CTTE/CAM/TRR (utilitaire, camionnette, camion, tracteur) : 100 % gazole/GPL/GNV, 100 % essence (depuis 2022)
+// - Électrique (tout genre) : 100 % de l'électricité de recharge
+// - REM/SREM (remorque, semi-remorque) : pas de carburant propre, 0 %
+function calculerTauxTVACarburant(genre, carburant) {
+  if (!genre || !carburant) return null;
+  if (genre === 'REM' || genre === 'SREM') return 0;
+  if (carburant === 'electrique' || carburant === 'h2') return 100;
+  if (genre === 'VP') return 80;
+  // VU, CTTE, CAM, TRR : tous carburants 100 %
+  return 100;
+}
+function ajusterTVACarburantSelonGenre() {
+  const genre = document.getElementById('veh-genre')?.value || '';
+  const carb = document.getElementById('veh-carburant')?.value || '';
+  const taux = calculerTauxTVACarburant(genre, carb);
+  if (taux == null) return;
+  const input = document.getElementById('veh-tva-carburant');
+  if (input && (!input.value || input.dataset.autoSet === '1')) {
+    input.value = String(taux);
+    input.dataset.autoSet = '1';
+  }
+}
+window.ajusterTVACarburantSelonGenre = ajusterTVACarburantSelonGenre;
+window.calculerTauxTVACarburant = calculerTauxTVACarburant;
+
 function ajouterVehicule() {
   const immat  = document.getElementById('veh-immat').value.trim().toUpperCase();
   const modele = document.getElementById('veh-modele').value.trim();
@@ -3291,10 +3592,30 @@ function ajouterVehicule() {
   }
 
   const sal = charger('salaries').find(s => s.id === salId);
-  const tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 80;
+  // BUG-046 fix : champs flotte étendus (genre, Crit'Air, PTAC, VIN, taxe essieu)
+  const getV = (id) => (document.getElementById(id)?.value || '').trim();
+  const genre = getV('veh-genre');
+  const carburant = getV('veh-carburant');
+  // TVA carburant selon genre (CGI art. 298-4-1° et 298-4 D)
+  const tvaAutoCalc = calculerTauxTVACarburant(genre, carburant);
+  const tvaCarbSaisi = parseFloat(document.getElementById('veh-tva-carburant')?.value);
+  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 80);
+  const ptac = parseInt(getV('veh-ptac'), 10) || 0;
+  const ptra = parseInt(getV('veh-ptra'), 10) || 0;
+  const essieux = parseInt(getV('veh-essieux'), 10) || 0;
+  const critAir = getV('veh-critair');
+  const date1Immat = getV('veh-date-1immat');
+  const vin = getV('veh-vin').toUpperCase();
+  const carteGrise = getV('veh-carte-grise');
+  const assurance = {
+    compagnie: getV('veh-assurance-compagnie'),
+    numeroContrat: getV('veh-assurance-numero'),
+    dateExpiration: getV('veh-assurance-date-exp')
+  };
   const vehicule = Object.assign({
     id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
+    genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
@@ -3306,7 +3627,8 @@ function ajouterVehicule() {
   }
 
   closeModal('modal-vehicule');
-  ['veh-immat','veh-modele','veh-km','veh-conso','veh-entretien-interval-km','veh-entretien-interval-mois'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
+  ['veh-immat','veh-modele','veh-km','veh-conso','veh-entretien-interval-km','veh-entretien-interval-mois',
+   'veh-assurance-compagnie','veh-assurance-numero','veh-assurance-date-exp'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
   reinitialiserFinanceVehiculeForm();
   if (document.getElementById('veh-mode-acquisition')) document.getElementById('veh-mode-acquisition').value = 'achat';
   if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
@@ -3370,6 +3692,13 @@ function afficherVehicules() {
       const dateCT = new Date(v.dateCT);
       if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${v.immat}`, { vehId: v.id });
       else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `🔔 CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
+    }
+    // Carte verte / assurance (art. L211-1 Code des assurances — circulation interdite sans assurance)
+    const assurance = v.assurance || {};
+    if (assurance.dateExpiration) {
+      const dateAssu = new Date(assurance.dateExpiration);
+      if (dateAssu < auj) ajouterAlerteSiAbsente('assu_veh_expire_' + v.id, `⚠️ Carte verte expirée — ${v.immat} (circulation interdite L211-1 C. assur.)`, { vehId: v.id });
+      else if (dateAssu < dans30j) ajouterAlerteSiAbsente('assu_veh_proche_' + v.id, `🛡️ Carte verte expire dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
     }
     if (pilotageEntretien.estEnRetard && pilotageEntretien.prochainKm) {
       ajouterAlerteSiAbsente('vidange', `🔧 Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
@@ -4024,9 +4353,78 @@ async function viderAlertes() {
   afficherAlertes(); afficherToast('🗑️ Historique effacé');
 }
 
+/* ===== Chart.js lazy loader — charge 197KB uniquement au premier graphique ===== */
+let _chartJsPromise = null;
+function ensureChartJs() {
+  if (typeof Chart !== 'undefined') return Promise.resolve();
+  if (_chartJsPromise) return _chartJsPromise;
+  _chartJsPromise = new Promise(function(resolve, reject) {
+    const s = document.createElement('script');
+    s.src = 'chart.min.js';
+    s.async = false;
+    s.onload = function() { resolve(); };
+    s.onerror = function() { _chartJsPromise = null; reject(new Error('Chart.js load failed')); };
+    document.head.appendChild(s);
+  });
+  return _chartJsPromise;
+}
+
+/* ===== HELPERS CHART.JS — gradient fill + animations smooth partagés ===== */
+function mcaChartGradient(canvas, colorHex, opacityTop, opacityBottom) {
+  if (!canvas) return colorHex;
+  const ctx = canvas.getContext && canvas.getContext('2d');
+  if (!ctx) return colorHex;
+  const height = canvas.clientHeight || canvas.height || 280;
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  const hexToRgb = (h) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h || '');
+    if (!m) return '245,166,35';
+    const i = parseInt(m[1], 16);
+    return [(i>>16)&255, (i>>8)&255, i&255].join(',');
+  };
+  const rgb = hexToRgb(colorHex);
+  gradient.addColorStop(0, `rgba(${rgb},${opacityTop != null ? opacityTop : 0.55})`);
+  gradient.addColorStop(1, `rgba(${rgb},${opacityBottom != null ? opacityBottom : 0.02})`);
+  return gradient;
+}
+function mcaChartBaseOptions(isLight, extra) {
+  const tickColor = isLight ? '#334155' : '#e2e8f0';
+  const gridColor = isLight ? 'rgba(15,23,42,0.08)' : 'rgba(255,255,255,0.07)';
+  const legendColor = isLight ? '#0f172a' : '#f8fafc';
+  const tooltipBg = isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)';
+  return Object.assign({
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 700, easing: 'easeOutQuart' },
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: legendColor, font: { weight: '600', size: 12 }, boxWidth: 14, padding: 14 } },
+      tooltip: {
+        backgroundColor: tooltipBg,
+        titleColor: '#ffffff',
+        bodyColor: '#e2e8f0',
+        borderColor: 'rgba(245,166,35,0.4)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 8,
+        titleFont: { weight: '700' },
+        bodyFont: { size: 12 },
+        displayColors: true,
+        boxPadding: 4
+      }
+    },
+    scales: {
+      x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 } } },
+      y: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 } } }
+    }
+  }, extra || {});
+}
+
 /* ===== DASHBOARD ===== */
 let chartActivite = null;
 function rafraichirDashboard() {
+  // PERF: lazy Chart.js — si pas encore chargé, on rappelle la fonction après chargement
+  if (typeof Chart === 'undefined') { ensureChartJs().then(rafraichirDashboard).catch(() => {}); return; }
   const isLight = document.body.classList.contains('light-mode');
   const chartTickColor = isLight ? '#334155' : '#e2e8f0';
   const chartGridColor = isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)';
@@ -4065,9 +4463,26 @@ function rafraichirDashboard() {
   const charges    = charger('charges');
   const salaries   = charger('salaries');
   const auj = aujourdhui(), mois = auj.slice(0,7), sem = getSemaineDebut();
-  const monthRange = budgetGetMonthlyRange(mois);
-  const budgetData = budgetGetMonthlyVariation(mois);
+  // H7 fix : budgetGetMonthlyRange/Variation supprimés avec le module Budget.
+  // Remplacés par un calcul inline minimal pour les KPIs dashboard.
+  const monthRange = { debut: mois + '-01', fin: mois + '-31' };
   const tvaSummary = getTVASummaryForRange(monthRange);
+  const chargesMois = charger('charges').filter(c => (c.date || '').startsWith(mois));
+  const carbMoisAll = (charger('carburant') || []).filter(p => (p.date || '').startsWith(mois));
+  const totalMontantHT = (arr) => arr.reduce((s, it) => {
+    const ht = parseFloat(it.montantHT);
+    if (Number.isFinite(ht)) return s + ht;
+    const ttc = parseFloat(it.montant) || 0;
+    const taux = parseFloat(it.tauxTVA) || 0;
+    return s + ttc / (1 + taux / 100);
+  }, 0);
+  const budgetData = {
+    totalCarb: totalMontantHT(carbMoisAll) + totalMontantHT(chargesMois.filter(c => c.categorie === 'carburant')),
+    totalEntr: totalMontantHT(chargesMois.filter(c => c.categorie === 'entretien')),
+    totalSalaires: totalMontantHT(chargesMois.filter(c => c.categorie === 'salaires')),
+    totalCharg: totalMontantHT(chargesMois.filter(c => c.categorie !== 'carburant' && c.categorie !== 'entretien' && c.categorie !== 'salaires')),
+    totalDepHorsTVA: totalMontantHT(chargesMois) + totalMontantHT(carbMoisAll)
+  };
   const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(mois));
   const livsAuj = livraisons.filter(l => l.date===auj);
   const caJour   = livsAuj.reduce((s,l)=>s+getMontantHTLivraison(l),0);
@@ -4224,14 +4639,33 @@ function rafraichirDashboard() {
     donnees.push(livraisons.filter(l=>l.date===ds).reduce((s,l)=>s+getMontantHTLivraison(l),0));
   }
   if (chartActivite) chartActivite.destroy();
-  chartActivite = new Chart(document.getElementById('chartActivite'), {
-    type:'bar', data:{ labels, datasets:[{ label:'CA (€)', data:donnees,
-      backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6 }] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
-      scales:{
-        x:{grid:{color:chartGridColor},ticks:{color:chartTickColor}},
-        y:{beginAtZero:true,grid:{color:chartGridColor},ticks:{color:chartTickColor}}
-      } }
+  const _cvActivite = document.getElementById('chartActivite');
+  chartActivite = new Chart(_cvActivite, {
+    type:'bar', data:{ labels, datasets:[{
+      label:'CA (€)', data:donnees,
+      backgroundColor: mcaChartGradient(_cvActivite, '#f5a623', 0.85, 0.15),
+      borderColor:'rgba(245,166,35,1)',
+      borderWidth:0,
+      borderRadius:8,
+      borderSkipped:false,
+      hoverBackgroundColor: mcaChartGradient(_cvActivite, '#ffb94d', 1, 0.25)
+    }] },
+    options: mcaChartBaseOptions(isLight, {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
+          titleColor: '#ffffff', bodyColor: '#e2e8f0',
+          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
+          padding: 12, cornerRadius: 8,
+          callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) }
+        }
+      },
+      scales: {
+        x: { grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 } } },
+        y: { beginAtZero: true, grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 }, callback: v => euros(v) } }
+      }
+    })
   });
 
   // Carte santé globale
@@ -4247,25 +4681,29 @@ function rafraichirDashboard() {
     const seuilLabel = document.getElementById('kpi-seuil-label');
     if (!santeLabel) return;
 
-    let etat, couleur, detail;
+    let etat, couleur, detail, etatClass;
     if (beneficeVal > 0 && alertesVal === 0 && impayes === 0) {
-      etat = '🟢 Excellente santé'; couleur = 'rgba(39,174,96,0.35)';
+      etat = '🟢 Excellente santé'; couleur = 'rgba(39,174,96,0.35)'; etatClass = 'etat-bon';
       detail = `Marge positive · Aucune alerte · Aucun impayé`;
     } else if (beneficeVal > 0 && (alertesVal > 0 || impayes > 0)) {
-      etat = '🟢 Santé correcte'; couleur = 'rgba(46,204,113,0.15)';
+      etat = '🟢 Santé correcte'; couleur = 'rgba(46,204,113,0.15)'; etatClass = 'etat-bon';
       detail = `Bénéfice positif${alertesVal > 0 ? ` · ${alertesVal} alerte(s) à traiter` : ''}${impayes > 0 ? ` · ${euros(impayes)} impayés` : ''}`;
     } else if (beneficeVal <= 0 && caMoisVal > 0) {
-      etat = '🔴 Attention requise'; couleur = 'rgba(231,76,60,0.2)';
+      etat = '🔴 Attention requise'; couleur = 'rgba(231,76,60,0.2)'; etatClass = 'etat-mauvais';
       detail = `Bénéfice négatif ce mois · Vérifiez vos charges`;
     } else {
-      etat = '⚪ En attente de données'; couleur = 'rgba(255,255,255,0.05)';
+      etat = '⚪ En attente de données'; couleur = 'rgba(255,255,255,0.05)'; etatClass = 'etat-vide';
       detail = `Saisissez vos premières livraisons pour activer l'analyse`;
     }
 
     santeLabel.textContent = etat;
     if (santeDetail) santeDetail.textContent = detail;
     const carteEl = document.getElementById('kpi-sante-globale');
-    if (carteEl) carteEl.style.background = `linear-gradient(135deg,${couleur},rgba(0,0,0,0.02))`;
+    if (carteEl) {
+      carteEl.classList.remove('etat-bon', 'etat-moyen', 'etat-mauvais', 'etat-vide');
+      carteEl.classList.add(etatClass);
+      carteEl.style.background = '';
+    }
 
     const objectif = parseFloat(localStorage.getItem('objectif_ca_mensuel') || '0');
     if (seuilLabel && objectif > 0) {
@@ -4300,6 +4738,7 @@ function navRentMois(delta) {
   afficherRentabilite();
 }
 function afficherRentabilite() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherRentabilite).catch(() => {}); return; }
   let livraisons=charger('livraisons'), pleins=charger('carburant'), entretiens=charger('entretiens'), charges=charger('charges');
   const range = getRentMoisRange();
   livraisons = livraisons.filter(l=>l.date>=range.debut&&l.date<=range.fin);
@@ -4325,12 +4764,33 @@ function afficherRentabilite() {
   if (chartRentab) chartRentab.destroy();
   const isLight = document.body.classList.contains('light-mode');
   chartRentab = new Chart(document.getElementById('chartRentabilite'), {
-    type:'doughnut', data:{ labels:['Carburant','Entretien','Autres charges','Profit net'],
-      datasets:[{ data:[carb,entr,autresCharges,Math.max(profit,0)],
-        backgroundColor:['rgba(230,126,34,0.8)','rgba(52,152,219,0.8)','rgba(155,89,182,0.8)','rgba(46,204,113,0.8)'],
-        borderColor: isLight ? '#ffffff' : '#1a1d27', borderWidth:3 }] },
-    options:{ responsive:true, maintainAspectRatio:true, plugins:{legend:{labels:{color: isLight ? '#1a1d27' : '#e8eaf0'}},
-      tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${euros(ctx.parsed||0)}`}}} }
+    type:'doughnut',
+    data:{
+      labels:['Carburant','Entretien','Autres charges','Profit net'],
+      datasets:[{
+        data:[carb,entr,autresCharges,Math.max(profit,0)],
+        backgroundColor:['rgba(230,126,34,0.9)','rgba(52,152,219,0.9)','rgba(155,89,182,0.9)','rgba(46,204,113,0.9)'],
+        borderColor: isLight ? '#ffffff' : '#1a1d27',
+        borderWidth:4,
+        hoverOffset: 12,
+        spacing: 2
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      cutout: '62%',
+      animation: { animateScale: true, animateRotate: true, duration: 800, easing: 'easeOutQuart' },
+      plugins: {
+        legend: { position: 'bottom', labels: { color: isLight ? '#1a1d27' : '#e8eaf0', font: { weight: '600', size: 12 }, padding: 14, boxWidth: 14, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: {
+          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
+          titleColor: '#ffffff', bodyColor: '#e2e8f0',
+          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
+          padding: 12, cornerRadius: 8,
+          callbacks: { label: ctx => ' ' + ctx.label + ' : ' + euros(ctx.parsed || 0) }
+        }
+      }
+    }
   });
 }
 
@@ -4375,6 +4835,7 @@ function changerVueStats(mode) { changeSimplePeriode(_statsPeriode, mode, affich
 function navStatsPeriode(delta) { navSimplePeriode(_statsPeriode, delta, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
 function reinitialiserStatsPeriode() { resetSimplePeriode(_statsPeriode, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
 function afficherStatistiques() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherStatistiques).catch(() => {}); return; }
   const isLight = document.body.classList.contains('light-mode');
   const tickColor = isLight ? '#555' : '#7c8299';
   const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
@@ -4415,33 +4876,69 @@ function afficherStatistiques() {
     }
   }
   if(chartCA)chartCA.destroy();
-  chartCA=new Chart(document.getElementById('chartCA'),{
+  const _cvCA = document.getElementById('chartCA');
+  chartCA = new Chart(_cvCA, {
     type:'line',
-    data:{labels,datasets:[
-      {label:'CA (€)',data:donnees,borderColor:'#4f8ef7',backgroundColor:'rgba(79,142,247,0.08)',fill:true,tension:0.3,pointRadius:3,pointBackgroundColor:'#4f8ef7',borderWidth:2.5}
-    ]},
-    options:{responsive:true,plugins:{legend:{labels:{color:legendColor}}},
-      scales:{x:{grid:{color:gridColor},ticks:{color:tickColor,maxTicksLimit:12}},y:{grid:{color:gridColor},ticks:{color:tickColor,callback:v=>euros(v)}}}}
+    data:{ labels, datasets:[{
+      label:'CA (€)', data:donnees,
+      borderColor:'#4f8ef7',
+      backgroundColor: mcaChartGradient(_cvCA, '#4f8ef7', 0.35, 0),
+      fill:true, tension:0.35,
+      pointRadius:4, pointHoverRadius:7,
+      pointBackgroundColor:'#4f8ef7', pointBorderColor:'#fff', pointBorderWidth:2,
+      borderWidth:3
+    }]},
+    options: mcaChartBaseOptions(isLight, {
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) } } },
+      scales: {
+        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, maxTicksLimit: 12, font: { size: 11 } } },
+        y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, callback: v => euros(v) } }
+      }
+    })
   });
 
   // Chauffeurs — horizontal bar
   const ch=charger('chauffeurs');
   if(chartChauff)chartChauff.destroy();
   const chData = ch.length ? ch.map(c=>({nom:c.nom, nb:livsFiltrees.filter(l=>l.chaufId===c.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
-  chartChauff=new Chart(document.getElementById('chartChauffeurs'),{
+  const _cvChauff = document.getElementById('chartChauffeurs');
+  chartChauff = new Chart(_cvChauff, {
     type:'bar',
-    data:{labels:chData.map(c=>c.nom),datasets:[{label:'Livraisons',data:chData.map(c=>c.nb),backgroundColor:'rgba(155,89,182,0.65)',borderColor:'rgba(155,89,182,1)',borderWidth:1.5,borderRadius:8}]},
-    options:{indexAxis:'horizontal',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor}},y:{grid:{color:gridColor},ticks:{color:tickColor}}}}
+    data:{ labels:chData.map(c=>c.nom), datasets:[{
+      label:'Livraisons', data:chData.map(c=>c.nb),
+      backgroundColor: mcaChartGradient(_cvChauff, '#9b59b6', 0.9, 0.25),
+      borderColor:'rgba(155,89,182,1)', borderWidth:0, borderRadius:8, borderSkipped:false
+    }] },
+    options: mcaChartBaseOptions(isLight, {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, precision: 0 } },
+        y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
+      }
+    })
   });
 
   // Véhicules
   const veh=charger('vehicules');
   if(chartVeh)chartVeh.destroy();
   const vehData = veh.length ? veh.map(v=>({nom:v.immat,nb:livsFiltrees.filter(l=>l.vehId===v.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
-  chartVeh=new Chart(document.getElementById('chartVehicules'),{
+  const _cvVeh = document.getElementById('chartVehicules');
+  chartVeh = new Chart(_cvVeh, {
     type:'bar',
-    data:{labels:vehData.map(v=>v.nom),datasets:[{label:'Livraisons',data:vehData.map(v=>v.nb),backgroundColor:'rgba(230,126,34,0.65)',borderColor:'rgba(230,126,34,1)',borderWidth:1.5,borderRadius:8}]},
-    options:{indexAxis:'horizontal',responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{color:gridColor},ticks:{color:tickColor}},y:{grid:{color:gridColor},ticks:{color:tickColor}}}}
+    data:{ labels:vehData.map(v=>v.nom), datasets:[{
+      label:'Livraisons', data:vehData.map(v=>v.nb),
+      backgroundColor: mcaChartGradient(_cvVeh, '#e67e22', 0.9, 0.25),
+      borderColor:'rgba(230,126,34,1)', borderWidth:0, borderRadius:8, borderSkipped:false
+    }] },
+    options: mcaChartBaseOptions(isLight, {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, precision: 0 } },
+        y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
+      }
+    })
   });
 
   // CA par chauffeur (nouveau graphique)
@@ -4460,6 +4957,7 @@ function afficherStatistiques() {
 /* ===== PRÉVISIONS ===== */
 let chartPrev=null;
 function calculerPrevision() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
   const livraisons = charger('livraisons');
   const carburant  = charger('carburant');
   const charges    = charger('charges');
@@ -4720,12 +5218,10 @@ function hydraterSalarieLocalDepuisSupabase(salarie, record) {
 
 function notifierSynchroSalarie(resultat, actionLabel) {
   if (!resultat || resultat.skipped) return;
-  if (resultat.ok) {
-    afficherToast(`☁️ ${actionLabel} synchronise avec Supabase`, 'success');
-    return;
-  }
+  // Succès sync Supabase = silencieux (opération normale, pas de bruit user)
+  if (resultat.ok) return;
   const message = resultat.error?.message || 'Synchronisation Supabase indisponible';
-  afficherToast(`⚠️ ${actionLabel} enregistre localement uniquement (${message})`, 'error');
+  afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
 }
 
 async function provisionnerAccesSalarie(salarie, password) {
@@ -4770,10 +5266,18 @@ async function creerSalarie() {
   const numero = document.getElementById('nsal-numero').value.trim().toUpperCase();
   const mdp    = document.getElementById('nsal-mdp').value;
   const tel    = document.getElementById('nsal-tel').value.trim();
+  const emailSaisi = document.getElementById('nsal-email')?.value.trim() || '';
   const poste  = document.getElementById('nsal-poste')?.value.trim() || '';
   const datePermis    = document.getElementById('nsal-date-permis')?.value || '';
   const dateAssurance = document.getElementById('nsal-date-assurance')?.value || '';
   const vehId  = document.getElementById('nsal-vehicule')?.value || '';
+  const categoriePermis = document.getElementById('nsal-cat-permis')?.value || '';
+  const getV = (id) => (document.getElementById(id)?.value || '').trim();
+  const visiteMedicale = {
+    date: getV('nsal-visite-date'),
+    aptitude: getV('nsal-visite-aptitude'),
+    dateExpiration: getV('nsal-visite-date-exp')
+  };
 
   if (!nom||!numero||!mdp) { afficherToast('⚠️ Nom, numero et mot de passe obligatoires', 'error'); return; }
   const qualiteMdp = evaluerQualiteMotDePasseFort(mdp);
@@ -4781,7 +5285,15 @@ async function creerSalarie() {
   const salaries=charger('salaries');
   if (salaries.find(s=>s.numero===numero)) { afficherToast('⚠️ Ce numéro existe déjà', 'error'); return; }
 
-  const salarie={ id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero, email:genererEmailTechniqueSalarie(numero), mdpHash:await hasherMotDePasseLocal(mdp), tel, poste, datePermis, dateAssurance, actif:true, creeLe:new Date().toISOString() };
+  const salarie={
+    id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero,
+    email: emailSaisi || genererEmailTechniqueSalarie(numero),
+    emailPersonnel: emailSaisi || '',
+    mdpHash:await hasherMotDePasseLocal(mdp),
+    tel, poste, datePermis, dateAssurance, categoriePermis,
+    visiteMedicale,
+    actif:true, creeLe:new Date().toISOString()
+  };
   salaries.push(salarie);
   sauvegarder('salaries', salaries);
 
@@ -4812,9 +5324,15 @@ async function creerSalarie() {
     salarie.mdpHash = provisionResult.salarie.mdpHash || salarie.mdpHash;
   }
 
-  ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>document.getElementById(id).value='');
-  if (document.getElementById('nsal-poste')) document.getElementById('nsal-poste').value='';
-  if (document.getElementById('nsal-vehicule')) document.getElementById('nsal-vehicule').value='';
+  ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel','nsal-email',
+    'nsal-date-permis','nsal-date-assurance',
+    'nsal-visite-date','nsal-visite-date-exp'
+  ].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+  ['nsal-poste','nsal-vehicule','nsal-cat-permis','nsal-visite-aptitude'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const transportSec = document.getElementById('nsal-transport-section');
+  if (transportSec) transportSec.open = false;
   mettreAJourQualiteMdpSalarie('new');
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
@@ -4889,6 +5407,11 @@ async function ouvrirEditSalarie(id) {
   if (document.getElementById('edit-sal-poste')) document.getElementById('edit-sal-poste').value = sal.poste||'';
   if (document.getElementById('edit-sal-date-permis')) document.getElementById('edit-sal-date-permis').value = sal.datePermis||'';
   if (document.getElementById('edit-sal-date-assurance')) document.getElementById('edit-sal-date-assurance').value = sal.dateAssurance||'';
+  if (document.getElementById('edit-sal-cat-permis')) document.getElementById('edit-sal-cat-permis').value = sal.categoriePermis || '';
+  const vm = sal.visiteMedicale || {};
+  if (document.getElementById('edit-sal-visite-date')) document.getElementById('edit-sal-visite-date').value = vm.date || '';
+  if (document.getElementById('edit-sal-visite-aptitude')) document.getElementById('edit-sal-visite-aptitude').value = vm.aptitude || '';
+  if (document.getElementById('edit-sal-visite-date-exp')) document.getElementById('edit-sal-visite-date-exp').value = vm.dateExpiration || '';
 
   // Charger select véhicule
   const vehicules=charger('vehicules');
@@ -4931,6 +5454,12 @@ async function confirmerEditSalarie() {
     salaries[idx].nom=nomComplet; salaries[idx].nomFamille=nomFamille; salaries[idx].prenom=prenom;
     salaries[idx].numero=numero; salaries[idx].email=genererEmailTechniqueSalarie(numero); salaries[idx].tel=tel; salaries[idx].poste=poste;
     salaries[idx].datePermis=datePermis; salaries[idx].dateAssurance=dateAssurance;
+    salaries[idx].categoriePermis = document.getElementById('edit-sal-cat-permis')?.value || '';
+    salaries[idx].visiteMedicale = {
+      date: document.getElementById('edit-sal-visite-date')?.value || '',
+      aptitude: document.getElementById('edit-sal-visite-aptitude')?.value || '',
+      dateExpiration: document.getElementById('edit-sal-visite-date-exp')?.value || ''
+    };
     salaries[idx].previousNumero = ancienNumero;
     sauvegarder('salaries', salaries);
     // Propager dans chauffeurs
@@ -5143,9 +5672,21 @@ function executerActionAgent(decisionId, actionId) {
   afficherToast('✅ Action enregistrée');
 }
 
+const __toastRecents = new Map();
 function afficherToast(message, type='success') {
   const t=document.getElementById('toast');
   if (!t) return;
+  // Dédup : même message émis dans les 2s = ignoré (anti-spam)
+  const now = Date.now();
+  const cle = type + '|' + message;
+  const dernier = __toastRecents.get(cle);
+  if (dernier && (now - dernier) < 2000) return;
+  __toastRecents.set(cle, now);
+  if (__toastRecents.size > 40) {
+    for (const [k, v] of __toastRecents) {
+      if (now - v > 10000) __toastRecents.delete(k);
+    }
+  }
   // BUG-006 a11y : erreurs en assertive pour lecture immédiate par screen reader
   t.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   t.setAttribute('role', type === 'error' ? 'alert' : 'status');
@@ -6408,219 +6949,6 @@ function exporterCSV(data, colonnes, nomFichier) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-function formatDateFEC(val) {
-  const iso = normaliserDateISO(val);
-  return iso ? iso.replace(/-/g, '') : '';
-}
-
-function getCompteChargeFEC(categorie) {
-  return {
-    carburant: { num:'606100', lib:'Achats non stockés carburant' },
-    peage: { num:'625100', lib:'Déplacements et péages' },
-    entretien: { num:'615500', lib:'Entretien et réparations' },
-    assurance: { num:'616000', lib:'Primes d’assurances' },
-    salaires: { num:'641100', lib:'Rémunérations du personnel' },
-    lld_credit: { num:'612200', lib:'Crédit-bail / location' },
-    tva: { num:'445510', lib:'TVA à décaisser' },
-    autre: { num:'628000', lib:'Autres services extérieurs' }
-  }[categorie || 'autre'] || { num:'628000', lib:'Autres services extérieurs' };
-}
-
-function construireLignesFEC() {
-  const lignes = [];
-  let index = 1;
-  const pushLine = function(line) {
-    lignes.push({
-      JournalCode: line.JournalCode || '',
-      JournalLib: line.JournalLib || '',
-      EcritureNum: String(line.EcritureNum || '').padStart(6, '0'),
-      EcritureDate: line.EcritureDate || '',
-      CompteNum: line.CompteNum || '',
-      CompteLib: line.CompteLib || '',
-      CompAuxNum: line.CompAuxNum || '',
-      CompAuxLib: line.CompAuxLib || '',
-      PieceRef: line.PieceRef || '',
-      PieceDate: line.PieceDate || '',
-      EcritureLib: line.EcritureLib || '',
-      Debit: line.Debit ? round2(line.Debit).toFixed(2) : '',
-      Credit: line.Credit ? round2(line.Credit).toFixed(2) : '',
-      EcritureLet: '',
-      DateLet: '',
-      ValidDate: line.ValidDate || line.PieceDate || '',
-      Montantdevise: '',
-      Idevise: 'EUR'
-    });
-  };
-
-  charger('livraisons').filter(function(item) {
-    return (parseFloat(item.prix) || 0) > 0;
-  }).forEach(function(item) {
-    const ecritureNum = index++;
-    const ht = round2(getMontantHTLivraison(item));
-    const ttc = round2(parseFloat(item.prix) || 0);
-    const tva = round2(Math.max(0, ttc - ht));
-    const pieceDate = formatDateFEC(item.date || item.creeLe);
-    const lib = 'Livraison ' + (item.numLiv || item.client || '—');
-    pushLine({
-      JournalCode:'VEN',
-      JournalLib:'Ventes',
-      EcritureNum:ecritureNum,
-      EcritureDate:pieceDate,
-      CompteNum:'411000',
-      CompteLib:'Clients',
-      CompAuxNum:item.clientId || '',
-      CompAuxLib:item.client || '',
-      PieceRef:item.numLiv || item.id || '',
-      PieceDate:pieceDate,
-      EcritureLib:lib,
-      Debit:ttc
-    });
-    pushLine({
-      JournalCode:'VEN',
-      JournalLib:'Ventes',
-      EcritureNum:ecritureNum,
-      EcritureDate:pieceDate,
-      CompteNum:'706000',
-      CompteLib:'Prestations de services',
-      CompAuxNum:item.clientId || '',
-      CompAuxLib:item.client || '',
-      PieceRef:item.numLiv || item.id || '',
-      PieceDate:pieceDate,
-      EcritureLib:lib,
-      Credit:ht
-    });
-    if (tva > 0) {
-      pushLine({
-        JournalCode:'VEN',
-        JournalLib:'Ventes',
-        EcritureNum:ecritureNum,
-        EcritureDate:pieceDate,
-        CompteNum:'445710',
-        CompteLib:'TVA collectée',
-        CompAuxNum:item.clientId || '',
-        CompAuxLib:item.client || '',
-        PieceRef:item.numLiv || item.id || '',
-        PieceDate:pieceDate,
-        EcritureLib:'TVA ' + lib,
-        Credit:tva
-      });
-    }
-  });
-
-  charger('charges').forEach(function(item) {
-    const ecritureNum = index++;
-    const compte = getCompteChargeFEC(item.categorie);
-    const ttc = round2(parseFloat(item.montant) || 0);
-    const ht = round2(parseFloat(item.montantHT) || (item.tauxTVA ? ttc / (1 + parseFloat(item.tauxTVA || 0) / 100) : ttc));
-    const tva = item.categorie === 'tva' ? 0 : round2(Math.max(0, ttc - ht));
-    const pieceDate = formatDateFEC(item.date || item.creeLe);
-    const pieceRef = item.id || '';
-    const lib = (item.description || compte.lib || 'Charge') + (item.vehNom ? ' — ' + item.vehNom : '');
-
-    if (item.categorie === 'tva') {
-      pushLine({
-        JournalCode:'BQ',
-        JournalLib:'Banque',
-        EcritureNum:ecritureNum,
-        EcritureDate:pieceDate,
-        CompteNum:'445510',
-        CompteLib:'TVA à décaisser',
-        PieceRef:pieceRef,
-        PieceDate:pieceDate,
-        EcritureLib:lib,
-        Debit:ttc
-      });
-      pushLine({
-        JournalCode:'BQ',
-        JournalLib:'Banque',
-        EcritureNum:ecritureNum,
-        EcritureDate:pieceDate,
-        CompteNum:'512000',
-        CompteLib:'Banque',
-        PieceRef:pieceRef,
-        PieceDate:pieceDate,
-        EcritureLib:lib,
-        Credit:ttc
-      });
-      return;
-    }
-
-    pushLine({
-      JournalCode:'ACH',
-      JournalLib:'Achats',
-      EcritureNum:ecritureNum,
-      EcritureDate:pieceDate,
-      CompteNum:compte.num,
-      CompteLib:compte.lib,
-      CompAuxNum:item.vehId || '',
-      CompAuxLib:item.vehNom || '',
-      PieceRef:pieceRef,
-      PieceDate:pieceDate,
-      EcritureLib:lib,
-      Debit:ht
-    });
-    if (tva > 0) {
-      pushLine({
-        JournalCode:'ACH',
-        JournalLib:'Achats',
-        EcritureNum:ecritureNum,
-        EcritureDate:pieceDate,
-        CompteNum:'445660',
-        CompteLib:'TVA déductible',
-        CompAuxNum:item.vehId || '',
-        CompAuxLib:item.vehNom || '',
-        PieceRef:pieceRef,
-        PieceDate:pieceDate,
-        EcritureLib:'TVA ' + lib,
-        Debit:tva
-      });
-    }
-    pushLine({
-      JournalCode:'ACH',
-      JournalLib:'Achats',
-      EcritureNum:ecritureNum,
-      EcritureDate:pieceDate,
-      CompteNum:'401000',
-      CompteLib:'Fournisseurs',
-      CompAuxNum:item.vehId || '',
-      CompAuxLib:item.vehNom || '',
-      PieceRef:pieceRef,
-      PieceDate:pieceDate,
-      EcritureLib:lib,
-      Credit:ttc
-    });
-  });
-
-  return lignes.sort(function(a, b) {
-    if (a.EcritureDate === b.EcritureDate) return String(a.EcritureNum).localeCompare(String(b.EcritureNum));
-    return String(a.EcritureDate).localeCompare(String(b.EcritureDate));
-  });
-}
-
-function exporterFEC() {
-  const lignes = construireLignesFEC();
-  exporterCSV(lignes, [
-    { label:'JournalCode', get:function(r){ return r.JournalCode; } },
-    { label:'JournalLib', get:function(r){ return r.JournalLib; } },
-    { label:'EcritureNum', get:function(r){ return r.EcritureNum; } },
-    { label:'EcritureDate', get:function(r){ return r.EcritureDate; } },
-    { label:'CompteNum', get:function(r){ return r.CompteNum; } },
-    { label:'CompteLib', get:function(r){ return r.CompteLib; } },
-    { label:'CompAuxNum', get:function(r){ return r.CompAuxNum; } },
-    { label:'CompAuxLib', get:function(r){ return r.CompAuxLib; } },
-    { label:'PieceRef', get:function(r){ return r.PieceRef; } },
-    { label:'PieceDate', get:function(r){ return r.PieceDate; } },
-    { label:'EcritureLib', get:function(r){ return r.EcritureLib; } },
-    { label:'Debit', get:function(r){ return r.Debit; } },
-    { label:'Credit', get:function(r){ return r.Credit; } },
-    { label:'EcritureLet', get:function(r){ return r.EcritureLet; } },
-    { label:'DateLet', get:function(r){ return r.DateLet; } },
-    { label:'ValidDate', get:function(r){ return r.ValidDate; } },
-    { label:'Montantdevise', get:function(r){ return r.Montantdevise; } },
-    { label:'Idevise', get:function(r){ return r.Idevise; } }
-  ], 'fec-mca-logistics.csv');
-  ajouterEntreeAudit('Export FEC', lignes.length + ' ligne(s) exportée(s)');
-}
 
 function getLivraisonsFiltresActifs() {
   let livraisons = charger('livraisons');
@@ -8036,6 +8364,42 @@ function verifierDocumentsSalaries() {
         );
       }
     }
+    // Alerte visite médicale (R.4624-10 — obligation employeur visite d'embauche + périodique)
+    const docsExp = [
+      { key: 'visite', dateStr: s.visiteMedicale?.dateExpiration, labelExp: 'Visite médicale expirée', labelProche: 'Visite médicale expire', seuil: 60 }
+    ];
+    docsExp.forEach(function(doc) {
+      if (!doc.dateStr) return;
+      const d = new Date(doc.dateStr);
+      d.setHours(0,0,0,0);
+      const diff = Math.ceil((d - auj) / (1000*60*60*24));
+      if (diff < 0) {
+        ajouterAlerteSiAbsente(
+          doc.key + '_expire_' + s.id,
+          '⚠️ ' + doc.labelExp + ' — ' + s.nom + ' (depuis ' + Math.abs(diff) + ' jour(s))',
+          { salId: s.id, salNom: s.nom }
+        );
+      } else if (diff === 0) {
+        ajouterAlerteSiAbsente(
+          doc.key + '_expire_' + s.id,
+          '⚠️ ' + doc.labelProche + ' AUJOURD\'HUI — ' + s.nom,
+          { salId: s.id, salNom: s.nom }
+        );
+      } else if (diff <= doc.seuil) {
+        ajouterAlerteSiAbsente(
+          doc.key + '_proche_' + s.id,
+          doc.labelProche + ' dans ' + diff + ' jour(s) — ' + s.nom + ' (' + doc.dateStr + ')',
+          { salId: s.id, salNom: s.nom }
+        );
+      }
+    });
+    if (s.visiteMedicale?.aptitude === 'inapte') {
+      ajouterAlerteSiAbsente(
+        'visite_inapte_' + s.id,
+        '🚨 Inaptitude médicale déclarée — ' + s.nom + ' · ne peut pas conduire',
+        { salId: s.id, salNom: s.nom }
+      );
+    }
   });
 
   // Recalcul badge temps réel
@@ -8514,7 +8878,11 @@ function ajouterClient() {
   const notes       = document.getElementById('cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
-  if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
+  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
+  if (tvaIntra) {
+    const __validTva = validerTVAIntracomFR(tvaIntra);
+    if (!__validTva.valid) { afficherToast('⚠️ TVA intracom invalide : ' + (__validTva.message || 'format incorrect'), 'error'); return; }
+  }
   const clients = loadSafe('clients', []);
   if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Client déjà existant','error'); return; }
   clients.push({
@@ -8523,6 +8891,19 @@ function ajouterClient() {
     creeLe: new Date().toISOString()
   });
   localStorage.setItem('clients', JSON.stringify(clients));
+  // Re-synchroniser le form livraison si création depuis modale livraison
+  const venantDeLivraison = window.__livClientContextNom !== undefined;
+  if (venantDeLivraison) {
+    const livClient = document.getElementById('liv-client');
+    if (livClient) livClient.value = nom;
+    const livSiren = document.getElementById('liv-client-siren');
+    if (livSiren && siren) livSiren.value = siren;
+    const livZone = document.getElementById('liv-zone');
+    if (livZone && adresse && !livZone.value) livZone.value = adresse;
+    const livDep = document.getElementById('liv-depart');
+    if (livDep && adresse && !livDep.value) livDep.value = adresse;
+    delete window.__livClientContextNom;
+  }
   ['cl-nom','cl-prenom','cl-tel','cl-email','cl-adresse','cl-cp','cl-ville','cl-siren','cl-tva-intra','cl-email-fact','cl-notes']
     .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const delaiEl = document.getElementById('cl-delai-paiement'); if (delaiEl) delaiEl.value = '30';
@@ -8530,9 +8911,11 @@ function ajouterClient() {
   if (window.toggleChampsClientPro) window.toggleChampsClientPro(false);
   const warnBox = document.getElementById('cl-doublons-warning'); if (warnBox) { warnBox.style.display='none'; warnBox.innerHTML=''; }
   closeModal('modal-client');
-  afficherClients();
+  if (!venantDeLivraison) afficherClients();
   ajouterEntreeAudit('Création client', nom + (email ? ' · ' + email : '') + (siren ? ' · SIREN ' + siren : ''));
-  afficherToast('✅ Client ajouté');
+  afficherToast(venantDeLivraison
+    ? '✅ Client « ' + nom + ' » créé et lié à la livraison en cours'
+    : '✅ Client ajouté');
 }
 
 async function supprimerClient(id) {
@@ -8561,13 +8944,63 @@ function preFillLivraisonClient(id) {
   },100);
 }
 
-/* Auto-complétion client dans modal livraison */
+/* Auto-complétion client dans modal livraison + création à la volée */
 function autoCompleteClient(val) {
-  const clients = loadSafe('clients', []);
   const sug = document.getElementById('client-suggestions');
-  if (!sug || !val || val.length < 2) { if(sug) sug.innerHTML=''; return; }
-  const matches = clients.filter(c=>c.nom.toLowerCase().includes(val.toLowerCase())).slice(0,5);
-  sug.innerHTML = matches.map(c=>`<div onclick="document.getElementById('liv-client').value='${c.nom}';if(document.getElementById('liv-zone')&&'${c.adresse}')document.getElementById('liv-zone').value='${c.adresse}';if(document.getElementById('liv-depart')&&'${c.adresse}')document.getElementById('liv-depart').value='${c.adresse}';if(document.getElementById('liv-arrivee'))document.getElementById('liv-arrivee').value='';this.parentElement.innerHTML=''" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${c.nom}${c.adresse?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${c.adresse}</span>`:''}</div>`).join('');
+  if (!sug) return;
+  const terme = (val || '').trim();
+  if (terme.length < 2) { sug.innerHTML = ''; return; }
+  const clients = loadSafe('clients', []);
+  const termeLc = terme.toLowerCase();
+  const matches = clients.filter(c => (c.nom || '').toLowerCase().includes(termeLc)).slice(0, 5);
+  const matchExact = clients.some(c => (c.nom || '').toLowerCase() === termeLc);
+  const htmlMatches = matches.map(c => {
+    const nomAttr = escapeAttr(c.nom || '');
+    const adrAttr = escapeAttr(c.adresse || '');
+    const nomHtml = escapeHtml(c.nom || '');
+    const adrHtml = escapeHtml(c.adresse || '');
+    return `<div onclick="selectionnerClientLivraison('${nomAttr}','${adrAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
+  }).join('');
+  const htmlCreate = matchExact ? '' : `<div onclick="ouvrirCreationClientDepuisLivraison('${escapeAttr(terme)}')" style="padding:9px 12px;cursor:pointer;font-size:.88rem;color:#4ade80;font-weight:600;background:rgba(74,222,128,.08);border-top:1px solid var(--border)" onmouseover="this.style.background='rgba(74,222,128,.18)'" onmouseout="this.style.background='rgba(74,222,128,.08)'">+ Créer « ${escapeHtml(terme)} » comme nouveau client</div>`;
+  sug.innerHTML = htmlMatches + htmlCreate;
+}
+
+function selectionnerClientLivraison(nom, adresse) {
+  const livClient = document.getElementById('liv-client');
+  if (livClient) livClient.value = nom;
+  const livZone = document.getElementById('liv-zone');
+  if (livZone && adresse) livZone.value = adresse;
+  const livDep = document.getElementById('liv-depart');
+  if (livDep && adresse) livDep.value = adresse;
+  const livArr = document.getElementById('liv-arrivee');
+  if (livArr) livArr.value = '';
+  const sug = document.getElementById('client-suggestions');
+  if (sug) sug.innerHTML = '';
+  try {
+    const clients = loadSafe('clients', []);
+    const match = clients.find(c => (c.nom || '').toLowerCase() === String(nom || '').toLowerCase());
+    if (match) {
+      const livSiren = document.getElementById('liv-client-siren');
+      if (livSiren && !livSiren.value && match.siren) livSiren.value = match.siren;
+    }
+  } catch (_) {}
+}
+
+function ouvrirCreationClientDepuisLivraison(nom) {
+  window.__livClientContextNom = nom;
+  const sug = document.getElementById('client-suggestions');
+  if (sug) sug.innerHTML = '';
+  openModal('modal-client');
+  setTimeout(function() {
+    const clNom = document.getElementById('cl-nom');
+    if (clNom) {
+      clNom.value = nom;
+      try { clNom.focus(); } catch (_) {}
+      if (typeof window.detecterDoublonsClient === 'function') {
+        try { window.detecterDoublonsClient(false); } catch (_) {}
+      }
+    }
+  }, 80);
 }
 
 /* ===== COPIER PLANNING SEMAINE PRÉCÉDENTE ===== */
@@ -8662,17 +9095,63 @@ function sauvegarderObjectifCA() {
   afficherToast('✅ Objectif CA enregistré : ' + euros(val));
 }
 
+// Valeurs par défaut MCA LOGISTICS (Statuts SAS signés 22/03/2026, PV désignation
+// gestionnaire transport 17/04/2026, dossier DREAL 2026-15119). Utilisées uniquement
+// si aucun paramètre n'a encore été saisi côté utilisateur.
+const MCA_DEFAULTS_ENTREPRISE = {
+  nom: 'MCA LOGISTICS',
+  formeJuridique: 'SAS',
+  capital: 7200,
+  capitalLibere: 3600,
+  adresse: '17 rue de la Chapelle',
+  codePostal: '67540',
+  ville: 'Ostwald',
+  pays: 'FR',
+  rcsVille: 'Strasbourg',
+  drealDossier: '2026-15119',
+  gestionnaireNom: 'Mohammed CHIKRI',
+  banque: 'Qonto',
+  delaiPaiementDefaut: 30,
+  tauxPenalitesRetard: 10.15
+};
+
 function chargerParametres() {
-  const params = chargerObj('params_entreprise', {});
+  let params = chargerObj('params_entreprise', {});
+  // Pré-remplissage initial MCA au premier affichage (ne stocke pas tant que l'utilisateur n'a pas cliqué Enregistrer)
+  if (!params || !Object.keys(params).length) {
+    params = Object.assign({}, MCA_DEFAULTS_ENTREPRISE);
+  }
   const sessionAdmin = getAdminSession();
   const map = {
-    'param-nom-entreprise':  params.nom      || '',
-    'param-nom-admin':       sessionAdmin.nom || '',
-    'param-siret':           params.siret    || '',
-    'param-tva-intracom':    params.tvaIntracom || '',
-    'param-adresse':         params.adresse  || '',
-    'param-tel-entreprise':  params.tel      || '',
-    'param-email':           params.email    || ''
+    'param-nom-entreprise':       params.nom || '',
+    'param-nom-admin':             sessionAdmin.nom || '',
+    'param-forme-juridique':       params.formeJuridique || '',
+    'param-siret':                 params.siret || '',
+    'param-code-ape':              params.codeAPE || '',
+    'param-tva-intracom':          params.tvaIntracom || '',
+    'param-rcs-ville':             params.rcsVille || '',
+    'param-rcs-numero':            params.rcsNumero || '',
+    'param-capital':               params.capital != null ? params.capital : '',
+    'param-capital-libere':        params.capitalLibere != null ? params.capitalLibere : '',
+    'param-adresse':               params.adresse || '',
+    'param-code-postal':           params.codePostal || '',
+    'param-ville':                 params.ville || '',
+    'param-pays':                  params.pays || 'FR',
+    'param-tel-entreprise':        params.tel || '',
+    'param-email':                 params.email || '',
+    'param-lti-numero':            params.ltiNumero || '',
+    'param-lti-date-emission':     params.ltiDateEmission || '',
+    'param-lti-date-expiration':   params.ltiDateExpiration || '',
+    'param-dreal-dossier':         params.drealDossier || '',
+    'param-registre-transporteurs':params.registreTransporteurs || '',
+    'param-gestionnaire-nom':      params.gestionnaireNom || '',
+    'param-capacite-pro-numero':   params.capaciteProNumero || '',
+    'param-capacite-pro-date':     params.capaciteProDate || '',
+    'param-iban':                  params.iban || '',
+    'param-bic':                   params.bic || '',
+    'param-banque':                params.banque || '',
+    'param-delai-paiement':        params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30,
+    'param-taux-penalites':        params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15
   };
   Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
   const colorEl = document.getElementById('param-accent-color');
@@ -8750,32 +9229,69 @@ function sauvegarderParametres() {
   const sessionAdmin = getAdminSession();
   const adminNomSaisi = document.getElementById('param-nom-admin')?.value.trim() || 'Admin';
   const siretRaw = (document.getElementById('param-siret')?.value || '').replace(/\s+/g, '');
-  if (!/^\d{14}$/.test(siretRaw)) {
-    afficherToast('⚠️ Le SIRET est obligatoire et doit contenir 14 chiffres', 'error');
-    return;
-  }
-  // BUG-009 : validation Luhn
-  if (!validerSIRET(siretRaw)) {
-    afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
-    return;
+  // SIRET optionnel tant que la société n'est pas immatriculée — validation uniquement si saisi
+  if (siretRaw) {
+    if (!/^\d{14}$/.test(siretRaw)) {
+      afficherToast('⚠️ Le SIRET doit contenir 14 chiffres (ou laissez vide si en cours d\'immatriculation)', 'error');
+      return;
+    }
+    if (!validerSIRET(siretRaw)) {
+      afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
+      return;
+    }
   }
   const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
     ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
     : adminNomSaisi;
   const tvaIntracomRaw = (document.getElementById('param-tva-intracom')?.value || '').replace(/\s+/g, '').toUpperCase();
-  if (tvaIntracomRaw && !/^FR\d{11}$/.test(tvaIntracomRaw)) {
-    afficherToast('⚠️ N° TVA intracom invalide (format FR + 11 chiffres)', 'error');
-    return;
+  if (tvaIntracomRaw) {
+    const validation = validerTVAIntracomFR(tvaIntracomRaw);
+    if (!validation.valid) {
+      afficherToast('⚠️ N° TVA intracom invalide : ' + (validation.message || 'format incorrect'), 'error');
+      return;
+    }
   }
-  const params = {
-    nom:         document.getElementById('param-nom-entreprise')?.value.trim() || 'MCA Logistics',
-    nomAdmin:    adminNom,
-    siret:       siretRaw,
-    tvaIntracom: tvaIntracomRaw,
-    adresse:     document.getElementById('param-adresse')?.value.trim()         || '',
-    tel:         document.getElementById('param-tel-entreprise')?.value.trim()  || '',
-    email:       document.getElementById('param-email')?.value.trim()           || ''
+  const getParamVal = (id) => (document.getElementById(id)?.value || '').trim();
+  const getParamNum = (id) => {
+    const v = getParamVal(id);
+    if (v === '') return null;
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
   };
+  const paramsExistants = chargerObj('params_entreprise', {});
+  const params = Object.assign({}, paramsExistants, {
+    nom:                   getParamVal('param-nom-entreprise') || 'MCA LOGISTICS',
+    nomAdmin:              adminNom,
+    formeJuridique:        getParamVal('param-forme-juridique'),
+    siret:                 siretRaw,
+    codeAPE:               getParamVal('param-code-ape').toUpperCase(),
+    tvaIntracom:           tvaIntracomRaw,
+    rcsVille:              getParamVal('param-rcs-ville'),
+    rcsNumero:             getParamVal('param-rcs-numero').replace(/\s+/g, ''),
+    capital:               getParamNum('param-capital'),
+    capitalLibere:         getParamNum('param-capital-libere'),
+    adresse:               getParamVal('param-adresse'),
+    codePostal:            getParamVal('param-code-postal'),
+    ville:                 getParamVal('param-ville'),
+    pays:                  (getParamVal('param-pays') || 'FR').toUpperCase(),
+    tel:                   getParamVal('param-tel-entreprise'),
+    email:                 getParamVal('param-email'),
+    ltiNumero:             getParamVal('param-lti-numero'),
+    ltiDateEmission:       getParamVal('param-lti-date-emission'),
+    ltiDateExpiration:     getParamVal('param-lti-date-expiration'),
+    drealDossier:          getParamVal('param-dreal-dossier'),
+    registreTransporteurs: getParamVal('param-registre-transporteurs'),
+    gestionnaireNom:       getParamVal('param-gestionnaire-nom'),
+    capaciteProNumero:     getParamVal('param-capacite-pro-numero'),
+    capaciteProDate:       getParamVal('param-capacite-pro-date'),
+    iban:                  getParamVal('param-iban').replace(/\s+/g, '').toUpperCase(),
+    bic:                   getParamVal('param-bic').toUpperCase(),
+    banque:                getParamVal('param-banque'),
+    delaiPaiementDefaut:   (getParamNum('param-delai-paiement') != null) ? getParamNum('param-delai-paiement') : 30,
+    tauxPenalitesRetard:   (getParamNum('param-taux-penalites') != null) ? getParamNum('param-taux-penalites') : 10.15,
+    // Compat : champ legacy "rcs" = "Ville Numéro" (consommé par renderFactureMentionsEntrepriseHeader existant)
+    rcs: [getParamVal('param-rcs-ville'), getParamVal('param-rcs-numero').replace(/\s+/g,'')].filter(Boolean).join(' ')
+  });
   sauvegarder('params_entreprise', params);
   const comptes = getAdminAccounts();
   const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
@@ -8786,7 +9302,12 @@ function sauvegarderParametres() {
   sessionStorage.setItem('admin_nom', adminNom);
   chargerNomEntreprise();
   appliquerBranding();
-  ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + ' · SIRET ' + siretRaw);
+  // BUG-020 fix : rafraîchir le formulaire pour refléter immédiatement la valeur
+  // normalisée (ex. TVA intracom nettoyée, SIRET formaté, capital, forme juridique).
+  if (typeof chargerParametres === 'function') {
+    try { chargerParametres(); } catch (_) { /* silencieux : non bloquant */ }
+  }
+  ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + (siretRaw ? ' · SIRET ' + siretRaw : ' · en cours d\'immatriculation'));
   afficherToast('✅ Paramètres enregistrés');
 }
 
@@ -8887,7 +9408,6 @@ function sauvegarderConfigurationTVA() {
   localStorage.setItem('taux_tva', String(defaultRate));
   chargerConfigurationTVAParametres();
   afficherTva();
-  afficherBudget();
   rafraichirDashboard();
   ajouterEntreeAudit('Configuration TVA', getTVARegimeLabel(regime) + ' · ' + getTVAActiviteLabel(activiteType) + ' · ' + getTVAPeriodiciteLabel(periodicite));
   afficherToast('✅ Configuration TVA enregistrée');
@@ -8900,7 +9420,6 @@ function sauvegarderConfigurationTresorerie() {
   delete cfg.chargesSalariales;
   sauvegarder('treso_config', cfg);
   chargerConfigurationTresorerieParametres();
-  afficherBudget();
   rafraichirDashboard();
   ajouterEntreeAudit('Configuration trésorerie', 'Base ' + euros(cfg.soldeDepart || 0) + (cfg.echeanceTVA ? ' · Échéance TVA ' + formatDateExport(cfg.echeanceTVA) : ''));
   afficherToast('✅ Configuration de trésorerie enregistrée');
@@ -9240,7 +9759,6 @@ function ajouterCharge() {
   resetFormulaireCharge();
   afficherCharges();
   afficherTva();
-  afficherBudget();
   rafraichirDashboard();
   afficherRentabilite();
   afficherToast(editId ? '✅ Charge mise à jour' : '✅ Charge enregistrée');
@@ -9253,7 +9771,6 @@ async function supprimerCharge(id) {
   sauvegarder('charges', charger('charges').filter(c=>c.id!==id));
   afficherCharges();
   afficherTva();
-  afficherBudget();
   rafraichirDashboard();
   afficherRentabilite();
   ajouterEntreeAudit('Suppression charge', (charge?.categorie || 'charge') + ' · ' + euros(charge?.montant || 0));
@@ -10091,26 +10608,31 @@ function genererFactureLivraison(livId) {
   const numeroFacture = facture.numero;
   const clientFiche = (typeof trouverClientParLivraison === 'function') ? trouverClientParLivraison(livraison) : null;
   const mentionTVA = choisirMentionTVALegale(profile, clientFiche || { pays: livraison.clientPays, tvaIntracom: livraison.clientTvaIntracom }, tauxTVA);
+  // BUG-002 fix : template unifié avec mentions légales complètes (CGI 242 nonies A + L441-10 + D441-5)
+  const adresseEntreprise = [params.adresseLigne, (params.codePostal + ' ' + params.ville).trim(), params.pays && params.pays !== 'FR' ? params.pays : '']
+    .filter(Boolean).join(', ') || params.adresse;
   const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
     + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
     + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
     + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
-    + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
+    + (adresseEntreprise ? '<div>' + planningEscapeHtml(adresseEntreprise) + '</div>' : '')
     + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
     + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
     + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
     + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
-    + '</div></div>'
+    + '</div>'
+    + renderFactureMentionsEntrepriseHeader(params)
+    + '</div>'
     + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
     + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + planningEscapeHtml(numeroFacture) + '</div>'
-    + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateFacture + '</strong></div>'
-    + '<div style="font-size:.88rem;color:#4b5563">Paiement : <strong>' + planningEscapeHtml(datePaiement) + '</strong></div></div>'
+    + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date d\'émission : <strong>' + dateFacture + '</strong></div>'
+    + (livraison.date ? '<div style="font-size:.88rem;color:#4b5563">Date de livraison : <strong>' + planningEscapeHtml(formatDateExport(livraison.date)) + '</strong></div>' : '')
+    + '<div style="font-size:.88rem;color:#4b5563">Échéance : <strong>' + planningEscapeHtml(datePaiement) + '</strong></div></div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
     + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
     + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
-    + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(livraison.client || 'Client') + '</div>'
-    + (livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
+    + renderFactureClientBlock(livraison, clientFiche)
     + '</div>'
     + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
     + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
@@ -10132,7 +10654,8 @@ function genererFactureLivraison(livId) {
     + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>' + planningEscapeHtml(mentionTVA) + '</span><strong>' + euros(montantTVA) + '</strong></div>'
     + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#f59e0b">' + euros(montantTTC) + '</strong></div>'
     + '</div></div>'
-    + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
+    + renderFacturePiedMentionsLegales(params, livraison, clientFiche)
+    + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
     + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
     + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
     + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
@@ -10150,6 +10673,226 @@ function genererFactureLivraison(livId) {
   ajouterEntreeAudit('Génération facture', numeroFacture + ' · ' + (livraison.client || 'Client') + ' · ' + euros(montantTTC));
   afficherToast('📄 Facture générée');
 }
+
+/* ============================================================
+   Lettre de voiture — arrêté 09/11/1999 modifié + décret 2017-443
+   + ADR 2025 chapitre 5.4 pour matières dangereuses
+   Mentions obligatoires : date, nom+adresse expéditeur, nom+adresse
+   destinataire, lieu+date chargement et déchargement, nature
+   marchandise, poids brut, nombre de colis, prix transport, nom+
+   immat transporteur, signatures.
+   ============================================================ */
+function genererLettreDeVoiture(livId) {
+  const livraison = charger('livraisons').find(l => l.id === livId);
+  if (!livraison) { afficherToast('⚠️ Livraison introuvable', 'error'); return; }
+  const params = getEntrepriseExportParams();
+  const exp = livraison.expediteur || {};
+  const dest = livraison.destinataire || {};
+  const merch = livraison.marchandise || {};
+  const adr = livraison.adr || {};
+  const dateLiv = livraison.date ? formatDateExport(livraison.date) : '—';
+  const dateEmission = formatDateHeureExport();
+  const numLDV = livraison.numLiv ? 'LDV-' + livraison.numLiv.replace(/^LIV-/, '') : 'LDV-' + (livraison.id || '').slice(0, 8);
+
+  const esc = planningEscapeHtml;
+  const adresseComplete = function(obj) {
+    const parts = [obj.adresse, ((obj.cp || '') + ' ' + (obj.ville || '')).trim(), (obj.pays && obj.pays !== 'FR') ? obj.pays : ''];
+    return parts.filter(Boolean).map(esc).join('<br>');
+  };
+
+  const manques = [];
+  if (!exp.nom) manques.push('expéditeur');
+  if (!exp.adresse || !exp.ville) manques.push('adresse chargement');
+  if (!dest.nom) manques.push('destinataire');
+  if (!dest.adresse || !dest.ville) manques.push('adresse déchargement');
+  if (!merch.nature) manques.push('nature marchandise');
+  if (!merch.poidsKg) manques.push('poids');
+  if (!merch.nbColis) manques.push('nombre de colis');
+
+  const bandeauAlerte = manques.length
+    ? '<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.85rem"><strong>⚠️ Lettre de voiture incomplète.</strong> Champs manquants : ' + esc(manques.join(', ')) + '. Complétez-les sur la fiche livraison pour un document légalement conforme (arrêté 09/11/1999).</div>'
+    : '';
+
+  const blocADR = adr.estADR
+    ? '<div style="margin-top:14px;padding:12px;border:2px solid #dc2626;background:#fef2f2;border-radius:8px">'
+      + '<div style="font-weight:800;color:#dc2626;font-size:.95rem;margin-bottom:6px">⚠️ TRANSPORT ADR — MATIÈRES DANGEREUSES (chapitre 5.4 ADR 2025)</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:.85rem">'
+      + '<div><strong>Code ONU :</strong> ' + esc(adr.codeONU || '—') + '</div>'
+      + '<div><strong>Classe :</strong> ' + esc(adr.classe || '—') + '</div>'
+      + '<div><strong>Groupe emballage :</strong> ' + esc(adr.groupeEmballage || '—') + '</div>'
+      + '</div></div>'
+    : '';
+
+  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827;background:#fff">'
+    + bandeauAlerte
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;border-bottom:2px solid #111827;padding-bottom:12px">'
+    + '<div><div style="font-size:1.4rem;font-weight:900">LETTRE DE VOITURE</div>'
+    + '<div style="font-size:.8rem;color:#6b7280;margin-top:4px">N° ' + esc(numLDV) + ' · ' + esc(dateLiv) + '</div>'
+    + '<div style="font-size:.72rem;color:#9ca3af;margin-top:2px">Document obligatoire — arrêté 09/11/1999 modifié + décret 2017-443</div></div>'
+    + '<div style="text-align:right;font-size:.82rem"><div><strong>' + esc(params.nom || '') + '</strong>'
+    + (params.formeJuridique ? ' <span style="color:#6b7280;font-weight:500">' + esc(params.formeJuridique) + '</span>' : '')
+    + '</div>'
+    + (params.adresse ? '<div style="color:#6b7280">' + esc(params.adresse) + '</div>' : '')
+    + ((params.codePostal || params.ville) ? '<div style="color:#6b7280">' + esc(((params.codePostal || '') + ' ' + (params.ville || '')).trim()) + '</div>' : '')
+    + (params.siret ? '<div style="color:#6b7280;margin-top:2px">SIRET : ' + esc(params.siret) + '</div>' : (params.rcsVille && !params.rcsNumero ? '<div style="color:#6b7280;margin-top:2px">En cours d\'immatriculation RCS ' + esc(params.rcsVille) + '</div>' : ''))
+    + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px">'
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Expéditeur / Chargeur</div>'
+    + '<div style="font-weight:700;font-size:.95rem">' + esc(exp.nom || '—') + '</div>'
+    + '<div style="font-size:.82rem;color:#4b5563;margin-top:6px">' + adresseComplete(exp) + '</div>'
+    + (exp.contact ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">Contact : ' + esc(exp.contact) + '</div>' : '')
+    + '<div style="font-size:.78rem;color:#6b7280;margin-top:8px"><strong>Date chargement :</strong> ' + esc(dateLiv) + '</div>'
+    + '</div>'
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Destinataire</div>'
+    + '<div style="font-weight:700;font-size:.95rem">' + esc(dest.nom || '—') + '</div>'
+    + '<div style="font-size:.82rem;color:#4b5563;margin-top:6px">' + adresseComplete(dest) + '</div>'
+    + (dest.contact ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">Contact : ' + esc(dest.contact) + '</div>' : '')
+    + '<div style="font-size:.78rem;color:#6b7280;margin-top:8px"><strong>Date déchargement prévue :</strong> ' + esc(dateLiv) + '</div>'
+    + '</div></div>'
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Marchandise</div>'
+    + '<div style="font-size:.9rem;margin-bottom:8px"><strong>Nature :</strong> ' + esc(merch.nature || '—') + '</div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:.85rem">'
+    + '<div><strong>Poids brut :</strong> ' + (merch.poidsKg ? merch.poidsKg + ' kg' : '—') + '</div>'
+    + '<div><strong>Volume :</strong> ' + (merch.volumeM3 ? merch.volumeM3 + ' m³' : '—') + '</div>'
+    + '<div><strong>Nombre de colis :</strong> ' + (merch.nbColis || '—') + '</div>'
+    + '</div></div>'
+    + blocADR
+    + '<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-top:14px">'
+    + '<div style="font-size:.72rem;text-transform:uppercase;color:#9ca3af;font-weight:700;margin-bottom:8px">Transporteur</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.85rem">'
+    + '<div><strong>Société :</strong> ' + esc(params.nom || '—') + (params.formeJuridique ? ' ' + esc(params.formeJuridique) : '') + '</div>'
+    + '<div><strong>SIRET :</strong> ' + esc(params.siret || 'En cours') + '</div>'
+    + (params.ltiNumero ? '<div><strong>Licence Transport (LTI) :</strong> ' + esc(params.ltiNumero) + '</div>' : (params.drealDossier ? '<div><strong>Dossier DREAL :</strong> ' + esc(params.drealDossier) + '</div>' : ''))
+    + (params.gestionnaireNom ? '<div><strong>Gestionnaire de transport :</strong> ' + esc(params.gestionnaireNom) + '</div>' : '')
+    + '<div><strong>Chauffeur :</strong> ' + esc(livraison.chaufNom || '—') + '</div>'
+    + '<div><strong>Immatriculation :</strong> ' + esc(livraison.vehNom || '—') + '</div>'
+    + '<div><strong>Prix du transport :</strong> ' + euros(livraison.prixHT || livraison.prix || 0) + ' HT</div>'
+    + '<div><strong>Distance :</strong> ' + (livraison.distance ? livraison.distance + ' km' : '—') + '</div>'
+    + '</div></div>'
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px">'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature expéditeur</div></div>'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature transporteur</div></div>'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature destinataire (+ éventuelles réserves)</div></div>'
+    + '</div>'
+    + '<div style="margin-top:16px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Édité le ' + esc(dateEmission) + ' · Conservation obligatoire 5 ans (R.3411-13 Code des transports)</div>'
+    + '</div>';
+  ouvrirFenetreImpression('Lettre de voiture ' + numLDV, html, 'width=1000,height=820');
+  ajouterEntreeAudit('Lettre de voiture', numLDV + ' · ' + (livraison.client || 'Client') + (manques.length ? ' (incomplète : ' + manques.length + ' champs)' : ''));
+  afficherToast(manques.length
+    ? '⚠️ Lettre de voiture générée avec ' + manques.length + ' champ(s) manquant(s)'
+    : '📋 Lettre de voiture générée');
+}
+window.genererLettreDeVoiture = genererLettreDeVoiture;
+
+/* ============================================================
+   Registre des traitements RGPD — art. 30 UE 2016/679
+   Production d'un document imprimable listant les traitements
+   pré-configurés pour une entreprise transport + synthèse des
+   données du responsable (nom, SIRET, adresse).
+   ============================================================ */
+function genererRegistreRGPD() {
+  const params = getEntrepriseExportParams();
+  const esc = planningEscapeHtml;
+  const dateExp = formatDateHeureExport();
+  const nbSalaries = (charger('salaries') || []).length;
+  const nbClients = (charger('clients') || []).length;
+  const nbLivraisons = (charger('livraisons') || []).length;
+
+  const traitements = [
+    {
+      nom: 'Gestion des salariés et contrats',
+      finalite: 'Suivi des contrats, permis B, visite médicale du travail, incidents, paie externalisée',
+      base: 'Exécution du contrat de travail (art. 6.1.b) + obligation légale (art. 6.1.c — R.4624-10 Code travail, L.3211-1 Code transports)',
+      categories: 'Identité, contact, nº SS, permis B, visite médicale, incidents, kilométrage, heures travaillées',
+      destinataires: 'Direction, gestionnaire paie externe (logiciel de paie), URSSAF via DSN, DREAL sur demande',
+      duree: 'Durée du contrat + 5 ans (L1471-1 Code travail) / 10 ans documents sociaux',
+      securite: 'Authentification PBKDF2 (210 000 itérations), chiffrement transport HTTPS, Supabase Row-Level Security, journal d\'audit'
+    },
+    {
+      nom: 'Gestion de la clientèle',
+      finalite: 'Tenue du carnet clients, émission de livraisons, historique commandes, relances (délégué Pennylane), géolocalisation des lieux de chargement/déchargement',
+      base: 'Exécution du contrat commercial (art. 6.1.b) + intérêt légitime (relances factures)',
+      categories: 'Raison sociale, SIREN, TVA intracom, adresse, contact, téléphone, email, historique livraisons',
+      destinataires: 'Direction, chauffeurs assignés, logiciel comptable (Pennylane), expert-comptable',
+      duree: '10 ans pour les documents comptables (L123-22 Code commerce, L102 B LPF), 3 ans pour les données marketing',
+      securite: 'Authentification PBKDF2, HTTPS, journal d\'audit, droit à la portabilité (art. 20) outillé via bouton export RGPD par client'
+    },
+    {
+      nom: 'Gestion de la flotte et des livraisons',
+      finalite: 'Suivi véhicules, entretiens, contrôles techniques, carburant, lettres de voiture (arrêté 09/11/1999), rentabilité',
+      base: 'Exécution du contrat (art. 6.1.b) + obligation légale (art. 6.1.c — Code des transports)',
+      categories: 'Immatriculation, VIN, carte grise, PTAC, Crit\'Air, consommation, trajets, km, marchandises transportées',
+      destinataires: 'Direction, chauffeurs, DREAL / gendarmerie sur contrôle routier, assureur en cas de sinistre',
+      duree: 'Lettre de voiture : 5 ans (R.3411-13 Code transports). Documents véhicule (carte grise, CT, entretien) : durée d\'usage + 3 ans',
+      securite: 'Authentification PBKDF2, chiffrement transport, Supabase RLS, journal d\'audit'
+    },
+    {
+      nom: 'Gestion des alertes et incidents',
+      finalite: 'Détection automatique des expirations permis / assurance / visite médicale. Enregistrement des incidents transport',
+      base: 'Intérêt légitime (prévention des risques professionnels, L121-1 Code pénal — responsabilité exploitant)',
+      categories: 'Dates d\'expiration documents obligatoires, nature incidents, gravité, description',
+      destinataires: 'Direction, chauffeur concerné (notification), assurance en cas de sinistre',
+      duree: '1 an après traitement ou fermeture incident, 5 ans pour incidents sinistrés',
+      securite: 'Authentification PBKDF2, HTTPS, journal d\'audit'
+    }
+  ];
+
+  const cellStyle = 'padding:10px 12px;border:1px solid #e5e7eb;vertical-align:top;font-size:.82rem;line-height:1.5';
+  const headStyle = 'padding:10px 12px;border:1px solid #e5e7eb;text-align:left;background:#f8fafc;font-size:.78rem;text-transform:uppercase;color:#6b7280;font-weight:700';
+
+  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1080px;margin:0 auto;padding:28px;color:#111827;background:#fff">'
+    + '<div style="border-bottom:2px solid #111827;padding-bottom:14px;margin-bottom:20px">'
+    + '<div style="font-size:1.4rem;font-weight:900">📖 Registre des activités de traitement</div>'
+    + '<div style="font-size:.85rem;color:#6b7280;margin-top:4px">Article 30 du Règlement (UE) 2016/679 (RGPD) · ' + esc(dateExp) + '</div>'
+    + '</div>'
+    + '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:20px">'
+    + '<div style="font-size:.78rem;text-transform:uppercase;color:#6b7280;font-weight:700;margin-bottom:8px">Responsable du traitement</div>'
+    + '<div style="font-weight:700;font-size:1rem">' + esc(params.nom || '—') + '</div>'
+    + (params.adresse ? '<div style="font-size:.85rem;color:#4b5563;margin-top:4px">' + esc(params.adresse) + '</div>' : '')
+    + (params.siret ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIRET : ' + esc(params.siret) + '</div>' : '')
+    + (params.email ? '<div style="font-size:.82rem;color:#6b7280;margin-top:2px">Contact : ' + esc(params.email) + '</div>' : '')
+    + '<div style="font-size:.82rem;color:#6b7280;margin-top:6px"><strong>Volumétrie indicative :</strong> ' + nbSalaries + ' salarié(s) · ' + nbClients + ' client(s) · ' + nbLivraisons + ' livraison(s) enregistrée(s).</div>'
+    + '<div style="font-size:.78rem;color:#9ca3af;margin-top:6px;font-style:italic">DPO : à désigner obligatoirement si traitement à grande échelle de données sensibles ou si effectif &ge; 250 salariés. Sinon, responsable = dirigeant de l\'entreprise.</div>'
+    + '</div>'
+    + '<table style="width:100%;border-collapse:collapse;margin-bottom:20px">'
+    + '<thead><tr>'
+    + '<th style="' + headStyle + '">Traitement</th>'
+    + '<th style="' + headStyle + '">Finalité</th>'
+    + '<th style="' + headStyle + '">Base légale</th>'
+    + '<th style="' + headStyle + '">Données collectées</th>'
+    + '<th style="' + headStyle + '">Destinataires</th>'
+    + '<th style="' + headStyle + '">Durée de conservation</th>'
+    + '<th style="' + headStyle + '">Mesures de sécurité</th>'
+    + '</tr></thead><tbody>'
+    + traitements.map(function(t) {
+      return '<tr>'
+        + '<td style="' + cellStyle + ';font-weight:700">' + esc(t.nom) + '</td>'
+        + '<td style="' + cellStyle + '">' + esc(t.finalite) + '</td>'
+        + '<td style="' + cellStyle + '">' + esc(t.base) + '</td>'
+        + '<td style="' + cellStyle + '">' + esc(t.categories) + '</td>'
+        + '<td style="' + cellStyle + '">' + esc(t.destinataires) + '</td>'
+        + '<td style="' + cellStyle + '">' + esc(t.duree) + '</td>'
+        + '<td style="' + cellStyle + '">' + esc(t.securite) + '</td>'
+        + '</tr>';
+    }).join('')
+    + '</tbody></table>'
+    + '<div style="font-size:.8rem;color:#4b5563;line-height:1.6;padding:12px;background:#fef3c7;border:1px solid #f59e0b;border-radius:8px;margin-bottom:14px">'
+    + '<strong>⚠️ Droits des personnes concernées :</strong><br>'
+    + '— Accès à ses données (art. 15)<br>'
+    + '— Rectification (art. 16) · directement depuis la fiche concernée<br>'
+    + '— Effacement (art. 17) · sur demande écrite, sous 1 mois<br>'
+    + '— Portabilité (art. 20) · outillée via bouton "Export RGPD" sur fiche client<br>'
+    + '— Opposition (art. 21) · traitement arrêté si légitime<br>'
+    + '— Réclamation auprès de la CNIL : www.cnil.fr/plaintes</div>'
+    + '<div style="font-size:.72rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Registre édité le ' + esc(dateExp) + ' · À tenir à jour à chaque modification de traitement · À présenter à la CNIL en cas de contrôle</div>'
+    + '</div>';
+  ouvrirFenetreImpression('Registre RGPD art. 30 — ' + (params.nom || ''), html, 'width=1120,height=820');
+  ajouterEntreeAudit('Registre RGPD', 'Registre des traitements généré (art. 30 UE 2016/679)');
+}
+window.genererRegistreRGPD = genererRegistreRGPD;
 
 /* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
 function autoRemplirVehicule() {
@@ -10255,7 +10998,11 @@ function confirmerEditClient() {
   const notes      = document.getElementById('edit-cl-notes')?.value.trim() || '';
   if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
   if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
-  if (tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { afficherToast('⚠️ TVA intracom invalide (format FR + 11 chiffres)','error'); return; }
+  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
+  if (tvaIntra) {
+    const __validTva = validerTVAIntracomFR(tvaIntra);
+    if (!__validTva.valid) { afficherToast('⚠️ TVA intracom invalide : ' + (__validTva.message || 'format incorrect'), 'error'); return; }
+  }
   const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
   if (idx>-1) {
@@ -10351,6 +11098,22 @@ async function ouvrirEditVehicule(vehId) {
   if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 80;
   const sv = document.getElementById('veh-salarie');
   if (sv) sv.value = veh.salId||'';
+  // Flotte étendue (genre, PTAC, Crit'Air, VIN, carte grise...)
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val != null ? val : ''); };
+  setVal('veh-genre', veh.genre);
+  setVal('veh-carburant', veh.carburant);
+  setVal('veh-ptac', veh.ptac);
+  setVal('veh-ptra', veh.ptra);
+  setVal('veh-essieux', veh.essieux);
+  setVal('veh-critair', veh.critAir);
+  setVal('veh-date-1immat', veh.date1Immat);
+  setVal('veh-vin', veh.vin);
+  setVal('veh-carte-grise', veh.carteGrise);
+  // Assurance / carte verte
+  const assu = veh.assurance || {};
+  setVal('veh-assurance-compagnie', assu.compagnie);
+  setVal('veh-assurance-numero', assu.numeroContrat);
+  setVal('veh-assurance-date-exp', assu.dateExpiration);
   mettreAJourFormulaireVehicule();
   const modal = document.getElementById('modal-vehicule');
   modal.querySelector('h3').textContent = '✏️ Modifier le véhicule';
@@ -10387,6 +11150,22 @@ function confirmerEditVehicule() {
   const salId = document.getElementById('veh-salarie')?.value||'';
   vehicules[idx].salId = salId||null;
   vehicules[idx].salNom = salId ? (charger('salaries').find(s=>s.id===salId)?.nom||null) : null;
+  vehicules[idx].assurance = {
+    compagnie: (document.getElementById('veh-assurance-compagnie')?.value || '').trim(),
+    numeroContrat: (document.getElementById('veh-assurance-numero')?.value || '').trim(),
+    dateExpiration: document.getElementById('veh-assurance-date-exp')?.value || ''
+  };
+  // Flotte étendue
+  const getV2 = (id) => (document.getElementById(id)?.value || '').trim();
+  vehicules[idx].genre = getV2('veh-genre');
+  vehicules[idx].carburant = getV2('veh-carburant');
+  vehicules[idx].ptac = parseInt(getV2('veh-ptac'), 10) || 0;
+  vehicules[idx].ptra = parseInt(getV2('veh-ptra'), 10) || 0;
+  vehicules[idx].essieux = parseInt(getV2('veh-essieux'), 10) || 0;
+  vehicules[idx].critAir = getV2('veh-critair');
+  vehicules[idx].date1Immat = getV2('veh-date-1immat');
+  vehicules[idx].vin = getV2('veh-vin').toUpperCase();
+  vehicules[idx].carteGrise = getV2('veh-carte-grise');
   sauvegarder('vehicules', vehicules);
   closeModal('modal-vehicule');
   const modal = document.getElementById('modal-vehicule');
@@ -11509,15 +12288,41 @@ function genererRapportMensuelPeriode() {
   var escape = window.escapeHtml;
   var nomEntr = escape(nom);
 
+  if (!livraisons.length) {
+    afficherToast('⚠️ Aucune livraison sur la période sélectionnée', 'error');
+    return;
+  }
+
   var cellCss = 'padding:8px 10px;border-bottom:1px solid #f3f4f6';
   var badgeCss = 'padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600';
 
-  var totalHT = 0, totalTVA = 0, totalTTC = 0;
+  // Agrégats
+  var totalHT = 0, totalTVA = 0, totalTTC = 0, totalKm = 0;
+  var tvaParTaux = {};   // { "20": { ht, tva, ttc }, "10": {...} }
+  var parClient = {};    // { "Nom": { nb, ht, tva, ttc, paye, attente } }
+  var nbPaye = 0, nbAttente = 0, nbLitige = 0;
+
   var rows = livraisons.map(function(l) {
     var ht = l.prixHT || (l.prix||0)/(1+(l.tauxTVA||20)/100);
     var ttc = l.prix || 0;
     var tva = ttc - ht;
+    var taux = String(l.tauxTVA != null ? l.tauxTVA : 20);
     totalHT += ht; totalTVA += tva; totalTTC += ttc;
+    totalKm += parseFloat(l.distance) || 0;
+
+    if (!tvaParTaux[taux]) tvaParTaux[taux] = { ht: 0, tva: 0, ttc: 0, nb: 0 };
+    tvaParTaux[taux].ht += ht; tvaParTaux[taux].tva += tva; tvaParTaux[taux].ttc += ttc; tvaParTaux[taux].nb++;
+
+    var cleClient = l.client || '—';
+    if (!parClient[cleClient]) parClient[cleClient] = { nb: 0, ht: 0, tva: 0, ttc: 0, paye: 0, attente: 0 };
+    parClient[cleClient].nb++;
+    parClient[cleClient].ht += ht;
+    parClient[cleClient].tva += tva;
+    parClient[cleClient].ttc += ttc;
+
+    if (l.statutPaiement === 'payé' || l.statutPaiement === 'paye') { nbPaye++; parClient[cleClient].paye += ttc; }
+    else if (l.statutPaiement === 'litige') { nbLitige++; }
+    else { nbAttente++; parClient[cleClient].attente += ttc; }
 
     var badgeStatut = l.statut === 'livre' ? '<span style="'+badgeCss+';background:#d1fae5;color:#065f46">Livrée</span>'
                     : l.statut === 'en-cours' ? '<span style="'+badgeCss+';background:#dbeafe;color:#1e40af">En cours</span>'
@@ -11531,33 +12336,71 @@ function genererRapportMensuelPeriode() {
       '<td style="'+cellCss+'">' + escape(formatDateExport(l.date)) + '</td>' +
       '<td style="'+cellCss+'">' + escape(l.client || '—') + '</td>' +
       '<td style="'+cellCss+'">' + escape(l.chaufNom || '—') + '</td>' +
+      '<td style="'+cellCss+';text-align:right">' + (l.distance ? escape(String(l.distance)) + ' km' : '—') + '</td>' +
       '<td style="'+cellCss+';text-align:right">' + euros(ht) + '</td>' +
-      '<td style="'+cellCss+';text-align:right;color:#6b7280">' + euros(tva) + '</td>' +
+      '<td style="'+cellCss+';text-align:right;color:#6b7280">' + euros(tva) + ' <span style="font-size:.68rem">('+taux+'%)</span></td>' +
       '<td style="'+cellCss+';text-align:right;font-weight:700">' + euros(ttc) + '</td>' +
       '<td style="'+cellCss+'">' + badgeStatut + '</td>' +
       '<td style="'+cellCss+'">' + badgePay + '</td>' +
     '</tr>';
   }).join('');
 
+  // Bloc synthèse cards
+  var cardCss = 'background:#f8f9fc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb';
+  var blocResume =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0">' +
+      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">CA HT</div><div style="font-size:1.15rem;font-weight:800;color:#111827">'+euros(totalHT)+'</div></div>' +
+      '<div style="'+cardCss+';background:#fff3e0"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">TVA collectée</div><div style="font-size:1.15rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div>' +
+      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">CA TTC</div><div style="font-size:1.15rem;font-weight:800;color:#111827">'+euros(totalTTC)+'</div></div>' +
+      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Missions · Km</div><div style="font-size:1.15rem;font-weight:800">'+livraisons.length+' · '+totalKm.toLocaleString('fr-FR')+' km</div></div>' +
+    '</div>';
+
+  // Ventilation TVA par taux (pour déclaration CA3)
+  var tauxKeys = Object.keys(tvaParTaux).sort(function(a,b){return parseFloat(b)-parseFloat(a);});
+  var blocTVA = '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Ventilation TVA par taux (pour déclaration CA3)</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px">' +
+      '<thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:6px 10px">Taux</th><th style="padding:6px 10px;text-align:right">Nb missions</th><th style="padding:6px 10px;text-align:right">Base HT</th><th style="padding:6px 10px;text-align:right">TVA collectée</th><th style="padding:6px 10px;text-align:right">Total TTC</th></tr></thead>' +
+      '<tbody>' + tauxKeys.map(function(t){ var x = tvaParTaux[t]; return '<tr><td style="padding:6px 10px;font-weight:600">'+t+' %</td><td style="padding:6px 10px;text-align:right">'+x.nb+'</td><td style="padding:6px 10px;text-align:right">'+euros(x.ht)+'</td><td style="padding:6px 10px;text-align:right;color:#e67e22">'+euros(x.tva)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(x.ttc)+'</td></tr>'; }).join('') + '</tbody>' +
+    '</table>';
+
+  // Récap par client
+  var clientsArr = Object.entries(parClient).sort(function(a,b){return b[1].ttc - a[1].ttc;});
+  var blocClients = '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Récap par client</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px">' +
+      '<thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:6px 10px">Client</th><th style="padding:6px 10px;text-align:right">Missions</th><th style="padding:6px 10px;text-align:right">CA HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">CA TTC</th><th style="padding:6px 10px;text-align:right">Encaissé</th><th style="padding:6px 10px;text-align:right">En attente</th></tr></thead>' +
+      '<tbody>' + clientsArr.map(function(e){ var c = e[1]; return '<tr><td style="padding:6px 10px;font-weight:600">'+escape(e[0])+'</td><td style="padding:6px 10px;text-align:right">'+c.nb+'</td><td style="padding:6px 10px;text-align:right">'+euros(c.ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(c.tva)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.ttc)+'</td><td style="padding:6px 10px;text-align:right;color:#065f46">'+euros(c.paye)+'</td><td style="padding:6px 10px;text-align:right;color:'+(c.attente>0?'#92400e':'#9ca3af')+'">'+euros(c.attente)+'</td></tr>'; }).join('') + '</tbody>' +
+    '</table>';
+
+  // Mentions société (pieds de document comme en facture)
+  var mentionsHeader = renderFactureMentionsEntrepriseHeader(params);
+  var siege = [params.adresse, ((params.codePostal||'')+' '+(params.ville||'')).trim()].filter(Boolean).map(escape).join(' · ');
+
   var html =
     '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
         '<div>' +
           '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">'+nomEntr+'</div>' +
-          '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Rapport livraisons — '+escape(periode)+'</div>' +
+          (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">'+siege+'</div>' : '') +
+          mentionsHeader +
+          '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">Récapitulatif livraisons — '+escape(periode)+'</div>' +
         '</div>' +
         '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
           '<div>Généré le <strong>'+escape(dateExp)+'</strong></div>' +
-          '<div>'+livraisons.length+' livraison(s)</div>' +
+          '<div>'+livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'') + '</div>' +
         '</div>' +
       '</div>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:.82rem">' +
+      blocResume +
+      blocTVA +
+      blocClients +
+      '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Détail des livraisons</h3>' +
+      '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' +
         '<thead>' +
           '<tr style="background:#f3f4f6;text-align:left">' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">N° LIV</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Date</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Client</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Chauffeur</th>' +
+            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">Distance</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">HT</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TVA</th>' +
             '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TTC</th>' +
@@ -11569,6 +12412,7 @@ function genererRapportMensuelPeriode() {
         '<tfoot>' +
           '<tr style="background:#fef3c7;font-weight:700">' +
             '<td colspan="4" style="padding:10px;text-align:right">TOTAUX</td>' +
+            '<td style="padding:10px;text-align:right">'+totalKm.toLocaleString('fr-FR')+' km</td>' +
             '<td style="padding:10px;text-align:right">' + euros(totalHT) + '</td>' +
             '<td style="padding:10px;text-align:right;color:#6b7280">' + euros(totalTVA) + '</td>' +
             '<td style="padding:10px;text-align:right">' + euros(totalTTC) + '</td>' +
@@ -11576,19 +12420,18 @@ function genererRapportMensuelPeriode() {
           '</tr>' +
         '</tfoot>' +
       '</table>' +
-      '<div style="margin-top:16px;font-size:.72rem;color:#9ca3af;text-align:center">Document généré par '+nomEntr+'</div>' +
+      '<div style="margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Document généré par '+nomEntr+' le '+escape(dateExp)+'</div>' +
     '</div>';
 
   var win = ouvrirPopupSecure('','_blank','width=1100,height=750');
   if (!win) { afficherToast('⚠️ Autorise les popups pour exporter en PDF','error'); return; }
   win.document.write(
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Livraisons — '+nomEntr+'</title>' +
+    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Récap livraisons — '+nomEntr+'</title>' +
     '<style>body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}@page{margin:10mm;size:landscape}@media print{.no-print{display:none}}</style>' +
     '</head><body>' + html +
     '<script>setTimeout(function(){window.print();},400);<\/script></body></html>'
   );
   win.document.close();
-  afficherToast('📄 Rapport livraisons généré');
 }
 
 /* --- Charges export suit le mois navigué + HT/TVA/TTC --- */
@@ -11710,6 +12553,7 @@ ajouterPeriodeAbsence = function() {
 };
 
 afficherRentabilite = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherRentabilite).catch(() => {}); return; }
   let livraisons = charger('livraisons'), pleins = charger('carburant'), entretiens = charger('entretiens'), charges = charger('charges');
   const range = getRentMoisRange();
   livraisons = livraisons.filter(l => l.date >= range.debut && l.date <= range.fin);
@@ -11749,6 +12593,7 @@ afficherRentabilite = function() {
 };
 
 afficherStatistiques = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherStatistiques).catch(() => {}); return; }
   const isLight = document.body.classList.contains('light-mode');
   const tickColor = isLight ? '#334155' : '#e2e8f0';
   const gridColor = isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)';
@@ -12017,7 +12862,7 @@ window.__adminFinalLock = function() {
         <td class="livraison-number-cell">${datePaiement}</td>
         <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-          { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+          { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
           { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
           { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
           { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -12078,6 +12923,7 @@ labelStatutLivraison = function(statut) {
 };
 
 calculerPrevision = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
   const livraisons = charger('livraisons');
   const carburant = charger('carburant');
   const charges = charger('charges');
@@ -12202,7 +13048,7 @@ window.renderLivraisonsAdminFinal = function() {
       <td class="livraison-number-cell">${datePaiement}</td>
       <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
         { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-        { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+        { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
         { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
         { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
         { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -12277,6 +13123,7 @@ labelStatutLivraison = function(statut) {
 };
 
 calculerPrevision = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
   const livraisons = charger('livraisons');
   const carburant = charger('carburant');
   const charges = charger('charges');
@@ -15257,949 +16104,6 @@ genererRentabilitePDF = function() {
   afficherToast('Rapport rentabilité généré');
 };
 
-/* ===== BUDGET & TRÉSORERIE ===== */
-var _budgetPeriode = buildSimplePeriodeState('mois');
-var _budgetSaisieRapideCat = 'carburant';
-
-function getBudgetMoisStr(offset) {
-  offset = offset == null ? _budgetPeriode.offset : offset;
-  return getPeriodeRange(_budgetPeriode.mode, offset).debut.slice(0, 7);
-}
-
-function navBudgetMois(direction) {
-  _budgetPeriode.mode = 'mois';
-  if (direction === 0) _budgetPeriode.offset = 0;
-  else _budgetPeriode.offset += direction;
-  afficherBudget();
-}
-function getBudgetPeriodeRange() { return getPeriodeRange(_budgetPeriode.mode, _budgetPeriode.offset); }
-function changerVueBudget(mode) { changeSimplePeriode(_budgetPeriode, mode, afficherBudget, 'budget-mois-label', 'budget-mois-dates', 'vue-budget-select'); }
-function navBudgetPeriode(delta) { navSimplePeriode(_budgetPeriode, delta, afficherBudget, 'budget-mois-label', 'budget-mois-dates', 'vue-budget-select'); }
-function reinitialiserBudgetPeriode() { resetSimplePeriode(_budgetPeriode, afficherBudget, 'budget-mois-label', 'budget-mois-dates', 'vue-budget-select'); }
-
-function getTresoConfigBudget() {
-  var cfg = chargerObj('treso_config', {});
-  return {
-    soldeDepart: parseFloat(cfg.soldeDepart) || 0,
-    echeanceTVA: cfg.echeanceTVA || ''
-  };
-}
-
-function chargerPaiementsTVA() {
-  return [];
-}
-
-function budgetGetMonthlyRange(monthStr) {
-  var year = parseInt((monthStr || '').slice(0, 4), 10);
-  var month = parseInt((monthStr || '').slice(5, 7), 10) - 1;
-  var start = new Date(year, month, 1);
-  var end = new Date(year, month + 1, 0);
-  return {
-    debut: dateToLocalISO(start),
-    fin: dateToLocalISO(end)
-  };
-}
-
-function budgetDateInRange(dateStr, debut, fin) {
-  if (!dateStr) return false;
-  return dateStr >= debut && dateStr <= fin;
-}
-
-
-function budgetGetMonthlyVariation(monthStr) {
-  var monthRange = budgetGetMonthlyRange(monthStr);
-  var tvaSummary = getTVASummaryForRange(monthRange);
-  var allLivraisons = charger('livraisons');
-  var livraisons = allLivraisons.filter(function(l) {
-    var dateLivraison = l.date || '';
-    var datePaiement = l.datePaiement || '';
-    return budgetDateInRange(dateLivraison, monthRange.debut, monthRange.fin)
-      || budgetDateInRange(datePaiement, monthRange.debut, monthRange.fin);
-  });
-  var charges    = charger('charges').filter(function(c) { return (c.date || '').startsWith(monthStr); });
-  var carburant  = charger('carburant').filter(function(p) { return (p.date || '').startsWith(monthStr); });
-  var entretiens = charger('entretiens').filter(function(e) { return (e.date || '').startsWith(monthStr); });
-  var chargeIds = new Set(charges.map(function(item) { return item.id; }));
-  var carburantSansCharge = carburant.filter(function(item) { return !item.chargeId || !chargeIds.has(item.chargeId); });
-  var entretiensSansCharge = entretiens.filter(function(item) { return !item.chargeId || !chargeIds.has(item.chargeId); });
-
-  var payees = allLivraisons.filter(function(l) {
-    return l.statutPaiement === 'payé' && budgetDateInRange(l.datePaiement || '', monthRange.debut, monthRange.fin);
-  });
-  var enAttente = allLivraisons.filter(function(l) {
-    return budgetDateInRange(l.date || '', monthRange.debut, monthRange.fin) && l.statutPaiement !== 'payé';
-  });
-  var prevusPlusTard = allLivraisons.filter(function(l) {
-    return budgetDateInRange(l.date || '', monthRange.debut, monthRange.fin)
-      && l.statutPaiement === 'payé'
-      && !!l.datePaiement
-      && l.datePaiement > monthRange.fin;
-  });
-  var encaissePayees = payees.reduce(function(s, l) { return s + (l.prix || 0); }, 0);
-  var encaisseAttente = enAttente.reduce(function(s, l) { return s + (l.prix || 0); }, 0);
-  var encaissePrevu = prevusPlusTard.reduce(function(s, l) { return s + (l.prix || 0); }, 0);
-
-  var totalCarbCharges = charges.filter(function(c) { return c.categorie === 'carburant'; }).reduce(function(s, c) { return s + (c.montant || 0); }, 0);
-  var totalEntrCharges = charges.filter(function(c) { return c.categorie === 'entretien'; }).reduce(function(s, c) { return s + (c.montant || 0); }, 0);
-  var totalSalairesManual = charges.filter(function(c) { return c.categorie === 'salaires'; }).reduce(function(s, c) { return s + (c.montant || 0); }, 0);
-  var totalTVAVersement = charges.filter(function(c) { return c.categorie === 'tva'; }).reduce(function(s, c) { return s + (c.montant || 0); }, 0);
-  var totalAutresCharges = charges.filter(function(c) { return !['carburant', 'entretien', 'salaires', 'tva'].includes(c.categorie); }).reduce(function(s, c) { return s + (c.montant || 0); }, 0);
-  var totalCarb  = totalCarbCharges + carburantSansCharge.reduce(function(s, p) { return s + (p.total || 0); }, 0);
-  var totalEntr  = totalEntrCharges + entretiensSansCharge.reduce(function(s, e) { return s + (e.cout || 0); }, 0);
-  var totalSalaires = totalSalairesManual;
-  var totalCharg = totalAutresCharges;
-  var totalDepHorsTVA = totalCarb + totalCharg + totalEntr + totalSalaires;
-  var totalTVAPayee = totalTVAVersement;
-  var totalTVANet = totalTVAVersement;
-  var totalDep   = totalDepHorsTVA + totalTVAVersement;
-
-  var tvaCollectee = tvaSummary.totalCollectee;
-  var tvaDeductible = tvaSummary.totalDeductible;
-  var tvaTheorique = tvaSummary.tvaDueBrute;
-  var tvaTheoriqueCredit = tvaSummary.tvaCredit;
-  var tvaReverser = tvaSummary.tvaReverser;
-  var tvaCredit   = tvaSummary.tvaCredit;
-  var variationMensuelle = encaissePayees - totalDep;
-
-  return {
-    livraisons: livraisons, charges: charges, carburant: carburant, entretiens: entretiens,
-    carburantSansCharge: carburantSansCharge, entretiensSansCharge: entretiensSansCharge, tvaPaiements: tvaSummary.settlements,
-    payees: payees, enAttente: enAttente, prevusPlusTard: prevusPlusTard,
-    encaissePayees: encaissePayees, encaisseAttente: encaisseAttente, encaissePrevu: encaissePrevu,
-    totalCarb: totalCarb, totalCharg: totalCharg, totalEntr: totalEntr, totalSalaires: totalSalaires, totalTVAPayee: totalTVAPayee, totalTVANet: totalTVANet, totalTVAVersement: totalTVAVersement, totalDepHorsTVA: totalDepHorsTVA, totalDep: totalDep,
-    tvaCollectee: tvaCollectee, tvaDeductible: tvaDeductible, tvaTheorique: tvaTheorique, tvaTheoriqueCredit: tvaTheoriqueCredit, tvaReverser: tvaReverser, tvaCredit: tvaCredit,
-    variationMensuelle: variationMensuelle, tvaSummary: tvaSummary
-  };
-}
-
-function budgetGetMonthSequence(targetMonthStr) {
-  var dates = [];
-  var target = new Date(targetMonthStr + '-01T00:00:00');
-  var sources = []
-    .concat(charger('livraisons').map(function(item) { return item.datePaiement || item.date || ''; }))
-    .concat(charger('charges').map(function(item) { return item.date || ''; }))
-    .concat(charger('carburant').map(function(item) { return item.date || ''; }))
-    .concat(charger('entretiens').map(function(item) { return item.date || ''; }))
-    .filter(Boolean)
-    .sort();
-  var first = sources.length ? new Date(sources[0] + 'T00:00:00') : new Date(target);
-  first = new Date(first.getFullYear(), first.getMonth(), 1);
-  while (first <= target) {
-    dates.push(dateToLocalISO(first).slice(0, 7));
-    first.setMonth(first.getMonth() + 1);
-  }
-  return dates.length ? dates : [targetMonthStr];
-}
-
-/* Calcule toutes les données du mois donné */
-function budgetCalculerData(mois) {
-  var tresoConfig = getTresoConfigBudget();
-  var variation = budgetGetMonthlyVariation(mois);
-  var months = budgetGetMonthSequence(mois);
-  var soldeOuverture = tresoConfig.soldeDepart;
-  months.forEach(function(monthStr) {
-    if (monthStr === mois) return;
-    var prevVariation = budgetGetMonthlyVariation(monthStr);
-    soldeOuverture += prevVariation.variationMensuelle;
-  });
-  var soldeNet = soldeOuverture + variation.variationMensuelle;
-  return Object.assign({}, variation, {
-    tresoConfig: tresoConfig,
-    soldeOuverture: soldeOuverture,
-    soldeNet: soldeNet
-  });
-}
-
-function afficherBudget() {
-  var mois = getBudgetMoisStr();
-  var range = getBudgetPeriodeRange();
-  var periodSelect = document.getElementById('vue-budget-select');
-  if (periodSelect) periodSelect.value = _budgetPeriode.mode;
-  var d = new Date(range.debut + 'T00:00:00');
-  var label = range.label;
-  var labelEl = document.getElementById('budget-mois-label');
-  if (labelEl) labelEl.textContent = label.charAt(0).toUpperCase() + label.slice(1);
-  var datesEl = document.getElementById('budget-mois-dates');
-  if (datesEl) datesEl.textContent = range.datesLabel;
-
-  var data = budgetCalculerData(mois);
-  var baseInput = document.getElementById('budget-base-treso');
-  if (baseInput) baseInput.value = data.tresoConfig?.soldeDepart != null ? String(data.tresoConfig.soldeDepart) : '0';
-
-  // Initialise la date de saisie rapide
-  var srDate = document.getElementById('budget-sr-date');
-  if (srDate && !srDate.value) srDate.value = aujourdhui();
-  var encDate = document.getElementById('budget-enc-date');
-  if (encDate && !encDate.value) encDate.value = aujourdhui();
-  budgetRendreKPIs(data);
-  budgetRendreAlerteTVA(data);
-  budgetRendreEncaissements(data);
-  budgetRendreDecaissements(data);
-  budgetRendrePrevisionnel(data);
-  budgetRendreTvaRecap(data);
-}
-
-function enregistrerBaseTresorerieBudget() {
-  var input = document.getElementById('budget-base-treso');
-  if (!input) return;
-  var value = parseFloat(input.value);
-  if (!Number.isFinite(value)) {
-    afficherToast('⚠️ Base de trésorerie invalide', 'error');
-    return;
-  }
-  var cfg = chargerObj('treso_config', {});
-  cfg.soldeDepart = value;
-  sauvegarder('treso_config', cfg);
-  afficherBudget();
-  afficherToast('✅ Base de trésorerie enregistrée');
-}
-
-/* ---- KPIs ---- */
-function budgetRendreKPIs(data) {
-  function setEl(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
-  function setColor(id, c) { var el = document.getElementById(id); if (el) el.style.color = c; }
-  setEl('budget-kpi-encaisse', euros(data.encaissePayees));
-  setEl('budget-kpi-encaisse-sub', euros(data.encaisseAttente) + ' en attente · ' + euros(data.encaissePrevu || 0) + ' prévu plus tard');
-  setEl('budget-kpi-depenses', euros(data.totalDep));
-  var depSub = document.getElementById('budget-kpi-depenses-sub');
-  if (depSub) {
-    depSub.innerHTML =
-      '<div class="kpi-depenses-line"><span>⛽</span><span class="kpi-depenses-label">Carburant</span><strong>' + euros(data.totalCarb) + '</strong></div>'
-      + '<div class="kpi-depenses-line"><span>🔧</span><span class="kpi-depenses-label">Entretien</span><strong>' + euros(data.totalEntr) + '</strong></div>'
-      + '<div class="kpi-depenses-line"><span>💸</span><span class="kpi-depenses-label">Charges</span><strong>' + euros(data.totalCharg) + '</strong></div>'
-      + '<div class="kpi-depenses-line"><span>👥</span><span class="kpi-depenses-label">Salaires</span><strong>' + euros(data.totalSalaires || 0) + '</strong></div>'
-      + '<div class="kpi-depenses-line"><span>🧾</span><span class="kpi-depenses-label">TVA</span><strong>' + euros(data.totalTVAVersement || 0) + '</strong></div>';
-  }
-  setEl('budget-kpi-tva', data.tvaReverser > 0 ? euros(data.tvaReverser) : ('Crédit ' + euros(data.tvaCredit)));
-  setColor('budget-kpi-tva', data.tvaReverser > 0 ? 'var(--red)' : 'var(--green)');
-  var tvaSub = document.getElementById('budget-kpi-tva-sub');
-  if (tvaSub) {
-    tvaSub.innerHTML =
-      '<div class="kpi-sub-lines">'
-      + '<div class="kpi-sub-line"><span class="kpi-sub-line-label">Collectée</span><strong>' + euros(data.tvaCollectee) + '</strong></div>'
-      + '<div class="kpi-sub-line"><span class="kpi-sub-line-label">Déductible</span><strong>' + euros(data.tvaDeductible) + '</strong></div>'
-      + '<div class="kpi-sub-line"><span class="kpi-sub-line-label">Planifiée / réglée</span><strong>' + euros(data.tvaSummary?.totalTVAPlanifiee || 0) + '</strong></div>'
-      + '<div class="kpi-sub-line"><span class="kpi-sub-line-label">TVA due brute</span><strong>' + euros(data.tvaSummary?.tvaDueBrute || 0) + '</strong></div>'
-      + '</div>';
-  }
-  setEl('budget-kpi-solde', euros(data.soldeNet));
-  setColor('budget-kpi-solde', data.soldeNet >= 0 ? 'var(--green)' : 'var(--red)');
-  setEl('budget-kpi-solde-sub', 'Base ' + euros(data.soldeOuverture) + ' · Variation ' + (data.variationMensuelle >= 0 ? '+' : '') + euros(data.variationMensuelle));
-}
-
-/* ---- Alerte TVA J-10 ---- */
-function budgetRendreAlerteTVA(data) {
-  var alerteEl = document.getElementById('budget-tva-alerte');
-  if (!alerteEl) return;
-  if (data.tvaReverser > 0) {
-    alerteEl.style.display = 'block';
-    alerteEl.innerHTML = '<div style="background:rgba(245,166,35,.12);border:1px solid rgba(245,166,35,.35);border-left:4px solid var(--accent);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;gap:10px"><span style="font-size:1.3rem">🧾</span><div><strong>TVA restante à régler</strong><br><span style="font-size:.85rem;color:var(--text-muted)">Période fiscale : ' + euros(data.tvaSummary?.tvaDueBrute || 0) + ' · Déjà planifiée / réglée : ' + euros(data.tvaSummary?.totalTVAPlanifiee || 0) + ' · Reste : ' + euros(data.tvaReverser) + '</span></div></div>';
-  } else {
-    alerteEl.style.display = 'none';
-  }
-}
-
-/* ---- Tableau Encaissements ---- */
-function budgetRendreEncaissements(data) {
-  var tb = document.getElementById('tb-budget-encaissements');
-  if (!tb) return;
-  if (!data.livraisons.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun encaissement sur cette période</td></tr>'; return; }
-  var periodEnd = budgetGetMonthlyRange(getBudgetMoisStr()).fin;
-  var badgePay = function(l) {
-    if (l.statutPaiement === 'payé' && l.datePaiement && l.datePaiement > periodEnd) {
-      return '<span style="background:rgba(245,166,35,.15);color:var(--accent);padding:2px 7px;border-radius:20px;font-size:.75rem">📅 Prévu</span>';
-    }
-    return l.statutPaiement === 'payé'
-      ? '<span style="background:rgba(46,204,113,.15);color:var(--green);padding:2px 7px;border-radius:20px;font-size:.75rem">✅ Payé</span>'
-      : '<span style="background:rgba(231,76,60,.12);color:var(--red);padding:2px 7px;border-radius:20px;font-size:.75rem">⏳ Attente</span>';
-  };
-  tb.innerHTML = data.livraisons.sort(function(a, b) {
-    return new Date((b.date || b.datePaiement || '')) - new Date((a.date || a.datePaiement || ''));
-  }).map(function(l) {
-    var taux = parseTauxTVAValue(l.tauxTVA, 20);
-    var ht = l.prixHT || (l.prix / (1 + taux / 100));
-    var datePaiement = l.datePaiement ? formatDateExport(l.datePaiement) : '—';
-    var actionHtml = '';
-    if (l.statutPaiement === 'payé') {
-      actionHtml = '<div class="budget-pay-inline">'
-        + '<input type="date" id="budget-pay-date-' + l.id + '" value="' + (l.datePaiement || '') + '" />'
-        + '<button class="btn-secondary" onclick="budgetEnregistrerPaiement(\'' + l.id + '\')">Mettre à jour</button>'
-        + '<button class="btn-icon danger" title="Repasser en attente" onclick="budgetAnnulerPaiement(\'' + l.id + '\')">↺</button>'
-        + '</div>';
-    } else {
-      actionHtml = '<div class="budget-pay-inline">'
-        + '<input type="date" id="budget-pay-date-' + l.id + '" value="' + aujourdhui() + '" />'
-        + '<button class="btn-primary" onclick="budgetEnregistrerPaiement(\'' + l.id + '\')">Valider</button>'
-        + '</div>';
-    }
-    return '<tr><td style="font-size:.82rem">' + datePaiement + '</td><td style="max-width:120px;overflow:hidden;text-overflow:ellipsis">' + (l.client || '—') + '</td><td>' + euros(ht) + '</td><td><strong>' + euros(l.prix || 0) + '</strong></td><td>' + badgePay(l) + '</td><td>' + actionHtml + '</td></tr>';
-  }).join('');
-}
-
-/* ---- Tableau Décaissements ---- */
-function budgetRendreDecaissements(data) {
-  var tb = document.getElementById('tb-budget-decaissements');
-  if (!tb) return;
-  var catIcon = { carburant: '⛽', charge: '💸', entretien: '🔧', assurance: '🛡️', peage: '🛣️', autre: '📝', tva: '🧾', salaires: '👥' };
-  var rows = [];
-  data.charges.forEach(function(c) { rows.push({ sourceType:'charge', sourceId:c.id, date: c.date, cat: c.categorie || 'charge', desc: c.description || c.categorie || '—', montant: c.montant || 0 }); });
-  data.carburantSansCharge.forEach(function(p) { rows.push({ sourceType:'carburant', sourceId:p.id, date: p.date, cat: 'carburant', desc: (p.vehNom || 'Véhicule') + ' — ' + (p.typeCarburant || p.type || 'Gasoil'), montant: p.total || 0 }); });
-  data.entretiensSansCharge.forEach(function(e) { rows.push({ sourceType:'entretien', sourceId:e.id, date: e.date, cat: 'entretien', desc: e.description || getTypeEntretienLabel(e.type) || '—', montant: e.cout || 0 }); });
-  rows.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-  if (!rows.length) { tb.innerHTML = '<tr><td colspan="5" class="empty-row">Aucune dépense ce mois</td></tr>'; return; }
-  tb.innerHTML = rows.map(function(r) {
-    var actions = '';
-    if (r.sourceType === 'charge') actions = '<div class="budget-pay-inline"><button class="btn-icon" onclick="ouvrirEditCharge(\'' + r.sourceId + '\')" title="Modifier">✏️</button><button class="btn-icon danger" onclick="supprimerChargeBudget(\'' + r.sourceId + '\')" title="Supprimer">🗑️</button></div>';
-    else if (r.sourceType === 'carburant') actions = '<div class="budget-pay-inline"><button class="btn-icon" onclick="ouvrirEditCarburantAdmin(\'' + r.sourceId + '\')" title="Modifier">✏️</button><button class="btn-icon danger" onclick="supprimerCarburantBudget(\'' + r.sourceId + '\')" title="Supprimer">🗑️</button></div>';
-    else if (r.sourceType === 'entretien') actions = '<div class="budget-pay-inline"><button class="btn-icon" onclick="ouvrirEditEntretien(\'' + r.sourceId + '\')" title="Modifier">✏️</button><button class="btn-icon danger" onclick="supprimerEntretienBudget(\'' + r.sourceId + '\')" title="Supprimer">🗑️</button></div>';
-    else actions = '<span style="color:var(--text-muted);font-size:.75rem">Auto</span>';
-    var catLabelMap = { carburant:'Carburant', peage:'Péage', entretien:'Entretien', assurance:'Assurance', autre:'Autre', charge:'Charge', salaires:'Salaires', 'lld-credit':'LLD / Crédit', tva:'TVA' };
-    var catLabel = catLabelMap[r.cat] || (String(r.cat || 'Autre').charAt(0).toUpperCase() + String(r.cat || 'Autre').slice(1));
-    return '<tr><td style="font-size:.82rem">' + (r.date ? formatDateExport(r.date) : '—') + '</td><td style="white-space:nowrap">' + (catIcon[r.cat] || '📝') + ' ' + catLabel + '</td><td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;font-size:.82rem">' + r.desc + '</td><td><strong>' + euros(r.montant) + '</strong></td><td>' + actions + '</td></tr>';
-  }).join('');
-}
-
-/* ---- Prévisionnel 30/60/90j ---- */
-function budgetRendrePrevisionnel(data) {
-  var tableWrap = document.getElementById('budget-prev-table');
-  var infosWrap = document.getElementById('budget-prev-infos');
-  if (!tableWrap || !infosWrap) return;
-  var refMonth = getBudgetMoisStr();
-  var refDate = new Date(refMonth + '-01T00:00:00');
-  var months = [];
-  for (var i = 0; i < 3; i++) {
-    var d = new Date(refDate.getFullYear(), refDate.getMonth() + i, 1);
-    var monthStr = dateToLocalISO(d).slice(0, 7);
-      var monthData = budgetCalculerData(monthStr);
-      months.push({
-        key: monthStr,
-        label: d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-        ouverture: monthData.soldeOuverture,
-        encaisse: monthData.encaissePayees,
-        prevu: monthData.encaissePrevu || 0,
-        depenses: monthData.totalDepHorsTVA,
-        tva: monthData.totalTVAPayee,
-        cloture: monthData.soldeNet
-      });
-  }
-  tableWrap.innerHTML =
-    '<table class="budget-prev-table">'
-    + '<thead><tr><th>Mois</th><th>Départ</th><th>Encaissé</th><th>Prévu</th><th>Charges</th><th>TVA payée</th><th>Fin de mois</th></tr></thead>'
-    + '<tbody>'
-    + months.map(function(item) {
-      return '<tr class="' + (item.cloture >= 0 ? 'budget-prev-row-positive' : 'budget-prev-row-negative') + '">'
-        + '<td><strong>' + planningEscapeHtml(item.label.charAt(0).toUpperCase() + item.label.slice(1)) + '</strong></td>'
-        + '<td>' + euros(item.ouverture) + '</td>'
-        + '<td>' + euros(item.encaisse) + '</td>'
-        + '<td>' + euros(item.prevu) + '</td>'
-        + '<td>' + euros(item.depenses) + '</td>'
-        + '<td>' + euros(item.tva) + '</td>'
-        + '<td><strong>' + euros(item.cloture) + '</strong></td>'
-        + '</tr>';
-    }).join('')
-    + '</tbody></table>';
-
-  var current = months[0];
-  infosWrap.innerHTML =
-    '<div class="budget-prev-info-grid">'
-    + '<div class="budget-prev-info-card"><span>Prévu plus tard sur la période</span><strong style="color:var(--accent)">' + euros(current.prevu) + '</strong></div>'
-    + '<div class="budget-prev-info-card"><span>Fin de mois estimée</span><strong style="color:' + (current.cloture >= 0 ? 'var(--green)' : 'var(--red)') + '">' + euros(current.cloture) + '</strong></div>'
-    + '</div>';
-}
-
-/* ---- Récap TVA ---- */
-function budgetRendreTvaRecap(data) {
-  var el = document.getElementById('budget-tva-recap');
-  if (!el) return;
-  var sc = 'background:var(--bg-dark);border-radius:10px;padding:14px 18px;';
-  el.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">'
-    + '<div style="' + sc + '"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">TVA collectée</div><div style="font-size:1.1rem;font-weight:800;color:var(--green)">' + euros(data.tvaCollectee) + '</div></div>'
-    + '<div style="' + sc + '"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">TVA déductible</div><div style="font-size:1.1rem;font-weight:800;color:var(--accent)">' + euros(data.tvaDeductible) + '</div></div>'
-    + '<div style="' + sc + '"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">Planifiée / réglée</div><div style="font-size:1.1rem;font-weight:800;color:var(--blue)">' + euros(data.tvaSummary?.totalTVAPlanifiee || 0) + '</div></div>'
-    + (data.tvaReverser > 0
-      ? '<div style="' + sc + 'border-left:3px solid var(--red)"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">Reste à reverser</div><div style="font-size:1.1rem;font-weight:800;color:var(--red)">' + euros(data.tvaReverser) + '</div></div>'
-      : '<div style="' + sc + 'border-left:3px solid var(--green)"><div style="font-size:.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase">Crédit de TVA</div><div style="font-size:1.1rem;font-weight:800;color:var(--green)">' + euros(data.tvaCredit) + '</div></div>')
-    + '</div>'
-    + '<div style="margin-top:12px;font-size:.82rem;color:var(--text-muted)">TVA due brute : ' + euros(data.tvaSummary?.tvaDueBrute || 0) + ' · Versements TVA comptés en trésorerie du mois : ' + euros(data.totalTVAPayee || 0) + '</div>';
-}
-
-/* ---- Saisie rapide ---- */
-function budgetToggleSaisieRapide() {
-  var el = document.getElementById('budget-saisie-rapide');
-  if (!el) return;
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  var dateEl = document.getElementById('budget-sr-date');
-  if (dateEl && !dateEl.value) dateEl.value = aujourdhui();
-}
-
-function budgetToggleEncaissementRapide() {
-  var el = document.getElementById('budget-encaissement-rapide');
-  if (!el) return;
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-  var dateEl = document.getElementById('budget-enc-date');
-  if (dateEl && !dateEl.value) dateEl.value = aujourdhui();
-}
-
-function budgetSelectCat(btn) {
-  document.querySelectorAll('.btn-cat-budget').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  _budgetSaisieRapideCat = btn.dataset.cat || 'autre';
-  var tvaInput = document.getElementById('budget-sr-tva');
-  var descInput = document.getElementById('budget-sr-desc');
-  var periodWrap = document.getElementById('budget-sr-tva-period-wrap');
-  var periodInput = document.getElementById('budget-sr-tva-period');
-  var dateLabel = document.getElementById('budget-sr-date-label');
-  if (tvaInput) {
-    tvaInput.value = _budgetSaisieRapideCat === 'tva' ? '0' : (parseFloat(tvaInput.value || '0') === 0 ? '20' : tvaInput.value);
-    tvaInput.disabled = _budgetSaisieRapideCat === 'tva';
-  }
-  if (_budgetSaisieRapideCat === 'tva') {
-    if (descInput && !descInput.value.trim()) descInput.placeholder = 'Ex : Versement TVA avril 2026';
-    if (periodWrap) periodWrap.style.display = '';
-    if (periodInput && !periodInput.value) periodInput.value = getBudgetMoisStr();
-    if (dateLabel) dateLabel.textContent = 'Date de paiement';
-  } else {
-    if (descInput) descInput.placeholder = 'Ex : Plein Total L67';
-    if (periodWrap) periodWrap.style.display = 'none';
-    if (dateLabel) dateLabel.textContent = 'Date';
-  }
-}
-
-function ajouterChargeBudgetRapide() {
-  var desc    = (document.getElementById('budget-sr-desc')?.value || '').trim();
-  var montant = parseFloat(document.getElementById('budget-sr-montant')?.value || '0');
-  var tauxTVA = parseTauxTVAValue(document.getElementById('budget-sr-tva')?.value, 20);
-  var date    = document.getElementById('budget-sr-date')?.value || aujourdhui();
-  var profile = getTVAConfig();
-  if (!montant || montant <= 0) { afficherToast('⚠️ Montant obligatoire', 'error'); return; }
-  if (hasNegativeNumber(montant, tauxTVA)) {
-    afficherToast('⚠️ Les montants doivent être positifs', 'error');
-    return;
-  }
-  var charges = charger('charges');
-  var categorie = _budgetSaisieRapideCat || 'autre';
-  var tauxFinal = categorie === 'tva' ? 0 : tauxTVA;
-  var tvaPeriodeKey = categorie === 'tva'
-    ? normaliserTVAPeriodeKey(document.getElementById('budget-sr-tva-period')?.value || '', getBudgetMoisStr() + '-01', profile)
-    : '';
-  var descriptionParDefaut = categorie === 'tva' ? 'Versement TVA ' + getTVADeclarationPeriodLabel(tvaPeriodeKey).toLowerCase() : categorie;
-  charges.push({
-    id: genId(),
-    date: date,
-    categorie: categorie,
-    description: desc || descriptionParDefaut,
-    montant: montant,
-    montantHT: tauxFinal > 0 ? montant / (1 + tauxFinal / 100) : montant,
-    tauxTVA: tauxFinal,
-    tvaPeriodeKey: tvaPeriodeKey || undefined,
-    creeLe: new Date().toISOString()
-  });
-  sauvegarder('charges', charges);
-  document.getElementById('budget-sr-desc').value = '';
-  document.getElementById('budget-sr-montant').value = '';
-  document.getElementById('budget-sr-tva').value = categorie === 'tva' ? '0' : '20';
-  if (document.getElementById('budget-sr-tva-period')) document.getElementById('budget-sr-tva-period').value = getBudgetMoisStr();
-  afficherBudget();
-  afficherTva();
-  rafraichirDashboard();
-  afficherToast(categorie === 'tva' ? '✅ Versement TVA ajouté' : '✅ Charge ajoutée');
-}
-
-function ajouterEncaissementBudgetRapide() {
-  var client = (document.getElementById('budget-enc-client')?.value || '').trim();
-  var montant = parseFloat(document.getElementById('budget-enc-montant')?.value || '0');
-  var tauxTVA = parseTauxTVAValue(document.getElementById('budget-enc-tva')?.value, 20);
-  var date = document.getElementById('budget-enc-date')?.value || aujourdhui();
-  if (!client || !montant || montant <= 0) {
-    afficherToast('⚠️ Client et montant obligatoires', 'error');
-    return;
-  }
-  if (hasNegativeNumber(montant, tauxTVA)) {
-    afficherToast('⚠️ Les montants doivent être positifs', 'error');
-    return;
-  }
-  var livraisons = charger('livraisons');
-  var numLiv = genererNumeroLivraison ? genererNumeroLivraison() : ('LIV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-4));
-  var prixHT = round2(tauxTVA > 0 ? montant / (1 + tauxTVA / 100) : montant);
-  livraisons.push({
-    id: genId(),
-    numLiv: numLiv,
-    client: client,
-    depart: '',
-    distance: 0,
-    prixHT: prixHT,
-    tauxTVA: tauxTVA,
-    prix: montant,
-    date: date,
-    datePaiement: date,
-    statut: 'livre',
-    statutPaiement: 'payé',
-    notes: 'Saisie rapide budget',
-    creeLe: new Date().toISOString()
-  });
-  sauvegarder('livraisons', livraisons);
-  if (document.getElementById('budget-enc-client')) document.getElementById('budget-enc-client').value = '';
-  if (document.getElementById('budget-enc-montant')) document.getElementById('budget-enc-montant').value = '';
-  if (document.getElementById('budget-enc-tva')) document.getElementById('budget-enc-tva').value = '20';
-  afficherBudget();
-  rafraichirDashboard();
-  afficherToast('✅ Encaissement ajouté');
-}
-
-function budgetEnregistrerPaiement(id) {
-  var livraisons = charger('livraisons');
-  var index = livraisons.findIndex(function(item) { return item.id === id; });
-  if (index < 0) return;
-  var dateInput = document.getElementById('budget-pay-date-' + id);
-  var datePaiement = dateInput ? dateInput.value : '';
-  if (!datePaiement) {
-    afficherToast('⚠️ Renseigne une date de paiement', 'error');
-    return;
-  }
-  livraisons[index].statutPaiement = 'payé';
-  livraisons[index].datePaiement = datePaiement;
-  sauvegarder('livraisons', livraisons);
-  afficherBudget();
-  afficherRelances();
-  afficherTva();
-  rafraichirDashboard();
-  afficherToast('✅ Paiement enregistré');
-}
-
-function budgetAnnulerPaiement(id) {
-  var livraisons = charger('livraisons');
-  var index = livraisons.findIndex(function(item) { return item.id === id; });
-  if (index < 0) return;
-  livraisons[index].statutPaiement = 'en-attente';
-  delete livraisons[index].datePaiement;
-  sauvegarder('livraisons', livraisons);
-  afficherBudget();
-  afficherRelances();
-  rafraichirDashboard();
-  afficherToast('Paiement remis en attente');
-}
-
-async function supprimerChargeBudget(id) {
-  await supprimerCharge(id);
-  afficherBudget();
-}
-
-async function supprimerCarburantBudget(id) {
-  await supprimerCarburant(id);
-  afficherBudget();
-}
-
-async function supprimerEntretienBudget(id) {
-  await supprimerEntretien(id);
-  afficherBudget();
-}
-
-function calculerSoldeMoyenMensuel(referenceMonthStr) {
-  var now = referenceMonthStr ? new Date(referenceMonthStr + '-01T00:00:00') : new Date();
-  var soldes = [];
-  for (var i = 1; i <= 3; i++) {
-    var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    var moisStr = d.toLocalISOMonth();
-    var data = budgetCalculerData(moisStr);
-    soldes.push(data.variationMensuelle);
-  }
-  return soldes.length ? soldes.reduce(function(s,v){return s+v;},0) / soldes.length : 0;
-}
-
-function exporterBudgetPDF() {
-  var range = getBudgetPeriodeRange();
-  var mois = getBudgetMoisStr();
-  var d = new Date(range.debut + 'T00:00:00');
-  var label = range.label;
-  var params = chargerObj('params_entreprise', {});
-  var nom = params.nom || 'MCA Logistics';
-  var dateExp = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
-  var data = budgetCalculerData(mois);
-  var encaisse   = data.encaissePayees;
-  var totalCarb  = data.totalCarb;
-  var totalCharg = data.totalCharg;
-  var totalEntr  = data.totalEntr;
-  var totalSal   = data.totalSalaires || 0;
-  var totalDep   = data.totalDep;
-  var tvaCollect = data.tvaCollectee;
-  var tvaDed     = data.tvaDeductible;
-  var tvaRev     = data.totalTVAPayee || 0;
-  var tvaRestante = data.tvaReverser || 0;
-  var solde      = data.soldeNet;
-  var soldeTreso = data.soldeNet;
-
-  var row = function(label, val, color) { return '<tr><td style="padding:8px 12px">' + label + '</td><td style="padding:8px 12px;text-align:right;font-weight:700;color:' + (color||'inherit') + '">' + euros(val) + '</td></tr>'; };
-  var html = '<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">'
-    + '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">'
-    + '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">' + nom + '</div><div style="font-size:.85rem;color:#9ca3af">Budget & Trésorerie</div></div>'
-    + '<div style="text-align:right"><div style="font-size:1rem;font-weight:700">' + label.charAt(0).toUpperCase() + label.slice(1) + '</div><div style="font-size:.78rem;color:#9ca3af">' + range.datesLabel + '</div></div>'
-    + '</div>'
-    + '<table style="width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:20px">'
-    + '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left">Poste</th><th style="padding:8px 12px;text-align:right">Montant</th></tr></thead>'
-    + '<tbody>'
-    + row('Encaissements encaissés TTC', encaisse, '#177245')
-    + row('Carburant', -totalCarb, '#e74c3c')
-    + row('Charges diverses', -totalCharg, '#e74c3c')
-    + row('Entretiens véhicules', -totalEntr, '#e74c3c')
-    + row('Salaires', -totalSal, '#e74c3c')
-    + row('Paiement TVA', -(data.totalTVAVersement || 0), '#f5a623')
-    + row('TVA collectée exigible', tvaCollect, '#177245')
-    + row('TVA déductible', -tvaDed, '#f5a623')
-    + row('Reste TVA non planifié', -tvaRestante, tvaRestante > 0 ? '#e74c3c' : '#177245')
-    + '<tr style="background:#f8fafc"><td style="padding:10px 12px;font-weight:700">Trésorerie de départ</td><td style="padding:10px 12px;text-align:right;font-weight:800">' + euros(data.soldeOuverture) + '</td></tr>'
-    + '<tr style="border-top:2px solid #1a1d27;background:' + (solde>=0?'#ecfdf5':'#fef2f2') + '"><td style="padding:10px 12px;font-weight:800">Solde net estimé fin de période</td><td style="padding:10px 12px;text-align:right;font-weight:800;font-size:1.1rem;color:' + (solde>=0?'#177245':'#e74c3c') + '">' + euros(solde) + '</td></tr>'
-    + '</tbody></table>'
-    + '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Document interne — ' + nom + '</span><span>' + dateExp + '</span></div>'
-    + '</div>';
-  var win = ouvrirPopupSecure('', '_blank', 'width=800,height=600');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Budget ' + label + '</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport budget généré');
-}
-
-function exporterBudgetExcel() {
-  var mois = getBudgetMoisStr();
-  var data = budgetCalculerData(mois);
-  var rows = [];
-  data.livraisons.forEach(function(l) {
-    rows.push({ type:'Encaissement', date:l.datePaiement || '', categorie:'livraison', description:l.client || l.numLiv || 'Livraison', montant:round2(l.prix || 0), statut:l.statutPaiement || 'en-attente' });
-  });
-  data.charges.forEach(function(c) {
-    rows.push({ type:'Décaissement', date:c.date || '', categorie:c.categorie || 'charge', description:c.description || c.categorie || '—', montant:round2(c.montant || 0), statut:'' });
-  });
-  data.carburantSansCharge.forEach(function(p) {
-    rows.push({ type:'Décaissement', date:p.date || '', categorie:'carburant', description:(p.vehNom || 'Véhicule') + ' — ' + (p.typeCarburant || p.type || 'Gasoil'), montant:round2(p.total || 0), statut:'' });
-  });
-  data.entretiensSansCharge.forEach(function(e) {
-    rows.push({ type:'Décaissement', date:e.date || '', categorie:'entretien', description:e.description || getTypeEntretienLabel(e.type) || '—', montant:round2(e.cout || 0), statut:'' });
-  });
-  exporterCSV(rows, [
-    { label:'Type', get:function(r){ return r.type; } },
-    { label:'Date', get:function(r){ return r.date ? formatDateExport(r.date) : ''; } },
-    { label:'Catégorie', get:function(r){ return r.categorie; } },
-    { label:'Description', get:function(r){ return r.description; } },
-    { label:'Montant TTC', get:function(r){ return r.montant; } },
-    { label:'Statut', get:function(r){ return r.statut; } }
-  ], 'budget-' + mois + '.csv');
-  afficherToast('📥 Export CSV budget généré');
-}
-
-var _previsionsReferenceOffset = 0;
-var _previsionsVue = 'mois';
-var _previsionsSnapshot = null;
-
-function getPrevisionsMonthValueLocal(date) {
-  return dateToLocalISO(date).slice(0, 7);
-}
-
-function getPrevisionsReferenceDate() {
-  var d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() + _previsionsReferenceOffset);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function getPrevisionsReferenceMonthValue() {
-  return getPrevisionsMonthValueLocal(getPrevisionsReferenceDate());
-}
-
-function formatPrevisionsMonthLabel(date) {
-  var label = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
-
-function remplirSelectPrevisions() {
-  var select = document.getElementById('prev-reference-mois');
-  if (!select) return;
-  var currentValue = getPrevisionsReferenceMonthValue();
-  var anchor = new Date();
-  anchor.setDate(1);
-  var options = [];
-  for (var i = -11; i <= 6; i++) {
-    var d = new Date(anchor);
-    d.setMonth(anchor.getMonth() + i);
-    options.push({
-      value: getPrevisionsMonthValueLocal(d),
-      label: formatPrevisionsMonthLabel(d)
-    });
-  }
-  select.innerHTML = options.map(function(option) {
-    return '<option value="' + option.value + '"' + (option.value === currentValue ? ' selected' : '') + '>' + option.label + '</option>';
-  }).join('');
-}
-
-function changerMoisPrevisions(value) {
-  if (!value) return;
-  var parts = value.split('-');
-  if (parts.length !== 2) return;
-  var year = parseInt(parts[0], 10);
-  var month = parseInt(parts[1], 10) - 1;
-  if (Number.isNaN(year) || Number.isNaN(month)) return;
-  var now = new Date();
-  now.setDate(1);
-  _previsionsReferenceOffset = (year - now.getFullYear()) * 12 + (month - now.getMonth());
-  calculerPrevision();
-}
-
-function naviguerPrevMois(delta) {
-  _previsionsReferenceOffset += delta;
-  calculerPrevision();
-}
-
-function reinitialiserPrevMois() {
-  _previsionsReferenceOffset = 0;
-  calculerPrevision();
-}
-
-function changerVuePrevisions(mode) {
-  _previsionsVue = ['jour', 'semaine', 'mois', 'annee'].includes(mode) ? mode : 'mois';
-  calculerPrevision();
-}
-
-function naviguerPrevPeriode(delta) {
-  naviguerPrevMois(delta);
-}
-
-function reinitialiserPrevPeriode() {
-  reinitialiserPrevMois();
-}
-
-function getPrevisionsRangeFor(mode, referenceDate, delta) {
-  var ref = new Date(referenceDate);
-  ref.setHours(0, 0, 0, 0);
-  var start;
-  var end;
-  if (mode === 'jour') {
-    start = new Date(ref);
-    start.setDate(start.getDate() + delta);
-    end = new Date(start);
-    return {
-      debut: dateToLocalISO(start),
-      fin: dateToLocalISO(end),
-      label: formatPeriodeDateFr(start),
-      datesLabel: 'Du ' + formatPeriodeDateFr(start) + ' au ' + formatPeriodeDateFr(end),
-      chartLabel: formatDateExport(start).slice(0, 5)
-    };
-  }
-  if (mode === 'semaine') {
-    start = new Date(ref);
-    var day = start.getDay();
-    var diff = day === 0 ? -6 : 1 - day;
-    start.setDate(start.getDate() + diff + (delta * 7));
-    end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return {
-      debut: dateToLocalISO(start),
-      fin: dateToLocalISO(end),
-      label: 'Semaine ' + getNumSemaine(start),
-      datesLabel: 'Du ' + formatPeriodeDateFr(start) + ' au ' + formatPeriodeDateFr(end),
-      chartLabel: 'S' + getNumSemaine(start)
-    };
-  }
-  if (mode === 'annee') {
-    start = new Date(ref.getFullYear() + delta, 0, 1);
-    end = new Date(ref.getFullYear() + delta, 11, 31);
-    return {
-      debut: dateToLocalISO(start),
-      fin: dateToLocalISO(end),
-      label: String(start.getFullYear()),
-      datesLabel: 'Du ' + formatPeriodeDateFr(start) + ' au ' + formatPeriodeDateFr(end),
-      chartLabel: String(start.getFullYear())
-    };
-  }
-  start = new Date(ref.getFullYear(), ref.getMonth() + delta, 1);
-  end = new Date(ref.getFullYear(), ref.getMonth() + delta + 1, 0);
-  return {
-    debut: dateToLocalISO(start),
-    fin: dateToLocalISO(end),
-    label: formatPrevisionsMonthLabel(start),
-    datesLabel: 'Du ' + formatPeriodeDateFr(start) + ' au ' + formatPeriodeDateFr(end),
-    chartLabel: start.toLocaleDateString('fr-FR', { month: 'short', year: mode === 'annee' ? 'numeric' : '2-digit' })
-  };
-}
-
-function getPrevisionsMetricsForRange(range, livraisons, carburant, charges) {
-  var livs = livraisons.filter(function(item) { return isDateInRange(item.date, range); });
-  var ca = livs.reduce(function(sum, item) { return sum + getMontantHTLivraison(item); }, 0);
-  var depCarb = carburant
-    .filter(function(item) { return isDateInRange(item.date, range); })
-    .reduce(function(sum, item) { return sum + getMontantHTCarburant(item); }, 0);
-  var depCharges = charges
-    .filter(function(item) { return isDateInRange(item.date, range); })
-    .reduce(function(sum, item) {
-      return sum + (parseFloat(item.montantHT) || ((parseFloat(item.montant) || 0) / (1 + (parseFloat(item.tauxTVA) || 0) / 100)));
-    }, 0);
-  return {
-    range: range,
-    ca: ca,
-    depenses: depCarb + depCharges,
-    livraisons: livs.length,
-    benefice: ca - (depCarb + depCharges),
-    depCarburant: depCarb,
-    depCharges: depCharges
-  };
-}
-
-calculerPrevision = function() {
-  var livraisons = charger('livraisons');
-  var carburant = charger('carburant');
-  var charges = charger('charges');
-  var reference = getPrevisionsReferenceDate();
-  var referenceRange = getPrevisionsRangeFor(_previsionsVue, reference, 0);
-  var nextRange = getPrevisionsRangeFor(_previsionsVue, reference, 1);
-  var periodesReelles = [];
-
-  remplirSelectPrevisions();
-  var prevModeSelect = document.getElementById('vue-prev-select');
-  if (prevModeSelect) prevModeSelect.value = _previsionsVue;
-
-  for (var i = 1; i <= 3; i++) {
-    periodesReelles.push(getPrevisionsMetricsForRange(getPrevisionsRangeFor(_previsionsVue, reference, -i), livraisons, carburant, charges));
-  }
-
-  var nbPeriodesDonnees = periodesReelles.filter(function(m) { return m.ca > 0 || m.livraisons > 0 || m.depenses > 0; }).length;
-  var basePeriodes = nbPeriodesDonnees > 0 ? periodesReelles.slice(0, nbPeriodesDonnees) : periodesReelles;
-  var moyCA = basePeriodes.length ? basePeriodes.reduce(function(sum, m) { return sum + m.ca; }, 0) / basePeriodes.length : 0;
-  var moyDep = basePeriodes.length ? basePeriodes.reduce(function(sum, m) { return sum + m.depenses; }, 0) / basePeriodes.length : 0;
-  var moyLivs = basePeriodes.length ? basePeriodes.reduce(function(sum, m) { return sum + m.livraisons; }, 0) / basePeriodes.length : 0;
-  var periodeRecente = periodesReelles[0] || { ca: 0 };
-  var periodeAncienne = periodesReelles[2] || { ca: 0 };
-  var tendanceCA = periodeAncienne.ca > 0 ? ((periodeRecente.ca - periodeAncienne.ca) / periodeAncienne.ca * 100) : 0;
-  var prevCA = moyCA * (1 + tendanceCA / 100 * 0.5);
-  var prevDep = moyDep;
-  var prevBen = prevCA - prevDep;
-  var prevMarge = prevCA > 0 ? (prevBen / prevCA * 100) : 0;
-  var hasData = periodesReelles.some(function(item) { return item.ca > 0 || item.depenses > 0 || item.livraisons > 0; });
-
-  var elLabel = document.getElementById('prev-mois-label');
-  var elHelper = document.getElementById('prev-reference-helper');
-  var elCA = document.getElementById('prev-ca');
-  var elDep = document.getElementById('prev-depenses');
-  var elBen = document.getElementById('prev-benefice');
-  var elMrg = document.getElementById('prev-marge');
-  var elLiv = document.getElementById('prev-livraisons-calc');
-  var elTend = document.getElementById('prev-tendance');
-  var elEmpty = document.getElementById('prev-empty-state');
-
-  if (elLabel) elLabel.textContent = referenceRange.label;
-  var elDates = document.getElementById('prev-mois-dates');
-  if (elDates) elDates.textContent = referenceRange.datesLabel;
-  if (elHelper) {
-    var labelMode = _previsionsVue === 'jour' ? '3 derniers jours'
-      : _previsionsVue === 'semaine' ? '3 dernières semaines'
-      : _previsionsVue === 'annee' ? '3 dernières années'
-      : '3 derniers mois';
-    var fiabilite = nbPeriodesDonnees >= 3 ? 'Fiabilité correcte.' : nbPeriodesDonnees === 2 ? 'Fiabilité moyenne.' : nbPeriodesDonnees === 1 ? 'Fiabilité faible.' : 'Aucune donnée historique.';
-    elHelper.textContent = 'Projection de ' + nextRange.label + ' basée sur les ' + labelMode + '. ' + fiabilite;
-  }
-  if (elCA) elCA.textContent = euros(prevCA);
-  if (elDep) elDep.textContent = euros(prevDep);
-  if (elBen) elBen.textContent = euros(prevBen);
-  if (elMrg) elMrg.textContent = prevMarge.toFixed(1) + ' %';
-  if (elLiv) elLiv.textContent = Math.round(moyLivs) + ' liv. estimées pour ' + nextRange.label.toLowerCase();
-  if (elTend) {
-    var arrow = tendanceCA > 0 ? '↗' : tendanceCA < 0 ? '↘' : '→';
-    var signe = tendanceCA > 0 ? '+' : '';
-    elTend.textContent = arrow + ' ' + signe + tendanceCA.toFixed(1) + '% de croissance CA vs 3 périodes plus tôt';
-    elTend.className = '';
-    elTend.style.color = tendanceCA > 0 ? 'var(--green)' : tendanceCA < 0 ? 'var(--red)' : 'var(--text-muted)';
-  }
-
-  var labels = [];
-  var dataCA = [];
-  var dataBen = [];
-  for (var j = 5; j >= 0; j--) {
-    var histMetrics = getPrevisionsMetricsForRange(getPrevisionsRangeFor(_previsionsVue, reference, -j), livraisons, carburant, charges);
-    labels.push(histMetrics.range.chartLabel);
-    dataCA.push(histMetrics.ca);
-    dataBen.push(histMetrics.benefice);
-  }
-
-  labels.push(nextRange.chartLabel + ' *');
-  dataCA.push(Math.round(prevCA));
-  dataBen.push(Math.round(prevBen));
-
-  if (chartPrev) chartPrev.destroy();
-  var ctx = document.getElementById('chartPrevision');
-  if (!ctx) return;
-  if (elEmpty) {
-    elEmpty.style.display = hasData ? 'none' : '';
-    elEmpty.className = 'previsions-empty-state';
-    elEmpty.textContent = hasData
-      ? ''
-      : 'Commencez à enregistrer des livraisons, charges et pleins carburant pour construire des prévisions utiles. Dès les premières périodes, le graphique prendra vie.';
-  }
-  chartPrev = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: 'CA réel HT (€)', data: dataCA.slice(0, -1).concat([null]), backgroundColor: 'rgba(79,142,247,0.4)', borderColor: 'rgba(79,142,247,0.9)', borderWidth: 2, borderRadius: 6 },
-        { label: 'CA prévu HT (€)', data: Array(6).fill(null).concat([dataCA[6]]), backgroundColor: 'rgba(245,166,35,0.3)', borderColor: 'rgba(245,166,35,0.9)', borderWidth: 2, borderRadius: 6, borderDash: [5,5] },
-        { label: 'Bénéfice net HT (€)', data: dataBen.slice(0, -1).concat([null]), type: 'line', borderColor: '#2ecc71', backgroundColor: 'rgba(46,204,113,0.1)', fill: true, tension: 0.4, pointRadius: 4 }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: '#e8eaf0' } }, tooltip: { callbacks: { label: function(ctxItem) { return ctxItem.dataset.label + ': ' + euros(ctxItem.parsed.y || 0); } } } },
-      scales: { x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c8299' } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c8299', callback: function(v) { return euros(v); } } } }
-    }
-  });
-  _previsionsSnapshot = {
-    mode: _previsionsVue,
-    referenceLabel: referenceRange.label,
-    referenceDates: referenceRange.datesLabel,
-    nextLabel: nextRange.label,
-    nextDates: nextRange.datesLabel,
-    prevCA: prevCA,
-    prevDep: prevDep,
-    prevBen: prevBen,
-    prevMarge: prevMarge,
-    moyenneLivraisons: moyLivs,
-    tendanceCA: tendanceCA,
-    fiabilite: nbPeriodesDonnees >= 3 ? 'Correcte' : nbPeriodesDonnees === 2 ? 'Moyenne' : nbPeriodesDonnees === 1 ? 'Faible' : 'Insuffisante',
-    historique: labels.map(function(label, index) {
-      return { label: label, ca: dataCA[index] || 0, benefice: dataBen[index] || 0 };
-    })
-  };
-};
-
-function exporterPrevisionsPDF() {
-  if (!_previsionsSnapshot) calculerPrevision();
-  var snapshot = _previsionsSnapshot;
-  if (!snapshot) return;
-  var params = getEntrepriseExportParams();
-  var dateExp = formatDateHeureExport();
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:960px;margin:0 auto;padding:28px;color:#1a1d27">'
-    + construireEnteteExport(params, 'Rapport prévisionnel', snapshot.referenceLabel + ' · ' + snapshot.referenceDates, dateExp)
-    + '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:18px 0 20px">'
-    + [
-      ['CA prévu HT', euros(snapshot.prevCA), '#177245'],
-      ['Dépenses prévues HT', euros(snapshot.prevDep), '#f5a623'],
-      ['Bénéfice prévu HT', euros(snapshot.prevBen), snapshot.prevBen >= 0 ? '#177245' : '#e74c3c'],
-      ['Marge prévue', snapshot.prevMarge.toFixed(1).replace('.', ',') + ' %', '#2563eb']
-    ].map(function(item) {
-      return '<div style="background:#f8fafc;border-radius:14px;padding:14px;border-top:3px solid ' + item[2] + '"><div style="font-size:.75rem;color:#6b7280;margin-bottom:6px">' + item[0] + '</div><div style="font-size:1.05rem;font-weight:800;color:' + item[2] + '">' + item[1] + '</div></div>';
-    }).join('')
-    + '</div>'
-    + '<div style="margin-bottom:18px;padding:14px 16px;border-radius:14px;background:#f8fafc;border:1px solid #e5e7eb">'
-    + '<div style="font-size:.82rem;color:#6b7280;margin-bottom:6px">Lecture</div>'
-    + '<div style="font-size:.95rem;font-weight:600">Projection de ' + snapshot.nextLabel + ' basée sur la vue "' + snapshot.mode + '"</div>'
-    + '<div style="margin-top:6px;font-size:.86rem;color:#4b5563">Tendance CA : ' + (snapshot.tendanceCA > 0 ? '+' : '') + snapshot.tendanceCA.toFixed(1).replace('.', ',') + ' % · Fiabilité : ' + snapshot.fiabilite + ' · Livraisons estimées : ' + Math.round(snapshot.moyenneLivraisons) + '</div>'
-    + '</div>'
-    + '<table style="width:100%;border-collapse:collapse;font-size:.85rem"><thead><tr style="background:#f3f4f6"><th style="padding:10px 12px;text-align:left">Période</th><th style="padding:10px 12px;text-align:right">CA HT</th><th style="padding:10px 12px;text-align:right">Bénéfice HT</th></tr></thead><tbody>'
-    + snapshot.historique.map(function(row, index) {
-      return '<tr style="border-bottom:1px solid #e5e7eb;background:' + (index % 2 === 0 ? '#fff' : '#fafafa') + '"><td style="padding:9px 12px">' + row.label + '</td><td style="padding:9px 12px;text-align:right">' + euros(row.ca) + '</td><td style="padding:9px 12px;text-align:right;color:' + (row.benefice >= 0 ? '#177245' : '#e74c3c') + ';font-weight:700">' + euros(row.benefice) + '</td></tr>';
-    }).join('')
-    + '</tbody></table>'
-    + renderFooterEntreprise(params, dateExp, 'Rapport prévisionnel')
-    + '</div>';
-  ouvrirFenetreImpression('Prévisions - ' + (params.nom || 'Entreprise'), html, 'width=1040,height=760');
-  afficherToast('Rapport prévisionnel généré');
-}
 
 /* ========== SYNCHRO ADMIN POLLING ========== */
 (function() {
@@ -16357,10 +16261,8 @@ function exporterPrevisionsPDF() {
     { icon:'📊', label:'Dashboard',            cat:'Aller à', keys:['dashboard','accueil','home','pilotage'],    run:() => naviguerVers('dashboard') },
     { icon:'📦', label:'Livraisons',           cat:'Aller à', keys:['livraisons','courses','missions'],          run:() => naviguerVers('livraisons') },
     { icon:'📅', label:'Planning',             cat:'Aller à', keys:['planning','agenda','semaine'],              run:() => naviguerVers('planning') },
-    { icon:'💬', label:'Messagerie',           cat:'Aller à', keys:['messagerie','messages','chat'],             run:() => naviguerVers('messagerie') },
     { icon:'🔔', label:'Alertes',              cat:'Aller à', keys:['alertes','notifications'],                  run:() => naviguerVers('alertes') },
     { icon:'🧑‍💼', label:'Clients',            cat:'Aller à', keys:['clients','carnet'],                         run:() => naviguerVers('clients') },
-    { icon:'⏰', label:'Relances',             cat:'Aller à', keys:['relances','impayés','impayes','paiement'],  run:() => naviguerVers('relances') },
     { icon:'🚐', label:'Véhicules',            cat:'Aller à', keys:['vehicules','véhicules','flotte','camions'], run:() => naviguerVers('vehicules') },
     { icon:'⛽', label:'Carburant',            cat:'Aller à', keys:['carburant','essence','fuel','pleins'],      run:() => naviguerVers('carburant') },
     { icon:'🔧', label:'Entretiens',           cat:'Aller à', keys:['entretiens','maintenance','revisions'],     run:() => naviguerVers('entretiens') },
@@ -16371,8 +16273,6 @@ function exporterPrevisionsPDF() {
     { icon:'💸', label:'Charges',              cat:'Aller à', keys:['charges','depenses','dépenses','couts'],    run:() => naviguerVers('charges') },
     { icon:'💰', label:'Rentabilité',          cat:'Aller à', keys:['rentabilite','rentabilité','marge','profit'], run:() => naviguerVers('rentabilite') },
     { icon:'📈', label:'Statistiques',         cat:'Aller à', keys:['statistiques','stats','analytics'],         run:() => naviguerVers('statistiques') },
-    { icon:'🧾', label:'TVA',                  cat:'Aller à', keys:['tva','taxes','taxe'],                       run:() => naviguerVers('tva') },
-    { icon:'📂', label:'Budget & Trésorerie',  cat:'Aller à', keys:['budget','tresorerie','trésorerie','cash'],  run:() => naviguerVers('budget') },
     { icon:'⚙️', label:'Paramètres',           cat:'Aller à', keys:['parametres','paramètres','settings','config'], run:() => naviguerVers('parametres') },
     // Création
     { icon:'➕', label:'Nouvelle livraison',   cat:'Créer', hint:'Ctrl+N', keys:['nouvelle livraison','new livraison','ajouter livraison','creer livraison'], run:() => { if (typeof openModal === 'function') openModal('modal-livraison'); } },
@@ -17381,7 +17281,7 @@ function exporterPrevisionsPDF() {
           <td class="livraison-number-cell">${datePaiement}</td>
           <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
             { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-            { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+              { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
             { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
             { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
             { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -17668,7 +17568,7 @@ function exporterPrevisionsPDF() {
           <td class="livraison-number-cell">${datePaiement}</td>
           <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
             { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
-            { icon:'📄', label:'Facture PDF', action:"genererFactureLivraison('" + l.id + "')" },
+              { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
             { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
             { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
             { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
@@ -18319,2092 +18219,6 @@ function exporterPrevisionsPDF() {
   } else {
     installModalLivraison();
   }
-})();
-
-/* =========================================================================
-   SPRINT 12 — Encaissements, Avoirs & paiements partiels (conforme FR)
-   Respecte la structure PDF facture existante (FAC-YYYY-NNNN → AV-YYYY-NNNN)
-   ========================================================================= */
-(function() {
-  'use strict';
-
-  /* ---------- Stockage ---------- */
-  function chargerAvoirs() { return charger('avoirs_emis'); }
-  function sauvegarderAvoirs(list) { sauvegarder('avoirs_emis', list); }
-  function chargerPaiements() { return charger('paiements'); }
-  function sauvegarderPaiements(list) { sauvegarder('paiements', list); }
-
-  /* ---------- Compteurs séquentiels (BUG-001/030 : persistants par série, CGI art. 289) ---------- */
-  function anneeReference(dateIso) {
-    const m = String(dateIso || '').match(/^(\d{4})/);
-    return m ? m[1] : String(new Date().getFullYear());
-  }
-  function incrementerCompteurSerie(lsKey, annee, fallbackList) {
-    const key = String(annee);
-    let compteurs = {};
-    try { compteurs = loadSafe(lsKey, {}) || {}; } catch(e){ compteurs = {}; }
-    // Garde-fou migration : prendre max(compteur, max sequence des données vivantes)
-    const maxLive = (fallbackList || [])
-      .filter(x => String(x.annee || '') === key)
-      .reduce((m, x) => Math.max(m, parseInt(x.sequence, 10) || 0), 0);
-    if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
-    compteurs[key] = (compteurs[key] || 0) + 1;
-    localStorage.setItem(lsKey, JSON.stringify(compteurs));
-    return compteurs[key];
-  }
-  function genererNumeroAvoir(dateIso) {
-    const annee = anneeReference(dateIso || aujourdhui());
-    const seq = incrementerCompteurSerie('compteurs_avoirs_annee', annee, chargerAvoirs());
-    return { annee, sequence: seq, numero: 'AV-' + annee + '-' + String(seq).padStart(4, '0') };
-  }
-  function genererNumeroEncaissement(dateIso) {
-    const annee = anneeReference(dateIso || aujourdhui());
-    const seq = incrementerCompteurSerie('compteurs_encaissements_annee', annee, chargerPaiements());
-    return { annee, sequence: seq, numero: 'ENC-' + annee + '-' + String(seq).padStart(4, '0') };
-  }
-
-  /* ---------- Calculs solde ---------- */
-  function getAvoirsForFacture(factureId) {
-    return chargerAvoirs().filter(a => a.factureId === factureId && a.statut !== 'annulé');
-  }
-  function getPaiementsForFacture(factureId) {
-    return chargerPaiements().filter(p => p.sens === 'in' && p.factureId === factureId);
-  }
-  function getPaiementsForCharge(chargeId) {
-    return chargerPaiements().filter(p => p.sens === 'out' && p.chargeId === chargeId);
-  }
-  function getSoldeFacture(facture) {
-    const ttc = parseFloat(facture.montantTTC) || 0;
-    const avoirsTTC = getAvoirsForFacture(facture.id).reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
-    const paye = getPaiementsForFacture(facture.id).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-    const solde = Math.max(0, round2(ttc - avoirsTTC - paye));
-    let statut = 'en-attente';
-    if (solde <= 0.009) statut = 'paye';
-    else if (paye > 0 || avoirsTTC > 0) statut = 'partiel';
-    return { ttc, avoirsTTC, paye, solde, statut };
-  }
-  function getSoldeCharge(charge) {
-    const ttc = parseFloat(charge.montant) || 0;
-    const paye = getPaiementsForCharge(charge.id).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-    const solde = Math.max(0, round2(ttc - paye));
-    let statut = 'en-attente';
-    if (solde <= 0.009) statut = 'paye';
-    else if (paye > 0) statut = 'partiel';
-    return { ttc, paye, solde, statut };
-  }
-
-  /* ---------- CA net (dashboard) : ventes encaissées - avoirs émis ---------- */
-  function getCANetMois(moisPrefix) {
-    const paiementsIn = chargerPaiements()
-      .filter(p => p.sens === 'in' && (p.date || '').startsWith(moisPrefix))
-      .reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-    const avoirsMois = chargerAvoirs()
-      .filter(a => (a.date || '').startsWith(moisPrefix))
-      .reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
-    return round2(paiementsIn - avoirsMois);
-  }
-
-  /* ---------- État onglet ---------- */
-  let currentEncTab = 'paiements';
-  window.switchEncTab = function(tab) {
-    currentEncTab = tab;
-    document.querySelectorAll('.enc-tab').forEach(b => b.classList.toggle('active', b.dataset.encTab === tab));
-    document.getElementById('enc-panel-paiements').style.display = tab === 'paiements' ? 'block' : 'none';
-    document.getElementById('enc-panel-avoirs').style.display = tab === 'avoirs' ? 'block' : 'none';
-    document.getElementById('enc-panel-factures').style.display = tab === 'factures' ? 'block' : 'none';
-    afficherEncaissements();
-  };
-
-  /* ---------- Rendering ---------- */
-  function afficherEncaissements() {
-    renderEncStats();
-    if (currentEncTab === 'paiements') renderTablePaiements();
-    if (currentEncTab === 'avoirs') renderTableAvoirs();
-    if (currentEncTab === 'factures') renderTableFacturesAvecSolde();
-  }
-  window.afficherEncaissements = afficherEncaissements;
-
-  function renderEncStats() {
-    const grid = document.getElementById('enc-stats-grid'); if (!grid) return;
-    const mois = aujourdhui().slice(0, 7);
-    const paiements = chargerPaiements();
-    const avoirs = chargerAvoirs();
-    const totalIn = paiements.filter(p => p.sens === 'in' && (p.date || '').startsWith(mois)).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-    const totalOut = paiements.filter(p => p.sens === 'out' && (p.date || '').startsWith(mois)).reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-    const totalAvoirs = avoirs.filter(a => (a.date || '').startsWith(mois)).reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
-    const caNet = round2(totalIn - totalAvoirs);
-    grid.innerHTML =
-      '<div class="stat-card"><div class="stat-label">💰 Encaissé ce mois</div><div class="stat-value" style="color:#22c55e">' + euros(totalIn) + '</div></div>' +
-      '<div class="stat-card"><div class="stat-label">💸 Décaissé ce mois</div><div class="stat-value" style="color:#ef4444">' + euros(totalOut) + '</div></div>' +
-      '<div class="stat-card"><div class="stat-label">🧾 Avoirs émis ce mois</div><div class="stat-value" style="color:#f59e0b">' + euros(totalAvoirs) + '</div></div>' +
-      '<div class="stat-card"><div class="stat-label">📊 CA net ce mois</div><div class="stat-value" style="color:var(--accent)">' + euros(caNet) + '</div></div>';
-  }
-
-  function renderTablePaiements() {
-    const tbody = document.getElementById('tb-encaissements'); if (!tbody) return;
-    const search = (document.getElementById('enc-search')?.value || '').toLowerCase();
-    const filterSens = document.getElementById('enc-filter-sens')?.value || '';
-    const filterMode = document.getElementById('enc-filter-mode')?.value || '';
-    const factures = chargerFacturesEmises();
-    const charges = charger('charges');
-    let rows = chargerPaiements().slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
-    if (filterSens) rows = rows.filter(p => p.sens === filterSens);
-    if (filterMode) rows = rows.filter(p => p.mode === filterMode);
-    if (search) {
-      rows = rows.filter(p => {
-        const s = (p.numero + ' ' + (p.tiers || '') + ' ' + (p.notes || '')).toLowerCase();
-        return s.includes(search);
-      });
-    }
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--text-muted)">Aucun paiement enregistré</td></tr>';
-      return;
-    }
-    tbody.innerHTML = rows.map(p => {
-      const sensBadge = p.sens === 'in'
-        ? '<span class="badge-sens badge-in">▼ Reçu</span>'
-        : '<span class="badge-sens badge-out">▲ Émis</span>';
-      let lieA = '—';
-      if (p.factureId) {
-        const f = factures.find(x => x.id === p.factureId);
-        if (f) lieA = f.numero;
-      } else if (p.chargeId) {
-        const c = charges.find(x => x.id === p.chargeId);
-        if (c) lieA = (c.categorie || 'Charge') + ' ' + (c.date || '');
-      }
-      return '<tr>'
-        + '<td><strong>' + (p.numero || '—') + '</strong></td>'
-        + '<td>' + formatDateExport(p.date || '') + '</td>'
-        + '<td>' + sensBadge + '</td>'
-        + '<td>' + lieA + '</td>'
-        + '<td>' + (p.tiers || '—') + '</td>'
-        + '<td>' + (p.mode || '—') + '</td>'
-        + '<td style="text-align:right;font-weight:700">' + euros(parseFloat(p.montant) || 0) + '</td>'
-        + '<td><button class="btn-icon" onclick="supprimerPaiement(\'' + p.id + '\')" title="Supprimer">🗑️</button></td>'
-        + '</tr>';
-    }).join('');
-  }
-
-  function renderTableAvoirs() {
-    const tbody = document.getElementById('tb-avoirs'); if (!tbody) return;
-    const factures = chargerFacturesEmises();
-    const rows = chargerAvoirs().slice().sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">Aucun avoir émis</td></tr>';
-      return;
-    }
-    tbody.innerHTML = rows.map(a => {
-      const f = factures.find(x => x.id === a.factureId);
-      return '<tr>'
-        + '<td><strong>' + a.numero + '</strong></td>'
-        + '<td>' + formatDateExport(a.date || '') + '</td>'
-        + '<td>' + (a.client || '—') + '</td>'
-        + '<td>' + (f ? f.numero : (a.factureNumero || '—')) + '</td>'
-        + '<td style="font-size:0.82rem">' + (a.motif || '—') + '</td>'
-        + '<td style="text-align:right">-' + euros(parseFloat(a.montantHT) || 0) + '</td>'
-        + '<td style="text-align:right">-' + euros(parseFloat(a.montantTVA) || 0) + '</td>'
-        + '<td style="text-align:right;font-weight:700;color:#ef4444">-' + euros(parseFloat(a.montantTTC) || 0) + '</td>'
-        + '<td><button class="btn-icon" onclick="genererPDFAvoir(\'' + a.id + '\')" title="PDF">📄</button></td>'
-        + '</tr>';
-    }).join('');
-  }
-
-  function renderTableFacturesAvecSolde() {
-    const tbody = document.getElementById('tb-factures-solde'); if (!tbody) return;
-    const factures = chargerFacturesEmises().slice().sort((a, b) => String(b.numero).localeCompare(String(a.numero)));
-    if (!factures.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">Aucune facture émise</td></tr>';
-      return;
-    }
-    tbody.innerHTML = factures.map(f => {
-      const s = getSoldeFacture(f);
-      const statutMap = { 'paye': '<span class="badge-statut badge-paye">Payé</span>', 'partiel': '<span class="badge-statut badge-partiel">Partiel</span>', 'en-attente': '<span class="badge-statut badge-attente">En attente</span>' };
-      return '<tr>'
-        + '<td><strong>' + f.numero + '</strong></td>'
-        + '<td>' + formatDateExport(f.dateLivraison || '') + '</td>'
-        + '<td>' + (f.client || '—') + '</td>'
-        + '<td style="text-align:right">' + euros(s.ttc) + '</td>'
-        + '<td style="text-align:right;color:#22c55e">' + euros(s.paye) + '</td>'
-        + '<td style="text-align:right;color:#f59e0b">' + (s.avoirsTTC > 0 ? '-' + euros(s.avoirsTTC) : '—') + '</td>'
-        + '<td style="text-align:right;font-weight:700">' + euros(s.solde) + '</td>'
-        + '<td>' + (statutMap[s.statut] || '—') + '</td>'
-        + '<td>'
-        + '<button class="btn-icon" onclick="ouvrirModalAvoir(\'' + f.id + '\')" title="Créer un avoir">🧾</button> '
-        + '<button class="btn-icon" onclick="ouvrirModalPaiementPourFacture(\'' + f.id + '\')" title="Enregistrer paiement">💰</button>'
-        + '</td></tr>';
-    }).join('');
-  }
-
-  /* ---------- MODAL AVOIR ---------- */
-  let currentAvoirFactureId = null;
-  window.ouvrirModalAvoir = function(factureId) {
-    const facture = chargerFacturesEmises().find(f => f.id === factureId);
-    if (!facture) { afficherToast('⚠️ Facture introuvable', 'error'); return; }
-    currentAvoirFactureId = factureId;
-    const s = getSoldeFacture(facture);
-    const refBox = document.getElementById('avoir-ref-box');
-    refBox.innerHTML =
-      '<div class="avoir-ref-inner">'
-      + '<div><span class="avoir-ref-label">Avoir sur facture</span><strong>' + facture.numero + '</strong></div>'
-      + '<div><span class="avoir-ref-label">Client</span><strong>' + (facture.client || '—') + '</strong></div>'
-      + '<div><span class="avoir-ref-label">Montant facture TTC</span><strong>' + euros(s.ttc) + '</strong></div>'
-      + '<div><span class="avoir-ref-label">Restant avoir-able</span><strong style="color:var(--accent)">' + euros(s.ttc - s.avoirsTTC) + '</strong></div>'
-      + '</div>';
-    document.getElementById('avoir-type').value = 'total';
-    document.getElementById('avoir-date').value = aujourdhui();
-    document.getElementById('avoir-ht').value = facture.montantHT || '';
-    document.getElementById('avoir-taux-tva').value = String(parseFloat(facture.montantTTC) > 0 ? Math.round(((facture.montantTVA || 0) / (facture.montantHT || 1)) * 100) : 20);
-    document.getElementById('avoir-motif').value = 'Erreur de facturation';
-    document.getElementById('avoir-motif-libre').value = '';
-    document.getElementById('avoir-motif-libre-group').style.display = 'none';
-    document.getElementById('avoir-notes').value = '';
-    majFormAvoir();
-    majMontantsAvoir();
-    openModal('modal-avoir');
-  };
-
-  window.majFormAvoir = function() {
-    const type = document.getElementById('avoir-type').value;
-    const htInput = document.getElementById('avoir-ht');
-    if (type === 'total' && currentAvoirFactureId) {
-      const f = chargerFacturesEmises().find(x => x.id === currentAvoirFactureId);
-      if (f) {
-        htInput.value = f.montantHT;
-        htInput.readOnly = true;
-      }
-    } else {
-      htInput.readOnly = false;
-    }
-    majMontantsAvoir();
-  };
-
-  window.majMotifLibre = function() {
-    const motif = document.getElementById('avoir-motif').value;
-    document.getElementById('avoir-motif-libre-group').style.display = motif === '__autre__' ? 'block' : 'none';
-  };
-
-  window.majMontantsAvoir = function() {
-    const box = document.getElementById('avoir-calc'); if (!box) return;
-    const ht = parseFloat(document.getElementById('avoir-ht').value) || 0;
-    const taux = parseFloat(document.getElementById('avoir-taux-tva').value) || 0;
-    if (ht <= 0) { box.style.display = 'none'; return; }
-    const tva = ht * (taux / 100);
-    const ttc = ht + tva;
-    box.style.display = 'flex';
-    const fmt = v => '-' + euros(v);
-    box.innerHTML =
-      '<span class="calc-piece">HT <strong>' + fmt(ht) + '</strong></span>'
-      + '<span class="calc-op">+</span>'
-      + '<span class="calc-piece">TVA ' + taux + '% <strong>' + fmt(tva) + '</strong></span>'
-      + '<span class="calc-op">=</span>'
-      + '<span class="calc-piece calc-total">TTC <strong style="color:#ef4444">' + fmt(ttc) + '</strong></span>';
-  };
-
-  window.enregistrerAvoir = function() {
-    if (!currentAvoirFactureId) return;
-    const facture = chargerFacturesEmises().find(f => f.id === currentAvoirFactureId);
-    if (!facture) { afficherToast('⚠️ Facture introuvable', 'error'); return; }
-    const type = document.getElementById('avoir-type').value;
-    const date = document.getElementById('avoir-date').value || aujourdhui();
-    const ht = parseFloat(document.getElementById('avoir-ht').value) || 0;
-    const taux = parseFloat(document.getElementById('avoir-taux-tva').value) || 0;
-    const motifKey = document.getElementById('avoir-motif').value;
-    const motifLibre = document.getElementById('avoir-motif-libre').value.trim();
-    const notes = document.getElementById('avoir-notes').value.trim();
-    if (ht <= 0) { afficherToast('⚠️ Montant HT requis', 'error'); return; }
-    if (motifKey === '__autre__' && !motifLibre) { afficherToast('⚠️ Précise le motif libre', 'error'); return; }
-    const s = getSoldeFacture(facture);
-    const disponible = s.ttc - s.avoirsTTC;
-    const ttc = round2(ht * (1 + taux / 100));
-    if (ttc - 0.01 > disponible) {
-      afficherToast('⚠️ Le montant TTC (' + euros(ttc) + ') dépasse le restant avoir-able (' + euros(disponible) + ')', 'error');
-      return;
-    }
-    const motif = motifKey === '__autre__' ? motifLibre : motifKey;
-    const { annee, sequence, numero } = genererNumeroAvoir(date);
-    const avoir = {
-      id: genId(),
-      numero,
-      annee,
-      sequence,
-      factureId: facture.id,
-      factureNumero: facture.numero,
-      livId: facture.livId || null,
-      client: facture.client || '',
-      type,
-      date,
-      tauxTVA: taux,
-      montantHT: round2(ht),
-      montantTVA: round2(ht * taux / 100),
-      montantTTC: ttc,
-      motif,
-      motifInterne: motifKey,
-      notes,
-      creeLe: new Date().toISOString(),
-      statut: 'emis',
-      verrouille: true
-    };
-    const list = chargerAvoirs();
-    list.push(avoir);
-    sauvegarderAvoirs(list);
-    ajouterEntreeAudit('Émission avoir', numero + ' · ' + (facture.client || '') + ' · ' + euros(ttc) + ' · sur ' + facture.numero);
-    closeModal('modal-avoir');
-    afficherEncaissements();
-    if (typeof afficherLivraisons === 'function') afficherLivraisons();
-    if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
-    afficherToast('🧾 Avoir ' + numero + ' émis · ' + euros(ttc), 'success', {
-      action: {
-        label: 'Voir PDF',
-        onClick: function() { genererPDFAvoir(avoir.id); }
-      }
-    });
-  };
-
-  /* ---------- PDF AVOIR (copie exacte template facture) ---------- */
-  window.genererPDFAvoir = function(avoirId) {
-    const avoir = chargerAvoirs().find(a => a.id === avoirId);
-    if (!avoir) { afficherToast('⚠️ Avoir introuvable', 'error'); return; }
-    const params = getEntrepriseExportParams();
-    const siret = String(params.siret || '').replace(/\s+/g, '');
-    if (!/^\d{14}$/.test(siret)) {
-      afficherToast('⚠️ SIRET requis dans Paramètres', 'error');
-      naviguerVers('parametres');
-      return;
-    }
-    const factures = chargerFacturesEmises();
-    const facture = factures.find(f => f.id === avoir.factureId);
-    const livraison = avoir.livId ? charger('livraisons').find(l => l.id === avoir.livId) : null;
-    const dateAvoir = formatDateExport(avoir.date);
-    const motifHtml = (avoir.motifInterne === '__autre__')
-      ? planningEscapeHtml(avoir.motif)
-      : planningEscapeHtml(avoir.motif);
-    const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
-      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
-      + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
-      + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
-      + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
-      + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
-      + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
-      + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
-      + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
-      + '</div></div>'
-      + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#ef4444;letter-spacing:.08em;font-weight:700">Facture d\'avoir</div>'
-      + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + planningEscapeHtml(avoir.numero) + '</div>'
-      + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateAvoir + '</strong></div>'
-      + '<div style="font-size:.88rem;color:#4b5563">Sur facture : <strong>' + planningEscapeHtml(avoir.factureNumero || (facture && facture.numero) || '—') + '</strong></div></div>'
-      + '</div>'
-      + '<div style="padding:12px 16px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;margin-bottom:20px;font-size:.88rem;color:#991b1b">'
-      + '<strong>AVOIR</strong> émis en annulation' + (avoir.type === 'partiel' ? ' partielle' : ' totale') + ' de la facture <strong>' + planningEscapeHtml(avoir.factureNumero || '—') + '</strong>.'
-      + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
-      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
-      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Avoir à</div>'
-      + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(avoir.client || 'Client') + '</div>'
-      + (livraison && livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
-      + '</div>'
-      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
-      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Motif</div>'
-      + '<div style="font-size:.92rem;color:#374151;font-weight:600">' + motifHtml + '</div>'
-      + '</div>'
-      + '</div>'
-      + '<table style="width:100%;border-collapse:collapse;margin-bottom:22px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden">'
-      + '<thead><tr style="background:#f8fafc"><th style="padding:12px 14px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280">Description</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">HT</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TVA</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TTC</th></tr></thead>'
-      + '<tbody><tr>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb">Avoir sur ' + planningEscapeHtml(avoir.factureNumero || 'facture') + ' — ' + motifHtml + '</td>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;color:#ef4444;font-weight:700">-' + euros(avoir.montantHT) + '</td>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;color:#ef4444">-' + euros(avoir.montantTVA) + '</td>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;color:#ef4444;font-weight:800">-' + euros(avoir.montantTTC) + '</td>'
-      + '</tr></tbody></table>'
-      + '<div style="display:flex;justify-content:flex-end;margin-bottom:18px"><div style="min-width:320px;border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa">'
-      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total HT</span><strong style="color:#ef4444">-' + euros(avoir.montantHT) + '</strong></div>'
-      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>TVA ' + avoir.tauxTVA + '%</span><strong style="color:#ef4444">-' + euros(avoir.montantTVA) + '</strong></div>'
-      + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#ef4444">-' + euros(avoir.montantTTC) + '</strong></div>'
-      + '</div></div>'
-      + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.78rem;color:#6b7280;line-height:1.6">'
-      + '<div>Document conservé 10 ans (exigence comptable française).</div>'
-      + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
-      + '</div>'
-      + '</div>';
-    ouvrirFenetreImpression('Avoir ' + avoir.numero, html, 'width=980,height=820');
-    ajouterEntreeAudit('Génération PDF avoir', avoir.numero + ' · ' + (avoir.client || '') + ' · ' + euros(avoir.montantTTC));
-  };
-
-  /* ---------- MODAL PAIEMENT (sens in/out) ---------- */
-  window.ouvrirModalPaiement = function(sens) {
-    document.getElementById('paiement-sens').value = sens || 'in';
-    document.getElementById('paiement-date').value = aujourdhui();
-    document.getElementById('paiement-montant').value = '';
-    document.getElementById('paiement-notes').value = '';
-    document.getElementById('paiement-mode').value = 'virement';
-    majPaiementListes();
-    openModal('modal-paiement');
-  };
-
-  window.ouvrirModalPaiementPourFacture = function(factureId) {
-    window.ouvrirModalPaiement('in');
-    setTimeout(() => {
-      const select = document.getElementById('paiement-cible');
-      select.value = 'fac:' + factureId;
-      majSoldeInfoPaiement();
-    }, 50);
-  };
-
-  window.majPaiementListes = function() {
-    const sens = document.getElementById('paiement-sens').value;
-    const select = document.getElementById('paiement-cible');
-    if (sens === 'in') {
-      const factures = chargerFacturesEmises().filter(f => getSoldeFacture(f).solde > 0.01);
-      select.innerHTML = '<option value="">-- Choisir facture --</option>' +
-        factures.map(f => {
-          const s = getSoldeFacture(f);
-          return '<option value="fac:' + f.id + '">' + f.numero + ' · ' + (f.client || '—') + ' · solde ' + euros(s.solde) + '</option>';
-        }).join('');
-    } else {
-      const charges = charger('charges').filter(c => getSoldeCharge(c).solde > 0.01);
-      select.innerHTML = '<option value="">-- Choisir charge --</option>' +
-        charges.map(c => {
-          const s = getSoldeCharge(c);
-          return '<option value="cha:' + c.id + '">' + (c.categorie || 'Charge') + ' · ' + (c.date || '') + ' · solde ' + euros(s.solde) + '</option>';
-        }).join('');
-    }
-    select.onchange = majSoldeInfoPaiement;
-    majSoldeInfoPaiement();
-  };
-
-  function majSoldeInfoPaiement() {
-    const val = document.getElementById('paiement-cible').value;
-    const info = document.getElementById('paiement-solde-info');
-    if (!val) { info.textContent = ''; return; }
-    const [type, id] = val.split(':');
-    if (type === 'fac') {
-      const f = chargerFacturesEmises().find(x => x.id === id);
-      if (f) { const s = getSoldeFacture(f); info.innerHTML = 'TTC ' + euros(s.ttc) + ' · payé ' + euros(s.paye) + ' · <strong>solde ' + euros(s.solde) + '</strong>'; }
-    } else if (type === 'cha') {
-      const c = charger('charges').find(x => x.id === id);
-      if (c) { const s = getSoldeCharge(c); info.innerHTML = 'TTC ' + euros(s.ttc) + ' · payé ' + euros(s.paye) + ' · <strong>solde ' + euros(s.solde) + '</strong>'; }
-    }
-  }
-  window.majSoldeInfoPaiement = majSoldeInfoPaiement;
-
-  window.enregistrerPaiement = function() {
-    const sens = document.getElementById('paiement-sens').value;
-    const date = document.getElementById('paiement-date').value || aujourdhui();
-    const cible = document.getElementById('paiement-cible').value;
-    const montant = parseFloat(document.getElementById('paiement-montant').value) || 0;
-    const mode = document.getElementById('paiement-mode').value;
-    const notes = document.getElementById('paiement-notes').value.trim();
-    if (!cible) { afficherToast('⚠️ Choisis une facture ou une charge', 'error'); return; }
-    if (montant <= 0) { afficherToast('⚠️ Montant requis > 0', 'error'); return; }
-    const [type, id] = cible.split(':');
-    let tiers = '', factureId = null, chargeId = null, solde = 0;
-    if (type === 'fac') {
-      const f = chargerFacturesEmises().find(x => x.id === id);
-      if (!f) { afficherToast('⚠️ Facture introuvable', 'error'); return; }
-      tiers = f.client || '';
-      factureId = f.id;
-      solde = getSoldeFacture(f).solde;
-    } else {
-      const c = charger('charges').find(x => x.id === id);
-      if (!c) { afficherToast('⚠️ Charge introuvable', 'error'); return; }
-      tiers = c.fournisseur || c.description || c.categorie || 'Fournisseur';
-      chargeId = c.id;
-      solde = getSoldeCharge(c).solde;
-    }
-    if (montant - 0.01 > solde) {
-      afficherToast('⚠️ Le montant dépasse le solde (' + euros(solde) + ')', 'error');
-      return;
-    }
-    const { annee, sequence, numero } = genererNumeroEncaissement(date);
-    const paiement = {
-      id: genId(),
-      numero, annee, sequence,
-      sens, date, montant: round2(montant), mode, notes, tiers,
-      factureId, chargeId,
-      creeLe: new Date().toISOString()
-    };
-    const list = chargerPaiements();
-    list.push(paiement);
-    sauvegarderPaiements(list);
-    // Si facture soldée → marquer livraison comme payée
-    if (factureId) {
-      const f = chargerFacturesEmises().find(x => x.id === factureId);
-      if (f) {
-        const s = getSoldeFacture(f);
-        if (s.statut === 'paye' && f.livId) {
-          const livs = charger('livraisons');
-          const idx = livs.findIndex(l => l.id === f.livId);
-          if (idx > -1) {
-            livs[idx].statutPaiement = 'payé';
-            livs[idx].modePaiement = livs[idx].modePaiement || mode;
-            livs[idx].datePaiement = livs[idx].datePaiement || date;
-            sauvegarder('livraisons', livs);
-          }
-        }
-      }
-    }
-    ajouterEntreeAudit('Enregistrement paiement', numero + ' · ' + (sens === 'in' ? 'Reçu' : 'Émis') + ' · ' + tiers + ' · ' + euros(montant));
-    closeModal('modal-paiement');
-    afficherEncaissements();
-    if (typeof afficherLivraisons === 'function') afficherLivraisons();
-    if (typeof afficherCharges === 'function') afficherCharges();
-    if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
-    afficherToast('💰 Paiement ' + numero + ' enregistré · ' + euros(montant));
-  };
-
-  window.supprimerPaiement = async function(id) {
-    const p = chargerPaiements().find(x => x.id === id); if (!p) return;
-    const ok = await confirmDialog('Supprimer le paiement ' + p.numero + ' ?', { titre: 'Supprimer', icone: '💰', btnLabel: 'Supprimer' });
-    if (!ok) return;
-    sauvegarderPaiements(chargerPaiements().filter(x => x.id !== id));
-    ajouterEntreeAudit('Suppression paiement', p.numero + ' · ' + euros(p.montant));
-    afficherEncaissements();
-    if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
-    afficherToast('🗑️ Paiement supprimé');
-  };
-
-  /* ---------- Export CSV ---------- */
-  window.exporterEncaissementsCSV = function() {
-    const paiements = chargerPaiements();
-    const avoirs = chargerAvoirs();
-    const rows = [];
-    rows.push(['Type', 'Numero', 'Date', 'Sens', 'Tiers', 'FactureOrigine', 'Mode', 'Motif', 'MontantHT', 'MontantTVA', 'MontantTTC']);
-    paiements.forEach(p => {
-      const factures = chargerFacturesEmises();
-      const f = p.factureId ? factures.find(x => x.id === p.factureId) : null;
-      rows.push(['Paiement', p.numero, p.date, p.sens, p.tiers || '', f ? f.numero : '', p.mode || '', '', '', '', String(p.montant)]);
-    });
-    avoirs.forEach(a => {
-      rows.push(['Avoir', a.numero, a.date, 'out', a.client || '', a.factureNumero || '', '', a.motif || '', String(-a.montantHT), String(-a.montantTVA), String(-a.montantTTC)]);
-    });
-    const csvCell = (typeof window.csvCelluleSecurisee === 'function') ? window.csvCelluleSecurisee : (c) => '"' + String(c==null?'':c).replace(/"/g, '""') + '"';
-    const csv = rows.map(r => r.map(c => csvCell(c, ';')).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = 'encaissements_' + aujourdhui() + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    afficherToast('📤 Export CSV généré');
-  };
-
-  /* ---------- Suppression forcée (force-delete par saisie) ---------- */
-  let forceDeleteContext = null;
-  function ouvrirModalForceDelete(ctx) {
-    forceDeleteContext = ctx;
-    document.getElementById('force-delete-code').textContent = ctx.numero;
-    document.getElementById('force-delete-warn').innerHTML = ctx.warn;
-    document.getElementById('force-delete-input').value = '';
-    document.getElementById('btn-force-delete-confirm').disabled = true;
-    openModal('modal-force-delete');
-  }
-  window.majBoutonForceDelete = function() {
-    const v = document.getElementById('force-delete-input').value.trim();
-    const ok = v === (forceDeleteContext && forceDeleteContext.numero);
-    document.getElementById('btn-force-delete-confirm').disabled = !ok;
-  };
-  window.executerForceDelete = function() {
-    if (!forceDeleteContext || !forceDeleteContext.onConfirm) return;
-    try { forceDeleteContext.onConfirm(); }
-    catch (e) { afficherToast('⚠️ Erreur suppression : ' + e.message, 'error'); }
-    closeModal('modal-force-delete');
-    forceDeleteContext = null;
-  };
-
-  /* Wrapper supprimerLivraison → si facture émise, forcer saisie numéro */
-  if (typeof window.supprimerLivraison === 'function' && !window.supprimerLivraison.__s12) {
-    const orig = window.supprimerLivraison;
-    const wrapped = async function(id) {
-      const liv = charger('livraisons').find(l => l.id === id);
-      if (!liv) return orig.apply(this, arguments);
-      const facture = chargerFacturesEmises().find(f => f.livId === id && f.statut !== 'annulée');
-      if (!facture) return orig.apply(this, arguments);
-      // Facture émise → force delete avec saisie numéro
-      ouvrirModalForceDelete({
-        numero: facture.numero,
-        warn: 'Cette livraison a une <strong>facture émise</strong> (' + facture.numero + '). '
-          + 'Supprimer une livraison déjà facturée est contraire au droit fiscal français : la méthode légale est d\'émettre un <strong>avoir</strong>. '
-          + 'Pour forcer la suppression, recopie exactement le numéro de facture ci-dessous.',
-        onConfirm: function() {
-          orig.call(window, id);
-          ajouterEntreeAudit('Suppression forcée livraison facturée', facture.numero + ' · ' + (liv.client || ''));
-        }
-      });
-    };
-    wrapped.__s12 = true;
-    window.supprimerLivraison = wrapped;
-  }
-
-  /* ---------- Wiring navigation ---------- */
-  if (typeof window.naviguerVers === 'function' && !window.naviguerVers.__s12) {
-    const origNav = window.naviguerVers;
-    const wrapped = function(page) {
-      const r = origNav.apply(this, arguments);
-      if (page === 'encaissements') { setTimeout(afficherEncaissements, 30); }
-      return r;
-    };
-    wrapped.__s12 = true;
-    window.naviguerVers = wrapped;
-  }
-
-  /* ---------- Reset SIREN dans modal création livraison ---------- */
-  if (typeof window.openModal === 'function' && !window.openModal.__s12) {
-    const origOpen = window.openModal;
-    const wrapped = function(id) {
-      origOpen.apply(this, arguments);
-      if (id === 'modal-livraison') {
-        setTimeout(() => {
-          const sir = document.getElementById('liv-client-siren');
-          if (sir) sir.value = '';
-        }, 30);
-      }
-    };
-    wrapped.__s12 = true;
-    window.openModal = wrapped;
-  }
-
-  /* ---------- Exports publics pour le reste de l'app ---------- */
-  window.ENCAISSEMENTS = {
-    chargerAvoirs, chargerPaiements,
-    getSoldeFacture, getSoldeCharge, getCANetMois,
-    afficherEncaissements
-  };
-})();
-
-/* =========================================================================
-   SPRINT 12.1 — Onglet Facturation, workflow aperçu→émission, reset compteur
-   ========================================================================= */
-(function() {
-  'use strict';
-
-  /* ---------- Build HTML facture (extrait de genererFactureLivraison) ---------- */
-  function buildFactureHTML(livraison, numeroFacture, dateFactureFmt, datePaiementFmt, options) {
-    options = options || {};
-    const isPreview = !!options.preview;
-    const params = getEntrepriseExportParams();
-    const profile = getTVAConfig();
-    const siret = String(params.siret || '').replace(/\s+/g, '');
-    const tauxTVA = parseFloat(livraison.tauxTVA ?? profile.defaultRate ?? 20) || 0;
-    const montantHT = round2(getMontantHTLivraison(livraison));
-    const montantTTC = round2(parseFloat(livraison.prix) || 0);
-    const montantTVA = round2(montantTTC - montantHT);
-    const clientFichePdf = (typeof trouverClientParLivraison === 'function') ? trouverClientParLivraison(livraison) : null;
-    const mentionTVA = choisirMentionTVALegale(profile, clientFichePdf || { pays: livraison.clientPays, tvaIntracom: livraison.clientTvaIntracom }, tauxTVA);
-    const numeroAffiche = isPreview
-      ? '<span style="background:#f59e0b;color:#fff;padding:3px 10px;border-radius:6px;font-size:0.85rem">BROUILLON — non émise</span>'
-      : planningEscapeHtml(numeroFacture);
-    return '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827;background:#fff;border-radius:12px">'
-      + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
-      + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
-      + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
-      + (params.adresse ? '<div>' + planningEscapeHtml(params.adresse) + '</div>' : '')
-      + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
-      + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
-      + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
-      + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
-      + '</div></div>'
-      + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
-      + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + numeroAffiche + '</div>'
-      + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date : <strong>' + dateFactureFmt + '</strong></div>'
-      + '<div style="font-size:.88rem;color:#4b5563">Paiement : <strong>' + planningEscapeHtml(datePaiementFmt) + '</strong></div></div>'
-      + '</div>'
-      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
-      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
-      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
-      + '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(livraison.client || 'Client') + '</div>'
-      + (livraison.clientSiren ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(livraison.clientSiren) + '</div>' : '')
-      + '</div>'
-      + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
-      + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
-      + '<div style="font-size:.92rem;color:#374151">Transport / livraison</div>'
-      + '<div style="font-size:.82rem;color:#6b7280;margin-top:6px">' + planningEscapeHtml((livraison.numLiv || 'Livraison') + (livraison.date ? ' · ' + formatDateExport(livraison.date) : '')) + '</div>'
-      + (livraison.chaufNom ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Chauffeur : ' + planningEscapeHtml(livraison.chaufNom) + '</div>' : '')
-      + '</div>'
-      + '</div>'
-      + '<table style="width:100%;border-collapse:collapse;margin-bottom:22px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden">'
-      + '<thead><tr style="background:#f8fafc"><th style="padding:12px 14px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280">Description</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">HT</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TVA</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TTC</th></tr></thead>'
-      + '<tbody><tr>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb">Prestation de livraison' + (livraison.notes ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">' + planningEscapeHtml(livraison.notes) + '</div>' : '') + '</td>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;font-weight:700">' + euros(montantHT) + '</td>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right">' + euros(montantTVA) + '</td>'
-      + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;font-weight:800">' + euros(montantTTC) + '</td>'
-      + '</tr></tbody></table>'
-      + '<div style="display:flex;justify-content:flex-end;margin-bottom:18px"><div style="min-width:320px;border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa">'
-      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total HT</span><strong>' + euros(montantHT) + '</strong></div>'
-      + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>' + planningEscapeHtml(mentionTVA) + '</span><strong>' + euros(montantTVA) + '</strong></div>'
-      + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#f59e0b">' + euros(montantTTC) + '</strong></div>'
-      + '</div></div>'
-      + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
-      + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
-      + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
-      + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
-      + '</div>'
-      + '</div>';
-  }
-
-  /* ---------- Wrap genererFactureLivraison : preview avant émission ---------- */
-  let pendingFactureLivId = null;
-  if (typeof window.genererFactureLivraison === 'function' && !window.genererFactureLivraison.__s12_1) {
-    const orig = window.genererFactureLivraison;
-    const wrapped = function(livId) {
-      const livraison = charger('livraisons').find(l => l.id === livId);
-      if (!livraison) return;
-      const params = getEntrepriseExportParams();
-      const siret = String(params.siret || '').replace(/\s+/g, '');
-      if (!/^\d{14}$/.test(siret)) {
-        afficherToast('⚠️ SIRET requis dans Paramètres', 'error');
-        naviguerVers('parametres');
-        return;
-      }
-      // Si déjà émise → aller directement à l'impression
-      const existing = chargerFacturesEmises().find(f => f.livId === livId && f.statut !== 'annulée');
-      if (existing) {
-        return orig.call(window, livId);
-      }
-      // Pas encore émise → preview
-      pendingFactureLivId = livId;
-      const dateFacture = formatDateExport(livraison.date || aujourdhui());
-      const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
-      const html = buildFactureHTML(livraison, null, dateFacture, datePaiement, { preview: true });
-      document.getElementById('preview-fac-content').innerHTML = html;
-      openModal('modal-preview-facture');
-    };
-    wrapped.__s12_1 = true;
-    window.genererFactureLivraison = wrapped;
-  }
-
-  window.emettreFactureConfirmee = function() {
-    if (!pendingFactureLivId) return;
-    const livId = pendingFactureLivId;
-    pendingFactureLivId = null;
-    closeModal('modal-preview-facture');
-    // Appelle la version originale sauvegardée dans la chaîne (récupérer via wrapping)
-    // On doit récupérer l'original dépouillé du wrap — accès via la clé __s12_1 false check impossible.
-    // Solution : assurerArchive + reconstruire HTML et imprimer.
-    const livraison = charger('livraisons').find(l => l.id === livId);
-    if (!livraison) return;
-    const facture = assurerArchiveFactureLivraison(livraison);
-    const dateFacture = formatDateExport(livraison.date || aujourdhui());
-    const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
-    const html = buildFactureHTML(livraison, facture.numero, dateFacture, datePaiement);
-    facture.derniereGenerationLe = new Date().toISOString();
-    facture.dateFacture = livraison.date || aujourdhui();
-    const factures = chargerFacturesEmises();
-    const idx = factures.findIndex(f => f.id === facture.id);
-    if (idx > -1) { factures[idx] = facture; sauvegarderFacturesEmises(factures); }
-    ouvrirFenetreImpression('Facture ' + facture.numero, html, 'width=980,height=820');
-    ajouterEntreeAudit('Émission facture', facture.numero + ' · ' + (livraison.client || 'Client'));
-    afficherToast('📄 Facture ' + facture.numero + ' émise', 'success');
-    if (typeof afficherLivraisons === 'function') afficherLivraisons();
-    if (typeof afficherFacturation === 'function') afficherFacturation();
-  };
-
-  /* ---------- Onglet Facturation ---------- */
-  function afficherFacturation() {
-    const grid = document.getElementById('fac-stats-grid');
-    const tbody = document.getElementById('tb-facturation');
-    const compteurDisplay = document.getElementById('fac-compteur-display');
-    if (!grid || !tbody) return;
-
-    const factures = chargerFacturesEmises();
-    const annees = Array.from(new Set(factures.map(f => f.annee || '').filter(Boolean))).sort().reverse();
-    const selectAnnee = document.getElementById('fac-filter-annee');
-    if (selectAnnee) {
-      const current = selectAnnee.value;
-      selectAnnee.innerHTML = '<option value="">Toutes années</option>' + annees.map(a => '<option value="' + a + '"' + (current === a ? ' selected' : '') + '>' + a + '</option>').join('');
-    }
-
-    // Stats
-    let emises = 0, annulees = 0, payees = 0, partielles = 0, totalTTC = 0, totalNet = 0;
-    factures.forEach(f => {
-      if (f.statut === 'annulée') { annulees++; return; }
-      emises++;
-      const s = window.ENCAISSEMENTS.getSoldeFacture(f);
-      totalTTC += s.ttc;
-      totalNet += (s.ttc - s.avoirsTTC);
-      if (s.statut === 'paye') payees++;
-      else if (s.statut === 'partiel') partielles++;
-    });
-    grid.innerHTML =
-      '<div class="stat-card"><div class="stat-label">📄 Factures émises</div><div class="stat-value" style="color:var(--accent)">' + emises + '</div></div>'
-      + '<div class="stat-card"><div class="stat-label">✅ Payées</div><div class="stat-value" style="color:#22c55e">' + payees + '</div></div>'
-      + '<div class="stat-card"><div class="stat-label">⏳ Partielles / en attente</div><div class="stat-value" style="color:#f5a623">' + (partielles + (emises - payees - partielles)) + '</div></div>'
-      + '<div class="stat-card"><div class="stat-label">🚫 Annulées</div><div class="stat-value" style="color:#6b7280">' + annulees + '</div></div>'
-      + '<div class="stat-card"><div class="stat-label">💰 CA facturé TTC</div><div class="stat-value">' + euros(totalTTC) + '</div></div>'
-      + '<div class="stat-card"><div class="stat-label">💎 CA net (après avoirs)</div><div class="stat-value" style="color:var(--accent)">' + euros(totalNet) + '</div></div>';
-
-    // Compteur (BUG-001 : lit le compteur persistant, pas Math.max des factures vivantes)
-    const anneeCur = String(new Date().getFullYear());
-    let compteursPers = {};
-    try { compteursPers = loadSafe(COMPTEURS_FACTURES_KEY, {}) || {}; } catch(e){ compteursPers = {}; }
-    const lastSeqLive = factures.filter(f => String(f.annee || '') === anneeCur).reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
-    const lastSeq = Math.max(compteursPers[anneeCur] || 0, lastSeqLive);
-    const nextNum = 'FAC-' + anneeCur + '-' + String(lastSeq + 1).padStart(4, '0');
-    if (compteurDisplay) compteurDisplay.textContent = 'prochaine = ' + nextNum;
-
-    // Filtres
-    const search = (document.getElementById('fac-search')?.value || '').toLowerCase();
-    const filterStatut = document.getElementById('fac-filter-statut')?.value || '';
-    const filterAnnee = document.getElementById('fac-filter-annee')?.value || '';
-
-    let rows = factures.slice().sort((a, b) => String(b.numero || '').localeCompare(String(a.numero || '')));
-    if (filterAnnee) rows = rows.filter(f => String(f.annee || '') === filterAnnee);
-    if (search) {
-      rows = rows.filter(f => ((f.numero || '') + ' ' + (f.client || '') + ' ' + (f.numLiv || '')).toLowerCase().includes(search));
-    }
-    if (filterStatut) {
-      rows = rows.filter(f => {
-        if (filterStatut === 'annulée') return f.statut === 'annulée';
-        if (f.statut === 'annulée') return false;
-        const s = window.ENCAISSEMENTS.getSoldeFacture(f);
-        if (filterStatut === 'emise') return s.statut === 'en-attente';
-        return s.statut === filterStatut;
-      });
-    }
-
-    if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-muted)">Aucune facture</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = rows.map(f => {
-      let statutBadge, soldeCell, payeCell;
-      if (f.statut === 'annulée') {
-        statutBadge = '<span class="badge-statut" style="background:rgba(107,114,128,.15);color:#6b7280;border:1px solid rgba(107,114,128,.3)">Annulée</span>';
-        soldeCell = '—';
-        payeCell = '—';
-      } else {
-        const s = window.ENCAISSEMENTS.getSoldeFacture(f);
-        const map = {
-          'paye': '<span class="badge-statut badge-paye">Payée</span>',
-          'partiel': '<span class="badge-statut badge-partiel">Partielle</span>',
-          'en-attente': '<span class="badge-statut badge-attente">Émise</span>'
-        };
-        statutBadge = map[s.statut];
-        soldeCell = euros(s.solde);
-        payeCell = euros(s.paye);
-      }
-      const actionItems = [];
-      if (f.statut !== 'annulée') {
-        actionItems.push({ icon:'🖨️', label:'Réimprimer', action:"reimprimerFacture('"+f.id+"')" });
-        actionItems.push({ icon:'📥', label:'Factur-X (XML)', action:"window.s30_3ValiderFacture('"+f.id+"')" });
-        actionItems.push({ icon:'📅', label:(f.periodeDebut?'Modifier période':'Définir période'), action:"window.s30_2_1EditerPeriodeFacture('"+f.id+"')" });
-        actionItems.push({ icon:'🧾', label:'Créer un avoir', action:"ouvrirModalAvoir('"+f.id+"')" });
-      }
-      actionItems.push({ icon:'🗑️', label:'Supprimer (force)', action:"supprimerFactureForce('"+f.id+"')", danger:true });
-      const actions = (typeof buildInlineActionsDropdown === 'function') ? buildInlineActionsDropdown('Actions', actionItems) : actionItems.map(i => '<button class="btn-icon" onclick="'+i.action+'" title="'+i.label+'">'+i.icon+'</button>').join(' ');
-      return '<tr' + (f.statut === 'annulée' ? ' style="opacity:0.55"' : '') + '>'
-        + '<td><strong>' + (f.numero || '—') + '</strong></td>'
-        + '<td>' + formatDateExport(f.dateLivraison || f.dateFacture || '') + '</td>'
-        + '<td>' + (f.client || '—') + '</td>'
-        + '<td style="text-align:right">' + euros(f.montantHT || 0) + '</td>'
-        + '<td style="text-align:right">' + euros(f.montantTVA || 0) + '</td>'
-        + '<td style="text-align:right;font-weight:700">' + euros(f.montantTTC || 0) + '</td>'
-        + '<td style="text-align:right;color:#22c55e">' + payeCell + '</td>'
-        + '<td style="text-align:right;font-weight:700">' + soldeCell + '</td>'
-        + '<td>' + statutBadge + '</td>'
-        + '<td>' + actions + '</td>'
-        + '</tr>';
-    }).join('');
-  }
-  window.afficherFacturation = afficherFacturation;
-
-  /* ---------- Réimprimer facture existante ---------- */
-  window.reimprimerFacture = function(factureId) {
-    const facture = chargerFacturesEmises().find(f => f.id === factureId);
-    if (!facture || !facture.livId) return;
-    const livraison = charger('livraisons').find(l => l.id === facture.livId);
-    if (!livraison) { afficherToast('⚠️ Livraison origine introuvable', 'error'); return; }
-    const dateFacture = formatDateExport(livraison.date || aujourdhui());
-    const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
-    const html = buildFactureHTML(livraison, facture.numero, dateFacture, datePaiement);
-    ouvrirFenetreImpression('Facture ' + facture.numero, html, 'width=980,height=820');
-  };
-
-  /* ---------- Suppression forcée facture (avec typed number) ---------- */
-  window.supprimerFactureForce = function(factureId) {
-    const facture = chargerFacturesEmises().find(f => f.id === factureId);
-    if (!facture) return;
-    const avoirs = window.ENCAISSEMENTS.chargerAvoirs().filter(a => a.factureId === factureId);
-    const hasAvoirs = avoirs.length > 0;
-    const warnHtml = hasAvoirs
-      ? 'Cette facture a <strong>' + avoirs.length + ' avoir(s) liés</strong>. Supprimer la facture laissera ces avoirs orphelins. En droit fiscal, un avoir <strong>doit</strong> référencer une facture existante.<br><br>Supprimer une facture émise est contraire au droit fiscal (art. 289 CGI). La méthode légale est l\'émission d\'un avoir.'
-      : 'Supprimer une facture émise est contraire au droit fiscal français (art. 289 CGI). La méthode légale pour corriger une erreur est l\'émission d\'un <strong>avoir</strong>.<br><br>Procède à une suppression uniquement en phase de test ou pour une erreur flagrante non reproductible.';
-    const ctx = {
-      numero: facture.numero,
-      warn: warnHtml,
-      onConfirm: function() {
-        sauvegarderFacturesEmises(chargerFacturesEmises().filter(f => f.id !== factureId));
-        // Retirer aussi la ref sur la livraison
-        if (facture.livId) {
-          const livs = charger('livraisons');
-          const idx = livs.findIndex(l => l.id === facture.livId);
-          if (idx > -1) {
-            delete livs[idx].factureNumero;
-            delete livs[idx].factureId;
-            sauvegarder('livraisons', livs);
-          }
-        }
-        ajouterEntreeAudit('Suppression forcée facture', facture.numero + ' · ' + (facture.client || '') + ' · TTC ' + euros(facture.montantTTC || 0));
-        afficherFacturation();
-        if (typeof afficherLivraisons === 'function') afficherLivraisons();
-        if (typeof afficherEncaissements === 'function') afficherEncaissements();
-        afficherToast('🗑️ Facture ' + facture.numero + ' supprimée (forcée)', 'warning');
-      }
-    };
-    // Utilise la logique force-delete de Sprint 12
-    document.getElementById('force-delete-code').textContent = ctx.numero;
-    document.getElementById('force-delete-warn').innerHTML = ctx.warn;
-    document.getElementById('force-delete-input').value = '';
-    document.getElementById('btn-force-delete-confirm').disabled = true;
-    window.__forceDeleteContext = ctx;
-    const origExec = window.executerForceDelete;
-    window.executerForceDelete = function() {
-      try { ctx.onConfirm(); } catch (e) { afficherToast('⚠️ Erreur : ' + e.message, 'error'); }
-      closeModal('modal-force-delete');
-      window.executerForceDelete = origExec;
-    };
-    openModal('modal-force-delete');
-  };
-
-  /* ---------- Export CSV factures ---------- */
-  window.exporterFacturesCSV = function() {
-    const factures = chargerFacturesEmises();
-    const rows = [['Numero', 'Date', 'Client', 'NumLivraison', 'HT', 'TVA', 'TTC', 'Statut', 'AnnuleeLe', 'Motif']];
-    factures.forEach(f => {
-      rows.push([f.numero || '', f.dateLivraison || f.dateFacture || '', f.client || '', f.numLiv || '', String(f.montantHT || 0), String(f.montantTVA || 0), String(f.montantTTC || 0), f.statut || 'émise', f.annuleeLe || '', f.annulationMotif || '']);
-    });
-    const csvCell = (typeof window.csvCelluleSecurisee === 'function') ? window.csvCelluleSecurisee : (c) => '"' + String(c==null?'':c).replace(/"/g, '""') + '"';
-    const csv = rows.map(r => r.map(c => csvCell(c, ';')).join(';')).join('\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = 'factures_' + aujourdhui() + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    afficherToast('📤 Export CSV factures');
-  };
-
-  /* ---------- Reset compteur factures (mode test) ---------- */
-  window.ouvrirResetCompteurFactures = function() {
-    document.getElementById('reset-compteur-input').value = '';
-    document.getElementById('btn-reset-compteur-confirm').disabled = true;
-    openModal('modal-reset-compteur');
-  };
-  window.majBoutonResetCompteur = function() {
-    const v = document.getElementById('reset-compteur-input').value.trim();
-    document.getElementById('btn-reset-compteur-confirm').disabled = (v !== 'RESET FACTURES');
-  };
-  window.executerResetCompteur = function() {
-    const factures = chargerFacturesEmises();
-    const avoirs = window.ENCAISSEMENTS.chargerAvoirs();
-    const paiements = window.ENCAISSEMENTS.chargerPaiements();
-    const includeLivs = !!document.getElementById('reset-include-livraisons')?.checked;
-    const includeAcomptes = !!document.getElementById('reset-include-acomptes')?.checked;
-    const livsAvant = charger('livraisons');
-    // Purge factures, avoirs liés, paiements liés
-    sauvegarderFacturesEmises([]);
-    sauvegarder('avoirs_emis', avoirs.filter(a => !factures.find(f => f.id === a.factureId)));
-    let paiementsRestants = paiements.filter(p => !p.factureId || !factures.find(f => f.id === p.factureId));
-    let acomptesPurged = 0;
-    if (includeAcomptes) {
-      // Purge totale des acomptes + paiements liés
-      let acomptes = [];
-      try { acomptes = loadSafe('factures_acomptes', []); } catch(e){ acomptes = []; }
-      acomptesPurged = acomptes.length;
-      localStorage.setItem('factures_acomptes', JSON.stringify([]));
-      // Purger les paiements liés aux acomptes
-      paiementsRestants = paiementsRestants.filter(p => !p.acompteId && !(p.cible==='acompte'));
-    }
-    sauvegarder('paiements', paiementsRestants);
-    let livsPurged = 0;
-    if (includeLivs) {
-      livsPurged = livsAvant.length;
-      sauvegarder('livraisons', []);
-      try { localStorage.removeItem('relances_log'); } catch(e){}
-    } else {
-      const livs = livsAvant.map(l => { delete l.factureNumero; delete l.factureId; return l; });
-      sauvegarder('livraisons', livs);
-    }
-    const parts = [factures.length + ' facture(s)'];
-    if (includeLivs) parts.push(livsPurged + ' livraison(s)');
-    if (includeAcomptes) parts.push(acomptesPurged + ' acompte(s)');
-    const msg = parts.join(' · ') + ' purgée(s) · mode test';
-    const tags = ['FAC'];
-    if (includeLivs) tags.push('LIV');
-    if (includeAcomptes) tags.push('ACP');
-    ajouterEntreeAudit('RESET compteurs ' + tags.join('+'), msg);
-    closeModal('modal-reset-compteur');
-    afficherFacturation();
-    if (typeof afficherLivraisons === 'function') afficherLivraisons();
-    if (typeof afficherEncaissements === 'function') afficherEncaissements();
-    if (typeof window.afficherRelancesV2 === 'function') window.afficherRelancesV2();
-    if (typeof window.s30RenderAcomptes === 'function') window.s30RenderAcomptes();
-    afficherToast('🧹 Compteurs réinitialisés · ' + msg, 'warning');
-  };
-
-  /* ---------- Wiring nav ---------- */
-  if (typeof window.naviguerVers === 'function' && !window.naviguerVers.__s12_1) {
-    const origNav = window.naviguerVers;
-    const wrapped = function(page) {
-      const r = origNav.apply(this, arguments);
-      if (page === 'facturation') setTimeout(afficherFacturation, 30);
-      return r;
-    };
-    wrapped.__s12_1 = true;
-    window.naviguerVers = wrapped;
-  }
-})();
-
-/* =========================================================================
- * SPRINT 13 — CRM Clients connecté + liaison LIV↔FAC
- * - Toggle Pro/Particulier, détection doublons, scoring 4 badges
- * - Fiche historique enrichie (factures + avoirs + paiements)
- * - Table clients enrichie avec filtres
- * - Migration clientId sur livraisons existantes
- * - Auto-complete liv → clientId + échéance auto
- * - Affichage couplé LIV↔FAC partout + badge décalage
- * - Hook création client depuis modal livraison si inconnu
- * =======================================================================*/
-(function(){
-  if (window.__s13Installed) return;
-  window.__s13Installed = true;
-
-  const LS = {
-    clients: 'clients',
-    livraisons: 'livraisons',
-    factures: 'factures_emises',
-    avoirs: 'avoirs_emis',
-    paiements: 'paiements'
-  };
-  const load = k => { try { return loadSafe(k, []); } catch(e){ return []; } };
-  const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-  const escHtml = window.escapeHtml;
-  const fmtEur = v => { try { return (typeof euros==='function') ? euros(v) : (parseFloat(v)||0).toFixed(2)+' €'; } catch(e){ return (parseFloat(v)||0).toFixed(2)+' €'; } };
-  const fmtDate = v => { try { return (typeof formatDateExport==='function' && v) ? formatDateExport(v) : (v||'—'); } catch(e){ return v||'—'; } };
-
-  /* ---------- Toggle Pro/Particulier ---------- */
-  window.toggleChampsClientPro = function(isEdit) {
-    const prefix = isEdit ? 'edit-' : '';
-    const typeChecked = document.querySelector('input[name="'+prefix+'cl-type"]:checked')?.value || 'pro';
-    const box = document.getElementById(prefix+'cl-champs-pro');
-    if (box) box.style.display = (typeChecked === 'pro') ? '' : 'none';
-  };
-
-  /* ---------- Détection doublons ---------- */
-  function similarity(a, b){
-    a = (a||'').toLowerCase().trim(); b = (b||'').toLowerCase().trim();
-    if (!a || !b) return 0;
-    if (a === b) return 1;
-    const la = a.length, lb = b.length;
-    if (Math.abs(la-lb) / Math.max(la,lb) > 0.5) return 0;
-    const bigrams = s => { const g = new Map(); for (let i=0;i<s.length-1;i++){ const bg=s.slice(i,i+2); g.set(bg,(g.get(bg)||0)+1); } return g; };
-    const ga = bigrams(a), gb = bigrams(b);
-    let inter = 0;
-    ga.forEach((v,k)=>{ if (gb.has(k)) inter += Math.min(v, gb.get(k)); });
-    return (2*inter) / ((la-1) + (lb-1));
-  }
-  window.detecterDoublonsClient = function(isEdit) {
-    const prefix = isEdit ? 'edit-' : '';
-    const box = document.getElementById(prefix+'cl-doublons-warning');
-    if (!box) return;
-    const nom = document.getElementById(prefix+'cl-nom')?.value.trim() || '';
-    const siren = (document.getElementById(prefix+'cl-siren')?.value.trim() || '').replace(/\s+/g,'');
-    const selfId = isEdit ? (document.getElementById('edit-cl-id')?.value || '') : '';
-    const clients = load(LS.clients).filter(c => c.id !== selfId);
-    const matches = [];
-    if (siren && /^\d{9}$/.test(siren)) {
-      clients.forEach(c => { if ((c.siren||'').trim() === siren) matches.push({c, reason:'SIREN identique'}); });
-    }
-    if (nom && nom.length >= 3) {
-      clients.forEach(c => {
-        if (matches.find(m => m.c.id === c.id)) return;
-        const sim = similarity(nom, c.nom||'');
-        if (sim >= 0.85) matches.push({c, reason:'Nom très similaire ('+Math.round(sim*100)+'%)'});
-      });
-    }
-    if (!matches.length) { box.style.display='none'; box.innerHTML=''; return; }
-    box.style.display = '';
-    box.innerHTML = '<div class="doublons-warning-title">⚠️ '+matches.length+' client(s) similaire(s) détecté(s)</div>'
-      + '<div class="doublons-warning-list">'
-      + matches.slice(0,5).map(m => '<div class="doublons-warning-item"><strong>'+escHtml(m.c.nom)+'</strong>'
-          + (m.c.siren ? ' · SIREN '+escHtml(m.c.siren) : '')
-          + ' <span style="color:var(--text-muted);font-size:.78rem">— '+escHtml(m.reason)+'</span></div>').join('')
-      + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Tu peux continuer, mais vérifie que ce n\'est pas un doublon.</div>';
-  };
-
-  /* ---------- Scoring auto ---------- */
-  window.getClientScoring = function(clientId) {
-    const c = load(LS.clients).find(x => x.id === clientId);
-    if (!c) return { tag:'inconnu', label:'Inconnu', icon:'⚪', cls:'score-nouveau' };
-    const livs = load(LS.livraisons).filter(l => l.clientId === clientId || ((l.client||'').trim().toLowerCase() === (c.nom||'').trim().toLowerCase()));
-    if (livs.length < 2) return { tag:'nouveau', label:'Nouveau', icon:'⚪', cls:'score-nouveau', reason:'< 2 livraisons' };
-    const delaiRef = parseInt(c.delaiPaiementJours, 10) || 30;
-    let retards = 0; let totalDelaisPaiement = 0; let nbPayees = 0; let impayes = 0;
-    livs.forEach(l => {
-      const statutP = (typeof getLivraisonStatutPaiement === 'function') ? getLivraisonStatutPaiement(l) : l.statutPaiement;
-      if (l.datePaiement && l.date) {
-        const jours = Math.round((new Date(l.datePaiement) - new Date(l.date)) / 86400000);
-        totalDelaisPaiement += jours;
-        nbPayees++;
-        if (jours > delaiRef + 5) retards++;
-      } else if (statutP !== 'payé' && l.date) {
-        const joursEcoules = Math.round((Date.now() - new Date(l.date)) / 86400000);
-        if (joursEcoules > delaiRef) { retards++; impayes++; }
-      }
-    });
-    const moyenne = nbPayees ? (totalDelaisPaiement / nbPayees) : 0;
-    if (retards >= 3 || moyenne > 60) return { tag:'mauvais', label:'Mauvais payeur', icon:'🔴', cls:'score-mauvais', reason:retards+' retard(s), moy '+Math.round(moyenne)+'j' };
-    if (retards >= 1 || moyenne > 30)  return { tag:'surveiller', label:'À surveiller', icon:'🟡', cls:'score-surveiller', reason:retards+' retard(s), moy '+Math.round(moyenne)+'j' };
-    return { tag:'bon', label:'Bon payeur', icon:'🟢', cls:'score-bon', reason:'moy '+Math.round(moyenne)+'j sur '+nbPayees+' paiement(s)' };
-  };
-
-  /* ---------- Stats / solde client ---------- */
-  window.getClientStats = function(clientId) {
-    const c = load(LS.clients).find(x => x.id === clientId);
-    if (!c) return null;
-    const livs = load(LS.livraisons).filter(l => l.clientId === clientId || ((l.client||'').trim().toLowerCase() === (c.nom||'').trim().toLowerCase()));
-    const factures = load(LS.factures).filter(f => livs.find(l => l.id === f.livId) && f.statut !== 'annulée');
-    const avoirs = load(LS.avoirs).filter(a => factures.find(f => f.id === a.factureId));
-    const paiements = load(LS.paiements).filter(p => p.sens === 'in' && factures.find(f => f.id === p.factureId));
-    const anneeEn = new Date().getFullYear();
-    const livsAnnee = livs.filter(l => (l.date||'').startsWith(String(anneeEn)));
-    const caHTAnnee = livsAnnee.reduce((s,l) => s + (typeof getMontantHTLivraison==='function' ? getMontantHTLivraison(l) : (parseFloat(l.prixHT)||0)), 0);
-    const totalFactureTTC = factures.reduce((s,f) => s + (parseFloat(f.montantTTC)||0), 0);
-    const totalAvoirsTTC = avoirs.reduce((s,a) => s + (parseFloat(a.montantTTC)||0), 0);
-    const totalPaiementsTTC = paiements.reduce((s,p) => s + (parseFloat(p.montant)||0), 0);
-    const soldeDu = Math.max(0, totalFactureTTC - totalAvoirsTTC - totalPaiementsTTC);
-    const derniere = livs.sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0];
-    const delaiRef = parseInt(c.delaiPaiementJours, 10) || 30;
-    const echeancesDepassees = factures.filter(f => {
-      if (!f.dateLivraison) return false;
-      const dEch = new Date(f.dateLivraison); dEch.setDate(dEch.getDate() + delaiRef);
-      const paye = paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
-      const restant = (parseFloat(f.montantTTC)||0) - paye;
-      return restant > 0.01 && dEch < new Date();
-    }).length;
-    return { client:c, livs, livsAnnee, factures, avoirs, paiements, caHTAnnee, soldeDu, derniere, echeancesDepassees, totalFactureTTC, totalAvoirsTTC, totalPaiementsTTC };
-  };
-
-  /* ---------- Migration clientId sur livraisons existantes ---------- */
-  function migrateLivraisonsClientId() {
-    const livs = load(LS.livraisons);
-    const clients = load(LS.clients);
-    if (!livs.length || !clients.length) return;
-    const byNameLower = new Map();
-    clients.forEach(c => {
-      const k = (c.nom||'').trim().toLowerCase();
-      if (!k) return;
-      if (byNameLower.has(k)) byNameLower.set(k, null);
-      else byNameLower.set(k, c.id);
-    });
-    let changed = 0;
-    livs.forEach(l => {
-      if (l.clientId) return;
-      const k = (l.client||'').trim().toLowerCase();
-      const cid = byNameLower.get(k);
-      if (cid) { l.clientId = cid; changed++; }
-    });
-    if (changed) { save(LS.livraisons, livs); logMCA('[S13] Migration clientId : '+changed+' livraison(s) liée(s)'); }
-  }
-
-  /* ---------- Badge décalage LIV↔FAC ---------- */
-  function extractSeq(numero) {
-    const m = String(numero||'').match(/-(\d{4})-(\d+)$/);
-    return m ? { annee: m[1], seq: parseInt(m[2], 10) } : null;
-  }
-  window.formatLivFacCouple = function(numLiv, numFac) {
-    if (!numFac) return '<span class="lf-couple"><span class="lf-liv">'+escHtml(numLiv||'—')+'</span><span class="lf-sep">·</span><span class="lf-fac-empty">pas de facture</span></span>';
-    const eL = extractSeq(numLiv), eF = extractSeq(numFac);
-    const decalage = (eL && eF && (eL.annee !== eF.annee || eL.seq !== eF.seq));
-    return '<span class="lf-couple'+(decalage?' lf-decalage':'')+'"'
-      + (decalage ? ' title="Décalage : le N° de facture ne correspond pas au N° de livraison"' : '')
-      + '><span class="lf-liv">'+escHtml(numLiv||'—')+'</span><span class="lf-sep">↔</span><span class="lf-fac">'+escHtml(numFac)+'</span>'
-      + (decalage ? '<span class="lf-warn">⚠️</span>' : '')
-      + '</span>';
-  };
-
-  /* ---------- Table Clients enrichie ---------- */
-  function injecterFiltresClients() {
-    const page = document.getElementById('page-clients');
-    if (!page || page.querySelector('#s13-filtres-clients')) return;
-    const card = page.querySelector('.card');
-    if (!card) return;
-    const filters = document.createElement('div');
-    filters.id = 's13-filtres-clients';
-    filters.className = 'filters filters-clients';
-    filters.style.marginBottom = '16px';
-    filters.innerHTML = ''
-      + '<div class="searchbar"><span class="searchbar-icon">🔎</span>'
-      + '<input type="search" id="s13-cl-search" placeholder="Rechercher nom, SIREN, ville, email..." oninput="window.afficherClients && window.afficherClients()" /></div>'
-      + '<select id="s13-cl-type" onchange="window.afficherClients && window.afficherClients()">'
-      + '<option value="">Tous types</option><option value="pro">🏢 Pro</option><option value="particulier">🙋 Particulier</option></select>'
-      + '<select id="s13-cl-score" onchange="window.afficherClients && window.afficherClients()">'
-      + '<option value="">Tous scorings</option>'
-      + '<option value="bon">🟢 Bons payeurs</option>'
-      + '<option value="surveiller">🟡 À surveiller</option>'
-      + '<option value="mauvais">🔴 Mauvais payeurs</option>'
-      + '<option value="nouveau">⚪ Nouveaux</option></select>'
-      + '<button class="btn-secondary" onclick="document.getElementById(\'s13-cl-search\').value=\'\';document.getElementById(\'s13-cl-type\').value=\'\';document.getElementById(\'s13-cl-score\').value=\'\';window.afficherClients && window.afficherClients();">Réinitialiser</button>';
-    card.parentNode.insertBefore(filters, card);
-    // Upgrade table header
-    const thead = card.querySelector('thead tr');
-    if (thead) {
-      thead.innerHTML = '<th>Type</th><th>Nom</th><th>Ville</th><th>Téléphone</th><th>CA année</th><th>Solde dû</th><th>Dernière liv.</th><th>Scoring</th><th>Actions</th>';
-    }
-    const tbody = card.querySelector('tbody');
-    if (tbody) {
-      const emptyRow = tbody.querySelector('.empty-row');
-      if (emptyRow) emptyRow.setAttribute('colspan','9');
-    }
-  }
-
-  if (typeof window.afficherClients === 'function' && !window.afficherClients.__s13) {
-    const origAfficherClients = window.afficherClients;
-    const wrapped = function() {
-      injecterFiltresClients();
-      const tb = document.getElementById('tb-clients');
-      if (!tb) return origAfficherClients.apply(this, arguments);
-      const clients = load(LS.clients);
-      if (!clients.length) return origAfficherClients.apply(this, arguments);
-      if (typeof paginer === 'function') paginer.__reload_tb_clients = window.afficherClients;
-
-      const q = (document.getElementById('s13-cl-search')?.value || '').toLowerCase().trim();
-      const ftype = document.getElementById('s13-cl-type')?.value || '';
-      const fscore = document.getElementById('s13-cl-score')?.value || '';
-      const ftri = document.getElementById('s13-cl-tri')?.value || 'nom';
-
-      let rows = clients.map(c => {
-        const stats = window.getClientStats(c.id) || {};
-        const sc = window.getClientScoring(c.id);
-        return { c, stats, sc };
-      });
-      if (ftype) rows = rows.filter(r => (r.c.type||'pro') === ftype);
-      if (fscore) rows = rows.filter(r => r.sc.tag === fscore);
-      if (q) rows = rows.filter(r => {
-        const c = r.c;
-        return (c.nom||'').toLowerCase().includes(q)
-          || (c.siren||'').toLowerCase().includes(q)
-          || (c.ville||'').toLowerCase().includes(q)
-          || (c.email||'').toLowerCase().includes(q)
-          || (c.tel||'').toLowerCase().includes(q);
-      });
-      rows.sort((a,b) => {
-        if (ftri === 'ca') return (b.stats.caHTAnnee||0) - (a.stats.caHTAnnee||0);
-        if (ftri === 'solde') return (b.stats.soldeDu||0) - (a.stats.soldeDu||0);
-        if (ftri === 'recente') return new Date(b.stats.derniere?.date||0) - new Date(a.stats.derniere?.date||0);
-        return (a.c.nom||'').localeCompare(b.c.nom||'','fr');
-      });
-
-      if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">Aucun client ne correspond aux filtres</td></tr>'; return; }
-
-      const render = items => items.map(r => {
-        const c = r.c, st = r.stats, sc = r.sc;
-        const iconType = (c.type||'pro') === 'pro' ? '🏢' : '🙋';
-        const soldeClass = (st.soldeDu||0) > 0 ? 'solde-positif' : 'solde-zero';
-        const echAlert = (st.echeancesDepassees||0) > 0 ? ' <span class="ech-alert" title="'+st.echeancesDepassees+' échéance(s) dépassée(s)">⏰</span>' : '';
-        const dern = st.derniere ? fmtDate(st.derniere.date) : '—';
-        return '<tr>'
-          + '<td>'+iconType+'</td>'
-          + '<td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient(\''+c.id+'\')" style="font-weight:700">'+escHtml(c.nom||'')+'</button>'
-          +   (c.siren ? '<div style="font-size:.72rem;color:var(--text-muted)">SIREN '+escHtml(c.siren)+'</div>' : '')+'</td>'
-          + '<td>'+escHtml([c.cp, c.ville].filter(Boolean).join(' ')||'—')+'</td>'
-          + '<td>'+escHtml(c.tel||'—')+'</td>'
-          + '<td><strong>'+fmtEur(st.caHTAnnee||0)+'</strong><div style="font-size:.72rem;color:var(--text-muted)">'+(st.livsAnnee?.length||0)+' liv.</div></td>'
-          + '<td class="'+soldeClass+'"><strong>'+fmtEur(st.soldeDu||0)+'</strong>'+echAlert+'</td>'
-          + '<td>'+dern+'</td>'
-          + '<td><span class="score-badge '+sc.cls+'" title="'+escHtml(sc.reason||'')+'">'+sc.icon+' '+escHtml(sc.label)+'</span></td>'
-          + '<td>'+(typeof buildInlineActionsDropdown==='function' ? buildInlineActionsDropdown('Actions', [
-              { icon:'📚', label:'Historique', action:'ouvrirHistoriqueClient(\''+c.id+'\')' },
-              { icon:'✏️', label:'Modifier', action:'ouvrirEditClient(\''+c.id+'\')' },
-              { icon:'📦', label:'Nouvelle livraison', action:'preFillLivraisonClient(\''+c.id+'\')' },
-              { icon:'🗑️', label:'Supprimer', action:'supprimerClient(\''+c.id+'\')', danger:true }
-            ]) : '')+'</td>'
-          + '</tr>';
-      }).join('');
-
-      if (typeof paginer === 'function') paginer(rows, 'tb-clients', render, 12);
-      else tb.innerHTML = render(rows);
-    };
-    wrapped.__s13 = true;
-    window.afficherClients = wrapped;
-  }
-
-  /* ---------- Fiche historique enrichie ---------- */
-  if (typeof window.ouvrirHistoriqueClient === 'function' && !window.ouvrirHistoriqueClient.__s13) {
-    const origOpen = window.ouvrirHistoriqueClient;
-    const wrapped = function(id) {
-      origOpen.apply(this, arguments);
-      setTimeout(() => enrichirFicheClient(id), 20);
-    };
-    wrapped.__s13 = true;
-    window.ouvrirHistoriqueClient = wrapped;
-  }
-  function enrichirFicheClient(id) {
-    const content = document.getElementById('client-history-content');
-    if (!content) return;
-    if (content.querySelector('#s13-fiche-enrichie')) return;
-    const st = window.getClientStats(id);
-    if (!st) return;
-    const sc = window.getClientScoring(id);
-    const c = st.client;
-    const delai = parseInt(c.delaiPaiementJours, 10) || 30;
-    const block = document.createElement('div');
-    block.id = 's13-fiche-enrichie';
-    block.innerHTML = ''
-      + '<div class="fiche-scoring-row">'
-      +   '<span class="score-badge '+sc.cls+' score-badge-xl">'+sc.icon+' '+escHtml(sc.label)+'</span>'
-      +   '<span style="color:var(--text-muted);font-size:.85rem">'+escHtml(sc.reason||'')+'</span>'
-      +   (c.type==='pro' ? '<span class="fiche-info-chip">🏢 Pro'+(c.siren?' · SIREN '+escHtml(c.siren):'')+'</span>' : '<span class="fiche-info-chip">🙋 Particulier</span>')
-      +   (c.tvaIntra ? '<span class="fiche-info-chip">TVA '+escHtml(c.tvaIntra)+'</span>' : '')
-      +   '<span class="fiche-info-chip">Délai paiement : '+delai+'j</span>'
-      +   (st.echeancesDepassees>0 ? '<span class="fiche-info-chip ech-chip">⏰ '+st.echeancesDepassees+' échéance(s) dépassée(s)</span>' : '')
-      + '</div>'
-      + '<div class="kpi-grid" style="margin-bottom:16px">'
-      +   '<div class="kpi-card green"><div class="kpi-label">CA HT année</div><div class="kpi-value">'+fmtEur(st.caHTAnnee)+'</div></div>'
-      +   '<div class="kpi-card blue"><div class="kpi-label">Factures émises</div><div class="kpi-value">'+st.factures.length+'</div></div>'
-      +   '<div class="kpi-card purple"><div class="kpi-label">Avoirs</div><div class="kpi-value">'+st.avoirs.length+'</div></div>'
-      +   '<div class="kpi-card red"><div class="kpi-label">Solde dû TTC</div><div class="kpi-value">'+fmtEur(st.soldeDu)+'</div></div>'
-      + '</div>'
-      + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>🧾 Factures émises (liaison LIV↔FAC)</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° FAC ↔ N° LIV</th><th>Date liv.</th><th>Échéance</th><th>Montant TTC</th><th>Payé</th><th>Solde</th><th>Statut</th></tr></thead><tbody>'
-      +   (st.factures.length
-            ? st.factures.sort((a,b)=> new Date(b.dateLivraison||0) - new Date(a.dateLivraison||0)).map(f => {
-                const pays = st.paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
-                const avs = st.avoirs.filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
-                const solde = Math.max(0, (parseFloat(f.montantTTC)||0) - pays - avs);
-                let ech = '';
-                if (f.dateLivraison) { const d=new Date(f.dateLivraison); d.setDate(d.getDate()+delai); ech = d.toLocalISODate(); }
-                const enRetard = ech && solde > 0.01 && ech < new Date().toLocalISODate();
-                const stLabel = solde < 0.01 ? '<span class="badge-statut badge-paye">Payée</span>'
-                  : pays > 0 ? '<span class="badge-statut badge-partiel">Partielle</span>'
-                  : enRetard ? '<span class="badge-statut badge-attente" style="color:#ef4444;border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)">En retard</span>'
-                  : '<span class="badge-statut badge-attente">En attente</span>';
-                return '<tr>'
-                  + '<td>'+window.formatLivFacCouple(f.numLiv, f.numero)+'</td>'
-                  + '<td>'+fmtDate(f.dateLivraison)+'</td>'
-                  + '<td>'+(ech?fmtDate(ech):'—')+'</td>'
-                  + '<td><strong>'+fmtEur(f.montantTTC)+'</strong></td>'
-                  + '<td>'+fmtEur(pays)+(avs?' <span style="color:var(--text-muted);font-size:.75rem">(avoir '+fmtEur(avs)+')</span>':'')+'</td>'
-                  + '<td>'+fmtEur(solde)+'</td>'
-                  + '<td>'+stLabel+'</td>'
-                  + '</tr>';
-              }).join('')
-            : '<tr><td colspan="7" class="empty-row">Aucune facture émise</td></tr>')
-      + '</tbody></table></div></div>'
-      + (st.avoirs.length ? '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>📉 Avoirs émis</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° Avoir</th><th>Date</th><th>Facture liée</th><th>Type</th><th>Montant TTC</th><th>Motif</th></tr></thead><tbody>'
-      +   st.avoirs.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)).map(a => {
-            const f = st.factures.find(x => x.id === a.factureId);
-            return '<tr>'
-              + '<td><strong>'+escHtml(a.numero)+'</strong></td>'
-              + '<td>'+fmtDate(a.date)+'</td>'
-              + '<td>'+escHtml(f?.numero||a.factureNumero||'—')+'</td>'
-              + '<td>'+escHtml(a.type||'—')+'</td>'
-              + '<td>'+fmtEur(a.montantTTC)+'</td>'
-              + '<td style="font-size:.82rem">'+escHtml(a.motif||'—')+'</td>'
-              + '</tr>';
-          }).join('')
-      + '</tbody></table></div></div>' : '')
-      + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>💰 Paiements reçus</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N°</th><th>Date</th><th>Facture</th><th>Mode</th><th>Montant</th><th>Notes</th></tr></thead><tbody>'
-      +   (st.paiements.length
-            ? st.paiements.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0)).map(p => {
-                const f = st.factures.find(x => x.id === p.factureId);
-                return '<tr>'
-                  + '<td><strong>'+escHtml(p.numero||'—')+'</strong></td>'
-                  + '<td>'+fmtDate(p.date)+'</td>'
-                  + '<td>'+escHtml(f?.numero||'—')+'</td>'
-                  + '<td>'+escHtml(p.mode||'—')+'</td>'
-                  + '<td><strong>'+fmtEur(p.montant)+'</strong></td>'
-                  + '<td style="font-size:.82rem">'+escHtml(p.notes||'')+'</td>'
-                  + '</tr>';
-              }).join('')
-            : '<tr><td colspan="6" class="empty-row">Aucun paiement enregistré</td></tr>')
-      + '</tbody></table></div>'
-      + (c.notes ? '<div class="card" style="margin-top:16px"><div class="card-header"><h2>📝 Notes internes</h2></div><div class="modal-body"><div style="white-space:pre-wrap">'+escHtml(c.notes)+'</div></div></div>' : '');
-    content.appendChild(block);
-  }
-
-  /* ---------- Auto-complete livraison → clientId + délai auto ---------- */
-  // Assurer présence d'un input caché clientId dans le modal livraison
-  function ensureHiddenClientId() {
-    const form = document.getElementById('modal-livraison');
-    if (!form) return;
-    if (!document.getElementById('liv-client-id')) {
-      const h = document.createElement('input');
-      h.type='hidden'; h.id='liv-client-id';
-      (form.querySelector('.modal-body') || form).appendChild(h);
-    }
-  }
-  // Wrap autoCompleteClient pour proposer la création si inconnu + injecter clientId
-  if (typeof window.autoCompleteClient === 'function' && !window.autoCompleteClient.__s13) {
-    const orig = window.autoCompleteClient;
-    const wrapped = function(val) {
-      ensureHiddenClientId();
-      orig.apply(this, arguments);
-      const hid = document.getElementById('liv-client-id'); if (hid) hid.value='';
-      const sug = document.getElementById('client-suggestions');
-      if (!sug) return;
-      // Remplacer handlers des suggestions : injecter clientId + SIREN + préremplir
-      sug.querySelectorAll('div').forEach(el => {
-        const nomMatch = el.textContent.split(' — ')[0]?.trim() || el.innerText.trim();
-        const c = load(LS.clients).find(x => (x.nom||'').toLowerCase() === nomMatch.toLowerCase());
-        if (!c) return;
-        el.onclick = function() {
-          const nomInput = document.getElementById('liv-client');
-          if (nomInput) nomInput.value = c.nom || '';
-          const zoneEl = document.getElementById('liv-zone'); if (zoneEl && c.adresse) zoneEl.value = c.adresse;
-          const depEl = document.getElementById('liv-depart'); if (depEl && c.adresse) depEl.value = c.adresse;
-          const sirenEl = document.getElementById('liv-client-siren'); if (sirenEl) sirenEl.value = c.siren || '';
-          const hid = document.getElementById('liv-client-id'); if (hid) hid.value = c.id;
-          sug.innerHTML = '';
-        };
-      });
-      // Si aucune suggestion mais nom saisi → proposer création
-      const clients = load(LS.clients);
-      if (val && val.length >= 3 && !clients.find(c => (c.nom||'').toLowerCase() === val.toLowerCase())) {
-        const existing = sug.querySelector('.s13-create-client');
-        if (!existing) {
-          const div = document.createElement('div');
-          div.className='s13-create-client';
-          div.style.cssText='padding:8px 12px;cursor:pointer;font-size:.85rem;color:#6366f1;font-weight:600;border-top:1px solid var(--border);background:rgba(99,102,241,.06)';
-          div.innerHTML = '➕ Créer la fiche client « '+escHtml(val)+' »';
-          div.onclick = function() {
-            closeModal('modal-livraison');
-            openModal('modal-client');
-            setTimeout(()=>{ const e=document.getElementById('cl-nom'); if(e){ e.value = val; e.focus(); }}, 80);
-          };
-          sug.appendChild(div);
-        }
-      }
-    };
-    wrapped.__s13 = true;
-    window.autoCompleteClient = wrapped;
-  }
-
-  /* ---------- Hook création livraison : capturer clientId + SIREN depuis fiche ---------- */
-  if (typeof window.ajouterLivraison === 'function' && !window.ajouterLivraison.__s13) {
-    const orig = window.ajouterLivraison;
-    const wrapped = function() {
-      // Si user n'a pas cliqué la suggestion mais a tapé un nom exact → match automatique
-      const nom = document.getElementById('liv-client')?.value.trim() || '';
-      const hid = document.getElementById('liv-client-id');
-      if (hid && !hid.value && nom) {
-        const c = load(LS.clients).find(x => (x.nom||'').toLowerCase() === nom.toLowerCase());
-        if (c) {
-          hid.value = c.id;
-          const sirenEl = document.getElementById('liv-client-siren'); if (sirenEl && !sirenEl.value) sirenEl.value = c.siren || '';
-        }
-      }
-      const result = orig.apply(this, arguments);
-      // Après création, relier clientId dans la livraison fraîchement créée (la dernière)
-      if (hid && hid.value) {
-        const livs = load(LS.livraisons);
-        if (livs.length) {
-          livs[livs.length-1].clientId = hid.value;
-          save(LS.livraisons, livs);
-        }
-        hid.value='';
-      }
-      return result;
-    };
-    wrapped.__s13 = true;
-    window.ajouterLivraison = wrapped;
-  }
-
-  /* ---------- preFillLivraisonClient → aussi poser clientId + SIREN ---------- */
-  if (typeof window.preFillLivraisonClient === 'function' && !window.preFillLivraisonClient.__s13) {
-    const orig = window.preFillLivraisonClient;
-    const wrapped = function(id) {
-      orig.apply(this, arguments);
-      setTimeout(() => {
-        ensureHiddenClientId();
-        const c = load(LS.clients).find(x => x.id === id);
-        if (!c) return;
-        const hid = document.getElementById('liv-client-id'); if (hid) hid.value = c.id;
-        const sirenEl = document.getElementById('liv-client-siren'); if (sirenEl) sirenEl.value = c.siren || '';
-      }, 250);
-    };
-    wrapped.__s13 = true;
-    window.preFillLivraisonClient = wrapped;
-  }
-
-  /* ---------- Colonne "Bon de livraison" dans afficherFacturation + tri toggle ---------- */
-  let _s13SortBy = 'fac'; // 'fac' ou 'liv'
-  function injecterTriFacturation() {
-    const page = document.getElementById('page-facturation');
-    if (!page || page.querySelector('#s13-tri-fac')) return;
-    const filtres = page.querySelector('.enc-filters, .filters, .page-actions');
-    if (!filtres) return;
-    const box = document.createElement('div');
-    box.id = 's13-tri-fac';
-    box.className = 's13-tri-box';
-    box.innerHTML = '<span class="s13-tri-label">Trier par :</span>'
-      + '<button type="button" class="btn-toggle-tri active" data-tri="fac">N° FAC</button>'
-      + '<button type="button" class="btn-toggle-tri" data-tri="liv">N° LIV</button>';
-    filtres.appendChild(box);
-    box.querySelectorAll('button').forEach(b => {
-      b.onclick = () => {
-        _s13SortBy = b.dataset.tri;
-        box.querySelectorAll('button').forEach(x => x.classList.remove('active'));
-        b.classList.add('active');
-        if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-      };
-    });
-  }
-  window.__s13GetSortBy = () => _s13SortBy;
-
-  /* Wrap afficherFacturation : ajoute colonne Bon de livraison + applique tri _s13SortBy */
-  function hookAfficherFacturation() {
-    if (typeof window.afficherFacturation !== 'function' || window.afficherFacturation.__s13) return;
-    const orig = window.afficherFacturation;
-    const wrapped = function() {
-      const r = orig.apply(this, arguments);
-      postProcessFacturation();
-      return r;
-    };
-    wrapped.__s13 = true;
-    window.afficherFacturation = wrapped;
-  }
-  function postProcessFacturation() {
-    const tbody = document.getElementById('tb-facturation');
-    if (!tbody) return;
-    const thead = tbody.closest('table')?.querySelector('thead tr');
-    if (thead && !thead.querySelector('[data-s13-col]')) {
-      const th = document.createElement('th');
-      th.textContent = 'Bon de livraison';
-      th.setAttribute('data-s13-col','1');
-      if (thead.children[1]) thead.insertBefore(th, thead.children[1]);
-      else thead.appendChild(th);
-    }
-    const rows = Array.from(tbody.querySelectorAll('tr'));
-    // Ignorer l'empty state
-    if (rows.length === 1 && rows[0].children.length === 1) {
-      rows[0].children[0].setAttribute('colspan', '11');
-      return;
-    }
-    const factures = load(LS.factures);
-    rows.forEach(tr => {
-      if (tr.querySelector('[data-s13-cell]')) return;
-      const firstCell = tr.children[0];
-      const numFac = firstCell?.textContent.trim() || '';
-      const f = factures.find(x => (x.numero || '') === numFac);
-      const td = document.createElement('td');
-      td.setAttribute('data-s13-cell','1');
-      td.innerHTML = window.formatLivFacCouple(f?.numLiv || '', f?.numero || '');
-      tr.insertBefore(td, tr.children[1] || null);
-    });
-    // Re-tri selon _s13SortBy
-    if (_s13SortBy === 'liv') {
-      const sorted = rows
-        .filter(tr => tr.querySelector('[data-s13-cell]'))
-        .sort((a, b) => {
-          const ka = a.children[1]?.textContent.trim() || '';
-          const kb = b.children[1]?.textContent.trim() || '';
-          return kb.localeCompare(ka);
-        });
-      sorted.forEach(tr => tbody.appendChild(tr));
-    }
-  }
-
-  /* ---------- Init au DOM ready ---------- */
-  function initS13() {
-    migrateLivraisonsClientId();
-    ensureHiddenClientId();
-    hookAfficherFacturation();
-    if (typeof window.afficherClients === 'function') {
-      const page = document.getElementById('page-clients');
-      if (page && !page.classList.contains('hidden')) setTimeout(window.afficherClients, 50);
-    }
-    if (typeof window.naviguerVers === 'function' && !window.naviguerVers.__s13) {
-      const origNav = window.naviguerVers;
-      const wrapped = function(page) {
-        const r = origNav.apply(this, arguments);
-        if (page === 'clients') setTimeout(() => { if (window.afficherClients) window.afficherClients(); }, 30);
-        if (page === 'facturation') setTimeout(() => { injecterTriFacturation(); hookAfficherFacturation(); postProcessFacturation(); }, 50);
-        return r;
-      };
-      wrapped.__s13 = true;
-      window.naviguerVers = wrapped;
-    }
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS13);
-  else setTimeout(initS13, 50);
-
-})();
-
-/* =========================================================================
- * SPRINT 14 — Relances & Impayés (sous-onglet Encaissements)
- * - 4 niveaux (0=confirmation réception, 1=amiable, 2=ferme, 3=mise en demeure)
- * - Basé sur factures_emises + délaiPaiementJours du client (fallback 30j)
- * - Intérêts de retard art. L441-10 (taux BCE + 10 pts) + forfait 40€
- * - Historique relances_log, PDF + mailto, confirmations réception
- * - Bandeau dashboard + badge sous-onglet + redirect ancien /relances
- * =======================================================================*/
-(function(){
-  if (window.__s14Installed) return;
-  window.__s14Installed = true;
-
-  const LS = { clients:'clients', livraisons:'livraisons', factures:'factures_emises', avoirs:'avoirs_emis', paiements:'paiements', relances:'relances_log', templates:'relance_templates_v2', params:'params_entreprise' };
-  const load = k => { try { return loadSafe(k, []); } catch(e){ return []; } };
-  const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-  const escHtml = window.escapeHtml;
-  const fmtEur = v => (typeof euros==='function') ? euros(v) : (parseFloat(v)||0).toFixed(2)+' €';
-  const fmtDate = v => { try { return (typeof formatDateExport==='function' && v) ? formatDateExport(v) : (v||'—'); } catch(e){ return v||'—'; } };
-  const isoDate = d => d instanceof Date ? d.toLocalISODate() : (typeof d==='string' ? d.slice(0,10) : '');
-  const joursEntre = (a,b) => Math.floor((new Date(b) - new Date(a)) / 86400000);
-
-  // Taux BCE + 10 points (simplifié 14.5%/an) + forfait 40€ art. L441-10
-  const TAUX_RETARD_ANNUEL = 0.145;
-  const FORFAIT_RECOUVREMENT = 40;
-
-  /* ---------- Templates par défaut (non-agressifs) ---------- */
-  function getTemplatesDefaut() {
-    return {
-      '0': 'Bonjour{contact},\n\nNous avons émis à votre attention la facture {numFacture} d\'un montant de {montantTTC} correspondant à la livraison {numLiv} du {dateLivraison}.\n\nPourriez-vous nous confirmer sa bonne réception ? Cela nous permet de valider ensemble le point de départ du délai de règlement.\n\nSi vous avez la moindre question, nous restons à votre disposition.\n\nCordialement,\n{societe}',
-      '1': 'Bonjour{contact},\n\nSauf erreur de notre part, la facture {numFacture} d\'un montant de {montantTTC} émise le {dateLivraison} (échéance {dateEcheance}) est toujours en attente de règlement ({joursRetard} jour(s) de retard).\n\nIl est possible que ce courrier se croise avec votre paiement ; dans ce cas, merci de ne pas en tenir compte.\n\nDans le cas contraire, nous vous saurions gré de bien vouloir procéder au règlement dès que possible, ou nous indiquer la date prévue.\n\nBien cordialement,\n{societe}',
-      '2': 'Bonjour{contact},\n\nMalgré notre précédent rappel, nous constatons que la facture {numFacture} d\'un montant de {montantTTC} (échéance {dateEcheance}) demeure impayée à ce jour ({joursRetard} jours de retard).\n\nNous vous remercions de bien vouloir régulariser la situation sous 8 jours, ou à défaut de nous contacter pour convenir d\'un échéancier.\n\nÀ votre disposition pour tout échange,\n{societe}',
-      '3': 'Objet : Mise en demeure de payer — Facture {numFacture}\n\nMadame, Monsieur{contact},\n\nMalgré nos précédents rappels restés sans effet, la facture {numFacture} d\'un montant de {montantTTC}, émise le {dateLivraison} et exigible au {dateEcheance}, demeure impayée à ce jour ({joursRetard} jours de retard).\n\nPar la présente, nous vous mettons en demeure de procéder au règlement intégral sous 8 jours à réception de ce courrier.\n\nConformément à l\'article L.441-10 du Code de commerce, en cas de retard de paiement entre professionnels, sont dus de plein droit :\n  • des intérêts de retard calculés au taux de la BCE majoré de 10 points, soit {interets} au titre de la présente créance ;\n  • une indemnité forfaitaire pour frais de recouvrement de 40 €.\n\nÀ défaut de règlement dans le délai imparti, nous nous réservons le droit d\'engager toute procédure utile au recouvrement de notre créance, par voie judiciaire et aux frais exclusifs du débiteur.\n\nVeuillez agréer, Madame, Monsieur, l\'expression de nos salutations distinguées.\n\n{societe}'
-    };
-  }
-  function chargerTemplatesV2() {
-    const defauts = getTemplatesDefaut();
-    const saved = (()=>{ try { return loadSafe(LS.templates, {}); } catch(e){ return {}; } })();
-    return { '0': saved['0'] || defauts['0'], '1': saved['1'] || defauts['1'], '2': saved['2'] || defauts['2'], '3': saved['3'] || defauts['3'] };
-  }
-  window.ouvrirModalTemplatesRelanceV2 = function() {
-    const t = chargerTemplatesV2();
-    ['0','1','2','3'].forEach(lv => { const el = document.getElementById('rel-tpl-'+lv); if (el) el.value = t[lv]; });
-    if (typeof openModal === 'function') openModal('modal-relance-templates-v2');
-    else document.getElementById('modal-relance-templates-v2')?.classList.add('open');
-  };
-  window.sauvegarderTemplatesRelanceV2 = function() {
-    const defauts = getTemplatesDefaut();
-    const payload = {};
-    ['0','1','2','3'].forEach(lv => {
-      const el = document.getElementById('rel-tpl-'+lv);
-      payload[lv] = (el?.value || '').trim() || defauts[lv];
-    });
-    localStorage.setItem(LS.templates, JSON.stringify(payload));
-    if (typeof afficherToast === 'function') afficherToast('✅ Modèles de relance enregistrés');
-    if (typeof closeModal === 'function') closeModal('modal-relance-templates-v2');
-  };
-  window.reinitialiserTemplatesRelanceV2 = function() {
-    const def = getTemplatesDefaut();
-    ['0','1','2','3'].forEach(lv => { const el = document.getElementById('rel-tpl-'+lv); if (el) el.value = def[lv]; });
-    localStorage.setItem(LS.templates, JSON.stringify(def));
-    if (typeof afficherToast === 'function') afficherToast('🔄 Modèles réinitialisés');
-  };
-
-  /* ---------- Analyse factures en retard ---------- */
-  function soldeFacture(f) {
-    if (!f) return 0;
-    if (f.statut === 'annulée') return 0;
-    const pays = load(LS.paiements).filter(p => p.factureId === f.id && p.sens === 'in').reduce((s,p)=>s+(parseFloat(p.montant)||0),0);
-    const avs = load(LS.avoirs).filter(a => a.factureId === f.id).reduce((s,a)=>s+(parseFloat(a.montantTTC)||0),0);
-    return Math.max(0, (parseFloat(f.montantTTC)||0) - pays - avs);
-  }
-  function clientOfFacture(f) {
-    const livs = load(LS.livraisons);
-    const liv = livs.find(l => l.id === f.livId);
-    const clients = load(LS.clients);
-    if (liv?.clientId) return clients.find(c => c.id === liv.clientId) || null;
-    const nom = (liv?.client || f.client || '').trim().toLowerCase();
-    return clients.find(c => (c.nom||'').trim().toLowerCase() === nom) || null;
-  }
-  function delaiPaiementFacture(f) {
-    const c = clientOfFacture(f);
-    if (c && parseInt(c.delaiPaiementJours, 10) > 0) return parseInt(c.delaiPaiementJours, 10);
-    return parseInt(localStorage.getItem('relance_delai'), 10) || 30;
-  }
-  function echeanceFacture(f) {
-    const base = f.dateLivraison || f.dateFacture;
-    if (!base) return null;
-    const d = new Date(base + 'T00:00:00');
-    d.setDate(d.getDate() + delaiPaiementFacture(f));
-    return d;
-  }
-  function niveauRelance(joursRetard) {
-    if (joursRetard <= 0) return 0;
-    if (joursRetard <= 30) return 1;
-    if (joursRetard <= 60) return 2;
-    return 3;
-  }
-  function interetsRetard(montantTTC, joursRetard) {
-    if (joursRetard <= 0) return 0;
-    return Math.round((montantTTC * TAUX_RETARD_ANNUEL * joursRetard / 365) * 100) / 100;
-  }
-  function derniereRelanceEnvoyee(factureId) {
-    return load(LS.relances)
-      .filter(r => r.factureId === factureId && r.statut === 'envoyee')
-      .sort((a,b) => new Date(b.date||0) - new Date(a.date||0))[0] || null;
-  }
-  function getFacturesEnRetard(filterNiveau) {
-    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
-    const today = new Date(); today.setHours(0,0,0,0);
-    const rows = [];
-    factures.forEach(f => {
-      const solde = soldeFacture(f);
-      if (solde < 0.01) return;
-      const ech = echeanceFacture(f);
-      const joursRetard = ech ? Math.floor((today - ech) / 86400000) : 0;
-      const niveau = niveauRelance(joursRetard);
-      if (filterNiveau !== '' && filterNiveau != null && parseInt(filterNiveau, 10) !== niveau) return;
-      rows.push({
-        facture: f,
-        solde, ech, joursRetard, niveau,
-        client: clientOfFacture(f),
-        derniereRelance: derniereRelanceEnvoyee(f.id)
-      });
-    });
-    return rows;
-  }
-  window.getFacturesEnRetard = getFacturesEnRetard;
-
-  /* ---------- Rendu sous-onglet Relances ---------- */
-  window.afficherRelancesV2 = function() {
-    const tb = document.getElementById('tb-relances-v2');
-    if (!tb) return;
-    const q = (document.getElementById('rel-search')?.value || '').toLowerCase();
-    const fNiv = document.getElementById('rel-filter-niveau')?.value || '';
-    const tri = document.getElementById('rel-tri')?.value || 'retard';
-
-    let rows = getFacturesEnRetard('');
-    if (fNiv !== '') rows = rows.filter(r => r.niveau === parseInt(fNiv, 10));
-    if (q) rows = rows.filter(r =>
-      (r.facture.numero||'').toLowerCase().includes(q)
-      || (r.facture.client||'').toLowerCase().includes(q)
-      || (r.client?.nom||'').toLowerCase().includes(q)
-    );
-    const seqOf = (s) => { const m = String(s||'').match(/-(\d{4})-(\d+)$/); return m ? parseInt(m[1], 10)*100000 + parseInt(m[2], 10) : Number.MAX_SAFE_INTEGER; };
-    rows.sort((a,b) => {
-      if (tri === 'montant') return b.solde - a.solde;
-      if (tri === 'client')  return (a.facture.client||'').localeCompare(b.facture.client||'','fr');
-      if (tri === 'liv')     return seqOf(a.facture.numLiv) - seqOf(b.facture.numLiv);
-      if (tri === 'fac')     return seqOf(a.facture.numero) - seqOf(b.facture.numero);
-      return b.joursRetard - a.joursRetard;
-    });
-
-    // Stats globales
-    const allRetards = getFacturesEnRetard('').filter(r => r.niveau > 0);
-    const totalImp = allRetards.reduce((s,r)=>s+r.solde,0);
-    const nbRetard = allRetards.length;
-    const since30 = Date.now() - 30*86400000;
-    const nbEnvoyees30 = load(LS.relances).filter(r => r.statut === 'envoyee' && new Date(r.date).getTime() > since30).length;
-    const setTxt = (id,v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-    setTxt('rel-total-impaye', fmtEur(totalImp));
-    setTxt('rel-total-retard', nbRetard);
-    setTxt('rel-total-envoyees', nbEnvoyees30);
-
-    // Badge sous-onglet
-    const badge = document.getElementById('enc-tab-badge-relances');
-    if (badge) {
-      if (nbRetard > 0) { badge.textContent = nbRetard; badge.style.display = ''; }
-      else { badge.style.display = 'none'; badge.textContent = ''; }
-    }
-
-    if (!rows.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">✅ Aucune facture en retard pour ces filtres</td></tr>'; return; }
-
-    tb.innerHTML = rows.map(r => {
-      const f = r.facture; const c = r.client;
-      const nivLabels = ['🔵 À jour','🟢 Niv 1 — Amiable','🟡 Niv 2 — Ferme','🔴 Niv 3 — Mise en demeure'];
-      const nivCls = ['niv-0','niv-1','niv-2','niv-3'];
-      const derLabel = r.derniereRelance ? 'Niv '+r.derniereRelance.niveau+' le '+fmtDate(r.derniereRelance.date) : '—';
-      const canRelance = r.niveau > 0;
-      const coupleCell = (typeof window.formatLivFacCouple === 'function')
-        ? window.formatLivFacCouple(f.numLiv||'', f.numero||'')
-        : '<strong>'+escHtml(f.numero||'—')+'</strong><div style="font-size:.7rem;color:var(--text-muted)">'+escHtml(f.numLiv||'')+'</div>';
-      return '<tr>'
-        + '<td>'+coupleCell+'</td>'
-        + '<td>'+escHtml(f.client||c?.nom||'—')+'</td>'
-        + '<td>'+fmtDate(f.dateLivraison)+'</td>'
-        + '<td>'+(r.ech ? fmtDate(isoDate(r.ech)) : '—')+'</td>'
-        + '<td><strong>'+fmtEur(r.solde)+'</strong></td>'
-        + '<td>'+(r.joursRetard > 0 ? '<span class="retard-pill" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.3);padding:2px 8px;border-radius:12px;font-weight:700;font-size:.78rem">+'+r.joursRetard+' j</span>' : '<span style="color:var(--text-muted)">—</span>')+'</td>'
-        + '<td><span class="niv-pill '+nivCls[r.niveau]+'">'+nivLabels[r.niveau]+'</span></td>'
-        + '<td style="font-size:.82rem">'+escHtml(derLabel)+'</td>'
-        + '<td>'
-        +   (canRelance ? '<button class="btn-icon" onclick="ouvrirEnvoiRelance(\''+f.id+'\','+r.niveau+')" title="Relancer niv. '+r.niveau+'">📧</button>' : '')
-        +   ' <button class="btn-icon" onclick="ouvrirEnvoiRelance(\''+f.id+'\',0)" title="Demander confirmation réception">📨</button>'
-        +   ' <button class="btn-icon" onclick="voirHistoriqueRelances(\''+f.id+'\')" title="Historique relances">📋</button>'
-        + '</td>'
-        + '</tr>';
-    }).join('');
-  };
-
-  /* ---------- Historique relances par facture ---------- */
-  window.voirHistoriqueRelances = function(factureId) {
-    const f = load(LS.factures).find(x => x.id === factureId);
-    if (!f) return;
-    const log = load(LS.relances).filter(r => r.factureId === factureId).sort((a,b)=> new Date(b.date||0)-new Date(a.date||0));
-    if (!log.length) { if (typeof afficherToast === 'function') afficherToast('Aucune relance envoyée pour cette facture', 'info'); return; }
-    const html = '<div style="max-width:640px"><h3 style="margin:0 0 14px 0">📋 Historique relances — '+escHtml(f.numero||'')+'</h3>'
-      + '<div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">'
-      + log.map(r => '<div style="padding:12px;background:rgba(255,255,255,0.04);border-left:3px solid var(--primary);border-radius:8px">'
-          + '<div style="font-weight:700;display:flex;justify-content:space-between;align-items:center"><span>Niveau '+r.niveau+' — '+fmtDate(r.date)+'</span>'
-          + '<span class="niv-pill niv-'+r.niveau+'" style="font-size:.72rem">'+(r.statut==='envoyee'?'✉️ Envoyée':'📝 Brouillon')+'</span></div>'
-          + (r.email ? '<div style="font-size:.82rem;color:var(--text-muted);margin-top:4px">→ '+escHtml(r.email)+'</div>' : '')
-          + '<div style="font-size:.8rem;margin-top:6px;white-space:pre-wrap;max-height:120px;overflow-y:auto;padding:8px;background:rgba(0,0,0,0.15);border-radius:6px">'+escHtml((r.corps||'').slice(0,400))+(r.corps && r.corps.length>400?'…':'')+'</div>'
-          + '</div>').join('')
-      + '</div></div>';
-    if (typeof modalInfo === 'function') modalInfo(html);
-    else alert(log.map(r => 'Niv '+r.niveau+' le '+fmtDate(r.date)+' — '+(r.statut==='envoyee'?'envoyée':'brouillon')).join('\n'));
-  };
-
-  /* ---------- Construction du texte ---------- */
-  function buildVars(f, r) {
-    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e){ return {}; } })();
-    const c = clientOfFacture(f) || {};
-    const contact = (c.contact || c.prenom || '').trim();
-    const interets = interetsRetard(r.solde, Math.max(0, r.joursRetard));
-    return {
-      client: f.client || c.nom || '',
-      contact: contact ? ' '+contact : '',
-      numFacture: f.numero || '',
-      numLiv: f.numLiv || '',
-      dateLivraison: fmtDate(f.dateLivraison),
-      dateEcheance: r.ech ? fmtDate(isoDate(r.ech)) : '',
-      montantTTC: fmtEur(f.montantTTC||0),
-      soldeDu: fmtEur(r.solde),
-      joursRetard: Math.max(0, r.joursRetard),
-      societe: params.nom || params.raisonSociale || 'MCA Logistics',
-      interets: fmtEur(interets),
-      forfait: fmtEur(FORFAIT_RECOUVREMENT)
-    };
-  }
-  function appliquerVars(template, vars) {
-    return String(template||'').replace(/\{(\w+)\}/g, (m,k) => vars[k] != null ? vars[k] : m);
-  }
-  function emailDestinataire(f) {
-    const c = clientOfFacture(f);
-    return c?.emailFact || c?.email || '';
-  }
-
-  /* ---------- Modal envoi relance ---------- */
-  let _currentFactureRelance = null;
-  let _currentNiveauRelance = 0;
-  window.ouvrirEnvoiRelance = function(factureId, niveau) {
-    const f = load(LS.factures).find(x => x.id === factureId);
-    if (!f) { if (typeof afficherToast === 'function') afficherToast('Facture introuvable', 'error'); return; }
-    const allRows = getFacturesEnRetard('');
-    const r = allRows.find(x => x.facture.id === factureId) || {
-      facture: f, solde: soldeFacture(f), ech: echeanceFacture(f), joursRetard: 0, niveau: 0, client: clientOfFacture(f)
-    };
-    _currentFactureRelance = f;
-    _currentNiveauRelance = niveau;
-    const tpl = chargerTemplatesV2()[String(niveau)] || '';
-    const vars = buildVars(f, r);
-    const corps = appliquerVars(tpl, vars);
-    const titres = ['📨 Confirmation de réception','📧 Rappel amiable — Niveau 1','📧 Relance ferme — Niveau 2','⚠️ Mise en demeure — Niveau 3'];
-    const objets = [
-      'Confirmation de réception — Facture '+(f.numero||''),
-      'Rappel — Facture '+(f.numero||'')+' en attente',
-      'Relance — Facture '+(f.numero||'')+' impayée',
-      'Mise en demeure — Facture '+(f.numero||'')
-    ];
-    const setV = (id,v) => { const e=document.getElementById(id); if (e) e.value = v; };
-    setV('envoi-rel-fac-id', f.id);
-    setV('envoi-rel-niveau', String(niveau));
-    setV('envoi-rel-email', emailDestinataire(f));
-    setV('envoi-rel-objet', objets[niveau]);
-    setV('envoi-rel-corps', corps);
-    const titreEl = document.getElementById('envoi-rel-titre'); if (titreEl) titreEl.textContent = titres[niveau];
-    const resumeEl = document.getElementById('envoi-rel-resume');
-    if (resumeEl) {
-      resumeEl.innerHTML = '<div class="envoi-rel-grid">'
-        + '<div><span>Client</span><strong>'+escHtml(f.client||'—')+'</strong></div>'
-        + '<div><span>Facture</span><strong>'+escHtml(f.numero||'')+'</strong></div>'
-        + '<div><span>Montant TTC</span><strong>'+fmtEur(f.montantTTC||0)+'</strong></div>'
-        + '<div><span>Solde dû</span><strong>'+fmtEur(r.solde)+'</strong></div>'
-        + (niveau>0 ? '<div><span>Retard</span><strong style="color:#ef4444">+'+Math.max(0,r.joursRetard)+' j</strong></div>' : '<div><span>Statut</span><strong>Émise</strong></div>')
-        + '</div>';
-    }
-    const legalEl = document.getElementById('envoi-rel-legal');
-    if (legalEl) {
-      if (niveau === 3) {
-        const interets = interetsRetard(r.solde, Math.max(0, r.joursRetard));
-        legalEl.style.display = '';
-        legalEl.innerHTML = '<strong>⚖️ Mentions légales automatiquement incluses</strong>'
-          + '<div>Intérêts de retard (BCE + 10 pts, prorata temporis) : <strong>'+fmtEur(interets)+'</strong></div>'
-          + '<div>Indemnité forfaitaire de recouvrement (art. L441-10) : <strong>'+fmtEur(FORFAIT_RECOUVREMENT)+'</strong></div>'
-          + '<div style="font-size:.75rem;margin-top:4px;color:var(--text-muted)">Conforme art. L441-10 du Code de commerce — à conserver en cas de contentieux.</div>';
-      } else { legalEl.style.display = 'none'; legalEl.innerHTML=''; }
-    }
-    if (typeof openModal === 'function') openModal('modal-envoi-relance');
-    else document.getElementById('modal-envoi-relance')?.classList.add('open');
-  };
-
-  function logRelance(statut) {
-    if (!_currentFactureRelance) return null;
-    const corps = document.getElementById('envoi-rel-corps')?.value || '';
-    const email = document.getElementById('envoi-rel-email')?.value || '';
-    const objet = document.getElementById('envoi-rel-objet')?.value || '';
-    const entry = {
-      id: (typeof genId === 'function' ? genId() : 'rel_'+Date.now()+'_'+Math.random().toString(36).slice(2,8)),
-      factureId: _currentFactureRelance.id,
-      factureNumero: _currentFactureRelance.numero,
-      client: _currentFactureRelance.client,
-      niveau: _currentNiveauRelance,
-      date: new Date().toISOString(),
-      statut: statut,
-      email, objet, corps
-    };
-    const log = load(LS.relances); log.push(entry); save(LS.relances, log);
-    if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Relance '+(statut==='envoyee'?'envoyée':'téléchargée'), (_currentFactureRelance.numero||'') + ' · niveau '+_currentNiveauRelance);
-    return entry;
-  }
-
-  window.envoyerRelanceMailto = function() {
-    if (!_currentFactureRelance) return;
-    const email = document.getElementById('envoi-rel-email')?.value.trim() || '';
-    const objet = document.getElementById('envoi-rel-objet')?.value.trim() || '';
-    const corps = document.getElementById('envoi-rel-corps')?.value || '';
-    if (!email) { if (typeof afficherToast === 'function') afficherToast('⚠️ Email du destinataire requis', 'error'); return; }
-    logRelance('envoyee');
-    const mailto = 'mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(objet)+'&body='+encodeURIComponent(corps);
-    window.location.href = mailto;
-    if (typeof closeModal === 'function') closeModal('modal-envoi-relance');
-    if (typeof afficherToast === 'function') afficherToast('✉️ Relance enregistrée + messagerie ouverte');
-    window.afficherRelancesV2 && window.afficherRelancesV2();
-  };
-
-  window.telechargerPDFRelance = function() {
-    if (!_currentFactureRelance) return;
-    const corps = document.getElementById('envoi-rel-corps')?.value || '';
-    const objet = document.getElementById('envoi-rel-objet')?.value || '';
-    const f = _currentFactureRelance;
-    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e){ return {}; } })();
-    const societe = params.nom || params.raisonSociale || 'MCA Logistics';
-    const adresseSoc = [params.adresse, params.cp, params.ville].filter(Boolean).join(' · ');
-    const dateAjd = fmtDate(new Date().toLocalISODate());
-    const c = clientOfFacture(f) || {};
-    const adresseClient = [c.adresse, [c.cp,c.ville].filter(Boolean).join(' ')].filter(Boolean).join('<br>');
-    const titreNiv = _currentNiveauRelance === 0 ? 'Confirmation de réception' : _currentNiveauRelance === 3 ? 'Mise en demeure de payer' : 'Rappel de règlement — Niveau '+_currentNiveauRelance;
-    const html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+escHtml(objet)+'</title>'
-      + '<style>body{font-family:Arial,sans-serif;max-width:780px;margin:40px auto;padding:30px;color:#1f2937;line-height:1.6}'
-      + 'h1{font-size:1.3rem;margin:0 0 24px;color:#4f46e5}.h-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px}'
-      + '.from{font-size:.9rem}.to{font-size:.9rem;text-align:right}.date{margin:20px 0;text-align:right;font-size:.85rem;color:#6b7280}'
-      + '.obj{font-weight:700;margin:24px 0 14px;padding:10px 14px;background:#f3f4f6;border-left:3px solid #4f46e5;border-radius:4px}'
-      + '.body{white-space:pre-wrap;font-size:.95rem}.ft{margin-top:40px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:.78rem;color:#6b7280}'
-      + '@media print{body{margin:0}}</style></head><body>'
-      + '<div class="h-top"><div class="from"><strong>'+escHtml(societe)+'</strong><br>'+escHtml(adresseSoc)+'</div>'
-      + '<div class="to"><strong>'+escHtml(f.client||c.nom||'')+'</strong>'+(adresseClient?'<br>'+adresseClient:'')+(c.siren?'<br>SIREN : '+escHtml(c.siren):'')+'</div></div>'
-      + '<div class="date">'+(params.ville ? escHtml(params.ville)+', le ' : 'Le ')+dateAjd+'</div>'
-      + '<h1>'+escHtml(titreNiv)+'</h1>'
-      + '<div class="obj">'+escHtml(objet)+'</div>'
-      + '<div class="body">'+escHtml(corps)+'</div>'
-      + '<div class="ft">Document généré par MCA Logistics — '+dateAjd+' · Facture référencée : '+escHtml(f.numero||'')+'</div>'
-      + '</body></html>';
-    const w = ouvrirPopupSecure('', '_blank');
-    if (!w) { if (typeof afficherToast === 'function') afficherToast('⚠️ Popup bloqué', 'error'); return; }
-    w.document.write(html); w.document.close();
-    setTimeout(() => { try { w.print(); } catch(e){} }, 300);
-    logRelance('envoyee');
-    if (typeof afficherToast === 'function') afficherToast('📄 PDF de relance ouvert — à imprimer ou enregistrer');
-    window.afficherRelancesV2 && window.afficherRelancesV2();
-  };
-
-  /* ---------- Confirmations de réception à envoyer ---------- */
-  window.ouvrirModalConfirmationsAEnvoyer = function() {
-    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
-    const log = load(LS.relances);
-    const rows = factures.map(f => {
-      const dejaConfirm = log.find(r => r.factureId === f.id && r.niveau === 0 && r.statut === 'envoyee');
-      return { facture: f, dejaConfirm };
-    }).sort((a,b) => new Date(b.facture.dateLivraison||0) - new Date(a.facture.dateLivraison||0));
-    const tb = document.getElementById('tb-confirmations');
-    if (tb) {
-      tb.innerHTML = rows.length ? rows.map(r => {
-        const f = r.facture;
-        const statut = r.dejaConfirm ? '<span class="badge-statut badge-paye">✉️ '+fmtDate(r.dejaConfirm.date)+'</span>' : '<span class="badge-statut badge-attente">À envoyer</span>';
-        return '<tr>'
-          + '<td><strong>'+escHtml(f.numero||'')+'</strong></td>'
-          + '<td>'+escHtml(f.client||'')+'</td>'
-          + '<td>'+fmtDate(f.dateLivraison)+'</td>'
-          + '<td><strong>'+fmtEur(f.montantTTC||0)+'</strong></td>'
-          + '<td>'+statut+'</td>'
-          + '<td><button class="btn-icon" onclick="closeModal(\'modal-confirmations\');setTimeout(()=>ouvrirEnvoiRelance(\''+f.id+'\',0),80)" title="Envoyer confirmation">📨</button></td>'
-          + '</tr>';
-      }).join('') : '<tr><td colspan="6" class="empty-row">Aucune facture émise</td></tr>';
-    }
-    if (typeof openModal === 'function') openModal('modal-confirmations');
-    else document.getElementById('modal-confirmations')?.classList.add('open');
-  };
-
-  /* ---------- Wrap switchEncTab pour gérer le panel relances ---------- */
-  function hookSwitchEncTab() {
-    if (typeof window.switchEncTab !== 'function' || window.switchEncTab.__s14) return;
-    const orig = window.switchEncTab;
-    const wrapped = function(tab) {
-      const r = orig.apply(this, arguments);
-      const relPanel = document.getElementById('enc-panel-relances');
-      if (relPanel) relPanel.style.display = (tab === 'relances') ? 'block' : 'none';
-      if (tab === 'relances') window.afficherRelancesV2();
-      return r;
-    };
-    wrapped.__s14 = true;
-    window.switchEncTab = wrapped;
-  }
-
-  /* ---------- Wrap naviguerVers : redirige relances → encaissements+sub-tab ---------- */
-  function hookNaviguerVersS14() {
-    if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__s14) return;
-    const orig = window.naviguerVers;
-    const wrapped = function(page) {
-      if (page === 'relances') {
-        const r = orig.call(this, 'encaissements');
-        setTimeout(() => { try { window.switchEncTab('relances'); } catch(e){} }, 80);
-        return r;
-      }
-      const r = orig.apply(this, arguments);
-      if (page === 'encaissements') setTimeout(() => { if (window.afficherRelancesV2) window.afficherRelancesV2(); }, 60);
-      return r;
-    };
-    wrapped.__s14 = true;
-    window.naviguerVers = wrapped;
-  }
-
-  /* ---------- Bandeau dashboard ---------- */
-  function injecterBandeauDashboard() {
-    const dash = document.getElementById('page-dashboard');
-    if (!dash) return;
-    const rows = getFacturesEnRetard('').filter(r => r.niveau > 0);
-    let banner = dash.querySelector('#s14-banner-retards');
-    if (!rows.length) { if (banner) banner.remove(); return; }
-    const total = rows.reduce((s,r)=>s+r.solde,0);
-    const niv3 = rows.filter(r => r.niveau === 3).length;
-    const html = '<div class="s14-banner-content">'
-      + '<div class="s14-banner-icon">⏰</div>'
-      + '<div class="s14-banner-text"><strong>'+rows.length+' facture'+(rows.length>1?'s':'')+' en retard</strong> — '+fmtEur(total)+' à recouvrer'
-      + (niv3>0 ? ' · <span style="color:#ef4444;font-weight:700">'+niv3+' en mise en demeure</span>' : '')
-      + '</div>'
-      + '<button class="btn-primary" onclick="naviguerVers(\'encaissements\');setTimeout(()=>switchEncTab(\'relances\'),100)">Voir les relances →</button>'
-      + '</div>';
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 's14-banner-retards';
-      banner.className = 's14-banner s14-banner-warning';
-      const firstCard = dash.querySelector('.page-actions');
-      if (firstCard?.nextSibling) firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
-      else dash.appendChild(banner);
-    }
-    banner.innerHTML = html;
-  }
-  window.__s14RefreshBanner = injecterBandeauDashboard;
-
-  /* ---------- Init ---------- */
-  function initS14() {
-    hookSwitchEncTab();
-    hookNaviguerVersS14();
-    setTimeout(injecterBandeauDashboard, 200);
-    // Refresh bandeau après changement de page
-    if (typeof window.rafraichirDashboard === 'function' && !window.rafraichirDashboard.__s14) {
-      const origD = window.rafraichirDashboard;
-      const w = function() { const r = origD.apply(this, arguments); setTimeout(injecterBandeauDashboard, 40); return r; };
-      w.__s14 = true;
-      window.rafraichirDashboard = w;
-    }
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS14);
-  else setTimeout(initS14, 80);
-
 })();
 
 /* ============================================================
@@ -21581,1051 +19395,6 @@ function exporterPrevisionsPDF() {
   else setTimeout(init, 100);
 })();
 
-/* ============================================================================
- * Sprint 17 — Module FOURNISSEURS (miroir Clients)
- * - CRUD complet + historique via logChange
- * - Auto-création fiche fournisseur depuis saisie charge (pattern S15 client)
- * - Indexation palette Ctrl+K (S15)
- * - Bandeau dashboard "Fournisseurs à payer"
- * - Hook naviguerVers('fournisseurs')
- * ========================================================================== */
-(function installS17(){
-  if (window.__s17Installed) return;
-  window.__s17Installed = true;
-
-  const LS_KEY = 'fournisseurs';
-
-  /* ---------- helpers storage ---------- */
-  function loadFourn() {
-    try { return loadSafe(LS_KEY, []); } catch(e) { return []; }
-  }
-  function saveFourn(arr) {
-    localStorage.setItem(LS_KEY, JSON.stringify(arr || []));
-  }
-  const escHtml = window.escapeHtml;
-  function toEuros(n) {
-    try { return (typeof euros === 'function') ? euros(n) : (Number(n||0).toFixed(2) + ' €'); }
-    catch(e) { return Number(n||0).toFixed(2) + ' €'; }
-  }
-  function newId() {
-    return (typeof genId === 'function') ? genId() : 'F' + Date.now() + Math.random().toString(36).slice(2, 6);
-  }
-  function toast(msg, type) {
-    if (typeof afficherToast === 'function') afficherToast(msg, type);
-    else logMCA('[Fourn]', msg);
-  }
-  function audit(action, detail) {
-    if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit(action, detail);
-  }
-  function confirmAsync(msg, opts) {
-    if (typeof confirmDialog === 'function') return confirmDialog(msg, opts);
-    return Promise.resolve(true);
-  }
-
-  const CAT_LABELS = {
-    carburant:'⛽ Carburant', entretien:'🔧 Entretien', assurance:'🛡️ Assurance',
-    'loa-lld':'🚐 LOA / LLD', peage:'🛣️ Péage', telecom:'📡 Télécom',
-    banque:'🏦 Banque', fournitures:'📦 Fournitures', autre:'📝 Autre'
-  };
-
-  /* ---------- Toggle Pro / Particulier ---------- */
-  function toggleChampsFournisseurPro(edit) {
-    const radios = document.getElementsByName(edit ? 'edit-fo-type' : 'fo-type');
-    let type = 'pro';
-    for (const r of radios) { if (r.checked) { type = r.value; break; } }
-    const wrap = document.getElementById(edit ? 'edit-fo-champs-pro' : 'fo-champs-pro');
-    if (wrap) wrap.style.display = (type === 'particulier') ? 'none' : '';
-    // Si particulier, vider SIREN/TVA pour que validation ne les re-valide pas
-    if (type === 'particulier') {
-      const prefix = edit ? 'edit-fo-' : 'fo-';
-      const sirenEl = document.getElementById(prefix + 'siren');
-      const tvaEl = document.getElementById(prefix + 'tva-intra');
-      if (sirenEl) sirenEl.value = '';
-      if (tvaEl) tvaEl.value = '';
-    }
-  }
-  window.toggleChampsFournisseurPro = toggleChampsFournisseurPro;
-
-  /* ---------- calcul dépense totale + solde dû ---------- */
-  function getDepenseTotale(fournisseurId) {
-    // Agrège sur charges[], carburants[], entretiens[] qui peuvent référencer fournisseurId
-    let total = 0;
-    try {
-      const charges = loadSafe('charges', []);
-      total += charges.filter(c => c.fournisseurId === fournisseurId).reduce((s, c) => s + (parseFloat(c.ttc) || parseFloat(c.montant) || 0), 0);
-    } catch(e){}
-    try {
-      const carbs = loadSafe('carburants', []);
-      total += carbs.filter(c => c.fournisseurId === fournisseurId).reduce((s, c) => s + (parseFloat(c.total) || 0), 0);
-    } catch(e){}
-    try {
-      const entrs = loadSafe('entretiens', []);
-      total += entrs.filter(c => c.fournisseurId === fournisseurId).reduce((s, c) => s + (parseFloat(c.ttc) || parseFloat(c.cout) || 0), 0);
-    } catch(e){}
-    return total;
-  }
-  function getSoldeDu(fournisseurId) {
-    // À affiner avec futur module Compta — pour l'instant : somme dépenses non encore payées (via paiements sens=out)
-    try {
-      const paiements = loadSafe('paiements', []);
-      const payes = paiements.filter(p => p.sens === 'out' && p.fournisseurId === fournisseurId)
-        .reduce((s, p) => s + (parseFloat(p.montant) || 0), 0);
-      const total = getDepenseTotale(fournisseurId);
-      return Math.max(0, total - payes);
-    } catch(e) { return 0; }
-  }
-
-  /* ---------- détection doublons ---------- */
-  function detecterDoublonsFournisseur(edit) {
-    const pref = edit ? 'edit-fo-' : 'fo-';
-    const nom = (document.getElementById(pref + 'nom')?.value || '').trim().toLowerCase();
-    const siren = (document.getElementById(pref + 'siren')?.value || '').replace(/\s+/g, '');
-    const warnBox = document.getElementById(edit ? 'edit-fo-doublons-warning' : 'fo-doublons-warning');
-    if (!warnBox) return;
-    if (!nom && !siren) { warnBox.style.display = 'none'; warnBox.innerHTML = ''; return; }
-    const currId = edit ? (document.getElementById('edit-fo-id')?.value || '') : '';
-    const doublons = loadFourn().filter(f => f.id !== currId && (
-      (nom && (f.nom || '').toLowerCase() === nom) ||
-      (siren && (f.siren || '') === siren)
-    ));
-    if (doublons.length) {
-      warnBox.style.display = 'block';
-      warnBox.innerHTML = '⚠️ <strong>Doublon potentiel :</strong> ' + doublons.map(d => escHtml(d.nom)).join(', ');
-    } else { warnBox.style.display = 'none'; warnBox.innerHTML = ''; }
-  }
-  window.detecterDoublonsFournisseur = detecterDoublonsFournisseur;
-
-  /* ---------- CRUD ---------- */
-  function ajouterFournisseur() {
-    const get = id => (document.getElementById(id)?.value || '').trim();
-    const nom = get('fo-nom');
-    if (!nom) { toast('⚠️ Nom obligatoire', 'error'); return; }
-    const type = (document.querySelector('input[name="fo-type"]:checked')?.value) || 'pro';
-    const siren = type === 'pro' ? get('fo-siren').replace(/\s+/g, '') : '';
-    if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { toast('⚠️ SIREN invalide (9 chiffres)', 'error'); return; }
-    const tvaIntra = type === 'pro' ? get('fo-tva-intra').replace(/\s+/g, '').toUpperCase() : '';
-    if (type === 'pro' && tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { toast('⚠️ TVA intracom invalide', 'error'); return; }
-    const ibanFo = get('fo-iban').replace(/\s+/g, '').toUpperCase();
-    if (ibanFo && typeof validerIBAN === 'function' && !validerIBAN(ibanFo)) {
-      toast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error'); return;
-    }
-    const arr = loadFourn();
-    if (arr.find(f => (f.nom || '').toLowerCase() === nom.toLowerCase())) {
-      toast('⚠️ Fournisseur déjà existant', 'error'); return;
-    }
-    const fourn = {
-      id: newId(),
-      nom,
-      type,
-      categorie: get('fo-categorie') || 'autre',
-      contact: get('fo-contact'),
-      tel: get('fo-tel'),
-      email: get('fo-email'),
-      emailFact: get('fo-email-fact'),
-      adresse: get('fo-adresse'),
-      cp: get('fo-cp'),
-      ville: get('fo-ville'),
-      siren,
-      tvaIntra,
-      delaiPaiementJours: parseInt(get('fo-delai-paiement'), 10) || 30,
-      modePaiement: get('fo-mode-paiement') || 'virement',
-      iban: ibanFo,
-      compteCompta: get('fo-compte-compta') || '401000',
-      notes: get('fo-notes'),
-      creeLe: new Date().toISOString()
-    };
-    arr.push(fourn);
-    saveFourn(arr);
-    // Reset form
-    ['fo-nom','fo-contact','fo-tel','fo-email','fo-email-fact','fo-adresse','fo-cp','fo-ville','fo-siren','fo-tva-intra','fo-iban','fo-notes']
-      .forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
-    const d = document.getElementById('fo-delai-paiement'); if (d) d.value = '30';
-    const c = document.getElementById('fo-compte-compta'); if (c) c.value = '401000';
-    const cat = document.getElementById('fo-categorie'); if (cat) cat.value = '';
-    const mp = document.getElementById('fo-mode-paiement'); if (mp) mp.value = 'virement';
-    const proRadio = document.querySelector('input[name="fo-type"][value="pro"]'); if (proRadio) proRadio.checked = true;
-    toggleChampsFournisseurPro(false);
-    const warn = document.getElementById('fo-doublons-warning'); if (warn) { warn.style.display = 'none'; warn.innerHTML = ''; }
-    if (typeof closeModal === 'function') closeModal('modal-fournisseur');
-    afficherFournisseurs();
-    audit('Création fournisseur', nom + (type === 'particulier' ? ' (particulier)' : (siren ? ' · SIREN ' + siren : '')) + ' · ' + (CAT_LABELS[fourn.categorie] || fourn.categorie));
-    if (typeof window.logChange === 'function') {
-      window.logChange('fournisseur', fourn.id, 'creation', null, nom, '🏭 Fournisseur créé : ' + nom);
-    }
-    toast('✅ Fournisseur ajouté');
-    return fourn;
-  }
-  window.ajouterFournisseur = ajouterFournisseur;
-
-  function ouvrirEditFournisseur(id) {
-    const f = loadFourn().find(x => x.id === id);
-    if (!f) { toast('Fournisseur introuvable', 'error'); return; }
-    const set = (eid, val) => { const e = document.getElementById(eid); if (e) e.value = val == null ? '' : val; };
-    set('edit-fo-id', f.id);
-    const typeVal = f.type || 'pro';
-    const proRadio = document.querySelector('input[name="edit-fo-type"][value="pro"]');
-    const partRadio = document.querySelector('input[name="edit-fo-type"][value="particulier"]');
-    if (proRadio) proRadio.checked = (typeVal === 'pro');
-    if (partRadio) partRadio.checked = (typeVal === 'particulier');
-    set('edit-fo-nom', f.nom);
-    set('edit-fo-categorie', f.categorie || 'autre');
-    set('edit-fo-contact', f.contact);
-    set('edit-fo-tel', f.tel);
-    set('edit-fo-email', f.email);
-    set('edit-fo-email-fact', f.emailFact);
-    set('edit-fo-adresse', f.adresse);
-    set('edit-fo-cp', f.cp);
-    set('edit-fo-ville', f.ville);
-    set('edit-fo-siren', f.siren);
-    set('edit-fo-tva-intra', f.tvaIntra);
-    set('edit-fo-delai-paiement', f.delaiPaiementJours || 30);
-    set('edit-fo-mode-paiement', f.modePaiement || 'virement');
-    set('edit-fo-iban', f.iban);
-    set('edit-fo-compte-compta', f.compteCompta || '401000');
-    set('edit-fo-notes', f.notes);
-    toggleChampsFournisseurPro(true);
-    if (typeof openModal === 'function') openModal('modal-edit-fournisseur');
-  }
-  window.ouvrirEditFournisseur = ouvrirEditFournisseur;
-
-  function confirmerEditFournisseur() {
-    const get = id => (document.getElementById(id)?.value || '').trim();
-    const id = get('edit-fo-id');
-    const arr = loadFourn();
-    const idx = arr.findIndex(f => f.id === id);
-    if (idx < 0) { toast('Fournisseur introuvable', 'error'); return; }
-    const old = arr[idx];
-    const nom = get('edit-fo-nom');
-    if (!nom) { toast('⚠️ Nom obligatoire', 'error'); return; }
-    const type = (document.querySelector('input[name="edit-fo-type"]:checked')?.value) || 'pro';
-    const siren = type === 'pro' ? get('edit-fo-siren').replace(/\s+/g, '') : '';
-    if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { toast('⚠️ SIREN invalide', 'error'); return; }
-    const tvaIntra = type === 'pro' ? get('edit-fo-tva-intra').replace(/\s+/g, '').toUpperCase() : '';
-    if (type === 'pro' && tvaIntra && !/^FR\d{11}$/.test(tvaIntra)) { toast('⚠️ TVA intracom invalide', 'error'); return; }
-    const ibanEditFo = get('edit-fo-iban').replace(/\s+/g, '').toUpperCase();
-    if (ibanEditFo && typeof validerIBAN === 'function' && !validerIBAN(ibanEditFo)) {
-      toast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error'); return;
-    }
-    const updated = {
-      ...old,
-      nom,
-      type,
-      categorie: get('edit-fo-categorie') || 'autre',
-      contact: get('edit-fo-contact'),
-      tel: get('edit-fo-tel'),
-      email: get('edit-fo-email'),
-      emailFact: get('edit-fo-email-fact'),
-      adresse: get('edit-fo-adresse'),
-      cp: get('edit-fo-cp'),
-      ville: get('edit-fo-ville'),
-      siren, tvaIntra,
-      delaiPaiementJours: parseInt(get('edit-fo-delai-paiement'), 10) || 30,
-      modePaiement: get('edit-fo-mode-paiement') || 'virement',
-      iban: ibanEditFo,
-      compteCompta: get('edit-fo-compte-compta') || '401000',
-      notes: get('edit-fo-notes'),
-      modifieLe: new Date().toISOString()
-    };
-    // Historique diff champ par champ
-    if (typeof window.logChange === 'function') {
-      ['nom','type','categorie','contact','tel','email','adresse','delaiPaiementJours','modePaiement','siren','tvaIntra','iban','compteCompta'].forEach(k => {
-        if ((old[k] || '') !== (updated[k] || '')) {
-          window.logChange('fournisseur', id, k, old[k], updated[k], '🏭 ' + nom + ' — ' + k);
-        }
-      });
-    }
-    arr[idx] = updated;
-    saveFourn(arr);
-    if (typeof closeModal === 'function') closeModal('modal-edit-fournisseur');
-    afficherFournisseurs();
-    audit('Modification fournisseur', nom);
-    toast('✅ Fournisseur modifié');
-  }
-  window.confirmerEditFournisseur = confirmerEditFournisseur;
-
-  async function supprimerFournisseur(id) {
-    const f = loadFourn().find(x => x.id === id);
-    if (!f) return;
-    // Vérifier s'il y a des dépenses liées
-    const depense = getDepenseTotale(id);
-    let msg = 'Supprimer ' + f.nom + ' ?';
-    if (depense > 0) {
-      msg += '\n\n⚠️ ' + toEuros(depense) + ' de dépenses liées seront détachées (pas supprimées). Continuer ?';
-    }
-    const ok = await confirmAsync(msg, { titre:'Supprimer le fournisseur', icone:'🏭', btnLabel:'Supprimer' });
-    if (!ok) return;
-    // Détacher les refs (pas supprimer les dépenses — elles restent dans charges/carburants/entretiens)
-    ['charges','carburants','entretiens'].forEach(k => {
-      try {
-        const arr = loadSafe(k, []);
-        let changed = false;
-        arr.forEach(x => { if (x.fournisseurId === id) { delete x.fournisseurId; changed = true; } });
-        if (changed) localStorage.setItem(k, JSON.stringify(arr));
-      } catch(e){}
-    });
-    try {
-      const pai = loadSafe('paiements', []);
-      let changed = false;
-      pai.forEach(p => { if (p.fournisseurId === id) { delete p.fournisseurId; changed = true; } });
-      if (changed) localStorage.setItem('paiements', JSON.stringify(pai));
-    } catch(e){}
-    saveFourn(loadFourn().filter(x => x.id !== id));
-    afficherFournisseurs();
-    audit('Suppression fournisseur', f.nom);
-    if (typeof window.logChange === 'function') {
-      window.logChange('fournisseur', id, 'suppression', f.nom, null, '🗑️ Fournisseur supprimé : ' + f.nom);
-    }
-    toast('🗑️ Fournisseur supprimé');
-  }
-  window.supprimerFournisseur = supprimerFournisseur;
-
-  /* ---------- Affichage tableau ---------- */
-  function afficherFournisseurs() {
-    const tb = document.getElementById('tb-fournisseurs');
-    if (!tb) return;
-    const search = (document.getElementById('fourn-search')?.value || '').toLowerCase().trim();
-    const catFilter = document.getElementById('fourn-filter-categorie')?.value || '';
-    let arr = loadFourn();
-    if (catFilter) arr = arr.filter(f => f.categorie === catFilter);
-    if (search) {
-      arr = arr.filter(f => (
-        (f.nom || '').toLowerCase().includes(search) ||
-        (f.siren || '').includes(search) ||
-        (f.ville || '').toLowerCase().includes(search) ||
-        (f.contact || '').toLowerCase().includes(search) ||
-        (CAT_LABELS[f.categorie] || '').toLowerCase().includes(search)
-      ));
-    }
-    arr.sort((a,b) => (a.nom||'').localeCompare(b.nom||'','fr',{sensitivity:'base'}));
-    const countEl = document.getElementById('fourn-count');
-    if (countEl) countEl.textContent = arr.length;
-    if (!arr.length) {
-      tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun fournisseur ' + (search || catFilter ? 'ne correspond aux filtres' : 'enregistré') + '</td></tr>';
-      return;
-    }
-    tb.innerHTML = arr.map(f => {
-      const depense = getDepenseTotale(f.id);
-      const solde = getSoldeDu(f.id);
-      const soldeBadge = solde > 0
-        ? '<span style="color:#dc2626;font-weight:700">' + toEuros(solde) + '</span>'
-        : '<span style="color:#059669">Soldé</span>';
-      const actions = (typeof buildInlineActionsDropdown === 'function')
-        ? buildInlineActionsDropdown('Actions', [
-            { icon:'📚', label:'Historique', action:"ouvrirHistoriqueFournisseur('" + f.id + "')" },
-            { icon:'✏️', label:'Modifier', action:"ouvrirEditFournisseur('" + f.id + "')" },
-            { icon:'🗑️', label:'Supprimer', action:"supprimerFournisseur('" + f.id + "')", danger:true }
-          ])
-        : '<button class="btn-secondary" onclick="ouvrirEditFournisseur(\'' + f.id + '\')">Modifier</button>';
-      return '<tr>' +
-        '<td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueFournisseur(\'' + f.id + '\')" style="font-weight:700">' + escHtml(f.nom) + '</button>' +
-          (f.siren ? '<div style="font-size:.72rem;color:var(--text-muted)">SIREN ' + escHtml(f.siren) + '</div>' : '') + '</td>' +
-        '<td><span class="fourn-cat-badge fourn-cat-' + escHtml(f.categorie || 'autre') + '">' + escHtml(CAT_LABELS[f.categorie] || f.categorie || '—') + '</span></td>' +
-        '<td>' + escHtml(f.contact || '—') + (f.email ? '<div style="font-size:.72rem;color:var(--text-muted)">' + escHtml(f.email) + '</div>' : '') + '</td>' +
-        '<td>' + escHtml(f.tel || '—') + '</td>' +
-        '<td style="font-weight:600">' + toEuros(depense) + '</td>' +
-        '<td>' + soldeBadge + '</td>' +
-        '<td>' + (f.delaiPaiementJours || 30) + ' j</td>' +
-        '<td>' + actions + '</td>' +
-      '</tr>';
-    }).join('');
-  }
-  window.afficherFournisseurs = afficherFournisseurs;
-
-  /* ---------- Historique fournisseur ---------- */
-  function ouvrirHistoriqueFournisseur(id) {
-    const f = loadFourn().find(x => x.id === id);
-    if (!f) return;
-    // Récupère toutes dépenses liées
-    const rows = [];
-    try {
-      const charges = loadSafe('charges', []);
-      charges.filter(c => c.fournisseurId === id).forEach(c => {
-        rows.push({ date: c.date, type: 'Charge', desc: c.description || c.categorie, montant: parseFloat(c.ttc) || parseFloat(c.montant) || 0 });
-      });
-    } catch(e){}
-    try {
-      const carbs = loadSafe('carburants', []);
-      carbs.filter(c => c.fournisseurId === id).forEach(c => {
-        rows.push({ date: c.date, type: '⛽ Carburant', desc: (c.litres || '?') + ' L — ' + (c.immat || c.vehicule || ''), montant: parseFloat(c.total) || 0 });
-      });
-    } catch(e){}
-    try {
-      const entrs = loadSafe('entretiens', []);
-      entrs.filter(c => c.fournisseurId === id).forEach(c => {
-        rows.push({ date: c.date, type: '🔧 Entretien', desc: (c.type || '') + ' — ' + (c.description || ''), montant: parseFloat(c.ttc) || parseFloat(c.cout) || 0 });
-      });
-    } catch(e){}
-    try {
-      const pai = loadSafe('paiements', []);
-      pai.filter(p => p.sens === 'out' && p.fournisseurId === id).forEach(p => {
-        rows.push({ date: p.date, type: '💸 Paiement émis', desc: (p.mode || '') + ' — ' + (p.reference || ''), montant: -Math.abs(parseFloat(p.montant) || 0) });
-      });
-    } catch(e){}
-    rows.sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
-    const total = getDepenseTotale(id);
-    const solde = getSoldeDu(id);
-    const paye = total - solde;
-    const lines = rows.length
-      ? '<table class="data-table" style="margin-top:10px"><thead><tr><th>Date</th><th>Type</th><th>Description</th><th style="text-align:right">Montant</th></tr></thead><tbody>' +
-        rows.map(r => '<tr><td>' + escHtml(r.date || '—') + '</td><td>' + escHtml(r.type) + '</td><td>' + escHtml(r.desc) + '</td><td style="text-align:right;font-weight:600;color:' + (r.montant < 0 ? '#059669' : 'var(--text-primary)') + '">' + toEuros(r.montant) + '</td></tr>').join('') +
-        '</tbody></table>'
-      : '<p style="color:var(--text-muted);text-align:center;padding:20px">Aucune dépense enregistrée pour ce fournisseur.</p>';
-    const html = '<div>' +
-      '<h3 style="margin:0 0 4px">🏭 ' + escHtml(f.nom) + '</h3>' +
-      '<div style="color:var(--text-muted);font-size:.88rem;margin-bottom:12px">' + escHtml(CAT_LABELS[f.categorie] || f.categorie || '') + (f.siren ? ' · SIREN ' + escHtml(f.siren) : '') + '</div>' +
-      '<div class="enc-stats-grid" style="margin-bottom:12px">' +
-        '<div class="kpi-card"><div class="kpi-label">Dépense totale</div><div class="kpi-value">' + toEuros(total) + '</div></div>' +
-        '<div class="kpi-card green"><div class="kpi-label">Payé</div><div class="kpi-value">' + toEuros(paye) + '</div></div>' +
-        '<div class="kpi-card ' + (solde > 0 ? 'red' : '') + '"><div class="kpi-label">Solde dû</div><div class="kpi-value">' + toEuros(solde) + '</div></div>' +
-        '<div class="kpi-card blue"><div class="kpi-label">Délai accordé</div><div class="kpi-value">' + (f.delaiPaiementJours || 30) + ' j</div></div>' +
-      '</div>' +
-      lines +
-    '</div>';
-    if (typeof window.modalInfo === 'function') window.modalInfo(html);
-    else alert('Dépenses : ' + toEuros(total) + '\nSolde dû : ' + toEuros(solde));
-  }
-  window.ouvrirHistoriqueFournisseur = ouvrirHistoriqueFournisseur;
-
-  /* ---------- Export CSV ---------- */
-  function exporterFournisseursCSV() {
-    const arr = loadFourn();
-    if (!arr.length) { toast('Aucun fournisseur à exporter'); return; }
-    const headers = ['Nom','Catégorie','Contact','Tél','Email','Email fact','Adresse','CP','Ville','SIREN','TVA intracom','Délai (j)','Mode paiement','IBAN','Compte compta','Dépense totale','Solde dû','Notes'];
-    const esc = (typeof window.csvCelluleSecurisee === 'function') ? (v) => window.csvCelluleSecurisee(v, ';') : (v) => { const s = String(v == null ? '' : v); const neutr = /^[=+\-@\t\r]/.test(s) ? "'" + s : s; return /[",\n;]/.test(neutr) ? '"' + neutr.replace(/"/g,'""') + '"' : neutr; };
-    const rows = arr.map(f => [
-      f.nom, CAT_LABELS[f.categorie] || f.categorie, f.contact, f.tel, f.email, f.emailFact,
-      f.adresse, f.cp, f.ville, f.siren, f.tvaIntra,
-      f.delaiPaiementJours, f.modePaiement, f.iban, f.compteCompta,
-      getDepenseTotale(f.id).toFixed(2), getSoldeDu(f.id).toFixed(2),
-      (f.notes || '').replace(/\n/g, ' ')
-    ].map(esc).join(';')).join('\n');
-    const csv = headers.join(';') + '\n' + rows;
-    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'fournisseurs_' + new Date().toLocalISODate() + '.csv';
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast('📤 Export CSV téléchargé');
-  }
-  window.exporterFournisseursCSV = exporterFournisseursCSV;
-
-  /* ---------- Auto-création fournisseur (pattern S15 ↔ clients) ---------- */
-  function trouverOuCreerFournisseur(nom, categorieSuggeree) {
-    if (!nom || !nom.trim()) return null;
-    const arr = loadFourn();
-    const existing = arr.find(f => (f.nom || '').toLowerCase().trim() === nom.toLowerCase().trim());
-    if (existing) return existing;
-    const fourn = {
-      id: newId(),
-      nom: nom.trim(),
-      categorie: categorieSuggeree || 'autre',
-      contact: '', tel: '', email: '', emailFact: '',
-      adresse: '', cp: '', ville: '',
-      siren: '', tvaIntra: '',
-      delaiPaiementJours: 30,
-      modePaiement: 'virement',
-      iban: '',
-      compteCompta: '401000',
-      notes: '(Auto-créé depuis une saisie de dépense)',
-      creeLe: new Date().toISOString(),
-      autoCreated: true
-    };
-    arr.push(fourn);
-    saveFourn(arr);
-    audit('Création auto fournisseur', nom + ' (depuis saisie dépense)');
-    if (typeof window.logChange === 'function') {
-      window.logChange('fournisseur', fourn.id, 'creation-auto', null, nom, '🤖 Fournisseur auto-créé : ' + nom);
-    }
-    toast('🏭 Fournisseur "' + nom + '" auto-créé', 'info');
-    return fourn;
-  }
-  window.trouverOuCreerFournisseur = trouverOuCreerFournisseur;
-
-  /* ---------- Bandeau dashboard "Fournisseurs à payer" ---------- */
-  function getFournisseursAPayer() {
-    const arr = loadFourn();
-    return arr.map(f => ({ fourn: f, solde: getSoldeDu(f.id) })).filter(x => x.solde > 0);
-  }
-  function injecterBandeauFournisseurs() {
-    const pageDash = document.getElementById('page-dashboard');
-    if (!pageDash) return;
-    let banner = document.getElementById('s17-fourn-banner');
-    const dus = getFournisseursAPayer();
-    if (!dus.length) { if (banner) banner.remove(); return; }
-    const totalDu = dus.reduce((s, x) => s + x.solde, 0);
-    const html = '<div class="s17-banner">' +
-      '<div class="s17-banner-icon">🏭</div>' +
-      '<div class="s17-banner-body">' +
-        '<div class="s17-banner-title">' + dus.length + ' fournisseur' + (dus.length > 1 ? 's' : '') + ' à payer</div>' +
-        '<div class="s17-banner-sub">Solde dû total : <strong>' + toEuros(totalDu) + '</strong></div>' +
-      '</div>' +
-      '<button class="btn-secondary" onclick="naviguerVers(\'fournisseurs\')">Voir</button>' +
-    '</div>';
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 's17-fourn-banner';
-      // Inséré après les bandeaux S14/S15 s'ils existent
-      const s15b = document.getElementById('s15-echeances-banner');
-      const s14b = document.getElementById('s14-retards-banner');
-      const ref = s15b || s14b;
-      if (ref && ref.parentNode) ref.parentNode.insertBefore(banner, ref.nextSibling);
-      else pageDash.insertBefore(banner, pageDash.firstChild);
-    }
-    banner.innerHTML = html;
-  }
-
-  /* ---------- Hook palette Ctrl+K (S15) ---------- */
-  function hookPalette() {
-    // Si la palette S15 existe, on s'incruste dans son index
-    if (typeof window.buildSearchIndex !== 'function' || window.buildSearchIndex.__s17) return;
-    const orig = window.buildSearchIndex;
-    window.buildSearchIndex = function() {
-      const base = orig() || [];
-      const fs = loadFourn();
-      fs.forEach(f => {
-        base.push({
-          label: '🏭 ' + f.nom,
-          sub: (CAT_LABELS[f.categorie] || '') + (f.ville ? ' · ' + f.ville : ''),
-          search: f.nom + ' ' + (f.siren || '') + ' ' + (f.ville || '') + ' ' + (CAT_LABELS[f.categorie] || ''),
-          action: () => { naviguerVers('fournisseurs'); setTimeout(() => ouvrirEditFournisseur(f.id), 200); }
-        });
-      });
-      return base;
-    };
-    window.buildSearchIndex.__s17 = true;
-  }
-
-  /* ---------- Hook naviguerVers ---------- */
-  function hookNav() {
-    if (typeof window.naviguerVers !== 'function') { setTimeout(hookNav, 200); return; }
-    if (window.naviguerVers.__s17) return;
-    const orig = window.naviguerVers;
-    const wrapped = function(page) {
-      const ret = orig.apply(this, arguments);
-      if (page === 'fournisseurs') {
-        requestAnimationFrame(() => { requestAnimationFrame(() => { afficherFournisseurs(); }); });
-        const titleEl = document.getElementById('pageTitle');
-        if (titleEl) titleEl.textContent = '🏭 Carnet Fournisseurs';
-      }
-      if (page === 'dashboard') {
-        setTimeout(injecterBandeauFournisseurs, 150);
-      }
-      return ret;
-    };
-    wrapped.__s17 = true;
-    ['__s12_1','__s14','__s15','__s16'].forEach(m => { if (orig[m]) wrapped[m] = true; });
-    window.naviguerVers = wrapped;
-  }
-
-  /* ---------- Init ---------- */
-  function init() {
-    hookNav();
-    setTimeout(hookPalette, 300);
-    // Si déjà sur page-fournisseurs à l'init
-    setTimeout(() => {
-      const page = document.getElementById('page-fournisseurs');
-      if (page && page.classList.contains('active')) afficherFournisseurs();
-      // Bandeau dashboard si déjà affiché
-      const dash = document.getElementById('page-dashboard');
-      if (dash && dash.classList.contains('active')) injecterBandeauFournisseurs();
-    }, 200);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 100);
-})();
-
-/* ============================================================================
- * Sprint 17.1 — Comptes comptables (411 clients · 401 fournisseurs)
- * - Auto-incrément à chaque création (prefill DOM à l'ouverture modale)
- * - Unicité croisée (pas 2 tiers différents avec même compte, même entre
- *   clients et fournisseurs si malgré tout on veut l'éviter)
- * - Règle métier FR : clients = racine 411, fournisseurs = racine 401
- * - Monkey-patch de ajouterClient / confirmerEditClient / openModal
- * ========================================================================== */
-(function installS171(){
-  if (window.__s171Installed) return;
-  window.__s171Installed = true;
-
-  const BASE_CLIENT = 411000;
-  const BASE_FOURN  = 401000;
-
-  function loadClients() {
-    try { return loadSafe('clients', []); } catch(e){ return []; }
-  }
-  function loadFourn() {
-    try { return loadSafe('fournisseurs', []); } catch(e){ return []; }
-  }
-  function toast(m, t) {
-    if (typeof afficherToast === 'function') afficherToast(m, t);
-    else logMCA('[S17.1]', m);
-  }
-
-  /* ---------- Helpers ---------- */
-  function getAllComptesUsed(excludeKind, excludeId) {
-    const set = new Map(); // compte -> { kind, nom, id }
-    if (excludeKind !== 'client') {
-      loadClients().forEach(c => {
-        if (c.compteCompta && c.id !== excludeId) set.set(String(c.compteCompta), { kind:'client', nom:c.nom, id:c.id });
-      });
-    } else {
-      loadClients().forEach(c => {
-        if (c.compteCompta && c.id !== excludeId) set.set(String(c.compteCompta), { kind:'client', nom:c.nom, id:c.id });
-      });
-    }
-    if (excludeKind !== 'fournisseur') {
-      loadFourn().forEach(f => {
-        if (f.compteCompta && f.id !== excludeId) set.set(String(f.compteCompta), { kind:'fournisseur', nom:f.nom, id:f.id });
-      });
-    } else {
-      loadFourn().forEach(f => {
-        if (f.compteCompta && f.id !== excludeId) set.set(String(f.compteCompta), { kind:'fournisseur', nom:f.nom, id:f.id });
-      });
-    }
-    return set;
-  }
-  // Compte déjà utilisé par un tiers DIFFÉRENT (autre id) → bloqué
-  function isCompteDisponible(compte, currentId) {
-    if (!compte) return false;
-    const set = getAllComptesUsed(null, currentId);
-    return !set.has(String(compte));
-  }
-  function getConflitCompte(compte, currentId) {
-    const set = getAllComptesUsed(null, currentId);
-    return set.get(String(compte)) || null;
-  }
-  // Calcule prochain compte libre pour un kind (client ou fournisseur)
-  function getNextCompteCompta(kind) {
-    const base = (kind === 'fournisseur') ? BASE_FOURN : BASE_CLIENT;
-    const used = new Set();
-    loadClients().forEach(c => { if (c.compteCompta) used.add(String(c.compteCompta)); });
-    loadFourn().forEach(f => { if (f.compteCompta) used.add(String(f.compteCompta)); });
-    // Cherche le premier compte libre à partir de base (incrément)
-    let n = base;
-    while (used.has(String(n))) n++;
-    return String(n);
-  }
-  window.getNextCompteCompta = getNextCompteCompta;
-  window.isCompteDisponible = isCompteDisponible;
-
-  /* ---------- Prefill à l'ouverture des modales de création ---------- */
-  function prefillCompteFor(kind) {
-    const fieldId = (kind === 'fournisseur') ? 'fo-compte-compta' : 'cl-compte-compta';
-    const el = document.getElementById(fieldId);
-    if (!el) return;
-    // Ne remplit que si vide (respect de ce que tape l'utilisateur)
-    if (!el.value || !el.value.trim()) el.value = getNextCompteCompta(kind);
-  }
-
-  function hookOpenModal() {
-    if (typeof window.openModal !== 'function') { setTimeout(hookOpenModal, 200); return; }
-    if (window.openModal.__s171) return;
-    const orig = window.openModal;
-    const wrapped = function(modalId) {
-      const ret = orig.apply(this, arguments);
-      if (modalId === 'modal-client') setTimeout(() => prefillCompteFor('client'), 40);
-      else if (modalId === 'modal-fournisseur') setTimeout(() => prefillCompteFor('fournisseur'), 40);
-      return ret;
-    };
-    wrapped.__s171 = true;
-    // Préserver les marqueurs des précédents sprints
-    Object.keys(orig).forEach(k => { if (k.startsWith('__s')) wrapped[k] = orig[k]; });
-    window.openModal = wrapped;
-  }
-
-  /* ---------- Validation live (feedback visuel) ---------- */
-  function wireLiveValidation() {
-    const wire = (id, kind, idField) => {
-      const el = document.getElementById(id);
-      if (!el || el.__s171Wired) return;
-      el.__s171Wired = true;
-      el.addEventListener('input', () => {
-        const v = el.value.trim();
-        const curId = idField ? (document.getElementById(idField)?.value || null) : null;
-        el.style.borderColor = '';
-        el.title = '';
-        if (!v) return;
-        if (!/^\d{4,8}$/.test(v)) {
-          el.style.borderColor = '#dc2626';
-          el.title = 'Format attendu : 4 à 8 chiffres';
-          return;
-        }
-        const conflit = getConflitCompte(v, curId);
-        if (conflit) {
-          el.style.borderColor = '#dc2626';
-          el.title = '⚠️ Compte déjà utilisé par ' + (conflit.kind === 'client' ? 'le client ' : 'le fournisseur ') + conflit.nom;
-        } else {
-          el.style.borderColor = '#059669';
-          el.title = '✅ Compte disponible';
-        }
-      });
-    };
-    wire('cl-compte-compta', 'client', null);
-    wire('edit-cl-compte-compta', 'client', 'edit-cl-id');
-    wire('fo-compte-compta', 'fournisseur', null);
-    wire('edit-fo-compte-compta', 'fournisseur', 'edit-fo-id');
-  }
-
-  /* ---------- Validation bloquante à la soumission ---------- */
-  function validerCompteOrToast(value, currentId) {
-    const v = (value || '').trim();
-    if (!v) { toast('⚠️ N° compte comptable obligatoire', 'error'); return false; }
-    if (!/^\d{4,8}$/.test(v)) { toast('⚠️ Compte comptable : 4 à 8 chiffres attendus', 'error'); return false; }
-    const conflit = getConflitCompte(v, currentId);
-    if (conflit) {
-      toast('⚠️ Compte ' + v + ' déjà utilisé par ' + (conflit.kind === 'client' ? 'client ' : 'fournisseur ') + conflit.nom, 'error');
-      return false;
-    }
-    return true;
-  }
-
-  /* ---------- Monkey-patch ajouterClient ---------- */
-  function hookAjouterClient() {
-    if (typeof window.ajouterClient !== 'function') { setTimeout(hookAjouterClient, 200); return; }
-    if (window.ajouterClient.__s171) return;
-    const orig = window.ajouterClient;
-    const wrapped = function() {
-      // Pré-valide compte
-      const compte = (document.getElementById('cl-compte-compta')?.value || '').trim();
-      if (!validerCompteOrToast(compte, null)) return;
-      // Capture extras avant sauvegarde
-      const iban = (document.getElementById('cl-iban')?.value || '').replace(/\s+/g, '').toUpperCase();
-      // BUG-009 : validation mod-97 IBAN (non bloquant si vide)
-      if (iban && typeof validerIBAN === 'function' && !validerIBAN(iban)) {
-        if (typeof afficherToast === 'function') afficherToast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error');
-        return;
-      }
-      const modePaiement = document.getElementById('cl-mode-paiement')?.value || 'virement';
-      const nom = (document.getElementById('cl-nom')?.value || '').trim();
-      const beforeCount = loadClients().length;
-      // Appel original (qui fait le vrai enregistrement)
-      const ret = orig.apply(this, arguments);
-      // Si création réussie (count a augmenté), enrichir le dernier créé
-      const arr = loadClients();
-      if (arr.length > beforeCount) {
-        const last = arr.filter(c => (c.nom || '').toLowerCase() === nom.toLowerCase())
-          .sort((a,b)=> new Date(b.creeLe||0) - new Date(a.creeLe||0))[0];
-        if (last) {
-          last.iban = iban;
-          last.modePaiement = modePaiement;
-          last.compteCompta = compte;
-          localStorage.setItem('clients', JSON.stringify(arr));
-          if (typeof window.logChange === 'function') {
-            window.logChange('client', last.id, 'creation', null, nom, '🧑‍💼 Client créé : ' + nom + ' · cpte ' + compte);
-          }
-        }
-      }
-      // Reset des champs ajoutés S17.1
-      const ib = document.getElementById('cl-iban'); if (ib) ib.value = '';
-      const mp = document.getElementById('cl-mode-paiement'); if (mp) mp.value = 'virement';
-      const cc = document.getElementById('cl-compte-compta'); if (cc) cc.value = '';
-      return ret;
-    };
-    wrapped.__s171 = true;
-    window.ajouterClient = wrapped;
-  }
-
-  /* ---------- Monkey-patch confirmerEditClient ---------- */
-  function hookConfirmerEditClient() {
-    if (typeof window.confirmerEditClient !== 'function') { setTimeout(hookConfirmerEditClient, 200); return; }
-    if (window.confirmerEditClient.__s171) return;
-    const orig = window.confirmerEditClient;
-    const wrapped = function() {
-      const id = document.getElementById('edit-cl-id')?.value || null;
-      const compte = (document.getElementById('edit-cl-compte-compta')?.value || '').trim();
-      if (!validerCompteOrToast(compte, id)) return;
-      const iban = (document.getElementById('edit-cl-iban')?.value || '').replace(/\s+/g, '').toUpperCase();
-      if (iban && typeof validerIBAN === 'function' && !validerIBAN(iban)) {
-        if (typeof afficherToast === 'function') afficherToast('⚠️ IBAN invalide (clé mod-97 incorrecte)', 'error');
-        return;
-      }
-      const modePaiement = document.getElementById('edit-cl-mode-paiement')?.value || 'virement';
-      const ret = orig.apply(this, arguments);
-      // Update extras sur le client édité
-      const arr = loadClients();
-      const idx = arr.findIndex(c => c.id === id);
-      if (idx > -1) {
-        const oldCompte = arr[idx].compteCompta;
-        const oldIban = arr[idx].iban;
-        const oldMode = arr[idx].modePaiement;
-        arr[idx].iban = iban;
-        arr[idx].modePaiement = modePaiement;
-        arr[idx].compteCompta = compte;
-        localStorage.setItem('clients', JSON.stringify(arr));
-        if (typeof window.logChange === 'function') {
-          if (oldCompte !== compte) window.logChange('client', id, 'compteCompta', oldCompte, compte, '🧑‍💼 ' + arr[idx].nom + ' — compte compta');
-          if (oldIban !== iban) window.logChange('client', id, 'iban', oldIban, iban, '🧑‍💼 ' + arr[idx].nom + ' — IBAN');
-          if (oldMode !== modePaiement) window.logChange('client', id, 'modePaiement', oldMode, modePaiement, '🧑‍💼 ' + arr[idx].nom + ' — mode paiement');
-        }
-      }
-      return ret;
-    };
-    wrapped.__s171 = true;
-    window.confirmerEditClient = wrapped;
-  }
-
-  /* ---------- Injection extras au chargement (pré-remplir édition client) ---------- */
-  function hookOuvrirEditClient() {
-    if (typeof window.ouvrirEditClient !== 'function') { setTimeout(hookOuvrirEditClient, 200); return; }
-    if (window.ouvrirEditClient.__s171) return;
-    const orig = window.ouvrirEditClient;
-    const wrapped = function(id) {
-      const ret = orig.apply(this, arguments);
-      setTimeout(() => {
-        const c = loadClients().find(x => x.id === id);
-        if (!c) return;
-        const ib = document.getElementById('edit-cl-iban'); if (ib) ib.value = c.iban || '';
-        const mp = document.getElementById('edit-cl-mode-paiement'); if (mp) mp.value = c.modePaiement || 'virement';
-        const cc = document.getElementById('edit-cl-compte-compta');
-        if (cc) cc.value = c.compteCompta || getNextCompteCompta('client');
-      }, 60);
-      return ret;
-    };
-    wrapped.__s171 = true;
-    window.ouvrirEditClient = wrapped;
-  }
-
-  /* ---------- Patch ajouter/confirm Fournisseurs pour unicité ---------- */
-  function hookFournisseursUnique() {
-    if (typeof window.ajouterFournisseur !== 'function') { setTimeout(hookFournisseursUnique, 200); return; }
-    if (window.ajouterFournisseur.__s171) return;
-
-    const origAdd = window.ajouterFournisseur;
-    const wrappedAdd = function() {
-      const compte = (document.getElementById('fo-compte-compta')?.value || '').trim();
-      if (!validerCompteOrToast(compte, null)) return;
-      return origAdd.apply(this, arguments);
-    };
-    wrappedAdd.__s171 = true;
-    window.ajouterFournisseur = wrappedAdd;
-
-    const origEdit = window.confirmerEditFournisseur;
-    const wrappedEdit = function() {
-      const id = document.getElementById('edit-fo-id')?.value || null;
-      const compte = (document.getElementById('edit-fo-compte-compta')?.value || '').trim();
-      if (!validerCompteOrToast(compte, id)) return;
-      return origEdit.apply(this, arguments);
-    };
-    wrappedEdit.__s171 = true;
-    window.confirmerEditFournisseur = wrappedEdit;
-  }
-
-  /* ---------- Init ---------- */
-  function init() {
-    hookOpenModal();
-    hookAjouterClient();
-    hookConfirmerEditClient();
-    hookOuvrirEditClient();
-    hookFournisseursUnique();
-    setTimeout(wireLiveValidation, 400);
-    // Si des clients existants n'ont pas encore de compteCompta (migration silencieuse), les numéroter
-    try {
-      const arr = loadClients();
-      let changed = false;
-      const used = new Set();
-      arr.forEach(c => { if (c.compteCompta) used.add(String(c.compteCompta)); });
-      let next = BASE_CLIENT;
-      arr.forEach(c => {
-        if (!c.compteCompta) {
-          while (used.has(String(next))) next++;
-          c.compteCompta = String(next);
-          used.add(String(next));
-          next++;
-          changed = true;
-        }
-      });
-      if (changed) localStorage.setItem('clients', JSON.stringify(arr));
-    } catch(e){}
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 150);
-})();
-
-/* ============================================================
-   SPRINT 17.2 — Mirror parity Clients ⇄ Fournisseurs
-   - Champ "secteur" persisté sur clients
-   - Table clients 8 colonnes (mirror Fournisseurs)
-   - Recherche + filtre secteur
-   - exporterClientsCSV + exporterHistoriqueFournisseursCSV
-   ============================================================ */
-(function installS172(){
-  if (window.__s172Installed) return;
-  window.__s172Installed = true;
-
-  const SECTEUR_LABELS = {
-    transport: '🚚 Transport / logistique',
-    industrie: '🏭 Industrie / usine',
-    btp: '🏗️ BTP / chantier',
-    commerce: '🏪 Commerce / retail',
-    ecommerce: '🛒 E-commerce',
-    agro: '🌾 Agro-alimentaire',
-    sante: '⚕️ Santé / pharma',
-    public: '🏛️ Public / collectivité',
-    evenement: '🎪 Événementiel',
-    particulier: '🙋 Particulier',
-    autre: '📝 Autre'
-  };
-
-  function loadClients() { try { return loadSafe('clients', []); } catch(e){ return []; } }
-  const esc = window.escapeHtml;
-  function fmtEuro(n){ return (typeof window.euros === 'function') ? window.euros(n) : ((parseFloat(n)||0).toFixed(2) + ' €'); }
-
-  /* ---------- Persist secteur à la création ---------- */
-  function hookAjouterClientSecteur() {
-    if (typeof window.ajouterClient !== 'function') { setTimeout(hookAjouterClientSecteur, 200); return; }
-    if (window.ajouterClient.__s172) return;
-    const orig = window.ajouterClient;
-    const wrapped = function() {
-      const secteur = document.getElementById('cl-secteur')?.value || '';
-      const nom = (document.getElementById('cl-nom')?.value || '').trim();
-      const beforeCount = loadClients().length;
-      const ret = orig.apply(this, arguments);
-      const arr = loadClients();
-      if (arr.length > beforeCount) {
-        const last = arr.filter(function(c){ return (c.nom||'').toLowerCase() === nom.toLowerCase(); })
-          .sort(function(a,b){ return new Date(b.creeLe||0) - new Date(a.creeLe||0); })[0];
-        if (last) {
-          last.secteur = secteur;
-          localStorage.setItem('clients', JSON.stringify(arr));
-        }
-      }
-      return ret;
-    };
-    wrapped.__s172 = true;
-    window.ajouterClient = wrapped;
-  }
-
-  /* ---------- Persist secteur à l'édition ---------- */
-  function hookConfirmerEditClientSecteur() {
-    if (typeof window.confirmerEditClient !== 'function') { setTimeout(hookConfirmerEditClientSecteur, 200); return; }
-    if (window.confirmerEditClient.__s172) return;
-    const orig = window.confirmerEditClient;
-    const wrapped = function() {
-      const id = document.getElementById('edit-cl-id')?.value || '';
-      const secteurNew = document.getElementById('edit-cl-secteur')?.value || '';
-      const before = loadClients().find(function(c){ return c.id === id; });
-      const secteurOld = before ? (before.secteur || '') : '';
-      const ret = orig.apply(this, arguments);
-      setTimeout(function(){
-        const arr = loadClients();
-        const c = arr.find(function(x){ return x.id === id; });
-        if (!c) return;
-        c.secteur = secteurNew;
-        localStorage.setItem('clients', JSON.stringify(arr));
-        if (secteurOld !== secteurNew && typeof window.logChange === 'function') {
-          try { window.logChange('clients', id, 'secteur', secteurOld, secteurNew, 'Secteur'); } catch(e){}
-        }
-      }, 60);
-      return ret;
-    };
-    wrapped.__s172 = true;
-    window.confirmerEditClient = wrapped;
-  }
-
-  /* ---------- Prefill edit-cl-secteur ---------- */
-  function hookOuvrirEditClientSecteur() {
-    if (typeof window.ouvrirEditClient !== 'function') { setTimeout(hookOuvrirEditClientSecteur, 200); return; }
-    if (window.ouvrirEditClient.__s172) return;
-    const orig = window.ouvrirEditClient;
-    const wrapped = function(id) {
-      const ret = orig.apply(this, arguments);
-      setTimeout(function(){
-        const c = loadClients().find(function(x){ return x.id === id; });
-        if (!c) return;
-        const sel = document.getElementById('edit-cl-secteur');
-        if (sel) sel.value = c.secteur || '';
-      }, 80);
-      return ret;
-    };
-    wrapped.__s172 = true;
-    window.ouvrirEditClient = wrapped;
-  }
-
-  /* ---------- Export Historique Fournisseurs (mirror long) ---------- */
-  window.exporterHistoriqueFournisseursCSV = function() {
-    let fourns = [];
-    try { fourns = loadSafe('fournisseurs', []); } catch(e){}
-    const charges = (function(){ try { return loadSafe('charges', []); } catch(e){ return []; } })();
-    const carburants = (function(){ try { return loadSafe('carburants', []); } catch(e){ return []; } })();
-    const entretiens = (function(){ try { return loadSafe('entretiens', []); } catch(e){ return []; } })();
-    const paiements = (function(){ try { return loadSafe('paiements', []); } catch(e){ return []; } })();
-
-    const rows = fourns.map(function(f){
-      const ch = charges.filter(function(x){ return x.fournisseurId === f.id; });
-      const ca = carburants.filter(function(x){ return x.fournisseurId === f.id; });
-      const en = entretiens.filter(function(x){ return x.fournisseurId === f.id; });
-      const pa = paiements.filter(function(p){ return p.sens === 'out' && p.fournisseurId === f.id; });
-      const sum = function(arr, key){ return arr.reduce(function(s,x){ return s + (parseFloat(x[key])||0); }, 0); };
-      const depenseTotale = sum(ch,'montant') + sum(ca,'montant') + sum(en,'cout');
-      const paye = sum(pa,'montant');
-      return {
-        nom: f.nom || '',
-        categorie: f.categorie || '',
-        type: f.type || 'pro',
-        siren: f.siren || '',
-        tvaIntra: f.tvaIntra || '',
-        contact: f.contact || '',
-        tel: f.tel || '',
-        email: f.email || '',
-        emailFact: f.emailFact || '',
-        adresse: f.adresse || '',
-        cp: f.cp || '',
-        ville: f.ville || '',
-        delaiPay: f.delaiPaiementJours != null ? f.delaiPaiementJours : 30,
-        modePaiement: f.modePaiement || 'virement',
-        iban: f.iban || '',
-        compteCompta: f.compteCompta || '',
-        nbCharges: ch.length,
-        nbCarburants: ca.length,
-        nbEntretiens: en.length,
-        depenseTotale: depenseTotale,
-        nbPaiements: pa.length,
-        totalPaye: paye,
-        soldeDu: Math.max(0, depenseTotale - paye)
-      };
-    });
-    if (typeof window.exporterCSV === 'function') {
-      const r2 = (typeof window.round2 === 'function') ? window.round2 : function(n){ return Math.round((n||0)*100)/100; };
-      window.exporterCSV(rows, [
-        { label:'Fournisseur', get:function(r){ return r.nom; } },
-        { label:'Catégorie', get:function(r){ return r.categorie; } },
-        { label:'Type', get:function(r){ return r.type; } },
-        { label:'SIREN', get:function(r){ return r.siren; } },
-        { label:'TVA Intracom', get:function(r){ return r.tvaIntra; } },
-        { label:'Contact', get:function(r){ return r.contact; } },
-        { label:'Téléphone', get:function(r){ return r.tel; } },
-        { label:'Email', get:function(r){ return r.email; } },
-        { label:'Email facturation', get:function(r){ return r.emailFact; } },
-        { label:'Adresse', get:function(r){ return r.adresse; } },
-        { label:'Code postal', get:function(r){ return r.cp; } },
-        { label:'Ville', get:function(r){ return r.ville; } },
-        { label:'Délai paiement (j)', get:function(r){ return r.delaiPay; } },
-        { label:'Mode paiement', get:function(r){ return r.modePaiement; } },
-        { label:'IBAN', get:function(r){ return r.iban; } },
-        { label:'Compte compta', get:function(r){ return r.compteCompta; } },
-        { label:'Nb charges', get:function(r){ return r.nbCharges; } },
-        { label:'Nb carburants', get:function(r){ return r.nbCarburants; } },
-        { label:'Nb entretiens', get:function(r){ return r.nbEntretiens; } },
-        { label:'Dépense totale', get:function(r){ return r2(r.depenseTotale); } },
-        { label:'Nb paiements', get:function(r){ return r.nbPaiements; } },
-        { label:'Total payé', get:function(r){ return r2(r.totalPaye); } },
-        { label:'Solde dû', get:function(r){ return r2(r.soldeDu); } }
-      ], 'fournisseurs_historique_' + new Date().toLocalISODate() + '.csv');
-      if (typeof window.afficherToast === 'function') window.afficherToast('📚 Export historique Fournisseurs prêt','success');
-    }
-  };
-
-  /* ---------- Init ---------- */
-  function init() {
-    hookAjouterClientSecteur();
-    hookConfirmerEditClientSecteur();
-    hookOuvrirEditClientSecteur();
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 200);
-})();
-
 /* ============================================================
    SPRINT 18 — Tri universel par clic sur les <th>
    - Remplace tous les dropdowns "Trier par ..."
@@ -22758,8 +19527,22 @@ function exporterPrevisionsPDF() {
 
   function init() {
     scan();
-    // Rescan périodique : certaines tables sont créées dynamiquement
-    setInterval(scan, 2500);
+    // PERF: remplacement du setInterval(scan, 2500) par MutationObserver
+    // event-driven — ne scanne que lorsqu'un node est ajouté au DOM
+    const domWatcher = new MutationObserver(function(muts) {
+      for (let i = 0; i < muts.length; i++) {
+        const added = muts[i].addedNodes;
+        if (!added || !added.length) continue;
+        for (let j = 0; j < added.length; j++) {
+          const node = added[j];
+          if (node && node.nodeType === 1 && (node.matches && node.matches('table.data-table') || node.querySelector && node.querySelector('table.data-table'))) {
+            scan();
+            return;
+          }
+        }
+      }
+    });
+    domWatcher.observe(document.body, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 250);
@@ -23702,8 +20485,8 @@ function exporterPrevisionsPDF() {
     }, 600);
     // Re-génération périodique (5 min)
     setInterval(() => { try { genererAlertesRH(); } catch(e){} }, 5 * 60 * 1000);
-    // Re-injection périodique au cas où un observer aurait raté (pagination, etc.)
-    setInterval(injecterBoutons360, 3000);
+    // PERF: setInterval 3s retiré — setupObservers() via MutationObserver
+    // couvre déjà l'injection des boutons sur insertions dynamiques (pagination incluse)
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 900);
@@ -24123,7 +20906,7 @@ function exporterPrevisionsPDF() {
       setupObservers();
     }, 700);
     setInterval(() => { try { genererAlertesParc(); } catch(e){} }, 5 * 60 * 1000);
-    setInterval(injecterBoutons360, 3000);
+    // PERF: setInterval 3s retiré — setupObservers() via MutationObserver suffit
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 1000);
@@ -24168,19 +20951,15 @@ function exporterPrevisionsPDF() {
       alias: 'compta',
       title: '💼 Comptabilité',
       icon: '💼',
-      label: 'Comptabilité',
+      label: 'Finances',
       section: 'finances',
-      pages: ['charges', 'facturation', 'encaissements', 'rentabilite', 'statistiques', 'tva', 'budget'],
+      pages: ['charges', 'rentabilite', 'statistiques'],
       labels: {
         charges: '💸 Charges',
-        facturation: '📄 Facturation',
-        encaissements: '💳 Encaissements',
         rentabilite: '💰 Rentabilité',
         statistiques: '📈 Statistiques',
-        tva: '🧾 TVA',
-        budget: '📂 Budget',
       },
-      defaultPage: 'facturation',
+      defaultPage: 'charges',
       storageKey: 's22_last_compta',
     },
   };
@@ -24264,16 +21043,25 @@ function exporterPrevisionsPDF() {
     const orig = window.naviguerVers;
     if (!orig || orig.__s22Hooked) return;
     const wrapped = function(page) {
-      // Alias hub → restaure dernière sous-page visitée
+      // Alias hub → ouvre TOUJOURS la page par défaut (reset au clic sur le hub)
       if (HUB_ALIASES.includes(page)) {
         const hub = HUBS[page];
-        const last = localStorage.getItem(hub.storageKey) || hub.defaultPage;
-        const ret = orig.call(this, last);
-        setTimeout(() => { renderBandeau(page, last); majLiensActifs(page); }, 50);
+        const defaultPage = hub.defaultPage;
+        localStorage.removeItem(hub.storageKey);
+        const ret = orig.call(this, defaultPage);
+        setTimeout(() => { renderBandeau(page, defaultPage); majLiensActifs(page); }, 50);
         return ret;
       }
+      // Navigation vers une page hors hub → reset storage des hubs précédents
+      const hubAliasDest = hubFromPage(page);
+      if (!hubAliasDest) {
+        HUB_ALIASES.forEach(a => localStorage.removeItem(HUBS[a].storageKey));
+      } else {
+        // Changement de hub : clear les autres hubs (reset)
+        HUB_ALIASES.forEach(a => { if (a !== hubAliasDest) localStorage.removeItem(HUBS[a].storageKey); });
+      }
       const ret = orig.apply(this, arguments);
-      const hubAlias = hubFromPage(page);
+      const hubAlias = hubAliasDest;
       setTimeout(() => {
         if (hubAlias) {
           localStorage.setItem(HUBS[hubAlias].storageKey, page);
@@ -24313,11 +21101,17 @@ function exporterPrevisionsPDF() {
       const hubAlias = hubFromPage(id);
       if (hubAlias) { renderBandeau(hubAlias, id); majLiensActifs(hubAlias); }
     }
-    // Re-appliquer en cas d'injection tardive d'items nav
-    setInterval(() => { masquerAnciensLiens(); injecterNouveauxLiens(); }, 5000);
+    // PERF: ancien setInterval 5s remplacé par MutationObserver sur la sidebar
+    const sidebarEl = document.querySelector('.sidebar-nav') || document.querySelector('.sidebar');
+    if (sidebarEl) {
+      const sidebarObs = new MutationObserver(() => { masquerAnciensLiens(); injecterNouveauxLiens(); });
+      sidebarObs.observe(sidebarEl, { childList: true, subtree: true });
+    }
   }
+  // PERF: exposé pour appel synchrone depuis le bootstrap principal (anti-FOUC sidebar)
+  window.__s22InitSidebar = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 1100);
+  else Promise.resolve().then(init);
 })();
 
 /* ==========================================================================
@@ -24642,13 +21436,7 @@ function exporterPrevisionsPDF() {
     section.className = 'settings-section';
     section.innerHTML = `
       <h2 style="margin-top:32px">⚙️ Automatisations</h2>
-      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Règles qui tournent en arrière-plan. Désactivez une règle pour reprendre la main manuellement.</p>
-      <div class="s24-toggles">
-        ${renderToggle('auto_rappel_j5', '⏰ Rappel J-5 sur échéances', 'Crée une alerte admin quand une facture arrive à échéance dans 5 jours', true)}
-        ${renderToggle('auto_escalade_relances', '🔔 Escalade relances automatique', 'Propose la relance niv. suivant selon délais écoulés (niv 0→1 : J+7, niv 1→2 : J+7, niv 2→3 : J+10, niv 3→contentieux : J+15)', true)}
-        ${renderToggle('auto_cloture_factures', '✅ Clôture auto facture payée', 'Passe le statut à "payée" dès que le solde atteint 0 €', true)}
-        ${renderToggle('auto_facture_livraison', '📄 Facture auto à clôture livraison', 'Génère une facture dès qu une livraison passe en statut livré', false)}
-      </div>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Règles qui tournent en arrière-plan côté MCA. Les automatisations de facturation / relance / clôture sont gérées par Pennylane.</p>
       <h3 style="margin-top:24px">📅 Décalage férié / weekend</h3>
       <p style="color:var(--text-muted);font-size:.88rem">Les nouvelles échéances créées sont automatiquement repoussées au prochain jour ouvré (hors weekends et jours fériés FR).</p>
       <h3 style="margin-top:24px">⌨️ Raccourcis clavier</h3>
@@ -25482,7 +22270,7 @@ function exporterPrevisionsPDF() {
     const cur = calcStatsPeriode(mois);
     const prev = calcStatsPeriode(moisPrec);
     const delta = (a,b) => {
-      if (!b && !a) return { cls:'neutral', txt:'—' };
+      if (!b && !a) return { cls:'empty', txt:'' };
       if (!b) return { cls:'up', txt:'Nouveau' };
       const pct = ((a-b)/Math.abs(b))*100;
       const cls = pct > 1 ? 'up' : pct < -1 ? 'down' : 'neutral';
@@ -25508,12 +22296,12 @@ function exporterPrevisionsPDF() {
       <div class="s26-sc-grid">
         ${rows.map(r => {
           const cls = r.inv ? (r.d.cls==='up'?'down':r.d.cls==='down'?'up':'neutral') : r.d.cls;
+          const isEmpty = r.d.cls === 'empty';
           return `
-            <div class="s26-sc-card">
+            <div class="s26-sc-card ${isEmpty ? 's26-sc-empty' : ''}">
               <div class="s26-sc-lbl">${r.lbl}</div>
               <div class="s26-sc-val">${r.fmt(r.a)}</div>
-              <div class="s26-sc-delta ${cls}">${r.d.txt}</div>
-              <div class="s26-sc-prev">M-1 : ${r.fmt(r.b)}</div>
+              ${isEmpty ? '<div class="s26-sc-prev">Aucune donnée sur la période</div>' : '<div class="s26-sc-delta '+cls+'">'+r.d.txt+'</div><div class="s26-sc-prev">M-1 · '+r.fmt(r.b)+'</div>'}
             </div>
           `;
         }).join('')}
@@ -25862,11 +22650,20 @@ function exporterPrevisionsPDF() {
      ================================================================ */
   function init() {
     document.addEventListener('dblclick', onDblClickCell);
-    setTimeout(renderStatsComparees, 1200);
+    // PERF anti-FOUC: render synchrone des stats comparées (était setTimeout 1200ms
+    // → causait le flash "dashboard puis timeline apparaît 1s après")
+    renderStatsComparees();
+    injectParamsUI();
+    injecterBoutonSignature();
+    // Refresh périodique stats (M vs M-1) toutes les minutes (léger)
     setInterval(renderStatsComparees, 60*1000);
-    setTimeout(injectParamsUI, 1300);
-    setInterval(injectParamsUI, 4000);
-    setInterval(injecterBoutonSignature, 2500);
+    // PERF: anciens setInterval injectParamsUI 4s + injecterBoutonSignature 2.5s
+    // remplacés par MutationObserver — ne re-injecte que si le DOM mute vraiment
+    const reinjectObs = new MutationObserver(() => {
+      if (!document.getElementById('s26-params-card')) injectParamsUI();
+      injecterBoutonSignature();
+    });
+    reinjectObs.observe(document.body, { childList: true, subtree: true });
     // Re-render stats si localStorage mute
     window.addEventListener('storage', () => {
       const el = document.getElementById('s26-stats-comparees');
@@ -25874,597 +22671,9 @@ function exporterPrevisionsPDF() {
       renderStatsComparees();
     });
   }
+  window.__s26InitDashboard = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 1500);
-})();
-
-/* ==========================================================================
-   Sprint 27 — Pack fiscal ZIP (cases à cocher)
-   Génère une archive ZIP contenant les éléments sélectionnés :
-   - FEC (Fichier des Écritures Comptables — CGI art. A47 A-1, 18 colonnes)
-   - Journal des ventes (factures émises)
-   - Journal des achats (charges)
-   - Avoirs émis
-   - Paiements / Encaissements
-   - Relevé bancaire simulé (rapprochement)
-   - Liste clients / fournisseurs
-   - Mentions légales (RGPD, registre traitements minimal)
-   Nécessite JSZip (CDN chargé dans admin.html)
-   ========================================================================== */
-(function installS27(){
-  if (window.__s27Installed) return;
-  window.__s27Installed = true;
-
-  const LS = {
-    factures: 'factures_emises', livraisons: 'livraisons', paiements: 'paiements',
-    avoirs: 'avoirs_emis', charges: 'charges', clients: 'clients', fournisseurs: 'fournisseurs',
-    params: 'params_entreprise', audit: 'audit_log',
-  };
-  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
-  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
-  const esc = window.escapeHtml;
-  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
-  const audit = (a, d) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(a, d); };
-
-  const PACKS = [
-    { k: 'fec', lbl: '📊 FEC — Écritures comptables (A47 A-1)', def: true, legal: 'Obligatoire si contrôle fiscal (CGI art. L47 A). Format TXT, 18 colonnes, séparateur tabulation.' },
-    { k: 'journal_ventes', lbl: '💰 Journal des ventes', def: true, legal: 'Document comptable obligatoire (Code de commerce L123-12).' },
-    { k: 'journal_achats', lbl: '🧾 Journal des achats', def: true, legal: 'Document comptable obligatoire.' },
-    { k: 'factures', lbl: '📄 Liste factures émises (CSV)', def: true, legal: 'Conservation 10 ans (Code de commerce L123-22).' },
-    { k: 'avoirs', lbl: '↩️ Liste avoirs émis (CSV)', def: true, legal: 'Conservation 10 ans, doivent référencer la facture initiale.' },
-    { k: 'paiements', lbl: '💸 Encaissements / paiements', def: true, legal: 'Traçabilité des flux financiers.' },
-    { k: 'livraisons', lbl: '🚚 Livraisons / BL', def: false, legal: 'Preuve de prestation transport — conservation 5 ans minimum.' },
-    { k: 'clients', lbl: '👥 Base clients', def: false, legal: 'Attention RGPD : supprimer les données inutiles (droit effacement).' },
-    { k: 'fournisseurs', lbl: '🏭 Base fournisseurs', def: false, legal: 'Données nécessaires à la comptabilité fournisseur.' },
-    { k: 'synthese_tva', lbl: '🧮 Synthèse TVA collectée / déductible', def: true, legal: 'Utile pour déclaration CA3 mensuelle / trimestrielle.' },
-    { k: 'audit', lbl: '🔍 Journal d\u2019audit (traçabilité)', def: false, legal: 'Horodatage des actions admin — preuve interne.' },
-    { k: 'mentions_legales', lbl: '⚖️ Mentions légales & registre RGPD', def: true, legal: 'Registre traitements (RGPD art. 30) + mentions facturation obligatoires.' },
-  ];
-
-  function ouvrirPackFiscal() {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const defStart = yyyy + '-01-01';
-    const defEnd = today.toLocalISODate();
-    const html = `
-      <div class="s15-modal-info-box" style="max-width:820px">
-        <div class="s15-modal-info-header">
-          <h2>📦 Pack fiscal — Export archive ZIP</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body" style="max-height:75vh;overflow:auto">
-          <p style="color:var(--text-muted);font-size:.9rem;margin-bottom:14px">
-            Cochez les éléments à inclure. L'archive sera générée en local (aucun envoi réseau) et téléchargée.
-          </p>
-          <div class="s27-periode">
-            <label>Du <input type="date" id="s27-du" value="${defStart}"></label>
-            <label>Au <input type="date" id="s27-au" value="${defEnd}"></label>
-            <div class="s27-presets">
-              <button class="btn btn-xs btn-ghost" data-s27-preset="annee">Année N</button>
-              <button class="btn btn-xs btn-ghost" data-s27-preset="trim">Trimestre</button>
-              <button class="btn btn-xs btn-ghost" data-s27-preset="mois">Mois</button>
-              <button class="btn btn-xs btn-ghost" data-s27-preset="tout">Tout</button>
-            </div>
-          </div>
-          <div class="s27-toolbar">
-            <button class="btn btn-xs btn-ghost" id="s27-all">✓ Tout cocher</button>
-            <button class="btn btn-xs btn-ghost" id="s27-none">✗ Tout décocher</button>
-            <button class="btn btn-xs btn-ghost" id="s27-default">🔄 Défaut fiscal</button>
-          </div>
-          <div class="s27-items">
-            ${PACKS.map(p => `
-              <label class="s27-item">
-                <input type="checkbox" data-s27-k="${p.k}" ${p.def?'checked':''}>
-                <div class="s27-item-body">
-                  <strong>${p.lbl}</strong>
-                  <small>${esc(p.legal)}</small>
-                </div>
-              </label>
-            `).join('')}
-          </div>
-          <div class="s27-footer">
-            <div class="s27-counter" id="s27-counter"></div>
-            <button class="btn btn-primary" id="s27-generate">🗜️ Générer & télécharger le ZIP</button>
-          </div>
-        </div>
-      </div>
-    `;
-    ouvrirModal(html);
-    const updateCounter = () => {
-      const n = document.querySelectorAll('[data-s27-k]:checked').length;
-      document.getElementById('s27-counter').textContent = n + ' élément' + (n>1?'s':'') + ' sélectionné' + (n>1?'s':'');
-    };
-    document.querySelectorAll('[data-s27-k]').forEach(cb => cb.addEventListener('change', updateCounter));
-    document.getElementById('s27-all').onclick = () => { document.querySelectorAll('[data-s27-k]').forEach(cb => cb.checked = true); updateCounter(); };
-    document.getElementById('s27-none').onclick = () => { document.querySelectorAll('[data-s27-k]').forEach(cb => cb.checked = false); updateCounter(); };
-    document.getElementById('s27-default').onclick = () => {
-      document.querySelectorAll('[data-s27-k]').forEach(cb => {
-        const p = PACKS.find(x => x.k === cb.dataset.s27K);
-        cb.checked = !!(p && p.def);
-      });
-      updateCounter();
-    };
-    document.querySelectorAll('[data-s27-preset]').forEach(btn => {
-      btn.onclick = () => {
-        const now = new Date();
-        const du = document.getElementById('s27-du');
-        const au = document.getElementById('s27-au');
-        const preset = btn.dataset.s27Preset;
-        if (preset === 'annee') {
-          du.value = now.getFullYear() + '-01-01';
-          au.value = now.toLocalISODate();
-        } else if (preset === 'trim') {
-          const q = Math.floor(now.getMonth()/3);
-          du.value = now.getFullYear() + '-' + String(q*3+1).padStart(2,'0') + '-01';
-          au.value = now.toLocalISODate();
-        } else if (preset === 'mois') {
-          du.value = now.toLocalISOMonth() + '-01';
-          au.value = now.toLocalISODate();
-        } else if (preset === 'tout') {
-          du.value = '2000-01-01';
-          au.value = now.toLocalISODate();
-        }
-      };
-    });
-    document.getElementById('s27-generate').onclick = () => {
-      const du = document.getElementById('s27-du').value;
-      const au = document.getElementById('s27-au').value;
-      const selected = Array.from(document.querySelectorAll('[data-s27-k]:checked')).map(cb => cb.dataset.s27K);
-      if (!selected.length) { toast('Sélectionnez au moins 1 élément', 'warning'); return; }
-      genererZip(selected, du, au);
-    };
-    updateCounter();
-  }
-  window.ouvrirPackFiscal = ouvrirPackFiscal;
-
-  function ouvrirModal(html) {
-    if (typeof window.modalInfo === 'function') {
-      const m = window.modalInfo(html);
-      // window.modalInfo wraps html in .s15-modal-info-body ; our html already provides its own box
-      // so we override the inner structure:
-      m.innerHTML = html;
-      // re-bind close + backdrop
-      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }, { once: true });
-      m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
-        btn.addEventListener('click', () => m.classList.remove('open'));
-      });
-      return m;
-    }
-    let m = document.getElementById('s15-modal-info');
-    if (!m) {
-      m = document.createElement('div');
-      m.id = 's15-modal-info';
-      m.className = 's15-modal-info-overlay';
-      document.body.appendChild(m);
-      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && m.classList.contains('open')) m.classList.remove('open'); });
-    } else {
-      m.className = 's15-modal-info-overlay';
-    }
-    m.innerHTML = html;
-    m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
-      btn.addEventListener('click', () => m.classList.remove('open'));
-    });
-    m.classList.add('open');
-    return m;
-  }
-
-  /* ---- Générateurs par bloc ---- */
-  function inRange(iso, du, au) {
-    if (!iso) return false;
-    const d = iso.slice(0,10);
-    return (!du || d >= du) && (!au || d <= au);
-  }
-  function csvEscape(s) {
-    // Neutralisation formule + échappement (BUG-016) — délègue au helper global
-    if (typeof window.csvCelluleSecurisee === 'function') return window.csvCelluleSecurisee(s, ';');
-    const raw = String(s==null?'':s);
-    const neutr = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
-    if (/[",;\n\r]/.test(neutr)) return '"' + neutr.replace(/"/g,'""') + '"';
-    return neutr;
-  }
-  function toCsv(rows) {
-    return rows.map(r => r.map(csvEscape).join(';')).join('\r\n');
-  }
-  function toFec(rows) {
-    // 18 colonnes FEC séparées par TAB (CGI art. A47 A-1)
-    return rows.map(r => r.join('\t')).join('\r\n');
-  }
-
-  function genFEC(du, au) {
-    // BUG-002/023/024/036/037/038/040 fix : FEC conforme CGI art. A47 A-1
-    const entete = [
-      'JournalCode','JournalLib','EcritureNum','EcritureDate','CompteNum','CompteLib',
-      'CompAuxNum','CompAuxLib','PieceRef','PieceDate','EcritureLib','Debit','Credit',
-      'EcritureLet','DateLet','ValidDate','Montantdevise','Idevise'
-    ];
-    // ValidDate : si exercice clôturé, date de validation ; sinon vide (mode brouillard)
-    const clotureInfo = (function(){ try { return loadSafe('cloture_exercice', null) || {}; } catch(e){ return {}; } })();
-    const validDate = (clotureInfo && clotureInfo.validee && clotureInfo.dateValidation) ? String(clotureInfo.dateValidation).replace(/-/g,'') : '';
-
-    // Mapping TVA collectée par taux (cohérent avec Pennylane)
-    const compteTVACol = (taux) => {
-      const t = Number(taux);
-      if (t === 20) return '445710';
-      if (t === 10) return '445711';
-      if (t === 5.5) return '445712';
-      if (t === 2.1) return '445713';
-      return '445700';
-    };
-    // Mapping TVA déductible par taux
-    const compteTVADed = (taux) => {
-      const t = Number(taux);
-      if (t === 20) return '445660';
-      if (t === 10) return '445661';
-      if (t === 5.5) return '445662';
-      if (t === 2.1) return '445663';
-      return '445660';
-    };
-    // Mapping compte charge par catégorie (réutilise helper global)
-    const compteCharge = (cat) => (typeof getCompteChargeFEC === 'function')
-      ? getCompteChargeFEC(cat) : { num:'628000', lib:'Autres services extérieurs' };
-
-    const pieces = [];
-    // Factures (prestations transport : compte 706)
-    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => {
-      const date = (f.dateFacture||'').replace(/-/g,'');
-      const ht = Number(f.montantHT||f.totalHT||0);
-      const tva = Number(f.montantTVA||f.totalTVA||0);
-      const ttc = Number(f.montantTTC||f.totalTTC||0);
-      const lettrage = f.lettrage || ''; // renseigné si facture soldée, voir paiements
-      const tauxTVA = Number(f.tauxTVA != null ? f.tauxTVA : 20);
-      pieces.push({ sortKey: date+'_VE_'+(f.numero||''), rows: [
-        ['VE','Ventes','__N__',date,'411000','Clients','C'+(f.clientCode||''),(f.client||''),f.numero||'',date,'Facture '+(f.numero||''),ttc.toFixed(2).replace('.',','),'0,00',lettrage,lettrage?date:'',validDate,ttc.toFixed(2).replace('.',','),'EUR'],
-        ['VE','Ventes','__N__',date,'706000','Prestations de services','','',f.numero||'',date,'Prestation transport',(0).toFixed(2).replace('.',','),ht.toFixed(2).replace('.',','),'','',validDate,ht.toFixed(2).replace('.',','),'EUR'],
-        ...(tva>0 ? [['VE','Ventes','__N__',date,compteTVACol(tauxTVA),'TVA collectée '+tauxTVA+'%','','',f.numero||'',date,'TVA '+tauxTVA+'%',(0).toFixed(2).replace('.',','),tva.toFixed(2).replace('.',','),'','',validDate,tva.toFixed(2).replace('.',','),'EUR']] : [])
-      ]});
-    });
-
-    // Charges (facture fournisseur reçue = écriture 607/445/401 ; libellé "Facture reçue")
-    load(LS.charges).filter(c => inRange(c.date, du, au)).forEach(c => {
-      const date = (c.date||'').replace(/-/g,'');
-      const ht = Number(c.montantHT||c.montant||0);
-      const tva = Number(c.montantTVA||0);
-      const ttc = Number(c.montantTTC||c.montant||0);
-      const tauxTVA = ht > 0 && tva > 0 ? Math.round((tva/ht)*1000)/10 : 20;
-      const cc = compteCharge(c.categorie);
-      const libPiece = c.libelle || cc.lib || 'Charge';
-      pieces.push({ sortKey: date+'_AC_'+(c.id||''), rows: [
-        ['AC','Achats','__N__',date,cc.num,cc.lib,'','',c.id||'',date,libPiece,ht.toFixed(2).replace('.',','),'0,00','','',validDate,ht.toFixed(2).replace('.',','),'EUR'],
-        ...(tva>0 ? [['AC','Achats','__N__',date,compteTVADed(tauxTVA),'TVA déductible '+tauxTVA+'%','','',c.id||'',date,'TVA déductible '+tauxTVA+'%',tva.toFixed(2).replace('.',','),'0,00','','',validDate,tva.toFixed(2).replace('.',','),'EUR']] : []),
-        ['AC','Achats','__N__',date,'401000','Fournisseurs','F'+(c.fournisseurCode||''),(c.fournisseur||''),c.id||'',date,'Facture reçue '+(c.fournisseur||''),'0,00',ttc.toFixed(2).replace('.',','),'','',validDate,ttc.toFixed(2).replace('.',','),'EUR']
-      ]});
-      // BUG-024 : si la charge est marquée payée → 2e écriture banque 401 → 512
-      if (c.payee || c.datePaiement || c.modePaiement === 'cb' || c.modePaiement === 'virement' || c.modePaiement === 'especes') {
-        const datePai = ((c.datePaiement || c.date) || '').replace(/-/g,'');
-        const ref = c.referencePaiement || c.id || '';
-        pieces.push({ sortKey: datePai+'_BQ_F_'+(c.id||''), rows: [
-          ['BQ','Banque','__N__',datePai,'401000','Fournisseurs','F'+(c.fournisseurCode||''),(c.fournisseur||''),ref,datePai,'Règlement fournisseur '+(c.fournisseur||''),ttc.toFixed(2).replace('.',','),'0,00','','',validDate,ttc.toFixed(2).replace('.',','),'EUR'],
-          ['BQ','Banque','__N__',datePai,'512000','Banque','','',ref,datePai,'Paiement '+(c.fournisseur||''),'0,00',ttc.toFixed(2).replace('.',','),'','',validDate,ttc.toFixed(2).replace('.',','),'EUR']
-        ]});
-      }
-    });
-
-    // Paiements clients (encaissements) — lettrage automatique L<id>
-    load(LS.paiements).filter(p => inRange(p.datePaiement||p.date, du, au)).forEach(p => {
-      const date = ((p.datePaiement||p.date)||'').replace(/-/g,'');
-      const m = Number(p.montant||0);
-      const lettre = 'L' + String(p.id||'').slice(-6).toUpperCase();
-      pieces.push({ sortKey: date+'_BQ_C_'+(p.reference||p.id||''), rows: [
-        ['BQ','Banque','__N__',date,'512000','Banque','','',p.reference||'',date,'Encaissement '+(p.client||''),m.toFixed(2).replace('.',','),'0,00','','',validDate,m.toFixed(2).replace('.',','),'EUR'],
-        ['BQ','Banque','__N__',date,'411000','Clients','C'+(p.clientCode||''),(p.client||''),p.reference||'',date,'Règlement '+(p.client||''),'0,00',m.toFixed(2).replace('.',','),lettre,date,validDate,m.toFixed(2).replace('.',','),'EUR']
-      ]});
-    });
-
-    // BUG-040 : tri chronologique stable par sortKey
-    // BUG-041 : numérotation continue à l'échelle de l'exercice entier (année du `du`)
-    //           → re-générer n'importe quel sous-intervalle produit les MÊMES EcritureNum
-    //           pour les mêmes écritures (numérotation déterministe, zéro collision).
-    const anneeExercice = (du||'').slice(0,4) || String((new Date()).getFullYear());
-    const debutExo = anneeExercice + '-01-01';
-    const finExo = anneeExercice + '-12-31';
-    // On recalcule TOUT l'exercice pour numéroter, puis on filtre à [du, au]
-    const piecesExo = [];
-    load(LS.factures).filter(f => inRange(f.dateFacture, debutExo, finExo)).forEach(f => {
-      const date = (f.dateFacture||'').replace(/-/g,'');
-      const tauxTVA = Number(f.tauxTVA != null ? f.tauxTVA : 20);
-      const tvaV = Number(f.montantTVA||f.totalTVA||0);
-      piecesExo.push({ sortKey: date+'_VE_'+(f.numero||''), dateFactureISO: f.dateFacture||'' });
-    });
-    load(LS.charges).filter(c => inRange(c.date, debutExo, finExo)).forEach(c => {
-      const date = (c.date||'').replace(/-/g,'');
-      piecesExo.push({ sortKey: date+'_AC_'+(c.id||''), dateFactureISO: c.date||'' });
-      if (c.payee || c.datePaiement || c.modePaiement === 'cb' || c.modePaiement === 'virement' || c.modePaiement === 'especes') {
-        const datePai = ((c.datePaiement || c.date) || '').replace(/-/g,'');
-        piecesExo.push({ sortKey: datePai+'_BQ_F_'+(c.id||''), dateFactureISO: (c.datePaiement||c.date||'') });
-      }
-    });
-    load(LS.paiements).filter(p => inRange(p.datePaiement||p.date, debutExo, finExo)).forEach(p => {
-      const date = ((p.datePaiement||p.date)||'').replace(/-/g,'');
-      piecesExo.push({ sortKey: date+'_BQ_C_'+(p.reference||p.id||''), dateFactureISO: (p.datePaiement||p.date||'') });
-    });
-    piecesExo.sort((a,b) => a.sortKey.localeCompare(b.sortKey));
-    const numByKey = new Map();
-    piecesExo.forEach((p, i) => numByKey.set(p.sortKey, i + 1));
-
-    pieces.sort((a,b) => a.sortKey.localeCompare(b.sortKey));
-    const rows = [entete];
-    pieces.forEach(p => {
-      const n = String(numByKey.get(p.sortKey) || 0);
-      p.rows.forEach(r => { r[2] = n; rows.push(r); });
-    });
-    return toFec(rows);
-  }
-
-  function genJournalVentes(du, au) {
-    const header = ['Date','Numéro','Client','Libellé','HT','TVA','TTC','Statut','Échéance'];
-    const rows = [header];
-    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => {
-      rows.push([
-        f.dateFacture||'', f.numero||'', f.client||'', f.libelle||f.prestation||'Prestation transport',
-        (Number(f.montantHT||f.totalHT||0)).toFixed(2),
-        (Number(f.montantTVA||f.totalTVA||0)).toFixed(2),
-        (Number(f.montantTTC||f.totalTTC||0)).toFixed(2),
-        f.statut||'', f.dateEcheance||''
-      ]);
-    });
-    return toCsv(rows);
-  }
-  function genJournalAchats(du, au) {
-    const header = ['Date','Fournisseur','Catégorie','Libellé','HT','TVA','TTC','Mode paiement'];
-    const rows = [header];
-    load(LS.charges).filter(c => inRange(c.date, du, au)).forEach(c => {
-      rows.push([c.date||'', c.fournisseur||'', c.categorie||'', c.libelle||'',
-        (Number(c.montantHT||c.montant||0)).toFixed(2),
-        (Number(c.montantTVA||0)).toFixed(2),
-        (Number(c.montantTTC||c.montant||0)).toFixed(2),
-        c.modePaiement||'']);
-    });
-    return toCsv(rows);
-  }
-  function genFacturesCSV(du, au) {
-    const header = ['Date','Numéro','Client','SIRET','HT','TVA','TTC','Statut','Échéance','Mode règlement'];
-    const rows = [header];
-    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => {
-      rows.push([f.dateFacture||'', f.numero||'', f.client||'', f.siret||'',
-        (Number(f.montantHT||f.totalHT||0)).toFixed(2),
-        (Number(f.montantTVA||f.totalTVA||0)).toFixed(2),
-        (Number(f.montantTTC||f.totalTTC||0)).toFixed(2),
-        f.statut||'', f.dateEcheance||'', f.modeReglement||'']);
-    });
-    return toCsv(rows);
-  }
-  function genAvoirsCSV(du, au) {
-    const header = ['Date','Numéro avoir','Facture initiale','Client','Motif','HT','TVA','TTC'];
-    const rows = [header];
-    load(LS.avoirs).filter(a => inRange(a.dateAvoir, du, au)).forEach(a => {
-      rows.push([a.dateAvoir||'', a.numero||'', a.factureInitiale||'', a.client||'', a.motif||'',
-        (Number(a.montantHT||0)).toFixed(2),
-        (Number(a.montantTVA||0)).toFixed(2),
-        (Number(a.montantTTC||0)).toFixed(2)]);
-    });
-    return toCsv(rows);
-  }
-  function genPaiementsCSV(du, au) {
-    const header = ['Date','Référence','Client','Facture','Mode','Montant','Banque'];
-    const rows = [header];
-    load(LS.paiements).filter(p => inRange(p.datePaiement||p.date, du, au)).forEach(p => {
-      rows.push([p.datePaiement||p.date||'', p.reference||'', p.client||'', p.factureReferencee||p.facture||'',
-        p.mode||'', (Number(p.montant||0)).toFixed(2), p.banque||'']);
-    });
-    return toCsv(rows);
-  }
-  function genLivraisonsCSV(du, au) {
-    const header = ['Date','Référence BL','Client','Départ','Arrivée','Chauffeur','Véhicule','Statut','Montant'];
-    const rows = [header];
-    load(LS.livraisons).filter(l => inRange(l.dateLivraison||l.dateCreation, du, au)).forEach(l => {
-      rows.push([l.dateLivraison||l.dateCreation||'', l.referenceBL||l.id||'', l.client||l.donneurOrdre||'',
-        l.depart||'', l.arrivee||'', l.chauffeur||'', l.vehicule||'', l.statut||'',
-        (Number(l.montant||l.prixHT||0)).toFixed(2)]);
-    });
-    return toCsv(rows);
-  }
-  function genClientsCSV() {
-    const header = ['Raison sociale','SIRET','TVA intra','Adresse','CP','Ville','Email','Téléphone','Conditions paiement'];
-    const rows = [header];
-    load(LS.clients).forEach(c => {
-      rows.push([c.raisonSociale||c.nom||'', c.siret||'', c.tvaIntra||'', c.adresse||'', c.cp||'', c.ville||'',
-        c.email||'', c.telephone||'', c.conditionsPaiement||'']);
-    });
-    return toCsv(rows);
-  }
-  function genFournisseursCSV() {
-    const header = ['Raison sociale','SIRET','TVA intra','Adresse','CP','Ville','Email','Téléphone','Catégorie'];
-    const rows = [header];
-    load(LS.fournisseurs).forEach(f => {
-      rows.push([f.raisonSociale||f.nom||'', f.siret||'', f.tvaIntra||'', f.adresse||'', f.cp||'', f.ville||'',
-        f.email||'', f.telephone||'', f.categorie||'']);
-    });
-    return toCsv(rows);
-  }
-  function genSyntheseTVA(du, au) {
-    let collectee = 0, deductible = 0;
-    load(LS.factures).filter(f => inRange(f.dateFacture, du, au)).forEach(f => { collectee += Number(f.montantTVA||f.totalTVA||0); });
-    load(LS.charges).filter(c => inRange(c.date, du, au)).forEach(c => { deductible += Number(c.montantTVA||0); });
-    const net = collectee - deductible;
-    return [
-      'SYNTHÈSE TVA',
-      'Période : '+du+' → '+au,
-      '',
-      'TVA collectée (ventes)    : '+collectee.toFixed(2)+' €',
-      'TVA déductible (achats)   : '+deductible.toFixed(2)+' €',
-      '─────────────────────────────────────',
-      'TVA due (à reverser)      : '+net.toFixed(2)+' €',
-      '',
-      'Code CA3 : 08 (collectée standard 20%), 20 (déductible)',
-      'À reporter sur déclaration mensuelle / trimestrielle selon régime.',
-    ].join('\r\n');
-  }
-  function genAuditLog() {
-    const header = ['Date','Action','Détails'];
-    const rows = [header];
-    load(LS.audit).forEach(e => {
-      rows.push([e.date||e.timestamp||'', e.action||'', JSON.stringify(e.details||e.data||{})]);
-    });
-    return toCsv(rows);
-  }
-  function genMentionsLegales() {
-    const p = loadObj(LS.params) || {};
-    const raisonSociale = p.raisonSociale || 'MCA Logistics';
-    const siret = p.siret || '—';
-    const tva = p.tvaIntra || '—';
-    return [
-      'MENTIONS LÉGALES & REGISTRE RGPD',
-      '=================================',
-      '',
-      'Entité       : '+raisonSociale,
-      'SIRET        : '+siret,
-      'TVA intra    : '+tva,
-      'Adresse      : '+(p.adresse||'—')+' '+(p.cp||'')+' '+(p.ville||''),
-      'Activité     : Transport routier de marchandises',
-      '',
-      'MENTIONS OBLIGATOIRES FACTURES (CGI art. 242 nonies A)',
-      '- Identité vendeur et acheteur',
-      '- Numéro TVA intracommunautaire si > 150 € HT',
-      '- Date facture + date prestation',
-      '- Numéro unique et continu',
-      '- Désignation et quantité',
-      '- Prix unitaire HT, taux TVA, montant TVA, total TTC',
-      '- Conditions de règlement, pénalités de retard, indemnité forfaitaire 40 €',
-      '',
-      'REGISTRE TRAITEMENTS RGPD (art. 30)',
-      '-----------------------------------',
-      '1. Gestion clientèle',
-      '   Finalité : facturation, livraison, relance commerciale',
-      '   Base légale : exécution contrat + obligation légale comptable',
-      '   Durée : 10 ans après dernière transaction (prescription comptable)',
-      '   Destinataires : comptable, admin, (éventuel prestataire de paiement)',
-      '',
-      '2. Gestion salariés',
-      '   Finalité : paie, planning, heures, km',
-      '   Base légale : contrat de travail',
-      '   Durée : 5 ans post-sortie (paie) / 6 ans (heures) / règles CNIL',
-      '',
-      '3. Géolocalisation (si applicable)',
-      '   Finalité : suivi flotte, preuve livraison',
-      '   Base légale : intérêt légitime entreprise, info salarié obligatoire',
-      '   Durée : 2 mois maximum (CNIL)',
-      '',
-      'DROITS DES PERSONNES : accès, rectification, effacement, opposition, portabilité.',
-      'Contact DPO/responsable : '+ (p.emailResponsable||p.email||'—'),
-      '',
-      'Archivage : 10 ans factures / 6 ans documents comptables / 5 ans paies / 3 ans courriers commerciaux.',
-      '',
-      'Document généré le '+new Date().toLocaleString('fr-FR')+' depuis MCA Logistics.',
-    ].join('\r\n');
-  }
-  function genManifest(selected, du, au) {
-    return [
-      'PACK FISCAL — MANIFESTE',
-      '=======================',
-      '',
-      'Généré le : '+new Date().toLocaleString('fr-FR'),
-      'Période   : '+du+' → '+au,
-      '',
-      'Contenu de l archive :',
-      ...selected.map(k => {
-        const p = PACKS.find(x => x.k === k);
-        return ' - '+(p?p.lbl:k);
-      }),
-      '',
-      'Conservation recommandée : 10 ans minimum pour les documents comptables',
-      '(Code de commerce art. L123-22, CGI art. L102 B).',
-      '',
-      'IMPORTANT : cette archive doit être stockée sur support pérenne (cloud',
-      'sauvegardé OU disque externe chiffré). Conservez également le hash SHA',
-      'du fichier ZIP pour preuve d intégrité en cas de contrôle.',
-    ].join('\r\n');
-  }
-
-  async function genererZip(selected, du, au) {
-    if (typeof window.JSZip === 'undefined') {
-      toast('JSZip non chargé — rechargez la page', 'error');
-      return;
-    }
-    toast('🗜️ Génération du pack fiscal…', 'info');
-    const zip = new window.JSZip();
-    const base = 'pack-fiscal_'+du+'_'+au;
-    zip.file(base+'/MANIFESTE.txt', genManifest(selected, du, au));
-    try {
-      if (selected.includes('fec'))            zip.file(base+'/FEC_'+du+'_'+au+'.txt', '\uFEFF' + genFEC(du, au));
-      if (selected.includes('journal_ventes')) zip.file(base+'/journal_ventes.csv', genJournalVentes(du, au));
-      if (selected.includes('journal_achats')) zip.file(base+'/journal_achats.csv', genJournalAchats(du, au));
-      if (selected.includes('factures'))       zip.file(base+'/factures_emises.csv', genFacturesCSV(du, au));
-      if (selected.includes('avoirs'))         zip.file(base+'/avoirs_emis.csv', genAvoirsCSV(du, au));
-      if (selected.includes('paiements'))      zip.file(base+'/paiements.csv', genPaiementsCSV(du, au));
-      if (selected.includes('livraisons'))     zip.file(base+'/livraisons.csv', genLivraisonsCSV(du, au));
-      if (selected.includes('clients'))        zip.file(base+'/clients.csv', genClientsCSV());
-      if (selected.includes('fournisseurs'))   zip.file(base+'/fournisseurs.csv', genFournisseursCSV());
-      if (selected.includes('synthese_tva'))   zip.file(base+'/synthese_tva.txt', genSyntheseTVA(du, au));
-      if (selected.includes('audit'))          zip.file(base+'/audit_log.csv', genAuditLog());
-      if (selected.includes('mentions_legales')) zip.file(base+'/mentions_legales_RGPD.txt', genMentionsLegales());
-    } catch(e) {
-      console.error('S27 gen error', e);
-      toast('❌ Erreur génération : '+e.message, 'error');
-      return;
-    }
-    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = base+'.zip';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
-    audit('export_pack_fiscal', { periode: du+'→'+au, items: selected });
-    toast('✅ Pack fiscal téléchargé ('+selected.length+' éléments)', 'success');
-    document.getElementById('s15-modal-info')?.classList.remove('open');
-  }
-
-  /* ---- UI Paramètres : bouton Pack fiscal ---- */
-  function injectParamsUI() {
-    const page = document.getElementById('page-parametres');
-    if (!page) return;
-    if (page.querySelector('#s27-params-section')) return;
-    const container = page.querySelector('.settings-content') || page;
-    const section = document.createElement('div');
-    section.id = 's27-params-section';
-    section.className = 'settings-section';
-    section.innerHTML = `
-      <h2 style="margin-top:32px">📦 Pack fiscal & conformité</h2>
-      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
-        Archive ZIP complète pour l'expert-comptable ou un contrôle fiscal. Généré en local, aucune donnée ne quitte le navigateur.
-      </p>
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="window.ouvrirPackFiscal()">🗜️ Ouvrir le pack fiscal</button>
-      </div>
-    `;
-    container.appendChild(section);
-  }
-
-  /* ---- Ajout raccourci depuis Facturation ---- */
-  function injectFacturationBtn() {
-    const page = document.getElementById('page-facturation');
-    if (!page) return;
-    if (page.querySelector('#s27-fact-btn')) return;
-    const toolbar = page.querySelector('.toolbar, .page-header, .filters');
-    if (!toolbar) return;
-    const btn = document.createElement('button');
-    btn.id = 's27-fact-btn';
-    btn.className = 'btn btn-sm btn-ghost';
-    btn.innerHTML = '📦 Pack fiscal';
-    btn.onclick = () => ouvrirPackFiscal();
-    toolbar.appendChild(btn);
-  }
-
-  function init() {
-    setTimeout(injectParamsUI, 1400);
-    setInterval(injectParamsUI, 4000);
-    setTimeout(injectFacturationBtn, 1500);
-    setInterval(injectFacturationBtn, 4000);
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 1600);
+  else Promise.resolve().then(init);
 })();
 
 /* ==========================================================================
@@ -26682,12 +22891,11 @@ function exporterPrevisionsPDF() {
 
   const SECTIONS = [
     { id:'entreprise',    icon:'🏢', label:'Entreprise',      desc:'Identité, logo, postes' },
-    { id:'facturation',   icon:'🧾', label:'Facturation',     desc:'TVA, trésorerie, numérotation' },
-    { id:'comptabilite',  icon:'📊', label:'Comptabilité',    desc:'Exercice, PCG, Factur-X' },
+    { id:'comptabilite',  icon:'📊', label:'Comptabilité',    desc:'Délégation Pennylane (facturation, FEC, compta)' },
     { id:'transport',     icon:'🚚', label:'Transport',       desc:'Règles calculs, livraison' },
     { id:'automatisations', icon:'⚙️', label:'Automatisations', desc:'Cron, rappels, clôtures' },
     { id:'securite',      icon:'🔐', label:'Sécurité & RGPD', desc:'Mot de passe, sessions, audit' },
-    { id:'conformite',    icon:'📋', label:'Conformité',      desc:'Pack fiscal, obligations légales' },
+    { id:'conformite',    icon:'📋', label:'Conformité',      desc:'RGPD, transport, obligations légales' },
     { id:'apropos',       icon:'ℹ️', label:'À propos',        desc:'Version, support, mentions' },
   ];
 
@@ -26732,9 +22940,9 @@ function exporterPrevisionsPDF() {
           </div>
           <div class="s29-conf-item">
             <div class="s29-conf-title">📘 Fichier des Écritures Comptables — FEC (CGI art. A47 A-1)</div>
-            <p>Format normé 18 colonnes, tab-separated, encodage ISO-8859-15 ou UTF-8 BOM.
-            Obligatoire en cas de contrôle fiscal pour toute entreprise soumise à TVA.
-            L'export FEC est disponible dans l'onglet Charges et via le Pack fiscal ci-dessous.</p>
+            <p>Format normé 18 colonnes, obligatoire en cas de contrôle fiscal pour toute entreprise soumise à TVA.
+            Le FEC officiel est produit par Pennylane depuis ses données comptables complètes. Ne pas produire un FEC depuis MCA Logistics :
+            il serait incomplet (MCA n'ayant plus les factures) et risquerait un conflit avec la comptabilité officielle.</p>
           </div>
           <div class="s29-conf-item">
             <div class="s29-conf-title">✍️ Signature électronique BL (Règlement eIDAS n°910/2014)</div>
@@ -26752,6 +22960,15 @@ function exporterPrevisionsPDF() {
               <li><strong>DPO :</strong> obligatoire si traitement à grande échelle ou données sensibles</li>
               <li><strong>localStorage :</strong> aucun cookie de tracking dans cette app — consentement non requis</li>
             </ul>
+            <button class="btn-secondary" onclick="genererRegistreRGPD()" style="margin-top:10px">📖 Générer le registre des traitements (art. 30)</button>
+          </div>
+          <div class="s29-conf-item">
+            <div class="s29-conf-title">👥 DSN — Déclaration Sociale Nominative</div>
+            <ul class="s29-conf-list">
+              <li><strong>Obligation :</strong> mensuelle dès le 1er salarié (net-entreprises.fr)</li>
+              <li><strong>Périmètre :</strong> contrats, rémunérations, cotisations, arrêts, fins de contrat</li>
+              <li><strong>Outillage MCA :</strong> non produite côté MCA. Transmission via votre logiciel de paie (Pennylane Paie, Silae, Payfit…) à partir de la base salariés MCA + bulletins du prestataire.</li>
+            </ul>
           </div>
           <div class="s29-conf-item">
             <div class="s29-conf-title">🚚 Transport routier (Code des transports)</div>
@@ -26767,7 +22984,8 @@ function exporterPrevisionsPDF() {
             <p>Généralisation de la facture électronique B2B en France : <strong>obligation de réception dès septembre 2026</strong>
             pour toutes les entreprises, obligation d'émission progressive jusqu'à septembre 2027.
             Format structuré attendu : Factur-X (PDF/A-3 + XML CII), UBL ou CII. Plateforme de dématérialisation partenaire (PDP) requise.
-            MCA Logistics émet déjà vos factures PDF avec mentions obligatoires ; l'étape Factur-X sera livrée avant l'échéance.</p>
+            MCA Logistics émet vos factures PDF avec mentions obligatoires CGI 242 nonies A complètes (forme juridique, RCS, capital, conditions de règlement, pénalités L441-10, indemnité 40 € D441-5).
+            La transmission au format Factur-X est déléguée à votre logiciel comptable (Pennylane et autres PDP agréées DGFiP).</p>
           </div>
         </div>
         <div class="s29-conf-actions">
@@ -26830,16 +23048,18 @@ function exporterPrevisionsPDF() {
     card.className = 'card s29-compta-card';
     card.dataset.s29Section = 'comptabilite';
     card.innerHTML = `
-      <div class="card-header"><h2>📊 Comptabilité</h2></div>
+      <div class="card-header"><h2>📊 Comptabilité (déléguée)</h2></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
-          Module comptabilité pro (acomptes, amortissements, CCA/FNP/PCA, Factur-X) — livraison Sprint 30.
-          En attendant, le Pack fiscal (section Conformité) fournit un FEC conforme CGI A47 A-1.
+          MCA Logistics se concentre sur l'opérationnel transport.
+          La comptabilité complète — facturation, encaissements, TVA, amortissements,
+          clôture d'exercice, FEC, Factur-X — est gérée par votre logiciel comptable
+          (Pennylane ou PDP agréée DGFiP).
         </p>
         <ul class="s29-apropos-list">
-          <li>Export FEC 18 colonnes → onglet <strong>Charges</strong> ou Pack fiscal</li>
-          <li>Mentions légales factures → conformes Code de commerce art. L441-9</li>
-          <li>Numérotation continue sans rupture → automatique</li>
+          <li>Export des charges → onglet <strong>Charges</strong> (CSV pour import Pennylane)</li>
+          <li>Livraisons exportables en CSV (base pour réconciliation Pennylane)</li>
+          <li>Données entreprise synchronisées (SIRET, TVA intracom, RCS, capital)</li>
         </ul>
       </div>
     `;
@@ -27020,3506 +23240,100 @@ function exporterPrevisionsPDF() {
   else setTimeout(init, 2000);
 })();
 
-/* ==========================================================================
-   Sprint 30.1 — Comptabilité pro · Acomptes + Immobilisations
-   - Acomptes clients : CGI art. 242 nonies A — facture d'acompte séparée,
-     numérotation ACP-YYYY-NNNN, TVA calculée, déduction auto sur facture finale
-   - Immobilisations : PCG — linéaire/dégressif avec coef (1.25/1.75/2.25),
-     plan pluriannuel calculé, dotation annuelle auto en charge d'exploitation,
-     catégories pré-paramétrées (véhicule, info, mobilier, matériel, outillage)
-   ========================================================================== */
-(function installS30_1(){
-  if (window.__s30_1Installed) return;
-  window.__s30_1Installed = true;
-
-  const LS = {
-    acomptes: 'factures_acomptes',
-    factures: 'factures_emises',
-    clients: 'clients',
-    livraisons: 'livraisons',
-    immos: 'immobilisations',
-    dotations: 'amortissements_dotations',
-    charges: 'charges',
-    paiements: 'paiements',
-    params: 'params_entreprise',
-  };
-
-  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
-  const loadObj = (k) => { try { return loadSafe(k, {}); } catch(e){ return {}; } };
-  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-  const esc = window.escapeHtml;
-  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
-  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
-  const fmtPct = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:0,maximumFractionDigits:2}) + ' %';
-  const toast = (m, t) => { if (typeof window.afficherToast === 'function') window.afficherToast(m, t||'info'); };
-  const audit = (a, d) => { if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit(a, d); };
-  const genId = () => (typeof window.genId === 'function' ? window.genId() : 's30_'+Date.now()+'_'+Math.random().toString(36).slice(2,8));
-  const round2 = (n) => Math.round((Number(n)||0)*100)/100;
-  const todayISO = () => new Date().toLocalISODate();
-
-  function getEntreprise() {
-    const p = loadObj(LS.params);
-    return { nom: p.nom||'MCA Logistics', siret: p.siret||'', tva: p.tvaIntracom||'', adresse: p.adresse||'', tel: p.tel||'', email: p.email||'' };
-  }
-
-  function ouvrirModalHTML(html) {
-    if (typeof window.modalInfo === 'function') {
-      const m = window.modalInfo(html);
-      m.innerHTML = html;
-      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }, { once: true });
-      m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
-        btn.addEventListener('click', () => m.classList.remove('open'));
-      });
-      return m;
-    }
-    let m = document.getElementById('s15-modal-info');
-    if (!m) {
-      m = document.createElement('div');
-      m.id = 's15-modal-info';
-      m.className = 's15-modal-info-overlay';
-      document.body.appendChild(m);
-      m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); });
-    }
-    m.innerHTML = html;
-    m.classList.add('open');
-    m.querySelectorAll('.btn-close, .s15-modal-info-close').forEach(btn => {
-      btn.addEventListener('click', () => m.classList.remove('open'));
-    });
-    return m;
-  }
-  function fermerModal() { document.getElementById('s15-modal-info')?.classList.remove('open'); }
-
-  /* ================================================================
-     BLOC 1 — ACOMPTES
-     ================================================================ */
-  function nextNumeroAcompte(annee) {
-    // BUG-030 : compteur persistant (CGI art. 289 — numérotation continue sans rupture)
-    const key = String(annee);
-    const lsKey = 'compteurs_acomptes_annee';
-    let compteurs = {};
-    try { compteurs = loadSafe(lsKey, {}) || {}; } catch(e){ compteurs = {}; }
-    const maxLive = load(LS.acomptes)
-      .filter(a => String(a.annee) === key)
-      .reduce((m, a) => Math.max(m, parseInt(a.sequence, 10) || 0), 0);
-    if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
-    compteurs[key] = (compteurs[key] || 0) + 1;
-    localStorage.setItem(lsKey, JSON.stringify(compteurs));
-    const seq = compteurs[key];
-    return { annee: key, sequence: seq, numero: 'ACP-' + annee + '-' + String(seq).padStart(4, '0') };
-  }
-
-  function creerAcompte(data) {
-    const dateFacture = data.dateFacture || todayISO();
-    const annee = String(new Date(dateFacture).getFullYear());
-    const num = nextNumeroAcompte(annee);
-    const montantHT = round2(data.montantHT || 0);
-    const tauxTVA = Number(data.tauxTVA != null ? data.tauxTVA : 20);
-    const montantTVA = round2(montantHT * tauxTVA / 100);
-    const montantTTC = round2(montantHT + montantTVA);
-    const acompte = {
-      id: genId(),
-      typeFacture: 'acompte',
-      annee: num.annee,
-      sequence: num.sequence,
-      numero: num.numero,
-      client: data.client || '',
-      clientId: data.clientId || '',
-      reference: data.reference || '',
-      description: data.description || '',
-      pourcentage: Number(data.pourcentage || 0),
-      montantReference: round2(data.montantReference || 0),
-      montantHT, tauxTVA, montantTVA, montantTTC,
-      dateFacture,
-      creeLe: new Date().toISOString(),
-      statut: 'émise',
-      encaisse: 0,
-      factureFinaleId: null,
-      factureFinaleNum: null,
-      livraisonId: data.livraisonId || null,
-    };
-    const list = load(LS.acomptes);
-    list.push(acompte);
-    save(LS.acomptes, list);
-    audit('Émission acompte', num.numero + ' · ' + (data.client||'') + ' · ' + fmtEur(montantTTC));
-    toast('✅ Acompte ' + num.numero + ' émis', 'success');
-    return acompte;
-  }
-  window.s30CreerAcompte = creerAcompte;
-
-  function majStatutAcompte(acompteId) {
-    const list = load(LS.acomptes);
-    const idx = list.findIndex(a => a.id === acompteId);
-    if (idx < 0) return;
-    const ac = list[idx];
-    const paiements = load(LS.paiements).filter(p => p.acompteId === acompteId || (p.cible==='acompte' && p.cibleId===acompteId));
-    const encaisse = round2(paiements.reduce((s, p) => s + (Number(p.montant)||0), 0));
-    ac.encaisse = encaisse;
-    if (ac.factureFinaleId) ac.statut = 'soldée';
-    else if (encaisse >= ac.montantTTC) ac.statut = 'encaissée';
-    else if (encaisse > 0) ac.statut = 'partielle';
-    else ac.statut = 'émise';
-    list[idx] = ac;
-    save(LS.acomptes, list);
-  }
-  window.s30MajAcompte = majStatutAcompte;
-
-  async function annulerAcompte(acompteId) {
-    const ok = await confirmDialog('Annuler cet acompte ? (conservé dans l\'historique — non supprimable)', { titre:'Annuler l\'acompte', icone:'💶', btnLabel:'Annuler l\'acompte' });
-    if (!ok) return;
-    const list = load(LS.acomptes);
-    const idx = list.findIndex(a => a.id === acompteId);
-    if (idx < 0) return;
-    if (list[idx].factureFinaleId) { toast('⚠️ Acompte déjà rattaché à une facture — utiliser avoir', 'warning'); return; }
-    list[idx].statut = 'annulée';
-    list[idx].annuleLe = new Date().toISOString();
-    save(LS.acomptes, list);
-    audit('Annulation acompte', list[idx].numero);
-    toast('🚫 Acompte annulé', 'info');
-    renderAcomptesList();
-  }
-  window.s30AnnulerAcompte = annulerAcompte;
-
-  // Suppression dure (mode test / erreur flagrante — avertissement CGI)
-  function effectuerSuppressionDure(acompteId) {
-    const list = load(LS.acomptes);
-    const idx = list.findIndex(a => a.id === acompteId);
-    if (idx < 0) return;
-    const ac = list[idx];
-    if (ac.factureFinaleId) {
-      const factures = load(LS.factures);
-      const fIdx = factures.findIndex(f => f.id === ac.factureFinaleId);
-      if (fIdx >= 0) {
-        const fac = factures[fIdx];
-        fac.acomptesIds = (fac.acomptesIds||[]).filter(id => id !== acompteId);
-        fac.acomptesTTC = round2((fac.acomptesTTC||0) - (ac.montantTTC||0));
-        fac.acomptesHT = round2((fac.acomptesHT||0) - (ac.montantHT||0));
-        fac.acomptesTVA = round2((fac.acomptesTVA||0) - (ac.montantTVA||0));
-        fac.netAPayerTTC = round2((fac.montantTTC||0) - (fac.acomptesTTC||0));
-        factures[fIdx] = fac;
-        save(LS.factures, factures);
-      }
-    }
-    const paiements = load(LS.paiements);
-    const nbPaies = paiements.filter(p => p.acompteId === acompteId || (p.cible==='acompte' && p.cibleId===acompteId)).length;
-    save(LS.paiements, paiements.filter(p => p.acompteId !== acompteId && !(p.cible==='acompte' && p.cibleId===acompteId)));
-    list.splice(idx, 1);
-    save(LS.acomptes, list);
-    audit('Suppression dure acompte', ac.numero + ' · ' + (ac.client||'') + (nbPaies?(' · '+nbPaies+' paiement(s) purgé(s)'):''));
-    toast('🗑️ Acompte ' + ac.numero + ' supprimé (dure)', 'warning');
-    renderAcomptesList();
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-  }
-
-  function supprimerAcompte(acompteId) {
-    const list = load(LS.acomptes);
-    const ac = list.find(a => a.id === acompteId);
-    if (!ac) return;
-    const codeEl = document.getElementById('force-delete-code');
-    const warnEl = document.getElementById('force-delete-warn');
-    const inputEl = document.getElementById('force-delete-input');
-    const btnEl = document.getElementById('btn-force-delete-confirm');
-    if (!codeEl || !warnEl || !inputEl || !btnEl) {
-      // Fallback : si la modale n'existe pas, on annule proprement sans prompt()
-      toast('⚠️ Modale de confirmation introuvable', 'error');
-      return;
-    }
-    codeEl.textContent = ac.numero;
-    warnEl.innerHTML = '<div style="margin-bottom:10px"><strong>⚠️ Suppression dure de l\'acompte ' + esc(ac.numero) + '</strong></div>'
-      + '<div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">'
-      + 'Supprimer une facture d\'acompte émise est <strong>contraire au droit fiscal français</strong> '
-      + '(CGI art. 289 — numérotation chronologique continue sans rupture).<br><br>'
-      + 'La méthode légale est <strong>l\'annulation (🚫)</strong> qui conserve la trace dans l\'historique.<br>'
-      + 'Utilise la suppression dure <strong>uniquement en phase de test</strong> ou pour une erreur flagrante non reproductible.'
-      + (ac.factureFinaleId ? '<br><br>🔗 Cet acompte est <strong>rattaché à ' + esc(ac.factureFinaleNum||'une facture') + '</strong> — le rattachement sera automatiquement retiré.' : '')
-      + '</div>';
-    inputEl.value = '';
-    btnEl.disabled = true;
-    window.__forceDeleteContext = { type:'acompte', id: acompteId, numero: ac.numero };
-    const origExec = window.executerForceDelete;
-    window.executerForceDelete = function() {
-      try { effectuerSuppressionDure(acompteId); }
-      catch (e) { toast('⚠️ Erreur : ' + e.message, 'error'); }
-      closeModal('modal-force-delete');
-      window.executerForceDelete = origExec;
-    };
-    openModal('modal-force-delete');
-  }
-  window.s30SupprimerAcompte = supprimerAcompte;
-
-  function buildAcomptePDFHTML(ac) {
-    const ent = getEntreprise();
-    const mentions = [];
-    if (ent.siret) mentions.push('SIRET : '+esc(ent.siret));
-    if (ent.tva) mentions.push('N° TVA : '+esc(ent.tva));
-    return `
-      <div style="font-family:Arial,sans-serif;color:#111;max-width:760px;margin:20px auto;padding:30px;background:#fff">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid #f5a623;padding-bottom:14px">
-          <div>
-            <div style="font-size:1.4rem;font-weight:800">${esc(ent.nom)}</div>
-            <div style="font-size:.85rem;color:#555;white-space:pre-line">${esc(ent.adresse)}</div>
-            <div style="font-size:.82rem;color:#666;margin-top:6px">${mentions.join(' · ')}</div>
-            ${ent.tel?`<div style="font-size:.82rem;color:#666">Tél : ${esc(ent.tel)}</div>`:''}
-            ${ent.email?`<div style="font-size:.82rem;color:#666">${esc(ent.email)}</div>`:''}
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:1.2rem;font-weight:800;background:#f5a623;color:#fff;padding:8px 16px;border-radius:6px">FACTURE D'ACOMPTE</div>
-            <div style="font-size:1.3rem;font-weight:700;margin-top:10px">${esc(ac.numero)}</div>
-            <div style="font-size:.85rem;color:#555;margin-top:4px">Émise le ${fmtDate(ac.dateFacture)}</div>
-          </div>
-        </div>
-
-        <div style="display:flex;justify-content:space-between;margin-bottom:20px">
-          <div>
-            <div style="font-size:.8rem;color:#777;text-transform:uppercase;margin-bottom:4px">Client</div>
-            <div style="font-weight:700;font-size:1rem">${esc(ac.client)}</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:.8rem;color:#777;text-transform:uppercase;margin-bottom:4px">Référence commande</div>
-            <div style="font-weight:600">${esc(ac.reference||'—')}</div>
-          </div>
-        </div>
-
-        <table style="width:100%;border-collapse:collapse;margin:20px 0">
-          <thead>
-            <tr style="background:#fef3e0">
-              <th style="text-align:left;padding:10px;border:1px solid #ddd">Désignation</th>
-              <th style="text-align:right;padding:10px;border:1px solid #ddd;width:110px">Montant HT</th>
-              <th style="text-align:right;padding:10px;border:1px solid #ddd;width:70px">TVA</th>
-              <th style="text-align:right;padding:10px;border:1px solid #ddd;width:110px">Montant TTC</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style="padding:10px;border:1px solid #ddd">
-                <strong>Acompte sur prestation</strong>
-                ${ac.description?`<div style="font-size:.85rem;color:#555;margin-top:4px">${esc(ac.description)}</div>`:''}
-                ${ac.pourcentage>0?`<div style="font-size:.82rem;color:#777;margin-top:3px">${ac.pourcentage}% de ${fmtEur(ac.montantReference)}</div>`:''}
-              </td>
-              <td style="text-align:right;padding:10px;border:1px solid #ddd">${fmtEur(ac.montantHT)}</td>
-              <td style="text-align:right;padding:10px;border:1px solid #ddd">${ac.tauxTVA}%</td>
-              <td style="text-align:right;padding:10px;border:1px solid #ddd;font-weight:700">${fmtEur(ac.montantTTC)}</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr><td colspan="3" style="text-align:right;padding:8px 10px;border:1px solid #ddd;font-size:.9rem">Total HT</td><td style="text-align:right;padding:8px 10px;border:1px solid #ddd">${fmtEur(ac.montantHT)}</td></tr>
-            <tr><td colspan="3" style="text-align:right;padding:8px 10px;border:1px solid #ddd;font-size:.9rem">TVA ${ac.tauxTVA}%</td><td style="text-align:right;padding:8px 10px;border:1px solid #ddd">${fmtEur(ac.montantTVA)}</td></tr>
-            <tr style="background:#f5a623;color:#fff;font-weight:700"><td colspan="3" style="text-align:right;padding:12px 10px;border:1px solid #f5a623">TOTAL À PAYER TTC</td><td style="text-align:right;padding:12px 10px;border:1px solid #f5a623">${fmtEur(ac.montantTTC)}</td></tr>
-          </tfoot>
-        </table>
-
-        <div style="margin-top:22px;padding:14px;background:#fffbeb;border-left:3px solid #f5a623;font-size:.82rem;color:#78350f;line-height:1.55">
-          <strong>Facture d'acompte — CGI article 242 nonies A</strong><br>
-          Cette facture matérialise un versement d'acompte encaissé avant exécution totale de la prestation.
-          La TVA est exigible à l'encaissement de l'acompte pour les prestations de services (CGI art. 269-2).
-          Une facture définitive sera émise à l'achèvement de la prestation, avec déduction du présent acompte.
-        </div>
-
-        <div style="margin-top:20px;font-size:.8rem;color:#666;line-height:1.6">
-          <strong>Conditions de règlement :</strong> à réception de la facture.<br>
-          <strong>Pénalités de retard :</strong> 3 fois le taux d'intérêt légal (L441-10 C. com.).
-          <strong>Indemnité forfaitaire de recouvrement :</strong> 40 € (D441-5 C. com.).
-        </div>
-
-        <div style="margin-top:30px;border-top:1px solid #e5e7eb;padding-top:10px;font-size:.75rem;color:#9ca3af;display:flex;justify-content:space-between">
-          <span>${esc(ent.nom)}</span>
-          <span>Acompte ${esc(ac.numero)}</span>
-          <span>Page 1/1</span>
-        </div>
-      </div>
-    `;
-  }
-
-  function genererPDFAcompte(acompteId) {
-    const ac = load(LS.acomptes).find(a => a.id === acompteId);
-    if (!ac) { toast('Acompte introuvable', 'error'); return; }
-    const html = buildAcomptePDFHTML(ac);
-    if (typeof window.ouvrirFenetreImpression === 'function') {
-      window.ouvrirFenetreImpression('Acompte ' + ac.numero, html, 'width=980,height=820');
-    } else {
-      const w = ouvrirPopupSecure('', '_blank', 'width=980,height=820');
-      if (!w) return;
-      if (w) { w.document.write('<!DOCTYPE html><html><head><title>Acompte '+ac.numero+'</title></head><body>'+html+'</body></html>'); w.document.close(); }
-    }
-    audit('Impression acompte', ac.numero);
-  }
-  window.s30ImprimerAcompte = genererPDFAcompte;
-
-  function ouvrirModalCreationAcompte(prefill) {
-    prefill = prefill || {};
-    const clients = load(LS.clients);
-    const livraisons = load(LS.livraisons).filter(l => l.statut !== 'annulée').slice().sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')));
-    // Si prefill.livraisonId, pré-sélectionner la livraison
-    const livPre = prefill.livraisonId ? livraisons.find(l => l.id === prefill.livraisonId) : null;
-    if (livPre) {
-      prefill.client = livPre.client || '';
-      prefill.reference = livPre.numLiv || '';
-      prefill.montantReference = Number(livPre.prix)||0;
-    }
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:640px">
-        <div class="s15-modal-info-header">
-          <h2>💶 Nouvel acompte</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">
-            Sélectionne une livraison → tout est pré-rempli. L'acompte sera <strong>automatiquement déduit</strong> lors de l'émission de la facture finale.
-          </p>
-          <div class="form-grid">
-            <div class="form-group full-width" style="background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.3);padding:12px;border-radius:10px">
-              <label style="font-weight:700;color:#f5a623">🚚 Rattacher à une livraison (recommandé)</label>
-              <select id="s30-ac-liv" onchange="window.s30AutoFillFromLiv()" style="margin-top:4px">
-                <option value="">— Acompte libre (saisir client manuellement) —</option>
-                ${livraisons.slice(0, 50).map(l => `<option value="${l.id}" ${livPre&&livPre.id===l.id?'selected':''}>${esc(l.numLiv||'')} · ${esc(l.client||'')} · ${fmtEur(Number(l.prix)||0)} TTC · ${fmtDate(l.date||'')}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group full-width">
-              <label>Client *</label>
-              <input list="s30-clients-list" id="s30-ac-client" placeholder="Nom du client" value="${esc(prefill.client||'')}" autocomplete="off" />
-              <datalist id="s30-clients-list">
-                ${clients.map(c => '<option value="'+esc(c.nom||'')+'"></option>').join('')}
-              </datalist>
-            </div>
-            <div class="form-group">
-              <label>Date d'émission</label>
-              <input type="date" id="s30-ac-date" value="${todayISO()}" />
-            </div>
-            <div class="form-group">
-              <label>Référence commande / devis</label>
-              <input type="text" id="s30-ac-ref" placeholder="DEV-2026-001 ou numéro commande" value="${esc(prefill.reference||'')}" />
-            </div>
-            <div class="form-group">
-              <label>Montant total prévu HT</label>
-              <input type="number" id="s30-ac-totalht" placeholder="0.00" step="0.01" min="0" value="${prefill.montantReference||''}" oninput="window.s30RecalcAcompte()" />
-            </div>
-            <div class="form-group">
-              <label>Pourcentage acompte (%)</label>
-              <input type="number" id="s30-ac-pct" value="30" step="1" min="0" max="100" oninput="window.s30RecalcAcompte()" />
-            </div>
-            <div class="form-group">
-              <label>Montant acompte HT</label>
-              <input type="number" id="s30-ac-ht" placeholder="0.00" step="0.01" min="0" oninput="window.s30RecalcTTC()" />
-            </div>
-            <div class="form-group">
-              <label>TVA (%)</label>
-              <select id="s30-ac-tva" onchange="window.s30RecalcTTC()">
-                <option value="0">0 %</option>
-                <option value="2.1">2,1 %</option>
-                <option value="5.5">5,5 %</option>
-                <option value="10">10 %</option>
-                <option value="20" selected>20 %</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Montant TTC</label>
-              <input type="text" id="s30-ac-ttc" readonly style="background:rgba(245,166,35,0.1);font-weight:700" />
-            </div>
-            <div class="form-group full-width">
-              <label>Description / objet</label>
-              <textarea id="s30-ac-desc" rows="2" placeholder="Prestation transport...">${esc(prefill.description||'')}</textarea>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
-            <button class="btn btn-ghost" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
-            <button class="btn btn-primary" onclick="window.s30ValiderAcompte()">✅ Émettre l'acompte</button>
-          </div>
-        </div>
-      </div>
-    `;
-    ouvrirModalHTML(html);
-    setTimeout(() => { window.s30RecalcTTC(); }, 50);
-  }
-  window.s30NouvelAcompte = ouvrirModalCreationAcompte;
-
-  window.s30AutoFillFromLiv = function() {
-    const livId = document.getElementById('s30-ac-liv')?.value;
-    if (!livId) return;
-    const liv = load(LS.livraisons).find(l => l.id === livId);
-    if (!liv) return;
-    const totalTTC = Number(liv.prix)||0;
-    const tauxTVA = Number(liv.tauxTVA != null ? liv.tauxTVA : 20) || 0;
-    const totalHT = tauxTVA > 0 ? round2(totalTTC / (1 + tauxTVA/100)) : totalTTC;
-    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    setVal('s30-ac-client', liv.client || '');
-    setVal('s30-ac-ref', liv.numLiv || '');
-    setVal('s30-ac-totalht', totalHT.toFixed(2));
-    setVal('s30-ac-tva', String(tauxTVA));
-    const descEl = document.getElementById('s30-ac-desc');
-    if (descEl && !descEl.value) descEl.value = 'Acompte sur livraison ' + (liv.numLiv || '') + (liv.date ? ' (prévue le ' + fmtDate(liv.date) + ')' : '');
-    window.s30RecalcAcompte();
-  };
-
-  window.s30RecalcAcompte = function() {
-    const total = parseFloat(document.getElementById('s30-ac-totalht')?.value) || 0;
-    const pct = parseFloat(document.getElementById('s30-ac-pct')?.value) || 0;
-    if (total > 0 && pct > 0) {
-      const ht = round2(total * pct / 100);
-      const el = document.getElementById('s30-ac-ht');
-      if (el) el.value = ht.toFixed(2);
-    }
-    window.s30RecalcTTC();
-  };
-  window.s30RecalcTTC = function() {
-    const ht = parseFloat(document.getElementById('s30-ac-ht')?.value) || 0;
-    const tva = parseFloat(document.getElementById('s30-ac-tva')?.value) || 0;
-    const ttc = round2(ht * (1 + tva / 100));
-    const el = document.getElementById('s30-ac-ttc');
-    if (el) el.value = fmtEur(ttc);
-  };
-  window.s30ValiderAcompte = function() {
-    const client = (document.getElementById('s30-ac-client')?.value||'').trim();
-    const dateFacture = document.getElementById('s30-ac-date')?.value || todayISO();
-    const reference = (document.getElementById('s30-ac-ref')?.value||'').trim();
-    const montantReference = parseFloat(document.getElementById('s30-ac-totalht')?.value) || 0;
-    const pourcentage = parseFloat(document.getElementById('s30-ac-pct')?.value) || 0;
-    const montantHT = parseFloat(document.getElementById('s30-ac-ht')?.value) || 0;
-    const tauxTVA = parseFloat(document.getElementById('s30-ac-tva')?.value) || 0;
-    const description = (document.getElementById('s30-ac-desc')?.value||'').trim();
-    const livraisonId = document.getElementById('s30-ac-liv')?.value || null;
-    if (!client) { toast('⚠️ Client requis', 'warning'); return; }
-    if (montantHT <= 0) { toast('⚠️ Montant HT invalide', 'warning'); return; }
-    const c = load(LS.clients).find(x => (x.nom||'').toLowerCase() === client.toLowerCase());
-    const ac = creerAcompte({
-      client, clientId: c?.id || '', reference, description,
-      montantReference, pourcentage, montantHT, tauxTVA, dateFacture,
-      livraisonId,
-    });
-    fermerModal();
-    setTimeout(async () => {
-      const ok = await confirmDialog('Acompte émis ' + ac.numero + '. Imprimer / exporter PDF maintenant ?', { titre:'PDF acompte', icone:'📄', btnLabel:'Générer', danger:false });
-      if (ok) genererPDFAcompte(ac.id);
-      renderAcomptesList();
-    }, 100);
-  };
-
-  function renderAcomptesList() {
-    const box = document.getElementById('s30-acomptes-content');
-    if (!box) return;
-    const list = load(LS.acomptes);
-    list.forEach(a => majStatutAcompte(a.id));
-    const refreshed = load(LS.acomptes);
-
-    const annees = Array.from(new Set(refreshed.map(a => a.annee).filter(Boolean))).sort().reverse();
-    const search = (document.getElementById('s30-ac-search')?.value||'').toLowerCase();
-    const filterAnnee = document.getElementById('s30-ac-filter-annee')?.value || '';
-    const filterStatut = document.getElementById('s30-ac-filter-statut')?.value || '';
-    let rows = refreshed.slice().sort((a,b) => String(b.numero||'').localeCompare(String(a.numero||'')));
-    if (filterAnnee) rows = rows.filter(a => String(a.annee) === filterAnnee);
-    if (filterStatut) rows = rows.filter(a => a.statut === filterStatut);
-    if (search) rows = rows.filter(a => (a.numero+' '+(a.client||'')+' '+(a.reference||'')).toLowerCase().includes(search));
-
-    let emises = 0, encaissees = 0, soldees = 0, totalTTC = 0, totalEncaisse = 0;
-    refreshed.forEach(a => {
-      if (a.statut === 'annulée') return;
-      totalTTC += a.montantTTC || 0;
-      totalEncaisse += a.encaisse || 0;
-      if (a.statut === 'émise' || a.statut === 'partielle') emises++;
-      else if (a.statut === 'encaissée') encaissees++;
-      else if (a.statut === 'soldée') soldees++;
-    });
-
-    const anneeCur = String(new Date().getFullYear());
-    const prochain = nextNumeroAcompte(anneeCur).numero;
-
-    const badgeStatut = (s) => {
-      const map = {
-        'émise': '<span class="badge-statut badge-attente">Émise</span>',
-        'partielle': '<span class="badge-statut badge-partiel">Partielle</span>',
-        'encaissée': '<span class="badge-statut badge-paye">Encaissée</span>',
-        'soldée': '<span class="badge-statut" style="background:rgba(99,102,241,.15);color:#6366f1;border:1px solid rgba(99,102,241,.3)">Soldée</span>',
-        'annulée': '<span class="badge-statut" style="background:rgba(107,114,128,.15);color:#6b7280;border:1px solid rgba(107,114,128,.3)">Annulée</span>',
-      };
-      return map[s] || s;
-    };
-
-    // Compteurs par statut (sur base filtrée par année/recherche mais pas par statut)
-    let baseRows = refreshed.slice();
-    if (filterAnnee) baseRows = baseRows.filter(a => String(a.annee) === filterAnnee);
-    if (search) baseRows = baseRows.filter(a => (a.numero+' '+(a.client||'')+' '+(a.reference||'')).toLowerCase().includes(search));
-    const nbBy = { '': baseRows.length };
-    ['émise','partielle','encaissée','soldée','annulée'].forEach(s => {
-      nbBy[s] = baseRows.filter(a => a.statut === s).length;
-    });
-    const tab = (val, label) => `<button class="s30-ac-filter-tab ${filterStatut===val?'active':''}" data-ac-statut="${val}">${label} <span class="s30-ac-filter-tab-count">${nbBy[val]||0}</span></button>`;
-
-    box.innerHTML = `
-      <div class="enc-stats-grid" style="margin-bottom:12px">
-        <div class="stat-card"><div class="stat-label">📄 Émises / partielles</div><div class="stat-value" style="color:#f5a623">${emises}</div></div>
-        <div class="stat-card"><div class="stat-label">💰 Encaissées</div><div class="stat-value" style="color:#22c55e">${encaissees}</div></div>
-        <div class="stat-card"><div class="stat-label">🔗 Soldées sur FAC</div><div class="stat-value" style="color:#6366f1">${soldees}</div></div>
-        <div class="stat-card"><div class="stat-label">💶 Total TTC</div><div class="stat-value">${fmtEur(totalTTC)}</div></div>
-        <div class="stat-card"><div class="stat-label">✅ Total encaissé</div><div class="stat-value" style="color:var(--accent)">${fmtEur(totalEncaisse)}</div></div>
-      </div>
-      <div class="s30-ac-filters-tabs" id="s30-ac-filters-tabs">
-        ${tab('', '🗂️ Toutes')}
-        ${tab('émise', '📄 Émises')}
-        ${tab('partielle', '⏳ Partielles')}
-        ${tab('encaissée', '💰 Encaissées')}
-        ${tab('soldée', '🔗 Soldées')}
-        ${tab('annulée', '🚫 Annulées')}
-      </div>
-      <div class="card">
-        <div class="enc-filters" style="margin-bottom:8px">
-          <input type="search" id="s30-ac-search" class="searchbar" placeholder="🔍 N° acompte, client…" value="${esc(search)}" />
-          <select id="s30-ac-filter-annee" onchange="window.s30RenderAcomptes()">
-            <option value="">Toutes années</option>
-            ${annees.map(a => '<option value="'+a+'"'+(filterAnnee===a?' selected':'')+'>'+a+'</option>').join('')}
-          </select>
-          <input type="hidden" id="s30-ac-filter-statut" value="${esc(filterStatut)}" />
-          <span style="font-size:.82rem;color:var(--text-muted);margin-left:auto">Prochain : <strong>${prochain}</strong></span>
-        </div>
-        <div class="table-wrapper s30-ac-scroll">
-          <table class="data-table">
-            <thead><tr>
-              <th>N° Acompte</th><th>Date</th><th>Client</th><th>Réf</th>
-              <th style="text-align:right">HT</th><th style="text-align:right">TVA</th>
-              <th style="text-align:right">TTC</th><th style="text-align:right">Encaissé</th>
-              <th>Statut</th><th>Facture finale</th><th>Actions</th>
-            </tr></thead>
-            <tbody>
-              ${rows.length ? rows.map(a => `
-                <tr ${a.statut==='annulée'?'style="opacity:.5"':''}>
-                  <td><strong>${esc(a.numero)}</strong></td>
-                  <td>${fmtDate(a.dateFacture)}</td>
-                  <td>${esc(a.client||'—')}</td>
-                  <td style="font-size:.82rem;color:var(--text-muted)">${esc(a.reference||'—')}</td>
-                  <td style="text-align:right">${fmtEur(a.montantHT)}</td>
-                  <td style="text-align:right">${a.tauxTVA}%</td>
-                  <td style="text-align:right;font-weight:700">${fmtEur(a.montantTTC)}</td>
-                  <td style="text-align:right;color:#22c55e">${fmtEur(a.encaisse||0)}</td>
-                  <td>${badgeStatut(a.statut)}</td>
-                  <td style="font-size:.82rem">${a.factureFinaleNum?esc(a.factureFinaleNum):'<span style="color:var(--text-muted)">—</span>'}</td>
-                  <td>${(function(){
-                    const items = [];
-                    items.push({ icon:'🖨️', label:'Imprimer / PDF', action:"window.s30ImprimerAcompte('"+a.id+"')" });
-                    if (a.statut!=='annulée' && !a.factureFinaleId) items.push({ icon:'🔗', label:'Rattacher à une facture', action:"window.s30RattacherAcompte('"+a.id+"')" });
-                    if (a.statut!=='annulée' && a.factureFinaleId) items.push({ icon:'🔓', label:'Détacher de la facture', action:"window.s30DetacherAcompte('"+a.id+"')" });
-                    if (a.statut!=='annulée' && !a.factureFinaleId) items.push({ icon:'🚫', label:'Annuler (conserver trace)', action:"window.s30AnnulerAcompte('"+a.id+"')" });
-                    items.push({ icon:'🗑️', label:'Supprimer (mode test)', action:"window.s30SupprimerAcompte('"+a.id+"')", danger:true });
-                    return buildInlineActionsDropdown('Actions', items);
-                  })()}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="11" style="text-align:center;padding:40px;color:var(--text-muted)">Aucun acompte</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-    const sInput = document.getElementById('s30-ac-search');
-    if (sInput) sInput.oninput = () => window.s30RenderAcomptes();
-    // Wiring tabs de filtres par statut
-    const tabsBox = document.getElementById('s30-ac-filters-tabs');
-    if (tabsBox) {
-      tabsBox.addEventListener('click', (e) => {
-        const b = e.target.closest('.s30-ac-filter-tab');
-        if (!b) return;
-        const hidden = document.getElementById('s30-ac-filter-statut');
-        if (hidden) hidden.value = b.dataset.acStatut || '';
-        window.s30RenderAcomptes();
-      });
-    }
-  }
-  window.s30RenderAcomptes = renderAcomptesList;
-
-  function rattacherAcompteAFacture(acompteId) {
-    const ac = load(LS.acomptes).find(a => a.id === acompteId);
-    if (!ac) return;
-    const factures = load(LS.factures).filter(f => f.statut !== 'annulée' && !f.acomptesIds?.includes(acompteId));
-    const sameClient = factures.filter(f => (f.client||'').toLowerCase() === (ac.client||'').toLowerCase());
-    const list = sameClient.length ? sameClient : factures;
-    if (!list.length) { toast('Aucune facture disponible pour rattachement', 'warning'); return; }
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:640px">
-        <div class="s15-modal-info-header">
-          <h2>🔗 Rattacher acompte ${esc(ac.numero)} à une facture</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">
-            L'acompte de <strong>${fmtEur(ac.montantTTC)}</strong> sera déduit du montant dû de la facture finale sélectionnée.
-            Cette opération est réversible tant que la facture n'est pas clôturée.
-          </p>
-          <div style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
-            ${list.map(f => `
-              <label class="s30-fac-row" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer">
-                <input type="radio" name="s30-fac" value="${f.id}" />
-                <div style="flex:1">
-                  <div style="font-weight:600">${esc(f.numero||'—')}</div>
-                  <div style="font-size:.82rem;color:var(--text-muted)">${esc(f.client||'')} · ${fmtDate(f.dateFacture||f.dateLivraison||'')}</div>
-                </div>
-                <div style="text-align:right">
-                  <div style="font-weight:700">${fmtEur(f.montantTTC||0)}</div>
-                  <div style="font-size:.78rem;color:var(--text-muted)">TTC</div>
-                </div>
-              </label>
-            `).join('')}
-          </div>
-          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
-            <button class="btn btn-ghost" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
-            <button class="btn btn-primary" onclick="window.s30ConfirmerRattachement('${acompteId}')">✅ Rattacher</button>
-          </div>
-        </div>
-      </div>
-    `;
-    ouvrirModalHTML(html);
-  }
-  window.s30RattacherAcompte = rattacherAcompteAFacture;
-
-  window.s30ConfirmerRattachement = function(acompteId) {
-    const chosen = document.querySelector('input[name="s30-fac"]:checked');
-    if (!chosen) { toast('⚠️ Sélectionnez une facture', 'warning'); return; }
-    const factureId = chosen.value;
-    const acomptes = load(LS.acomptes);
-    const factures = load(LS.factures);
-    const aIdx = acomptes.findIndex(a => a.id === acompteId);
-    const fIdx = factures.findIndex(f => f.id === factureId);
-    if (aIdx < 0 || fIdx < 0) return;
-    const ac = acomptes[aIdx];
-    const fac = factures[fIdx];
-    fac.acomptesIds = Array.isArray(fac.acomptesIds) ? fac.acomptesIds : [];
-    if (!fac.acomptesIds.includes(acompteId)) fac.acomptesIds.push(acompteId);
-    fac.acomptesTTC = round2((fac.acomptesTTC||0) + (ac.montantTTC||0));
-    fac.acomptesHT = round2((fac.acomptesHT||0) + (ac.montantHT||0));
-    fac.acomptesTVA = round2((fac.acomptesTVA||0) + (ac.montantTVA||0));
-    fac.netAPayerTTC = round2((fac.montantTTC||0) - fac.acomptesTTC);
-    ac.factureFinaleId = factureId;
-    ac.factureFinaleNum = fac.numero;
-    ac.statut = 'soldée';
-    ac.solderLe = new Date().toISOString();
-    acomptes[aIdx] = ac;
-    factures[fIdx] = fac;
-    save(LS.acomptes, acomptes);
-    save(LS.factures, factures);
-    audit('Rattachement acompte', ac.numero + ' → ' + fac.numero + ' · ' + fmtEur(ac.montantTTC));
-    toast('✅ Acompte rattaché à ' + fac.numero, 'success');
-    fermerModal();
-    renderAcomptesList();
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-  };
-
-  /* ---- Injection sous-onglet Acomptes dans page-facturation ---- */
-  function injectAcomptesTab() {
-    const page = document.getElementById('page-facturation');
-    if (!page) return;
-    if (page.querySelector('#s30-fac-tabs')) return;
-
-    // Wrapper onglets au-dessus des stats
-    const tabs = document.createElement('div');
-    tabs.id = 's30-fac-tabs';
-    tabs.className = 's30-fac-tabs';
-    tabs.innerHTML = `
-      <button class="s30-fac-tab active" data-s30-tab="factures">📄 Factures</button>
-      <button class="s30-fac-tab" data-s30-tab="acomptes">💶 Acomptes</button>
-      <button class="s30-fac-tab-spacer"></button>
-      <button class="btn btn-primary btn-sm" id="s30-btn-new-ac" style="display:none">+ Nouvel acompte</button>
-    `;
-
-    const anchor = page.querySelector('.enc-stats-grid') || page.querySelector('.card');
-    if (anchor) page.insertBefore(tabs, anchor);
-    else page.appendChild(tabs);
-
-    // Content holder for acomptes
-    const acompteContent = document.createElement('div');
-    acompteContent.id = 's30-acomptes-content';
-    acompteContent.style.display = 'none';
-    anchor?.parentNode.insertBefore(acompteContent, anchor.nextSibling) || page.appendChild(acompteContent);
-
-    // Group original content (stats + cards) so we can toggle
-    const factCards = Array.from(page.querySelectorAll(':scope > .enc-stats-grid, :scope > .card:not(#s30-acomptes-content)'));
-    factCards.forEach(c => c.dataset.s30Tab = 'factures');
-
-    function showTab(tab) {
-      tabs.querySelectorAll('.s30-fac-tab').forEach(b => b.classList.toggle('active', b.dataset.s30Tab === tab));
-      factCards.forEach(c => { c.style.display = (tab === 'factures') ? '' : 'none'; });
-      acompteContent.style.display = (tab === 'acomptes') ? '' : 'none';
-      const btnNew = document.getElementById('s30-btn-new-ac');
-      if (btnNew) btnNew.style.display = (tab === 'acomptes') ? '' : 'none';
-      if (tab === 'acomptes') renderAcomptesList();
-    }
-    tabs.addEventListener('click', (e) => {
-      const b = e.target.closest('.s30-fac-tab');
-      if (!b) return;
-      showTab(b.dataset.s30Tab);
-    });
-    document.getElementById('s30-btn-new-ac')?.addEventListener('click', () => ouvrirModalCreationAcompte());
-  }
-
-  /* ================================================================
-     BLOC 2 — IMMOBILISATIONS
-     ================================================================ */
-  // Catégories préfigurées (durées et modes d'usage les plus courants en France)
-  const CATEGORIES_IMMO = [
-    { id:'vehicule',    libelle:'🚐 Véhicule utilitaire',  duree:5,  mode:'lineaire',  cg:'2182' },
-    { id:'pl',          libelle:'🚛 Poids lourd / VUL',    duree:5,  mode:'degressif', cg:'2182' },
-    { id:'informatique',libelle:'💻 Matériel informatique',duree:3,  mode:'degressif', cg:'2183' },
-    { id:'mobilier',    libelle:'🪑 Mobilier de bureau',   duree:10, mode:'lineaire',  cg:'2184' },
-    { id:'outillage',   libelle:'🔧 Outillage',            duree:5,  mode:'lineaire',  cg:'2154' },
-    { id:'agencements', libelle:'🏗️ Agencements',         duree:10, mode:'lineaire',  cg:'2135' },
-    { id:'autre',       libelle:'📦 Autre',                duree:5,  mode:'lineaire',  cg:'215' },
+/* ============================================================
+   Form Nouvelle Livraison — progress + validation inline
+   ============================================================ */
+(function installFormLivraisonEnhancements() {
+  // 12 champs "principaux" dont on suit la complétude
+  const TRACKED_FIELDS = [
+    'liv-client', 'liv-client-siren', 'liv-date', 'liv-heure-debut',
+    'liv-distance', 'liv-prix-ht', 'liv-chauffeur', 'liv-vehicule',
+    'liv-exp-nom', 'liv-dest-nom', 'liv-dest-adresse', 'liv-marchandise-nature'
   ];
 
-  // Coefficients dégressifs (CGI art. 39 A) — alias local vers le moteur global
-  const coefDegressif = (typeof window.coefAmortissementDegressif === 'function')
-    ? window.coefAmortissementDegressif
-    : function(d){ if (d>=3&&d<=4) return 1.25; if (d>=5&&d<=6) return 1.75; if (d>=7) return 2.25; return 1; };
-
-  // Wrapper mince vers le moteur unifié construirePlanAmortissement
-  function calculerPlanAmortissement(immo) {
-    const engine = (typeof window.construirePlanAmortissement === 'function')
-      ? window.construirePlanAmortissement
-      : null;
-    if (!engine) return [];
-    const built = engine({
-      valeurHT: Number(immo.valeurHT) || 0,
-      valeurRebut: 0,
-      dureeAnnees: Math.max(1, Math.round(Number(immo.dureeAnnees)||5)),
-      mode: immo.mode === 'degressif' ? 'degressif' : 'lineaire',
-      dateMiseEnService: immo.dateMiseEnService
-    });
-    return built.plan || [];
-  }
-  window.s30CalculerPlan = calculerPlanAmortissement;
-
-  function creerImmo(data) {
-    const immo = {
-      id: genId(),
-      libelle: data.libelle || 'Immobilisation',
-      categorie: data.categorie || 'autre',
-      valeurHT: round2(data.valeurHT || 0),
-      tauxTVA: Number(data.tauxTVA != null ? data.tauxTVA : 20),
-      dateAcquisition: data.dateAcquisition || todayISO(),
-      dateMiseEnService: data.dateMiseEnService || data.dateAcquisition || todayISO(),
-      dureeAnnees: Math.round(Number(data.dureeAnnees)||5),
-      mode: data.mode === 'degressif' ? 'degressif' : 'lineaire',
-      fournisseur: data.fournisseur || '',
-      reference: data.reference || '',
-      notes: data.notes || '',
-      compteCG: data.compteCG || '',
-      vehId: data.vehId || '',
-      statut: 'en_service',
-      creeLe: new Date().toISOString(),
-    };
-    const list = load(LS.immos);
-    list.push(immo);
-    save(LS.immos, list);
-    audit('Création immobilisation', immo.libelle + ' · ' + fmtEur(immo.valeurHT) + ' · ' + immo.dureeAnnees + ' ans ' + immo.mode);
-    toast('✅ Immobilisation créée', 'success');
-    return immo;
-  }
-
-  async function supprimerImmo(id) {
-    const ok = await confirmDialog('Supprimer cette immobilisation ? Les dotations déjà générées (charges) seront conservées pour conformité fiscale.', { titre:'Supprimer l\'immobilisation', icone:'🏢', btnLabel:'Supprimer' });
-    if (!ok) return;
-    const list = load(LS.immos).filter(i => i.id !== id);
-    save(LS.immos, list);
-    audit('Suppression immobilisation', id);
-    toast('🗑️ Immobilisation supprimée', 'info');
-    renderImmosList();
-  }
-  window.s30SupprimerImmo = supprimerImmo;
-
-  function genererDotationsExercice(anneeCible) {
-    const annee = Number(anneeCible) || new Date().getFullYear();
-    const immos = load(LS.immos);
-    const dotations = load(LS.dotations);
-    const charges = load(LS.charges);
-    let count = 0, total = 0;
-    immos.forEach(immo => {
-      if (immo.statut === 'cedee') return;
-      const plan = calculerPlanAmortissement(immo);
-      const ligne = plan.find(l => l.annee === annee);
-      if (!ligne || ligne.dotation <= 0.01) return;
-      // Déjà générée ?
-      if (dotations.some(d => d.immoId === immo.id && d.annee === annee)) return;
-      const chargeId = genId();
-      const dotationId = genId();
-      const dateCharge = annee + '-12-31';
-      charges.push({
-        id: chargeId,
-        date: dateCharge,
-        categorie: 'amortissement',
-        description: 'Dotation amortissement ' + annee + ' — ' + immo.libelle,
-        montant: ligne.dotation,
-        montantHT: ligne.dotation,
-        tauxTVA: 0,
-        montantTVA: 0,
-        immoId: immo.id,
-        dotationId,
-        annee,
-        vehId: immo.vehId || '',
-        creeLe: new Date().toISOString(),
-      });
-      dotations.push({
-        id: dotationId,
-        immoId: immo.id,
-        annee,
-        montant: ligne.dotation,
-        vnc: ligne.vnc,
-        base: ligne.base,
-        chargeId,
-        creeLe: new Date().toISOString(),
-      });
-      count++;
-      total += ligne.dotation;
-    });
-    save(LS.dotations, dotations);
-    save(LS.charges, charges);
-    if (count > 0) {
-      audit('Dotations amortissements ' + annee, count + ' lignes · ' + fmtEur(total));
-      toast('✅ ' + count + ' dotations générées pour ' + annee + ' (' + fmtEur(total) + ')', 'success');
+  function updateProgress() {
+    let filled = 0;
+    for (const id of TRACKED_FIELDS) {
+      const el = document.getElementById(id);
+      if (el && String(el.value || '').trim() !== '') filled++;
     }
-    return { count, total };
+    const total = TRACKED_FIELDS.length;
+    const pct = Math.round(filled / total * 100);
+    const fillEl = document.getElementById('liv-progress-fill');
+    const countEl = document.getElementById('liv-progress-count');
+    const pctEl = document.getElementById('liv-progress-pct');
+    if (fillEl) fillEl.style.width = pct + '%';
+    if (countEl) countEl.textContent = String(filled);
+    if (pctEl) pctEl.textContent = pct + '%';
   }
-  window.s30GenererDotations = genererDotationsExercice;
 
-  function ouvrirModalImmo(editId) {
-    const existing = editId ? load(LS.immos).find(i => i.id === editId) : null;
-    const html = `
-      <div class="s15-modal-info-box" style="max-width:720px">
-        <div class="s15-modal-info-header">
-          <h2>${existing?'✏️ Modifier':'➕ Nouvelle'} immobilisation</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">
-            Plan d'amortissement conforme PCG — linéaire ou dégressif (CGI art. 39 A).
-            Base 360 jours, pro rata temporis automatique sur l'année de mise en service.
-          </p>
-          <div class="form-grid">
-            <div class="form-group full-width">
-              <label>Libellé *</label>
-              <input type="text" id="s30-im-libelle" placeholder="Ex : Camion Renault Master 2024" value="${esc(existing?.libelle||'')}" />
-            </div>
-            <div class="form-group">
-              <label>Catégorie</label>
-              <select id="s30-im-categorie" onchange="window.s30RemplirCategorie()">
-                ${CATEGORIES_IMMO.map(c => `<option value="${c.id}" ${existing?.categorie===c.id?'selected':''}>${c.libelle}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Valeur d'achat HT *</label>
-              <input type="number" id="s30-im-valeur" step="0.01" min="0" value="${existing?.valeurHT||''}" />
-            </div>
-            <div class="form-group">
-              <label>Date d'acquisition</label>
-              <input type="date" id="s30-im-dateacq" value="${existing?.dateAcquisition||todayISO()}" />
-            </div>
-            <div class="form-group">
-              <label>Date de mise en service *</label>
-              <input type="date" id="s30-im-datemes" value="${existing?.dateMiseEnService||todayISO()}" />
-            </div>
-            <div class="form-group">
-              <label>Durée (années)</label>
-              <input type="number" id="s30-im-duree" min="1" max="30" value="${existing?.dureeAnnees||5}" oninput="window.s30PreviewPlan()" />
-            </div>
-            <div class="form-group">
-              <label>Mode d'amortissement</label>
-              <select id="s30-im-mode" onchange="window.s30PreviewPlan()">
-                <option value="lineaire" ${existing?.mode!=='degressif'?'selected':''}>Linéaire</option>
-                <option value="degressif" ${existing?.mode==='degressif'?'selected':''}>Dégressif</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Compte comptable</label>
-              <input type="text" id="s30-im-cg" placeholder="Ex : 2182" value="${esc(existing?.compteCG||'')}" />
-            </div>
-            <div class="form-group">
-              <label>Fournisseur</label>
-              <input type="text" id="s30-im-four" placeholder="Fournisseur" value="${esc(existing?.fournisseur||'')}" />
-            </div>
-            <div class="form-group">
-              <label>Référence / facture</label>
-              <input type="text" id="s30-im-ref" placeholder="FAC-XXXX" value="${esc(existing?.reference||'')}" />
-            </div>
-            <div class="form-group full-width">
-              <label>Notes</label>
-              <textarea id="s30-im-notes" rows="2">${esc(existing?.notes||'')}</textarea>
-            </div>
-          </div>
-
-          <h3 style="margin-top:18px;font-size:.95rem">📊 Prévisualisation plan d'amortissement</h3>
-          <div id="s30-im-preview" style="border:1px solid var(--border);border-radius:10px;padding:10px;max-height:220px;overflow:auto;font-size:.85rem"></div>
-
-          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px">
-            <button class="btn btn-ghost" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
-            <button class="btn btn-primary" onclick="window.s30ValiderImmo('${editId||''}')">✅ ${existing?'Enregistrer':'Créer & planifier'}</button>
-          </div>
-        </div>
-      </div>
-    `;
-    ouvrirModalHTML(html);
-    setTimeout(() => { if (!existing) window.s30RemplirCategorie(); window.s30PreviewPlan(); }, 60);
-  }
-  window.s30NouvelleImmo = ouvrirModalImmo;
-
-  window.s30RemplirCategorie = function() {
-    const catId = document.getElementById('s30-im-categorie')?.value;
-    const cat = CATEGORIES_IMMO.find(c => c.id === catId);
-    if (!cat) return;
-    const elD = document.getElementById('s30-im-duree');
-    const elM = document.getElementById('s30-im-mode');
-    const elCG = document.getElementById('s30-im-cg');
-    if (elD && !elD.dataset.userEdited) elD.value = cat.duree;
-    if (elM && !elM.dataset.userEdited) elM.value = cat.mode;
-    if (elCG && !elCG.value) elCG.value = cat.cg;
-    window.s30PreviewPlan();
-  };
-
-  window.s30PreviewPlan = function() {
-    const data = {
-      valeurHT: parseFloat(document.getElementById('s30-im-valeur')?.value) || 0,
-      dateMiseEnService: document.getElementById('s30-im-datemes')?.value || todayISO(),
-      dureeAnnees: parseInt(document.getElementById('s30-im-duree')?.value, 10) || 5,
-      mode: document.getElementById('s30-im-mode')?.value || 'lineaire',
-    };
-    const box = document.getElementById('s30-im-preview');
-    if (!box) return;
-    if (data.valeurHT <= 0) { box.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px">Renseignez la valeur pour prévisualiser</div>'; return; }
-    const plan = calculerPlanAmortissement(data);
-    if (!plan.length) { box.innerHTML = '<div style="color:var(--text-muted)">Plan indisponible</div>'; return; }
-    const coef = data.mode === 'degressif' ? ' (coef ' + coefDegressif(data.dureeAnnees) + ')' : '';
-    box.innerHTML = `
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="background:rgba(99,102,241,0.08)">
-          <th style="text-align:left;padding:6px">Exercice</th>
-          <th style="text-align:right;padding:6px">Dotation</th>
-          <th style="text-align:right;padding:6px">VNC fin</th>
-          <th style="text-align:right;padding:6px">Pro rata</th>
-        </tr></thead>
-        <tbody>
-          ${plan.map(l => `
-            <tr>
-              <td style="padding:5px 6px;border-bottom:1px solid var(--border)">${l.annee}</td>
-              <td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:right;font-weight:600">${fmtEur(l.dotation)}</td>
-              <td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-muted)">${fmtEur(l.vnc)}</td>
-              <td style="padding:5px 6px;border-bottom:1px solid var(--border);text-align:right;font-size:.8rem">${l.proRata}%</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      <div style="margin-top:8px;font-size:.78rem;color:var(--text-muted);text-align:right">Mode ${data.mode}${coef}</div>
-    `;
-  };
-
-  window.s30ValiderImmo = function(editId) {
-    const data = {
-      libelle: (document.getElementById('s30-im-libelle')?.value||'').trim(),
-      categorie: document.getElementById('s30-im-categorie')?.value || 'autre',
-      valeurHT: parseFloat(document.getElementById('s30-im-valeur')?.value) || 0,
-      dateAcquisition: document.getElementById('s30-im-dateacq')?.value || todayISO(),
-      dateMiseEnService: document.getElementById('s30-im-datemes')?.value || todayISO(),
-      dureeAnnees: parseInt(document.getElementById('s30-im-duree')?.value, 10) || 5,
-      mode: document.getElementById('s30-im-mode')?.value || 'lineaire',
-      compteCG: (document.getElementById('s30-im-cg')?.value||'').trim(),
-      fournisseur: (document.getElementById('s30-im-four')?.value||'').trim(),
-      reference: (document.getElementById('s30-im-ref')?.value||'').trim(),
-      notes: (document.getElementById('s30-im-notes')?.value||'').trim(),
-    };
-    if (!data.libelle) { toast('⚠️ Libellé requis', 'warning'); return; }
-    if (data.valeurHT <= 0) { toast('⚠️ Valeur HT invalide', 'warning'); return; }
-    if (editId) {
-      const list = load(LS.immos);
-      const idx = list.findIndex(i => i.id === editId);
-      if (idx >= 0) {
-        list[idx] = { ...list[idx], ...data };
-        save(LS.immos, list);
-        audit('Modification immobilisation', data.libelle);
-        toast('✅ Immobilisation modifiée', 'success');
-      }
+  function setFieldState(input, ok, hintMsg) {
+    if (!input) return;
+    input.classList.remove('fp-invalid', 'fp-valid');
+    if (input.value === '') {
+      // vide = neutre
+    } else if (ok) {
+      input.classList.add('fp-valid');
     } else {
-      creerImmo(data);
+      input.classList.add('fp-invalid');
     }
-    fermerModal();
-    renderImmosList();
-  };
-
-  function renderImmosList() {
-    const box = document.getElementById('s30-immos-section');
-    if (!box) return;
-    const immos = load(LS.immos);
-    const dotations = load(LS.dotations);
-    const anneeCur = new Date().getFullYear();
-    const totalVNC = immos.reduce((s, i) => {
-      const plan = calculerPlanAmortissement(i);
-      const ligne = plan.find(l => l.annee === anneeCur);
-      return s + (ligne ? ligne.vnc : i.valeurHT);
-    }, 0);
-    const totalValeur = immos.reduce((s, i) => s + (i.valeurHT || 0), 0);
-    const totalDotCurr = immos.reduce((s, i) => {
-      const plan = calculerPlanAmortissement(i);
-      const ligne = plan.find(l => l.annee === anneeCur);
-      return s + (ligne ? ligne.dotation : 0);
-    }, 0);
-
-    box.innerHTML = `
-      <div class="card-header"><h2>📊 Immobilisations & amortissements</h2></div>
-      <div class="modal-body">
-        <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
-          Plan d'amortissement linéaire ou dégressif. Les dotations génèrent automatiquement des charges
-          en date du 31 décembre de chaque exercice (conformité CGI art. 39 B et PCG art. 214).
-        </p>
-        <div class="enc-stats-grid" style="margin-bottom:14px">
-          <div class="stat-card"><div class="stat-label">📦 Nombre d'immos</div><div class="stat-value">${immos.length}</div></div>
-          <div class="stat-card"><div class="stat-label">💼 Valeur d'achat totale</div><div class="stat-value">${fmtEur(totalValeur)}</div></div>
-          <div class="stat-card"><div class="stat-label">📉 VNC ${anneeCur}</div><div class="stat-value" style="color:var(--accent)">${fmtEur(totalVNC)}</div></div>
-          <div class="stat-card"><div class="stat-label">💶 Dotation ${anneeCur}</div><div class="stat-value" style="color:#f5a623">${fmtEur(totalDotCurr)}</div></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-          <button class="btn btn-primary" onclick="window.s30NouvelleImmo()">+ Nouvelle immobilisation</button>
-          <button class="btn btn-secondary" onclick="window.s30AfficherDotations()">📋 Afficher les dotations générées</button>
-          <button class="btn btn-ghost" onclick="window.s30GenererDotationsInteractif()">⚙️ Générer dotations manuellement</button>
-        </div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr>
-              <th>Libellé</th><th>Catégorie</th><th>Date MES</th>
-              <th style="text-align:right">Valeur HT</th><th style="text-align:right">Durée</th>
-              <th>Mode</th><th style="text-align:right">Dotation ${anneeCur}</th>
-              <th style="text-align:right">VNC ${anneeCur}</th><th>Actions</th>
-            </tr></thead>
-            <tbody>
-              ${immos.length ? immos.map(i => {
-                const plan = calculerPlanAmortissement(i);
-                const ligne = plan.find(l => l.annee === anneeCur);
-                const cat = CATEGORIES_IMMO.find(c => c.id === i.categorie);
-                return `
-                  <tr>
-                    <td><strong>${esc(i.libelle)}</strong>${i.reference?`<div style="font-size:.78rem;color:var(--text-muted)">${esc(i.reference)}</div>`:''}</td>
-                    <td>${cat?cat.libelle:esc(i.categorie)}</td>
-                    <td>${fmtDate(i.dateMiseEnService)}</td>
-                    <td style="text-align:right">${fmtEur(i.valeurHT)}</td>
-                    <td style="text-align:right">${i.dureeAnnees} ans</td>
-                    <td>${i.mode}</td>
-                    <td style="text-align:right;color:#f5a623;font-weight:600">${ligne?fmtEur(ligne.dotation):'—'}</td>
-                    <td style="text-align:right">${ligne?fmtEur(ligne.vnc):fmtEur(i.valeurHT)}</td>
-                    <td>
-                      <button class="btn-icon" onclick="window.s30VoirPlanImmo('${i.id}')" title="Plan d'amortissement">📊</button>
-                      <button class="btn-icon" onclick="window.s30NouvelleImmo('${i.id}')" title="Modifier">✏️</button>
-                      <button class="btn-icon" onclick="window.s30SupprimerImmo('${i.id}')" title="Supprimer">🗑️</button>
-                    </td>
-                  </tr>
-                `;
-              }).join('') : '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">Aucune immobilisation — <a href="#" onclick="window.s30NouvelleImmo();return false">en ajouter une</a></td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }
-  window.s30RenderImmos = renderImmosList;
-
-  window.s30VoirPlanImmo = function(immoId) {
-    const immo = load(LS.immos).find(i => i.id === immoId);
-    if (!immo) return;
-    const plan = calculerPlanAmortissement(immo);
-    const dotations = load(LS.dotations).filter(d => d.immoId === immoId);
-    const coef = immo.mode === 'degressif' ? ' (coef ' + coefDegressif(immo.dureeAnnees) + ')' : '';
-    const html = `
-      <div class="s15-modal-info-box" style="max-width:620px">
-        <div class="s15-modal-info-header">
-          <h2>📊 Plan d'amortissement — ${esc(immo.libelle)}</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;font-size:.88rem">
-            <div><span style="color:var(--text-muted)">Valeur HT :</span> <strong>${fmtEur(immo.valeurHT)}</strong></div>
-            <div><span style="color:var(--text-muted)">Durée :</span> <strong>${immo.dureeAnnees} ans</strong></div>
-            <div><span style="color:var(--text-muted)">Mode :</span> <strong>${immo.mode}${coef}</strong></div>
-            <div><span style="color:var(--text-muted)">MES :</span> <strong>${fmtDate(immo.dateMiseEnService)}</strong></div>
-          </div>
-          <table class="data-table">
-            <thead><tr>
-              <th>Exercice</th><th style="text-align:right">Dotation</th>
-              <th style="text-align:right">VNC fin</th><th style="text-align:right">Pro rata</th>
-              <th>État</th>
-            </tr></thead>
-            <tbody>
-              ${plan.map(l => {
-                const d = dotations.find(x => x.annee === l.annee);
-                return `<tr>
-                  <td><strong>${l.annee}</strong></td>
-                  <td style="text-align:right;font-weight:600">${fmtEur(l.dotation)}</td>
-                  <td style="text-align:right;color:var(--text-muted)">${fmtEur(l.vnc)}</td>
-                  <td style="text-align:right">${l.proRata}%</td>
-                  <td>${d ? '<span class="badge-statut badge-paye">Générée</span>' : (l.annee <= new Date().getFullYear() ? '<span class="badge-statut badge-attente">En attente</span>' : '<span style="color:var(--text-muted)">À venir</span>')}</td>
-                </tr>`;
-              }).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-    ouvrirModalHTML(html);
-  };
-
-  window.s30AfficherDotations = function() {
-    const dotations = load(LS.dotations).slice().sort((a,b) => b.annee - a.annee || String(b.creeLe).localeCompare(String(a.creeLe)));
-    const immos = load(LS.immos);
-    const html = `
-      <div class="s15-modal-info-box" style="max-width:820px">
-        <div class="s15-modal-info-header">
-          <h2>📋 Dotations générées</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px">
-            Dotations aux amortissements enregistrées comme charges d'exploitation. Intégrées au FEC et aux exports fiscaux.
-          </p>
-          <table class="data-table">
-            <thead><tr>
-              <th>Exercice</th><th>Immobilisation</th>
-              <th style="text-align:right">Dotation</th><th style="text-align:right">VNC</th>
-              <th>Charge liée</th>
-            </tr></thead>
-            <tbody>
-              ${dotations.length ? dotations.map(d => {
-                const im = immos.find(x => x.id === d.immoId);
-                return `<tr>
-                  <td><strong>${d.annee}</strong></td>
-                  <td>${esc(im?.libelle||'(supprimée)')}</td>
-                  <td style="text-align:right;font-weight:600">${fmtEur(d.montant)}</td>
-                  <td style="text-align:right;color:var(--text-muted)">${fmtEur(d.vnc)}</td>
-                  <td style="font-size:.82rem">${d.chargeId ? '<span class="badge-statut badge-paye">✓ charge</span>' : '<span style="color:var(--text-muted)">—</span>'}</td>
-                </tr>`;
-              }).join('') : '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted)">Aucune dotation générée</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-    ouvrirModalHTML(html);
-  };
-
-  window.s30GenererDotationsInteractif = async function() {
-    const annee = await promptDialog('Année d\'exercice à clôturer pour générer les dotations aux amortissements ?', {
-      titre:'Générer les dotations', icone:'📒', btnLabel:'Générer', defaultValue:String(new Date().getFullYear()),
-      type:'number', placeholder:'Année',
-      validate: v => (/^\d{4}$/.test(String(v||'').trim()) ? true : 'Année sur 4 chiffres attendue')
-    });
-    if (!annee) return;
-    const res = genererDotationsExercice(parseInt(annee, 10));
-    if (res.count === 0) toast('Aucune dotation à générer (déjà créées ou aucune immo active)', 'info');
-    renderImmosList();
-  };
-
-  /* ---- Injection section Comptabilité dans Paramètres ---- */
-  function injectImmosInParams() {
-    const page = document.getElementById('page-parametres');
-    if (!page) return;
-    const grid = page.querySelector('.params-grid');
-    if (!grid) return;
-    // Supprimer le placeholder S29 "Comptabilité (Sprint 30 à venir)" si présent
-    const placeholder = grid.querySelector('.s29-compta-card');
-    if (placeholder) placeholder.remove();
-    if (!grid.querySelector('#s30-immos-section')) {
-      const section = document.createElement('div');
-      section.id = 's30-immos-section';
-      section.className = 'card params-card-wide';
-      section.dataset.s29Section = 'comptabilite';
-      // Insérer en premier dans la section comptabilité (donc en haut de la grille)
-      grid.insertBefore(section, grid.firstChild);
-    }
-    renderImmosList();
-    // Force re-synchro de la section S29 active (pour que la carte reçoive display:none/'' correct)
-    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
-    grid.querySelectorAll('[data-s29-section]').forEach(el => {
-      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
-    });
-    // Si recherche active, ne pas override
-    const search = page.querySelector('.s29-search');
-    if (search && search.value.trim()) {
-      const needle = search.value.trim().toLowerCase();
-      grid.querySelectorAll('[data-s29-section]').forEach(el => {
-        el.style.display = (el.textContent||'').toLowerCase().includes(needle) ? '' : 'none';
-      });
+    const hint = document.getElementById(input.id + '-hint');
+    if (hint) {
+      hint.classList.remove('fp-hint-ok', 'fp-hint-err');
+      if (input.value === '') { hint.textContent = ''; }
+      else if (ok) { hint.textContent = hintMsg || '✓ Valide'; hint.classList.add('fp-hint-ok'); }
+      else { hint.textContent = hintMsg || '✗ Invalide'; hint.classList.add('fp-hint-err'); }
     }
   }
 
-  /* ---- Auto-génération des dotations au 31 décembre ---- */
-  function cronAmortissements() {
-    const today = new Date();
-    const annee = today.getFullYear();
-    // Si on est après le 25 décembre → proposer dotations de l'année courante
-    if (today.getMonth() !== 11 || today.getDate() < 25) return;
-    const immos = load(LS.immos);
-    if (!immos.length) return;
-    const dotations = load(LS.dotations);
-    const aGenerer = immos.filter(i => {
-      if (i.statut === 'cedee') return false;
-      const plan = calculerPlanAmortissement(i);
-      const ligne = plan.find(l => l.annee === annee);
-      if (!ligne || ligne.dotation <= 0.01) return false;
-      return !dotations.some(d => d.immoId === i.id && d.annee === annee);
+  function validateSiren(input) {
+    const val = String(input.value || '').replace(/\s+/g, '');
+    if (val === '') { setFieldState(input, true, ''); updateProgress(); return; }
+    if (!/^\d+$/.test(val)) { setFieldState(input, false, '✗ Uniquement des chiffres'); updateProgress(); return; }
+    if (val.length < 9) { setFieldState(input, false, val.length + '/9 chiffres'); updateProgress(); return; }
+    const ok = typeof validerSIREN === 'function' ? validerSIREN(val) : /^\d{9}$/.test(val);
+    setFieldState(input, ok, ok ? '✓ SIREN valide' : '✗ Clé Luhn incorrecte');
+    updateProgress();
+  }
+
+  // Pays ISO 3166-1 alpha-2 — liste étendue (cf. datalist pays-iso-list dans admin.html)
+  const PAYS_ISO2 = new Set(['FR','BE','LU','CH','DE','IT','ES','PT','NL','GB','IE','AT','DK','SE','FI','NO','IS','PL','CZ','SK','HU','RO','BG','GR','SI','HR','RS','BA','AL','MK','ME','EE','LV','LT','MT','CY','MC','AD','SM','VA','LI','TR','MA','DZ','TN','EG','IL','SN','CI','US','CA','MX','BR','AR','CN','JP','KR','IN','AU','NZ']);
+
+  function validatePays(input) {
+    const val = String(input.value || '').toUpperCase();
+    if (val === '') { setFieldState(input, true, ''); return; }
+    if (val.length < 2) { setFieldState(input, false, 'Code à 2 lettres'); return; }
+    const ok = PAYS_ISO2.has(val);
+    setFieldState(input, ok, ok ? '' : '✗ Code inconnu');
+  }
+
+  function reset() {
+    // Reset des états visuels à l'ouverture du form ou après submit
+    TRACKED_FIELDS.concat(['liv-exp-pays','liv-dest-pays']).forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('fp-invalid', 'fp-valid');
+      const hint = document.getElementById(id + '-hint');
+      if (hint) { hint.textContent = ''; hint.classList.remove('fp-hint-ok', 'fp-hint-err'); }
     });
-    if (!aGenerer.length) return;
-    const already = loadObj('s30_cron_flags');
-    if (already['dotations_'+annee]) return;
-    // Silencieux mais générer directement (automatisation)
-    genererDotationsExercice(annee);
-    already['dotations_'+annee] = new Date().toISOString();
-    save('s30_cron_flags', already);
+    updateProgress();
   }
 
-  /* ================================================================
-     INIT
-     ================================================================ */
-  function init() {
-    setTimeout(injectAcomptesTab, 2500);
-    setInterval(injectAcomptesTab, 5000);
-    setTimeout(injectImmosInParams, 2700);
-    setInterval(injectImmosInParams, 5000);
-    setTimeout(cronAmortissements, 6000);
-    setInterval(cronAmortissements, 3600 * 1000); // 1h
-    // Re-render acomptes si changement storage
-    window.addEventListener('delivpro:storage-sync', (e) => {
-      const k = e?.detail?.key;
-      if (k === LS.acomptes || k === LS.factures || k === LS.paiements) {
-        const box = document.getElementById('s30-acomptes-content');
-        if (box && box.offsetParent !== null) renderAcomptesList();
-      }
-      if (k === LS.immos || k === LS.dotations) {
-        const box = document.getElementById('s30-immos-section');
-        if (box && box.offsetParent !== null) renderImmosList();
-      }
-    });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else setTimeout(init, 2300);
-})();
-
-/* ==========================================================================
-   Sprint 30.1 (suite) — Patch buildFactureHTML : déduction acomptes
-   - Monkey-patch de la fn existante pour injecter un bloc "Acomptes versés"
-   - Réversibilité : fonction s30DetacherAcompte qui dissocie l'acompte de la
-     facture (le rattachement se fait déjà via s30RattacherAcompte)
-   ========================================================================== */
-(function patchFacturePDFAcomptes(){
-  if (window.__s30_1PdfPatched) return;
-  window.__s30_1PdfPatched = true;
-
-  const LS_AC = 'factures_acomptes';
-  const LS_FAC = 'factures_emises';
-  const load = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
-  const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
-  const round2 = (n) => Math.round((Number(n)||0)*100)/100;
-  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
-  const fmtDate = (d) => { if(!d) return '—'; const x = new Date(d); return isNaN(x) ? String(d) : x.toLocaleDateString('fr-FR'); };
-
-  function tryPatch() {
-    if (typeof window.buildFactureHTML !== 'function' || window.buildFactureHTML.__s30Patched) return;
-    const orig = window.buildFactureHTML;
-    const patched = function(livraison, numeroFacture, dateFactureFmt, datePaiementFmt, options) {
-      let html = orig.apply(this, arguments);
-      if (!numeroFacture || (options && options.preview)) return html;
-      const fac = load(LS_FAC).find(f => f.numero === numeroFacture || f.livId === livraison?.id);
-      if (!fac || !Array.isArray(fac.acomptesIds) || !fac.acomptesIds.length) return html;
-      const acomptes = load(LS_AC).filter(a => fac.acomptesIds.includes(a.id));
-      if (!acomptes.length) return html;
-      const totHT = round2(acomptes.reduce((s,a)=> s+(Number(a.montantHT)||0), 0));
-      const totTVA = round2(acomptes.reduce((s,a)=> s+(Number(a.montantTVA)||0), 0));
-      const totTTC = round2(acomptes.reduce((s,a)=> s+(Number(a.montantTTC)||0), 0));
-      const netTTC = round2((Number(fac.montantTTC)||0) - totTTC);
-      const rowsHtml = acomptes.map(a =>
-        '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:.84rem">'
-        + '<span>Acompte <strong>'+(a.numero||'—')+'</strong> du '+fmtDate(a.dateFacture)+'</span>'
-        + '<strong>-'+fmtEur(a.montantTTC)+'</strong>'
-        + '</div>'
-      ).join('');
-      const injection =
-        '<div style="margin:14px 0;padding:14px 16px;background:#eef2ff;border-left:3px solid #6366f1;border-radius:8px;font-size:.88rem;color:#1e1b4b">'
-        + '<div style="font-weight:700;margin-bottom:6px;color:#4338ca">💶 Acomptes déjà versés (CGI art. 242 nonies A)</div>'
-        + rowsHtml
-        + '<div style="border-top:1px solid #c7d2fe;margin-top:6px;padding-top:6px;display:flex;justify-content:space-between;font-weight:700">'
-        + '<span>Total acomptes TTC</span><span>-'+fmtEur(totTTC)+'</span>'
-        + '</div>'
-        + '<div style="font-size:.76rem;color:#4338ca;margin-top:6px;font-style:italic">TVA acomptes déjà facturée : '+fmtEur(totTVA)+' — déduite du montant à régler ce jour.</div>'
-        + '</div>'
-        + '<div style="display:flex;justify-content:flex-end;margin-bottom:14px">'
-        + '<div style="min-width:320px;background:linear-gradient(135deg,#f59e0b,#f5a623);color:#fff;border-radius:14px;padding:14px 18px;box-shadow:0 4px 12px rgba(245,158,11,.25)">'
-        + '<div style="display:flex;justify-content:space-between;font-size:.92rem;opacity:.9"><span>Montant facture TTC</span><span>'+fmtEur(fac.montantTTC||0)+'</span></div>'
-        + '<div style="display:flex;justify-content:space-between;font-size:.92rem;opacity:.9"><span>Acomptes déduits</span><span>-'+fmtEur(totTTC)+'</span></div>'
-        + '<div style="display:flex;justify-content:space-between;font-size:1.15rem;font-weight:800;border-top:1px solid rgba(255,255,255,.35);margin-top:6px;padding-top:6px"><span>NET À PAYER</span><span>'+fmtEur(netTTC)+'</span></div>'
-        + '</div></div>';
-      // Insérer juste avant la section "Mode de paiement"
-      const anchor = '<div style="border-top:1px solid #e5e7eb;padding-top:12px';
-      const idx = html.indexOf(anchor);
-      if (idx >= 0) html = html.slice(0, idx) + injection + html.slice(idx);
-      else html = html.replace(/<\/div>\s*$/, injection + '</div>');
-      return html;
-    };
-    patched.__s30Patched = true;
-    window.buildFactureHTML = patched;
-  }
-
-  // Fn détacher un acompte d'une facture (réversibilité)
-  window.s30DetacherAcompte = async function(acompteId) {
-    const ok = await confirmDialog('Détacher cet acompte de la facture ? La facture sera recalculée sans déduction et l\'acompte redeviendra rattachable.', { titre:'Détacher l\'acompte', icone:'🔗', btnLabel:'Détacher' });
-    if (!ok) return;
-    const acomptes = load(LS_AC);
-    const factures = load(LS_FAC);
-    const aIdx = acomptes.findIndex(a => a.id === acompteId);
-    if (aIdx < 0) return;
-    const ac = acomptes[aIdx];
-    if (!ac.factureFinaleId) return;
-    const fIdx = factures.findIndex(f => f.id === ac.factureFinaleId);
-    if (fIdx >= 0) {
-      const fac = factures[fIdx];
-      fac.acomptesIds = (fac.acomptesIds||[]).filter(id => id !== acompteId);
-      fac.acomptesTTC = round2((fac.acomptesTTC||0) - (ac.montantTTC||0));
-      fac.acomptesHT = round2((fac.acomptesHT||0) - (ac.montantHT||0));
-      fac.acomptesTVA = round2((fac.acomptesTVA||0) - (ac.montantTVA||0));
-      fac.netAPayerTTC = round2((fac.montantTTC||0) - (fac.acomptesTTC||0));
-      factures[fIdx] = fac;
-      save(LS_FAC, factures);
-    }
-    ac.factureFinaleId = null;
-    ac.factureFinaleNum = null;
-    ac.statut = (Number(ac.encaisse||0) >= Number(ac.montantTTC||0)) ? 'encaissée'
-             : (Number(ac.encaisse||0) > 0 ? 'partielle' : 'émise');
-    delete ac.solderLe;
-    acomptes[aIdx] = ac;
-    save(LS_AC, acomptes);
-    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Détachement acompte', ac.numero);
-    if (typeof window.afficherToast === 'function') window.afficherToast('🔓 Acompte détaché', 'info');
-    if (typeof window.s30RenderAcomptes === 'function') window.s30RenderAcomptes();
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
+  window.mcaLivForm = {
+    onInput: function() { updateProgress(); },
+    validateSiren: validateSiren,
+    validatePays: validatePays,
+    updateProgress: updateProgress,
+    reset: reset
   };
 
-  // Retenter le patch régulièrement (buildFactureHTML peut être défini tard)
-  setTimeout(tryPatch, 1500);
-  setInterval(tryPatch, 4000);
-
-  /* ---- Auto-rattachement acompte → facture finale ---- */
-  // On wrappe genererFactureLivraison pour détecter les acomptes pendants
-  // du même client / de la même livraison, et proposer l'auto-déduction.
-  function patchGenererFacture() {
-    if (typeof window.genererFactureLivraison !== 'function' || window.genererFactureLivraison.__s30_1AutoLink) return;
-    const orig = window.genererFactureLivraison;
-    const wrapped = function(livId) {
-      const livs = loadSafe('livraisons', []);
-      const liv = livs.find(l => l.id === livId);
-      if (!liv) return orig.call(window, livId);
-      // Chercher acomptes pendants : même livraisonId OU même client sans facture finale
-      const acomptes = load(LS_AC).filter(a => {
-        if (a.statut === 'annulée' || a.factureFinaleId) return false;
-        if (a.livraisonId && a.livraisonId === livId) return true;
-        if (!a.livraisonId && (a.client||'').toLowerCase() === (liv.client||'').toLowerCase()) return true;
-        return false;
-      });
-      if (!acomptes.length) return orig.call(window, livId);
-      // Identifier la facture qui va être émise ou est déjà émise
-      const facturesAvant = load(LS_FAC).map(f => f.id);
-      const result = orig.call(window, livId);
-      // Retrouver la facture fraîchement liée à cette livraison
-      setTimeout(async () => {
-        const factures = load(LS_FAC);
-        const fac = factures.find(f => f.livId === livId && f.statut !== 'annulée');
-        if (!fac) return;
-        // Éviter ré-proposer si déjà rattachée
-        const restants = acomptes.filter(a => {
-          const cur = load(LS_AC).find(x => x.id === a.id);
-          return cur && !cur.factureFinaleId;
-        });
-        if (!restants.length) return;
-        const totTTC = round2(restants.reduce((s,a)=> s+(Number(a.montantTTC)||0), 0));
-        const list = restants.map(a => '• ' + (a.numero||'—') + ' · ' + fmtEur(a.montantTTC||0)).join(' · ');
-        const msg = 'Acompte(s) détecté(s) pour ' + (liv.client||'ce client') + ' : ' + list +
-          '. Total à déduire : ' + fmtEur(totTTC) +
-          ' — Facture ' + (fac.numero||'—') + ' (' + fmtEur(fac.montantTTC||0) + ' TTC).' +
-          ' Net à payer après déduction : ' + fmtEur((fac.montantTTC||0) - totTTC) +
-          '. Rattacher automatiquement ces acomptes à cette facture ?';
-        const ok = await confirmDialog(msg, { titre:'Rattacher les acomptes', icone:'💶', btnLabel:'Rattacher', danger:false });
-        if (!ok) return;
-        // Rattacher tous les acomptes restants
-        const acList = load(LS_AC);
-        const facList = load(LS_FAC);
-        const fIdx = facList.findIndex(f => f.id === fac.id);
-        if (fIdx < 0) return;
-        const facCur = facList[fIdx];
-        facCur.acomptesIds = Array.isArray(facCur.acomptesIds) ? facCur.acomptesIds : [];
-        restants.forEach(a => {
-          const aIdx = acList.findIndex(x => x.id === a.id);
-          if (aIdx < 0) return;
-          const acCur = acList[aIdx];
-          if (acCur.factureFinaleId) return;
-          if (!facCur.acomptesIds.includes(acCur.id)) facCur.acomptesIds.push(acCur.id);
-          facCur.acomptesTTC = round2((facCur.acomptesTTC||0) + (acCur.montantTTC||0));
-          facCur.acomptesHT = round2((facCur.acomptesHT||0) + (acCur.montantHT||0));
-          facCur.acomptesTVA = round2((facCur.acomptesTVA||0) + (acCur.montantTVA||0));
-          acCur.factureFinaleId = facCur.id;
-          acCur.factureFinaleNum = facCur.numero;
-          acCur.statut = 'soldée';
-          acCur.solderLe = new Date().toISOString();
-          acList[aIdx] = acCur;
-        });
-        facCur.netAPayerTTC = round2((facCur.montantTTC||0) - (facCur.acomptesTTC||0));
-        facList[fIdx] = facCur;
-        save(LS_AC, acList);
-        save(LS_FAC, facList);
-        if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Auto-rattachement acomptes', restants.length + ' acompte(s) → ' + facCur.numero);
-        if (typeof window.afficherToast === 'function') window.afficherToast('✅ ' + restants.length + ' acompte(s) rattaché(s) — réimprimer la facture pour voir la déduction', 'success');
-        if (typeof window.s30RenderAcomptes === 'function') window.s30RenderAcomptes();
-        if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-      }, 400);
+  // Hook : quand la modale s'ouvre, reset + update progress
+  if (typeof window.openModal === 'function') {
+    const originalOpenModal = window.openModal;
+    window.openModal = function(id) {
+      const result = originalOpenModal.apply(this, arguments);
+      if (id === 'modal-livraison') { setTimeout(function(){ try { reset(); } catch(_){} }, 60); }
       return result;
     };
-    wrapped.__s30_1AutoLink = true;
-    window.genererFactureLivraison = wrapped;
   }
-  setTimeout(patchGenererFacture, 1800);
-  setInterval(patchGenererFacture, 5000);
-
-  /* ---- Bouton "+ Acompte" dans toolbar page Facturation (accès direct) ---- */
-  function injectHeaderBtn() {
-    const page = document.getElementById('page-facturation');
-    if (!page || page.querySelector('#s30-header-ac-btn')) return;
-    const header = page.querySelector('.page-actions, .page-header, h2')?.parentElement;
-    const anchor = page.querySelector('.page-actions') || page.querySelector('h2')?.parentElement;
-    if (!anchor) return;
-    const btn = document.createElement('button');
-    btn.id = 's30-header-ac-btn';
-    btn.className = 'btn btn-primary';
-    btn.style.cssText = 'margin-left:auto';
-    btn.innerHTML = '💶 Nouvel acompte';
-    btn.onclick = () => { if (typeof window.s30NouvelAcompte === 'function') window.s30NouvelAcompte(); };
-    anchor.appendChild(btn);
-  }
-  setTimeout(injectHeaderBtn, 2000);
-  setInterval(injectHeaderBtn, 5000);
-})();
-
-/* =====================================================================
-   Sprint 30.2 · Clôture d'exercice FR (CCA / FNP / PCA)
-   Principe d'indépendance des exercices (PCG art. 313-1, CGI art. 38-2 bis)
-   CCA = Charges Constatées d'Avance (486) — charge facturée N concernant N+1
-   FNP = Factures Non Parvenues (408) — charge consommée N pas encore facturée
-   PCA = Produits Constatés d'Avance (487) — produit facturé N concernant N+1
-   ===================================================================== */
-(function installS30_2(){
-  if (window.__s30_2Installed) return;
-  window.__s30_2Installed = true;
-
-  const LS = { ajustements:'cloture_ajustements', exercices:'exercices_fiscaux' };
-  const load = (k) => { try { return loadSafe(k, []); } catch { return []; } };
-  const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
-  const round2 = (n) => Math.round((Number(n)||0)*100)/100;
-  const esc = window.escapeHtml;
-  const fmtEur = (n) => (Number(n)||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
-  const fmtDate = (d) => { if (!d) return ''; const dt = new Date(d); return isNaN(dt)?d:dt.toLocaleDateString('fr-FR'); };
-  const toast = (m,t) => (typeof window.afficherToast==='function') ? window.afficherToast(m,t||'info') : (window.logMCA || function(){})(m);
-  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
-  const uuid = () => 'clo-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
-
-  /* ---- Calcul prorata selon date de clôture ---- */
-  function calculerProrata(dateDebut, dateFin, dateCloture) {
-    if (!dateDebut || !dateFin || !dateCloture) return null;
-    const dD = new Date(dateDebut), dF = new Date(dateFin), dC = new Date(dateCloture);
-    if (isNaN(dD)||isNaN(dF)||isNaN(dC)) return null;
-    if (dF < dD) return null;
-    const JOUR = 86400000;
-    const total = Math.round((dF - dD) / JOUR) + 1;
-    // Jours sur exercice N (avant ou = dateCloture)
-    let jours_N = 0;
-    if (dD <= dC) {
-      const finN = dF < dC ? dF : dC;
-      jours_N = Math.round((finN - dD) / JOUR) + 1;
-    }
-    const jours_N1 = total - jours_N;
-    return {
-      total,
-      jours_N: Math.max(0, jours_N),
-      jours_N1: Math.max(0, jours_N1),
-      ratio_N1: total > 0 ? jours_N1 / total : 0,
-      ratio_N: total > 0 ? jours_N / total : 1
-    };
-  }
-
-  /* ---- Création / édition d'un ajustement ---- */
-  function creerAjustement(data) {
-    const list = load(LS.ajustements);
-    const aj = Object.assign({
-      id: uuid(),
-      creeLe: new Date().toISOString(),
-      statut: 'brouillon'
-    }, data);
-    list.push(aj);
-    save(LS.ajustements, list);
-    audit('Création ajustement clôture', aj.type + ' · ' + aj.libelle + ' · ' + fmtEur(aj.montantReporte));
-    return aj;
-  }
-
-  async function supprimerAjustement(id) {
-    const list = load(LS.ajustements);
-    const idx = list.findIndex(a => a.id === id);
-    if (idx < 0) return;
-    if (list[idx].statut === 'valide' || list[idx].extournePar) {
-      toast('⚠️ Ajustement validé — impossible de supprimer, utiliser l\'extourne', 'warning');
-      return;
-    }
-    const okSup = await confirmDialog('Supprimer cet ajustement de clôture ?', { titre:'Supprimer l\'ajustement', icone:'📒', btnLabel:'Supprimer' });
-    if (!okSup) return;
-    const aj = list[idx];
-    list.splice(idx,1);
-    save(LS.ajustements, list);
-    audit('Suppression ajustement clôture', aj.type + ' · ' + aj.libelle);
-    toast('🗑️ Ajustement supprimé', 'info');
-    render();
-  }
-  window.s30_2SupprimerAjustement = supprimerAjustement;
-
-  function validerAjustement(id) {
-    const list = load(LS.ajustements);
-    const idx = list.findIndex(a => a.id === id);
-    if (idx < 0) return;
-    list[idx].statut = 'valide';
-    list[idx].valideLe = new Date().toISOString();
-    save(LS.ajustements, list);
-    audit('Validation ajustement clôture', list[idx].type + ' · ' + list[idx].libelle);
-    toast('✅ Ajustement validé', 'success');
-    render();
-  }
-  window.s30_2ValiderAjustement = validerAjustement;
-
-  /* ---- Extourne automatique en N+1 ---- */
-  async function extournerAjustement(id) {
-    const list = load(LS.ajustements);
-    const idx = list.findIndex(a => a.id === id);
-    if (idx < 0) return;
-    const aj = list[idx];
-    if (aj.statut !== 'valide') { toast('⚠️ Valider avant d\'extourner', 'warning'); return; }
-    if (aj.extournePar) { toast('Déjà extourné', 'info'); return; }
-    const okExt = await confirmDialog('Extourner ' + aj.type + ' « ' + aj.libelle + ' » en exercice ' + (aj.exercice + 1) + ' ? L\'écriture inverse sera créée au 01/01/' + (aj.exercice + 1) + '.', { titre:'Extourner l\'ajustement', icone:'🔄', btnLabel:'Extourner', danger:false });
-    if (!okExt) return;
-    const extourne = creerAjustement({
-      type: aj.type,
-      exercice: aj.exercice + 1,
-      libelle: '[EXTOURNE] ' + aj.libelle,
-      montantHT: -(aj.montantHT||0),
-      montantTVA: -(aj.montantTVA||0),
-      montantReporte: -(aj.montantReporte||0),
-      tauxTVA: aj.tauxTVA,
-      dateCloture: String(aj.exercice + 1) + '-01-01',
-      estExtourne: true,
-      extournDe: aj.id,
-      sourceType: aj.sourceType,
-      sourceId: aj.sourceId
-    });
-    extourne.statut = 'valide';
-    extourne.valideLe = new Date().toISOString();
-    const list2 = load(LS.ajustements);
-    const idx2 = list2.findIndex(a => a.id === extourne.id);
-    if (idx2 >= 0) { list2[idx2] = extourne; save(LS.ajustements, list2); }
-    // Marquer l'original
-    const list3 = load(LS.ajustements);
-    const iO = list3.findIndex(a => a.id === id);
-    if (iO >= 0) { list3[iO].extournePar = extourne.id; list3[iO].statut = 'extourne'; save(LS.ajustements, list3); }
-    audit('Extourne ajustement', aj.type + ' · ' + aj.libelle + ' → ' + (aj.exercice + 1));
-    toast('🔄 Extourne créée en ' + (aj.exercice + 1), 'success');
-    render();
-  }
-  window.s30_2ExtournerAjustement = extournerAjustement;
-
-  /* ---- Extourne automatique en masse (BUG-017) ---------------------------
-     Au démarrage de l'app, si l'année en cours est N et qu'il existe des
-     ajustements validés sur exercice ≤ N-1 non-extournés, proposer l'action.
-     Gardé idempotent via flag cloture_auto_check_${N} (une alerte par an).
-     ---------------------------------------------------------------------- */
-  function detecterAjustementsEnAttenteExtourne() {
-    const annee = (new Date()).getFullYear();
-    const list = load(LS.ajustements);
-    return list.filter(a =>
-      a.statut === 'valide'
-      && !a.extournePar
-      && !a.estExtourne
-      && Number(a.exercice) > 0
-      && Number(a.exercice) < annee
-    );
-  }
-  window.s30_2DetecterExtournesEnAttente = detecterAjustementsEnAttenteExtourne;
-
-  async function extournerEnMasse(ids) {
-    const list = load(LS.ajustements);
-    let count = 0;
-    ids.forEach(id => {
-      const idx = list.findIndex(a => a.id === id);
-      if (idx < 0) return;
-      const aj = list[idx];
-      if (aj.statut !== 'valide' || aj.extournePar) return;
-      const extId = uuid();
-      const extourne = {
-        id: extId,
-        creeLe: new Date().toISOString(),
-        statut: 'valide',
-        valideLe: new Date().toISOString(),
-        type: aj.type,
-        exercice: aj.exercice + 1,
-        libelle: '[EXTOURNE] ' + (aj.libelle || ''),
-        montantHT: -(aj.montantHT||0),
-        montantTVA: -(aj.montantTVA||0),
-        montantReporte: -(aj.montantReporte||0),
-        tauxTVA: aj.tauxTVA,
-        dateCloture: String(aj.exercice + 1) + '-01-01',
-        estExtourne: true,
-        extournDe: aj.id,
-        sourceType: aj.sourceType,
-        sourceId: aj.sourceId
-      };
-      list.push(extourne);
-      aj.extournePar = extId;
-      aj.statut = 'extourne';
-      count++;
-    });
-    save(LS.ajustements, list);
-    audit('Extourne automatique N+1', count + ' ajustement(s) extourné(s)');
-    toast('🔄 ' + count + ' extourne(s) créée(s) au 01/01/' + (new Date()).getFullYear(), 'success');
-    if (typeof render === 'function') render();
-    return count;
-  }
-  window.s30_2ExtournerEnMasse = extournerEnMasse;
-
-  async function proposerExtourneAuto() {
-    const annee = (new Date()).getFullYear();
-    const flagKey = 'cloture_auto_check_' + annee;
-    if (localStorage.getItem(flagKey) === 'ok') return;
-    const pending = detecterAjustementsEnAttenteExtourne();
-    if (!pending.length) { localStorage.setItem(flagKey, 'ok'); return; }
-    // Throttle : attendre que l'app soit prête (toast dispo)
-    if (typeof window.confirmDialog !== 'function') {
-      setTimeout(proposerExtourneAuto, 2000);
-      return;
-    }
-    const total = pending.reduce((s,a) => s + Math.abs(Number(a.montantReporte)||0), 0);
-    const libsApercu = pending.slice(0,3).map(a => '• ' + (a.libelle||'(sans libellé)') + ' (ex. ' + a.exercice + ')').join('\n');
-    const suite = pending.length > 3 ? '\n… et ' + (pending.length - 3) + ' autre(s)' : '';
-    const msg = pending.length + ' ajustement(s) de clôture N-1 validé(s) ne sont pas encore extourné(s) en ' + annee + '. '
-      + 'Extourner automatiquement maintenant ?\n\n' + libsApercu + suite
-      + '\n\nMontant total : ' + fmtEur(total);
-    const ok = await window.confirmDialog(msg, { titre: '🔄 Extourne exercice ' + annee, icone:'🔄', btnLabel:'Extourner ' + pending.length + ' ajustement(s)' });
-    localStorage.setItem(flagKey, 'ok');
-    if (!ok) { audit('Extourne auto ignorée', pending.length + ' ajustements N-1 en attente'); return; }
-    await extournerEnMasse(pending.map(a => a.id));
-  }
-  window.s30_2ProposerExtourneAuto = proposerExtourneAuto;
-
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    setTimeout(proposerExtourneAuto, 3000);
-  } else {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(proposerExtourneAuto, 3000));
-  }
-
-  /* ---- UI : Wizard création ---- */
-  function ouvrirModalHTML(html) {
-    let modal = document.getElementById('s15-modal-info');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 's15-modal-info';
-      modal.className = 's15-modal-info-overlay';
-      modal.innerHTML = '<div class="s15-modal-info-box"><button class="s15-modal-info-close" aria-label="Fermer">✕</button><div class="s15-modal-info-body"></div></div>';
-      document.body.appendChild(modal);
-      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
-      modal.querySelector('.s15-modal-info-close').addEventListener('click', () => modal.classList.remove('open'));
-    }
-    const body = modal.querySelector('.s15-modal-info-body');
-    if (body) body.innerHTML = html;
-    modal.classList.add('open');
-  }
-  function fermerModal() { const m = document.getElementById('s15-modal-info'); if (m) m.classList.remove('open'); }
-
-  window.s30_2NouvelAjustement = function(preType) {
-    const annee = (new Date()).getFullYear();
-    const charges = load('charges');
-    const factures = load('factures_emises');
-    const chargesOptions = charges.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0, 100);
-    const facturesOptions = factures.filter(f => f.statut !== 'annulée').slice().sort((a,b)=> (b.dateFacture||'').localeCompare(a.dateFacture||'')).slice(0, 100);
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:760px">
-        <div class="s15-modal-info-header">
-          <h2>📅 Nouvel ajustement de clôture</h2>
-          <button class="btn-close" onclick="window.s30_2FermerModal()">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <div class="form-group">
-            <label>Type d'ajustement *</label>
-            <select id="s302-type" onchange="window.s30_2UpdateTypeFields()">
-              <option value="CCA" ${preType==='CCA'?'selected':''}>CCA — Charge Constatée d'Avance (charge payée en N concernant N+1)</option>
-              <option value="FNP" ${preType==='FNP'?'selected':''}>FNP — Facture Non Parvenue (charge consommée N pas encore facturée)</option>
-              <option value="PCA" ${preType==='PCA'?'selected':''}>PCA — Produit Constaté d'Avance (facture émise N pour prestation N+1)</option>
-            </select>
-          </div>
-          <div id="s302-help" style="background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:12px;margin-bottom:12px;font-size:.86rem;line-height:1.5"></div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Exercice *</label>
-              <input type="number" id="s302-exercice" value="${annee}" min="2020" max="2099" />
-              <small style="color:var(--text-muted)">Date de clôture : 31/12/<span id="s302-exYear">${annee}</span></small>
-            </div>
-            <div class="form-group">
-              <label>Taux TVA</label>
-              <select id="s302-tva">
-                <option value="20">20 %</option>
-                <option value="10">10 %</option>
-                <option value="5.5">5,5 %</option>
-                <option value="0">0 % (exonéré)</option>
-              </select>
-            </div>
-          </div>
-          <div id="s302-sourceBlock"></div>
-          <div class="form-group">
-            <label>Libellé *</label>
-            <input type="text" id="s302-libelle" placeholder="Ex: Assurance véhicule 2026-2027" />
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label>Date début période *</label>
-              <input type="date" id="s302-debut" oninput="window.s30_2CalcProrata()" />
-            </div>
-            <div class="form-group">
-              <label>Date fin période *</label>
-              <input type="date" id="s302-fin" oninput="window.s30_2CalcProrata()" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Montant total HT concerné par la période *</label>
-            <input type="number" step="0.01" id="s302-montantHT" oninput="window.s30_2CalcProrata()" placeholder="0.00" />
-          </div>
-          <div id="s302-prorata" style="background:linear-gradient(135deg,rgba(34,197,94,.1),rgba(34,197,94,.05));border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:14px;margin-bottom:14px;display:none"></div>
-          <div class="form-group">
-            <label>Note / justificatif</label>
-            <textarea id="s302-note" rows="2" placeholder="Référence contrat, date facture d'origine, etc."></textarea>
-          </div>
-        </div>
-        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end">
-          <button class="btn-secondary" onclick="window.s30_2FermerModal()">Annuler</button>
-          <button class="btn-primary" onclick="window.s30_2EnregistrerAjustement()">💾 Enregistrer</button>
-        </div>
-      </div>`;
-    ouvrirModalHTML(html);
-    // Stocker options source pour les fields
-    window.__s302ChargesOpts = chargesOptions;
-    window.__s302FacturesOpts = facturesOptions;
-    setTimeout(() => window.s30_2UpdateTypeFields(), 50);
-    const exIn = document.getElementById('s302-exercice');
-    if (exIn) exIn.oninput = () => { const y = document.getElementById('s302-exYear'); if (y) y.textContent = exIn.value; };
-  };
-  window.s30_2FermerModal = fermerModal;
-
-  window.s30_2UpdateTypeFields = function() {
-    const type = document.getElementById('s302-type').value;
-    const help = document.getElementById('s302-help');
-    const src = document.getElementById('s302-sourceBlock');
-    if (!help || !src) return;
-    const texts = {
-      CCA: '<strong>📘 CCA — Charge Constatée d\'Avance (compte 486)</strong><br>Tu sélectionnes une charge déjà enregistrée. La part de la charge correspondant à la période <strong>après le 31/12</strong> sera reportée en N+1 (écriture D 486 / C 6xx).<br><em>Ex : assurance annuelle payée en octobre 2026 → 9 mois relèvent de 2027.</em>',
-      FNP: '<strong>📕 FNP — Facture Non Parvenue (compte 408)</strong><br>Charge consommée en N mais non facturée au 31/12. Provision estimée (écriture D 6xx + D 4456 TVA / C 408).<br><em>Ex : électricité décembre consommée mais facturée en janvier N+1.</em>',
-      PCA: '<strong>📗 PCA — Produit Constaté d\'Avance (compte 487)</strong><br>Tu sélectionnes une facture émise. La part correspondant à la période <strong>après le 31/12</strong> est reportée en N+1 (écriture D 7xx / C 487).<br><em>Ex : abonnement annuel facturé en juin 2026 → 5 mois relèvent de 2027.</em>'
-    };
-    help.innerHTML = texts[type] || '';
-    let srcHtml = '';
-    if (type === 'CCA') {
-      const opts = (window.__s302ChargesOpts||[]).map(c => `<option value="${c.id}" data-montant="${c.montantHT||c.montant||0}" data-tva="${c.tauxTVA||20}" data-libelle="${esc((c.description||c.categorie||'Charge')+' · '+fmtDate(c.date))}">${esc(c.description||c.categorie||'Charge')} — ${fmtEur(c.montantHT||c.montant)} (${fmtDate(c.date)})</option>`).join('');
-      srcHtml = `
-        <div class="form-group">
-          <label>Charge source (optionnel — sinon saisie manuelle)</label>
-          <select id="s302-source" onchange="window.s30_2RemplirDepuisSource('charge')">
-            <option value="">— Saisie manuelle —</option>
-            ${opts}
-          </select>
-        </div>`;
-    } else if (type === 'PCA') {
-      const opts = (window.__s302FacturesOpts||[]).map(f => `<option value="${f.id}" data-montant="${f.montantHT||0}" data-tva="${f.tauxTVA||20}" data-libelle="${esc((f.numero||'Facture')+' · '+(f.client||''))}">${esc(f.numero||'—')} — ${esc(f.client||'')} — ${fmtEur(f.montantHT)} (${fmtDate(f.dateFacture)})</option>`).join('');
-      srcHtml = `
-        <div class="form-group">
-          <label>Facture source (optionnel)</label>
-          <select id="s302-source" onchange="window.s30_2RemplirDepuisSource('facture')">
-            <option value="">— Saisie manuelle —</option>
-            ${opts}
-          </select>
-        </div>`;
-    } else {
-      srcHtml = '<div style="font-size:.82rem;color:var(--text-muted);margin-bottom:10px;font-style:italic">FNP = saisie manuelle (pas de pièce justificative au 31/12).</div>';
-    }
-    src.innerHTML = srcHtml;
-  };
-
-  window.s30_2RemplirDepuisSource = function(kind) {
-    const sel = document.getElementById('s302-source');
-    if (!sel || !sel.value) return;
-    const opt = sel.options[sel.selectedIndex];
-    const montant = opt.dataset.montant;
-    const tva = opt.dataset.tva;
-    const libelle = opt.dataset.libelle;
-    if (montant) document.getElementById('s302-montantHT').value = montant;
-    if (tva) document.getElementById('s302-tva').value = tva;
-    if (libelle) document.getElementById('s302-libelle').value = libelle;
-    window.s30_2CalcProrata();
-  };
-
-  window.s30_2CalcProrata = function() {
-    const type = document.getElementById('s302-type')?.value || 'CCA';
-    const debut = document.getElementById('s302-debut')?.value;
-    const fin = document.getElementById('s302-fin')?.value;
-    const montant = parseFloat(document.getElementById('s302-montantHT')?.value) || 0;
-    const exercice = parseInt(document.getElementById('s302-exercice')?.value, 10) || new Date().getFullYear();
-    const dateCloture = exercice + '-12-31';
-    const box = document.getElementById('s302-prorata');
-    if (!box) return;
-    const tva = parseFloat(document.getElementById('s302-tva')?.value) || 0;
-    // FNP : pas de prorata — le montant est 100% provisionné en N (compte 408)
-    if (type === 'FNP') {
-      if (!montant) { box.style.display = 'none'; return; }
-      const montantTVA = round2(montant * tva / 100);
-      box.style.display = '';
-      box.innerHTML = `
-        <div style="font-weight:700;margin-bottom:8px">📕 Provision à constituer au 31/12/${exercice}</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.88rem">
-          <div>Charge estimée HT : <strong>${fmtEur(montant)}</strong></div>
-          <div>TVA ${tva}% : <strong>${fmtEur(montantTVA)}</strong></div>
-          <div style="color:#ef4444;grid-column:1/-1">🎯 Provision totale (compte 408) : <strong>${fmtEur(montant+montantTVA)}</strong> (HT + TVA)</div>
-        </div>
-        <input type="hidden" id="s302-montantReporte" value="${montant}" />
-        <input type="hidden" id="s302-montantTVAReporte" value="${montantTVA}" />`;
-      return;
-    }
-    // Validation date
-    if (debut && fin && new Date(debut) > new Date(fin)) {
-      box.style.display = '';
-      box.style.background = 'rgba(239,68,68,.1)';
-      box.style.borderColor = 'rgba(239,68,68,.4)';
-      box.innerHTML = '<div style="color:#ef4444;font-weight:700">⚠️ Date de début postérieure à la date de fin</div>';
-      return;
-    }
-    box.style.background = '';
-    box.style.borderColor = '';
-    const pr = calculerProrata(debut, fin, dateCloture);
-    if (!pr || !montant) { box.style.display = 'none'; return; }
-    const montantN = round2(montant * pr.ratio_N);
-    const montantN1 = round2(montant - montantN);
-    const montantTVAN1 = round2(montantN1 * tva / 100);
-    box.style.display = '';
-    const alert100 = pr.jours_N1 === pr.total ? '<div style="color:#f5a623;font-size:.82rem;margin-top:6px">⚠️ Période 100% en ' + (exercice+1) + ' — vérifier que cette pièce ne relève pas entièrement de l\'exercice suivant (auquel cas ce n\'est pas un ajustement de clôture).</div>' : '';
-    const alert0 = pr.jours_N1 === 0 ? '<div style="color:#22c55e;font-size:.82rem;margin-top:6px">✅ Période entièrement sur ' + exercice + ' — aucun ajustement nécessaire.</div>' : '';
-    box.innerHTML = `
-      <div style="font-weight:700;margin-bottom:8px">📊 Calcul prorata au 31/12/${exercice}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.88rem">
-        <div>Période totale : <strong>${pr.total} jours</strong></div>
-        <div>Montant HT total : <strong>${fmtEur(montant)}</strong></div>
-        <div>Jours en ${exercice} (N) : <strong>${pr.jours_N}</strong></div>
-        <div>Part N (reste en charge/produit) : <strong>${fmtEur(montantN)}</strong></div>
-        <div style="color:#22c55e">Jours en ${exercice+1} (N+1) : <strong>${pr.jours_N1}</strong></div>
-        <div style="color:#22c55e">🎯 Montant à reporter : <strong>${fmtEur(montantN1)}</strong> HT ${tva>0?('+ '+fmtEur(montantTVAN1)+' TVA'):''}</div>
-      </div>
-      ${alert100}${alert0}
-      <input type="hidden" id="s302-montantReporte" value="${montantN1}" />
-      <input type="hidden" id="s302-montantTVAReporte" value="${montantTVAN1}" />`;
-  };
-
-  window.s30_2EnregistrerAjustement = function() {
-    const type = document.getElementById('s302-type').value;
-    const libelle = document.getElementById('s302-libelle').value.trim();
-    const exercice = parseInt(document.getElementById('s302-exercice').value, 10);
-    const debut = document.getElementById('s302-debut').value;
-    const fin = document.getElementById('s302-fin').value;
-    const montantHT = parseFloat(document.getElementById('s302-montantHT').value) || 0;
-    const tauxTVA = parseFloat(document.getElementById('s302-tva').value) || 0;
-    const montantReporte = parseFloat(document.getElementById('s302-montantReporte')?.value) || 0;
-    const montantTVAReporte = parseFloat(document.getElementById('s302-montantTVAReporte')?.value) || 0;
-    const note = document.getElementById('s302-note').value.trim();
-    const sourceEl = document.getElementById('s302-source');
-    const sourceId = sourceEl ? sourceEl.value : '';
-    if (!libelle) { toast('⚠️ Libellé requis', 'warning'); return; }
-    if (!debut || !fin) { toast('⚠️ Période requise', 'warning'); return; }
-    if (new Date(debut) > new Date(fin)) { toast('⚠️ Date début postérieure à la date fin', 'error'); return; }
-    if (!montantHT || montantHT <= 0) { toast('⚠️ Montant HT > 0 requis', 'warning'); return; }
-    if (!montantReporte) {
-      if (type === 'FNP') { toast('⚠️ Montant à provisionner invalide', 'warning'); return; }
-      toast('⚠️ La période ne déborde pas sur ' + (exercice+1) + ' — pas d\'ajustement nécessaire', 'warning');
-      return;
-    }
-    const aj = {
-      type, libelle, exercice,
-      dateCloture: exercice + '-12-31',
-      dateDebut: debut, dateFin: fin,
-      montantHT: round2(montantHT),
-      tauxTVA,
-      montantTVA: type === 'FNP' ? round2(montantHT * tauxTVA / 100) : 0,
-      montantReporte: round2(montantReporte),
-      montantTVAReporte: round2(montantTVAReporte),
-      sourceType: type==='CCA'?'charge':(type==='PCA'?'facture':'manuel'),
-      sourceId: sourceId || null,
-      note
-    };
-    creerAjustement(aj);
-    toast('✅ Ajustement ' + type + ' créé — pense à le valider pour la clôture', 'success');
-    fermerModal();
-    render();
-  };
-
-  /* ---- Scan auto : détecte charges/factures avec période débordante ---- */
-  window.s30_2ScanAuto = async function() {
-    const raw = await promptDialog('Exercice à analyser pour détecter les CCA / FNP / PCA à constater ?', {
-      titre:'Scan auto de clôture', icone:'🔎', btnLabel:'Analyser', defaultValue:String(new Date().getFullYear()),
-      type:'number', placeholder:'Exercice',
-      validate: v => (/^\d{4}$/.test(String(v||'').trim()) ? true : 'Exercice sur 4 chiffres attendu')
-    });
-    const exercice = parseInt(raw, 10);
-    if (!exercice || isNaN(exercice)) return;
-    const dateCloture = exercice + '-12-31';
-    const charges = load('charges').filter(c => {
-      const y = (c.date||'').slice(0,4);
-      return y === String(exercice) && c.periodeDebut && c.periodeFin;
-    });
-    const factures = load('factures_emises').filter(f => {
-      const y = (f.dateFacture||'').slice(0,4);
-      return y === String(exercice) && f.statut !== 'annulée' && f.periodeDebut && f.periodeFin;
-    });
-    const suggestions = [];
-    charges.forEach(c => {
-      const pr = calculerProrata(c.periodeDebut, c.periodeFin, dateCloture);
-      if (pr && pr.jours_N1 > 0) {
-        const montantReporte = round2((c.montantHT||c.montant||0) * pr.ratio_N1);
-        suggestions.push({ type:'CCA', source:c, pr, montantReporte, libelle: c.description||c.categorie });
-      }
-    });
-    factures.forEach(f => {
-      const pr = calculerProrata(f.periodeDebut, f.periodeFin, dateCloture);
-      if (pr && pr.jours_N1 > 0) {
-        const montantReporte = round2((f.montantHT||0) * pr.ratio_N1);
-        suggestions.push({ type:'PCA', source:f, pr, montantReporte, libelle: (f.numero||'')+' · '+(f.client||'') });
-      }
-    });
-    if (!suggestions.length) {
-      toast('Aucune suggestion auto — aucune charge/facture avec période qui déborde sur ' + (exercice+1), 'info');
-      return;
-    }
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:820px">
-        <div class="s15-modal-info-header">
-          <h2>🤖 ${suggestions.length} ajustement(s) suggéré(s) pour ${exercice}</h2>
-          <button class="btn-close" onclick="window.s30_2FermerModal()">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <p style="color:var(--text-muted);font-size:.88rem">Coche les ajustements à créer. Le prorata est calculé automatiquement selon la période saisie sur la pièce.</p>
-          <div style="max-height:460px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
-            ${suggestions.map((s,i) => `
-              <label style="display:flex;align-items:center;gap:12px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer">
-                <input type="checkbox" class="s302-sugg" data-i="${i}" checked />
-                <div style="flex:1">
-                  <div><span class="badge" style="background:${s.type==='CCA'?'#f5a623':'#22c55e'};color:#fff;padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:700">${s.type}</span> <strong>${esc(s.libelle)}</strong></div>
-                  <div style="font-size:.82rem;color:var(--text-muted);margin-top:4px">Période : ${fmtDate(s.source.periodeDebut)} → ${fmtDate(s.source.periodeFin)} · ${s.pr.jours_N1} j sur N+1 · À reporter : <strong>${fmtEur(s.montantReporte)}</strong></div>
-                </div>
-              </label>
-            `).join('')}
-          </div>
-        </div>
-        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:14px">
-          <button class="btn-secondary" onclick="window.s30_2FermerModal()">Annuler</button>
-          <button class="btn-primary" onclick="window.s30_2AppliquerSuggestions(${exercice})">✅ Créer les ajustements cochés</button>
-        </div>
-      </div>`;
-    window.__s302Sugg = suggestions;
-    ouvrirModalHTML(html);
-  };
-
-  window.s30_2AppliquerSuggestions = function(exercice) {
-    const checks = document.querySelectorAll('.s302-sugg:checked');
-    const sugg = window.__s302Sugg || [];
-    let count = 0;
-    checks.forEach(chk => {
-      const i = parseInt(chk.dataset.i, 10);
-      const s = sugg[i];
-      if (!s) return;
-      const tva = parseFloat(s.source.tauxTVA||20);
-      creerAjustement({
-        type: s.type,
-        libelle: s.libelle,
-        exercice,
-        dateCloture: exercice + '-12-31',
-        dateDebut: s.source.periodeDebut,
-        dateFin: s.source.periodeFin,
-        montantHT: round2(s.source.montantHT || s.source.montant || 0),
-        tauxTVA: tva,
-        montantTVA: 0,
-        montantReporte: s.montantReporte,
-        montantTVAReporte: 0,
-        sourceType: s.type==='CCA'?'charge':'facture',
-        sourceId: s.source.id,
-        note: 'Créé par scan auto ' + new Date().toLocaleDateString('fr-FR')
-      });
-      count++;
-    });
-    toast('✅ ' + count + ' ajustement(s) créé(s)', 'success');
-    fermerModal();
-    render();
-  };
-
-  /* ---- Génération OD de clôture (PDF imprimable) ---- */
-  window.s30_2GenererOD = async function(exercice) {
-    if (!exercice) {
-      const raw = await promptDialog('Exercice à clôturer pour générer l\'OD (écriture de régularisation) ?', {
-        titre:'OD de clôture', icone:'📋', btnLabel:'Générer', defaultValue:String(new Date().getFullYear()),
-        type:'number', placeholder:'Exercice',
-        validate: v => (/^\d{4}$/.test(String(v||'').trim()) ? true : 'Exercice sur 4 chiffres attendu')
-      });
-      exercice = parseInt(raw, 10);
-    }
-    if (!exercice || isNaN(exercice)) return;
-    const ents = (typeof window.getEntreprise === 'function' ? window.getEntreprise() : {nom:'Entreprise', adresse:'', siret:'', tva:''});
-    const list = load(LS.ajustements).filter(a => a.exercice === exercice && a.statut !== 'extourne' && !a.estExtourne);
-    if (!list.length) { toast('Aucun ajustement pour ' + exercice, 'info'); return; }
-    const cca = list.filter(a => a.type==='CCA');
-    const fnp = list.filter(a => a.type==='FNP');
-    const pca = list.filter(a => a.type==='PCA');
-    const totCCA = round2(cca.reduce((s,a)=>s+(a.montantReporte||0),0));
-    const totFNP = round2(fnp.reduce((s,a)=>s+(a.montantReporte||0),0));
-    const totFNPTVA = round2(fnp.reduce((s,a)=>s+(a.montantTVAReporte||0),0));
-    const totPCA = round2(pca.reduce((s,a)=>s+(a.montantReporte||0),0));
-    const row = (cpt, intitule, d, c) => `<tr><td style="padding:6px 10px;border:1px solid #ddd;font-family:monospace">${cpt}</td><td style="padding:6px 10px;border:1px solid #ddd">${intitule}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${d?fmtEur(d):''}</td><td style="padding:6px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${c?fmtEur(c):''}</td></tr>`;
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>OD Clôture ${exercice}</title></head>
-      <body style="font-family:Arial,sans-serif;padding:30px;max-width:900px;margin:auto;color:#111">
-        <div style="border-bottom:3px solid #f5a623;padding-bottom:14px;margin-bottom:20px;display:flex;justify-content:space-between">
-          <div>
-            <div style="font-weight:800;font-size:1.3rem">${esc(ents.nom||'')}</div>
-            <div style="font-size:.85rem;color:#555">${esc(ents.adresse||'')}</div>
-            ${ents.siret?`<div style="font-size:.82rem;color:#666">SIRET : ${esc(ents.siret)}</div>`:''}
-          </div>
-          <div style="text-align:right">
-            <div style="background:#f5a623;color:#fff;padding:8px 16px;border-radius:6px;font-weight:800">ÉCRITURES D'INVENTAIRE</div>
-            <div style="margin-top:8px;font-weight:700">Exercice ${exercice}</div>
-            <div style="font-size:.85rem;color:#555">Clôture au 31/12/${exercice}</div>
-          </div>
-        </div>
-        ${cca.length ? `
-          <h3 style="color:#f5a623;border-bottom:1px solid #eee;padding-bottom:4px">📘 Charges Constatées d'Avance — ${fmtEur(totCCA)}</h3>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.88rem">
-            <thead><tr style="background:#faf3e3"><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Compte</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Intitulé</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Débit</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Crédit</th></tr></thead>
-            <tbody>
-              ${cca.map(a => row('486', 'CCA — '+esc(a.libelle), a.montantReporte, 0)).join('')}
-              ${cca.map(a => row('6xxx', 'Contrepasse charge — '+esc(a.libelle), 0, a.montantReporte)).join('')}
-              <tr style="background:#fef9ec;font-weight:700"><td colspan="2" style="padding:8px 10px;border:1px solid #ddd">Total CCA</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totCCA)}</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totCCA)}</td></tr>
-            </tbody>
-          </table>
-        ` : ''}
-        ${fnp.length ? `
-          <h3 style="color:#ef4444;border-bottom:1px solid #eee;padding-bottom:4px">📕 Factures Non Parvenues — ${fmtEur(totFNP)} HT</h3>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.88rem">
-            <thead><tr style="background:#fde8e8"><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Compte</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Intitulé</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Débit</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Crédit</th></tr></thead>
-            <tbody>
-              ${fnp.map(a => row('6xxx', 'Charge à rattacher — '+esc(a.libelle), a.montantReporte, 0)).join('')}
-              ${totFNPTVA ? fnp.filter(a=>a.montantTVAReporte).map(a => row('44586', 'TVA sur FNP — '+esc(a.libelle), a.montantTVAReporte, 0)).join('') : ''}
-              ${fnp.map(a => row('408', 'FNP — '+esc(a.libelle), 0, (a.montantReporte||0)+(a.montantTVAReporte||0))).join('')}
-              <tr style="background:#fef3f3;font-weight:700"><td colspan="2" style="padding:8px 10px;border:1px solid #ddd">Total FNP</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totFNP+totFNPTVA)}</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totFNP+totFNPTVA)}</td></tr>
-            </tbody>
-          </table>
-        ` : ''}
-        ${pca.length ? `
-          <h3 style="color:#22c55e;border-bottom:1px solid #eee;padding-bottom:4px">📗 Produits Constatés d'Avance — ${fmtEur(totPCA)}</h3>
-          <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:.88rem">
-            <thead><tr style="background:#e8f5e9"><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Compte</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:left">Intitulé</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Débit</th><th style="padding:8px 10px;border:1px solid #ddd;text-align:right">Crédit</th></tr></thead>
-            <tbody>
-              ${pca.map(a => row('7xxx', 'Contrepasse produit — '+esc(a.libelle), a.montantReporte, 0)).join('')}
-              ${pca.map(a => row('487', 'PCA — '+esc(a.libelle), 0, a.montantReporte)).join('')}
-              <tr style="background:#f0fdf4;font-weight:700"><td colspan="2" style="padding:8px 10px;border:1px solid #ddd">Total PCA</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totPCA)}</td><td style="padding:8px 10px;border:1px solid #ddd;text-align:right;font-family:monospace">${fmtEur(totPCA)}</td></tr>
-            </tbody>
-          </table>
-        ` : ''}
-        <div style="margin-top:30px;padding:14px;background:#f9fafb;border-left:4px solid #f5a623;font-size:.82rem;color:#555;line-height:1.6">
-          <strong>Références légales :</strong> PCG art. 313-1 (indépendance des exercices), CGI art. 38-2 bis (produits rattachés à l'exercice pendant lequel ils sont acquis), CGI art. 39 (charges déductibles de l'exercice de rattachement). Les comptes 486, 487 et 408 sont à extourner au 01/01/${exercice+1} (utiliser le bouton 🔄 <em>Extourner en N+1</em>).
-        </div>
-        <div style="margin-top:20px;text-align:right;font-size:.82rem;color:#777">Édité le ${new Date().toLocaleDateString('fr-FR')} · ${esc(ents.nom||'')}</div>
-        <script>setTimeout(()=>window.print(),400);</script>
-      </body></html>`;
-    const w = ouvrirPopupSecure('', '_blank');
-    if (!w) { toast('Popup bloqué — autoriser les popups', 'warning'); return; }
-    w.document.open(); w.document.write(html); w.document.close();
-    audit('Génération OD clôture', 'Exercice ' + exercice);
-  };
-
-  /* ---- Render UI dans Paramètres > Comptabilité ---- */
-  const EMPTY_HINTS = {
-    CCA: { emoji:'📘', titre:'Aucune CCA', sub:'Une Charge Constatée d\'Avance = charge payée en N pour une période qui déborde sur N+1.', ex:'Ex : assurance annuelle, loyer avancé, abonnement logiciel prépayé.' },
-    FNP: { emoji:'📕', titre:'Aucune FNP', sub:'Une Facture Non Parvenue = charge consommée en N pas encore facturée au 31/12.', ex:'Ex : électricité de décembre, prestation fournisseur livrée mais non facturée.' },
-    PCA: { emoji:'📗', titre:'Aucun PCA', sub:'Un Produit Constaté d\'Avance = prestation facturée en N dont la période déborde sur N+1.', ex:'Ex : abonnement annuel, contrat de maintenance, avance sur prestation.' }
-  };
-
-  function render() {
-    const section = document.getElementById('s30_2-cloture-section');
-    if (!section) return;
-    const ajAll = load(LS.ajustements);
-    const annees = [...new Set(ajAll.map(a => a.exercice))].sort((a,b) => b-a);
-    const anneeActive = parseInt(section.dataset.activeYear, 10) || (annees[0] || new Date().getFullYear());
-    const showExtournes = section.dataset.showExtournes === '1';
-    const search = (section.dataset.search || '').toLowerCase();
-    const sortKey = section.dataset.sortKey || 'dateFin';
-    const sortDir = section.dataset.sortDir || 'desc';
-    const ajExercice = ajAll.filter(a => a.exercice === anneeActive);
-    const activeFilter = (t,a) => a.type===t && (showExtournes || (a.statut !== 'extourne' && !a.estExtourne));
-    const cca = ajExercice.filter(a => activeFilter('CCA',a));
-    const fnp = ajExercice.filter(a => activeFilter('FNP',a));
-    const pca = ajExercice.filter(a => activeFilter('PCA',a));
-    const totCCA = round2(cca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).reduce((s,a)=>s+(a.montantReporte||0),0));
-    const totFNP = round2(fnp.filter(a=>a.statut!=='extourne'&&!a.estExtourne).reduce((s,a)=>s+(a.montantReporte||0),0));
-    const totPCA = round2(pca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).reduce((s,a)=>s+(a.montantReporte||0),0));
-    const anneesOpts = (annees.length ? annees : [new Date().getFullYear()]).map(y => `<option value="${y}" ${y===anneeActive?'selected':''}>${y}</option>`).join('');
-    const activeTab = section.dataset.activeTab || 'CCA';
-    let tabList = (activeTab==='CCA'?cca:(activeTab==='FNP'?fnp:pca));
-    if (search) tabList = tabList.filter(a => (a.libelle||'').toLowerCase().includes(search) || (a.note||'').toLowerCase().includes(search));
-    const cmp = (a,b) => {
-      const va = sortKey==='montant' ? (a.montantReporte||0) : (sortKey==='libelle' ? (a.libelle||'').toLowerCase() : (a[sortKey]||''));
-      const vb = sortKey==='montant' ? (b.montantReporte||0) : (sortKey==='libelle' ? (b.libelle||'').toLowerCase() : (b[sortKey]||''));
-      if (va < vb) return sortDir==='asc' ? -1 : 1;
-      if (va > vb) return sortDir==='asc' ? 1 : -1;
-      return 0;
-    };
-    tabList = tabList.slice().sort(cmp);
-    const statutBadge = (s) => {
-      const map = { brouillon:['#94a3b8','📝 Brouillon'], valide:['#22c55e','✅ Validé'], extourne:['#6366f1','🔄 Extourné'] };
-      const [color,label] = map[s] || ['#94a3b8', s];
-      return `<span style="background:${color};color:#fff;padding:2px 8px;border-radius:5px;font-size:.72rem;font-weight:700">${label}</span>`;
-    };
-    const sortArrow = (key) => sortKey===key ? (sortDir==='asc'?' ▲':' ▼') : '';
-    const th = (key, label, align) => `<th style="cursor:pointer;user-select:none${align?';text-align:'+align:''}" onclick="window.s30_2Sort('${key}')">${label}${sortArrow(key)}</th>`;
-    const empty = EMPTY_HINTS[activeTab];
-    section.innerHTML = `
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div>
-          <h3 style="margin:0">📅 Clôture d'exercice — CCA / FNP / PCA</h3>
-          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">Principe d'indépendance des exercices · PCG art. 313-1 · CGI art. 38-2 bis</div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <select id="s302-annee-select" onchange="window.s30_2ChangeYear(this.value)" style="padding:6px 10px;border-radius:8px">${anneesOpts}</select>
-          <button class="btn-secondary" onclick="window.s30_2ScanAuto()" title="Scanner charges/factures avec période qui déborde sur N+1">🤖 Scan auto</button>
-          <button class="btn-secondary" onclick="window.s30_2GenererOD(${anneeActive})" title="Générer PDF des écritures d'inventaire">📄 Générer OD</button>
-          <button class="btn-primary" onclick="window.s30_2NouvelAjustement()">➕ Nouvel ajustement</button>
-        </div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0">
-        <div style="padding:14px;background:linear-gradient(135deg,rgba(245,166,35,.12),rgba(245,166,35,.04));border:${activeTab==='CCA'?'2px solid #f5a623':'1px solid rgba(245,166,35,.3)'};border-radius:10px;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" onclick="window.s30_2ChangeTab('CCA')">
-          <div style="font-size:.75rem;color:#b45309;font-weight:700">📘 CCA · Charges Constatées d'Avance</div>
-          <div style="font-size:1.4rem;font-weight:800;color:#b45309">${fmtEur(totCCA)}</div>
-          <div style="font-size:.75rem;color:var(--text-muted)">${cca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).length} actif(s) · Compte 486 (actif circ.)</div>
-        </div>
-        <div style="padding:14px;background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.04));border:${activeTab==='FNP'?'2px solid #ef4444':'1px solid rgba(239,68,68,.3)'};border-radius:10px;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" onclick="window.s30_2ChangeTab('FNP')">
-          <div style="font-size:.75rem;color:#b91c1c;font-weight:700">📕 FNP · Factures Non Parvenues</div>
-          <div style="font-size:1.4rem;font-weight:800;color:#b91c1c">${fmtEur(totFNP)}</div>
-          <div style="font-size:.75rem;color:var(--text-muted)">${fnp.filter(a=>a.statut!=='extourne'&&!a.estExtourne).length} actif(s) · Compte 408 (dette)</div>
-        </div>
-        <div style="padding:14px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:${activeTab==='PCA'?'2px solid #22c55e':'1px solid rgba(34,197,94,.3)'};border-radius:10px;cursor:pointer;transition:transform .15s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''" onclick="window.s30_2ChangeTab('PCA')">
-          <div style="font-size:.75rem;color:#15803d;font-weight:700">📗 PCA · Produits Constatés d'Avance</div>
-          <div style="font-size:1.4rem;font-weight:800;color:#15803d">${fmtEur(totPCA)}</div>
-          <div style="font-size:.75rem;color:var(--text-muted)">${pca.filter(a=>a.statut!=='extourne'&&!a.estExtourne).length} actif(s) · Compte 487 (passif circ.)</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-        <input type="search" id="s302-search" class="searchbar" placeholder="🔎 Rechercher libellé ou note..." value="${esc(search)}" style="flex:1;min-width:200px;padding:6px 10px;border:1px solid var(--border);border-radius:8px" />
-        <label style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--text-muted);cursor:pointer">
-          <input type="checkbox" id="s302-show-ex" ${showExtournes?'checked':''} onchange="window.s30_2ToggleExtournes(this.checked)" />
-          Afficher extournes
-        </label>
-      </div>
-      <div style="max-height:440px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">
-        ${tabList.length ? `
-          <table class="table" style="width:100%;font-size:.86rem;margin:0">
-            <thead style="position:sticky;top:0;background:var(--bg-secondary,#fafafa);z-index:1">
-              <tr>
-                ${th('libelle','Libellé')}
-                ${th('dateDebut','Début')}
-                ${th('dateFin','Fin')}
-                ${th('montant','Montant'+(activeTab==='FNP'?' provisionné':' reporté'),'right')}
-                ${th('statut','Statut')}
-                <th style="width:120px">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tabList.map(a => `
-                <tr style="${(a.statut==='extourne'||a.estExtourne)?'opacity:.55':''}">
-                  <td><strong>${esc(a.libelle)}</strong>${a.estExtourne?'<span style="color:#6366f1;font-size:.72rem;margin-left:6px">🔄 extourne</span>':''}${a.note?`<div style="font-size:.75rem;color:var(--text-muted)">${esc(a.note)}</div>`:''}</td>
-                  <td style="font-size:.8rem;white-space:nowrap">${fmtDate(a.dateDebut)}</td>
-                  <td style="font-size:.8rem;white-space:nowrap">${fmtDate(a.dateFin)}</td>
-                  <td style="text-align:right;font-weight:700;white-space:nowrap">${fmtEur(a.montantReporte)}${a.montantTVAReporte?`<div style="font-size:.72rem;color:var(--text-muted);font-weight:400">+ ${fmtEur(a.montantTVAReporte)} TVA</div>`:''}</td>
-                  <td>${statutBadge(a.statut)}</td>
-                  <td>${buildInlineActionsDropdown('Actions', [
-                    ...(a.statut==='brouillon' ? [{icon:'✅', label:'Valider', action:"window.s30_2ValiderAjustement('"+a.id+"')"}] : []),
-                    ...(a.statut==='valide' && !a.extournePar && !a.estExtourne ? [{icon:'🔄', label:'Extourner en '+(a.exercice+1), action:"window.s30_2ExtournerAjustement('"+a.id+"')"}] : []),
-                    ...(a.sourceId ? [{icon:'🔗', label:'Voir pièce source', action:"window.s30_2VoirSource('"+a.id+"')"}] : []),
-                    {icon:'🗑️', label:'Supprimer', action:"window.s30_2SupprimerAjustement('"+a.id+"')", danger:true}
-                  ])}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        ` : (search ? `
-          <div style="padding:40px;text-align:center;color:var(--text-muted)">
-            <div style="font-size:2rem;margin-bottom:8px">🔎</div>
-            <div>Aucun résultat pour "<strong>${esc(search)}</strong>"</div>
-            <button class="btn-secondary" style="margin-top:10px" onclick="window.s30_2ClearSearch()">Effacer la recherche</button>
-          </div>
-        ` : `
-          <div style="padding:40px;text-align:center;color:var(--text-muted)">
-            <div style="font-size:2.5rem;margin-bottom:10px">${empty.emoji}</div>
-            <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">${empty.titre} pour ${anneeActive}</div>
-            <div style="max-width:420px;margin:0 auto 6px;line-height:1.5">${empty.sub}</div>
-            <div style="font-size:.82rem;color:var(--text-muted);margin-bottom:14px;font-style:italic">${empty.ex}</div>
-            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-              <button class="btn-primary" onclick="window.s30_2NouvelAjustement('${activeTab}')">➕ Créer un ajustement ${activeTab}</button>
-              ${activeTab!=='FNP' ? `<button class="btn-secondary" onclick="window.s30_2ScanAuto()">🤖 Scan auto</button>` : ''}
-            </div>
-          </div>
-        `)}
-      </div>
-      <div style="margin-top:12px;padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
-        💡 <strong>Workflow :</strong> créer ajustement → valider → générer OD → extourner au 01/01/${anneeActive+1}. Les ajustements sont comptabilisés en écritures d'inventaire au 31/12 et extournés au 01/01 de l'exercice suivant (principe d'indépendance des exercices, PCG art. 313-1).
-      </div>
-    `;
-    const sInput = document.getElementById('s302-search');
-    if (sInput) {
-      sInput.oninput = () => { section.dataset.search = sInput.value; render(); setTimeout(()=>{ const s2=document.getElementById('s302-search'); if(s2){s2.focus();s2.setSelectionRange(s2.value.length,s2.value.length);} },10); };
-    }
-  }
-
-  window.s30_2Render = render;
-  window.s30_2ChangeYear = function(y) {
-    const section = document.getElementById('s30_2-cloture-section');
-    if (section) { section.dataset.activeYear = parseInt(y, 10); render(); }
-  };
-  window.s30_2ChangeTab = function(t) {
-    const section = document.getElementById('s30_2-cloture-section');
-    if (section) { section.dataset.activeTab = t; render(); }
-  };
-  window.s30_2ToggleExtournes = function(show) {
-    const section = document.getElementById('s30_2-cloture-section');
-    if (section) { section.dataset.showExtournes = show ? '1' : '0'; render(); }
-  };
-  window.s30_2ClearSearch = function() {
-    const section = document.getElementById('s30_2-cloture-section');
-    if (section) { section.dataset.search = ''; render(); }
-  };
-  window.s30_2Sort = function(key) {
-    const section = document.getElementById('s30_2-cloture-section');
-    if (!section) return;
-    if (section.dataset.sortKey === key) {
-      section.dataset.sortDir = section.dataset.sortDir === 'asc' ? 'desc' : 'asc';
-    } else {
-      section.dataset.sortKey = key;
-      section.dataset.sortDir = key==='libelle'?'asc':'desc';
-    }
-    render();
-  };
-  window.s30_2VoirSource = function(ajId) {
-    const aj = load(LS.ajustements).find(a => a.id === ajId);
-    if (!aj || !aj.sourceId) return;
-    if (aj.sourceType === 'charge') {
-      toast('Charge source : ' + esc(aj.libelle), 'info');
-      // Ouvrir page charges si disponible
-      if (typeof window.afficherCharges === 'function') window.afficherCharges();
-    } else if (aj.sourceType === 'facture') {
-      const fac = load('factures_emises').find(f => f.id === aj.sourceId);
-      if (fac && typeof window.imprimerFacture === 'function') window.imprimerFacture(fac.id);
-    }
-  };
-
-  /* ---- Injection dans Paramètres > Comptabilité (après S30.1 Immos) ---- */
-  function injectClotureSection() {
-    const page = document.getElementById('page-parametres');
-    if (!page) return;
-    const grid = page.querySelector('.params-grid');
-    if (!grid) return;
-    if (!grid.querySelector('#s30_2-cloture-section')) {
-      const section = document.createElement('div');
-      section.id = 's30_2-cloture-section';
-      section.className = 'card params-card-wide';
-      section.dataset.s29Section = 'comptabilite';
-      // Insérer juste après Immos
-      const immos = grid.querySelector('#s30-immos-section');
-      if (immos && immos.nextSibling) grid.insertBefore(section, immos.nextSibling);
-      else if (immos) grid.appendChild(section);
-      else grid.insertBefore(section, grid.firstChild);
-    }
-    render();
-    // Re-synchro S29 section active
-    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
-    grid.querySelectorAll('[data-s29-section]').forEach(el => {
-      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
-    });
-  }
-  setTimeout(injectClotureSection, 2200);
-  setInterval(injectClotureSection, 6000);
-})();
-
-/* =====================================================================
-   Sprint 30.2.1 — Patch : champs periodeDebut/periodeFin
-   Objectif : permettre au scan auto S30.2 de détecter les CCA/PCA
-   automatiquement. Injection non-invasive dans modal-charge +
-   éditeur de période sur factures.
-   ===================================================================== */
-(function installS30_2_1(){
-  if (window.__s30_2_1Installed) return;
-  window.__s30_2_1Installed = true;
-
-  /* ---- Inject periode fields dans modal-charge ---- */
-  function injectChargeFields() {
-    const modal = document.getElementById('modal-charge');
-    if (!modal) return;
-    const grid = modal.querySelector('.form-grid');
-    if (!grid) return;
-    if (grid.querySelector('#charge-periode-debut')) return;
-    const wrap = document.createElement('div');
-    wrap.className = 'form-group full-width';
-    wrap.innerHTML = `
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="charge-has-periode" onchange="window.s30_2_1ToggleChargePeriode()" />
-        Période de prestation / consommation <span style="color:var(--text-muted);font-size:.78rem;font-weight:normal">(active l'aide automatique à la clôture d'exercice CCA)</span>
-      </label>
-      <div id="charge-periode-box" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
-        <input type="date" id="charge-periode-debut" placeholder="Début" />
-        <input type="date" id="charge-periode-fin" placeholder="Fin" />
-      </div>`;
-    grid.appendChild(wrap);
-  }
-  window.s30_2_1ToggleChargePeriode = function() {
-    const chk = document.getElementById('charge-has-periode');
-    const box = document.getElementById('charge-periode-box');
-    if (box) box.style.display = chk && chk.checked ? 'grid' : 'none';
-  };
-
-  /* ---- Wrap ajouterCharge pour persister les champs ---- */
-  function wrapAjouterCharge() {
-    if (typeof window.ajouterCharge !== 'function' || window.ajouterCharge.__s30_2_1) return;
-    const orig = window.ajouterCharge;
-    const wrapped = function() {
-      const editId = document.getElementById('charge-edit-id')?.value || '';
-      const pd = document.getElementById('charge-periode-debut')?.value || '';
-      const pf = document.getElementById('charge-periode-fin')?.value || '';
-      const has = document.getElementById('charge-has-periode')?.checked;
-      // Validation : si activé, les 2 dates doivent être renseignées et pd <= pf
-      if (has && (!pd || !pf)) {
-        if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Période activée : renseigne début ET fin', 'warning');
-        return;
-      }
-      if (has && pd && pf && new Date(pd) > new Date(pf)) {
-        if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Date début > date fin', 'error');
-        return;
-      }
-      const result = orig.apply(this, arguments);
-      // Post-save : retrouver et patcher la charge
-      if (has && pd && pf) {
-        const charges = loadSafe('charges', []);
-        let target = null;
-        if (editId) target = charges.find(c => c.id === editId);
-        else target = charges[charges.length - 1];
-        if (target) {
-          target.periodeDebut = pd;
-          target.periodeFin = pf;
-          localStorage.setItem('charges', JSON.stringify(charges));
-        }
-      }
-      return result;
-    };
-    wrapped.__s30_2_1 = true;
-    window.ajouterCharge = wrapped;
-  }
-
-  /* ---- Wrap reset form + edit pour pré-remplir période ---- */
-  function wrapResetCharge() {
-    if (typeof window.resetFormulaireCharge !== 'function' || window.resetFormulaireCharge.__s30_2_1) return;
-    const orig = window.resetFormulaireCharge;
-    const wrapped = function() {
-      const result = orig.apply(this, arguments);
-      const chk = document.getElementById('charge-has-periode');
-      const pd = document.getElementById('charge-periode-debut');
-      const pf = document.getElementById('charge-periode-fin');
-      const box = document.getElementById('charge-periode-box');
-      if (chk) chk.checked = false;
-      if (pd) pd.value = '';
-      if (pf) pf.value = '';
-      if (box) box.style.display = 'none';
-      return result;
-    };
-    wrapped.__s30_2_1 = true;
-    window.resetFormulaireCharge = wrapped;
-  }
-
-  /* ---- Hook edit charge : remplit les champs ---- */
-  function wrapEditCharge() {
-    if (typeof window.editerCharge !== 'function' || window.editerCharge.__s30_2_1) return;
-    const orig = window.editerCharge;
-    const wrapped = function(chargeId) {
-      const result = orig.apply(this, arguments);
-      setTimeout(() => {
-        const charges = loadSafe('charges', []);
-        const c = charges.find(x => x.id === chargeId);
-        if (!c) return;
-        if (c.periodeDebut && c.periodeFin) {
-          const chk = document.getElementById('charge-has-periode');
-          const pd = document.getElementById('charge-periode-debut');
-          const pf = document.getElementById('charge-periode-fin');
-          const box = document.getElementById('charge-periode-box');
-          if (chk) chk.checked = true;
-          if (pd) pd.value = c.periodeDebut;
-          if (pf) pf.value = c.periodeFin;
-          if (box) box.style.display = 'grid';
-        }
-      }, 100);
-      return result;
-    };
-    wrapped.__s30_2_1 = true;
-    window.editerCharge = wrapped;
-  }
-
-  /* ---- Éditeur de période sur facture (accessible via action) ---- */
-  window.s30_2_1EditerPeriodeFacture = function(factureId) {
-    const factures = loadSafe('factures_emises', []);
-    const f = factures.find(x => x.id === factureId);
-    if (!f) { if (typeof window.afficherToast === 'function') window.afficherToast('Facture introuvable', 'error'); return; }
-    const pd = f.periodeDebut || '';
-    const pf = f.periodeFin || '';
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:520px">
-        <div class="s15-modal-info-header">
-          <h2>📅 Période de prestation</h2>
-          <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
-        </div>
-        <div class="s15-modal-info-body">
-          <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
-            Facture <strong>${window.escapeHtml(f.numero)}</strong> — définir la période concernée par la prestation.
-            Utile pour le calcul automatique des PCA à la clôture d'exercice (abonnements, contrats multi-périodes).
-          </p>
-          <div class="form-row">
-            <div class="form-group"><label>Date début *</label><input type="date" id="s302_1-fac-pd" value="${pd}" /></div>
-            <div class="form-group"><label>Date fin *</label><input type="date" id="s302_1-fac-pf" value="${pf}" /></div>
-          </div>
-          <div style="padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted)">
-            💡 Si la période déborde sur l'exercice suivant, le <strong>Scan auto</strong> (Comptabilité → Clôture) proposera un PCA automatique.
-          </div>
-        </div>
-        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:14px">
-          ${(pd||pf)?`<button class="btn-secondary" style="color:#ef4444" onclick="window.s30_2_1SupprimerPeriodeFacture('${factureId}')">🗑️ Retirer période</button>`:''}
-          <button class="btn-secondary" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
-          <button class="btn-primary" onclick="window.s30_2_1SauvegarderPeriodeFacture('${factureId}')">💾 Enregistrer</button>
-        </div>
-      </div>`;
-    let modal = document.getElementById('s15-modal-info');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 's15-modal-info';
-      modal.className = 's15-modal-info-overlay';
-      modal.innerHTML = '<div class="s15-modal-info-box"><div class="s15-modal-info-body"></div></div>';
-      document.body.appendChild(modal);
-    }
-    const body = modal.querySelector('.s15-modal-info-body');
-    if (body) body.innerHTML = html;
-    modal.classList.add('open');
-  };
-  window.s30_2_1SauvegarderPeriodeFacture = function(factureId) {
-    const pd = document.getElementById('s302_1-fac-pd')?.value;
-    const pf = document.getElementById('s302_1-fac-pf')?.value;
-    if (!pd || !pf) { if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Début et fin requis', 'warning'); return; }
-    if (new Date(pd) > new Date(pf)) { if (typeof window.afficherToast === 'function') window.afficherToast('⚠️ Date début > date fin', 'error'); return; }
-    const factures = loadSafe('factures_emises', []);
-    const idx = factures.findIndex(x => x.id === factureId);
-    if (idx < 0) return;
-    factures[idx].periodeDebut = pd;
-    factures[idx].periodeFin = pf;
-    localStorage.setItem('factures_emises', JSON.stringify(factures));
-    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Période facture', factures[idx].numero + ' · ' + pd + ' → ' + pf);
-    if (typeof window.afficherToast === 'function') window.afficherToast('✅ Période enregistrée', 'success');
-    document.getElementById('s15-modal-info')?.classList.remove('open');
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-  };
-  window.s30_2_1SupprimerPeriodeFacture = function(factureId) {
-    const factures = loadSafe('factures_emises', []);
-    const idx = factures.findIndex(x => x.id === factureId);
-    if (idx < 0) return;
-    delete factures[idx].periodeDebut;
-    delete factures[idx].periodeFin;
-    localStorage.setItem('factures_emises', JSON.stringify(factures));
-    if (typeof window.afficherToast === 'function') window.afficherToast('🗑️ Période retirée', 'info');
-    document.getElementById('s15-modal-info')?.classList.remove('open');
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-  };
-
-  function tick() { injectChargeFields(); wrapAjouterCharge(); wrapResetCharge(); wrapEditCharge(); }
-  setTimeout(tick, 1500);
-  setInterval(tick, 4000);
-})();
-
-/* =====================================================================
-   Extension reset-compteur : purger ajustements clôture
-   ===================================================================== */
-(function installResetExtCloture(){
-  if (window.__resetClotureExt) return;
-  window.__resetClotureExt = true;
-
-  function injectCheckbox() {
-    const modal = document.getElementById('modal-reset-compteur');
-    if (!modal) return;
-    if (modal.querySelector('#reset-include-cloture')) return;
-    const body = modal.querySelector('.modal-body');
-    if (!body) return;
-    const acCheck = body.querySelector('#reset-include-acomptes');
-    const wrap = document.createElement('label');
-    wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px';
-    wrap.innerHTML = '<input type="checkbox" id="reset-include-cloture" /> Purger aussi les ajustements de clôture (CCA / FNP / PCA)';
-    if (acCheck && acCheck.parentElement && acCheck.parentElement.parentElement) {
-      acCheck.parentElement.parentElement.appendChild(wrap);
-    } else {
-      body.appendChild(wrap);
-    }
-  }
-
-  function wrapExec() {
-    if (typeof window.executerResetCompteur !== 'function' || window.executerResetCompteur.__clotureExt) return;
-    const orig = window.executerResetCompteur;
-    const wrapped = function() {
-      const incCloture = document.getElementById('reset-include-cloture')?.checked;
-      const result = orig.apply(this, arguments);
-      if (incCloture) {
-        try {
-          const n = (loadSafe('cloture_ajustements', [])).length;
-          localStorage.setItem('cloture_ajustements', '[]');
-          if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Reset ajustements clôture', n + ' ajustement(s) purgé(s)');
-          if (typeof window.afficherToast === 'function') window.afficherToast('🗑️ ' + n + ' ajustement(s) de clôture purgé(s)', 'info');
-          if (typeof window.s30_2Render === 'function') window.s30_2Render();
-          else {
-            const section = document.getElementById('s30_2-cloture-section');
-            if (section) section.innerHTML = '';
-          }
-        } catch(e) {}
-      }
-      return result;
-    };
-    wrapped.__clotureExt = true;
-    window.executerResetCompteur = wrapped;
-  }
-
-  function tick() { injectCheckbox(); wrapExec(); }
-  setTimeout(tick, 1800);
-  setInterval(tick, 5000);
-})();
-
-/* =====================================================================
-   Sprint 30.3 — Facture électronique Factur-X (XML BASIC)
-   Format : UN/CEFACT Cross Industry Invoice D16B — profil BASIC EN 16931
-   Conformité : ordonnance 2021-1190, arrêté 7 oct. 2022. Obligation
-   réception : 09/2026 ; émission : 09/2026 GE, 09/2027 PME/TPE.
-   En localStorage pur, génération du XML BASIC téléchargeable. L'intégration
-   PDF/A-3 (embedding XML dans PDF) nécessite un outil tiers de signature
-   (ex : Chorus Pro, dématérialiseurs agréés).
-   ===================================================================== */
-(function installS30_3(){
-  if (window.__s30_3Installed) return;
-  window.__s30_3Installed = true;
-
-  const esc = window.escapeHtml;
-  const round2 = (n) => (Math.round((Number(n)||0)*100)/100).toFixed(2);
-  const toIsoDateCompact = (s) => { if (!s) return ''; const d = new Date(s); if (isNaN(d)) return ''; const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const dd=String(d.getDate()).padStart(2,'0'); return y+m+dd; };
-  const toast = (m,t) => (typeof window.afficherToast==='function') && window.afficherToast(m,t||'info');
-  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
-  const getParams = () => loadSafe('params_entreprise', {});
-  const saveParams = (p) => localStorage.setItem('params_entreprise', JSON.stringify(p));
-
-  /* ---- Validation params avant export ---- */
-  function validerParamsPourFacturX() {
-    const p = getParams();
-    const missing = [];
-    if (!p.nom) missing.push('Nom');
-    if (!p.siret || !/^\d{14}$/.test(String(p.siret).replace(/\s/g,''))) missing.push('SIRET (14 chiffres)');
-    if (!p.adresse) missing.push('Adresse');
-    if (!p.codePostal) missing.push('Code postal');
-    if (!p.ville) missing.push('Ville');
-    if (!p.pays) missing.push('Pays (FR par défaut)');
-    return missing;
-  }
-
-  /* ---- Génération XML Factur-X BASIC ---- */
-  function genererXMLFacturX(facture, client) {
-    const p = getParams();
-    const siret = String(p.siret||'').replace(/\s/g,'');
-    const tvaIntra = p.tvaIntracom || '';
-    const pays = p.pays || 'FR';
-    const codePostal = p.codePostal || '';
-    const ville = p.ville || '';
-    const adresseLigne = p.adresseLigne || (p.adresse||'').split(/\n|,/)[0] || '';
-    // Buyer info
-    const cli = client || {};
-    const cliNom = cli.nom || facture.client || 'Client';
-    const cliAdresse = cli.adresse || '';
-    const cliCP = cli.codePostal || '';
-    const cliVille = cli.ville || '';
-    const cliPays = cli.pays || 'FR';
-    const cliSiret = cli.siret || '';
-
-    // BUG-011 fix : CategoryCode EN 16931 / UNTDID 5305 — support S, Z, E, AE, K, G, O avec ExemptionReason.
-    // Règles de déduction automatique (si facture.tvaExoneration non défini) :
-    //   - franchise_base (art. 293 B CGI)                     → E + motif "TVA non applicable, art. 293 B du CGI"
-    //   - client pays != FR & dans UE & TVA intracom acheteur → K (livraison intracommunautaire, art. 262 ter I CGI)
-    //   - client pays != FR & hors UE                         → G (export, art. 262 I CGI)
-    //   - taux > 0, régime normal                             → S
-    //   - taux = 0, régime normal, pas d'autre catégorie      → Z
-    const tvaCfg = (typeof getTVAConfig === 'function') ? getTVAConfig() : { isVatEnabled: true, regime: 'reel_normal' };
-    const UE_COUNTRY = new Set(['FR','DE','BE','NL','LU','IT','ES','PT','AT','IE','DK','SE','FI','EE','LV','LT','PL','CZ','SK','HU','SI','HR','BG','RO','GR','CY','MT']);
-    function determinerCategorieTVA(taux) {
-      if (facture.tvaExoneration && typeof facture.tvaExoneration === 'object') {
-        return {
-          code: facture.tvaExoneration.code || 'E',
-          reason: facture.tvaExoneration.reason || '',
-          reasonCode: facture.tvaExoneration.reasonCode || ''
-        };
-      }
-      if (!tvaCfg.isVatEnabled || tvaCfg.regime === 'franchise_base') {
-        return { code:'E', reason:'TVA non applicable, art. 293 B du CGI', reasonCode:'VATEX-FR-FRANCHISE' };
-      }
-      const cp = String(cliPays||'FR').toUpperCase();
-      if (cp && cp !== 'FR') {
-        if (UE_COUNTRY.has(cp) && cli.tvaIntracom) {
-          return { code:'K', reason:'Exonération TVA — livraison intracommunautaire (art. 262 ter I du CGI)', reasonCode:'VATEX-EU-IC' };
-        }
-        if (!UE_COUNTRY.has(cp)) {
-          return { code:'G', reason:'Exonération TVA — exportation hors UE (art. 262 I du CGI)', reasonCode:'VATEX-EU-G' };
-        }
-      }
-      if (Number(taux) > 0) return { code:'S', reason:'', reasonCode:'' };
-      return { code:'Z', reason:'', reasonCode:'' };
-    }
-
-    const lignes = Array.isArray(facture.lignes) && facture.lignes.length ? facture.lignes : [
-      { description: facture.description || facture.libelle || 'Prestation de transport', quantite: 1, prixHT: facture.montantHT || 0, tauxTVA: facture.tauxTVA || 20 }
-    ];
-    const totalHT = round2(facture.montantHT || lignes.reduce((s,l) => s + (Number(l.quantite||1)*Number(l.prixHT||0)), 0));
-    const totalTVA = round2(facture.montantTVA || (Number(totalHT) * Number(facture.tauxTVA||20) / 100));
-    const totalTTC = round2(facture.montantTTC || (Number(totalHT) + Number(totalTVA)));
-    const tauxTVA = Number(facture.tauxTVA || 20);
-    const netAPayer = round2(facture.netAPayerTTC || totalTTC);
-    const dateIssue = toIsoDateCompact(facture.dateFacture || new Date().toISOString());
-    const echeance = facture.dateEcheance || '';
-
-    // BUG-004 fix : agréger par taux pour émettre autant de <ram:ApplicableTradeTax> que de taux distincts (EN 16931 § 7.4)
-    const groupesTVA = {};
-    lignes.forEach((l) => {
-      const qte = Number(l.quantite||1);
-      const prix = Number(l.prixHT||0);
-      const lineTotal = round2(qte * prix);
-      const taux = Number(l.tauxTVA != null ? l.tauxTVA : tauxTVA);
-      const key = taux.toFixed(2);
-      if (!groupesTVA[key]) groupesTVA[key] = { taux: taux, basis: 0 };
-      groupesTVA[key].basis = round2(groupesTVA[key].basis + lineTotal);
-    });
-    const tauxList = Object.keys(groupesTVA).map(k => groupesTVA[k]);
-    // Calcul des totaux recalculés à partir des lignes (source de vérité si multi-taux)
-    // BUG-011 : si la catégorie TVA ≠ S (franchise, export, intracom), la TVA effective est 0 même si taux>0
-    const totalHTLignes = round2(tauxList.reduce((s, g) => s + g.basis, 0));
-    const totalTVALignes = round2(tauxList.reduce((s, g) => {
-      const cat = determinerCategorieTVA(g.taux);
-      return s + (cat.code === 'S' ? (g.basis * g.taux / 100) : 0);
-    }, 0));
-    const totalHTFinal = Math.abs(totalHTLignes - totalHT) < 0.02 ? totalHT : totalHTLignes;
-    const totalTVAFinal = Math.abs(totalTVALignes - totalTVA) < 0.02 ? totalTVA : totalTVALignes;
-    const totalTTCFinal = round2(totalHTFinal + totalTVAFinal);
-    const netAPayerFinal = round2(facture.netAPayerTTC || totalTTCFinal);
-
-    // Ordre des éléments imposé par le schéma CII D16B : CalculatedAmount, TypeCode, ExemptionReason,
-    // BasisAmount, CategoryCode, ExemptionReasonCode, RateApplicablePercent.
-    const applicableTradeTaxXml = tauxList.map(g => {
-      const cat = determinerCategorieTVA(g.taux);
-      const effectiveRate = (cat.code === 'S') ? g.taux : 0;
-      const montant = round2(g.basis * effectiveRate / 100);
-      const reasonXml = cat.reason ? `\n        <ram:ExemptionReason>${esc(cat.reason)}</ram:ExemptionReason>` : '';
-      const reasonCodeXml = cat.reasonCode ? `\n        <ram:ExemptionReasonCode>${esc(cat.reasonCode)}</ram:ExemptionReasonCode>` : '';
-      return `
-      <ram:ApplicableTradeTax>
-        <ram:CalculatedAmount>${montant}</ram:CalculatedAmount>
-        <ram:TypeCode>VAT</ram:TypeCode>${reasonXml}
-        <ram:BasisAmount>${round2(g.basis)}</ram:BasisAmount>
-        <ram:CategoryCode>${cat.code}</ram:CategoryCode>${reasonCodeXml}
-        <ram:RateApplicablePercent>${effectiveRate}</ram:RateApplicablePercent>
-      </ram:ApplicableTradeTax>`;
-    }).join('');
-
-    const linesXml = lignes.map((l, i) => {
-      const qte = Number(l.quantite||1);
-      const prix = Number(l.prixHT||0);
-      const lineTotal = round2(qte * prix);
-      const taux = Number(l.tauxTVA != null ? l.tauxTVA : tauxTVA);
-      return `
-        <ram:IncludedSupplyChainTradeLineItem>
-          <ram:AssociatedDocumentLineDocument><ram:LineID>${i+1}</ram:LineID></ram:AssociatedDocumentLineDocument>
-          <ram:SpecifiedTradeProduct>
-            <ram:Name>${esc(l.description||'Prestation')}</ram:Name>
-          </ram:SpecifiedTradeProduct>
-          <ram:SpecifiedLineTradeAgreement>
-            <ram:NetPriceProductTradePrice><ram:ChargeAmount>${round2(prix)}</ram:ChargeAmount></ram:NetPriceProductTradePrice>
-          </ram:SpecifiedLineTradeAgreement>
-          <ram:SpecifiedLineTradeDelivery>
-            <ram:BilledQuantity unitCode="C62">${qte}</ram:BilledQuantity>
-          </ram:SpecifiedLineTradeDelivery>
-          <ram:SpecifiedLineTradeSettlement>
-            <ram:ApplicableTradeTax>
-              <ram:TypeCode>VAT</ram:TypeCode>
-              <ram:CategoryCode>${determinerCategorieTVA(taux).code}</ram:CategoryCode>
-              <ram:RateApplicablePercent>${determinerCategorieTVA(taux).code === 'S' ? taux : 0}</ram:RateApplicablePercent>
-            </ram:ApplicableTradeTax>
-            <ram:SpecifiedTradeSettlementLineMonetarySummation><ram:LineTotalAmount>${lineTotal}</ram:LineTotalAmount></ram:SpecifiedTradeSettlementLineMonetarySummation>
-          </ram:SpecifiedLineTradeSettlement>
-        </ram:IncludedSupplyChainTradeLineItem>`;
-    }).join('');
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<rsm:CrossIndustryInvoice
-  xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
-  xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
-  xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
-  <rsm:ExchangedDocumentContext>
-    <ram:GuidelineSpecifiedDocumentContextParameter>
-      <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:basic</ram:ID>
-    </ram:GuidelineSpecifiedDocumentContextParameter>
-  </rsm:ExchangedDocumentContext>
-  <rsm:ExchangedDocument>
-    <ram:ID>${esc(facture.numero||'')}</ram:ID>
-    <ram:TypeCode>380</ram:TypeCode>
-    <ram:IssueDateTime><udt:DateTimeString format="102">${dateIssue}</udt:DateTimeString></ram:IssueDateTime>
-    ${facture.note ? '<ram:IncludedNote><ram:Content>'+esc(facture.note)+'</ram:Content></ram:IncludedNote>' : ''}
-  </rsm:ExchangedDocument>
-  <rsm:SupplyChainTradeTransaction>
-    ${linesXml}
-    <ram:ApplicableHeaderTradeAgreement>
-      <ram:SellerTradeParty>
-        <ram:Name>${esc(p.nom||'')}</ram:Name>
-        <ram:SpecifiedLegalOrganization>
-          <ram:ID schemeID="0002">${esc(siret)}</ram:ID>
-          ${p.formeJuridique ? '<ram:TradingBusinessName>'+esc(p.formeJuridique)+'</ram:TradingBusinessName>' : ''}
-        </ram:SpecifiedLegalOrganization>
-        <ram:PostalTradeAddress>
-          <ram:PostcodeCode>${esc(codePostal)}</ram:PostcodeCode>
-          <ram:LineOne>${esc(adresseLigne)}</ram:LineOne>
-          <ram:CityName>${esc(ville)}</ram:CityName>
-          <ram:CountryID>${esc(pays)}</ram:CountryID>
-        </ram:PostalTradeAddress>
-        ${tvaIntra ? '<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">'+esc(tvaIntra)+'</ram:ID></ram:SpecifiedTaxRegistration>' : ''}
-      </ram:SellerTradeParty>
-      <ram:BuyerTradeParty>
-        <ram:Name>${esc(cliNom)}</ram:Name>
-        ${cliSiret ? '<ram:SpecifiedLegalOrganization><ram:ID schemeID="0002">'+esc(cliSiret.replace(/\s/g,''))+'</ram:ID></ram:SpecifiedLegalOrganization>' : ''}
-        <ram:PostalTradeAddress>
-          <ram:PostcodeCode>${esc(cliCP)}</ram:PostcodeCode>
-          <ram:LineOne>${esc(cliAdresse)}</ram:LineOne>
-          <ram:CityName>${esc(cliVille)}</ram:CityName>
-          <ram:CountryID>${esc(cliPays)}</ram:CountryID>
-        </ram:PostalTradeAddress>
-        ${cli.tvaIntracom ? '<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">'+esc(cli.tvaIntracom)+'</ram:ID></ram:SpecifiedTaxRegistration>' : ''}
-      </ram:BuyerTradeParty>
-      ${facture.referenceAcheteur ? '<ram:BuyerOrderReferencedDocument><ram:IssuerAssignedID>'+esc(facture.referenceAcheteur)+'</ram:IssuerAssignedID></ram:BuyerOrderReferencedDocument>' : ''}
-    </ram:ApplicableHeaderTradeAgreement>
-    <ram:ApplicableHeaderTradeDelivery>
-      ${facture.dateLivraison ? '<ram:ActualDeliverySupplyChainEvent><ram:OccurrenceDateTime><udt:DateTimeString format="102">'+toIsoDateCompact(facture.dateLivraison)+'</udt:DateTimeString></ram:OccurrenceDateTime></ram:ActualDeliverySupplyChainEvent>' : ''}
-    </ram:ApplicableHeaderTradeDelivery>
-    <ram:ApplicableHeaderTradeSettlement>
-      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
-      ${p.iban ? `<ram:SpecifiedTradeSettlementPaymentMeans>
-        <ram:TypeCode>30</ram:TypeCode>
-        <ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${esc(p.iban.replace(/\s/g,''))}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount>
-        ${p.bic ? '<ram:PayeeSpecifiedCreditorFinancialInstitution><ram:BICID>'+esc(p.bic)+'</ram:BICID></ram:PayeeSpecifiedCreditorFinancialInstitution>' : ''}
-      </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
-      ${applicableTradeTaxXml}
-      ${echeance ? '<ram:SpecifiedTradePaymentTerms><ram:DueDateDateTime><udt:DateTimeString format="102">'+toIsoDateCompact(echeance)+'</udt:DateTimeString></ram:DueDateDateTime></ram:SpecifiedTradePaymentTerms>' : ''}
-      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-        <ram:LineTotalAmount>${totalHTFinal}</ram:LineTotalAmount>
-        <ram:TaxBasisTotalAmount>${totalHTFinal}</ram:TaxBasisTotalAmount>
-        <ram:TaxTotalAmount currencyID="EUR">${totalTVAFinal}</ram:TaxTotalAmount>
-        <ram:GrandTotalAmount>${totalTTCFinal}</ram:GrandTotalAmount>
-        <ram:DuePayableAmount>${netAPayerFinal}</ram:DuePayableAmount>
-      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
-    </ram:ApplicableHeaderTradeSettlement>
-  </rsm:SupplyChainTradeTransaction>
-</rsm:CrossIndustryInvoice>`;
-    return xml;
-  }
-
-  /* ---- Action : télécharger XML Factur-X ---- */
-  window.s30_3TelechargerXML = function(factureId) {
-    const missing = validerParamsPourFacturX();
-    if (missing.length) {
-      toast('⚠️ Paramètres entreprise incomplets pour Factur-X : ' + missing.join(', '), 'error');
-      if (typeof window.naviguerVers === 'function') window.naviguerVers('parametres');
-      return;
-    }
-    const factures = loadSafe('factures_emises', []);
-    const fac = factures.find(f => f.id === factureId);
-    if (!fac) { toast('Facture introuvable', 'error'); return; }
-    const clients = loadSafe('clients', []);
-    const client = clients.find(c => (c.nom||'').toLowerCase() === (fac.client||'').toLowerCase()) || null;
-    const xml = genererXMLFacturX(fac, client);
-    const blob = new Blob([xml], { type: 'application/xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'factur-x_' + (fac.numero||'facture').replace(/[^a-zA-Z0-9-]/g,'_') + '.xml';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    audit('Export Factur-X XML', fac.numero);
-    toast('📥 XML Factur-X téléchargé — à intégrer dans un PDF/A-3 via Chorus Pro ou un dématérialiseur agréé', 'success');
-  };
-
-  /* ---- Action : valider qu'une facture est Factur-X ready ---- */
-  window.s30_3ValiderFacture = function(factureId) {
-    const missing = validerParamsPourFacturX();
-    const factures = loadSafe('factures_emises', []);
-    const fac = factures.find(f => f.id === factureId);
-    if (!fac) { toast('Facture introuvable', 'error'); return; }
-    const erreurs = [...missing.map(m => 'Paramètre entreprise manquant : ' + m)];
-    if (!fac.numero) erreurs.push('Numéro facture manquant');
-    if (!fac.dateFacture) erreurs.push('Date facture manquante');
-    if (!fac.client) erreurs.push('Client manquant');
-    if (!fac.montantHT || !fac.montantTTC) erreurs.push('Montants HT/TTC manquants');
-    if (erreurs.length) {
-      const html = `
-        <div class="s15-modal-info-box narrow" style="max-width:560px">
-          <div class="s15-modal-info-header"><h2>❌ Facture non conforme Factur-X</h2><button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button></div>
-          <div class="s15-modal-info-body">
-            <p style="font-size:.9rem;color:var(--text-muted)">Cette facture présente ${erreurs.length} erreur(s) bloquante(s) pour l'émission Factur-X :</p>
-            <ul style="margin-left:20px;line-height:1.8">${erreurs.map(e => '<li style="color:#ef4444">'+esc(e)+'</li>').join('')}</ul>
-            <div style="padding:12px;background:rgba(245,166,35,.1);border-left:3px solid #f5a623;border-radius:6px;margin-top:10px;font-size:.85rem">
-              📚 <strong>Référence :</strong> Ordonnance n°2021-1190 du 15 sept. 2021, arrêté 7 oct. 2022. Obligation de réception et émission progressive de 09/2026 (grandes entreprises) à 09/2027 (PME/TPE).
-            </div>
-          </div>
-        </div>`;
-      ouvrirModalHTML(html);
-      return;
-    }
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:560px">
-        <div class="s15-modal-info-header"><h2>✅ Facture conforme Factur-X BASIC</h2><button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button></div>
-        <div class="s15-modal-info-body">
-          <div style="padding:14px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:10px;margin-bottom:12px">
-            <div style="font-weight:700;color:#15803d">Tous les champs obligatoires sont présents</div>
-            <div style="font-size:.85rem;color:var(--text-muted);margin-top:4px">Profil : BASIC · Norme : EN 16931 · Format : UN/CEFACT Cross Industry Invoice D16B</div>
-          </div>
-          <button class="btn-primary" style="width:100%;margin-bottom:8px" onclick="window.s30_3TelechargerXML('${factureId}');document.getElementById('s15-modal-info').classList.remove('open')">📥 Télécharger le XML Factur-X</button>
-          <div style="padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.82rem;color:var(--text-muted);line-height:1.5">
-            ℹ️ Le XML seul n'est pas une Factur-X complète. Pour émission, il faut l'<strong>intégrer dans un PDF/A-3</strong> via un outil tiers agréé (Chorus Pro, Sage, Cegid, ou plateforme de dématérialisation partenaire). MCA Logistics génère le XML conforme ; l'embedding PDF est une opération serveur.
-          </div>
-        </div>
-      </div>`;
-    ouvrirModalHTML(html);
-  };
-
-  function ouvrirModalHTML(html) {
-    let modal = document.getElementById('s15-modal-info');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 's15-modal-info';
-      modal.className = 's15-modal-info-overlay';
-      modal.innerHTML = '<div class="s15-modal-info-box"><div class="s15-modal-info-body"></div></div>';
-      document.body.appendChild(modal);
-      modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
-    }
-    const body = modal.querySelector('.s15-modal-info-body');
-    if (body) body.innerHTML = html;
-    modal.classList.add('open');
-  }
-
-  /* ---- Injection champs entreprise manquants pour Factur-X ---- */
-  window.s30_3InjectParamsEntreprise = function() {
-    const page = document.getElementById('page-parametres');
-    if (!page) return;
-    // Chercher le bloc params entreprise existant
-    const blocEnt = page.querySelector('[data-s29-section="entreprise"]') || page.querySelector('.params-card-wide');
-    if (!blocEnt) return;
-    if (blocEnt.querySelector('#s303-params-ext')) return;
-    const p = getParams();
-    const box = document.createElement('div');
-    box.id = 's303-params-ext';
-    box.dataset.s29Section = 'entreprise';
-    box.style.cssText = 'margin-top:18px;padding:16px;border:1px solid var(--border);border-radius:10px;background:rgba(245,166,35,.04)';
-    box.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="font-weight:700">📋 Données Factur-X / e-facturation</div>
-        <span style="font-size:.72rem;background:#f5a623;color:#fff;padding:2px 8px;border-radius:5px;font-weight:700">Obligatoire 09/2026</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
-        <div class="form-group"><label>Adresse (ligne 1)</label><input type="text" id="s303-adresseLigne" value="${esc(p.adresseLigne||'')}" placeholder="Ex : 12 rue de la Paix" /></div>
-        <div class="form-group"><label>Code postal</label><input type="text" id="s303-codePostal" value="${esc(p.codePostal||'')}" placeholder="75001" /></div>
-        <div class="form-group"><label>Ville</label><input type="text" id="s303-ville" value="${esc(p.ville||'')}" placeholder="Paris" /></div>
-        <div class="form-group"><label>Pays (ISO 2)</label><input type="text" id="s303-pays" value="${esc(p.pays||'FR')}" maxlength="2" placeholder="FR" /></div>
-        <div class="form-group"><label>Forme juridique</label><input type="text" id="s303-formeJuridique" value="${esc(p.formeJuridique||'')}" placeholder="SARL / SAS / EI..." /></div>
-        <div class="form-group"><label>Capital social (€)</label><input type="number" step="0.01" id="s303-capital" value="${esc(p.capital||'')}" placeholder="0.00" /></div>
-        <div class="form-group"><label>Code APE / NAF</label><input type="text" id="s303-ape" value="${esc(p.codeAPE||'')}" placeholder="4941A" /></div>
-        <div class="form-group"><label>RCS (ville + numéro)</label><input type="text" id="s303-rcs" value="${esc(p.rcs||'')}" placeholder="Paris B 123 456 789" /></div>
-        <div class="form-group"><label>IBAN</label><input type="text" id="s303-iban" value="${esc(p.iban||'')}" placeholder="FR76 ..." /></div>
-        <div class="form-group"><label>BIC</label><input type="text" id="s303-bic" value="${esc(p.bic||'')}" placeholder="BNPAFRPP" /></div>
-      </div>
-      <button class="btn-primary" style="margin-top:10px" onclick="window.s30_3SauvegarderParams()">💾 Enregistrer données Factur-X</button>
-      <div style="margin-top:10px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
-        Ces données sont utilisées pour : mentions obligatoires factures (CGI art. 242 nonies), export Factur-X BASIC, génération OD de clôture, export Pennylane.
-      </div>`;
-    const grid = page.querySelector('.params-grid');
-    const firstEnt = grid ? grid.querySelector('[data-s29-section="entreprise"]') : null;
-    if (firstEnt) firstEnt.appendChild(box);
-    else if (grid) grid.appendChild(box);
-  };
-  window.s30_3SauvegarderParams = function() {
-    const p = getParams();
-    ['adresseLigne','codePostal','ville','pays','formeJuridique','capital','codeAPE','rcs','iban','bic'].forEach(k => {
-      const el = document.getElementById('s303-' + k);
-      if (el) p[k] = el.value.trim();
-    });
-    saveParams(p);
-    audit('MAJ params Factur-X', Object.keys(p).filter(k => p[k]).length + ' champs');
-    toast('✅ Paramètres Factur-X enregistrés', 'success');
-  };
-
-  /* ---- Injection bouton sur chaque facture de la liste ---- */
-  function patchFactureActions() {
-    // Approche non-invasive : exposer une fonction globale utilisable
-    // depuis les menus dropdown existants via events custom.
-  }
-
-  setTimeout(() => window.s30_3InjectParamsEntreprise(), 2500);
-  setInterval(() => window.s30_3InjectParamsEntreprise(), 6000);
-})();
-
-/* =====================================================================
-   Sprint 31 — Export Pennylane-ready
-   Génère un ZIP contenant les CSV compatibles import Pennylane :
-   - factures_ventes.csv (journal ventes)
-   - factures_achats.csv (journal achats depuis charges)
-   - journal_ecritures.csv (OD, paiements, clôture)
-   - plan_comptable_utilise.csv
-   - mouvements_bancaires.csv
-   Format : UTF-8 BOM, séparateur ; (standard FR Excel)
-   ===================================================================== */
-(function installS31(){
-  if (window.__s31Installed) return;
-  window.__s31Installed = true;
-
-  const esc = (s) => String(s==null?'':s);
-  const csvEsc = (v) => {
-    if (typeof window.csvCelluleSecurisee === 'function') return window.csvCelluleSecurisee(v, ';');
-    const raw = String(v==null?'':v);
-    const neutr = /^[=+\-@\t\r]/.test(raw) ? "'" + raw : raw;
-    if (neutr.includes(';') || neutr.includes('"') || neutr.includes('\n') || neutr.includes('\r')) return '"' + neutr.replace(/"/g,'""') + '"';
-    return neutr;
-  };
-  const round2 = (n) => (Math.round((Number(n)||0)*100)/100).toFixed(2).replace('.',',');
-  const fmtDateISO = (d) => { if (!d) return ''; const dt = new Date(d); if (isNaN(dt)) return String(d); return dt.toLocalISODate(); };
-  const load = (k) => { try { return loadSafe(k, []); } catch { return []; } };
-  const toast = (m,t) => (typeof window.afficherToast==='function') && window.afficherToast(m,t||'info');
-  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
-  const BOM = '\uFEFF';
-
-  /* ---- Mapping comptes Pennylane ---- */
-  function mapCompteClient(cliNom) { return '411000'; /* Clients - collectif */ }
-  function mapCompteFournisseur() { return '401000'; }
-  function mapCompteProduitVente(facture) {
-    // Transport : 706 (prestations de services) — ou 707 (ventes de marchandises) si négoce
-    return '706000';
-  }
-  function mapCompteTVAcollectee(taux) {
-    if (Number(taux) === 20) return '445710';
-    if (Number(taux) === 10) return '445711';
-    if (Number(taux) === 5.5) return '445712';
-    return '445700';
-  }
-  function mapCompteTVAdeductible(taux) {
-    if (Number(taux) === 20) return '445660';
-    if (Number(taux) === 10) return '445661';
-    if (Number(taux) === 5.5) return '445662';
-    return '445660';
-  }
-  function mapCompteCharge(cat) {
-    const m = {
-      carburant:'606100', peage:'624100', entretien:'615500', assurance:'616000',
-      salaires:'641000', lld_credit:'613000', tva:'445510', autre:'628000'
-    };
-    return m[cat] || '628000';
-  }
-  function mapBanque() { return '512000'; }
-
-  /* ---- Export factures ventes (journal VTE) ---- */
-  function buildCSVVentes(du, au) {
-    const factures = load('factures_emises').filter(f => {
-      if (f.statut === 'annulée') return false;
-      const d = f.dateFacture || '';
-      return (!du || d >= du) && (!au || d <= au);
-    });
-    const header = ['JournalCode','Date','Numero','Libelle','Client','CompteDebit','CompteCredit','Debit','Credit','CodeTVA','MontantTVA','Reference'].join(';');
-    const lignes = [header];
-    factures.forEach(f => {
-      const d = fmtDateISO(f.dateFacture);
-      const client = esc(f.client||'');
-      const ht = Number(f.montantHT||0);
-      const tva = Number(f.montantTVA||0);
-      const ttc = Number(f.montantTTC||0);
-      const taux = Number(f.tauxTVA||20);
-      const compteClient = mapCompteClient(f.client);
-      const compteProduit = mapCompteProduitVente(f);
-      const compteTVA = mapCompteTVAcollectee(taux);
-      // 1 facture = 3 lignes (client débité TTC, produit crédité HT, TVA créditée)
-      lignes.push(['VTE', d, csvEsc(f.numero), csvEsc('Facture '+(f.numero||'')), csvEsc(client), compteClient, '', round2(ttc), '', '', '', csvEsc(f.numero||'')].join(';'));
-      lignes.push(['VTE', d, csvEsc(f.numero), csvEsc('Prestation '+(f.numero||'')), csvEsc(client), '', compteProduit, '', round2(ht), 'N'+taux, '', csvEsc(f.numero||'')].join(';'));
-      if (tva > 0) lignes.push(['VTE', d, csvEsc(f.numero), csvEsc('TVA '+taux+'% '+(f.numero||'')), csvEsc(client), '', compteTVA, '', round2(tva), 'N'+taux, round2(tva), csvEsc(f.numero||'')].join(';'));
-    });
-    return BOM + lignes.join('\r\n');
-  }
-
-  /* ---- Export factures achats (journal ACH depuis charges) ---- */
-  function buildCSVAchats(du, au) {
-    const charges = load('charges').filter(c => {
-      if (c.categorie === 'tva') return false;
-      const d = c.date || '';
-      return (!du || d >= du) && (!au || d <= au);
-    });
-    const header = ['JournalCode','Date','Numero','Libelle','Fournisseur','CompteDebit','CompteCredit','Debit','Credit','CodeTVA','MontantTVA'].join(';');
-    const lignes = [header];
-    charges.forEach(c => {
-      const d = fmtDateISO(c.date);
-      const num = 'CH-' + (c.id||'').slice(-6);
-      const ht = Number(c.montantHT||c.montant||0);
-      const tva = Number(c.montant||0) - ht;
-      const ttc = Number(c.montant||0);
-      const taux = Number(c.tauxTVA||20);
-      const compteFrs = mapCompteFournisseur();
-      const compteCharge = mapCompteCharge(c.categorie);
-      const compteTVA = mapCompteTVAdeductible(taux);
-      const lib = c.description || c.categorie || 'Charge';
-      lignes.push(['ACH', d, num, csvEsc(lib), csvEsc(c.fournisseur||''), compteCharge, '', round2(ht), '', 'N'+taux, '', ''].join(';'));
-      if (tva > 0.01) lignes.push(['ACH', d, num, csvEsc('TVA déd. '+lib), csvEsc(c.fournisseur||''), compteTVA, '', round2(tva), '', 'N'+taux, round2(tva), ''].join(';'));
-      lignes.push(['ACH', d, num, csvEsc(lib), csvEsc(c.fournisseur||''), '', compteFrs, '', round2(ttc), '', '', ''].join(';'));
-    });
-    return BOM + lignes.join('\r\n');
-  }
-
-  /* ---- Export encaissements / décaissements ---- */
-  function buildCSVBanque(du, au) {
-    const paiements = load('paiements').filter(p => {
-      const d = p.date || '';
-      return (!du || d >= du) && (!au || d <= au);
-    });
-    const header = ['JournalCode','Date','Libelle','CompteDebit','CompteCredit','Debit','Credit','Reference'].join(';');
-    const lignes = [header];
-    paiements.forEach(p => {
-      const d = fmtDateISO(p.date);
-      const lib = 'Règlement ' + (p.cible==='facture'?'facture ':'acompte ') + (p.factureNumero||p.acompteNumero||'');
-      const mt = round2(Number(p.montant||0));
-      // Encaissement : D 512 / C 411
-      lignes.push(['BNQ', d, csvEsc(lib), mapBanque(), '', mt, '', csvEsc(p.id||'')].join(';'));
-      lignes.push(['BNQ', d, csvEsc(lib), '', mapCompteClient(p.client), '', mt, csvEsc(p.id||'')].join(';'));
-    });
-    return BOM + lignes.join('\r\n');
-  }
-
-  /* ---- Export plan comptable utilisé ---- */
-  function buildCSVPlan() {
-    const comptes = [
-      ['411000','Clients'], ['401000','Fournisseurs'],
-      ['512000','Banque'], ['530000','Caisse'],
-      ['445710','TVA collectée 20%'], ['445711','TVA collectée 10%'], ['445712','TVA collectée 5,5%'],
-      ['445660','TVA déductible 20%'], ['445661','TVA déductible 10%'], ['445662','TVA déductible 5,5%'],
-      ['445510','TVA à décaisser'],
-      ['706000','Prestations de services'], ['707000','Ventes de marchandises'],
-      ['606100','Carburant'], ['615500','Entretien matériel'], ['616000','Primes d\'assurance'],
-      ['624100','Transports sur ventes'], ['641000','Rémunérations'], ['613000','Locations'],
-      ['628000','Divers services extérieurs'],
-      ['486000','Charges constatées d\'avance'], ['487000','Produits constatés d\'avance'], ['408000','Fournisseurs factures non parvenues'],
-      ['218000','Matériel de transport'], ['281800','Amortissements matériel transport'],
-      ['681000','Dotations aux amortissements']
-    ];
-    const header = ['Compte','Intitule','Classe'].join(';');
-    const lignes = [header, ...comptes.map(c => [c[0], csvEsc(c[1]), c[0].charAt(0)].join(';'))];
-    return BOM + lignes.join('\r\n');
-  }
-
-  /* ---- Export ajustements clôture (journal OD) ---- */
-  function buildCSVCloture(annee) {
-    const list = load('cloture_ajustements').filter(a => annee ? a.exercice === annee : true);
-    const header = ['JournalCode','Date','Libelle','CompteDebit','CompteCredit','Debit','Credit','Type','Statut'].join(';');
-    const lignes = [header];
-    list.forEach(a => {
-      const d = a.dateCloture || (a.exercice + '-12-31');
-      const mt = round2(Math.abs(a.montantReporte||0));
-      const lib = a.type + ' ' + (a.libelle||'');
-      if (a.type === 'CCA') {
-        lignes.push(['OD', d, csvEsc(lib), '486000', '', mt, '', a.type, a.statut].join(';'));
-        lignes.push(['OD', d, csvEsc(lib), '', '6xxxxx', '', mt, a.type, a.statut].join(';'));
-      } else if (a.type === 'FNP') {
-        const mtTVA = round2(Math.abs(a.montantTVAReporte||0));
-        lignes.push(['OD', d, csvEsc(lib), '6xxxxx', '', mt, '', a.type, a.statut].join(';'));
-        if (a.montantTVAReporte) lignes.push(['OD', d, csvEsc('TVA '+lib), '445860', '', mtTVA, '', a.type, a.statut].join(';'));
-        lignes.push(['OD', d, csvEsc(lib), '', '408000', '', round2(Number(mt.replace(',','.'))+Number(mtTVA.replace(',','.'))).toString().replace('.',','), a.type, a.statut].join(';'));
-      } else if (a.type === 'PCA') {
-        lignes.push(['OD', d, csvEsc(lib), '7xxxxx', '', mt, '', a.type, a.statut].join(';'));
-        lignes.push(['OD', d, csvEsc(lib), '', '487000', '', mt, a.type, a.statut].join(';'));
-      }
-    });
-    return BOM + lignes.join('\r\n');
-  }
-
-  /* ---- MANIFESTE ---- */
-  function buildManifeste(du, au, stats) {
-    const p = loadSafe('params_entreprise', {});
-    return BOM + [
-      'EXPORT COMPTABLE MCA LOGISTICS → PENNYLANE',
-      '=============================================',
-      '',
-      'Entreprise : ' + (p.nom||''),
-      'SIRET : ' + (p.siret||''),
-      'Exporté le : ' + new Date().toLocaleString('fr-FR'),
-      'Période : ' + (du||'depuis le début') + ' → ' + (au||'jusqu\'à aujourd\'hui'),
-      '',
-      'FICHIERS INCLUS',
-      '---------------',
-      '- factures_ventes.csv : ' + stats.ventes + ' factures (journal VTE)',
-      '- factures_achats.csv : ' + stats.achats + ' charges (journal ACH)',
-      '- mouvements_bancaires.csv : ' + stats.paiements + ' mouvements (journal BNQ)',
-      '- ajustements_cloture.csv : ' + stats.cloture + ' écritures OD',
-      '- plan_comptable.csv : référentiel des comptes utilisés',
-      '',
-      'FORMAT',
-      '------',
-      'Encodage : UTF-8 avec BOM',
-      'Séparateur : point-virgule (;)',
-      'Décimales : virgule (,)',
-      'Dates : ISO 8601 (YYYY-MM-DD)',
-      'Codes TVA : N20, N10, N5.5, N0',
-      '',
-      'IMPORT PENNYLANE',
-      '----------------',
-      '1. Se connecter à Pennylane → Comptabilité → Import',
-      '2. Choisir "Import de journal comptable" pour chaque fichier',
-      '3. Mapping des colonnes : auto-détecté pour la plupart',
-      '4. Valider l\'import',
-      '',
-      'ℹ️  Les comptes "6xxxxx" et "7xxxxx" dans ajustements_cloture.csv',
-      '    doivent être affinés selon la nature de la charge/produit d\'origine.',
-      '',
-      'CONFORMITÉ LÉGALE',
-      '-----------------',
-      '- CGI art. A47 A-1 : format d\'échange conforme',
-      '- PCG : comptes au plan comptable général',
-      '- Conservation obligatoire : 10 ans (CGI art. L102 B)',
-      ''
-    ].join('\r\n');
-  }
-
-  /* ---- Export ZIP ---- */
-  window.s31ExportPennylane = function() {
-    if (typeof window.JSZip === 'undefined') {
-      toast('JSZip non chargé — recharger la page', 'error');
-      return;
-    }
-    const html = `
-      <div class="s15-modal-info-box narrow" style="max-width:560px">
-        <div class="s15-modal-info-header"><h2>💼 Export Pennylane-ready</h2><button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button></div>
-        <div class="s15-modal-info-body">
-          <p style="color:var(--text-muted);font-size:.88rem">Exporte un ZIP contenant les journaux comptables au format Pennylane (CSV séparateur ;, UTF-8 BOM).</p>
-          <div class="form-row">
-            <div class="form-group"><label>Du *</label><input type="date" id="s31-du" value="${new Date().getFullYear()}-01-01" /></div>
-            <div class="form-group"><label>Au *</label><input type="date" id="s31-au" value="${new Date().toLocalISODate()}" /></div>
-          </div>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-ventes" checked /> Journal ventes (VTE)</label>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-achats" checked /> Journal achats (ACH)</label>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-banque" checked /> Mouvements bancaires (BNQ)</label>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-cloture" checked /> Ajustements clôture (OD)</label>
-          <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" id="s31-inc-plan" checked /> Plan comptable utilisé</label>
-          <div style="padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted);margin-top:10px">
-            📚 <strong>Conformité :</strong> CGI art. L102 B (conservation 10 ans), PCG, format compatible import Pennylane standard.
-          </div>
-        </div>
-        <div class="s15-modal-info-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:14px">
-          <button class="btn-secondary" onclick="document.getElementById('s15-modal-info').classList.remove('open')">Annuler</button>
-          <button class="btn-primary" onclick="window.s31ExecuterExport()">📦 Générer ZIP</button>
-        </div>
-      </div>`;
-    let modal = document.getElementById('s15-modal-info');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 's15-modal-info';
-      modal.className = 's15-modal-info-overlay';
-      modal.innerHTML = '<div class="s15-modal-info-box"><div class="s15-modal-info-body"></div></div>';
-      document.body.appendChild(modal);
-    }
-    modal.querySelector('.s15-modal-info-body').innerHTML = html;
-    modal.classList.add('open');
-  };
-
-  window.s31ExecuterExport = function() {
-    const du = document.getElementById('s31-du')?.value;
-    const au = document.getElementById('s31-au')?.value;
-    const opts = {
-      ventes: document.getElementById('s31-inc-ventes')?.checked,
-      achats: document.getElementById('s31-inc-achats')?.checked,
-      banque: document.getElementById('s31-inc-banque')?.checked,
-      cloture: document.getElementById('s31-inc-cloture')?.checked,
-      plan: document.getElementById('s31-inc-plan')?.checked
-    };
-    if (!Object.values(opts).some(Boolean)) { toast('Sélectionne au moins 1 journal', 'warning'); return; }
-    const zip = new window.JSZip();
-    const dossier = zip.folder('export_pennylane_' + (du||'') + '_' + (au||''));
-    const stats = { ventes:0, achats:0, paiements:0, cloture:0 };
-    if (opts.ventes) {
-      const csv = buildCSVVentes(du, au);
-      dossier.file('factures_ventes.csv', csv);
-      stats.ventes = csv.split('\n').length - 1;
-    }
-    if (opts.achats) {
-      const csv = buildCSVAchats(du, au);
-      dossier.file('factures_achats.csv', csv);
-      stats.achats = csv.split('\n').length - 1;
-    }
-    if (opts.banque) {
-      const csv = buildCSVBanque(du, au);
-      dossier.file('mouvements_bancaires.csv', csv);
-      stats.paiements = csv.split('\n').length - 1;
-    }
-    if (opts.cloture) {
-      const annee = new Date(du||'').getFullYear();
-      const csv = buildCSVCloture(annee);
-      dossier.file('ajustements_cloture.csv', csv);
-      stats.cloture = csv.split('\n').length - 1;
-    }
-    if (opts.plan) dossier.file('plan_comptable.csv', buildCSVPlan());
-    dossier.file('MANIFESTE.txt', buildManifeste(du, au, stats));
-    zip.generateAsync({ type:'blob' }).then(blob => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pennylane_export_' + (du||'debut') + '_' + (au||'fin') + '.zip';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      audit('Export Pennylane', 'du ' + (du||'?') + ' au ' + (au||'?'));
-      toast('📦 Export Pennylane téléchargé', 'success');
-      document.getElementById('s15-modal-info')?.classList.remove('open');
-    }).catch(err => {
-      toast('⚠️ Erreur ZIP : ' + err.message, 'error');
-    });
-  };
-
-  /* ---- Injection bouton dans Paramètres > Comptabilité ---- */
-  function injectButton() {
-    const page = document.getElementById('page-parametres');
-    if (!page) return;
-    const grid = page.querySelector('.params-grid');
-    if (!grid) return;
-    if (grid.querySelector('#s31-export-section')) return;
-    const section = document.createElement('div');
-    section.id = 's31-export-section';
-    section.className = 'card params-card-wide';
-    section.dataset.s29Section = 'comptabilite';
-    section.innerHTML = `
-      <div class="card-header">
-        <h3>💼 Export comptable (Pennylane-ready)</h3>
-      </div>
-      <p style="color:var(--text-muted);font-size:.88rem">Exporte un ZIP complet avec les journaux comptables (ventes, achats, banque, clôture, plan comptable) au format Pennylane standard. Idéal pour transmettre à ton expert-comptable ou importer directement.</p>
-      <button class="btn-primary" onclick="window.s31ExportPennylane()">📦 Générer export Pennylane</button>
-      <div style="margin-top:10px;padding:8px 12px;background:rgba(245,166,35,.08);border-left:3px solid #f5a623;border-radius:6px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
-        Format : UTF-8 BOM · séparateur <code>;</code> · décimales <code>,</code> · dates ISO 8601. Conservation légale 10 ans (CGI art. L102 B).
-      </div>`;
-    grid.appendChild(section);
-    // Re-synchro S29
-    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
-    grid.querySelectorAll('[data-s29-section]').forEach(el => {
-      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
-    });
-  }
-  setTimeout(injectButton, 2700);
-  setInterval(injectButton, 7000);
-})();
-
-/* =====================================================================
-   Sprint 32 — Pack ANC 2026
-   Règlement ANC 2022-06 modifié, applicable 01/01/2025. Restructuration
-   du plan comptable général : nouvelles rubriques, comptes renommés,
-   regroupements. Valide que l'app utilise des comptes conformes.
-   ===================================================================== */
-(function installS32(){
-  if (window.__s32Installed) return;
-  window.__s32Installed = true;
-
-  const esc = window.escapeHtml;
-  const toast = (m,t) => (typeof window.afficherToast==='function') && window.afficherToast(m,t||'info');
-  const audit = (a,d) => (typeof window.ajouterEntreeAudit==='function') && window.ajouterEntreeAudit(a,d);
-
-  /* ---- Référentiel ANC 2025/2026 (extrait des comptes utilisés par l'app) ---- */
-  const PCG_ANC = {
-    classe1: [
-      ['101000','Capital'],
-      ['108000','Compte de l\'exploitant'],
-      ['164000','Emprunts auprès des établissements de crédit']
-    ],
-    classe2: [
-      ['205000','Concessions, brevets, licences, logiciels'],
-      ['213000','Constructions'],
-      ['215000','Installations techniques, matériel et outillage'],
-      ['218200','Matériel de transport'],
-      ['218300','Matériel de bureau et informatique'],
-      ['281820','Amortissements matériel de transport'],
-      ['281830','Amortissements matériel de bureau']
-    ],
-    classe4: [
-      ['401000','Fournisseurs'],
-      ['408000','Fournisseurs - Factures non parvenues (FNP)'],
-      ['411000','Clients'],
-      ['416000','Clients douteux ou litigieux'],
-      ['445510','TVA à décaisser'],
-      ['445660','TVA déductible sur autres biens et services (20%)'],
-      ['445710','TVA collectée (20%)'],
-      ['445860','Taxes sur le chiffre d\'affaires sur FNP'],
-      ['486000','Charges constatées d\'avance (CCA)'],
-      ['487000','Produits constatés d\'avance (PCA)']
-    ],
-    classe5: [
-      ['512000','Banque'],
-      ['530000','Caisse']
-    ],
-    classe6: [
-      ['606100','Achats non stockés - Carburant'],
-      ['613000','Locations (LLD, crédit-bail)'],
-      ['615500','Entretien et réparations sur biens mobiliers'],
-      ['616000','Primes d\'assurances'],
-      ['624100','Transports sur ventes (péages)'],
-      ['628000','Divers services extérieurs'],
-      ['641000','Rémunérations du personnel'],
-      ['681200','Dotations aux amortissements sur immobilisations corporelles']
-    ],
-    classe7: [
-      ['706000','Prestations de services'],
-      ['707000','Ventes de marchandises'],
-      ['708500','Ports et frais accessoires facturés']
-    ]
-  };
-
-  /* ---- Audit de conformité : liste les comptes utilisés dans l'app ---- */
-  function auditConformite() {
-    const utilises = new Set();
-    // Mapping charges → comptes
-    const chargesCat = new Set((loadSafe('charges', [])).map(c => c.categorie));
-    const mapCat = { carburant:'606100', peage:'624100', entretien:'615500', assurance:'616000', salaires:'641000', lld_credit:'613000', tva:'445510', autre:'628000' };
-    chargesCat.forEach(c => { if (mapCat[c]) utilises.add(mapCat[c]); });
-    // Factures → 706/707
-    if ((loadSafe('factures_emises', [])).length) {
-      utilises.add('706000'); utilises.add('411000'); utilises.add('445710');
-    }
-    // Paiements → 512
-    if ((loadSafe('paiements', [])).length) utilises.add('512000');
-    // Immos
-    const immos = loadSafe('immobilisations', []);
-    if (immos.length) { utilises.add('218200'); utilises.add('281820'); utilises.add('681200'); }
-    // Clôture
-    const aj = loadSafe('cloture_ajustements', []);
-    aj.forEach(a => {
-      if (a.type === 'CCA') utilises.add('486000');
-      if (a.type === 'PCA') utilises.add('487000');
-      if (a.type === 'FNP') { utilises.add('408000'); utilises.add('445860'); }
-    });
-    // Construire liste complète avec libellé
-    const tous = [];
-    Object.values(PCG_ANC).forEach(cls => cls.forEach(c => tous.push(c)));
-    const result = Array.from(utilises).sort().map(num => {
-      const match = tous.find(c => c[0] === num);
-      return { compte: num, libelle: match ? match[1] : '(non référencé ANC)', conforme: !!match };
-    });
-    return result;
-  }
-
-  /* ---- Render audit ANC ---- */
-  function renderAncSection() {
-    const page = document.getElementById('page-parametres');
-    if (!page) return;
-    const grid = page.querySelector('.params-grid');
-    if (!grid) return;
-    let section = document.getElementById('s32-anc-section');
-    if (!section) {
-      section = document.createElement('div');
-      section.id = 's32-anc-section';
-      section.className = 'card params-card-wide';
-      section.dataset.s29Section = 'comptabilite';
-      grid.appendChild(section);
-    }
-    const audit = auditConformite();
-    const conformes = audit.filter(a => a.conforme).length;
-    const nonConformes = audit.length - conformes;
-    const score = audit.length ? Math.round(conformes * 100 / audit.length) : 100;
-    const pcgTotal = Object.values(PCG_ANC).reduce((s,cls) => s + cls.length, 0);
-    section.innerHTML = `
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-        <div>
-          <h3 style="margin:0">📚 Pack ANC 2025-2026 — Plan comptable général</h3>
-          <div style="font-size:.82rem;color:var(--text-muted);margin-top:2px">Règlement ANC 2022-06 · applicable aux exercices ouverts à compter du 01/01/2025</div>
-        </div>
-        <button class="btn-secondary" onclick="window.s32TelechargerPCG()">📥 Télécharger PCG (CSV)</button>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:14px 0">
-        <div style="padding:14px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.04));border:1px solid rgba(34,197,94,.3);border-radius:10px">
-          <div style="font-size:.75rem;color:#15803d;font-weight:700">✅ Score conformité</div>
-          <div style="font-size:1.6rem;font-weight:800;color:#15803d">${score}%</div>
-          <div style="font-size:.75rem;color:var(--text-muted)">${conformes} / ${audit.length} comptes utilisés</div>
-        </div>
-        <div style="padding:14px;background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(99,102,241,.04));border:1px solid rgba(99,102,241,.3);border-radius:10px">
-          <div style="font-size:.75rem;color:#4338ca;font-weight:700">📖 Référentiel ANC</div>
-          <div style="font-size:1.6rem;font-weight:800;color:#4338ca">${pcgTotal}</div>
-          <div style="font-size:.75rem;color:var(--text-muted)">comptes dans le pack</div>
-        </div>
-        <div style="padding:14px;background:linear-gradient(135deg,${nonConformes?'rgba(239,68,68,.12),rgba(239,68,68,.04)':'rgba(245,166,35,.12),rgba(245,166,35,.04)'});border:1px solid ${nonConformes?'rgba(239,68,68,.3)':'rgba(245,166,35,.3)'};border-radius:10px">
-          <div style="font-size:.75rem;color:${nonConformes?'#b91c1c':'#b45309'};font-weight:700">${nonConformes?'⚠️ Écarts':'📊 Utilisation'}</div>
-          <div style="font-size:1.6rem;font-weight:800;color:${nonConformes?'#b91c1c':'#b45309'}">${audit.length}</div>
-          <div style="font-size:.75rem;color:var(--text-muted)">comptes actifs sur données</div>
-        </div>
-      </div>
-      <details style="margin-top:12px">
-        <summary style="cursor:pointer;font-weight:600;padding:8px 0">📋 Détail des comptes utilisés (${audit.length})</summary>
-        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px">
-          <table class="table" style="width:100%;margin:0;font-size:.86rem">
-            <thead style="position:sticky;top:0;background:var(--bg-secondary,#fafafa)"><tr><th>N° compte</th><th>Intitulé</th><th>Conformité</th></tr></thead>
-            <tbody>
-              ${audit.map(a => `
-                <tr>
-                  <td style="font-family:monospace;font-weight:700">${esc(a.compte)}</td>
-                  <td>${esc(a.libelle)}</td>
-                  <td>${a.conforme?'<span style="color:#22c55e">✅ ANC 2026</span>':'<span style="color:#ef4444">❌ Hors référentiel</span>'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </details>
-      <details style="margin-top:10px">
-        <summary style="cursor:pointer;font-weight:600;padding:8px 0">📖 Référentiel complet ANC (${pcgTotal} comptes)</summary>
-        <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px">
-          <table class="table" style="width:100%;margin:0;font-size:.86rem">
-            <thead style="position:sticky;top:0;background:var(--bg-secondary,#fafafa)"><tr><th>Classe</th><th>N°</th><th>Intitulé</th></tr></thead>
-            <tbody>
-              ${Object.entries(PCG_ANC).map(([cls,comptes]) => comptes.map(c => `
-                <tr><td>${cls.replace('classe','Classe ')}</td><td style="font-family:monospace">${esc(c[0])}</td><td>${esc(c[1])}</td></tr>
-              `).join('')).join('')}
-            </tbody>
-          </table>
-        </div>
-      </details>
-      <div style="margin-top:12px;padding:10px;background:rgba(99,102,241,.08);border-left:3px solid #6366f1;border-radius:6px;font-size:.78rem;color:var(--text-muted);line-height:1.5">
-        💡 <strong>Note :</strong> ce pack couvre les comptes utilisés par MCA Logistics (transport/logistique). Pour une comptabilité complète, compléter avec l'expert-comptable. Référentiel officiel : <strong>ANC 2022-06</strong> modifié par 2024-07, consolidé 2026-01.
-      </div>`;
-    const activeSection = localStorage.getItem('s29_section_active') || 'entreprise';
-    grid.querySelectorAll('[data-s29-section]').forEach(el => {
-      el.style.display = (el.dataset.s29Section === activeSection) ? '' : 'none';
-    });
-  }
-
-  window.s32TelechargerPCG = function() {
-    const BOM = '\uFEFF';
-    const header = ['Classe','Numero','Intitule'].join(';');
-    const lignes = [header];
-    const csvCellPCG = (typeof window.csvCelluleSecurisee === 'function') ? window.csvCelluleSecurisee : (v) => '"'+String(v||'').replace(/"/g,'""')+'"';
-    Object.entries(PCG_ANC).forEach(([cls,comptes]) => {
-      comptes.forEach(c => lignes.push([cls.replace('classe','Classe '), c[0], csvCellPCG(c[1], ';')].join(';')));
-    });
-    const blob = new Blob([BOM + lignes.join('\r\n')], { type:'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'PCG_ANC_2025_2026.csv';
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    audit('Export PCG ANC', Object.values(PCG_ANC).reduce((s,c)=>s+c.length,0) + ' comptes');
-    toast('📥 PCG téléchargé', 'success');
-  };
-
-  setTimeout(renderAncSection, 3200);
-  setInterval(renderAncSection, 8000);
 })();

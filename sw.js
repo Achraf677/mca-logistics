@@ -1,100 +1,115 @@
-const CACHE_NAME = 'mca-logistics-shell-v4';
-const OFFLINE_ASSETS = [
-  './',
-  './index.html',
-  './login.html',
-  './admin.html',
-  './salarie.html',
-  './style.css',
-  './script.js',
-  './chart.min.js',
-  './security-utils.js',
-  './supabase-config.js',
-  './supabase-client.js',
-  './supabase-auth.js',
-  './supabase-admin.js',
-  './supabase-storage-sync.js'
+// MCA LOGISTICS — Service Worker
+// Stratégie :
+//   - HTML           : network-first (récupère les nouveaux déploiements rapidement), fallback cache hors-ligne
+//   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
+//   - API Supabase   : passthrough (pas de cache — données live).
+
+const CACHE_VERSION = 'mca-v2026-04-22-a';
+const STATIC_CACHE = `static-${CACHE_VERSION}`;
+const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
+
+const CORE_ASSETS = [
+  '/',
+  '/index.html',
+  '/admin.html',
+  '/salarie.html',
+  '/login.html',
+  '/style.css',
+  '/script.js',
+  '/chart.min.js',
+  '/security-utils.js',
+  '/supabase-config.js',
+  '/supabase-client.js',
+  '/supabase-auth.js',
+  '/supabase-admin.js',
+  '/supabase-storage-sync.js',
 ];
 
-self.addEventListener('install', function (event) {
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(OFFLINE_ASSETS);
-    }).then(function () {
-      return self.skipWaiting();
+    caches.open(STATIC_CACHE).then((cache) => {
+      // Chaque asset est tenté individuellement — un échec n'empêche pas les autres
+      return Promise.allSettled(CORE_ASSETS.map((url) => cache.add(url).catch(() => null)));
     })
   );
 });
 
-self.addEventListener('activate', function (event) {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(function (keys) {
-      return Promise.all(keys.map(function (key) {
-        if (key !== CACHE_NAME) return caches.delete(key);
-        return null;
-      }));
-    }).then(function () {
-      return self.clients.claim();
-    })
+    Promise.all([
+      caches.keys().then((keys) =>
+        Promise.all(
+          keys
+            .filter((k) => k !== STATIC_CACHE && k !== RUNTIME_CACHE)
+            .map((k) => caches.delete(k))
+        )
+      ),
+      self.clients.claim(),
+    ])
   );
 });
 
-function isHtmlRequest(request) {
-  return request.mode === 'navigate' || (request.headers.get('accept') || '').indexOf('text/html') !== -1;
-}
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
 
-self.addEventListener('fetch', function (event) {
-  var request = event.request;
-  if (request.method !== 'GET') return;
-  var url = new URL(request.url);
+  const url = new URL(req.url);
+
+  // Supabase / API externes / Google Fonts : passthrough, pas de cache
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com') || url.hostname.includes('gstatic.com') || url.hostname.includes('cdn.jsdelivr.net')) {
+    return;
+  }
+
+  // Uniquement notre propre origine
   if (url.origin !== self.location.origin) return;
-  if (/\/(auth|storage|rest|functions)\/v1\//.test(url.pathname)) return;
 
-  if (isHtmlRequest(request)) {
+  const accept = req.headers.get('accept') || '';
+  const isHTMLNav = req.mode === 'navigate' || accept.includes('text/html');
+
+  if (isHTMLNav) {
+    // Network-first pour les pages HTML — récupère les nouveaux déploiements
     event.respondWith(
-      fetch(request).then(function (response) {
-        var copy = response.clone();
-        caches.open(CACHE_NAME).then(function (cache) {
-          cache.put(request, copy);
-        });
-        return response;
-      }).catch(function () {
-        return caches.match(request).then(function (cached) {
-          return cached || caches.match('./admin.html') || caches.match('./login.html');
-        });
-      })
+      fetch(req)
+        .then((res) => {
+          if (res && res.status === 200 && res.type === 'basic') {
+            const copy = res.clone();
+            caches.open(RUNTIME_CACHE).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(req).then((r) => r || caches.match('/admin.html')))
     );
     return;
   }
 
-  if (/\.(?:css|js)$/i.test(url.pathname)) {
-    event.respondWith(
-      fetch(request).then(function (response) {
-        if (response && response.status === 200 && response.type === 'basic') {
-          var copy = response.clone();
-          caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(request, copy);
-          });
-        }
-        return response;
-      }).catch(function () {
-        return caches.match(request);
-      })
-    );
-    return;
-  }
-
+  // Cache-first pour assets statiques (JS, CSS, images, fonts locales)
   event.respondWith(
-    caches.match(request).then(function (cached) {
-      if (cached) return cached;
-      return fetch(request).then(function (response) {
-        if (!response || response.status !== 200 || response.type !== 'basic') return response;
-        var copy = response.clone();
-        caches.open(CACHE_NAME).then(function (cache) {
-          cache.put(request, copy);
-        });
-        return response;
+    caches.match(req).then((cached) => {
+      if (cached) {
+        // Revalidation background — met à jour le cache si une nouvelle version existe
+        fetch(req)
+          .then((res) => {
+            if (res && res.status === 200 && res.type === 'basic') {
+              caches.open(STATIC_CACHE).then((cache) => cache.put(req, res.clone()));
+            }
+          })
+          .catch(() => {});
+        return cached;
+      }
+      // Pas en cache → fetch network, puis cache le résultat
+      return fetch(req).then((res) => {
+        if (res && res.status === 200 && res.type === 'basic') {
+          const copy = res.clone();
+          caches.open(STATIC_CACHE).then((cache) => cache.put(req, copy));
+        }
+        return res;
       });
     })
   );
+});
+
+// Permet à la page de forcer un update immédiat via postMessage('skipWaiting')
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
