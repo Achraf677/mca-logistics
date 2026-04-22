@@ -743,11 +743,55 @@
               <div id="nsal-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Utilisez 8 caractères minimum avec majuscule, minuscule et chiffre.</div>
             </div>
             <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="T&eacute;l&eacute;phone" /></div>
+            <div class="form-group"><label>Email</label><input type="email" id="nsal-email" placeholder="exemple@mca-logistics.fr" /></div>
             <div class="form-group"><label>Poste / Fonction</label><select id="nsal-poste"><option value="">-- Choisir un poste --</option></select></div>
             <div class="form-group"><label>Affecter un véhicule dès la création</label><select id="nsal-vehicule"><option value="">-- Aucun pour l'instant --</option></select></div>
             <div class="form-group"><label>🪪 Expiration permis</label><input type="date" id="nsal-date-permis" /></div>
+            <div class="form-group"><label>Catégorie permis</label>
+              <select id="nsal-cat-permis">
+                <option value="">—</option>
+                <option value="B">B (VL ≤ 3,5 t)</option>
+                <option value="C">C (PL 3,5-7,5 t)</option>
+                <option value="CE">CE (PL + remorque &gt; 750 kg)</option>
+                <option value="C1">C1 (PL ≤ 7,5 t)</option>
+                <option value="D">D (transport personnes)</option>
+              </select>
+            </div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
+          <!-- BUG-041 fix : obligations transport marchandises (règlement UE 2022/1699 + règlement 165/2014 + R.4624-22 Code travail) -->
+          <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
+            <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
+              🚛 Obligations transport (FIMO/FCO · Tachygraphe · Visite médicale)
+              <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(obligatoire chauffeur transport &gt; 3,5 t)</span>
+            </summary>
+            <div style="padding:14px;border-top:1px solid var(--border)">
+              <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">FIMO / FCO (règlement UE 2022/1699)</div>
+              <div class="form-grid">
+                <div class="form-group"><label>N° attestation FIMO/FCO</label><input type="text" id="nsal-fimo-numero" placeholder="ex : 12345678" /></div>
+                <div class="form-group"><label>Date obtention</label><input type="date" id="nsal-fimo-date-obt" /></div>
+                <div class="form-group"><label>Date expiration (5 ans)</label><input type="date" id="nsal-fimo-date-exp" /></div>
+              </div>
+              <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Carte conducteur tachygraphe (règlement UE 165/2014)</div>
+              <div class="form-grid">
+                <div class="form-group"><label>N° carte tachygraphe</label><input type="text" id="nsal-tachy-numero" placeholder="ex : F12345AB" /></div>
+                <div class="form-group"><label>Date expiration</label><input type="date" id="nsal-tachy-date-exp" /></div>
+              </div>
+              <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Visite médicale d'aptitude (R.4624-22 Code du travail + arrêté 01/09/2010)</div>
+              <div class="form-grid">
+                <div class="form-group"><label>Date dernière visite</label><input type="date" id="nsal-visite-date" /></div>
+                <div class="form-group"><label>Aptitude</label>
+                  <select id="nsal-visite-aptitude">
+                    <option value="">—</option>
+                    <option value="apte">Apte</option>
+                    <option value="apte_restrictions">Apte avec restrictions</option>
+                    <option value="inapte">Inapte</option>
+                  </select>
+                </div>
+                <div class="form-group"><label>Date prochaine visite</label><input type="date" id="nsal-visite-date-exp" /></div>
+              </div>
+            </div>
+          </details>
           <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:12px;">
             <button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Annuler</button>
             <button class="btn-primary" onclick="creerSalarie()">✅ Créer le salarié</button>
@@ -2223,9 +2267,71 @@
           <div class="form-group"><label>Date Contrôle Technique</label><input type="date" id="veh-date-ct" /></div>
           <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" /></div>
           <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" /></div>
-          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
+          <div class="form-group"><label>TVA carburant déductible (%) <span style="color:var(--text-muted);font-size:0.78rem">(auto si genre défini)</span></label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
           <div class="form-group full-width"><label>Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
+        <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
+        <details id="veh-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
+          <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
+            🚚 Données flotte & conformité <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(genre, PTAC, Crit'Air, VIN)</span>
+          </summary>
+          <div style="padding:14px;border-top:1px solid var(--border)">
+            <div class="form-grid">
+              <div class="form-group"><label>Genre</label>
+                <select id="veh-genre" onchange="ajusterTVACarburantSelonGenre()">
+                  <option value="">—</option>
+                  <option value="VP">VP — Voiture particulière</option>
+                  <option value="VU">VU — Véhicule utilitaire ≤ 3,5 t</option>
+                  <option value="CTTE">CTTE — Camionnette</option>
+                  <option value="CAM">CAM — Camion</option>
+                  <option value="TRR">TRR — Tracteur routier</option>
+                  <option value="REM">REM — Remorque</option>
+                  <option value="SREM">SREM — Semi-remorque</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Carburant</label>
+                <select id="veh-carburant" onchange="ajusterTVACarburantSelonGenre()">
+                  <option value="">—</option>
+                  <option value="diesel">Diesel / Gazole</option>
+                  <option value="essence">Essence</option>
+                  <option value="gnv">GNV / BioGNV</option>
+                  <option value="electrique">Électrique</option>
+                  <option value="hybride">Hybride</option>
+                  <option value="h2">Hydrogène</option>
+                </select>
+              </div>
+              <div class="form-group"><label>PTAC (kg)</label><input type="number" id="veh-ptac" min="0" step="1" placeholder="Ex : 7500" /></div>
+              <div class="form-group"><label>PTRA (kg)</label><input type="number" id="veh-ptra" min="0" step="1" placeholder="Ex : 44000" /></div>
+              <div class="form-group"><label>Nombre d'essieux</label><input type="number" id="veh-essieux" min="1" max="10" step="1" placeholder="2" /></div>
+              <div class="form-group"><label>Vignette Crit'Air</label>
+                <select id="veh-critair">
+                  <option value="">—</option>
+                  <option value="E">E — 100% électrique / H₂</option>
+                  <option value="1">1 — Essence Euro 5-6, GNV</option>
+                  <option value="2">2 — Diesel Euro 5-6, essence Euro 4</option>
+                  <option value="3">3 — Diesel Euro 4, essence Euro 2-3</option>
+                  <option value="4">4 — Diesel Euro 3</option>
+                  <option value="5">5 — Diesel Euro 2</option>
+                  <option value="hc">Hors classement — interdit ZFE</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Date 1ʳᵉ mise en circulation</label><input type="date" id="veh-date-1immat" /></div>
+              <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
+              <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
+                  <input type="checkbox" id="veh-taxe-essieu" />
+                  <span>Assujetti taxe à l'essieu (&gt; 12 t, CGI art. 1007 ter)</span>
+                </label>
+              </div>
+            </div>
+            <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.55">
+              💡 La TVA carburant déductible est calculée automatiquement selon le genre :
+              VP Diesel = 80 %, VP Essence = 80 %, VU/Camion/Tracteur Diesel = 100 %,
+              Essence = 100 %, GPL/GNV = 100 %, Électrique = 100 % (CGI art. 298-4).
+            </div>
+          </div>
+        </details>
         <div class="card" id="veh-bloc-achat" style="margin-top:16px">
           <div class="card-header"><h2>Achat & amortissement</h2></div>
           <div class="modal-body">

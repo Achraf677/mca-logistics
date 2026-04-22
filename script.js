@@ -3503,6 +3503,33 @@ function getVehiculeMensualiteRentabilite(veh) {
   }
 }
 
+// BUG-046 fix : TVA déductible sur carburant selon genre (CGI art. 298-4-1° et 298-4 D)
+// - VP (voiture particulière) : 80 % diesel, 80 % essence depuis 2022
+// - VU/CTTE/CAM/TRR (utilitaire, camionnette, camion, tracteur) : 100 % gazole/GPL/GNV, 100 % essence (depuis 2022)
+// - Électrique (tout genre) : 100 % de l'électricité de recharge
+// - REM/SREM (remorque, semi-remorque) : pas de carburant propre, 0 %
+function calculerTauxTVACarburant(genre, carburant) {
+  if (!genre || !carburant) return null;
+  if (genre === 'REM' || genre === 'SREM') return 0;
+  if (carburant === 'electrique' || carburant === 'h2') return 100;
+  if (genre === 'VP') return 80;
+  // VU, CTTE, CAM, TRR : tous carburants 100 %
+  return 100;
+}
+function ajusterTVACarburantSelonGenre() {
+  const genre = document.getElementById('veh-genre')?.value || '';
+  const carb = document.getElementById('veh-carburant')?.value || '';
+  const taux = calculerTauxTVACarburant(genre, carb);
+  if (taux == null) return;
+  const input = document.getElementById('veh-tva-carburant');
+  if (input && (!input.value || input.dataset.autoSet === '1')) {
+    input.value = String(taux);
+    input.dataset.autoSet = '1';
+  }
+}
+window.ajusterTVACarburantSelonGenre = ajusterTVACarburantSelonGenre;
+window.calculerTauxTVACarburant = calculerTauxTVACarburant;
+
 function ajouterVehicule() {
   const immat  = document.getElementById('veh-immat').value.trim().toUpperCase();
   const modele = document.getElementById('veh-modele').value.trim();
@@ -3526,10 +3553,26 @@ function ajouterVehicule() {
   }
 
   const sal = charger('salaries').find(s => s.id === salId);
-  const tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 80;
+  // BUG-046 fix : champs flotte étendus (genre, Crit'Air, PTAC, VIN, taxe essieu)
+  const getV = (id) => (document.getElementById(id)?.value || '').trim();
+  const genre = getV('veh-genre');
+  const carburant = getV('veh-carburant');
+  // TVA carburant selon genre (CGI art. 298-4-1° et 298-4 D)
+  const tvaAutoCalc = calculerTauxTVACarburant(genre, carburant);
+  const tvaCarbSaisi = parseFloat(document.getElementById('veh-tva-carburant')?.value);
+  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 80);
+  const ptac = parseInt(getV('veh-ptac'), 10) || 0;
+  const ptra = parseInt(getV('veh-ptra'), 10) || 0;
+  const essieux = parseInt(getV('veh-essieux'), 10) || 0;
+  const critAir = getV('veh-critair');
+  const date1Immat = getV('veh-date-1immat');
+  const vin = getV('veh-vin').toUpperCase();
+  const carteGrise = getV('veh-carte-grise');
+  const taxeEssieu = !!document.getElementById('veh-taxe-essieu')?.checked;
   const vehicule = Object.assign({
     id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
+    genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, taxeEssieu,
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
@@ -5005,10 +5048,28 @@ async function creerSalarie() {
   const numero = document.getElementById('nsal-numero').value.trim().toUpperCase();
   const mdp    = document.getElementById('nsal-mdp').value;
   const tel    = document.getElementById('nsal-tel').value.trim();
+  const emailSaisi = document.getElementById('nsal-email')?.value.trim() || '';
   const poste  = document.getElementById('nsal-poste')?.value.trim() || '';
   const datePermis    = document.getElementById('nsal-date-permis')?.value || '';
   const dateAssurance = document.getElementById('nsal-date-assurance')?.value || '';
   const vehId  = document.getElementById('nsal-vehicule')?.value || '';
+  const categoriePermis = document.getElementById('nsal-cat-permis')?.value || '';
+  // BUG-041 fix : FIMO/FCO + carte tachygraphe + visite médicale
+  const getV = (id) => (document.getElementById(id)?.value || '').trim();
+  const fimoFco = {
+    numero: getV('nsal-fimo-numero'),
+    dateObtention: getV('nsal-fimo-date-obt'),
+    dateExpiration: getV('nsal-fimo-date-exp')
+  };
+  const carteTachygraphe = {
+    numero: getV('nsal-tachy-numero'),
+    dateExpiration: getV('nsal-tachy-date-exp')
+  };
+  const visiteMedicale = {
+    date: getV('nsal-visite-date'),
+    aptitude: getV('nsal-visite-aptitude'),
+    dateExpiration: getV('nsal-visite-date-exp')
+  };
 
   if (!nom||!numero||!mdp) { afficherToast('⚠️ Nom, numero et mot de passe obligatoires', 'error'); return; }
   const qualiteMdp = evaluerQualiteMotDePasseFort(mdp);
@@ -5016,7 +5077,15 @@ async function creerSalarie() {
   const salaries=charger('salaries');
   if (salaries.find(s=>s.numero===numero)) { afficherToast('⚠️ Ce numéro existe déjà', 'error'); return; }
 
-  const salarie={ id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero, email:genererEmailTechniqueSalarie(numero), mdpHash:await hasherMotDePasseLocal(mdp), tel, poste, datePermis, dateAssurance, actif:true, creeLe:new Date().toISOString() };
+  const salarie={
+    id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero,
+    email: emailSaisi || genererEmailTechniqueSalarie(numero),
+    emailPersonnel: emailSaisi || '',
+    mdpHash:await hasherMotDePasseLocal(mdp),
+    tel, poste, datePermis, dateAssurance, categoriePermis,
+    fimoFco, carteTachygraphe, visiteMedicale,
+    actif:true, creeLe:new Date().toISOString()
+  };
   salaries.push(salarie);
   sauvegarder('salaries', salaries);
 
@@ -5047,9 +5116,17 @@ async function creerSalarie() {
     salarie.mdpHash = provisionResult.salarie.mdpHash || salarie.mdpHash;
   }
 
-  ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>document.getElementById(id).value='');
-  if (document.getElementById('nsal-poste')) document.getElementById('nsal-poste').value='';
-  if (document.getElementById('nsal-vehicule')) document.getElementById('nsal-vehicule').value='';
+  ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel','nsal-email',
+    'nsal-date-permis','nsal-date-assurance',
+    'nsal-fimo-numero','nsal-fimo-date-obt','nsal-fimo-date-exp',
+    'nsal-tachy-numero','nsal-tachy-date-exp',
+    'nsal-visite-date','nsal-visite-date-exp'
+  ].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
+  ['nsal-poste','nsal-vehicule','nsal-cat-permis','nsal-visite-aptitude'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const transportSec = document.getElementById('nsal-transport-section');
+  if (transportSec) transportSec.open = false;
   mettreAJourQualiteMdpSalarie('new');
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
@@ -8322,6 +8399,45 @@ function verifierDocumentsSalaries() {
           { salId:s.id, salNom:s.nom }
         );
       }
+    }
+    // BUG-041/045 : alertes FIMO/FCO, carte tachygraphe, visite médicale
+    // (sanctions DREAL / gendarmerie + responsabilité pénale employeur L121-1 C.pén.)
+    const docsExp = [
+      { key: 'fimo', dateStr: s.fimoFco?.dateExpiration, labelExp: 'FIMO/FCO expiré', labelProche: 'FIMO/FCO expire', seuil: 90 },
+      { key: 'tachy', dateStr: s.carteTachygraphe?.dateExpiration, labelExp: 'Carte tachygraphe expirée', labelProche: 'Carte tachygraphe expire', seuil: 60 },
+      { key: 'visite', dateStr: s.visiteMedicale?.dateExpiration, labelExp: 'Visite médicale expirée', labelProche: 'Visite médicale expire', seuil: 60 }
+    ];
+    docsExp.forEach(function(doc) {
+      if (!doc.dateStr) return;
+      const d = new Date(doc.dateStr);
+      d.setHours(0,0,0,0);
+      const diff = Math.ceil((d - auj) / (1000*60*60*24));
+      if (diff < 0) {
+        ajouterAlerteSiAbsente(
+          doc.key + '_expire_' + s.id,
+          '⚠️ ' + doc.labelExp + ' — ' + s.nom + ' (depuis ' + Math.abs(diff) + ' jour(s))',
+          { salId: s.id, salNom: s.nom }
+        );
+      } else if (diff === 0) {
+        ajouterAlerteSiAbsente(
+          doc.key + '_expire_' + s.id,
+          '⚠️ ' + doc.labelProche + ' AUJOURD\'HUI — ' + s.nom,
+          { salId: s.id, salNom: s.nom }
+        );
+      } else if (diff <= doc.seuil) {
+        ajouterAlerteSiAbsente(
+          doc.key + '_proche_' + s.id,
+          doc.labelProche + ' dans ' + diff + ' jour(s) — ' + s.nom + ' (' + doc.dateStr + ')',
+          { salId: s.id, salNom: s.nom }
+        );
+      }
+    });
+    if (s.visiteMedicale?.aptitude === 'inapte') {
+      ajouterAlerteSiAbsente(
+        'visite_inapte_' + s.id,
+        '🚨 Inaptitude médicale déclarée — ' + s.nom + ' · ne peut pas conduire',
+        { salId: s.id, salNom: s.nom }
+      );
     }
   });
 
