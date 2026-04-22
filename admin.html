@@ -2560,5 +2560,14 @@
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
   <script defer src="script.js?v=20260412-4"></script>
+  <script>
+    // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
+    // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>
