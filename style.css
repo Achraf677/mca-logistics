@@ -147,6 +147,8 @@ body.app-shell.app-booting .main-content {
   padding: 18px 16px 18px 12px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
 }
 
 .logo-icon {
@@ -171,10 +173,14 @@ body.app-shell.app-booting .main-content {
   background: #fff;
 }
 .logo-text {
-  font-size: 1.28rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--accent);
-  letter-spacing: .4px;
+  letter-spacing: .3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
 }
 
 .sidebar-nav {
@@ -1876,6 +1882,11 @@ body.light-mode .side-drawer-close:hover { background: rgba(231,76,60,.08); }
 .hero-sante.etat-moyen { background: linear-gradient(135deg, rgba(245,166,35,0.18), rgba(245,166,35,0.04)); border-color: rgba(245,166,35,0.35); }
 .hero-sante.etat-mauvais { background: linear-gradient(135deg, rgba(231,76,60,0.18), rgba(231,76,60,0.04)); border-color: rgba(231,76,60,0.35); }
 .hero-sante.etat-vide { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.08); }
+.hero-sante.etat-vide .sante-ring-fg { stroke: rgba(255,255,255,0.15); }
+.hero-sante.etat-vide .sante-ring-score { fill: rgba(255,255,255,0.3); font-size: 1.1rem; }
+.hero-sante.etat-vide .sante-ring-unit { fill: rgba(255,255,255,0.2); }
+.hero-sante.etat-vide .hero-sante-title { color: rgba(255,255,255,0.55); font-size: 1.25rem; }
+.hero-sante.etat-vide .hero-sante-detail { color: rgba(255,255,255,0.4); }
 
 .hero-sante.etat-bon .sante-ring-fg { stroke: #2ecc71; }
 .hero-sante.etat-moyen .sante-ring-fg { stroke: #f5a623; }
@@ -7907,6 +7918,9 @@ body.light-mode .s26-sc-delta.down { background: rgba(239,68,68,0.15); color: #d
 body.light-mode .s26-sc-delta.neutral { background: rgba(148,163,184,0.2); color: #64748b; }
 .s26-sc-prev { font-size: .72rem; color: #94a3b8; margin-top: 6px; }
 body.light-mode .s26-sc-prev { color: #64748b; }
+.s26-sc-card.s26-sc-empty .s26-sc-val { color: #64748b; font-weight: 600; }
+.s26-sc-card.s26-sc-empty .s26-sc-prev { font-style: italic; color: #64748b; opacity: .75; }
+body.light-mode .s26-sc-card.s26-sc-empty .s26-sc-val { color: #94a3b8; }
 
 /* ---- Inline edit double-clic ---- */
 [data-s26-edit] { cursor: cell; position: relative; transition: background .12s; }

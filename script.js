@@ -4668,25 +4668,29 @@ function rafraichirDashboard() {
     const seuilLabel = document.getElementById('kpi-seuil-label');
     if (!santeLabel) return;
 
-    let etat, couleur, detail;
+    let etat, couleur, detail, etatClass;
     if (beneficeVal > 0 && alertesVal === 0 && impayes === 0) {
-      etat = '🟢 Excellente santé'; couleur = 'rgba(39,174,96,0.35)';
+      etat = '🟢 Excellente santé'; couleur = 'rgba(39,174,96,0.35)'; etatClass = 'etat-bon';
       detail = `Marge positive · Aucune alerte · Aucun impayé`;
     } else if (beneficeVal > 0 && (alertesVal > 0 || impayes > 0)) {
-      etat = '🟢 Santé correcte'; couleur = 'rgba(46,204,113,0.15)';
+      etat = '🟢 Santé correcte'; couleur = 'rgba(46,204,113,0.15)'; etatClass = 'etat-bon';
       detail = `Bénéfice positif${alertesVal > 0 ? ` · ${alertesVal} alerte(s) à traiter` : ''}${impayes > 0 ? ` · ${euros(impayes)} impayés` : ''}`;
     } else if (beneficeVal <= 0 && caMoisVal > 0) {
-      etat = '🔴 Attention requise'; couleur = 'rgba(231,76,60,0.2)';
+      etat = '🔴 Attention requise'; couleur = 'rgba(231,76,60,0.2)'; etatClass = 'etat-mauvais';
       detail = `Bénéfice négatif ce mois · Vérifiez vos charges`;
     } else {
-      etat = '⚪ En attente de données'; couleur = 'rgba(255,255,255,0.05)';
+      etat = '⚪ En attente de données'; couleur = 'rgba(255,255,255,0.05)'; etatClass = 'etat-vide';
       detail = `Saisissez vos premières livraisons pour activer l'analyse`;
     }
 
     santeLabel.textContent = etat;
     if (santeDetail) santeDetail.textContent = detail;
     const carteEl = document.getElementById('kpi-sante-globale');
-    if (carteEl) carteEl.style.background = `linear-gradient(135deg,${couleur},rgba(0,0,0,0.02))`;
+    if (carteEl) {
+      carteEl.classList.remove('etat-bon', 'etat-moyen', 'etat-mauvais', 'etat-vide');
+      carteEl.classList.add(etatClass);
+      carteEl.style.background = '';
+    }
 
     const objectif = parseFloat(localStorage.getItem('objectif_ca_mensuel') || '0');
     if (seuilLabel && objectif > 0) {
@@ -21075,8 +21079,12 @@ genererRentabilitePDF = function() {
       const hubAlias = hubFromPage(id);
       if (hubAlias) { renderBandeau(hubAlias, id); majLiensActifs(hubAlias); }
     }
-    // Re-appliquer en cas d'injection tardive d'items nav
-    setInterval(() => { masquerAnciensLiens(); injecterNouveauxLiens(); }, 5000);
+    // PERF: ancien setInterval 5s remplacé par MutationObserver sur la sidebar
+    const sidebarEl = document.querySelector('.sidebar-nav') || document.querySelector('.sidebar');
+    if (sidebarEl) {
+      const sidebarObs = new MutationObserver(() => { masquerAnciensLiens(); injecterNouveauxLiens(); });
+      sidebarObs.observe(sidebarEl, { childList: true, subtree: true });
+    }
   }
   // PERF: exposé pour appel synchrone depuis le bootstrap principal (anti-FOUC sidebar)
   window.__s22InitSidebar = init;
@@ -22240,7 +22248,7 @@ genererRentabilitePDF = function() {
     const cur = calcStatsPeriode(mois);
     const prev = calcStatsPeriode(moisPrec);
     const delta = (a,b) => {
-      if (!b && !a) return { cls:'neutral', txt:'—' };
+      if (!b && !a) return { cls:'empty', txt:'' };
       if (!b) return { cls:'up', txt:'Nouveau' };
       const pct = ((a-b)/Math.abs(b))*100;
       const cls = pct > 1 ? 'up' : pct < -1 ? 'down' : 'neutral';
@@ -22266,12 +22274,12 @@ genererRentabilitePDF = function() {
       <div class="s26-sc-grid">
         ${rows.map(r => {
           const cls = r.inv ? (r.d.cls==='up'?'down':r.d.cls==='down'?'up':'neutral') : r.d.cls;
+          const isEmpty = r.d.cls === 'empty';
           return `
-            <div class="s26-sc-card">
+            <div class="s26-sc-card ${isEmpty ? 's26-sc-empty' : ''}">
               <div class="s26-sc-lbl">${r.lbl}</div>
               <div class="s26-sc-val">${r.fmt(r.a)}</div>
-              <div class="s26-sc-delta ${cls}">${r.d.txt}</div>
-              <div class="s26-sc-prev">M-1 : ${r.fmt(r.b)}</div>
+              ${isEmpty ? '<div class="s26-sc-prev">Aucune donnée sur la période</div>' : '<div class="s26-sc-delta '+cls+'">'+r.d.txt+'</div><div class="s26-sc-prev">M-1 · '+r.fmt(r.b)+'</div>'}
             </div>
           `;
         }).join('')}
@@ -22620,11 +22628,20 @@ genererRentabilitePDF = function() {
      ================================================================ */
   function init() {
     document.addEventListener('dblclick', onDblClickCell);
-    setTimeout(renderStatsComparees, 1200);
+    // PERF anti-FOUC: render synchrone des stats comparées (était setTimeout 1200ms
+    // → causait le flash "dashboard puis timeline apparaît 1s après")
+    renderStatsComparees();
+    injectParamsUI();
+    injecterBoutonSignature();
+    // Refresh périodique stats (M vs M-1) toutes les minutes (léger)
     setInterval(renderStatsComparees, 60*1000);
-    setTimeout(injectParamsUI, 1300);
-    setInterval(injectParamsUI, 4000);
-    setInterval(injecterBoutonSignature, 2500);
+    // PERF: anciens setInterval injectParamsUI 4s + injecterBoutonSignature 2.5s
+    // remplacés par MutationObserver — ne re-injecte que si le DOM mute vraiment
+    const reinjectObs = new MutationObserver(() => {
+      if (!document.getElementById('s26-params-card')) injectParamsUI();
+      injecterBoutonSignature();
+    });
+    reinjectObs.observe(document.body, { childList: true, subtree: true });
     // Re-render stats si localStorage mute
     window.addEventListener('storage', () => {
       const el = document.getElementById('s26-stats-comparees');
