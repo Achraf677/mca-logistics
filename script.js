@@ -12244,10 +12244,7 @@ function genererRapportMensuelPeriode() {
           '</tr>' +
         '</tfoot>' +
       '</table>' +
-      '<div style="margin-top:20px;padding:12px;background:#f8f9fc;border-radius:8px;font-size:.72rem;color:#6b7280;line-height:1.55">' +
-        '<strong style="color:#111827">Usage comptable :</strong> ce récapitulatif agrège les livraisons de la période pour rapprochement avec les factures émises. La ventilation TVA par taux correspond aux bases à reporter sur la déclaration CA3 (cases 01-05A selon taux). Import Pennylane possible via export CSV (bouton 📥 CSV).' +
-      '</div>' +
-      '<div style="margin-top:12px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Document généré par '+nomEntr+' le '+escape(dateExp)+'</div>' +
+      '<div style="margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Document généré par '+nomEntr+' le '+escape(dateExp)+'</div>' +
     '</div>';
 
   var win = ouvrirPopupSecure('','_blank','width=1100,height=750');
