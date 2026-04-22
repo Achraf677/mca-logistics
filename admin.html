@@ -696,10 +696,8 @@
           <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
             <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
               🩺 Suivi médical du travail
-              <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(visite d'embauche R.4624-10)</span>
             </summary>
             <div style="padding:14px;border-top:1px solid var(--border)">
-              <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:10px">Visite médicale d'aptitude (médecine du travail)</div>
               <div class="form-grid">
                 <div class="form-group"><label>Date dernière visite</label><input type="date" id="nsal-visite-date" /></div>
                 <div class="form-group"><label>Aptitude</label>
@@ -795,8 +793,6 @@
         <div class="card params-card-wide">
           <div class="card-header"><h2>🏢 Informations entreprise</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Ces informations apparaissent sur les factures, lettres de voiture et documents PDF. Les mentions légales sont générées automatiquement conformément au CGI art. 242 nonies A et au Code de commerce R.123-237.</p>
-
             <div class="form-section-title" style="margin-bottom:10px">📇 Identification</div>
             <div class="form-grid">
               <div class="form-group full-width"><label>Dénomination sociale *</label><input type="text" id="param-nom-entreprise" placeholder="ex : MCA LOGISTICS" /></div>
@@ -815,11 +811,11 @@
                 </select>
               </div>
               <div class="form-group"><label>Nom du dirigeant / admin</label><input type="text" id="param-nom-admin" placeholder="Votre nom" /></div>
-              <div class="form-group"><label>SIRET *</label><input type="text" id="param-siret" placeholder="14 chiffres (laissez vide si en cours)" maxlength="14" inputmode="numeric" /></div>
+              <div class="form-group"><label>SIRET</label><input type="text" id="param-siret" placeholder="14 chiffres" maxlength="14" inputmode="numeric" /></div>
               <div class="form-group"><label>Code APE / NAF</label><input type="text" id="param-code-ape" placeholder="ex : 5229B" maxlength="5" /></div>
               <div class="form-group"><label>N° TVA intracommunautaire</label><input type="text" id="param-tva-intracom" placeholder="FR + 11 chiffres" maxlength="13" style="text-transform:uppercase" /></div>
               <div class="form-group"><label>RCS (ville)</label><input type="text" id="param-rcs-ville" placeholder="ex : Strasbourg" /></div>
-              <div class="form-group"><label>N° RCS</label><input type="text" id="param-rcs-numero" placeholder="Laisser vide si en cours d'immatriculation" /></div>
+              <div class="form-group"><label>N° RCS</label><input type="text" id="param-rcs-numero" placeholder="Après immatriculation" /></div>
               <div class="form-group"><label>Capital social (€)</label><input type="number" id="param-capital" placeholder="ex : 7200" min="0" step="0.01" /></div>
               <div class="form-group"><label>Capital libéré (€)</label><input type="number" id="param-capital-libere" placeholder="ex : 3600" min="0" step="0.01" /></div>
             </div>
@@ -834,15 +830,14 @@
               <div class="form-group"><label>Email</label><input type="email" id="param-email" placeholder="Email de contact" /></div>
             </div>
 
-            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">🚛 Transport routier léger (≤3,5t PTAC)</div>
-            <p style="color:var(--text-muted);font-size:.78rem;margin-bottom:10px">Conformément au Règlement (CE) 1071/2009 et L.3211-1 Code des transports, l'accès à la profession de transporteur public routier léger nécessite une licence délivrée par la DREAL.</p>
+            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">🚛 Transport routier léger</div>
             <div class="form-grid">
-              <div class="form-group"><label>N° Licence Transport Intérieur léger (LTI)</label><input type="text" id="param-lti-numero" placeholder="Attribué par la DREAL après autorisation" /></div>
+              <div class="form-group"><label>N° Licence Transport Intérieur léger (LTI)</label><input type="text" id="param-lti-numero" /></div>
               <div class="form-group"><label>Date émission LTI</label><input type="date" id="param-lti-date-emission" /></div>
               <div class="form-group"><label>Date expiration LTI (10 ans)</label><input type="date" id="param-lti-date-expiration" /></div>
               <div class="form-group"><label>N° dossier DREAL</label><input type="text" id="param-dreal-dossier" placeholder="ex : 2026-15119" /></div>
               <div class="form-group"><label>N° inscription registre transporteurs</label><input type="text" id="param-registre-transporteurs" placeholder="Section transporteurs légers" /></div>
-              <div class="form-group"><label>Gestionnaire de transport</label><input type="text" id="param-gestionnaire-nom" placeholder="Nom et prénom (art. 4 Règl. CE 1071/2009)" /></div>
+              <div class="form-group"><label>Gestionnaire de transport</label><input type="text" id="param-gestionnaire-nom" placeholder="Nom et prénom" /></div>
               <div class="form-group"><label>N° attestation capacité professionnelle</label><input type="text" id="param-capacite-pro-numero" placeholder="Capacité transport léger — titulaire : gestionnaire" /></div>
               <div class="form-group"><label>Date obtention capacité</label><input type="date" id="param-capacite-pro-date" /></div>
             </div>
@@ -863,7 +858,6 @@
         <div class="card">
           <div class="card-header"><h2>🖼️ Identité visuelle</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Personnalisez le logo affiché dans l’application et l’icône de l’onglet navigateur.</p>
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
               <div id="param-logo-preview" style="width:72px;height:72px;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:2rem">🚐</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -881,7 +875,6 @@
         <div class="card">
           <div class="card-header"><h2>🏷️ Postes / Fonctions</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:12px">Définissez les postes disponibles. Ils seront proposés lors de la création d'un salarié et dans les filtres messagerie.</p>
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
               <input type="text" id="nouveau-poste" placeholder="Ajouter un poste ou une fonction" autocomplete="off" style="flex:1;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:.88rem;font-family:inherit" onkeydown="if(event.key==='Enter')ajouterPoste()" />
@@ -987,7 +980,6 @@
         <div class="card params-card-wide">
           <div class="card-header"><h2>📜 Journal d'audit</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Historique des actions sensibles de gestion : modifications, suppressions, exports et validations métier.</p>
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
               <button class="btn-secondary" onclick="exporterJournalAuditCSV()">📥 Export CSV</button>
               <button class="btn-secondary" onclick="viderJournalAudit()">🗑️ Vider</button>
@@ -1004,7 +996,6 @@
         <div class="card">
           <div class="card-header"><h2>💾 Sauvegarde & restauration</h2></div>
           <div class="modal-body">
-            <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:14px">Télécharge une sauvegarde complète des données admin, puis restaure-la sur le même navigateur si besoin.</p>
             <div class="param-backup-stats" id="param-backup-stats">
               <div class="param-backup-stat"><span>Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
             </div>
@@ -1525,7 +1516,7 @@
           <div class="form-group"><label>SIREN client</label>
             <input type="text" id="liv-client-siren" placeholder="9 chiffres" maxlength="9" inputmode="numeric" autocomplete="off" />
           </div>
-          <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" placeholder="Zone g&eacute;ographique" /></div>
+          <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" /></div>
           <input type="hidden" id="liv-depart" />
           <input type="hidden" id="liv-arrivee" />
           <div class="form-group"><label>Distance (km)</label>
@@ -1597,7 +1588,7 @@
               <div class="form-group"><label>Volume (m³)</label><input type="number" id="liv-marchandise-volume" min="0" step="0.01" placeholder="ex : 12.5" /></div>
               <div class="form-group"><label>Nombre de colis</label><input type="number" id="liv-marchandise-colis" min="0" step="1" placeholder="ex : 8" /></div>
             </div>
-            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Matières dangereuses (ADR 2025)</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Matières dangereuses</div>
             <div class="form-grid">
               <div class="form-group"><label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer"><input type="checkbox" id="liv-adr-est" onchange="document.getElementById('liv-adr-details').style.display=this.checked?'grid':'none'" /><span>Transport ADR (matières dangereuses)</span></label></div>
               <div class="form-grid full-width" id="liv-adr-details" style="display:none;grid-column:1/-1">
@@ -1679,8 +1670,7 @@
           <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
           <div class="form-group">
             <label>N° compte client (compta) *</label>
-            <input type="text" id="cl-compte-compta" placeholder="411000 (auto-incrémenté)" />
-            <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px">Auto-incrément depuis 411000 — doit être unique</div>
+            <input type="text" id="cl-compte-compta" placeholder="411000" />
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
@@ -1802,13 +1792,13 @@
           <div class="form-group"><label>Date Contrôle Technique</label><input type="date" id="veh-date-ct" /></div>
           <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" /></div>
           <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" /></div>
-          <div class="form-group"><label>TVA carburant déductible (%) <span style="color:var(--text-muted);font-size:0.78rem">(auto si genre défini)</span></label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
+          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
           <div class="form-group full-width"><label>Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
         <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
         <details id="veh-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
           <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
-            🚚 Données flotte & conformité <span style="color:var(--text-muted);font-size:0.78rem;font-weight:400">(genre, PTAC, Crit'Air, VIN)</span>
+            🚚 Données flotte & conformité
           </summary>
           <div style="padding:14px;border-top:1px solid var(--border)">
             <div class="form-grid">
@@ -1854,16 +1844,11 @@
               <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
               <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
             </div>
-            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte (art. L211-1 Code assurances — obligatoire)</div>
+            <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte</div>
             <div class="form-grid">
               <div class="form-group"><label>Compagnie d'assurance</label><input type="text" id="veh-assurance-compagnie" placeholder="ex : AXA, MAIF, Allianz..." /></div>
               <div class="form-group"><label>N° contrat / carte verte</label><input type="text" id="veh-assurance-numero" placeholder="N° de police" /></div>
               <div class="form-group"><label>Date expiration carte verte</label><input type="date" id="veh-assurance-date-exp" /></div>
-            </div>
-            <div style="margin-top:12px;font-size:0.78rem;color:var(--text-muted);line-height:1.55">
-              💡 La TVA carburant déductible est calculée automatiquement selon le genre :
-              VP Diesel = 80 %, VP Essence = 80 %, VU/Camion/Tracteur Diesel = 100 %,
-              Essence = 100 %, GPL/GNV = 100 %, Électrique = 100 % (CGI art. 298-4).
             </div>
           </div>
         </details>
