@@ -2614,31 +2614,20 @@
     </div>
   </div>
 
-  <!-- Sprint 12.1 : Réinitialisation compteur factures -->
+  <!-- Réinitialisation compteur livraisons (test uniquement) -->
   <div class="modal-overlay" id="modal-reset-compteur">
     <div class="modal">
-      <div class="modal-header"><h3>🧹 Réinitialiser compteurs (LIV + FAC + ACP)</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3>🧹 Réinitialiser le compteur de livraisons</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
-          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible et fiscalement sensible</div>
+          <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
           <div style="font-size:0.85rem;color:var(--text-muted);line-height:1.5">
-            Cette action va <strong>supprimer toutes les factures, acomptes et/ou bons de livraison</strong> (y compris annulés), purger les avoirs/paiements liés, et remettre les compteurs à zéro (FAC, ACP, LIV).<br><br>
-            <strong>N'utilise JAMAIS en production</strong>. Uniquement en phase de test, avant toute première vraie facturation. En cas de contrôle fiscal, l'absence d'historique peut être sanctionnée (CGI art. 289 — numérotation chronologique continue).
+            Cette action va <strong>supprimer toutes les livraisons enregistrées</strong> et remettre le compteur LIV à 0.<br><br>
+            <strong>À utiliser uniquement en phase de test</strong>, avant toute exploitation réelle.
           </div>
         </div>
         <div class="form-group">
-          <label>Options :</label>
-          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer">
-            <input type="checkbox" id="reset-include-livraisons" checked />
-            <span>Supprimer aussi les bons de livraison (remet compteur LIV à 0)</span>
-          </label>
-          <label style="display:flex;align-items:center;gap:8px;font-weight:normal;cursor:pointer;margin-top:6px">
-            <input type="checkbox" id="reset-include-acomptes" checked />
-            <span>Supprimer aussi les acomptes clients (remet compteur ACP à 0)</span>
-          </label>
-        </div>
-        <div class="form-group">
-          <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET FACTURES</strong></label>
+          <label>Pour confirmer, tape exactement : <strong id="reset-compteur-code">RESET LIVRAISONS</strong></label>
           <input type="text" id="reset-compteur-input" placeholder="Recopie la phrase ci-dessus" autocomplete="off" oninput="majBoutonResetCompteur()" />
         </div>
       </div>

@@ -20934,13 +20934,7 @@ genererRentabilitePDF = function() {
     section.className = 'settings-section';
     section.innerHTML = `
       <h2 style="margin-top:32px">⚙️ Automatisations</h2>
-      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Règles qui tournent en arrière-plan. Désactivez une règle pour reprendre la main manuellement.</p>
-      <div class="s24-toggles">
-        ${renderToggle('auto_rappel_j5', '⏰ Rappel J-5 sur échéances', 'Crée une alerte admin quand une facture arrive à échéance dans 5 jours', true)}
-        ${renderToggle('auto_escalade_relances', '🔔 Escalade relances automatique', 'Propose la relance niv. suivant selon délais écoulés (niv 0→1 : J+7, niv 1→2 : J+7, niv 2→3 : J+10, niv 3→contentieux : J+15)', true)}
-        ${renderToggle('auto_cloture_factures', '✅ Clôture auto facture payée', 'Passe le statut à "payée" dès que le solde atteint 0 €', true)}
-        ${renderToggle('auto_facture_livraison', '📄 Facture auto à clôture livraison', 'Génère une facture dès qu une livraison passe en statut livré', false)}
-      </div>
+      <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Règles qui tournent en arrière-plan côté MCA. Les automatisations de facturation / relance / clôture sont gérées par Pennylane.</p>
       <h3 style="margin-top:24px">📅 Décalage férié / weekend</h3>
       <p style="color:var(--text-muted);font-size:.88rem">Les nouvelles échéances créées sont automatiquement repoussées au prochain jour ouvré (hors weekends et jours fériés FR).</p>
       <h3 style="margin-top:24px">⌨️ Raccourcis clavier</h3>
