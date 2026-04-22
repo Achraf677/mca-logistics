@@ -8675,6 +8675,19 @@ function ajouterClient() {
     creeLe: new Date().toISOString()
   });
   localStorage.setItem('clients', JSON.stringify(clients));
+  // Re-synchroniser le form livraison si création depuis modale livraison
+  const venantDeLivraison = window.__livClientContextNom !== undefined;
+  if (venantDeLivraison) {
+    const livClient = document.getElementById('liv-client');
+    if (livClient) livClient.value = nom;
+    const livSiren = document.getElementById('liv-client-siren');
+    if (livSiren && siren) livSiren.value = siren;
+    const livZone = document.getElementById('liv-zone');
+    if (livZone && adresse && !livZone.value) livZone.value = adresse;
+    const livDep = document.getElementById('liv-depart');
+    if (livDep && adresse && !livDep.value) livDep.value = adresse;
+    delete window.__livClientContextNom;
+  }
   ['cl-nom','cl-prenom','cl-tel','cl-email','cl-adresse','cl-cp','cl-ville','cl-siren','cl-tva-intra','cl-email-fact','cl-notes']
     .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const delaiEl = document.getElementById('cl-delai-paiement'); if (delaiEl) delaiEl.value = '30';
@@ -8682,9 +8695,11 @@ function ajouterClient() {
   if (window.toggleChampsClientPro) window.toggleChampsClientPro(false);
   const warnBox = document.getElementById('cl-doublons-warning'); if (warnBox) { warnBox.style.display='none'; warnBox.innerHTML=''; }
   closeModal('modal-client');
-  afficherClients();
+  if (!venantDeLivraison) afficherClients();
   ajouterEntreeAudit('Création client', nom + (email ? ' · ' + email : '') + (siren ? ' · SIREN ' + siren : ''));
-  afficherToast('✅ Client ajouté');
+  afficherToast(venantDeLivraison
+    ? '✅ Client « ' + nom + ' » créé et lié à la livraison en cours'
+    : '✅ Client ajouté');
 }
 
 async function supprimerClient(id) {
@@ -8713,13 +8728,63 @@ function preFillLivraisonClient(id) {
   },100);
 }
 
-/* Auto-complétion client dans modal livraison */
+/* Auto-complétion client dans modal livraison + création à la volée */
 function autoCompleteClient(val) {
-  const clients = loadSafe('clients', []);
   const sug = document.getElementById('client-suggestions');
-  if (!sug || !val || val.length < 2) { if(sug) sug.innerHTML=''; return; }
-  const matches = clients.filter(c=>c.nom.toLowerCase().includes(val.toLowerCase())).slice(0,5);
-  sug.innerHTML = matches.map(c=>`<div onclick="document.getElementById('liv-client').value='${c.nom}';if(document.getElementById('liv-zone')&&'${c.adresse}')document.getElementById('liv-zone').value='${c.adresse}';if(document.getElementById('liv-depart')&&'${c.adresse}')document.getElementById('liv-depart').value='${c.adresse}';if(document.getElementById('liv-arrivee'))document.getElementById('liv-arrivee').value='';this.parentElement.innerHTML=''" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${c.nom}${c.adresse?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${c.adresse}</span>`:''}</div>`).join('');
+  if (!sug) return;
+  const terme = (val || '').trim();
+  if (terme.length < 2) { sug.innerHTML = ''; return; }
+  const clients = loadSafe('clients', []);
+  const termeLc = terme.toLowerCase();
+  const matches = clients.filter(c => (c.nom || '').toLowerCase().includes(termeLc)).slice(0, 5);
+  const matchExact = clients.some(c => (c.nom || '').toLowerCase() === termeLc);
+  const htmlMatches = matches.map(c => {
+    const nomAttr = escapeAttr(c.nom || '');
+    const adrAttr = escapeAttr(c.adresse || '');
+    const nomHtml = escapeHtml(c.nom || '');
+    const adrHtml = escapeHtml(c.adresse || '');
+    return `<div onclick="selectionnerClientLivraison('${nomAttr}','${adrAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
+  }).join('');
+  const htmlCreate = matchExact ? '' : `<div onclick="ouvrirCreationClientDepuisLivraison('${escapeAttr(terme)}')" style="padding:9px 12px;cursor:pointer;font-size:.88rem;color:#4ade80;font-weight:600;background:rgba(74,222,128,.08);border-top:1px solid var(--border)" onmouseover="this.style.background='rgba(74,222,128,.18)'" onmouseout="this.style.background='rgba(74,222,128,.08)'">+ Créer « ${escapeHtml(terme)} » comme nouveau client</div>`;
+  sug.innerHTML = htmlMatches + htmlCreate;
+}
+
+function selectionnerClientLivraison(nom, adresse) {
+  const livClient = document.getElementById('liv-client');
+  if (livClient) livClient.value = nom;
+  const livZone = document.getElementById('liv-zone');
+  if (livZone && adresse) livZone.value = adresse;
+  const livDep = document.getElementById('liv-depart');
+  if (livDep && adresse) livDep.value = adresse;
+  const livArr = document.getElementById('liv-arrivee');
+  if (livArr) livArr.value = '';
+  const sug = document.getElementById('client-suggestions');
+  if (sug) sug.innerHTML = '';
+  try {
+    const clients = loadSafe('clients', []);
+    const match = clients.find(c => (c.nom || '').toLowerCase() === String(nom || '').toLowerCase());
+    if (match) {
+      const livSiren = document.getElementById('liv-client-siren');
+      if (livSiren && !livSiren.value && match.siren) livSiren.value = match.siren;
+    }
+  } catch (_) {}
+}
+
+function ouvrirCreationClientDepuisLivraison(nom) {
+  window.__livClientContextNom = nom;
+  const sug = document.getElementById('client-suggestions');
+  if (sug) sug.innerHTML = '';
+  openModal('modal-client');
+  setTimeout(function() {
+    const clNom = document.getElementById('cl-nom');
+    if (clNom) {
+      clNom.value = nom;
+      try { clNom.focus(); } catch (_) {}
+      if (typeof window.detecterDoublonsClient === 'function') {
+        try { window.detecterDoublonsClient(false); } catch (_) {}
+      }
+    }
+  }, 80);
 }
 
 /* ===== COPIER PLANNING SEMAINE PRÉCÉDENTE ===== */
