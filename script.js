@@ -4339,9 +4339,26 @@ function rafraichirDashboard() {
   const charges    = charger('charges');
   const salaries   = charger('salaries');
   const auj = aujourdhui(), mois = auj.slice(0,7), sem = getSemaineDebut();
-  const monthRange = budgetGetMonthlyRange(mois);
-  const budgetData = budgetGetMonthlyVariation(mois);
+  // H7 fix : budgetGetMonthlyRange/Variation supprimés avec le module Budget.
+  // Remplacés par un calcul inline minimal pour les KPIs dashboard.
+  const monthRange = { debut: mois + '-01', fin: mois + '-31' };
   const tvaSummary = getTVASummaryForRange(monthRange);
+  const chargesMois = charger('charges').filter(c => (c.date || '').startsWith(mois));
+  const carbMoisAll = (charger('carburant') || []).filter(p => (p.date || '').startsWith(mois));
+  const totalMontantHT = (arr) => arr.reduce((s, it) => {
+    const ht = parseFloat(it.montantHT);
+    if (Number.isFinite(ht)) return s + ht;
+    const ttc = parseFloat(it.montant) || 0;
+    const taux = parseFloat(it.tauxTVA) || 0;
+    return s + ttc / (1 + taux / 100);
+  }, 0);
+  const budgetData = {
+    totalCarb: totalMontantHT(carbMoisAll) + totalMontantHT(chargesMois.filter(c => c.categorie === 'carburant')),
+    totalEntr: totalMontantHT(chargesMois.filter(c => c.categorie === 'entretien')),
+    totalSalaires: totalMontantHT(chargesMois.filter(c => c.categorie === 'salaires')),
+    totalCharg: totalMontantHT(chargesMois.filter(c => c.categorie !== 'carburant' && c.categorie !== 'entretien' && c.categorie !== 'salaires')),
+    totalDepHorsTVA: totalMontantHT(chargesMois) + totalMontantHT(carbMoisAll)
+  };
   const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(mois));
   const livsAuj = livraisons.filter(l => l.date===auj);
   const caJour   = livsAuj.reduce((s,l)=>s+getMontantHTLivraison(l),0);
