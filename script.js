@@ -4329,6 +4329,22 @@ async function viderAlertes() {
   afficherAlertes(); afficherToast('🗑️ Historique effacé');
 }
 
+/* ===== Chart.js lazy loader — charge 197KB uniquement au premier graphique ===== */
+let _chartJsPromise = null;
+function ensureChartJs() {
+  if (typeof Chart !== 'undefined') return Promise.resolve();
+  if (_chartJsPromise) return _chartJsPromise;
+  _chartJsPromise = new Promise(function(resolve, reject) {
+    const s = document.createElement('script');
+    s.src = 'chart.min.js';
+    s.async = false;
+    s.onload = function() { resolve(); };
+    s.onerror = function() { _chartJsPromise = null; reject(new Error('Chart.js load failed')); };
+    document.head.appendChild(s);
+  });
+  return _chartJsPromise;
+}
+
 /* ===== HELPERS CHART.JS — gradient fill + animations smooth partagés ===== */
 function mcaChartGradient(canvas, colorHex, opacityTop, opacityBottom) {
   if (!canvas) return colorHex;
@@ -4383,6 +4399,8 @@ function mcaChartBaseOptions(isLight, extra) {
 /* ===== DASHBOARD ===== */
 let chartActivite = null;
 function rafraichirDashboard() {
+  // PERF: lazy Chart.js — si pas encore chargé, on rappelle la fonction après chargement
+  if (typeof Chart === 'undefined') { ensureChartJs().then(rafraichirDashboard).catch(() => {}); return; }
   const isLight = document.body.classList.contains('light-mode');
   const chartTickColor = isLight ? '#334155' : '#e2e8f0';
   const chartGridColor = isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)';
@@ -4692,6 +4710,7 @@ function navRentMois(delta) {
   afficherRentabilite();
 }
 function afficherRentabilite() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherRentabilite).catch(() => {}); return; }
   let livraisons=charger('livraisons'), pleins=charger('carburant'), entretiens=charger('entretiens'), charges=charger('charges');
   const range = getRentMoisRange();
   livraisons = livraisons.filter(l=>l.date>=range.debut&&l.date<=range.fin);
@@ -4788,6 +4807,7 @@ function changerVueStats(mode) { changeSimplePeriode(_statsPeriode, mode, affich
 function navStatsPeriode(delta) { navSimplePeriode(_statsPeriode, delta, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
 function reinitialiserStatsPeriode() { resetSimplePeriode(_statsPeriode, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
 function afficherStatistiques() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherStatistiques).catch(() => {}); return; }
   const isLight = document.body.classList.contains('light-mode');
   const tickColor = isLight ? '#555' : '#7c8299';
   const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
@@ -4909,6 +4929,7 @@ function afficherStatistiques() {
 /* ===== PRÉVISIONS ===== */
 let chartPrev=null;
 function calculerPrevision() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
   const livraisons = charger('livraisons');
   const carburant  = charger('carburant');
   const charges    = charger('charges');
@@ -12504,6 +12525,7 @@ ajouterPeriodeAbsence = function() {
 };
 
 afficherRentabilite = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherRentabilite).catch(() => {}); return; }
   let livraisons = charger('livraisons'), pleins = charger('carburant'), entretiens = charger('entretiens'), charges = charger('charges');
   const range = getRentMoisRange();
   livraisons = livraisons.filter(l => l.date >= range.debut && l.date <= range.fin);
@@ -12543,6 +12565,7 @@ afficherRentabilite = function() {
 };
 
 afficherStatistiques = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherStatistiques).catch(() => {}); return; }
   const isLight = document.body.classList.contains('light-mode');
   const tickColor = isLight ? '#334155' : '#e2e8f0';
   const gridColor = isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)';
@@ -12872,6 +12895,7 @@ labelStatutLivraison = function(statut) {
 };
 
 calculerPrevision = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
   const livraisons = charger('livraisons');
   const carburant = charger('carburant');
   const charges = charger('charges');
@@ -13071,6 +13095,7 @@ labelStatutLivraison = function(statut) {
 };
 
 calculerPrevision = function() {
+  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
   const livraisons = charger('livraisons');
   const carburant = charger('carburant');
   const charges = charger('charges');
@@ -19474,8 +19499,22 @@ genererRentabilitePDF = function() {
 
   function init() {
     scan();
-    // Rescan périodique : certaines tables sont créées dynamiquement
-    setInterval(scan, 2500);
+    // PERF: remplacement du setInterval(scan, 2500) par MutationObserver
+    // event-driven — ne scanne que lorsqu'un node est ajouté au DOM
+    const domWatcher = new MutationObserver(function(muts) {
+      for (let i = 0; i < muts.length; i++) {
+        const added = muts[i].addedNodes;
+        if (!added || !added.length) continue;
+        for (let j = 0; j < added.length; j++) {
+          const node = added[j];
+          if (node && node.nodeType === 1 && (node.matches && node.matches('table.data-table') || node.querySelector && node.querySelector('table.data-table'))) {
+            scan();
+            return;
+          }
+        }
+      }
+    });
+    domWatcher.observe(document.body, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 250);
@@ -20418,8 +20457,8 @@ genererRentabilitePDF = function() {
     }, 600);
     // Re-génération périodique (5 min)
     setInterval(() => { try { genererAlertesRH(); } catch(e){} }, 5 * 60 * 1000);
-    // Re-injection périodique au cas où un observer aurait raté (pagination, etc.)
-    setInterval(injecterBoutons360, 3000);
+    // PERF: setInterval 3s retiré — setupObservers() via MutationObserver
+    // couvre déjà l'injection des boutons sur insertions dynamiques (pagination incluse)
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 900);
@@ -20839,7 +20878,7 @@ genererRentabilitePDF = function() {
       setupObservers();
     }, 700);
     setInterval(() => { try { genererAlertesParc(); } catch(e){} }, 5 * 60 * 1000);
-    setInterval(injecterBoutons360, 3000);
+    // PERF: setInterval 3s retiré — setupObservers() via MutationObserver suffit
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 1000);

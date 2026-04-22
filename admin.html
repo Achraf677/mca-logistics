@@ -7,6 +7,8 @@
   <title>MCA Logistics — Gestion Livraison</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="style.css?v=20260412-3">
+  <link rel="preload" as="script" href="script.js?v=20260412-4">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -20,7 +22,7 @@
     body.app-shell:not(.app-booting) { transition: opacity .25s ease; }
   </style>
   <link rel="stylesheet" href="style.css?v=20260412-3" />
-  <script defer src="chart.min.js"></script>
+  <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
 <body class="app-shell app-booting">
@@ -2557,6 +2559,6 @@
   <script defer src="security-utils.js?v=20260412-2"></script>
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
-  <script defer src="script.js?v=20260412-2"></script>
+  <script defer src="script.js?v=20260412-4"></script>
 </body>
 </html>
