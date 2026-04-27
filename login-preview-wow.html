@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MCA Logistics — Aperçu refonte (WOW)</title>
+  <title>MCA Logistics — Aperçu refonte (3 variantes)</title>
   <style>
     :root {
       --bg: #0d1524;
@@ -22,7 +22,6 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-
     html, body { height: 100%; }
 
     body {
@@ -42,16 +41,18 @@
       position: relative;
     }
 
-    /* Particules / orbes flottantes (background animé) */
+    /* ========== ORBES FLOTTANTES (variante Wow uniquement) ========== */
     .orb {
       position: fixed;
       border-radius: 50%;
       filter: blur(80px);
-      opacity: 0.55;
+      opacity: 0;
       pointer-events: none;
       z-index: 0;
       animation: float 16s ease-in-out infinite;
+      transition: opacity 0.4s ease;
     }
+    body.variant-wow .orb { opacity: 0.55; }
     .orb.o1 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(242,163,59,0.45), transparent 70%); top: -120px; left: -100px; animation-delay: 0s; }
     .orb.o2 { width: 360px; height: 360px; background: radial-gradient(circle, rgba(76,140,245,0.38), transparent 70%); bottom: -80px; right: -80px; animation-delay: -6s; }
     .orb.o3 { width: 260px; height: 260px; background: radial-gradient(circle, rgba(242,163,59,0.22), transparent 70%); top: 50%; left: 60%; animation-delay: -3s; }
@@ -62,22 +63,28 @@
       66% { transform: translate(-30px, 25px) scale(0.96); }
     }
 
+    /* ========== SHELL ========== */
     .shell {
       position: relative;
       z-index: 2;
       width: min(620px, 100%);
       display: grid;
       grid-template-columns: 1fr;
-      background:
-        linear-gradient(180deg, rgba(13, 21, 36, 0.62), rgba(8, 14, 23, 0.82));
-      border: 1px solid;
-      border-image: linear-gradient(135deg, rgba(242,163,59,0.45), rgba(76,140,245,0.30) 50%, rgba(255,255,255,0.10)) 1;
+      background: linear-gradient(180deg, rgba(13, 21, 36, 0.62), rgba(8, 14, 23, 0.82));
+      border: 1px solid var(--border);
       border-radius: var(--radius-xl);
       overflow: hidden;
       box-shadow: var(--shadow);
+      animation: shellIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    /* Glassmorphism marqué : variantes Équilibrée + Wow */
+    body.variant-equilibree .shell,
+    body.variant-wow .shell {
       backdrop-filter: blur(24px) saturate(140%);
       -webkit-backdrop-filter: blur(24px) saturate(140%);
-      animation: shellIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+      border: 1px solid;
+      border-image: linear-gradient(135deg, rgba(242,163,59,0.45), rgba(76,140,245,0.30) 50%, rgba(255,255,255,0.10)) 1;
     }
 
     @keyframes shellIn {
@@ -96,7 +103,7 @@
       overflow: hidden;
     }
 
-    /* Halo lumineux pulsant derrière le logo */
+    /* ========== HALO PULSANT (toutes variantes — c'est le centre de gravité du logo) ========== */
     .hero::before {
       content: "";
       position: absolute;
@@ -125,7 +132,6 @@
       animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
     }
 
-    /* Logo "officiel" : grand, sans cadre. Ici on simule avec un SVG MCA */
     .brand-logo {
       width: min(360px, 70%);
       height: auto;
@@ -153,11 +159,18 @@
     .auth-head h2 {
       font-size: 1.65rem;
       margin-bottom: 0;
+      letter-spacing: -0.01em;
+      color: #ffffff;
+    }
+
+    /* Gradient titre : variantes Équilibrée + Wow */
+    body.variant-equilibree .auth-head h2,
+    body.variant-wow .auth-head h2 {
       background: linear-gradient(90deg, #ffffff 0%, #ffd49e 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-      letter-spacing: -0.01em;
+      color: transparent;
     }
 
     .field {
@@ -199,13 +212,8 @@
       background: rgba(4, 9, 17, 0.85);
     }
 
-    .password-wrap {
-      position: relative;
-    }
-
-    .password-wrap input {
-      padding-right: 60px;
-    }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 60px; }
 
     .toggle-password {
       position: absolute;
@@ -224,6 +232,7 @@
     }
     .toggle-password:hover { background: rgba(242,163,59,0.08); color: var(--accent); }
 
+    /* ========== BOUTON SUBMIT ========== */
     .submit {
       width: 100%;
       padding: 15px 18px;
@@ -242,28 +251,33 @@
       position: relative;
       overflow: hidden;
       isolation: isolate;
-      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
-      background-size: 200% 100%;
-      box-shadow:
-        0 18px 38px rgba(242, 163, 59, 0.32),
-        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 18px 30px rgba(242, 163, 59, 0.22);
       transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.6s ease;
       animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.60s both;
     }
 
     .submit:hover {
       transform: translateY(-2px);
+      box-shadow: 0 24px 50px rgba(242, 163, 59, 0.35);
+    }
+
+    /* Gradient animé bouton : variante Wow uniquement */
+    body.variant-wow .submit {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
+      background-size: 200% 100%;
+      box-shadow:
+        0 18px 38px rgba(242, 163, 59, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+    body.variant-wow .submit:hover {
+      background-position: 100% 0;
       box-shadow:
         0 24px 50px rgba(242, 163, 59, 0.45),
         inset 0 1px 0 rgba(255, 255, 255, 0.4);
-      background-position: 100% 0;
     }
 
-    .submit:active {
-      transform: translateY(0);
-    }
-
-    /* Reflet brillant qui traverse le bouton */
+    /* Reflet brillant qui traverse : variantes Équilibrée + Wow */
     .submit::before {
       content: "";
       position: absolute;
@@ -273,12 +287,14 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
       transition: left 0.7s ease;
       z-index: -1;
+      opacity: 0;
     }
-    .submit:hover::before {
-      left: 130%;
-    }
+    body.variant-equilibree .submit::before,
+    body.variant-wow .submit::before { opacity: 1; }
+    body.variant-equilibree .submit:hover::before,
+    body.variant-wow .submit:hover::before { left: 130%; }
 
-    /* Messages d'erreur restylés (icône + shake) */
+    /* ========== MESSAGES (icônes + animations) — toutes variantes ========== */
     .error-msg, .status-msg {
       display: none;
       margin-top: 16px;
@@ -340,34 +356,49 @@
       30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
       40%, 60% { transform: translate3d(4px, 0, 0); }
     }
-
     @keyframes slideDown {
       from { opacity: 0; transform: translateY(-6px); }
       to { opacity: 1; transform: translateY(0); }
     }
-
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(14px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Bandeau démo en haut */
-    .demo-banner {
+    /* ========== SÉLECTEUR DE VARIANTE (en haut, fixe) ========== */
+    .variant-selector {
       position: fixed;
       top: 14px;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 99;
+      z-index: 100;
+      display: flex;
+      gap: 6px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(13, 21, 36, 0.85);
+      border: 1px solid rgba(242, 163, 59, 0.30);
+      backdrop-filter: blur(10px);
+    }
+    .variant-selector button {
       padding: 8px 16px;
       border-radius: 999px;
-      background: rgba(242, 163, 59, 0.15);
-      border: 1px solid rgba(242, 163, 59, 0.40);
-      color: #ffd49e;
+      background: transparent;
+      border: none;
+      color: var(--muted);
       font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-      backdrop-filter: blur(10px);
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .variant-selector button:hover { color: var(--accent); }
+    .variant-selector button.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #121212;
+      box-shadow: 0 4px 14px rgba(242, 163, 59, 0.40);
     }
 
     .demo-buttons {
@@ -389,15 +420,23 @@
     .demo-btn:hover { color: var(--accent); border-color: rgba(242,163,59,0.4); }
 
     @media (max-width: 560px) {
-      body { padding: 14px; }
+      body { padding: 14px; padding-top: 70px; }
       .hero, .auth { padding: 26px 22px; }
       .brand-logo { width: 75%; }
+      .variant-selector button { padding: 6px 10px; font-size: 0.70rem; }
     }
   </style>
 </head>
-<body>
-  <div class="demo-banner">APERÇU REFONTE — non lié au site</div>
+<body class="variant-sobre">
 
+  <!-- Sélecteur de variante -->
+  <div class="variant-selector">
+    <button class="active" data-variant="sobre">Sobre</button>
+    <button data-variant="equilibree">Équilibrée</button>
+    <button data-variant="wow">Wow complète</button>
+  </div>
+
+  <!-- Orbes (visibles uniquement en variante Wow) -->
   <div class="orb o1"></div>
   <div class="orb o2"></div>
   <div class="orb o3"></div>
@@ -405,7 +444,6 @@
   <div class="shell">
     <section class="hero">
       <div class="brand">
-        <!-- SVG factice "MCA Logistics" — sera remplacé par le vrai logo uploadé -->
         <svg class="brand-logo" viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
@@ -455,6 +493,22 @@
   </div>
 
   <script>
+    // Sélecteur de variante
+    document.querySelectorAll('.variant-selector button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const variant = btn.dataset.variant;
+        document.body.className = 'variant-' + variant;
+        document.querySelectorAll('.variant-selector button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        // Relancer les animations en re-injectant les éléments animés
+        document.querySelectorAll('.shell, .brand, .auth-head, .field, .submit').forEach(el => {
+          el.style.animation = 'none';
+          el.offsetHeight; // reflow
+          el.style.animation = '';
+        });
+      });
+    });
+
     function toggleP(btn) {
       const inp = document.getElementById('login-password');
       inp.type = inp.type === 'password' ? 'text' : 'password';
