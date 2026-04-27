@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCA Logistics — Aperçu refonte (WOW)</title>
+  <style>
+    :root {
+      --bg: #0d1524;
+      --border: rgba(139, 157, 184, 0.18);
+      --text: #eef3fb;
+      --muted: #9aa9bf;
+      --accent: #f2a33b;
+      --accent-2: #f6b456;
+      --blue: #4c8cf5;
+      --danger: #ec5f5f;
+      --success: #57c785;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+      --radius-xl: 32px;
+      --radius-lg: 18px;
+      --font: "Segoe UI", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
+
+    body {
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(ellipse at 12% 18%, rgba(242, 163, 59, 0.22), transparent 35%),
+        radial-gradient(ellipse at 85% 82%, rgba(76, 140, 245, 0.20), transparent 38%),
+        radial-gradient(ellipse at 50% 50%, rgba(242, 163, 59, 0.06), transparent 60%),
+        linear-gradient(160deg, #050a14 0%, #0d1524 46%, #060c17 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Particules / orbes flottantes (background animé) */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 16s ease-in-out infinite;
+    }
+    .orb.o1 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(242,163,59,0.45), transparent 70%); top: -120px; left: -100px; animation-delay: 0s; }
+    .orb.o2 { width: 360px; height: 360px; background: radial-gradient(circle, rgba(76,140,245,0.38), transparent 70%); bottom: -80px; right: -80px; animation-delay: -6s; }
+    .orb.o3 { width: 260px; height: 260px; background: radial-gradient(circle, rgba(242,163,59,0.22), transparent 70%); top: 50%; left: 60%; animation-delay: -3s; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(40px, -30px) scale(1.06); }
+      66% { transform: translate(-30px, 25px) scale(0.96); }
+    }
+
+    .shell {
+      position: relative;
+      z-index: 2;
+      width: min(620px, 100%);
+      display: grid;
+      grid-template-columns: 1fr;
+      background:
+        linear-gradient(180deg, rgba(13, 21, 36, 0.62), rgba(8, 14, 23, 0.82));
+      border: 1px solid;
+      border-image: linear-gradient(135deg, rgba(242,163,59,0.45), rgba(76,140,245,0.30) 50%, rgba(255,255,255,0.10)) 1;
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px) saturate(140%);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
+      animation: shellIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes shellIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .hero {
+      padding: 44px 30px 28px;
+      background:
+        linear-gradient(145deg, rgba(242, 163, 59, 0.10), transparent 50%),
+        linear-gradient(210deg, rgba(76, 140, 245, 0.08), transparent 50%),
+        rgba(10, 17, 29, 0.42);
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Halo lumineux pulsant derrière le logo */
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 420px;
+      height: 280px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse, rgba(242, 163, 59, 0.28), transparent 65%);
+      filter: blur(20px);
+      animation: pulseGlow 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.10); }
+    }
+
+    .brand {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
+    }
+
+    /* Logo "officiel" : grand, sans cadre. Ici on simule avec un SVG MCA */
+    .brand-logo {
+      width: min(360px, 70%);
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 8px 32px rgba(242, 163, 59, 0.35));
+    }
+
+    .auth {
+      padding: 30px 34px 36px;
+      background: linear-gradient(180deg, rgba(10, 17, 29, 0.55), rgba(10, 17, 29, 0.85));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .auth-card {
+      width: min(460px, 100%);
+    }
+
+    .auth-head {
+      margin-bottom: 24px;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.30s both;
+    }
+
+    .auth-head h2 {
+      font-size: 1.65rem;
+      margin-bottom: 0;
+      background: linear-gradient(90deg, #ffffff 0%, #ffd49e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.01em;
+    }
+
+    .field {
+      margin-bottom: 16px;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .field:nth-of-type(1) { animation-delay: 0.40s; }
+    .field:nth-of-type(2) { animation-delay: 0.50s; }
+
+    .field label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 0.78rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 14px 15px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: rgba(4, 9, 17, 0.70);
+      color: var(--text);
+      font-size: 0.96rem;
+      font-family: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.25s ease, background 0.2s ease;
+    }
+
+    .field input:focus {
+      outline: none;
+      border-color: rgba(242, 163, 59, 0.65);
+      box-shadow:
+        0 0 0 4px rgba(242, 163, 59, 0.10),
+        0 8px 24px rgba(242, 163, 59, 0.10);
+      background: rgba(4, 9, 17, 0.85);
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 60px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 6px 8px;
+      line-height: 1;
+      border-radius: 8px;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .toggle-password:hover { background: rgba(242,163,59,0.08); color: var(--accent); }
+
+    .submit {
+      width: 100%;
+      padding: 15px 18px;
+      border: none;
+      border-radius: 16px;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+      color: #121212;
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
+      background-size: 200% 100%;
+      box-shadow:
+        0 18px 38px rgba(242, 163, 59, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.6s ease;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.60s both;
+    }
+
+    .submit:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 24px 50px rgba(242, 163, 59, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      background-position: 100% 0;
+    }
+
+    .submit:active {
+      transform: translateY(0);
+    }
+
+    /* Reflet brillant qui traverse le bouton */
+    .submit::before {
+      content: "";
+      position: absolute;
+      top: 0; left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+      transition: left 0.7s ease;
+      z-index: -1;
+    }
+    .submit:hover::before {
+      left: 130%;
+    }
+
+    /* Messages d'erreur restylés (icône + shake) */
+    .error-msg, .status-msg {
+      display: none;
+      margin-top: 16px;
+      padding: 13px 14px 13px 44px;
+      border-radius: 14px;
+      font-size: 0.86rem;
+      line-height: 1.5;
+      position: relative;
+    }
+
+    .error-msg.show, .status-msg.show {
+      display: block;
+      animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    .status-msg.show {
+      animation: slideDown 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    .error-msg {
+      background: linear-gradient(135deg, rgba(236, 95, 95, 0.12), rgba(236, 95, 95, 0.06));
+      border: 1px solid rgba(236, 95, 95, 0.30);
+      color: #ffc4c4;
+    }
+    .error-msg::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff8a8a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 9v4'/><path d='M12 17h.01'/><path d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z'/></svg>");
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    .status-msg {
+      background: linear-gradient(135deg, rgba(87, 199, 133, 0.12), rgba(87, 199, 133, 0.06));
+      border: 1px solid rgba(87, 199, 133, 0.30);
+      color: #c5f3d8;
+    }
+    .status-msg::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2380e0a8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/><path d='m9 11 3 3L22 4'/></svg>");
+      background-size: contain;
+      background-repeat: no-repeat;
+    }
+
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Bandeau démo en haut */
+    .demo-banner {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 99;
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: rgba(242, 163, 59, 0.15);
+      border: 1px solid rgba(242, 163, 59, 0.40);
+      color: #ffd49e;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      backdrop-filter: blur(10px);
+    }
+
+    .demo-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      justify-content: center;
+    }
+    .demo-btn {
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .demo-btn:hover { color: var(--accent); border-color: rgba(242,163,59,0.4); }
+
+    @media (max-width: 560px) {
+      body { padding: 14px; }
+      .hero, .auth { padding: 26px 22px; }
+      .brand-logo { width: 75%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-banner">APERÇU REFONTE — non lié au site</div>
+
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+
+  <div class="shell">
+    <section class="hero">
+      <div class="brand">
+        <!-- SVG factice "MCA Logistics" — sera remplacé par le vrai logo uploadé -->
+        <svg class="brand-logo" viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f2a33b"/>
+              <stop offset="100%" stop-color="#f6b456"/>
+            </linearGradient>
+          </defs>
+          <text x="240" y="80" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="900" font-size="62" fill="url(#g1)" letter-spacing="2">MCA</text>
+          <text x="240" y="115" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="500" font-size="22" fill="#eef3fb" letter-spacing="6">LOGISTICS</text>
+          <line x1="160" y1="92" x2="320" y2="92" stroke="#f2a33b" stroke-width="2" opacity="0.6"/>
+        </svg>
+      </div>
+    </section>
+
+    <section class="auth">
+      <div class="auth-card">
+        <div class="auth-head">
+          <h2>Connexion</h2>
+        </div>
+
+        <form onsubmit="event.preventDefault(); demoSubmit();">
+          <div class="field">
+            <label for="login-identifiant">Identifiant</label>
+            <input type="text" id="login-identifiant" placeholder="Identifiant admin ou numero salarie" />
+          </div>
+
+          <div class="field">
+            <label for="login-password">Mot de passe</label>
+            <div class="password-wrap">
+              <input type="password" id="login-password" placeholder="Votre mot de passe" />
+              <button type="button" class="toggle-password" onclick="toggleP(this)">Voir</button>
+            </div>
+          </div>
+
+          <button type="submit" class="submit">Se connecter</button>
+          <div class="error-msg" id="err">Identifiants non reconnus. Vérifiez votre saisie.</div>
+          <div class="status-msg" id="ok">Connexion réussie. Redirection…</div>
+        </form>
+
+        <div class="demo-buttons">
+          <button class="demo-btn" onclick="showErr()">→ Aperçu erreur</button>
+          <button class="demo-btn" onclick="showOk()">→ Aperçu succès</button>
+          <button class="demo-btn" onclick="hideAll()">Cacher</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function toggleP(btn) {
+      const inp = document.getElementById('login-password');
+      inp.type = inp.type === 'password' ? 'text' : 'password';
+      btn.textContent = inp.type === 'password' ? 'Voir' : 'Masquer';
+    }
+    function showErr() {
+      const e = document.getElementById('err');
+      const o = document.getElementById('ok');
+      o.classList.remove('show');
+      e.classList.remove('show');
+      void e.offsetWidth;
+      e.classList.add('show');
+    }
+    function showOk() {
+      const e = document.getElementById('err');
+      const o = document.getElementById('ok');
+      e.classList.remove('show');
+      o.classList.remove('show');
+      void o.offsetWidth;
+      o.classList.add('show');
+    }
+    function hideAll() {
+      document.getElementById('err').classList.remove('show');
+      document.getElementById('ok').classList.remove('show');
+    }
+    function demoSubmit() {
+      const id = document.getElementById('login-identifiant').value.trim();
+      const mdp = document.getElementById('login-password').value;
+      if (!id || !mdp) {
+        const e = document.getElementById('err');
+        e.textContent = 'Veuillez remplir les deux champs avant de vous connecter.';
+        showErr();
+        return;
+      }
+      showOk();
+    }
+  </script>
+</body>
+</html>
