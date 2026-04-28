@@ -74,31 +74,6 @@ function validerSIREN(siren) {
   return sum % 10 === 0;
 }
 
-function validerIBAN(iban) {
-  const s = String(iban || '').replace(/\s+/g, '').toUpperCase();
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
-  // Longueurs officielles ISO 13616 par pays (principaux)
-  const longueurs = { FR: 27, BE: 16, DE: 22, IT: 27, ES: 24, PT: 25, NL: 18, LU: 20, CH: 21, MC: 27, GB: 22, IE: 22, AT: 20, FI: 18, DK: 18, SE: 24, NO: 15, PL: 28, AD: 24, MT: 31 };
-  const pays = s.slice(0, 2);
-  if (longueurs[pays] && s.length !== longueurs[pays]) return false;
-  // Mod-97 : déplace 4 premiers en fin, convertit lettres → nombres (A=10…Z=35), vérifie mod 97 === 1
-  const rearrange = s.slice(4) + s.slice(0, 4);
-  let numeric = '';
-  for (const c of rearrange) {
-    if (/\d/.test(c)) numeric += c;
-    else numeric += (c.charCodeAt(0) - 55).toString();
-  }
-  // Calcul mod 97 par morceaux (BigInt alternative)
-  let remainder = '';
-  for (const d of numeric) {
-    remainder = (remainder + d);
-    if (remainder.length >= 9) {
-      remainder = String(parseInt(remainder, 10) % 97);
-    }
-  }
-  return parseInt(remainder, 10) % 97 === 1;
-}
-
 // BUG-014 fix : guard double-clic — debounce sur boutons d'action (Créer/Générer/Valider/Enregistrer/Payer/Sauvegarder).
 // Détecte via label + attributs. Ignore les boutons de fermeture, navigation, tri, etc.
 (function() {
@@ -2273,10 +2248,6 @@ function consommerTicketAccesOnglet() {
   const suffixe = url.search ? url.search : '';
   window.history.replaceState({}, document.title, url.pathname + suffixe + url.hash);
   return true;
-}
-
-function accesOngletAutorise() {
-  return !!window.__delivproTabUnlocked;
 }
 
 function notifierMajAutreAdmin(detail) {
@@ -18625,32 +18596,12 @@ genererRentabilitePDF = function() {
   };
 
   /* ============================================================
-     HOOKS & INIT
+     INIT
      ============================================================ */
-  function hookFacturationPostProcess() {
-    if (typeof window.afficherFacturation === 'function' && !window.afficherFacturation.__s15) {
-      const orig = window.afficherFacturation;
-      const w = function() {
-        const r = orig.apply(this, arguments);
-        setTimeout(() => { postProcessFacturationOrphelines(); postProcessFacturationRappelsPreventifs(); enrichCopyables(); }, 30);
-        return r;
-      };
-      w.__s15 = true;
-      window.afficherFacturation = w;
-    }
-  }
-  function hookDashboardS15() {
-    if (typeof window.afficherDashboard === 'function' && !window.afficherDashboard.__s15) {
-      const orig = window.afficherDashboard;
-      const w = function() { const r = orig.apply(this, arguments); setTimeout(injecterBandeauEcheances, 50); return r; };
-      w.__s15 = true;
-      window.afficherDashboard = w;
-    }
-  }
-
+  // Note : hookFacturationPostProcess et hookDashboardS15 supprimés —
+  // ils patchaient afficherFacturation et afficherDashboard qui n'existent
+  // pas (commit 09dc43e). Le typeof check rendait les hooks toujours no-op.
   function initS15() {
-    hookFacturationPostProcess();
-    hookDashboardS15();
     setTimeout(injecterBandeauEcheances, 250);
     setTimeout(enrichCopyables, 400);
   }
