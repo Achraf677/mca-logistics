@@ -32,6 +32,7 @@
     .nav-item[data-page="entretiens"],
     .nav-item[data-page="inspections"],
     .nav-item[data-page="charges"],
+    .nav-item[data-page="tva"],
     .nav-item[data-page="rentabilite"],
     .nav-item[data-page="statistiques"] { display: none; }
   </style>
@@ -215,7 +216,7 @@
           <div class="stat-pill-value" id="kpi-solde">0 €</div>
           <div class="stat-pill-sub">voir relances →</div>
         </div>
-        <div class="stat-pill stat-pill-orange" style="cursor:pointer" onclick="ouvrirDetailTva()" title="Voir le détail des opérations TVA">
+        <div class="stat-pill stat-pill-orange" style="cursor:pointer" onclick="naviguerVers('tva')" title="Aller à l'onglet TVA">
           <div class="stat-pill-label">🧾 TVA à reverser</div>
           <div class="stat-pill-value" id="kpi-tva-solde">0 €</div>
           <div class="stat-pill-sub" id="kpi-tva-detail"></div>
@@ -1876,19 +1877,6 @@
         <button class="btn-secondary" onclick="exporterHistoriqueClientCourant()">📥 Exporter CSV</button>
         <button class="btn-secondary" onclick="exporterDonneesRGPDClientCourant()" title="Export RGPD portable (art. 20) — toutes les données du client au format JSON">🛡️ Export RGPD</button>
         <button class="btn-primary" onclick="closeModal('modal-client-history')">Fermer</button>
-      </div>
-    </div>
-  </div>
-  <!-- Détail TVA -->
-  <div class="modal-overlay" id="modal-tva-detail">
-    <div class="modal" style="max-width:960px">
-      <div class="modal-header"><h3>🧾 Détail TVA — <span id="tva-detail-periode"></span></h3><button class="modal-close" onclick="closeModal('modal-tva-detail')">✕</button></div>
-      <div class="modal-body" style="max-height:75vh;overflow-y:auto">
-        <div id="tva-detail-content"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" onclick="naviguerVers('tva');closeModal('modal-tva-detail')">Aller à la page TVA →</button>
-        <button class="btn-primary" onclick="closeModal('modal-tva-detail')">Fermer</button>
       </div>
     </div>
   </div>
