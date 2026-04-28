@@ -103,6 +103,7 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
+          <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
           <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
           <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
         </div>
@@ -796,6 +797,78 @@
         </div>
       </div>
     </section>
+
+    <!-- TVA -->
+    <section class="page" id="page-tva">
+      <div class="page-actions"><h2>🧾 Récapitulatif TVA</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterTvaCSV()">📥 CSV</button>
+          <button class="btn-rapport" onclick="exporterTvaPDF()">📄 Rapport TVA</button>
+        </div>
+      </div>
+
+      <!-- Navigation période -->
+      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+        <div class="nav-periode-bar">
+          <div class="nav-periode-left">
+            <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)">
+              <option value="jour">Par jour</option>
+              <option value="semaine">Par semaine</option>
+              <option value="mois" selected>Par mois</option>
+              <option value="annee">Par année</option>
+            </select>
+            <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="padding:5px 12px">Précédent</button>
+          </div>
+          <div class="nav-periode-center"><div id="tva-mois-label" style="font-size:1rem;font-weight:700"></div><div id="tva-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
+          <div class="nav-periode-right">
+            <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="padding:5px 12px">Aujourd'hui</button>
+            <button class="btn-secondary" onclick="navTvaPeriode(1)" style="padding:5px 12px">Suivant</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs TVA -->
+      <div class="kpi-grid">
+        <div class="kpi-card green"><div class="kpi-label">TVA collectée (sur ventes)</div><div class="kpi-value" id="tva-collectee">0 €</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">TVA déductible (sur achats)</div><div class="kpi-value" id="tva-deductible">0 €</div></div>
+      </div>
+
+      <div class="card mt-20">
+        <div class="modal-body" id="tva-mode-info"></div>
+      </div>
+
+      <!-- TVA Collectée détail -->
+      <div class="card mt-20">
+        <div class="card-header"><h2 id="tva-collectee-title">📤 TVA Collectée</h2></div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
+            <tbody id="tb-tva-collectee"></tbody>
+          </table>
+        </div>
+        <div class="modal-body" id="tva-non-exigible-info" style="padding-top:0"></div>
+      </div>
+
+      <!-- TVA Déductible détail -->
+      <div class="card mt-20">
+        <div class="card-header"><h2 id="tva-deductible-title">📥 TVA Déductible (charges, carburant, entretiens)</h2></div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
+            <tbody id="tb-tva-deductible"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Solde -->
+      <div class="card mt-20" id="tva-solde-card">
+        <div class="card-header">
+          <h2>📊 Solde TVA du mois</h2>
+        </div>
+        <div class="modal-body" id="tva-solde-detail"></div>
+      </div>
+    </section>
+
     <!-- PARAMÈTRES -->
     <section class="page" id="page-parametres">
       <div class="page-actions"><h2>⚙️ Paramètres</h2></div>
@@ -1814,7 +1887,7 @@
         <div id="tva-detail-content"></div>
       </div>
       <div class="modal-footer">
-        <button class="btn-secondary" onclick="naviguerVers('finances');setTimeout(()=>{try{switchFinanceTab('tva')}catch(e){}},80);closeModal('modal-tva-detail')">Aller à la page TVA →</button>
+        <button class="btn-secondary" onclick="naviguerVers('tva');closeModal('modal-tva-detail')">Aller à la page TVA →</button>
         <button class="btn-primary" onclick="closeModal('modal-tva-detail')">Fermer</button>
       </div>
     </div>

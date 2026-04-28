@@ -2618,6 +2618,7 @@ function naviguerVers(page) {
         case 'inspections':  navInspSemaine(0); break;
         case 'clients':      afficherClientsDashboard(); break;
         case 'charges':      navChargesMois(0); break;
+        case 'tva':          navTvaPeriode(0); afficherTva(); break;
         case 'incidents':    afficherIncidents(); break;
         case 'entretiens':   navEntrMois(0); break;
         case 'parametres':   chargerParametres(); break;
