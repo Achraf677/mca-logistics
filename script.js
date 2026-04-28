@@ -4112,9 +4112,9 @@ function toggleMenuCarbAdmin(id) {
 
 function actionCarburant(action, id) {
   if (!action) return;
-  if (action === 'modifier') editerPlein(id);
+  if (action === 'modifier') ouvrirEditCarburantAdmin(id);
   else if (action === 'recu') voirRecuCarburant(id);
-  else if (action === 'supprimer') supprimerPlein(id);
+  else if (action === 'supprimer') supprimerCarburant(id);
 }
 
 function voirRecuCarburant(id) {
@@ -7389,6 +7389,9 @@ window.toggleChampsFournisseurPro = function(isEdit) {
 
 // Reset complet du formulaire 'Nouveau Fournisseur' avant ouverture.
 // Garantit un état initial propre (Pro coché, bloc Pro visible, champs vides).
+window.resetFormulaireFournisseur = function() {
+  return resetFormulaireFournisseur();
+};
 function resetFormulaireFournisseur() {
   ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-iban','frn-notes'].forEach(id => {
     const el = document.getElementById(id);
@@ -20197,14 +20200,9 @@ genererRentabilitePDF = function() {
     if (window.naviguerVers.__s19) return;
     const orig = window.naviguerVers;
     const wrapped = function(page) {
-      if (page === 'incidents') {
-        const ret = orig.call(this, 'alertes');
-        setTimeout(() => {
-          const sel = document.getElementById('s19-filter-source');
-          if (sel) { sel.value = 'incident'; renderCentre(); }
-        }, 150);
-        return ret;
-      }
+      // BUG-FIX : 'incidents' avait son propre onglet mais Sprint 19 redirigeait
+      // vers Alertes (avec filtre source=incident). Le user veut un onglet
+      // Incidents visuellement indépendant. → on laisse passer normalement.
       const ret = orig.apply(this, arguments);
       if (page === 'alertes') setTimeout(renderCentre, 100);
       return ret;
