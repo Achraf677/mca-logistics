@@ -1213,6 +1213,91 @@ function getTVASummaryForRange(range) {
     tvaCredit: soldeBrut < 0 ? Math.abs(round2(soldeBrut)) : 0
   };
 }
+
+/* ===== Détail TVA — modal Dashboard ===== */
+function ouvrirDetailTva() {
+  const auj = aujourdhui();
+  const mois = auj.slice(0, 7);
+  const monthRange = { debut: mois + '-01', fin: mois + '-31' };
+  const summary = getTVASummaryForRange(monthRange);
+  const periodeLabel = new Date(mois + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  const titleEl = document.getElementById('tva-detail-periode');
+  if (titleEl) titleEl.textContent = periodeLabel;
+
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+  const sectionTitle = (icon, label, total, color) => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:10px 10px 0 0;border:1px solid var(--border);border-bottom:none">
+      <strong style="font-size:.95rem">${icon} ${label}</strong>
+      <strong style="font-size:1.05rem;color:${color}">${euros(total)}</strong>
+    </div>`;
+  const buildTable = (entries, sourceLabel) => {
+    if (!entries.length) {
+      return '<div style="padding:14px;border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;color:var(--text-muted);font-size:.85rem;text-align:center">Aucune opération sur la période.</div>';
+    }
+    const rows = entries.map(e => `
+      <tr>
+        <td style="padding:7px 10px;font-size:.82rem;color:var(--text-muted);white-space:nowrap">${fmtDate(e.exigibiliteDate || e.issueDate || e.date)}</td>
+        <td style="padding:7px 10px;font-size:.85rem">${escapeHtml(e.libelle || sourceLabel)}</td>
+        <td style="padding:7px 10px;font-size:.82rem;text-align:right;color:var(--text-muted)">${euros(e.baseHT || 0)}</td>
+        <td style="padding:7px 10px;font-size:.82rem;text-align:right;color:var(--text-muted)">${(e.tauxTVA || 0)} %</td>
+        <td style="padding:7px 10px;font-size:.85rem;text-align:right;font-weight:600">${euros(e.tva || 0)}</td>
+      </tr>`).join('');
+    return `
+      <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;margin-bottom:14px">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:rgba(255,255,255,0.02);font-size:.72rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:.04em">
+              <th style="padding:8px 10px;text-align:left;font-weight:600">Date</th>
+              <th style="padding:8px 10px;text-align:left;font-weight:600">Opération</th>
+              <th style="padding:8px 10px;text-align:right;font-weight:600">HT</th>
+              <th style="padding:8px 10px;text-align:right;font-weight:600">Taux</th>
+              <th style="padding:8px 10px;text-align:right;font-weight:600">TVA</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  };
+
+  const soldeBrut = summary.soldeBrut || 0;
+  const soldeColor = soldeBrut >= 0 ? 'var(--red)' : 'var(--purple, #9b59b6)';
+  const soldeLabel = soldeBrut >= 0 ? 'TVA à reverser' : 'Crédit TVA';
+  const soldeFinal = summary.tvaReverser > 0 ? summary.tvaReverser : summary.tvaCredit;
+
+  const html = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">
+      <div style="padding:12px;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.2);border-radius:10px;text-align:center">
+        <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Collectée</div>
+        <div style="font-size:1.15rem;font-weight:800;color:var(--green)">${euros(summary.totalCollectee || 0)}</div>
+      </div>
+      <div style="padding:12px;background:rgba(230,126,34,0.06);border:1px solid rgba(230,126,34,0.2);border-radius:10px;text-align:center">
+        <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Déductible</div>
+        <div style="font-size:1.15rem;font-weight:800;color:#e67e22">${euros(summary.totalDeductible || 0)}</div>
+      </div>
+      <div style="padding:12px;background:rgba(76,140,245,0.06);border:1px solid rgba(76,140,245,0.2);border-radius:10px;text-align:center">
+        <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Planifiée</div>
+        <div style="font-size:1.15rem;font-weight:800;color:var(--blue, #4f8ef7)">${euros(summary.totalTVAPlanifiee || 0)}</div>
+      </div>
+      <div style="padding:12px;background:${soldeBrut>=0?'rgba(231,76,60,0.06)':'rgba(155,89,182,0.08)'};border:1px solid ${soldeBrut>=0?'rgba(231,76,60,0.25)':'rgba(155,89,182,0.3)'};border-radius:10px;text-align:center">
+        <div style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">${soldeLabel}</div>
+        <div style="font-size:1.15rem;font-weight:800;color:${soldeColor}">${euros(soldeFinal || 0)}</div>
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:16px;padding:10px 12px;background:rgba(255,255,255,0.02);border-left:3px solid var(--accent);border-radius:6px">
+      <strong>Calcul :</strong> Solde brut = Collectée − Déductible = ${euros(summary.totalCollectee || 0)} − ${euros(summary.totalDeductible || 0)} = <strong>${euros(soldeBrut)}</strong>
+      ${soldeBrut >= 0 ? `· À reverser après planifiée : ${euros(soldeBrut)} − ${euros(summary.totalTVAPlanifiee || 0)} = <strong>${euros(summary.tvaReverser)}</strong>` : '· L\'État vous doit ce montant'}
+    </div>
+    ${sectionTitle('🟢', 'TVA collectée — Livraisons', summary.totalCollectee || 0, 'var(--green)')}
+    ${buildTable(summary.collectee || [], 'Livraison')}
+    ${sectionTitle('🟠', 'TVA déductible — Charges, carburant, entretien', summary.totalDeductible || 0, '#e67e22')}
+    ${buildTable(summary.deductible || [], 'Charge')}
+    ${(summary.settlements || []).length ? sectionTitle('🔵', 'TVA planifiée / réglée', summary.totalTVAPlanifiee || 0, 'var(--blue, #4f8ef7)') + buildTable((summary.settlements || []).map(s => ({ exigibiliteDate: s.date, libelle: s.libelle || 'Règlement TVA', baseHT: s.montant, tauxTVA: '', tva: s.montant })), 'Règlement') : ''}
+  `;
+  const contentEl = document.getElementById('tva-detail-content');
+  if (contentEl) contentEl.innerHTML = html;
+  if (typeof openModal === 'function') openModal('modal-tva-detail');
+}
+
 function ouvrirFicheVehiculeDepuisTableau(vehId) {
   if (!vehId) return;
   naviguerVers('vehicules');
