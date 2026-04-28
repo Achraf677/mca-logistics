@@ -20787,8 +20787,10 @@ genererRentabilitePDF = function() {
       icon: '👥',
       label: 'Équipe',
       section: 'equipe',
-      pages: ['salaries', 'heures', 'planning', 'messagerie', 'incidents'],
-      labels: { salaries: '👥 Salariés', heures: '⏱️ Heures & Km', planning: '📋 Planning', messagerie: '💬 Messagerie', incidents: '🚨 Incidents' },
+      // Note : 'messagerie' retirée temporairement (page HTML supprimée par
+      // commit 09dc43e). À ré-ajouter quand l'onglet Messagerie sera retravaillé.
+      pages: ['salaries', 'heures', 'planning', 'incidents'],
+      labels: { salaries: '👥 Salariés', heures: '⏱️ Heures & Km', planning: '📋 Planning', incidents: '🚨 Incidents' },
       defaultPage: 'salaries',
       storageKey: 's22_last_rh',
     },
