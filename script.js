@@ -2516,6 +2516,38 @@ function naviguerVers(page) {
   });
 }
 
+/* ===== GARDE-FOU ROUTES =====
+   Au boot, vérifie que toutes les sections <section class="page" id="page-X">
+   du DOM ont une route connue (case dans naviguerVers + entrée valide dans
+   un hub OU un nav-item sidebar). Et inversement, qu'aucune route invoquée
+   ne pointe vers une section absente. Évite les "404 silencieux" comme la
+   page TVA récemment retrouvée. */
+(function() {
+  if (typeof document === 'undefined') return;
+  function audit() {
+    if (document.readyState === 'loading') {
+      return document.addEventListener('DOMContentLoaded', audit);
+    }
+    var sectionsDOM = Array.from(document.querySelectorAll('section.page[id^="page-"]'))
+      .map(function(s) { return s.id.replace(/^page-/, ''); });
+    var hubsDebug = window.__s22Debug;
+    var hubPages = hubsDebug ? hubsDebug.ALL_SUB_PAGES.slice() : [];
+    var navItems = Array.from(document.querySelectorAll('.nav-item[data-page]'))
+      .map(function(a) { return a.dataset.page; });
+    var routesConnues = new Set(hubPages.concat(navItems).concat([
+      'dashboard', 'espace-salarie'
+    ]));
+    sectionsDOM.forEach(function(p) {
+      if (!routesConnues.has(p)) {
+        console.warn('[ROUTES] Section #page-' + p + ' existe dans le DOM mais aucune route ne mène à elle (ni hub ni nav-item)');
+      }
+    });
+    // Expose pour debug
+    window.__routesDebug = { sectionsDOM: sectionsDOM, hubPages: hubPages, navItems: navItems };
+  }
+  audit();
+})();
+
 function appliquerLibellesAnalyseHT() {
   const rent = {
     'rent-ca': "Chiffre d'affaires HT",
@@ -18157,181 +18189,11 @@ genererRentabilitePDF = function() {
     return load(LS.clients).find(c => (c.nom||'').trim().toLowerCase() === k) || null;
   }
 
-  window.creerFicheClientDepuisFacture = function(factureId) {
-    const f = load(LS.factures).find(x => x.id === factureId);
-    if (!f) return;
-    if (findClientByName(f.client)) { toast('Fiche client déjà existante', 'info'); return; }
-    const newClient = {
-      id: genId(),
-      nom: f.client || 'Client sans nom',
-      type: 'professionnel',
-      siren: f.clientSiren || '',
-      tvaIntra: f.clientTVA || '',
-      email: '', emailFact: '',
-      telephone: '', adresse: '', cp: '', ville: '',
-      delaiPaiementJours: 30,
-      notes: 'Créée automatiquement depuis la facture ' + (f.numero||'—'),
-      dateCreation: new Date().toISOString()
-    };
-    const list = load(LS.clients);
-    list.push(newClient);
-    save(LS.clients, list);
-    // Rattacher la facture au client
-    const factures = load(LS.factures);
-    const fi = factures.findIndex(x => x.id === factureId);
-    if (fi > -1) { factures[fi].clientId = newClient.id; save(LS.factures, factures); }
-    // Rattacher aussi la livraison liée
-    const livs = load(LS.livraisons);
-    let linkedLivs = 0;
-    livs.forEach(l => { if ((l.client||'').trim().toLowerCase() === (f.client||'').trim().toLowerCase() && !l.clientId) { l.clientId = newClient.id; linkedLivs++; } });
-    if (linkedLivs) save(LS.livraisons, livs);
-    audit('Auto-création client', newClient.nom + ' depuis facture ' + (f.numero||''));
-    toast('✅ Fiche client créée : ' + newClient.nom + (linkedLivs ? ' · '+linkedLivs+' livraison(s) rattachée(s)' : ''), 'success');
-    if (typeof window.afficherClients === 'function') window.afficherClients();
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-  };
 
-  /* ============================================================
-     2. BADGE FACTURE ORPHELINE (sans LIV)
-     ============================================================ */
-  function postProcessFacturationOrphelines() {
-    const tbody = document.getElementById('tb-facturation');
-    if (!tbody) return;
-    const livs = load(LS.livraisons);
-    const livNumSet = new Set(livs.map(l => l.numero).filter(Boolean));
-    const livIdSet = new Set(livs.map(l => l.id).filter(Boolean));
-    const factures = load(LS.factures);
-    const byNumero = new Map();
-    factures.forEach(f => { if (f.numero) byNumero.set(f.numero, f); });
-    tbody.querySelectorAll('tr').forEach(tr => {
-      if (tr.querySelector('.s15-orphan-badge')) return; // already done
-      const strong = tr.querySelector('td:first-child strong, td:first-child');
-      const numeroText = (strong ? strong.textContent : '').trim();
-      const f = byNumero.get(numeroText);
-      if (!f) return;
-      const hasLiv = !!(f.numLiv && livNumSet.has(f.numLiv)) || !!(f.livraisonId && livIdSet.has(f.livraisonId));
-      if (!hasLiv) {
-        const badge = document.createElement('span');
-        badge.className = 's15-orphan-badge';
-        badge.title = 'Facture orpheline : aucun bon de livraison associé';
-        badge.textContent = '🔗❌ Orpheline';
-        const target = tr.querySelector('td:first-child');
-        if (target) target.appendChild(badge);
-      }
-    });
-  }
 
-  /* ============================================================
-     3. BANDEAU ÉCHÉANCES IMMINENTES (J-5 / J-3 / J-1)
-     ============================================================ */
-  function getFacturesEcheanceProche() {
-    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
-    const avoirs = load(LS.avoirs);
-    const paiements = load(LS.paiements);
-    const clients = load(LS.clients);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const out = [];
-    factures.forEach(f => {
-      const ttc = Number(f.totalTTC || f.total || 0);
-      const paid = paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+Number(p.montant||0),0);
-      const avoir = avoirs.filter(a => a.factureId === f.id).reduce((s,a)=>s+Number(a.totalTTC||a.total||0),0);
-      const solde = Math.max(0, ttc - paid - avoir);
-      if (solde <= 0.01) return;
-      const client = f.clientId ? clients.find(c => c.id === f.clientId) : (clients.find(c => (c.nom||'').trim().toLowerCase() === (f.client||'').trim().toLowerCase()) || null);
-      const delai = Number(client?.delaiPaiementJours) || 30;
-      const baseDate = new Date(f.dateFacture || f.date || f.dateLivraison || f.dateCreation || Date.now());
-      if (isNaN(baseDate)) return;
-      const ech = new Date(baseDate); ech.setDate(ech.getDate() + delai); ech.setHours(0,0,0,0);
-      const joursRestants = Math.round((ech - today) / 86400000);
-      if (joursRestants > 0 && joursRestants <= 5) {
-        out.push({ facture: f, client, solde, echeance: ech, joursRestants });
-      }
-    });
-    return out.sort((a,b) => a.joursRestants - b.joursRestants);
-  }
 
-  function injecterBandeauEcheances() {
-    const dash = document.getElementById('page-dashboard');
-    if (!dash) return;
-    const rows = getFacturesEcheanceProche();
-    let banner = dash.querySelector('#s15-banner-echeances');
-    if (!rows.length) { if (banner) banner.remove(); return; }
-    const total = rows.reduce((s,r)=>s+r.solde,0);
-    const j1 = rows.filter(r => r.joursRestants <= 1).length;
-    const html = '<div class="s15-banner-content">'
-      + '<div class="s15-banner-icon">🔔</div>'
-      + '<div class="s15-banner-text"><strong>'+rows.length+' échéance'+(rows.length>1?'s':'')+' imminente'+(rows.length>1?'s':'')+'</strong> · '+fmtEur(total)+' attendus'
-      + (j1>0 ? ' · <span style="color:#f97316;font-weight:700">'+j1+' à J-1 ou échéance aujourd\'hui</span>' : '')
-      + '</div>'
-      + '<button class="btn-secondary" onclick="window.voirEcheancesImminentes()">Voir le détail</button>'
-      + '</div>';
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 's15-banner-echeances';
-      banner.className = 's15-banner s15-banner-info';
-      const s14 = dash.querySelector('#s14-banner-retards');
-      if (s14 && s14.nextSibling) s14.parentNode.insertBefore(banner, s14.nextSibling);
-      else {
-        const firstCard = dash.querySelector('.page-actions');
-        if (firstCard?.nextSibling) firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
-        else dash.appendChild(banner);
-      }
-    }
-    banner.innerHTML = html;
-  }
-  window.__s15RefreshEcheances = injecterBandeauEcheances;
 
-  window.voirEcheancesImminentes = function() {
-    const rows = getFacturesEcheanceProche();
-    if (!rows.length) { toast('Aucune échéance à venir dans les 5 jours', 'info'); return; }
-    const html = '<div style="max-width:720px">'
-      + '<h3 style="margin:0 0 6px 0">🔔 Échéances imminentes (J-5 à J0)</h3>'
-      + '<p style="color:var(--text-muted);font-size:.88rem;margin:6px 0 12px">Factures à échéance dans les 5 jours — considère un rappel préventif (niv 0) pour sécuriser le paiement.</p>'
-      + '<div style="display:flex;flex-direction:column;gap:8px">'
-      + rows.map(r => {
-          const color = r.joursRestants <= 1 ? '#ef4444' : (r.joursRestants <= 3 ? '#f97316' : '#eab308');
-          return '<div style="padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid '+color+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-            + '<div><strong>'+escHtml(r.facture.numero||'—')+'</strong> · '+escHtml(r.facture.client||'')
-            + '<div style="font-size:.78rem;color:var(--text-muted)">Échéance : '+fmtDate(r.echeance)+' — <span style="color:'+color+';font-weight:700">J-'+r.joursRestants+'</span></div></div>'
-            + '<div style="display:flex;gap:8px;align-items:center">'
-            + '<span style="font-weight:700">'+fmtEur(r.solde)+'</span>'
-            + '<button class="btn-secondary" style="padding:4px 10px;font-size:.8rem" onclick="closeModal(\'modal-info\');ouvrirEnvoiRelance(\''+r.facture.id+'\',0)">📨 Rappel préventif</button>'
-            + '</div></div>';
-        }).join('')
-      + '</div></div>';
-    if (typeof window.modalInfo === 'function') window.modalInfo(html);
-    else alert(rows.map(r=>r.facture.numero+' J-'+r.joursRestants).join('\n'));
-  };
 
-  /* ============================================================
-     4. BOUTON RAPPEL PRÉVENTIF dans Facturation
-     Action directe depuis la table facturation pour factures J-5
-     ============================================================ */
-  function postProcessFacturationRappelsPreventifs() {
-    const tbody = document.getElementById('tb-facturation');
-    if (!tbody) return;
-    const proches = getFacturesEcheanceProche();
-    const ids = new Set(proches.map(r => r.facture.id));
-    const factures = load(LS.factures);
-    const byNumero = new Map();
-    factures.forEach(f => { if (f.numero) byNumero.set(f.numero, f); });
-    tbody.querySelectorAll('tr').forEach(tr => {
-      if (tr.querySelector('.s15-preventif-badge')) return;
-      const numeroText = (tr.querySelector('td:first-child')?.textContent || '').trim();
-      const f = byNumero.get(numeroText.split(/\s|\n/)[0]) || Array.from(byNumero.values()).find(ff => numeroText.includes(ff.numero));
-      if (!f) return;
-      const proche = proches.find(r => r.facture.id === f.id);
-      if (!proche) return;
-      const cell = tr.querySelector('td:first-child');
-      if (!cell) return;
-      const badge = document.createElement('span');
-      badge.className = 's15-preventif-badge';
-      badge.title = 'Échéance dans '+proche.joursRestants+' jour(s) · clic pour rappel préventif';
-      badge.innerHTML = '🔔 J-'+proche.joursRestants;
-      badge.onclick = (e) => { e.stopPropagation(); if (typeof window.ouvrirEnvoiRelance === 'function') window.ouvrirEnvoiRelance(f.id, 0); };
-      cell.appendChild(badge);
-    });
-  }
 
   /* ============================================================
      5. COPIE RAPIDE AU CLIC (délégation sur [data-copy])
@@ -18360,25 +18222,6 @@ genererRentabilitePDF = function() {
   });
 
   // Rend copiables les éléments correspondant à certains patterns
-  function enrichCopyables() {
-    // N° facture dans tb-facturation (1re colonne strong)
-    document.querySelectorAll('#tb-facturation td:first-child strong').forEach(el => {
-      if (el.hasAttribute('data-copy')) return;
-      const txt = el.textContent.trim();
-      if (/^FAC-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
-    });
-    // N° livraisons LIV-...
-    document.querySelectorAll('.lf-liv').forEach(el => {
-      if (el.hasAttribute('data-copy')) return;
-      const txt = el.textContent.trim();
-      if (/^LIV-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
-    });
-    document.querySelectorAll('.lf-fac').forEach(el => {
-      if (el.hasAttribute('data-copy')) return;
-      const txt = el.textContent.trim();
-      if (/^FAC-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
-    });
-  }
 
   /* ============================================================
      6. RECHERCHE GLOBALE Ctrl+K
@@ -18513,87 +18356,8 @@ genererRentabilitePDF = function() {
     window.confirmerEditClient = w;
   }
 
-  window.voirHistoriqueEntite = function(entity, entityId, titreLabel) {
-    const log = load(LS.history).filter(e => e.entity === entity && e.entityId === entityId).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    if (!log.length) { toast('Aucune modification enregistrée', 'info'); return; }
-    const icons = { client:'👤', livraison:'📦', facture:'📄' };
-    const html = '<div style="padding:14px;max-width:640px">'
-      + '<h3>'+icons[entity]+' Historique · '+escHtml(titreLabel||entityId)+'</h3>'
-      + '<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">'
-      + log.map(e => '<div style="padding:10px 12px;background:rgba(255,255,255,.03);border-left:3px solid var(--primary);border-radius:8px">'
-          + '<div style="font-size:.78rem;color:var(--text-muted)">'+fmtDate(e.date)+' · '+new Date(e.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div>'
-          + '<div style="margin-top:4px"><strong>'+escHtml(e.field||'modification')+'</strong> : '
-          + '<span style="color:#ef4444;text-decoration:line-through">'+escHtml(String(e.oldValue||'—').slice(0,60))+'</span>'
-          + ' → <span style="color:#22c55e">'+escHtml(String(e.newValue||'—').slice(0,60))+'</span></div>'
-          + '</div>').join('')
-      + '</div></div>';
-    if (typeof window.modalInfo === 'function') window.modalInfo(html);
-    else alert(log.map(e => e.field+': '+e.oldValue+' → '+e.newValue).join('\n'));
-  };
 
-  /* ============================================================
-     8. EXPORT Z QUOTIDIEN (synthèse journée)
-     ============================================================ */
-  window.ouvrirExportZ = function() {
-    const today = new Date().toLocalISODate();
-    const html = '<div>'
-      + '<h3 style="margin:0 0 6px 0">📊 Export Z — Synthèse quotidienne</h3>'
-      + '<p style="color:var(--text-muted);font-size:.88rem;margin:0 0 16px">Récap livraisons + factures émises + paiements encaissés pour la date choisie.</p>'
-      + '<div class="form-group" style="margin-bottom:18px"><label>Date</label><input type="date" id="s15-z-date" value="'+today+'" style="width:100%" /></div>'
-      + '<div style="display:flex;gap:8px;justify-content:flex-end">'
-      + '<button class="btn-secondary" onclick="closeModal(\'modal-info\')">Annuler</button>'
-      + '<button class="btn-primary" onclick="window.genererExportZ()">📄 Générer</button>'
-      + '</div></div>';
-    if (typeof window.modalInfo === 'function') {
-      const modal = window.modalInfo(html);
-      const box = modal && modal.querySelector && modal.querySelector('.s15-modal-info-box');
-      if (box) box.classList.add('narrow');
-    }
-  };
 
-  window.genererExportZ = function() {
-    const d = document.getElementById('s15-z-date')?.value;
-    if (!d) { toast('Sélectionne une date', 'warning'); return; }
-    const livs = load(LS.livraisons).filter(l => (l.date||'').slice(0,10) === d);
-    const factures = load(LS.factures).filter(f => (f.dateFacture || f.date || '').slice(0,10) === d && f.statut !== 'annulée');
-    const paiements = load(LS.paiements).filter(p => (p.date||'').slice(0,10) === d);
-    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e) { return {}; } })();
-    const totalFact = factures.reduce((s,f)=>s+Number(f.totalTTC||f.total||0), 0);
-    const totalPaye = paiements.reduce((s,p)=>s+Number(p.montant||0), 0);
-    const totalLiv = livs.reduce((s,l)=>s+Number(l.montant||l.totalHT||0), 0);
-    const w = ouvrirPopupSecure('', 'export_z', 'width=780,height=920');
-    if (!w) { toast('Popup bloquée', 'error'); return; }
-    const dFmt = new Date(d).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Export Z — '+d+'</title><style>'
-      + 'body{font-family:Arial,sans-serif;padding:28px;color:#1f2937} h1{margin:0 0 4px;color:#4f46e5} h2{font-size:1rem;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid #e5e7eb}'
-      + 'table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:6px} th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb} th{background:#f3f4f6}'
-      + '.tot{background:#eef2ff;font-weight:700} .meta{color:#6b7280;font-size:.85rem} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}'
-      + '.card{padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px} .card-label{font-size:.72rem;color:#6b7280;text-transform:uppercase} .card-val{font-size:1.3rem;font-weight:700;color:#4f46e5;margin-top:4px}'
-      + '@media print{button{display:none}} button{padding:8px 14px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer}'
-      + '</style></head><body>'
-      + '<div style="display:flex;justify-content:space-between;align-items:flex-start"><div>'
-      + '<h1>📊 Export Z — Synthèse journée</h1><div class="meta">'+escHtml(params.nom||'MCA Logistics')+(params.siren?' · SIREN '+params.siren:'')+'</div></div>'
-      + '<button onclick="window.print()">🖨️ Imprimer</button></div>'
-      + '<p class="meta" style="margin-top:8px">📅 '+dFmt+' — généré le '+new Date().toLocaleString('fr-FR')+'</p>'
-      + '<div class="grid">'
-      + '<div class="card"><div class="card-label">Livraisons</div><div class="card-val">'+livs.length+'</div><div class="meta">'+fmtEur(totalLiv)+' HT</div></div>'
-      + '<div class="card"><div class="card-label">Factures émises</div><div class="card-val">'+factures.length+'</div><div class="meta">'+fmtEur(totalFact)+' TTC</div></div>'
-      + '<div class="card"><div class="card-label">Paiements encaissés</div><div class="card-val">'+paiements.length+'</div><div class="meta">'+fmtEur(totalPaye)+'</div></div>'
-      + '</div>'
-      + (livs.length ? '<h2>📦 Livraisons ('+livs.length+')</h2><table><thead><tr><th>N°</th><th>Client</th><th>Montant HT</th><th>Statut</th></tr></thead><tbody>'
-          + livs.map(l => '<tr><td>'+escHtml(l.numero||'—')+'</td><td>'+escHtml(l.client||'')+'</td><td>'+fmtEur(l.montant||l.totalHT||0)+'</td><td>'+escHtml(l.statut||'—')+'</td></tr>').join('')
-          + '<tr class="tot"><td colspan="2">TOTAL LIVRAISONS</td><td colspan="2">'+fmtEur(totalLiv)+' HT</td></tr></tbody></table>' : '')
-      + (factures.length ? '<h2>📄 Factures ('+factures.length+')</h2><table><thead><tr><th>N°</th><th>Client</th><th>Total TTC</th><th>Statut</th></tr></thead><tbody>'
-          + factures.map(f => '<tr><td>'+escHtml(f.numero||'—')+'</td><td>'+escHtml(f.client||'')+'</td><td>'+fmtEur(f.totalTTC||f.total||0)+'</td><td>'+escHtml(f.statut||'—')+'</td></tr>').join('')
-          + '<tr class="tot"><td colspan="2">TOTAL FACTURÉ</td><td colspan="2">'+fmtEur(totalFact)+' TTC</td></tr></tbody></table>' : '')
-      + (paiements.length ? '<h2>💰 Paiements ('+paiements.length+')</h2><table><thead><tr><th>Date</th><th>Facture</th><th>Mode</th><th>Montant</th></tr></thead><tbody>'
-          + paiements.map(p => '<tr><td>'+fmtDate(p.date)+'</td><td>'+escHtml(p.factureNumero||'—')+'</td><td>'+escHtml(p.mode||'—')+'</td><td>'+fmtEur(p.montant||0)+'</td></tr>').join('')
-          + '<tr class="tot"><td colspan="3">TOTAL ENCAISSÉ</td><td>'+fmtEur(totalPaye)+'</td></tr></tbody></table>' : '')
-      + (!livs.length && !factures.length && !paiements.length ? '<p style="padding:30px;text-align:center;color:#6b7280">Aucun mouvement pour cette date.</p>' : '')
-      + '</body></html>');
-    w.document.close();
-    audit('Export Z', dFmt + ' · ' + livs.length + ' livs, ' + factures.length + ' facts, ' + paiements.length + ' paiements');
-  };
 
   /* ============================================================
      INIT
@@ -18602,8 +18366,6 @@ genererRentabilitePDF = function() {
   // ils patchaient afficherFacturation et afficherDashboard qui n'existent
   // pas (commit 09dc43e). Le typeof check rendait les hooks toujours no-op.
   function initS15() {
-    setTimeout(injecterBandeauEcheances, 250);
-    setTimeout(enrichCopyables, 400);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS15);
   else setTimeout(initS15, 90);
@@ -19122,7 +18884,6 @@ genererRentabilitePDF = function() {
     render();
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
     if (typeof window.__s14RefreshBanner === 'function') window.__s14RefreshBanner();
-    if (typeof window.__s15RefreshEcheances === 'function') window.__s15RefreshEcheances();
   }
 
   function ouvrirDetailJour(dateISO) {
