@@ -51,6 +51,27 @@
 - ⚠️ Alerte si prix manquant ou conflit planning
 - 🔮 **Futur** : entrée dans `produits` si statut payé (sync auto Pennylane-style)
 
+### Quand on **SÉLECTIONNE un client** dans la modal Nouvelle livraison :
+- ✅ `selectionnerClientLivraisonParId(clientId)` pré-remplit :
+  - `liv-client` (nom)
+  - `liv-client-siren` (toujours, écrase la valeur précédente)
+  - `liv-zone` + `liv-depart` (adresse + CP + ville)
+  - `liv-arrivee` (vide)
+- ✅ Mémorise `window.__livSelectedClientId`, `__livSelectedClientTva`, `__livSelectedClientPays`
+- ✅ À la sauvegarde : priorité au clientId stocké, snapshots TVA/pays sauvegardés dans la livraison
+
+### Quand on **MODIFIE un client** (édition fiche) :
+- ✅ Si nom change → propagation auto sur livraisons liées via `clientId`
+- ✅ Si SIREN change → propagation auto sur livraisons liées
+- ✅ Toast informe du nb de livraisons synchronisées
+- 🔄 La fiche client reste vivante, ses livraisons restent retrouvables
+
+### Quand on **SUPPRIME un client** :
+- ✅ Avertissement explicite avec nb de livraisons liées
+- ✅ Livraisons gardées (snapshots `client`, `clientSiren`, `clientTvaIntracom` préservés)
+- ⚠️ `livraison.clientId` devient orphelin (aucun client à pointer)
+- ✅ Total CA continue de matcher par nom (snapshot)
+
 ### Quand on **CHANGE le statut d'une livraison à "Livrée"** :
 - ✅ Date de livraison enregistrée
 - ✅ Dashboard refresh (livraisons livrées)
