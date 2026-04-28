@@ -4046,8 +4046,15 @@ function afficherCarburant() {
     selVeh.value = currentValue;
   }
 
-  // Appliquer les filtres
-  if (filtreType) pleins = pleins.filter(p => (p.typeCarburant||'gasoil') === filtreType);
+  // Appliquer les filtres (avec support synonymes pour les libellés étendus)
+  if (filtreType) {
+    pleins = pleins.filter(p => {
+      const c = (p.typeCarburant || 'diesel').toLowerCase();
+      if (filtreType === 'diesel') return c === 'diesel' || c === 'gazole' || c === 'gasoil';
+      if (filtreType === 'gnv') return c === 'gnv' || c === 'biognv';
+      return c === filtreType;
+    });
+  }
   if (filtreVeh)  pleins = pleins.filter(p => p.vehId === filtreVeh);
   pleins = pleins.filter(p => isDateInRange(p.date, range));
   pleins = pleins.map(enrichirPleinCarburant);
@@ -4074,16 +4081,27 @@ function afficherCarburant() {
       ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">👤 Salarié</span>'
       : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
     const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
-    const typeLabel = (p.typeCarburant||'gasoil')==='essence' ? '🟢 Essence' : '⛽ Gasoil';
+    // Label étendu : matche les 6 types + tolère les synonymes
+    const carbKey = (p.typeCarburant || 'diesel').toLowerCase();
+    let typeLabel = '⛽ Diesel/Gazole';
+    if (carbKey === 'essence') typeLabel = '🟢 Essence';
+    else if (carbKey === 'gnv' || carbKey === 'biognv') typeLabel = '🌿 GNV/BioGNV';
+    else if (carbKey === 'electrique') typeLabel = '⚡ Électrique';
+    else if (carbKey === 'hybride') typeLabel = '🔋 Hybride';
+    else if (carbKey === 'hydrogene') typeLabel = '💧 Hydrogène';
+    // Menu Actions standardisé (pattern Livraisons/Clients)
+    const actionsItems = [
+      { icon: '✏️', label: 'Modifier', action: `ouvrirEditCarburantAdmin('${p.id}')` },
+      p.photoRecu
+        ? { icon: '🧾', label: 'Voir le reçu', action: `voirRecuCarburant('${p.id}')` }
+        : { icon: '🧾', label: 'Voir le reçu (aucun)', action: '', disabled: true, title: 'Aucun reçu uploadé' },
+      { icon: '🗑️', label: 'Supprimer', action: `supprimerCarburant('${p.id}')`, danger: true }
+    ];
     return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
       <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
       <td><strong>${euros(p.total)}</strong></td><td>${euros(p.tvaDeductible||0)}</td><td>${p.kmCompteur ? formatKm(p.kmCompteur) : '—'}</td><td>${formatDateExport(p.date)}</td><td>${src}</td>
-      <td><select class="btn-sm select-actions" onchange="actionCarburant(this.value,'${p.id}');this.value=''">
-  <option value="">Actions ▾</option>
-  <option value="modifier">✏️ Modifier</option>
-  <option value="recu" ${!p.photoRecu ? 'disabled' : ''}>🧾 Voir le reçu${!p.photoRecu ? ' (aucun)' : ''}</option>
-  <option value="supprimer">🗑️ Supprimer</option>
-</select></td></tr>`;
+      <td>${buildInlineActionsDropdown('Actions', actionsItems)}</td>
+    </tr>`;
   }).join('');
 }
 
@@ -5163,7 +5181,12 @@ function toggleFormulaireNewSalarie() {
 }
 
 function genererMotDePasseFort(prefix) {
-  const base = String(prefix || 'MCA').replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() || 'MCA';
+  // Format : 1ère lettre majuscule + reste minuscule + '!' + 4 chiffres
+  // → satisfait les 4 règles : majuscule, minuscule, chiffre, caractère spécial
+  // Avant : 'MCA!8370' (sans minuscule) → user recevait l'erreur 'ajouter une minuscule'
+  // Après : 'Mca!8370'
+  const baseRaw = String(prefix || 'MCA').replace(/[^A-Za-z0-9]/g, '').slice(0, 4) || 'MCA';
+  const base = baseRaw.charAt(0).toUpperCase() + baseRaw.slice(1).toLowerCase();
   const suffixe = String(Math.floor(1000 + Math.random() * 9000));
   return base + '!' + suffixe;
 }
@@ -10536,6 +10559,21 @@ function afficherEntretiens() {
     </tr>`;
   }).join('');
   }, 12);
+}
+
+// Auto-fill du km actuel quand on sélectionne un véhicule dans la modal Entretien
+// (le user veut pouvoir modifier mais avoir le km actuel pré-rempli).
+// Le champ 'Prochain entretien' reste vide intentionnellement.
+function autoFillKmEntretien() {
+  const sel = document.getElementById('entr-veh');
+  const kmInput = document.getElementById('entr-km');
+  if (!sel || !kmInput || !sel.value) return;
+  const veh = charger('vehicules').find(v => v.id === sel.value);
+  if (!veh) return;
+  const kmActuel = (typeof calculerKilometrageVehiculeActuel === 'function')
+    ? calculerKilometrageVehiculeActuel(veh)
+    : (parseFloat(veh.km) || 0);
+  if (kmActuel) kmInput.value = kmActuel;
 }
 
 function ouvrirModalEntretien() {

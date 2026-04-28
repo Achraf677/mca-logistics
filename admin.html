@@ -477,11 +477,17 @@
         <div class="kpi-card blue"><div class="kpi-label">Prix moyen / litre</div><div class="kpi-value" id="kpi-prix-litre">0 €</div><div class="kpi-sub" id="kpi-prix-litre-detail"></div></div>
       </div>
       <div class="filters mt-20">
-        <select id="filtre-carb-type" onchange="afficherCarburant()">
-          <option value="">Tout carburant</option><option value="gasoil">⛽ Gasoil</option><option value="essence">🟢 Essence</option>
-        </select>
         <select id="filtre-carb-vehicule" onchange="afficherCarburant()">
           <option value="">Tous les véhicules</option>
+        </select>
+        <select id="filtre-carb-type" onchange="afficherCarburant()">
+          <option value="">Tous les carburants</option>
+          <option value="diesel">⛽ Diesel/Gazole</option>
+          <option value="essence">🟢 Essence</option>
+          <option value="gnv">🌿 GNV/BioGNV</option>
+          <option value="electrique">⚡ Électrique</option>
+          <option value="hybride">🔋 Hybride</option>
+          <option value="hydrogene">💧 Hydrogène</option>
         </select>
         <button class="btn-secondary" onclick="resetFiltresCarburant()">Réinitialiser</button>
       </div>
@@ -2205,8 +2211,12 @@
           <div class="form-group"><label>Véhicule *</label><select id="carb-vehicule"><option value="">-- Choisir --</option></select></div>
           <div class="form-group"><label>Type carburant *</label>
             <select id="carb-type">
-              <option value="gasoil">⛽ Gasoil</option>
+              <option value="diesel">⛽ Diesel/Gazole</option>
               <option value="essence">🟢 Essence</option>
+              <option value="gnv">🌿 GNV/BioGNV</option>
+              <option value="electrique">⚡ Électrique</option>
+              <option value="hybride">🔋 Hybride</option>
+              <option value="hydrogene">💧 Hydrogène</option>
             </select>
           </div>
           <div class="form-group"><label>Litres *</label><input type="number" id="carb-litres" placeholder="40" min="0" step="0.1" /></div>
@@ -2531,7 +2541,7 @@
       <div class="modal-header"><h3>🔧 Ajouter un entretien</h3><button class="modal-close" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Véhicule *</label><select id="entr-veh"><option value="">— Choisir —</option></select></div>
+          <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()"><option value="">— Choisir —</option></select></div>
           <div class="form-group"><label>Date *</label><input type="date" id="entr-date" /></div>
           <div class="form-group"><label>Type *</label>
             <select id="entr-type">
