@@ -4582,13 +4582,6 @@ function rafraichirDashboard() {
       : '<span style="font-size:.82rem;color:var(--text-muted)">Aucun salarié planifié aujourd\'hui</span>';
   }
 
-  // Comparatif mensuel
-  const comp = calculerComparatif();
-  const compEl = document.getElementById('kpi-comp-ca');
-  if (compEl) compEl.innerHTML = `vs mois préc. ${euros(comp.caPrec)} ${badgeEvol(comp.caActuel, comp.caPrec)}`;
-  const compLivEl = document.getElementById('kpi-comp-liv');
-  if (compLivEl) compLivEl.innerHTML = `vs mois préc. ${comp.livPrec} ${badgeEvol(comp.livActuel, comp.livPrec)}`;
-
   // Objectif livraisons
   const objLiv = parseInt(localStorage.getItem('objectif_livraisons_mensuel')||'0', 10);
   const objLivEl = document.getElementById('kpi-objectif-liv-pct');
@@ -4643,27 +4636,33 @@ function rafraichirDashboard() {
   chartActivite = new Chart(_cvActivite, {
     type:'bar', data:{ labels, datasets:[{
       label:'CA (€)', data:donnees,
-      backgroundColor: mcaChartGradient(_cvActivite, '#f5a623', 0.85, 0.15),
-      borderColor:'rgba(245,166,35,1)',
-      borderWidth:0,
-      borderRadius:8,
+      backgroundColor: mcaChartGradient(_cvActivite, '#f2a33b', 0.95, 0.30),
+      hoverBackgroundColor: mcaChartGradient(_cvActivite, '#f6b456', 1, 0.45),
+      borderRadius:10,
       borderSkipped:false,
-      hoverBackgroundColor: mcaChartGradient(_cvActivite, '#ffb94d', 1, 0.25)
+      borderWidth:0,
+      barPercentage:0.62,
+      categoryPercentage:0.78
     }] },
     options: mcaChartBaseOptions(isLight, {
+      layout: { padding: { top: 12, right: 8, bottom: 4, left: 8 } },
+      animation: { duration: 800, easing: 'easeOutCubic' },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
-          titleColor: '#ffffff', bodyColor: '#e2e8f0',
-          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
-          padding: 12, cornerRadius: 8,
+          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(13,21,36,0.95)',
+          titleColor: '#ffffff', bodyColor: '#ffd49e',
+          borderColor: 'rgba(242,163,59,0.5)', borderWidth: 1,
+          padding: 12, cornerRadius: 10,
+          displayColors: false,
+          titleFont: { size: 12, weight: '600' },
+          bodyFont: { size: 14, weight: '700' },
           callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) }
         }
       },
       scales: {
-        x: { grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 } } },
-        y: { beginAtZero: true, grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 }, callback: v => euros(v) } }
+        x: { grid: { display: false, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11, weight: '500' } } },
+        y: { beginAtZero: true, grid: { color: isLight ? 'rgba(15,23,42,0.05)' : 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 }, callback: v => euros(v) } }
       }
     })
   });
@@ -10356,32 +10355,6 @@ function afficherCommentairesLiv(livId) {
       <div style="color:var(--text-muted);font-size:.72rem;margin-bottom:3px">${c.par} · ${new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
       ${c.texte}
     </div>`).join('');
-}
-
-/* ===== COMPARATIF MENSUEL ===== */
-function calculerComparatif() {
-  const livraisons = charger('livraisons');
-  const carburant  = charger('carburant');
-  const auj        = new Date();
-  const moisActuel = auj.toLocalISOMonth();
-  const moisPrec   = new Date(auj.getFullYear(), auj.getMonth()-1, 1).toLocalISOMonth();
-
-  const caActuel = livraisons.filter(l=>(l.date||'').startsWith(moisActuel)).reduce((s,l)=>s+(l.prix||0),0);
-  const caPrec   = livraisons.filter(l=>(l.date||'').startsWith(moisPrec)).reduce((s,l)=>s+(l.prix||0),0);
-  const livActuel= livraisons.filter(l=>(l.date||'').startsWith(moisActuel)).length;
-  const livPrec  = livraisons.filter(l=>(l.date||'').startsWith(moisPrec)).length;
-  const carbActuel= carburant.filter(p=>(p.date||'').startsWith(moisActuel)).reduce((s,p)=>s+(p.total||0),0);
-  const carbPrec  = carburant.filter(p=>(p.date||'').startsWith(moisPrec)).reduce((s,p)=>s+(p.total||0),0);
-
-  return { caActuel, caPrec, livActuel, livPrec, carbActuel, carbPrec };
-}
-
-function badgeEvol(actuel, precedent) {
-  if (!precedent) return '';
-  const pct = Math.round((actuel - precedent) / precedent * 100);
-  if (pct > 0)  return `<span class="evol-badge up">↑ +${pct}%</span>`;
-  if (pct < 0)  return `<span class="evol-badge down">↓ ${pct}%</span>`;
-  return `<span class="evol-badge flat">= 0%</span>`;
 }
 
 /* ===== BON DE LIVRAISON PDF ===== */
@@ -22234,83 +22207,6 @@ genererRentabilitePDF = function() {
   window.ouvrirTimelineGlobale = ouvrirTimelineGlobale;
 
   /* ================================================================
-     BLOC 2 — STATS COMPARÉES (dashboard delta M vs M-1)
-     ================================================================ */
-  function calcStatsPeriode(mois) {
-    const [y,m] = mois.split('-').map(Number);
-    const inMonth = (iso) => {
-      if (!iso) return false;
-      const d = new Date(iso);
-      return d.getFullYear()===y && d.getMonth()===m-1;
-    };
-    let ca = 0, nbLiv = 0, nbFact = 0, encaisse = 0, charges = 0;
-    load(LS.factures).forEach(f => {
-      if (inMonth(f.dateFacture)) { ca += Number(f.montantHT||f.totalHT||0); nbFact++; }
-    });
-    load(LS.livraisons).forEach(l => { if (inMonth(l.dateLivraison||l.dateCreation)) nbLiv++; });
-    load(LS.paiements).forEach(p => { if (inMonth(p.datePaiement||p.date)) encaisse += Number(p.montant||0); });
-    load(LS.charges).forEach(c => { if (inMonth(c.date)) charges += Number(c.montantHT||c.montant||0); });
-    return { ca, nbLiv, nbFact, encaisse, charges, marge: ca - charges };
-  }
-
-  function moisAvant(ref, n) {
-    const [y,m] = ref.split('-').map(Number);
-    const d = new Date(y, m-1-n, 1);
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-  }
-
-  function renderStatsComparees() {
-    const target = document.querySelector('#page-dashboard');
-    if (!target) return;
-    if (target.querySelector('#s26-stats-comparees')) return;
-    const anchor = target.querySelector('.kpi-grid-primary') || target.querySelector('.kpi-grid') || target.firstElementChild;
-    if (!anchor) return;
-    const mois = todayISO().slice(0,7);
-    const moisPrec = moisAvant(mois, 1);
-    const cur = calcStatsPeriode(mois);
-    const prev = calcStatsPeriode(moisPrec);
-    const delta = (a,b) => {
-      if (!b && !a) return { cls:'empty', txt:'' };
-      if (!b) return { cls:'up', txt:'Nouveau' };
-      const pct = ((a-b)/Math.abs(b))*100;
-      const cls = pct > 1 ? 'up' : pct < -1 ? 'down' : 'neutral';
-      const sign = pct > 0 ? '+' : '';
-      return { cls, txt: sign+pct.toFixed(1)+'%' };
-    };
-    const rows = [
-      { lbl: 'CA (HT)', a: cur.ca, b: prev.ca, fmt: fmtEur, d: delta(cur.ca, prev.ca) },
-      { lbl: 'Livraisons', a: cur.nbLiv, b: prev.nbLiv, fmt: n=>n, d: delta(cur.nbLiv, prev.nbLiv) },
-      { lbl: 'Factures', a: cur.nbFact, b: prev.nbFact, fmt: n=>n, d: delta(cur.nbFact, prev.nbFact) },
-      { lbl: 'Encaissé', a: cur.encaisse, b: prev.encaisse, fmt: fmtEur, d: delta(cur.encaisse, prev.encaisse) },
-      { lbl: 'Charges', a: cur.charges, b: prev.charges, fmt: fmtEur, d: delta(cur.charges, prev.charges), inv: true },
-      { lbl: 'Marge', a: cur.marge, b: prev.marge, fmt: fmtEur, d: delta(cur.marge, prev.marge) },
-    ];
-    const wrap = document.createElement('div');
-    wrap.id = 's26-stats-comparees';
-    wrap.className = 's26-stats-comparees';
-    wrap.innerHTML = `
-      <div class="s26-sc-head">
-        <strong>📈 Mois en cours vs mois précédent</strong>
-        <button type="button" class="s26-sc-link" onclick="window.ouvrirTimelineGlobale()">📊 Timeline globale →</button>
-      </div>
-      <div class="s26-sc-grid">
-        ${rows.map(r => {
-          const cls = r.inv ? (r.d.cls==='up'?'down':r.d.cls==='down'?'up':'neutral') : r.d.cls;
-          const isEmpty = r.d.cls === 'empty';
-          return `
-            <div class="s26-sc-card ${isEmpty ? 's26-sc-empty' : ''}">
-              <div class="s26-sc-lbl">${r.lbl}</div>
-              <div class="s26-sc-val">${r.fmt(r.a)}</div>
-              ${isEmpty ? '<div class="s26-sc-prev">Aucune donnée sur la période</div>' : '<div class="s26-sc-delta '+cls+'">'+r.d.txt+'</div><div class="s26-sc-prev">M-1 · '+r.fmt(r.b)+'</div>'}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-    anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
-  }
-
-  /* ================================================================
      BLOC 3 — DOUBLE-CLIC INLINE EDIT
      ================================================================ */
   function onDblClickCell(e) {
@@ -22650,13 +22546,8 @@ genererRentabilitePDF = function() {
      ================================================================ */
   function init() {
     document.addEventListener('dblclick', onDblClickCell);
-    // PERF anti-FOUC: render synchrone des stats comparées (était setTimeout 1200ms
-    // → causait le flash "dashboard puis timeline apparaît 1s après")
-    renderStatsComparees();
     injectParamsUI();
     injecterBoutonSignature();
-    // Refresh périodique stats (M vs M-1) toutes les minutes (léger)
-    setInterval(renderStatsComparees, 60*1000);
     // PERF: anciens setInterval injectParamsUI 4s + injecterBoutonSignature 2.5s
     // remplacés par MutationObserver — ne re-injecte que si le DOM mute vraiment
     const reinjectObs = new MutationObserver(() => {
@@ -22664,12 +22555,6 @@ genererRentabilitePDF = function() {
       injecterBoutonSignature();
     });
     reinjectObs.observe(document.body, { childList: true, subtree: true });
-    // Re-render stats si localStorage mute
-    window.addEventListener('storage', () => {
-      const el = document.getElementById('s26-stats-comparees');
-      if (el) el.remove();
-      renderStatsComparees();
-    });
   }
   window.__s26InitDashboard = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
