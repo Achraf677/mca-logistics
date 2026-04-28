@@ -13,29 +13,34 @@
       --text: #eef3fb;
       --muted: #9aa9bf;
       --accent: #f2a33b;
+      --accent-2: #f6b456;
       --blue: #4c8cf5;
       --danger: #ec5f5f;
       --success: #57c785;
-      --shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
-      --radius-xl: 28px;
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.55);
+      --radius-xl: 32px;
       --radius-lg: 18px;
       --font: "Segoe UI", system-ui, sans-serif;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
 
     body {
       min-height: 100vh;
       font-family: var(--font);
       color: var(--text);
       background:
-        radial-gradient(circle at 12% 18%, rgba(242, 163, 59, 0.18), transparent 30%),
-        radial-gradient(circle at 82% 22%, rgba(76, 140, 245, 0.17), transparent 28%),
-        linear-gradient(160deg, #08111d 0%, #101a2a 46%, #0b1321 100%);
+        radial-gradient(ellipse at 12% 18%, rgba(242, 163, 59, 0.22), transparent 35%),
+        radial-gradient(ellipse at 85% 82%, rgba(76, 140, 245, 0.20), transparent 38%),
+        radial-gradient(ellipse at 50% 50%, rgba(242, 163, 59, 0.06), transparent 60%),
+        linear-gradient(160deg, #050a14 0%, #0d1524 46%, #060c17 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px;
+      overflow: hidden;
+      position: relative;
     }
 
     body.route-leaving .shell {
@@ -43,111 +48,103 @@
       transform: translateY(-12px) scale(0.985);
     }
 
+    /* Orbes flottantes en fond */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.55;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 16s ease-in-out infinite;
+    }
+    .orb.o1 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(242,163,59,0.45), transparent 70%); top: -120px; left: -100px; animation-delay: 0s; }
+    .orb.o2 { width: 360px; height: 360px; background: radial-gradient(circle, rgba(76,140,245,0.38), transparent 70%); bottom: -80px; right: -80px; animation-delay: -6s; }
+    .orb.o3 { width: 260px; height: 260px; background: radial-gradient(circle, rgba(242,163,59,0.22), transparent 70%); top: 50%; left: 60%; animation-delay: -3s; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(40px, -30px) scale(1.06); }
+      66% { transform: translate(-30px, 25px) scale(0.96); }
+    }
+
     .shell {
+      position: relative;
+      z-index: 2;
       width: min(620px, 100%);
       display: grid;
       grid-template-columns: 1fr;
-      background: linear-gradient(180deg, rgba(9, 15, 26, 0.82), rgba(8, 14, 23, 0.94));
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(13, 21, 36, 0.62), rgba(8, 14, 23, 0.82));
+      border: 1px solid;
+      border-image: linear-gradient(135deg, rgba(242,163,59,0.45), rgba(76,140,245,0.30) 50%, rgba(255,255,255,0.10)) 1;
       border-radius: var(--radius-xl);
       overflow: hidden;
       box-shadow: var(--shadow);
-      backdrop-filter: blur(18px);
+      backdrop-filter: blur(24px) saturate(140%);
+      -webkit-backdrop-filter: blur(24px) saturate(140%);
       transition: opacity 0.18s ease, transform 0.18s ease;
+      animation: shellIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes shellIn {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     .hero {
-      padding: 28px 30px 22px;
+      padding: 44px 30px 28px;
       background:
-        linear-gradient(145deg, rgba(242, 163, 59, 0.12), transparent 38%),
-        linear-gradient(210deg, rgba(76, 140, 245, 0.12), transparent 42%),
-        rgba(10, 17, 29, 0.72);
+        linear-gradient(145deg, rgba(242, 163, 59, 0.10), transparent 50%),
+        linear-gradient(210deg, rgba(76, 140, 245, 0.08), transparent 50%),
+        rgba(10, 17, 29, 0.42);
       border-bottom: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
     }
 
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 14px;
-      border-radius: 999px;
-      border: 1px solid rgba(242, 163, 59, 0.18);
-      background: rgba(242, 163, 59, 0.08);
-      color: #ffd49e;
-      font-size: 0.76rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 14px;
+    /* Halo lumineux pulsant derrière le logo */
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 420px;
+      height: 280px;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse, rgba(242, 163, 59, 0.28), transparent 65%);
+      filter: blur(20px);
+      animation: pulseGlow 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1); }
+      50% { opacity: 0.95; transform: translate(-50%, -50%) scale(1.10); }
     }
 
     .brand {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 14px;
-      text-align: center;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both;
     }
 
-    .brand-badge {
-      width: 148px;
-      height: 78px;
-      padding: 10px 14px;
-      border-radius: 24px;
-      background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.03)),
-        rgba(9, 15, 26, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      box-shadow:
-        0 14px 28px rgba(0, 0, 0, 0.28),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    }
-
-    .brand-badge img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      display: none;
-      filter: none;
-    }
-
-    .brand-badge.has-logo img {
+    /* Logo grand sans cadre */
+    .brand-logo {
+      width: min(360px, 70%);
+      height: auto;
       display: block;
+      filter: drop-shadow(0 8px 32px rgba(242, 163, 59, 0.35));
     }
-
-    .brand-fallback {
-      font-size: 1rem;
-      font-weight: 800;
-      letter-spacing: 0.08em;
-      color: #131313;
-    }
-
-    .brand-badge.has-logo .brand-fallback {
-      display: none;
-    }
-
-    .brand-name {
-      font-size: 1.85rem;
-      font-weight: 800;
-      letter-spacing: 0.02em;
-      line-height: 1;
-      text-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-    }
-
-    .hero h1 {
-      font-size: clamp(1.45rem, 3vw, 2rem);
-      line-height: 1.1;
-      margin-bottom: 0;
-    }
+    /* L'image (logo uploadé) est cachée par défaut, le SVG fallback est visible
+       jusqu'à ce que appliquerBrandingLogin() permute en JS */
+    #brand-logo { display: none; }
 
     .auth {
-      padding: 26px 30px 30px;
-      background: linear-gradient(180deg, rgba(10, 17, 29, 0.84), rgba(10, 17, 29, 0.98));
+      padding: 30px 34px 36px;
+      background: linear-gradient(180deg, rgba(10, 17, 29, 0.55), rgba(10, 17, 29, 0.85));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -159,11 +156,18 @@
 
     .auth-head {
       margin-bottom: 24px;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.30s both;
     }
 
     .auth-head h2 {
-      font-size: 1.55rem;
+      font-size: 1.65rem;
       margin-bottom: 0;
+      letter-spacing: -0.01em;
+      background: linear-gradient(90deg, #ffffff 0%, #ffd49e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      color: transparent;
     }
 
     .role-switch {
@@ -204,7 +208,10 @@
 
     .field {
       margin-bottom: 16px;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
+    .field:nth-of-type(1) { animation-delay: 0.40s; }
+    .field:nth-of-type(2) { animation-delay: 0.50s; }
 
     .field label {
       display: block;
@@ -221,17 +228,20 @@
       padding: 14px 15px;
       border-radius: 14px;
       border: 1px solid var(--border);
-      background: rgba(4, 9, 17, 0.66);
+      background: rgba(4, 9, 17, 0.70);
       color: var(--text);
       font-size: 0.96rem;
       font-family: inherit;
-      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      transition: border-color 0.18s ease, box-shadow 0.25s ease, background 0.2s ease;
     }
 
     .field input:focus {
       outline: none;
-      border-color: rgba(242, 163, 59, 0.5);
-      box-shadow: 0 0 0 4px rgba(242, 163, 59, 0.08);
+      border-color: rgba(242, 163, 59, 0.65);
+      box-shadow:
+        0 0 0 4px rgba(242, 163, 59, 0.10),
+        0 8px 24px rgba(242, 163, 59, 0.10);
+      background: rgba(4, 9, 17, 0.85);
     }
 
     .password-wrap {
@@ -239,7 +249,7 @@
     }
 
     .password-wrap input {
-      padding-right: 48px;
+      padding-right: 60px;
     }
 
     .toggle-password {
@@ -251,29 +261,39 @@
       background: transparent;
       color: var(--muted);
       cursor: pointer;
-      font-size: 1.05rem;
-      padding: 6px;
+      font-size: 0.85rem;
+      padding: 6px 8px;
       line-height: 1;
+      border-radius: 8px;
+      transition: background 0.15s ease, color 0.15s ease;
     }
+    .toggle-password:hover { background: rgba(242,163,59,0.08); color: var(--accent); }
 
     .submit {
       width: 100%;
-      padding: 14px 18px;
+      padding: 15px 18px;
       border: none;
       border-radius: 16px;
-      font-size: 0.98rem;
+      font-size: 1rem;
       font-weight: 800;
       cursor: pointer;
       font-family: inherit;
-      transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 10px;
-      margin-top: 6px;
-      background: linear-gradient(135deg, var(--accent), #f6b456);
+      margin-top: 10px;
       color: #121212;
-      box-shadow: 0 18px 30px rgba(242, 163, 59, 0.2);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
+      background-size: 200% 100%;
+      box-shadow:
+        0 18px 38px rgba(242, 163, 59, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.6s ease;
+      animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.60s both;
     }
 
     .submit.salarie {
@@ -283,8 +303,14 @@
     }
 
     .submit:hover {
-      transform: translateY(-1px);
+      transform: translateY(-2px);
+      box-shadow:
+        0 24px 50px rgba(242, 163, 59, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+      background-position: 100% 0;
     }
+
+    .submit:active { transform: translateY(0); }
 
     .submit[disabled] {
       opacity: 0.8;
@@ -303,31 +329,74 @@
       animation: spin 0.7s linear infinite;
     }
 
+    /* Reflet brillant qui traverse le bouton au hover */
+    .submit::before {
+      content: "";
+      position: absolute;
+      top: 0; left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+      transition: left 0.7s ease;
+      z-index: -1;
+    }
+    .submit:hover::before { left: 130%; }
+
+    /* Messages d'erreur et statut avec icône + animation */
     .error-msg,
     .status-msg {
       display: none;
-      margin-top: 14px;
-      padding: 12px 14px;
+      margin-top: 16px;
+      padding: 13px 14px 13px 44px;
       border-radius: 14px;
-      font-size: 0.84rem;
-      line-height: 1.55;
+      font-size: 0.86rem;
+      line-height: 1.5;
+      position: relative;
     }
 
-    .error-msg.show,
+    .error-msg.show {
+      display: block;
+      animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
     .status-msg.show {
       display: block;
+      animation: slideDown 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
     .error-msg {
-      background: rgba(236, 95, 95, 0.1);
-      border: 1px solid rgba(236, 95, 95, 0.22);
-      color: #ffb8b8;
+      background: linear-gradient(135deg, rgba(236, 95, 95, 0.12), rgba(236, 95, 95, 0.06));
+      border: 1px solid rgba(236, 95, 95, 0.30);
+      color: #ffc4c4;
+    }
+    .error-msg::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff8a8a' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 9v4'/><path d='M12 17h.01'/><path d='M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z'/></svg>");
+      background-size: contain;
+      background-repeat: no-repeat;
     }
 
     .status-msg {
-      background: rgba(87, 199, 133, 0.08);
-      border: 1px solid rgba(87, 199, 133, 0.18);
-      color: #bcefd0;
+      background: linear-gradient(135deg, rgba(87, 199, 133, 0.12), rgba(87, 199, 133, 0.06));
+      border: 1px solid rgba(87, 199, 133, 0.30);
+      color: #c5f3d8;
+    }
+    .status-msg::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2380e0a8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M22 11.08V12a10 10 0 1 1-5.93-9.14'/><path d='m9 11 3 3L22 4'/></svg>");
+      background-size: contain;
+      background-repeat: no-repeat;
     }
 
     .auth-footer {
@@ -338,6 +407,20 @@
       text-align: center;
     }
 
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
     @keyframes spin {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
@@ -349,19 +432,11 @@
 
     @media (max-width: 560px) {
       body { padding: 14px; }
-      .hero, .auth { padding: 20px; }
+      .hero { padding: 32px 22px 22px; }
+      .auth { padding: 22px 22px 26px; }
       .role-switch { grid-template-columns: 1fr; }
-      .brand {
-        gap: 12px;
-      }
-      .brand-badge {
-        width: 128px;
-        height: 70px;
-        border-radius: 20px;
-      }
-      .brand-name {
-        font-size: 1.6rem;
-      }
+      .brand-logo { width: 75%; }
+      .hero::before { width: 320px; height: 220px; }
     }
   </style>
 <style>
@@ -371,17 +446,26 @@
 </style>
 </head>
 <body>
+  <div class="orb o1"></div>
+  <div class="orb o2"></div>
+  <div class="orb o3"></div>
+
   <div class="shell">
     <section class="hero">
-    <div class="brand">
-      <div class="brand-badge" id="brand-badge">
-        <img id="brand-logo" alt="Logo entreprise" />
-        <span class="brand-fallback">MCA</span>
+      <div class="brand">
+        <img id="brand-logo" class="brand-logo" alt="Logo entreprise" />
+        <svg id="brand-fallback" class="brand-logo brand-fallback-svg" viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="mcaGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#f2a33b"/>
+              <stop offset="100%" stop-color="#f6b456"/>
+            </linearGradient>
+          </defs>
+          <text x="240" y="80" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="900" font-size="62" fill="url(#mcaGrad)" letter-spacing="2">MCA</text>
+          <text x="240" y="115" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="500" font-size="22" fill="#eef3fb" letter-spacing="6">LOGISTICS</text>
+          <line x1="160" y1="92" x2="320" y2="92" stroke="#f2a33b" stroke-width="2" opacity="0.6"/>
+        </svg>
       </div>
-      <div>
-        <div class="brand-name">MCA Logistics</div>
-      </div>
-    </div>
     </section>
 
     <section class="auth" id="auth-shell">
@@ -519,15 +603,17 @@
 
     function appliquerBrandingLogin() {
       const logo = localStorage.getItem('logo_entreprise_url') || localStorage.getItem('logo_entreprise') || '';
-      const badge = document.getElementById('brand-badge');
       const img = document.getElementById('brand-logo');
-      if (badge && img) {
+      const fallback = document.getElementById('brand-fallback');
+      if (img && fallback) {
         if (logo) {
           img.src = logo;
-          badge.classList.add('has-logo');
+          img.style.display = 'block';
+          fallback.style.display = 'none';
         } else {
           img.removeAttribute('src');
-          badge.classList.remove('has-logo');
+          img.style.display = 'none';
+          fallback.style.display = 'block';
         }
       }
       const favicon = document.querySelector("link[rel='icon']") || document.createElement('link');
@@ -653,7 +739,7 @@
       sessionStorage.removeItem('salarie_numero');
       memoriserFastBoot('admin');
       localStorage.setItem('last_admin_identifiant', identifiant);
-      afficherStatutConnexion('Connexion admin reussie. Redirection en cours...');
+      afficherStatutConnexion('Connexion réussie. Redirection…');
       redirigerAvecTransition('admin.html');
       return true;
     }
@@ -661,12 +747,12 @@
     async function connecterSalarieLocal(salarie, identifiant, mdp) {
       if (!salarie) return false;
       if (salarie.actif === false) {
-        afficherErreurConnexion("Ce compte salarie est inactif.");
+        afficherErreurConnexion('Ce compte salarié est désactivé. Contactez votre administrateur.');
         setLoginBusy(false);
         return true;
       }
       if (!salarie.mdpHash) {
-        afficherErreurConnexion("Aucun mot de passe salarie n'est defini pour ce compte.");
+        afficherErreurConnexion('Aucun mot de passe défini pour ce compte. Contactez votre administrateur.');
         setLoginBusy(false);
         return true;
       }
@@ -693,7 +779,7 @@
       sessionStorage.removeItem('admin_email');
       sessionStorage.removeItem('admin_nom');
       memoriserFastBoot('salarie');
-      afficherStatutConnexion('Connexion réussie. Redirection en cours...');
+      afficherStatutConnexion('Connexion réussie. Redirection…');
       redirigerAvecTransition('salarie.html');
       return true;
     }
@@ -713,7 +799,7 @@
         sessionStorage.removeItem('admin_email');
         sessionStorage.removeItem('admin_nom');
         memoriserFastBoot('salarie');
-        afficherStatutConnexion('Connexion réussie. Redirection en cours...');
+        afficherStatutConnexion('Connexion réussie. Redirection…');
         // Délai court pour laisser Supabase persister la session
         await new Promise(resolve => setTimeout(resolve, 300));
         redirigerAvecTransition('salarie.html');
@@ -724,7 +810,7 @@
 
     async function connecterAdmin(identifiant, mdp) {
       if (!window.DelivProAuth || !window.DelivProAuth.signIn) {
-        afficherErreurConnexion("Le module d'authentification admin est indisponible.");
+        afficherErreurConnexion('Service de connexion momentanément indisponible. Réessayez dans un instant.');
         setLoginBusy(false);
         return false;
       }
@@ -744,17 +830,17 @@
         sessionStorage.removeItem('salarie_numero');
         memoriserFastBoot('admin');
         localStorage.setItem('last_admin_identifiant', identifiant);
-        afficherStatutConnexion('Connexion admin reussie. Redirection en cours...');
+        afficherStatutConnexion('Connexion réussie. Redirection…');
         redirigerAvecTransition('admin.html');
         return true;
       }
 
       if (authResult.reason === 'invalid_credentials') {
-        afficherErreurConnexion('Identifiant ou mot de passe incorrect.');
+        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       } else if (authResult.reason === 'not_found') {
-        afficherErreurConnexion('Identifiant ou mot de passe incorrect.');
+        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       } else {
-        afficherErreurConnexion('Identifiant ou mot de passe incorrect.');
+        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       }
       setLoginBusy(false);
       return false;
@@ -771,7 +857,7 @@
       const mdp = document.getElementById('login-password').value;
 
       if (!identifiant || !mdp) {
-        afficherErreurConnexion('Renseignez votre identifiant et votre mot de passe.');
+        afficherErreurConnexion('Veuillez remplir les deux champs avant de vous connecter.');
         setLoginBusy(false);
         loginEnCours = null;
         return;
@@ -790,7 +876,7 @@
 
         // Si le salarié existe dans Supabase mais mauvais mot de passe → stop
         if (supabaseSalarieResult?.reason === 'invalid_credentials') {
-          afficherErreurConnexion('Identifiant ou mot de passe incorrect.');
+          afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
           setLoginBusy(false);
           loginEnCours = null;
           return;
@@ -807,7 +893,7 @@
       const salarie = getLocalSalarie(identifiant);
       if (salarie) {
         if (connecterSalarieLocal(salarie, identifiant.toUpperCase(), mdp)) return;
-        afficherErreurConnexion('Identifiant ou mot de passe incorrect.');
+        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
         setLoginBusy(false);
         loginEnCours = null;
         return;
@@ -863,7 +949,7 @@
         return;
       }
       if (pwd !== confirm) {
-        errEl.textContent = 'Les deux mots de passe ne correspondent pas.';
+        errEl.textContent = 'Les mots de passe saisis ne sont pas identiques.';
         errEl.classList.add('show');
         return;
       }
