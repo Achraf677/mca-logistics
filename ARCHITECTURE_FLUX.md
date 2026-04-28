@@ -11,12 +11,13 @@
 |---|---|---|
 | **Livraisons** | `livraisons` | Cœur du métier : transport, prix, statuts, dates |
 | **Clients** | `clients` | Carnet clients (Pro / Particulier) |
+| **Fournisseurs** | `fournisseurs` | Carnet fournisseurs (Pro / Particulier) — miroir Clients |
 | **Salariés** | `salaries` | Chauffeurs et autres |
-| **Véhicules** | `vehicules` | Flotte avec affectation salarié |
+| **Véhicules** | `vehicules` | Flotte avec affectation salarié + carte grise (PDF base64) |
 | **Carburant** | `carburant` | Pleins effectués (km, montant, type, vehId) |
 | **Entretiens** | `entretiens` | Maintenance véhicules |
 | **Inspections** | `inspections` | Contrôles véhicules |
-| **Charges** | `charges` | Dépenses générales (carburant, entretien, autres) |
+| **Charges** | `charges` | Dépenses générales (carburant, entretien, autres) — peut référer un fournisseur via `fournisseurId` |
 | **Paiements** | `paiements` | Encaissements (futur module Encaissement) |
 | **Incidents** | `incidents` | Réclamations / problèmes |
 | **Alertes** | `alertes_admin` | Notifications système |
@@ -84,6 +85,14 @@
 - ❌ **PAS de couplage automatique avec statut livraison**
 - 🔮 **Futur (Encaissement)** : créer entrée Paiement → événement Calendrier (filtre `paiements`) + update Encaissé Dashboard
 
+### Quand on **UPLOAD une carte grise véhicule** :
+- ✅ En mode édition : direct sur `vehicules[idx].carteGriseFichier` (base64) + type + nom
+- ✅ En mode création : stockage temp dans `window.__vehCGTemp`, attaché à la sauvegarde via `ajouterVehicule`
+- ✅ `resetModalVehiculeToCreateMode` reset le state UI + temp si modal fermée sans save
+- ✅ Bouton "Visualiser carte grise" dans le menu Actions devient ACTIF (vs grisé)
+- ✅ `visualiserCarteGrise(vehId)` ouvre une popup avec embed PDF ou img selon type
+- ⚠️ Limite 5 Mo (localStorage)
+
 ### Quand on **CRÉE un plein carburant** :
 - ✅ Doit apparaître dans Charges (sync bidirectionnelle — bug connu sens inverse)
 - ✅ Update Dashboard Dépenses mois
@@ -108,6 +117,12 @@
 - ✅ Auto-affectation véhicule dans modal Nouvelle Livraison (selon chauffeur)
 - ✅ Heures & Km : entrées km salarié liées au véhicule
 
+### Quand on **CRÉE / MODIFIE / SUPPRIME un fournisseur** :
+- ✅ Création : entrée dans `fournisseurs` avec type Pro/Particulier, secteur, paiement, IBAN
+- ✅ Édition : modification fiche (la liaison aux charges via `fournisseurId` reste intacte)
+- ✅ Suppression : avertissement avec nb de charges liées (snapshots préservés via `charge.fournisseur` nom)
+- 🔮 **Futur** : champ Fournisseur dans modal Nouvelle Charge (à attaquer avec onglet Charges)
+
 ### 🔮 Quand on **CRÉE un encaissement (futur module)** :
 - ✅ Mise à jour statut paiement livraison(s) liée(s)
 - ✅ Événement Calendrier (filtre `paiements`)
@@ -127,11 +142,13 @@
 | **Bouton "Historique clients" / CSV style** | Clients, Livraisons (renommée "Historique des livraisons") | ✅ |
 | **Bouton "Rapport" `btn-rapport`** | Calendrier, Livraisons, Planning, Charges, TVA, Clients | ✅ |
 | **Menu Actions dropdown** (au lieu de boutons scattered) | Livraisons, Clients ✅ — à porter sur Charges, Parc Auto |
-| **"Aujourd'hui" (au lieu de "Réinitialiser")** sur nav période | Livraisons, Calendrier ✅ — à porter sur Charges, Carburant, Entretien, Stats, Inspection |
+| **"Aujourd'hui" (au lieu de "Réinitialiser")** sur nav période | Livraisons, Calendrier, TVA, Carburant, Stats, Charges, Entretiens, Heures, Planning, Inspections ✅ TOUS |
 | **PDF en-tête `construireEnteteExport`** | Livraisons (réf), Calendrier, Rentabilité, Heures, Planning, Clients ✅ |
 | **Pagination 10/25/50/100** (`window.PAGINATION`) | Livraisons ✅ — à porter sur Clients, Charges, autres |
 | **Auto-complétion client** (modal Livraison) | Modal Nouvelle Livraison ✅ |
 | **Recherche véhicule barre** | Charges (à faire), Alertes/Incidents (à faire) |
+| **Filtre Carburant Parc Auto** | Parc Auto ✅ (matching `.includes()` pour libellés composés) |
+| **Recherche stylée tableau** | Parc Auto ✅, Clients ✅, Fournisseurs ✅, Livraisons (existant) |
 
 ---
 
