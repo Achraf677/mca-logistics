@@ -3850,7 +3850,10 @@ function afficherVehicules() {
           ? ` <span style="color:var(--text-muted);font-size:.72rem">(1 plein — besoin de 2+)</span>`
           : ''
       }</td>
-      <td style="${ctStyle}">${v.dateCT ? formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</td>
+      <td style="${ctStyle}">
+        ${v.dateCTDernier ? `<div style="font-size:.72rem;color:var(--text-muted);font-weight:400">Dernier : ${formatDateExport(v.dateCTDernier)}</div>` : ''}
+        <div>${v.dateCT ? 'Prochain : ' + formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</div>
+      </td>
       <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${carbAffiche}</td>
       <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
@@ -4195,19 +4198,6 @@ async function supprimerKmAdmin(salId, kmId) {
 /* Met à jour le km de départ mémorisé pour la prochaine saisie */
 /* mettreAJourKmReport supprimé — v12fix3 */
 
-/* ===== VOIR PHOTO VÉHICULE EN PLEIN ÉCRAN ===== */
-function voirPhotoVehicule(vehId) {
-  const veh = charger('vehicules').find(v => v.id === vehId);
-  if (!veh || !veh.photo) return;
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
-  overlay.innerHTML = `
-    <img src="${veh.photo}" style="max-width:90%;max-height:80vh;border-radius:8px;object-fit:contain" />
-    <div style="color:#fff;font-size:.9rem;font-weight:600">${veh.immat} — ${veh.modele||''}</div>
-    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">✕ Fermer</button>`;
-  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-  document.body.appendChild(overlay);
-}
 
 /* ===== ALERTES ADMIN ===== */
 function afficherAlertes() {
@@ -8131,24 +8121,6 @@ function confirmerNoteInterne() {
 }
 
 /* ===== FLOTTE — PHOTO VÉHICULE ===== */
-function uploaderPhotoVehicule(vehId, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    compresserImage(e.target.result, compressed => {
-      const vehicules = charger('vehicules');
-      const idx = vehicules.findIndex(v => v.id === vehId);
-      if (idx > -1) {
-        vehicules[idx].photo = compressed;
-        sauvegarder('vehicules', vehicules);
-        afficherVehicules();
-        afficherToast('✅ Photo enregistrée');
-      }
-    });
-  };
-  reader.readAsDataURL(file);
-}
 
 // Upload carte grise PDF (ou image) — stocké en base64 dans le véhicule.
 // Limite 5 Mo pour éviter de saturer localStorage.
