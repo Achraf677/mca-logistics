@@ -8905,41 +8905,15 @@ function exporterDonneesRGPDClientCourant() {
   }
 }
 
+// afficherClients : alias historique. La vraie fonction de rendu est
+// afficherClientsDashboard (ligne ~7232). Ce wrapper évite de casser les
+// nombreux appels existants tout en garantissant un seul code de rendu.
 function afficherClients() {
-  const clients = loadSafe('clients', []);
-  const tb = document.getElementById('tb-clients');
-  if (!tb) return;
-  paginer.__reload_tb_clients = afficherClients;
-  if (!clients.length) {
-    nettoyerPagination('tb-clients');
-    tb.innerHTML=emptyState('🧑‍💼','Aucun client enregistré','Enregistrez vos clients pour activer l\'auto-complétion lors de la création des livraisons.');
-    return;
-  }
-  const livraisons = charger('livraisons');
-  paginer(clients, 'tb-clients', function(items) {
-    return items.map(c => {
-    const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
-    const caC   = livsC.reduce((s,l)=>s+(l.prix||0),0);
-    const contact = (c.contact || c.prenom || '').trim();
-    return `<tr>
-      <td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient('${c.id}')" style="font-weight:700">${c.nom}</button></td>
-      <td>${contact||'—'}</td>
-      <td>${c.tel||'—'}</td>
-      <td style="font-size:.82rem">${c.adresse||'—'}</td>
-      <td><strong>${euros(caC)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${livsC.length} livraison${livsC.length>1?'s':''}</div></td>
-      <td>${buildInlineActionsDropdown('Actions', [
-        { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
-        { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },
-        { icon:'📦', label:'Nouvelle livraison', action:`preFillLivraisonClient('${c.id}')` },
-        { icon:'🗑️', label:'Supprimer', action:`supprimerClient('${c.id}')`, danger:true }
-      ])}</td>
-    </tr>`;
-  }).join('');
-  }, 12);
+  if (typeof afficherClientsDashboard === 'function') return afficherClientsDashboard();
 }
 
-// Bascule l'affichage des champs Pro (SIREN, TVA, paiement, IBAN) selon
-// le type de client sélectionné. Appelée par les radios cl-type et au reset.
+// Bascule l'affichage des champs Pro (SIREN, TVA, paiement, IBAN, Secteur,
+// Email facturation) selon le type de client. Appelée par les radios cl-type.
 window.toggleChampsClientPro = function(isEdit) {
   var prefix = isEdit ? 'edit-cl' : 'cl';
   var radios = document.getElementsByName(isEdit ? 'edit-cl-type' : 'cl-type');
@@ -8947,17 +8921,9 @@ window.toggleChampsClientPro = function(isEdit) {
   for (var i = 0; i < radios.length; i++) if (radios[i].checked) { type = radios[i].value; break; }
   var bloc = document.getElementById(prefix + '-champs-pro');
   if (bloc) bloc.classList.toggle('is-hidden', type !== 'pro');
-  // Auto-set le secteur sur 'particulier' si on bascule sur Particulier
+  // Pour Particulier : vider le secteur (au cas où une ancienne valeur 'particulier' subsiste)
   var secteurEl = document.getElementById(prefix + '-secteur');
-  if (secteurEl) {
-    if (type === 'particulier') {
-      secteurEl.value = 'particulier';
-      secteurEl.disabled = true;
-    } else {
-      if (secteurEl.value === 'particulier') secteurEl.value = '';
-      secteurEl.disabled = false;
-    }
-  }
+  if (secteurEl && type === 'particulier' && secteurEl.value === 'particulier') secteurEl.value = '';
 };
 
 function ajouterClient() {
@@ -9017,13 +8983,23 @@ function ajouterClient() {
 }
 
 async function supprimerClient(id) {
-  const _ok6 = await confirmDialog('Supprimer ce client ?', {titre:'Supprimer le client',icone:'🧑‍💼',btnLabel:'Supprimer'});
-  if (!_ok6) return;
   const client = charger('clients').find(function(item) { return item.id === id; });
+  if (!client) return;
+  // Vérification des livraisons liées avant suppression
+  const livraisons = charger('livraisons');
+  const livsLiees = livraisons.filter(l => l.clientId === id || l.client === client.nom);
+  let message = 'Supprimer le client « ' + (client.nom || 'sans nom') + ' » ?';
+  if (livsLiees.length) {
+    message += '\n\n⚠️ Ce client est lié à ' + livsLiees.length + ' livraison'
+            + (livsLiees.length > 1 ? 's' : '') + '. '
+            + 'Elles seront conservées (le nom du client reste affiché) mais la fiche client disparaît.';
+  }
+  const _ok6 = await confirmDialog(message, {titre:'Supprimer le client', icone:'🧑‍💼', btnLabel:'Supprimer', danger:true});
+  if (!_ok6) return;
   const clients = loadSafe('clients', []).filter(c=>c.id!==id);
   localStorage.setItem('clients', JSON.stringify(clients));
   afficherClients();
-  ajouterEntreeAudit('Suppression client', (client?.nom || 'Client') + ' supprimé');
+  ajouterEntreeAudit('Suppression client', (client.nom || 'Client') + ' supprimé' + (livsLiees.length ? ' (' + livsLiees.length + ' livraison(s) orpheline(s))' : ''));
   afficherToast('🗑️ Client supprimé');
 }
 
@@ -11077,19 +11053,36 @@ function confirmerEditClient() {
   }
   const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
+  let nbLivsRenommees = 0;
   if (idx>-1) {
+    const ancienNom = clients[idx].nom;
+    const ancienSiren = clients[idx].siren;
     clients[idx].nom=nom; clients[idx].prenom=prenom; clients[idx].tel=tel;
     clients[idx].contact=prenom; clients[idx].email=email; clients[idx].adresse=adresse;
     clients[idx].cp=cp; clients[idx].ville=ville;
     clients[idx].type=type; clients[idx].siren=siren; clients[idx].tvaIntra=tvaIntra;
     clients[idx].emailFact=emailFact; clients[idx].delaiPaiementJours=delaiPay; clients[idx].notes=notes;
     sauvegarder('clients', clients);
+    // Propage le nouveau nom + SIREN aux livraisons liées via clientId.
+    // Évite que le filtre `l.client === c.nom` casse le calcul Total CA et
+    // l'historique client après un renommage.
+    if (ancienNom !== nom || ancienSiren !== siren) {
+      const livraisons = charger('livraisons');
+      let dirty = false;
+      livraisons.forEach(l => {
+        if (l.clientId === id) {
+          if (ancienNom !== nom && l.client === ancienNom) { l.client = nom; nbLivsRenommees++; dirty = true; }
+          if (ancienSiren !== siren) { l.clientSiren = siren; dirty = true; }
+        }
+      });
+      if (dirty) sauvegarder('livraisons', livraisons);
+    }
   }
   closeModal('modal-edit-client');
   _editClientId = null;
   afficherClientsDashboard();
-  ajouterEntreeAudit('Modification client', nom + (email ? ' · ' + email : ''));
-  afficherToast('✅ Client mis à jour');
+  ajouterEntreeAudit('Modification client', nom + (email ? ' · ' + email : '') + (nbLivsRenommees ? ' · ' + nbLivsRenommees + ' livraison(s) propagée(s)' : ''));
+  afficherToast(nbLivsRenommees ? '✅ Client mis à jour · ' + nbLivsRenommees + ' livraison(s) synchronisée(s)' : '✅ Client mis à jour');
 }
 
 /* ===== EXPORT STATS PDF ===== */
