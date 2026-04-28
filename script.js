@@ -16204,19 +16204,6 @@ genererRentabilitePDF = function() {
     initNavSections();
   }
 
-  // Toast de confirmation Sprint 2 (une seule fois)
-  try {
-    if (!localStorage.getItem('sprint2_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 2 appliqué — sidebar hiérarchique', 'success');
-            localStorage.setItem('sprint2_toast_vu', '1');
-          }
-        }, 800);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -16463,19 +16450,6 @@ genererRentabilitePDF = function() {
     });
   }
 
-  // Toast de confirmation Sprint 3 (une seule fois)
-  try {
-    if (!localStorage.getItem('sprint3_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 3 appliqué — Command Palette (Ctrl+K)', 'success');
-            localStorage.setItem('sprint3_toast_vu', '1');
-          }
-        }, 1600);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -16572,19 +16546,6 @@ genererRentabilitePDF = function() {
     initHeroSante();
   }
 
-  // Toast Sprint 4
-  try {
-    if (!localStorage.getItem('sprint4_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 4 appliqué — dashboard hiérarchisé', 'success');
-            localStorage.setItem('sprint4_toast_vu', '1');
-          }
-        }, 2400);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -16695,19 +16656,6 @@ genererRentabilitePDF = function() {
     }, 350);
   };
 
-  // Toast Sprint 5
-  try {
-    if (!localStorage.getItem('sprint5_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 5 appliqué — side drawer prêt', 'success');
-            localStorage.setItem('sprint5_toast_vu', '1');
-          }
-        }, 3200);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -17022,19 +16970,6 @@ genererRentabilitePDF = function() {
     }
   });
 
-  // Toast Sprint 6
-  try {
-    if (!localStorage.getItem('sprint6_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 6 appliqué — actions en masse', 'success');
-            localStorage.setItem('sprint6_toast_vu', '1');
-          }
-        }, 4000);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* =========================================================================
