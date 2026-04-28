@@ -3657,6 +3657,13 @@ function ajouterVehicule() {
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
+  // Carte grise upload temp → attachée au véhicule créé
+  if (window.__vehCGTemp && window.__vehCGTemp.data) {
+    vehicule.carteGriseFichier = window.__vehCGTemp.data;
+    vehicule.carteGriseFichierType = window.__vehCGTemp.type;
+    vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
+    window.__vehCGTemp = null;
+  }
   const vehicules = charger('vehicules');
   vehicules.push(vehicule);
   if (!sauvegarder('vehicules', vehicules)) {
@@ -3673,6 +3680,7 @@ function ajouterVehicule() {
   if (document.getElementById('veh-date-acquisition')) document.getElementById('veh-date-acquisition').value = '';
   if (document.getElementById('veh-date-ct')) document.getElementById('veh-date-ct').value = '';
   if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = '';
+  if (typeof resetCarteGriseFormUI === 'function') resetCarteGriseFormUI();
   if (document.getElementById('veh-salarie')) document.getElementById('veh-salarie').value = '';
   if (document.getElementById('veh-tva-carburant')) document.getElementById('veh-tva-carburant').value = '80';
   mettreAJourFormulaireVehicule();
@@ -7347,20 +7355,38 @@ function afficherFournisseursDashboard() {
   }).join('');
 }
 
+// Bascule l'affichage des champs Pro pour la modal Fournisseur (miroir
+// du toggleChampsClientPro). Un fournisseur peut être Particulier (artisan,
+// auto-entrepreneur sans SIREN, etc.) — auquel cas on masque les champs Pro.
+window.toggleChampsFournisseurPro = function(isEdit) {
+  var prefix = isEdit ? 'edit-frn' : 'frn';
+  var radios = document.getElementsByName(isEdit ? 'edit-frn-type' : 'frn-type');
+  var type = 'pro';
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) { type = radios[i].value; break; }
+  var bloc = document.getElementById(prefix + '-champs-pro');
+  if (bloc) bloc.classList.toggle('is-hidden', type !== 'pro');
+};
+
 function ajouterFournisseur() {
   const nom = document.getElementById('frn-nom')?.value.trim();
   if (!nom) { afficherToast('⚠️ Nom obligatoire', 'error'); return; }
+  const type = document.querySelector('input[name="frn-type"]:checked')?.value || 'pro';
   const fournisseur = {
     id: genId(),
     nom,
+    type,
+    secteur: document.getElementById('frn-secteur')?.value || '',
     contact: document.getElementById('frn-contact')?.value.trim() || '',
     tel: document.getElementById('frn-tel')?.value.trim() || '',
     email: document.getElementById('frn-email')?.value.trim() || '',
+    emailFact: document.getElementById('frn-email-fact')?.value.trim() || '',
     adresse: document.getElementById('frn-adresse')?.value.trim() || '',
     cp: document.getElementById('frn-cp')?.value.trim() || '',
     ville: document.getElementById('frn-ville')?.value.trim() || '',
-    siren: document.getElementById('frn-siren')?.value.trim() || '',
-    tvaIntra: document.getElementById('frn-tva-intra')?.value.trim() || '',
+    siren: type === 'pro' ? (document.getElementById('frn-siren')?.value.trim() || '') : '',
+    tvaIntra: type === 'pro' ? (document.getElementById('frn-tva-intra')?.value.trim() || '') : '',
+    delaiPaiementJours: type === 'pro' ? (parseInt(document.getElementById('frn-delai-paiement')?.value, 10) || 30) : null,
+    modePaiement: document.getElementById('frn-mode-paiement')?.value || 'virement',
     iban: document.getElementById('frn-iban')?.value.trim() || '',
     notes: document.getElementById('frn-notes')?.value.trim() || '',
     creeLe: new Date().toISOString()
@@ -7369,9 +7395,13 @@ function ajouterFournisseur() {
   fournisseurs.push(fournisseur);
   sauvegarder('fournisseurs', fournisseurs);
   closeModal('modal-fournisseur');
-  ['frn-nom', 'frn-contact', 'frn-tel', 'frn-email', 'frn-adresse', 'frn-cp', 'frn-ville', 'frn-siren', 'frn-tva-intra', 'frn-iban', 'frn-notes'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
+  ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-delai-paiement','frn-iban','frn-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? '' : (id === 'frn-delai-paiement' ? '30' : '');
   });
+  // Reset radio Pro
+  const proRadio = document.querySelector('input[name="frn-type"][value="pro"]');
+  if (proRadio) proRadio.checked = true;
+  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(false);
   afficherFournisseursDashboard();
   if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Création fournisseur', nom);
   afficherToast('✅ Fournisseur enregistré');
@@ -7385,16 +7415,24 @@ async function ouvrirEditFournisseur(id) {
   const $ = (k) => document.getElementById('edit-frn-' + k);
   if ($('id')) $('id').value = id;
   if ($('nom')) $('nom').value = f.nom || '';
+  if ($('secteur')) $('secteur').value = f.secteur || '';
   if ($('contact')) $('contact').value = f.contact || '';
   if ($('tel')) $('tel').value = f.tel || '';
   if ($('email')) $('email').value = f.email || '';
+  if ($('email-fact')) $('email-fact').value = f.emailFact || '';
   if ($('adresse')) $('adresse').value = f.adresse || '';
   if ($('cp')) $('cp').value = f.cp || '';
   if ($('ville')) $('ville').value = f.ville || '';
   if ($('siren')) $('siren').value = f.siren || '';
   if ($('tva-intra')) $('tva-intra').value = f.tvaIntra || '';
+  if ($('delai-paiement')) $('delai-paiement').value = f.delaiPaiementJours || 30;
+  if ($('mode-paiement')) $('mode-paiement').value = f.modePaiement || 'virement';
   if ($('iban')) $('iban').value = f.iban || '';
   if ($('notes')) $('notes').value = f.notes || '';
+  // Type Pro/Particulier
+  const typeRadio = document.querySelector('input[name="edit-frn-type"][value="' + (f.type || 'pro') + '"]');
+  if (typeRadio) typeRadio.checked = true;
+  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(true);
   openModal('modal-edit-fournisseur');
 }
 
@@ -7405,15 +7443,21 @@ function confirmerEditFournisseur() {
   const idx = fournisseurs.findIndex(f => f.id === id);
   if (idx === -1) return;
   const $ = (k) => document.getElementById('edit-frn-' + k);
+  const type = document.querySelector('input[name="edit-frn-type"]:checked')?.value || 'pro';
   fournisseurs[idx].nom = $('nom')?.value.trim() || '';
+  fournisseurs[idx].type = type;
+  fournisseurs[idx].secteur = $('secteur')?.value || '';
   fournisseurs[idx].contact = $('contact')?.value.trim() || '';
   fournisseurs[idx].tel = $('tel')?.value.trim() || '';
   fournisseurs[idx].email = $('email')?.value.trim() || '';
+  fournisseurs[idx].emailFact = $('email-fact')?.value.trim() || '';
   fournisseurs[idx].adresse = $('adresse')?.value.trim() || '';
   fournisseurs[idx].cp = $('cp')?.value.trim() || '';
   fournisseurs[idx].ville = $('ville')?.value.trim() || '';
-  fournisseurs[idx].siren = $('siren')?.value.trim() || '';
-  fournisseurs[idx].tvaIntra = $('tva-intra')?.value.trim() || '';
+  fournisseurs[idx].siren = type === 'pro' ? ($('siren')?.value.trim() || '') : '';
+  fournisseurs[idx].tvaIntra = type === 'pro' ? ($('tva-intra')?.value.trim() || '') : '';
+  fournisseurs[idx].delaiPaiementJours = type === 'pro' ? (parseInt($('delai-paiement')?.value, 10) || 30) : null;
+  fournisseurs[idx].modePaiement = $('mode-paiement')?.value || 'virement';
   fournisseurs[idx].iban = $('iban')?.value.trim() || '';
   fournisseurs[idx].notes = $('notes')?.value.trim() || '';
   sauvegarder('fournisseurs', fournisseurs);
@@ -8128,6 +8172,68 @@ function uploaderCarteGriseVehicule(vehId, input) {
     }
   };
   reader.readAsDataURL(file);
+}
+
+// Wrapper appelé par l'input du formulaire véhicule (création + édition).
+// - En édition (window._editVehId set) : sauvegarde directe sur le véhicule
+// - En création : stocke en variable temp pour attachement à la sauvegarde
+function uploaderCarteGriseFromForm(input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const okType = /^application\/pdf$|^image\//i.test(file.type);
+  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+  const btnLabel = document.getElementById('veh-carte-grise-button-label');
+  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
+  const status = document.getElementById('veh-carte-grise-status');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    if (window._editVehId) {
+      // Mode édition : sauvegarde directe sur le véhicule existant
+      const vehicules = charger('vehicules');
+      const idx = vehicules.findIndex(v => v.id === window._editVehId);
+      if (idx > -1) {
+        vehicules[idx].carteGriseFichier = dataUrl;
+        vehicules[idx].carteGriseFichierType = file.type;
+        vehicules[idx].carteGriseFichierNom = file.name;
+        sauvegarder('vehicules', vehicules);
+        afficherToast('✅ Carte grise enregistrée');
+      }
+    } else {
+      // Mode création : stockage temp pour attachement au véhicule à créer
+      window.__vehCGTemp = { data: dataUrl, type: file.type, nom: file.name };
+    }
+    if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
+    if (wrapper) wrapper.classList.add('has-file');
+    if (status) status.textContent = 'Fichier prêt : ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Reset visuel du champ carte grise (appelé à l'ouverture de la modal Création
+// ou au reset après save).
+function resetCarteGriseFormUI() {
+  const btnLabel = document.getElementById('veh-carte-grise-button-label');
+  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
+  const status = document.getElementById('veh-carte-grise-status');
+  const input = document.getElementById('veh-carte-grise-fichier');
+  if (btnLabel) btnLabel.textContent = '📎 Choisir un fichier';
+  if (wrapper) wrapper.classList.remove('has-file');
+  if (status) status.textContent = '';
+  if (input) input.value = '';
+  window.__vehCGTemp = null;
+}
+
+// Affiche le fichier déjà uploadé dans le formulaire d'édition véhicule.
+function prefillCarteGriseFormUI(veh) {
+  if (!veh || !veh.carteGriseFichier) { resetCarteGriseFormUI(); return; }
+  const btnLabel = document.getElementById('veh-carte-grise-button-label');
+  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
+  const status = document.getElementById('veh-carte-grise-status');
+  if (btnLabel) btnLabel.textContent = '✅ ' + (veh.carteGriseFichierNom || 'Carte grise enregistrée') + ' (cliquez pour remplacer)';
+  if (wrapper) wrapper.classList.add('has-file');
+  if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
 }
 
 // Visualise la carte grise dans une nouvelle fenêtre/onglet.
@@ -11450,6 +11556,7 @@ async function ouvrirEditVehicule(vehId) {
     return;
   }
   window._editVehId = vehId;
+  if (typeof prefillCarteGriseFormUI === 'function') prefillCarteGriseFormUI(veh);
   document.getElementById('veh-immat').value    = veh.immat||'';
   document.getElementById('veh-modele').value   = veh.modele||'';
   document.getElementById('veh-km').value       = calculerKilometrageVehiculeActuel(veh)||'';

@@ -1905,22 +1905,62 @@
     </div>
   </div>
 
-  <!-- Nouveau fournisseur (miroir de modal-client) -->
+  <!-- Nouveau fournisseur (miroir de modal-client : toggle Pro/Particulier + mêmes champs) -->
   <div class="modal-overlay" id="modal-fournisseur">
     <div class="modal modal-large">
       <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button></div>
       <div class="modal-body">
+        <div class="client-type-selector">
+          <label class="client-type-option">
+            <input type="radio" name="frn-type" value="pro" checked onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(false)" />
+            <span class="client-type-label">🏢 Professionnel</span>
+          </label>
+          <label class="client-type-option">
+            <input type="radio" name="frn-type" value="particulier" onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(false)" />
+            <span class="client-type-label">🙋 Particulier</span>
+          </label>
+        </div>
         <div class="form-grid">
-          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Raison sociale" /></div>
-          <div class="form-group"><label>Contact</label><input type="text" id="frn-contact" placeholder="Nom + tél" /></div>
+          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Nom / Raison sociale" /></div>
+          <div class="form-group">
+            <label>Secteur d'activité</label>
+            <select id="frn-secteur">
+              <option value="">-- Choisir --</option>
+              <option value="garage">🔧 Garage / mécanique</option>
+              <option value="carburant">⛽ Carburant / station</option>
+              <option value="pieces">🔩 Pièces détachées</option>
+              <option value="loueur">🚐 Loueur véhicules</option>
+              <option value="transporteur">🚚 Transporteur sous-traitant</option>
+              <option value="assurance">🛡️ Assurance</option>
+              <option value="prestataire">💼 Prestataire IT / services</option>
+              <option value="compta">📊 Comptable / juridique</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Contact</label><input type="text" id="frn-contact" placeholder="Contact" /></div>
           <div class="form-group"><label>Téléphone</label><input type="tel" id="frn-tel" placeholder="Téléphone" /></div>
           <div class="form-group"><label>Email</label><input type="email" id="frn-email" placeholder="Email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="frn-email-fact" placeholder="compta@fournisseur.fr" /></div>
           <div class="form-group full-width"><label>Adresse</label><input type="text" id="frn-adresse" placeholder="Numéro + rue" /></div>
           <div class="form-group"><label>Code postal</label><input type="text" id="frn-cp" placeholder="75001" maxlength="5" /></div>
           <div class="form-group"><label>Ville</label><input type="text" id="frn-ville" placeholder="Paris" /></div>
-          <div class="form-group"><label>SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" /></div>
-          <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" /></div>
-          <div class="form-group full-width"><label>IBAN</label><input type="text" id="frn-iban" placeholder="FR76 …" /></div>
+        </div>
+        <div id="frn-champs-pro" class="client-champs-pro">
+          <div class="form-grid">
+            <div class="form-group"><label>SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" /></div>
+            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" /></div>
+            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="frn-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+            <div class="form-group"><label>Mode paiement préféré</label>
+              <select id="frn-mode-paiement">
+                <option value="virement">Virement</option>
+                <option value="prelevement">Prélèvement SEPA</option>
+                <option value="cb">Carte bancaire</option>
+                <option value="cheque">Chèque</option>
+                <option value="especes">Espèces</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>IBAN</label><input type="text" id="frn-iban" placeholder="FR76 …" /></div>
+          </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="frn-notes" rows="2" placeholder="Conditions, particularités, contacts..."></textarea></div>
       </div>
@@ -1928,23 +1968,63 @@
     </div>
   </div>
 
-  <!-- Modifier fournisseur -->
+  <!-- Modifier fournisseur (miroir modal-edit-client) -->
   <div class="modal-overlay" id="modal-edit-fournisseur">
     <div class="modal modal-large">
       <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-frn-id" />
+        <div class="client-type-selector">
+          <label class="client-type-option">
+            <input type="radio" name="edit-frn-type" value="pro" checked onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(true)" />
+            <span class="client-type-label">🏢 Professionnel</span>
+          </label>
+          <label class="client-type-option">
+            <input type="radio" name="edit-frn-type" value="particulier" onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(true)" />
+            <span class="client-type-label">🙋 Particulier</span>
+          </label>
+        </div>
         <div class="form-grid">
           <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="edit-frn-nom" /></div>
+          <div class="form-group">
+            <label>Secteur d'activité</label>
+            <select id="edit-frn-secteur">
+              <option value="">-- Choisir --</option>
+              <option value="garage">🔧 Garage / mécanique</option>
+              <option value="carburant">⛽ Carburant / station</option>
+              <option value="pieces">🔩 Pièces détachées</option>
+              <option value="loueur">🚐 Loueur véhicules</option>
+              <option value="transporteur">🚚 Transporteur sous-traitant</option>
+              <option value="assurance">🛡️ Assurance</option>
+              <option value="prestataire">💼 Prestataire IT / services</option>
+              <option value="compta">📊 Comptable / juridique</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
           <div class="form-group"><label>Contact</label><input type="text" id="edit-frn-contact" /></div>
           <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-frn-tel" /></div>
           <div class="form-group"><label>Email</label><input type="email" id="edit-frn-email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="edit-frn-email-fact" /></div>
           <div class="form-group full-width"><label>Adresse</label><input type="text" id="edit-frn-adresse" /></div>
           <div class="form-group"><label>Code postal</label><input type="text" id="edit-frn-cp" maxlength="5" /></div>
           <div class="form-group"><label>Ville</label><input type="text" id="edit-frn-ville" /></div>
-          <div class="form-group"><label>SIREN</label><input type="text" id="edit-frn-siren" maxlength="9" /></div>
-          <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-frn-tva-intra" /></div>
-          <div class="form-group full-width"><label>IBAN</label><input type="text" id="edit-frn-iban" /></div>
+        </div>
+        <div id="edit-frn-champs-pro" class="client-champs-pro">
+          <div class="form-grid">
+            <div class="form-group"><label>SIREN</label><input type="text" id="edit-frn-siren" maxlength="9" /></div>
+            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-frn-tva-intra" /></div>
+            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="edit-frn-delai-paiement" min="0" max="180" /></div>
+            <div class="form-group"><label>Mode paiement préféré</label>
+              <select id="edit-frn-mode-paiement">
+                <option value="virement">Virement</option>
+                <option value="prelevement">Prélèvement SEPA</option>
+                <option value="cb">Carte bancaire</option>
+                <option value="cheque">Chèque</option>
+                <option value="especes">Espèces</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>IBAN</label><input type="text" id="edit-frn-iban" /></div>
+          </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-frn-notes" rows="2"></textarea></div>
       </div>
@@ -2025,9 +2105,13 @@
               <div class="form-group"><label>Date 1ʳᵉ mise en circulation</label><input type="date" id="veh-date-1immat" /></div>
               <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
               <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
-              <div class="form-group"><label>Carte grise (PDF / image)</label>
-                <input type="file" id="veh-carte-grise-fichier" accept="application/pdf,image/*" style="font-size:.82rem" />
-                <div id="veh-carte-grise-status" style="font-size:.72rem;color:var(--text-muted);margin-top:4px"></div>
+              <div class="form-group">
+                <label>Carte grise (PDF / image)</label>
+                <label class="file-upload-button" for="veh-carte-grise-fichier">
+                  <span id="veh-carte-grise-button-label">📎 Choisir un fichier</span>
+                </label>
+                <input type="file" id="veh-carte-grise-fichier" accept="application/pdf,image/*" style="display:none" onchange="uploaderCarteGriseFromForm(this)" />
+                <div id="veh-carte-grise-status" style="font-size:.72rem;color:var(--text-muted);margin-top:6px"></div>
               </div>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte</div>
