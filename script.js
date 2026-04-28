@@ -1313,7 +1313,13 @@ function buildInlineActionsDropdown(triggerLabel, items) {
     + items.map(function(item) {
       var classes = ['inline-dropdown-item'];
       if (item.danger) classes.push('danger-text');
-      return '<button type="button" class="' + classes.join(' ') + '" onclick="event.preventDefault();event.stopPropagation();fermerInlineDropdowns();' + item.action + '">'
+      if (item.disabled) classes.push('is-disabled');
+      // Item désactivé : grisé, non cliquable, garde le tooltip via title
+      var attrs = item.disabled ? ' disabled aria-disabled="true" title="' + (item.title || 'Indisponible') + '"' : '';
+      var onclick = item.disabled
+        ? ''
+        : ' onclick="event.preventDefault();event.stopPropagation();fermerInlineDropdowns();' + item.action + '"';
+      return '<button type="button" class="' + classes.join(' ') + '"' + attrs + onclick + '>'
         + (item.icon ? item.icon + ' ' : '')
         + item.label
         + '</button>';
@@ -3532,22 +3538,22 @@ function mettreAJourInfosVehiculeFinancement() {
 function mettreAJourFormulaireVehicule() {
   var mode = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   var isAchat = ['achat', 'occasion'].includes(mode);
-  var isLocation = ['lld', 'loa', 'location'].includes(mode);
-  var isCredit = mode === 'credit';
-  var isLoa = mode === 'loa';
-  var isOccasion = mode === 'occasion';
+  // 'lld' couvre maintenant LCD/LMD/LLD (libellé groupé), 'location' = location simple
+  var isLocation = ['lld', 'location'].includes(mode);
   var setDisplay = function(id, visible) {
     var el = document.getElementById(id);
     if (el) el.style.display = visible ? '' : 'none';
   };
-  setDisplay('veh-bloc-achat', isAchat || isCredit);
+  setDisplay('veh-bloc-achat', isAchat);
   setDisplay('veh-bloc-location', isLocation);
-  setDisplay('veh-bloc-credit', isCredit);
-  setDisplay('veh-bloc-loa', isLoa);
-  setDisplay('veh-prix-catalogue-wrap', isLoa);
-  setDisplay('veh-apport-wrap', isLoa);
-  setDisplay('veh-occasion-km-wrap', isOccasion);
-  setDisplay('veh-occasion-annee-wrap', isOccasion);
+  // Crédit/LOA supprimés : on cache leurs blocs si encore présents
+  setDisplay('veh-bloc-credit', false);
+  setDisplay('veh-bloc-loa', false);
+  setDisplay('veh-prix-catalogue-wrap', false);
+  setDisplay('veh-apport-wrap', false);
+  // Achat comptant ET Achat occasion ont les mêmes champs (km rachat + année véhicule)
+  setDisplay('veh-occasion-km-wrap', isAchat);
+  setDisplay('veh-occasion-annee-wrap', isAchat);
   mettreAJourFinContratVehicule();
   mettreAJourInfosVehiculeFinancement();
 }
@@ -3606,6 +3612,7 @@ function ajouterVehicule() {
   const conso  = parseFloat(document.getElementById('veh-conso').value) || 0;
   const salId  = document.getElementById('veh-salarie')?.value || '';
   const dateCT = document.getElementById('veh-date-ct')?.value || '';
+  const dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value || '';
   const modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   const dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
   const entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value) || 0;
@@ -3629,7 +3636,7 @@ function ajouterVehicule() {
   // TVA carburant selon genre (CGI art. 298-4-1° et 298-4 D)
   const tvaAutoCalc = calculerTauxTVACarburant(genre, carburant);
   const tvaCarbSaisi = parseFloat(document.getElementById('veh-tva-carburant')?.value);
-  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 80);
+  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 100);
   const ptac = parseInt(getV('veh-ptac'), 10) || 0;
   const ptra = parseInt(getV('veh-ptra'), 10) || 0;
   const essieux = parseInt(getV('veh-essieux'), 10) || 0;
@@ -3643,7 +3650,7 @@ function ajouterVehicule() {
     dateExpiration: getV('veh-assurance-date-exp')
   };
   const vehicule = Object.assign({
-    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, tvaCarbDeductible,
+    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, dateCTDernier, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
     genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
     salId: salId||null, salNom: sal ? sal.nom : null,
@@ -3664,6 +3671,7 @@ function ajouterVehicule() {
   if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
   if (document.getElementById('veh-date-acquisition')) document.getElementById('veh-date-acquisition').value = '';
   if (document.getElementById('veh-date-ct')) document.getElementById('veh-date-ct').value = '';
+  if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = '';
   if (document.getElementById('veh-salarie')) document.getElementById('veh-salarie').value = '';
   if (document.getElementById('veh-tva-carburant')) document.getElementById('veh-tva-carburant').value = '80';
   mettreAJourFormulaireVehicule();
@@ -3806,8 +3814,23 @@ function afficherVehicules() {
       pilotageEntretien.dateEcheance ? `<div style="font-size:.75rem;color:var(--text-muted)">Échéance : ${formatDateExport(pilotageEntretien.dateEcheance)}</div>` : ''
     ].filter(Boolean).join('');
 
+    // Type de carburant pour la nouvelle colonne dédiée
+    const carburantLabels = {
+      'diesel': '⛽ Diesel/Gazole', 'gazole': '⛽ Diesel/Gazole',
+      'essence': '⛽ Essence',
+      'gnv': '🌿 GNV/BioGNV', 'biognv': '🌿 GNV/BioGNV',
+      'electrique': '⚡ Électrique',
+      'hybride': '🔋 Hybride',
+      'hydrogene': '💧 Hydrogène'
+    };
+    const carbKey = (v.typeCarburant || v.carburant || '').toLowerCase();
+    const carbAffiche = carburantLabels[carbKey] || (carbKey ? carbKey : '—');
+    // Visualiser carte grise : grisé si aucun fichier uploadé
+    const aCarteGrise = !!(v.carteGriseFichier || v.carteGriseUrl);
+    const visuCG = aCarteGrise
+      ? { icon:'📄', label:'Visualiser carte grise', action:`visualiserCarteGrise('${v.id}')` }
+      : { icon:'📄', label:'Visualiser carte grise', action:`afficherToast('Aucune carte grise uploadée pour ce véhicule','info')`, disabled:true };
     return `<tr>
-      <td>${v.photo ? `<img src="${v.photo}" class="veh-photo-thumb" onclick="voirPhotoVehicule('${v.id}')" />` : `<label class="veh-photo-placeholder" title="Ajouter photo"><input type="file" accept="image/*" style="display:none" onchange="uploaderPhotoVehicule('${v.id}',this)" />📷</label>`}</td>
       <td><strong>${v.immat}</strong></td>
       <td>${v.modele||'—'}</td>
       <td>${kmActuel ? formatKm(kmActuel) : '—'}</td>
@@ -3819,13 +3842,15 @@ function afficherVehicules() {
           : ''
       }</td>
       <td style="${ctStyle}">${v.dateCT ? formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</td>
-      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${carbAffiche}</td>
+      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${entretienInfos || '—'}</td>
       <td>
         ${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:`ouvrirEditVehicule('${v.id}')` },
           { icon:'👤', label:'Affecter un salarié', action:`ouvrirAffectationVehicule('${v.id}')` },
+          visuCG,
           { icon:'💰', label:'Voir le TCO', action:`ouvrirTCO('${v.id}')` },
           { icon:'🚐', label:'Historique conducteurs', action:`ouvrirHistoriqueConducteurs('${v.id}')` },
           { icon:'🗑️', label:'Supprimer', action:`supprimerVehicule('${v.id}')`, danger:true }
@@ -7897,6 +7922,48 @@ function uploaderPhotoVehicule(vehId, input) {
   reader.readAsDataURL(file);
 }
 
+// Upload carte grise PDF (ou image) — stocké en base64 dans le véhicule.
+// Limite 5 Mo pour éviter de saturer localStorage.
+function uploaderCarteGriseVehicule(vehId, input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const okType = /^application\/pdf$|^image\//i.test(file.type);
+  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const vehicules = charger('vehicules');
+    const idx = vehicules.findIndex(v => v.id === vehId);
+    if (idx > -1) {
+      vehicules[idx].carteGriseFichier = e.target.result;
+      vehicules[idx].carteGriseFichierType = file.type;
+      vehicules[idx].carteGriseFichierNom = file.name;
+      sauvegarder('vehicules', vehicules);
+      afficherVehicules();
+      afficherToast('✅ Carte grise enregistrée');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// Visualise la carte grise dans une nouvelle fenêtre/onglet.
+function visualiserCarteGrise(vehId) {
+  const veh = charger('vehicules').find(v => v.id === vehId);
+  if (!veh || !veh.carteGriseFichier) {
+    afficherToast('Aucune carte grise uploadée pour ce véhicule', 'info');
+    return;
+  }
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
+  const isPdf = (veh.carteGriseFichierType || '').includes('pdf');
+  const titre = 'Carte grise — ' + (veh.immat || '');
+  const contenu = isPdf
+    ? '<embed src="' + veh.carteGriseFichier + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
+    : '<img src="' + veh.carteGriseFichier + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + titre + '</h1>' + contenu + '</body></html>');
+  w.document.close();
+}
+
 /* ===== FLOTTE — HISTORIQUE CONDUCTEURS ===== */
 function ouvrirHistoriqueConducteurs(vehId) {
   const veh = charger('vehicules').find(v=>v.id===vehId);
@@ -11206,11 +11273,12 @@ async function ouvrirEditVehicule(vehId) {
   document.getElementById('veh-mode-acquisition').value = veh.modeAcquisition || 'achat';
   document.getElementById('veh-date-acquisition').value = veh.dateAcquisition || '';
   document.getElementById('veh-date-ct').value  = veh.dateCT||'';
+  if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = veh.dateCTDernier||'';
   document.getElementById('veh-entretien-interval-km').value = veh.entretienIntervalKm || '';
   document.getElementById('veh-entretien-interval-mois').value = veh.entretienIntervalMois || '';
   hydraterFinanceVehiculeDansForm(veh);
   var selTvaCarb = document.getElementById('veh-tva-carburant');
-  if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 80;
+  if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100;
   const sv = document.getElementById('veh-salarie');
   if (sv) sv.value = veh.salId||'';
   // Flotte étendue (genre, PTAC, Crit'Air, VIN, carte grise...)
@@ -11258,10 +11326,11 @@ function confirmerEditVehicule() {
   vehicules[idx].modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   vehicules[idx].dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
   vehicules[idx].dateCT   = document.getElementById('veh-date-ct').value||'';
+  vehicules[idx].dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value||'';
   vehicules[idx].entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value)||0;
   vehicules[idx].entretienIntervalMois = parseFloat(document.getElementById('veh-entretien-interval-mois')?.value)||0;
   Object.assign(vehicules[idx], lireFinanceVehiculeDepuisForm());
-  vehicules[idx].tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 80;
+  vehicules[idx].tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 100;
   const salId = document.getElementById('veh-salarie')?.value||'';
   vehicules[idx].salId = salId||null;
   vehicules[idx].salNom = salId ? (charger('salaries').find(s=>s.id===salId)?.nom||null) : null;

@@ -4370,8 +4370,9 @@ kbd {
 .inline-dropdown.open-up .inline-dropdown-menu { top: auto; bottom: calc(100% + 6px); }
 .inline-dropdown.align-left .inline-dropdown-menu { right: auto; left: 0; }
 .inline-dropdown-item { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; color: var(--text-primary); text-align: left; padding: 9px 10px; border-radius: 8px; font-size: 0.84rem; cursor: pointer; font-family: inherit; }
-.inline-dropdown-item:hover { background: rgba(255,255,255,0.05); }
+.inline-dropdown-item:hover:not(.is-disabled) { background: rgba(255,255,255,0.05); }
 .inline-dropdown-item.danger-text { color: var(--red); }
+.inline-dropdown-item.is-disabled { color: var(--text-muted); opacity: 0.5; cursor: not-allowed; }
 .vehicules-table-card {
   overflow: visible;
 }

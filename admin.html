@@ -393,7 +393,7 @@
       <div class="card table-card vehicules-table-card">
         <div class="table-wrapper">
           <table class="data-table vehicules-table">
-            <thead><tr><th>Photo</th><th>Immatriculation</th><th>Modèle</th><th>Kilométrage</th><th>Acquisition</th><th>Conso (réelle)</th><th>Contrôle Tech.</th><th>Salarié affecté</th><th>Finances</th><th>Dernier entretien</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Immatriculation</th><th>Modèle</th><th>Kilométrage</th><th>Acquisition</th><th>Conso (réelle)</th><th>Contrôle Tech.</th><th>Finances</th><th>Carburant</th><th>Salarié affecté</th><th>Dernier entretien</th><th>Actions</th></tr></thead>
             <tbody id="tb-vehicules"><tr><td colspan="11" class="empty-row">Aucun véhicule</td></tr></tbody>
           </table>
         </div>
@@ -1882,18 +1882,17 @@
           <div class="form-group"><label>Mode d'acquisition</label>
             <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()">
               <option value="achat">Achat comptant</option>
-              <option value="credit">Crédit / financement</option>
-              <option value="loa">LOA</option>
-              <option value="lld">LLD</option>
-              <option value="location">Location simple</option>
               <option value="occasion">Achat occasion</option>
+              <option value="lld">LCD / LMD / LLD</option>
+              <option value="location">Location simple</option>
             </select>
           </div>
           <div class="form-group"><label>Date d'acquisition</label><input type="date" id="veh-date-acquisition" onchange="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" /></div>
-          <div class="form-group"><label>Date Contrôle Technique</label><input type="date" id="veh-date-ct" /></div>
+          <div class="form-group"><label>Dernier contrôle technique</label><input type="date" id="veh-date-ct-dernier" /></div>
+          <div class="form-group"><label>Prochain contrôle technique</label><input type="date" id="veh-date-ct" /></div>
           <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" /></div>
           <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" /></div>
-          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
+          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 100" value="100" /></div>
           <div class="form-group full-width"><label>Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
         <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
@@ -1944,6 +1943,10 @@
               <div class="form-group"><label>Date 1ʳᵉ mise en circulation</label><input type="date" id="veh-date-1immat" /></div>
               <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
               <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
+              <div class="form-group"><label>Carte grise (PDF / image)</label>
+                <input type="file" id="veh-carte-grise-fichier" accept="application/pdf,image/*" style="font-size:.82rem" />
+                <div id="veh-carte-grise-status" style="font-size:.72rem;color:var(--text-muted);margin-top:4px"></div>
+              </div>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte</div>
             <div class="form-grid">
