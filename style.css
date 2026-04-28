@@ -989,7 +989,7 @@ body.light-mode .searchbar-clear:hover {
 /* Lettre de voiture : Expéditeur + Destinataire côte à côte */
 .fp-ldv-expdest {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
 }
 .fp-ldv-card {
@@ -997,6 +997,7 @@ body.light-mode .searchbar-clear:hover {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px 14px;
+  min-width: 0;
 }
 
 /* Notes collapsible */
