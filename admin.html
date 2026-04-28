@@ -269,7 +269,7 @@
             <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Normal">☰</button>
             <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Compact">≡</button>
           </div>
-          <button class="btn-export" onclick="exporterLivraisons()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterLivraisons()">📥 CSV</button>
           <button class="btn-rapport" onclick="genererRapportMensuelPeriode()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
         </div>
@@ -291,7 +291,7 @@
             <div id="liv-periode-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserLivPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserLivPeriode()" style="padding:5px 12px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="navLivPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -1067,7 +1067,7 @@
       <div class="page-actions"><h2>💸 Charges</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="font-size:.88rem;color:var(--text-muted)">Total : <strong id="charges-total-mois">0 €</strong></span>
-          <button class="btn-export" onclick="exporterCharges()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterCharges()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterChargesPDFMois()">📄 Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalCharge()">+ Nouvelle charge</button>
         </div>
@@ -1139,7 +1139,7 @@
     <section class="page" id="page-entretiens">
       <div class="page-actions"><h2>🔧 Carnet d'entretien</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn-export" onclick="exporterEntretiens()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterEntretiens()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterEntretiensPDF()">📄 Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Ajouter entretien</button>
         </div>
@@ -1194,7 +1194,7 @@
     <section class="page" id="page-heures">
       <div class="page-actions"><h2>⏱️ Heures & Km</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-export" onclick="exporterRecapHeures()">&#128229; CSV</button>
+          <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
           <div class="inline-dropdown" id="heures-rapports-menu">
             <button class="btn-rapport" type="button" onclick="toggleHeuresRapportsMenu(event)">&#128196; Rapports &#9662;</button>
             <div class="inline-dropdown-menu">
@@ -1311,9 +1311,6 @@
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">💰 Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
           </div>
 
-          <div class="cal16-help">
-            <strong>💡 Astuce</strong> : glisse une livraison sur un autre jour pour la déplacer.
-          </div>
         </aside>
 
         <!-- Grid calendrier -->

@@ -10748,7 +10748,7 @@ function genererLettreDeVoiture(livId) {
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px">'
     + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature expéditeur</div></div>'
     + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature transporteur</div></div>'
-    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature destinataire (+ éventuelles réserves)</div></div>'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature destinataire</div></div>'
     + '</div>'
     + '<div style="margin-top:16px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Édité le ' + esc(dateEmission) + ' · Conservation obligatoire 5 ans (R.3411-13 Code des transports)</div>'
     + '</div>';
