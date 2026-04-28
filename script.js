@@ -2482,7 +2482,7 @@ function naviguerVers(page) {
     setTimeout(() => pageEl.classList.remove('route-enter'), 240);
   }
   const titres = {
-    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients',
+    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients', fournisseurs:'🏭 Carnet Fournisseurs',
     vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
     rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
     salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
@@ -2511,6 +2511,7 @@ function naviguerVers(page) {
         case 'alertes':      verifierNotificationsAutomatiquesMois2(); verifierDocumentsSalaries(); afficherAlertes(); break;
         case 'inspections':  navInspSemaine(0); break;
         case 'clients':      afficherClientsDashboard(); break;
+        case 'fournisseurs': afficherFournisseursDashboard(); break;
         case 'charges':      navChargesMois(0); break;
         case 'tva':          navTvaPeriode(0); afficherTva(); break;
         case 'incidents':    afficherIncidents(); break;
@@ -7279,10 +7280,17 @@ function afficherPonctualite() {
 
 /* ===== TABLEAU DE BORD CLIENT ENRICHI ===== */
 function afficherClientsDashboard() {
-  const clients    = loadSafe('clients', []);
+  const clientsAll = loadSafe('clients', []);
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
-  if (!clients.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
+  if (!clientsAll.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
+  // Filtre recherche (nom, contact, ville, SIREN, téléphone, email)
+  const filtre = (document.getElementById('filtre-cl-search')?.value || '').trim().toLowerCase();
+  const clients = filtre
+    ? clientsAll.filter(c => [c.nom, c.prenom, c.contact, c.tel, c.email, c.adresse, c.ville, c.cp, c.siren]
+        .filter(Boolean).join(' ').toLowerCase().includes(filtre))
+    : clientsAll;
+  if (!clients.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
   const livraisons = charger('livraisons');
 
   tb.innerHTML = clients.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr')).map(c => {
@@ -7303,6 +7311,182 @@ function afficherClientsDashboard() {
       ])}</td>
     </tr>`;
   }).join('');
+}
+
+/* ===== TABLEAU DE BORD FOURNISSEUR (miroir Clients) ===== */
+function afficherFournisseursDashboard() {
+  const fournAll = loadSafe('fournisseurs', []);
+  const tb = document.getElementById('tb-fournisseurs');
+  if (!tb) return;
+  if (!fournAll.length) {
+    tb.innerHTML = emptyState('🏭', 'Aucun fournisseur', 'Enregistrez vos fournisseurs pour suivre vos achats et charges.');
+    return;
+  }
+  const filtre = (document.getElementById('filtre-frn-search')?.value || '').trim().toLowerCase();
+  const fournisseurs = filtre
+    ? fournAll.filter(f => [f.nom, f.contact, f.tel, f.email, f.adresse, f.ville, f.cp, f.siren]
+        .filter(Boolean).join(' ').toLowerCase().includes(filtre))
+    : fournAll;
+  if (!fournisseurs.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
+  const charges = charger('charges');
+  tb.innerHTML = fournisseurs.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr')).map(f => {
+    const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
+    const totalDepense = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
+    const contact = (f.contact || f.prenom || '').trim();
+    return `<tr>
+      <td><strong>${f.nom || '—'}</strong></td>
+      <td>${contact || '—'}</td>
+      <td>${f.tel || '—'}</td>
+      <td style="font-size:.82rem">${f.adresse || '—'}</td>
+      <td><strong>${euros(totalDepense)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${chargesF.length} charge${chargesF.length > 1 ? 's' : ''}</div></td>
+      <td>${buildInlineActionsDropdown('Actions', [
+        { icon: '✏️', label: 'Modifier', action: `ouvrirEditFournisseur('${f.id}')` },
+        { icon: '🗑️', label: 'Supprimer', action: `supprimerFournisseur('${f.id}')`, danger: true }
+      ])}</td>
+    </tr>`;
+  }).join('');
+}
+
+function ajouterFournisseur() {
+  const nom = document.getElementById('frn-nom')?.value.trim();
+  if (!nom) { afficherToast('⚠️ Nom obligatoire', 'error'); return; }
+  const fournisseur = {
+    id: genId(),
+    nom,
+    contact: document.getElementById('frn-contact')?.value.trim() || '',
+    tel: document.getElementById('frn-tel')?.value.trim() || '',
+    email: document.getElementById('frn-email')?.value.trim() || '',
+    adresse: document.getElementById('frn-adresse')?.value.trim() || '',
+    cp: document.getElementById('frn-cp')?.value.trim() || '',
+    ville: document.getElementById('frn-ville')?.value.trim() || '',
+    siren: document.getElementById('frn-siren')?.value.trim() || '',
+    tvaIntra: document.getElementById('frn-tva-intra')?.value.trim() || '',
+    iban: document.getElementById('frn-iban')?.value.trim() || '',
+    notes: document.getElementById('frn-notes')?.value.trim() || '',
+    creeLe: new Date().toISOString()
+  };
+  const fournisseurs = charger('fournisseurs');
+  fournisseurs.push(fournisseur);
+  sauvegarder('fournisseurs', fournisseurs);
+  closeModal('modal-fournisseur');
+  ['frn-nom', 'frn-contact', 'frn-tel', 'frn-email', 'frn-adresse', 'frn-cp', 'frn-ville', 'frn-siren', 'frn-tva-intra', 'frn-iban', 'frn-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  afficherFournisseursDashboard();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Création fournisseur', nom);
+  afficherToast('✅ Fournisseur enregistré');
+}
+
+let _editFournisseurId = null;
+async function ouvrirEditFournisseur(id) {
+  const f = charger('fournisseurs').find(x => x.id === id);
+  if (!f) return;
+  _editFournisseurId = id;
+  const $ = (k) => document.getElementById('edit-frn-' + k);
+  if ($('id')) $('id').value = id;
+  if ($('nom')) $('nom').value = f.nom || '';
+  if ($('contact')) $('contact').value = f.contact || '';
+  if ($('tel')) $('tel').value = f.tel || '';
+  if ($('email')) $('email').value = f.email || '';
+  if ($('adresse')) $('adresse').value = f.adresse || '';
+  if ($('cp')) $('cp').value = f.cp || '';
+  if ($('ville')) $('ville').value = f.ville || '';
+  if ($('siren')) $('siren').value = f.siren || '';
+  if ($('tva-intra')) $('tva-intra').value = f.tvaIntra || '';
+  if ($('iban')) $('iban').value = f.iban || '';
+  if ($('notes')) $('notes').value = f.notes || '';
+  openModal('modal-edit-fournisseur');
+}
+
+function confirmerEditFournisseur() {
+  const id = document.getElementById('edit-frn-id')?.value || _editFournisseurId;
+  if (!id) return;
+  const fournisseurs = charger('fournisseurs');
+  const idx = fournisseurs.findIndex(f => f.id === id);
+  if (idx === -1) return;
+  const $ = (k) => document.getElementById('edit-frn-' + k);
+  fournisseurs[idx].nom = $('nom')?.value.trim() || '';
+  fournisseurs[idx].contact = $('contact')?.value.trim() || '';
+  fournisseurs[idx].tel = $('tel')?.value.trim() || '';
+  fournisseurs[idx].email = $('email')?.value.trim() || '';
+  fournisseurs[idx].adresse = $('adresse')?.value.trim() || '';
+  fournisseurs[idx].cp = $('cp')?.value.trim() || '';
+  fournisseurs[idx].ville = $('ville')?.value.trim() || '';
+  fournisseurs[idx].siren = $('siren')?.value.trim() || '';
+  fournisseurs[idx].tvaIntra = $('tva-intra')?.value.trim() || '';
+  fournisseurs[idx].iban = $('iban')?.value.trim() || '';
+  fournisseurs[idx].notes = $('notes')?.value.trim() || '';
+  sauvegarder('fournisseurs', fournisseurs);
+  closeModal('modal-edit-fournisseur');
+  _editFournisseurId = null;
+  afficherFournisseursDashboard();
+  afficherToast('✅ Fournisseur mis à jour');
+}
+
+async function supprimerFournisseur(id) {
+  const f = charger('fournisseurs').find(x => x.id === id);
+  if (!f) return;
+  const charges = charger('charges');
+  const chargesF = charges.filter(c => c.fournisseurId === id || c.fournisseur === f.nom);
+  let msg = 'Supprimer le fournisseur « ' + (f.nom || 'sans nom') + ' » ?';
+  if (chargesF.length) msg += '\n\n⚠️ Lié à ' + chargesF.length + ' charge' + (chargesF.length > 1 ? 's' : '') + ' (snapshots conservés).';
+  const ok = await confirmDialog(msg, { titre: 'Supprimer le fournisseur', icone: '🏭', btnLabel: 'Supprimer', danger: true });
+  if (!ok) return;
+  sauvegarder('fournisseurs', charger('fournisseurs').filter(x => x.id !== id));
+  afficherFournisseursDashboard();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Suppression fournisseur', f.nom || 'sans nom');
+  afficherToast('🗑️ Fournisseur supprimé');
+}
+
+function exporterHistoriqueFournisseursCSV() {
+  const fournisseurs = charger('fournisseurs');
+  if (!fournisseurs.length) { afficherToast('Aucun fournisseur à exporter', 'info'); return; }
+  const headers = ['Nom', 'Contact', 'Téléphone', 'Email', 'Adresse', 'CP', 'Ville', 'SIREN', 'TVA Intracom', 'IBAN', 'Notes'];
+  const rows = fournisseurs.map(f => [f.nom, f.contact || f.prenom, f.tel, f.email, f.adresse, f.cp, f.ville, f.siren, f.tvaIntra, f.iban, f.notes].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(','));
+  const csv = headers.map(h => '"' + h + '"').join(',') + '\n' + rows.join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fournisseurs_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  afficherToast('📥 Export CSV fournisseurs');
+}
+
+function genererRapportFournisseurs() {
+  const fournisseurs = charger('fournisseurs');
+  if (!fournisseurs.length) { afficherToast('Aucun fournisseur à exporter', 'info'); return; }
+  const charges = charger('charges');
+  const params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : {};
+  const dateExp = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const esc = (typeof planningEscapeHtml === 'function') ? planningEscapeHtml : (v => String(v || ''));
+  const lignes = fournisseurs.map(f => {
+    const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
+    const total = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
+    return { f, nb: chargesF.length, total };
+  }).sort((a, b) => b.total - a.total);
+  const totalGlobal = lignes.reduce((s, L) => s + L.total, 0);
+  const meta = fournisseurs.length + ' fournisseur(s) · ' + lignes.reduce((s, L) => s + L.nb, 0) + ' charge(s)';
+  const rows = lignes.map(L => `<tr>
+    <td style="padding:7px 10px;font-weight:600">${esc(L.f.nom || '')}${L.f.siren ? '<div style="font-size:.72rem;color:#9ca3af">SIREN ' + esc(L.f.siren) + '</div>' : ''}</td>
+    <td style="padding:7px 10px;font-size:.82rem">${esc(L.f.contact || L.f.prenom || '—')}${L.f.tel ? '<div style="color:#6b7280">' + esc(L.f.tel) + '</div>' : ''}</td>
+    <td style="padding:7px 10px;font-size:.78rem;color:#6b7280">${esc([L.f.adresse, ((L.f.cp || '') + ' ' + (L.f.ville || '')).trim()].filter(Boolean).join(' · ') || '—')}</td>
+    <td style="padding:7px 10px;text-align:right">${L.nb}</td>
+    <td style="padding:7px 10px;text-align:right;font-weight:700">${euros(L.total)}</td>
+  </tr>`).join('');
+  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">'
+    + construireEnteteExport(params, 'Carnet fournisseurs', '', dateExp, meta)
+    + '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+    + '<thead><tr style="background:#f3f4f6;text-align:left">'
+    +   '<th style="padding:8px 10px">Fournisseur</th>'
+    +   '<th style="padding:8px 10px">Contact</th>'
+    +   '<th style="padding:8px 10px">Adresse</th>'
+    +   '<th style="padding:8px 10px;text-align:right">Charges</th>'
+    +   '<th style="padding:8px 10px;text-align:right">Total dépensé</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody>'
+    + '<tfoot><tr style="background:#fef3c7;font-weight:700"><td colspan="4" style="padding:8px 10px">TOTAL</td><td style="padding:8px 10px;text-align:right">' + euros(totalGlobal) + '</td></tr></tfoot>'
+    + '</table></div>';
+  if (typeof ouvrirFenetreImpression === 'function') ouvrirFenetreImpression('Carnet fournisseurs', html, 'width=1200,height=820');
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Rapport fournisseurs', fournisseurs.length + ' fournisseur(s)');
 }
 
 /* ===== CONGÉS / ABSENCES DANS LE PLANNING ===== */

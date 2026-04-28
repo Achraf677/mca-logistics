@@ -69,6 +69,7 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
+          <a href="#" class="nav-item" data-page="fournisseurs"><span class="nav-icon">🏭</span><span class="nav-label">Fournisseurs</span></a>
         </div>
       </div>
 
@@ -361,11 +362,45 @@
           <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
         </div>
       </div>
+      <div class="filters filters-clients" style="margin-bottom:16px">
+        <div class="searchbar">
+          <span class="searchbar-icon">🔎</span>
+          <input type="search" id="filtre-cl-search" placeholder="Rechercher un client, un nom, une ville, un SIREN..." oninput="afficherClientsDashboard()" />
+        </div>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-cl-search').value='';afficherClientsDashboard()">Réinitialiser</button>
+      </div>
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total CA</th><th>Actions</th></tr></thead>
             <tbody id="tb-clients"><tr><td colspan="6" class="empty-row">Aucun client enregistré</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOURNISSEURS — miroir de Clients -->
+    <section class="page" id="page-fournisseurs">
+      <div class="page-actions">
+        <h2>🏭 Carnet Fournisseurs</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterHistoriqueFournisseursCSV()">📚 Historique fournisseurs</button>
+          <button class="btn-rapport" onclick="genererRapportFournisseurs()">📄 Rapport</button>
+          <button class="btn-primary" onclick="openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
+        </div>
+      </div>
+      <div class="filters filters-fournisseurs" style="margin-bottom:16px">
+        <div class="searchbar">
+          <span class="searchbar-icon">🔎</span>
+          <input type="search" id="filtre-frn-search" placeholder="Rechercher un fournisseur, un nom, une ville, un SIREN..." oninput="afficherFournisseursDashboard()" />
+        </div>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-frn-search').value='';afficherFournisseursDashboard()">Réinitialiser</button>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total dépensé</th><th>Actions</th></tr></thead>
+            <tbody id="tb-fournisseurs"><tr><td colspan="6" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -1867,6 +1902,53 @@
         <button class="btn-secondary" onclick="exporterDonneesRGPDClientCourant()" title="Export RGPD portable (art. 20) — toutes les données du client au format JSON">🛡️ Export RGPD</button>
         <button class="btn-primary" onclick="closeModal('modal-client-history')">Fermer</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Nouveau fournisseur (miroir de modal-client) -->
+  <div class="modal-overlay" id="modal-fournisseur">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Raison sociale" /></div>
+          <div class="form-group"><label>Contact</label><input type="text" id="frn-contact" placeholder="Nom + tél" /></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="frn-tel" placeholder="Téléphone" /></div>
+          <div class="form-group"><label>Email</label><input type="email" id="frn-email" placeholder="Email" /></div>
+          <div class="form-group full-width"><label>Adresse</label><input type="text" id="frn-adresse" placeholder="Numéro + rue" /></div>
+          <div class="form-group"><label>Code postal</label><input type="text" id="frn-cp" placeholder="75001" maxlength="5" /></div>
+          <div class="form-group"><label>Ville</label><input type="text" id="frn-ville" placeholder="Paris" /></div>
+          <div class="form-group"><label>SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" /></div>
+          <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" /></div>
+          <div class="form-group full-width"><label>IBAN</label><input type="text" id="frn-iban" placeholder="FR76 …" /></div>
+        </div>
+        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="frn-notes" rows="2" placeholder="Conditions, particularités, contacts..."></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-fournisseur')">Annuler</button><button class="btn-primary" onclick="ajouterFournisseur()">✅ Enregistrer</button></div>
+    </div>
+  </div>
+
+  <!-- Modifier fournisseur -->
+  <div class="modal-overlay" id="modal-edit-fournisseur">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-frn-id" />
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="edit-frn-nom" /></div>
+          <div class="form-group"><label>Contact</label><input type="text" id="edit-frn-contact" /></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-frn-tel" /></div>
+          <div class="form-group"><label>Email</label><input type="email" id="edit-frn-email" /></div>
+          <div class="form-group full-width"><label>Adresse</label><input type="text" id="edit-frn-adresse" /></div>
+          <div class="form-group"><label>Code postal</label><input type="text" id="edit-frn-cp" maxlength="5" /></div>
+          <div class="form-group"><label>Ville</label><input type="text" id="edit-frn-ville" /></div>
+          <div class="form-group"><label>SIREN</label><input type="text" id="edit-frn-siren" maxlength="9" /></div>
+          <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-frn-tva-intra" /></div>
+          <div class="form-group full-width"><label>IBAN</label><input type="text" id="edit-frn-iban" /></div>
+        </div>
+        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-frn-notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button class="btn-primary" onclick="confirmerEditFournisseur()">✅ Enregistrer</button></div>
     </div>
   </div>
   <!-- Nouveau véhicule -->
