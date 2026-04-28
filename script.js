@@ -2873,29 +2873,51 @@ function ajouterLivraison() {
   // BUG-006 fix : auto-création du client dans le carnet si le nom ne correspond
   // à aucun client existant. Évite les livraisons orphelines (sans clientId)
   // qui cassent l'agrégation CA par client + relances.
+  // Priorité au clientId stocké par selectionnerClientLivraisonParId (lien fiable),
+  // sinon fallback matching par nom (cas saisie manuelle).
   let clientId = null;
   let clientCreeAuto = false;
+  let clientTvaSnapshot = '';
+  let clientPaysSnapshot = '';
   try {
     const clientsExistants = charger('clients');
-    const cible = client.toLowerCase();
-    const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
-    if (match) {
-      clientId = match.id;
-    } else {
-      const nouveau = {
-        id: genId(),
-        nom: client,
-        type: 'pro',
-        siren: clientSiren || '',
-        creeLe: new Date().toISOString(),
-        creeDepuis: 'livraison'
-      };
-      clientsExistants.push(nouveau);
-      sauvegarder('clients', clientsExistants);
-      clientId = nouveau.id;
-      clientCreeAuto = true;
+    // 1. Lien direct via __livSelectedClientId (utilisateur a cliqué sur une suggestion)
+    if (window.__livSelectedClientId) {
+      const direct = clientsExistants.find(c => c && c.id === window.__livSelectedClientId);
+      if (direct && (direct.nom || '').toLowerCase() === client.toLowerCase()) {
+        clientId = direct.id;
+        clientTvaSnapshot = direct.tvaIntra || '';
+        clientPaysSnapshot = direct.pays || 'FR';
+      }
+    }
+    // 2. Fallback matching par nom (saisie libre, pas de suggestion cliquée)
+    if (!clientId) {
+      const cible = client.toLowerCase();
+      const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
+      if (match) {
+        clientId = match.id;
+        clientTvaSnapshot = match.tvaIntra || '';
+        clientPaysSnapshot = match.pays || 'FR';
+      } else {
+        const nouveau = {
+          id: genId(),
+          nom: client,
+          type: 'pro',
+          siren: clientSiren || '',
+          creeLe: new Date().toISOString(),
+          creeDepuis: 'livraison'
+        };
+        clientsExistants.push(nouveau);
+        sauvegarder('clients', clientsExistants);
+        clientId = nouveau.id;
+        clientCreeAuto = true;
+      }
     }
   } catch (_) { /* silencieux : ne bloque pas la création de la livraison */ }
+  // Reset le state pour la prochaine modal
+  window.__livSelectedClientId = null;
+  window.__livSelectedClientTva = null;
+  window.__livSelectedClientPays = null;
 
   // BUG-012/013 fix : champs lettre de voiture conforme arrêté 09/11/1999
   const getVal = (id) => (document.getElementById(id)?.value || '').trim();
@@ -2931,7 +2953,9 @@ function ajouterLivraison() {
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
-    client, clientSiren, clientId, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
+    client, clientSiren, clientId,
+    clientTvaIntracom: clientTvaSnapshot, clientPays: clientPaysSnapshot,
+    depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
     chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
     vehId: affectation.vehId || null, vehNom: affectation.vehNom,
     statut, date, notes,
@@ -9009,12 +9033,12 @@ function preFillLivraisonClient(id) {
   naviguerVers('livraisons');
   setTimeout(()=>{
     openModal('modal-livraison');
+    // Utilise la fonction centralisée pour pré-remplir tous les champs
     setTimeout(()=>{
-      const el = document.getElementById('liv-client'); if(el) el.value = c.prenom ? `${c.nom} ${c.prenom}` : c.nom;
-      const zone = document.getElementById('liv-zone'); if(zone&&c.adresse) zone.value=c.adresse;
-      const dep = document.getElementById('liv-depart'); if(dep&&c.adresse) dep.value=c.adresse;
-      const arr = document.getElementById('liv-arrivee'); if(arr) arr.value='';
-    },100);
+      if (typeof selectionnerClientLivraisonParId === 'function') {
+        selectionnerClientLivraisonParId(c.id);
+      }
+    }, 100);
   },100);
 }
 
@@ -9023,41 +9047,67 @@ function autoCompleteClient(val) {
   const sug = document.getElementById('client-suggestions');
   if (!sug) return;
   const terme = (val || '').trim();
-  if (terme.length < 2) { sug.innerHTML = ''; return; }
+  if (terme.length < 2) {
+    sug.innerHTML = '';
+    // Si l'utilisateur efface le nom, on délie le client précédemment sélectionné
+    window.__livSelectedClientId = null;
+    return;
+  }
   const clients = loadSafe('clients', []);
   const termeLc = terme.toLowerCase();
   const matches = clients.filter(c => (c.nom || '').toLowerCase().includes(termeLc)).slice(0, 5);
   const matchExact = clients.some(c => (c.nom || '').toLowerCase() === termeLc);
+  // On passe maintenant l'ID complet du client à selectionnerClientLivraison
+  // (au lieu de juste nom+adresse) pour pouvoir lier proprement TOUS les champs.
   const htmlMatches = matches.map(c => {
-    const nomAttr = escapeAttr(c.nom || '');
-    const adrAttr = escapeAttr(c.adresse || '');
     const nomHtml = escapeHtml(c.nom || '');
     const adrHtml = escapeHtml(c.adresse || '');
-    return `<div onclick="selectionnerClientLivraison('${nomAttr}','${adrAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
+    const idAttr = escapeAttr(c.id || '');
+    return `<div onclick="selectionnerClientLivraisonParId('${idAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
   }).join('');
   const htmlCreate = matchExact ? '' : `<div onclick="ouvrirCreationClientDepuisLivraison('${escapeAttr(terme)}')" style="padding:9px 12px;cursor:pointer;font-size:.88rem;color:#4ade80;font-weight:600;background:rgba(74,222,128,.08);border-top:1px solid var(--border)" onmouseover="this.style.background='rgba(74,222,128,.18)'" onmouseout="this.style.background='rgba(74,222,128,.08)'">+ Créer « ${escapeHtml(terme)} » comme nouveau client</div>`;
   sug.innerHTML = htmlMatches + htmlCreate;
 }
 
+// Pré-remplit la modal Nouvelle livraison avec TOUTES les infos du client
+// sélectionné (SIREN, TVA intracom, adresse, zone) et stocke son ID pour
+// liaison fiable à la sauvegarde (sans dépendre du matching par nom).
+function selectionnerClientLivraisonParId(clientId) {
+  const c = loadSafe('clients', []).find(x => x && x.id === clientId);
+  if (!c) return;
+  const $ = (id) => document.getElementById(id);
+  if ($('liv-client'))       $('liv-client').value = c.nom || '';
+  if ($('liv-client-siren')) $('liv-client-siren').value = c.siren || '';
+  // Adresse → zone géographique + champ caché départ
+  if (c.adresse) {
+    const adrComplete = [c.adresse, ((c.cp || '') + ' ' + (c.ville || '')).trim()].filter(Boolean).join(', ');
+    if ($('liv-zone'))   $('liv-zone').value = adrComplete;
+    if ($('liv-depart')) $('liv-depart').value = adrComplete;
+  }
+  if ($('liv-arrivee')) $('liv-arrivee').value = '';
+  // Mémorise l'ID pour ajouterLivraison (lien fiable, écrase le match par nom)
+  window.__livSelectedClientId = c.id;
+  window.__livSelectedClientTva = c.tvaIntra || '';
+  window.__livSelectedClientPays = c.pays || 'FR';
+  // Reset les suggestions
+  const sug = document.getElementById('client-suggestions');
+  if (sug) sug.innerHTML = '';
+}
+
+// Compat : ancienne signature (nom, adresse) — appelée encore depuis quelques
+// endroits historiques. Délègue à la version par ID si possible.
 function selectionnerClientLivraison(nom, adresse) {
+  const c = loadSafe('clients', []).find(x => x && (x.nom || '').toLowerCase() === String(nom || '').toLowerCase());
+  if (c) return selectionnerClientLivraisonParId(c.id);
+  // Pas de match → comportement legacy minimal
   const livClient = document.getElementById('liv-client');
   if (livClient) livClient.value = nom;
   const livZone = document.getElementById('liv-zone');
   if (livZone && adresse) livZone.value = adresse;
   const livDep = document.getElementById('liv-depart');
   if (livDep && adresse) livDep.value = adresse;
-  const livArr = document.getElementById('liv-arrivee');
-  if (livArr) livArr.value = '';
   const sug = document.getElementById('client-suggestions');
   if (sug) sug.innerHTML = '';
-  try {
-    const clients = loadSafe('clients', []);
-    const match = clients.find(c => (c.nom || '').toLowerCase() === String(nom || '').toLowerCase());
-    if (match) {
-      const livSiren = document.getElementById('liv-client-siren');
-      if (livSiren && !livSiren.value && match.siren) livSiren.value = match.siren;
-    }
-  } catch (_) {}
 }
 
 function ouvrirCreationClientDepuisLivraison(nom) {
