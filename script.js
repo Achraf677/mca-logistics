@@ -12705,11 +12705,8 @@ window.__adminFinalLock = function() {
     win.document.close();
   };
 
-  construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
-      + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
-      + '</div>';
-  };
+  // construireEnteteExport : ancienne définition supprimée (code mort —
+  // écrasée par les redéfinitions ultérieures du fichier).
 
   peuplerAbsenceSal = function() { planningSyncSearchWithSelect('absence-sal-search', 'absence-sal', 'absence-sal-datalist'); };
   filtrerRechercheAbsence = function() {
@@ -12829,8 +12826,25 @@ ouvrirFenetreImpression = function(titre, html, options) {
 };
 
 construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
-    + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
+  // En-tête PDF unifié : nom entreprise (gauche) + titre rapport + période + date génération (droite)
+  // + ligne orange séparatrice. Utilisé dans tous les rapports/exports PDF du site.
+  var infoLegale = '';
+  if (params.siret) {
+    infoLegale = 'SIRET ' + params.siret + (params.rcs ? ' · RCS ' + params.rcs : '');
+  } else if (params.rcs) {
+    infoLegale = 'RCS ' + params.rcs;
+  }
+  var blocGauche = '<div>'
+    + '<div style="font-size:1.5rem;font-weight:800;color:#f5a623;letter-spacing:.02em">' + (params.nom || 'MCA LOGISTICS') + '</div>'
+    + (infoLegale ? '<div style="font-size:.72rem;color:#6b7280;margin-top:4px">' + infoLegale + '</div>' : '')
+    + '</div>';
+  var blocDroit = '<div style="text-align:right">'
+    + '<div style="font-size:1rem;font-weight:700;color:#1f2937">' + (titre || '') + '</div>'
+    + (sousTitre ? '<div style="font-size:.85rem;color:#4b5563;margin-top:3px">' + sousTitre + '</div>' : '')
+    + (dateExp ? '<div style="font-size:.72rem;color:#9ca3af;margin-top:6px">Généré le ' + dateExp + '</div>' : '')
+    + '</div>';
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:3px solid #f5a623;margin-bottom:22px">'
+    + blocGauche + blocDroit
     + '</div>';
 };
 
@@ -13052,8 +13066,25 @@ filtrerRecherchePlanningModal = function() {
 };
 
 construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
-    + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
+  // En-tête PDF unifié : nom entreprise (gauche) + titre rapport + période + date génération (droite)
+  // + ligne orange séparatrice. Utilisé dans tous les rapports/exports PDF du site.
+  var infoLegale = '';
+  if (params.siret) {
+    infoLegale = 'SIRET ' + params.siret + (params.rcs ? ' · RCS ' + params.rcs : '');
+  } else if (params.rcs) {
+    infoLegale = 'RCS ' + params.rcs;
+  }
+  var blocGauche = '<div>'
+    + '<div style="font-size:1.5rem;font-weight:800;color:#f5a623;letter-spacing:.02em">' + (params.nom || 'MCA LOGISTICS') + '</div>'
+    + (infoLegale ? '<div style="font-size:.72rem;color:#6b7280;margin-top:4px">' + infoLegale + '</div>' : '')
+    + '</div>';
+  var blocDroit = '<div style="text-align:right">'
+    + '<div style="font-size:1rem;font-weight:700;color:#1f2937">' + (titre || '') + '</div>'
+    + (sousTitre ? '<div style="font-size:.85rem;color:#4b5563;margin-top:3px">' + sousTitre + '</div>' : '')
+    + (dateExp ? '<div style="font-size:.72rem;color:#9ca3af;margin-top:6px">Généré le ' + dateExp + '</div>' : '')
+    + '</div>';
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:3px solid #f5a623;margin-bottom:22px">'
+    + blocGauche + blocDroit
     + '</div>';
 };
 
@@ -18948,19 +18979,23 @@ genererRentabilitePDF = function() {
         '<div class="ev-print" style="border-left:4px solid '+ev.color+'"><span>'+ev.date.toLocaleDateString('fr-FR')+'</span> '+ev.icon+' '+escHtml(ev.label)+'</div>'
       ).join('') || '<p style="text-align:center;color:#888">Aucun événement</p>';
     }
+    var entreprise = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : (params || {});
+    var dateExp = new Date().toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    var entete = (typeof construireEnteteExport === 'function')
+      ? construireEnteteExport(entreprise, '🗓️ Calendrier opérationnel', titre, dateExp)
+      : '<div><h1>🗓️ Calendrier — '+escHtml(titre)+'</h1></div>';
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Calendrier — '+titre+'</title><style>'
-      + 'body{font-family:Arial,sans-serif;padding:22px;color:#111827} h1{margin:0 0 4px;color:#111827;font-size:1.3rem;font-weight:600} .meta{color:#6b7280;font-size:.82rem;margin-bottom:18px}'
+      + 'body{font-family:"Segoe UI",Arial,sans-serif;padding:24px;color:#111827;max-width:1080px;margin:0 auto}'
       + 'table.mois{width:100%;border-collapse:collapse;font-size:.76rem} table.mois th{background:#f9fafb;color:#374151;padding:7px 4px;text-align:center;font-weight:600;border-bottom:2px solid #d1d5db;border-right:1px solid #e5e7eb} table.mois th:last-child{border-right:none}'
       + 'table.mois td{border:1px solid #e5e7eb;vertical-align:top;padding:5px;height:92px;width:14.28%} td.other{background:#fafafa;color:#d1d5db} td.fer{background:#fafaf9}'
       + '.dn{font-weight:600;margin-bottom:2px;color:#374151;font-size:.82rem}'
       + '.fer-lbl{font-size:.62rem;color:#b91c1c;background:#fee2e2;padding:1px 4px;border-radius:3px;margin-bottom:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}'
       + '.ev{background:#f9fafb;padding:2px 5px;margin:2px 0;border-radius:3px;font-size:.68rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .more{font-size:.66rem;color:#9ca3af;font-style:italic;margin-top:2px}'
       + '.ev-print{padding:7px 12px;margin:5px 0;background:#f9fafb;border-radius:4px;font-size:.86rem;color:#374151} .ev-print span{color:#6b7280;font-weight:600;margin-right:10px;min-width:85px;display:inline-block}'
-      + 'button{margin-bottom:10px;padding:7px 14px;background:#374151;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.85rem} button:hover{background:#1f2937} @media print{button{display:none}}'
+      + 'button.print-btn{margin-bottom:14px;padding:7px 14px;background:#374151;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.85rem} button.print-btn:hover{background:#1f2937} @media print{button.print-btn{display:none}}'
       + '</style></head><body>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center">'
-      + '<div><h1>🗓️ Calendrier — '+titre+'</h1><div class="meta">'+escHtml(params.nom||'MCA Logistics')+' · généré le '+new Date().toLocaleString('fr-FR')+'</div></div>'
-      + '<button onclick="window.print()">🖨️ Imprimer</button></div>'
+      + '<button class="print-btn" onclick="window.print()">📄 Imprimer / PDF</button>'
+      + entete
       + body + '</body></html>');
     w.document.close();
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Impression calendrier', titre);
