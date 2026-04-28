@@ -12322,20 +12322,11 @@ function genererRapportMensuelPeriode() {
   var mentionsHeader = renderFactureMentionsEntrepriseHeader(params);
   var siege = [params.adresse, ((params.codePostal||'')+' '+(params.ville||'')).trim()].filter(Boolean).map(escape).join(' · ');
 
+  // En-tête unifié via construireEnteteExport (template référence du site)
+  var metaLivraisons = livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'');
   var html =
     '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
-        '<div>' +
-          '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">'+nomEntr+'</div>' +
-          (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">'+siege+'</div>' : '') +
-          mentionsHeader +
-          '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">Récapitulatif livraisons — '+escape(periode)+'</div>' +
-        '</div>' +
-        '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
-          '<div>Généré le <strong>'+escape(dateExp)+'</strong></div>' +
-          '<div>'+livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'') + '</div>' +
-        '</div>' +
-      '</div>' +
+      construireEnteteExport(params, 'Récapitulatif livraisons', periode, dateExp, metaLivraisons) +
       blocResume +
       blocTVA +
       blocClients +
@@ -12825,25 +12816,35 @@ ouvrirFenetreImpression = function(titre, html, options) {
   win.document.close();
 };
 
-construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-  // En-tête PDF unifié : nom entreprise (gauche) + titre rapport + période + date génération (droite)
-  // + ligne orange séparatrice. Utilisé dans tous les rapports/exports PDF du site.
-  var infoLegale = '';
-  if (params.siret) {
-    infoLegale = 'SIRET ' + params.siret + (params.rcs ? ' · RCS ' + params.rcs : '');
-  } else if (params.rcs) {
-    infoLegale = 'RCS ' + params.rcs;
+construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom) {
+  // En-tête PDF UNIFIÉ — template aligné sur le rapport Livraisons (référence).
+  // - Bloc gauche : nom entreprise (orange) + adresse + mentions légales + titre+période
+  // - Bloc droit : date de génération + métadonnées custom (ex: '3 livraison(s)…')
+  // - Ligne orange séparatrice
+  var esc = (typeof planningEscapeHtml === 'function')
+    ? planningEscapeHtml
+    : function(v){ return String(v || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var siege = [params.adresse, ((params.codePostal || '') + ' ' + (params.ville || '')).trim()]
+    .filter(Boolean).map(esc).join(' · ');
+  var mentionsLegales = (typeof renderFactureMentionsEntrepriseHeader === 'function')
+    ? renderFactureMentionsEntrepriseHeader(params)
+    : '';
+  var titreLigne = '';
+  if (titre || sousTitre) {
+    var inner = esc(titre || '') + (sousTitre ? ' — ' + esc(sousTitre) : '');
+    titreLigne = '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">' + inner + '</div>';
   }
   var blocGauche = '<div>'
-    + '<div style="font-size:1.5rem;font-weight:800;color:#f5a623;letter-spacing:.02em">' + (params.nom || 'MCA LOGISTICS') + '</div>'
-    + (infoLegale ? '<div style="font-size:.72rem;color:#6b7280;margin-top:4px">' + infoLegale + '</div>' : '')
+    + '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
+    + (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">' + siege + '</div>' : '')
+    + mentionsLegales
+    + titreLigne
     + '</div>';
-  var blocDroit = '<div style="text-align:right">'
-    + '<div style="font-size:1rem;font-weight:700;color:#1f2937">' + (titre || '') + '</div>'
-    + (sousTitre ? '<div style="font-size:.85rem;color:#4b5563;margin-top:3px">' + sousTitre + '</div>' : '')
-    + (dateExp ? '<div style="font-size:.72rem;color:#9ca3af;margin-top:6px">Généré le ' + dateExp + '</div>' : '')
+  var blocDroit = '<div style="text-align:right;font-size:.82rem;color:#6b7280">'
+    + (dateExp ? '<div>Généré le <strong>' + esc(dateExp) + '</strong></div>' : '')
+    + (metaCustom ? '<div style="margin-top:2px">' + metaCustom + '</div>' : '')
     + '</div>';
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:3px solid #f5a623;margin-bottom:22px">'
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #f5a623;margin-bottom:22px">'
     + blocGauche + blocDroit
     + '</div>';
 };
@@ -13065,25 +13066,35 @@ filtrerRecherchePlanningModal = function() {
   if (document.getElementById('plan-salarie')?.value) genererGrilleJours();
 };
 
-construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-  // En-tête PDF unifié : nom entreprise (gauche) + titre rapport + période + date génération (droite)
-  // + ligne orange séparatrice. Utilisé dans tous les rapports/exports PDF du site.
-  var infoLegale = '';
-  if (params.siret) {
-    infoLegale = 'SIRET ' + params.siret + (params.rcs ? ' · RCS ' + params.rcs : '');
-  } else if (params.rcs) {
-    infoLegale = 'RCS ' + params.rcs;
+construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom) {
+  // En-tête PDF UNIFIÉ — template aligné sur le rapport Livraisons (référence).
+  // - Bloc gauche : nom entreprise (orange) + adresse + mentions légales + titre+période
+  // - Bloc droit : date de génération + métadonnées custom (ex: '3 livraison(s)…')
+  // - Ligne orange séparatrice
+  var esc = (typeof planningEscapeHtml === 'function')
+    ? planningEscapeHtml
+    : function(v){ return String(v || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var siege = [params.adresse, ((params.codePostal || '') + ' ' + (params.ville || '')).trim()]
+    .filter(Boolean).map(esc).join(' · ');
+  var mentionsLegales = (typeof renderFactureMentionsEntrepriseHeader === 'function')
+    ? renderFactureMentionsEntrepriseHeader(params)
+    : '';
+  var titreLigne = '';
+  if (titre || sousTitre) {
+    var inner = esc(titre || '') + (sousTitre ? ' — ' + esc(sousTitre) : '');
+    titreLigne = '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">' + inner + '</div>';
   }
   var blocGauche = '<div>'
-    + '<div style="font-size:1.5rem;font-weight:800;color:#f5a623;letter-spacing:.02em">' + (params.nom || 'MCA LOGISTICS') + '</div>'
-    + (infoLegale ? '<div style="font-size:.72rem;color:#6b7280;margin-top:4px">' + infoLegale + '</div>' : '')
+    + '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
+    + (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">' + siege + '</div>' : '')
+    + mentionsLegales
+    + titreLigne
     + '</div>';
-  var blocDroit = '<div style="text-align:right">'
-    + '<div style="font-size:1rem;font-weight:700;color:#1f2937">' + (titre || '') + '</div>'
-    + (sousTitre ? '<div style="font-size:.85rem;color:#4b5563;margin-top:3px">' + sousTitre + '</div>' : '')
-    + (dateExp ? '<div style="font-size:.72rem;color:#9ca3af;margin-top:6px">Généré le ' + dateExp + '</div>' : '')
+  var blocDroit = '<div style="text-align:right;font-size:.82rem;color:#6b7280">'
+    + (dateExp ? '<div>Généré le <strong>' + esc(dateExp) + '</strong></div>' : '')
+    + (metaCustom ? '<div style="margin-top:2px">' + metaCustom + '</div>' : '')
     + '</div>';
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:3px solid #f5a623;margin-bottom:22px">'
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #f5a623;margin-bottom:22px">'
     + blocGauche + blocDroit
     + '</div>';
 };
