@@ -3488,6 +3488,9 @@ function resetModalVehiculeToCreateMode() {
     primary.textContent = 'Enregistrer';
     primary.setAttribute('onclick', 'ajouterVehicule()');
   }
+  // Reset carte grise temp + UI (sinon un fichier sélectionné mais non
+  // sauvegardé peut s'attacher à la prochaine création par erreur)
+  if (typeof resetCarteGriseFormUI === 'function') resetCarteGriseFormUI();
 }
 
 function mettreAJourFinContratVehicule() {
@@ -3715,9 +3718,13 @@ function afficherVehicules() {
   if (filtreVehCarb) {
     vehicules = vehicules.filter(v => {
       const c = (v.typeCarburant || v.carburant || '').toLowerCase();
-      // Match aussi 'gazole' avec 'diesel' (synonymes)
-      if (filtreVehCarb === 'diesel') return c === 'diesel' || c === 'gazole';
-      if (filtreVehCarb === 'gnv') return c === 'gnv' || c === 'biognv';
+      // Match partiel pour gérer les libellés composés ('diesel/gazole', etc.)
+      if (filtreVehCarb === 'diesel') return c.includes('diesel') || c.includes('gazole');
+      if (filtreVehCarb === 'gnv') return c.includes('gnv') || c.includes('biognv');
+      if (filtreVehCarb === 'electrique') return c.includes('electrique') || c.includes('électrique');
+      if (filtreVehCarb === 'hybride') return c.includes('hybride');
+      if (filtreVehCarb === 'hydrogene') return c.includes('hydrogene') || c.includes('hydrogène');
+      if (filtreVehCarb === 'essence') return c.includes('essence');
       return c === filtreVehCarb;
     });
   }
@@ -3845,7 +3852,18 @@ function afficherVehicules() {
       'hydrogene': '💧 Hydrogène'
     };
     const carbKey = (v.typeCarburant || v.carburant || '').toLowerCase();
-    const carbAffiche = carburantLabels[carbKey] || (carbKey ? carbKey : '—');
+    // Match partiel pour les libellés composés ('diesel/gazole', etc.)
+    let carbAffiche = '—';
+    if (carbKey) {
+      if (carburantLabels[carbKey]) carbAffiche = carburantLabels[carbKey];
+      else if (carbKey.includes('diesel') || carbKey.includes('gazole')) carbAffiche = carburantLabels.diesel;
+      else if (carbKey.includes('essence')) carbAffiche = carburantLabels.essence;
+      else if (carbKey.includes('gnv')) carbAffiche = carburantLabels.gnv;
+      else if (carbKey.includes('electrique') || carbKey.includes('électrique')) carbAffiche = carburantLabels.electrique;
+      else if (carbKey.includes('hybride')) carbAffiche = carburantLabels.hybride;
+      else if (carbKey.includes('hydrogene') || carbKey.includes('hydrogène')) carbAffiche = carburantLabels.hydrogene;
+      else carbAffiche = v.typeCarburant || v.carburant; // Garde la casse originale
+    }
     // Visualiser carte grise : grisé si aucun fichier uploadé
     const aCarteGrise = !!(v.carteGriseFichier || v.carteGriseUrl);
     const visuCG = aCarteGrise
@@ -7368,6 +7386,22 @@ window.toggleChampsFournisseurPro = function(isEdit) {
   var bloc = document.getElementById(prefix + '-champs-pro');
   if (bloc) bloc.classList.toggle('is-hidden', type !== 'pro');
 };
+
+// Reset complet du formulaire 'Nouveau Fournisseur' avant ouverture.
+// Garantit un état initial propre (Pro coché, bloc Pro visible, champs vides).
+function resetFormulaireFournisseur() {
+  ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-iban','frn-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const delai = document.getElementById('frn-delai-paiement');
+  if (delai) delai.value = '30';
+  const mode = document.getElementById('frn-mode-paiement');
+  if (mode) mode.value = 'virement';
+  const proRadio = document.querySelector('input[name="frn-type"][value="pro"]');
+  if (proRadio) proRadio.checked = true;
+  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(false);
+}
 
 function ajouterFournisseur() {
   const nom = document.getElementById('frn-nom')?.value.trim();
