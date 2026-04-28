@@ -7234,18 +7234,24 @@ function afficherClientsDashboard() {
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
   if (!clients.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
+  const livraisons = charger('livraisons');
 
   tb.innerHTML = clients.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr')).map(c => {
+    const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
+    const caC = livsC.reduce((s,l)=>s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)), 0);
+    const contact = (c.contact || c.prenom || '').trim();
     return `<tr>
-      <td><strong>${c.nom}</strong></td>
-      <td>${c.prenom||'—'}</td>
+      <td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient('${c.id}')" style="font-weight:700">${c.nom}</button></td>
+      <td>${contact||'—'}</td>
       <td>${c.tel||'—'}</td>
       <td style="font-size:.82rem">${c.adresse||'—'}</td>
-      <td>
-        <button class="btn-icon" onclick="ouvrirEditClient('${c.id}')" title="Modifier">✏️</button>
-        <button class="btn-icon" onclick="preFillLivraisonClient('${c.id}')" title="Nouvelle livraison">📦</button>
-        <button class="btn-icon danger" onclick="supprimerClient('${c.id}')">🗑️</button>
-      </td>
+      <td><strong>${euros(caC)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${livsC.length} livraison${livsC.length>1?'s':''}</div></td>
+      <td>${buildInlineActionsDropdown('Actions', [
+        { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
+        { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },
+        { icon:'📦', label:'Nouvelle livraison', action:`preFillLivraisonClient('${c.id}')` },
+        { icon:'🗑️', label:'Supprimer', action:`supprimerClient('${c.id}')`, danger:true }
+      ])}</td>
     </tr>`;
   }).join('');
 }
