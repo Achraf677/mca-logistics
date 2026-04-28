@@ -19413,6 +19413,13 @@ genererRentabilitePDF = function() {
     if (table.__s18Sortable) return;
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
+    // Skip les tables qui utilisent déjà le module SORT Sprint 8 (data-sort-key) :
+    // le tri data-based + re-render se chevaucherait avec le tri DOM-based ici,
+    // créant une cascade MutationObserver ↔ re-render qui freeze la page.
+    if (table.querySelector('thead th[data-sort-key]')) {
+      table.__s18Sortable = true;
+      return;
+    }
     table.__s18Sortable = true;
     ths.forEach(function(th, idx){
       const label = (th.textContent || '').trim().toLowerCase();
