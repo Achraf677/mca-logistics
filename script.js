@@ -12811,8 +12811,8 @@ window.__adminFinalLock = function() {
       const tva = (parseFloat(l.prix) || 0) - ht;
       const ttc = parseFloat(l.prix) || 0;
       const statutPaiement = l.statutPaiement || 'en-attente';
-      const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+      const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
       const client = formatClientLabel(l.client || '—');
       const clientText = escapeHtml(client);
       const depart = l.depart || '';
@@ -12994,8 +12994,8 @@ window.renderLivraisonsAdminFinal = function() {
     const tva = (parseFloat(l.prix) || 0) - ht;
     const ttc = parseFloat(l.prix) || 0;
     const statutPaiement = l.statutPaiement || 'en-attente';
-    const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
     const client = formatClientLabel(l.client || '—');
     const clientText = escapeHtml(client);
     const depart = l.depart || '';
@@ -14564,31 +14564,28 @@ exporterPlanningSemainePDF = function() {
 validerLivraisonLivree = async function(id) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
-  if (idx === -1) return;
+  if (idx === -1) return false;
   var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Valider la livraison', icone:'📦', btnLabel:'Valider', danger:false });
-  if (!ok) return;
+  if (!ok) return false;
   livraisons[idx].statut = 'livre';
   livraisons[idx].dateLivraison = new Date().toISOString();
   sauvegarder('livraisons', livraisons);
   afficherLivraisons();
   rafraichirDashboard();
   afficherToast('Livraison marquée comme livrée');
+  return true;
 };
 
 validerLivraisonPayee = async function(id) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
-  if (idx === -1) return;
+  if (idx === -1) return false;
   var liv = livraisons[idx];
-  if (liv.statut !== 'livre') {
-    var okLiv = await confirmDialog('Cette livraison n\'est pas encore marquée comme livrée. La marquer livrée puis payée ?', { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
-    if (!okLiv) return;
-    liv.statut = 'livre';
-    liv.dateLivraison = liv.dateLivraison || new Date().toISOString();
-  } else {
-    var ok = await confirmDialog('Confirmer cette livraison comme payée ?', { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
-    if (!ok) return;
-  }
+  var msg = liv.statut !== 'livre'
+    ? 'Marquer cette livraison comme payée ?\n(le statut de livraison reste inchangé)'
+    : 'Confirmer cette livraison comme payée ?';
+  var ok = await confirmDialog(msg, { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
+  if (!ok) return false;
   liv.statutPaiement = 'payé';
   liv.datePaiement = new Date().toISOString();
   sauvegarder('livraisons', livraisons);
@@ -14596,39 +14593,61 @@ validerLivraisonPayee = async function(id) {
   rafraichirDashboard();
   afficherRelances();
   afficherToast('Livraison marquée comme payée');
+  return true;
 };
 
-changerStatutPaiement = async function(id, statut) {
+changerStatutPaiement = async function(id, statut, selectEl) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return;
-  if (statut === 'payé') return validerLivraisonPayee(id);
-  if (statut === 'en-attente') {
-    var ok = await confirmDialog('Remettre le paiement en attente ?', { titre:'Paiement', icone:'💳', btnLabel:'Confirmer', danger:false });
-    if (!ok) return;
+  var ancienStatut = livraisons[idx].statutPaiement || 'en-attente';
+  var ok = false;
+  if (statut === 'payé') {
+    ok = await validerLivraisonPayee(id);
+  } else if (statut === 'en-attente') {
+    ok = await confirmDialog('Remettre le paiement en attente ?', { titre:'Paiement', icone:'💳', btnLabel:'Confirmer', danger:false });
+    if (ok) {
+      livraisons[idx].statutPaiement = statut;
+      delete livraisons[idx].datePaiement;
+      sauvegarder('livraisons', livraisons);
+      afficherLivraisons();
+      afficherRelances();
+      afficherToast('Paiement mis à jour');
+    }
+  } else {
+    livraisons[idx].statutPaiement = statut;
+    sauvegarder('livraisons', livraisons);
+    afficherLivraisons();
+    afficherRelances();
+    afficherToast('Paiement mis à jour');
+    ok = true;
   }
-  livraisons[idx].statutPaiement = statut;
-  if (statut !== 'payé') delete livraisons[idx].datePaiement;
-  sauvegarder('livraisons', livraisons);
-  afficherLivraisons();
-  afficherRelances();
-  afficherToast('Paiement mis à jour');
+  // Si l'utilisateur a annulé la modal, restaurer la valeur du select
+  if (!ok && selectEl) selectEl.value = ancienStatut;
 };
 
-changerStatutLivraison = async function(id, statut) {
-  if (statut === 'livre') return validerLivraisonLivree(id);
+changerStatutLivraison = async function(id, statut, selectEl) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return;
-  var ok = await confirmDialog('Mettre à jour le statut de cette livraison ?', { titre:'Statut livraison', icone:'📦', btnLabel:'Confirmer', danger:false });
-  if (!ok) return;
-  livraisons[idx].statut = statut;
-  if (statut !== 'livre') delete livraisons[idx].dateLivraison;
-  if (statut !== 'livre' && livraisons[idx].statutPaiement === 'payé') livraisons[idx].statutPaiement = 'en-attente';
-  sauvegarder('livraisons', livraisons);
-  afficherLivraisons();
-  rafraichirDashboard();
-  afficherToast('Statut livraison mis à jour');
+  var ancienStatut = livraisons[idx].statut || 'en-attente';
+  var ok = false;
+  if (statut === 'livre') {
+    ok = await validerLivraisonLivree(id);
+  } else {
+    ok = await confirmDialog('Mettre à jour le statut de cette livraison ?', { titre:'Statut livraison', icone:'📦', btnLabel:'Confirmer', danger:false });
+    if (ok) {
+      livraisons[idx].statut = statut;
+      delete livraisons[idx].dateLivraison;
+      // Découplage : ne plus reset statutPaiement quand on remet en-cours/en-attente
+      sauvegarder('livraisons', livraisons);
+      afficherLivraisons();
+      rafraichirDashboard();
+      afficherToast('Statut livraison mis à jour');
+    }
+  }
+  // Si annulé, restaurer le select
+  if (!ok && selectEl) selectEl.value = ancienStatut;
 };
 
 afficherLivraisons = window.renderLivraisonsAdminFinal;
@@ -17164,8 +17183,8 @@ genererRentabilitePDF = function() {
         const tva = (parseFloat(l.prix) || 0) - ht;
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
-        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
@@ -17451,8 +17470,8 @@ genererRentabilitePDF = function() {
         const tva = (parseFloat(l.prix) || 0) - ht;
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
-        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
