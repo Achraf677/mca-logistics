@@ -1280,8 +1280,22 @@ function ouvrirHeuresSalarie(salId) {
 }
 function ouvrirPlanningRecurrence() {
   var modalTitle = document.querySelector('#modal-planning .modal-header h3');
-  if (modalTitle) modalTitle.textContent = '🔁 Horaires récurrents';
+  if (modalTitle) {
+    modalTitle.textContent = '🔁 Horaires récurrents';
+    // Marque la modal pour que ouvrirModalPlanning ne reset pas le titre
+    modalTitle.dataset.recurrent = '1';
+  }
   ouvrirModalPlanning();
+  // Nettoie le marker au close
+  var modal = document.getElementById('modal-planning');
+  if (modal && !modal.dataset.recurrentBound) {
+    modal.dataset.recurrentBound = '1';
+    modal.addEventListener('click', function(e) {
+      if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal-overlay')) {
+        if (modalTitle) delete modalTitle.dataset.recurrent;
+      }
+    });
+  }
 }
 function fermerInlineDropdowns() {
   document.querySelectorAll('.inline-dropdown.open').forEach(function(el) {
@@ -5365,6 +5379,59 @@ async function provisionnerAccesSalarie(salarie, password) {
   return { ok: true, data: result.data || null, salarie: salarie };
 }
 
+// Upload documents salarié (permis / cni / iban / vitale / medecine).
+// En mode création : stockage en window.__salDocsTemp[type]
+// En mode édition : sauvegarde directe sur le salarié via window._editSalarieId
+window.__salDocsTemp = {};
+function uploaderDocSalarie(input, type) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const okType = /^application\/pdf$|^image\//i.test(file.type);
+  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+  // Détecte mode (édition si edit-... ID prefix)
+  const isEdit = input.id.startsWith('edit-');
+  const labelEl = document.getElementById((isEdit ? 'edit-' : '') + 'nsal-doc-' + type + '-label');
+  const wrapper = input.previousElementSibling;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    if (isEdit && window._editSalarieId) {
+      const salaries = charger('salaries');
+      const idx = salaries.findIndex(s => s.id === window._editSalarieId);
+      if (idx > -1) {
+        salaries[idx].docs = salaries[idx].docs || {};
+        salaries[idx].docs[type] = { data: dataUrl, type: file.type, nom: file.name };
+        sauvegarder('salaries', salaries);
+        afficherToast('✅ Document enregistré');
+      }
+    } else {
+      window.__salDocsTemp = window.__salDocsTemp || {};
+      window.__salDocsTemp[type] = { data: dataUrl, type: file.type, nom: file.name };
+    }
+    if (labelEl) labelEl.textContent = '✅ ' + file.name;
+    if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Visualise un document salarié (PDF embed ou image).
+function visualiserDocSalarie(salId, type) {
+  const sal = charger('salaries').find(s => s.id === salId);
+  const doc = sal && sal.docs && sal.docs[type];
+  if (!doc || !doc.data) { afficherToast('Aucun document de ce type', 'info'); return; }
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
+  const isPdf = (doc.type || '').includes('pdf');
+  const titre = ({ permis:'Permis', cni:'CNI', iban:'IBAN', vitale:'Carte vitale', medecine:'Médecine du travail' })[type] || type;
+  const label = sal.nom + ' — ' + titre;
+  const contenu = isPdf
+    ? '<embed src="' + doc.data + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
+    : '<img src="' + doc.data + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + label + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + label + '</h1>' + contenu + '</body></html>');
+  w.document.close();
+}
+
 async function creerSalarie() {
   const nom    = document.getElementById('nsal-nom').value.trim();
   const prenom = document.getElementById('nsal-prenom')?.value.trim() || '';
@@ -5400,6 +5467,18 @@ async function creerSalarie() {
     visiteMedicale,
     actif:true, creeLe:new Date().toISOString()
   };
+  // Attache les documents uploadés en mode création (permis, cni, iban, vitale, medecine)
+  if (window.__salDocsTemp && Object.keys(window.__salDocsTemp).length) {
+    salarie.docs = Object.assign({}, window.__salDocsTemp);
+    window.__salDocsTemp = {};
+    // Reset visuel des boutons d'upload
+    ['permis', 'cni', 'iban', 'vitale', 'medecine'].forEach(t => {
+      const lbl = document.getElementById('nsal-doc-' + t + '-label');
+      const inp = document.getElementById('nsal-doc-' + t);
+      if (lbl) lbl.textContent = '📎 Choisir un fichier';
+      if (inp) { inp.value = ''; const wrap = inp.previousElementSibling; if (wrap && wrap.classList) wrap.classList.remove('has-file'); }
+    });
+  }
   salaries.push(salarie);
   sauvegarder('salaries', salaries);
 
@@ -10747,14 +10826,27 @@ async function supprimerEntretien(id) {
 /* ===== BLOCAGE COMPTE après X tentatives ===== */
 /* ===== INCIDENTS / RÉCLAMATIONS ===== */
 function afficherIncidents() {
-  const incidents = charger('incidents').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe));
+  let incidents = charger('incidents').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe));
   const tb = document.getElementById('tb-incidents');
   if (!tb) return;
   paginer.__reload_tb_incidents = afficherIncidents;
 
+  // Filtres
+  const filtreSearch = (document.getElementById('filtre-inc-search')?.value || '').trim().toLowerCase();
+  const filtreGravite = document.getElementById('filtre-inc-gravite')?.value || '';
+  const filtreStatut = document.getElementById('filtre-inc-statut')?.value || '';
+  if (filtreGravite) incidents = incidents.filter(i => (i.gravite || 'moyen') === filtreGravite);
+  if (filtreStatut)  incidents = incidents.filter(i => (i.statut || 'ouvert') === filtreStatut);
+  if (filtreSearch) {
+    incidents = incidents.filter(i => [i.client, i.salNom, i.chaufNom, i.description, i.numLiv]
+      .filter(Boolean).join(' ').toLowerCase().includes(filtreSearch));
+  }
+
   if (!incidents.length) {
     nettoyerPagination('tb-incidents');
-    tb.innerHTML = emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.');
+    tb.innerHTML = filtreSearch || filtreGravite || filtreStatut
+      ? '<tr><td colspan="7" class="empty-row">Aucun résultat avec ces filtres</td></tr>'
+      : emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.');
     return;
   }
 
@@ -10773,14 +10865,12 @@ function afficherIncidents() {
     <td style="font-size:.83rem">${i.description||'—'}</td>
     <td>${graviteBadge[i.gravite||'moyen']||graviteBadge.moyen}</td>
     <td>${statBadge[i.statut||'ouvert']||''}</td>
-    <td>
-      <select class="btn-icon" onchange="changerStatutIncident('${i.id}',this.value)">
-        <option value="ouvert"  ${(i.statut||'ouvert')==='ouvert' ?'selected':''}>🔴 Ouvert</option>
-        <option value="encours" ${i.statut==='encours'?'selected':''}>🟡 En cours</option>
-        <option value="traite"  ${i.statut==='traite' ?'selected':''}>✅ Traité</option>
-      </select>
-      <button class="btn-icon danger" onclick="supprimerIncident('${i.id}')">🗑️</button>
-    </td>
+    <td>${buildInlineActionsDropdown('Actions', [
+      { icon:'🔴', label:'Marquer ouvert', action:`changerStatutIncident('${i.id}','ouvert')` },
+      { icon:'🟡', label:'Marquer en cours', action:`changerStatutIncident('${i.id}','encours')` },
+      { icon:'✅', label:'Marquer traité', action:`changerStatutIncident('${i.id}','traite')` },
+      { icon:'🗑️', label:'Supprimer', action:`supprimerIncident('${i.id}')`, danger:true }
+    ])}</td>
   </tr>`).join('');
   }, 12);
 }
@@ -14771,6 +14861,10 @@ genererGrilleJours = function() {
 };
 
 ouvrirModalPlanning = function() {
+  // Restaure le titre par défaut '📋 Gérer les horaires' (ouvrirPlanningRecurrence
+  // peut le surcharger avec '🔁 Horaires récurrents' avant nous → on reset ici)
+  var modalTitle = document.querySelector('#modal-planning .modal-header h3');
+  if (modalTitle && !modalTitle.dataset.recurrent) modalTitle.textContent = '📋 Gérer les horaires';
   peuplerSelectPlanningModal();
   var search = document.getElementById('plan-salarie-search');
   var select = document.getElementById('plan-salarie');

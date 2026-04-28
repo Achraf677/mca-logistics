@@ -757,6 +757,29 @@
             </div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
+          <!-- Documents primaires : permis, carte ID, IBAN, carte vitale -->
+          <div class="form-grid" style="margin-top:14px">
+            <div class="form-group">
+              <label>📄 Permis de conduire (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-permis"><span id="nsal-doc-permis-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-permis" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'permis')" />
+            </div>
+            <div class="form-group">
+              <label>🪪 Carte d'identité (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-cni"><span id="nsal-doc-cni-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-cni" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'cni')" />
+            </div>
+            <div class="form-group">
+              <label>🏦 IBAN (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-iban"><span id="nsal-doc-iban-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-iban" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'iban')" />
+            </div>
+            <div class="form-group">
+              <label>💳 Carte vitale (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-vitale"><span id="nsal-doc-vitale-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-vitale" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'vitale')" />
+            </div>
+          </div>
           <!-- Suivi médical (R.4624-10 Code travail — visite d'embauche obligatoire tout salarié) -->
           <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
             <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
@@ -774,6 +797,11 @@
                   </select>
                 </div>
                 <div class="form-group"><label>Date prochaine visite</label><input type="date" id="nsal-visite-date-exp" /></div>
+                <div class="form-group">
+                  <label>📄 Réponse médecine du travail (PDF)</label>
+                  <label class="file-upload-button" for="nsal-doc-medecine"><span id="nsal-doc-medecine-label">📎 Choisir un fichier</span></label>
+                  <input type="file" id="nsal-doc-medecine" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'medecine')" />
+                </div>
               </div>
             </div>
           </details>
@@ -1249,7 +1277,29 @@
 
     <!-- INCIDENTS -->
     <section class="page" id="page-incidents">
-      <div class="page-actions"><h2>🚨 Incidents / Réclamations</h2><button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button></div>
+      <div class="page-actions">
+        <h2>🚨 Incidents / Réclamations</h2>
+        <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
+      </div>
+      <div class="filters" style="margin-bottom:16px">
+        <div class="searchbar">
+          <span class="searchbar-icon">🔎</span>
+          <input type="search" id="filtre-inc-search" placeholder="Rechercher un client, chauffeur, description, n° livraison..." oninput="afficherIncidents()" />
+        </div>
+        <select id="filtre-inc-gravite" onchange="afficherIncidents()">
+          <option value="">Toutes gravités</option>
+          <option value="faible">🟢 Faible</option>
+          <option value="moyen">🟠 Moyen</option>
+          <option value="grave">🔴 Grave</option>
+        </select>
+        <select id="filtre-inc-statut" onchange="afficherIncidents()">
+          <option value="">Tous statuts</option>
+          <option value="ouvert">🔴 Ouvert</option>
+          <option value="encours">🟡 En cours</option>
+          <option value="traite">✅ Traité</option>
+        </select>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-inc-search').value='';document.getElementById('filtre-inc-gravite').value='';document.getElementById('filtre-inc-statut').value='';afficherIncidents()">Réinitialiser</button>
+      </div>
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
@@ -1361,25 +1411,26 @@
         </div>
       </div>
 
-      <!-- Compteur d'heures -->
-      <div class="card">
-        <div class="card-header"><h2>⏱️ Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
-            <tbody id="tb-heures"><tr><td colspan="6" class="empty-row">Aucun salarié</td></tr></tbody>
-          </table>
+      <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
+      <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+        <div class="card">
+          <div class="card-header"><h2>⏱️ Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
+              <tbody id="tb-heures"><tr><td colspan="6" class="empty-row">Aucun salarié</td></tr></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <!-- Relevés kilométriques -->
-      <div class="card mt-20">
-        <div class="card-header"><h2>🛣️ Relevés kilométriques (saisis par les salariés)</h2></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
-            <tbody id="tb-releve-km"><tr><td colspan="7" class="empty-row">Aucun relevé km</td></tr></tbody>
-          </table>
+        <div class="card">
+          <div class="card-header"><h2>🛣️ Relevés kilométriques</h2></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
+              <tbody id="tb-releve-km"><tr><td colspan="7" class="empty-row">Aucun relevé km</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -2239,7 +2290,7 @@
   <!-- Modal : Planning salarié -->
   <div class="modal-overlay" id="modal-planning">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3>📅 Horaires hebdomadaires</h3><button class="modal-close" onclick="closeModal('modal-planning')">✕</button></div>
+      <div class="modal-header"><h3>📋 Gérer les horaires</h3><button class="modal-close" onclick="closeModal('modal-planning')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>

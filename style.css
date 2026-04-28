@@ -1062,6 +1062,11 @@ body.light-mode .searchbar-clear:hover {
 .form-group label { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
 .form-group input, .form-group select, .form-group textarea { width: 100%; min-width: 0; max-width: 100%; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; transition: border-color 0.2s; font-family: var(--font); }
 
+/* Heures & Km : layout horizontal sur grand écran, vertical sur mobile */
+@media (max-width: 1100px) {
+  .heures-km-layout { grid-template-columns: 1fr !important; }
+}
+
 /* Bouton d'upload custom (remplace l'input[type=file] natif) — même look que les autres inputs */
 .file-upload-button {
   display: inline-flex;
