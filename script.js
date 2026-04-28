@@ -20910,6 +20910,41 @@ genererRentabilitePDF = function() {
     return null;
   }
 
+  /* Validation au boot : signale les incohérences de config (page absente du DOM,
+     label manquant). Évite les "disparitions silencieuses" lorsqu'on ajoute une
+     entrée à HUBS.<alias>.pages mais qu'on oublie la <section id="page-X"> ou
+     le label associé. */
+  function validateHubsConfig() {
+    if (typeof document === 'undefined') return;
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', validateHubsConfig);
+      return;
+    }
+    HUB_ALIASES.forEach(function(alias) {
+      var hub = HUBS[alias];
+      hub.pages.forEach(function(page) {
+        if (!document.getElementById('page-' + page)) {
+          console.warn('[S22] Section DOM manquante : #page-' + page + ' (déclarée dans HUBS.' + alias + '.pages)');
+        }
+        if (!hub.labels[page]) {
+          console.warn('[S22] Label manquant pour "' + page + '" dans HUBS.' + alias + '.labels');
+        }
+      });
+    });
+  }
+  validateHubsConfig();
+
+  /* Expose la config + helpers pour debug rapide en console DevTools.
+     Usage : window.__s22Debug.HUBS.compta.pages, window.__s22Debug.hubFromPage('tva') */
+  if (typeof window !== 'undefined') {
+    window.__s22Debug = {
+      HUBS: HUBS,
+      HUB_ALIASES: HUB_ALIASES,
+      ALL_SUB_PAGES: ALL_SUB_PAGES,
+      hubFromPage: hubFromPage
+    };
+  }
+
   /* 1. Masquer tous les anciens liens sidebar (display:none — réversible) */
   function masquerAnciensLiens() {
     ALL_SUB_PAGES.forEach(p => {
