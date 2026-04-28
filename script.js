@@ -8573,6 +8573,103 @@ function getClientHistoriqueSnapshot(clientId) {
   };
 }
 
+function genererRapportClients() {
+  // Rapport PDF du carnet clients : stats globales + ventilation par client.
+  // Utilise construireEnteteExport pour le header unifié.
+  var clients = charger('clients');
+  if (!clients.length) {
+    if (typeof afficherToast === 'function') afficherToast('Aucun client à exporter', 'info');
+    return;
+  }
+  var livraisons = charger('livraisons');
+  var paiements = (typeof charger === 'function') ? charger('paiements') || [] : [];
+  var params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : {};
+  var dateExp = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  var esc = (typeof planningEscapeHtml === 'function') ? planningEscapeHtml : function(v){ return String(v||''); };
+
+  var lignes = clients.map(function(c) {
+    var livsC = livraisons.filter(function(l) { return l.client === c.nom || l.clientId === c.id; });
+    var caHT = livsC.reduce(function(s, l) { return s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)); }, 0);
+    var caTTC = livsC.reduce(function(s, l) { return s + (parseFloat(l.prix) || 0); }, 0);
+    var paye = livsC.reduce(function(s, l) { return s + ((l.statutPaiement === 'payé') ? (parseFloat(l.prix) || 0) : 0); }, 0);
+    var attente = caTTC - paye;
+    return { c: c, nb: livsC.length, caHT: caHT, caTTC: caTTC, paye: paye, attente: attente };
+  }).sort(function(a, b) { return b.caTTC - a.caTTC; });
+
+  var totalNb = lignes.reduce(function(s, l) { return s + l.nb; }, 0);
+  var totalHT = lignes.reduce(function(s, l) { return s + l.caHT; }, 0);
+  var totalTTC = lignes.reduce(function(s, l) { return s + l.caTTC; }, 0);
+  var totalPaye = lignes.reduce(function(s, l) { return s + l.paye; }, 0);
+  var totalAttente = lignes.reduce(function(s, l) { return s + l.attente; }, 0);
+  var clientsActifs = lignes.filter(function(l) { return l.nb > 0; }).length;
+
+  var meta = clients.length + ' client(s) · ' + clientsActifs + ' actif(s) · ' + totalNb + ' livraison(s)';
+
+  var blocStats =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">' +
+      '<div style="padding:12px;background:#f3f4f6;border-radius:8px"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase">Clients</div><div style="font-size:1.15rem;font-weight:800;color:#111827">' + clients.length + '</div></div>' +
+      '<div style="padding:12px;background:#ecfdf5;border-radius:8px"><div style="font-size:.7rem;color:#065f46;text-transform:uppercase">CA HT total</div><div style="font-size:1.15rem;font-weight:800;color:#065f46">' + euros(totalHT) + '</div></div>' +
+      '<div style="padding:12px;background:#fff7ed;border-radius:8px"><div style="font-size:.7rem;color:#9a3412;text-transform:uppercase">Encaissé TTC</div><div style="font-size:1.15rem;font-weight:800;color:#9a3412">' + euros(totalPaye) + '</div></div>' +
+      '<div style="padding:12px;background:#fef2f2;border-radius:8px"><div style="font-size:.7rem;color:#991b1b;text-transform:uppercase">En attente TTC</div><div style="font-size:1.15rem;font-weight:800;color:#991b1b">' + euros(totalAttente) + '</div></div>' +
+    '</div>';
+
+  var rows = lignes.map(function(L) {
+    var c = L.c;
+    var contact = (c.contact || c.prenom || '').trim();
+    var addr = [c.adresse, ((c.cp || '') + ' ' + (c.ville || '')).trim()].filter(Boolean).join(' · ');
+    return '<tr>' +
+      '<td style="padding:7px 10px;font-weight:600">' + esc(c.nom || '') + (c.siren ? '<div style="font-size:.72rem;color:#9ca3af">SIREN ' + esc(c.siren) + '</div>' : '') + '</td>' +
+      '<td style="padding:7px 10px;font-size:.82rem">' + esc(contact || '—') + (c.tel ? '<div style="color:#6b7280">' + esc(c.tel) + '</div>' : '') + '</td>' +
+      '<td style="padding:7px 10px;font-size:.78rem;color:#6b7280">' + esc(addr || '—') + '</td>' +
+      '<td style="padding:7px 10px;text-align:right">' + L.nb + '</td>' +
+      '<td style="padding:7px 10px;text-align:right">' + euros(L.caHT) + '</td>' +
+      '<td style="padding:7px 10px;text-align:right;font-weight:700">' + euros(L.caTTC) + '</td>' +
+      '<td style="padding:7px 10px;text-align:right;color:#065f46">' + euros(L.paye) + '</td>' +
+      '<td style="padding:7px 10px;text-align:right;color:' + (L.attente > 0 ? '#92400e' : '#9ca3af') + '">' + euros(L.attente) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var tableau =
+    '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Détail par client</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' +
+      '<thead><tr style="background:#f3f4f6;text-align:left">' +
+        '<th style="padding:8px 10px">Client</th>' +
+        '<th style="padding:8px 10px">Contact</th>' +
+        '<th style="padding:8px 10px">Adresse</th>' +
+        '<th style="padding:8px 10px;text-align:right">Livs</th>' +
+        '<th style="padding:8px 10px;text-align:right">CA HT</th>' +
+        '<th style="padding:8px 10px;text-align:right">CA TTC</th>' +
+        '<th style="padding:8px 10px;text-align:right">Encaissé</th>' +
+        '<th style="padding:8px 10px;text-align:right">En attente</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '<tfoot><tr style="background:#fef3c7;font-weight:700">' +
+        '<td colspan="3" style="padding:8px 10px">TOTAUX</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + totalNb + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalHT) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalTTC) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalPaye) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalAttente) + '</td>' +
+      '</tr></tfoot>' +
+    '</table>';
+
+  var html =
+    '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
+      construireEnteteExport(params, 'Carnet clients', '', dateExp, meta) +
+      blocStats +
+      tableau +
+      '<div style="margin-top:24px;padding-top:14px;border-top:1px solid #e5e7eb;text-align:center;font-size:.72rem;color:#9ca3af">Document généré par ' + esc(params.nom || 'MCA LOGISTICS') + ' le ' + esc(dateExp) + '</div>' +
+    '</div>';
+
+  if (typeof ouvrirFenetreImpression === 'function') {
+    ouvrirFenetreImpression('Carnet clients — ' + (params.nom || 'MCA LOGISTICS'), html, 'width=1200,height=820');
+  } else {
+    var w = window.open('', '_blank', 'width=1200,height=820');
+    if (w) { w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Carnet clients</title></head><body>' + html + '</body></html>'); w.document.close(); }
+  }
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Rapport clients', clients.length + ' client(s)');
+}
+
 function exporterHistoriqueClientsCSV() {
   const clients = charger('clients');
   const rows = clients.map(function(client) {
@@ -8823,7 +8920,7 @@ function afficherClients() {
       <td>${contact||'—'}</td>
       <td>${c.tel||'—'}</td>
       <td style="font-size:.82rem">${c.adresse||'—'}</td>
-      <td>${livsC.length} · ${euros(caC)}</td>
+      <td><strong>${euros(caC)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${livsC.length} livraison${livsC.length>1?'s':''}</div></td>
       <td>${buildInlineActionsDropdown('Actions', [
         { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
         { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },
@@ -8834,6 +8931,28 @@ function afficherClients() {
   }).join('');
   }, 12);
 }
+
+// Bascule l'affichage des champs Pro (SIREN, TVA, paiement, IBAN) selon
+// le type de client sélectionné. Appelée par les radios cl-type et au reset.
+window.toggleChampsClientPro = function(isEdit) {
+  var prefix = isEdit ? 'edit-cl' : 'cl';
+  var radios = document.getElementsByName(isEdit ? 'edit-cl-type' : 'cl-type');
+  var type = 'pro';
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) { type = radios[i].value; break; }
+  var bloc = document.getElementById(prefix + '-champs-pro');
+  if (bloc) bloc.classList.toggle('is-hidden', type !== 'pro');
+  // Auto-set le secteur sur 'particulier' si on bascule sur Particulier
+  var secteurEl = document.getElementById(prefix + '-secteur');
+  if (secteurEl) {
+    if (type === 'particulier') {
+      secteurEl.value = 'particulier';
+      secteurEl.disabled = true;
+    } else {
+      if (secteurEl.value === 'particulier') secteurEl.value = '';
+      secteurEl.disabled = false;
+    }
+  }
+};
 
 function ajouterClient() {
   const nom         = document.getElementById('cl-nom')?.value.trim();

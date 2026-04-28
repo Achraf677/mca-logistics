@@ -271,7 +271,7 @@
             <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Normal">☰</button>
             <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Compact">≡</button>
           </div>
-          <button class="btn-secondary" onclick="exporterLivraisons()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterLivraisons()">📚 Historique des livraisons</button>
           <button class="btn-rapport" onclick="genererRapportMensuelPeriode()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
         </div>
@@ -357,13 +357,14 @@
         <h2>🧑‍💼 Carnet Clients</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">📚 Historique clients</button>
+          <button class="btn-rapport" onclick="genererRapportClients()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
         </div>
       </div>
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
-            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Activité</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total CA</th><th>Actions</th></tr></thead>
             <tbody id="tb-clients"><tr><td colspan="6" class="empty-row">Aucun client enregistré</td></tr></tbody>
           </table>
         </div>
@@ -1759,28 +1760,20 @@
           <div class="form-group"><label>Ville</label><input type="text" id="cl-ville" placeholder="Paris" /></div>
         </div>
         <div id="cl-champs-pro" class="client-champs-pro">
-          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
           <div class="form-grid">
             <div class="form-group"><label>SIREN</label><input type="text" id="cl-siren" placeholder="9 chiffres" maxlength="9" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" /></div>
             <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="cl-tva-intra" placeholder="FR + 11 chiffres" /></div>
-          </div>
-        </div>
-        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Délai paiement (jours) *</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
-          <div class="form-group"><label>Mode paiement préféré</label>
-            <select id="cl-mode-paiement">
-              <option value="virement">Virement</option>
-              <option value="prelevement">Prélèvement SEPA</option>
-              <option value="cb">Carte bancaire</option>
-              <option value="cheque">Chèque</option>
-              <option value="especes">Espèces</option>
-            </select>
-          </div>
-          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
-          <div class="form-group">
-            <label>N° compte client (compta) *</label>
-            <input type="text" id="cl-compte-compta" placeholder="411000" />
+            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+            <div class="form-group"><label>Mode paiement préféré</label>
+              <select id="cl-mode-paiement">
+                <option value="virement">Virement</option>
+                <option value="prelevement">Prélèvement SEPA</option>
+                <option value="cb">Carte bancaire</option>
+                <option value="cheque">Chèque</option>
+                <option value="especes">Espèces</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>IBAN</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
