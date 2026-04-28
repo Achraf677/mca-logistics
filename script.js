@@ -6786,38 +6786,6 @@ function confirmerRecurrence() {
   afficherToast(`✅ ${nb} livraison(s) récurrente(s) créée(s)`);
 }
 
-/* ===== TRI COLONNES GÉNÉRIQUE ===== */
-const _sortState = {};
-function trierTableau(tbodyId, colIndex, type='string') {
-  const key = tbodyId + colIndex;
-  _sortState[key] = _sortState[key] === 'asc' ? 'desc' : 'asc';
-  const asc = _sortState[key] === 'asc';
-
-  const tbody = document.getElementById(tbodyId);
-  if (!tbody) return;
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  rows.sort((a, b) => {
-    const av = a.cells[colIndex]?.textContent.trim() || '';
-    const bv = b.cells[colIndex]?.textContent.trim() || '';
-    if (type === 'number') {
-      return asc ? parseFloat(av)||0 - (parseFloat(bv)||0) : (parseFloat(bv)||0) - (parseFloat(av)||0);
-    }
-    if (type === 'date') {
-      return asc ? av.localeCompare(bv) : bv.localeCompare(av);
-    }
-    return asc ? av.localeCompare(bv,'fr') : bv.localeCompare(av,'fr');
-  });
-  rows.forEach(r => tbody.appendChild(r));
-
-  // Mettre à jour les indicateurs visuels
-  const table = tbody.closest('table');
-  if (table) {
-    table.querySelectorAll('.th-sortable').forEach(th => th.classList.remove('asc','desc'));
-    const ths = table.querySelectorAll('.th-sortable');
-    if (ths[colIndex]) ths[colIndex].classList.add(asc ? 'asc' : 'desc');
-  }
-}
-
 /* ===== PAGINATION GÉNÉRIQUE ===== */
 const _pageState = {};
 function nettoyerPagination(containerId) {
@@ -23136,22 +23104,6 @@ genererRentabilitePDF = function() {
     'liv-exp-nom', 'liv-dest-nom', 'liv-dest-adresse', 'liv-marchandise-nature'
   ];
 
-  function updateProgress() {
-    let filled = 0;
-    for (const id of TRACKED_FIELDS) {
-      const el = document.getElementById(id);
-      if (el && String(el.value || '').trim() !== '') filled++;
-    }
-    const total = TRACKED_FIELDS.length;
-    const pct = Math.round(filled / total * 100);
-    const fillEl = document.getElementById('liv-progress-fill');
-    const countEl = document.getElementById('liv-progress-count');
-    const pctEl = document.getElementById('liv-progress-pct');
-    if (fillEl) fillEl.style.width = pct + '%';
-    if (countEl) countEl.textContent = String(filled);
-    if (pctEl) pctEl.textContent = pct + '%';
-  }
-
   function setFieldState(input, ok, hintMsg) {
     if (!input) return;
     input.classList.remove('fp-invalid', 'fp-valid');
@@ -23173,12 +23125,11 @@ genererRentabilitePDF = function() {
 
   function validateSiren(input) {
     const val = String(input.value || '').replace(/\s+/g, '');
-    if (val === '') { setFieldState(input, true, ''); updateProgress(); return; }
-    if (!/^\d+$/.test(val)) { setFieldState(input, false, '✗ Uniquement des chiffres'); updateProgress(); return; }
-    if (val.length < 9) { setFieldState(input, false, val.length + '/9 chiffres'); updateProgress(); return; }
+    if (val === '') { setFieldState(input, true, ''); return;}
+    if (!/^\d+$/.test(val)) { setFieldState(input, false, '✗ Uniquement des chiffres'); return;}
+    if (val.length < 9) { setFieldState(input, false, val.length + '/9 chiffres'); return;}
     const ok = typeof validerSIREN === 'function' ? validerSIREN(val) : /^\d{9}$/.test(val);
     setFieldState(input, ok, ok ? '✓ SIREN valide' : '✗ Clé Luhn incorrecte');
-    updateProgress();
   }
 
   // Pays ISO 3166-1 alpha-2 — liste étendue (cf. datalist pays-iso-list dans admin.html)
@@ -23201,14 +23152,15 @@ genererRentabilitePDF = function() {
       const hint = document.getElementById(id + '-hint');
       if (hint) { hint.textContent = ''; hint.classList.remove('fp-hint-ok', 'fp-hint-err'); }
     });
-    updateProgress();
   }
 
+  // mcaLivForm : API exposée pour les oninput="..." du HTML.
+  // onInput / updateProgress sont conservés en no-op : la barre de progression
+  // a été supprimée mais les attributs HTML les appellent encore.
   window.mcaLivForm = {
-    onInput: function() { updateProgress(); },
+    onInput: function() {},
     validateSiren: validateSiren,
     validatePays: validatePays,
-    updateProgress: updateProgress,
     reset: reset
   };
 
