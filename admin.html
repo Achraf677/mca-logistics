@@ -423,7 +423,16 @@
         <select id="filtre-veh-salarie" onchange="afficherVehicules()">
           <option value="">Tous les véhicules</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-veh-salarie').value='';afficherVehicules()">Réinitialiser</button>
+        <select id="filtre-veh-carburant" onchange="afficherVehicules()">
+          <option value="">Tous les carburants</option>
+          <option value="diesel">⛽ Diesel/Gazole</option>
+          <option value="essence">⛽ Essence</option>
+          <option value="gnv">🌿 GNV/BioGNV</option>
+          <option value="electrique">⚡ Électrique</option>
+          <option value="hybride">🔋 Hybride</option>
+          <option value="hydrogene">💧 Hydrogène</option>
+        </select>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-veh-salarie').value='';document.getElementById('filtre-veh-carburant').value='';document.getElementById('filtre-veh-search').value='';afficherVehicules()">Réinitialiser</button>
       </div>
       <div class="card table-card vehicules-table-card">
         <div class="table-wrapper">

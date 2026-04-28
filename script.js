@@ -3700,9 +3700,10 @@ function afficherVehicules() {
   if (!tb) return;
   paginer.__reload_tb_vehicules = afficherVehicules;
 
-  // Filtre
+  // Filtres
   const filtreVehSal = document.getElementById('filtre-veh-salarie')?.value || '';
   const filtreVehSearch = (document.getElementById('filtre-veh-search')?.value || '').trim().toLowerCase();
+  const filtreVehCarb = (document.getElementById('filtre-veh-carburant')?.value || '').toLowerCase();
   const selFiltreVeh = document.getElementById('filtre-veh-salarie');
   if (selFiltreVeh) {
     const currentValue = selFiltreVeh.value;
@@ -3711,6 +3712,15 @@ function afficherVehicules() {
     selFiltreVeh.value = currentValue;
   }
   if (filtreVehSal) vehicules = vehicules.filter(v => v.id === filtreVehSal);
+  if (filtreVehCarb) {
+    vehicules = vehicules.filter(v => {
+      const c = (v.typeCarburant || v.carburant || '').toLowerCase();
+      // Match aussi 'gazole' avec 'diesel' (synonymes)
+      if (filtreVehCarb === 'diesel') return c === 'diesel' || c === 'gazole';
+      if (filtreVehCarb === 'gnv') return c === 'gnv' || c === 'biognv';
+      return c === filtreVehCarb;
+    });
+  }
   if (filtreVehSearch) {
     vehicules = vehicules.filter(function(v) {
       return [
@@ -3718,7 +3728,9 @@ function afficherVehicules() {
         v.modele,
         v.salNom,
         v.modeAcquisition,
-        v.dateCT
+        v.dateCT,
+        v.carburant,
+        v.typeCarburant
       ].filter(Boolean).join(' ').toLowerCase().includes(filtreVehSearch);
     });
   }
