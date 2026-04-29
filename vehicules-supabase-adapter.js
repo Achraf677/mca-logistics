@@ -79,6 +79,9 @@
       date_1_immat: emptyToNull(v.date1Immat),
       vin: emptyToNull(v.vin),
       carte_grise_ref: emptyToNull(v.carteGrise),
+      carte_grise_path: emptyToNull(v.carteGriseStoragePath),
+      carte_grise_mime: emptyToNull(v.carteGriseFichierType),
+      carte_grise_nom: emptyToNull(v.carteGriseFichierNom),
       date_assurance: emptyToNull(assurance.dateExpiration || v.dateAssurance),
       date_carte_grise: emptyToNull(v.dateCarteGrise),
       salarie_id: isUuidLike(v.salId) ? v.salId : null,
@@ -126,6 +129,9 @@
       date1Immat: r.date_1_immat || '',
       vin: r.vin || '',
       carteGrise: r.carte_grise_ref || '',
+      carteGriseStoragePath: r.carte_grise_path || '',
+      carteGriseFichierType: r.carte_grise_mime || '',
+      carteGriseFichierNom: r.carte_grise_nom || '',
       dateAssurance: r.date_assurance || '',
       dateCarteGrise: r.date_carte_grise || '',
       salId: r.salarie_id || null,
@@ -149,11 +155,63 @@
     channelName: 'mca-vehicules-sync',
     jsToDb: jsToDb,
     dbToJs: dbToJs,
-    preserveLocalFields: ['carteGriseFichier', 'carteGriseFichierType', 'carteGriseFichierNom'],
+    // carteGriseFichier (base64 legacy) reste local seulement ; le path Storage
+    // (carteGriseStoragePath) et les metadata (Type/Nom) sont sync via DB.
+    preserveLocalFields: ['carteGriseFichier'],
     orderBy: 'created_at'
   });
 
+  // Migration auto au boot : upload des cartes grises base64 legacy -> Storage
+  async function migrateLegacyCartesGrisesToStorage() {
+    if (sessionStorage.getItem('mca_legacy_cg_migrated_v1') === 'done') return { migrated: 0, skipped: true };
+    if (!window.DelivProStorage) return { migrated: 0, skipped: true };
+    var raw = window.localStorage.getItem('vehicules');
+    if (!raw) return { migrated: 0 };
+    var vehicules;
+    try { vehicules = JSON.parse(raw); } catch (_) { return { migrated: 0 }; }
+    if (!Array.isArray(vehicules)) return { migrated: 0 };
+
+    var migrated = 0, changed = false;
+    for (var i = 0; i < vehicules.length; i += 1) {
+      var v = vehicules[i];
+      if (!v || !v.id) continue;
+      if (!v.carteGriseFichier || v.carteGriseStoragePath) continue;
+      if (typeof v.carteGriseFichier !== 'string' || v.carteGriseFichier.indexOf('data:') !== 0) continue;
+      var cleanName = window.DelivProStorage.sanitizeFilename(v.carteGriseFichierNom || 'carte-grise');
+      var path = v.id + '/' + Date.now() + '_' + cleanName;
+      try {
+        var up = await window.DelivProStorage.uploadDataUrl('vehicules-cartes-grises', path, v.carteGriseFichier, { contentType: v.carteGriseFichierType });
+        if (up.ok) {
+          v.carteGriseStoragePath = path;
+          delete v.carteGriseFichier;
+          changed = true;
+          migrated += 1;
+        }
+      } catch (e) {
+        console.warn('[vehicules-adapter] migration legacy carte grise echouee:', v.id, e);
+      }
+    }
+    if (changed) window.localStorage.setItem('vehicules', JSON.stringify(vehicules));
+    sessionStorage.setItem('mca_legacy_cg_migrated_v1', 'done');
+    if (migrated) console.info('[vehicules-adapter] ' + migrated + ' carte(s) grise(s) legacy migree(s) vers Storage');
+    return { migrated: migrated };
+  }
+
+  function tryMigrateCG() {
+    if (!adapter.isInitialized()) {
+      window.setTimeout(tryMigrateCG, 2000);
+      return;
+    }
+    migrateLegacyCartesGrisesToStorage().catch(function (e) { console.error('[vehicules-adapter] migrate', e); });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { window.setTimeout(tryMigrateCG, 3000); });
+  } else {
+    window.setTimeout(tryMigrateCG, 3000);
+  }
+
   window.DelivProEntityAdapters = window.DelivProEntityAdapters || {};
   window.DelivProEntityAdapters.vehicules = adapter;
-  window.DelivProVehiculesAdapter = adapter; // alias retro-compat
+  window.DelivProVehiculesAdapter = adapter;
+  window.DelivProMigrateLegacyCartesGrises = migrateLegacyCartesGrisesToStorage;
 })();

@@ -1287,8 +1287,8 @@ html, body {
 <script src="supabase-auth.js"></script>
 <script src="security-utils.js"></script>
 <script src="supabase-storage-sync.js"></script>
-<script src="storage-uploader.js?v=20260429-4"></script>
-<script src="repo.js?v=20260429-4"></script>
+<script src="storage-uploader.js?v=20260429-5"></script>
+<script src="repo.js?v=20260429-5"></script>
 <script>
 /* ===== ÉTAT ===== */
 let salarieCourant = null;
@@ -1719,15 +1719,37 @@ function envoyerPhotoSal(input) {
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       const max = 800;
       let w = img.width, h = img.height;
       if (w > max || h > max) { const r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r); }
       const c = document.createElement('canvas'); c.width=w; c.height=h;
       c.getContext('2d').drawImage(img,0,0,w,h);
-      const compressed = c.toDataURL('image/jpeg',0.72);
+
+      const msgId = Date.now().toString(36);
+      let photoPath = null;
+      let photoBase64 = null;
+
+      // Upload vers Supabase Storage si dispo
+      if (window.DelivProStorage) {
+        const blob = await new Promise(res => c.toBlob(b => res(b), 'image/jpeg', 0.72));
+        if (blob) {
+          const path = `${msgId}/${Date.now()}_photo.jpg`;
+          const up = await window.DelivProStorage.uploadBlob('messages-photos', path, blob, { contentType: 'image/jpeg' });
+          if (up.ok) photoPath = path;
+        }
+      }
+      if (!photoPath) {
+        // Fallback : base64 local (compat offline)
+        photoBase64 = c.toDataURL('image/jpeg',0.72);
+      }
+
       const msgs = JSON.parse(localStorage.getItem('messages_'+salarieCourant.id)||'[]');
-      msgs.push({ id: Date.now().toString(36), auteur:'salarie', texte:'📷 Photo partagée', photo:compressed, lu:false, creeLe:new Date().toISOString() });
+      msgs.push({
+        id: msgId, auteur:'salarie', texte:'📷 Photo partagée',
+        photo: photoBase64, photoPath: photoPath, photoBucket: photoPath ? 'messages-photos' : null,
+        lu:false, creeLe:new Date().toISOString()
+      });
       localStorage.setItem('messages_'+salarieCourant.id, JSON.stringify(msgs));
       input.value = '';
       chargerMessagesSal();
@@ -2421,11 +2443,13 @@ async function enregistrerPlein() {
     return;
   }
 
-  let photoRecu = null;
+  // Compresse la photo (max 1200px, JPEG quality 0.7) pour eviter les payloads enormes
+  let photoBlob = null;
+  let photoMime = null;
   const photoInput = document.getElementById('carb-photo');
   const photoFile = photoInput?.files?.[0];
   if (photoFile) {
-    photoRecu = await new Promise((resolve) => {
+    photoBlob = await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -2439,20 +2463,46 @@ async function enregistrerPlein() {
           const canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          resolve(canvas.toDataURL('image/jpeg', 0.7));
+          canvas.toBlob(b => resolve(b), 'image/jpeg', 0.7);
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(photoFile);
     });
+    photoMime = 'image/jpeg';
   }
 
   const veh = getMonVehicule();
   const libelle = libelleCarburant();
+  const pleinId = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+
+  // Upload photo vers Supabase Storage si dispo, sinon fallback base64 local
+  let photoRecuPath = null;
+  let photoRecu = null;
+  if (photoBlob) {
+    if (window.DelivProStorage) {
+      const path = `${pleinId}/${Date.now()}_recu.jpg`;
+      const up = await window.DelivProStorage.uploadBlob('carburant-recus', path, photoBlob, { contentType: photoMime });
+      if (up.ok) {
+        photoRecuPath = path;
+      } else {
+        console.warn('[carburant] upload photo Storage echoue, fallback base64:', up.error?.message);
+      }
+    }
+    if (!photoRecuPath) {
+      // Fallback : base64 local (compat offline)
+      photoRecu = await new Promise(res => {
+        const r = new FileReader();
+        r.onload = e => res(e.target.result);
+        r.readAsDataURL(photoBlob);
+      });
+    }
+  }
+
   const cle = 'carb_sal_' + salarieCourant.id;
   const pleins = JSON.parse(localStorage.getItem(cle) || '[]');
   const nouveauPlein = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+    id: pleinId,
     salId: salarieCourant.id,
     salNom: salarieCourant.nom,
     vehId: veh ? veh.id : '',
@@ -2462,6 +2512,8 @@ async function enregistrerPlein() {
     total: litres * prixL,
     date: date,
     photoRecu: photoRecu,
+    photoRecuPath: photoRecuPath,
+    photoRecuBucket: photoRecuPath ? 'carburant-recus' : null,
     source: 'salarie',
     creeLe: new Date().toISOString()
   };
@@ -2559,6 +2611,7 @@ function chargerHistoriqueCarburant() {
       ? new Date(p.date + 'T00:00:00').toLocaleDateString('fr-FR',
           { day: 'numeric', month: 'long', year: 'numeric' })
       : '—';
+    const aRecu = !!(p.photoRecu || p.photoRecuPath);
     return `
       <div style="
         display:flex;align-items:center;gap:12px;
@@ -2568,7 +2621,7 @@ function chargerHistoriqueCarburant() {
           <div style="font-size:.88rem;font-weight:600;margin-bottom:2px">
             ${p.litres}L · ${p.prixLitre}€/L
           </div>
-          <div style="font-size:.78rem;color:var(--muted)">${date}</div>
+          <div style="font-size:.78rem;color:var(--muted)">${date}${aRecu ? ' · 📷' : ''}</div>
         </div>
         <div style="font-size:.95rem;font-weight:800;color:var(--accent);margin-right:8px">
           ${(p.litres * p.prixLitre).toFixed(2)} €
@@ -2576,6 +2629,7 @@ function chargerHistoriqueCarburant() {
         <div class="menu-actions-wrap">
           <button class="btn-actions-open" onclick="event.stopPropagation();toggleMenuActions('carb-${p.id}')">Actions ▾</button>
           <div class="menu-actions-dropdown" id="menu-actions-carb-${p.id}">
+            ${aRecu ? `<button onclick="voirRecuSal('${p.id}')">👁️ Voir le ticket</button>` : ''}
             <button onclick="ouvrirModifPlein('${p.id}')">✏️ Modifier</button>
             <button class="danger" onclick="supprimerPleinSal('${p.id}')">🗑️ Supprimer</button>
           </div>
@@ -2583,6 +2637,32 @@ function chargerHistoriqueCarburant() {
       </div>
     `;
   }).join('');
+}
+
+// Permet au salarie de re-consulter son propre ticket recu (signed URL si Storage, fallback base64)
+async function voirRecuSal(pleinId) {
+  const cle = 'carb_sal_' + salarieCourant.id;
+  const pleins = JSON.parse(localStorage.getItem(cle) || '[]');
+  const plein = pleins.find(p => p.id === pleinId);
+  if (!plein) return;
+  if (!plein.photoRecu && !plein.photoRecuPath) {
+    toast('Aucun ticket pour ce plein', 'info');
+    return;
+  }
+  let url = plein.photoRecu || '';
+  if (!url && plein.photoRecuPath && window.DelivProStorage) {
+    const bucket = plein.photoRecuBucket || 'carburant-recus';
+    const signed = await window.DelivProStorage.getSignedUrl(bucket, plein.photoRecuPath, 600);
+    if (!signed.ok) { toast('⚠️ Lien indisponible', 'error'); return; }
+    url = signed.signedUrl;
+  }
+  if (!url) { toast('Ticket indisponible', 'info'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;';
+  overlay.onclick = () => overlay.remove();
+  overlay.innerHTML = `<button style="position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="this.parentElement.remove()">✕</button><img src="${url}" style="max-width:100%;max-height:100%;border-radius:8px" />`;
+  document.body.appendChild(overlay);
 }
 
 /* ===== CHANGER MDP ===== */
@@ -3162,14 +3242,41 @@ function chargerMessagesSal() {
     const div = document.createElement('div');
     div.style.cssText = `display:flex;flex-direction:column;align-items:${estMoi ? 'flex-end' : 'flex-start'}`;
     const heure = new Date(m.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+    let contenuMsg;
+    if (m.photoPath) {
+      // Photo en Storage : placeholder + signed URL resolu apres render
+      contenuMsg = `<img data-photo-path="${m.photoPath}" data-photo-bucket="${m.photoBucket || 'messages-photos'}" alt="📷 chargement..." style="max-width:180px;border-radius:8px;display:block;cursor:pointer;background:rgba(0,0,0,0.1);min-height:100px" onclick="ouvrirPhotoMessageSal('${m.photoPath}','${m.photoBucket || 'messages-photos'}')" />`;
+    } else if (m.photo) {
+      contenuMsg = `<img src="${m.photo}" style="max-width:180px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />`;
+    } else {
+      contenuMsg = m.texte;
+    }
     div.innerHTML = `
       <div style="max-width:80%;background:${estMoi ? 'var(--accent)' : 'var(--card2)'};color:${estMoi ? '#000' : 'var(--text)'};padding:9px 13px;border-radius:${estMoi ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
-          ${m.photo ? `<img src="${m.photo}" style="max-width:180px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />` : m.texte}
+          ${contenuMsg}
         </div>
       <span style="font-size:.72rem;color:var(--muted);margin-top:3px">${estMoi ? 'Moi' : '⚙️ Admin'} · ${heure}</span>`;
     fil.appendChild(div);
   });
   fil.scrollTop = fil.scrollHeight;
+  // Resoudre les signed URLs pour les images en Storage
+  if (window.DelivProStorage) {
+    const imgs = fil.querySelectorAll('img[data-photo-path]:not([data-resolved])');
+    for (const img of imgs) {
+      const path = img.dataset.photoPath;
+      const bucket = img.dataset.photoBucket || 'messages-photos';
+      window.DelivProStorage.getSignedUrl(bucket, path, 600).then(s => {
+        if (s.ok) { img.src = s.signedUrl; img.dataset.resolved = '1'; }
+      });
+    }
+  }
+}
+
+// Ouvre une photo message en grand (signed URL fraiche)
+async function ouvrirPhotoMessageSal(path, bucket) {
+  if (!window.DelivProStorage) return;
+  const signed = await window.DelivProStorage.getSignedUrl(bucket || 'messages-photos', path, 600);
+  if (signed.ok && signed.signedUrl) window.open(signed.signedUrl, '_blank');
 }
 
 function envoyerMessageSal() {

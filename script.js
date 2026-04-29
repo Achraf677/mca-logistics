@@ -3621,7 +3621,7 @@ function ajusterTVACarburantSelonGenre() {
 window.ajusterTVACarburantSelonGenre = ajusterTVACarburantSelonGenre;
 window.calculerTauxTVACarburant = calculerTauxTVACarburant;
 
-function ajouterVehicule() {
+async function ajouterVehicule() {
   const immat  = document.getElementById('veh-immat').value.trim().toUpperCase();
   const modele = document.getElementById('veh-modele').value.trim();
   const km     = parseFloat(document.getElementById('veh-km').value) || 0;
@@ -3672,11 +3672,27 @@ function ajouterVehicule() {
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
-  // Carte grise upload temp → attachée au véhicule créé
-  if (window.__vehCGTemp && window.__vehCGTemp.data) {
-    vehicule.carteGriseFichier = window.__vehCGTemp.data;
-    vehicule.carteGriseFichierType = window.__vehCGTemp.type;
-    vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
+  // Carte grise : upload vers Supabase Storage si dispo, sinon fallback base64 local
+  if (window.__vehCGTemp && (window.__vehCGTemp.data || window.__vehCGTemp._file)) {
+    let uploaded = false;
+    if (window.DelivProStorage && window.__vehCGTemp._file) {
+      const cleanName = window.DelivProStorage.sanitizeFilename(window.__vehCGTemp.nom);
+      const path = `${vehicule.id}/${Date.now()}_${cleanName}`;
+      const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, window.__vehCGTemp._file, { contentType: window.__vehCGTemp.type });
+      if (up.ok) {
+        vehicule.carteGriseStoragePath = path;
+        vehicule.carteGriseFichierType = window.__vehCGTemp.type;
+        vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
+        uploaded = true;
+      } else {
+        console.warn('[ajouterVehicule] upload Storage echoue, fallback base64:', up.error?.message);
+      }
+    }
+    if (!uploaded && window.__vehCGTemp.data) {
+      vehicule.carteGriseFichier = window.__vehCGTemp.data;
+      vehicule.carteGriseFichierType = window.__vehCGTemp.type;
+      vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
+    }
     window.__vehCGTemp = null;
   }
   const vehicules = charger('vehicules');
@@ -4147,14 +4163,28 @@ function actionCarburant(action, id) {
   else if (action === 'supprimer') supprimerCarburant(id);
 }
 
-function voirRecuCarburant(id) {
+async function voirRecuCarburant(id) {
   const pleins = charger('carburant');
   const plein = pleins.find(p => p.id === id);
-  if (!plein?.photoRecu) return;
+  if (!plein) return;
+  if (!plein.photoRecu && !plein.photoRecuPath) {
+    afficherToast('Aucun reçu pour ce plein', 'info');
+    return;
+  }
+
+  let url = plein.photoRecu || '';
+  if (!url && plein.photoRecuPath && window.DelivProStorage) {
+    const bucket = plein.photoRecuBucket || 'carburant-recus';
+    const signed = await window.DelivProStorage.getSignedUrl(bucket, plein.photoRecuPath, 600);
+    if (!signed.ok) { afficherToast('⚠️ Lien indisponible : ' + (signed.error?.message || 'erreur'), 'error'); return; }
+    url = signed.signedUrl;
+  }
+  if (!url) { afficherToast('Reçu indisponible', 'info'); return; }
+
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;';
   overlay.onclick = () => overlay.remove();
-  overlay.innerHTML = `<button style="position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="this.parentElement.remove()">✕</button><img src="${plein.photoRecu}" style="max-width:100%;max-height:100%;border-radius:8px" />`;
+  overlay.innerHTML = `<button style="position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="this.parentElement.remove()">✕</button><img src="${url}" style="max-width:100%;max-height:100%;border-radius:8px" />`;
   document.body.appendChild(overlay);
 }
 
@@ -6565,18 +6595,37 @@ function ouvrirConversation(salId) {
       const accuse = estAdmin && estDernierAdmin && m.lu
         ? `<span class="msg-double-check" title="Lu le ${m.luLe ? new Date(m.luLe).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : ''}">✓✓</span>`
         : estAdmin ? '<span style="font-size:.68rem;color:var(--text-muted);opacity:.5">✓</span>' : '';
+      let contenuMsgAdmin;
+      if (m.photoPath) {
+        contenuMsgAdmin = `<img data-photo-path="${m.photoPath}" data-photo-bucket="${m.photoBucket || 'messages-photos'}" alt="📷 chargement..." style="max-width:200px;border-radius:8px;display:block;cursor:pointer;background:rgba(0,0,0,0.1);min-height:120px" onclick="ouvrirPhotoMessageAdmin('${m.photoPath}','${m.photoBucket || 'messages-photos'}')" />`;
+      } else if (m.photo) {
+        contenuMsgAdmin = `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="ouvrirPopupSecure('${m.photo}','_blank')" />`;
+      } else {
+        contenuMsgAdmin = m.texte;
+      }
       div.innerHTML = `
         <div style="max-width:75%;background:${estAdmin ? 'var(--accent)' : 'var(--bg-dark)'};color:${estAdmin ? '#000' : 'var(--text-primary)'};padding:9px 13px;border-radius:${estAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
-          ${m.photo ? `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="ouvrirPopupSecure('${m.photo}','_blank')" />` : m.texte}
+          ${contenuMsgAdmin}
           ${m.fichier ? `<a href="${m.fichier}" download="${m.nomFichier||'fichier'}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:10px;color:var(--blue);text-decoration:none;font-size:.85rem;margin-top:6px">📄 ${m.nomFichier || 'Télécharger le fichier'}</a>` : ''}
         </div>
         <span style="font-size:.72rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${estAdmin ? 'Vous' : sal?.nom || 'Salarié'} · ${heure} ${accuse}</span>`;
       fil.appendChild(div);
     });
     fil.scrollTop = fil.scrollHeight;
+    if (window.resolveStorageImages) window.resolveStorageImages(fil);
   }
 
   afficherMessagerie();
+}
+
+// Ouvre une photo message en grand (signed URL fraiche, 10 min)
+async function ouvrirPhotoMessageAdmin(path, bucket) {
+  if (!window.DelivProStorage) return;
+  const signed = await window.DelivProStorage.getSignedUrl(bucket || 'messages-photos', path, 600);
+  if (signed.ok && signed.signedUrl) {
+    if (typeof ouvrirPopupSecure === 'function') ouvrirPopupSecure(signed.signedUrl, '_blank');
+    else window.open(signed.signedUrl, '_blank');
+  }
 }
 
 function envoyerMessageAdmin() {
@@ -8368,14 +8417,41 @@ function confirmerNoteInterne() {
 
 /* ===== FLOTTE — PHOTO VÉHICULE ===== */
 
-// Upload carte grise PDF (ou image) — stocké en base64 dans le véhicule.
-// Limite 5 Mo pour éviter de saturer localStorage.
-function uploaderCarteGriseVehicule(vehId, input) {
+// Upload carte grise PDF (ou image) — pousse vers Supabase Storage (bucket vehicules-cartes-grises).
+// Le storage_path est stocke sur le vehicule au lieu du base64. Multi-device natif.
+async function uploaderCarteGriseVehicule(vehId, input) {
   const file = input && input.files && input.files[0];
   if (!file) return;
   const okType = /^application\/pdf$|^image\//i.test(file.type);
   if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
   if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+
+  if (window.DelivProStorage) {
+    const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
+    const path = `${vehId}/${Date.now()}_${cleanName}`;
+    const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, file, { contentType: file.type });
+    if (up.ok) {
+      const vehicules = charger('vehicules');
+      const idx = vehicules.findIndex(v => v.id === vehId);
+      if (idx > -1) {
+        const previous = vehicules[idx].carteGriseStoragePath;
+        vehicules[idx].carteGriseStoragePath = path;
+        vehicules[idx].carteGriseFichierType = file.type;
+        vehicules[idx].carteGriseFichierNom = file.name;
+        delete vehicules[idx].carteGriseFichier; // strip legacy base64
+        sauvegarder('vehicules', vehicules);
+        if (previous && previous !== path) {
+          window.DelivProStorage.remove('vehicules-cartes-grises', previous).catch(function () {});
+        }
+        afficherVehicules();
+        afficherToast('✅ Carte grise enregistrée');
+      }
+      return;
+    }
+    console.warn('[carteGrise] upload Storage echoue, fallback base64:', up.error?.message);
+  }
+
+  // Fallback : Storage indisponible -> base64 local (compat offline)
   const reader = new FileReader();
   reader.onload = e => {
     const vehicules = charger('vehicules');
@@ -8386,29 +8462,63 @@ function uploaderCarteGriseVehicule(vehId, input) {
       vehicules[idx].carteGriseFichierNom = file.name;
       sauvegarder('vehicules', vehicules);
       afficherVehicules();
-      afficherToast('✅ Carte grise enregistrée');
+      afficherToast('✅ Carte grise enregistrée (mode local)');
     }
   };
   reader.readAsDataURL(file);
 }
 
 // Wrapper appelé par l'input du formulaire véhicule (création + édition).
-// - En édition (window._editVehId set) : sauvegarde directe sur le véhicule
-// - En création : stocke en variable temp pour attachement à la sauvegarde
-function uploaderCarteGriseFromForm(input) {
+// - En édition (window._editVehId set) : upload immediat vers Storage
+// - En création : stocke le file en temp jusqu'au save final (qui declenchera l'upload avec l'id genere)
+async function uploaderCarteGriseFromForm(input) {
   const file = input && input.files && input.files[0];
   if (!file) return;
   const okType = /^application\/pdf$|^image\//i.test(file.type);
   if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
   if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+
   const btnLabel = document.getElementById('veh-carte-grise-button-label');
   const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
   const status = document.getElementById('veh-carte-grise-status');
+
+  if (window._editVehId && window.DelivProStorage) {
+    // Mode édition : upload immediat vers Storage
+    if (btnLabel) btnLabel.textContent = '⏳ Envoi...';
+    const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
+    const path = `${window._editVehId}/${Date.now()}_${cleanName}`;
+    const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, file, { contentType: file.type });
+    if (up.ok) {
+      const vehicules = charger('vehicules');
+      const idx = vehicules.findIndex(v => v.id === window._editVehId);
+      if (idx > -1) {
+        const previous = vehicules[idx].carteGriseStoragePath;
+        vehicules[idx].carteGriseStoragePath = path;
+        vehicules[idx].carteGriseFichierType = file.type;
+        vehicules[idx].carteGriseFichierNom = file.name;
+        delete vehicules[idx].carteGriseFichier;
+        sauvegarder('vehicules', vehicules);
+        if (previous && previous !== path) {
+          window.DelivProStorage.remove('vehicules-cartes-grises', previous).catch(function () {});
+        }
+      }
+      if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
+      if (wrapper) wrapper.classList.add('has-file');
+      if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
+      afficherToast('✅ Carte grise enregistrée');
+      return;
+    }
+    if (btnLabel) btnLabel.textContent = '❌ ' + (up.error?.message || 'echec');
+    afficherToast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'), 'error');
+    return;
+  }
+
+  // Mode création : stocke le file en memoire (sera uploade dans ajouterVehicule)
+  // En mode édition sans Storage : fallback dataUrl
   const reader = new FileReader();
   reader.onload = e => {
     const dataUrl = e.target.result;
     if (window._editVehId) {
-      // Mode édition : sauvegarde directe sur le véhicule existant
       const vehicules = charger('vehicules');
       const idx = vehicules.findIndex(v => v.id === window._editVehId);
       if (idx > -1) {
@@ -8416,11 +8526,10 @@ function uploaderCarteGriseFromForm(input) {
         vehicules[idx].carteGriseFichierType = file.type;
         vehicules[idx].carteGriseFichierNom = file.name;
         sauvegarder('vehicules', vehicules);
-        afficherToast('✅ Carte grise enregistrée');
+        afficherToast('✅ Carte grise enregistrée (mode local)');
       }
     } else {
-      // Mode création : stockage temp pour attachement au véhicule à créer
-      window.__vehCGTemp = { data: dataUrl, type: file.type, nom: file.name };
+      window.__vehCGTemp = { data: dataUrl, type: file.type, nom: file.name, _file: file };
     }
     if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
     if (wrapper) wrapper.classList.add('has-file');
@@ -8445,7 +8554,8 @@ function resetCarteGriseFormUI() {
 
 // Affiche le fichier déjà uploadé dans le formulaire d'édition véhicule.
 function prefillCarteGriseFormUI(veh) {
-  if (!veh || !veh.carteGriseFichier) { resetCarteGriseFormUI(); return; }
+  const hasFile = !!(veh && (veh.carteGriseStoragePath || veh.carteGriseFichier));
+  if (!hasFile) { resetCarteGriseFormUI(); return; }
   const btnLabel = document.getElementById('veh-carte-grise-button-label');
   const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
   const status = document.getElementById('veh-carte-grise-status');
@@ -8455,19 +8565,29 @@ function prefillCarteGriseFormUI(veh) {
 }
 
 // Visualise la carte grise dans une nouvelle fenêtre/onglet.
-function visualiserCarteGrise(vehId) {
+// Signed URL si Storage, embed direct si base64 legacy.
+async function visualiserCarteGrise(vehId) {
   const veh = charger('vehicules').find(v => v.id === vehId);
-  if (!veh || !veh.carteGriseFichier) {
+  if (!veh || (!veh.carteGriseFichier && !veh.carteGriseStoragePath)) {
     afficherToast('Aucune carte grise uploadée pour ce véhicule', 'info');
     return;
   }
+
+  let url = veh.carteGriseFichier || '';
+  if (!url && veh.carteGriseStoragePath && window.DelivProStorage) {
+    const signed = await window.DelivProStorage.getSignedUrl('vehicules-cartes-grises', veh.carteGriseStoragePath, 600);
+    if (!signed.ok) { afficherToast('⚠️ Lien indisponible : ' + (signed.error?.message || 'erreur'), 'error'); return; }
+    url = signed.signedUrl;
+  }
+  if (!url) { afficherToast('Carte grise indisponible', 'info'); return; }
+
   const w = window.open('', '_blank', 'width=900,height=700');
   if (!w) { afficherToast('Popup bloquée', 'error'); return; }
   const isPdf = (veh.carteGriseFichierType || '').includes('pdf');
   const titre = 'Carte grise — ' + (veh.immat || '');
   const contenu = isPdf
-    ? '<embed src="' + veh.carteGriseFichier + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
-    : '<img src="' + veh.carteGriseFichier + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+    ? '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
+    : '<img src="' + url + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + titre + '</h1>' + contenu + '</body></html>');
   w.document.close();
 }
@@ -8637,12 +8757,27 @@ function envoyerMessageAvecPhoto(salId, input) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    compresserImage(e.target.result, compressed => {
+    compresserImage(e.target.result, async (compressed) => {
+      const msgId = genId();
+      let photoPath = null;
+      let photoBase64 = null;
+
+      // Upload vers Supabase Storage si dispo (compressed est un dataURL)
+      if (window.DelivProStorage) {
+        const path = `${msgId}/${Date.now()}_photo.jpg`;
+        const up = await window.DelivProStorage.uploadDataUrl('messages-photos', path, compressed, { contentType: 'image/jpeg' });
+        if (up.ok) photoPath = path;
+      }
+      if (!photoPath) {
+        // Fallback : base64 local (compat offline)
+        photoBase64 = compressed;
+      }
+
       const messages = loadSafe('messages_'+salId, []);
       messages.push({
-        id: genId(), auteur: 'admin',
+        id: msgId, auteur: 'admin',
         texte: '📷 Photo partagée',
-        photo: compressed,
+        photo: photoBase64, photoPath: photoPath, photoBucket: photoPath ? 'messages-photos' : null,
         lu: false, creeLe: new Date().toISOString()
       });
       localStorage.setItem('messages_'+salId, JSON.stringify(messages));
@@ -8652,6 +8787,24 @@ function envoyerMessageAvecPhoto(salId, input) {
   };
   reader.readAsDataURL(file);
 }
+
+// Helper : apres render d'un container avec messages, resoud les signed URLs
+// pour les <img data-photo-path="..." data-photo-bucket="...">.
+async function resolveStorageImages(container) {
+  if (!container || !window.DelivProStorage) return;
+  const imgs = container.querySelectorAll('img[data-photo-path]:not([data-resolved])');
+  for (const img of imgs) {
+    const path = img.dataset.photoPath;
+    const bucket = img.dataset.photoBucket || 'messages-photos';
+    if (!path) continue;
+    const signed = await window.DelivProStorage.getSignedUrl(bucket, path, 600);
+    if (signed.ok) {
+      img.src = signed.signedUrl;
+      img.dataset.resolved = '1';
+    }
+  }
+}
+window.resolveStorageImages = resolveStorageImages;
 
 /* ===== SON / VIBRATION MESSAGES ===== */
 /* ===== FICHE TOURNÉE JOURNALIÈRE PDF ===== */
@@ -20628,6 +20781,7 @@ genererRentabilitePDF = function() {
     if (content) content.innerHTML = renderFicheContent(sal);
     document.getElementById('s20-drawer').classList.add('open');
     document.getElementById('s20-drawer-overlay').classList.add('open');
+    if (window.resolveStorageImages && content) window.resolveStorageImages(content);
   };
 
   window.fermerFiche360 = function() {
@@ -20772,7 +20926,14 @@ genererRentabilitePDF = function() {
     const recent = [...messages].slice(-30);
     return `<div class="s20-msg-list">${recent.map(m => {
       const who = m.auteur === 'salarie' ? 'in' : 'out';
-      const txt = m.photo ? '<img src="' + esc(m.photo) + '" style="max-width:180px;border-radius:6px;display:block" />' : esc(m.texte || '');
+      let txt;
+      if (m.photoPath) {
+        txt = '<img data-photo-path="' + esc(m.photoPath) + '" data-photo-bucket="' + esc(m.photoBucket || 'messages-photos') + '" alt="📷 chargement..." style="max-width:180px;border-radius:6px;display:block;background:rgba(0,0,0,0.1);min-height:100px" />';
+      } else if (m.photo) {
+        txt = '<img src="' + esc(m.photo) + '" style="max-width:180px;border-radius:6px;display:block" />';
+      } else {
+        txt = esc(m.texte || '');
+      }
       return `<div class="s20-msg s20-msg-${who}">
         <div class="s20-msg-txt">${txt}</div>
         <div class="s20-msg-date">${fmtDateTime(m.creeLe || '')}</div>
