@@ -44,6 +44,8 @@
     if (key === 's29_section_active') return false;
     if (key === 'audit_log') return false;
     if (key === 'agent_decisions') return false;
+    // Phase 2.1 : clients sync via clients-supabase-adapter.js (table native public.clients)
+    if (key === 'clients') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     if (key.indexOf('msg_auto_') === 0) return false;
     return true;
