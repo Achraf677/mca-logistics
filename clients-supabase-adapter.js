@@ -36,7 +36,9 @@
   var suppressLocalSync = false;
   var bootstrapPromise = null;
 
-  var originalSetItem = Storage.prototype.setItem;
+  // Capture differee : initialise dans hookSetItem pour s'enchainer correctement
+  // avec les autres adapters (sinon ils nous court-circuitent).
+  var originalSetItem = null;
 
   function getClient() {
     return window.DelivProSupabase && window.DelivProSupabase.getClient
@@ -66,7 +68,8 @@
     suppressLocalSync = true;
     try {
       var json = JSON.stringify(Array.isArray(items) ? items : []);
-      originalSetItem.call(window.localStorage, STORAGE_KEY, json);
+      var setter = originalSetItem || Storage.prototype.setItem;
+      setter.call(window.localStorage, STORAGE_KEY, json);
       try {
         window.dispatchEvent(new StorageEvent('storage', {
           key: STORAGE_KEY,
@@ -287,16 +290,22 @@
     } catch (_) { return value; }
   }
 
-  Storage.prototype.setItem = function (key, value) {
-    var finalValue = value;
-    if (this === window.localStorage && key === STORAGE_KEY && initialized && !suppressLocalSync) {
-      finalValue = normalizeIds(value);
-    }
-    originalSetItem.call(this, key, finalValue);
-    if (this === window.localStorage && key === STORAGE_KEY && initialized && !suppressLocalSync) {
-      scheduleFlush();
-    }
-  };
+  // Hook installe au boot (apres init) plutot qu'a l'IIFE pour s'enchainer
+  // proprement avec les hooks d'autres adapters (sinon ils nous court-circuitent).
+  function installSetItemHook() {
+    if (originalSetItem) return; // deja installe
+    originalSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key, value) {
+      var finalValue = value;
+      if (this === window.localStorage && key === STORAGE_KEY && initialized && !suppressLocalSync) {
+        finalValue = normalizeIds(value);
+      }
+      originalSetItem.call(this, key, finalValue);
+      if (this === window.localStorage && key === STORAGE_KEY && initialized && !suppressLocalSync) {
+        scheduleFlush();
+      }
+    };
+  }
 
   // ============================================================
   // Realtime
@@ -327,6 +336,7 @@
       try {
         await migrateFromAppStateIfNeeded();
         await pullAll();
+        installSetItemHook();
         initialized = true;
         subscribeRealtime();
         window.addEventListener('visibilitychange', function () {

@@ -85,7 +85,9 @@
     var suppressLocalSync = false;
     var bootstrapPromise = null;
 
-    var originalSetItem = Storage.prototype.setItem;
+    // IMPORTANT : on capture originalSetItem au moment de hookSetItem (pas a l'init du adapter),
+    // pour que chaque adapter s'enchaine proprement avec le hook precedent au lieu de le court-circuiter.
+    var originalSetItem = null;
 
     function readLocal() {
       try {
@@ -100,7 +102,9 @@
       suppressLocalSync = true;
       try {
         var json = JSON.stringify(Array.isArray(items) ? items : []);
-        originalSetItem.call(window.localStorage, storageKey, json);
+        // Si pas encore hooke, fallback sur le setItem actuel (qui peut etre un autre hook)
+        var setter = originalSetItem || Storage.prototype.setItem;
+        setter.call(window.localStorage, storageKey, json);
         try {
           window.dispatchEvent(new StorageEvent('storage', {
             key: storageKey, newValue: json,
@@ -289,6 +293,9 @@
     }
 
     function hookSetItem() {
+      // Capture maintenant la version courante (qui peut deja etre un autre hook) pour
+      // s'enchainer proprement. Si on capturait a l'IIFE, les hooks suivants nous court-circuiteraient.
+      originalSetItem = Storage.prototype.setItem;
       Storage.prototype.setItem = function (key, value) {
         var finalValue = value;
         if (this === window.localStorage && key === storageKey && initialized && !suppressLocalSync) {
