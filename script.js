@@ -5381,51 +5381,120 @@ async function provisionnerAccesSalarie(salarie, password) {
 // En mode création : stockage en window.__salDocsTemp[type]
 // En mode édition : sauvegarde directe sur le salarié via window._editSalarieId
 window.__salDocsTemp = {};
-function uploaderDocSalarie(input, type) {
+// Upload doc salarie : pousse vers Supabase Storage (bucket salaries-docs).
+// Le storage_path est stocke dans salarie.docs[type] au lieu du base64.
+// Multi-device natif : ce qu'un admin upload, l'autre admin le voit instantanement.
+async function uploaderDocSalarie(input, type) {
   const file = input && input.files && input.files[0];
   if (!file) return;
   const okType = /^application\/pdf$|^image\//i.test(file.type);
   if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
   if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
-  // Détecte mode (édition si edit-... ID prefix)
+
   const isEdit = input.id.startsWith('edit-');
   const labelEl = document.getElementById((isEdit ? 'edit-' : '') + 'nsal-doc-' + type + '-label');
   const wrapper = input.previousElementSibling;
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    if (isEdit && window._editSalarieId) {
-      const salaries = charger('salaries');
-      const idx = salaries.findIndex(s => s.id === window._editSalarieId);
-      if (idx > -1) {
-        salaries[idx].docs = salaries[idx].docs || {};
-        salaries[idx].docs[type] = { data: dataUrl, type: file.type, nom: file.name };
-        sauvegarder('salaries', salaries);
-        afficherToast('✅ Document enregistré');
-      }
-    } else {
+  const cleanName = (window.DelivProStorage && window.DelivProStorage.sanitizeFilename)
+    ? window.DelivProStorage.sanitizeFilename(file.name) : file.name;
+
+  // Mode CREATION : on garde le blob en mémoire ; l'upload se fera dans creerSalarie
+  // une fois le salarie.id genere.
+  if (!isEdit || !window._editSalarieId) {
+    const reader = new FileReader();
+    reader.onload = e => {
       window.__salDocsTemp = window.__salDocsTemp || {};
-      window.__salDocsTemp[type] = { data: dataUrl, type: file.type, nom: file.name };
+      window.__salDocsTemp[type] = { data: e.target.result, type: file.type, nom: file.name };
+      if (labelEl) labelEl.textContent = '✅ ' + file.name;
+      if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
+    };
+    reader.readAsDataURL(file);
+    return;
+  }
+
+  // Mode EDITION : upload immediat vers Storage
+  const salId = window._editSalarieId;
+  const path = `${salId}/${type}/${Date.now()}_${cleanName}`;
+
+  if (!window.DelivProStorage) {
+    afficherToast('⚠️ Storage indisponible, document non enregistré', 'error');
+    return;
+  }
+
+  if (labelEl) labelEl.textContent = '⏳ Envoi...';
+  const up = await window.DelivProStorage.uploadBlob('salaries-docs', path, file, { contentType: file.type });
+  if (!up.ok) {
+    if (labelEl) labelEl.textContent = '❌ ' + (up.error?.message || 'echec');
+    afficherToast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'), 'error');
+    return;
+  }
+
+  // Met a jour salarie.docs[type] avec les metadata + insere dans salaries_documents
+  const salaries = charger('salaries');
+  const idx = salaries.findIndex(s => s.id === salId);
+  if (idx > -1) {
+    const previous = salaries[idx].docs && salaries[idx].docs[type];
+    salaries[idx].docs = salaries[idx].docs || {};
+    salaries[idx].docs[type] = {
+      storage_path: path,
+      bucket: 'salaries-docs',
+      type: file.type,
+      nom: file.name,
+      taille: file.size,
+      uploaded_at: new Date().toISOString()
+    };
+    sauvegarder('salaries', salaries);
+
+    // Trace dans la table salaries_documents (pour audit/historique)
+    try {
+      const client = window.DelivProSupabase && window.DelivProSupabase.getClient();
+      if (client) {
+        await client.from('salaries_documents').insert({
+          salarie_id: salId,
+          type: type,
+          storage_path: path,
+          mime_type: file.type,
+          taille_octets: file.size,
+          nom_fichier: file.name
+        });
+      }
+    } catch (_) {}
+
+    // Supprime l'ancien fichier si on remplace un upload Storage existant
+    if (previous && previous.storage_path && previous.storage_path !== path) {
+      window.DelivProStorage.remove('salaries-docs', previous.storage_path).catch(function () {});
     }
-    if (labelEl) labelEl.textContent = '✅ ' + file.name;
-    if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
-  };
-  reader.readAsDataURL(file);
+  }
+
+  if (labelEl) labelEl.textContent = '✅ ' + file.name;
+  if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
+  afficherToast('✅ Document enregistré');
 }
 
 // Visualise un document salarié (PDF embed ou image).
-function visualiserDocSalarie(salId, type) {
+// Supporte deux formats : storage_path (Storage Supabase, signed URL) et data legacy (base64 inline).
+async function visualiserDocSalarie(salId, type) {
   const sal = charger('salaries').find(s => s.id === salId);
   const doc = sal && sal.docs && sal.docs[type];
-  if (!doc || !doc.data) { afficherToast('Aucun document de ce type', 'info'); return; }
+  if (!doc) { afficherToast('Aucun document de ce type', 'info'); return; }
+
+  let url = doc.data || '';
+  // Si c'est un doc en Storage, on genere une signed URL
+  if (!url && doc.storage_path && window.DelivProStorage) {
+    const bucket = doc.bucket || 'salaries-docs';
+    const signed = await window.DelivProStorage.getSignedUrl(bucket, doc.storage_path, 600);
+    if (!signed.ok) { afficherToast('⚠️ Lien indisponible : ' + (signed.error?.message || 'erreur'), 'error'); return; }
+    url = signed.signedUrl;
+  }
+  if (!url) { afficherToast('Document indisponible', 'info'); return; }
+
   const w = window.open('', '_blank', 'width=900,height=700');
   if (!w) { afficherToast('Popup bloquée', 'error'); return; }
   const isPdf = (doc.type || '').includes('pdf');
   const titre = ({ permis:'Permis', cni:'CNI', iban:'IBAN', vitale:'Carte vitale', medecine:'Médecine du travail' })[type] || type;
   const label = sal.nom + ' — ' + titre;
   const contenu = isPdf
-    ? '<embed src="' + doc.data + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
-    : '<img src="' + doc.data + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+    ? '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
+    : '<img src="' + url + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + label + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + label + '</h1>' + contenu + '</body></html>');
   w.document.close();
 }
@@ -5465,11 +5534,42 @@ async function creerSalarie() {
     visiteMedicale,
     actif:true, creeLe:new Date().toISOString()
   };
-  // Attache les documents uploadés en mode création (permis, cni, iban, vitale, medecine)
+  // Upload des documents temp (permis, cni, iban, vitale, medecine) vers Supabase Storage.
+  // Le base64 reste en localStorage en fallback si l'upload echoue (mode offline).
   if (window.__salDocsTemp && Object.keys(window.__salDocsTemp).length) {
-    salarie.docs = Object.assign({}, window.__salDocsTemp);
+    salarie.docs = {};
+    const tempCopy = Object.assign({}, window.__salDocsTemp);
     window.__salDocsTemp = {};
-    // Reset visuel des boutons d'upload
+
+    if (window.DelivProStorage) {
+      const supaClient = window.DelivProSupabase && window.DelivProSupabase.getClient();
+      for (const t of Object.keys(tempCopy)) {
+        const d = tempCopy[t];
+        if (!d || !d.data) continue;
+        const cleanName = window.DelivProStorage.sanitizeFilename(d.nom || t);
+        const path = `${salarie.id}/${t}/${Date.now()}_${cleanName}`;
+        const up = await window.DelivProStorage.uploadDataUrl('salaries-docs', path, d.data, { contentType: d.type });
+        if (up.ok) {
+          salarie.docs[t] = { storage_path: path, bucket: 'salaries-docs', type: d.type, nom: d.nom, uploaded_at: new Date().toISOString() };
+          if (supaClient) {
+            try {
+              await supaClient.from('salaries_documents').insert({
+                salarie_id: salarie.id, type: t, storage_path: path,
+                mime_type: d.type, nom_fichier: d.nom
+              });
+            } catch (_) {}
+          }
+        } else {
+          // Fallback : on garde le base64 si l'upload echoue
+          salarie.docs[t] = d;
+          console.warn('[creerSalarie] upload doc', t, 'echoue, base64 conserve:', up.error?.message);
+        }
+      }
+    } else {
+      // Storage indisponible : fallback complet base64
+      Object.assign(salarie.docs, tempCopy);
+    }
+
     ['permis', 'cni', 'iban', 'vitale', 'medecine'].forEach(t => {
       const lbl = document.getElementById('nsal-doc-' + t + '-label');
       const inp = document.getElementById('nsal-doc-' + t);
