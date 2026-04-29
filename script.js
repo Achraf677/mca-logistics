@@ -3377,6 +3377,7 @@ function afficherChauffeurs() {
   const vehicules  = charger('vehicules');
   const livraisons = charger('livraisons');
   const tb = document.getElementById('tb-chauffeurs');
+  if (!tb) return; // page chauffeurs retirée par la refonte multi-onglets — no-op safe
 
   const salSansVeh = salaries.filter(s => !vehicules.find(v => v.salId === s.id));
   const sel = document.getElementById('sel-affecter-chauffeur');
@@ -7491,9 +7492,6 @@ window.toggleChampsFournisseurPro = function(isEdit) {
 
 // Reset complet du formulaire 'Nouveau Fournisseur' avant ouverture.
 // Garantit un état initial propre (Pro coché, bloc Pro visible, champs vides).
-window.resetFormulaireFournisseur = function() {
-  return resetFormulaireFournisseur();
-};
 function resetFormulaireFournisseur() {
   ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-iban','frn-notes'].forEach(id => {
     const el = document.getElementById(id);
