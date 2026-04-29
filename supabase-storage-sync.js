@@ -50,6 +50,13 @@
     if (key === 'vehicules') return false;
     // Phase 2.3 : salaries sync via salaries-supabase-adapter.js (table native public.salaries)
     if (key === 'salaries') return false;
+    // Phase 4 : entites restantes sync via all-entity-adapters.js (tables natives)
+    if (key === 'livraisons') return false;
+    if (key === 'charges') return false;
+    if (key === 'carburant') return false;
+    if (key === 'entretiens') return false;
+    if (key === 'paiements') return false;
+    if (key === 'incidents') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     if (key.indexOf('msg_auto_') === 0) return false;
     return true;

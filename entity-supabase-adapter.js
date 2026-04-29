@@ -241,11 +241,28 @@
         var results = await Promise.all(ops);
         var hadError = false;
         results.forEach(function (r) {
-          if (r && r.error) { hadError = true; console.warn('[' + table + '-adapter] flush error:', r.error.message); }
+          if (r && r.error) {
+            hadError = true;
+            console.warn('[' + table + '-adapter] flush error:', r.error.message);
+            if (window.MCA && window.MCA.captureException) {
+              window.MCA.captureException(new Error('[adapter:' + table + '] flush: ' + r.error.message), {
+                table: table, inserts: changes.inserts.length, updates: changes.updates.length, deletes: changes.deletes.length
+              });
+            }
+          }
         });
+        if (window.MCA && window.MCA.log) {
+          window.MCA.log('sync', table, {
+            inserts: changes.inserts.length, updates: changes.updates.length,
+            deletes: changes.deletes.length, ok: !hadError
+          });
+        }
         if (!hadError) lastSnapshot = deepClone(current);
       } catch (e) {
         console.error('[' + table + '-adapter] flush exception:', e);
+        if (window.MCA && window.MCA.captureException) {
+          window.MCA.captureException(e, { table: table, op: 'flush' });
+        }
       }
     }
 
@@ -328,6 +345,9 @@
           console.info('[' + table + '-adapter] initialise (table public.' + table + ' native, realtime ON)');
         } catch (e) {
           console.error('[' + table + '-adapter] bootstrap error:', e);
+          if (window.MCA && window.MCA.captureException) {
+            window.MCA.captureException(e, { table: table, op: 'bootstrap' });
+          }
         }
       })();
 
