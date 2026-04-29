@@ -48,6 +48,8 @@
     if (key === 'clients') return false;
     // Phase 2.2 : vehicules sync via vehicules-supabase-adapter.js (table native public.vehicules)
     if (key === 'vehicules') return false;
+    // Phase 2.3 : salaries sync via salaries-supabase-adapter.js (table native public.salaries)
+    if (key === 'salaries') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     if (key.indexOf('msg_auto_') === 0) return false;
     return true;
