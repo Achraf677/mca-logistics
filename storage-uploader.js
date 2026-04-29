@@ -80,15 +80,37 @@
     return await uploadBlob(bucket, path, blob, opts);
   }
 
+  // Cache memoire des signed URLs pour eviter les round-trips reseau repetes.
+  // Key = bucket + ':' + path. Expire 60s avant l'expiration reelle (safety).
+  var signedUrlCache = new Map();
+
   async function getSignedUrl(bucket, path, expiresIn) {
     var client = getClient();
     if (!client) return { ok: false, error: { message: 'Supabase client indisponible' } };
     if (!bucket || !path) return { ok: false, error: { message: 'Parametres manquants' } };
 
+    var cacheKey = bucket + ':' + path;
+    var cached = signedUrlCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { ok: true, signedUrl: cached.url, cached: true };
+    }
+
     var ttl = (typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : 600; // 10 min
     var res = await client.storage.from(bucket).createSignedUrl(path, ttl);
     if (res.error) return { ok: false, error: res.error };
-    return { ok: true, signedUrl: res.data && res.data.signedUrl };
+    var url = res.data && res.data.signedUrl;
+    if (url) {
+      signedUrlCache.set(cacheKey, {
+        url: url,
+        expiresAt: Date.now() + ((ttl - 60) * 1000) // marge de securite 60s
+      });
+    }
+    return { ok: true, signedUrl: url };
+  }
+
+  function invalidateSignedUrl(bucket, path) {
+    if (!bucket || !path) return;
+    signedUrlCache.delete(bucket + ':' + path);
   }
 
   async function download(bucket, path) {
@@ -118,6 +140,7 @@
     uploadDataUrl: uploadDataUrl,
     uploadBlob: uploadBlob,
     getSignedUrl: getSignedUrl,
+    invalidateSignedUrl: invalidateSignedUrl,
     download: download,
     remove: remove,
     dataUrlToBlob: dataUrlToBlob,

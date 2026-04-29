@@ -5501,32 +5501,34 @@ async function uploaderDocSalarie(input, type) {
 }
 
 // Visualise un document salarié (PDF embed ou image).
-// Supporte deux formats : storage_path (Storage Supabase, signed URL) et data legacy (base64 inline).
+// Pour Storage : download blob + objectURL (plus fiable que signed URL embed).
 async function visualiserDocSalarie(salId, type) {
   const sal = charger('salaries').find(s => s.id === salId);
   const doc = sal && sal.docs && sal.docs[type];
   if (!doc) { afficherToast('Aucun document de ce type', 'info'); return; }
 
-  let url = doc.data || '';
-  // Si c'est un doc en Storage, on genere une signed URL
-  if (!url && doc.storage_path && window.DelivProStorage) {
-    const bucket = doc.bucket || 'salaries-docs';
-    const signed = await window.DelivProStorage.getSignedUrl(bucket, doc.storage_path, 600);
-    if (!signed.ok) { afficherToast('⚠️ Lien indisponible : ' + (signed.error?.message || 'erreur'), 'error'); return; }
-    url = signed.signedUrl;
-  }
-  if (!url) { afficherToast('Document indisponible', 'info'); return; }
-
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
   const isPdf = (doc.type || '').includes('pdf');
-  const titre = ({ permis:'Permis', cni:'CNI', iban:'IBAN', vitale:'Carte vitale', medecine:'Médecine du travail' })[type] || type;
-  const label = sal.nom + ' — ' + titre;
-  const contenu = isPdf
-    ? '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
-    : '<img src="' + url + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + label + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + label + '</h1>' + contenu + '</body></html>');
-  w.document.close();
+  const titreType = ({ permis:'Permis', cni:'CNI', iban:'IBAN', vitale:'Carte vitale', medecine:'Médecine du travail' })[type] || type;
+  const label = sal.nom + ' — ' + titreType;
+
+  // Cas legacy base64
+  if (doc.data && String(doc.data).indexOf('data:') === 0) {
+    afficherDocumentDansFenetre(doc.data, isPdf, label);
+    return;
+  }
+
+  // Cas Storage : download blob + objectURL
+  if (!doc.storage_path || !window.DelivProStorage) {
+    afficherToast('Document indisponible', 'info');
+    return;
+  }
+  afficherToast('⏳ Chargement du document...', 'info');
+  const bucket = doc.bucket || 'salaries-docs';
+  const dl = await window.DelivProStorage.download(bucket, doc.storage_path);
+  if (!dl.ok) { afficherToast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur'), 'error'); return; }
+  const objectUrl = URL.createObjectURL(dl.blob);
+  afficherDocumentDansFenetre(objectUrl, isPdf, label);
+  setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (_) {} }, 300000);
 }
 
 async function creerSalarie() {
@@ -8481,13 +8483,23 @@ async function uploaderCarteGriseFromForm(input) {
   const btnLabel = document.getElementById('veh-carte-grise-button-label');
   const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
   const status = document.getElementById('veh-carte-grise-status');
+  const inputEl = document.getElementById('veh-carte-grise-fichier');
 
   if (window._editVehId && window.DelivProStorage) {
-    // Mode édition : upload immediat vers Storage
-    if (btnLabel) btnLabel.textContent = '⏳ Envoi...';
+    // Mode édition : upload immediat vers Storage avec UX feedback clair
+    if (btnLabel) btnLabel.textContent = '⏳ Envoi en cours… (' + Math.round(file.size / 1024) + ' Ko)';
+    if (inputEl) inputEl.disabled = true;
+    if (status) status.textContent = 'Envoi du fichier vers le cloud, ne fermez pas la fenêtre...';
+    afficherToast('⏳ Envoi de la carte grise…', 'info');
+
+    const t0 = Date.now();
     const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
     const path = `${window._editVehId}/${Date.now()}_${cleanName}`;
     const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, file, { contentType: file.type });
+    const elapsed = Math.round((Date.now() - t0) / 1000);
+
+    if (inputEl) inputEl.disabled = false;
+
     if (up.ok) {
       const vehicules = charger('vehicules');
       const idx = vehicules.findIndex(v => v.id === window._editVehId);
@@ -8505,10 +8517,11 @@ async function uploaderCarteGriseFromForm(input) {
       if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
       if (wrapper) wrapper.classList.add('has-file');
       if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
-      afficherToast('✅ Carte grise enregistrée');
+      afficherToast(`✅ Carte grise enregistrée (${elapsed}s)`);
       return;
     }
-    if (btnLabel) btnLabel.textContent = '❌ ' + (up.error?.message || 'echec');
+    if (btnLabel) btnLabel.textContent = '❌ Échec';
+    if (status) status.textContent = up.error?.message || 'Erreur upload';
     afficherToast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'), 'error');
     return;
   }
@@ -8565,7 +8578,7 @@ function prefillCarteGriseFormUI(veh) {
 }
 
 // Visualise la carte grise dans une nouvelle fenêtre/onglet.
-// Signed URL si Storage, embed direct si base64 legacy.
+// Pour les PDFs en Storage : download blob + object URL (plus fiable que embed signed URL).
 async function visualiserCarteGrise(vehId) {
   const veh = charger('vehicules').find(v => v.id === vehId);
   if (!veh || (!veh.carteGriseFichier && !veh.carteGriseStoragePath)) {
@@ -8573,18 +8586,38 @@ async function visualiserCarteGrise(vehId) {
     return;
   }
 
-  let url = veh.carteGriseFichier || '';
-  if (!url && veh.carteGriseStoragePath && window.DelivProStorage) {
-    const signed = await window.DelivProStorage.getSignedUrl('vehicules-cartes-grises', veh.carteGriseStoragePath, 600);
-    if (!signed.ok) { afficherToast('⚠️ Lien indisponible : ' + (signed.error?.message || 'erreur'), 'error'); return; }
-    url = signed.signedUrl;
-  }
-  if (!url) { afficherToast('Carte grise indisponible', 'info'); return; }
-
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
   const isPdf = (veh.carteGriseFichierType || '').includes('pdf');
   const titre = 'Carte grise — ' + (veh.immat || '');
+
+  // Cas legacy base64
+  if (veh.carteGriseFichier && veh.carteGriseFichier.indexOf('data:') === 0) {
+    afficherDocumentDansFenetre(veh.carteGriseFichier, isPdf, titre);
+    return;
+  }
+
+  // Cas Storage : download le blob, cree un objectURL local (plus fiable
+  // que <embed src="signed_url"> qui foire parfois sur les PDFs prives)
+  if (!veh.carteGriseStoragePath || !window.DelivProStorage) {
+    afficherToast('Carte grise indisponible', 'info');
+    return;
+  }
+
+  afficherToast('⏳ Chargement du document...', 'info');
+  const dl = await window.DelivProStorage.download('vehicules-cartes-grises', veh.carteGriseStoragePath);
+  if (!dl.ok) {
+    afficherToast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur'), 'error');
+    return;
+  }
+  const objectUrl = URL.createObjectURL(dl.blob);
+  afficherDocumentDansFenetre(objectUrl, isPdf, titre);
+  // Cleanup objectURL apres 5 min (le temps que la fenetre soit fermee)
+  setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (_) {} }, 300000);
+}
+
+// Helper : affiche un document (PDF ou image) dans une nouvelle fenetre
+function afficherDocumentDansFenetre(url, isPdf, titre) {
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
   const contenu = isPdf
     ? '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
     : '<img src="' + url + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
@@ -11948,23 +11981,16 @@ function exporterHeuresPDF() {
 
 /* ===== MODIFIER VÉHICULE ===== */
 async function ouvrirEditVehicule(vehId) {
-  console.log('[ouvrirEditVehicule] appelé avec vehId =', vehId);
   try {
     const veh = charger('vehicules').find(v=>v.id===vehId);
     if (!veh) {
-      console.warn('[ouvrirEditVehicule] vehicule introuvable pour id', vehId);
-      afficherToast('⚠️ Véhicule introuvable (id ' + vehId + ')', 'error');
+      afficherToast('⚠️ Véhicule introuvable', 'error');
       return;
     }
 
-    // Skip le pull verrous distants : non critique, et peut hang si pb reseau.
-    // Le verrou local prendreVerrouEdition suffit a marquer le travail en cours.
-    try {
-      await Promise.race([
-        actualiserVerrousEditionDistance(),
-        new Promise(resolve => setTimeout(resolve, 1500))
-      ]);
-    } catch (_) {}
+    // On ne s'embete plus avec actualiserVerrousEditionDistance ici : le
+    // verrou local suffit, et le pull realtime des adapters maintient deja
+    // les donnees a jour. Eviter cette attente = ouverture modal instantanee.
 
     const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
     if (!lockResult.ok) {
@@ -11975,8 +12001,7 @@ async function ouvrirEditVehicule(vehId) {
     window._editVehId = vehId;
     const modal = document.getElementById('modal-vehicule');
     if (!modal) {
-      console.error('[ouvrirEditVehicule] DOM modal-vehicule introuvable');
-      afficherToast('⚠️ Modal véhicule introuvable dans la page', 'error');
+      afficherToast('⚠️ Modal véhicule introuvable', 'error');
       return;
     }
 
@@ -12033,7 +12058,6 @@ async function ouvrirEditVehicule(vehId) {
     else modal.classList.add('open');
 
     try { afficherAlerteVerrouModal('modal-vehicule', ''); } catch (_) {}
-    console.log('[ouvrirEditVehicule] modal ouverte avec succes pour', veh.immat);
   } catch (err) {
     console.error('[ouvrirEditVehicule] erreur:', err);
     afficherToast('⚠️ Impossible d\'ouvrir la modification : ' + (err && err.message ? err.message : 'erreur inattendue'), 'error');
