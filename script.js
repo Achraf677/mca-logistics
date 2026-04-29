@@ -62,17 +62,7 @@ function validerSIRET(siret) {
 }
 
 // Validation SIREN (9 chiffres, Luhn) — utilisée pour la validation inline du formulaire livraison
-function validerSIREN(siren) {
-  const s = String(siren || '').replace(/\s+/g, '');
-  if (!/^\d{9}$/.test(s)) return false;
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    let n = parseInt(s[8 - i], 10);
-    if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; }
-    sum += n;
-  }
-  return sum % 10 === 0;
-}
+// MOVED -> script-clients.js : validerSIREN
 
 // BUG-014 fix : guard double-clic — debounce sur boutons d'action (Créer/Générer/Valider/Enregistrer/Payer/Sauvegarder).
 // Détecte via label + attributs. Ignore les boutons de fermeture, navigation, tri, etc.
@@ -414,25 +404,7 @@ async function viderJournalAudit() {
   afficherJournalAudit();
   afficherToast('🗑️ Journal d’audit vidé');
 }
-function notifierSalarieSiAbsente(salId, type, message, meta) {
-  if (!salId || !message) return;
-  const cle = 'notifs_sal_' + salId;
-  const notifs = charger(cle);
-  const signature = type + '|' + (meta?.stageKey || meta?.doc || meta?.livId || meta?.date || '');
-  const existe = notifs.find(function(item) {
-    return item.type === type && (item.meta?.signature || '') === signature;
-  });
-  if (existe) return;
-  notifs.push({
-    id: genId(),
-    type: type,
-    message: message,
-    lu: false,
-    creeLe: new Date().toISOString(),
-    meta: Object.assign({}, meta || {}, { signature: signature })
-  });
-  sauvegarder(cle, notifs);
-}
+// MOVED -> script-salaries.js : notifierSalarieSiAbsente
 function getEntrepriseExportParams() {
   const params = chargerObj('params_entreprise', {});
   const sessionAdmin = getAdminSession();
@@ -480,27 +452,7 @@ function getEntrepriseExportParams() {
 // mais on ne valide pas la checksum dans ce cas (rare, principalement pour les
 // doublons administratifs). On rejette uniquement les cas où la clé EST numérique
 // mais invalide.
-function validerTVAIntracomFR(tva) {
-  const val = String(tva || '').replace(/\s+/g, '').toUpperCase();
-  if (!val) return { valid: true, empty: true };
-  const m = /^FR([A-Z0-9]{2})(\d{9})$/.exec(val);
-  if (!m) return { valid: false, raison: 'format', message: 'Format attendu : FR + 2 caractères + 9 chiffres du SIREN.' };
-  const cle = m[1];
-  const siren = m[2];
-  if (!/^\d{2}$/.test(cle)) {
-    return { valid: true, normalized: val, note: 'Clé alphanumérique non vérifiée (format "new TVA").' };
-  }
-  const attendu = String((12 + 3 * (parseInt(siren, 10) % 97)) % 97).padStart(2, '0');
-  if (attendu !== cle) {
-    return {
-      valid: false,
-      raison: 'checksum',
-      message: 'Clé TVA incorrecte. Attendu : FR' + attendu + siren + '.',
-      attendu: 'FR' + attendu + siren
-    };
-  }
-  return { valid: true, normalized: val };
-}
+// MOVED -> script-tva.js : validerTVAIntracomFR
 
 // BUG-002 helpers : blocs HTML partagés entre buildFactureHTML et genererFactureLivraison
 function __formatEurFR(n) {
@@ -525,21 +477,7 @@ function renderFactureMentionsEntrepriseHeader(params) {
   if (!parts.length) return '';
   return '<div style="font-size:.72rem;color:#9ca3af;margin-top:4px">' + planningEscapeHtml(parts.join(' · ')) + '</div>';
 }
-function renderFactureClientBlock(livraison, clientFiche) {
-  const c = clientFiche || {};
-  const nom = livraison.client || c.nom || 'Client';
-  const adresse = c.adresse || '';
-  const cp = c.cp || '';
-  const ville = c.ville || '';
-  const siren = livraison.clientSiren || c.siren || '';
-  const tvaClient = livraison.clientTvaIntracom || c.tvaIntra || '';
-  let html = '<div style="font-size:1rem;font-weight:700">' + planningEscapeHtml(nom) + '</div>';
-  if (adresse) html += '<div style="font-size:.82rem;color:#4b5563;margin-top:4px">' + planningEscapeHtml(adresse) + '</div>';
-  if (cp || ville) html += '<div style="font-size:.82rem;color:#4b5563">' + planningEscapeHtml((cp + ' ' + ville).trim()) + '</div>';
-  if (siren) html += '<div style="font-size:.78rem;color:#6b7280;margin-top:4px">SIREN : ' + planningEscapeHtml(siren) + '</div>';
-  if (tvaClient) html += '<div style="font-size:.78rem;color:#6b7280">TVA intracom : ' + planningEscapeHtml(tvaClient) + '</div>';
-  return html;
-}
+// MOVED -> script-clients.js : renderFactureClientBlock
 function renderFacturePiedMentionsLegales(params, livraison, clientFiche) {
   const delaiClient = clientFiche && parseInt(clientFiche.delaiPaiementJours, 10);
   const delai = (delaiClient && delaiClient > 0)
@@ -706,85 +644,24 @@ function construirePlanAmortissement(opts) {
 }
 window.construirePlanAmortissement = construirePlanAmortissement;
 
-function calculerAmortissementVehicule(veh) {
-  const ht = parseFloat(veh?.prixAchatHT) || 0;
-  const valeurRebut = parseFloat(veh?.valeurMiseAuRebut) || 0;
-  const duree = parseFloat(veh?.dureeAmortissement) || 0;
-  const mode = veh?.modeAmortissement === 'degressif' ? 'degressif' : 'lineaire';
-  const base = Math.max(0, ht - valeurRebut);
-  if (!base || !duree) {
-    return { annuel: 0, mensuel: 0, cumule: 0, reste: base, mode, prorataPremierExercice: 0 };
-  }
-  const built = construirePlanAmortissement({
-    valeurHT: ht,
-    valeurRebut,
-    dureeAnnees: duree,
-    mode,
-    dateMiseEnService: veh?.dateAcquisition || '',
-    dateCession: veh?.dateMiseAuRebut || ''
-  });
-  // "Annuel" = annuité théorique affichée en flotte (base × taux nominal)
-  const tauxLineaire = duree > 0 ? 1 / duree : 0;
-  const coef = mode === 'degressif' ? coefAmortissementDegressif(duree) : 1;
-  const annuel = base * tauxLineaire * coef;
-  return {
-    annuel,
-    mensuel: annuel / 12,
-    cumule: built.cumuleAujourdHui,
-    reste: built.reste,
-    mode,
-    prorataPremierExercice: built.prorataPremierExercice
-  };
-}
+// MOVED -> script-vehicules.js : calculerAmortissementVehicule
 window.calculerAmortissementVehicule = calculerAmortissementVehicule;
-function formaterTaux(value) {
-  const n = parseFloat(value);
-  return Number.isFinite(n) ? n.toFixed(n % 1 === 0 ? 0 : 2) + ' %' : '—';
-}
-function getVehiculeById(vehId) {
-  return charger('vehicules').find(v => v.id === vehId) || null;
-}
+// MOVED -> script-tva.js : formaterTaux
+// MOVED -> script-vehicules.js : getVehiculeById
 // MOVED -> script-entretiens.js : getTypeEntretienLabel
-function getTauxDeductibiliteVehicule(vehId, fallback) {
-  const veh = vehId ? getVehiculeById(vehId) : null;
-  if (veh && veh.tvaCarbDeductible !== undefined && veh.tvaCarbDeductible !== null && veh.tvaCarbDeductible !== '') {
-    return parseFloat(veh.tvaCarbDeductible) || 0;
-  }
-  return parseFloat(fallback) || 0;
-}
+// MOVED -> script-tva.js : getTauxDeductibiliteVehicule
 // MOVED -> script-carburant.js : getTauxDeductibiliteCarburant
 // MOVED -> script-entretiens.js : getTauxDeductibiliteEntretien
 
-function calculerMontantTVAFromHT(ht, tauxTVA) {
-  var base = parseFloat(ht) || 0;
-  var taux = parseFloat(tauxTVA) || 0;
-  return base * taux / 100;
-}
+// MOVED -> script-tva.js : calculerMontantTVAFromHT
 
-function parseTauxTVAValue(value, fallback) {
-  var parsed = parseFloat(value);
-  if (!Number.isFinite(parsed)) return fallback == null ? 20 : fallback;
-  return parsed;
-}
+// MOVED -> script-tva.js : parseTauxTVAValue
 
-function getChargeMontantHT(charge) {
-  if (!charge) return 0;
-  if (charge.montantHT != null && charge.montantHT !== '') return parseFloat(charge.montantHT) || 0;
-  var total = parseFloat(charge.montant) || 0;
-  var taux = parseFloat(charge.tauxTVA) || 0;
-  return taux > 0 ? total / (1 + taux / 100) : total;
-}
+// MOVED -> script-charges.js : getChargeMontantHT
 
-function getChargeMontantTVA(charge) {
-  if ((charge?.categorie || '') === 'tva') return 0;
-  return calculerMontantTVAFromHT(getChargeMontantHT(charge), parseTauxTVAValue(charge?.tauxTVA, 0));
-}
+// MOVED -> script-tva.js : getChargeMontantTVA
 
-function getChargeTauxDeductibilite(charge) {
-  if (!charge) return 100;
-  if (charge.categorie === 'carburant') return getTauxDeductibiliteVehicule(charge.vehId, 80);
-  return 100;
-}
+// MOVED -> script-tva.js : getChargeTauxDeductibilite
 
 // MOVED -> script-carburant.js : getCarburantMontantHT
 
@@ -801,399 +678,60 @@ function normaliserDateISO(val) {
   return Number.isNaN(d.getTime()) ? '' : dateToLocalISO(d);
 }
 
-function getTVAConfig() {
-  var cfg = chargerObj('tva_config', {});
-  var defaultRate = parseTauxTVAValue(cfg.defaultRate != null ? cfg.defaultRate : localStorage.getItem('taux_tva'), 20);
-  var regime = cfg.regime || 'reel_normal';
-  return {
-    regime: regime,
-    activiteType: cfg.activiteType || 'service',
-    exigibiliteServices: cfg.exigibiliteServices || 'encaissements',
-    periodicite: cfg.periodicite || 'mensuelle',
-    defaultRate: defaultRate,
-    isVatEnabled: regime !== 'franchise_base'
-  };
-}
+// MOVED -> script-tva.js : getTVAConfig
 
-function getTVARegimeLabel(regime) {
-  return {
-    franchise_base: 'Franchise en base',
-    reel_simplifie: 'Régime réel simplifié',
-    reel_normal: 'Régime réel normal'
-  }[regime] || 'Régime réel normal';
-}
+// MOVED -> script-tva.js : getTVARegimeLabel
 
-function getTVAActiviteLabel(type) {
-  return type === 'goods' ? 'Livraisons de biens' : 'Prestations de services';
-}
+// MOVED -> script-tva.js : getTVAActiviteLabel
 
 // BUG-011 : retrouve la fiche client liée à une livraison via clientId (priorité) ou nom (fallback).
-function trouverClientParLivraison(livraison) {
-  if (!livraison || typeof charger !== 'function') return null;
-  try {
-    const clients = charger('clients') || [];
-    if (livraison.clientId) {
-      const byId = clients.find(c => c && c.id === livraison.clientId);
-      if (byId) return byId;
-    }
-    if (livraison.client) {
-      const byName = clients.find(c => c && (c.nom || '').toLowerCase() === String(livraison.client).toLowerCase());
-      if (byName) return byName;
-    }
-  } catch (e) {}
-  return null;
-}
+// MOVED -> script-clients.js : trouverClientParLivraison
 
 // BUG-011 : mention TVA légale (CGI art. 242 nonies A II) selon régime et client destinataire.
 // Retourne le texte à afficher sur le PDF / facture HTML. Si taux > 0 et pas d'exonération, retourne "TVA <taux>%".
-function choisirMentionTVALegale(profile, client, tauxDefaut) {
-  const UE = new Set(['FR','DE','BE','NL','LU','IT','ES','PT','AT','IE','DK','SE','FI','EE','LV','LT','PL','CZ','SK','HU','SI','HR','BG','RO','GR','CY','MT']);
-  const t = (tauxDefaut == null) ? 20 : Number(tauxDefaut);
-  if (!profile || !profile.isVatEnabled || profile.regime === 'franchise_base') {
-    return 'TVA non applicable, art. 293 B du CGI';
-  }
-  const cp = String((client && client.pays) || 'FR').toUpperCase();
-  if (cp && cp !== 'FR') {
-    if (UE.has(cp) && client && client.tvaIntracom) {
-      return 'Exonération TVA — livraison intracommunautaire (art. 262 ter I du CGI)';
-    }
-    if (!UE.has(cp)) {
-      return 'Exonération TVA — exportation hors UE (art. 262 I du CGI)';
-    }
-  }
-  return 'TVA ' + (typeof formaterTaux === 'function' ? formaterTaux(t) : (t + '%'));
-}
+// MOVED -> script-tva.js : choisirMentionTVALegale
 
-function getTVAExigibiliteLabel(profile) {
-  if (!profile || !profile.isVatEnabled) return 'TVA non applicable';
-  if ((profile.activiteType || 'service') === 'goods') return 'TVA exigible à la livraison / facturation';
-  return profile.exigibiliteServices === 'debits'
-    ? 'TVA exigible à la facturation (débits)'
-    : 'TVA exigible à l’encaissement';
-}
+// MOVED -> script-tva.js : getTVAExigibiliteLabel
 
-function getTVAPeriodiciteLabel(periodicite) {
-  return {
-    mensuelle: 'Mensuelle (CA3)',
-    trimestrielle: 'Trimestrielle',
-    annuelle: 'Annuelle (CA12)'
-  }[periodicite] || 'Mensuelle (CA3)';
-}
+// MOVED -> script-tva.js : getTVAPeriodiciteLabel
 
-function getTVADefaultPeriodInput(dateStr) {
-  var activePage = document.querySelector('.page.active')?.id || '';
-  if (activePage === 'page-tva') return getTvaMoisStr();
-  var normalized = normaliserDateISO(dateStr || aujourdhui());
-  return normalized ? normalized.slice(0, 7) : aujourdhui().slice(0, 7);
-}
+// MOVED -> script-tva.js : getTVADefaultPeriodInput
 
-function getTVADeclarationPeriodKeyFromDate(dateStr, profile) {
-  var normalized = normaliserDateISO(dateStr);
-  if (!normalized) return '';
-  var year = parseInt(normalized.slice(0, 4), 10);
-  var month = parseInt(normalized.slice(5, 7), 10);
-  var periodicite = profile?.periodicite || 'mensuelle';
-  if (periodicite === 'annuelle') return String(year);
-  if (periodicite === 'trimestrielle') return year + '-T' + (Math.floor((month - 1) / 3) + 1);
-  return normalized.slice(0, 7);
-}
+// MOVED -> script-tva.js : getTVADeclarationPeriodKeyFromDate
 
-function getTVADeclarationPeriodRangeFromKey(periodKey) {
-  if (!periodKey) return null;
-  if (/^\d{4}-\d{2}$/.test(periodKey)) {
-    var year = parseInt(periodKey.slice(0, 4), 10);
-    var month = parseInt(periodKey.slice(5, 7), 10) - 1;
-    var start = new Date(year, month, 1);
-    var end = new Date(year, month + 1, 0);
-    return { debut: dateToLocalISO(start), fin: dateToLocalISO(end) };
-  }
-  if (/^\d{4}-T[1-4]$/.test(periodKey)) {
-    var yearQ = parseInt(periodKey.slice(0, 4), 10);
-    var quarter = parseInt(periodKey.slice(-1), 10) - 1;
-    var startQ = new Date(yearQ, quarter * 3, 1);
-    var endQ = new Date(yearQ, quarter * 3 + 3, 0);
-    return { debut: dateToLocalISO(startQ), fin: dateToLocalISO(endQ) };
-  }
-  if (/^\d{4}$/.test(periodKey)) {
-    return { debut: periodKey + '-01-01', fin: periodKey + '-12-31' };
-  }
-  return null;
-}
+// MOVED -> script-tva.js : getTVADeclarationPeriodRangeFromKey
 
-function getTVADeclarationPeriodLabel(periodKey) {
-  if (!periodKey) return 'Période non renseignée';
-  if (/^\d{4}-\d{2}$/.test(periodKey)) {
-    var d = new Date(periodKey + '-01T00:00:00');
-    return d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
-  }
-  if (/^\d{4}-T[1-4]$/.test(periodKey)) {
-    return 'Trimestre ' + periodKey.slice(-1) + ' ' + periodKey.slice(0, 4);
-  }
-  if (/^\d{4}$/.test(periodKey)) return 'Année ' + periodKey;
-  return periodKey;
-}
+// MOVED -> script-tva.js : getTVADeclarationPeriodLabel
 
-function normaliserTVAPeriodeKey(rawValue, fallbackDate, profile) {
-  if (rawValue && /^\d{4}-T[1-4]$/.test(rawValue)) return rawValue;
-  if (rawValue && /^\d{4}$/.test(rawValue)) return rawValue;
-  if (rawValue && /^\d{4}-\d{2}$/.test(rawValue)) return getTVADeclarationPeriodKeyFromDate(rawValue + '-01', profile);
-  return getTVADeclarationPeriodKeyFromDate(fallbackDate || aujourdhui(), profile);
-}
+// MOVED -> script-tva.js : normaliserTVAPeriodeKey
 
-function getTVAPeriodKeysForRange(range, profile) {
-  if (!range) return [];
-  var current = new Date(range.debut + 'T00:00:00');
-  var end = new Date(range.fin + 'T00:00:00');
-  current.setDate(1);
-  end.setDate(1);
-  var keys = new Set();
-  while (current <= end) {
-    keys.add(getTVADeclarationPeriodKeyFromDate(dateToLocalISO(current), profile));
-    current.setMonth(current.getMonth() + 1);
-  }
-  return Array.from(keys).filter(Boolean);
-}
+// MOVED -> script-tva.js : getTVAPeriodKeysForRange
 
-function getTVASettlementPeriodKey(charge, profile) {
-  return normaliserTVAPeriodeKey(charge?.tvaPeriodeKey || charge?.tvaPeriode || '', charge?.date || aujourdhui(), profile);
-}
+// MOVED -> script-tva.js : getTVASettlementPeriodKey
 
-function getTVASettlementLabel(charge, profile) {
-  return getTVADeclarationPeriodLabel(getTVASettlementPeriodKey(charge, profile));
-}
+// MOVED -> script-tva.js : getTVASettlementLabel
 
-function getLivraisonTVAOperationType(livraison, profile) {
-  var raw = livraison?.operationTypeTVA || livraison?.natureTVA || livraison?.natureOperation || '';
-  if (['goods', 'biens', 'livraison_biens'].includes(raw)) return 'goods';
-  if (['service', 'services', 'prestation', 'prestation_services'].includes(raw)) return 'service';
-  return profile?.activiteType === 'goods' ? 'goods' : 'service';
-}
+// MOVED -> script-tva.js : getLivraisonTVAOperationType
 
-function getLivraisonTVAExigibiliteDate(livraison, profile) {
-  if (!profile?.isVatEnabled) return '';
-  var operationType = getLivraisonTVAOperationType(livraison, profile);
-  var referenceDate = normaliserDateISO(livraison?.dateFacture || livraison?.date);
-  if (operationType === 'goods') return referenceDate;
-  if ((profile.exigibiliteServices || 'encaissements') === 'debits') return referenceDate;
-  if ((livraison?.statutPaiement || '') !== 'payé') return '';
-  return normaliserDateISO(livraison?.datePaiement);
-}
+// MOVED -> script-tva.js : getLivraisonTVAExigibiliteDate
 
-function buildTVACollecteeEntryFromLivraison(livraison, profile) {
-  if (!profile?.isVatEnabled) return null;
-  var totalTTC = parseFloat(livraison?.prix) || 0;
-  if (totalTTC <= 0) return null;
-  var taux = parseTauxTVAValue(livraison?.tauxTVA, profile.defaultRate);
-  if (taux <= 0) return null;
-  var baseHT = getMontantHTLivraison(livraison);
-  var montantTVA = round2(totalTTC - baseHT);
-  if (montantTVA <= 0) return null;
-  var issueDate = normaliserDateISO(livraison?.date);
-  var exigibiliteDate = getLivraisonTVAExigibiliteDate(livraison, profile);
-  return {
-    id: livraison.id,
-    sourceType: 'livraison',
-    libelle: (livraison.numLiv ? livraison.numLiv + ' — ' : '') + (livraison.client || 'Livraison'),
-    issueDate: issueDate,
-    paymentDate: normaliserDateISO(livraison?.datePaiement),
-    exigibiliteDate: exigibiliteDate,
-    operationType: getLivraisonTVAOperationType(livraison, profile),
-    tauxTVA: taux,
-    baseHT: round2(baseHT),
-    tva: montantTVA,
-    ttc: round2(totalTTC),
-    raw: livraison
-  };
-}
+// MOVED -> script-tva.js : buildTVACollecteeEntryFromLivraison
 
-function buildTVACollecteeData(range, profile) {
-  var eligible = [];
-  var pending = [];
-  charger('livraisons').forEach(function(livraison) {
-    var entry = buildTVACollecteeEntryFromLivraison(livraison, profile);
-    if (!entry) return;
-    if (entry.exigibiliteDate && isDateInRange(entry.exigibiliteDate, range)) {
-      eligible.push(entry);
-      return;
-    }
-    if (!entry.issueDate || !isDateInRange(entry.issueDate, range)) return;
-    if (!entry.exigibiliteDate || entry.exigibiliteDate > range.fin) {
-      pending.push(entry);
-    }
-  });
-  return { eligible: eligible, pending: pending };
-}
+// MOVED -> script-tva.js : buildTVACollecteeData
 
-function buildTVADeductibleEntries(range, profile) {
-  if (!profile?.isVatEnabled) return [];
-  var entries = [];
-  charger('charges').filter(function(c) {
-    return isDateInRange(c.date, range)
-      && c.categorie !== 'tva'
-      && !c.carburantId
-      && !c.entretienId;
-  }).forEach(function(c) {
-    var taux = parseTauxTVAValue(c.tauxTVA, profile.defaultRate);
-    var ht = getChargeMontantHT(c);
-    var tva = getChargeMontantTVA(c) * (getChargeTauxDeductibilite(c) / 100);
-    if (tva <= 0) return;
-    entries.push({
-      sourceType: 'charge',
-      id: c.id,
-      date: normaliserDateISO(c.date),
-      tauxTVA: taux,
-      libelle: c.description || 'Charge',
-      baseHT: round2(ht),
-      tva: round2(tva),
-      ttc: round2(parseFloat(c.montant) || 0),
-      raw: c
-    });
-  });
-  charger('carburant').filter(function(p) { return isDateInRange(p.date, range); }).forEach(function(p) {
-    var tauxTVA = parseTauxTVAValue(p.tauxTVA, 20);
-    var ht = getCarburantMontantHT(p);
-    var tvaDeductible = getCarburantMontantTVA(p) * (getTauxDeductibiliteCarburant(p) / 100);
-    if (tvaDeductible <= 0) return;
-    entries.push({
-      sourceType: 'carburant',
-      id: p.id,
-      date: normaliserDateISO(p.date),
-      tauxTVA: tauxTVA,
-      libelle: (p.vehNom || 'Carburant') + ' — ' + ((p.typeCarburant || p.type || 'gasoil') === 'essence' ? 'Essence' : 'Gasoil') + ' (' + formaterTaux(getTauxDeductibiliteCarburant(p)) + ')',
-      baseHT: round2(ht),
-      tva: round2(tvaDeductible),
-      ttc: round2(parseFloat(p.total) || 0),
-      raw: p
-    });
-  });
-  charger('entretiens').filter(function(e) { return isDateInRange(e.date, range); }).forEach(function(e) {
-    var taux = parseTauxTVAValue(e.tauxTVA, profile.defaultRate);
-    var ht = getEntretienMontantHT(e);
-    var tvaDeductible = getEntretienMontantTVA(e) * (getTauxDeductibiliteEntretien(e) / 100);
-    if (tvaDeductible <= 0) return;
-    entries.push({
-      sourceType: 'entretien',
-      id: e.id,
-      date: normaliserDateISO(e.date),
-      tauxTVA: taux,
-      libelle: getTypeEntretienLabel(e.type) + ' — ' + (e.description || 'Entretien') + ' (' + formaterTaux(getTauxDeductibiliteEntretien(e)) + ')',
-      baseHT: round2(ht),
-      tva: round2(tvaDeductible),
-      ttc: round2(parseFloat(e.cout) || 0),
-      raw: e
-    });
-  });
-  return entries.sort(function(a, b) { return new Date((b.date || '')) - new Date((a.date || '')); });
-}
+// MOVED -> script-tva.js : buildTVADeductibleEntries
 
-function buildTVASettlementEntries(range, profile) {
-  var keys = new Set(getTVAPeriodKeysForRange(range, profile));
-  return charger('charges')
-    .filter(function(c) { return c.categorie === 'tva' && keys.has(getTVASettlementPeriodKey(c, profile)); })
-    .map(function(c) {
-      return {
-        id: c.id,
-        paymentDate: normaliserDateISO(c.date),
-        periodKey: getTVASettlementPeriodKey(c, profile),
-        periodLabel: getTVASettlementLabel(c, profile),
-        montant: round2(parseFloat(c.montant) || 0),
-        description: c.description || 'Versement TVA',
-        raw: c
-      };
-    })
-    .sort(function(a, b) { return new Date((b.paymentDate || '')) - new Date((a.paymentDate || '')); });
-}
+// MOVED -> script-tva.js : buildTVASettlementEntries
 
-function getTVASummaryForRange(range) {
-  var profile = getTVAConfig();
-  if (!profile.isVatEnabled) {
-    return {
-      profile: profile,
-      collectee: [],
-      pending: [],
-      deductible: [],
-      settlements: [],
-      totalCollectee: 0,
-      totalDeductible: 0,
-      totalTVAPlanifiee: 0,
-      soldeBrut: 0,
-      tvaDueBrute: 0,
-      tvaReverser: 0,
-      tvaCredit: 0
-    };
-  }
-  var collecteeData = buildTVACollecteeData(range, profile);
-  var deductible = buildTVADeductibleEntries(range, profile);
-  var settlements = buildTVASettlementEntries(range, profile);
-  var totalCollectee = collecteeData.eligible.reduce(function(sum, item) { return sum + item.tva; }, 0);
-  var totalDeductible = deductible.reduce(function(sum, item) { return sum + item.tva; }, 0);
-  var totalTVAPlanifiee = settlements.reduce(function(sum, item) { return sum + item.montant; }, 0);
-  var soldeBrut = round2(totalCollectee - totalDeductible);
-  return {
-    profile: profile,
-    collectee: collecteeData.eligible,
-    pending: collecteeData.pending,
-    deductible: deductible,
-    settlements: settlements,
-    totalCollectee: round2(totalCollectee),
-    totalDeductible: round2(totalDeductible),
-    totalTVAPlanifiee: round2(totalTVAPlanifiee),
-    soldeBrut: round2(soldeBrut),
-    tvaDueBrute: Math.max(0, round2(soldeBrut)),
-    tvaReverser: soldeBrut >= 0 ? Math.max(0, round2(soldeBrut - totalTVAPlanifiee)) : 0,
-    tvaCredit: soldeBrut < 0 ? Math.abs(round2(soldeBrut)) : 0
-  };
-}
+// MOVED -> script-tva.js : getTVASummaryForRange
 
 
-function ouvrirFicheVehiculeDepuisTableau(vehId) {
-  if (!vehId) return;
-  naviguerVers('vehicules');
-  setTimeout(function() {
-    ouvrirEditVehicule(vehId);
-  }, 180);
-}
+// MOVED -> script-vehicules.js : ouvrirFicheVehiculeDepuisTableau
 // MOVED -> script-entretiens.js : getLabelVehiculeEntretien
-function getSalarieVehicule(salarie) {
-  if (!salarie) return null;
-  var vehicules = charger('vehicules');
-  return vehicules.find(function(v) { return v.salId === salarie.id; })
-    || vehicules.find(function(v) { return v.salNom && salarie.nom && v.salNom === salarie.nom; })
-    || null;
-}
+// MOVED -> script-salaries.js : getSalarieVehicule
 // MOVED -> script-stats.js : getSalarieStatsMois
-function getSalarieConformiteBadges(salarie) {
-  var badges = [];
-  var now = new Date();
-  var permisDate = salarie?.datePermis ? new Date(salarie.datePermis) : null;
-  var assuranceDate = salarie?.dateAssurance ? new Date(salarie.dateAssurance) : null;
-  var limitPermis = new Date(now); limitPermis.setDate(limitPermis.getDate() + 60);
-  var limitAssurance = new Date(now); limitAssurance.setDate(limitAssurance.getDate() + 30);
-  if (permisDate) {
-    badges.push(permisDate < now
-      ? '<span class="inline-badge-danger">🪪 Permis expiré</span>'
-      : permisDate < limitPermis ? '<span class="inline-badge-warning">🪪 Permis proche</span>' : '');
-  }
-  if (assuranceDate) {
-    badges.push(assuranceDate < now
-      ? '<span class="inline-badge-danger">🛡️ Assurance expirée</span>'
-      : assuranceDate < limitAssurance ? '<span class="inline-badge-warning">🛡️ Assurance proche</span>' : '');
-  }
-  var incidents = charger('incidents').filter(function(item) { return item.statut === 'ouvert' && (item.salId === salarie.id || item.chaufId === salarie.id); });
-  if (incidents.length) badges.push('<span class="inline-badge-danger">🚨 ' + incidents.length + ' incident' + (incidents.length > 1 ? 's' : '') + '</span>');
-  return badges.filter(Boolean).join('');
-}
-function ouvrirLivraisonsSalarie(salId) {
-  var salarie = charger('salaries').find(function(item) { return item.id === salId; });
-  naviguerVers('livraisons');
-  setTimeout(function() {
-    var filtre = document.getElementById('filtre-chauffeur');
-    if (filtre) filtre.value = salId;
-    var recherche = document.getElementById('filtre-recherche-liv');
-    if (recherche && !filtre) recherche.value = salarie?.nom || '';
-    if (typeof afficherLivraisons === 'function') afficherLivraisons();
-  }, 120);
-}
+// MOVED -> script-salaries.js : getSalarieConformiteBadges
+// MOVED -> script-salaries.js : ouvrirLivraisonsSalarie
 // MOVED -> script-planning.js : ouvrirPlanningSalarie
 // MOVED -> script-heures.js : ouvrirHeuresSalarie
 // MOVED -> script-planning.js : ouvrirPlanningRecurrence
@@ -1257,20 +795,9 @@ function calculerDureeJour(heureDebut, heureFin) {
   const duree = (hf * 60 + mf) - (hd * 60 + md);
   return duree > 0 ? duree / 60 : 0;
 }
-function getMontantHTLivraison(livraison) {
-  const taux = parseFloat(livraison?.tauxTVA) || 0;
-  if (livraison?.prixHT !== undefined && livraison?.prixHT !== null && livraison?.prixHT !== '') {
-    return parseFloat(livraison.prixHT) || 0;
-  }
-  return (parseFloat(livraison?.prix) || 0) / (1 + taux / 100);
-}
+// MOVED -> script-livraisons.js : getMontantHTLivraison
 
-function getLivraisonStatutPaiement(livraison) {
-  var statut = String(livraison?.statutPaiement || '').trim().toLowerCase();
-  if (!statut) return 'en-attente';
-  if (statut === 'en attente') return 'en-attente';
-  return statut;
-}
+// MOVED -> script-livraisons.js : getLivraisonStatutPaiement
 // MOVED -> script-carburant.js : getMontantHTCarburant
 // MOVED -> script-entretiens.js : getMontantHTEntretien
 function getDateRangeInclusive(debut, fin) {
@@ -1710,12 +1237,7 @@ async function uploaderLogoEntreprise(file) {
   return result.url;
 }
 /* Génère un numéro de livraison unique LIV-AAAA-XXXX */
-function genNumLivraison() {
-  const annee = new Date().getFullYear();
-  const livs  = charger('livraisons');
-  const max   = livs.map(l => parseInt((l.numLiv||'').split('-')[2], 10)||0).reduce((a,b)=>Math.max(a,b),0);
-  return `LIV-${annee}-${String(max+1).padStart(4,'0')}`;
-}
+// MOVED -> script-livraisons.js : genNumLivraison
 
 /* Compression image base64 avant stockage */
 function compresserImage(base64, callback) {
@@ -1873,127 +1395,25 @@ function chargerNomEntreprise() {
   if (avatar) avatar.textContent = adminLabel[0].toUpperCase();
 }
 
-function rafraichirDependancesSalaries() {
-  mettreAJourSelects();
-  if (typeof peuplerAbsenceSal === 'function') peuplerAbsenceSal();
-  if (typeof peuplerSelectPlanningModal === 'function') peuplerSelectPlanningModal();
-  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
-  if (typeof afficherCompteurHeures === 'function') afficherCompteurHeures();
-  if (typeof afficherChauffeurs === 'function') afficherChauffeurs();
-  if (typeof afficherVehicules === 'function') afficherVehicules();
-  if (typeof afficherMessagerie === 'function') afficherMessagerie();
-  if (typeof afficherAlertes === 'function') afficherAlertes();
-  if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
-}
+// MOVED -> script-salaries.js : rafraichirDependancesSalaries
 
-function getVehiculeParSalId(salId) {
-  return charger('vehicules').find(v => v.salId === salId) || null;
-}
+// MOVED -> script-vehicules.js : getVehiculeParSalId
 
-function mettreAJourKmVehiculeParSalarie(salId, km) {
-  const valeur = parseFloat(km) || 0;
-  if (!salId || !valeur) return;
-  const vehicules = charger('vehicules');
-  const idx = vehicules.findIndex(function(v) { return v.salId === salId; });
-  if (idx === -1) return;
-  const kmAvant = parseFloat(vehicules[idx].km) || 0;
-  vehicules[idx].km = Math.max(parseFloat(vehicules[idx].km) || 0, valeur);
-  if (!Number.isFinite(parseFloat(vehicules[idx].kmInitial))) vehicules[idx].kmInitial = kmAvant || valeur;
-  sauvegarder('vehicules', vehicules);
-}
+// MOVED -> script-salaries.js : mettreAJourKmVehiculeParSalarie
 
-function getSalarieNomComplet(salarie, options) {
-  if (!salarie) return '';
-  const settings = options || {};
-  let nom = String(salarie.nom || '').trim();
-  let prenom = String(salarie.prenom || '').trim();
-  if (nom && prenom) {
-    const nomLower = nom.toLowerCase();
-    const prenomLower = prenom.toLowerCase();
-    if (nomLower === prenomLower) prenom = '';
-    else if (nomLower.includes(prenomLower)) prenom = '';
-    else if (prenomLower.includes(nomLower)) nom = prenom;
-  }
-  const morceaux = [];
-  if (prenom) morceaux.push(prenom);
-  if (nom) morceaux.push(nom);
-  let label = morceaux.join(' ').replace(/\s+/g, ' ').trim() || nom || prenom || 'Salarié';
-  if (settings.includePoste && salarie.poste) label += ' - ' + salarie.poste;
-  if (settings.includeNumero && salarie.numero) label += ' (#' + salarie.numero + ')';
-  return label;
-}
+// MOVED -> script-salaries.js : getSalarieNomComplet
 
-function getVehiculeKmsParLivraisons(vehId) {
-  return charger('livraisons')
-    .filter(l => l.vehId === vehId)
-    .reduce((sum, l) => sum + (parseFloat(l.distance) || 0), 0);
-}
+// MOVED -> script-vehicules.js : getVehiculeKmsParLivraisons
 
-function getVehiculePlusHautKmSaisi(veh) {
-  const livraisons = charger('livraisons');
-  let maxKm = 0;
-  charger('salaries').forEach(function(salarie) {
-    charger('km_sal_' + salarie.id).forEach(function(entry) {
-      const livraisonLiee = entry.livId ? livraisons.find(l => l.id === entry.livId) : null;
-      const concerneVehicule = (livraisonLiee && livraisonLiee.vehId === veh.id) || (veh.salId && salarie.id === veh.salId);
-      if (!concerneVehicule) return;
-      maxKm = Math.max(maxKm, parseFloat(entry.kmDepart) || 0, parseFloat(entry.kmArrivee) || 0);
-    });
-  });
-  charger('inspections').forEach(function(insp) {
-    if (insp.vehId !== veh.id) return;
-    maxKm = Math.max(maxKm, parseFloat(insp.km) || 0);
-  });
-  return maxKm;
-}
+// MOVED -> script-vehicules.js : getVehiculePlusHautKmSaisi
 
-function calculerKilometrageVehiculeActuel(veh) {
-  if (!veh) return 0;
-  const kmReference = parseFloat(veh.km) || 0;
-  const kmInitial = parseFloat(veh.kmInitial);
-  const kmLivraisons = Number.isFinite(kmInitial)
-    ? kmInitial + getVehiculeKmsParLivraisons(veh.id)
-    : 0;
-  const kmSaisi = getVehiculePlusHautKmSaisi(veh);
-  return Math.max(kmReference, Number.isFinite(kmInitial) ? kmInitial : 0, kmLivraisons, kmSaisi);
-}
+// MOVED -> script-vehicules.js : calculerKilometrageVehiculeActuel
 
 // MOVED -> script-entretiens.js : getPilotageEntretienVehicule
 
-function synchroniserAffectationLivraison(chaufId, vehId) {
-  const salaries = charger('salaries');
-  const vehicules = charger('vehicules');
-  let salarie = chaufId ? salaries.find(function(item) { return item.id === chaufId; }) : null;
-  let vehicule = vehId ? vehicules.find(function(item) { return item.id === vehId; }) : null;
-  if (salarie && !vehicule) vehicule = getVehiculeParSalId(salarie.id);
-  if (vehicule && !salarie && vehicule.salId) salarie = salaries.find(function(item) { return item.id === vehicule.salId; }) || null;
-  return {
-    chaufId: salarie ? salarie.id : '',
-    chaufNom: salarie ? getSalarieNomComplet(salarie) : 'Non assigné',
-    vehId: vehicule ? vehicule.id : '',
-    vehNom: vehicule ? vehicule.immat : ''
-  };
-}
+// MOVED -> script-livraisons.js : synchroniserAffectationLivraison
 
-function peuplerSelectsLivraisonEdition(chaufId, vehId) {
-  const selChauf = document.getElementById('edit-liv-chauffeur');
-  const selVeh = document.getElementById('edit-liv-vehicule');
-  if (selChauf) {
-    selChauf.innerHTML = '<option value="">-- Choisir --</option>';
-    charger('salaries').forEach(function(salarie) {
-      selChauf.innerHTML += '<option value="' + salarie.id + '">' + getSalarieNomComplet(salarie, { includeNumero: true }) + '</option>';
-    });
-    selChauf.value = chaufId || '';
-  }
-  if (selVeh) {
-    selVeh.innerHTML = '<option value="">-- Choisir un véhicule --</option>';
-    charger('vehicules').forEach(function(vehicule) {
-      const label = vehicule.immat + (vehicule.modele ? ' — ' + vehicule.modele : '') + (vehicule.salNom ? ' (' + vehicule.salNom + ')' : '');
-      selVeh.innerHTML += '<option value="' + vehicule.id + '">' + label + '</option>';
-    });
-    selVeh.value = vehId || '';
-  }
-}
+// MOVED -> script-livraisons.js : peuplerSelectsLivraisonEdition
 
 let config = chargerObj('config', { coutKmEstime: 0.20 });
 
@@ -2084,14 +1504,7 @@ function chargerCadreSalarieUnifie() {
   }
 }
 
-function activerModeSalarieUnifie() {
-  document.body.classList.add('role-salarie-unified');
-  chargerCadreSalarieUnifie();
-  naviguerVers(PAGE_SALARIE_UNIFIED);
-  requestAnimationFrame(function() {
-    document.body.classList.remove('app-booting');
-  });
-}
+// MOVED -> script-salaries.js : activerModeSalarieUnifie
 
 /* ===== NAVIGATION ===== */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -2573,191 +1986,9 @@ function mettreAJourSelects() {
 }
 
 /* ===== LIVRAISONS ===== */
-function ajouterLivraison() {
-  const client      = document.getElementById('liv-client').value.trim();
-  const clientSiren = (document.getElementById('liv-client-siren')?.value || '').replace(/\s+/g, '');
-  const zoneGeo  = document.getElementById('liv-zone')?.value.trim() || document.getElementById('liv-depart').value.trim();
-  const depart   = zoneGeo;
-  const arrivee  = '';
-  const distance = parseFloat(document.getElementById('liv-distance').value) || 0;
-  const prixHT   = parseFloat(document.getElementById('liv-prix-ht')?.value) || 0;
-  const tauxTVA  = parseFloat(document.getElementById('liv-taux-tva')?.value) || 20;
-  const prix     = parseFloat(document.getElementById('liv-prix').value) || (prixHT * (1 + tauxTVA/100));
-  const chaufId  = document.getElementById('liv-chauffeur').value;
-  const vehId    = document.getElementById('liv-vehicule').value;
-  const statut   = document.getElementById('liv-statut').value;
-  const date     = document.getElementById('liv-date').value || aujourdhui();
-  const notes    = document.getElementById('liv-notes').value.trim();
+// MOVED -> script-livraisons.js : ajouterLivraison
 
-  if (!client) { afficherToast('⚠️ Le nom du client est obligatoire', 'error'); return; }
-  if (!prix || isNaN(prix) || prix <= 0) {
-    afficherToast('⚠️ Le prix est obligatoire pour calculer la rentabilité', 'error');
-    return;
-  }
-  if (hasNegativeNumber(distance, prixHT, prix, tauxTVA)) {
-    afficherToast('⚠️ Les montants et distances doivent être positifs', 'error');
-    return;
-  }
-
-  // Si prix manquant → créer une alerte et continuer quand même
-  if (!prix || isNaN(prix)) {
-    ajouterAlerte('prix_manquant', `Livraison sans prix saisie — Client : ${client} (${date})`, { client, date });
-    afficherBadgeAlertes();
-  }
-
-  const profit = prix - distance * config.coutKmEstime;
-  const affectation = synchroniserAffectationLivraison(chaufId, vehId);
-  const conflitPlanning = affectation.chaufId ? planningGetIndisponibilitePourDate(affectation.chaufId, date) : null;
-
-  // BUG-006 fix : auto-création du client dans le carnet si le nom ne correspond
-  // à aucun client existant. Évite les livraisons orphelines (sans clientId)
-  // qui cassent l'agrégation CA par client + relances.
-  // Priorité au clientId stocké par selectionnerClientLivraisonParId (lien fiable),
-  // sinon fallback matching par nom (cas saisie manuelle).
-  let clientId = null;
-  let clientCreeAuto = false;
-  let clientTvaSnapshot = '';
-  let clientPaysSnapshot = '';
-  try {
-    const clientsExistants = charger('clients');
-    // 1. Lien direct via __livSelectedClientId (utilisateur a cliqué sur une suggestion)
-    if (window.__livSelectedClientId) {
-      const direct = clientsExistants.find(c => c && c.id === window.__livSelectedClientId);
-      if (direct && (direct.nom || '').toLowerCase() === client.toLowerCase()) {
-        clientId = direct.id;
-        clientTvaSnapshot = direct.tvaIntra || '';
-        clientPaysSnapshot = direct.pays || 'FR';
-      }
-    }
-    // 2. Fallback matching par nom (saisie libre, pas de suggestion cliquée)
-    if (!clientId) {
-      const cible = client.toLowerCase();
-      const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
-      if (match) {
-        clientId = match.id;
-        clientTvaSnapshot = match.tvaIntra || '';
-        clientPaysSnapshot = match.pays || 'FR';
-      } else {
-        const nouveau = {
-          id: genId(),
-          nom: client,
-          type: 'pro',
-          siren: clientSiren || '',
-          creeLe: new Date().toISOString(),
-          creeDepuis: 'livraison'
-        };
-        clientsExistants.push(nouveau);
-        sauvegarder('clients', clientsExistants);
-        clientId = nouveau.id;
-        clientCreeAuto = true;
-      }
-    }
-  } catch (_) { /* silencieux : ne bloque pas la création de la livraison */ }
-  // Reset le state pour la prochaine modal
-  window.__livSelectedClientId = null;
-  window.__livSelectedClientTva = null;
-  window.__livSelectedClientPays = null;
-
-  // BUG-012/013 fix : champs lettre de voiture conforme arrêté 09/11/1999
-  const getVal = (id) => (document.getElementById(id)?.value || '').trim();
-  const expediteur = {
-    nom: getVal('liv-exp-nom'),
-    contact: getVal('liv-exp-contact'),
-    adresse: getVal('liv-exp-adresse'),
-    cp: getVal('liv-exp-cp'),
-    ville: getVal('liv-exp-ville'),
-    pays: getVal('liv-exp-pays') || 'FR'
-  };
-  const destinataire = {
-    nom: getVal('liv-dest-nom'),
-    contact: getVal('liv-dest-contact'),
-    adresse: getVal('liv-dest-adresse'),
-    cp: getVal('liv-dest-cp'),
-    ville: getVal('liv-dest-ville'),
-    pays: getVal('liv-dest-pays') || 'FR'
-  };
-  const marchandise = {
-    nature: getVal('liv-marchandise-nature'),
-    poidsKg: parseFloat(getVal('liv-marchandise-poids')) || 0,
-    volumeM3: parseFloat(getVal('liv-marchandise-volume')) || 0,
-    nbColis: parseInt(getVal('liv-marchandise-colis'), 10) || 0
-  };
-  const adr = {
-    estADR: !!document.getElementById('liv-adr-est')?.checked,
-    codeONU: getVal('liv-adr-onu'),
-    classe: getVal('liv-adr-classe'),
-    groupeEmballage: getVal('liv-adr-groupe')
-  };
-
-  const livraison = {
-    id: genId(),
-    numLiv: genNumLivraison(),
-    client, clientSiren, clientId,
-    clientTvaIntracom: clientTvaSnapshot, clientPays: clientPaysSnapshot,
-    depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
-    chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
-    vehId: affectation.vehId || null, vehNom: affectation.vehNom,
-    statut, date, notes,
-    statutPaiement: 'en-attente',
-    modePaiement:   document.getElementById('liv-mode-paiement')?.value || '',
-    heureDebut:     document.getElementById('liv-heure-debut')?.value || '',
-    expediteur, destinataire, marchandise, adr,
-    creeLe: new Date().toISOString()
-  };
-
-  const livraisons = charger('livraisons');
-  livraisons.push(livraison);
-  sauvegarder('livraisons', livraisons);
-  enregistrerConduite(livraison);
-  ajouterEntreeAudit('Création livraison', (livraison.numLiv || 'Livraison') + ' · ' + (livraison.client || 'Client') + ' · ' + euros(livraison.prix || 0));
-  if (conflitPlanning) {
-    ajouterAlerteSiAbsente(
-      'planning_conflit_livraison',
-      `⚠️ Livraison assignée malgré ${conflitPlanning.label.toLowerCase()} — ${livraison.chaufNom || 'salarié'} (${formatDateExport(date)})`,
-      { salId: livraison.chaufId, salNom: livraison.chaufNom || '', livId: livraison.id, numLiv: livraison.numLiv }
-    );
-  }
-
-  closeModal('modal-livraison');
-  viderFormulaireLivraison();
-  afficherLivraisons();
-  if (clientCreeAuto && typeof afficherClients === 'function') {
-    try { afficherClients(); } catch (_) {}
-  }
-  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
-  if (conflitPlanning) {
-    afficherToast(`⚠️ ${livraison.chaufNom || 'Ce salarié'} est noté ${conflitPlanning.label.toLowerCase()} le ${formatDateExport(date)}`, 'warning');
-    return;
-  }
-  afficherToast(clientCreeAuto
-    ? '✅ Livraison enregistrée + client « ' + client + ' » ajouté au carnet'
-    : '✅ Livraison enregistrée !');
-}
-
-function viderFormulaireLivraison() {
-  ['liv-client','liv-client-siren','liv-zone','liv-depart','liv-arrivee','liv-distance','liv-prix','liv-prix-ht','liv-notes','liv-heure-debut',
-    // BUG-012/013 : champs lettre de voiture
-    'liv-exp-nom','liv-exp-contact','liv-exp-adresse','liv-exp-cp','liv-exp-ville',
-    'liv-dest-nom','liv-dest-contact','liv-dest-adresse','liv-dest-cp','liv-dest-ville',
-    'liv-marchandise-nature','liv-marchandise-poids','liv-marchandise-volume','liv-marchandise-colis',
-    'liv-adr-onu','liv-adr-classe'
-  ].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  ['liv-chauffeur','liv-vehicule','liv-mode-paiement','liv-adr-groupe'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const expPays = document.getElementById('liv-exp-pays'); if (expPays) expPays.value = 'FR';
-  const destPays = document.getElementById('liv-dest-pays'); if (destPays) destPays.value = 'FR';
-  const adrChk = document.getElementById('liv-adr-est');
-  if (adrChk) { adrChk.checked = false; const det = document.getElementById('liv-adr-details'); if (det) det.style.display = 'none'; }
-  // liv-ldv-section n'est plus un <details> collapsible — lettre de voiture toujours visible en full-page
-  const tvaSel = document.getElementById('liv-taux-tva'); if (tvaSel) tvaSel.value = '20';
-  document.getElementById('liv-statut').value = 'en-attente';
-  document.getElementById('liv-date').value   = aujourdhui();
-  const sug = document.getElementById('client-suggestions');
-  if (sug) sug.innerHTML = '';
-}
+// MOVED -> script-livraisons.js : viderFormulaireLivraison
 
 const STORAGE_REFRESH_QUEUE = new Map();
 
@@ -2796,11 +2027,7 @@ function getPageActiveAdminId() {
   return document.querySelector('.page.active')?.id || '';
 }
 
-function rafraichirVueLivraisonsActive() {
-  if (_vueLivraisons === 'kanban') afficherKanban();
-  else if (_vueLivraisons === 'calendrier') afficherCalendrier();
-  else afficherLivraisons();
-}
+// MOVED -> script-livraisons.js : rafraichirVueLivraisonsActive
 
 // MOVED -> script-heures.js : rafraichirVueHeuresEtKm
 
@@ -2965,11 +2192,7 @@ window.addEventListener('delivpro:storage-sync', function(e) {
   gererChangementStorageAdmin(key);
 });
 
-function afficherLivraisons() {
-  if (typeof window.renderLivraisonsAdminFinal === 'function') {
-    return window.renderLivraisonsAdminFinal();
-  }
-}
+// MOVED -> script-livraisons.js : afficherLivraisons
 
 function changerStatutPaiement(id, statut) {
   const livraisons = charger('livraisons');
@@ -2982,44 +2205,13 @@ function changerStatutPaiement(id, statut) {
   }
 }
 
-function getLivraisonInlineSelectClass(type, valeur) {
-  const normalized = String(valeur || '').toLowerCase();
-  if (type === 'statut') {
-    if (normalized === 'livre') return 'is-success';
-    if (normalized === 'en-cours') return 'is-info';
-    return 'is-warn';
-  }
-  if (normalized === 'paye' || normalized === 'payé') return 'is-success';
-  if (normalized === 'litige') return 'is-danger';
-  return 'is-warn';
-}
+// MOVED -> script-livraisons.js : getLivraisonInlineSelectClass
 
-function styliserSelectLivraison(selectEl, type) {
-  if (!selectEl) return;
-  selectEl.classList.remove('is-success', 'is-info', 'is-warn', 'is-danger');
-  selectEl.classList.add(getLivraisonInlineSelectClass(type, selectEl.value));
-}
+// MOVED -> script-livraisons.js : styliserSelectLivraison
 
-function changerStatutLivraison(id, statut) {
-  const livraisons = charger('livraisons'), idx = livraisons.findIndex(l => l.id === id);
-  if (idx > -1) {
-    livraisons[idx].statut = statut;
-    sauvegarder('livraisons', livraisons);
-    ajouterEntreeAudit('Statut livraison', (livraisons[idx].numLiv || 'Livraison') + ' · ' + statut);
-    afficherToast('✅ Statut mis à jour');
-  }
-}
+// MOVED -> script-livraisons.js : changerStatutLivraison
 
-async function supprimerLivraison(id) {
-  const _ok = await confirmDialog('Supprimer cette livraison ?', {titre:'Supprimer',icone:'📦',btnLabel:'Supprimer'});
-  if (!_ok) return;
-  const livraisons = charger('livraisons');
-  const livraison = livraisons.find(function(item) { return item.id === id; }) || null;
-  annulerArchiveFactureLivraison(livraison);
-  sauvegarder('livraisons', livraisons.filter(function(l) { return l.id !== id; }));
-  if (livraison) ajouterEntreeAudit('Suppression livraison', (livraison.numLiv || 'Livraison') + ' · ' + (livraison.client || 'Client'));
-  afficherLivraisons(); afficherToast('🗑️ Supprimé');
-}
+// MOVED -> script-livraisons.js : supprimerLivraison
 
 function resetFiltres() {
   ['filtre-statut','filtre-paiement','filtre-date-debut','filtre-date-fin','filtre-recherche-liv','filtre-chauffeur'].forEach(id => {
@@ -3031,251 +2223,33 @@ function resetFiltres() {
   afficherLivraisons();
 }
 
-function appliquerFiltresDatesLivraisons() {
-  var deb = document.getElementById('filtre-date-debut')?.value || '';
-  var fin = document.getElementById('filtre-date-fin')?.value || '';
-  if (!deb || !fin) {
-    afficherToast('⚠️ Renseigne les deux dates pour valider la période', 'error');
-    return;
-  }
-  if (deb > fin) {
-    afficherToast('⚠️ La date de début doit être antérieure à la date de fin', 'error');
-    return;
-  }
-  _livPeriodePersonnalisee = { debut: deb, fin: fin };
-  var label = deb === fin ? 'Jour sélectionné' : 'Période personnalisée';
-  var datesLabel = 'Du ' + formatDateExport(deb) + ' au ' + formatDateExport(fin);
-  var labelEl = document.getElementById('liv-periode-label');
-  var datesEl = document.getElementById('liv-periode-dates');
-  if (labelEl) labelEl.textContent = label;
-  if (datesEl) datesEl.textContent = datesLabel;
-  afficherLivraisons();
-  afficherToast('✅ Période validée');
-}
+// MOVED -> script-livraisons.js : appliquerFiltresDatesLivraisons
 
 // MOVED -> script-rentabilite.js : alerteRentabilite
 
 /* ===== CHAUFFEURS ===== */
-function ajouterChauffeur() {
-  const nom    = document.getElementById('chauf-nom').value.trim();
-  const prenom = document.getElementById('chauf-prenom')?.value.trim() || '';
-  const nomComplet = prenom ? `${prenom} ${nom}` : nom;
-  const tel = document.getElementById('chauf-tel').value.trim();
-  const statut = document.getElementById('chauf-statut').value;
-  if (!nom || !tel) { afficherToast('⚠️ Nom et téléphone obligatoires', 'error'); return; }
-  const chauffeurs = charger('chauffeurs');
-  chauffeurs.push({ id: genId(), nom: nomComplet, nomFamille: nom, prenom, tel, statut, creeLe: new Date().toISOString() });
-  sauvegarder('chauffeurs', chauffeurs);
-  closeModal('modal-chauffeur');
-  ['chauf-nom','chauf-tel'].forEach(id => document.getElementById(id).value = '');
-  afficherChauffeurs(); afficherToast('✅ Chauffeur ajouté !');
-}
+// MOVED -> script-salaries.js : ajouterChauffeur
 
-function afficherChauffeurs() {
-  const chauffeurs = charger('chauffeurs');
-  const salaries   = charger('salaries');
-  const vehicules  = charger('vehicules');
-  const livraisons = charger('livraisons');
-  const tb = document.getElementById('tb-chauffeurs');
-  if (!tb) return; // page chauffeurs retirée par la refonte multi-onglets — no-op safe
+// MOVED -> script-salaries.js : afficherChauffeurs
 
-  const salSansVeh = salaries.filter(s => !vehicules.find(v => v.salId === s.id));
-  const sel = document.getElementById('sel-affecter-chauffeur');
-  if (sel) {
-    sel.innerHTML = '<option value="">-- Salariés sans véhicule --</option>';
-    salSansVeh.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nom} (${s.numero})</option>`; });
-  }
+// MOVED -> script-salaries.js : changerStatutChauffeur
 
-  if (!chauffeurs.length) { tb.innerHTML = emptyState('👤','Aucun chauffeur','Les chauffeurs sont créés automatiquement depuis la page Salariés.'); return; }
-  tb.innerHTML = chauffeurs.map(c => {
-    const livs = livraisons.filter(l => l.chaufId === c.id);
-    const ca   = livs.reduce((s, l) => s + (l.prix||0), 0);
-    const veh  = vehicules.find(v => v.salId === c.id);
-    return `<tr>
-      <td><strong>${c.nom}</strong></td><td>${c.tel}</td><td>${badgeChauffeur(c.statut)}</td>
-      <td>${veh ? `<span style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</span>` : '<span style="color:var(--text-muted);font-size:0.82rem">—</span>'}</td>
-      <td>${livs.length}</td><td>${euros(ca)}</td>
-      <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <select class="btn-icon" data-tooltip="Statut chauffeur" onchange="changerStatutChauffeur('${c.id}',this.value)">
-          <option value="disponible"   ${c.statut==='disponible'  ?'selected':''}>✅ Dispo</option>
-          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>🚐 En route</option>
-          <option value="inactif"      ${c.statut==='inactif'     ?'selected':''}>⏸️ Inactif</option>
-        </select>
-        ${buildInlineActionsDropdown('Actions', [
-          { icon:'🗑️', label:'Supprimer', action:`supprimerChauffeur('${c.id}')`, danger:true }
-        ])}
-      </td></tr>`;
-  }).join('');
-}
-
-function changerStatutChauffeur(id, statut) {
-  const ch = charger('chauffeurs'), i = ch.findIndex(c => c.id === id);
-  if (i > -1) { ch[i].statut = statut; sauvegarder('chauffeurs', ch); }
-}
-
-async function supprimerChauffeur(id) {
-  const _ok4 = await confirmDialog('Supprimer ce chauffeur ?', {titre:'Supprimer',icone:'👤',btnLabel:'Supprimer'});
-  if (!_ok4) return;
-  sauvegarder('chauffeurs', charger('chauffeurs').filter(c => c.id !== id));
-  afficherChauffeurs(); afficherToast('🗑️ Supprimé');
-}
+// MOVED -> script-salaries.js : supprimerChauffeur
 
 /* ===== VÉHICULES ===== */
-function lireFinanceVehiculeDepuisForm() {
-  return {
-    prixAchatHT: parseFloat(document.getElementById('veh-acq-prix-ht')?.value) || 0,
-    tauxTVAAchat: parseFloat(document.getElementById('veh-acq-taux-tva')?.value) || 20,
-    prixAchatTTC: parseFloat(document.getElementById('veh-acq-prix')?.value) || 0,
-    dureeAmortissement: parseFloat(document.getElementById('veh-duree-amortissement')?.value) || 0,
-    modeAmortissement: document.getElementById('veh-mode-amortissement')?.value || 'lineaire',
-    dateMiseAuRebut: document.getElementById('veh-date-rebut')?.value || '',
-    valeurMiseAuRebut: parseFloat(document.getElementById('veh-valeur-rebut')?.value) || 0,
-    kmRachat: parseFloat(document.getElementById('veh-km-rachat')?.value) || 0,
-    anneeVehicule: parseFloat(document.getElementById('veh-annee-vehicule')?.value) || 0,
-    prixCatalogueHT: parseFloat(document.getElementById('veh-prix-catalogue-ht')?.value) || 0,
-    loyerMensuelHT: parseFloat(document.getElementById('veh-loyer-mensuel-ht')?.value) || 0,
-    apportInitialHT: parseFloat(document.getElementById('veh-apport-initial-ht')?.value) || 0,
-    dureeContratMois: parseFloat(document.getElementById('veh-duree-contrat-mois')?.value) || 0,
-    kmInclusContrat: parseFloat(document.getElementById('veh-km-inclus-contrat')?.value) || 0,
-    dateFinContrat: document.getElementById('veh-date-fin-contrat')?.value || '',
-    depotGarantieHT: parseFloat(document.getElementById('veh-depot-garantie-ht')?.value) || 0,
-    coutKmExcedentaire: parseFloat(document.getElementById('veh-cout-km-excedentaire')?.value) || 0,
-    creditApportHT: parseFloat(document.getElementById('veh-credit-apport-ht')?.value) || 0,
-    creditMensualiteHT: parseFloat(document.getElementById('veh-credit-mensualite-ht')?.value) || 0,
-    creditDureeMois: parseFloat(document.getElementById('veh-credit-duree-mois')?.value) || 0,
-    creditTaeg: parseFloat(document.getElementById('veh-credit-taeg')?.value) || 0,
-    creditCoutTotalHT: parseFloat(document.getElementById('veh-credit-cout-total-ht')?.value) || 0,
-    loaOptionAchatHT: parseFloat(document.getElementById('veh-loa-option-achat-ht')?.value) || 0
-  };
-}
+// MOVED -> script-vehicules.js : lireFinanceVehiculeDepuisForm
 
-function hydraterFinanceVehiculeDansForm(veh) {
-  var map = {
-    'veh-acq-prix-ht': veh.prixAchatHT || '',
-    'veh-acq-taux-tva': veh.tauxTVAAchat ?? 20,
-    'veh-acq-prix': veh.prixAchatTTC || '',
-    'veh-duree-amortissement': veh.dureeAmortissement || '',
-    'veh-mode-amortissement': veh.modeAmortissement || 'lineaire',
-    'veh-date-rebut': veh.dateMiseAuRebut || '',
-    'veh-valeur-rebut': veh.valeurMiseAuRebut || '',
-    'veh-km-rachat': veh.kmRachat || '',
-    'veh-annee-vehicule': veh.anneeVehicule || '',
-    'veh-prix-catalogue-ht': veh.prixCatalogueHT || '',
-    'veh-loyer-mensuel-ht': veh.loyerMensuelHT || '',
-    'veh-apport-initial-ht': veh.apportInitialHT || '',
-    'veh-duree-contrat-mois': veh.dureeContratMois || '',
-    'veh-km-inclus-contrat': veh.kmInclusContrat || '',
-    'veh-date-fin-contrat': veh.dateFinContrat || '',
-    'veh-depot-garantie-ht': veh.depotGarantieHT || '',
-    'veh-cout-km-excedentaire': veh.coutKmExcedentaire || '',
-    'veh-credit-apport-ht': veh.creditApportHT || '',
-    'veh-credit-mensualite-ht': veh.creditMensualiteHT || '',
-    'veh-credit-duree-mois': veh.creditDureeMois || '',
-    'veh-credit-taeg': veh.creditTaeg || '',
-    'veh-credit-cout-total-ht': veh.creditCoutTotalHT || '',
-    'veh-loa-option-achat-ht': veh.loaOptionAchatHT || ''
-  };
-  Object.keys(map).forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = map[id];
-  });
-}
+// MOVED -> script-vehicules.js : hydraterFinanceVehiculeDansForm
 
-function reinitialiserFinanceVehiculeForm() {
-  [
-    'veh-acq-prix-ht','veh-acq-prix','veh-duree-amortissement','veh-date-rebut','veh-valeur-rebut',
-    'veh-km-rachat','veh-annee-vehicule','veh-prix-catalogue-ht','veh-loyer-mensuel-ht','veh-apport-initial-ht',
-    'veh-duree-contrat-mois','veh-km-inclus-contrat','veh-date-fin-contrat','veh-depot-garantie-ht',
-    'veh-cout-km-excedentaire','veh-credit-apport-ht','veh-credit-mensualite-ht','veh-credit-duree-mois',
-    'veh-credit-taeg','veh-credit-cout-total-ht','veh-loa-option-achat-ht'
-  ].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
-  var taux = document.getElementById('veh-acq-taux-tva');
-  if (taux) taux.value = '20';
-}
+// MOVED -> script-vehicules.js : reinitialiserFinanceVehiculeForm
 
-function resetModalVehiculeToCreateMode() {
-  var modal = document.getElementById('modal-vehicule');
-  if (!modal) return;
-  var title = modal.querySelector('.modal-header h3');
-  var primary = modal.querySelector('.modal-footer .btn-primary');
-  if (title) title.textContent = '🚐 Nouveau Véhicule';
-  if (primary) {
-    primary.textContent = 'Enregistrer';
-    primary.setAttribute('onclick', 'ajouterVehicule()');
-  }
-  // Reset carte grise temp + UI (sinon un fichier sélectionné mais non
-  // sauvegardé peut s'attacher à la prochaine création par erreur)
-  if (typeof resetCarteGriseFormUI === 'function') resetCarteGriseFormUI();
-}
+// MOVED -> script-vehicules.js : resetModalVehiculeToCreateMode
 
-function mettreAJourFinContratVehicule() {
-  var debut = document.getElementById('veh-date-acquisition')?.value || '';
-  var duree = parseInt(document.getElementById('veh-duree-contrat-mois')?.value || '0', 10);
-  var fin = document.getElementById('veh-date-fin-contrat');
-  if (!fin) return;
-  if (!debut || !duree) {
-    fin.value = '';
-    return;
-  }
-  var d = new Date(debut + 'T00:00:00');
-  d.setMonth(d.getMonth() + duree);
-  fin.value = dateToLocalISO(d);
-}
+// MOVED -> script-vehicules.js : mettreAJourFinContratVehicule
 
-function mettreAJourInfosVehiculeFinancement() {
-  var mode = document.getElementById('veh-mode-acquisition')?.value || 'achat';
-  var amortInfo = document.getElementById('veh-amortissement-info');
-  var creditInfo = document.getElementById('veh-credit-info');
-  var locationInfo = document.getElementById('veh-location-info');
-  var prixHt = parseFloat(document.getElementById('veh-acq-prix-ht')?.value) || 0;
-  var dureeAmort = parseFloat(document.getElementById('veh-duree-amortissement')?.value) || 0;
-  var mensualite = parseFloat(document.getElementById('veh-credit-mensualite-ht')?.value) || 0;
-  var dureeCredit = parseFloat(document.getElementById('veh-credit-duree-mois')?.value) || 0;
-  var apportCredit = parseFloat(document.getElementById('veh-credit-apport-ht')?.value) || 0;
-  var coutCredit = Math.max(0, (mensualite * dureeCredit) + apportCredit - prixHt);
-  var coutCreditInput = document.getElementById('veh-credit-cout-total-ht');
-  if (coutCreditInput) coutCreditInput.value = coutCredit ? coutCredit.toFixed(2) : '';
-  if (amortInfo) {
-    amortInfo.textContent = (prixHt > 0 && dureeAmort > 0)
-      ? ('Amortissement mensuel estimé : ' + euros(prixHt / (dureeAmort * 12)))
-      : '';
-  }
-  if (creditInfo) {
-    creditInfo.textContent = (mensualite > 0 && dureeCredit > 0)
-      ? ('Coût total estimé du crédit : ' + euros(coutCredit))
-      : '';
-  }
-  if (locationInfo) {
-    var loyer = parseFloat(document.getElementById('veh-loyer-mensuel-ht')?.value) || 0;
-    var dureeContrat = parseFloat(document.getElementById('veh-duree-contrat-mois')?.value) || 0;
-    locationInfo.textContent = (loyer > 0 && dureeContrat > 0)
-      ? ('Engagement estimé sur le contrat : ' + euros(loyer * dureeContrat))
-      : '';
-  }
-}
+// MOVED -> script-vehicules.js : mettreAJourInfosVehiculeFinancement
 
-function mettreAJourFormulaireVehicule() {
-  var mode = document.getElementById('veh-mode-acquisition')?.value || 'achat';
-  var isAchat = ['achat', 'occasion'].includes(mode);
-  // 'lld' couvre maintenant LCD/LMD/LLD (libellé groupé), 'location' = location simple
-  var isLocation = ['lld', 'location'].includes(mode);
-  var setDisplay = function(id, visible) {
-    var el = document.getElementById(id);
-    if (el) el.style.display = visible ? '' : 'none';
-  };
-  setDisplay('veh-bloc-achat', isAchat);
-  setDisplay('veh-bloc-location', isLocation);
-  // Crédit/LOA supprimés : on cache leurs blocs si encore présents
-  setDisplay('veh-bloc-credit', false);
-  setDisplay('veh-bloc-loa', false);
-  setDisplay('veh-prix-catalogue-wrap', false);
-  setDisplay('veh-apport-wrap', false);
-  // Achat comptant ET Achat occasion ont les mêmes champs (km rachat + année véhicule)
-  setDisplay('veh-occasion-km-wrap', isAchat);
-  setDisplay('veh-occasion-annee-wrap', isAchat);
-  mettreAJourFinContratVehicule();
-  mettreAJourInfosVehiculeFinancement();
-}
+// MOVED -> script-vehicules.js : mettreAJourFormulaireVehicule
 
 // MOVED -> script-rentabilite.js : getVehiculeMensualiteRentabilite
 
@@ -3289,367 +2263,19 @@ function mettreAJourFormulaireVehicule() {
 window.ajusterTVACarburantSelonGenre = ajusterTVACarburantSelonGenre;
 window.calculerTauxTVACarburant = calculerTauxTVACarburant;
 
-async function ajouterVehicule() {
-  const immat  = document.getElementById('veh-immat').value.trim().toUpperCase();
-  const modele = document.getElementById('veh-modele').value.trim();
-  const km     = parseFloat(document.getElementById('veh-km').value) || 0;
-  const conso  = parseFloat(document.getElementById('veh-conso').value) || 0;
-  const salId  = document.getElementById('veh-salarie')?.value || '';
-  const dateCT = document.getElementById('veh-date-ct')?.value || '';
-  const dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value || '';
-  const modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
-  const dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
-  const entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value) || 0;
-  const entretienIntervalMois = parseFloat(document.getElementById('veh-entretien-interval-mois')?.value) || 0;
-  const finance = lireFinanceVehiculeDepuisForm();
+// MOVED -> script-vehicules.js : ajouterVehicule
 
-  if (!immat) { afficherToast('⚠️ Immatriculation obligatoire', 'error'); return; }
-  if (charger('vehicules').some(v => (v.immat || '').trim().toUpperCase() === immat)) {
-    afficherToast('⚠️ Cette immatriculation existe déjà', 'error');
-    return;
-  }
-  if (salId && charger('vehicules').find(v => v.salId === salId)) {
-    afficherToast('⚠️ Ce salarié a déjà un véhicule', 'error'); return;
-  }
-
-  const sal = charger('salaries').find(s => s.id === salId);
-  // BUG-046 fix : champs flotte étendus (genre, Crit'Air, PTAC, VIN, taxe essieu)
-  const getV = (id) => (document.getElementById(id)?.value || '').trim();
-  const genre = getV('veh-genre');
-  const carburant = getV('veh-carburant');
-  // TVA carburant selon genre (CGI art. 298-4-1° et 298-4 D)
-  const tvaAutoCalc = calculerTauxTVACarburant(genre, carburant);
-  const tvaCarbSaisi = parseFloat(document.getElementById('veh-tva-carburant')?.value);
-  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 100);
-  const ptac = parseInt(getV('veh-ptac'), 10) || 0;
-  const ptra = parseInt(getV('veh-ptra'), 10) || 0;
-  const essieux = parseInt(getV('veh-essieux'), 10) || 0;
-  const critAir = getV('veh-critair');
-  const date1Immat = getV('veh-date-1immat');
-  const vin = getV('veh-vin').toUpperCase();
-  const carteGrise = getV('veh-carte-grise');
-  const assurance = {
-    compagnie: getV('veh-assurance-compagnie'),
-    numeroContrat: getV('veh-assurance-numero'),
-    dateExpiration: getV('veh-assurance-date-exp')
-  };
-  const vehicule = Object.assign({
-    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, dateCTDernier, tvaCarbDeductible,
-    modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
-    genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
-    salId: salId||null, salNom: sal ? sal.nom : null,
-    creeLe: new Date().toISOString()
-  }, finance);
-  // Carte grise : upload vers Supabase Storage si dispo, sinon fallback base64 local
-  if (window.__vehCGTemp && (window.__vehCGTemp.data || window.__vehCGTemp._file)) {
-    let uploaded = false;
-    if (window.DelivProStorage && window.__vehCGTemp._file) {
-      const cleanName = window.DelivProStorage.sanitizeFilename(window.__vehCGTemp.nom);
-      const path = `${vehicule.id}/${Date.now()}_${cleanName}`;
-      const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, window.__vehCGTemp._file, { contentType: window.__vehCGTemp.type });
-      if (up.ok) {
-        vehicule.carteGriseStoragePath = path;
-        vehicule.carteGriseFichierType = window.__vehCGTemp.type;
-        vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
-        uploaded = true;
-      } else {
-        console.warn('[ajouterVehicule] upload Storage echoue, fallback base64:', up.error?.message);
-      }
-    }
-    if (!uploaded && window.__vehCGTemp.data) {
-      vehicule.carteGriseFichier = window.__vehCGTemp.data;
-      vehicule.carteGriseFichierType = window.__vehCGTemp.type;
-      vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
-    }
-    window.__vehCGTemp = null;
-  }
-  const vehicules = charger('vehicules');
-  vehicules.push(vehicule);
-  if (!sauvegarder('vehicules', vehicules)) {
-    afficherToast('⚠️ Impossible d’enregistrer le véhicule', 'error');
-    return;
-  }
-
-  closeModal('modal-vehicule');
-  ['veh-immat','veh-modele','veh-km','veh-conso','veh-entretien-interval-km','veh-entretien-interval-mois',
-   'veh-assurance-compagnie','veh-assurance-numero','veh-assurance-date-exp'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
-  reinitialiserFinanceVehiculeForm();
-  if (document.getElementById('veh-mode-acquisition')) document.getElementById('veh-mode-acquisition').value = 'achat';
-  if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
-  if (document.getElementById('veh-date-acquisition')) document.getElementById('veh-date-acquisition').value = '';
-  if (document.getElementById('veh-date-ct')) document.getElementById('veh-date-ct').value = '';
-  if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = '';
-  if (typeof resetCarteGriseFormUI === 'function') resetCarteGriseFormUI();
-  if (document.getElementById('veh-salarie')) document.getElementById('veh-salarie').value = '';
-  if (document.getElementById('veh-tva-carburant')) document.getElementById('veh-tva-carburant').value = '80';
-  mettreAJourFormulaireVehicule();
-  mettreAJourSelects();
-  afficherVehicules();
-  afficherChauffeurs();
-  afficherTva();
-  afficherEntretiens();
-  afficherToast('✅ Véhicule ajouté !');
-}
-
-function afficherVehicules() {
-  let vehicules  = charger('vehicules');
-  const entretiens = charger('entretiens');
-  const salaries   = charger('salaries');
-  const tb = document.getElementById('tb-vehicules');
-  if (!tb) return;
-  paginer.__reload_tb_vehicules = afficherVehicules;
-
-  // Filtres
-  const filtreVehSal = document.getElementById('filtre-veh-salarie')?.value || '';
-  const filtreVehSearch = (document.getElementById('filtre-veh-search')?.value || '').trim().toLowerCase();
-  const filtreVehCarb = (document.getElementById('filtre-veh-carburant')?.value || '').toLowerCase();
-  const selFiltreVeh = document.getElementById('filtre-veh-salarie');
-  if (selFiltreVeh) {
-    const currentValue = selFiltreVeh.value;
-    selFiltreVeh.innerHTML = '<option value="">Tous les véhicules</option>';
-    vehicules.forEach(v => { selFiltreVeh.innerHTML += `<option value="${v.id}">${v.immat} — ${v.modele||''}</option>`; });
-    selFiltreVeh.value = currentValue;
-  }
-  if (filtreVehSal) vehicules = vehicules.filter(v => v.id === filtreVehSal);
-  if (filtreVehCarb) {
-    vehicules = vehicules.filter(v => {
-      const c = (v.typeCarburant || v.carburant || '').toLowerCase();
-      // Match partiel pour gérer les libellés composés ('diesel/gazole', etc.)
-      if (filtreVehCarb === 'diesel') return c.includes('diesel') || c.includes('gazole');
-      if (filtreVehCarb === 'gnv') return c.includes('gnv') || c.includes('biognv');
-      if (filtreVehCarb === 'electrique') return c.includes('electrique') || c.includes('électrique');
-      if (filtreVehCarb === 'hybride') return c.includes('hybride');
-      if (filtreVehCarb === 'hydrogene') return c.includes('hydrogene') || c.includes('hydrogène');
-      if (filtreVehCarb === 'essence') return c.includes('essence');
-      return c === filtreVehCarb;
-    });
-  }
-  if (filtreVehSearch) {
-    vehicules = vehicules.filter(function(v) {
-      return [
-        v.immat,
-        v.modele,
-        v.salNom,
-        v.modeAcquisition,
-        v.dateCT,
-        v.carburant,
-        v.typeCarburant
-      ].filter(Boolean).join(' ').toLowerCase().includes(filtreVehSearch);
-    });
-  }
-
-  const sv = document.getElementById('veh-salarie');
-  if (sv) {
-    const v = sv.value; sv.innerHTML = '<option value="">-- Aucun --</option>';
-    const allVeh = charger('vehicules');
-    salaries.forEach(s => { if (!allVeh.find(ve => ve.salId === s.id)) sv.innerHTML += `<option value="${s.id}">${s.nom} (${s.numero})</option>`; });
-    sv.value = v;
-  }
-
-  // Vérifier alertes CT (dans les 30 jours)
-  const auj = new Date(); const dans30j = new Date(); dans30j.setDate(auj.getDate()+30);
-  vehicules.forEach(v => {
-    const pilotageEntretien = getPilotageEntretienVehicule(v);
-    if (v.dateCT) {
-      const dateCT = new Date(v.dateCT);
-      if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${v.immat}`, { vehId: v.id });
-      else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `🔔 CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
-    }
-    // Carte verte / assurance (art. L211-1 Code des assurances — circulation interdite sans assurance)
-    const assurance = v.assurance || {};
-    if (assurance.dateExpiration) {
-      const dateAssu = new Date(assurance.dateExpiration);
-      if (dateAssu < auj) ajouterAlerteSiAbsente('assu_veh_expire_' + v.id, `⚠️ Carte verte expirée — ${v.immat} (circulation interdite L211-1 C. assur.)`, { vehId: v.id });
-      else if (dateAssu < dans30j) ajouterAlerteSiAbsente('assu_veh_proche_' + v.id, `🛡️ Carte verte expire dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
-    }
-    if (pilotageEntretien.estEnRetard && pilotageEntretien.prochainKm) {
-      ajouterAlerteSiAbsente('vidange', `🔧 Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
-    } else if (pilotageEntretien.estProche && pilotageEntretien.prochainKm) {
-      ajouterAlerteSiAbsente('vidange', `🔔 Entretien proche — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
-    }
-  });
-  afficherBadgeAlertes();
-
-  if (!vehicules.length) {
-    nettoyerPagination('tb-vehicules');
-    tb.innerHTML = emptyState('🚐','Aucun véhicule','Ajoutez votre premier véhicule pour commencer le suivi de flotte.');
-    return;
-  }
-  paginer(vehicules, 'tb-vehicules', function(items) {
-    return items.map(v => {
-    const ent = entretiens.filter(e => e.vehId === v.id).sort((a,b) => new Date(b.date)-new Date(a.date))[0];
-    const sal = v.salId ? salaries.find(s => s.id === v.salId) : null;
-    const kmActuel = calculerKilometrageVehiculeActuel(v);
-    const pilotageEntretien = getPilotageEntretienVehicule(v);
-
-    // Conso réelle : calcul entre pleins consécutifs (méthode correcte)
-    const pleinsVeh = charger('carburant').filter(p=>p.vehId===v.id && p.km)
-      .sort((a,b)=>new Date(a.date)-new Date(b.date));
-    let consoReelle = null;
-    if (pleinsVeh.length >= 2) {
-      // Calculer sur tous les intervalles entre pleins consécutifs
-      let totalLitres = 0, totalKm = 0, nbIntervalles = 0;
-      for (let i = 1; i < pleinsVeh.length; i++) {
-        const kmInterval = (pleinsVeh[i].km||0) - (pleinsVeh[i-1].km||0);
-        const litresPlein = pleinsVeh[i].litres || 0;
-        if (kmInterval > 0 && litresPlein > 0) {
-          totalLitres += litresPlein;
-          totalKm     += kmInterval;
-          nbIntervalles++;
-        }
-      }
-      if (totalKm > 0 && nbIntervalles > 0) {
-        consoReelle = (totalLitres / totalKm * 100).toFixed(1);
-      }
-    }
-
-    // Alerte CT
-    let ctLabel = v.dateCT ? v.dateCT : '—';
-    let ctStyle = '';
-    if (v.dateCT) {
-      const dct = new Date(v.dateCT);
-      if (dct < auj) ctStyle = 'color:#e74c3c;font-weight:600';
-      else if (dct < dans30j) ctStyle = 'color:var(--accent);font-weight:600';
-    }
-    const amort = calculerAmortissementVehicule(v);
-    const acquisitionInfos = [
-      v.modeAcquisition ? `<div style="font-weight:600">${(v.modeAcquisition||'').toUpperCase()}</div>` : '',
-      v.dateAcquisition ? `<div style="font-size:.76rem;color:var(--text-muted)">Depuis le ${formatDateExport(v.dateAcquisition)}</div>` : '',
-      (v.modeAcquisition === 'credit' && v.creditDureeMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Crédit ${v.creditDureeMois} mois</div>` : '',
-      (['lld','loa','location'].includes(v.modeAcquisition) && v.dureeContratMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Contrat ${v.dureeContratMois} mois</div>` : '',
-      (['achat','occasion'].includes(v.modeAcquisition) && v.dureeAmortissement) ? `<div style="font-size:.76rem;color:var(--text-muted)">Amort. ${v.dureeAmortissement} an(s)</div>` : '',
-      (v.entretienIntervalKm || v.entretienIntervalMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Révision ${v.entretienIntervalKm ? 'tous les ' + formatKm(v.entretienIntervalKm) : ''}${v.entretienIntervalKm && v.entretienIntervalMois ? ' / ' : ''}${v.entretienIntervalMois ? 'tous les ' + v.entretienIntervalMois + ' mois' : ''}</div>` : ''
-    ].filter(Boolean).join('');
-    const financeInfos = [
-      (['achat','occasion','credit'].includes(v.modeAcquisition) && v.prixAchatHT) ? `<div><strong>${euros(v.prixAchatHT)}</strong> HT</div>` : '',
-      (['achat','occasion','credit'].includes(v.modeAcquisition) && v.prixAchatTTC) ? `<div style="font-size:.76rem;color:var(--text-muted)">${euros((v.prixAchatTTC||0) - (v.prixAchatHT||0))} TVA • ${euros(v.prixAchatTTC)} TTC</div>` : '',
-      (['achat','occasion'].includes(v.modeAcquisition) && v.dureeAmortissement && amort.annuel) ? `<div style="font-size:.76rem;color:var(--accent)">Amort. ${euros(amort.annuel)}/an • ${amort.mode === 'degressif' ? 'dégressif' : 'linéaire'}</div>` : '',
-      (['lld','loa','location'].includes(v.modeAcquisition) && v.loyerMensuelHT) ? `<div style="font-size:.76rem;color:var(--accent)">Loyer mensuel : ${euros(v.loyerMensuelHT)}</div>` : '',
-      (v.modeAcquisition === 'credit' && v.creditMensualiteHT) ? `<div style="font-size:.76rem;color:var(--accent)">Mensualité : ${euros(v.creditMensualiteHT)}</div>` : '',
-      (v.modeAcquisition === 'loa' && v.loaOptionAchatHT) ? `<div style="font-size:.76rem;color:var(--text-muted)">Option achat : ${euros(v.loaOptionAchatHT)}</div>` : '',
-      (['lld','loa','location'].includes(v.modeAcquisition) && v.dateFinContrat) ? `<div style="font-size:.76rem;color:var(--text-muted)">Fin contrat : ${formatDateExport(v.dateFinContrat)}</div>` : '',
-      amort.prorataPremierExercice ? `<div style="font-size:.76rem;color:var(--text-muted)">Prorata fiscal 1er exercice : ${(amort.prorataPremierExercice * 100).toFixed(1)} %</div>` : '',
-      v.dateMiseAuRebut ? `<div style="font-size:.76rem;color:var(--text-muted)">Mise au rebut : ${formatDateExport(v.dateMiseAuRebut)}</div>` : '',
-      `<div style="font-size:.76rem;color:var(--text-muted)">TVA carburant ${formaterTaux(v.tvaCarbDeductible || 0)}</div>`
-    ].filter(Boolean).join('');
-    const entretienInfos = [
-      ent ? formatDateExport(ent.date) : '—',
-      pilotageEntretien.prochainKm ? `<div style="font-size:.75rem;color:${pilotageEntretien.estEnRetard ? 'var(--red)' : pilotageEntretien.estProche ? 'var(--accent)' : 'var(--text-muted)'}">Prochain km : ${formatKm(pilotageEntretien.prochainKm)}</div>` : '',
-      pilotageEntretien.dateEcheance ? `<div style="font-size:.75rem;color:var(--text-muted)">Échéance : ${formatDateExport(pilotageEntretien.dateEcheance)}</div>` : ''
-    ].filter(Boolean).join('');
-
-    // Type de carburant pour la nouvelle colonne dédiée
-    const carburantLabels = {
-      'diesel': '⛽ Diesel/Gazole', 'gazole': '⛽ Diesel/Gazole',
-      'essence': '⛽ Essence',
-      'gnv': '🌿 GNV/BioGNV', 'biognv': '🌿 GNV/BioGNV',
-      'electrique': '⚡ Électrique',
-      'hybride': '🔋 Hybride',
-      'hydrogene': '💧 Hydrogène'
-    };
-    const carbKey = (v.typeCarburant || v.carburant || '').toLowerCase();
-    // Match partiel pour les libellés composés ('diesel/gazole', etc.)
-    let carbAffiche = '—';
-    if (carbKey) {
-      if (carburantLabels[carbKey]) carbAffiche = carburantLabels[carbKey];
-      else if (carbKey.includes('diesel') || carbKey.includes('gazole')) carbAffiche = carburantLabels.diesel;
-      else if (carbKey.includes('essence')) carbAffiche = carburantLabels.essence;
-      else if (carbKey.includes('gnv')) carbAffiche = carburantLabels.gnv;
-      else if (carbKey.includes('electrique') || carbKey.includes('électrique')) carbAffiche = carburantLabels.electrique;
-      else if (carbKey.includes('hybride')) carbAffiche = carburantLabels.hybride;
-      else if (carbKey.includes('hydrogene') || carbKey.includes('hydrogène')) carbAffiche = carburantLabels.hydrogene;
-      else carbAffiche = v.typeCarburant || v.carburant; // Garde la casse originale
-    }
-    // Visualiser carte grise : grisé si aucun fichier uploadé
-    const aCarteGrise = !!(v.carteGriseFichier || v.carteGriseUrl);
-    const visuCG = aCarteGrise
-      ? { icon:'📄', label:'Visualiser carte grise', action:`visualiserCarteGrise('${v.id}')` }
-      : { icon:'📄', label:'Visualiser carte grise', action:`afficherToast('Aucune carte grise uploadée pour ce véhicule','info')`, disabled:true };
-    return `<tr>
-      <td><strong>${v.immat}</strong></td>
-      <td>${v.modele||'—'}</td>
-      <td>${kmActuel ? formatKm(kmActuel) : '—'}</td>
-      <td>${acquisitionInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td>${v.conso ? v.conso+' L/100km' : '—'}${consoReelle
-        ? ` <span style="color:var(--green);font-size:.75rem" title="Calculé entre ${pleinsVeh.length} pleins">(réel: ${consoReelle} L/100km)</span>`
-        : pleinsVeh.length === 1
-          ? ` <span style="color:var(--text-muted);font-size:.72rem">(1 plein — besoin de 2+)</span>`
-          : ''
-      }</td>
-      <td style="${ctStyle}">
-        ${v.dateCTDernier ? `<div style="font-size:.72rem;color:var(--text-muted);font-weight:400">Dernier : ${formatDateExport(v.dateCTDernier)}</div>` : ''}
-        <div>${v.dateCT ? 'Prochain : ' + formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</div>
-      </td>
-      <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td>${carbAffiche}</td>
-      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td>${entretienInfos || '—'}</td>
-      <td>
-        ${buildInlineActionsDropdown('Actions', [
-          { icon:'✏️', label:'Modifier', action:`ouvrirEditVehicule('${v.id}')` },
-          { icon:'👤', label:'Affecter un salarié', action:`ouvrirAffectationVehicule('${v.id}')` },
-          visuCG,
-          { icon:'💰', label:'Voir le TCO', action:`ouvrirTCO('${v.id}')` },
-          { icon:'🚐', label:'Historique conducteurs', action:`ouvrirHistoriqueConducteurs('${v.id}')` },
-          { icon:'🗑️', label:'Supprimer', action:`supprimerVehicule('${v.id}')`, danger:true }
-        ])}
-      </td>
-    </tr>`;
-  }).join('');
-  }, 10);
-}
+// MOVED -> script-vehicules.js : afficherVehicules
 
 /* Ajoute une alerte seulement si elle n'existe pas déjà (évite les doublons) */
 // MOVED -> script-alertes.js : ajouterAlerteSiAbsente
 
 let affectVehId = null;
-function ouvrirAffectationVehicule(vehId) {
-  affectVehId = vehId;
-  const vehicules = charger('vehicules'), salaries = charger('salaries');
-  const veh = vehicules.find(v => v.id === vehId);
-  document.getElementById('affect-veh-label').textContent = veh ? `${veh.immat} — ${veh.modele}` : '';
-  const sel = document.getElementById('affect-salarie-sel');
-  sel.innerHTML = '<option value="">-- Retirer l\'affectation --</option>';
-  salaries.forEach(s => {
-    const pris = vehicules.find(v => v.salId === s.id && v.id !== vehId);
-    if (!pris) sel.innerHTML += `<option value="${s.id}" ${veh?.salId===s.id?'selected':''}>${getSalarieNomComplet(s, { includeNumero: true })}</option>`;
-  });
-  document.getElementById('modal-affecter-vehicule').classList.add('open');
-}
+// MOVED -> script-vehicules.js : ouvrirAffectationVehicule
 
-function confirmerAffectationVehicule() {
-  const salId = document.getElementById('affect-salarie-sel').value;
-  const vehicules = charger('vehicules');
-  const idx = vehicules.findIndex(v => v.id === affectVehId);
-  if (idx > -1) {
-    // Retirer l'ancienne affectation
-    vehicules[idx].salId = salId || null;
-    vehicules[idx].salNom = null;
-    if (salId) {
-      const sal = charger('salaries').find(s => s.id === salId);
-      if (sal) vehicules[idx].salNom = sal.nom;
-    }
-    sauvegarder('vehicules', vehicules);
-  }
-  closeModal('modal-affecter-vehicule');
-  affectVehId = null;
-  afficherVehicules(); afficherChauffeurs();
-  afficherToast(salId ? '✅ Véhicule affecté !' : '✅ Affectation retirée');
-}
+// MOVED -> script-vehicules.js : confirmerAffectationVehicule
 
-async function supprimerVehicule(id) {
-  const veh = charger('vehicules').find(v => v.id === id);
-  const _ok2 = await confirmDialog(`Supprimer ${veh?.immat || 'ce véhicule'} ?`, {titre:'Supprimer le véhicule',icone:'🚐',btnLabel:'Supprimer'});
-  if (!_ok2) return;
-  // Supprimer le véhicule
-  sauvegarder('vehicules', charger('vehicules').filter(v => v.id !== id));
-  // Anonymiser les livraisons liées (garder l'historique)
-  const livraisons = charger('livraisons');
-  livraisons.forEach(l => { if (l.vehId === id) { l.vehId = null; l.vehNom = (veh?.immat||'Véhicule supprimé') + ' (archivé)'; } });
-  sauvegarder('livraisons', livraisons);
-  afficherVehicules(); afficherChauffeurs();
-  afficherToast('🗑️ Véhicule supprimé');
-}
+// MOVED -> script-vehicules.js : supprimerVehicule
 
 /* ===== ENTRETIENS (dans page Véhicules — historique simplifié) ===== */
 // MOVED -> script-entretiens.js : afficherEntretiensVehicules
@@ -3779,14 +2405,7 @@ async function supprimerKmAdmin(salId, kmId) {
 /* ===== ALERTES ADMIN ===== */
 // MOVED -> script-alertes.js : afficherAlertes
 
-function ouvrirLivraisonPourPrix(client) {
-  // Ouvre le modal livraison pré-rempli avec le client
-  openModal('modal-livraison');
-  if (client) {
-    const el = document.getElementById('liv-client');
-    if (el) el.value = client;
-  }
-}
+// MOVED -> script-livraisons.js : ouvrirLivraisonPourPrix
 
 // MOVED -> script-alertes.js : validerAlerte
 
@@ -4301,21 +2920,7 @@ function calculerPrevision() {
 /* ===== GESTION SALARIÉS ===== */
 let accessSalarieTargetId=null, editSalarieId=null;
 
-function toggleFormulaireNewSalarie() {
-  const el=document.getElementById('form-nouveau-salarie');
-  if (el.style.display==='none') {
-    el.style.display='block';
-    ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel'].forEach(id=>{ const champ=document.getElementById(id); if (champ) champ.value=''; });
-    mettreAJourQualiteMdpSalarie('new');
-    // Mettre à jour le select véhicule dans le formulaire
-    const sv=document.getElementById('nsal-vehicule');
-    if (sv) {
-      const vehicules=charger('vehicules');
-      sv.innerHTML='<option value="">-- Aucun pour l\'instant --</option>';
-      vehicules.filter(v=>!v.salId).forEach(v=>{ sv.innerHTML+=`<option value="${v.id}">${v.immat} — ${v.modele}</option>`; });
-    }
-  } else { el.style.display='none'; }
-}
+// MOVED -> script-salaries.js : toggleFormulaireNewSalarie
 
 function genererMotDePasseFort(prefix) {
   // Format : 1ère lettre majuscule + reste minuscule + '!' + 4 chiffres
@@ -4336,171 +2941,27 @@ function evaluerQualiteMotDePasse(value) {
   };
 }
 
-function mettreAJourQualiteMdpSalarie(mode) {
-  const isAccess = mode === 'access';
-  const input = document.getElementById(isAccess ? 'reset-mdp-val' : 'nsal-mdp');
-  const hint = document.getElementById(isAccess ? 'reset-mdp-hint' : 'nsal-mdp-hint');
-  if (!input || !hint) return;
-  const evaluation = evaluerQualiteMotDePasse(input.value);
-  hint.textContent = evaluation.texte;
-  hint.style.color = evaluation.couleur;
-}
+// MOVED -> script-salaries.js : mettreAJourQualiteMdpSalarie
 
-function genererMotDePasseSalarie(mode) {
-  const isAccess = mode === 'access';
-  const input = document.getElementById(isAccess ? 'reset-mdp-val' : 'nsal-mdp');
-  if (!input) return;
-  const numero = isAccess
-    ? (document.getElementById('reset-mdp-numero')?.textContent || '')
-    : (document.getElementById('nsal-numero')?.value || '');
-  input.value = genererMotDePasseFort(numero || 'MCA');
-  mettreAJourQualiteMdpSalarie(mode);
-}
+// MOVED -> script-salaries.js : genererMotDePasseSalarie
 
-function getStatutAccesSalarieLocal(salarie) {
-  if (!salarie) return 'Fiche salarie introuvable.';
-  if (salarie.actif === false) return 'Compte inactif. Reactivez le salarie avant de modifier son acces.';
-  if (salarie.mdpHash) return 'Un mot de passe existe deja pour ce salarie.';
-  return 'Aucun mot de passe defini pour le moment.';
-}
+// MOVED -> script-salaries.js : getStatutAccesSalarieLocal
 
-function genererEmailTechniqueSalarie(numero) {
-  const base = String(numero || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '')
-    .replace(/[^a-z0-9._-]/g, '');
-  return base ? `${base}@salarie.mca-logistics.fr` : '';
-}
+// MOVED -> script-salaries.js : genererEmailTechniqueSalarie
 
-function getSupabaseClientSafe() {
-  return window.DelivProSupabase && window.DelivProSupabase.getClient
-    ? window.DelivProSupabase.getClient()
-    : null;
-}
+// MOVED -> script-clients.js : getSupabaseClientSafe
 
-function construirePayloadSupabaseSalarie(salarie) {
-  if (!salarie) return null;
-  const payload = {
-    profile_id: salarie.profileId || null,
-    numero: salarie.numero || null,
-    nom: salarie.nomFamille || salarie.nom || null,
-    prenom: salarie.prenom || null,
-    poste: salarie.poste || null,
-    permis: salarie.datePermis || null,
-    assurance: salarie.dateAssurance || null,
-    telephone: salarie.tel || null,
-    email: salarie.email || genererEmailTechniqueSalarie(salarie.numero) || null,
-    actif: salarie.actif !== false,
-    updated_at: new Date().toISOString()
-  };
-  if (salarie.supabaseId) payload.id = salarie.supabaseId;
-  return payload;
-}
+// MOVED -> script-salaries.js : construirePayloadSupabaseSalarie
 
-async function synchroniserSalarieVersSupabase(salarie) {
-  const client = getSupabaseClientSafe();
-  const sessionAdmin = getAdminSession();
-  if (!client || sessionAdmin.authMode !== 'supabase' || !salarie || !salarie.numero) return { ok: false, skipped: true };
+// MOVED -> script-salaries.js : synchroniserSalarieVersSupabase
 
-  const payload = construirePayloadSupabaseSalarie(salarie);
-  const previousNumero = salarie.previousNumero || null;
-  let query = null;
+// MOVED -> script-salaries.js : supprimerSalarieDansSupabase
 
-  if (salarie.supabaseId) {
-    query = client.from('salaries').update(payload).eq('id', salarie.supabaseId);
-  } else if (previousNumero && previousNumero !== salarie.numero) {
-    query = client.from('salaries').update(payload).eq('numero', previousNumero);
-  } else {
-    query = client.from('salaries').upsert(payload, { onConflict: 'numero' });
-  }
+// MOVED -> script-salaries.js : hydraterSalarieLocalDepuisSupabase
 
-  const { data, error } = await query
-    .select('id, profile_id, numero, email, actif, nom, prenom, poste, permis, assurance, telephone')
-    .single();
+// MOVED -> script-salaries.js : notifierSynchroSalarie
 
-  if (error) return { ok: false, error: error };
-  return { ok: true, record: data };
-}
-
-async function supprimerSalarieDansSupabase(salarie) {
-  const client = getSupabaseClientSafe();
-  const sessionAdmin = getAdminSession();
-  if (!client || sessionAdmin.authMode !== 'supabase' || !salarie) return { ok: false, skipped: true };
- 
-  // Étape 1 — Appel Edge Function : supprime auth.users + profiles + salaries en cascade
-  if (window.DelivProAdminSupabase && window.DelivProAdminSupabase.deleteSalarieAccess) {
-    const deleteAuthResult = await window.DelivProAdminSupabase.deleteSalarieAccess({
-      salarieId: salarie.supabaseId || salarie.id || null,
-      numero: salarie.numero || null
-    });
-    if (deleteAuthResult.ok) return { ok: true };
-    console.warn('[MCA] Edge Function delete-salarie-access:', deleteAuthResult.error?.message || deleteAuthResult.reason);
-  }
- 
-  // Étape 2 — Fallback : suppression directe dans la table salaries uniquement
-  let query = client.from('salaries').delete();
-  if (salarie.supabaseId)  query = query.eq('id', salarie.supabaseId);
-  else if (salarie.id)     query = query.eq('id', salarie.id);
-  else if (salarie.numero) query = query.eq('numero', salarie.numero);
-  else return { ok: false, skipped: true };
- 
-  const { error } = await query;
-  if (error) return { ok: false, error: error };
-  return { ok: true };
-}
-
-function hydraterSalarieLocalDepuisSupabase(salarie, record) {
-  if (!salarie || !record) return salarie;
-  salarie.supabaseId = record.id || salarie.supabaseId || '';
-  salarie.profileId = record.profile_id || salarie.profileId || '';
-  salarie.email = record.email || salarie.email || '';
-  salarie.actif = record.actif !== false;
-  return salarie;
-}
-
-function notifierSynchroSalarie(resultat, actionLabel) {
-  if (!resultat || resultat.skipped) return;
-  // Succès sync Supabase = silencieux (opération normale, pas de bruit user)
-  if (resultat.ok) return;
-  const message = resultat.error?.message || 'Synchronisation Supabase indisponible';
-  afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
-}
-
-async function provisionnerAccesSalarie(salarie, password) {
-  if (!salarie || !password) return { ok: false, reason: 'missing_data', error: { message: 'Donnees salarie manquantes' } };
-  if (!window.DelivProAdminSupabase || !window.DelivProAdminSupabase.provisionSalarieAccess) {
-    return { ok: false, reason: 'unavailable', error: { message: 'Provisioning Supabase indisponible' } };
-  }
-  const sessionAdmin = getAdminSession();
-  if (sessionAdmin.authMode !== 'supabase') {
-    return { ok: false, reason: 'admin_local_session', error: { message: 'Reconnectez-vous en admin via Supabase pour activer la synchro multi-appareils.' } };
-  }
-
-  const result = await window.DelivProAdminSupabase.provisionSalarieAccess({
-    salarieId: salarie.supabaseId || null,
-    numero: salarie.numero,
-    nom: salarie.nomFamille || salarie.nom || '',
-    prenom: salarie.prenom || '',
-    email: salarie.email || genererEmailTechniqueSalarie(salarie.numero),
-    password: password
-  });
-
-  if (!result.ok) return result;
-
-  const salaries = charger('salaries');
-  const idx = salaries.findIndex(function(item) { return item.id === salarie.id; });
-  if (idx > -1) {
-    salaries[idx].profileId = result.data?.profileId || salaries[idx].profileId || '';
-    salaries[idx].supabaseId = result.data?.salarieId || salaries[idx].supabaseId || '';
-    salaries[idx].email = result.data?.email || salaries[idx].email || '';
-    salaries[idx].mdpHash = await hasherMotDePasseLocal(password);
-    sauvegarder('salaries', salaries);
-    return { ok: true, data: result.data || null, salarie: salaries[idx] };
-  }
-
-  return { ok: true, data: result.data || null, salarie: salarie };
-}
+// MOVED -> script-salaries.js : provisionnerAccesSalarie
 
 // Upload documents salarié (permis / cni / iban / vitale / medecine).
 // En mode création : stockage en window.__salDocsTemp[type]
@@ -4509,411 +2970,21 @@ window.__salDocsTemp = {};
 // Upload doc salarie : pousse vers Supabase Storage (bucket salaries-docs).
 // Le storage_path est stocke dans salarie.docs[type] au lieu du base64.
 // Multi-device natif : ce qu'un admin upload, l'autre admin le voit instantanement.
-async function uploaderDocSalarie(input, type) {
-  const file = input && input.files && input.files[0];
-  if (!file) return;
-  const okType = /^application\/pdf$|^image\//i.test(file.type);
-  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
-
-  const isEdit = input.id.startsWith('edit-');
-  const labelEl = document.getElementById((isEdit ? 'edit-' : '') + 'nsal-doc-' + type + '-label');
-  const wrapper = input.previousElementSibling;
-  const cleanName = (window.DelivProStorage && window.DelivProStorage.sanitizeFilename)
-    ? window.DelivProStorage.sanitizeFilename(file.name) : file.name;
-
-  // Mode CREATION : on garde le blob en mémoire ; l'upload se fera dans creerSalarie
-  // une fois le salarie.id genere.
-  if (!isEdit || !window._editSalarieId) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      window.__salDocsTemp = window.__salDocsTemp || {};
-      window.__salDocsTemp[type] = { data: e.target.result, type: file.type, nom: file.name };
-      if (labelEl) labelEl.textContent = '✅ ' + file.name;
-      if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
-    };
-    reader.readAsDataURL(file);
-    return;
-  }
-
-  // Mode EDITION : upload immediat vers Storage
-  const salId = window._editSalarieId;
-  const path = `${salId}/${type}/${Date.now()}_${cleanName}`;
-
-  if (!window.DelivProStorage) {
-    afficherToast('⚠️ Storage indisponible, document non enregistré', 'error');
-    return;
-  }
-
-  if (labelEl) labelEl.textContent = '⏳ Envoi...';
-  const up = await window.DelivProStorage.uploadBlob('salaries-docs', path, file, { contentType: file.type });
-  if (!up.ok) {
-    if (labelEl) labelEl.textContent = '❌ ' + (up.error?.message || 'echec');
-    afficherToast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'), 'error');
-    return;
-  }
-
-  // Met a jour salarie.docs[type] avec les metadata + insere dans salaries_documents
-  const salaries = charger('salaries');
-  const idx = salaries.findIndex(s => s.id === salId);
-  if (idx > -1) {
-    const previous = salaries[idx].docs && salaries[idx].docs[type];
-    salaries[idx].docs = salaries[idx].docs || {};
-    salaries[idx].docs[type] = {
-      storage_path: path,
-      bucket: 'salaries-docs',
-      type: file.type,
-      nom: file.name,
-      taille: file.size,
-      uploaded_at: new Date().toISOString()
-    };
-    sauvegarder('salaries', salaries);
-
-    // Trace dans la table salaries_documents (pour audit/historique)
-    try {
-      const client = window.DelivProSupabase && window.DelivProSupabase.getClient();
-      if (client) {
-        await client.from('salaries_documents').insert({
-          salarie_id: salId,
-          type: type,
-          storage_path: path,
-          mime_type: file.type,
-          taille_octets: file.size,
-          nom_fichier: file.name
-        });
-      }
-    } catch (_) {}
-
-    // Supprime l'ancien fichier si on remplace un upload Storage existant
-    if (previous && previous.storage_path && previous.storage_path !== path) {
-      window.DelivProStorage.remove('salaries-docs', previous.storage_path).catch(function () {});
-    }
-  }
-
-  if (labelEl) labelEl.textContent = '✅ ' + file.name;
-  if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
-  afficherToast('✅ Document enregistré');
-}
+// MOVED -> script-salaries.js : uploaderDocSalarie
 
 // Visualise un document salarié (PDF embed ou image).
 // Pour Storage : download blob + objectURL (plus fiable que signed URL embed).
-async function visualiserDocSalarie(salId, type) {
-  const sal = charger('salaries').find(s => s.id === salId);
-  const doc = sal && sal.docs && sal.docs[type];
-  if (!doc) { afficherToast('Aucun document de ce type', 'info'); return; }
+// MOVED -> script-salaries.js : visualiserDocSalarie
 
-  const isPdf = (doc.type || '').includes('pdf');
-  const titreType = ({ permis:'Permis', cni:'CNI', iban:'IBAN', vitale:'Carte vitale', medecine:'Médecine du travail' })[type] || type;
-  const label = sal.nom + ' — ' + titreType;
+// MOVED -> script-salaries.js : creerSalarie
 
-  // Cas legacy base64
-  if (doc.data && String(doc.data).indexOf('data:') === 0) {
-    afficherDocumentDansFenetre(doc.data, isPdf, label);
-    return;
-  }
+// MOVED -> script-salaries.js : afficherSalaries
 
-  // Cas Storage : download blob + objectURL
-  if (!doc.storage_path || !window.DelivProStorage) {
-    afficherToast('Document indisponible', 'info');
-    return;
-  }
-  afficherToast('⏳ Chargement du document...', 'info');
-  const bucket = doc.bucket || 'salaries-docs';
-  const dl = await window.DelivProStorage.download(bucket, doc.storage_path);
-  if (!dl.ok) { afficherToast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur'), 'error'); return; }
-  const objectUrl = URL.createObjectURL(dl.blob);
-  afficherDocumentDansFenetre(objectUrl, isPdf, label);
-  setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (_) {} }, 300000);
-}
+// MOVED -> script-salaries.js : ouvrirEditSalarie
 
-async function creerSalarie() {
-  const nom    = document.getElementById('nsal-nom').value.trim();
-  const prenom = document.getElementById('nsal-prenom')?.value.trim() || '';
-  const nomComplet = prenom ? `${prenom} ${nom}` : nom;
-  const numero = document.getElementById('nsal-numero').value.trim().toUpperCase();
-  const mdp    = document.getElementById('nsal-mdp').value;
-  const tel    = document.getElementById('nsal-tel').value.trim();
-  const emailSaisi = document.getElementById('nsal-email')?.value.trim() || '';
-  const poste  = document.getElementById('nsal-poste')?.value.trim() || '';
-  const datePermis    = document.getElementById('nsal-date-permis')?.value || '';
-  const dateAssurance = document.getElementById('nsal-date-assurance')?.value || '';
-  const vehId  = document.getElementById('nsal-vehicule')?.value || '';
-  const categoriePermis = document.getElementById('nsal-cat-permis')?.value || '';
-  const getV = (id) => (document.getElementById(id)?.value || '').trim();
-  const visiteMedicale = {
-    date: getV('nsal-visite-date'),
-    aptitude: getV('nsal-visite-aptitude'),
-    dateExpiration: getV('nsal-visite-date-exp')
-  };
+// MOVED -> script-salaries.js : confirmerEditSalarie
 
-  if (!nom||!numero||!mdp) { afficherToast('⚠️ Nom, numero et mot de passe obligatoires', 'error'); return; }
-  const qualiteMdp = evaluerQualiteMotDePasseFort(mdp);
-  if (!qualiteMdp.ok) { afficherToast('⚠️ ' + qualiteMdp.message, 'error'); return; }
-  const salaries=charger('salaries');
-  if (salaries.find(s=>s.numero===numero)) { afficherToast('⚠️ Ce numéro existe déjà', 'error'); return; }
-
-  const salarie={
-    id:genId(), nom:nomComplet, nomFamille:nom, prenom, numero,
-    email: emailSaisi || genererEmailTechniqueSalarie(numero),
-    emailPersonnel: emailSaisi || '',
-    mdpHash:await hasherMotDePasseLocal(mdp),
-    tel, poste, datePermis, dateAssurance, categoriePermis,
-    visiteMedicale,
-    actif:true, creeLe:new Date().toISOString()
-  };
-  // Upload des documents temp (permis, cni, iban, vitale, medecine) vers Supabase Storage.
-  // Le base64 reste en localStorage en fallback si l'upload echoue (mode offline).
-  if (window.__salDocsTemp && Object.keys(window.__salDocsTemp).length) {
-    salarie.docs = {};
-    const tempCopy = Object.assign({}, window.__salDocsTemp);
-    window.__salDocsTemp = {};
-
-    if (window.DelivProStorage) {
-      const supaClient = window.DelivProSupabase && window.DelivProSupabase.getClient();
-      for (const t of Object.keys(tempCopy)) {
-        const d = tempCopy[t];
-        if (!d || !d.data) continue;
-        const cleanName = window.DelivProStorage.sanitizeFilename(d.nom || t);
-        const path = `${salarie.id}/${t}/${Date.now()}_${cleanName}`;
-        const up = await window.DelivProStorage.uploadDataUrl('salaries-docs', path, d.data, { contentType: d.type });
-        if (up.ok) {
-          salarie.docs[t] = { storage_path: path, bucket: 'salaries-docs', type: d.type, nom: d.nom, uploaded_at: new Date().toISOString() };
-          if (supaClient) {
-            try {
-              await supaClient.from('salaries_documents').insert({
-                salarie_id: salarie.id, type: t, storage_path: path,
-                mime_type: d.type, nom_fichier: d.nom
-              });
-            } catch (_) {}
-          }
-        } else {
-          // Fallback : on garde le base64 si l'upload echoue
-          salarie.docs[t] = d;
-          console.warn('[creerSalarie] upload doc', t, 'echoue, base64 conserve:', up.error?.message);
-        }
-      }
-    } else {
-      // Storage indisponible : fallback complet base64
-      Object.assign(salarie.docs, tempCopy);
-    }
-
-    ['permis', 'cni', 'iban', 'vitale', 'medecine'].forEach(t => {
-      const lbl = document.getElementById('nsal-doc-' + t + '-label');
-      const inp = document.getElementById('nsal-doc-' + t);
-      if (lbl) lbl.textContent = '📎 Choisir un fichier';
-      if (inp) { inp.value = ''; const wrap = inp.previousElementSibling; if (wrap && wrap.classList) wrap.classList.remove('has-file'); }
-    });
-  }
-  salaries.push(salarie);
-  sauvegarder('salaries', salaries);
-
-  // Ajouter comme chauffeur
-  const chauffeurs=charger('chauffeurs');
-  if (!chauffeurs.find(c=>c.id===salarie.id)) {
-    chauffeurs.push({ id:salarie.id, nom:nomComplet, tel, statut:'disponible', creeLe:salarie.creeLe });
-    sauvegarder('chauffeurs', chauffeurs);
-  }
-
-  // Affecter le véhicule si sélectionné
-  if (vehId) {
-    const vehicules=charger('vehicules');
-    const vi=vehicules.findIndex(v=>v.id===vehId);
-    if (vi>-1 && !vehicules[vi].salId) { vehicules[vi].salId=salarie.id; vehicules[vi].salNom=nomComplet; sauvegarder('vehicules', vehicules); }
-  }
-
-  const syncResult = await synchroniserSalarieVersSupabase(salarie);
-  if (syncResult.ok && syncResult.record) {
-    hydraterSalarieLocalDepuisSupabase(salarie, syncResult.record);
-    sauvegarder('salaries', salaries);
-  }
-  const provisionResult = await provisionnerAccesSalarie(salarie, mdp);
-  if (provisionResult?.ok && provisionResult.salarie) {
-    salarie.profileId = provisionResult.salarie.profileId || salarie.profileId || '';
-    salarie.supabaseId = provisionResult.salarie.supabaseId || salarie.supabaseId || '';
-    salarie.email = provisionResult.salarie.email || salarie.email || '';
-    salarie.mdpHash = provisionResult.salarie.mdpHash || salarie.mdpHash;
-  }
-
-  ['nsal-nom','nsal-prenom','nsal-numero','nsal-mdp','nsal-tel','nsal-email',
-    'nsal-date-permis','nsal-date-assurance',
-    'nsal-visite-date','nsal-visite-date-exp'
-  ].forEach(id => { const el=document.getElementById(id); if (el) el.value=''; });
-  ['nsal-poste','nsal-vehicule','nsal-cat-permis','nsal-visite-aptitude'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const transportSec = document.getElementById('nsal-transport-section');
-  if (transportSec) transportSec.open = false;
-  mettreAJourQualiteMdpSalarie('new');
-  document.getElementById('form-nouveau-salarie').style.display='none';
-  afficherSalaries();
-  rafraichirDependancesSalaries();
-  if (provisionResult?.ok) afficherToast(`✅ Salarie cree pour ${nomComplet} avec acces multi-appareils`);
-  else if (provisionResult && !provisionResult.ok) afficherToast(`⚠️ Salarie cree pour ${nomComplet}, mais l'acces distant n'a pas pu etre active (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
-  else afficherToast(`✅ Salarie cree pour ${nomComplet}`);
-  notifierSynchroSalarie(syncResult, 'Salarie');
-}
-
-function afficherSalaries() {
-  const salaries=charger('salaries'), vehicules=charger('vehicules');
-  const tb=document.getElementById('tb-salaries');
-  if (!tb) return;
-  paginer.__reload_tb_salaries = afficherSalaries;
-  if (!salaries.length) {
-    nettoyerPagination('tb-salaries');
-    tb.innerHTML=emptyState('👥','Aucun salarié','Créez votre premier salarié pour commencer.');
-    return;
-  }
-  // Mettre à jour le select poste
-  majSelectsPostes();
-  paginer(salaries, 'tb-salaries', function(items) {
-    return items.map(s=>{
-    const veh=getSalarieVehicule(s);
-    const stats = getSalarieStatsMois(s.id);
-    const vehLabel=veh
-      ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${veh.id}')" title="Ouvrir le véhicule" style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</button>`
-      : `<span style="color:var(--text-muted);font-size:0.82rem">Non affecté</span>`;
-    const badge=s.actif
-      ? '<span class="badge badge-dispo">✅ Actif</span>'
-      : '<span class="badge badge-inactif">⏸️ Inactif</span>';
-    const noteInterne = charger_note_interne(s.id);
-    const conformite = getSalarieConformiteBadges(s);
-    const activite = `<div style="font-size:.82rem"><strong>${stats.livraisons}</strong> livr.</div><div style="font-size:.78rem;color:var(--text-muted)">${euros(stats.ca)} · ${stats.heures.toFixed(1)} h</div>`;
-    return `<tr>
-      <td><button type="button" class="table-link-button" onclick="ouvrirLivraisonsSalarie('${s.id}')" title="Voir ses livraisons"><strong>${s.nom}</strong></button>${noteInterne?'<span class="note-dot" title="Note interne"></span>':''}${s.poste?`<br><span style="color:var(--text-muted);font-size:0.78rem">${s.poste}</span>`:'<br><span style="color:var(--text-muted);font-size:0.78rem">Aucun poste</span>'}${conformite?`<div style="margin-top:6px">${conformite}</div>`:''}</td>
-      <td><code style="background:var(--bg-dark);padding:2px 8px;border-radius:4px;font-size:0.85rem">${s.numero}</code></td>
-      <td>${s.tel||'—'}</td><td>${vehLabel}</td><td>${activite}</td><td>${badge}</td>
-      <td>
-        ${buildInlineActionsDropdown('Actions', [
-          { icon:'✏️', label:'Modifier la fiche', action:`ouvrirEditSalarie('${s.id}')` },
-          { icon:'🔑', label:"Gérer l'accès", action:`ouvrirGestionAccesSalarie('${s.id}','${s.nom}')` },
-          { icon:'📅', label:'Voir le planning', action:`ouvrirPlanningSalarie('${s.id}')` },
-          { icon:'⏱️', label:'Voir heures & km', action:`ouvrirHeuresSalarie('${s.id}')` },
-          { icon:'📋', label:'Fiche tournée', action:`genererFicheTournee('${s.id}')` },
-          { icon:'📝', label:'Note interne', action:`ouvrirNoteInterne('${s.id}','${s.nom}')` },
-          { icon:(s.actif?'⏸️':'▶️'), label:(s.actif?'Désactiver':'Activer'), action:`toggleActifSalarie('${s.id}')` },
-          { icon:'🗑️', label:'Supprimer', action:`supprimerSalarie('${s.id}')`, danger:true }
-        ])}
-      </td></tr>`;
-    }).join('');
-  }, 12);
-}
-
-async function ouvrirEditSalarie(id) {
-  window._editSalarieId = id;
-  editSalarieId = id;
-  const sal=charger('salaries').find(s=>s.id===id); if(!sal) return;
-  await actualiserVerrousEditionDistance();
-  const lockResult = prendreVerrouEdition('salarie', id, sal.nom || 'Salarié');
-  if (!lockResult.ok) {
-    afficherToast(`⚠️ Fiche salarié en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
-    editSalarieId = null;
-    window._editSalarieId = null;
-    return;
-  }
-  document.getElementById('edit-sal-nom').value    = sal.nomFamille || sal.nom;
-  if (document.getElementById('edit-sal-prenom')) document.getElementById('edit-sal-prenom').value = sal.prenom || '';
-  document.getElementById('edit-sal-numero').value = sal.numero;
-  document.getElementById('edit-sal-tel').value    = sal.tel||'';
-  if (document.getElementById('edit-sal-poste')) document.getElementById('edit-sal-poste').value = sal.poste||'';
-  if (document.getElementById('edit-sal-date-permis')) document.getElementById('edit-sal-date-permis').value = sal.datePermis||'';
-  if (document.getElementById('edit-sal-date-assurance')) document.getElementById('edit-sal-date-assurance').value = sal.dateAssurance||'';
-  if (document.getElementById('edit-sal-cat-permis')) document.getElementById('edit-sal-cat-permis').value = sal.categoriePermis || '';
-  const vm = sal.visiteMedicale || {};
-  if (document.getElementById('edit-sal-visite-date')) document.getElementById('edit-sal-visite-date').value = vm.date || '';
-  if (document.getElementById('edit-sal-visite-aptitude')) document.getElementById('edit-sal-visite-aptitude').value = vm.aptitude || '';
-  if (document.getElementById('edit-sal-visite-date-exp')) document.getElementById('edit-sal-visite-date-exp').value = vm.dateExpiration || '';
-
-  // Charger select véhicule
-  const vehicules=charger('vehicules');
-  const sve=document.getElementById('edit-sal-vehicule');
-  if (sve) {
-    const vehAct=vehicules.find(v=>v.salId===id);
-    sve.innerHTML='<option value="">-- Retirer l\'affectation --</option>';
-    vehicules.forEach(v=>{
-      const pris = v.salId && v.salId !== id;
-      if (!pris) sve.innerHTML+=`<option value="${v.id}" ${v.salId===id?'selected':''}>${v.immat} — ${v.modele}</option>`;
-    });
-  }
-  document.getElementById('modal-edit-salarie').classList.add('open');
-  afficherAlerteVerrouModal('modal-edit-salarie', '');
-}
-
-async function confirmerEditSalarie() {
-  surveillerConflitsEditionActifs();
-  const lockState = verifierVerrouEdition('salarie', editSalarieId || window._editSalarieId);
-  if (!lockState.ok) {
-    afficherToast(`⚠️ Cette fiche salarié est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
-    return;
-  }
-  const nomFamille = document.getElementById('edit-sal-nom').value.trim();
-  const prenom     = document.getElementById('edit-sal-prenom')?.value.trim()||'';
-  const nomComplet = prenom ? `${prenom} ${nomFamille}` : nomFamille;
-  const numero = document.getElementById('edit-sal-numero').value.trim().toUpperCase();
-  const tel    = document.getElementById('edit-sal-tel').value.trim();
-  const poste  = document.getElementById('edit-sal-poste')?.value.trim()||'';
-  const vehId  = document.getElementById('edit-sal-vehicule')?.value||'';
-  const datePermis    = document.getElementById('edit-sal-date-permis')?.value||'';
-  const dateAssurance = document.getElementById('edit-sal-date-assurance')?.value||'';
-
-  if (!nomFamille||!numero) { afficherToast('⚠️ Nom et numéro obligatoires', 'error'); return; }
-  const salaries=charger('salaries');
-  if (salaries.find(s=>s.numero===numero&&s.id!==editSalarieId)) { afficherToast('⚠️ Numéro déjà utilisé', 'error'); return; }
-  const idx=salaries.findIndex(s=>s.id===editSalarieId);
-  if (idx>-1) {
-    const ancienNumero = salaries[idx].numero || null;
-    salaries[idx].nom=nomComplet; salaries[idx].nomFamille=nomFamille; salaries[idx].prenom=prenom;
-    salaries[idx].numero=numero; salaries[idx].email=genererEmailTechniqueSalarie(numero); salaries[idx].tel=tel; salaries[idx].poste=poste;
-    salaries[idx].datePermis=datePermis; salaries[idx].dateAssurance=dateAssurance;
-    salaries[idx].categoriePermis = document.getElementById('edit-sal-cat-permis')?.value || '';
-    salaries[idx].visiteMedicale = {
-      date: document.getElementById('edit-sal-visite-date')?.value || '',
-      aptitude: document.getElementById('edit-sal-visite-aptitude')?.value || '',
-      dateExpiration: document.getElementById('edit-sal-visite-date-exp')?.value || ''
-    };
-    salaries[idx].previousNumero = ancienNumero;
-    sauvegarder('salaries', salaries);
-    // Propager dans chauffeurs
-    const ch=charger('chauffeurs'), ci=ch.findIndex(c=>c.id===editSalarieId);
-    if(ci>-1){ch[ci].nom=nomComplet;ch[ci].tel=tel;sauvegarder('chauffeurs',ch);}
-    // Mettre à jour affectation véhicule
-    const vehicules=charger('vehicules');
-    // Retirer l'ancienne affectation de ce salarié
-    vehicules.forEach(v=>{ if(v.salId===editSalarieId){v.salId=null;v.salNom=null;} });
-    // Attribuer le nouveau véhicule si sélectionné
-    if (vehId) {
-      const vi=vehicules.findIndex(v=>v.id===vehId);
-      if(vi>-1){vehicules[vi].salId=editSalarieId;vehicules[vi].salNom=nomComplet;}
-    }
-    sauvegarder('vehicules', vehicules);
-
-    const syncResult = await synchroniserSalarieVersSupabase(salaries[idx]);
-    if (syncResult.ok && syncResult.record) {
-      hydraterSalarieLocalDepuisSupabase(salaries[idx], syncResult.record);
-      delete salaries[idx].previousNumero;
-      sauvegarder('salaries', salaries);
-    }
-    notifierSynchroSalarie(syncResult, 'Modification salarie');
-  }
-  closeModal('modal-edit-salarie');
-  editSalarieId=null; window._editSalarieId=null;
-  afficherSalaries();
-  rafraichirDependancesSalaries();
-  afficherToast('✅ Fiche mise à jour');
-}
-
-function ouvrirGestionAccesSalarie(id, nom) {
-  accessSalarieTargetId = id;
-  const salarie = charger('salaries').find(function(item) { return item.id === id; });
-  const sessionAdmin = getAdminSession();
-  document.getElementById('reset-mdp-nom').textContent = nom || salarie?.nom || 'Salarie';
-  document.getElementById('reset-mdp-numero').textContent = salarie?.numero || '—';
-  document.getElementById('reset-mdp-statut').textContent = sessionAdmin.authMode === 'supabase'
-    ? 'Mode multi-appareils actif. Ce mot de passe mettra a jour le compte Supabase du salarie.'
-    : 'Mode local admin. Le mot de passe sera mis a jour localement uniquement tant que vous ne vous reconnectez pas via Supabase.';
-  document.getElementById('reset-mdp-val').value = '';
-  genererMotDePasseSalarie('access');
-  document.getElementById('modal-reset-mdp').classList.add('open');
-}
+// MOVED -> script-salaries.js : ouvrirGestionAccesSalarie
 
 async function confirmerResetMdp() {
   const nouveau=document.getElementById('reset-mdp-val').value;
@@ -4936,74 +3007,9 @@ async function confirmerResetMdp() {
   afficherToast(`⚠️ Mise a jour de l'acces impossible (${provisionResult?.error?.message || provisionResult?.reason || 'erreur inconnue'})`, 'error');
 }
 
-function toggleActifSalarie(id) {
-  const salaries=charger('salaries'),idx=salaries.findIndex(s=>s.id===id);
-  if(idx>-1){
-    salaries[idx].actif=!salaries[idx].actif;
-    sauvegarder('salaries',salaries);
-    afficherSalaries();
-    rafraichirDependancesSalaries();
-    afficherToast(salaries[idx].actif?'✅ Activé':'⏸️ Désactivé');
-    synchroniserSalarieVersSupabase(salaries[idx]).then(function(resultat){
-      if (resultat.ok && resultat.record) {
-        hydraterSalarieLocalDepuisSupabase(salaries[idx], resultat.record);
-        sauvegarder('salaries', salaries);
-      }
-      notifierSynchroSalarie(resultat, 'Statut salarie');
-    });
-  }
-}
+// MOVED -> script-salaries.js : toggleActifSalarie
 
-async function supprimerSalarie(id) {
-  const sal = charger('salaries').find(s => s.id === id);
-  const _ok1 = await confirmDialog(`Supprimer ${sal?.nom || 'ce salarié'} ? Toutes ses données seront effacées.`, {titre:'Supprimer le salarié',icone:'🗑️',btnLabel:'Supprimer'});
-  if (!_ok1) return;
-
-  const syncResult = await supprimerSalarieDansSupabase(sal);
-
-  // 1. Supprimer de la liste salariés
-  sauvegarder('salaries', charger('salaries').filter(s => s.id !== id));
-
-  // 2. Supprimer de la liste chauffeurs
-  sauvegarder('chauffeurs', charger('chauffeurs').filter(c => c.id !== id));
-
-  // 3. Retirer l'affectation véhicule
-  const vehicules = charger('vehicules');
-  vehicules.forEach(v => { if (v.salId === id) { v.salId = null; v.salNom = null; } });
-  sauvegarder('vehicules', vehicules);
-
-  // 4. Supprimer ses données personnelles (km, carburant perso, inspections, messages, checklist, planning, notifs)
-  const keysToRemove = [
-    `km_sal_${id}`, `carb_sal_${id}`, `km_report_${id}`,
-    `messages_${id}`, `notifs_sal_${id}`
-  ];
-  keysToRemove.forEach(k => localStorage.removeItem(k));
-
-  // 5. Supprimer ses checklists (toutes les dates)
-  Object.keys(localStorage).filter(k => k.startsWith(`checklist_${id}_`)).forEach(k => localStorage.removeItem(k));
-
-  // 6. Supprimer ses inspections du global
-  const inspections = loadSafe('inspections', []).filter(i => i.salId !== id);
-  localStorage.setItem('inspections', JSON.stringify(inspections));
-
-  // 7. Supprimer son planning
-  const plannings = loadSafe('plannings', []).filter(p => p.salId !== id);
-  localStorage.setItem('plannings', JSON.stringify(plannings));
-
-  // 8. Supprimer ses pleins du global carburant (garder les pleins admin)
-  const carburant = charger('carburant').filter(p => !(p.salId === id && p.source === 'salarie'));
-  sauvegarder('carburant', carburant);
-
-  // 9. Anonymiser ses livraisons (garder l'historique mais retirer le lien)
-  const livraisons = charger('livraisons');
-  livraisons.forEach(l => { if (l.chaufId === id) { l.chaufId = null; l.chaufNom = (sal?.nom||'Salarié supprimé') + ' (archivé)'; } });
-  sauvegarder('livraisons', livraisons);
-
-  afficherSalaries();
-  rafraichirDependancesSalaries();
-  afficherToast(`🗑️ ${sal?.nom || 'Salarié'} et toutes ses données supprimés`);
-  notifierSynchroSalarie(syncResult, 'Suppression salarie');
-}
+// MOVED -> script-salaries.js : supprimerSalarie
 
 /* ===== UTILITAIRES AFFICHAGE ===== */
 function badgeStatut(s) {
@@ -5013,9 +3019,7 @@ function badgeStatut(s) {
     'livre':      '<span class="badge badge-livre">✅ Livré</span>'
   }[s] || s;
 }
-function badgeChauffeur(s) {
-  return { 'disponible':'<span class="badge badge-dispo">✅ Disponible</span>', 'en-livraison':'<span class="badge badge-actif">🚐 En livraison</span>', 'inactif':'<span class="badge badge-inactif">⏸️ Inactif</span>' }[s] || s;
-}
+// MOVED -> script-salaries.js : badgeChauffeur
 function togglePanneauAgent() {
   const panneau = document.getElementById('panneau-agent');
   const overlay = document.getElementById('panneau-agent-overlay');
@@ -5134,79 +3138,12 @@ const INSPECTION_STORAGE_CLEANUP_KEY = 'delivpro_inspection_storage_cleanup_at';
 
 let _adminPhotos = [];
 
-function filtrerInspParSalarieInput() {
-  const input = document.getElementById('filtre-insp-sal-input')?.value.trim() || '';
-  const hidden = document.getElementById('filtre-insp-sal');
-  if (!input) { if (hidden) hidden.value = ''; afficherInspections(); return; }
-  const sal = charger('salaries').find(s => s.nom.toLowerCase() === input.toLowerCase());
-  if (hidden) hidden.value = sal ? sal.id : '';
-  afficherInspections();
-}
+// MOVED -> script-salaries.js : filtrerInspParSalarieInput
 // MOVED -> script-inspections.js : supprimerInspectionAdmin
 
 /* ===== ÉDITION LIVRAISON ADMIN ===== */
 let _editLivId = null;
-function confirmerEditLivraison() {
-  surveillerConflitsEditionActifs();
-  const id     = document.getElementById('edit-liv-id').value;
-  const lockState = verifierVerrouEdition('livraison', id);
-  if (!lockState.ok) {
-    afficherToast(`⚠️ Cette livraison est verrouillée par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
-    return;
-  }
-  const client = document.getElementById('edit-liv-client').value.trim();
-  if (!client) { afficherToast('⚠️ Client obligatoire', 'error'); return; }
-  const livraisons = charger('livraisons');
-  const idx = livraisons.findIndex(l => l.id === id);
-  if (idx === -1) return;
-  const ancien = { ...livraisons[idx] };
-
-  const zoneGeo = document.getElementById('edit-liv-zone')?.value.trim() || document.getElementById('edit-liv-depart').value.trim();
-  livraisons[idx].client   = client;
-  livraisons[idx].depart   = zoneGeo;
-  livraisons[idx].arrivee  = '';
-  livraisons[idx].distance = parseFloat(document.getElementById('edit-liv-distance').value) || 0;
-  livraisons[idx].prixHT   = parseFloat(document.getElementById('edit-liv-prix-ht')?.value) || 0;
-  livraisons[idx].tauxTVA  = parseFloat(document.getElementById('edit-liv-taux-tva')?.value) || 20;
-  livraisons[idx].prix     = parseFloat(document.getElementById('edit-liv-prix').value) || 0;
-  if (hasNegativeNumber(livraisons[idx].distance, livraisons[idx].prixHT, livraisons[idx].prix, livraisons[idx].tauxTVA)) {
-    afficherToast('⚠️ Les montants et distances doivent être positifs', 'error');
-    return;
-  }
-  const affectation = synchroniserAffectationLivraison(
-    document.getElementById('edit-liv-chauffeur')?.value || '',
-    document.getElementById('edit-liv-vehicule')?.value || ''
-  );
-  livraisons[idx].chaufId = affectation.chaufId || null;
-  livraisons[idx].chaufNom = affectation.chaufNom;
-  livraisons[idx].vehId = affectation.vehId || null;
-  livraisons[idx].vehNom = affectation.vehNom;
-  livraisons[idx].date     = document.getElementById('edit-liv-date').value;
-  livraisons[idx].modePaiement = document.getElementById('edit-liv-mode-paiement')?.value || '';
-  livraisons[idx].statut   = document.getElementById('edit-liv-statut').value;
-  livraisons[idx].notes    = document.getElementById('edit-liv-notes').value.trim();
-  livraisons[idx].profit   = livraisons[idx].prix - livraisons[idx].distance * config.coutKmEstime;
-
-  // Logger les modifications
-  const champs = { client:'Client', prix:'Prix', statut:'Statut', distance:'Distance', depart:'Zone géographique' };
-  Object.entries(champs).forEach(([k,label]) => {
-    if (String(ancien[k]||'') !== String(livraisons[idx][k]||'')) {
-      logModifLivraison(id, label, ancien[k], livraisons[idx][k]);
-    }
-  });
-
-  sauvegarder('livraisons', livraisons);
-  if (ancien.prix !== livraisons[idx].prix) {
-    ajouterAlerte('livraison_modif',
-      `Livraison modifiée — ${client} : ${ancien.prix ? euros(ancien.prix) : '—'} → ${euros(livraisons[idx].prix)}`,
-      { client });
-    afficherBadgeAlertes();
-  }
-  ajouterEntreeAudit('Modification livraison', (livraisons[idx].numLiv || 'Livraison') + ' · ' + (livraisons[idx].client || 'Client'));
-  closeModal('modal-edit-livraison');
-  afficherLivraisons();
-  afficherToast('✅ Livraison mise à jour');
-}
+// MOVED -> script-livraisons.js : confirmerEditLivraison
 
 /* ===== ÉDITION CARBURANT ADMIN ===== */
 let _editCarbId = null;
@@ -5365,18 +3302,7 @@ function verifierConformiteConduiteCE561(semaine) {
 /* ===== VUE KANBAN LIVRAISONS ===== */
 let _vueLivraisons = 'tableau'; // 'tableau' | 'kanban' | 'calendrier'
 
-function changerVueLivraisons(vue) {
-  _vueLivraisons = vue;
-  document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
-  const btn = document.getElementById('btn-vue-' + vue);
-  if (btn) btn.classList.add('active');
-  document.getElementById('vue-tableau').style.display    = vue === 'tableau'    ? 'block' : 'none';
-  document.getElementById('vue-kanban').style.display     = vue === 'kanban'     ? 'block' : 'none';
-  document.getElementById('vue-calendrier').style.display = vue === 'calendrier' ? 'block' : 'none';
-  if (vue === 'kanban')     afficherKanban();
-  if (vue === 'calendrier') afficherCalendrier();
-  if (vue === 'tableau')    afficherLivraisons();
-}
+// MOVED -> script-livraisons.js : changerVueLivraisons
 
 function afficherKanban() {
   let livraisons = charger('livraisons');
@@ -5540,24 +3466,7 @@ function filtrerCalJour(date) {
 }
 
 /* ===== DUPLICATION LIVRAISON ===== */
-function dupliquerLivraison(id) {
-  const livraisons = charger('livraisons');
-  const source = livraisons.find(l => l.id === id);
-  if (!source) return;
-  const copie = {
-    ...source,
-    id: genId(),
-    numLiv: genNumLivraison(),
-    statut: 'en-attente',
-    statutPaiement: 'en-attente',
-    date: aujourdhui(),
-    creeLe: new Date().toISOString()
-  };
-  livraisons.push(copie);
-  sauvegarder('livraisons', livraisons);
-  afficherLivraisons();
-  afficherToast(`📋 Livraison dupliquée → ${copie.numLiv}`);
-}
+// MOVED -> script-livraisons.js : dupliquerLivraison
 
 /* ===== RÉCURRENCE LIVRAISON ===== */
 // MOVED -> script-carburant.js : ouvrirRecurrence
@@ -5685,39 +3594,9 @@ window.csvCelluleSecurisee = csvCelluleSecurisee;
 // MOVED -> script-exports.js : exporterCSV
 
 
-function getLivraisonsFiltresActifs() {
-  let livraisons = charger('livraisons');
-  const filtreStatut = document.getElementById('filtre-statut')?.value || '';
-  const filtreDateDeb = document.getElementById('filtre-date-debut')?.value || '';
-  const filtreDateFin = document.getElementById('filtre-date-fin')?.value || '';
-  const filtreRecherche = document.getElementById('filtre-recherche-liv')?.value?.toLowerCase().trim() || '';
-  const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
-  const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
+// MOVED -> script-livraisons.js : getLivraisonsFiltresActifs
 
-  if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
-  if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
-  if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
-  if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
-  if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
-  if (filtreRecherche) {
-    livraisons = livraisons.filter(l =>
-      (l.client || '').toLowerCase().includes(filtreRecherche) ||
-      (l.chaufNom || '').toLowerCase().includes(filtreRecherche) ||
-      (l.numLiv || '').toLowerCase().includes(filtreRecherche) ||
-      (l.depart || '').toLowerCase().includes(filtreRecherche) ||
-      (l.arrivee || '').toLowerCase().includes(filtreRecherche)
-    );
-  }
-  return livraisons.sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe));
-}
-
-function getLivraisonsPeriodeActiveLabel() {
-  const deb = document.getElementById('filtre-date-debut')?.value || '';
-  const fin = document.getElementById('filtre-date-fin')?.value || '';
-  if (deb && fin) return 'Du ' + formatDateExport(deb) + ' au ' + formatDateExport(fin);
-  const label = document.getElementById('liv-periode-dates')?.textContent?.trim();
-  return label || 'Toutes les livraisons';
-}
+// MOVED -> script-livraisons.js : getLivraisonsPeriodeActiveLabel
 
 // MOVED -> script-exports.js : exporterLivraisons
 
@@ -5827,73 +3706,10 @@ function afficherPonctualite() {
 }
 
 /* ===== TABLEAU DE BORD CLIENT ENRICHI ===== */
-function afficherClientsDashboard() {
-  const clientsAll = loadSafe('clients', []);
-  const tb = document.getElementById('tb-clients');
-  if (!tb) return;
-  if (!clientsAll.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
-  // Filtre recherche (nom, contact, ville, SIREN, téléphone, email)
-  const filtre = (document.getElementById('filtre-cl-search')?.value || '').trim().toLowerCase();
-  const clients = filtre
-    ? clientsAll.filter(c => [c.nom, c.prenom, c.contact, c.tel, c.email, c.adresse, c.ville, c.cp, c.siren]
-        .filter(Boolean).join(' ').toLowerCase().includes(filtre))
-    : clientsAll;
-  if (!clients.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
-  const livraisons = charger('livraisons');
-
-  tb.innerHTML = clients.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr')).map(c => {
-    const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
-    const caC = livsC.reduce((s,l)=>s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)), 0);
-    const contact = (c.contact || c.prenom || '').trim();
-    return `<tr>
-      <td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient('${c.id}')" style="font-weight:700">${c.nom}</button></td>
-      <td>${contact||'—'}</td>
-      <td>${c.tel||'—'}</td>
-      <td style="font-size:.82rem">${c.adresse||'—'}</td>
-      <td><strong>${euros(caC)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${livsC.length} livraison${livsC.length>1?'s':''}</div></td>
-      <td>${buildInlineActionsDropdown('Actions', [
-        { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
-        { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },
-        { icon:'📦', label:'Nouvelle livraison', action:`preFillLivraisonClient('${c.id}')` },
-        { icon:'🗑️', label:'Supprimer', action:`supprimerClient('${c.id}')`, danger:true }
-      ])}</td>
-    </tr>`;
-  }).join('');
-}
+// MOVED -> script-clients.js : afficherClientsDashboard
 
 /* ===== TABLEAU DE BORD FOURNISSEUR (miroir Clients) ===== */
-function afficherFournisseursDashboard() {
-  const fournAll = loadSafe('fournisseurs', []);
-  const tb = document.getElementById('tb-fournisseurs');
-  if (!tb) return;
-  if (!fournAll.length) {
-    tb.innerHTML = emptyState('🏭', 'Aucun fournisseur', 'Enregistrez vos fournisseurs pour suivre vos achats et charges.');
-    return;
-  }
-  const filtre = (document.getElementById('filtre-frn-search')?.value || '').trim().toLowerCase();
-  const fournisseurs = filtre
-    ? fournAll.filter(f => [f.nom, f.contact, f.tel, f.email, f.adresse, f.ville, f.cp, f.siren]
-        .filter(Boolean).join(' ').toLowerCase().includes(filtre))
-    : fournAll;
-  if (!fournisseurs.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
-  const charges = charger('charges');
-  tb.innerHTML = fournisseurs.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr')).map(f => {
-    const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
-    const totalDepense = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
-    const contact = (f.contact || f.prenom || '').trim();
-    return `<tr>
-      <td><strong>${f.nom || '—'}</strong></td>
-      <td>${contact || '—'}</td>
-      <td>${f.tel || '—'}</td>
-      <td style="font-size:.82rem">${f.adresse || '—'}</td>
-      <td><strong>${euros(totalDepense)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${chargesF.length} charge${chargesF.length > 1 ? 's' : ''}</div></td>
-      <td>${buildInlineActionsDropdown('Actions', [
-        { icon: '✏️', label: 'Modifier', action: `ouvrirEditFournisseur('${f.id}')` },
-        { icon: '🗑️', label: 'Supprimer', action: `supprimerFournisseur('${f.id}')`, danger: true }
-      ])}</td>
-    </tr>`;
-  }).join('');
-}
+// MOVED -> script-fournisseurs.js : afficherFournisseursDashboard
 
 // Bascule l'affichage des champs Pro pour la modal Fournisseur (miroir
 // du toggleChampsClientPro). Un fournisseur peut être Particulier (artisan,
@@ -5909,134 +3725,16 @@ window.toggleChampsFournisseurPro = function(isEdit) {
 
 // Reset complet du formulaire 'Nouveau Fournisseur' avant ouverture.
 // Garantit un état initial propre (Pro coché, bloc Pro visible, champs vides).
-function resetFormulaireFournisseur() {
-  ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-iban','frn-notes'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  const delai = document.getElementById('frn-delai-paiement');
-  if (delai) delai.value = '30';
-  const mode = document.getElementById('frn-mode-paiement');
-  if (mode) mode.value = 'virement';
-  const proRadio = document.querySelector('input[name="frn-type"][value="pro"]');
-  if (proRadio) proRadio.checked = true;
-  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(false);
-}
+// MOVED -> script-fournisseurs.js : resetFormulaireFournisseur
 
-function ajouterFournisseur() {
-  const nom = document.getElementById('frn-nom')?.value.trim();
-  if (!nom) { afficherToast('⚠️ Nom obligatoire', 'error'); return; }
-  const type = document.querySelector('input[name="frn-type"]:checked')?.value || 'pro';
-  const fournisseur = {
-    id: genId(),
-    nom,
-    type,
-    secteur: document.getElementById('frn-secteur')?.value || '',
-    contact: document.getElementById('frn-contact')?.value.trim() || '',
-    tel: document.getElementById('frn-tel')?.value.trim() || '',
-    email: document.getElementById('frn-email')?.value.trim() || '',
-    emailFact: document.getElementById('frn-email-fact')?.value.trim() || '',
-    adresse: document.getElementById('frn-adresse')?.value.trim() || '',
-    cp: document.getElementById('frn-cp')?.value.trim() || '',
-    ville: document.getElementById('frn-ville')?.value.trim() || '',
-    siren: type === 'pro' ? (document.getElementById('frn-siren')?.value.trim() || '') : '',
-    tvaIntra: type === 'pro' ? (document.getElementById('frn-tva-intra')?.value.trim() || '') : '',
-    delaiPaiementJours: type === 'pro' ? (parseInt(document.getElementById('frn-delai-paiement')?.value, 10) || 30) : null,
-    modePaiement: document.getElementById('frn-mode-paiement')?.value || 'virement',
-    iban: document.getElementById('frn-iban')?.value.trim() || '',
-    notes: document.getElementById('frn-notes')?.value.trim() || '',
-    creeLe: new Date().toISOString()
-  };
-  const fournisseurs = charger('fournisseurs');
-  fournisseurs.push(fournisseur);
-  sauvegarder('fournisseurs', fournisseurs);
-  closeModal('modal-fournisseur');
-  ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-delai-paiement','frn-iban','frn-notes'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? '' : (id === 'frn-delai-paiement' ? '30' : '');
-  });
-  // Reset radio Pro
-  const proRadio = document.querySelector('input[name="frn-type"][value="pro"]');
-  if (proRadio) proRadio.checked = true;
-  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(false);
-  afficherFournisseursDashboard();
-  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Création fournisseur', nom);
-  afficherToast('✅ Fournisseur enregistré');
-}
+// MOVED -> script-fournisseurs.js : ajouterFournisseur
 
 let _editFournisseurId = null;
-async function ouvrirEditFournisseur(id) {
-  const f = charger('fournisseurs').find(x => x.id === id);
-  if (!f) return;
-  _editFournisseurId = id;
-  const $ = (k) => document.getElementById('edit-frn-' + k);
-  if ($('id')) $('id').value = id;
-  if ($('nom')) $('nom').value = f.nom || '';
-  if ($('secteur')) $('secteur').value = f.secteur || '';
-  if ($('contact')) $('contact').value = f.contact || '';
-  if ($('tel')) $('tel').value = f.tel || '';
-  if ($('email')) $('email').value = f.email || '';
-  if ($('email-fact')) $('email-fact').value = f.emailFact || '';
-  if ($('adresse')) $('adresse').value = f.adresse || '';
-  if ($('cp')) $('cp').value = f.cp || '';
-  if ($('ville')) $('ville').value = f.ville || '';
-  if ($('siren')) $('siren').value = f.siren || '';
-  if ($('tva-intra')) $('tva-intra').value = f.tvaIntra || '';
-  if ($('delai-paiement')) $('delai-paiement').value = f.delaiPaiementJours || 30;
-  if ($('mode-paiement')) $('mode-paiement').value = f.modePaiement || 'virement';
-  if ($('iban')) $('iban').value = f.iban || '';
-  if ($('notes')) $('notes').value = f.notes || '';
-  // Type Pro/Particulier
-  const typeRadio = document.querySelector('input[name="edit-frn-type"][value="' + (f.type || 'pro') + '"]');
-  if (typeRadio) typeRadio.checked = true;
-  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(true);
-  openModal('modal-edit-fournisseur');
-}
+// MOVED -> script-fournisseurs.js : ouvrirEditFournisseur
 
-function confirmerEditFournisseur() {
-  const id = document.getElementById('edit-frn-id')?.value || _editFournisseurId;
-  if (!id) return;
-  const fournisseurs = charger('fournisseurs');
-  const idx = fournisseurs.findIndex(f => f.id === id);
-  if (idx === -1) return;
-  const $ = (k) => document.getElementById('edit-frn-' + k);
-  const type = document.querySelector('input[name="edit-frn-type"]:checked')?.value || 'pro';
-  fournisseurs[idx].nom = $('nom')?.value.trim() || '';
-  fournisseurs[idx].type = type;
-  fournisseurs[idx].secteur = $('secteur')?.value || '';
-  fournisseurs[idx].contact = $('contact')?.value.trim() || '';
-  fournisseurs[idx].tel = $('tel')?.value.trim() || '';
-  fournisseurs[idx].email = $('email')?.value.trim() || '';
-  fournisseurs[idx].emailFact = $('email-fact')?.value.trim() || '';
-  fournisseurs[idx].adresse = $('adresse')?.value.trim() || '';
-  fournisseurs[idx].cp = $('cp')?.value.trim() || '';
-  fournisseurs[idx].ville = $('ville')?.value.trim() || '';
-  fournisseurs[idx].siren = type === 'pro' ? ($('siren')?.value.trim() || '') : '';
-  fournisseurs[idx].tvaIntra = type === 'pro' ? ($('tva-intra')?.value.trim() || '') : '';
-  fournisseurs[idx].delaiPaiementJours = type === 'pro' ? (parseInt($('delai-paiement')?.value, 10) || 30) : null;
-  fournisseurs[idx].modePaiement = $('mode-paiement')?.value || 'virement';
-  fournisseurs[idx].iban = $('iban')?.value.trim() || '';
-  fournisseurs[idx].notes = $('notes')?.value.trim() || '';
-  sauvegarder('fournisseurs', fournisseurs);
-  closeModal('modal-edit-fournisseur');
-  _editFournisseurId = null;
-  afficherFournisseursDashboard();
-  afficherToast('✅ Fournisseur mis à jour');
-}
+// MOVED -> script-fournisseurs.js : confirmerEditFournisseur
 
-async function supprimerFournisseur(id) {
-  const f = charger('fournisseurs').find(x => x.id === id);
-  if (!f) return;
-  const charges = charger('charges');
-  const chargesF = charges.filter(c => c.fournisseurId === id || c.fournisseur === f.nom);
-  let msg = 'Supprimer le fournisseur « ' + (f.nom || 'sans nom') + ' » ?';
-  if (chargesF.length) msg += '\n\n⚠️ Lié à ' + chargesF.length + ' charge' + (chargesF.length > 1 ? 's' : '') + ' (snapshots conservés).';
-  const ok = await confirmDialog(msg, { titre: 'Supprimer le fournisseur', icone: '🏭', btnLabel: 'Supprimer', danger: true });
-  if (!ok) return;
-  sauvegarder('fournisseurs', charger('fournisseurs').filter(x => x.id !== id));
-  afficherFournisseursDashboard();
-  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Suppression fournisseur', f.nom || 'sans nom');
-  afficherToast('🗑️ Fournisseur supprimé');
-}
+// MOVED -> script-fournisseurs.js : supprimerFournisseur
 
 // MOVED -> script-exports.js : exporterHistoriqueFournisseursCSV
 
@@ -6067,43 +3765,7 @@ function ouvrirTCO(vehId) {
 }
 
 /* ===== CONNEXION HISTOR. MODIFS DANS MODAL EDIT LIVRAISON ===== */
-async function ouvrirEditLivraison(id) {
-  window._editLivId = id;
-  const livraisons = charger('livraisons');
-  const l = livraisons.find(x => x.id === id);
-  if (!l) return;
-  await actualiserVerrousEditionDistance();
-  const lockResult = prendreVerrouEdition('livraison', id, l.numLiv || 'Livraison');
-  if (!lockResult.ok) {
-    afficherToast(`⚠️ Livraison en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
-    window._editLivId = null;
-    return;
-  }
-  document.getElementById('edit-liv-id').value      = id;
-  document.getElementById('edit-liv-client').value  = l.client||'';
-  const zoneGeo = l.depart && l.arrivee && l.depart !== l.arrivee
-    ? (l.depart + ' → ' + l.arrivee)
-    : (l.arrivee || l.depart || '');
-  const editZone = document.getElementById('edit-liv-zone');
-  if (editZone) editZone.value = zoneGeo;
-  document.getElementById('edit-liv-depart').value  = l.depart||'';
-  document.getElementById('edit-liv-arrivee').value = l.arrivee||'';
-  document.getElementById('edit-liv-distance').value= l.distance||'';
-  const elHT = document.getElementById('edit-liv-prix-ht'); if (elHT) elHT.value = l.prixHT||'';
-  const elTVA = document.getElementById('edit-liv-taux-tva'); if (elTVA) elTVA.value = l.tauxTVA||'20';
-  document.getElementById('edit-liv-prix').value    = l.prix||'';
-  peuplerSelectsLivraisonEdition(l.chaufId || '', l.vehId || '');
-  document.getElementById('edit-liv-date').value    = l.date||'';
-  const editModePaiement = document.getElementById('edit-liv-mode-paiement');
-  if (editModePaiement) editModePaiement.value = l.modePaiement || '';
-  document.getElementById('edit-liv-statut').value  = l.statut||'en-attente';
-  document.getElementById('edit-liv-notes').value   = l.notes||'';
-  // Charger histor. modifs et commentaires
-  afficherHistoriqueModifs(id);
-  afficherCommentairesLiv(id);
-  document.getElementById('modal-edit-livraison').classList.add('open');
-  afficherAlerteVerrouModal('modal-edit-livraison', '');
-}
+// MOVED -> script-livraisons.js : ouvrirEditLivraison
 
 /* ===== VUE COMPACTE TABLEAUX ===== */
 let _vueCompacte = false;
@@ -6157,20 +3819,7 @@ function togglePanelModeles() {
 }
 
 /* ===== RH — COMPTEUR HEURES ===== */
-function calculerHeuresSalarie(salId) {
-  const plannings = loadSafe('plannings', []);
-  const plan = plannings.find(p => p.salId === salId);
-  if (!plan?.semaine) return { planifiees: 0, details: [] };
-
-  let total = 0;
-  const details = [];
-  plan.semaine.forEach(j => {
-    if (!j.travaille || !j.heureDebut || !j.heureFin) return;
-    const duree = calculerDureeJour(j.heureDebut, j.heureFin);
-    if (duree > 0) { total += duree * 60; details.push({ jour: j.jour, duree }); }
-  });
-  return { planifiees: total / 60, details };
-}
+// MOVED -> script-salaries.js : calculerHeuresSalarie
 
 function getHeuresSemaineRange() {
   const lundi = getLundiDeSemaine(_heuresSemaineOffset || 0);
@@ -6267,198 +3916,23 @@ function confirmerNoteInterne() {
 
 // Upload carte grise PDF (ou image) — pousse vers Supabase Storage (bucket vehicules-cartes-grises).
 // Le storage_path est stocke sur le vehicule au lieu du base64. Multi-device natif.
-async function uploaderCarteGriseVehicule(vehId, input) {
-  const file = input && input.files && input.files[0];
-  if (!file) return;
-  const okType = /^application\/pdf$|^image\//i.test(file.type);
-  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
-
-  if (window.DelivProStorage) {
-    const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
-    const path = `${vehId}/${Date.now()}_${cleanName}`;
-    const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, file, { contentType: file.type });
-    if (up.ok) {
-      const vehicules = charger('vehicules');
-      const idx = vehicules.findIndex(v => v.id === vehId);
-      if (idx > -1) {
-        const previous = vehicules[idx].carteGriseStoragePath;
-        vehicules[idx].carteGriseStoragePath = path;
-        vehicules[idx].carteGriseFichierType = file.type;
-        vehicules[idx].carteGriseFichierNom = file.name;
-        delete vehicules[idx].carteGriseFichier; // strip legacy base64
-        sauvegarder('vehicules', vehicules);
-        if (previous && previous !== path) {
-          window.DelivProStorage.remove('vehicules-cartes-grises', previous).catch(function () {});
-        }
-        afficherVehicules();
-        afficherToast('✅ Carte grise enregistrée');
-      }
-      return;
-    }
-    console.warn('[carteGrise] upload Storage echoue, fallback base64:', up.error?.message);
-  }
-
-  // Fallback : Storage indisponible -> base64 local (compat offline)
-  const reader = new FileReader();
-  reader.onload = e => {
-    const vehicules = charger('vehicules');
-    const idx = vehicules.findIndex(v => v.id === vehId);
-    if (idx > -1) {
-      vehicules[idx].carteGriseFichier = e.target.result;
-      vehicules[idx].carteGriseFichierType = file.type;
-      vehicules[idx].carteGriseFichierNom = file.name;
-      sauvegarder('vehicules', vehicules);
-      afficherVehicules();
-      afficherToast('✅ Carte grise enregistrée (mode local)');
-    }
-  };
-  reader.readAsDataURL(file);
-}
+// MOVED -> script-vehicules.js : uploaderCarteGriseVehicule
 
 // Wrapper appelé par l'input du formulaire véhicule (création + édition).
 // - En édition (window._editVehId set) : upload immediat vers Storage
 // - En création : stocke le file en temp jusqu'au save final (qui declenchera l'upload avec l'id genere)
-async function uploaderCarteGriseFromForm(input) {
-  const file = input && input.files && input.files[0];
-  if (!file) return;
-  const okType = /^application\/pdf$|^image\//i.test(file.type);
-  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
-
-  const btnLabel = document.getElementById('veh-carte-grise-button-label');
-  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
-  const status = document.getElementById('veh-carte-grise-status');
-  const inputEl = document.getElementById('veh-carte-grise-fichier');
-
-  if (window._editVehId && window.DelivProStorage) {
-    // Mode édition : upload immediat vers Storage avec UX feedback clair
-    if (btnLabel) btnLabel.textContent = '⏳ Envoi en cours… (' + Math.round(file.size / 1024) + ' Ko)';
-    if (inputEl) inputEl.disabled = true;
-    if (status) status.textContent = 'Envoi du fichier vers le cloud, ne fermez pas la fenêtre...';
-    afficherToast('⏳ Envoi de la carte grise…', 'info');
-
-    const t0 = Date.now();
-    const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
-    const path = `${window._editVehId}/${Date.now()}_${cleanName}`;
-    const up = await window.DelivProStorage.uploadBlob('vehicules-cartes-grises', path, file, { contentType: file.type });
-    const elapsed = Math.round((Date.now() - t0) / 1000);
-
-    if (inputEl) inputEl.disabled = false;
-
-    if (up.ok) {
-      const vehicules = charger('vehicules');
-      const idx = vehicules.findIndex(v => v.id === window._editVehId);
-      if (idx > -1) {
-        const previous = vehicules[idx].carteGriseStoragePath;
-        vehicules[idx].carteGriseStoragePath = path;
-        vehicules[idx].carteGriseFichierType = file.type;
-        vehicules[idx].carteGriseFichierNom = file.name;
-        delete vehicules[idx].carteGriseFichier;
-        sauvegarder('vehicules', vehicules);
-        if (previous && previous !== path) {
-          window.DelivProStorage.remove('vehicules-cartes-grises', previous).catch(function () {});
-        }
-      }
-      if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
-      if (wrapper) wrapper.classList.add('has-file');
-      if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
-      afficherToast(`✅ Carte grise enregistrée (${elapsed}s)`);
-      return;
-    }
-    if (btnLabel) btnLabel.textContent = '❌ Échec';
-    if (status) status.textContent = up.error?.message || 'Erreur upload';
-    afficherToast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'), 'error');
-    return;
-  }
-
-  // Mode création : stocke le file en memoire (sera uploade dans ajouterVehicule)
-  // En mode édition sans Storage : fallback dataUrl
-  const reader = new FileReader();
-  reader.onload = e => {
-    const dataUrl = e.target.result;
-    if (window._editVehId) {
-      const vehicules = charger('vehicules');
-      const idx = vehicules.findIndex(v => v.id === window._editVehId);
-      if (idx > -1) {
-        vehicules[idx].carteGriseFichier = dataUrl;
-        vehicules[idx].carteGriseFichierType = file.type;
-        vehicules[idx].carteGriseFichierNom = file.name;
-        sauvegarder('vehicules', vehicules);
-        afficherToast('✅ Carte grise enregistrée (mode local)');
-      }
-    } else {
-      window.__vehCGTemp = { data: dataUrl, type: file.type, nom: file.name, _file: file };
-    }
-    if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
-    if (wrapper) wrapper.classList.add('has-file');
-    if (status) status.textContent = 'Fichier prêt : ' + file.name;
-  };
-  reader.readAsDataURL(file);
-}
+// MOVED -> script-vehicules.js : uploaderCarteGriseFromForm
 
 // Reset visuel du champ carte grise (appelé à l'ouverture de la modal Création
 // ou au reset après save).
-function resetCarteGriseFormUI() {
-  const btnLabel = document.getElementById('veh-carte-grise-button-label');
-  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
-  const status = document.getElementById('veh-carte-grise-status');
-  const input = document.getElementById('veh-carte-grise-fichier');
-  if (btnLabel) btnLabel.textContent = '📎 Choisir un fichier';
-  if (wrapper) wrapper.classList.remove('has-file');
-  if (status) status.textContent = '';
-  if (input) input.value = '';
-  window.__vehCGTemp = null;
-}
+// MOVED -> script-vehicules.js : resetCarteGriseFormUI
 
 // Affiche le fichier déjà uploadé dans le formulaire d'édition véhicule.
-function prefillCarteGriseFormUI(veh) {
-  const hasFile = !!(veh && (veh.carteGriseStoragePath || veh.carteGriseFichier));
-  if (!hasFile) { resetCarteGriseFormUI(); return; }
-  const btnLabel = document.getElementById('veh-carte-grise-button-label');
-  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
-  const status = document.getElementById('veh-carte-grise-status');
-  if (btnLabel) btnLabel.textContent = '✅ ' + (veh.carteGriseFichierNom || 'Carte grise enregistrée') + ' (cliquez pour remplacer)';
-  if (wrapper) wrapper.classList.add('has-file');
-  if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
-}
+// MOVED -> script-vehicules.js : prefillCarteGriseFormUI
 
 // Visualise la carte grise dans une nouvelle fenêtre/onglet.
 // Pour les PDFs en Storage : download blob + object URL (plus fiable que embed signed URL).
-async function visualiserCarteGrise(vehId) {
-  const veh = charger('vehicules').find(v => v.id === vehId);
-  if (!veh || (!veh.carteGriseFichier && !veh.carteGriseStoragePath)) {
-    afficherToast('Aucune carte grise uploadée pour ce véhicule', 'info');
-    return;
-  }
-
-  const isPdf = (veh.carteGriseFichierType || '').includes('pdf');
-  const titre = 'Carte grise — ' + (veh.immat || '');
-
-  // Cas legacy base64
-  if (veh.carteGriseFichier && veh.carteGriseFichier.indexOf('data:') === 0) {
-    afficherDocumentDansFenetre(veh.carteGriseFichier, isPdf, titre);
-    return;
-  }
-
-  // Cas Storage : download le blob, cree un objectURL local (plus fiable
-  // que <embed src="signed_url"> qui foire parfois sur les PDFs prives)
-  if (!veh.carteGriseStoragePath || !window.DelivProStorage) {
-    afficherToast('Carte grise indisponible', 'info');
-    return;
-  }
-
-  afficherToast('⏳ Chargement du document...', 'info');
-  const dl = await window.DelivProStorage.download('vehicules-cartes-grises', veh.carteGriseStoragePath);
-  if (!dl.ok) {
-    afficherToast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur'), 'error');
-    return;
-  }
-  const objectUrl = URL.createObjectURL(dl.blob);
-  afficherDocumentDansFenetre(objectUrl, isPdf, titre);
-  // Cleanup objectURL apres 5 min (le temps que la fenetre soit fermee)
-  setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (_) {} }, 300000);
-}
+// MOVED -> script-vehicules.js : visualiserCarteGrise
 
 // Helper : affiche un document (PDF ou image) dans une nouvelle fenetre
 function afficherDocumentDansFenetre(url, isPdf, titre) {
@@ -6472,13 +3946,7 @@ function afficherDocumentDansFenetre(url, isPdf, titre) {
 }
 
 /* ===== FLOTTE — HISTORIQUE CONDUCTEURS ===== */
-function ouvrirHistoriqueConducteurs(vehId) {
-  const veh = charger('vehicules').find(v=>v.id===vehId);
-  if (!veh) return;
-  document.getElementById('hist-cond-titre').textContent = `${veh.immat} — ${veh.modele||''}`;
-  afficherHistoriqueConducteurs(vehId);
-  openModal('modal-hist-conducteurs');
-}
+// MOVED -> script-salaries.js : ouvrirHistoriqueConducteurs
 function enregistrerConduite(livraison) {
   if (!livraison.vehId || !livraison.chaufId) return;
   const cle  = 'conducteurs_veh_' + livraison.vehId;
@@ -6495,30 +3963,7 @@ function enregistrerConduite(livraison) {
   localStorage.setItem(cle, JSON.stringify(hist));
 }
 
-function afficherHistoriqueConducteurs(vehId) {
-  const cle  = 'conducteurs_veh_' + vehId;
-  const hist = loadSafe(cle, []).reverse().slice(0, 50);
-  // Afficher dans la modal ou dans un container inline
-  const cont = document.getElementById('hist-conducteurs-modal') ||
-               document.getElementById('hist-conducteurs-' + vehId);
-  if (!cont) return;
-  if (!hist.length) {
-    cont.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-muted);font-size:.85rem">Aucune conduite enregistrée pour ce véhicule.</div>';
-    return;
-  }
-  cont.innerHTML = hist.map(h => `
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:.85rem">
-      <div>
-        <strong>${h.salNom}</strong>
-        ${h.livNom ? `<span style="font-size:.78rem;color:var(--text-muted)"> · ${h.livNom}</span>` : ''}
-        ${h.numLiv ? `<span style="font-size:.72rem;color:var(--text-muted)"> (${h.numLiv})</span>` : ''}
-      </div>
-      <div style="display:flex;gap:12px;align-items:center">
-        ${h.distance ? `<span style="font-size:.78rem;color:var(--accent)">${h.distance} km</span>` : ''}
-        <span style="color:var(--text-muted);font-size:.78rem;white-space:nowrap">${h.date}</span>
-      </div>
-    </div>`).join('');
-}
+// MOVED -> script-salaries.js : afficherHistoriqueConducteurs
 
 /* ===== MESSAGES AUTOMATIQUES BEST EFFORT ===== */
 // MOVED -> script-messages.js : verifierMessagesAuto
@@ -6729,156 +4174,17 @@ function insererTemplate(texte, salNom) {
 // MOVED -> script-messages.js : verifierMessagesAutomatiques
 
 /* ===== TAUX DE PONCTUALITÉ ===== */
-function calculerTauxPonctualite() {
-  const livraisons = charger('livraisons');
-  const total  = livraisons.filter(l => l.statut !== 'en-attente').length;
-  const livres = livraisons.filter(l => l.statut === 'livre').length;
-  if (!total) return { taux: 0, livres, total };
-  return { taux: Math.round(livres / total * 100), livres, total };
-}
+// MOVED -> script-tva.js : calculerTauxPonctualite
 
 /* ===== TABLEAU DE BORD CLIENTS ===== */
-function afficherTopClients() {
-  const livraisons = charger('livraisons');
-  const clients    = loadSafe('clients', []);
-  const cont       = document.getElementById('top-clients-list');
-  if (!cont) return;
-
-  // Agréger par client
-  const stats = {};
-  livraisons.forEach(l => {
-    const nom = l.client;
-    if (!stats[nom]) stats[nom] = { nom, ca:0, nb:0, impaye:0, derniere:'' };
-    stats[nom].ca += l.prix || 0;
-    stats[nom].nb++;
-    if ((l.statutPaiement === 'en-attente' || !l.statutPaiement) && l.statut === 'livre') stats[nom].impaye += l.prix||0;
-    if (!stats[nom].derniere || l.date > stats[nom].derniere) stats[nom].derniere = l.date;
-  });
-
-  const sorted = Object.values(stats).sort((a,b) => b.ca - a.ca).slice(0, 8);
-  if (!sorted.length) { cont.innerHTML = '<div class="empty-illustrated"><div class="ei-icon">🧑‍💼</div><div class="ei-title">Aucun client</div></div>'; return; }
-
-  const medals = ['🥇','🥈','🥉'];
-  cont.innerHTML = sorted.map((c, i) => `
-    <div class="client-score">
-      <span class="client-score-rank">${medals[i] || (i+1)}</span>
-      <div class="client-score-info">
-        <div style="font-weight:600">${c.nom}</div>
-        <div style="font-size:.75rem;color:var(--text-muted)">${c.nb} livraison(s) · Dernière : ${c.derniere||'—'}</div>
-        ${c.impaye > 0 ? `<div style="font-size:.72rem;color:var(--red)">⚠️ ${euros(c.impaye)} impayé</div>` : ''}
-      </div>
-      <span class="client-score-ca">${euros(c.ca)}</span>
-    </div>`).join('');
-}
+// MOVED -> script-clients.js : afficherTopClients
 
 /* ===== SUIVI CONGÉS / ABSENCES ===== */
 /* ===== BROADCAST MESSAGE ===== */
 // MOVED -> script-messages.js : envoyerBroadcast
 
 /* ===== ALERTES PERMIS / ASSURANCE ===== */
-function verifierDocumentsSalaries() {
-  const salaries = charger('salaries');
-  const auj = new Date();
-  auj.setHours(0,0,0,0);
-
-  salaries.forEach(s => {
-    if (s.datePermis) {
-      const d = new Date(s.datePermis);
-      d.setHours(0,0,0,0);
-      const diff = Math.ceil((d - auj) / (1000*60*60*24));
-      if (diff < 0) {
-        ajouterAlerteSiAbsente(
-          'permis_expire_'+s.id,
-          `⚠️ Permis expiré — ${s.nom} (expiré depuis ${Math.abs(diff)} jour(s))`,
-          { salId:s.id, salNom:s.nom }
-        );
-      } else if (diff === 0) {
-        ajouterAlerteSiAbsente(
-          'permis_expire_'+s.id,
-          `⚠️ Permis expire AUJOURD'HUI — ${s.nom}`,
-          { salId:s.id, salNom:s.nom }
-        );
-      } else if (diff <= 60) {
-        ajouterAlerteSiAbsente(
-          'permis_proche_'+s.id,
-          `🪪 Permis expire dans ${diff} jour(s) — ${s.nom} (${s.datePermis})`,
-          { salId:s.id, salNom:s.nom }
-        );
-      }
-    }
-    if (s.dateAssurance) {
-      const d = new Date(s.dateAssurance);
-      d.setHours(0,0,0,0);
-      const diff = Math.ceil((d - auj) / (1000*60*60*24));
-      if (diff < 0) {
-        ajouterAlerteSiAbsente(
-          'assurance_expire_'+s.id,
-          `⚠️ Assurance expirée — ${s.nom} (expirée depuis ${Math.abs(diff)} jour(s))`,
-          { salId:s.id, salNom:s.nom }
-        );
-      } else if (diff === 0) {
-        ajouterAlerteSiAbsente(
-          'assurance_expire_'+s.id,
-          `⚠️ Assurance expire AUJOURD'HUI — ${s.nom}`,
-          { salId:s.id, salNom:s.nom }
-        );
-      } else if (diff <= 30) {
-        ajouterAlerteSiAbsente(
-          'assurance_proche_'+s.id,
-          `🛡️ Assurance expire dans ${diff} jour(s) — ${s.nom} (${s.dateAssurance})`,
-          { salId:s.id, salNom:s.nom }
-        );
-      }
-    }
-    // Alerte visite médicale (R.4624-10 — obligation employeur visite d'embauche + périodique)
-    const docsExp = [
-      { key: 'visite', dateStr: s.visiteMedicale?.dateExpiration, labelExp: 'Visite médicale expirée', labelProche: 'Visite médicale expire', seuil: 60 }
-    ];
-    docsExp.forEach(function(doc) {
-      if (!doc.dateStr) return;
-      const d = new Date(doc.dateStr);
-      d.setHours(0,0,0,0);
-      const diff = Math.ceil((d - auj) / (1000*60*60*24));
-      if (diff < 0) {
-        ajouterAlerteSiAbsente(
-          doc.key + '_expire_' + s.id,
-          '⚠️ ' + doc.labelExp + ' — ' + s.nom + ' (depuis ' + Math.abs(diff) + ' jour(s))',
-          { salId: s.id, salNom: s.nom }
-        );
-      } else if (diff === 0) {
-        ajouterAlerteSiAbsente(
-          doc.key + '_expire_' + s.id,
-          '⚠️ ' + doc.labelProche + ' AUJOURD\'HUI — ' + s.nom,
-          { salId: s.id, salNom: s.nom }
-        );
-      } else if (diff <= doc.seuil) {
-        ajouterAlerteSiAbsente(
-          doc.key + '_proche_' + s.id,
-          doc.labelProche + ' dans ' + diff + ' jour(s) — ' + s.nom + ' (' + doc.dateStr + ')',
-          { salId: s.id, salNom: s.nom }
-        );
-      }
-    });
-    if (s.visiteMedicale?.aptitude === 'inapte') {
-      ajouterAlerteSiAbsente(
-        'visite_inapte_' + s.id,
-        '🚨 Inaptitude médicale déclarée — ' + s.nom + ' · ne peut pas conduire',
-        { salId: s.id, salNom: s.nom }
-      );
-    }
-  });
-
-  // Recalcul badge temps réel
-  const toutes = charger('alertes_admin') || [];
-  const nonTraitees = toutes.filter(a => !a.lu && !a.traitee).length;
-  const badge = document.getElementById('badge-alertes');
-  const kpi = document.getElementById('kpi-alertes');
-  if (badge) {
-    badge.textContent = nonTraitees;
-    badge.style.display = nonTraitees > 0 ? 'inline-block' : 'none';
-  }
-  if (kpi) kpi.textContent = nonTraitees;
-}
+// MOVED -> script-salaries.js : verifierDocumentsSalaries
 
 function verifierNotificationsAutomatiquesMois2() {
   const alertes = charger('alertes_admin');
@@ -6991,16 +4297,8 @@ function fermerRechercheGlobale() {
   if (modal) modal.classList.remove('open');
   fermerRecherche();
 }
-function rechercheOuvrirLivraison(id) {
-  if (!id) return;
-  naviguerVers('livraisons');
-  setTimeout(function() { ouvrirEditLivraison(id); }, 180);
-}
-function rechercheOuvrirClient(id) {
-  if (!id) return;
-  naviguerVers('clients');
-  setTimeout(function() { ouvrirHistoriqueClient(id); }, 180);
-}
+// MOVED -> script-livraisons.js : rechercheOuvrirLivraison
+// MOVED -> script-clients.js : rechercheOuvrirClient
 function rechercheUniverselle(q) {
   const cont = document.getElementById('recherche-resultats');
   if (!cont) return;
@@ -7039,171 +4337,25 @@ function fermerRecherche() {
 /* ===== CARNET CLIENTS ===== */
 let _clientHistoryCurrentId = null;
 
-function getClientHistoriqueSnapshot(clientId) {
-  const client = charger('clients').find(function(item) { return item.id === clientId; });
-  if (!client) return null;
-  const livraisons = charger('livraisons').filter(function(item) {
-    return item.clientId === client.id || (item.client || '').trim().toLowerCase() === (client.nom || '').trim().toLowerCase();
-  }).sort(function(a, b) {
-    return new Date((b.datePaiement || b.date || '')) - new Date((a.datePaiement || a.date || ''));
-  });
-  const incidents = charger('incidents').filter(function(item) {
-    return item.clientId === client.id || (item.client || item.clientNom || '').trim().toLowerCase() === (client.nom || '').trim().toLowerCase();
-  }).sort(function(a, b) {
-    return new Date((b.date || '')) - new Date((a.date || ''));
-  });
-  const impayes = livraisons.filter(function(item) { return getLivraisonStatutPaiement(item) !== 'payé'; });
-  const payees = livraisons.filter(function(item) { return getLivraisonStatutPaiement(item) === 'payé'; });
-  return {
-    client: client,
-    livraisons: livraisons,
-    incidents: incidents,
-    impayes: impayes,
-    caHT: livraisons.reduce(function(sum, item) { return sum + getMontantHTLivraison(item); }, 0),
-    caTTC: livraisons.reduce(function(sum, item) { return sum + (parseFloat(item.prix) || 0); }, 0),
-    encaisseTTC: payees.reduce(function(sum, item) { return sum + (parseFloat(item.prix) || 0); }, 0),
-    impayeTTC: impayes.reduce(function(sum, item) { return sum + (parseFloat(item.prix) || 0); }, 0)
-  };
-}
+// MOVED -> script-clients.js : getClientHistoriqueSnapshot
 
 // MOVED -> script-exports.js : genererRapportClients
 
 // MOVED -> script-exports.js : exporterHistoriqueClientsCSV
 
-function ouvrirHistoriqueClient(id) {
-  const snapshot = getClientHistoriqueSnapshot(id);
-  if (!snapshot) return;
-  _clientHistoryCurrentId = id;
-  const client = snapshot.client;
-  const title = document.getElementById('client-history-title');
-  const content = document.getElementById('client-history-content');
-  if (title) title.textContent = client.nom || 'Client';
-  if (!content) return;
-  const lastPaiement = snapshot.livraisons.find(function(item) { return item.datePaiement; })?.datePaiement || '';
-  content.innerHTML = ''
-    + '<div class="kpi-grid" style="margin-bottom:18px">'
-    +   '<div class="kpi-card green"><div class="kpi-label">CA HT cumulé</div><div class="kpi-value">' + euros(snapshot.caHT) + '</div></div>'
-    +   '<div class="kpi-card blue"><div class="kpi-label">Encaissé TTC</div><div class="kpi-value">' + euros(snapshot.encaisseTTC) + '</div></div>'
-    +   '<div class="kpi-card red"><div class="kpi-label">Impayé TTC</div><div class="kpi-value">' + euros(snapshot.impayeTTC) + '</div></div>'
-    +   '<div class="kpi-card purple"><div class="kpi-label">Incidents</div><div class="kpi-value">' + snapshot.incidents.length + '</div></div>'
-    + '</div>'
-    + '<div class="card" style="margin-bottom:16px"><div class="modal-body">'
-    +   '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">'
-    +     '<div><div style="font-size:.76rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Contact</div><div style="font-weight:700">' + (client.contact || client.prenom || '—') + '</div></div>'
-    +     '<div><div style="font-size:.76rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Téléphone</div><div style="font-weight:700">' + (client.tel || '—') + '</div></div>'
-    +     '<div><div style="font-size:.76rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Email</div><div style="font-weight:700">' + (client.email || '—') + '</div></div>'
-    +     '<div><div style="font-size:.76rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Dernier paiement</div><div style="font-weight:700">' + (lastPaiement ? formatDateExport(lastPaiement) : '—') + '</div></div>'
-    +   '</div>'
-    +   '<div style="margin-top:14px"><div style="font-size:.76rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Adresse habituelle</div><div style="font-weight:700">' + (client.adresse || '—') + '</div></div>'
-    + '</div></div>'
-    + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>📦 Livraisons du client</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° LIV</th><th>Date</th><th>Statut</th><th>Paiement</th><th>HT</th><th>TTC</th></tr></thead><tbody>'
-    +   (snapshot.livraisons.length
-          ? snapshot.livraisons.map(function(item) {
-              return '<tr>'
-                + '<td><strong>' + (item.numLiv || '—') + '</strong></td>'
-                + '<td>' + formatDateExport(item.date) + '</td>'
-                + '<td>' + (item.statut || '—') + '</td>'
-                + '<td>' + (item.datePaiement ? 'Payé le ' + formatDateExport(item.datePaiement) : 'En attente') + '</td>'
-                + '<td>' + euros(getMontantHTLivraison(item)) + '</td>'
-                + '<td>' + euros(item.prix || 0) + '</td>'
-                + '</tr>';
-            }).join('')
-          : '<tr><td colspan="6" class="empty-row">Aucune livraison pour ce client</td></tr>')
-    + '</tbody></table></div></div>'
-    + '<div class="card"><div class="card-header"><h2>🚨 Incidents & suivi</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Gravité</th><th>Description</th><th>Statut</th></tr></thead><tbody>'
-    +   (snapshot.incidents.length
-          ? snapshot.incidents.map(function(item) {
-              return '<tr>'
-                + '<td>' + formatDateExport(item.date) + '</td>'
-                + '<td>' + (item.gravite || '—') + '</td>'
-                + '<td style="font-size:.84rem">' + (item.description || '—') + '</td>'
-                + '<td>' + (item.statut || '—') + '</td>'
-                + '</tr>';
-            }).join('')
-          : '<tr><td colspan="4" class="empty-row">Aucun incident enregistré pour ce client</td></tr>')
-    + '</tbody></table></div></div>';
-  openModal('modal-client-history');
-}
+// MOVED -> script-clients.js : ouvrirHistoriqueClient
 
 // MOVED -> script-exports.js : exporterHistoriqueClientCourant
 
 // BUG-007 fix : RGPD art. 20 — droit à la portabilité. Export JSON structuré de toutes les données du client.
-function collecterDonneesRGPDClient(clientId) {
-  const client = (charger('clients') || []).find(function(c){ return c.id === clientId; });
-  if (!client) return null;
-  const nomNorm = String(client.nom || '').trim().toLowerCase();
-  const matchNom = function(champ) { return String(champ || '').trim().toLowerCase() === nomNorm; };
-  const livraisons = (charger('livraisons') || []).filter(function(l){
-    return l.clientId === client.id || matchNom(l.client);
-  });
-  const factures = (loadSafe('factures_emises', []) || []).filter(function(f){
-    return f.clientId === client.id || matchNom(f.client) || matchNom(f.clientNom);
-  });
-  const avoirs = (loadSafe('avoirs', []) || []).filter(function(a){
-    return a.clientId === client.id || matchNom(a.client) || matchNom(a.clientNom);
-  });
-  const encaissements = (loadSafe('encaissements', []) || []).filter(function(e){
-    return e.clientId === client.id || matchNom(e.client) || matchNom(e.clientNom);
-  });
-  const acomptes = (loadSafe('acomptes', []) || []).filter(function(a){
-    return a.clientId === client.id || matchNom(a.client) || matchNom(a.clientNom);
-  });
-  const incidents = (charger('incidents') || []).filter(function(i){
-    return i.clientId === client.id || matchNom(i.client) || matchNom(i.clientNom);
-  });
-  const relances = (loadSafe('relances', []) || []).filter(function(r){
-    return r.clientId === client.id || matchNom(r.client) || matchNom(r.clientNom);
-  });
-
-  return {
-    meta: {
-      exportType: 'RGPD-art20-portabilite',
-      dateExport: new Date().toISOString(),
-      regulation: 'Règlement (UE) 2016/679 (RGPD) — article 20 : droit à la portabilité',
-      format: 'JSON UTF-8',
-      responsable: 'MCA Logistics',
-      contactDPO: null,
-      clientId: client.id,
-      clientNom: client.nom || ''
-    },
-    donneesPersonnelles: {
-      identifiant: client.id,
-      nom: client.nom || '',
-      prenom: client.prenom || '',
-      contact: client.contact || '',
-      telephone: client.tel || '',
-      email: client.email || '',
-      adresse: client.adresse || '',
-      siret: client.siret || '',
-      tvaIntracom: client.tvaIntracom || '',
-      notesInternes: client.notes || '',
-      creeLe: client.creeLe || '',
-      majLe: client.majLe || ''
-    },
-    livraisons: livraisons,
-    factures: factures,
-    avoirs: avoirs,
-    encaissements: encaissements,
-    acomptes: acomptes,
-    incidents: incidents,
-    relances: relances,
-    resumeFinancier: {
-      nbLivraisons: livraisons.length,
-      nbFactures: factures.length,
-      caHT: Number((livraisons.reduce(function(s,l){ return s + getMontantHTLivraison(l); }, 0)).toFixed(2)),
-      caTTC: Number((livraisons.reduce(function(s,l){ return s + (parseFloat(l.prix)||0); }, 0)).toFixed(2))
-    }
-  };
-}
+// MOVED -> script-clients.js : collecterDonneesRGPDClient
 
 // MOVED -> script-exports.js : exporterDonneesRGPDClientCourant
 
 // afficherClients : alias historique. La vraie fonction de rendu est
 // afficherClientsDashboard (ligne ~7232). Ce wrapper évite de casser les
 // nombreux appels existants tout en garantissant un seul code de rendu.
-function afficherClients() {
-  if (typeof afficherClientsDashboard === 'function') return afficherClientsDashboard();
-}
+// MOVED -> script-clients.js : afficherClients
 
 // Bascule l'affichage des champs Pro (SIREN, TVA, paiement, IBAN, Secteur,
 // Email facturation) selon le type de client. Appelée par les radios cl-type.
@@ -7219,182 +4371,25 @@ window.toggleChampsClientPro = function(isEdit) {
   if (secteurEl && type === 'particulier' && secteurEl.value === 'particulier') secteurEl.value = '';
 };
 
-function ajouterClient() {
-  const nom         = document.getElementById('cl-nom')?.value.trim();
-  const prenom      = document.getElementById('cl-prenom')?.value.trim() || '';
-  const tel         = document.getElementById('cl-tel')?.value.trim();
-  const email       = document.getElementById('cl-email')?.value.trim();
-  const adresse     = document.getElementById('cl-adresse')?.value.trim();
-  const cp          = document.getElementById('cl-cp')?.value.trim() || '';
-  const ville       = document.getElementById('cl-ville')?.value.trim() || '';
-  const type        = (document.querySelector('input[name="cl-type"]:checked')?.value) || 'pro';
-  const siren       = (document.getElementById('cl-siren')?.value.trim() || '').replace(/\s+/g,'');
-  const tvaIntra    = (document.getElementById('cl-tva-intra')?.value.trim() || '').replace(/\s+/g,'').toUpperCase();
-  const emailFact   = document.getElementById('cl-email-fact')?.value.trim() || '';
-  const delaiPay    = parseInt(document.getElementById('cl-delai-paiement')?.value, 10) || 30;
-  const notes       = document.getElementById('cl-notes')?.value.trim() || '';
-  if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
-  if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
-  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
-  if (tvaIntra) {
-    const __validTva = validerTVAIntracomFR(tvaIntra);
-    if (!__validTva.valid) { afficherToast('⚠️ TVA intracom invalide : ' + (__validTva.message || 'format incorrect'), 'error'); return; }
-  }
-  const clients = loadSafe('clients', []);
-  if (clients.find(c=>c.nom.toLowerCase()===nom.toLowerCase())) { afficherToast('⚠️ Client déjà existant','error'); return; }
-  clients.push({
-    id: genId(), nom, prenom, contact: prenom, tel, email, adresse,
-    cp, ville, type, siren, tvaIntra, emailFact, delaiPaiementJours: delaiPay, notes,
-    creeLe: new Date().toISOString()
-  });
-  localStorage.setItem('clients', JSON.stringify(clients));
-  // Re-synchroniser le form livraison si création depuis modale livraison
-  const venantDeLivraison = window.__livClientContextNom !== undefined;
-  if (venantDeLivraison) {
-    const livClient = document.getElementById('liv-client');
-    if (livClient) livClient.value = nom;
-    const livSiren = document.getElementById('liv-client-siren');
-    if (livSiren && siren) livSiren.value = siren;
-    const livZone = document.getElementById('liv-zone');
-    if (livZone && adresse && !livZone.value) livZone.value = adresse;
-    const livDep = document.getElementById('liv-depart');
-    if (livDep && adresse && !livDep.value) livDep.value = adresse;
-    delete window.__livClientContextNom;
-  }
-  ['cl-nom','cl-prenom','cl-tel','cl-email','cl-adresse','cl-cp','cl-ville','cl-siren','cl-tva-intra','cl-email-fact','cl-notes']
-    .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  const delaiEl = document.getElementById('cl-delai-paiement'); if (delaiEl) delaiEl.value = '30';
-  const typeRadio = document.querySelector('input[name="cl-type"][value="pro"]'); if (typeRadio) typeRadio.checked = true;
-  if (window.toggleChampsClientPro) window.toggleChampsClientPro(false);
-  const warnBox = document.getElementById('cl-doublons-warning'); if (warnBox) { warnBox.style.display='none'; warnBox.innerHTML=''; }
-  closeModal('modal-client');
-  if (!venantDeLivraison) afficherClients();
-  ajouterEntreeAudit('Création client', nom + (email ? ' · ' + email : '') + (siren ? ' · SIREN ' + siren : ''));
-  afficherToast(venantDeLivraison
-    ? '✅ Client « ' + nom + ' » créé et lié à la livraison en cours'
-    : '✅ Client ajouté');
-}
+// MOVED -> script-clients.js : ajouterClient
 
-async function supprimerClient(id) {
-  const client = charger('clients').find(function(item) { return item.id === id; });
-  if (!client) return;
-  // Vérification des livraisons liées avant suppression
-  const livraisons = charger('livraisons');
-  const livsLiees = livraisons.filter(l => l.clientId === id || l.client === client.nom);
-  let message = 'Supprimer le client « ' + (client.nom || 'sans nom') + ' » ?';
-  if (livsLiees.length) {
-    message += '\n\n⚠️ Ce client est lié à ' + livsLiees.length + ' livraison'
-            + (livsLiees.length > 1 ? 's' : '') + '. '
-            + 'Elles seront conservées (le nom du client reste affiché) mais la fiche client disparaît.';
-  }
-  const _ok6 = await confirmDialog(message, {titre:'Supprimer le client', icone:'🧑‍💼', btnLabel:'Supprimer', danger:true});
-  if (!_ok6) return;
-  const clients = loadSafe('clients', []).filter(c=>c.id!==id);
-  localStorage.setItem('clients', JSON.stringify(clients));
-  afficherClients();
-  ajouterEntreeAudit('Suppression client', (client.nom || 'Client') + ' supprimé' + (livsLiees.length ? ' (' + livsLiees.length + ' livraison(s) orpheline(s))' : ''));
-  afficherToast('🗑️ Client supprimé');
-}
+// MOVED -> script-clients.js : supprimerClient
 
-function preFillLivraisonClient(id) {
-  const c = loadSafe('clients', []).find(x=>x.id===id);
-  if (!c) return;
-  naviguerVers('livraisons');
-  setTimeout(()=>{
-    openModal('modal-livraison');
-    // Utilise la fonction centralisée pour pré-remplir tous les champs
-    setTimeout(()=>{
-      if (typeof selectionnerClientLivraisonParId === 'function') {
-        selectionnerClientLivraisonParId(c.id);
-      }
-    }, 100);
-  },100);
-}
+// MOVED -> script-clients.js : preFillLivraisonClient
 
 /* Auto-complétion client dans modal livraison + création à la volée */
-function autoCompleteClient(val) {
-  const sug = document.getElementById('client-suggestions');
-  if (!sug) return;
-  const terme = (val || '').trim();
-  if (terme.length < 2) {
-    sug.innerHTML = '';
-    // Si l'utilisateur efface le nom, on délie le client précédemment sélectionné
-    window.__livSelectedClientId = null;
-    return;
-  }
-  const clients = loadSafe('clients', []);
-  const termeLc = terme.toLowerCase();
-  const matches = clients.filter(c => (c.nom || '').toLowerCase().includes(termeLc)).slice(0, 5);
-  const matchExact = clients.some(c => (c.nom || '').toLowerCase() === termeLc);
-  // On passe maintenant l'ID complet du client à selectionnerClientLivraison
-  // (au lieu de juste nom+adresse) pour pouvoir lier proprement TOUS les champs.
-  const htmlMatches = matches.map(c => {
-    const nomHtml = escapeHtml(c.nom || '');
-    const adrHtml = escapeHtml(c.adresse || '');
-    const idAttr = escapeAttr(c.id || '');
-    return `<div onclick="selectionnerClientLivraisonParId('${idAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
-  }).join('');
-  const htmlCreate = matchExact ? '' : `<div onclick="ouvrirCreationClientDepuisLivraison('${escapeAttr(terme)}')" style="padding:9px 12px;cursor:pointer;font-size:.88rem;color:#4ade80;font-weight:600;background:rgba(74,222,128,.08);border-top:1px solid var(--border)" onmouseover="this.style.background='rgba(74,222,128,.18)'" onmouseout="this.style.background='rgba(74,222,128,.08)'">+ Créer « ${escapeHtml(terme)} » comme nouveau client</div>`;
-  sug.innerHTML = htmlMatches + htmlCreate;
-}
+// MOVED -> script-clients.js : autoCompleteClient
 
 // Pré-remplit la modal Nouvelle livraison avec TOUTES les infos du client
 // sélectionné (SIREN, TVA intracom, adresse, zone) et stocke son ID pour
 // liaison fiable à la sauvegarde (sans dépendre du matching par nom).
-function selectionnerClientLivraisonParId(clientId) {
-  const c = loadSafe('clients', []).find(x => x && x.id === clientId);
-  if (!c) return;
-  const $ = (id) => document.getElementById(id);
-  if ($('liv-client'))       $('liv-client').value = c.nom || '';
-  if ($('liv-client-siren')) $('liv-client-siren').value = c.siren || '';
-  // Adresse → zone géographique + champ caché départ
-  if (c.adresse) {
-    const adrComplete = [c.adresse, ((c.cp || '') + ' ' + (c.ville || '')).trim()].filter(Boolean).join(', ');
-    if ($('liv-zone'))   $('liv-zone').value = adrComplete;
-    if ($('liv-depart')) $('liv-depart').value = adrComplete;
-  }
-  if ($('liv-arrivee')) $('liv-arrivee').value = '';
-  // Mémorise l'ID pour ajouterLivraison (lien fiable, écrase le match par nom)
-  window.__livSelectedClientId = c.id;
-  window.__livSelectedClientTva = c.tvaIntra || '';
-  window.__livSelectedClientPays = c.pays || 'FR';
-  // Reset les suggestions
-  const sug = document.getElementById('client-suggestions');
-  if (sug) sug.innerHTML = '';
-}
+// MOVED -> script-clients.js : selectionnerClientLivraisonParId
 
 // Compat : ancienne signature (nom, adresse) — appelée encore depuis quelques
 // endroits historiques. Délègue à la version par ID si possible.
-function selectionnerClientLivraison(nom, adresse) {
-  const c = loadSafe('clients', []).find(x => x && (x.nom || '').toLowerCase() === String(nom || '').toLowerCase());
-  if (c) return selectionnerClientLivraisonParId(c.id);
-  // Pas de match → comportement legacy minimal
-  const livClient = document.getElementById('liv-client');
-  if (livClient) livClient.value = nom;
-  const livZone = document.getElementById('liv-zone');
-  if (livZone && adresse) livZone.value = adresse;
-  const livDep = document.getElementById('liv-depart');
-  if (livDep && adresse) livDep.value = adresse;
-  const sug = document.getElementById('client-suggestions');
-  if (sug) sug.innerHTML = '';
-}
+// MOVED -> script-clients.js : selectionnerClientLivraison
 
-function ouvrirCreationClientDepuisLivraison(nom) {
-  window.__livClientContextNom = nom;
-  const sug = document.getElementById('client-suggestions');
-  if (sug) sug.innerHTML = '';
-  openModal('modal-client');
-  setTimeout(function() {
-    const clNom = document.getElementById('cl-nom');
-    if (clNom) {
-      clNom.value = nom;
-      try { clNom.focus(); } catch (_) {}
-      if (typeof window.detecterDoublonsClient === 'function') {
-        try { window.detecterDoublonsClient(false); } catch (_) {}
-      }
-    }
-  }, 80);
-}
+// MOVED -> script-clients.js : ouvrirCreationClientDepuisLivraison
 
 /* ===== COPIER PLANNING SEMAINE PRÉCÉDENTE ===== */
 function copierSemainePrecedente() {
@@ -7741,32 +4736,9 @@ async function supprimerLogoEntreprise() {
   afficherToast('🗑️ Logo supprimé');
 }
 
-function sauvegarderTVA() {
-  const taux = parseFloat(document.getElementById('param-taux-tva')?.value) || 20;
-  localStorage.setItem('taux_tva', taux);
-  afficherToast('✅ Taux TVA enregistré : ' + taux + '%');
-}
+// MOVED -> script-tva.js : sauvegarderTVA
 
-function chargerConfigurationTVAParametres() {
-  var profile = getTVAConfig();
-  var map = {
-    'param-tva-regime': profile.regime,
-    'param-tva-activite': profile.activiteType,
-    'param-tva-exigibilite': profile.exigibiliteServices,
-    'param-tva-periodicite': profile.periodicite,
-    'param-tva-taux-defaut': String(profile.defaultRate)
-  };
-  Object.keys(map).forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = map[id];
-  });
-  var helper = document.getElementById('param-tva-helper');
-  if (helper) {
-    helper.textContent = profile.isVatEnabled
-      ? getTVARegimeLabel(profile.regime) + ' · ' + getTVAActiviteLabel(profile.activiteType) + ' · ' + getTVAExigibiliteLabel(profile) + ' · Déclaration ' + getTVAPeriodiciteLabel(profile.periodicite).toLowerCase() + '.'
-      : 'Franchise en base : aucune TVA facturée ni récupérée.';
-  }
-}
+// MOVED -> script-tva.js : chargerConfigurationTVAParametres
 
 function chargerConfigurationTresorerieParametres() {
   var cfg = getTresoConfigBudget();
@@ -7785,26 +4757,7 @@ function chargerConfigurationTresorerieParametres() {
   }
 }
 
-function sauvegarderConfigurationTVA() {
-  var regime = document.getElementById('param-tva-regime')?.value || 'reel_normal';
-  var activiteType = document.getElementById('param-tva-activite')?.value || 'service';
-  var exigibiliteServices = document.getElementById('param-tva-exigibilite')?.value || 'encaissements';
-  var periodicite = document.getElementById('param-tva-periodicite')?.value || 'mensuelle';
-  var defaultRate = parseTauxTVAValue(document.getElementById('param-tva-taux-defaut')?.value, 20);
-  sauvegarder('tva_config', {
-    regime: regime,
-    activiteType: activiteType,
-    exigibiliteServices: exigibiliteServices,
-    periodicite: periodicite,
-    defaultRate: defaultRate
-  });
-  localStorage.setItem('taux_tva', String(defaultRate));
-  chargerConfigurationTVAParametres();
-  afficherTva();
-  rafraichirDashboard();
-  ajouterEntreeAudit('Configuration TVA', getTVARegimeLabel(regime) + ' · ' + getTVAActiviteLabel(activiteType) + ' · ' + getTVAPeriodiciteLabel(periodicite));
-  afficherToast('✅ Configuration TVA enregistrée');
-}
+// MOVED -> script-tva.js : sauvegarderConfigurationTVA
 
 function sauvegarderConfigurationTresorerie() {
   var cfg = chargerObj('treso_config', {});
@@ -7818,11 +4771,7 @@ function sauvegarderConfigurationTresorerie() {
   afficherToast('✅ Configuration de trésorerie enregistrée');
 }
 
-function sauvegarderObjectifLivraisons() {
-  const val = parseInt(document.getElementById('param-objectif-livraisons')?.value, 10) || 0;
-  localStorage.setItem('objectif_livraisons_mensuel', val);
-  afficherToast('✅ Objectif ' + val + ' livraisons/mois enregistré');
-}
+// MOVED -> script-livraisons.js : sauvegarderObjectifLivraisons
 
 function sauvegarderMaxTentatives() {
   const val = parseInt(document.getElementById('param-max-tentatives')?.value, 10) || 5;
@@ -7900,9 +4849,7 @@ async function importerSauvegardeAdmin(input) {
 function prixHT(prixTTC, tauxTVA) {
   return prixTTC / (1 + tauxTVA / 100);
 }
-function getTauxTVA() {
-  return parseFloat(localStorage.getItem('taux_tva') || '20');
-}
+// MOVED -> script-tva.js : getTauxTVA
 /* ===== SOLDE TRÉSORERIE ===== */
 function calculerSoldeTresorerie() {
   const mois      = aujourdhui().slice(0,7);
@@ -7917,235 +4864,16 @@ function calculerSoldeTresorerie() {
 }
 
 /* ===== CATÉGORIES DE CHARGES ===== */
-function resetFormulaireCharge() {
-  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period'];
-  fields.forEach(function(id) {
-    var el = document.getElementById(id);
-    if (!el) return;
-    if (id === 'charge-date') el.value = aujourdhui();
-    else if (id === 'charge-tva-period') el.value = getTVADefaultPeriodInput();
-    else el.value = '';
-  });
-  var cat = document.getElementById('charge-cat');
-  if (cat) cat.value = 'autre';
-  var tva = document.getElementById('charge-taux-tva');
-  if (tva) tva.value = '20';
-  var tvaInfo = document.getElementById('charge-montant-tva');
-  if (tvaInfo) tvaInfo.textContent = '';
-  var modal = document.getElementById('modal-charge');
-  if (modal) {
-    var title = modal.querySelector('.modal-header h3');
-    var btn = modal.querySelector('.modal-footer .btn-primary');
-    if (title) title.textContent = '💸 Nouvelle charge';
-    if (btn) btn.textContent = '✅ Enregistrer';
-  }
-}
-function ajusterCategorieCharge() {
-  var cat = document.getElementById('charge-cat');
-  var tva = document.getElementById('charge-taux-tva');
-  var desc = document.getElementById('charge-desc');
-  var dateLabel = document.getElementById('charge-date-label');
-  var periodWrap = document.getElementById('charge-tva-period-wrap');
-  var vehWrap = document.getElementById('charge-veh-wrap');
-  var periodInput = document.getElementById('charge-tva-period');
-  if (!cat || !tva) return;
-  if (cat.value === 'tva') {
-    tva.value = '0';
-    tva.disabled = true;
-    if (desc && !desc.value.trim()) desc.placeholder = 'Ex : Versement TVA avril 2026';
-    if (dateLabel) dateLabel.textContent = 'Date de paiement *';
-    if (periodWrap) periodWrap.style.display = '';
-    if (vehWrap) vehWrap.style.display = 'none';
-    if (periodInput && !periodInput.value) periodInput.value = getTVADefaultPeriodInput(document.getElementById('charge-date')?.value || aujourdhui());
-  } else {
-    tva.disabled = false;
-    if (desc) desc.placeholder = 'Description';
-    if (dateLabel) dateLabel.textContent = 'Date *';
-    if (periodWrap) periodWrap.style.display = 'none';
-    if (vehWrap) vehWrap.style.display = '';
-    if (parseFloat(tva.value || '0') === 0) tva.value = '20';
-  }
-  calculerTTCDepuisHT('charge');
-}
-function ouvrirModalCharge() {
-  resetFormulaireCharge();
-  ajusterCategorieCharge();
-  openModal('modal-charge');
-}
-function ouvrirEditCharge(id) {
-  var charge = charger('charges').find(function(item) { return item.id === id; });
-  if (!charge) return;
-  var setters = {
-    'charge-edit-id': charge.id,
-    'charge-date': charge.date || aujourdhui(),
-    'charge-cat': charge.categorie || 'autre',
-    'charge-desc': charge.description || '',
-    'charge-montant-ht': charge.montantHT || '',
-    'charge-taux-tva': charge.tauxTVA || 20,
-    'charge-montant': charge.montant || '',
-    'charge-veh': charge.vehId || '',
-    'charge-tva-period': getTVADeclarationPeriodRangeFromKey(charge.tvaPeriodeKey || charge.tvaPeriode || '')?.debut?.slice(0, 7) || ''
-  };
-  Object.keys(setters).forEach(function(idField) {
-    var el = document.getElementById(idField);
-    if (el) el.value = setters[idField];
-  });
-  ajusterCategorieCharge();
-  var modal = document.getElementById('modal-charge');
-  if (modal) {
-    var title = modal.querySelector('.modal-header h3');
-    var btn = modal.querySelector('.modal-footer .btn-primary');
-    if (title) title.textContent = '✏️ Modifier la charge';
-    if (btn) btn.textContent = '✅ Enregistrer';
-  }
-  openModal('modal-charge');
-}
-function resetFiltresCharges() {
-  ['filtre-charge-cat', 'filtre-charge-vehicule', 'filtre-charge-search'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  afficherCharges();
-}
-function afficherCharges() {
-  var range = getChargesPeriodeRange();
-  var periodSelect = document.getElementById('vue-charges-select');
-  if (periodSelect) periodSelect.value = _chargesPeriode.mode;
-  majPeriodeDisplay('charges-mois-label', 'charges-mois-dates', range);
-  var charges = charger('charges').filter(function(c){return isDateInRange(c.date, range);}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-  const tb = document.getElementById('tb-charges');
-  if (!tb) return;
-  const vehicules = charger('vehicules');
-  const filtreCat = document.getElementById('filtre-charge-cat')?.value || '';
-  const filtreVeh = document.getElementById('filtre-charge-vehicule')?.value || '';
-  const filtreSearch = (document.getElementById('filtre-charge-search')?.value || '').trim().toLowerCase();
-  const selVeh = document.getElementById('filtre-charge-vehicule');
-  if (selVeh) {
-    const currentValue = selVeh.value;
-    selVeh.innerHTML = '<option value="">Tous les véhicules</option>';
-    vehicules.forEach(function(v) { selVeh.innerHTML += `<option value="${v.id}">${v.immat}</option>`; });
-    selVeh.value = currentValue;
-  }
-  if (filtreCat) charges = charges.filter(function(c){ return (c.categorie || 'autre') === filtreCat; });
-  if (filtreVeh) charges = charges.filter(function(c){ return (c.vehId || '') === filtreVeh; });
-  if (filtreSearch) {
-    charges = charges.filter(function(c) {
-      var vehicule = c.vehId ? getVehiculeById(c.vehId) : null;
-      return [
-        c.description,
-        c.categorie,
-        c.tvaPeriodeKey,
-        c.vehNom,
-        vehicule?.immat,
-        vehicule?.modele,
-        c.date
-      ].filter(Boolean).join(' ').toLowerCase().includes(filtreSearch);
-    });
-  }
+// MOVED -> script-charges.js : resetFormulaireCharge
+// MOVED -> script-charges.js : ajusterCategorieCharge
+// MOVED -> script-charges.js : ouvrirModalCharge
+// MOVED -> script-charges.js : ouvrirEditCharge
+// MOVED -> script-charges.js : resetFiltresCharges
+// MOVED -> script-charges.js : afficherCharges
 
-  const total = charges.reduce((s,c)=>s+(c.montant||0),0);
-  const totalEl = document.getElementById('charges-total-mois');
-  if (totalEl) totalEl.textContent = euros(total);
+// MOVED -> script-charges.js : ajouterCharge
 
-  paginer.__reload_tb_charges = afficherCharges;
-  if (!charges.length) {
-    nettoyerPagination('tb-charges');
-    tb.innerHTML = emptyState('💸','Aucune charge sur cette période','Ajustez les filtres ou ajoutez une charge.');
-    return;
-  }
-
-  const catIcons = { carburant:'⛽', peage:'🛣️', entretien:'🔧', assurance:'🛡️', salaires:'👥', lld_credit:'🚐', tva:'🧾', autre:'📝' };
-  paginer(charges, 'tb-charges', function(items) {
-    return items.map(c => {
-    const ht = c.montantHT || (c.montant||0) / (1 + (c.tauxTVA||20)/100);
-    const tvaM = getChargeMontantTVA(c);
-    const vehicule = c.vehId ? getVehiculeById(c.vehId) : null;
-    const descAffichee = (c.categorie === 'tva' && getTVASettlementPeriodKey(c, getTVAConfig()))
-      ? (c.description || 'Versement TVA') + '<div style="font-size:.76rem;color:var(--text-muted)">Période TVA : ' + planningEscapeHtml(getTVASettlementLabel(c, getTVAConfig())) + '</div>'
-      : (c.description || '—');
-    return `<tr>
-    <td>${formatDateExport(c.date)}</td>
-    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</span></td>
-    <td>${descAffichee}</td>
-    <td>${vehicule ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${vehicule.id}')" title="Ouvrir le véhicule">${vehicule.immat}</button>` : (c.vehNom||'—')}</td>
-    <td style="font-size:.85rem">${euros(ht)}</td>
-    <td style="font-size:.82rem;color:var(--text-muted)">${euros(tvaM)}</td>
-    <td><strong>${euros(c.montant||0)}</strong></td>
-    <td>
-      <button class="btn-icon" onclick="ouvrirEditCharge('${c.id}')" title="Modifier">✏️</button>
-      <button class="btn-icon danger" onclick="supprimerCharge('${c.id}')">🗑️</button>
-    </td>
-  </tr>`;
-  }).join('');
-  }, 15);
-}
-
-function ajouterCharge() {
-  const editId    = document.getElementById('charge-edit-id')?.value || '';
-  const date      = document.getElementById('charge-date')?.value || aujourdhui();
-  const categorie = document.getElementById('charge-cat')?.value || 'autre';
-  const desc      = document.getElementById('charge-desc')?.value.trim() || '';
-  const montantHT = parseFloat(document.getElementById('charge-montant-ht')?.value) || 0;
-  const tauxTVA   = categorie === 'tva' ? 0 : parseTauxTVAValue(document.getElementById('charge-taux-tva')?.value, 20);
-  const montant   = parseFloat(document.getElementById('charge-montant')?.value) || (montantHT * (1 + tauxTVA/100));
-  const vehId     = document.getElementById('charge-veh')?.value || '';
-  const profile   = getTVAConfig();
-  const tvaPeriodeKey = categorie === 'tva'
-    ? normaliserTVAPeriodeKey(document.getElementById('charge-tva-period')?.value || '', date, profile)
-    : '';
-
-  if (!montant && !montantHT) { afficherToast('⚠️ Montant obligatoire','error'); return; }
-  if (hasNegativeNumber(montantHT, montant, tauxTVA)) {
-    afficherToast('⚠️ Les montants doivent être positifs', 'error');
-    return;
-  }
-
-  const vehicule = vehId ? charger('vehicules').find(v=>v.id===vehId) : null;
-  const charges  = charger('charges');
-  const charge = {
-    id:editId || genId(),
-    date,
-    categorie,
-    description: desc || (categorie === 'tva' ? 'Versement TVA ' + getTVADeclarationPeriodLabel(tvaPeriodeKey).toLowerCase() : ''),
-    montant,
-    montantHT: montantHT || (tauxTVA > 0 ? montant/(1+tauxTVA/100) : montant),
-    tauxTVA,
-    vehId,
-    vehNom:vehicule?.immat||'',
-    tvaPeriodeKey: tvaPeriodeKey || undefined,
-    creeLe:new Date().toISOString()
-  };
-  if (editId) {
-    const idx = charges.findIndex(function(item){ return item.id === editId; });
-    if (idx === -1) return afficherToast('⚠️ Charge introuvable', 'error');
-    charges[idx] = { ...charges[idx], ...charge, modifieLe: new Date().toISOString() };
-  } else {
-    charges.push(charge);
-  }
-  sauvegarder('charges', charges);
-  ajouterEntreeAudit(editId ? 'Modification charge' : 'Création charge', (charge.categorie || 'charge') + ' · ' + euros(charge.montant || 0) + ' · ' + (charge.description || ''));
-  synchroChargeVersEntretien(charge);
-  closeModal('modal-charge');
-  resetFormulaireCharge();
-  afficherCharges();
-  afficherTva();
-  rafraichirDashboard();
-  afficherRentabilite();
-  afficherToast(editId ? '✅ Charge mise à jour' : '✅ Charge enregistrée');
-}
-
-async function supprimerCharge(id) {
-  const ok = await confirmDialog('Supprimer cette charge ?',{titre:'Supprimer',icone:'💸',btnLabel:'Supprimer'});
-  if (!ok) return;
-  const charge = charger('charges').find(function(item) { return item.id === id; });
-  sauvegarder('charges', charger('charges').filter(c=>c.id!==id));
-  afficherCharges();
-  afficherTva();
-  rafraichirDashboard();
-  afficherRentabilite();
-  ajouterEntreeAudit('Suppression charge', (charge?.categorie || 'charge') + ' · ' + euros(charge?.montant || 0));
-  afficherToast('🗑️ Charge supprimée');
-}
+// MOVED -> script-charges.js : supprimerCharge
 
 // MOVED -> script-exports.js : exporterChargesPDF
 
@@ -8246,191 +4974,21 @@ function afficherTCO(vehId) {
 // MOVED -> script-incidents.js : supprimerIncident
 
 /* ===== HISTORIQUE MODIFICATIONS LIVRAISON ===== */
-function logModifLivraison(livId, champ, ancienne, nouvelle) {
-  const cle  = 'modifs_liv_' + livId;
-  const logs = loadSafe(cle, []);
-  logs.push({ date:new Date().toISOString(), champ, ancienne: String(ancienne), nouvelle: String(nouvelle), par:'Admin' });
-  if (logs.length > 20) logs.shift();
-  localStorage.setItem(cle, JSON.stringify(logs));
-}
+// MOVED -> script-livraisons.js : logModifLivraison
 
-function nettoyerHistoriqueModifsLivraisons() {
-  // Throttle 1×/jour : sinon chaque DOMContentLoaded déclenche N removeItem sync = rafale egress au boot.
-  const dernier = parseInt(localStorage.getItem('delivpro_modifs_cleanup_at') || '0', 10) || 0;
-  if (Date.now() - dernier < 24 * 60 * 60 * 1000) return;
-  const limite = Date.now() - (30 * 24 * 60 * 60 * 1000);
-  const aSupprimer = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const cle = localStorage.key(i);
-    if (!cle || !cle.startsWith('modifs_liv_')) continue;
-    try {
-      const logs = loadSafe(cle, []);
-      const derniereDate = Array.isArray(logs) && logs.length ? Date.parse(logs[logs.length - 1]?.date || logs[0]?.date || '') : 0;
-      if (!derniereDate || Number.isNaN(derniereDate) || derniereDate < limite) aSupprimer.push(cle);
-    } catch (_) {
-      aSupprimer.push(cle);
-    }
-  }
-  aSupprimer.forEach(cle => localStorage.removeItem(cle));
-  localStorage.setItem('delivpro_modifs_cleanup_at', String(Date.now()));
-}
+// MOVED -> script-salaries.js : nettoyerHistoriqueModifsLivraisons
 
-function afficherHistoriqueModifs(livId) {
-  const cle  = 'modifs_liv_' + livId;
-  const logs = loadSafe(cle, []).reverse();
-  const cont = document.getElementById('historique-modifs-liv');
-  if (!cont) return;
-  if (!logs.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune modification enregistrée</div>'; return; }
-  cont.innerHTML = logs.map(l => `
-    <div class="modif-log">
-      <span class="modif-log-date">${new Date(l.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
-      <span class="modif-log-qui">${l.par}</span>
-      <span><strong>${l.champ}</strong> : <span style="color:var(--red)">${l.ancienne||'—'}</span> → <span style="color:var(--green)">${l.nouvelle||'—'}</span></span>
-    </div>`).join('');
-}
+// MOVED -> script-salaries.js : afficherHistoriqueModifs
 
 /* ===== COMMENTAIRES INTERNES LIVRAISON ===== */
-function ajouterCommentaireLiv(livId) {
-  const input = document.getElementById('commentaire-liv-input');
-  const texte = input?.value.trim();
-  if (!texte) return;
-  const cle  = 'commentaires_liv_' + livId;
-  const list = loadSafe(cle, []);
-  list.push({ id:genId(), texte, date:new Date().toISOString(), par:'Admin' });
-  localStorage.setItem(cle, JSON.stringify(list));
-  if (input) input.value = '';
-  afficherCommentairesLiv(livId);
-  afficherToast('💬 Commentaire ajouté');
-}
+// MOVED -> script-livraisons.js : ajouterCommentaireLiv
 
-function afficherCommentairesLiv(livId) {
-  const cle  = 'commentaires_liv_' + livId;
-  const list = loadSafe(cle, []).reverse();
-  const cont = document.getElementById('commentaires-liv-list');
-  if (!cont) return;
-  if (!list.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted)">Aucun commentaire</div>'; return; }
-  cont.innerHTML = list.map(c => `
-    <div style="background:rgba(255,255,255,.03);border-radius:7px;padding:8px 12px;margin-bottom:6px;font-size:.85rem">
-      <div style="color:var(--text-muted);font-size:.72rem;margin-bottom:3px">${c.par} · ${new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
-      ${c.texte}
-    </div>`).join('');
-}
+// MOVED -> script-livraisons.js : afficherCommentairesLiv
 
 /* ===== BON DE LIVRAISON PDF ===== */
-function genererBonLivraison(livId) {
-  const livraisons = charger('livraisons');
-  const l = livraisons.find(x => x.id === livId);
-  if (!l) return;
-  const params = getEntrepriseExportParams();
-  const nom = params.nom;
-  const siret = params.siret || '—';
-  const adresse = params.adresse || '';
-  const tel = params.tel || '';
-  const dateExp = formatDateHeureExport();
-  const logo = renderLogoEntrepriseExport();
+// MOVED -> script-livraisons.js : genererBonLivraison
 
-  const html = `
-    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
-      <!-- EN-TÊTE -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #f5a623">
-        <div>
-          <div style="font-size:1.6rem;font-weight:800;color:#f5a623;letter-spacing:1px">${nom}</div>
-          ${adresse ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">${adresse}</div>` : ''}
-          ${tel     ? `<div style="font-size:.85rem;color:#6b7280">📞 ${tel}</div>` : ''}
-          ${siret !== '—' ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:2px">SIRET : ${siret}</div>` : ''}
-        </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right">
-          ${logo || ''}
-          <div>
-          <div style="font-size:1.1rem;font-weight:700;color:#1a1d27">BON DE LIVRAISON</div>
-          <div style="font-size:1.3rem;font-weight:800;color:#f5a623">${l.numLiv || '—'}</div>
-          <div style="font-size:.82rem;color:#6b7280;margin-top:4px">Date : ${formatDateExport(l.date) || '—'}</div>
-          ${l.heureDebut ? `<div style="font-size:.82rem;color:#6b7280">Heure : ${l.heureDebut}</div>` : ''}
-          </div>
-        </div>
-      </div>
-
-      <!-- INFOS LIVRAISON -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px">
-        <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Client</div>
-          <div style="font-size:1rem;font-weight:700">${l.client || '—'}</div>
-          ${l.arrivee ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">📍 ${l.arrivee}</div>` : ''}
-        </div>
-        <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Exécution</div>
-          <div style="font-size:.88rem"><strong>Chauffeur :</strong> ${l.chaufNom || '—'}</div>
-          <div style="font-size:.88rem;margin-top:4px"><strong>Véhicule :</strong> ${l.vehNom || '—'}</div>
-          ${l.distance ? `<div style="font-size:.88rem;margin-top:4px"><strong>Distance :</strong> ${l.distance} km</div>` : ''}
-        </div>
-      </div>
-
-      <!-- DÉPART / ARRIVÉE -->
-      ${(l.depart || l.arrivee) ? `
-      <div style="background:#fff8ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;margin-bottom:24px">
-        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px">Itinéraire</div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          ${l.depart  ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">DÉPART</div><div style="font-weight:600">📍 ${l.depart}</div></div>` : ''}
-          ${l.depart && l.arrivee ? `<div style="font-size:1.2rem;color:#f5a623">→</div>` : ''}
-          ${l.arrivee ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">ARRIVÉE</div><div style="font-weight:600">🏁 ${l.arrivee}</div></div>` : ''}
-        </div>
-      </div>` : ''}
-
-      <!-- PRIX HT/TVA -->
-      <div style="border:2px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-bottom:28px">
-        <div style="background:#f3f4f6;padding:10px 16px;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af">Tarification</div>
-        <div style="padding:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div style="font-size:.9rem">Prestation de livraison (TTC)</div>
-            <div style="font-size:1.4rem;font-weight:800;color:#f5a623">\${l.prix ? new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(l.prix) : 'Sur devis'}</div>
-          </div>
-          \${l.prix ? (() => {
-            const taux = parseFloat(localStorage.getItem('taux_tva')||'20');
-            const ht   = l.prix / (1 + taux/100);
-            const tvaM = l.prix - ht;
-            return \`<div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;padding-top:8px;border-top:1px solid #e5e7eb">
-              <span>Montant HT</span><span style="font-weight:600">\${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(ht)}</span>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;margin-top:4px">
-              <span>TVA \${taux}%</span><span>\${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(tvaM)}</span>
-            </div>\`;
-          })() : ''}
-          \${l.modePaiement ? \`<div style="font-size:.82rem;color:#6b7280;margin-top:8px">Mode de paiement : \${l.modePaiement}</div>\` : ''}
-        </div>
-      </div>
-
-      <!-- SIGNATURES -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:28px">
-        <div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px;min-height:90px">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Signature chauffeur</div>
-          <div style="margin-top:8px;font-size:.8rem;color:#9ca3af">${l.chaufNom || ''}</div>
-        </div>
-        <div style="border:1px solid #e5e7eb;border-radius:10px;padding:16px;min-height:90px">
-          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Signature client</div>
-          <div style="margin-top:8px;font-size:.8rem;color:#9ca3af">Lu et approuvé</div>
-        </div>
-      </div>
-
-      ${l.notes ? `<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:.85rem;color:#166534"><strong>Notes :</strong> ${l.notes}</div>` : ''}
-
-      <!-- PIED DE PAGE -->
-      <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-        <span>Généré par ${nom}</span>
-        <span>Exporté le ${dateExp}</span>
-        <span>Page 1/1</span>
-      </div>
-    </div>`;
-
-  const zone = document.getElementById('print-bon');
-  zone.innerHTML = html;
-
-  // Ouvrir dans une nouvelle fenêtre pour impression/sauvegarde PDF
-  ouvrirFenetreImpression(`Bon de livraison ${l.numLiv||''}`, html, 'width=800,height=900');
-}
-
-function chargerFacturesEmises() {
-  return charger('factures_emises');
-}
+// MOVED -> script-charges.js : chargerFacturesEmises
 
 function sauvegarderFacturesEmises(factures) {
   sauvegarder('factures_emises', factures);
@@ -8465,146 +5023,11 @@ function incrementerCompteurFactureAnnee(annee) {
   return compteurs[key];
 }
 
-function assurerArchiveFactureLivraison(livraison) {
-  const factures = chargerFacturesEmises();
-  const annee = getAnneeFactureReference(livraison);
-  const montantHT = round2(getMontantHTLivraison(livraison));
-  const montantTTC = round2(parseFloat(livraison.prix) || 0);
-  const montantTVA = round2(montantTTC - montantHT);
-  const nowIso = new Date().toISOString();
-  let facture = factures.find(function(item) { return item.livId === livraison.id; }) || null;
-  if (!facture) {
-    const nextSeq = incrementerCompteurFactureAnnee(annee);
-    facture = {
-      id: genId(),
-      livId: livraison.id,
-      annee: annee,
-      sequence: nextSeq,
-      numero: formatNumeroFacture(annee, nextSeq),
-      creeLe: nowIso,
-      statut: 'émise'
-    };
-    factures.push(facture);
-  }
-  facture.client = livraison.client || 'Client';
-  facture.numLiv = livraison.numLiv || '';
-  facture.dateLivraison = livraison.date || '';
-  facture.datePaiement = livraison.datePaiement || '';
-  facture.modePaiement = livraison.modePaiement || '';
-  facture.statutPaiement = livraison.statutPaiement || 'en-attente';
-  facture.montantHT = montantHT;
-  facture.montantTVA = montantTVA;
-  facture.montantTTC = montantTTC;
-  facture.misAJourLe = nowIso;
-  if (!facture.numero) facture.numero = formatNumeroFacture(annee, facture.sequence || 1);
-  sauvegarderFacturesEmises(factures);
-  const livraisons = charger('livraisons');
-  const idx = livraisons.findIndex(function(item) { return item.id === livraison.id; });
-  if (idx > -1) {
-    livraisons[idx].factureNumero = facture.numero;
-    livraisons[idx].factureId = facture.id;
-    sauvegarder('livraisons', livraisons);
-  }
-  return facture;
-}
+// MOVED -> script-livraisons.js : assurerArchiveFactureLivraison
 
-function annulerArchiveFactureLivraison(livraison) {
-  if (!livraison?.id) return;
-  const factures = chargerFacturesEmises();
-  const facture = factures.find(function(item) { return item.livId === livraison.id; });
-  if (!facture) return;
-  facture.statut = 'annulée';
-  facture.annuleeLe = new Date().toISOString();
-  facture.annulationMotif = 'Livraison supprimée';
-  sauvegarderFacturesEmises(factures);
-}
+// MOVED -> script-livraisons.js : annulerArchiveFactureLivraison
 
-function genererFactureLivraison(livId) {
-  const livraison = charger('livraisons').find(function(item) { return item.id === livId; });
-  if (!livraison) return;
-  const params = getEntrepriseExportParams();
-  const profile = getTVAConfig();
-  const siret = String(params.siret || '').replace(/\s+/g, '');
-  if (!/^\d{14}$/.test(siret)) {
-    afficherToast('⚠️ Renseigne un SIRET valide dans Paramètres avant de générer une facture', 'error');
-    naviguerVers('parametres');
-    return;
-  }
-  const dateFacture = formatDateExport(livraison.date || aujourdhui());
-  const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
-  const tauxTVA = parseFloat(livraison.tauxTVA ?? profile.defaultRate ?? 20) || 0;
-  const montantHT = round2(getMontantHTLivraison(livraison));
-  const montantTVA = round2((parseFloat(livraison.prix) || 0) - montantHT);
-  const montantTTC = round2(parseFloat(livraison.prix) || 0);
-  const facture = assurerArchiveFactureLivraison(livraison);
-  const numeroFacture = facture.numero;
-  const clientFiche = (typeof trouverClientParLivraison === 'function') ? trouverClientParLivraison(livraison) : null;
-  const mentionTVA = choisirMentionTVALegale(profile, clientFiche || { pays: livraison.clientPays, tvaIntracom: livraison.clientTvaIntracom }, tauxTVA);
-  // BUG-002 fix : template unifié avec mentions légales complètes (CGI 242 nonies A + L441-10 + D441-5)
-  const adresseEntreprise = [params.adresseLigne, (params.codePostal + ' ' + params.ville).trim(), params.pays && params.pays !== 'FR' ? params.pays : '']
-    .filter(Boolean).join(', ') || params.adresse;
-  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:28px;color:#111827">'
-    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:24px">'
-    + '<div><div style="font-size:1.7rem;font-weight:900;color:#f5a623;margin-bottom:8px">' + planningEscapeHtml(params.nom || 'MCA Logistics') + '</div>'
-    + '<div style="font-size:.92rem;line-height:1.6;color:#4b5563">'
-    + (adresseEntreprise ? '<div>' + planningEscapeHtml(adresseEntreprise) + '</div>' : '')
-    + (params.tel ? '<div>Tél. : ' + planningEscapeHtml(params.tel) + '</div>' : '')
-    + (params.email ? '<div>Email : ' + planningEscapeHtml(params.email) + '</div>' : '')
-    + '<div>SIRET : ' + planningEscapeHtml(siret) + '</div>'
-    + (params.tvaIntracom ? '<div>TVA intracom : ' + planningEscapeHtml(params.tvaIntracom) + '</div>' : '')
-    + '</div>'
-    + renderFactureMentionsEntrepriseHeader(params)
-    + '</div>'
-    + '<div style="text-align:right"><div style="font-size:.82rem;text-transform:uppercase;color:#6b7280;letter-spacing:.08em">Facture</div>'
-    + '<div style="font-size:1.2rem;font-weight:800;margin-top:6px">' + planningEscapeHtml(numeroFacture) + '</div>'
-    + '<div style="margin-top:10px;font-size:.88rem;color:#4b5563">Date d\'émission : <strong>' + dateFacture + '</strong></div>'
-    + (livraison.date ? '<div style="font-size:.88rem;color:#4b5563">Date de livraison : <strong>' + planningEscapeHtml(formatDateExport(livraison.date)) + '</strong></div>' : '')
-    + '<div style="font-size:.88rem;color:#4b5563">Échéance : <strong>' + planningEscapeHtml(datePaiement) + '</strong></div></div>'
-    + '</div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">'
-    + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
-    + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Facturé à</div>'
-    + renderFactureClientBlock(livraison, clientFiche)
-    + '</div>'
-    + '<div style="border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fff">'
-    + '<div style="font-size:.75rem;text-transform:uppercase;color:#9ca3af;margin-bottom:8px">Prestation</div>'
-    + '<div style="font-size:.92rem;color:#374151">Transport / livraison</div>'
-    + '<div style="font-size:.82rem;color:#6b7280;margin-top:6px">' + planningEscapeHtml((livraison.numLiv || 'Livraison') + (livraison.date ? ' · ' + formatDateExport(livraison.date) : '')) + '</div>'
-    + (livraison.chaufNom ? '<div style="font-size:.82rem;color:#6b7280;margin-top:4px">Chauffeur : ' + planningEscapeHtml(livraison.chaufNom) + '</div>' : '')
-    + '</div>'
-    + '</div>'
-    + '<table style="width:100%;border-collapse:collapse;margin-bottom:22px;border:1px solid #e5e7eb;border-radius:14px;overflow:hidden">'
-    + '<thead><tr style="background:#f8fafc"><th style="padding:12px 14px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280">Description</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">HT</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TVA</th><th style="padding:12px 14px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280">TTC</th></tr></thead>'
-    + '<tbody><tr>'
-    + '<td style="padding:14px;border-top:1px solid #e5e7eb">Prestation de livraison' + (livraison.notes ? '<div style="font-size:.78rem;color:#6b7280;margin-top:6px">' + planningEscapeHtml(livraison.notes) + '</div>' : '') + '</td>'
-    + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;font-weight:700">' + euros(montantHT) + '</td>'
-    + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right">' + euros(montantTVA) + '</td>'
-    + '<td style="padding:14px;border-top:1px solid #e5e7eb;text-align:right;font-weight:800">' + euros(montantTTC) + '</td>'
-    + '</tr></tbody></table>'
-    + '<div style="display:flex;justify-content:flex-end;margin-bottom:18px"><div style="min-width:320px;border:1px solid #e5e7eb;border-radius:14px;padding:16px;background:#fafafa">'
-    + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>Total HT</span><strong>' + euros(montantHT) + '</strong></div>'
-    + '<div style="display:flex;justify-content:space-between;margin-bottom:8px"><span>' + planningEscapeHtml(mentionTVA) + '</span><strong>' + euros(montantTVA) + '</strong></div>'
-    + '<div style="display:flex;justify-content:space-between;font-size:1.04rem;border-top:1px solid #d1d5db;padding-top:10px"><span>Total TTC</span><strong style="color:#f59e0b">' + euros(montantTTC) + '</strong></div>'
-    + '</div></div>'
-    + renderFacturePiedMentionsLegales(params, livraison, clientFiche)
-    + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
-    + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
-    + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
-    + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
-    + '</div>'
-    + '</div>';
-  facture.derniereGenerationLe = new Date().toISOString();
-  facture.dateFacture = livraison.date || aujourdhui();
-  const factures = chargerFacturesEmises();
-  const idxFacture = factures.findIndex(function(item) { return item.id === facture.id; });
-  if (idxFacture > -1) {
-    factures[idxFacture] = facture;
-    sauvegarderFacturesEmises(factures);
-  }
-  ouvrirFenetreImpression('Facture ' + numeroFacture, html, 'width=980,height=820');
-  ajouterEntreeAudit('Génération facture', numeroFacture + ' · ' + (livraison.client || 'Client') + ' · ' + euros(montantTTC));
-  afficherToast('📄 Facture générée');
-}
+// MOVED -> script-livraisons.js : genererFactureLivraison
 
 /* ============================================================
    Lettre de voiture — arrêté 09/11/1999 modifié + décret 2017-443
@@ -8827,147 +5250,19 @@ function genererRegistreRGPD() {
 window.genererRegistreRGPD = genererRegistreRGPD;
 
 /* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
-function autoRemplirVehicule() {
-  const chaufId = document.getElementById('liv-chauffeur').value;
-  const selVeh  = document.getElementById('liv-vehicule');
-  if (!chaufId || !selVeh) return;
-  const veh = getVehiculeParSalId(chaufId);
-  if (veh) {
-    // S'assurer que l'option existe dans le select
-    let found = false;
-    for (let opt of selVeh.options) { if (opt.value === veh.id) { found = true; break; } }
-    if (!found) {
-      const opt = document.createElement('option');
-      opt.value = veh.id;
-      opt.textContent = `${veh.immat} — ${veh.modele}`;
-      selVeh.appendChild(opt);
-    }
-    selVeh.value = veh.id;
-  }
-}
+// MOVED -> script-vehicules.js : autoRemplirVehicule
 
-function autoRemplirChauffeurDepuisVehicule() {
-  const selChauf = document.getElementById('liv-chauffeur');
-  const vehId = document.getElementById('liv-vehicule')?.value || '';
-  if (!selChauf || !vehId) return;
-  const affectation = synchroniserAffectationLivraison(selChauf.value || '', vehId);
-  if (affectation.chaufId) selChauf.value = affectation.chaufId;
-}
+// MOVED -> script-salaries.js : autoRemplirChauffeurDepuisVehicule
 
-function autoRemplirVehiculeEdit() {
-  const selVeh = document.getElementById('edit-liv-vehicule');
-  if (!selVeh) return;
-  const affectation = synchroniserAffectationLivraison(
-    document.getElementById('edit-liv-chauffeur')?.value || '',
-    selVeh.value || ''
-  );
-  if (affectation.vehId) selVeh.value = affectation.vehId;
-}
+// MOVED -> script-vehicules.js : autoRemplirVehiculeEdit
 
-function autoRemplirChauffeurDepuisVehiculeEdit() {
-  const selChauf = document.getElementById('edit-liv-chauffeur');
-  if (!selChauf) return;
-  const affectation = synchroniserAffectationLivraison(
-    selChauf.value || '',
-    document.getElementById('edit-liv-vehicule')?.value || ''
-  );
-  if (affectation.chaufId) selChauf.value = affectation.chaufId;
-}
+// MOVED -> script-salaries.js : autoRemplirChauffeurDepuisVehiculeEdit
 
 /* ===== MODIFIER CLIENT ===== */
 let _editClientId = null;
-async function ouvrirEditClient(id) {
-  const c = charger('clients').find(x=>x.id===id);
-  if (!c) return;
-  await actualiserVerrousEditionDistance();
-  const lockResult = prendreVerrouEdition('client', id, c.nom || 'Client');
-  if (!lockResult.ok) {
-    afficherToast(`⚠️ Client en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
-    return;
-  }
-  _editClientId = id;
-  document.getElementById('edit-cl-id').value        = id;
-  document.getElementById('edit-cl-nom').value       = c.nom||'';
-  document.getElementById('edit-cl-prenom').value    = c.prenom||'';
-  document.getElementById('edit-cl-tel').value       = c.tel||'';
-  document.getElementById('edit-cl-email').value     = c.email||'';
-  document.getElementById('edit-cl-adresse').value   = c.adresse||'';
-  const setV = (id,v)=>{ const e=document.getElementById(id); if(e) e.value = v||''; };
-  setV('edit-cl-cp',         c.cp);
-  setV('edit-cl-ville',      c.ville);
-  setV('edit-cl-siren',      c.siren);
-  setV('edit-cl-tva-intra',  c.tvaIntra);
-  setV('edit-cl-email-fact', c.emailFact);
-  setV('edit-cl-delai-paiement', (c.delaiPaiementJours != null ? String(c.delaiPaiementJours) : '30'));
-  setV('edit-cl-notes',      c.notes);
-  const typeVal = c.type || 'pro';
-  const tR = document.querySelector('input[name="edit-cl-type"][value="'+typeVal+'"]'); if (tR) tR.checked = true;
-  if (window.toggleChampsClientPro) window.toggleChampsClientPro(true);
-  document.getElementById('modal-edit-client').classList.add('open');
-  afficherAlerteVerrouModal('modal-edit-client', '');
-}
+// MOVED -> script-clients.js : ouvrirEditClient
 
-function confirmerEditClient() {
-  surveillerConflitsEditionActifs();
-  const id      = document.getElementById('edit-cl-id').value;
-  const lockState = verifierVerrouEdition('client', id);
-  if (!lockState.ok) {
-    afficherToast(`⚠️ Ce client est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
-    return;
-  }
-  const nom        = document.getElementById('edit-cl-nom').value.trim();
-  const prenom     = document.getElementById('edit-cl-prenom').value.trim();
-  const tel        = document.getElementById('edit-cl-tel').value.trim();
-  const email      = document.getElementById('edit-cl-email').value.trim();
-  const adresse    = document.getElementById('edit-cl-adresse').value.trim();
-  const cp         = document.getElementById('edit-cl-cp')?.value.trim() || '';
-  const ville      = document.getElementById('edit-cl-ville')?.value.trim() || '';
-  const type       = (document.querySelector('input[name="edit-cl-type"]:checked')?.value) || 'pro';
-  const siren      = (document.getElementById('edit-cl-siren')?.value.trim() || '').replace(/\s+/g,'');
-  const tvaIntra   = (document.getElementById('edit-cl-tva-intra')?.value.trim() || '').replace(/\s+/g,'').toUpperCase();
-  const emailFact  = document.getElementById('edit-cl-email-fact')?.value.trim() || '';
-  const delaiPay   = parseInt(document.getElementById('edit-cl-delai-paiement')?.value, 10) || 30;
-  const notes      = document.getElementById('edit-cl-notes')?.value.trim() || '';
-  if (!nom) { afficherToast('⚠️ Nom obligatoire','error'); return; }
-  if (type === 'pro' && siren && !/^\d{9}$/.test(siren)) { afficherToast('⚠️ SIREN invalide (9 chiffres)','error'); return; }
-  // BUG-010 fix : validation checksum TVA intracom FR (art. 289 II CGI)
-  if (tvaIntra) {
-    const __validTva = validerTVAIntracomFR(tvaIntra);
-    if (!__validTva.valid) { afficherToast('⚠️ TVA intracom invalide : ' + (__validTva.message || 'format incorrect'), 'error'); return; }
-  }
-  const clients = charger('clients');
-  const idx = clients.findIndex(c=>c.id===id);
-  let nbLivsRenommees = 0;
-  if (idx>-1) {
-    const ancienNom = clients[idx].nom;
-    const ancienSiren = clients[idx].siren;
-    clients[idx].nom=nom; clients[idx].prenom=prenom; clients[idx].tel=tel;
-    clients[idx].contact=prenom; clients[idx].email=email; clients[idx].adresse=adresse;
-    clients[idx].cp=cp; clients[idx].ville=ville;
-    clients[idx].type=type; clients[idx].siren=siren; clients[idx].tvaIntra=tvaIntra;
-    clients[idx].emailFact=emailFact; clients[idx].delaiPaiementJours=delaiPay; clients[idx].notes=notes;
-    sauvegarder('clients', clients);
-    // Propage le nouveau nom + SIREN aux livraisons liées via clientId.
-    // Évite que le filtre `l.client === c.nom` casse le calcul Total CA et
-    // l'historique client après un renommage.
-    if (ancienNom !== nom || ancienSiren !== siren) {
-      const livraisons = charger('livraisons');
-      let dirty = false;
-      livraisons.forEach(l => {
-        if (l.clientId === id) {
-          if (ancienNom !== nom && l.client === ancienNom) { l.client = nom; nbLivsRenommees++; dirty = true; }
-          if (ancienSiren !== siren) { l.clientSiren = siren; dirty = true; }
-        }
-      });
-      if (dirty) sauvegarder('livraisons', livraisons);
-    }
-  }
-  closeModal('modal-edit-client');
-  _editClientId = null;
-  afficherClientsDashboard();
-  ajouterEntreeAudit('Modification client', nom + (email ? ' · ' + email : '') + (nbLivsRenommees ? ' · ' + nbLivsRenommees + ' livraison(s) propagée(s)' : ''));
-  afficherToast(nbLivsRenommees ? '✅ Client mis à jour · ' + nbLivsRenommees + ' livraison(s) synchronisée(s)' : '✅ Client mis à jour');
-}
+// MOVED -> script-clients.js : confirmerEditClient
 
 /* ===== EXPORT STATS PDF ===== */
 // MOVED -> script-stats.js : exporterStatsPDF
@@ -8976,155 +5271,10 @@ function confirmerEditClient() {
 // MOVED -> script-exports.js : exporterHeuresPDF
 
 /* ===== MODIFIER VÉHICULE ===== */
-async function ouvrirEditVehicule(vehId) {
-  try {
-    const veh = charger('vehicules').find(v=>v.id===vehId);
-    if (!veh) {
-      afficherToast('⚠️ Véhicule introuvable', 'error');
-      return;
-    }
-
-    // On ne s'embete plus avec actualiserVerrousEditionDistance ici : le
-    // verrou local suffit, et le pull realtime des adapters maintient deja
-    // les donnees a jour. Eviter cette attente = ouverture modal instantanee.
-
-    const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
-    if (!lockResult.ok) {
-      afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
-      return;
-    }
-
-    window._editVehId = vehId;
-    const modal = document.getElementById('modal-vehicule');
-    if (!modal) {
-      afficherToast('⚠️ Modal véhicule introuvable', 'error');
-      return;
-    }
-
-    if (typeof prefillCarteGriseFormUI === 'function') {
-      try { prefillCarteGriseFormUI(veh); } catch (e) { console.warn('prefillCarteGriseFormUI:', e); }
-    }
-
-    const setVal = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.value = (val != null ? val : '');
-    };
-
-    setVal('veh-immat',    veh.immat);
-    setVal('veh-modele',   veh.modele);
-    setVal('veh-km',       calculerKilometrageVehiculeActuel(veh));
-    setVal('veh-conso',    veh.conso);
-    setVal('veh-mode-acquisition',  veh.modeAcquisition || 'achat');
-    setVal('veh-date-acquisition',  veh.dateAcquisition);
-    setVal('veh-date-ct',  veh.dateCT);
-    setVal('veh-date-ct-dernier',   veh.dateCTDernier);
-    setVal('veh-entretien-interval-km',   veh.entretienIntervalKm);
-    setVal('veh-entretien-interval-mois', veh.entretienIntervalMois);
-
-    try { hydraterFinanceVehiculeDansForm(veh); } catch (e) { console.warn('hydraterFinance:', e); }
-
-    setVal('veh-tva-carburant', veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100);
-    setVal('veh-salarie',  veh.salId);
-    setVal('veh-genre',    veh.genre);
-    setVal('veh-carburant',veh.carburant);
-    setVal('veh-ptac',     veh.ptac);
-    setVal('veh-ptra',     veh.ptra);
-    setVal('veh-essieux',  veh.essieux);
-    setVal('veh-critair',  veh.critAir);
-    setVal('veh-date-1immat', veh.date1Immat);
-    setVal('veh-vin',      veh.vin);
-    setVal('veh-carte-grise', veh.carteGrise);
-
-    const assu = veh.assurance || {};
-    setVal('veh-assurance-compagnie', assu.compagnie);
-    setVal('veh-assurance-numero',    assu.numeroContrat);
-    setVal('veh-assurance-date-exp',  assu.dateExpiration);
-
-    try { mettreAJourFormulaireVehicule(); } catch (e) { console.warn('mettreAJourFormulaireVehicule:', e); }
-
-    const titleEl = modal.querySelector('h3');
-    const btnPrimary = modal.querySelector('.modal-footer .btn-primary');
-    if (titleEl) titleEl.textContent = '✏️ Modifier le véhicule';
-    if (btnPrimary) {
-      btnPrimary.textContent = '✅ Enregistrer';
-      btnPrimary.setAttribute('onclick', 'confirmerEditVehicule()');
-    }
-
-    if (typeof openModal === 'function') openModal('modal-vehicule');
-    else modal.classList.add('open');
-
-    try { afficherAlerteVerrouModal('modal-vehicule', ''); } catch (_) {}
-  } catch (err) {
-    console.error('[ouvrirEditVehicule] erreur:', err);
-    afficherToast('⚠️ Impossible d\'ouvrir la modification : ' + (err && err.message ? err.message : 'erreur inattendue'), 'error');
-  }
-}
+// MOVED -> script-vehicules.js : ouvrirEditVehicule
 window.ouvrirEditVehicule = ouvrirEditVehicule;
 
-function confirmerEditVehicule() {
-  surveillerConflitsEditionActifs();
-  const id = window._editVehId;
-  if (!id) return;
-  const lockState = verifierVerrouEdition('vehicule', id);
-  if (!lockState.ok) {
-    afficherToast(`⚠️ Ce véhicule est verrouillé par ${lockState.lock.actorLabel || 'un autre admin'}`, 'error');
-    return;
-  }
-  const vehicules = charger('vehicules');
-  const idx = vehicules.findIndex(v=>v.id===id);
-  if (idx === -1) return;
-  vehicules[idx].immat    = document.getElementById('veh-immat').value.trim().toUpperCase();
-  vehicules[idx].modele   = document.getElementById('veh-modele').value.trim();
-  vehicules[idx].km       = parseFloat(document.getElementById('veh-km').value)||0;
-  if (!Number.isFinite(parseFloat(vehicules[idx].kmInitial))) vehicules[idx].kmInitial = vehicules[idx].km;
-  vehicules[idx].conso    = parseFloat(document.getElementById('veh-conso').value)||0;
-  vehicules[idx].modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
-  vehicules[idx].dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
-  vehicules[idx].dateCT   = document.getElementById('veh-date-ct').value||'';
-  vehicules[idx].dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value||'';
-  vehicules[idx].entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value)||0;
-  vehicules[idx].entretienIntervalMois = parseFloat(document.getElementById('veh-entretien-interval-mois')?.value)||0;
-  Object.assign(vehicules[idx], lireFinanceVehiculeDepuisForm());
-  vehicules[idx].tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 100;
-  const salId = document.getElementById('veh-salarie')?.value||'';
-  vehicules[idx].salId = salId||null;
-  vehicules[idx].salNom = salId ? (charger('salaries').find(s=>s.id===salId)?.nom||null) : null;
-  vehicules[idx].assurance = {
-    compagnie: (document.getElementById('veh-assurance-compagnie')?.value || '').trim(),
-    numeroContrat: (document.getElementById('veh-assurance-numero')?.value || '').trim(),
-    dateExpiration: document.getElementById('veh-assurance-date-exp')?.value || ''
-  };
-  // Flotte étendue
-  const getV2 = (id) => (document.getElementById(id)?.value || '').trim();
-  vehicules[idx].genre = getV2('veh-genre');
-  vehicules[idx].carburant = getV2('veh-carburant');
-  vehicules[idx].ptac = parseInt(getV2('veh-ptac'), 10) || 0;
-  vehicules[idx].ptra = parseInt(getV2('veh-ptra'), 10) || 0;
-  vehicules[idx].essieux = parseInt(getV2('veh-essieux'), 10) || 0;
-  vehicules[idx].critAir = getV2('veh-critair');
-  vehicules[idx].date1Immat = getV2('veh-date-1immat');
-  vehicules[idx].vin = getV2('veh-vin').toUpperCase();
-  vehicules[idx].carteGrise = getV2('veh-carte-grise');
-  sauvegarder('vehicules', vehicules);
-  closeModal('modal-vehicule');
-  const modal = document.getElementById('modal-vehicule');
-  modal.querySelector('h3').textContent = '🚐 Nouveau Véhicule';
-  modal.querySelector('.modal-footer .btn-primary').textContent = 'Enregistrer';
-  modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'ajouterVehicule()');
-  ['veh-entretien-interval-km','veh-entretien-interval-mois'].forEach(function(fieldId) {
-    const field = document.getElementById(fieldId);
-    if (field) field.value = '';
-  });
-  reinitialiserFinanceVehiculeForm();
-  if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
-  if (document.getElementById('veh-mode-acquisition')) document.getElementById('veh-mode-acquisition').value = 'achat';
-  mettreAJourFormulaireVehicule();
-  window._editVehId = null;
-  afficherVehicules();
-  afficherTva();
-  afficherEntretiens();
-  afficherToast('✅ Véhicule mis à jour');
-}
+// MOVED -> script-vehicules.js : confirmerEditVehicule
 window.confirmerEditVehicule = confirmerEditVehicule;
 
 /* ===== ALIAS EXPORTS ===== */
@@ -9259,43 +5409,13 @@ var _livPeriodeOffset = 0;
 var _livPeriodeMode = 'mois';
 var _livPeriodePersonnalisee = null;
 
-function syncLivPeriodeModeSelect() {
-  var select = document.getElementById('liv-periode-mode');
-  if (select) select.value = _livPeriodeMode || 'mois';
-}
+// MOVED -> script-livraisons.js : syncLivPeriodeModeSelect
 
-function changerVuePeriodeLivraisons(mode) {
-  _livPeriodeMode = ['jour', 'semaine', 'mois', 'annee'].includes(mode) ? mode : 'mois';
-  _livPeriodeOffset = 0;
-  navLivPeriode(0);
-}
+// MOVED -> script-livraisons.js : changerVuePeriodeLivraisons
 
-function navLivPeriode(mode, delta) {
-  _livPeriodePersonnalisee = null;
-  if (typeof mode === 'string') {
-    if (mode === 'reset') return reinitialiserLivPeriode();
-    _livPeriodeMode = ['jour', 'semaine', 'mois', 'annee'].includes(mode) ? mode : 'mois';
-    _livPeriodeOffset += (delta || 0);
-  } else {
-    _livPeriodeOffset += (mode || 0);
-  }
-  var range = getPeriodeRange(_livPeriodeMode, _livPeriodeOffset);
-  syncLivPeriodeModeSelect();
-  var deb = document.getElementById('filtre-date-debut');
-  var fin = document.getElementById('filtre-date-fin');
-  if (deb) deb.value = range.debut;
-  if (fin) fin.value = range.fin;
-  majPeriodeDisplay('liv-periode-label', 'liv-periode-dates', range);
-  if (_vueLivraisons === 'kanban') afficherKanban();
-  else if (_vueLivraisons === 'calendrier') afficherCalendrier();
-  else afficherLivraisons();
-}
+// MOVED -> script-livraisons.js : navLivPeriode
 
-function reinitialiserLivPeriode() {
-  _livPeriodePersonnalisee = null;
-  _livPeriodeOffset = 0;
-  navLivPeriode(0);
-}
+// MOVED -> script-livraisons.js : reinitialiserLivPeriode
 
 /* --- HEURES & KM : semaine --- */
 var _heuresSemaineOffset = 0;
@@ -9336,12 +5456,12 @@ function resetSimplePeriode(state, refreshFn, labelId, datesId, selectId) {
 // MOVED -> script-inspections.js : reinitialiserInspectionsPeriode
 function navInspSemaine(delta) { _inspPeriode.mode = 'semaine'; if (delta === 0) _inspPeriode.offset = 0; else _inspPeriode.offset += delta; navInspectionsPeriode(0); }
 
-function getChargesPeriodeRange() { return getPeriodeRange(_chargesPeriode.mode, _chargesPeriode.offset); }
-function changerVueCharges(mode) { changeSimplePeriode(_chargesPeriode, mode, afficherCharges, 'charges-mois-label', 'charges-mois-dates', 'vue-charges-select'); }
-function navChargesPeriode(delta) { navSimplePeriode(_chargesPeriode, delta, afficherCharges, 'charges-mois-label', 'charges-mois-dates', 'vue-charges-select'); }
-function reinitialiserChargesPeriode() { resetSimplePeriode(_chargesPeriode, afficherCharges, 'charges-mois-label', 'charges-mois-dates', 'vue-charges-select'); }
-function navChargesMois(delta) { _chargesPeriode.mode = 'mois'; if (delta === 0) _chargesPeriode.offset = 0; else _chargesPeriode.offset += delta; navChargesPeriode(0); }
-function getChargesMoisStr() { return getChargesPeriodeRange().debut.slice(0,7); }
+// MOVED -> script-charges.js : getChargesPeriodeRange
+// MOVED -> script-charges.js : changerVueCharges
+// MOVED -> script-charges.js : navChargesPeriode
+// MOVED -> script-charges.js : reinitialiserChargesPeriode
+// MOVED -> script-charges.js : navChargesMois
+// MOVED -> script-charges.js : getChargesMoisStr
 
 // MOVED -> script-carburant.js : getCarburantPeriodeRange
 // MOVED -> script-carburant.js : changerVueCarburant
@@ -9426,144 +5546,17 @@ function getPeriodeRange(mode, offset) {
    =============================================== */
 
 var _tvaPeriode = buildSimplePeriodeState('mois');
-function navTvaMois(delta) {
-  _tvaPeriode.mode = 'mois';
-  if (delta === 0) _tvaPeriode.offset = 0;
-  else _tvaPeriode.offset += delta;
-  majPeriodeDisplay('tva-mois-label', 'tva-mois-dates', getPeriodeRange(_tvaPeriode.mode, _tvaPeriode.offset));
-  afficherTva();
-}
+// MOVED -> script-tva.js : navTvaMois
 
-function getTvaMoisStr() {
-  return getPeriodeRange(_tvaPeriode.mode, _tvaPeriode.offset).debut.slice(0,7);
-}
-function getTvaPeriodeRange() { return getPeriodeRange(_tvaPeriode.mode, _tvaPeriode.offset); }
-function changerVueTVA(mode) { changeSimplePeriode(_tvaPeriode, mode, afficherTva, 'tva-mois-label', 'tva-mois-dates', 'vue-tva-select'); }
-function navTvaPeriode(delta) { navSimplePeriode(_tvaPeriode, delta, afficherTva, 'tva-mois-label', 'tva-mois-dates', 'vue-tva-select'); }
-function reinitialiserTVAPeriode() { resetSimplePeriode(_tvaPeriode, afficherTva, 'tva-mois-label', 'tva-mois-dates', 'vue-tva-select'); }
+// MOVED -> script-tva.js : getTvaMoisStr
+// MOVED -> script-tva.js : getTvaPeriodeRange
+// MOVED -> script-tva.js : changerVueTVA
+// MOVED -> script-tva.js : navTvaPeriode
+// MOVED -> script-tva.js : reinitialiserTVAPeriode
 
-function afficherTva() {
-  var range = getTvaPeriodeRange();
-  var summary = getTVASummaryForRange(range);
-  var profile = summary.profile;
-  var periodSelect = document.getElementById('vue-tva-select');
-  if (periodSelect) periodSelect.value = _tvaPeriode.mode;
-  majPeriodeDisplay('tva-mois-label', 'tva-mois-dates', range);
+// MOVED -> script-tva.js : afficherTva
 
-  var collectTitle = document.getElementById('tva-collectee-title');
-  if (collectTitle) {
-    collectTitle.textContent = profile.isVatEnabled
-      ? ((profile.activiteType === 'goods' || profile.exigibiliteServices === 'debits')
-          ? '📤 TVA Collectée (exigible à la facture / livraison)'
-          : '📤 TVA Collectée (exigible à l’encaissement)')
-      : '📤 TVA Collectée';
-  }
-  var dedTitle = document.getElementById('tva-deductible-title');
-  if (dedTitle) dedTitle.textContent = '📥 TVA Déductible (charges, carburant, entretiens)';
-
-  var modeInfo = document.getElementById('tva-mode-info');
-  if (modeInfo) {
-    modeInfo.innerHTML = profile.isVatEnabled
-      ? '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between"><div><div style="font-size:.92rem;font-weight:700">Mode TVA actif</div><div style="font-size:.82rem;color:var(--text-muted)">' + getTVARegimeLabel(profile.regime) + ' · ' + getTVAActiviteLabel(profile.activiteType) + ' · ' + getTVAExigibiliteLabel(profile) + '.</div></div><div style="font-size:.8rem;color:var(--text-muted)">Déclaration ' + getTVAPeriodiciteLabel(profile.periodicite).toLowerCase() + '</div></div>'
-      : '<div style="font-size:.9rem;color:var(--text-muted)">Franchise en base : aucune TVA collectée ni déductible sur cette période.</div>';
-  }
-
-  var tbColl = document.getElementById('tb-tva-collectee');
-  if (tbColl) {
-    var rows = '';
-    summary.collectee.forEach(function(entry) {
-      rows += '<tr>'
-        + '<td>' + formatDateExport(entry.exigibiliteDate) + '</td>'
-        + '<td style="font-weight:700">' + entry.tauxTVA + ' %</td>'
-        + '<td><button type="button" class="table-link-button" onclick="ouvrirEditLivraison(\'' + entry.id + '\')">' + planningEscapeHtml(entry.libelle) + '</button></td>'
-        + '<td>' + euros(entry.baseHT) + '</td>'
-        + '<td style="font-weight:700;color:var(--green)">' + euros(entry.tva) + '</td>'
-        + '<td>' + euros(entry.ttc) + '</td>'
-        + '<td><button type="button" class="btn-icon danger" onclick="supprimerSourceDepuisTVA(\'livraison\', \'' + entry.id + '\')" title="Supprimer">🗑️</button></td>'
-        + '</tr>';
-    });
-    if (!rows) rows = '<tr><td colspan="7" class="empty-row">Aucune TVA collectée exigible sur cette période</td></tr>';
-    else rows += '<tr style="background:rgba(46,204,113,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td></td><td style="color:var(--green)">' + euros(summary.totalCollectee) + '</td><td>' + euros(summary.collectee.reduce(function(sum, item) { return sum + item.ttc; }, 0)) + '</td><td></td></tr>';
-    tbColl.innerHTML = rows;
-  }
-
-  var nonExigibleInfo = document.getElementById('tva-non-exigible-info');
-  if (nonExigibleInfo) {
-    if (!summary.pending.length) {
-      nonExigibleInfo.innerHTML = '';
-    } else {
-      var totalPending = summary.pending.reduce(function(sum, item) { return sum + item.tva; }, 0);
-      var pendingRows = summary.pending.map(function(item) {
-        var detail = item.paymentDate ? 'Paiement prévu le ' + formatDateExport(item.paymentDate) : 'Aucun encaissement enregistré à ce jour';
-        return '<div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid var(--border)"><div><strong>' + planningEscapeHtml(item.libelle) + '</strong><div style="font-size:.78rem;color:var(--text-muted)">' + detail + '</div></div><div style="font-weight:700;color:var(--accent)">' + euros(item.tva) + '</div></div>';
-      }).join('');
-      nonExigibleInfo.innerHTML = '<div style="margin-top:4px;padding:14px 16px;border-radius:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)"><div style="font-size:.88rem;font-weight:700;margin-bottom:6px">📅 Facturé mais non encore exigible</div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">' + summary.pending.length + ' livraison(s) facturées sur la période restent hors TVA collectée tant qu’elles ne sont pas exigibles.</div><div style="font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:4px">TVA concernée : ' + euros(totalPending) + '</div>' + pendingRows + '</div>';
-    }
-  }
-
-  var tbDed = document.getElementById('tb-tva-deductible');
-  if (tbDed) {
-    var rows2 = '';
-    summary.deductible.forEach(function(entry) {
-      var openAction = entry.sourceType === 'charge'
-        ? "ouvrirEditCharge('" + entry.id + "')"
-        : entry.sourceType === 'carburant'
-          ? "ouvrirEditCarburantAdmin('" + entry.id + "')"
-          : "ouvrirEditEntretien('" + entry.id + "')";
-      var deleteAction = "supprimerSourceDepuisTVA('" + entry.sourceType + "', '" + entry.id + "')";
-      rows2 += '<tr>'
-        + '<td>' + formatDateExport(entry.date) + '</td>'
-        + '<td style="font-weight:700">' + entry.tauxTVA + ' %</td>'
-        + '<td><button type="button" class="table-link-button" onclick="' + openAction + '">' + planningEscapeHtml(entry.libelle) + '</button></td>'
-        + '<td>' + euros(entry.baseHT) + '</td>'
-        + '<td style="font-weight:700;color:var(--accent)">' + euros(entry.tva) + '</td>'
-        + '<td>' + euros(entry.ttc) + '</td>'
-        + '<td><button type="button" class="btn-icon danger" onclick="' + deleteAction + '" title="Supprimer">🗑️</button></td>'
-        + '</tr>';
-    });
-    if (!rows2) rows2 = '<tr><td colspan="7" class="empty-row">Aucune TVA déductible sur cette période</td></tr>';
-    else rows2 += '<tr style="background:rgba(245,166,35,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td></td><td style="color:var(--accent)">' + euros(summary.totalDeductible) + '</td><td></td><td></td></tr>';
-    tbDed.innerHTML = rows2;
-  }
-
-  var setT = function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
-  setT('tva-collectee', euros(summary.totalCollectee));
-  setT('tva-deductible', euros(summary.totalDeductible));
-  window.__lastTvaBrutSolde = summary.soldeBrut;
-
-  var soldeEl = document.getElementById('tva-solde-detail');
-  if (soldeEl) {
-    var settlementsHtml = summary.settlements.length
-      ? '<div style="margin-top:18px"><div style="font-size:.82rem;font-weight:700;margin-bottom:8px">Règlements TVA liés à cette période déclarative</div><div style="display:grid;gap:8px">' + summary.settlements.map(function(item) {
-          return '<div style="display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--bg-dark);border:1px solid var(--border)"><div><div style="font-weight:600">' + planningEscapeHtml(item.description) + '</div><div style="font-size:.78rem;color:var(--text-muted)">' + item.periodLabel + ' · Paiement ' + formatDateExport(item.paymentDate) + '</div></div><div style="display:flex;align-items:center;gap:10px"><strong style="color:var(--blue)">' + euros(item.montant) + '</strong><button type="button" class="btn-icon danger" onclick="supprimerSourceDepuisTVA(\'charge\', \'' + item.id + '\')" title="Supprimer">🗑️</button></div></div>';
-        }).join('') + '</div></div>'
-      : '<div style="margin-top:16px;font-size:.82rem;color:var(--text-muted);text-align:center">Aucun versement TVA enregistré pour cette période déclarative.</div>';
-    soldeEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;text-align:center">'
-      + '<div style="padding:16px;background:rgba(46,204,113,.06);border-radius:10px;border:1px solid rgba(46,204,113,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Collectée</div><div style="font-size:1.3rem;font-weight:800;color:var(--green)">' + euros(summary.totalCollectee) + '</div></div>'
-      + '<div style="padding:16px;background:rgba(245,166,35,.06);border-radius:10px;border:1px solid rgba(245,166,35,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">TVA Déductible</div><div style="font-size:1.3rem;font-weight:800;color:var(--accent)">' + euros(summary.totalDeductible) + '</div></div>'
-      + '<div style="padding:16px;background:rgba(79,142,247,.06);border-radius:10px;border:1px solid rgba(79,142,247,.2)"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">Déjà planifiée / réglée</div><div style="font-size:1.3rem;font-weight:800;color:var(--blue)">' + euros(summary.totalTVAPlanifiee) + '</div></div>'
-      + '<div style="padding:16px;background:' + (summary.soldeBrut >= 0 ? 'rgba(231,76,60,.06)' : 'rgba(155,89,182,.08)') + ';border-radius:10px;border:1px solid ' + (summary.soldeBrut >= 0 ? 'rgba(231,76,60,.2)' : 'rgba(155,89,182,.25)') + '"><div style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">' + (summary.soldeBrut >= 0 ? 'Reste non planifié' : 'Crédit de TVA') + '</div><div style="font-size:1.3rem;font-weight:800;color:' + (summary.soldeBrut >= 0 ? 'var(--red)' : 'var(--purple)') + '">' + euros(summary.soldeBrut >= 0 ? summary.tvaReverser : summary.tvaCredit) + '</div></div>'
-      + '</div>'
-      + '<div style="margin-top:16px;font-size:.82rem;color:var(--text-muted);text-align:center">' + (summary.soldeBrut >= 0
-          ? 'TVA due brute : ' + euros(summary.tvaDueBrute) + ' · Planifiée / réglée : ' + euros(summary.totalTVAPlanifiee) + ' · Reste non planifié : ' + euros(summary.tvaReverser)
-          : 'Crédit de TVA disponible : ' + euros(summary.tvaCredit)) + '</div>'
-      + settlementsHtml;
-  }
-}
-
-async function supprimerSourceDepuisTVA(type, id) {
-  if (!id) return;
-  if (type === 'livraison') {
-    await supprimerLivraison(id);
-  } else if (type === 'charge') {
-    await supprimerCharge(id);
-  } else if (type === 'carburant') {
-    await supprimerCarburant(id);
-  } else if (type === 'entretien') {
-    await supprimerEntretien(id);
-  }
-  afficherTva();
-}
+// MOVED -> script-tva.js : supprimerSourceDepuisTVA
 
 // MOVED -> script-exports.js : exporterTvaCSV
 
