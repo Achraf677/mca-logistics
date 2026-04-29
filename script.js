@@ -370,11 +370,7 @@ function formatDateExport(val) {
   if (Number.isNaN(d.getTime())) return val;
   return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
 }
-function formatDateHeureExport(val) {
-  const d = val ? new Date(val) : new Date();
-  if (Number.isNaN(d.getTime())) return formatDateExport(val);
-  return formatDateExport(d) + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-}
+// MOVED -> script-heures.js : formatDateHeureExport
 function getAuditActorLabel() {
   const sessionAdmin = typeof getAdminSession === 'function' ? getAdminSession() : {};
   return sessionAdmin.nom || sessionAdmin.identifiant || sessionAdmin.email || 'Admin';
@@ -410,16 +406,7 @@ function afficherJournalAudit() {
       + '</tr>';
   }).join('');
 }
-function exporterJournalAuditCSV() {
-  const logs = charger('audit_log').slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-  exporterCSV(logs, [
-    { label:'Date', get:function(r){ return formatDateHeureExport(r.date); } },
-    { label:'Admin', get:function(r){ return r.admin || ''; } },
-    { label:'Action', get:function(r){ return r.action || ''; } },
-    { label:'Détail', get:function(r){ return r.detail || ''; } }
-  ], 'journal-audit-mca-logistics.csv');
-  ajouterEntreeAudit('Export audit', 'Export CSV du journal d’audit');
-}
+// MOVED -> script-exports.js : exporterJournalAuditCSV
 async function viderJournalAudit() {
   const ok = await confirmDialog('Vider le journal d’audit ? Cette action supprime l’historique local enregistré.', { titre:'Journal d’audit', icone:'📜', btnLabel:'Vider' });
   if (!ok) return;
@@ -1174,23 +1161,7 @@ function getSalarieVehicule(salarie) {
     || vehicules.find(function(v) { return v.salNom && salarie.nom && v.salNom === salarie.nom; })
     || null;
 }
-function getSalarieStatsMois(salId) {
-  var now = new Date();
-  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  var debut = planningDateToLocalISO(monthStart);
-  var fin = planningDateToLocalISO(monthEnd);
-  var livraisons = charger('livraisons').filter(function(item) {
-    return item.chaufId === salId && item.date >= debut && item.date <= fin;
-  });
-  var contexte = construireContexteHeures({ mode: 'mois', debut: debut, fin: fin, label: '', datesLabel: '' });
-  var heures = calculerHeuresSalarieSemaine(salId, contexte).planifiees || 0;
-  return {
-    livraisons: livraisons.length,
-    ca: livraisons.reduce(function(sum, item) { return sum + (parseFloat(item.prix || item.prixTTC) || 0); }, 0),
-    heures: heures
-  };
-}
+// MOVED -> script-stats.js : getSalarieStatsMois
 function getSalarieConformiteBadges(salarie) {
   var badges = [];
   var now = new Date();
@@ -1223,43 +1194,9 @@ function ouvrirLivraisonsSalarie(salId) {
     if (typeof afficherLivraisons === 'function') afficherLivraisons();
   }, 120);
 }
-function ouvrirPlanningSalarie(salId) {
-  var salarie = charger('salaries').find(function(item) { return item.id === salId; });
-  naviguerVers('planning');
-  setTimeout(function() {
-    var filtre = document.getElementById('filtre-planning-salarie');
-    if (filtre) filtre.value = salarie?.nom || '';
-    if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
-  }, 120);
-}
-function ouvrirHeuresSalarie(salId) {
-  naviguerVers('heures');
-  setTimeout(function() {
-    var filtre = document.getElementById('filtre-heures-salarie');
-    if (filtre) filtre.value = salId;
-    if (typeof afficherCompteurHeures === 'function') afficherCompteurHeures();
-    if (typeof afficherReleveKm === 'function') afficherReleveKm();
-  }, 120);
-}
-function ouvrirPlanningRecurrence() {
-  var modalTitle = document.querySelector('#modal-planning .modal-header h3');
-  if (modalTitle) {
-    modalTitle.textContent = '🔁 Horaires récurrents';
-    // Marque la modal pour que ouvrirModalPlanning ne reset pas le titre
-    modalTitle.dataset.recurrent = '1';
-  }
-  ouvrirModalPlanning();
-  // Nettoie le marker au close
-  var modal = document.getElementById('modal-planning');
-  if (modal && !modal.dataset.recurrentBound) {
-    modal.dataset.recurrentBound = '1';
-    modal.addEventListener('click', function(e) {
-      if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal-overlay')) {
-        if (modalTitle) delete modalTitle.dataset.recurrent;
-      }
-    });
-  }
-}
+// MOVED -> script-planning.js : ouvrirPlanningSalarie
+// MOVED -> script-heures.js : ouvrirHeuresSalarie
+// MOVED -> script-planning.js : ouvrirPlanningRecurrence
 function fermerInlineDropdowns() {
   document.querySelectorAll('.inline-dropdown.open').forEach(function(el) {
     el.classList.remove('open');
@@ -1508,24 +1445,7 @@ function getModalIdForLockType(type) {
   }[type] || '';
 }
 
-function afficherAlerteVerrouModal(modalId, message) {
-  const modal = document.getElementById(modalId);
-  if (!modal) return;
-  const body = modal.querySelector('.modal-body');
-  if (!body) return;
-  let banner = modal.querySelector('.edit-lock-alert');
-  if (!message) {
-    if (banner) banner.remove();
-    return;
-  }
-  if (!banner) {
-    banner = document.createElement('div');
-    banner.className = 'edit-lock-alert';
-    banner.style.cssText = 'margin-bottom:14px;padding:12px 14px;border-radius:10px;border:1px solid rgba(231,76,60,.35);background:rgba(231,76,60,.1);color:#ffb3aa;font-size:.84rem;line-height:1.4';
-    body.insertBefore(banner, body.firstChild);
-  }
-  banner.textContent = message;
-}
+// MOVED -> script-alertes.js : afficherAlerteVerrouModal
 
 function surveillerConflitsEditionActifs() {
   const modals = [
@@ -1646,15 +1566,8 @@ window.addEventListener('delivpro:storage-sync', function(event) {
 function fermerMenuAdmin() {
   document.getElementById('topbar-user-menu')?.classList.remove('open');
 }
-function fermerHeuresRapportsMenu() {
-  document.getElementById('heures-rapports-menu')?.classList.remove('open');
-}
-function toggleHeuresRapportsMenu(event) {
-  event?.stopPropagation();
-  const menu = document.getElementById('heures-rapports-menu');
-  if (!menu) return;
-  menu.classList.toggle('open');
-}
+// MOVED -> script-exports.js : fermerHeuresRapportsMenu
+// MOVED -> script-exports.js : toggleHeuresRapportsMenu
 function toggleAdminMenu(event) {
   event?.stopPropagation();
   const menu = document.getElementById('topbar-user-menu');
@@ -2085,24 +1998,11 @@ function peuplerSelectsLivraisonEdition(chaufId, vehId) {
 let config = chargerObj('config', { coutKmEstime: 0.20 });
 
 /* ===== ALERTES ADMIN ===== */
-function ajouterAlerte(type, message, meta) {
-  const alertes = charger('alertes_admin');
-  alertes.push({ id: genId(), type, message, meta: meta || {}, lu: false, traitee: false, creeLe: new Date().toISOString() });
-  sauvegarder('alertes_admin', alertes);
-}
+// MOVED -> script-alertes.js : ajouterAlerte
 
-function compterAlertesNonLues() {
-  return charger('alertes_admin').filter(a => !a.lu && !a.traitee).length;
-}
+// MOVED -> script-alertes.js : compterAlertesNonLues
 
-function afficherBadgeAlertes() {
-  const n = compterAlertesNonLues();
-  const el = document.getElementById('badge-alertes');
-  if (!el) return;
-  el.textContent = n > 0 ? n : '';
-  el.style.display = n > 0 ? 'inline-flex' : 'none';
-  mettreAJourBadgeMsgAdmin();
-}
+// MOVED -> script-alertes.js : afficherBadgeAlertes
 
 let derniereAlerteSynchroAdmin = '';
 let warmupAdminPromise = null;
@@ -2469,61 +2369,9 @@ function appliquerLibellesAnalyseHT() {
   if (statsDriverTitle) statsDriverTitle.textContent = 'CA HT par chauffeur (détail)';
 }
 
-function toggleAbsenceTypeFields() {
-  const type = document.getElementById('absence-type')?.value || 'conge';
-  const debutWrap = document.getElementById('absence-heure-debut-wrap');
-  const finWrap = document.getElementById('absence-heure-fin-wrap');
-  if (debutWrap) debutWrap.style.display = type === 'travail' ? '' : 'none';
-  if (finWrap) finWrap.style.display = type === 'travail' ? '' : 'none';
-}
+// MOVED -> script-planning.js : toggleAbsenceTypeFields
 
-function initFormulairePlanningRapide() {
-  appliquerLibellesAnalyseHT();
-  const panelTitle = document.querySelector('#page-planning .planning-panel-title');
-  if (panelTitle) panelTitle.textContent = 'Ajouter une période planning';
-  const btn = document.querySelector('#page-planning .planning-absence-form .btn-primary');
-  if (btn) btn.textContent = '+ Enregistrer la période';
-
-  const typeSelect = document.getElementById('absence-type');
-  if (typeSelect && !typeSelect.querySelector('option[value="travail"]')) {
-    typeSelect.insertAdjacentHTML('afterbegin', '<option value="travail">Travail</option>');
-    typeSelect.onchange = toggleAbsenceTypeFields;
-  }
-
-  const finField = document.getElementById('absence-fin')?.closest('.planning-field');
-  if (finField && !document.getElementById('absence-heure-debut')) {
-    finField.insertAdjacentHTML('afterend', `
-      <div class="planning-field" id="absence-heure-debut-wrap">
-        <label>Heure début</label>
-        <input type="time" id="absence-heure-debut" />
-      </div>
-      <div class="planning-field" id="absence-heure-fin-wrap">
-        <label>Heure fin</label>
-        <input type="time" id="absence-heure-fin" />
-      </div>
-    `);
-  }
-
-  const toolbar = document.querySelector('#page-planning .planning-table-toolbar');
-  if (toolbar && !toolbar.querySelector('.planning-table-search')) {
-    const toolbarInput = toolbar.querySelector('#filtre-planning-salarie');
-    const firstBlock = toolbar.children[0];
-    if (firstBlock) firstBlock.classList.add('planning-table-toolbar-main');
-    if (toolbarInput) {
-      const searchWrap = document.createElement('div');
-      searchWrap.className = 'planning-table-search';
-      toolbarInput.parentNode.insertBefore(searchWrap, toolbarInput);
-      searchWrap.appendChild(toolbarInput);
-    }
-  }
-
-  const weekTable = document.querySelector('#page-planning .table-wrapper table');
-  if (weekTable) weekTable.classList.add('planning-week-grid');
-  const weekWrapper = document.querySelector('#page-planning .table-wrapper');
-  if (weekWrapper) weekWrapper.classList.add('planning-week-table');
-
-  toggleAbsenceTypeFields();
-}
+// MOVED -> script-planning.js : initFormulairePlanningRapide
 
 function ouvrirMenuMobile()  { document.getElementById('sidebar').classList.add('mobile-open');    document.getElementById('sidebarOverlay').classList.add('active'); }
 function fermerMenuMobile()  { document.getElementById('sidebar').classList.remove('mobile-open'); document.getElementById('sidebarOverlay').classList.remove('active'); }
@@ -2954,17 +2802,9 @@ function rafraichirVueLivraisonsActive() {
   else afficherLivraisons();
 }
 
-function rafraichirVueHeuresEtKm() {
-  afficherCompteurHeures();
-  afficherReleveKm();
-}
+// MOVED -> script-heures.js : rafraichirVueHeuresEtKm
 
-function rafraichirVuePlanningAdmin() {
-  afficherPlanning();
-  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
-  if (typeof peuplerAbsenceSal === 'function') peuplerAbsenceSal();
-  if (typeof afficherAbsencesPeriodes === 'function') afficherAbsencesPeriodes();
-}
+// MOVED -> script-planning.js : rafraichirVuePlanningAdmin
 
 function planifierRafraichissementSiPageActive(pageId, cle, callback) {
   if (getPageActiveAdminId() !== pageId) return;
@@ -3760,19 +3600,7 @@ function afficherVehicules() {
 }
 
 /* Ajoute une alerte seulement si elle n'existe pas déjà (évite les doublons) */
-function ajouterAlerteSiAbsente(type, message, meta) {
-  const alertes = charger('alertes_admin');
-  const scopeMatch = function(alertItem) {
-    if (!meta) return true;
-    if (meta.stageKey) return alertItem.meta?.stageKey === meta.stageKey;
-    if (meta.vehId) return alertItem.meta?.vehId === meta.vehId;
-    if (meta.salId) return alertItem.meta?.salId === meta.salId;
-    if (meta.livId) return alertItem.meta?.livId === meta.livId;
-    return true;
-  };
-  const existe  = alertes.find(a => a.type === type && scopeMatch(a) && !a.traitee);
-  if (!existe) ajouterAlerte(type, message, meta);
-}
+// MOVED -> script-alertes.js : ajouterAlerteSiAbsente
 
 let affectVehId = null;
 function ouvrirAffectationVehicule(vehId) {
@@ -3949,160 +3777,7 @@ async function supprimerKmAdmin(salId, kmId) {
 
 
 /* ===== ALERTES ADMIN ===== */
-function afficherAlertes() {
-  const toutes  = charger('alertes_admin').sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe));
-
-  // Filtres
-  const filtreType   = document.getElementById('filtre-alerte-type')?.value || '';
-  const filtreSal    = document.getElementById('filtre-alerte-salarie')?.value || '';
-  const filtreStatut = document.getElementById('filtre-alerte-statut')?.value || 'actives';
-  const filtreDate   = document.getElementById('filtre-alerte-date')?.value || '';
-
-  // Remplir select salarié si vide
-  const selSal = document.getElementById('filtre-alerte-salarie');
-  if (selSal && selSal.options.length <= 1) {
-    charger('salaries').forEach(s => { selSal.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
-  }
-
-  let filtered = toutes;
-  if (filtreStatut === 'actives')  filtered = filtered.filter(a => !a.traitee);
-  if (filtreStatut === 'traitees') filtered = filtered.filter(a => a.traitee);
-  if (filtreType)   filtered = filtered.filter(a => a.type === filtreType);
-  if (filtreSal)    filtered = filtered.filter(a => a.meta?.salId === filtreSal);
-  if (filtreDate)   filtered = filtered.filter(a => (a.creeLe||'').startsWith(filtreDate));
-
-  const actives = filtered.filter(a => !a.traitee);
-  const traitees = filtered.filter(a => a.traitee);
-
-  // Marquer toutes comme lues
-  const toutesDejaLues = toutes.every(a => a.lu);
-if (!toutesDejaLues) {
-  sauvegarder('alertes_admin', toutes.map(a => ({ ...a, lu: true })));
-}
-  afficherBadgeAlertes();
-
-  // Afficher/masquer la section historique selon le filtre
-  const cardTraitees = document.getElementById('card-alertes-traitees');
-  if (cardTraitees) cardTraitees.style.display = (filtreStatut === 'actives') ? 'none' : 'block';
-
-  // ── Catégories d'alertes actives ──
-  const categories = [
-    { type: 'prix_manquant',   label: '💶 Prix de livraison manquant',  color: 'rgba(245,166,35,0.08)',  border: 'rgba(245,166,35,0.3)'  },
-    { type: 'livraison_modif', label: '✏️ Livraisons modifiées',         color: 'rgba(155,89,182,0.06)',  border: 'rgba(155,89,182,0.25)' },
-    { type: 'carburant_modif', label: '✏️ Modifications carburant',      color: 'rgba(231,76,60,0.06)',   border: 'rgba(231,76,60,0.25)'  },
-    { type: 'km_modif',        label: '✏️ Modifications relevés km',     color: 'rgba(79,142,247,0.06)',  border: 'rgba(79,142,247,0.25)' },
-    { type: 'inspection',      label: '🚗 Inspections véhicules reçues', color: 'rgba(46,204,113,0.06)',  border: 'rgba(46,204,113,0.25)' },
-    { type: 'ct_expire',       label: '⚠️ Contrôles techniques expirés', color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'ct_proche',       label: '🔔 CT à renouveler (< 30 jours)', color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'vidange',            label: '🔧 Vidanges à effectuer',           color: 'rgba(52,152,219,0.06)',  border: 'rgba(52,152,219,0.2)'  },
-    { type: 'permis_expire',    label: '⚠️ Permis de conduire expirés',     color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'permis_proche',    label: '🪪 Permis expirent bientôt',        color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'assurance_expire', label: '⚠️ Assurances expirées',            color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'assurance_proche', label: '🛡️ Assurances expirent bientôt',   color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-  ];
-  // Types à ne jamais afficher dans les alertes (gérés ailleurs)
-  const typesExclus = ['message'];
-
-  const container = document.getElementById('alertes-categories');
-  if (!container) return;
-  container.innerHTML = '';
-
-  let totalActives = 0;
-
-  categories.forEach(cat => {
-    const items = actives.filter(a => a.type === cat.type);
-    if (!items.length) return;
-    totalActives += items.length;
-
-    const section = document.createElement('div');
-    section.style.cssText = `background:${cat.color};border:1px solid ${cat.border};border-radius:10px;margin-bottom:16px;overflow:hidden`;
-    section.innerHTML = `
-      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid ${cat.border};display:flex;justify-content:space-between;align-items:center">
-        <span>${cat.label}</span>
-        <span style="background:rgba(255,255,255,0.1);padding:2px 10px;border-radius:20px;font-size:0.78rem">${items.length}</span>
-      </div>
-      <table class="data-table" style="background:transparent">
-        <thead><tr><th>Message</th><th>Salarié</th><th>Date/Heure</th><th>Action</th></tr></thead>
-        <tbody>${items.map(a => {
-          const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-          // Types critiques = pas d'ignorer (CT expiré uniquement)
-          const estCritique = ['ct_expire'].includes(cat.type);
-          // Types avec saisie rapide
-          const estPrixManquant = cat.type === 'prix_manquant';
-
-          let btnActions = '';
-          // Raccourci contextuel selon le type
-          let btnRaccourci = '';
-          if (['permis_expire','permis_proche'].includes(cat.type) && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">🪪 Modifier permis</button>`;
-          } else if (['assurance_expire','assurance_proche'].includes(cat.type) && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">🛡️ Modifier assurance</button>`;
-          } else if (['ct_expire','ct_proche'].includes(cat.type) && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('vehicules');setTimeout(()=>ouvrirEditVehicule('${a.meta.vehId}'),200)" title="Modifier le véhicule">🚐 Modifier véhicule</button>`;
-          } else if (cat.type === 'vidange' && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('entretiens')" title="Ajouter entretien">🔧 Entretien</button>`;
-          }
-
-          if (estPrixManquant) {
-            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">📝 Saisir</button>
-              <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer définitivement">✕ Ignorer</button>`;
-          } else if (estCritique) {
-            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Traité</button>`;
-          } else {
-            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button>
-              <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer définitivement">✕ Ignorer</button>`;
-          }
-          return `<tr>
-            <td style="font-size:0.85rem">${a.message}</td>
-            <td>${a.meta?.salNom||a.meta?.client||'—'}</td>
-            <td style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</td>
-            <td style="white-space:nowrap">${btnRaccourci} ${btnActions}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table>`;
-    container.appendChild(section);
-  });
-
-  // Alertes d'autres types non catégorisés
-  const autres = actives.filter(a => !categories.find(c => c.type === a.type) && !typesExclus.includes(a.type));
-  if (autres.length) {
-    totalActives += autres.length;
-    const section = document.createElement('div');
-    section.style.cssText = 'background:rgba(108,117,125,0.06);border:1px solid rgba(108,117,125,0.2);border-radius:10px;margin-bottom:16px;overflow:hidden';
-    section.innerHTML = `
-      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid rgba(108,117,125,0.2)">🔔 Autres alertes</div>
-      <table class="data-table" style="background:transparent"><thead><tr><th>Message</th><th>Salarié</th><th>Date/Heure</th><th>Action</th></tr></thead>
-      <tbody>${autres.map(a => {
-        const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-        return `<tr><td style="font-size:0.85rem">${a.message}</td><td>${a.meta?.salNom||'—'}</td>
-          <td style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</td>
-          <td><button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button></td></tr>`;
-      }).join('')}</tbody></table>`;
-    container.appendChild(section);
-  }
-
-  if (!totalActives) {
-    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.9rem">✅ Aucune alerte en attente</div>';
-  }
-
-  // ── Historique traité ──
-  const tbT = document.getElementById('tb-alertes-traitees');
-  if (tbT) {
-    if (!traitees.length) {
-      tbT.innerHTML = '<tr><td colspan="4" class="empty-row">Aucune alerte traitée</td></tr>';
-    } else {
-      tbT.innerHTML = traitees.slice(0, 30).map(a => {
-        const dateFmt = new Date(a.traiteLe||a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-        const icon = a.type==='carburant_modif' ? '✏️⛽' : a.type==='km_modif' ? '✏️🛣️' : a.type==='prix_manquant' ? '💶' : '✅';
-        return `<tr style="opacity:0.6">
-          <td>${icon}</td><td style="font-size:0.85rem">${a.message}</td>
-          <td>${a.meta?.salNom||a.meta?.client||'—'}</td>
-          <td style="color:var(--text-muted);font-size:0.82rem">Traité le ${dateFmt}</td>
-        </tr>`;
-      }).join('');
-    }
-  }
-}
+// MOVED -> script-alertes.js : afficherAlertes
 
 function ouvrirLivraisonPourPrix(client) {
   // Ouvre le modal livraison pré-rempli avec le client
@@ -4113,48 +3788,11 @@ function ouvrirLivraisonPourPrix(client) {
   }
 }
 
-function validerAlerte(id) {
-  const alertes = charger('alertes_admin');
-  const idx = alertes.findIndex(a => a.id === id);
-  if (idx > -1) {
-    alertes[idx].traitee  = true;
-    alertes[idx].traiteLe = new Date().toISOString();
-    // Notifier le salarié que sa modification a été validée
-    const salId = alertes[idx].meta?.salId;
-    const type  = alertes[idx].type;
-    if (salId) {
-      const notifs = charger('notifs_sal_'+salId);
-      notifs.push({
-        id: genId(), type: type+'_valide',
-        message: type==='carburant_modif'
-          ? '✅ Votre modification de plein a été validée par l\'administrateur.'
-          : '✅ Votre modification de relevé km a été validée par l\'administrateur.',
-        lu: false,
-        creeLe: new Date().toISOString()
-      });
-      sauvegarder('notifs_sal_'+salId, notifs);
-    }
-    sauvegarder('alertes_admin', alertes);
-    afficherAlertes();
-    afficherBadgeAlertes();
-    afficherToast('✅ Alerte traitée — salarié notifié');
-  }
-}
+// MOVED -> script-alertes.js : validerAlerte
 
-function ignorerAlerte(id) {
-  // Supprime définitivement l'alerte — pas dans l'historique traité
-  sauvegarder('alertes_admin', charger('alertes_admin').filter(a => a.id !== id));
-  afficherAlertes();
-  afficherBadgeAlertes();
-  afficherToast('🗑️ Alerte ignorée');
-}
+// MOVED -> script-alertes.js : ignorerAlerte
 
-async function viderAlertes() {
-  const _ok7 = await confirmDialog('Effacer toutes les alertes traitées ?', {titre:'Vider l\'historique',icone:'🗑️',btnLabel:'Effacer',danger:false});
-  if (!_ok7) return;
-  sauvegarder('alertes_admin', charger('alertes_admin').filter(a => !a.traitee));
-  afficherAlertes(); afficherToast('🗑️ Historique effacé');
-}
+// MOVED -> script-alertes.js : viderAlertes
 
 /* ===== Chart.js lazy loader — charge 197KB uniquement au premier graphique ===== */
 let _chartJsPromise = null;
@@ -4547,137 +4185,12 @@ function navRentMois(delta) {
 /* ===== STATISTIQUES ===== */
 let chartCA=null,chartChauff=null,chartVeh=null,chartCAParChauff=null;
 var _statsPeriode = buildSimplePeriodeState('mois');
-function getStatsMoisRange() {
-  var range = getPeriodeRange(_statsPeriode.mode, _statsPeriode.offset);
-  return { debut: range.debut, fin: range.fin, label: range.label, dates: range.datesLabel };
-}
-function navStatsMois(delta) {
-  _statsPeriode.mode = 'mois';
-  _statsPeriode.offset = delta === 0 ? 0 : _statsPeriode.offset + delta;
-  afficherStatistiques();
-}
-function changerVueStats(mode) { changeSimplePeriode(_statsPeriode, mode, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
-function navStatsPeriode(delta) { navSimplePeriode(_statsPeriode, delta, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
-function reinitialiserStatsPeriode() { resetSimplePeriode(_statsPeriode, afficherStatistiques, 'stats-mois-label', 'stats-mois-dates', 'vue-stats-select'); }
-function afficherStatistiques() {
-  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherStatistiques).catch(() => {}); return; }
-  const isLight = document.body.classList.contains('light-mode');
-  const tickColor = isLight ? '#555' : '#7c8299';
-  const gridColor = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
-  const legendColor = isLight ? '#1a1d27' : '#e8eaf0';
-  const range = getStatsMoisRange();
-  const periodSelect = document.getElementById('vue-stats-select');
-  if (periodSelect) periodSelect.value = _statsPeriode.mode;
-  const dateMinStr = range.debut;
-  const dateMaxStr = range.fin;
-  const livraisons = charger('livraisons');
-  const lbl = document.getElementById('stats-mois-label'); if (lbl) lbl.textContent = range.label;
-  const dates = document.getElementById('stats-mois-dates'); if (dates) dates.textContent = range.dates;
-  const livsFiltrees = livraisons.filter(l => l.date >= dateMinStr && l.date <= dateMaxStr);
-
-  // KPIs période
-  const caPeriode = livsFiltrees.reduce((s,l)=>s+(l.prix||0),0);
-  const nbLivs    = livsFiltrees.length;
-  const panierMoy = nbLivs > 0 ? caPeriode / nbLivs : 0;
-  const kmTotal   = livsFiltrees.reduce((s,l)=>s+(l.distance||0),0);
-  const el1=document.getElementById('stats-ca-periode'); if(el1) el1.textContent=euros(caPeriode);
-  const el2=document.getElementById('stats-livraisons-periode'); if(el2) el2.textContent=nbLivs;
-  const el3=document.getElementById('stats-panier-moyen'); if(el3) el3.textContent=euros(panierMoy);
-  const el4=document.getElementById('stats-km-total'); if(el4) el4.textContent=Math.round(kmTotal)+' km';
-
-  // Graphique CA — adaptatif
-  const labels=[],donnees=[];
-  const nbJours = Math.max(1, Math.round((new Date(dateMaxStr) - new Date(dateMinStr)) / (1000*60*60*24)));
-  if (nbJours <= 31) {
-    for(let i=nbJours-1;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.toLocalISODate();labels.push(d.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));donnees.push(livraisons.filter(l=>l.date===ds).reduce((s,l)=>s+(l.prix||0),0));}
-  } else {
-    // Par semaine
-    for(let i=Math.floor(nbJours/7)-1;i>=0;i--){
-      const fin=new Date(); fin.setDate(fin.getDate()-i*7);
-      const debut=new Date(fin); debut.setDate(debut.getDate()-6);
-      const dStr=debut.toLocalISODate(), fStr=fin.toLocalISODate();
-      labels.push(debut.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}));
-      donnees.push(livraisons.filter(l=>l.date>=dStr&&l.date<=fStr).reduce((s,l)=>s+(l.prix||0),0));
-    }
-  }
-  if(chartCA)chartCA.destroy();
-  const _cvCA = document.getElementById('chartCA');
-  chartCA = new Chart(_cvCA, {
-    type:'line',
-    data:{ labels, datasets:[{
-      label:'CA (€)', data:donnees,
-      borderColor:'#4f8ef7',
-      backgroundColor: mcaChartGradient(_cvCA, '#4f8ef7', 0.35, 0),
-      fill:true, tension:0.35,
-      pointRadius:4, pointHoverRadius:7,
-      pointBackgroundColor:'#4f8ef7', pointBorderColor:'#fff', pointBorderWidth:2,
-      borderWidth:3
-    }]},
-    options: mcaChartBaseOptions(isLight, {
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) } } },
-      scales: {
-        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, maxTicksLimit: 12, font: { size: 11 } } },
-        y: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, callback: v => euros(v) } }
-      }
-    })
-  });
-
-  // Chauffeurs — horizontal bar
-  const ch=charger('chauffeurs');
-  if(chartChauff)chartChauff.destroy();
-  const chData = ch.length ? ch.map(c=>({nom:c.nom, nb:livsFiltrees.filter(l=>l.chaufId===c.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
-  const _cvChauff = document.getElementById('chartChauffeurs');
-  chartChauff = new Chart(_cvChauff, {
-    type:'bar',
-    data:{ labels:chData.map(c=>c.nom), datasets:[{
-      label:'Livraisons', data:chData.map(c=>c.nb),
-      backgroundColor: mcaChartGradient(_cvChauff, '#9b59b6', 0.9, 0.25),
-      borderColor:'rgba(155,89,182,1)', borderWidth:0, borderRadius:8, borderSkipped:false
-    }] },
-    options: mcaChartBaseOptions(isLight, {
-      indexAxis: 'y',
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, precision: 0 } },
-        y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
-      }
-    })
-  });
-
-  // Véhicules
-  const veh=charger('vehicules');
-  if(chartVeh)chartVeh.destroy();
-  const vehData = veh.length ? veh.map(v=>({nom:v.immat,nb:livsFiltrees.filter(l=>l.vehId===v.id).length})).sort((a,b)=>b.nb-a.nb) : [{nom:'Aucun',nb:0}];
-  const _cvVeh = document.getElementById('chartVehicules');
-  chartVeh = new Chart(_cvVeh, {
-    type:'bar',
-    data:{ labels:vehData.map(v=>v.nom), datasets:[{
-      label:'Livraisons', data:vehData.map(v=>v.nb),
-      backgroundColor: mcaChartGradient(_cvVeh, '#e67e22', 0.9, 0.25),
-      borderColor:'rgba(230,126,34,1)', borderWidth:0, borderRadius:8, borderSkipped:false
-    }] },
-    options: mcaChartBaseOptions(isLight, {
-      indexAxis: 'y',
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 11 }, precision: 0 } },
-        y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
-      }
-    })
-  });
-
-  // CA par chauffeur (nouveau graphique)
-  if(chartCAParChauff)chartCAParChauff.destroy();
-  const caChData = ch.length ? ch.map(c=>({nom:c.nom, ca:livsFiltrees.filter(l=>l.chaufId===c.id).reduce((s,l)=>s+(l.prix||0),0)})).sort((a,b)=>b.ca-a.ca) : [{nom:'Aucun',ca:0}];
-  const ctxCA = document.getElementById('chartCAParChauffeur');
-  if (ctxCA) {
-    chartCAParChauff=new Chart(ctxCA,{
-      type:'doughnut',
-      data:{labels:caChData.map(c=>c.nom),datasets:[{data:caChData.map(c=>c.ca),backgroundColor:['rgba(79,142,247,0.7)','rgba(245,166,35,0.7)','rgba(46,204,113,0.7)','rgba(155,89,182,0.7)','rgba(231,76,60,0.7)','rgba(52,152,219,0.7)','rgba(230,126,34,0.7)'],borderColor:isLight?'#fff':'#1a1d27',borderWidth:3}]},
-      options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:legendColor}},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${euros(ctx.parsed||0)}`}}}}
-    });
-  }
-}
+// MOVED -> script-stats.js : getStatsMoisRange
+// MOVED -> script-stats.js : navStatsMois
+// MOVED -> script-stats.js : changerVueStats
+// MOVED -> script-stats.js : navStatsPeriode
+// MOVED -> script-stats.js : reinitialiserStatsPeriode
+// MOVED -> script-stats.js : afficherStatistiques
 
 /* ===== PRÉVISIONS ===== */
 let chartPrev=null;
@@ -5725,273 +5238,33 @@ function changerPhotoAdmin(idx) {
 /* ===== MESSAGERIE ADMIN ===== */
 let _msgSalarieActif = null;
 
-function afficherMessagerie() {
-  const salaries = charger('salaries');
-  const liste    = document.getElementById('msg-liste-salaries');
-  if (!liste) return;
+// MOVED -> script-messages.js : afficherMessagerie
 
-  // Initialiser le select poste du broadcast
-  const selPoste = document.getElementById('broadcast-poste');
-  if (selPoste && selPoste.options.length <= 1) {
-    const postes = getPostes();
-    postes.forEach(p => { selPoste.innerHTML += `<option value="${p}">${p}</option>`; });
-  }
-
-  if (!salaries.length) {
-    liste.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:.85rem">Aucun salarié</div>';
-    return;
-  }
-
-  liste.innerHTML = salaries.filter(s=>s.actif).map(s => {
-    const messages = loadSafe('messages_' + s.id, []);
-    const nonLus   = messages.filter(m => m.auteur === 'salarie' && !m.lu).length;
-    const dernier  = messages.length ? messages[messages.length - 1] : null;
-    const actif    = _msgSalarieActif === s.id;
-    return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
-      <div onclick="ouvrirConversation('${s.id}')" style="flex:1;padding:10px 12px;border-radius:8px;cursor:pointer;background:${actif ? 'rgba(245,166,35,.12)' : 'transparent'};border:1px solid ${actif ? 'rgba(245,166,35,.3)' : 'transparent'};transition:all .2s" onmouseover="if(!${actif})this.style.background='rgba(255,255,255,.04)'" onmouseout="if(!${actif})this.style.background='transparent'">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <strong style="font-size:.88rem">${s.nom}</strong>
-            ${s.poste ? `<span style="font-size:.68rem;color:var(--text-muted);margin-left:4px">${s.poste}</span>` : ''}
-          </div>
-          ${nonLus > 0 ? `<span style="background:var(--red);color:#fff;border-radius:20px;font-size:.7rem;padding:1px 7px;font-weight:700">${nonLus}</span>` : ''}
-        </div>
-        ${dernier ? `<div style="font-size:.76rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${dernier.auteur==='admin'?'Vous : ':''}${dernier.texte.substring(0,40)}${dernier.texte.length>40?'…':''}</div>` : '<div style="font-size:.76rem;color:var(--text-muted)">Aucun message</div>'}
-      </div>
-      <button onclick="event.stopPropagation();supprimerConversation('${s.id}')" style="background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:.85rem;padding:4px;opacity:.4;transition:opacity .2s" onmouseover="this.style.opacity='1';this.style.color='var(--red)'" onmouseout="this.style.opacity='.4';this.style.color='var(--text-muted)'" title="Supprimer la conversation">🗑️</button>
-    </div>`;
-  }).join('');
-
-  mettreAJourBadgeMsgAdmin();
-}
-
-async function supprimerConversation(salId) {
-  const sal = charger('salaries').find(s=>s.id===salId);
-  const ok = await confirmDialog(`Supprimer la conversation avec ${sal?.nom||'ce salarié'} ?`, {titre:'Supprimer conversation',icone:'💬',btnLabel:'Supprimer'});
-  if (!ok) return;
-  localStorage.removeItem('messages_'+salId);
-  if (_msgSalarieActif === salId) {
-    _msgSalarieActif = null;
-    document.getElementById('msg-admin-nom').textContent = 'Sélectionnez un salarié';
-    document.getElementById('msg-admin-nom').style.color = 'var(--text-muted)';
-    document.getElementById('msg-admin-fil').innerHTML = '<div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.88rem">← Choisissez une conversation</div>';
-    document.getElementById('msg-admin-input').disabled = true;
-    document.getElementById('btn-envoyer-admin').disabled = true;
-  }
-  afficherMessagerie();
-  afficherToast('🗑️ Conversation supprimée');
-}
+// MOVED -> script-messages.js : supprimerConversation
 
 /* Broadcast — gestion cible par poste / sélection */
-function majBroadcastSelection() {
-  const cible = document.getElementById('broadcast-cible')?.value || 'tous';
-  const selPoste = document.getElementById('broadcast-poste');
-  const selWrap  = document.getElementById('broadcast-selection-wrap');
-  const countEl  = document.getElementById('broadcast-count');
+// MOVED -> script-messages.js : majBroadcastSelection
 
-  if (selPoste) selPoste.style.display = cible === 'poste' ? 'inline-block' : 'none';
-  if (selWrap)  selWrap.style.display  = cible === 'selection' ? 'block' : 'none';
+// MOVED -> script-messages.js : filtrerBroadcastSalaries
 
-  if (cible === 'selection') {
-    const salaries = charger('salaries').filter(s=>s.actif);
-    const cont = document.getElementById('broadcast-checkboxes');
-    if (cont) {
-      cont.innerHTML = `
-        <input type="text" id="broadcast-search-sal" placeholder="🔍 Rechercher un salarié..." oninput="filtrerBroadcastSalaries()" style="width:100%;background:var(--bg-dark);border:1px solid var(--border);color:var(--text-primary);padding:7px 12px;border-radius:8px;font-size:.85rem;margin-bottom:8px" />
-        <div id="broadcast-sal-list" style="display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow-y:auto">
-          ${salaries.map(s =>
-            `<label class="broadcast-sal-label" data-nom="${s.nom.toLowerCase()}" style="display:flex;align-items:center;gap:4px;font-size:.82rem;cursor:pointer;background:rgba(255,255,255,.04);padding:4px 10px;border-radius:6px;border:1px solid var(--border)">
-              <input type="checkbox" class="broadcast-cb" value="${s.id}" style="accent-color:var(--accent)" onchange="majBroadcastCount()" /> ${s.nom}${s.poste?` <span style="font-size:.7rem;color:var(--text-muted)">(${s.poste})</span>`:''}
-            </label>`
-          ).join('')}
-        </div>`;
-    }
-  }
+// MOVED -> script-messages.js : majBroadcastCount
 
-  majBroadcastCount();
-}
+// MOVED -> script-messages.js : getBroadcastDestinataires
 
-function filtrerBroadcastSalaries() {
-  const q = document.getElementById('broadcast-search-sal')?.value.toLowerCase() || '';
-  document.querySelectorAll('.broadcast-sal-label').forEach(el => {
-    el.style.display = el.dataset.nom.includes(q) ? 'flex' : 'none';
-  });
-}
-
-function majBroadcastCount() {
-  const countEl = document.getElementById('broadcast-count');
-  const nb = getBroadcastDestinataires().length;
-  if (countEl) countEl.textContent = nb > 0 ? `${nb} destinataire${nb>1?'s':''}` : '';
-}
-
-function getBroadcastDestinataires() {
-  const cible = document.getElementById('broadcast-cible')?.value || 'tous';
-  const salaries = charger('salaries').filter(s=>s.actif);
-  if (cible === 'tous') return salaries;
-  if (cible === 'poste') {
-    const poste = document.getElementById('broadcast-poste')?.value;
-    return poste ? salaries.filter(s=>s.poste===poste) : [];
-  }
-  if (cible === 'selection') {
-    const checked = Array.from(document.querySelectorAll('.broadcast-cb:checked')).map(cb=>cb.value);
-    return salaries.filter(s=>checked.includes(s.id));
-  }
-  return salaries;
-}
-
-function ouvrirConversation(salId) {
-  // Marquer tous les messages salarie→admin comme lus
-  const msgs = loadSafe('messages_'+salId, []);
-  let changed = false;
-  msgs.forEach(m => { if (m.auteur==='salarie' && !m.lu) { m.lu=true; m.luLe=new Date().toISOString(); changed=true; } });
-  if (changed) localStorage.setItem('messages_'+salId, JSON.stringify(msgs));
-  _msgSalarieActif = salId;
-  const salaries = charger('salaries');
-  const sal = salaries.find(s => s.id === salId);
-  const messages = loadSafe('messages_' + salId, []);
-
-  // Marquer les messages salarié comme lus
-  let modifie = false;
-  messages.forEach(m => { if (m.auteur === 'salarie' && !m.lu) { m.lu = true; modifie = true; } });
-  if (modifie) localStorage.setItem('messages_' + salId, JSON.stringify(messages));
-
-  // Header
-  document.getElementById('msg-admin-nom').textContent = sal ? `👤 ${sal.nom} — ${sal.numero}` : 'Salarié';
-  document.getElementById('msg-admin-nom').style.color = 'var(--text)';
-  // Afficher les templates de messages
-  afficherTemplatesMsg(sal?.nom || '');
-
-  // Activer la zone de saisie
-  const input = document.getElementById('msg-admin-input');
-  const btn   = document.getElementById('btn-envoyer-admin');
-  input.disabled = false; input.style.opacity = '1';
-  btn.disabled   = false;
-  input.focus();
-
-  // Afficher les messages
-  const fil = document.getElementById('msg-admin-fil');
-  if (!messages.length) {
-    fil.innerHTML = '<div style="text-align:center;color:var(--text-muted);margin:auto;font-size:.85rem">Démarrez la conversation</div>';
-  } else {
-    fil.innerHTML = '';
-    messages.forEach((m, i) => {
-      const estAdmin = m.auteur === 'admin';
-      const div = document.createElement('div');
-      div.style.cssText = `display:flex;flex-direction:column;align-items:${estAdmin ? 'flex-end' : 'flex-start'}`;
-      const heure = new Date(m.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-      // Accusé de lecture : dernier message admin + lu par salarié
-      const estDernierAdmin = estAdmin && messages.slice(i+1).every(mm => mm.auteur !== 'admin');
-      const accuse = estAdmin && estDernierAdmin && m.lu
-        ? `<span class="msg-double-check" title="Lu le ${m.luLe ? new Date(m.luLe).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : ''}">✓✓</span>`
-        : estAdmin ? '<span style="font-size:.68rem;color:var(--text-muted);opacity:.5">✓</span>' : '';
-      let contenuMsgAdmin;
-      if (m.photoPath) {
-        contenuMsgAdmin = `<img data-photo-path="${m.photoPath}" data-photo-bucket="${m.photoBucket || 'messages-photos'}" alt="📷 chargement..." style="max-width:200px;border-radius:8px;display:block;cursor:pointer;background:rgba(0,0,0,0.1);min-height:120px" onclick="ouvrirPhotoMessageAdmin('${m.photoPath}','${m.photoBucket || 'messages-photos'}')" />`;
-      } else if (m.photo) {
-        contenuMsgAdmin = `<img src="${m.photo}" style="max-width:200px;border-radius:8px;display:block;cursor:pointer" onclick="ouvrirPopupSecure('${m.photo}','_blank')" />`;
-      } else {
-        contenuMsgAdmin = m.texte;
-      }
-      div.innerHTML = `
-        <div style="max-width:75%;background:${estAdmin ? 'var(--accent)' : 'var(--bg-dark)'};color:${estAdmin ? '#000' : 'var(--text-primary)'};padding:9px 13px;border-radius:${estAdmin ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};font-size:.88rem;word-break:break-word">
-          ${contenuMsgAdmin}
-          ${m.fichier ? `<a href="${m.fichier}" download="${m.nomFichier||'fichier'}" style="display:inline-flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.3);border-radius:10px;color:var(--blue);text-decoration:none;font-size:.85rem;margin-top:6px">📄 ${m.nomFichier || 'Télécharger le fichier'}</a>` : ''}
-        </div>
-        <span style="font-size:.72rem;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:4px">${estAdmin ? 'Vous' : sal?.nom || 'Salarié'} · ${heure} ${accuse}</span>`;
-      fil.appendChild(div);
-    });
-    fil.scrollTop = fil.scrollHeight;
-    if (window.resolveStorageImages) window.resolveStorageImages(fil);
-  }
-
-  afficherMessagerie();
-}
+// MOVED -> script-messages.js : ouvrirConversation
 
 // Ouvre une photo message en grand (signed URL fraiche, 10 min)
-async function ouvrirPhotoMessageAdmin(path, bucket) {
-  if (!window.DelivProStorage) return;
-  const signed = await window.DelivProStorage.getSignedUrl(bucket || 'messages-photos', path, 600);
-  if (signed.ok && signed.signedUrl) {
-    if (typeof ouvrirPopupSecure === 'function') ouvrirPopupSecure(signed.signedUrl, '_blank');
-    else window.open(signed.signedUrl, '_blank');
-  }
-}
+// MOVED -> script-messages.js : ouvrirPhotoMessageAdmin
 
-function envoyerMessageAdmin() {
-  if (!_msgSalarieActif) return;
-  const input = document.getElementById('msg-admin-input');
-  const texte = input.value.trim();
-  if (!texte) return;
-  // Son d'envoi discret
-  try { const ctx=new(window.AudioContext||window.webkitAudioContext)(); const o=ctx.createOscillator(); const g=ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value=1200; g.gain.setValueAtTime(0.15,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12); o.start(ctx.currentTime); o.stop(ctx.currentTime+0.12); } catch(e) {}
+// MOVED -> script-messages.js : envoyerMessageAdmin
 
-  const messages = loadSafe('messages_' + _msgSalarieActif, []);
-  messages.push({
-    id: genId(), auteur: 'admin',
-    texte, lu: false, creeLe: new Date().toISOString()
-  });
-  localStorage.setItem('messages_' + _msgSalarieActif, JSON.stringify(messages));
-
-  input.value = '';
-  ouvrirConversation(_msgSalarieActif);
-}
-
-function mettreAJourBadgeMsgAdmin() {
-  const salaries = charger('salaries');
-  let total = 0;
-  salaries.forEach(s => {
-    const msgs = loadSafe('messages_' + s.id, []);
-    total += msgs.filter(m => m.auteur === 'salarie' && !m.lu).length;
-  });
-  const badge = document.getElementById('badge-msg-admin');
-  if (badge) {
-    badge.textContent = total;
-    badge.style.display = total > 0 ? 'inline-flex' : 'none';
-  }
-  // Badge favicon
-  const alertes = compterAlertesNonLues();
-  majBadgeFavicon(total + alertes);
-  mettreAJourBadgesNav();
-}
+// MOVED -> script-messages.js : mettreAJourBadgeMsgAdmin
 
 /* ===== PLANNING HEBDOMADAIRE ===== */
 const JOURS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
 const JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
-function afficherPlanning() {
-  const salaries  = charger('salaries');
-  const plannings = loadSafe('plannings', []);
-  const tb = document.getElementById('tb-planning');
-
-  // Mettre à jour le select du modal
-  const sel = document.getElementById('plan-salarie');
-  if (sel) {
-    const valeur = sel.value;
-    sel.innerHTML = '<option value="">-- Choisir un salarié --</option>';
-    salaries.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nom} (${s.numero})</option>`; });
-    sel.value = valeur;
-  }
-
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="9" class="empty-row">Aucun salarié</td></tr>'; return; }
-
-  tb.innerHTML = salaries.map(s => {
-    const plan = plannings.find(p => p.salId === s.id);
-    const cellules = JOURS.map(j => {
-      if (!plan) return '<td style="color:var(--text-muted);font-size:.75rem">—</td>';
-      const jour = plan.semaine?.find(d => d.jour === j);
-      if (!jour || !jour.travaille) return '<td style="color:var(--text-muted);font-size:.8rem;text-align:center">🔴</td>';
-      return `<td style="text-align:center;font-size:.78rem"><span style="color:var(--green)">🟢</span>${jour.heureDebut ? '<br><span style="color:var(--muted)">'+jour.heureDebut+'</span>' : ''}</td>`;
-    }).join('');
-    return `<tr>
-      <td><strong>${s.nom}</strong></td>
-      ${cellules}
-      <td>
-        <button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Modifier">✏️</button>
-        ${plan ? `<button class="btn-icon danger" onclick="supprimerPlanning('${s.id}')" title="Supprimer">🗑️</button>` : ''}
-      </td>
-    </tr>`;
-  }).join('');
-}
+// MOVED -> script-planning.js : afficherPlanning
 
 function genererGrilleJours() {
   const salId = document.getElementById('plan-salarie').value;
@@ -6043,36 +5316,11 @@ function genererGrilleJours() {
   mettreAJourTotalHeuresPlanning();
 }
 
-function toggleJourPlanning(jour) {
-  const cb  = document.getElementById('plan-travaille-'+jour);
-  const det = document.getElementById('plan-horaires-'+jour);
-  if (det) det.style.display = cb.checked ? 'grid' : 'none';
-  mettreAJourTotalHeuresPlanning();
-}
+// MOVED -> script-planning.js : toggleJourPlanning
 
-function ouvrirModalPlanning() {
-  peuplerSelectPlanningModal();
-  const search = document.getElementById('plan-salarie-search');
-  if (search) search.value = '';
-  const sel = document.getElementById('plan-salarie');
-  if (sel) sel.value = '';
-  const grid = document.getElementById('plan-jours-grid');
-  if (grid) grid.innerHTML = '';
-  mettreAJourTotalHeuresPlanning();
-  openModal('modal-planning');
-}
+// MOVED -> script-planning.js : ouvrirModalPlanning
 
-function ouvrirEditPlanning(salId) {
-  const sel = document.getElementById('plan-salarie');
-  if (!sel) return;
-  peuplerSelectPlanningModal();
-  sel.value = salId;
-  const search = document.getElementById('plan-salarie-search');
-  const sal = charger('salaries').find(s => s.id === salId);
-  if (search) search.value = sal ? `${sal.nom}${sal.numero ? ' ('+sal.numero+')' : ''}` : '';
-  genererGrilleJours();
-  document.getElementById('modal-planning').classList.add('open');
-}
+// MOVED -> script-planning.js : ouvrirEditPlanning
 
 // BUG-008 fix : contrôles Règlement CE 561/2006 (temps de conduite).
 // Alertes non bloquantes affichées après sauvegarde planning + audit.
@@ -6110,62 +5358,9 @@ function verifierConformiteConduiteCE561(semaine) {
   return { ok: warnings.length === 0, warnings: warnings, totalHebdoMin: totalHebdoMin };
 }
 
-function sauvegarderPlanning() {
-  const salId = document.getElementById('plan-salarie').value;
-  if (!salId) { afficherToast('⚠️ Choisissez un salarié', 'error'); return; }
+// MOVED -> script-planning.js : sauvegarderPlanning
 
-  const semaine = JOURS.map(jour => {
-    const travaille = document.getElementById('plan-travaille-'+jour)?.checked || false;
-    const typeJour  = document.getElementById('plan-type-'+jour)?.value || 'travail';
-    return {
-      jour,
-      travaille,
-      typeJour,
-      heureDebut: travaille ? (document.getElementById('plan-debut-'+jour)?.value || '') : '',
-      heureFin:   travaille ? (document.getElementById('plan-fin-'+jour)?.value   || '') : '',
-      zone:       travaille ? (document.getElementById('plan-zone-'+jour)?.value  || '') : '',
-      note:       travaille ? (document.getElementById('plan-note-'+jour)?.value  || '') : '',
-    };
-  });
-
-  const plannings = loadSafe('plannings', []);
-  const idx = plannings.findIndex(p => p.salId === salId);
-  const sal = charger('salaries').find(s => s.id === salId);
-  const entry = { salId, salNom: sal?.nom || '', semaine, mis_a_jour: new Date().toISOString() };
-
-  if (idx > -1) plannings[idx] = entry;
-  else          plannings.push(entry);
-  localStorage.setItem('plannings', JSON.stringify(plannings));
-
-  closeModal('modal-planning');
-  afficherPlanning();
-  afficherPlanningSemaine();
-  afficherCompteurHeures();
-  afficherToast(`✅ Planning de ${sal?.nom || 'salarié'} enregistré`);
-
-  // Contrôle CE 561/2006 après save (non bloquant)
-  try {
-    const conf = verifierConformiteConduiteCE561(semaine);
-    if (!conf.ok && conf.warnings.length) {
-      conf.warnings.forEach(function(w) { afficherToast(w, 'warning'); });
-      if (typeof ajouterEntreeAudit === 'function') {
-        ajouterEntreeAudit('Conformité CE 561/2006',
-          'Planning ' + (sal?.nom || salId) + ' — ' + conf.warnings.length + ' alerte(s) temps de conduite');
-      }
-    }
-  } catch (e) { console.warn('[CE561]', e); }
-}
-
-async function supprimerPlanning(salId) {
-  const _ok9 = await confirmDialog('Supprimer le planning de ce salarié ?', {titre:'Supprimer le planning',icone:'📅',btnLabel:'Supprimer'});
-  if (!_ok9) return;
-  const plannings = loadSafe('plannings', []).filter(p => p.salId !== salId);
-  localStorage.setItem('plannings', JSON.stringify(plannings));
-  afficherPlanning();
-  afficherPlanningSemaine();
-  afficherCompteurHeures();
-  afficherToast('🗑️ Planning supprimé');
-}
+// MOVED -> script-planning.js : supprimerPlanning
 
 /* ===== VUE KANBAN LIVRAISONS ===== */
 let _vueLivraisons = 'tableau'; // 'tableau' | 'kanban' | 'calendrier'
@@ -6487,20 +5682,7 @@ function csvCelluleSecurisee(value, separator) {
 }
 window.csvCelluleSecurisee = csvCelluleSecurisee;
 
-function exporterCSV(data, colonnes, nomFichier) {
-  const sep = ';';
-  const header = colonnes.map(c => csvCelluleSecurisee(c.label, sep)).join(sep);
-  const rows = data.map(row =>
-    colonnes.map(c => csvCelluleSecurisee(c.get(row) ?? '', sep)).join(sep)
-  );
-  const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM pour Excel français
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = nomFichier;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
+// MOVED -> script-exports.js : exporterCSV
 
 
 function getLivraisonsFiltresActifs() {
@@ -6537,165 +5719,14 @@ function getLivraisonsPeriodeActiveLabel() {
   return label || 'Toutes les livraisons';
 }
 
-function exporterLivraisons() {
-  const livraisons = getLivraisonsFiltresActifs();
-  const deb = document.getElementById('filtre-date-debut')?.value || '';
-  const fin = document.getElementById('filtre-date-fin')?.value || '';
-  exporterCSV(livraisons, [
-    { label: 'N° LIV',      get: l => l.numLiv||'' },
-    { label: 'Date',         get: l => l.date||'' },
-    { label: 'Client',       get: l => l.client||'' },
-    { label: 'Départ',       get: l => l.depart||'' },
-    { label: 'Arrivée',      get: l => l.arrivee||'' },
-    { label: 'Distance km',  get: l => l.distance||'' },
-    { label: 'Prix €',       get: l => l.prix||'' },
-    { label: 'Chauffeur',    get: l => l.chaufNom||'' },
-    { label: 'Véhicule',     get: l => l.vehNom||'' },
-    { label: 'Statut',       get: l => l.statut||'' },
-    { label: 'Paiement',     get: l => l.statutPaiement||'' },
-    { label: 'Date paiement',get: l => l.datePaiement||'' },
-    { label: 'Mode paiement',get: l => l.modePaiement||'' },
-  ], `livraisons_${deb || aujourdhui()}${fin ? '_au_' + fin : ''}.csv`);
-  afficherToast('✅ Export CSV téléchargé');
-}
+// MOVED -> script-exports.js : exporterLivraisons
 
-function exporterCharges() {
-  const charges = charger('charges').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  exporterCSV(charges, [
-    { label:'Date',        get:c=>c.date||'' },
-    { label:'Catégorie',   get:c=>c.categorie||'' },
-    { label:'Description', get:c=>c.description||'' },
-    { label:'Véhicule',    get:c=>c.vehNom||'' },
-    { label:'Montant €',   get:c=>c.montant?parseFloat(c.montant).toFixed(2):'' },
-  ], `charges_${aujourdhui()}.csv`);
-  afficherToast('✅ Export charges CSV téléchargé');
-}
+// MOVED -> script-exports.js : exporterCharges
 
 // MOVED -> script-entretiens.js : exporterEntretiens
 
 /* ===== RAPPORT MENSUEL PDF ===== */
-function genererRapportMensuel() {
-  const auj    = new Date();
-  const mois   = auj.toLocalISOMonth();
-  const moisLabel = auj.toLocaleDateString('fr-FR', { month:'long', year:'numeric' });
-  const params = getEntrepriseExportParams();
-  const nom    = params.nom;
-
-  const livraisons = charger('livraisons').filter(l => (l.date||'').startsWith(mois));
-  const carburant  = charger('carburant').filter(p => (p.date||'').startsWith(mois));
-  const salaries   = charger('salaries');
-
-  const caTotal    = livraisons.reduce((s,l)=>s+(l.prix||0), 0);
-  const carbTotal  = carburant.reduce((s,p)=>s+(p.total||0), 0);
-  const kmTotal    = salaries.reduce((s,sal)=>{
-    const entrees = charger('km_sal_'+sal.id).filter(e=>(e.date||'').startsWith(mois));
-    return s + entrees.reduce((ss,e)=>ss+(e.distance||0),0);
-  }, 0);
-  const benefice   = caTotal - carbTotal;
-  const livrees    = livraisons.filter(l=>l.statut==='livre').length;
-  const enAttente  = livraisons.filter(l=>l.statut==='en-attente').length;
-  const dateExp    = formatDateHeureExport(auj);
-
-  // Stats par chauffeur
-  const statsChauff = {};
-  livraisons.forEach(l => {
-    if (!l.chaufNom) return;
-    if (!statsChauff[l.chaufNom]) statsChauff[l.chaufNom] = { livs:0, ca:0 };
-    statsChauff[l.chaufNom].livs++;
-    statsChauff[l.chaufNom].ca += l.prix||0;
-  });
-
-  const html = `
-  <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-
-    <!-- EN-TÊTE -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:3px solid #f5a623;margin-bottom:28px">
-      <div>
-        <div style="font-size:1.5rem;font-weight:800;color:#f5a623">${nom}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Rapport d'activité</div>
-        <div style="font-size:1.2rem;font-weight:800;text-transform:capitalize">${moisLabel}</div>
-      </div>
-    </div>
-    ${renderBlocInfosEntreprise(params)}
-
-    <!-- KPIs -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px">
-      ${[
-        ['💶 CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#f5a623'],
-        ['📦 Livraisons', livraisons.length + ' total', '#4f8ef7'],
-        ['⛽ Carburant',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal), '#e74c3c'],
-        ['💰 Bénéfice',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(benefice), benefice>=0?'#2ecc71':'#e74c3c'],
-      ].map(([label, value, color]) => `
-        <div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${color}">
-          <div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${label}</div>
-          <div style="font-size:1.15rem;font-weight:800;color:${color}">${value}</div>
-        </div>`).join('')}
-    </div>
-
-    <!-- STATUTS LIVRAISONS -->
-    <div style="background:#f8f9fc;border-radius:10px;padding:16px;margin-bottom:24px">
-      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:12px">Statuts des livraisons</div>
-      <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <div><span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">✅ Livré : ${livrees}</span></div>
-        <div><span style="background:rgba(245,166,35,.15);color:#f5a623;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">⏳ En attente : ${enAttente}</span></div>
-        <div><span style="background:rgba(52,152,219,.15);color:#4f8ef7;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">🚐 En cours : ${livraisons.filter(l=>l.statut==='en-cours').length}</span></div>
-      </div>
-    </div>
-
-    <!-- KM + CARBURANT -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
-      <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Kilométrage total</div>
-        <div style="font-size:1.4rem;font-weight:800">${new Intl.NumberFormat('fr-FR').format(Math.round(kmTotal))} km</div>
-        <div style="font-size:.78rem;color:#9ca3af;margin-top:4px">Tous chauffeurs confondus</div>
-      </div>
-      <div style="background:#f8f9fc;border-radius:10px;padding:16px">
-        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Coût carburant</div>
-        <div style="font-size:1.4rem;font-weight:800">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal)}</div>
-        <div style="font-size:.78rem;color:#9ca3af;margin-top:4px">${carburant.length} plein(s) ce mois</div>
-      </div>
-    </div>
-
-    <!-- STATS PAR CHAUFFEUR -->
-    ${Object.keys(statsChauff).length ? `
-    <div style="margin-bottom:24px">
-      <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:12px">Performance par chauffeur</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-        <thead><tr style="background:#f3f4f6">
-          <th style="padding:9px 12px;text-align:left;font-weight:600;color:#6b7280">Chauffeur</th>
-          <th style="padding:9px 12px;text-align:right;font-weight:600;color:#6b7280">Livraisons</th>
-          <th style="padding:9px 12px;text-align:right;font-weight:600;color:#6b7280">CA généré</th>
-        </tr></thead>
-        <tbody>${Object.entries(statsChauff).sort((a,b)=>b[1].ca-a[1].ca).map(([nom,s],i) => `
-          <tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
-            <td style="padding:9px 12px;font-weight:500">${nom}</td>
-            <td style="padding:9px 12px;text-align:right">${s.livs}</td>
-            <td style="padding:9px 12px;text-align:right;font-weight:700;color:#f5a623">${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(s.ca)}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>` : ''}
-
-    <!-- PIED DE PAGE -->
-    <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-      <span>${nom} — Page 1/1</span>
-      <span>${dateExp}</span>
-      <span>${params.tel || params.email || params.siret || ''}</span>
-    </div>
-  </div>`;
-
-  const win = ouvrirPopupSecure('', '_blank', 'width=850,height=950');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Rapport ${moisLabel} — ${nom}</title>
-    <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm} @media print{body{padding:0}}</style>
-    </head><body>${html}
-    <script>setTimeout(()=>{window.print();},400)<\/script>
-    </body></html>`);
-  win.document.close();
-  afficherToast('📄 Rapport mensuel généré');
-}
+// MOVED -> script-exports.js : genererRapportMensuel
 
 /* ===== ACCUSÉ DE LECTURE MESSAGERIE ===== */
 /* ===== GOOGLE MAPS — CALCUL DISTANCE AUTO ===== */
@@ -7007,56 +6038,9 @@ async function supprimerFournisseur(id) {
   afficherToast('🗑️ Fournisseur supprimé');
 }
 
-function exporterHistoriqueFournisseursCSV() {
-  const fournisseurs = charger('fournisseurs');
-  if (!fournisseurs.length) { afficherToast('Aucun fournisseur à exporter', 'info'); return; }
-  const headers = ['Nom', 'Contact', 'Téléphone', 'Email', 'Adresse', 'CP', 'Ville', 'SIREN', 'TVA Intracom', 'IBAN', 'Notes'];
-  const rows = fournisseurs.map(f => [f.nom, f.contact || f.prenom, f.tel, f.email, f.adresse, f.cp, f.ville, f.siren, f.tvaIntra, f.iban, f.notes].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(','));
-  const csv = headers.map(h => '"' + h + '"').join(',') + '\n' + rows.join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'fournisseurs_' + new Date().toISOString().slice(0, 10) + '.csv';
-  a.click();
-  afficherToast('📥 Export CSV fournisseurs');
-}
+// MOVED -> script-exports.js : exporterHistoriqueFournisseursCSV
 
-function genererRapportFournisseurs() {
-  const fournisseurs = charger('fournisseurs');
-  if (!fournisseurs.length) { afficherToast('Aucun fournisseur à exporter', 'info'); return; }
-  const charges = charger('charges');
-  const params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : {};
-  const dateExp = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const esc = (typeof planningEscapeHtml === 'function') ? planningEscapeHtml : (v => String(v || ''));
-  const lignes = fournisseurs.map(f => {
-    const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
-    const total = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
-    return { f, nb: chargesF.length, total };
-  }).sort((a, b) => b.total - a.total);
-  const totalGlobal = lignes.reduce((s, L) => s + L.total, 0);
-  const meta = fournisseurs.length + ' fournisseur(s) · ' + lignes.reduce((s, L) => s + L.nb, 0) + ' charge(s)';
-  const rows = lignes.map(L => `<tr>
-    <td style="padding:7px 10px;font-weight:600">${esc(L.f.nom || '')}${L.f.siren ? '<div style="font-size:.72rem;color:#9ca3af">SIREN ' + esc(L.f.siren) + '</div>' : ''}</td>
-    <td style="padding:7px 10px;font-size:.82rem">${esc(L.f.contact || L.f.prenom || '—')}${L.f.tel ? '<div style="color:#6b7280">' + esc(L.f.tel) + '</div>' : ''}</td>
-    <td style="padding:7px 10px;font-size:.78rem;color:#6b7280">${esc([L.f.adresse, ((L.f.cp || '') + ' ' + (L.f.ville || '')).trim()].filter(Boolean).join(' · ') || '—')}</td>
-    <td style="padding:7px 10px;text-align:right">${L.nb}</td>
-    <td style="padding:7px 10px;text-align:right;font-weight:700">${euros(L.total)}</td>
-  </tr>`).join('');
-  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">'
-    + construireEnteteExport(params, 'Carnet fournisseurs', '', dateExp, meta)
-    + '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
-    + '<thead><tr style="background:#f3f4f6;text-align:left">'
-    +   '<th style="padding:8px 10px">Fournisseur</th>'
-    +   '<th style="padding:8px 10px">Contact</th>'
-    +   '<th style="padding:8px 10px">Adresse</th>'
-    +   '<th style="padding:8px 10px;text-align:right">Charges</th>'
-    +   '<th style="padding:8px 10px;text-align:right">Total dépensé</th>'
-    + '</tr></thead><tbody>' + rows + '</tbody>'
-    + '<tfoot><tr style="background:#fef3c7;font-weight:700"><td colspan="4" style="padding:8px 10px">TOTAL</td><td style="padding:8px 10px;text-align:right">' + euros(totalGlobal) + '</td></tr></tfoot>'
-    + '</table></div>';
-  if (typeof ouvrirFenetreImpression === 'function') ouvrirFenetreImpression('Carnet fournisseurs', html, 'width=1200,height=820');
-  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Rapport fournisseurs', fournisseurs.length + ' fournisseur(s)');
-}
+// MOVED -> script-exports.js : genererRapportFournisseurs
 
 /* ===== CONGÉS / ABSENCES DANS LE PLANNING ===== */
 function toggleTypeJour(jour) {
@@ -7207,417 +6191,49 @@ var _heuresJourOffset = 0;
 var _heuresMoisOffset = 0;
 var _heuresAnneeOffset = 0;
 
-function getHeuresPeriodeRange() {
-  if ((_heuresVue || 'semaine') === 'jour') return getPeriodeRange('jour', _heuresJourOffset || 0);
-  if ((_heuresVue || 'semaine') === 'mois') return getPeriodeRange('mois', _heuresMoisOffset || 0);
-  if ((_heuresVue || 'semaine') === 'annee') return getPeriodeRange('annee', _heuresAnneeOffset || 0);
-  return { mode: 'semaine', ...getHeuresSemaineRange(), datesLabel: 'Du ' + formatPeriodeDateFr(getHeuresSemaineRange().lundi) + ' au ' + formatPeriodeDateFr(getHeuresSemaineRange().dimanche) };
-}
+// MOVED -> script-heures.js : getHeuresPeriodeRange
 
-function getPlanningPeriodForDate(salId, dateStr, periodes) {
-  return (periodes || charger('absences_periodes')).find(function(item) {
-    return item.salId === salId && dateStr >= item.debut && dateStr <= item.fin;
-  }) || null;
-}
+// MOVED -> script-planning.js : getPlanningPeriodForDate
 
-function planningGetVehicleForSalarie(salId) {
-  return charger('vehicules').find(function(item) { return item.salId === salId; }) || null;
-}
+// MOVED -> script-planning.js : planningGetVehicleForSalarie
 
-function planningGetLivraisonsForDate(salId, dateStr) {
-  return charger('livraisons').filter(function(item) {
-    return item.chaufId === salId && item.date === dateStr;
-  });
-}
+// MOVED -> script-planning.js : planningGetLivraisonsForDate
 
 // MOVED -> script-incidents.js : planningGetOpenIncidentsForSalarie
 
 // MOVED -> script-inspections.js : planningGetInspectionForDate
 
-function planningGetIndisponibilitePourDate(salId, dateStr) {
-  if (!salId || !dateStr) return null;
-  var periodes = charger('absences_periodes');
-  var periode = getPlanningPeriodForDate(salId, dateStr, periodes);
-  if (periode && ['conge', 'absence', 'maladie'].includes(periode.type)) {
-    return {
-      type: periode.type,
-      label: getPlanningPeriodLabel(periode.type),
-      detail: 'Période du ' + formatDateExport(periode.debut) + ' au ' + formatDateExport(periode.fin)
-    };
-  }
-  var planning = charger('plannings').find(function(item) { return item.salId === salId; }) || { semaine: [] };
-  var dateObj = new Date(dateStr + 'T00:00:00');
-  if (Number.isNaN(dateObj.getTime())) return null;
-  var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-  var jour = (planning.semaine || []).find(function(item) { return item.jour === jourNom; }) || null;
-  if (jour && ['conge', 'absence', 'maladie'].includes(jour.typeJour)) {
-    return {
-      type: jour.typeJour,
-      label: getPlanningPeriodLabel(jour.typeJour),
-      detail: 'Planning hebdomadaire'
-    };
-  }
-  return null;
-}
+// MOVED -> script-planning.js : planningGetIndisponibilitePourDate
 
-function planningOuvrirSaisieRapide(salId, dateStr, typeHint) {
-  var salarie = charger('salaries').find(function(item) { return item.id === salId; });
-  if (!salarie) return;
-  naviguerVers('planning');
-  setTimeout(function() {
-    togglePlanningQuickPanel(true);
-    initFormulairePlanningRapide();
-    var search = document.getElementById('absence-sal-search');
-    var select = document.getElementById('absence-sal');
-    var type = document.getElementById('absence-type');
-    var debut = document.getElementById('absence-debut');
-    var fin = document.getElementById('absence-fin');
-    if (search) search.value = planningBuildEmployeeLabel(salarie);
-    if (select) select.value = salarie.id;
-    if (type) type.value = typeHint || 'travail';
-    if (debut) debut.value = dateStr || '';
-    if (fin) fin.value = dateStr || '';
-    toggleAbsenceTypeFields();
-    document.querySelector('#page-planning .planning-absence-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 120);
-}
+// MOVED -> script-planning.js : planningOuvrirSaisieRapide
 
-function togglePlanningQuickPanel(forceOpen) {
-  var panel = document.getElementById('planning-quick-panel');
-  var button = document.getElementById('planning-toggle-quick-btn');
-  if (!panel || !button) return;
-  var shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : panel.style.display === 'none';
-  panel.style.display = shouldOpen ? 'grid' : 'none';
-  button.textContent = shouldOpen ? 'Fermer' : '+ Ajouter une période';
-}
+// MOVED -> script-planning.js : togglePlanningQuickPanel
 
-function planningCalculerRecapPeriode(salId, debut, fin) {
-  var salarie = charger('salaries').find(function(item) { return item.id === salId; });
-  var planning = (charger('plannings') || []).find(function(item) { return item.salId === salId; }) || { semaine: [] };
-  var periodes = charger('absences_periodes');
-  var livraisons = charger('livraisons').filter(function(item) {
-    return item.chaufId === salId && item.date >= debut && item.date <= fin;
-  });
-  var inspections = charger('inspections').filter(function(item) {
-    return item.salId === salId && item.date >= debut && item.date <= fin;
-  });
-  var incidents = planningGetOpenIncidentsForSalarie(salId);
-  var dates = planningBuildDateArray(debut, fin);
-  var workDays = 0;
-  var absenceDays = 0;
-  var plannedHours = 0;
-  var detailDays = [];
+// MOVED -> script-planning.js : planningCalculerRecapPeriode
 
-  dates.forEach(function(dateObj) {
-    var dateStr = planningDateToLocalISO(dateObj);
-    var resolved = (function() {
-      var periodEntry = getPlanningPeriodForDate(salId, dateStr, periodes);
-      if (periodEntry) return { source: 'period', entry: periodEntry };
-      var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-      var recurring = (planning.semaine || []).find(function(item) { return item.jour === jourNom; }) || null;
-      return { source: 'recurring', entry: recurring };
-    })();
-    var entry = resolved.entry;
-    if (!entry) {
-      detailDays.push({ date: dateStr, title: 'Non planifié', detail: '', type: 'rest' });
-      return;
-    }
-    if (resolved.source === 'period') {
-      if (entry.type === 'travail') {
-        workDays += 1;
-        var dureePeriode = calculerDureeJour(entry.heureDebut || '', entry.heureFin || '');
-        if (dureePeriode > 0) plannedHours += dureePeriode;
-        detailDays.push({ date: dateStr, title: 'Travail', detail: (entry.heureDebut || '') + (entry.heureFin ? ' - ' + entry.heureFin : ''), type: 'work' });
-      } else {
-        absenceDays += 1;
-        detailDays.push({ date: dateStr, title: getPlanningPeriodLabel(entry.type), detail: '', type: entry.type });
-      }
-      return;
-    }
-    if (entry.typeJour === 'travail' && entry.travaille) {
-      workDays += 1;
-      var duree = calculerDureeJour(entry.heureDebut || '', entry.heureFin || '');
-      if (duree > 0) plannedHours += duree;
-      detailDays.push({ date: dateStr, title: 'Travail', detail: (entry.heureDebut || '') + (entry.heureFin ? ' - ' + entry.heureFin : ''), type: 'work' });
-      return;
-    }
-    if (['conge', 'absence', 'maladie', 'repos'].includes(entry.typeJour)) {
-      if (entry.typeJour !== 'repos') absenceDays += 1;
-      detailDays.push({ date: dateStr, title: entry.typeJour === 'repos' ? 'Repos' : getPlanningPeriodLabel(entry.typeJour), detail: '', type: entry.typeJour });
-      return;
-    }
-    detailDays.push({ date: dateStr, title: 'Non planifié', detail: '', type: 'rest' });
-  });
+// MOVED -> script-planning.js : ouvrirRecapPlanningPeriode
 
-  return {
-    salarie: salarie,
-    livraisons: livraisons,
-    inspections: inspections,
-    incidents: incidents,
-    workDays: workDays,
-    absenceDays: absenceDays,
-    plannedHours: plannedHours,
-    detailDays: detailDays
-  };
-}
+// MOVED -> script-planning.js : planningOuvrirFicheSalarie
 
-function ouvrirRecapPlanningPeriode(salId, debut, fin, label) {
-  var recap = planningCalculerRecapPeriode(salId, debut, fin);
-  var container = document.getElementById('planning-recap-content');
-  var salarie = recap.salarie;
-  if (!container || !salarie) return;
-  var vehicule = planningGetVehicleForSalarie(salId);
-  container.innerHTML =
-    '<div class="planning-panel-title" style="margin-bottom:4px">' + planningEscapeHtml(getSalarieNomComplet(salarie)) + '</div>'
-    + '<div class="planning-toolbar-sub" style="margin-bottom:14px">' + planningEscapeHtml(label || ('Du ' + formatDateExport(debut) + ' au ' + formatDateExport(fin))) + (vehicule ? ' · 🚐 ' + planningEscapeHtml(vehicule.immat + (vehicule.modele ? ' — ' + vehicule.modele : '')) : '') + '</div>'
-    + '<div class="planning-recap-grid">'
-      + '<div class="planning-recap-card"><div class="planning-recap-card-label">Jours planifiés</div><div class="planning-recap-card-value">' + recap.workDays + '</div></div>'
-      + '<div class="planning-recap-card"><div class="planning-recap-card-label">Absences / congés</div><div class="planning-recap-card-value">' + recap.absenceDays + '</div></div>'
-      + '<div class="planning-recap-card"><div class="planning-recap-card-label">Heures prévues</div><div class="planning-recap-card-value">' + recap.plannedHours.toFixed(1).replace('.', ',') + ' h</div></div>'
-      + '<div class="planning-recap-card"><div class="planning-recap-card-label">Livraisons</div><div class="planning-recap-card-value">' + recap.livraisons.length + '</div></div>'
-      + '<div class="planning-recap-card"><div class="planning-recap-card-label">Inspections</div><div class="planning-recap-card-value">' + recap.inspections.length + '</div></div>'
-      + '<div class="planning-recap-card"><div class="planning-recap-card-label">Incidents ouverts</div><div class="planning-recap-card-value">' + recap.incidents.length + '</div></div>'
-    + '</div>'
-    + '<div class="planning-recap-section"><h4>Jours de la période</h4><div class="planning-recap-list">'
-      + (recap.detailDays.length ? recap.detailDays.map(function(item) {
-          return '<div class="planning-recap-item"><strong>' + planningEscapeHtml(formatDateExport(item.date)) + '</strong> · ' + planningEscapeHtml(item.title) + (item.detail ? '<div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(item.detail) + '</div>' : '') + '</div>';
-        }).join('') : '<div class="planning-recap-empty">Aucune donnée sur cette période.</div>')
-    + '</div></div>'
-    + '<div class="planning-recap-section"><h4>Livraisons liées</h4><div class="planning-recap-list">'
-      + (recap.livraisons.length ? recap.livraisons.map(function(item) {
-          return '<div class="planning-recap-item"><strong>' + planningEscapeHtml(item.numLiv || 'Livraison') + '</strong> · ' + planningEscapeHtml(item.client || 'Client') + '<div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(formatDateExport(item.date)) + ' · ' + planningEscapeHtml(item.statut || '—') + ' · ' + euros(item.prix || 0) + '</div></div>';
-        }).join('') : '<div class="planning-recap-empty">Aucune livraison sur cette période.</div>')
-    + '</div></div>'
-    + '<div class="planning-recap-section"><h4>Inspections & incidents</h4><div class="planning-recap-list">'
-      + (recap.inspections.length ? recap.inspections.map(function(item) {
-          return '<div class="planning-recap-item"><strong>Inspection</strong><div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(formatDateExport(item.date)) + (item.commentaire ? ' · ' + planningEscapeHtml(item.commentaire) : '') + '</div></div>';
-        }).join('') : '<div class="planning-recap-empty">Aucune inspection sur cette période.</div>')
-      + (recap.incidents.length ? recap.incidents.map(function(item) {
-          return '<div class="planning-recap-item"><strong>🚨 Incident</strong><div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(item.description || 'Incident') + '</div></div>';
-        }).join('') : '')
-    + '</div></div>';
-  openModal('modal-planning-recap');
-}
+// MOVED -> script-heures.js : construireContexteHeures
 
-function planningOuvrirFicheSalarie(salId) {
-  if (!salId) return;
-  naviguerVers('salaries');
-  setTimeout(function() { ouvrirEditSalarie(salId); }, 140);
-}
+// MOVED -> script-planning.js : getPlanningPeriodLabel
 
-function construireContexteHeures(range) {
-  const periodeRange = range || getHeuresPeriodeRange();
-  const plannings = loadSafe('plannings', []);
-  const absencesPeriodes = loadSafe('absences_periodes', []);
-  const dates = getDateRangeInclusive(periodeRange.debut, periodeRange.fin);
-  const planningsParSalarie = new Map();
-  const absencesParSalarie = new Map();
+// MOVED -> script-heures.js : majHeuresPeriodeLabel
 
-  plannings.forEach(function(plan) {
-    if (!plan || !plan.salId) return;
-    planningsParSalarie.set(plan.salId, plan);
-  });
+// MOVED -> script-heures.js : changerVueHeures
 
-  absencesPeriodes.forEach(function(periode) {
-    if (!periode || !periode.salId) return;
-    if (periode.fin < periodeRange.debut || periode.debut > periodeRange.fin) return;
-    if (!absencesParSalarie.has(periode.salId)) absencesParSalarie.set(periode.salId, []);
-    absencesParSalarie.get(periode.salId).push(periode);
-  });
+// MOVED -> script-heures.js : naviguerHeuresPeriode
 
-  return {
-    range: periodeRange,
-    dates: dates,
-    planningsParSalarie: planningsParSalarie,
-    absencesParSalarie: absencesParSalarie,
-    absencesPeriodes: absencesPeriodes
-  };
-}
+// MOVED -> script-heures.js : reinitialiserHeuresPeriode
 
-function getPlanningPeriodLabel(type) {
-  return type === 'travail' ? 'Travail'
-    : type === 'repos' ? 'Repos'
-    : type === 'conge' ? 'Congé'
-    : type === 'maladie' ? 'Maladie'
-    : 'Absence';
-}
+// MOVED -> script-heures.js : calculerHeuresSalarieSemaine
 
-function majHeuresPeriodeLabel() {
-  const range = getHeuresPeriodeRange();
-  const elL = document.getElementById('heures-semaine-label');
-  const elD = document.getElementById('heures-semaine-dates');
-  const prevBtn = document.getElementById('heures-prev-btn');
-  const nextBtn = document.getElementById('heures-next-btn');
-  const resetBtn = document.getElementById('heures-reset-btn');
-  const totalCol = document.getElementById('heures-col-total');
-  const detailCol = document.getElementById('heures-col-detail');
-  const vue = document.getElementById('filtre-heures-vue');
-  if (vue) vue.value = _heuresVue || 'semaine';
-  if (elL) elL.textContent = range.mode === 'mois'
-    ? range.label.charAt(0).toUpperCase() + range.label.slice(1)
-    : range.label;
-  if (elD) elD.textContent = range.datesLabel;
-  if (prevBtn) prevBtn.textContent = 'Précédent';
-  if (nextBtn) nextBtn.textContent = 'Suivant';
-  if (resetBtn) resetBtn.textContent = 'Réinitialiser';
-  if (totalCol) totalCol.textContent = range.mode === 'jour' ? 'H/jour' : range.mode === 'annee' ? 'H/année' : range.mode === 'mois' ? 'H/mois' : 'H/semaine';
-  if (detailCol) detailCol.textContent = range.mode === 'jour' ? 'Détail du jour' : 'Détail période';
-}
+// MOVED -> script-heures.js : afficherCompteurHeures
 
-function changerVueHeures(vue) {
-  _heuresVue = ['jour', 'semaine', 'mois', 'annee'].includes(vue) ? vue : 'semaine';
-  majHeuresPeriodeLabel();
-  afficherCompteurHeures();
-  afficherReleveKm();
-}
+// MOVED -> script-heures.js : resetFiltresHeures
 
-function naviguerHeuresPeriode(delta) {
-  if ((_heuresVue || 'semaine') === 'jour') _heuresJourOffset += delta;
-  else if ((_heuresVue || 'semaine') === 'mois') _heuresMoisOffset += delta;
-  else if ((_heuresVue || 'semaine') === 'annee') _heuresAnneeOffset += delta;
-  else _heuresSemaineOffset += delta;
-  majHeuresPeriodeLabel();
-  afficherCompteurHeures();
-  afficherReleveKm();
-}
-
-function reinitialiserHeuresPeriode() {
-  if ((_heuresVue || 'semaine') === 'jour') _heuresJourOffset = 0;
-  else if ((_heuresVue || 'semaine') === 'mois') _heuresMoisOffset = 0;
-  else if ((_heuresVue || 'semaine') === 'annee') _heuresAnneeOffset = 0;
-  else _heuresSemaineOffset = 0;
-  majHeuresPeriodeLabel();
-  afficherCompteurHeures();
-  afficherReleveKm();
-}
-
-function calculerHeuresSalarieSemaine(salId, contexte) {
-  const ctx = contexte || construireContexteHeures();
-  const range = ctx.range;
-  const plan = ctx.planningsParSalarie.get(salId);
-  const periodes = ctx.absencesParSalarie.get(salId) || [];
-  const details = [];
-  let total = 0;
-
-  ctx.dates.forEach(dateObj => {
-    const _fy = dateObj.getFullYear();
-    const _fm = String(dateObj.getMonth()+1).padStart(2,'0');
-    const _fd = String(dateObj.getDate()).padStart(2,'0');
-    const dateStr = _fy+'-'+_fm+'-'+_fd;
-    const periode = getPlanningPeriodForDate(salId, dateStr, periodes);
-    if (periode) {
-      if (periode.type === 'travail') {
-        const dureePeriode = calculerDureeJour(periode.heureDebut || '', periode.heureFin || '');
-        if (dureePeriode > 0) {
-          total += dureePeriode;
-          details.push({ date: dateStr, jour: JOURS[(dateObj.getDay() + 6) % 7], duree: dureePeriode });
-        }
-      }
-      return;
-    }
-    if (!plan?.semaine) return;
-    const jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-    const jourPlanning = plan.semaine.find(j => j.jour === jourNom);
-    if (!jourPlanning || !jourPlanning.travaille || !jourPlanning.heureDebut || !jourPlanning.heureFin) return;
-    const duree = calculerDureeJour(jourPlanning.heureDebut, jourPlanning.heureFin);
-    if (duree <= 0) return;
-    total += duree;
-    details.push({ date: dateStr, jour: jourNom, duree });
-  });
-
-  return { planifiees: total, details };
-}
-
-function afficherCompteurHeures() {
-  const salaries = charger('salaries');
-  const cont = document.getElementById('tb-heures');
-  if (!cont) return;
-  const range = getHeuresPeriodeRange();
-  const contexteHeures = construireContexteHeures(range);
-  const periode = document.getElementById('heures-periode-label');
-  if (periode) periode.textContent = `${range.label} · ${range.datesLabel}`;
-
-  const filtreSal = (document.getElementById('filtre-heures-salarie')?.value || '').trim().toLowerCase();
-
-  // Afficher/masquer dates personnalisées
-  const vue = document.getElementById('filtre-heures-vue')?.value || _heuresVue || 'semaine';
-  const deb = document.getElementById('filtre-heures-debut');
-  const fin = document.getElementById('filtre-heures-fin');
-  if (deb) deb.style.display = vue === 'custom' ? 'inline-block' : 'none';
-  if (fin) fin.style.display = vue === 'custom' ? 'inline-block' : 'none';
-
-  const salFiltrees = filtreSal
-    ? salaries.filter(function(s) {
-        return [s.nom, s.prenom, s.poste, s.numero].filter(Boolean).join(' ').toLowerCase().includes(filtreSal);
-      })
-    : salaries;
-  if (!salFiltrees.length) {
-    cont.innerHTML = emptyState('⏱️', 'Aucun salarié', filtreSal ? 'Aucun salarié ne correspond à cette recherche.' : 'Créez des salariés et définissez leur planning pour voir les heures.');
-    return;
-  }
-
-  var totalEquipe = 0;
-  cont.innerHTML = salFiltrees.map(s => {
-    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id, contexteHeures);
-    totalEquipe += planifiees;
-    const plan = contexteHeures.planningsParSalarie.get(s.id);
-    const absencesPeriodes = contexteHeures.absencesPeriodes;
-    const livraisons = charger('livraisons');
-
-    const detailStr = details.length
-      ? details.map(d => {
-          const livJour = livraisons.filter(l => l.chaufId === s.id && l.date === d.date);
-          const livLabel = livJour.length ? ' · ' + livJour.slice(0, 2).map(l => (l.client || l.numLiv || 'Livraison')).join(', ') : '';
-          return `<div style="margin-bottom:4px"><strong>${JOURS_COURTS[(new Date(d.date + 'T00:00:00').getDay() + 6) % 7]}</strong> ${d.duree.toFixed(1)} h${livLabel}</div>`;
-        }).join('')
-      : '<span style="color:var(--text-muted)">—</span>';
-    const absences = plan?.semaine?.filter(j=>['conge','absence','maladie'].includes(j.typeJour)) || [];
-    const absencesPeriodeSemaine = absencesPeriodes.filter(a => a.salId===s.id && a.type !== 'travail' && a.fin >= range.debut && a.debut <= range.fin);
-    const typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-    const typeLabels = { conge:'🔵 Congé', absence:'🔴 Absence', maladie:'🟣 Maladie' };
-    const absStr = absences.length
-      ? absences.map(j=>`<span style="display:inline-block;background:${typeColors[j.typeJour]||'var(--muted)'}20;color:${typeColors[j.typeJour]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[j.typeJour]||j.typeJour} ${j.jour.substring(0,3)}</span>`).join(' ')
-      : '<span style="color:var(--text-muted);font-size:.78rem">—</span>';
-    const absPeriodeStr = absencesPeriodeSemaine.map(a => `<span style="display:inline-block;background:${typeColors[a.type]||'var(--muted)'}20;color:${typeColors[a.type]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[a.type]||a.type} ${formatDateExport(a.debut)} → ${formatDateExport(a.fin)}</span>`).join(' ');
-
-    return `<tr>
-      <td><strong>${s.nom}</strong></td>
-      <td style="font-size:.78rem;color:var(--text-muted)">${s.poste||'—'}</td>
-      <td><strong>${planifiees.toFixed(1)} h</strong></td>
-      <td style="font-size:.78rem;color:var(--text-muted)">${detailStr}</td>
-      <td>${absPeriodeStr || absStr}</td>
-      <td><button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Planifier">📅</button></td>
-    </tr>`;
-  }).join('') + `<tr><td colspan="2"><strong>Total équipe</strong></td><td><strong>${totalEquipe.toFixed(1)} h</strong></td><td colspan="3"></td></tr>`;
-}
-
-function resetFiltresHeures() {
-  ['filtre-heures-salarie'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  _heuresVue = 'semaine';
-  _heuresSemaineOffset = 0;
-  _heuresMoisOffset = 0;
-  majHeuresPeriodeLabel();
-  afficherCompteurHeures();
-  afficherReleveKm();
-}
-
-function exporterRecapHeures() {
-  const range = getHeuresPeriodeRange();
-  const contexteHeures = construireContexteHeures(range);
-  const salaries = charger('salaries');
-  const data = salaries.map(s => {
-    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id, contexteHeures);
-    return { nom: s.nom, poste: s.poste||'', numero: s.numero, planifiees, details };
-  });
-  exporterCSV(data, [
-    { label:'Nom', get:d=>d.nom },
-    { label:'Poste', get:d=>d.poste },
-    { label:'N° Salarié', get:d=>d.numero },
-    { label: range.mode === 'mois' ? 'H/mois' : 'H/semaine', get:d=>d.planifiees.toFixed(1) },
-    { label:'Détail', get:d=>d.details.map(j=>`${j.jour.substring(0,3)} ${j.date}:${j.duree.toFixed(1)}h`).join(' ') },
-  ], `recap_heures_${range.debut}_${range.fin}.csv`);
-  afficherToast('✅ Export heures téléchargé');
-}
+// MOVED -> script-exports.js : exporterRecapHeures
 
 /* ===== RH — NOTE INTERNE SALARIÉ ===== */
 function charger_note_interne(salId) {
@@ -7905,58 +6521,10 @@ function afficherHistoriqueConducteurs(vehId) {
 }
 
 /* ===== MESSAGES AUTOMATIQUES BEST EFFORT ===== */
-function verifierMessagesAuto() {
-  if (!salarieCourant) return; // Côté admin uniquement
-  return; // Cette fonction est côté admin, pas salarié
-}
+// MOVED -> script-messages.js : verifierMessagesAuto
 
 /* Côté admin : vérifier si un salarié commence bientôt (H-15min) ou vient de finir (H+30min) */
-function verifierTriggersPlanningAuto() {
-  const salaries  = charger('salaries').filter(s=>s.actif);
-  const plannings = loadSafe('plannings', []);
-  const maintenant= new Date();
-  const auj       = maintenant.toLocalISODate();
-  const jourSem   = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][maintenant.getDay()];
-  const hMin      = maintenant.getHours()*60 + maintenant.getMinutes();
-
-  salaries.forEach(s => {
-    const plan = plannings.find(p=>p.salId===s.id);
-    const jour = plan?.semaine?.find(j=>j.jour===jourSem);
-    if (!jour?.travaille || !jour.heureDebut || !jour.heureFin) return;
-
-    const [hd,md] = jour.heureDebut.split(':').map(Number);
-    const [hf,mf] = jour.heureFin.split(':').map(Number);
-    const debutMin = hd*60+md;
-    const finMin   = hf*60+mf;
-
-    const cleDep = `auto_msg_dep_${s.id}_${auj}`;
-    const cleFin = `auto_msg_fin_${s.id}_${auj}`;
-
-    // H-15min avant départ → message de rappel tournée
-    if (hMin >= debutMin-15 && hMin < debutMin && !localStorage.getItem(cleDep)) {
-      const msgs = loadSafe('messages_'+s.id, []);
-      const prenom = s.nom.split(' ')[0];
-      msgs.push({ id:genId(), auteur:'admin',
-        texte:`Bonjour ${prenom} 👋 Votre tournée démarre à ${jour.heureDebut}. Pensez à faire votre inspection véhicule et votre relevé km de départ. Bonne journée !`,
-        lu:false, auto:true, creeLe:new Date().toISOString() });
-      localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
-      localStorage.setItem(cleDep, '1');
-      mettreAJourBadgeMsgAdmin();
-    }
-
-    // H+30min après fin → rappel km retour
-    if (hMin >= finMin+30 && hMin < finMin+60 && !localStorage.getItem(cleFin)) {
-      const msgs = loadSafe('messages_'+s.id, []);
-      const prenom = s.nom.split(' ')[0];
-      msgs.push({ id:genId(), auteur:'admin',
-        texte:`Bonsoir ${prenom}, n'oubliez pas d'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci 🙏`,
-        lu:false, auto:true, creeLe:new Date().toISOString() });
-      localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
-      localStorage.setItem(cleFin, '1');
-      mettreAJourBadgeMsgAdmin();
-    }
-  });
-}
+// MOVED -> script-planning.js : verifierTriggersPlanningAuto
 
 // Vérifier toutes les minutes
 setInterval(verifierTriggersPlanningAuto, 60000);
@@ -8015,41 +6583,7 @@ function initPullToRefresh() {
 }
 
 /* ===== PIÈCES JOINTES MESSAGERIE ===== */
-function envoyerMessageAvecPhoto(salId, input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    compresserImage(e.target.result, async (compressed) => {
-      const msgId = genId();
-      let photoPath = null;
-      let photoBase64 = null;
-
-      // Upload vers Supabase Storage si dispo (compressed est un dataURL)
-      if (window.DelivProStorage) {
-        const path = `${msgId}/${Date.now()}_photo.jpg`;
-        const up = await window.DelivProStorage.uploadDataUrl('messages-photos', path, compressed, { contentType: 'image/jpeg' });
-        if (up.ok) photoPath = path;
-      }
-      if (!photoPath) {
-        // Fallback : base64 local (compat offline)
-        photoBase64 = compressed;
-      }
-
-      const messages = loadSafe('messages_'+salId, []);
-      messages.push({
-        id: msgId, auteur: 'admin',
-        texte: '📷 Photo partagée',
-        photo: photoBase64, photoPath: photoPath, photoBucket: photoPath ? 'messages-photos' : null,
-        lu: false, creeLe: new Date().toISOString()
-      });
-      localStorage.setItem('messages_'+salId, JSON.stringify(messages));
-      ouvrirConversation(salId);
-      afficherToast('✅ Photo envoyée');
-    });
-  };
-  reader.readAsDataURL(file);
-}
+// MOVED -> script-messages.js : envoyerMessageAvecPhoto
 
 // Helper : apres render d'un container avec messages, resoud les signed URLs
 // pour les <img data-photo-path="..." data-photo-bucket="...">.
@@ -8189,56 +6723,10 @@ function insererTemplate(texte, salNom) {
   input.dispatchEvent(new Event('input'));
 }
 
-function afficherTemplatesMsg(salNom) {
-  const bar = document.getElementById('msg-templates-bar');
-  if (!bar) return;
-  bar.innerHTML = MSG_TEMPLATES.map(t =>
-    `<button class="msg-template-btn" onclick="insererTemplate('${t.texte.replace(/'/g,"\\'")}','${salNom||''}')">${t.label}</button>`
-  ).join('');
-}
+// MOVED -> script-messages.js : afficherTemplatesMsg
 
 /* ===== MESSAGES AUTOMATIQUES "BEST EFFORT" ===== */
-function verifierMessagesAutomatiques() {
-  if (!document || document.hidden) return; // Ne pas jouer si l'onglet est en arrière-plan
-  const salaries  = charger('salaries').filter(s => s.actif);
-  const plannings = loadSafe('plannings', []);
-  const auj       = aujourdhui();
-  const heure     = new Date().getHours();
-  const minute    = new Date().getMinutes();
-  const cle       = 'msg_auto_' + auj;
-  const deja      = loadSafe(cle, {});
-
-  salaries.forEach(s => {
-    const plan = plannings.find(p => p.salId === s.id);
-    const jourNom = ['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'][new Date().getDay()];
-    const jour = plan?.semaine?.find(j => j.jour === jourNom);
-    if (!jour?.travaille || !jour.heureDebut || !jour.heureFin) return;
-
-    const [hDeb, mDeb] = jour.heureDebut.split(':').map(Number);
-    const [hFin, mFin] = jour.heureFin.split(':').map(Number);
-    const minutesDep = hDeb * 60 + mDeb;
-    const minutesFin = hFin * 60 + mFin;
-    const maintenant = heure * 60 + minute;
-
-    // Rappel départ : fenêtre H-20min à H-10min
-    if (maintenant >= minutesDep - 20 && maintenant <= minutesDep - 10 && !deja[s.id + '_depart']) {
-      const msgs = loadSafe('messages_'+s.id, []);
-      msgs.push({ id:genId(), auteur:'admin', texte:`🚀 Rappel automatique — Votre tournée commence à ${jour.heureDebut}. Pensez à faire votre inspection et votre relevé km de départ. Bonne journée ${s.nom} !`, lu:false, creeLe:new Date().toISOString(), auto:true });
-      localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
-      deja[s.id + '_depart'] = true;
-    }
-
-    // Rappel retour : fenêtre H+25min à H+35min
-    if (maintenant >= minutesFin + 25 && maintenant <= minutesFin + 35 && !deja[s.id + '_retour']) {
-      const msgs = loadSafe('messages_'+s.id, []);
-      msgs.push({ id:genId(), auteur:'admin', texte:`🌙 Fin de journée ${s.nom} — N'oubliez pas d'enregistrer votre km de retour et votre plein si effectué. Bonne soirée ! 🙏`, lu:false, creeLe:new Date().toISOString(), auto:true });
-      localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
-      deja[s.id + '_retour'] = true;
-    }
-  });
-
-  localStorage.setItem(cle, JSON.stringify(deja));
-}
+// MOVED -> script-messages.js : verifierMessagesAutomatiques
 
 /* ===== TAUX DE PONCTUALITÉ ===== */
 function calculerTauxPonctualite() {
@@ -8285,23 +6773,7 @@ function afficherTopClients() {
 
 /* ===== SUIVI CONGÉS / ABSENCES ===== */
 /* ===== BROADCAST MESSAGE ===== */
-function envoyerBroadcast() {
-  const texte = document.getElementById('broadcast-texte')?.value.trim();
-  if (!texte) { afficherToast('⚠️ Saisissez un message', 'error'); return; }
-  const destinataires = getBroadcastDestinataires();
-  if (!destinataires.length) { afficherToast('⚠️ Aucun destinataire sélectionné', 'error'); return; }
-  destinataires.forEach(s => {
-    const msgs = loadSafe('messages_'+s.id, []);
-    msgs.push({ id: genId(), auteur:'admin', texte, lu:false, creeLe: new Date().toISOString() });
-    localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
-  });
-  const el = document.getElementById('broadcast-texte');
-  if (el) el.value = '';
-  mettreAJourBadgeMsgAdmin();
-  afficherMessagerie();
-  ajouterEntreeAudit('Broadcast salariés', texte.substring(0, 80) + (texte.length > 80 ? '…' : ''));
-  afficherToast(`✅ Message envoyé à ${destinataires.length} salarié(s)`);
-}
+// MOVED -> script-messages.js : envoyerBroadcast
 
 /* ===== ALERTES PERMIS / ASSURANCE ===== */
 function verifierDocumentsSalaries() {
@@ -8594,166 +7066,9 @@ function getClientHistoriqueSnapshot(clientId) {
   };
 }
 
-function genererRapportClients() {
-  // Rapport PDF du carnet clients : stats globales + ventilation par client.
-  // Utilise construireEnteteExport pour le header unifié.
-  var clients = charger('clients');
-  if (!clients.length) {
-    if (typeof afficherToast === 'function') afficherToast('Aucun client à exporter', 'info');
-    return;
-  }
-  var livraisons = charger('livraisons');
-  var paiements = (typeof charger === 'function') ? charger('paiements') || [] : [];
-  var params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : {};
-  var dateExp = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-  var esc = (typeof planningEscapeHtml === 'function') ? planningEscapeHtml : function(v){ return String(v||''); };
+// MOVED -> script-exports.js : genererRapportClients
 
-  var lignes = clients.map(function(c) {
-    var livsC = livraisons.filter(function(l) { return l.client === c.nom || l.clientId === c.id; });
-    var caHT = livsC.reduce(function(s, l) { return s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)); }, 0);
-    var caTTC = livsC.reduce(function(s, l) { return s + (parseFloat(l.prix) || 0); }, 0);
-    var paye = livsC.reduce(function(s, l) { return s + ((l.statutPaiement === 'payé') ? (parseFloat(l.prix) || 0) : 0); }, 0);
-    var attente = caTTC - paye;
-    return { c: c, nb: livsC.length, caHT: caHT, caTTC: caTTC, paye: paye, attente: attente };
-  }).sort(function(a, b) { return b.caTTC - a.caTTC; });
-
-  var totalNb = lignes.reduce(function(s, l) { return s + l.nb; }, 0);
-  var totalHT = lignes.reduce(function(s, l) { return s + l.caHT; }, 0);
-  var totalTTC = lignes.reduce(function(s, l) { return s + l.caTTC; }, 0);
-  var totalPaye = lignes.reduce(function(s, l) { return s + l.paye; }, 0);
-  var totalAttente = lignes.reduce(function(s, l) { return s + l.attente; }, 0);
-  var clientsActifs = lignes.filter(function(l) { return l.nb > 0; }).length;
-
-  var meta = clients.length + ' client(s) · ' + clientsActifs + ' actif(s) · ' + totalNb + ' livraison(s)';
-
-  var blocStats =
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">' +
-      '<div style="padding:12px;background:#f3f4f6;border-radius:8px"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase">Clients</div><div style="font-size:1.15rem;font-weight:800;color:#111827">' + clients.length + '</div></div>' +
-      '<div style="padding:12px;background:#ecfdf5;border-radius:8px"><div style="font-size:.7rem;color:#065f46;text-transform:uppercase">CA HT total</div><div style="font-size:1.15rem;font-weight:800;color:#065f46">' + euros(totalHT) + '</div></div>' +
-      '<div style="padding:12px;background:#fff7ed;border-radius:8px"><div style="font-size:.7rem;color:#9a3412;text-transform:uppercase">Encaissé TTC</div><div style="font-size:1.15rem;font-weight:800;color:#9a3412">' + euros(totalPaye) + '</div></div>' +
-      '<div style="padding:12px;background:#fef2f2;border-radius:8px"><div style="font-size:.7rem;color:#991b1b;text-transform:uppercase">En attente TTC</div><div style="font-size:1.15rem;font-weight:800;color:#991b1b">' + euros(totalAttente) + '</div></div>' +
-    '</div>';
-
-  var rows = lignes.map(function(L) {
-    var c = L.c;
-    var contact = (c.contact || c.prenom || '').trim();
-    var addr = [c.adresse, ((c.cp || '') + ' ' + (c.ville || '')).trim()].filter(Boolean).join(' · ');
-    return '<tr>' +
-      '<td style="padding:7px 10px;font-weight:600">' + esc(c.nom || '') + (c.siren ? '<div style="font-size:.72rem;color:#9ca3af">SIREN ' + esc(c.siren) + '</div>' : '') + '</td>' +
-      '<td style="padding:7px 10px;font-size:.82rem">' + esc(contact || '—') + (c.tel ? '<div style="color:#6b7280">' + esc(c.tel) + '</div>' : '') + '</td>' +
-      '<td style="padding:7px 10px;font-size:.78rem;color:#6b7280">' + esc(addr || '—') + '</td>' +
-      '<td style="padding:7px 10px;text-align:right">' + L.nb + '</td>' +
-      '<td style="padding:7px 10px;text-align:right">' + euros(L.caHT) + '</td>' +
-      '<td style="padding:7px 10px;text-align:right;font-weight:700">' + euros(L.caTTC) + '</td>' +
-      '<td style="padding:7px 10px;text-align:right;color:#065f46">' + euros(L.paye) + '</td>' +
-      '<td style="padding:7px 10px;text-align:right;color:' + (L.attente > 0 ? '#92400e' : '#9ca3af') + '">' + euros(L.attente) + '</td>' +
-    '</tr>';
-  }).join('');
-
-  var tableau =
-    '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Détail par client</h3>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' +
-      '<thead><tr style="background:#f3f4f6;text-align:left">' +
-        '<th style="padding:8px 10px">Client</th>' +
-        '<th style="padding:8px 10px">Contact</th>' +
-        '<th style="padding:8px 10px">Adresse</th>' +
-        '<th style="padding:8px 10px;text-align:right">Livs</th>' +
-        '<th style="padding:8px 10px;text-align:right">CA HT</th>' +
-        '<th style="padding:8px 10px;text-align:right">CA TTC</th>' +
-        '<th style="padding:8px 10px;text-align:right">Encaissé</th>' +
-        '<th style="padding:8px 10px;text-align:right">En attente</th>' +
-      '</tr></thead>' +
-      '<tbody>' + rows + '</tbody>' +
-      '<tfoot><tr style="background:#fef3c7;font-weight:700">' +
-        '<td colspan="3" style="padding:8px 10px">TOTAUX</td>' +
-        '<td style="padding:8px 10px;text-align:right">' + totalNb + '</td>' +
-        '<td style="padding:8px 10px;text-align:right">' + euros(totalHT) + '</td>' +
-        '<td style="padding:8px 10px;text-align:right">' + euros(totalTTC) + '</td>' +
-        '<td style="padding:8px 10px;text-align:right">' + euros(totalPaye) + '</td>' +
-        '<td style="padding:8px 10px;text-align:right">' + euros(totalAttente) + '</td>' +
-      '</tr></tfoot>' +
-    '</table>';
-
-  var html =
-    '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
-      construireEnteteExport(params, 'Carnet clients', '', dateExp, meta) +
-      blocStats +
-      tableau +
-      '<div style="margin-top:24px;padding-top:14px;border-top:1px solid #e5e7eb;text-align:center;font-size:.72rem;color:#9ca3af">Document généré par ' + esc(params.nom || 'MCA LOGISTICS') + ' le ' + esc(dateExp) + '</div>' +
-    '</div>';
-
-  if (typeof ouvrirFenetreImpression === 'function') {
-    ouvrirFenetreImpression('Carnet clients — ' + (params.nom || 'MCA LOGISTICS'), html, 'width=1200,height=820');
-  } else {
-    var w = window.open('', '_blank', 'width=1200,height=820');
-    if (w) { w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Carnet clients</title></head><body>' + html + '</body></html>'); w.document.close(); }
-  }
-  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Rapport clients', clients.length + ' client(s)');
-}
-
-function exporterHistoriqueClientsCSV() {
-  const clients = charger('clients');
-  const rows = clients.map(function(client) {
-    const snapshot = getClientHistoriqueSnapshot(client.id);
-    const stats = (typeof window.getClientStats === 'function') ? window.getClientStats(client.id) : null;
-    const scoring = (typeof window.getClientScoring === 'function') ? window.getClientScoring(client.id) : null;
-    return {
-      nom: client.nom || '',
-      type: client.type || 'pro',
-      siren: client.siren || '',
-      tvaIntra: client.tvaIntra || '',
-      contact: client.contact || client.prenom || '',
-      telephone: client.tel || '',
-      email: client.email || '',
-      emailFact: client.emailFact || '',
-      adresse: client.adresse || '',
-      cp: client.cp || '',
-      ville: client.ville || '',
-      delaiPay: client.delaiPaiementJours != null ? client.delaiPaiementJours : 30,
-      livraisons: snapshot?.livraisons.length || 0,
-      caHTLivraisons: snapshot?.caHT || 0,
-      caHTAnnee: stats?.caHTAnnee || 0,
-      nbFactures: stats?.factures?.length || 0,
-      totalFactureTTC: stats?.totalFactureTTC || 0,
-      nbAvoirs: stats?.avoirs?.length || 0,
-      totalAvoirsTTC: stats?.totalAvoirsTTC || 0,
-      nbPaiements: stats?.paiements?.length || 0,
-      totalPaiementsTTC: stats?.totalPaiementsTTC || 0,
-      soldeDu: stats?.soldeDu || 0,
-      echeancesDepassees: stats?.echeancesDepassees || 0,
-      scoring: scoring ? scoring.label : '',
-      incidents: snapshot?.incidents.length || 0
-    };
-  });
-  exporterCSV(rows, [
-    { label:'Client', get:function(row){ return row.nom; } },
-    { label:'Type', get:function(row){ return row.type; } },
-    { label:'SIREN', get:function(row){ return row.siren; } },
-    { label:'TVA Intracom', get:function(row){ return row.tvaIntra; } },
-    { label:'Contact', get:function(row){ return row.contact; } },
-    { label:'Téléphone', get:function(row){ return row.telephone; } },
-    { label:'Email', get:function(row){ return row.email; } },
-    { label:'Email facturation', get:function(row){ return row.emailFact; } },
-    { label:'Adresse', get:function(row){ return row.adresse; } },
-    { label:'Code postal', get:function(row){ return row.cp; } },
-    { label:'Ville', get:function(row){ return row.ville; } },
-    { label:'Délai paiement (j)', get:function(row){ return row.delaiPay; } },
-    { label:'Nb livraisons', get:function(row){ return row.livraisons; } },
-    { label:'CA HT livraisons (total)', get:function(row){ return round2(row.caHTLivraisons); } },
-    { label:'CA HT année en cours', get:function(row){ return round2(row.caHTAnnee); } },
-    { label:'Nb factures émises', get:function(row){ return row.nbFactures; } },
-    { label:'Total facturé TTC', get:function(row){ return round2(row.totalFactureTTC); } },
-    { label:'Nb avoirs', get:function(row){ return row.nbAvoirs; } },
-    { label:'Total avoirs TTC', get:function(row){ return round2(row.totalAvoirsTTC); } },
-    { label:'Nb paiements reçus', get:function(row){ return row.nbPaiements; } },
-    { label:'Total encaissé TTC', get:function(row){ return round2(row.totalPaiementsTTC); } },
-    { label:'Solde dû TTC', get:function(row){ return round2(row.soldeDu); } },
-    { label:'Échéances dépassées', get:function(row){ return row.echeancesDepassees; } },
-    { label:'Scoring', get:function(row){ return row.scoring; } },
-    { label:'Incidents', get:function(row){ return row.incidents; } }
-  ], 'historique-clients-mca-logistics.csv');
-  ajouterEntreeAudit('Export clients', 'Export CSV de l’historique clients');
-}
+// MOVED -> script-exports.js : exporterHistoriqueClientsCSV
 
 function ouvrirHistoriqueClient(id) {
   const snapshot = getClientHistoriqueSnapshot(id);
@@ -8810,22 +7125,7 @@ function ouvrirHistoriqueClient(id) {
   openModal('modal-client-history');
 }
 
-function exporterHistoriqueClientCourant() {
-  if (!_clientHistoryCurrentId) return;
-  const snapshot = getClientHistoriqueSnapshot(_clientHistoryCurrentId);
-  if (!snapshot) return;
-  exporterCSV(snapshot.livraisons, [
-    { label:'N° LIV', get:function(item){ return item.numLiv || ''; } },
-    { label:'Client', get:function(item){ return item.client || snapshot.client.nom || ''; } },
-    { label:'Date livraison', get:function(item){ return formatDateExport(item.date); } },
-    { label:'Date paiement', get:function(item){ return item.datePaiement ? formatDateExport(item.datePaiement) : ''; } },
-    { label:'Statut', get:function(item){ return item.statut || ''; } },
-    { label:'Paiement', get:function(item){ return getLivraisonStatutPaiement(item); } },
-    { label:'HT', get:function(item){ return round2(getMontantHTLivraison(item)); } },
-    { label:'TTC', get:function(item){ return round2(item.prix || 0); } }
-  ], 'client-' + (snapshot.client.nom || 'historique').toLowerCase().replace(/[^a-z0-9]+/gi, '-') + '.csv');
-  ajouterEntreeAudit('Export client', 'Export historique du client ' + (snapshot.client.nom || '—'));
-}
+// MOVED -> script-exports.js : exporterHistoriqueClientCourant
 
 // BUG-007 fix : RGPD art. 20 — droit à la portabilité. Export JSON structuré de toutes les données du client.
 function collecterDonneesRGPDClient(clientId) {
@@ -8896,29 +7196,7 @@ function collecterDonneesRGPDClient(clientId) {
   };
 }
 
-function exporterDonneesRGPDClientCourant() {
-  if (!_clientHistoryCurrentId) return;
-  const payload = collecterDonneesRGPDClient(_clientHistoryCurrentId);
-  if (!payload) { if (typeof afficherToast === 'function') afficherToast('⚠️ Client introuvable', 'error'); return; }
-  try {
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const nomFichier = 'RGPD_export_' + (payload.meta.clientNom || 'client').toLowerCase().replace(/[^a-z0-9]+/gi, '-')
-                     + '_' + new Date().toLocalISODate() + '.json';
-    a.href = url; a.download = nomFichier;
-    document.body.appendChild(a); a.click();
-    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
-    if (typeof ajouterEntreeAudit === 'function') {
-      ajouterEntreeAudit('Export RGPD', 'Export portabilité art. 20 — client ' + (payload.meta.clientNom || '—'));
-    }
-    if (typeof afficherToast === 'function') afficherToast('🛡️ Export RGPD généré', 'success');
-  } catch (e) {
-    console.warn('[RGPD]', e);
-    if (typeof afficherToast === 'function') afficherToast('❌ Échec export RGPD', 'error');
-  }
-}
+// MOVED -> script-exports.js : exporterDonneesRGPDClientCourant
 
 // afficherClients : alias historique. La vraie fonction de rendu est
 // afficherClientsDashboard (ligne ~7232). Ce wrapper évite de casser les
@@ -9555,14 +7833,7 @@ function sauvegarderMaxTentatives() {
   afficherToast('✅ Blocage après ' + val + ' tentatives · Déconnexion auto ' + timeoutVal + ' min');
 }
 
-function sauvegarderRelanceDelai() {
-  const val = parseInt(document.getElementById('relance-delai-input')?.value || document.getElementById('param-relance-delai')?.value, 10) || 7;
-  localStorage.setItem('relance_delai', val);
-  // Synchroniser les deux inputs
-  const p = document.getElementById('param-relance-delai'); if (p) p.value = val;
-  const r = document.getElementById('relance-delai-input'); if (r) r.value = val;
-  afficherToast('✅ Délai relance : ' + val + ' jours');
-}
+// MOVED -> script-paiements.js : sauvegarderRelanceDelai
 
 function appliquerAccentColor() {
   const color = document.getElementById('param-accent-color')?.value || '#f5a623';
@@ -9592,23 +7863,7 @@ function construireSauvegardeAdmin() {
   };
 }
 
-function exporterSauvegardeAdmin() {
-  const payload = construireSauvegardeAdmin();
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  const date = new Date();
-  const stamp = date.getFullYear() + String(date.getMonth()+1).padStart(2,'0') + String(date.getDate()).padStart(2,'0') + '-' + String(date.getHours()).padStart(2,'0') + String(date.getMinutes()).padStart(2,'0');
-  link.href = url;
-  link.download = 'mca-logistics-backup-' + stamp + '.json';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  localStorage.setItem('backup_admin_last_export', payload.exportedAt);
-  majResumeSauvegardeAdmin();
-  afficherToast('Sauvegarde téléchargée');
-}
+// MOVED -> script-exports.js : exporterSauvegardeAdmin
 
 async function importerSauvegardeAdmin(input) {
   const file = input?.files?.[0];
@@ -9892,150 +8147,24 @@ async function supprimerCharge(id) {
   afficherToast('🗑️ Charge supprimée');
 }
 
-function exporterChargesPDF() {
-  const charges = charger('charges').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const params = chargerObj('params_entreprise', {});
-  const nom = params.nom || 'MCA Logistics';
-  const dateExp = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  const total = charges.reduce((s,c)=>s+(c.montant||0),0);
-  const catIcons = {carburant:'⛽',peage:'🛣️',entretien:'🔧',assurance:'🛡️',autre:'📝'};
-
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif des charges</div><div style="font-size:1rem;font-weight:700">Total : ${euros(total)}</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
-    </div>
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left">Date</th><th style="padding:8px 12px;text-align:left">Catégorie</th><th style="padding:8px 12px;text-align:left">Description</th><th style="padding:8px 12px;text-align:left">Véhicule</th><th style="padding:8px 12px;text-align:right">Montant</th></tr></thead>
-      <tbody>${charges.map((c,i)=>`<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
-        <td style="padding:8px 12px">${c.date||'—'}</td>
-        <td style="padding:8px 12px">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</td>
-        <td style="padding:8px 12px">${c.description||'—'}</td>
-        <td style="padding:8px 12px">${c.vehNom||'—'}</td>
-        <td style="padding:8px 12px;text-align:right;font-weight:700">${euros(c.montant||0)}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-    <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong style="font-size:1rem">Total : ${euros(total)}</strong></div>
-    <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Généré par MCA Logistics — ${nom}</span><span>${dateExp}</span></div>
-  </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Charges — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
-  win.document.close();
-  afficherToast('📄 PDF charges généré');
-}
+// MOVED -> script-exports.js : exporterChargesPDF
 
 /* ===== RELANCE PAIEMENT ===== */
-function getRelanceTemplatesDefaut() {
-  return {
-    1: 'Nous nous permettons de vous rappeler que la livraison {numLiv} du {dateLivraison} d’un montant de {montant} reste, à ce jour, impayée ({joursRetard} jours de retard).\n\nSi le règlement a déjà été effectué, merci de ne pas tenir compte de ce message. Dans le cas contraire, nous vous remercions de bien vouloir régulariser la situation dans les meilleurs délais.',
-    2: 'Malgré notre précédente relance, nous constatons que la livraison {numLiv} du {dateLivraison} d’un montant de {montant} demeure impayée ({joursRetard} jours de retard).\n\nPar la présente, nous vous mettons en demeure de procéder au règlement sous 8 jours.',
-    3: 'Nos précédentes relances étant restées sans effet, nous vous informons que la livraison {numLiv} du {dateLivraison} d’un montant de {montant} n’a toujours pas été réglée ({joursRetard} jours de retard).\n\nCe courrier constitue un dernier avis avant engagement d’une procédure contentieuse.'
-  };
-}
+// MOVED -> script-paiements.js : getRelanceTemplatesDefaut
 
-function chargerTemplatesRelance() {
-  var defaut = getRelanceTemplatesDefaut();
-  var saved = chargerObj('relance_templates', {});
-  return {
-    1: saved['1'] || defaut[1],
-    2: saved['2'] || defaut[2],
-    3: saved['3'] || defaut[3]
-  };
-}
+// MOVED -> script-paiements.js : chargerTemplatesRelance
 
-function peuplerTemplatesRelance() {
-  var templates = chargerTemplatesRelance();
-  ['1', '2', '3'].forEach(function(level) {
-    var el = document.getElementById('relance-template-' + level);
-    if (el && !el.matches(':focus')) el.value = templates[level];
-  });
-}
+// MOVED -> script-paiements.js : peuplerTemplatesRelance
 
-function ouvrirModalTemplatesRelance() {
-  peuplerTemplatesRelance();
-  openModal('modal-relance-templates');
-}
+// MOVED -> script-paiements.js : ouvrirModalTemplatesRelance
 
-function sauvegarderTemplatesRelance() {
-  var payload = {};
-  ['1', '2', '3'].forEach(function(level) {
-    var el = document.getElementById('relance-template-' + level);
-    payload[level] = (el?.value || '').trim() || getRelanceTemplatesDefaut()[level];
-  });
-  sauvegarder('relance_templates', payload);
-  afficherToast('✅ Texte de relance enregistré');
-}
+// MOVED -> script-paiements.js : sauvegarderTemplatesRelance
 
-function reinitialiserTemplatesRelance() {
-  sauvegarder('relance_templates', getRelanceTemplatesDefaut());
-  peuplerTemplatesRelance();
-  afficherToast('Texte de relance réinitialisé');
-}
+// MOVED -> script-paiements.js : reinitialiserTemplatesRelance
 
-function construireTexteRelancePersonnalise(template, liv, params, joursRetard, montant) {
-  return String(template || '')
-    .replace(/\{client\}/g, liv.client || '')
-    .replace(/\{numLiv\}/g, liv.numLiv || '')
-    .replace(/\{dateLivraison\}/g, formatDateExport(liv.date))
-    .replace(/\{montant\}/g, montant)
-    .replace(/\{joursRetard\}/g, String(joursRetard))
-    .replace(/\{societe\}/g, params.nom || 'MCA Logistics');
-}
+// MOVED -> script-paiements.js : construireTexteRelancePersonnalise
 
-function afficherRelances() {
-  const tb = document.getElementById('tb-relances');
-  if (!tb) return;
-  paginer.__reload_tb_relances = afficherRelances;
-  peuplerTemplatesRelance();
-  const delai = parseInt(localStorage.getItem('relance_delai')||'7', 10);
-
-  // Synchroniser l'input délai dans la page relances
-  const inputDelai = document.getElementById('relance-delai-input');
-  if (inputDelai && !inputDelai.matches(':focus')) inputDelai.value = delai;
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const livraisons = charger('livraisons').filter(function(l) {
-    return l.statut === 'livre'
-      && getLivraisonStatutPaiement(l) !== 'payé'
-      && (parseFloat(l.prix) || 0) > 0;
-  }).sort(function(a, b) {
-    return new Date((a.date || '')) - new Date((b.date || ''));
-  });
-
-  const totalEl = document.getElementById('relances-total');
-  if (totalEl) totalEl.textContent = euros(livraisons.reduce((s,l)=>s+(l.prix||0),0));
-
-  if (!livraisons.length) {
-    nettoyerPagination('tb-relances');
-    tb.innerHTML = emptyState('✅','Aucune relance nécessaire','Toutes les livraisons livrées sont payées ou récentes.');
-    return;
-  }
-
-  paginer(livraisons, 'tb-relances', function(items) {
-    return items.map(l => {
-    const dateBase = new Date((l.date || '') + 'T00:00:00');
-    const dateEcheance = new Date(dateBase);
-    dateEcheance.setDate(dateEcheance.getDate() + delai);
-    const joursRetard = Math.floor((today - dateEcheance) / (1000*60*60*24));
-    const joursAffiches = Math.max(0, joursRetard);
-    const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : joursRetard > 0 ? 1 : 0;
-    const niveauLabel = niveau===3 ? '🔴 Dernier avis' : niveau===2 ? '🟡 Mise en demeure' : niveau===1 ? '🟢 Amiable' : '🔵 À suivre';
-    return `<tr class="relance-row">
-      <td><span style="font-size:.78rem;color:var(--text-muted)">${l.numLiv||'—'}</span></td>
-      <td><strong>${l.client}</strong></td>
-      <td>${formatDateExport(l.date || '')}</td>
-      <td><strong>${euros(l.prix)}</strong></td>
-      <td><span class="relance-badge">⏰ ${joursAffiches}j</span><br><span style="font-size:.7rem">${niveauLabel}</span></td>
-      <td style="white-space:nowrap">
-        <button class="btn-icon" onclick="marquerPaye('${l.id}')" title="Marquer payé">💳</button>
-        <button class="btn-rapport" onclick="genererLettreRelance('${l.id}',${Math.max(niveau,1)})" title="Lettre de relance" style="padding:4px 10px;font-size:.75rem">📄 Lettre</button>
-      </td>
-    </tr>`;
-  }).join('');
-  }, 12);
-}
+// MOVED -> script-paiements.js : afficherRelances
 
 function marquerPaye(id) {
   const livs = charger('livraisons');
@@ -10051,11 +8180,7 @@ function marquerPaye(id) {
     afficherToast('💳 Marqué comme payé');
   }
 }
-function marquerRelance(id) {
-  const livs = charger('livraisons');
-  const idx  = livs.findIndex(l=>l.id===id);
-  if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); sauvegarder('livraisons',livs); afficherRelances(); afficherToast('📧 Relance notée'); }
-}
+// MOVED -> script-paiements.js : marquerRelance
 
 /* ===== TCO VÉHICULE ===== */
 function calculerTCO(vehId) {
@@ -10845,57 +8970,10 @@ function confirmerEditClient() {
 }
 
 /* ===== EXPORT STATS PDF ===== */
-function exporterStatsPDF() {
-  const params = getEntrepriseExportParams();
-  const nom = params.nom;
-  const range = getStatsMoisRange();
-  const ca = document.getElementById('stats-ca-periode')?.textContent||'0 €';
-  const livs = document.getElementById('stats-livraisons-periode')?.textContent||'0';
-  const panier = document.getElementById('stats-panier-moyen')?.textContent||'0 €';
-  const km = document.getElementById('stats-km-total')?.textContent||'0 km';
-  const dateExp = formatDateHeureExport();
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Rapport statistiques</div><div style="font-size:.9rem;font-weight:700">${range.label}</div><div style="font-size:.78rem;color:#9ca3af">${range.dates}</div></div>
-    </div>
-    ${renderBlocInfosEntreprise(params)}
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px">
-      ${[['CA période',ca,'#2ecc71'],['Livraisons',livs,'#4f8ef7'],['Panier moyen',panier,'#f5a623'],['Km total',km,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:16px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.2rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
-    </div>
-    ${renderFooterEntreprise(params, dateExp)}
-  </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=800,height=600');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Statistiques — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
-  win.document.close();
-  afficherToast('📄 Rapport statistiques généré');
-}
+// MOVED -> script-stats.js : exporterStatsPDF
 
 /* ===== EXPORT HEURES PDF ===== */
-function exporterHeuresPDF() {
-  const salaries = charger('salaries');
-  const params = getEntrepriseExportParams();
-  const nom = params.nom;
-  const dateExp = formatDateHeureExport();
-  const range = getHeuresPeriodeRange();
-  const rows = salaries.map(s => {
-    const { planifiees, details } = calculerHeuresSalarieSemaine(s.id);
-    const detailStr = details.map(d=>`${d.jour.substring(0,3)}: ${d.duree.toFixed(1)}h`).join(' · ');
-    return `<tr><td style="padding:8px 12px;font-weight:600">${s.nom}</td><td style="padding:8px 12px">${s.poste||'—'}</td><td style="padding:8px 12px;text-align:center;font-weight:700">${planifiees.toFixed(1)}h</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">${detailStr||'—'}</td></tr>`;
-  }).join('');
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    ${construireEnteteExport(params, 'Rapport heures', `${range.label} · ${range.datesLabel}`, dateExp)}
-    ${renderBlocInfosEntreprise(params)}
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th><th style="padding:8px 12px;text-align:center;color:#6b7280">H/semaine</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Détail</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    ${renderFooterEntreprise(params, dateExp)}
-  </div>`;
-  ouvrirFenetreImpression(`Heures - ${nom}`, html, 'width=800,height=700');
-  afficherToast('📄 Rapport heures généré');
-}
+// MOVED -> script-exports.js : exporterHeuresPDF
 
 /* ===== MODIFIER VÉHICULE ===== */
 async function ouvrirEditVehicule(vehId) {
@@ -11050,83 +9128,16 @@ function confirmerEditVehicule() {
 window.confirmerEditVehicule = confirmerEditVehicule;
 
 /* ===== ALIAS EXPORTS ===== */
-function exporterRecapHeuresPDF() { exporterHeuresPDF(); }
+// MOVED -> script-exports.js : exporterRecapHeuresPDF
 
 /* ===== EXPORT PLANNING PDF ===== */
-function exporterPlanningPDF() {
-  const salaries = charger('salaries');
-  const plannings = loadSafe('plannings', []);
-  const params = getEntrepriseExportParams();
-  const nom = params.nom;
-  const dateExp = formatDateHeureExport();
-  const JOURS_LABELS = {lundi:'Lun',mardi:'Mar',mercredi:'Mer',jeudi:'Jeu',vendredi:'Ven',samedi:'Sam',dimanche:'Dim'};
-  const typeColors = {travail:'#2ecc71',repos:'#6b7280',conge:'#3498db',absence:'#e74c3c',maladie:'#9b59b6'};
-
-  const rows = salaries.map(s => {
-    const plan = plannings.find(p=>p.salId===s.id);
-    const jours = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'].map(j => {
-      const jour = plan?.semaine?.find(d=>d.jour===j);
-      if (!jour || !jour.travaille) return `<td style="padding:6px 8px;text-align:center;color:${typeColors[jour?.typeJour||'repos']||'#6b7280'};font-size:.78rem">${jour?.typeJour==='conge'?'Congé':jour?.typeJour==='maladie'?'Maladie':jour?.typeJour==='absence'?'Absent':'—'}</td>`;
-      return `<td style="padding:6px 8px;text-align:center;font-size:.78rem;color:#2ecc71">${jour.heureDebut||'—'}${jour.heureFin?' – '+jour.heureFin:''}</td>`;
-    }).join('');
-    return `<tr><td style="padding:8px 12px;font-weight:600">${s.nom}</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">${s.poste||'—'}</td>${jours}</tr>`;
-  }).join('');
-
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">
-    ${construireEnteteExport(params, 'Planning hebdomadaire', '', dateExp)}
-    ${renderBlocInfosEntreprise(params)}
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>${Object.values(JOURS_LABELS).map(j=>`<th style="padding:6px 8px;text-align:center;color:#6b7280">${j}</th>`).join('')}</tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    ${renderFooterEntreprise(params, dateExp)}
-  </div>`;
-  ouvrirFenetreImpression(`Planning - ${nom}`, html, 'width=950,height=700');
-  afficherToast('📄 Rapport planning généré');
-}
+// MOVED -> script-exports.js : exporterPlanningPDF
 
 /* ===== EXPORT ENTRETIENS PDF ===== */
 // MOVED -> script-entretiens.js : exporterEntretiensPDF
 
 /* ===== EXPORT VÉHICULES PDF ===== */
-function exporterVehiculesPDF() {
-  const vehicules = charger('vehicules');
-  const entretiens = charger('entretiens');
-  const params = getEntrepriseExportParams();
-  const nom = params.nom;
-  const dateExp = formatDateHeureExport();
-
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Rapport flotte véhicules</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
-    </div>
-    ${renderBlocInfosEntreprise(params)}
-    <table style="width:100%;border-collapse:collapse;font-size:.82rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Immatriculation</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Modèle</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Acquisition</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Finances</th><th style="padding:8px 12px;text-align:left;color:#6b7280">CT</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Dernier entretien</th></tr></thead>
-      <tbody>${vehicules.map((v,i)=>{
-        const ent = entretiens.filter(e=>e.vehId===v.id).sort((a,b)=>new Date(b.date)-new Date(a.date))[0];
-        const amort = calculerAmortissementVehicule(v);
-        return `<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
-          <td style="padding:8px 12px;font-weight:700">${v.immat}</td>
-          <td style="padding:8px 12px">${v.modele||'—'}</td>
-          <td style="padding:8px 12px;text-align:right">${v.km?v.km.toLocaleString('fr-FR')+' km':'—'}</td>
-          <td style="padding:8px 12px">${(v.modeAcquisition||'—').toUpperCase()}${v.dateAcquisition?'<br><span style="font-size:.76rem;color:#6b7280">'+formatDateExport(v.dateAcquisition)+'</span>':''}${v.dureeAmortissement?'<br><span style="font-size:.76rem;color:#6b7280">'+v.dureeAmortissement+' an(s)</span>':''}</td>
-          <td style="padding:8px 12px">${v.prixAchatHT?euros(v.prixAchatHT)+' HT':'—'}${v.prixAchatTTC?'<br><span style="font-size:.76rem;color:#6b7280">'+euros(v.prixAchatTTC)+' TTC</span>':''}${amort.annuel?'<br><span style="font-size:.76rem;color:#6b7280">Amort. '+euros(amort.annuel)+'/an</span>':''}</td>
-          <td style="padding:8px 12px">${formatDateExport(v.dateCT)}</td>
-          <td style="padding:8px 12px">${v.salNom||'—'}</td>
-          <td style="padding:8px 12px">${ent?formatDateExport(ent.date):'—'}</td>
-        </tr>`;
-      }).join('')}</tbody>
-    </table>
-    ${renderFooterEntreprise(params, dateExp)}
-  </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=850,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Véhicules — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(()=>{window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport véhicules généré');
-}
+// MOVED -> script-exports.js : exporterVehiculesPDF
 
 /* ===============================================
    AJOUTS v22+ — Fonctionnalités supplémentaires
@@ -11142,118 +9153,14 @@ function formatPrixComplet(l) {
 }
 
 /* ===== RELANCES — LETTRES PDF 3 NIVEAUX ===== */
-function genererLettreRelance(livId, niveau) {
-  const liv = charger('livraisons').find(l=>l.id===livId);
-  if (!liv) return;
-  const params  = getEntrepriseExportParams();
-  const nom     = params.nom;
-  const dateExp = formatDateExport(new Date());
-  const joursRetard = Math.floor((new Date()-new Date(liv.date))/(1000*60*60*24));
-  const montant = euros(liv.prix||0);
-  const logo = renderLogoEntrepriseExport();
-  const templates = chargerTemplatesRelance();
-
-  const niveaux = {
-    1: {
-      titre: 'RELANCE AMIABLE',
-      couleur: '#2ecc71',
-      objet: 'Relance amiable — Facture ' + (liv.numLiv||''),
-      corps: construireTexteRelancePersonnalise(templates[1], liv, params, joursRetard, montant).replace(/\n/g, '<br><br>')
-    },
-    2: {
-      titre: 'MISE EN DEMEURE',
-      couleur: '#f39c12',
-      objet: 'Mise en demeure — Facture ' + (liv.numLiv||''),
-      corps: construireTexteRelancePersonnalise(templates[2], liv, params, joursRetard, montant).replace(/\n/g, '<br><br>')
-    },
-    3: {
-      titre: 'DERNIER AVIS AVANT CONTENTIEUX',
-      couleur: '#e74c3c',
-      objet: 'Dernier avis avant procédure — Facture ' + (liv.numLiv||''),
-      corps: construireTexteRelancePersonnalise(templates[3], liv, params, joursRetard, montant).replace(/\n/g, '<br><br>')
-    }
-  };
-  var n = niveaux[niveau] || niveaux[1];
-
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:700px;margin:0 auto;padding:40px;color:#1a1d27">' +
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">' +
-      '<div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">' + nom + '</div>' +
-      (params.adresse ? '<div style="font-size:.82rem;color:#6b7280;margin-top:2px">' + params.adresse + '</div>' : '') +
-      (params.tel ? '<div style="font-size:.82rem;color:#6b7280">📞 ' + params.tel + '</div>' : '') +
-      (params.email ? '<div style="font-size:.82rem;color:#6b7280">✉️ ' + params.email + '</div>' : '') +
-      (params.siret ? '<div style="font-size:.78rem;color:#9ca3af;margin-top:4px">SIRET : ' + params.siret + '</div>' : '') +
-      (params.nomAdmin ? '<div style="font-size:.78rem;color:#9ca3af">Contact : ' + params.nomAdmin + '</div>' : '') +
-      '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right">' + (logo || '') + '<div style="font-size:.82rem;color:#9ca3af">' + dateExp + '</div></div></div>' +
-    '<div style="text-align:center;margin:24px 0;padding:12px;background:' + n.couleur + '15;border:2px solid ' + n.couleur + ';border-radius:10px">' +
-      '<div style="font-size:1.1rem;font-weight:800;color:' + n.couleur + ';letter-spacing:2px">' + n.titre + '</div></div>' +
-    '<div style="margin-bottom:20px"><div style="font-size:.85rem;color:#6b7280;margin-bottom:4px">Destinataire :</div><div style="font-size:1rem;font-weight:700">' + liv.client + '</div></div>' +
-    '<div style="font-size:.88rem;margin-bottom:24px;padding:16px;background:#f8f9fc;border-radius:8px;border-left:4px solid ' + n.couleur + '"><strong>Objet :</strong> ' + n.objet + '</div>' +
-    '<div style="font-size:.9rem;line-height:1.7;margin-bottom:24px"><p>Madame, Monsieur,</p><p>' + n.corps + '</p><p>Nous restons à votre disposition pour tout renseignement complémentaire.</p><p>Veuillez agréer, Madame, Monsieur, l\'expression de nos salutations distinguées.</p></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0;padding:14px;background:#f8f9fc;border-radius:8px">' +
-      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Référence</div><div style="font-weight:700">' + (liv.numLiv||'—') + '</div></div>' +
-      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Date livraison</div><div style="font-weight:700">' + formatDateExport(liv.date) + '</div></div>' +
-      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Montant dû</div><div style="font-weight:700;color:' + n.couleur + ';font-size:1.1rem">' + montant + '</div></div>' +
-      '<div><div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase">Retard</div><div style="font-weight:700">' + joursRetard + ' jours</div></div></div>' +
-    '<div style="margin-top:32px;text-align:right"><div style="font-size:.9rem;font-weight:600">' + (params.nomAdmin||'La Direction') + '</div><div style="font-size:.82rem;color:#6b7280">' + nom + '</div></div>' +
-    '<div style="border-top:1px solid #e5e7eb;margin-top:40px;padding-top:10px;font-size:.7rem;color:#9ca3af;text-align:center">' + nom + ' — ' + dateExp + '</div></div>';
-
-  ouvrirFenetreImpression(n.titre + ' - ' + liv.client, html, 'width=800,height=900');
-
-  var livs = charger('livraisons');
-  var idx = livs.findIndex(function(l){return l.id===livId;});
-  if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); livs[idx].niveauRelance=niveau; sauvegarder('livraisons',livs); }
-  afficherRelances();
-  afficherToast('📄 Lettre de relance niveau ' + niveau + ' générée');
-}
+// MOVED -> script-paiements.js : genererLettreRelance
 
 /* ===== PLANNING — PÉRIODE ABSENCE ===== */
-function ajouterPeriodeAbsence() {
-  var salId = document.getElementById('absence-sal') ? document.getElementById('absence-sal').value : '';
-  var type  = document.getElementById('absence-type') ? document.getElementById('absence-type').value : 'conge';
-  var debut = document.getElementById('absence-debut') ? document.getElementById('absence-debut').value : '';
-  var fin   = document.getElementById('absence-fin') ? document.getElementById('absence-fin').value : '';
-  if (!salId || !debut || !fin) { afficherToast('⚠️ Salarié, date début et date fin obligatoires','error'); return; }
-  if (fin < debut) { afficherToast('⚠️ La date de fin doit être après la date de début','error'); return; }
-  var absences = loadSafe('absences_periodes', []);
-  absences.push({ id:genId(), salId:salId, type:type, debut:debut, fin:fin, creeLe:new Date().toISOString() });
-  localStorage.setItem('absences_periodes', JSON.stringify(absences));
-  if (document.getElementById('absence-debut')) document.getElementById('absence-debut').value = '';
-  if (document.getElementById('absence-fin')) document.getElementById('absence-fin').value = '';
-  if (document.getElementById('absence-sal-search')) document.getElementById('absence-sal-search').value = '';
-  afficherAbsencesPeriodes();
-  afficherPlanningSemaine();
-  afficherCompteurHeures();
-  var typeLabel = type==='conge'?'Congé':type==='maladie'?'Maladie':'Absence';
-  afficherToast('✅ ' + typeLabel + ' du ' + debut + ' au ' + fin);
-}
+// MOVED -> script-planning.js : ajouterPeriodeAbsence
 
-function afficherAbsencesPeriodes() {
-  var cont = document.getElementById('liste-absences-periodes');
-  if (!cont) return;
-  var absences = loadSafe('absences_periodes', []);
-  var salaries = charger('salaries');
-  var typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-  var typeLabels = { conge:'Congé', absence:'Absence', maladie:'Maladie' };
-  if (!absences.length) { cont.innerHTML = '<div style="font-size:.82rem;color:var(--text-muted);padding:8px 0">Aucune période enregistrée</div>'; return; }
-  cont.innerHTML = absences.sort(function(a,b){return new Date(b.debut)-new Date(a.debut);}).map(function(a) {
-    var sal = salaries.find(function(s){return s.id===a.salId;});
-    var nbJours = Math.max(1, Math.round((new Date(a.fin)-new Date(a.debut))/(1000*60*60*24))+1);
-    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:4px;background:' + (typeColors[a.type]||'#6b7280') + '10;border:1px solid ' + (typeColors[a.type]||'#6b7280') + '30;border-radius:8px;font-size:.82rem">' +
-      '<span style="color:' + (typeColors[a.type]||'#6b7280') + ';font-weight:600">' + (typeLabels[a.type]||a.type) + '</span>' +
-      '<strong>' + (sal?sal.nom:'?') + '</strong>' +
-      '<span style="color:var(--text-muted)">' + a.debut + ' → ' + a.fin + ' (' + nbJours + 'j)</span>' +
-      '<button onclick="supprimerAbsencePeriode(\'' + a.id + '\')" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--red);font-size:.85rem" title="Supprimer">✕</button></div>';
-  }).join('');
-}
+// MOVED -> script-planning.js : afficherAbsencesPeriodes
 
-function supprimerAbsencePeriode(id) {
-  var absences = loadSafe('absences_periodes', []).filter(function(a){return a.id!==id;});
-  localStorage.setItem('absences_periodes', JSON.stringify(absences));
-  afficherAbsencesPeriodes();
-  afficherPlanningSemaine();
-  afficherCompteurHeures();
-  afficherToast('🗑️ Période supprimée');
-}
+// MOVED -> script-planning.js : supprimerAbsencePeriode
 
 /* ===== CHARGES → SYNCHRO ENTRETIEN ===== */
 // MOVED -> script-entretiens.js : synchroChargeVersEntretien
@@ -11262,68 +9169,17 @@ function supprimerAbsencePeriode(id) {
 // MOVED -> script-incidents.js : peupleIncSalarie
 
 /* ===== PEUPLER SELECT ABSENCE SAL ===== */
-function peuplerAbsenceSal() {
-  var sel = document.getElementById('absence-sal');
-  if (!sel) return;
-  var salaries = charger('salaries');
-  var v = sel.value;
-  sel.innerHTML = '<option value="">-- Choisir --</option>';
-  salaries.forEach(function(s) { sel.innerHTML += '<option value="' + s.id + '">' + s.nom + (s.poste ? ' — ' + s.poste : '') + (s.numero ? ' (' + s.numero + ')' : '') + '</option>'; });
-  sel.value = v;
-}
+// MOVED -> script-planning.js : peuplerAbsenceSal
 
-function filtrerRechercheAbsence() {
-  peuplerAbsenceSal();
-  var search = (document.getElementById('absence-sal-search')?.value || '').trim().toLowerCase();
-  var sel = document.getElementById('absence-sal');
-  if (!sel || !search) return;
-  var match = charger('salaries').find(function(s) {
-    return [s.nom, s.prenom, s.nomFamille, s.poste, s.numero].filter(Boolean).join(' ').toLowerCase().includes(search);
-  });
-  if (match) sel.value = match.id;
-}
+// MOVED -> script-planning.js : filtrerRechercheAbsence
 
-function peuplerSelectPlanningModal() {
-  const sel = document.getElementById('plan-salarie');
-  if (!sel) return;
-  const salaries = charger('salaries');
-  const currentValue = sel.value;
-  sel.innerHTML = '<option value="">-- Choisir un salarié --</option>';
-  salaries.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.nom}${s.numero ? ' ('+s.numero+')' : ''}</option>`; });
-  sel.value = currentValue;
-}
+// MOVED -> script-planning.js : peuplerSelectPlanningModal
 
-function filtrerRecherchePlanningModal() {
-  peuplerSelectPlanningModal();
-  const search = (document.getElementById('plan-salarie-search')?.value || '').trim().toLowerCase();
-  const sel = document.getElementById('plan-salarie');
-  if (!sel || !search) return;
-  const match = charger('salaries').find(s => [s.nom, s.prenom, s.nomFamille, s.poste, s.numero].filter(Boolean).join(' ').toLowerCase().includes(search));
-  if (match) {
-    sel.value = match.id;
-    genererGrilleJours();
-  }
-}
+// MOVED -> script-planning.js : filtrerRecherchePlanningModal
 
-function mettreAJourTotalHeuresPlanning() {
-  const el = document.getElementById('plan-total-heures');
-  if (!el) return;
-  let total = 0;
-  JOURS.forEach(jour => {
-    const typeJour = document.getElementById('plan-type-'+jour)?.value || 'travail';
-    const travaille = document.getElementById('plan-travaille-'+jour)?.checked || false;
-    if (!travaille || typeJour !== 'travail') return;
-    total += calculerDureeJour(
-      document.getElementById('plan-debut-'+jour)?.value || '',
-      document.getElementById('plan-fin-'+jour)?.value || ''
-    );
-  });
-  el.textContent = total.toFixed(1) + ' h';
-}
+// MOVED -> script-heures.js : mettreAJourTotalHeuresPlanning
 
-function filtrerPlanningSemaine() {
-  afficherPlanningSemaine();
-}
+// MOVED -> script-planning.js : filtrerPlanningSemaine
 
 /* ===============================================
    PLANNING SEMAINE — Navigation + Absences + PDF
@@ -11347,138 +9203,13 @@ function naviguerSemaine(delta) {
   afficherPlanningSemaine();
 }
 
-function changerVuePlanning(mode) {
-  _planningPeriode.mode = ['jour', 'semaine', 'mois', 'annee'].includes(mode) ? mode : 'semaine';
-  _planningPeriode.offset = 0;
-  _planningSemaineOffset = 0;
-  afficherPlanningSemaine();
-}
+// MOVED -> script-planning.js : changerVuePlanning
 
-function naviguerPlanningPeriode(delta) {
-  _planningPeriode.offset += delta || 0;
-  _planningSemaineOffset = _planningPeriode.offset;
-  afficherPlanningSemaine();
-}
+// MOVED -> script-planning.js : naviguerPlanningPeriode
 
-function reinitialiserPlanningPeriode() {
-  _planningPeriode.offset = 0;
-  _planningSemaineOffset = 0;
-  afficherPlanningSemaine();
-}
+// MOVED -> script-planning.js : reinitialiserPlanningPeriode
 
-function afficherPlanningSemaine() {
-  var lundi = getLundiDeSemaine(_planningSemaineOffset);
-  var planningRange = getPeriodeRange(_planningPeriode.mode, _planningPeriode.offset);
-  var planningSelect = document.getElementById('vue-planning-select');
-  if (planningSelect) planningSelect.value = _planningPeriode.mode;
-  var salaries  = charger('salaries');
-  var plannings = loadSafe('plannings', []);
-  var absences  = loadSafe('absences_periodes', []);
-
-  var JOURS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
-  var JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-
-  // Calculer les 7 dates de la semaine
-  lundi.setHours(0,0,0,0);
-  var datesSemaine = [];
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(lundi);
-    d.setDate(lundi.getDate() + i);
-    d.setHours(0,0,0,0);
-    datesSemaine.push(d);
-  }
-
-  var dimanche = datesSemaine[6];
-  var labelSemaine = planningRange.label || ('Semaine ' + getNumSemaine(lundi) + ' — ' + lundi.getFullYear());
-  var labelDates = planningRange.datesLabel || ('Du ' + formatPeriodeDateFr(lundi) + ' au ' + formatPeriodeDateFr(dimanche));
-
-  var elLabel = document.getElementById('planning-semaine-label');
-  var elDates = document.getElementById('planning-semaine-dates');
-  if (elLabel) elLabel.textContent = labelSemaine;
-  if (elDates) elDates.textContent = labelDates;
-
-  // Thead avec dates
-  var thead = document.getElementById('thead-planning-semaine');
-  if (thead) {
-    thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
-      const _y = d.getFullYear();
-      const _m = String(d.getMonth()+1).padStart(2,'0');
-      const _d = String(d.getDate()).padStart(2,'0');
-      var isAuj = (_y+'-'+_m+'-'+_d) === aujourdhui();
-      return '<th style="text-align:center;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
-    }).join('') + '</tr>';
-  }
-
-  // Corps
-  var tb = document.getElementById('tb-planning-semaine');
-  if (!tb) return;
-
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
-
-  var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
-  var salariesFiltres = salaries.filter(function(s) {
-    if (!filtre) return true;
-    return [s.nom, s.prenom, s.nomFamille, s.numero, s.poste].filter(Boolean).join(' ').toLowerCase().includes(filtre);
-  });
-
-  var totalPlanifies = 0;
-  var totalAbsences = 0;
-  salariesFiltres.forEach(function(s) {
-    var plan = plannings.find(function(p){return p.salId===s.id;});
-    var aUnJourTravaille = false;
-    datesSemaine.forEach(function(d, i) {
-      var dateStr = dateToLocalISO(d);
-      var absJour = absences.find(function(a) {
-        return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin;
-      });
-      if (absJour) totalAbsences++;
-      var jour = plan ? (plan.semaine||[]).find(function(j){return j.jour===JOURS[i];}) : null;
-      if (jour && jour.travaille) aUnJourTravaille = true;
-    });
-    if (aUnJourTravaille) totalPlanifies++;
-  });
-  if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
-  if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
-  if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
-  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
-
-  var typeColors = { travail:'var(--green)', repos:'var(--text-muted)', conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-  var typeIcons  = { travail:'🟢', repos:'⚪', conge:'🔵', absence:'🟡', maladie:'🟣' };
-
-  tb.innerHTML = salariesFiltres.map(function(s) {
-    var plan = plannings.find(function(p){return p.salId===s.id;});
-
-    var cellules = datesSemaine.map(function(d, i) {
-      var dateStr = dateToLocalISO(d);
-
-      // Vérifier si une période d'absence couvre ce jour
-      var absJour = absences.find(function(a) {
-        return a.salId === s.id && dateStr >= a.debut && dateStr <= a.fin;
-      });
-
-      if (absJour) {
-        var label = absJour.type === 'conge' ? 'Congé' : absJour.type === 'maladie' ? 'Maladie' : 'Absent';
-        return '<td style="text-align:center;background:' + (typeColors[absJour.type]||'#e74c3c') + '10;color:' + (typeColors[absJour.type]||'#e74c3c') + ';font-size:.78rem;font-weight:600">' + (typeIcons[absJour.type]||'🟡') + ' ' + label + '</td>';
-      }
-
-      // Sinon, planning type de la semaine
-      var jourNom = JOURS[i];
-      var jour = plan ? (plan.semaine||[]).find(function(j){return j.jour===jourNom;}) : null;
-
-      if (!jour || !jour.travaille) {
-        if (jour && ['conge','absence','maladie'].includes(jour.typeJour)) {
-          var lb = jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absent';
-          return '<td style="text-align:center;color:' + (typeColors[jour.typeJour]||'#6b7280') + ';font-size:.78rem">' + (typeIcons[jour.typeJour]||'⚪') + ' ' + lb + '</td>';
-        }
-        return '<td style="text-align:center;color:var(--text-muted);font-size:.78rem">⚪ Repos</td>';
-      }
-
-      return '<td style="text-align:center;color:var(--green);font-size:.78rem">🟢 ' + (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : '') + '</td>';
-    }).join('');
-
-    return '<tr><td><strong>' + s.nom + '</strong>' + (s.poste ? '<br><span style="font-size:.72rem;color:var(--text-muted)">' + s.poste + '</span>' : '') + (s.numero ? '<br><span style="font-size:.72rem;color:var(--text-muted)">#' + s.numero + '</span>' : '') + '</td>' + cellules + '</tr>';
-  }).join('');
-}
+// MOVED -> script-planning.js : afficherPlanningSemaine
 
 function getNumSemaine(d) {
   var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
@@ -11488,69 +9219,7 @@ function getNumSemaine(d) {
 }
 
 /* ===== EXPORT PDF SEMAINE ===== */
-function exporterPlanningSemainePDF() {
-  var lundi = getLundiDeSemaine(_planningSemaineOffset);
-  var salaries  = charger('salaries');
-  var plannings = loadSafe('plannings', []);
-  var absences  = loadSafe('absences_periodes', []);
-  var params    = getEntrepriseExportParams();
-  var nom       = params.nom;
-  var dateExp   = formatDateHeureExport();
-
-  var JOURS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
-  var JOURS_COURTS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
-
-  var datesSemaine = [];
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(lundi); d.setDate(lundi.getDate() + i); datesSemaine.push(d);
-  }
-
-  var dimanche = datesSemaine[6];
-  var titreSemaine = 'Semaine ' + getNumSemaine(lundi) + ' — ' + lundi.toLocaleDateString('fr-FR',{day:'numeric',month:'short'}) + ' au ' + dimanche.toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
-
-  var thCols = datesSemaine.map(function(d,i) {
-    return '<th style="padding:8px 6px;text-align:center;color:#6b7280;font-size:.82rem">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
-  }).join('');
-
-  var rows = salaries.map(function(s) {
-    var plan = plannings.find(function(p){return p.salId===s.id;});
-    var cells = datesSemaine.map(function(d, i) {
-      var dateStr = dateToLocalISO(d);
-      var absJour = absences.find(function(a){ return a.salId===s.id && dateStr>=a.debut && dateStr<=a.fin; });
-      if (absJour) {
-        var colors = { conge:'#3498db', maladie:'#9b59b6', absence:'#e74c3c' };
-        var labels = { conge:'Congé', maladie:'Maladie', absence:'Absent' };
-        return '<td style="padding:6px;text-align:center;background:' + (colors[absJour.type]||'#e74c3c') + '15;color:' + (colors[absJour.type]||'#e74c3c') + ';font-size:.78rem;font-weight:600">' + (labels[absJour.type]||'Absent') + '</td>';
-      }
-      var jourNom = JOURS[i];
-      var jour = plan ? (plan.semaine||[]).find(function(j){return j.jour===jourNom;}) : null;
-      if (!jour || !jour.travaille) {
-        if (jour && ['conge','absence','maladie'].includes(jour.typeJour)) {
-          var lb2 = {conge:'Congé',maladie:'Maladie',absence:'Absent'}; 
-          return '<td style="padding:6px;text-align:center;color:#9ca3af;font-size:.78rem">' + (lb2[jour.typeJour]||'—') + '</td>';
-        }
-        return '<td style="padding:6px;text-align:center;color:#d1d5db;font-size:.78rem">—</td>';
-      }
-      return '<td style="padding:6px;text-align:center;color:#2ecc71;font-size:.78rem">' + (jour.heureDebut||'') + (jour.heureFin?' – '+jour.heureFin:'') + '</td>';
-    }).join('');
-    return '<tr><td style="padding:8px 12px;font-weight:600">' + s.nom + '</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">' + (s.poste||'—') + '</td>' + cells + '</tr>';
-  }).join('');
-
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">' +
-      '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">' + nom + '</div></div>' +
-      '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">' + titreSemaine + '</div><div style="font-size:.78rem;color:#9ca3af">' + dateExp + '</div></div></div>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.85rem">' +
-      '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>' + thCols + '</tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>' +
-    '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>' + nom + '</span><span>' + dateExp + '</span></div></div>';
-
-  var win = ouvrirPopupSecure('','_blank','width=950,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Planning ' + titreSemaine + '</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:10mm;size:landscape}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport planning semaine généré');
-}
+// MOVED -> script-exports.js : exporterPlanningSemainePDF
 
 /* ===============================================
    NAVIGATION PÉRIODE — Toutes les pages
@@ -11572,9 +9241,7 @@ function getStartOfWeek(date) {
   return d;
 }
 
-function buildSimplePeriodeState(defaultMode) {
-  return { mode: defaultMode || 'mois', offset: 0 };
-}
+// MOVED -> script-stats.js : buildSimplePeriodeState
 
 function majPeriodeDisplay(labelId, datesId, range) {
   var lbl = document.getElementById(labelId);
@@ -11632,17 +9299,8 @@ function reinitialiserLivPeriode() {
 
 /* --- HEURES & KM : semaine --- */
 var _heuresSemaineOffset = 0;
-function navHeuresSemaine(delta) {
-  _heuresVue = 'semaine';
-  if (delta === 0) _heuresSemaineOffset = 0;
-  else _heuresSemaineOffset += delta;
-  majHeuresPeriodeLabel();
-  afficherCompteurHeures();
-  afficherReleveKm();
-}
-function majHeuresSemaineLabel() {
-  majHeuresPeriodeLabel();
-}
+// MOVED -> script-heures.js : navHeuresSemaine
+// MOVED -> script-heures.js : majHeuresSemaineLabel
 
 /* --- INSPECTIONS / CHARGES / CARBURANT / ENTRETIENS --- */
 var _inspPeriode = buildSimplePeriodeState('semaine');
@@ -11759,123 +9417,9 @@ function getPeriodeRange(mode, offset) {
 }
 
 /* --- EXPORT RELEVÉ KM PDF --- */
-function exporterReleveKmPDF() {
-  var salaries = charger('salaries');
-  var params = getEntrepriseExportParams();
-  var nom = params.nom;
-  var dateExp = formatDateHeureExport();
-  var range = getHeuresPeriodeRange();
-  var allKm = [];
-  salaries.forEach(function(s) {
-    var entrees = loadSafe('km_sal_'+s.id, []);
-    entrees.forEach(function(e) {
-      if ((e.date || '') < range.debut || (e.date || '') > range.fin) return;
-      var distance = e.kmArrivee != null ? (e.distance || (e.kmArrivee - e.kmDepart)) : 0;
-      allKm.push({salNom:s.nom, date:e.date, kmDepart:e.kmDepart, kmArrivee:e.kmArrivee, distance:distance});
-    });
-  });
-  allKm.sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-  var totalKm = allKm.reduce(function(s,e){return s+(e.distance||0);},0);
-  var rows = allKm.slice(0,100).map(function(e,i) {
-    var kmDep = e.kmDepart != null ? Math.round(e.kmDepart) : '—';
-    var kmArr = e.kmArrivee != null ? Math.round(e.kmArrivee) : '—';
-    var dist = e.kmArrivee != null ? Math.round(e.distance||0)+' km' : 'En attente';
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:8px 12px;font-weight:600">'+e.salNom+'</td><td style="padding:8px 12px">'+formatDateExport(e.date)+'</td><td style="padding:8px 12px;text-align:right">'+kmDep+'</td><td style="padding:8px 12px;text-align:right">'+kmArr+'</td><td style="padding:8px 12px;text-align:right;font-weight:700">'+dist+'</td></tr>';
-  }).join('');
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">'+
-      '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div></div>'+
-      '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Relevés kilométriques</div><div style="font-size:1rem;font-weight:700">Total : '+Math.round(totalKm)+' km</div><div style="font-size:.78rem;color:#9ca3af">'+range.label+' · '+range.datesLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.85rem">'+
-      '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km départ</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km arrivée</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Distance</th></tr></thead>'+
-      '<tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
-  var win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Relevés km — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport relevés km généré');
-}
+// MOVED -> script-exports.js : exporterReleveKmPDF
 
-function exporterRapportHeuresEtKmPDF() {
-  var salaries = charger('salaries');
-  var params = getEntrepriseExportParams();
-  var nom = params.nom;
-  var dateExp = formatDateHeureExport();
-  var range = getHeuresPeriodeRange();
-
-  var rowsHeures = salaries.map(function(s) {
-    var heuresData = calculerHeuresSalarieSemaine(s.id);
-    var planifiees = heuresData.planifiees || 0;
-    var details = Array.isArray(heuresData.details) ? heuresData.details : [];
-    var detailStr = details.map(function(d) {
-      return d.jour.substring(0,3) + ': ' + Number(d.duree || 0).toFixed(1) + 'h';
-    }).join(' · ');
-    return '<tr>'
-      + '<td style="padding:8px 12px;font-weight:600">' + planningEscapeHtml(s.nom || '—') + '</td>'
-      + '<td style="padding:8px 12px">' + planningEscapeHtml(s.poste || '—') + '</td>'
-      + '<td style="padding:8px 12px;text-align:center;font-weight:700">' + Number(planifiees).toFixed(1) + 'h</td>'
-      + '<td style="padding:8px 12px;font-size:.82rem;color:#6b7280">' + planningEscapeHtml(detailStr || '—') + '</td>'
-      + '</tr>';
-  }).join('');
-
-  var allKm = [];
-  salaries.forEach(function(s) {
-    var entrees = loadSafe('km_sal_' + s.id, []);
-    entrees.forEach(function(e) {
-      if ((e.date || '') < range.debut || (e.date || '') > range.fin) return;
-      var distance = e.kmArrivee != null ? (e.distance || (e.kmArrivee - e.kmDepart)) : 0;
-      allKm.push({
-        salNom: s.nom || '—',
-        date: e.date,
-        kmDepart: e.kmDepart,
-        kmArrivee: e.kmArrivee,
-        distance: distance
-      });
-    });
-  });
-  allKm.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-  var totalKm = allKm.reduce(function(sum, item) { return sum + (item.distance || 0); }, 0);
-  var rowsKm = allKm.slice(0, 100).map(function(e, i) {
-    var kmDep = e.kmDepart != null ? Math.round(e.kmDepart) : '—';
-    var kmArr = e.kmArrivee != null ? Math.round(e.kmArrivee) : '—';
-    var dist = e.kmArrivee != null ? Math.round(e.distance || 0) + ' km' : 'En attente';
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:' + (i % 2 === 0 ? '#fff' : '#fafafa') + '">'
-      + '<td style="padding:8px 12px;font-weight:600">' + planningEscapeHtml(e.salNom) + '</td>'
-      + '<td style="padding:8px 12px">' + formatDateExport(e.date) + '</td>'
-      + '<td style="padding:8px 12px;text-align:right">' + kmDep + '</td>'
-      + '<td style="padding:8px 12px;text-align:right">' + kmArr + '</td>'
-      + '<td style="padding:8px 12px;text-align:right;font-weight:700">' + dist + '</td>'
-      + '</tr>';
-  }).join('');
-
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:920px;margin:0 auto;padding:32px;color:#1a1d27">'
-    + construireEnteteExport(params, 'Rapport heures et km', range.label + ' · ' + range.datesLabel, dateExp)
-    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px">'
-      + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #4f8ef7"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Salariés</div><div style="font-size:1.2rem;font-weight:800;color:#4f8ef7">' + salaries.length + '</div></div>'
-      + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #2ecc71"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Total km</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">' + Math.round(totalKm) + ' km</div></div>'
-      + '<div style="background:#f8f9fc;border-radius:12px;padding:14px;text-align:center;border-top:3px solid #f5a623"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Période</div><div style="font-size:1rem;font-weight:800;color:#f5a623">' + planningEscapeHtml(range.label) + '</div></div>'
-    + '</div>'
-    + '<div style="margin-bottom:26px">'
-      + '<div style="font-size:1rem;font-weight:800;margin-bottom:12px;color:#111827">Compteur d’heures</div>'
-      + '<table style="width:100%;border-collapse:collapse;font-size:.85rem">'
-        + '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th><th style="padding:8px 12px;text-align:center;color:#6b7280">Heures</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Détail</th></tr></thead>'
-        + '<tbody>' + rowsHeures + '</tbody>'
-      + '</table>'
-    + '</div>'
-    + '<div>'
-      + '<div style="font-size:1rem;font-weight:800;margin-bottom:12px;color:#111827">Relevés kilométriques</div>'
-      + '<table style="width:100%;border-collapse:collapse;font-size:.85rem">'
-        + '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km départ</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km arrivée</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Distance</th></tr></thead>'
-        + '<tbody>' + (rowsKm || '<tr><td colspan="5" style="padding:12px;text-align:center;color:#6b7280">Aucun relevé kilométrique sur cette période</td></tr>') + '</tbody>'
-      + '</table>'
-    + '</div>'
-    + renderFooterEntreprise(params, dateExp)
-  + '</div>';
-
-  ouvrirFenetreImpression('Heures et km - ' + nom, html, 'width=980,height=760');
-  afficherToast('📄 Rapport heures et km généré');
-}
+// MOVED -> script-exports.js : exporterRapportHeuresEtKmPDF
 
 /* ===============================================
    ONGLET TVA — Récapitulatif mensuel
@@ -12021,70 +9565,10 @@ async function supprimerSourceDepuisTVA(type, id) {
   afficherTva();
 }
 
-function exporterTvaCSV() {
-  var range = getTvaPeriodeRange();
-  var summary = getTVASummaryForRange(range);
-  var rows = [];
-  summary.collectee.forEach(function(entry) {
-    rows.push({ sens:'Collectée', source:'Livraison', dateExigibilite:entry.exigibiliteDate || '', dateSource:entry.issueDate || '', libelle:entry.libelle, tauxTVA:entry.tauxTVA, baseHT:entry.baseHT, tva:entry.tva, ttc:entry.ttc });
-  });
-  summary.pending.forEach(function(entry) {
-    rows.push({ sens:'Non exigible', source:'Livraison', dateExigibilite:entry.paymentDate || '', dateSource:entry.issueDate || '', libelle:entry.libelle, tauxTVA:entry.tauxTVA, baseHT:entry.baseHT, tva:entry.tva, ttc:entry.ttc });
-  });
-  summary.deductible.forEach(function(entry) {
-    rows.push({ sens:'Déductible', source:entry.sourceType, dateExigibilite:entry.date || '', dateSource:entry.date || '', libelle:entry.libelle, tauxTVA:entry.tauxTVA, baseHT:entry.baseHT, tva:entry.tva, ttc:entry.ttc });
-  });
-  summary.settlements.forEach(function(entry) {
-    rows.push({ sens:'Règlement TVA', source:'TVA', dateExigibilite:entry.paymentDate || '', dateSource:entry.periodLabel, libelle:entry.description, tauxTVA:0, baseHT:0, tva:0, ttc:entry.montant });
-  });
-  if (!rows.length) { afficherToast('Aucune donnée TVA à exporter sur cette période', 'error'); return; }
-  exporterCSV('tva-' + range.debut + '-au-' + range.fin + '.csv', rows);
-  afficherToast('📥 Export CSV TVA généré');
-}
+// MOVED -> script-exports.js : exporterTvaCSV
 
 /* === EXPORT TVA PDF === */
-function exporterTvaPDF() {
-  var range = getTvaPeriodeRange();
-  var summary = getTVASummaryForRange(range);
-  var params = getEntrepriseExportParams();
-  var nom = params.nom;
-  var dateExp = formatDateHeureExport();
-  var moisLabel = range.label;
-  var totalCollectee = summary.totalCollectee;
-  var totalDeductible = summary.totalDeductible;
-  var solde = summary.soldeBrut;
-  var collRows = summary.collectee.map(function(entry) {
-    return '<tr><td style="padding:6px 12px">' + formatDateExport(entry.exigibiliteDate) + '</td><td style="padding:6px 12px">' + planningEscapeHtml(entry.libelle) + '</td><td style="padding:6px 12px;text-align:right">' + euros(entry.baseHT) + '</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#2ecc71">' + euros(entry.tva) + '</td><td style="padding:6px 12px;text-align:right">' + euros(entry.ttc) + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" style="padding:10px 12px;text-align:center;color:#6b7280">Aucune TVA collectée exigible</td></tr>';
-  var pendingRows = summary.pending.map(function(item) {
-    return '<tr><td style="padding:6px 12px">' + formatDateExport(item.issueDate) + '</td><td style="padding:6px 12px">' + planningEscapeHtml(item.libelle) + '</td><td style="padding:6px 12px;text-align:right">' + euros(item.tva) + '</td><td style="padding:6px 12px">' + (item.paymentDate ? 'Paiement le ' + formatDateExport(item.paymentDate) : 'Non encaissée') + '</td></tr>';
-  }).join('');
-  var dedRows = summary.deductible.map(function(entry) {
-    return '<tr><td style="padding:6px 12px">' + formatDateExport(entry.date) + '</td><td style="padding:6px 12px">' + planningEscapeHtml(entry.libelle) + '</td><td style="padding:6px 12px;text-align:right">' + euros(entry.baseHT) + '</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#e67e22">' + euros(entry.tva) + '</td><td style="padding:6px 12px;text-align:right">' + euros(entry.ttc) + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" style="padding:10px 12px;text-align:center;color:#6b7280">Aucune TVA déductible</td></tr>';
-  var settlementRows = summary.settlements.map(function(item) {
-    return '<tr><td style="padding:6px 12px">' + item.periodLabel + '</td><td style="padding:6px 12px">' + formatDateExport(item.paymentDate) + '</td><td style="padding:6px 12px">' + planningEscapeHtml(item.description) + '</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#2563eb">' + euros(item.montant) + '</td></tr>';
-  }).join('') || '<tr><td colspan="4" style="padding:10px 12px;text-align:center;color:#6b7280">Aucun règlement TVA enregistré</td></tr>';
-
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px"><div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div>'+(params.siret?'<div style="font-size:.78rem;color:#9ca3af">SIRET : '+params.siret+'</div>':'')+'</div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif TVA</div><div style="font-size:1rem;font-weight:700;text-transform:capitalize">'+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>' +
-    '<div style="font-size:.84rem;color:#6b7280;margin-bottom:18px">' + getTVARegimeLabel(summary.profile.regime) + ' · ' + getTVAActiviteLabel(summary.profile.activiteType) + ' · ' + getTVAExigibiliteLabel(summary.profile) + '</div>' +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">📤 TVA Collectée exigible</div>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Exigibilité</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+collRows+'<tr style="background:#e8f5e9;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#2ecc71">'+euros(totalCollectee)+'</td><td></td></tr></tbody></table>' +
-    (pendingRows ? '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#f5a623">📅 Facturé mais non encore exigible</div><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date facture</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:left">Statut</th></tr></thead><tbody>' + pendingRows + '</tbody></table>' : '') +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e67e22">📥 TVA Déductible</div>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+dedRows+'<tr style="background:#fff3e0;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#e67e22">'+euros(totalDeductible)+'</td><td></td></tr></tbody></table>' +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2563eb">🧾 Règlements TVA rattachés à la période</div>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Période TVA</th><th style="padding:6px 12px;text-align:left">Date paiement</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Montant</th></tr></thead><tbody>' + settlementRows + '</tbody></table>' +
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0"><div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Collectée</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">'+euros(totalCollectee)+'</div></div><div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Déductible</div><div style="font-size:1.2rem;font-weight:800;color:#e67e22">'+euros(totalDeductible)+'</div></div><div style="padding:14px;background:#eff6ff;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Planifiée / réglée</div><div style="font-size:1.2rem;font-weight:800;color:#2563eb">'+euros(summary.totalTVAPlanifiee)+'</div></div><div style="padding:14px;background:'+(solde>=0?'#ffebee':'#f5edff')+';border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">'+(solde>=0?'Reste non planifié':'Crédit TVA')+'</div><div style="font-size:1.2rem;font-weight:800;color:'+(solde>=0?'#e74c3c':'#8e44ad')+'">'+euros(solde>=0 ? summary.tvaReverser : summary.tvaCredit)+'</div></div></div>' +
-    '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
-
-  var win = ouvrirPopupSecure('','_blank','width=800,height=800');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>TVA '+moisLabel+' — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport TVA généré');
-}
+// MOVED -> script-exports.js : exporterTvaPDF
 
 /* ===============================================
    CORRECTIONS & AJOUTS — Exports + Planning + Carburant
@@ -12092,183 +9576,11 @@ function exporterTvaPDF() {
 
 /* --- Livraisons export suit la période --- */
 var _origGenererRapportMensuel = typeof genererRapportMensuel === 'function' ? genererRapportMensuel : null;
-function genererRapportMensuelPeriode() {
-  var livraisons = getLivraisonsFiltresActifs();
-  var params = getEntrepriseExportParams();
-  var nom = params.nom;
-  var dateExp = formatDateHeureExport();
-  var periode = getLivraisonsPeriodeActiveLabel();
-
-  var escape = window.escapeHtml;
-  var nomEntr = escape(nom);
-
-  if (!livraisons.length) {
-    afficherToast('⚠️ Aucune livraison sur la période sélectionnée', 'error');
-    return;
-  }
-
-  var cellCss = 'padding:8px 10px;border-bottom:1px solid #f3f4f6';
-  var badgeCss = 'padding:2px 8px;border-radius:6px;font-size:.72rem;font-weight:600';
-
-  // Agrégats
-  var totalHT = 0, totalTVA = 0, totalTTC = 0, totalKm = 0;
-  var tvaParTaux = {};   // { "20": { ht, tva, ttc }, "10": {...} }
-  var parClient = {};    // { "Nom": { nb, ht, tva, ttc, paye, attente } }
-  var nbPaye = 0, nbAttente = 0, nbLitige = 0;
-
-  var rows = livraisons.map(function(l) {
-    var ht = l.prixHT || (l.prix||0)/(1+(l.tauxTVA||20)/100);
-    var ttc = l.prix || 0;
-    var tva = ttc - ht;
-    var taux = String(l.tauxTVA != null ? l.tauxTVA : 20);
-    totalHT += ht; totalTVA += tva; totalTTC += ttc;
-    totalKm += parseFloat(l.distance) || 0;
-
-    if (!tvaParTaux[taux]) tvaParTaux[taux] = { ht: 0, tva: 0, ttc: 0, nb: 0 };
-    tvaParTaux[taux].ht += ht; tvaParTaux[taux].tva += tva; tvaParTaux[taux].ttc += ttc; tvaParTaux[taux].nb++;
-
-    var cleClient = l.client || '—';
-    if (!parClient[cleClient]) parClient[cleClient] = { nb: 0, ht: 0, tva: 0, ttc: 0, paye: 0, attente: 0 };
-    parClient[cleClient].nb++;
-    parClient[cleClient].ht += ht;
-    parClient[cleClient].tva += tva;
-    parClient[cleClient].ttc += ttc;
-
-    if (l.statutPaiement === 'payé' || l.statutPaiement === 'paye') { nbPaye++; parClient[cleClient].paye += ttc; }
-    else if (l.statutPaiement === 'litige') { nbLitige++; }
-    else { nbAttente++; parClient[cleClient].attente += ttc; }
-
-    var badgeStatut = l.statut === 'livre' ? '<span style="'+badgeCss+';background:#d1fae5;color:#065f46">Livrée</span>'
-                    : l.statut === 'en-cours' ? '<span style="'+badgeCss+';background:#dbeafe;color:#1e40af">En cours</span>'
-                    : '<span style="'+badgeCss+';background:#fef3c7;color:#92400e">En attente</span>';
-    var badgePay = l.statutPaiement === 'payé' ? '<span style="'+badgeCss+';background:#d1fae5;color:#065f46">Payé</span>'
-                 : l.statutPaiement === 'litige' ? '<span style="'+badgeCss+';background:#fee2e2;color:#991b1b">Litige</span>'
-                 : '<span style="'+badgeCss+';background:#fef3c7;color:#92400e">Attente</span>';
-
-    return '<tr>' +
-      '<td style="'+cellCss+'">' + escape(l.numLiv || '—') + '</td>' +
-      '<td style="'+cellCss+'">' + escape(formatDateExport(l.date)) + '</td>' +
-      '<td style="'+cellCss+'">' + escape(l.client || '—') + '</td>' +
-      '<td style="'+cellCss+'">' + escape(l.chaufNom || '—') + '</td>' +
-      '<td style="'+cellCss+';text-align:right">' + (l.distance ? escape(String(l.distance)) + ' km' : '—') + '</td>' +
-      '<td style="'+cellCss+';text-align:right">' + euros(ht) + '</td>' +
-      '<td style="'+cellCss+';text-align:right;color:#6b7280">' + euros(tva) + ' <span style="font-size:.68rem">('+taux+'%)</span></td>' +
-      '<td style="'+cellCss+';text-align:right;font-weight:700">' + euros(ttc) + '</td>' +
-      '<td style="'+cellCss+'">' + badgeStatut + '</td>' +
-      '<td style="'+cellCss+'">' + badgePay + '</td>' +
-    '</tr>';
-  }).join('');
-
-  // Bloc synthèse cards
-  var cardCss = 'background:#f8f9fc;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb';
-  var blocResume =
-    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0">' +
-      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">CA HT</div><div style="font-size:1.15rem;font-weight:800;color:#111827">'+euros(totalHT)+'</div></div>' +
-      '<div style="'+cardCss+';background:#fff3e0"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">TVA collectée</div><div style="font-size:1.15rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div>' +
-      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">CA TTC</div><div style="font-size:1.15rem;font-weight:800;color:#111827">'+euros(totalTTC)+'</div></div>' +
-      '<div style="'+cardCss+'"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">Missions · Km</div><div style="font-size:1.15rem;font-weight:800">'+livraisons.length+' · '+totalKm.toLocaleString('fr-FR')+' km</div></div>' +
-    '</div>';
-
-  // Ventilation TVA par taux (pour déclaration CA3)
-  var tauxKeys = Object.keys(tvaParTaux).sort(function(a,b){return parseFloat(b)-parseFloat(a);});
-  var blocTVA = '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Ventilation TVA par taux (pour déclaration CA3)</h3>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px">' +
-      '<thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:6px 10px">Taux</th><th style="padding:6px 10px;text-align:right">Nb missions</th><th style="padding:6px 10px;text-align:right">Base HT</th><th style="padding:6px 10px;text-align:right">TVA collectée</th><th style="padding:6px 10px;text-align:right">Total TTC</th></tr></thead>' +
-      '<tbody>' + tauxKeys.map(function(t){ var x = tvaParTaux[t]; return '<tr><td style="padding:6px 10px;font-weight:600">'+t+' %</td><td style="padding:6px 10px;text-align:right">'+x.nb+'</td><td style="padding:6px 10px;text-align:right">'+euros(x.ht)+'</td><td style="padding:6px 10px;text-align:right;color:#e67e22">'+euros(x.tva)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(x.ttc)+'</td></tr>'; }).join('') + '</tbody>' +
-    '</table>';
-
-  // Récap par client
-  var clientsArr = Object.entries(parClient).sort(function(a,b){return b[1].ttc - a[1].ttc;});
-  var blocClients = '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Récap par client</h3>' +
-    '<table style="width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px">' +
-      '<thead><tr style="background:#f3f4f6;text-align:left"><th style="padding:6px 10px">Client</th><th style="padding:6px 10px;text-align:right">Missions</th><th style="padding:6px 10px;text-align:right">CA HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">CA TTC</th><th style="padding:6px 10px;text-align:right">Encaissé</th><th style="padding:6px 10px;text-align:right">En attente</th></tr></thead>' +
-      '<tbody>' + clientsArr.map(function(e){ var c = e[1]; return '<tr><td style="padding:6px 10px;font-weight:600">'+escape(e[0])+'</td><td style="padding:6px 10px;text-align:right">'+c.nb+'</td><td style="padding:6px 10px;text-align:right">'+euros(c.ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(c.tva)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.ttc)+'</td><td style="padding:6px 10px;text-align:right;color:#065f46">'+euros(c.paye)+'</td><td style="padding:6px 10px;text-align:right;color:'+(c.attente>0?'#92400e':'#9ca3af')+'">'+euros(c.attente)+'</td></tr>'; }).join('') + '</tbody>' +
-    '</table>';
-
-  // Mentions société (pieds de document comme en facture)
-  var mentionsHeader = renderFactureMentionsEntrepriseHeader(params);
-  var siege = [params.adresse, ((params.codePostal||'')+' '+(params.ville||'')).trim()].filter(Boolean).map(escape).join(' · ');
-
-  // En-tête unifié via construireEnteteExport (template référence du site)
-  var metaLivraisons = livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'');
-  var html =
-    '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
-      construireEnteteExport(params, 'Récapitulatif livraisons', periode, dateExp, metaLivraisons) +
-      blocResume +
-      blocTVA +
-      blocClients +
-      '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Détail des livraisons</h3>' +
-      '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' +
-        '<thead>' +
-          '<tr style="background:#f3f4f6;text-align:left">' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">N° LIV</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Date</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Client</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Chauffeur</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">Distance</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">HT</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TVA</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right">TTC</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Statut</th>' +
-            '<th style="padding:8px 10px;border-bottom:1px solid #e5e7eb">Paiement</th>' +
-          '</tr>' +
-        '</thead>' +
-        '<tbody style="background:#fff">' + rows + '</tbody>' +
-        '<tfoot>' +
-          '<tr style="background:#fef3c7;font-weight:700">' +
-            '<td colspan="4" style="padding:10px;text-align:right">TOTAUX</td>' +
-            '<td style="padding:10px;text-align:right">'+totalKm.toLocaleString('fr-FR')+' km</td>' +
-            '<td style="padding:10px;text-align:right">' + euros(totalHT) + '</td>' +
-            '<td style="padding:10px;text-align:right;color:#6b7280">' + euros(totalTVA) + '</td>' +
-            '<td style="padding:10px;text-align:right">' + euros(totalTTC) + '</td>' +
-            '<td colspan="2"></td>' +
-          '</tr>' +
-        '</tfoot>' +
-      '</table>' +
-      '<div style="margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Document généré par '+nomEntr+' le '+escape(dateExp)+'</div>' +
-    '</div>';
-
-  var win = ouvrirPopupSecure('','_blank','width=1100,height=750');
-  if (!win) { afficherToast('⚠️ Autorise les popups pour exporter en PDF','error'); return; }
-  win.document.write(
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Récap livraisons — '+nomEntr+'</title>' +
-    '<style>body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}@page{margin:10mm;size:landscape}@media print{.no-print{display:none}}</style>' +
-    '</head><body>' + html +
-    '<script>setTimeout(function(){window.print();},400);<\/script></body></html>'
-  );
-  win.document.close();
-}
+// MOVED -> script-exports.js : genererRapportMensuelPeriode
 
 /* --- Charges export suit le mois navigué + HT/TVA/TTC --- */
 var _origExporterChargesPDF = typeof exporterChargesPDF === 'function' ? exporterChargesPDF : null;
-function exporterChargesPDFMois() {
-  var range = getChargesPeriodeRange();
-  var charges = charger('charges').filter(function(c){return isDateInRange(c.date, range);}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-  var params = getEntrepriseExportParams();
-  var nom = params.nom;
-  var dateExp = formatDateHeureExport();
-  var moisLabel = range.label;
-  var totalHT=0, totalTVA=0, totalTTC=0;
-  var catIcons = {carburant:'⛽',peage:'🛣️',entretien:'🔧',assurance:'🛡️',autre:'📝'};
-  var rows = charges.map(function(c,i) {
-    var ht = c.montantHT || (c.montant||0)/(1+(c.tauxTVA||20)/100);
-    var tvaM = (c.montant||0) - ht;
-    totalHT += ht; totalTVA += tvaM; totalTTC += (c.montant||0);
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+c.date+'</td><td style="padding:6px 10px">'+(catIcons[c.categorie]||'📝')+' '+(c.categorie||'autre')+'</td><td style="padding:6px 10px">'+(c.description||'—')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.montant||0)+'</td></tr>';
-  }).join('');
-
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Charges — '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalHT)+'</div></div><div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">TVA</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalTTC)+'</div></div></div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Catégorie</th><th style="padding:6px 10px;text-align:left">Description</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
-
-  var win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Charges '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport charges généré');
-}
+// MOVED -> script-exports.js : exporterChargesPDFMois
 
 /* --- Carburant export PDF avec HT/TVA/TTC --- */
 // MOVED -> script-carburant.js : exporterCarburantPDF
@@ -13715,42 +11027,13 @@ exporterPlanningSemainePDF = function() {
 };
 
 /* ===== PLANNING REWRITE ===== */
-function planningBuildEmployeeLabel(salarie) {
-  return getSalarieNomComplet(salarie, { includePoste: true });
-}
+// MOVED -> script-planning.js : planningBuildEmployeeLabel
 
-function planningFindEmployeeBySearch(value) {
-  var query = (value || '').trim().toLowerCase();
-  if (!query) return null;
-  return charger('salaries').find(function(s) {
-    return [
-      planningBuildEmployeeLabel(s),
-      s.nom,
-      s.prenom,
-      s.nomFamille,
-      s.poste,
-      s.numero
-    ].filter(Boolean).join(' ').toLowerCase().includes(query);
-  }) || null;
-}
+// MOVED -> script-planning.js : planningFindEmployeeBySearch
 
-function planningEscapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
+// MOVED -> script-planning.js : planningEscapeHtml
 
-function planningDateToLocalISO(date) {
-  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ].join('-');
-}
+// MOVED -> script-planning.js : planningDateToLocalISO
 
 function planningSyncSearchWithSelect(searchId, selectId) {
   var search = document.getElementById(searchId);
@@ -13772,170 +11055,19 @@ function planningSyncSearchWithSelect(searchId, selectId) {
   }
 }
 
-function planningResolveSelectedEmployee(searchId, selectId) {
-  var search = document.getElementById(searchId);
-  var select = document.getElementById(selectId);
-  if (!search || !select) return null;
-  var exact = (search.value || '').trim().toLowerCase();
-  var found = exact ? charger('salaries').find(function(s) {
-    return planningBuildEmployeeLabel(s).toLowerCase() === exact;
-  }) || null : null;
-  if (!found && exact) {
-    found = planningFindEmployeeBySearch(search.value) || null;
-  }
-  if (found) {
-    select.value = found.id;
-    search.value = planningBuildEmployeeLabel(found);
-    return found;
-  }
-  if (select.value) {
-    return charger('salaries').find(function(s) { return s.id === select.value; }) || null;
-  }
-  return null;
-}
+// MOVED -> script-planning.js : planningResolveSelectedEmployee
 
-function planningRenderEmployeeSuggestions(searchId, selectId, suggestionsId, onSelect) {
-  var search = document.getElementById(searchId);
-  var select = document.getElementById(selectId);
-  var suggestions = document.getElementById(suggestionsId);
-  if (!search || !select || !suggestions) return;
-  var query = (search.value || '').trim().toLowerCase();
-  if (document.activeElement !== search || query.length < 2) {
-    suggestions.innerHTML = '';
-    suggestions.style.display = 'none';
-    return;
-  }
-  var matches = charger('salaries').filter(function(s) {
-    return [
-      planningBuildEmployeeLabel(s),
-      s.nom,
-      s.prenom,
-      s.nomFamille,
-      s.poste,
-      s.numero
-    ].filter(Boolean).join(' ').toLowerCase().includes(query);
-  }).slice(0, 6);
-  if (!matches.length) {
-    suggestions.innerHTML = '';
-    suggestions.style.display = 'none';
-    return;
-  }
-  suggestions.innerHTML = matches.map(function(s) {
-    return '<button type="button" data-salarie-id="' + planningEscapeHtml(s.id) + '" style="display:block;width:100%;padding:10px 12px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--border);cursor:pointer;color:var(--text-primary)">'
-      + '<span style="display:block;font-weight:600">' + planningEscapeHtml(getSalarieNomComplet(s)) + '</span>'
-      + (s.poste ? '<span style="display:block;font-size:.78rem;color:var(--text-muted);margin-top:2px">' + planningEscapeHtml(s.poste) + '</span>' : '')
-      + '</button>';
-  }).join('');
-  suggestions.style.display = 'block';
-  Array.from(suggestions.querySelectorAll('[data-salarie-id]')).forEach(function(button) {
-    button.addEventListener('click', function() {
-      var salarie = charger('salaries').find(function(item) { return item.id === button.dataset.salarieId; });
-      if (!salarie) return;
-      select.value = salarie.id;
-      search.value = planningBuildEmployeeLabel(salarie);
-      suggestions.innerHTML = '';
-      suggestions.style.display = 'none';
-      if (typeof onSelect === 'function') onSelect(salarie);
-    });
-  });
-}
+// MOVED -> script-planning.js : planningRenderEmployeeSuggestions
 
-function planningRenderWeekState(className, title, detail, note) {
-  var extraHtml = arguments.length > 4 ? (arguments[4] || '') : '';
-  var cellAttrs = arguments.length > 5 ? (arguments[5] || '') : '';
-  return '<td' + (cellAttrs ? ' ' + cellAttrs : '') + '><div class="planning-week-state ' + className + '">' + '<span>' + title + '</span>' + (detail ? '<span class="planning-week-time">' + detail + '</span>' : '') + (note ? '<span class="planning-week-note">' + note + '</span>' : '') + extraHtml + '</div></td>';
-}
+// MOVED -> script-planning.js : planningRenderWeekState
 
-function planningGetWeekDates() {
-  var lundi = getLundiDeSemaine(_planningSemaineOffset);
-  var dates = [];
-  for (var i = 0; i < 7; i++) {
-    var d = new Date(lundi);
-    d.setDate(lundi.getDate() + i);
-    dates.push(d);
-  }
-  return { lundi: lundi, dates: dates, dimanche: dates[6] };
-}
+// MOVED -> script-planning.js : planningGetWeekDates
 
-function planningBuildDateArray(startIso, endIso) {
-  var dates = [];
-  if (!startIso || !endIso) return dates;
-  var cursor = new Date(startIso + 'T00:00:00');
-  var end = new Date(endIso + 'T00:00:00');
-  while (cursor <= end) {
-    dates.push(new Date(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return dates;
-}
+// MOVED -> script-planning.js : planningBuildDateArray
 
-function planningGetDisplayedPeriod() {
-  var mode = _planningPeriode.mode || 'semaine';
-  var range = getPeriodeRange(mode, _planningPeriode.offset);
-  if (mode === 'annee') {
-    var year = parseInt((range.debut || '').slice(0, 4), 10) || new Date().getFullYear();
-    return {
-      mode: mode,
-      range: range,
-      months: Array.from({ length: 12 }, function(_, idx) {
-        return {
-          index: idx,
-          year: year,
-          label: new Date(year, idx, 1).toLocaleDateString('fr-FR', { month: 'short' })
-        };
-      })
-    };
-  }
-  if (mode === 'mois') {
-    var dates = planningBuildDateArray(range.debut, range.fin);
-    var weeks = [];
-    dates.forEach(function(dateObj) {
-      var weekStart = getStartOfWeek(dateObj);
-      var weekKey = planningDateToLocalISO(weekStart);
-      var existing = weeks.find(function(item) { return item.key === weekKey; });
-      if (!existing) {
-        var weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + 6);
-        existing = {
-          key: weekKey,
-          start: weekStart,
-          end: weekEnd,
-          dates: [],
-          label: 'Sem. ' + getNumSemaine(weekStart),
-          meta: formatDateExport(weekStart).slice(0, 5) + ' → ' + formatDateExport(weekEnd).slice(0, 5)
-        };
-        weeks.push(existing);
-      }
-      existing.dates.push(dateObj);
-    });
-    return {
-      mode: mode,
-      range: range,
-      weeks: weeks
-    };
-  }
-  return {
-    mode: mode,
-    range: range,
-    dates: planningBuildDateArray(range.debut, range.fin)
-  };
-}
+// MOVED -> script-planning.js : planningGetDisplayedPeriod
 
-function reinitialiserFormulairePlanningRapide() {
-  ['absence-edit-id', 'absence-debut', 'absence-fin', 'absence-heure-debut', 'absence-heure-fin'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  var search = document.getElementById('absence-sal-search');
-  var select = document.getElementById('absence-sal');
-  if (search) search.value = '';
-  if (select) select.value = '';
-  var type = document.getElementById('absence-type');
-  if (type) type.value = 'travail';
-  var btn = document.getElementById('planning-submit-btn');
-  if (btn) btn.textContent = '+ Enregistrer';
-  toggleAbsenceTypeFields();
-}
+// MOVED -> script-planning.js : reinitialiserFormulairePlanningRapide
 
 toggleAbsenceTypeFields = function() {
   var type = document.getElementById('absence-type')?.value || 'travail';
@@ -15229,20 +12361,7 @@ window.__planningPeriodOnlyFinal = function() {
 
 window.__planningPeriodOnlyFinal();
 
-function planningPrepareEmployeeInput(searchId, suggestionsId) {
-  var search = document.getElementById(searchId);
-  var suggestions = document.getElementById(suggestionsId);
-  if (search) {
-    search.removeAttribute('list');
-    search.setAttribute('autocomplete', 'off');
-  }
-  var legacyDatalist = document.getElementById(searchId === 'absence-sal-search' ? 'absence-sal-datalist' : 'plan-salarie-datalist');
-  if (legacyDatalist) legacyDatalist.innerHTML = '';
-  if (suggestions) {
-    suggestions.innerHTML = '';
-    suggestions.style.display = 'none';
-  }
-}
+// MOVED -> script-planning.js : planningPrepareEmployeeInput
 
 peuplerAbsenceSal = function() {
   planningSyncSearchWithSelect('absence-sal-search', 'absence-sal');

@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-04-30-modular-v2';
+const CACHE_VERSION = 'mca-v2026-04-30-modular-v3';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -29,6 +29,13 @@ const CORE_ASSETS = [
   '/script-rentabilite.js',
   '/script-carburant.js',
   '/script-entretiens.js',
+  '/script-alertes.js',
+  '/script-stats.js',
+  '/script-paiements.js',
+  '/script-exports.js',
+  '/script-heures.js',
+  '/script-messages.js',
+  '/script-planning.js',
   '/clients-supabase-adapter.js',
   '/entity-supabase-adapter.js',
   '/vehicules-supabase-adapter.js',
