@@ -46,6 +46,8 @@
     if (key === 'agent_decisions') return false;
     // Phase 2.1 : clients sync via clients-supabase-adapter.js (table native public.clients)
     if (key === 'clients') return false;
+    // Phase 2.2 : vehicules sync via vehicules-supabase-adapter.js (table native public.vehicules)
+    if (key === 'vehicules') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     if (key.indexOf('msg_auto_') === 0) return false;
     return true;
