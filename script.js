@@ -23431,7 +23431,9 @@ genererRentabilitePDF = function() {
     if (!page) return;
     const grid = page.querySelector('.params-grid');
     if (!grid) return;
-    localStorage.setItem(LS_SECTION, sectionId);
+    if (localStorage.getItem(LS_SECTION) !== sectionId) {
+      localStorage.setItem(LS_SECTION, sectionId);
+    }
     page.querySelectorAll('.s29-nav-item').forEach(b => {
       b.classList.toggle('active', b.dataset.s29Target === sectionId);
     });

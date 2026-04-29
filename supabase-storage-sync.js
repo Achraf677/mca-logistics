@@ -40,6 +40,7 @@
     if (key === 'rentabilite_calculateur_v2') return false;
     if (key === 'delivpro_inspection_storage_cleanup_at') return false;
     if (key === 'backup_admin_last_export') return false;
+    if (key === 's29_section_active') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     if (key.indexOf('msg_auto_') === 0) return false;
     return true;
