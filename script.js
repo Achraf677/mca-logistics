@@ -11948,51 +11948,79 @@ function exporterHeuresPDF() {
 
 /* ===== MODIFIER VÉHICULE ===== */
 async function ouvrirEditVehicule(vehId) {
+  console.log('[ouvrirEditVehicule] appelé avec vehId =', vehId);
   try {
     const veh = charger('vehicules').find(v=>v.id===vehId);
-    if (!veh) { afficherToast('⚠️ Véhicule introuvable', 'error'); return; }
-    try { await actualiserVerrousEditionDistance(); } catch (_) {}
+    if (!veh) {
+      console.warn('[ouvrirEditVehicule] vehicule introuvable pour id', vehId);
+      afficherToast('⚠️ Véhicule introuvable (id ' + vehId + ')', 'error');
+      return;
+    }
+
+    // Skip le pull verrous distants : non critique, et peut hang si pb reseau.
+    // Le verrou local prendreVerrouEdition suffit a marquer le travail en cours.
+    try {
+      await Promise.race([
+        actualiserVerrousEditionDistance(),
+        new Promise(resolve => setTimeout(resolve, 1500))
+      ]);
+    } catch (_) {}
+
     const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
     if (!lockResult.ok) {
       afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
       return;
     }
+
     window._editVehId = vehId;
     const modal = document.getElementById('modal-vehicule');
-    if (!modal) { afficherToast('⚠️ Modal véhicule introuvable', 'error'); return; }
+    if (!modal) {
+      console.error('[ouvrirEditVehicule] DOM modal-vehicule introuvable');
+      afficherToast('⚠️ Modal véhicule introuvable dans la page', 'error');
+      return;
+    }
+
     if (typeof prefillCarteGriseFormUI === 'function') {
       try { prefillCarteGriseFormUI(veh); } catch (e) { console.warn('prefillCarteGriseFormUI:', e); }
     }
-    document.getElementById('veh-immat').value    = veh.immat||'';
-    document.getElementById('veh-modele').value   = veh.modele||'';
-    document.getElementById('veh-km').value       = calculerKilometrageVehiculeActuel(veh)||'';
-    document.getElementById('veh-conso').value    = veh.conso||'';
-    document.getElementById('veh-mode-acquisition').value = veh.modeAcquisition || 'achat';
-    document.getElementById('veh-date-acquisition').value = veh.dateAcquisition || '';
-    document.getElementById('veh-date-ct').value  = veh.dateCT||'';
-    if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = veh.dateCTDernier||'';
-    document.getElementById('veh-entretien-interval-km').value = veh.entretienIntervalKm || '';
-    document.getElementById('veh-entretien-interval-mois').value = veh.entretienIntervalMois || '';
-    hydraterFinanceVehiculeDansForm(veh);
-    var selTvaCarb = document.getElementById('veh-tva-carburant');
-    if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100;
-    const sv = document.getElementById('veh-salarie');
-    if (sv) sv.value = veh.salId||'';
-    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val != null ? val : ''); };
-    setVal('veh-genre', veh.genre);
-    setVal('veh-carburant', veh.carburant);
-    setVal('veh-ptac', veh.ptac);
-    setVal('veh-ptra', veh.ptra);
-    setVal('veh-essieux', veh.essieux);
-    setVal('veh-critair', veh.critAir);
+
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = (val != null ? val : '');
+    };
+
+    setVal('veh-immat',    veh.immat);
+    setVal('veh-modele',   veh.modele);
+    setVal('veh-km',       calculerKilometrageVehiculeActuel(veh));
+    setVal('veh-conso',    veh.conso);
+    setVal('veh-mode-acquisition',  veh.modeAcquisition || 'achat');
+    setVal('veh-date-acquisition',  veh.dateAcquisition);
+    setVal('veh-date-ct',  veh.dateCT);
+    setVal('veh-date-ct-dernier',   veh.dateCTDernier);
+    setVal('veh-entretien-interval-km',   veh.entretienIntervalKm);
+    setVal('veh-entretien-interval-mois', veh.entretienIntervalMois);
+
+    try { hydraterFinanceVehiculeDansForm(veh); } catch (e) { console.warn('hydraterFinance:', e); }
+
+    setVal('veh-tva-carburant', veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100);
+    setVal('veh-salarie',  veh.salId);
+    setVal('veh-genre',    veh.genre);
+    setVal('veh-carburant',veh.carburant);
+    setVal('veh-ptac',     veh.ptac);
+    setVal('veh-ptra',     veh.ptra);
+    setVal('veh-essieux',  veh.essieux);
+    setVal('veh-critair',  veh.critAir);
     setVal('veh-date-1immat', veh.date1Immat);
-    setVal('veh-vin', veh.vin);
+    setVal('veh-vin',      veh.vin);
     setVal('veh-carte-grise', veh.carteGrise);
+
     const assu = veh.assurance || {};
     setVal('veh-assurance-compagnie', assu.compagnie);
-    setVal('veh-assurance-numero', assu.numeroContrat);
-    setVal('veh-assurance-date-exp', assu.dateExpiration);
-    mettreAJourFormulaireVehicule();
+    setVal('veh-assurance-numero',    assu.numeroContrat);
+    setVal('veh-assurance-date-exp',  assu.dateExpiration);
+
+    try { mettreAJourFormulaireVehicule(); } catch (e) { console.warn('mettreAJourFormulaireVehicule:', e); }
+
     const titleEl = modal.querySelector('h3');
     const btnPrimary = modal.querySelector('.modal-footer .btn-primary');
     if (titleEl) titleEl.textContent = '✏️ Modifier le véhicule';
@@ -12000,9 +12028,12 @@ async function ouvrirEditVehicule(vehId) {
       btnPrimary.textContent = '✅ Enregistrer';
       btnPrimary.setAttribute('onclick', 'confirmerEditVehicule()');
     }
+
     if (typeof openModal === 'function') openModal('modal-vehicule');
     else modal.classList.add('open');
-    afficherAlerteVerrouModal('modal-vehicule', '');
+
+    try { afficherAlerteVerrouModal('modal-vehicule', ''); } catch (_) {}
+    console.log('[ouvrirEditVehicule] modal ouverte avec succes pour', veh.immat);
   } catch (err) {
     console.error('[ouvrirEditVehicule] erreur:', err);
     afficherToast('⚠️ Impossible d\'ouvrir la modification : ' + (err && err.message ? err.message : 'erreur inattendue'), 'error');
@@ -12074,6 +12105,7 @@ function confirmerEditVehicule() {
   afficherEntretiens();
   afficherToast('✅ Véhicule mis à jour');
 }
+window.confirmerEditVehicule = confirmerEditVehicule;
 
 /* ===== ALIAS EXPORTS ===== */
 function exporterRecapHeuresPDF() { exporterHeuresPDF(); }
