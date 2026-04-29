@@ -14,5 +14,9 @@ Thumbs.db
 dist/
 .wrangler/
 
+# Supabase CLI artifacts (linked-project, cli-latest cache)
+supabase/.temp/
+infra/supabase/.temp/
+
 # Logs
 *.log
