@@ -1,8 +1,8 @@
 (function () {
   var STORAGE_SCOPE = 'global';
-  var FLUSH_DELAY_MS = 15;
-  var FAST_FLUSH_DELAY_MS = 0;
-  var POLL_INTERVAL_MS = 120000;
+  var FLUSH_DELAY_MS = 500;
+  var FAST_FLUSH_DELAY_MS = 200;
+  var POLL_INTERVAL_MS = 300000;
   var RETRY_DELAY_MS = 600;
   var suppressLocalSync = false;
   var pendingChanges = {};
@@ -307,7 +307,6 @@
       pullLatest().catch(function () {});
     }
 
-    window.addEventListener('focus', pullSoon);
     document.addEventListener('visibilitychange', function () {
       if (document.visibilityState === 'visible') pullSoon();
       if (document.visibilityState === 'hidden') flushPending().catch(function () {});
