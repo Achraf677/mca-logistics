@@ -28,11 +28,11 @@
   // Pour activer, mettre votre DSN ici (recupere depuis sentry.io > Project Settings > Client Keys).
   // Format : https://<key>@<org>.ingest.sentry.io/<project-id>
   // Ce DSN est PUBLIC (cote client) et c'est normal — Sentry est concu pour ca.
-  var SENTRY_DSN = '';
+  var SENTRY_DSN = 'https://8bea3bf0802736fd11390c85471aa446@o4511305319907328.ingest.de.sentry.io/4511305336029264';
   var SENTRY_ENV = (typeof location !== 'undefined' && location.hostname === 'localhost')
     ? 'development'
     : 'production';
-  var SENTRY_RELEASE = '20260429-13'; // bump avec le cache version
+  var SENTRY_RELEASE = '20260429-15'; // bump avec le cache version
 
   // ============================================================
   // Mode debug (logs categorises togglables sans deploy)
