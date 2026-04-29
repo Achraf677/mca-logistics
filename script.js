@@ -2271,12 +2271,9 @@ function consommerTicketAccesOnglet() {
 }
 
 function notifierMajAutreAdmin(detail) {
-  if (!detail || !detail.externalActor) return;
-  if (sessionStorage.getItem('role') !== 'admin') return;
-  const updatedAt = detail.updatedAt || '';
-  if (!updatedAt || updatedAt === derniereAlerteSynchroAdmin) return;
-  derniereAlerteSynchroAdmin = updatedAt;
-  afficherToast('🔄 Un autre admin a mis à jour les données. La page a été resynchronisée.', 'info');
+  // Toast retire : avec la sync realtime native (Phase 2.x), les changements
+  // sont propages instantanement et silencieusement. Plus besoin de notifier.
+  return;
 }
 
 function lancerWarmupAdmin() {
