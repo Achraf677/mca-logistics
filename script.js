@@ -10929,6 +10929,9 @@ function logModifLivraison(livId, champ, ancienne, nouvelle) {
 }
 
 function nettoyerHistoriqueModifsLivraisons() {
+  // Throttle 1×/jour : sinon chaque DOMContentLoaded déclenche N removeItem sync = rafale egress au boot.
+  const dernier = parseInt(localStorage.getItem('delivpro_modifs_cleanup_at') || '0', 10) || 0;
+  if (Date.now() - dernier < 24 * 60 * 60 * 1000) return;
   const limite = Date.now() - (30 * 24 * 60 * 60 * 1000);
   const aSupprimer = [];
   for (let i = 0; i < localStorage.length; i++) {
@@ -10943,6 +10946,7 @@ function nettoyerHistoriqueModifsLivraisons() {
     }
   }
   aSupprimer.forEach(cle => localStorage.removeItem(cle));
+  localStorage.setItem('delivpro_modifs_cleanup_at', String(Date.now()));
 }
 
 function afficherHistoriqueModifs(livId) {
@@ -21701,7 +21705,8 @@ genererRentabilitePDF = function() {
       if (!getOption('auto_facture_livraison', false)) return;
       const livs = load(LS.livraisons);
       const factures = load(LS.factures);
-      let compteur = 0;
+      let succes = 0;
+      let dirty = false;
       livs.forEach(l => {
         if (l.statut !== 'livre' && l.statut !== 'livrée' && l.statut !== 'termine') return;
         if (l.factureId || factures.find(f => f.livId === l.id && f.statut !== 'annulée')) return;
@@ -21709,13 +21714,16 @@ genererRentabilitePDF = function() {
         try {
           window.genererFactureLivraison(l.id);
           l.__s24AutoFactAttempted = true;
-          compteur++;
-        } catch(e) {}
+          dirty = true;
+          succes++;
+        } catch(e) {
+          // Marquer "tenté" même en cas d'échec pour stopper le retry loop infini (sinon spam egress 60s).
+          l.__s24AutoFactAttempted = true;
+          dirty = true;
+        }
       });
-      if (compteur) {
-        save(LS.livraisons, livs);
-        toast('📄 ' + compteur + ' facture(s) auto-générée(s) depuis livraisons clôturées', 'success');
-      }
+      if (dirty) save(LS.livraisons, livs);
+      if (succes) toast('📄 ' + succes + ' facture(s) auto-générée(s) depuis livraisons clôturées', 'success');
     }, 60000);
   }
 

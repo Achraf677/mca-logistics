@@ -39,11 +39,139 @@
     if (key === 'logo_entreprise') return false;
     if (key === 'rentabilite_calculateur_v2') return false;
     if (key === 'delivpro_inspection_storage_cleanup_at') return false;
+    if (key === 'delivpro_modifs_cleanup_at') return false;
     if (key === 'backup_admin_last_export') return false;
     if (key === 's29_section_active') return false;
+    if (key === 'audit_log') return false;
+    if (key === 'agent_decisions') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     if (key.indexOf('msg_auto_') === 0) return false;
     return true;
+  }
+
+  // Champs base64 lourds à NE PAS pousser au sync. Les fichiers restent en
+  // localStorage local (uploader sur cet appareil les voit), mais ne consomment
+  // pas d'egress Supabase. Multi-device file sync = perdu temporairement
+  // (fix long terme = migration Supabase Storage).
+  function sanitizeForSync(key, value) {
+    if (typeof value !== 'string' || !value || value.charAt(0) !== '[' && value.charAt(0) !== '{') return value;
+    try {
+      var parsed = JSON.parse(value);
+      var changed = false;
+
+      if (key === 'vehicules' && Array.isArray(parsed)) {
+        parsed.forEach(function (v) {
+          if (v && v.carteGriseFichier) { delete v.carteGriseFichier; changed = true; }
+        });
+      } else if (key === 'salaries' && Array.isArray(parsed)) {
+        parsed.forEach(function (s) {
+          if (s && s.docs && typeof s.docs === 'object') {
+            Object.keys(s.docs).forEach(function (t) {
+              if (s.docs[t] && s.docs[t].data) { delete s.docs[t].data; changed = true; }
+            });
+          }
+        });
+      } else if (key === 'carburant' && Array.isArray(parsed)) {
+        parsed.forEach(function (c) {
+          if (c && c.photoRecu) { delete c.photoRecu; changed = true; }
+        });
+      } else if (key.indexOf('carb_sal_') === 0 && Array.isArray(parsed)) {
+        parsed.forEach(function (c) {
+          if (c && c.photoRecu) { delete c.photoRecu; changed = true; }
+        });
+      } else if (key.indexOf('messages_') === 0 && Array.isArray(parsed)) {
+        parsed.forEach(function (m) {
+          if (m && m.photo) { delete m.photo; changed = true; }
+        });
+      } else if (key === 'inspections' && Array.isArray(parsed)) {
+        parsed.forEach(function (ins) {
+          if (ins && Array.isArray(ins.photos)) {
+            // Si photos sont des URL Storage (http*), on garde. Si base64 (data:*), on strip.
+            var stripped = ins.photos.filter(function (p) {
+              return typeof p === 'string' && p.indexOf('data:') !== 0;
+            });
+            if (stripped.length !== ins.photos.length) { ins.photos = stripped; changed = true; }
+          }
+        });
+      }
+
+      return changed ? JSON.stringify(parsed) : value;
+    } catch (_) {
+      return value;
+    }
+  }
+
+  // Quand on reçoit un snapshot remote (potentiellement strippé), on merge avec
+  // ce qu'on a en local : si remote n'a pas le champ lourd mais local oui, on
+  // garde le local. Évite que le pull écrase un fichier local par une version sans.
+  function mergeWithLocal(key, remoteString) {
+    var localString = window.localStorage.getItem(key);
+    if (!localString) return remoteString;
+    try {
+      var remote = JSON.parse(remoteString);
+      var local = JSON.parse(localString);
+      if (!Array.isArray(remote) || !Array.isArray(local)) return remoteString;
+
+      var localById = {};
+      local.forEach(function (item) { if (item && item.id != null) localById[item.id] = item; });
+
+      var changed = false;
+
+      if (key === 'vehicules') {
+        remote.forEach(function (rv) {
+          var lv = localById[rv && rv.id];
+          if (lv && lv.carteGriseFichier && !rv.carteGriseFichier) {
+            rv.carteGriseFichier = lv.carteGriseFichier;
+            if (lv.carteGriseFichierType) rv.carteGriseFichierType = lv.carteGriseFichierType;
+            if (lv.carteGriseFichierNom) rv.carteGriseFichierNom = lv.carteGriseFichierNom;
+            changed = true;
+          }
+        });
+      } else if (key === 'salaries') {
+        remote.forEach(function (rs) {
+          var ls = localById[rs && rs.id];
+          if (ls && ls.docs && typeof ls.docs === 'object') {
+            if (!rs.docs || typeof rs.docs !== 'object') rs.docs = {};
+            Object.keys(ls.docs).forEach(function (t) {
+              var ld = ls.docs[t];
+              if (ld && ld.data) {
+                if (!rs.docs[t]) rs.docs[t] = { data: ld.data, type: ld.type, nom: ld.nom };
+                else if (!rs.docs[t].data) { rs.docs[t].data = ld.data; if (ld.type) rs.docs[t].type = ld.type; if (ld.nom) rs.docs[t].nom = ld.nom; }
+                changed = true;
+              }
+            });
+          }
+        });
+      } else if (key === 'carburant' || key.indexOf('carb_sal_') === 0) {
+        remote.forEach(function (rc) {
+          var lc = localById[rc && rc.id];
+          if (lc && lc.photoRecu && !rc.photoRecu) { rc.photoRecu = lc.photoRecu; changed = true; }
+        });
+      } else if (key.indexOf('messages_') === 0) {
+        remote.forEach(function (rm) {
+          var lm = localById[rm && rm.id];
+          if (lm && lm.photo && !rm.photo) { rm.photo = lm.photo; changed = true; }
+        });
+      } else if (key === 'inspections') {
+        remote.forEach(function (ri) {
+          var li = localById[ri && ri.id];
+          if (li && Array.isArray(li.photos)) {
+            var localBase64 = li.photos.filter(function (p) { return typeof p === 'string' && p.indexOf('data:') === 0; });
+            if (localBase64.length) {
+              if (!Array.isArray(ri.photos)) ri.photos = [];
+              localBase64.forEach(function (p) { if (ri.photos.indexOf(p) < 0) ri.photos.push(p); });
+              changed = true;
+            }
+          }
+        });
+      } else {
+        return remoteString;
+      }
+
+      return changed ? JSON.stringify(remote) : remoteString;
+    } catch (_) {
+      return remoteString;
+    }
   }
 
   function isPriorityKey(key) {
@@ -71,7 +199,7 @@
     for (var i = 0; i < window.localStorage.length; i += 1) {
       var key = window.localStorage.key(i);
       if (!isEligibleKey(key)) continue;
-      snapshot[key] = window.localStorage.getItem(key);
+      snapshot[key] = sanitizeForSync(key, window.localStorage.getItem(key));
     }
     return snapshot;
   }
@@ -108,6 +236,9 @@
         var nextValue = data[key];
         if (nextValue == null) return;
         var stringValue = typeof nextValue === 'string' ? nextValue : JSON.stringify(nextValue);
+        // Si le remote est strippé (sans champs base64 lourds) et que le local a ces champs,
+        // on les préserve. Évite que le pull écrase un fichier local par une version sans.
+        stringValue = mergeWithLocal(key, stringValue);
         var previousValue = window.localStorage.getItem(key);
         if (previousValue === stringValue) return;
         originalSetItem.call(window.localStorage, key, stringValue);
@@ -262,7 +393,7 @@
   function queueSet(key, value) {
     if (!initialized || suppressLocalSync || !isEligibleKey(key)) return;
     delete pendingRemovals[key];
-    pendingChanges[key] = String(value);
+    pendingChanges[key] = sanitizeForSync(key, String(value));
     scheduleFlush(isPriorityKey(key) ? FAST_FLUSH_DELAY_MS : FLUSH_DELAY_MS);
   }
 
