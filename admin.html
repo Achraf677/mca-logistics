@@ -32,6 +32,7 @@
     .nav-item[data-page="entretiens"],
     .nav-item[data-page="inspections"],
     .nav-item[data-page="charges"],
+    .nav-item[data-page="tva"],
     .nav-item[data-page="rentabilite"],
     .nav-item[data-page="statistiques"] { display: none; }
   </style>
@@ -68,6 +69,7 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
+          <a href="#" class="nav-item" data-page="fournisseurs"><span class="nav-icon">🏭</span><span class="nav-label">Fournisseurs</span></a>
         </div>
       </div>
 
@@ -103,6 +105,7 @@
         </button>
         <div class="nav-section-content">
           <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
+          <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
           <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
           <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
         </div>
@@ -128,7 +131,6 @@
     <header class="topbar">
       <button class="btn-menu-mobile" id="menuMobile">☰</button>
       <div class="topbar-branding" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
-        <span class="topbar-logo-mark" id="topbar-brand-mark">🚐</span>
         <span class="topbar-logo-name" id="topbar-brand-name">MCA Logistics</span>
       </div>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
@@ -190,12 +192,10 @@
           <div class="kpi-value" id="kpi-ca-mois">0 €</div>
           <div class="kpi-sub" id="kpi-ca-mois-ttc"></div>
           <div id="kpi-objectif-pct"></div>
-          <div id="kpi-comp-ca" style="font-size:.72rem;color:#7c8299;margin-top:4px"></div>
         </div>
         <div class="kpi-card blue">
           <div class="kpi-label">Livraisons ce mois</div>
           <div class="kpi-value" id="kpi-livraisons-mois">0</div>
-          <div id="kpi-comp-liv" style="font-size:.72rem;color:#7c8299;margin-top:4px"></div>
           <div id="kpi-objectif-liv-pct"></div>
         </div>
         <div class="kpi-card" style="border-top:3px solid #e67e22">
@@ -217,7 +217,7 @@
           <div class="stat-pill-value" id="kpi-solde">0 €</div>
           <div class="stat-pill-sub">voir relances →</div>
         </div>
-        <div class="stat-pill stat-pill-orange">
+        <div class="stat-pill stat-pill-orange" style="cursor:pointer" onclick="naviguerVers('tva')" title="Aller à l'onglet TVA">
           <div class="stat-pill-label">🧾 TVA à reverser</div>
           <div class="stat-pill-value" id="kpi-tva-solde">0 €</div>
           <div class="stat-pill-sub" id="kpi-tva-detail"></div>
@@ -272,7 +272,7 @@
             <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Normal">☰</button>
             <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Compact">≡</button>
           </div>
-          <button class="btn-export" onclick="exporterLivraisons()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterLivraisons()">📚 Historique des livraisons</button>
           <button class="btn-rapport" onclick="genererRapportMensuelPeriode()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
         </div>
@@ -294,7 +294,7 @@
             <div id="liv-periode-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserLivPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserLivPeriode()" style="padding:5px 12px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="navLivPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -358,14 +358,49 @@
         <h2>🧑‍💼 Carnet Clients</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">📚 Historique clients</button>
+          <button class="btn-rapport" onclick="genererRapportClients()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
         </div>
+      </div>
+      <div class="filters filters-clients" style="margin-bottom:16px">
+        <div class="searchbar">
+          <span class="searchbar-icon">🔎</span>
+          <input type="search" id="filtre-cl-search" placeholder="Rechercher un client, un nom, une ville, un SIREN..." oninput="afficherClientsDashboard()" />
+        </div>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-cl-search').value='';afficherClientsDashboard()">Réinitialiser</button>
       </div>
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
-            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Activité</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total CA</th><th>Actions</th></tr></thead>
             <tbody id="tb-clients"><tr><td colspan="6" class="empty-row">Aucun client enregistré</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOURNISSEURS — miroir de Clients -->
+    <section class="page" id="page-fournisseurs">
+      <div class="page-actions">
+        <h2>🏭 Carnet Fournisseurs</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterHistoriqueFournisseursCSV()">📚 Historique fournisseurs</button>
+          <button class="btn-rapport" onclick="genererRapportFournisseurs()">📄 Rapport</button>
+          <button class="btn-primary" onclick="resetFormulaireFournisseur();openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
+        </div>
+      </div>
+      <div class="filters filters-fournisseurs" style="margin-bottom:16px">
+        <div class="searchbar">
+          <span class="searchbar-icon">🔎</span>
+          <input type="search" id="filtre-frn-search" placeholder="Rechercher un fournisseur, un nom, une ville, un SIREN..." oninput="afficherFournisseursDashboard()" />
+        </div>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-frn-search').value='';afficherFournisseursDashboard()">Réinitialiser</button>
+      </div>
+      <div class="card">
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total dépensé</th><th>Actions</th></tr></thead>
+            <tbody id="tb-fournisseurs"><tr><td colspan="6" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -388,12 +423,21 @@
         <select id="filtre-veh-salarie" onchange="afficherVehicules()">
           <option value="">Tous les véhicules</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-veh-salarie').value='';afficherVehicules()">Réinitialiser</button>
+        <select id="filtre-veh-carburant" onchange="afficherVehicules()">
+          <option value="">Tous les carburants</option>
+          <option value="diesel">⛽ Diesel/Gazole</option>
+          <option value="essence">⛽ Essence</option>
+          <option value="gnv">🌿 GNV/BioGNV</option>
+          <option value="electrique">⚡ Électrique</option>
+          <option value="hybride">🔋 Hybride</option>
+          <option value="hydrogene">💧 Hydrogène</option>
+        </select>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-veh-salarie').value='';document.getElementById('filtre-veh-carburant').value='';document.getElementById('filtre-veh-search').value='';afficherVehicules()">Réinitialiser</button>
       </div>
       <div class="card table-card vehicules-table-card">
         <div class="table-wrapper">
           <table class="data-table vehicules-table">
-            <thead><tr><th>Photo</th><th>Immatriculation</th><th>Modèle</th><th>Kilométrage</th><th>Acquisition</th><th>Conso (réelle)</th><th>Contrôle Tech.</th><th>Salarié affecté</th><th>Finances</th><th>Dernier entretien</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Immatriculation</th><th>Modèle</th><th>Kilométrage</th><th>Acquisition</th><th>Conso (réelle)</th><th>Contrôle Tech.</th><th>Finances</th><th>Carburant</th><th>Salarié affecté</th><th>Dernier entretien</th><th>Actions</th></tr></thead>
             <tbody id="tb-vehicules"><tr><td colspan="11" class="empty-row">Aucun véhicule</td></tr></tbody>
           </table>
         </div>
@@ -422,7 +466,7 @@
           </div>
           <div class="nav-periode-center"><div id="carb-mois-label" style="font-size:.95rem;font-weight:700"></div><div id="carb-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="padding:5px 12px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="navCarburantPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -433,11 +477,17 @@
         <div class="kpi-card blue"><div class="kpi-label">Prix moyen / litre</div><div class="kpi-value" id="kpi-prix-litre">0 €</div><div class="kpi-sub" id="kpi-prix-litre-detail"></div></div>
       </div>
       <div class="filters mt-20">
-        <select id="filtre-carb-type" onchange="afficherCarburant()">
-          <option value="">Tout carburant</option><option value="gasoil">⛽ Gasoil</option><option value="essence">🟢 Essence</option>
-        </select>
         <select id="filtre-carb-vehicule" onchange="afficherCarburant()">
           <option value="">Tous les véhicules</option>
+        </select>
+        <select id="filtre-carb-type" onchange="afficherCarburant()">
+          <option value="">Tous les carburants</option>
+          <option value="diesel">⛽ Diesel/Gazole</option>
+          <option value="essence">🟢 Essence</option>
+          <option value="gnv">🌿 GNV/BioGNV</option>
+          <option value="electrique">⚡ Électrique</option>
+          <option value="hybride">🔋 Hybride</option>
+          <option value="hydrogene">💧 Hydrogène</option>
         </select>
         <button class="btn-secondary" onclick="resetFiltresCarburant()">Réinitialiser</button>
       </div>
@@ -648,7 +698,7 @@
             <div id="stats-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserStatsPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserStatsPeriode()" style="padding:5px 12px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="navStatsPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -707,6 +757,29 @@
             </div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" /></div>
           </div>
+          <!-- Documents primaires : permis, carte ID, IBAN, carte vitale -->
+          <div class="form-grid" style="margin-top:14px">
+            <div class="form-group">
+              <label>📄 Permis de conduire (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-permis"><span id="nsal-doc-permis-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-permis" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'permis')" />
+            </div>
+            <div class="form-group">
+              <label>🪪 Carte d'identité (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-cni"><span id="nsal-doc-cni-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-cni" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'cni')" />
+            </div>
+            <div class="form-group">
+              <label>🏦 IBAN (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-iban"><span id="nsal-doc-iban-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-iban" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'iban')" />
+            </div>
+            <div class="form-group">
+              <label>💳 Carte vitale (PDF / image)</label>
+              <label class="file-upload-button" for="nsal-doc-vitale"><span id="nsal-doc-vitale-label">📎 Choisir un fichier</span></label>
+              <input type="file" id="nsal-doc-vitale" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'vitale')" />
+            </div>
+          </div>
           <!-- Suivi médical (R.4624-10 Code travail — visite d'embauche obligatoire tout salarié) -->
           <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
             <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">
@@ -724,6 +797,11 @@
                   </select>
                 </div>
                 <div class="form-group"><label>Date prochaine visite</label><input type="date" id="nsal-visite-date-exp" /></div>
+                <div class="form-group">
+                  <label>📄 Réponse médecine du travail (PDF)</label>
+                  <label class="file-upload-button" for="nsal-doc-medecine"><span id="nsal-doc-medecine-label">📎 Choisir un fichier</span></label>
+                  <input type="file" id="nsal-doc-medecine" accept="application/pdf,image/*" style="display:none" onchange="uploaderDocSalarie(this,'medecine')" />
+                </div>
               </div>
             </div>
           </details>
@@ -799,6 +877,78 @@
         </div>
       </div>
     </section>
+
+    <!-- TVA -->
+    <section class="page" id="page-tva">
+      <div class="page-actions"><h2>🧾 Récapitulatif TVA</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterTvaCSV()">📥 CSV</button>
+          <button class="btn-rapport" onclick="exporterTvaPDF()">📄 Rapport TVA</button>
+        </div>
+      </div>
+
+      <!-- Navigation période -->
+      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+        <div class="nav-periode-bar">
+          <div class="nav-periode-left">
+            <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)">
+              <option value="jour">Par jour</option>
+              <option value="semaine">Par semaine</option>
+              <option value="mois" selected>Par mois</option>
+              <option value="annee">Par année</option>
+            </select>
+            <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="padding:5px 12px">Précédent</button>
+          </div>
+          <div class="nav-periode-center"><div id="tva-mois-label" style="font-size:1rem;font-weight:700"></div><div id="tva-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
+          <div class="nav-periode-right">
+            <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="padding:5px 12px">Aujourd'hui</button>
+            <button class="btn-secondary" onclick="navTvaPeriode(1)" style="padding:5px 12px">Suivant</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPIs TVA -->
+      <div class="kpi-grid">
+        <div class="kpi-card green"><div class="kpi-label">TVA collectée (sur ventes)</div><div class="kpi-value" id="tva-collectee">0 €</div></div>
+        <div class="kpi-card orange"><div class="kpi-label">TVA déductible (sur achats)</div><div class="kpi-value" id="tva-deductible">0 €</div></div>
+      </div>
+
+      <div class="card mt-20">
+        <div class="modal-body" id="tva-mode-info"></div>
+      </div>
+
+      <!-- TVA Collectée détail -->
+      <div class="card mt-20">
+        <div class="card-header"><h2 id="tva-collectee-title">📤 TVA Collectée</h2></div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
+            <tbody id="tb-tva-collectee"></tbody>
+          </table>
+        </div>
+        <div class="modal-body" id="tva-non-exigible-info" style="padding-top:0"></div>
+      </div>
+
+      <!-- TVA Déductible détail -->
+      <div class="card mt-20">
+        <div class="card-header"><h2 id="tva-deductible-title">📥 TVA Déductible (charges, carburant, entretiens)</h2></div>
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
+            <tbody id="tb-tva-deductible"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Solde -->
+      <div class="card mt-20" id="tva-solde-card">
+        <div class="card-header">
+          <h2>📊 Solde TVA du mois</h2>
+        </div>
+        <div class="modal-body" id="tva-solde-detail"></div>
+      </div>
+    </section>
+
     <!-- PARAMÈTRES -->
     <section class="page" id="page-parametres">
       <div class="page-actions"><h2>⚙️ Paramètres</h2></div>
@@ -1070,7 +1220,7 @@
       <div class="page-actions"><h2>💸 Charges</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="font-size:.88rem;color:var(--text-muted)">Total : <strong id="charges-total-mois">0 €</strong></span>
-          <button class="btn-export" onclick="exporterCharges()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterCharges()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterChargesPDFMois()">📄 Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalCharge()">+ Nouvelle charge</button>
         </div>
@@ -1089,7 +1239,7 @@
           </div>
           <div class="nav-periode-center"><div id="charges-mois-label" style="font-size:.95rem;font-weight:700"></div><div id="charges-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserChargesPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserChargesPeriode()" style="padding:5px 12px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="navChargesPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -1127,7 +1277,29 @@
 
     <!-- INCIDENTS -->
     <section class="page" id="page-incidents">
-      <div class="page-actions"><h2>🚨 Incidents / Réclamations</h2><button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button></div>
+      <div class="page-actions">
+        <h2>🚨 Incidents / Réclamations</h2>
+        <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
+      </div>
+      <div class="filters" style="margin-bottom:16px">
+        <div class="searchbar">
+          <span class="searchbar-icon">🔎</span>
+          <input type="search" id="filtre-inc-search" placeholder="Rechercher un client, chauffeur, description, n° livraison..." oninput="afficherIncidents()" />
+        </div>
+        <select id="filtre-inc-gravite" onchange="afficherIncidents()">
+          <option value="">Toutes gravités</option>
+          <option value="faible">🟢 Faible</option>
+          <option value="moyen">🟠 Moyen</option>
+          <option value="grave">🔴 Grave</option>
+        </select>
+        <select id="filtre-inc-statut" onchange="afficherIncidents()">
+          <option value="">Tous statuts</option>
+          <option value="ouvert">🔴 Ouvert</option>
+          <option value="encours">🟡 En cours</option>
+          <option value="traite">✅ Traité</option>
+        </select>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-inc-search').value='';document.getElementById('filtre-inc-gravite').value='';document.getElementById('filtre-inc-statut').value='';afficherIncidents()">Réinitialiser</button>
+      </div>
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table">
@@ -1142,7 +1314,7 @@
     <section class="page" id="page-entretiens">
       <div class="page-actions"><h2>🔧 Carnet d'entretien</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn-export" onclick="exporterEntretiens()">📥 CSV</button>
+          <button class="btn-secondary" onclick="exporterEntretiens()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterEntretiensPDF()">📄 Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Ajouter entretien</button>
         </div>
@@ -1161,7 +1333,7 @@
           </div>
           <div class="nav-periode-center"><div id="entr-mois-label" style="font-size:.95rem;font-weight:700"></div><div id="entr-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="padding:5px 12px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="navEntretiensPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -1197,7 +1369,7 @@
     <section class="page" id="page-heures">
       <div class="page-actions"><h2>⏱️ Heures & Km</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn-export" onclick="exporterRecapHeures()">&#128229; CSV</button>
+          <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
           <div class="inline-dropdown" id="heures-rapports-menu">
             <button class="btn-rapport" type="button" onclick="toggleHeuresRapportsMenu(event)">&#128196; Rapports &#9662;</button>
             <div class="inline-dropdown-menu">
@@ -1226,7 +1398,7 @@
             <div id="heures-semaine-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="padding:5px 12px">Aujourd\'hui</button>
             <button class="btn-secondary" id="heures-next-btn" onclick="naviguerHeuresPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -1239,25 +1411,26 @@
         </div>
       </div>
 
-      <!-- Compteur d'heures -->
-      <div class="card">
-        <div class="card-header"><h2>⏱️ Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
-            <tbody id="tb-heures"><tr><td colspan="6" class="empty-row">Aucun salarié</td></tr></tbody>
-          </table>
+      <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
+      <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
+        <div class="card">
+          <div class="card-header"><h2>⏱️ Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
+              <tbody id="tb-heures"><tr><td colspan="6" class="empty-row">Aucun salarié</td></tr></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <!-- Relevés kilométriques -->
-      <div class="card mt-20">
-        <div class="card-header"><h2>🛣️ Relevés kilométriques (saisis par les salariés)</h2></div>
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
-            <tbody id="tb-releve-km"><tr><td colspan="7" class="empty-row">Aucun relevé km</td></tr></tbody>
-          </table>
+        <div class="card">
+          <div class="card-header"><h2>🛣️ Relevés kilométriques</h2></div>
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
+              <tbody id="tb-releve-km"><tr><td colspan="7" class="empty-row">Aucun relevé km</td></tr></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </section>
@@ -1268,7 +1441,7 @@
         <h2>🗓️ Calendrier opérationnel</h2>
         <div class="page-actions-toolbar">
           <button class="btn-secondary" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
-          <button class="btn-rapport" onclick="window.cal16?.imprimer()">🖨️ Imprimer</button>
+          <button class="btn-rapport" onclick="window.cal16?.imprimer()">📄 Rapport</button>
         </div>
       </div>
 
@@ -1288,7 +1461,7 @@
             <div id="cal16-sub" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="window.cal16?.aujourdhui()" style="padding:6px 14px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="window.cal16?.aujourdhui()" style="padding:6px 14px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" style="padding:6px 14px">Suivant</button>
           </div>
         </div>
@@ -1299,7 +1472,6 @@
         <aside class="cal16-sidebar card">
           <h3 style="margin:0 0 10px;font-size:1rem">🎛️ Filtres</h3>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
-          <label class="cal16-filter"><input type="checkbox" data-cal-filter="factures" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fac"></span> Factures émises</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="paiements" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-pai"></span> Paiements</label>
@@ -1309,14 +1481,10 @@
           <h3 style="margin:0 0 10px;font-size:1rem">📊 Mois en cours</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">📦 Livs</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
-            <div class="cal16-kpi"><div class="cal16-kpi-lbl">📄 Facts</div><div class="cal16-kpi-val" id="cal16-kpi-fac">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">⏰ Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">💰 Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
           </div>
 
-          <div class="cal16-help">
-            <strong>💡 Astuce</strong> : glisse une livraison sur un autre jour pour la déplacer.
-          </div>
         </aside>
 
         <!-- Grid calendrier -->
@@ -1352,7 +1520,7 @@
             <div id="planning-semaine-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()" style="padding:6px 14px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()" style="padding:6px 14px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="naviguerPlanningPeriode(1)" style="padding:6px 14px">Suivant</button>
           </div>
         </div>
@@ -1496,7 +1664,7 @@
             <div id="insp-semaine-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
           </div>
           <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()" style="padding:5px 12px">Réinitialiser</button>
+            <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()" style="padding:5px 12px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="navInspectionsPeriode(1)" style="padding:5px 12px">Suivant</button>
           </div>
         </div>
@@ -1523,10 +1691,6 @@
     <div class="modal modal-large modal-livraison-enriched">
       <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
-        <div class="fp-progress" id="liv-progress">
-          <div class="fp-progress-bar"><div class="fp-progress-fill" id="liv-progress-fill" style="width:0%"></div></div>
-          <div class="fp-progress-label"><span id="liv-progress-count">0</span> / 12 champs renseignés · <span id="liv-progress-pct">0%</span></div>
-        </div>
 
             <section class="fp-section fp-section-compact">
               <h4 class="fp-section-title">🗺️ Informations générales</h4>
@@ -1684,7 +1848,6 @@
               <option value="sante">⚕️ Santé / pharma</option>
               <option value="public">🏛️ Public / collectivité</option>
               <option value="evenement">🎪 Événementiel</option>
-              <option value="particulier">🙋 Particulier</option>
               <option value="autre">📝 Autre</option>
             </select>
           </div>
@@ -1697,28 +1860,20 @@
           <div class="form-group"><label>Ville</label><input type="text" id="cl-ville" placeholder="Paris" /></div>
         </div>
         <div id="cl-champs-pro" class="client-champs-pro">
-          <div class="form-section-title" style="margin-top:16px">🏢 Informations professionnelles</div>
           <div class="form-grid">
             <div class="form-group"><label>SIREN</label><input type="text" id="cl-siren" placeholder="9 chiffres" maxlength="9" oninput="window.detecterDoublonsClient && window.detecterDoublonsClient(false)" /></div>
             <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="cl-tva-intra" placeholder="FR + 11 chiffres" /></div>
-          </div>
-        </div>
-        <div class="form-section-title" style="margin-top:16px">💳 Paiement & Comptabilité</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Délai paiement (jours) *</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
-          <div class="form-group"><label>Mode paiement préféré</label>
-            <select id="cl-mode-paiement">
-              <option value="virement">Virement</option>
-              <option value="prelevement">Prélèvement SEPA</option>
-              <option value="cb">Carte bancaire</option>
-              <option value="cheque">Chèque</option>
-              <option value="especes">Espèces</option>
-            </select>
-          </div>
-          <div class="form-group"><label>IBAN (optionnel)</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
-          <div class="form-group">
-            <label>N° compte client (compta) *</label>
-            <input type="text" id="cl-compte-compta" placeholder="411000" />
+            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="cl-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+            <div class="form-group"><label>Mode paiement préféré</label>
+              <select id="cl-mode-paiement">
+                <option value="virement">Virement</option>
+                <option value="prelevement">Prélèvement SEPA</option>
+                <option value="cb">Carte bancaire</option>
+                <option value="cheque">Chèque</option>
+                <option value="especes">Espèces</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>IBAN</label><input type="text" id="cl-iban" placeholder="FR76 …" /></div>
           </div>
         </div>
         <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="cl-notes" rows="2" placeholder="Remarques, préférences, historique particulier..."></textarea></div>
@@ -1759,7 +1914,6 @@
               <option value="sante">⚕️ Santé / pharma</option>
               <option value="public">🏛️ Public / collectivité</option>
               <option value="evenement">🎪 Événementiel</option>
-              <option value="particulier">🙋 Particulier</option>
               <option value="autre">📝 Autre</option>
             </select>
           </div>
@@ -1816,6 +1970,133 @@
       </div>
     </div>
   </div>
+
+  <!-- Nouveau fournisseur (miroir de modal-client : toggle Pro/Particulier + mêmes champs) -->
+  <div class="modal-overlay" id="modal-fournisseur">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-body">
+        <div class="client-type-selector">
+          <label class="client-type-option">
+            <input type="radio" name="frn-type" value="pro" checked onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(false)" />
+            <span class="client-type-label">🏢 Professionnel</span>
+          </label>
+          <label class="client-type-option">
+            <input type="radio" name="frn-type" value="particulier" onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(false)" />
+            <span class="client-type-label">🙋 Particulier</span>
+          </label>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="frn-nom" placeholder="Nom / Raison sociale" /></div>
+          <div class="form-group">
+            <label>Secteur d'activité</label>
+            <select id="frn-secteur">
+              <option value="">-- Choisir --</option>
+              <option value="garage">🔧 Garage / mécanique</option>
+              <option value="carburant">⛽ Carburant / station</option>
+              <option value="pieces">🔩 Pièces détachées</option>
+              <option value="loueur">🚐 Loueur véhicules</option>
+              <option value="transporteur">🚚 Transporteur sous-traitant</option>
+              <option value="assurance">🛡️ Assurance</option>
+              <option value="prestataire">💼 Prestataire IT / services</option>
+              <option value="compta">📊 Comptable / juridique</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Contact</label><input type="text" id="frn-contact" placeholder="Contact" /></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="frn-tel" placeholder="Téléphone" /></div>
+          <div class="form-group"><label>Email</label><input type="email" id="frn-email" placeholder="Email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="frn-email-fact" placeholder="compta@fournisseur.fr" /></div>
+          <div class="form-group full-width"><label>Adresse</label><input type="text" id="frn-adresse" placeholder="Numéro + rue" /></div>
+          <div class="form-group"><label>Code postal</label><input type="text" id="frn-cp" placeholder="75001" maxlength="5" /></div>
+          <div class="form-group"><label>Ville</label><input type="text" id="frn-ville" placeholder="Paris" /></div>
+        </div>
+        <div id="frn-champs-pro" class="client-champs-pro">
+          <div class="form-grid">
+            <div class="form-group"><label>SIREN</label><input type="text" id="frn-siren" placeholder="9 chiffres" maxlength="9" /></div>
+            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="frn-tva-intra" placeholder="FR + 11 chiffres" /></div>
+            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="frn-delai-paiement" placeholder="30" min="0" max="180" value="30" /></div>
+            <div class="form-group"><label>Mode paiement préféré</label>
+              <select id="frn-mode-paiement">
+                <option value="virement">Virement</option>
+                <option value="prelevement">Prélèvement SEPA</option>
+                <option value="cb">Carte bancaire</option>
+                <option value="cheque">Chèque</option>
+                <option value="especes">Espèces</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>IBAN</label><input type="text" id="frn-iban" placeholder="FR76 …" /></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="frn-notes" rows="2" placeholder="Conditions, particularités, contacts..."></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-fournisseur')">Annuler</button><button class="btn-primary" onclick="ajouterFournisseur()">✅ Enregistrer</button></div>
+    </div>
+  </div>
+
+  <!-- Modifier fournisseur (miroir modal-edit-client) -->
+  <div class="modal-overlay" id="modal-edit-fournisseur">
+    <div class="modal modal-large">
+      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-frn-id" />
+        <div class="client-type-selector">
+          <label class="client-type-option">
+            <input type="radio" name="edit-frn-type" value="pro" checked onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(true)" />
+            <span class="client-type-label">🏢 Professionnel</span>
+          </label>
+          <label class="client-type-option">
+            <input type="radio" name="edit-frn-type" value="particulier" onchange="window.toggleChampsFournisseurPro && window.toggleChampsFournisseurPro(true)" />
+            <span class="client-type-label">🙋 Particulier</span>
+          </label>
+        </div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nom / Entreprise *</label><input type="text" id="edit-frn-nom" /></div>
+          <div class="form-group">
+            <label>Secteur d'activité</label>
+            <select id="edit-frn-secteur">
+              <option value="">-- Choisir --</option>
+              <option value="garage">🔧 Garage / mécanique</option>
+              <option value="carburant">⛽ Carburant / station</option>
+              <option value="pieces">🔩 Pièces détachées</option>
+              <option value="loueur">🚐 Loueur véhicules</option>
+              <option value="transporteur">🚚 Transporteur sous-traitant</option>
+              <option value="assurance">🛡️ Assurance</option>
+              <option value="prestataire">💼 Prestataire IT / services</option>
+              <option value="compta">📊 Comptable / juridique</option>
+              <option value="autre">📝 Autre</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Contact</label><input type="text" id="edit-frn-contact" /></div>
+          <div class="form-group"><label>Téléphone</label><input type="tel" id="edit-frn-tel" /></div>
+          <div class="form-group"><label>Email</label><input type="email" id="edit-frn-email" /></div>
+          <div class="form-group"><label>Email facturation</label><input type="email" id="edit-frn-email-fact" /></div>
+          <div class="form-group full-width"><label>Adresse</label><input type="text" id="edit-frn-adresse" /></div>
+          <div class="form-group"><label>Code postal</label><input type="text" id="edit-frn-cp" maxlength="5" /></div>
+          <div class="form-group"><label>Ville</label><input type="text" id="edit-frn-ville" /></div>
+        </div>
+        <div id="edit-frn-champs-pro" class="client-champs-pro">
+          <div class="form-grid">
+            <div class="form-group"><label>SIREN</label><input type="text" id="edit-frn-siren" maxlength="9" /></div>
+            <div class="form-group"><label>N° TVA intracom.</label><input type="text" id="edit-frn-tva-intra" /></div>
+            <div class="form-group"><label>Délai paiement (jours)</label><input type="number" id="edit-frn-delai-paiement" min="0" max="180" /></div>
+            <div class="form-group"><label>Mode paiement préféré</label>
+              <select id="edit-frn-mode-paiement">
+                <option value="virement">Virement</option>
+                <option value="prelevement">Prélèvement SEPA</option>
+                <option value="cb">Carte bancaire</option>
+                <option value="cheque">Chèque</option>
+                <option value="especes">Espèces</option>
+              </select>
+            </div>
+            <div class="form-group full-width"><label>IBAN</label><input type="text" id="edit-frn-iban" /></div>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:14px"><label>Notes internes</label><textarea id="edit-frn-notes" rows="2"></textarea></div>
+      </div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-edit-fournisseur')">Annuler</button><button class="btn-primary" onclick="confirmerEditFournisseur()">✅ Enregistrer</button></div>
+    </div>
+  </div>
   <!-- Nouveau véhicule -->
   <div class="modal-overlay" id="modal-vehicule">
     <div class="modal">
@@ -1829,18 +2110,17 @@
           <div class="form-group"><label>Mode d'acquisition</label>
             <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()">
               <option value="achat">Achat comptant</option>
-              <option value="credit">Crédit / financement</option>
-              <option value="loa">LOA</option>
-              <option value="lld">LLD</option>
-              <option value="location">Location simple</option>
               <option value="occasion">Achat occasion</option>
+              <option value="lld">LCD / LMD / LLD</option>
+              <option value="location">Location simple</option>
             </select>
           </div>
           <div class="form-group"><label>Date d'acquisition</label><input type="date" id="veh-date-acquisition" onchange="mettreAJourFinContratVehicule();mettreAJourInfosVehiculeFinancement()" /></div>
-          <div class="form-group"><label>Date Contrôle Technique</label><input type="date" id="veh-date-ct" /></div>
+          <div class="form-group"><label>Dernier contrôle technique</label><input type="date" id="veh-date-ct-dernier" /></div>
+          <div class="form-group"><label>Prochain contrôle technique</label><input type="date" id="veh-date-ct" /></div>
           <div class="form-group"><label>Entretien tous les X km</label><input type="number" id="veh-entretien-interval-km" placeholder="Ex : 15000" min="0" step="100" /></div>
           <div class="form-group"><label>Entretien tous les X mois</label><input type="number" id="veh-entretien-interval-mois" placeholder="Ex : 12" min="0" step="1" /></div>
-          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 80" /></div>
+          <div class="form-group"><label>TVA carburant déductible (%)</label><input type="number" id="veh-tva-carburant" min="0" max="100" step="1" placeholder="Ex : 100" value="100" /></div>
           <div class="form-group full-width"><label>Affecter à un salarié (optionnel)</label><select id="veh-salarie"><option value="">-- Aucun --</option></select></div>
         </div>
         <!-- BUG-046 fix : données flotte métier transport (carte grise + Crit'Air + TVA) -->
@@ -1891,6 +2171,14 @@
               <div class="form-group"><label>Date 1ʳᵉ mise en circulation</label><input type="date" id="veh-date-1immat" /></div>
               <div class="form-group"><label>N° VIN / châssis</label><input type="text" id="veh-vin" maxlength="17" placeholder="17 caractères" /></div>
               <div class="form-group"><label>N° carte grise</label><input type="text" id="veh-carte-grise" placeholder="ex : 123ABC456" /></div>
+              <div class="form-group">
+                <label>Carte grise (PDF / image)</label>
+                <label class="file-upload-button" for="veh-carte-grise-fichier">
+                  <span id="veh-carte-grise-button-label">📎 Choisir un fichier</span>
+                </label>
+                <input type="file" id="veh-carte-grise-fichier" accept="application/pdf,image/*" style="display:none" onchange="uploaderCarteGriseFromForm(this)" />
+                <div id="veh-carte-grise-status" style="font-size:.72rem;color:var(--text-muted);margin-top:6px"></div>
+              </div>
             </div>
             <div style="font-size:0.82rem;color:var(--text-muted);margin:14px 0 10px">Assurance / Carte verte</div>
             <div class="form-grid">
@@ -1974,8 +2262,12 @@
           <div class="form-group"><label>Véhicule *</label><select id="carb-vehicule"><option value="">-- Choisir --</option></select></div>
           <div class="form-group"><label>Type carburant *</label>
             <select id="carb-type">
-              <option value="gasoil">⛽ Gasoil</option>
+              <option value="diesel">⛽ Diesel/Gazole</option>
               <option value="essence">🟢 Essence</option>
+              <option value="gnv">🌿 GNV/BioGNV</option>
+              <option value="electrique">⚡ Électrique</option>
+              <option value="hybride">🔋 Hybride</option>
+              <option value="hydrogene">💧 Hydrogène</option>
             </select>
           </div>
           <div class="form-group"><label>Litres *</label><input type="number" id="carb-litres" placeholder="40" min="0" step="0.1" /></div>
@@ -1998,7 +2290,7 @@
   <!-- Modal : Planning salarié -->
   <div class="modal-overlay" id="modal-planning">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3>📅 Horaires hebdomadaires</h3><button class="modal-close" onclick="closeModal('modal-planning')">✕</button></div>
+      <div class="modal-header"><h3>📋 Gérer les horaires</h3><button class="modal-close" onclick="closeModal('modal-planning')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
@@ -2300,7 +2592,7 @@
       <div class="modal-header"><h3>🔧 Ajouter un entretien</h3><button class="modal-close" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
-          <div class="form-group"><label>Véhicule *</label><select id="entr-veh"><option value="">— Choisir —</option></select></div>
+          <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()"><option value="">— Choisir —</option></select></div>
           <div class="form-group"><label>Date *</label><input type="date" id="entr-date" /></div>
           <div class="form-group"><label>Type *</label>
             <select id="entr-type">

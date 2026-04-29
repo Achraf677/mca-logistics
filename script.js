@@ -74,31 +74,6 @@ function validerSIREN(siren) {
   return sum % 10 === 0;
 }
 
-function validerIBAN(iban) {
-  const s = String(iban || '').replace(/\s+/g, '').toUpperCase();
-  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
-  // Longueurs officielles ISO 13616 par pays (principaux)
-  const longueurs = { FR: 27, BE: 16, DE: 22, IT: 27, ES: 24, PT: 25, NL: 18, LU: 20, CH: 21, MC: 27, GB: 22, IE: 22, AT: 20, FI: 18, DK: 18, SE: 24, NO: 15, PL: 28, AD: 24, MT: 31 };
-  const pays = s.slice(0, 2);
-  if (longueurs[pays] && s.length !== longueurs[pays]) return false;
-  // Mod-97 : déplace 4 premiers en fin, convertit lettres → nombres (A=10…Z=35), vérifie mod 97 === 1
-  const rearrange = s.slice(4) + s.slice(0, 4);
-  let numeric = '';
-  for (const c of rearrange) {
-    if (/\d/.test(c)) numeric += c;
-    else numeric += (c.charCodeAt(0) - 55).toString();
-  }
-  // Calcul mod 97 par morceaux (BigInt alternative)
-  let remainder = '';
-  for (const d of numeric) {
-    remainder = (remainder + d);
-    if (remainder.length >= 9) {
-      remainder = String(parseInt(remainder, 10) % 97);
-    }
-  }
-  return parseInt(remainder, 10) % 97 === 1;
-}
-
 // BUG-014 fix : guard double-clic — debounce sur boutons d'action (Créer/Générer/Valider/Enregistrer/Payer/Sauvegarder).
 // Détecte via label + attributs. Ignore les boutons de fermeture, navigation, tri, etc.
 (function() {
@@ -1213,6 +1188,8 @@ function getTVASummaryForRange(range) {
     tvaCredit: soldeBrut < 0 ? Math.abs(round2(soldeBrut)) : 0
   };
 }
+
+
 function ouvrirFicheVehiculeDepuisTableau(vehId) {
   if (!vehId) return;
   naviguerVers('vehicules');
@@ -1303,8 +1280,22 @@ function ouvrirHeuresSalarie(salId) {
 }
 function ouvrirPlanningRecurrence() {
   var modalTitle = document.querySelector('#modal-planning .modal-header h3');
-  if (modalTitle) modalTitle.textContent = '🔁 Horaires récurrents';
+  if (modalTitle) {
+    modalTitle.textContent = '🔁 Horaires récurrents';
+    // Marque la modal pour que ouvrirModalPlanning ne reset pas le titre
+    modalTitle.dataset.recurrent = '1';
+  }
   ouvrirModalPlanning();
+  // Nettoie le marker au close
+  var modal = document.getElementById('modal-planning');
+  if (modal && !modal.dataset.recurrentBound) {
+    modal.dataset.recurrentBound = '1';
+    modal.addEventListener('click', function(e) {
+      if (e.target.classList.contains('modal-close') || e.target.classList.contains('modal-overlay')) {
+        if (modalTitle) delete modalTitle.dataset.recurrent;
+      }
+    });
+  }
 }
 function fermerInlineDropdowns() {
   document.querySelectorAll('.inline-dropdown.open').forEach(function(el) {
@@ -1336,7 +1327,13 @@ function buildInlineActionsDropdown(triggerLabel, items) {
     + items.map(function(item) {
       var classes = ['inline-dropdown-item'];
       if (item.danger) classes.push('danger-text');
-      return '<button type="button" class="' + classes.join(' ') + '" onclick="event.preventDefault();event.stopPropagation();fermerInlineDropdowns();' + item.action + '">'
+      if (item.disabled) classes.push('is-disabled');
+      // Item désactivé : grisé, non cliquable, garde le tooltip via title
+      var attrs = item.disabled ? ' disabled aria-disabled="true" title="' + (item.title || 'Indisponible') + '"' : '';
+      var onclick = item.disabled
+        ? ''
+        : ' onclick="event.preventDefault();event.stopPropagation();fermerInlineDropdowns();' + item.action + '"';
+      return '<button type="button" class="' + classes.join(' ') + '"' + attrs + onclick + '>'
         + (item.icon ? item.icon + ' ' : '')
         + item.label
         + '</button>';
@@ -2273,10 +2270,6 @@ function consommerTicketAccesOnglet() {
   return true;
 }
 
-function accesOngletAutorise() {
-  return !!window.__delivproTabUnlocked;
-}
-
 function notifierMajAutreAdmin(detail) {
   if (!detail || !detail.externalActor) return;
   if (sessionStorage.getItem('role') !== 'admin') return;
@@ -2503,7 +2496,7 @@ function naviguerVers(page) {
     setTimeout(() => pageEl.classList.remove('route-enter'), 240);
   }
   const titres = {
-    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients',
+    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients', fournisseurs:'🏭 Carnet Fournisseurs',
     vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
     rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
     salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
@@ -2532,7 +2525,9 @@ function naviguerVers(page) {
         case 'alertes':      verifierNotificationsAutomatiquesMois2(); verifierDocumentsSalaries(); afficherAlertes(); break;
         case 'inspections':  navInspSemaine(0); break;
         case 'clients':      afficherClientsDashboard(); break;
+        case 'fournisseurs': afficherFournisseursDashboard(); break;
         case 'charges':      navChargesMois(0); break;
+        case 'tva':          navTvaPeriode(0); afficherTva(); break;
         case 'incidents':    afficherIncidents(); break;
         case 'entretiens':   navEntrMois(0); break;
         case 'parametres':   chargerParametres(); break;
@@ -2541,6 +2536,38 @@ function naviguerVers(page) {
     });
   });
 }
+
+/* ===== GARDE-FOU ROUTES =====
+   Au boot, vérifie que toutes les sections <section class="page" id="page-X">
+   du DOM ont une route connue (case dans naviguerVers + entrée valide dans
+   un hub OU un nav-item sidebar). Et inversement, qu'aucune route invoquée
+   ne pointe vers une section absente. Évite les "404 silencieux" comme la
+   page TVA récemment retrouvée. */
+(function() {
+  if (typeof document === 'undefined') return;
+  function audit() {
+    if (document.readyState === 'loading') {
+      return document.addEventListener('DOMContentLoaded', audit);
+    }
+    var sectionsDOM = Array.from(document.querySelectorAll('section.page[id^="page-"]'))
+      .map(function(s) { return s.id.replace(/^page-/, ''); });
+    var hubsDebug = window.__s22Debug;
+    var hubPages = hubsDebug ? hubsDebug.ALL_SUB_PAGES.slice() : [];
+    var navItems = Array.from(document.querySelectorAll('.nav-item[data-page]'))
+      .map(function(a) { return a.dataset.page; });
+    var routesConnues = new Set(hubPages.concat(navItems).concat([
+      'dashboard', 'espace-salarie'
+    ]));
+    sectionsDOM.forEach(function(p) {
+      if (!routesConnues.has(p)) {
+        console.warn('[ROUTES] Section #page-' + p + ' existe dans le DOM mais aucune route ne mène à elle (ni hub ni nav-item)');
+      }
+    });
+    // Expose pour debug
+    window.__routesDebug = { sectionsDOM: sectionsDOM, hubPages: hubPages, navItems: navItems };
+  }
+  audit();
+})();
 
 function appliquerLibellesAnalyseHT() {
   const rent = {
@@ -2867,29 +2894,51 @@ function ajouterLivraison() {
   // BUG-006 fix : auto-création du client dans le carnet si le nom ne correspond
   // à aucun client existant. Évite les livraisons orphelines (sans clientId)
   // qui cassent l'agrégation CA par client + relances.
+  // Priorité au clientId stocké par selectionnerClientLivraisonParId (lien fiable),
+  // sinon fallback matching par nom (cas saisie manuelle).
   let clientId = null;
   let clientCreeAuto = false;
+  let clientTvaSnapshot = '';
+  let clientPaysSnapshot = '';
   try {
     const clientsExistants = charger('clients');
-    const cible = client.toLowerCase();
-    const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
-    if (match) {
-      clientId = match.id;
-    } else {
-      const nouveau = {
-        id: genId(),
-        nom: client,
-        type: 'pro',
-        siren: clientSiren || '',
-        creeLe: new Date().toISOString(),
-        creeDepuis: 'livraison'
-      };
-      clientsExistants.push(nouveau);
-      sauvegarder('clients', clientsExistants);
-      clientId = nouveau.id;
-      clientCreeAuto = true;
+    // 1. Lien direct via __livSelectedClientId (utilisateur a cliqué sur une suggestion)
+    if (window.__livSelectedClientId) {
+      const direct = clientsExistants.find(c => c && c.id === window.__livSelectedClientId);
+      if (direct && (direct.nom || '').toLowerCase() === client.toLowerCase()) {
+        clientId = direct.id;
+        clientTvaSnapshot = direct.tvaIntra || '';
+        clientPaysSnapshot = direct.pays || 'FR';
+      }
+    }
+    // 2. Fallback matching par nom (saisie libre, pas de suggestion cliquée)
+    if (!clientId) {
+      const cible = client.toLowerCase();
+      const match = clientsExistants.find(c => (c.nom || '').toLowerCase() === cible);
+      if (match) {
+        clientId = match.id;
+        clientTvaSnapshot = match.tvaIntra || '';
+        clientPaysSnapshot = match.pays || 'FR';
+      } else {
+        const nouveau = {
+          id: genId(),
+          nom: client,
+          type: 'pro',
+          siren: clientSiren || '',
+          creeLe: new Date().toISOString(),
+          creeDepuis: 'livraison'
+        };
+        clientsExistants.push(nouveau);
+        sauvegarder('clients', clientsExistants);
+        clientId = nouveau.id;
+        clientCreeAuto = true;
+      }
     }
   } catch (_) { /* silencieux : ne bloque pas la création de la livraison */ }
+  // Reset le state pour la prochaine modal
+  window.__livSelectedClientId = null;
+  window.__livSelectedClientTva = null;
+  window.__livSelectedClientPays = null;
 
   // BUG-012/013 fix : champs lettre de voiture conforme arrêté 09/11/1999
   const getVal = (id) => (document.getElementById(id)?.value || '').trim();
@@ -2925,7 +2974,9 @@ function ajouterLivraison() {
   const livraison = {
     id: genId(),
     numLiv: genNumLivraison(),
-    client, clientSiren, clientId, depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
+    client, clientSiren, clientId,
+    clientTvaIntracom: clientTvaSnapshot, clientPays: clientPaysSnapshot,
+    depart, arrivee, distance, prix, prixHT, tauxTVA, profit,
     chaufId: affectation.chaufId || null, chaufNom: affectation.chaufNom,
     vehId: affectation.vehId || null, vehNom: affectation.vehNom,
     statut, date, notes,
@@ -3451,6 +3502,9 @@ function resetModalVehiculeToCreateMode() {
     primary.textContent = 'Enregistrer';
     primary.setAttribute('onclick', 'ajouterVehicule()');
   }
+  // Reset carte grise temp + UI (sinon un fichier sélectionné mais non
+  // sauvegardé peut s'attacher à la prochaine création par erreur)
+  if (typeof resetCarteGriseFormUI === 'function') resetCarteGriseFormUI();
 }
 
 function mettreAJourFinContratVehicule() {
@@ -3502,22 +3556,22 @@ function mettreAJourInfosVehiculeFinancement() {
 function mettreAJourFormulaireVehicule() {
   var mode = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   var isAchat = ['achat', 'occasion'].includes(mode);
-  var isLocation = ['lld', 'loa', 'location'].includes(mode);
-  var isCredit = mode === 'credit';
-  var isLoa = mode === 'loa';
-  var isOccasion = mode === 'occasion';
+  // 'lld' couvre maintenant LCD/LMD/LLD (libellé groupé), 'location' = location simple
+  var isLocation = ['lld', 'location'].includes(mode);
   var setDisplay = function(id, visible) {
     var el = document.getElementById(id);
     if (el) el.style.display = visible ? '' : 'none';
   };
-  setDisplay('veh-bloc-achat', isAchat || isCredit);
+  setDisplay('veh-bloc-achat', isAchat);
   setDisplay('veh-bloc-location', isLocation);
-  setDisplay('veh-bloc-credit', isCredit);
-  setDisplay('veh-bloc-loa', isLoa);
-  setDisplay('veh-prix-catalogue-wrap', isLoa);
-  setDisplay('veh-apport-wrap', isLoa);
-  setDisplay('veh-occasion-km-wrap', isOccasion);
-  setDisplay('veh-occasion-annee-wrap', isOccasion);
+  // Crédit/LOA supprimés : on cache leurs blocs si encore présents
+  setDisplay('veh-bloc-credit', false);
+  setDisplay('veh-bloc-loa', false);
+  setDisplay('veh-prix-catalogue-wrap', false);
+  setDisplay('veh-apport-wrap', false);
+  // Achat comptant ET Achat occasion ont les mêmes champs (km rachat + année véhicule)
+  setDisplay('veh-occasion-km-wrap', isAchat);
+  setDisplay('veh-occasion-annee-wrap', isAchat);
   mettreAJourFinContratVehicule();
   mettreAJourInfosVehiculeFinancement();
 }
@@ -3576,6 +3630,7 @@ function ajouterVehicule() {
   const conso  = parseFloat(document.getElementById('veh-conso').value) || 0;
   const salId  = document.getElementById('veh-salarie')?.value || '';
   const dateCT = document.getElementById('veh-date-ct')?.value || '';
+  const dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value || '';
   const modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   const dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
   const entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value) || 0;
@@ -3599,7 +3654,7 @@ function ajouterVehicule() {
   // TVA carburant selon genre (CGI art. 298-4-1° et 298-4 D)
   const tvaAutoCalc = calculerTauxTVACarburant(genre, carburant);
   const tvaCarbSaisi = parseFloat(document.getElementById('veh-tva-carburant')?.value);
-  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 80);
+  const tvaCarbDeductible = Number.isFinite(tvaCarbSaisi) ? tvaCarbSaisi : (tvaAutoCalc != null ? tvaAutoCalc : 100);
   const ptac = parseInt(getV('veh-ptac'), 10) || 0;
   const ptra = parseInt(getV('veh-ptra'), 10) || 0;
   const essieux = parseInt(getV('veh-essieux'), 10) || 0;
@@ -3613,12 +3668,19 @@ function ajouterVehicule() {
     dateExpiration: getV('veh-assurance-date-exp')
   };
   const vehicule = Object.assign({
-    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, tvaCarbDeductible,
+    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, dateCTDernier, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
     genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
+  // Carte grise upload temp → attachée au véhicule créé
+  if (window.__vehCGTemp && window.__vehCGTemp.data) {
+    vehicule.carteGriseFichier = window.__vehCGTemp.data;
+    vehicule.carteGriseFichierType = window.__vehCGTemp.type;
+    vehicule.carteGriseFichierNom = window.__vehCGTemp.nom;
+    window.__vehCGTemp = null;
+  }
   const vehicules = charger('vehicules');
   vehicules.push(vehicule);
   if (!sauvegarder('vehicules', vehicules)) {
@@ -3634,6 +3696,8 @@ function ajouterVehicule() {
   if (document.getElementById('veh-mode-amortissement')) document.getElementById('veh-mode-amortissement').value = 'lineaire';
   if (document.getElementById('veh-date-acquisition')) document.getElementById('veh-date-acquisition').value = '';
   if (document.getElementById('veh-date-ct')) document.getElementById('veh-date-ct').value = '';
+  if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = '';
+  if (typeof resetCarteGriseFormUI === 'function') resetCarteGriseFormUI();
   if (document.getElementById('veh-salarie')) document.getElementById('veh-salarie').value = '';
   if (document.getElementById('veh-tva-carburant')) document.getElementById('veh-tva-carburant').value = '80';
   mettreAJourFormulaireVehicule();
@@ -3653,9 +3717,10 @@ function afficherVehicules() {
   if (!tb) return;
   paginer.__reload_tb_vehicules = afficherVehicules;
 
-  // Filtre
+  // Filtres
   const filtreVehSal = document.getElementById('filtre-veh-salarie')?.value || '';
   const filtreVehSearch = (document.getElementById('filtre-veh-search')?.value || '').trim().toLowerCase();
+  const filtreVehCarb = (document.getElementById('filtre-veh-carburant')?.value || '').toLowerCase();
   const selFiltreVeh = document.getElementById('filtre-veh-salarie');
   if (selFiltreVeh) {
     const currentValue = selFiltreVeh.value;
@@ -3664,6 +3729,19 @@ function afficherVehicules() {
     selFiltreVeh.value = currentValue;
   }
   if (filtreVehSal) vehicules = vehicules.filter(v => v.id === filtreVehSal);
+  if (filtreVehCarb) {
+    vehicules = vehicules.filter(v => {
+      const c = (v.typeCarburant || v.carburant || '').toLowerCase();
+      // Match partiel pour gérer les libellés composés ('diesel/gazole', etc.)
+      if (filtreVehCarb === 'diesel') return c.includes('diesel') || c.includes('gazole');
+      if (filtreVehCarb === 'gnv') return c.includes('gnv') || c.includes('biognv');
+      if (filtreVehCarb === 'electrique') return c.includes('electrique') || c.includes('électrique');
+      if (filtreVehCarb === 'hybride') return c.includes('hybride');
+      if (filtreVehCarb === 'hydrogene') return c.includes('hydrogene') || c.includes('hydrogène');
+      if (filtreVehCarb === 'essence') return c.includes('essence');
+      return c === filtreVehCarb;
+    });
+  }
   if (filtreVehSearch) {
     vehicules = vehicules.filter(function(v) {
       return [
@@ -3671,7 +3749,9 @@ function afficherVehicules() {
         v.modele,
         v.salNom,
         v.modeAcquisition,
-        v.dateCT
+        v.dateCT,
+        v.carburant,
+        v.typeCarburant
       ].filter(Boolean).join(' ').toLowerCase().includes(filtreVehSearch);
     });
   }
@@ -3776,8 +3856,34 @@ function afficherVehicules() {
       pilotageEntretien.dateEcheance ? `<div style="font-size:.75rem;color:var(--text-muted)">Échéance : ${formatDateExport(pilotageEntretien.dateEcheance)}</div>` : ''
     ].filter(Boolean).join('');
 
+    // Type de carburant pour la nouvelle colonne dédiée
+    const carburantLabels = {
+      'diesel': '⛽ Diesel/Gazole', 'gazole': '⛽ Diesel/Gazole',
+      'essence': '⛽ Essence',
+      'gnv': '🌿 GNV/BioGNV', 'biognv': '🌿 GNV/BioGNV',
+      'electrique': '⚡ Électrique',
+      'hybride': '🔋 Hybride',
+      'hydrogene': '💧 Hydrogène'
+    };
+    const carbKey = (v.typeCarburant || v.carburant || '').toLowerCase();
+    // Match partiel pour les libellés composés ('diesel/gazole', etc.)
+    let carbAffiche = '—';
+    if (carbKey) {
+      if (carburantLabels[carbKey]) carbAffiche = carburantLabels[carbKey];
+      else if (carbKey.includes('diesel') || carbKey.includes('gazole')) carbAffiche = carburantLabels.diesel;
+      else if (carbKey.includes('essence')) carbAffiche = carburantLabels.essence;
+      else if (carbKey.includes('gnv')) carbAffiche = carburantLabels.gnv;
+      else if (carbKey.includes('electrique') || carbKey.includes('électrique')) carbAffiche = carburantLabels.electrique;
+      else if (carbKey.includes('hybride')) carbAffiche = carburantLabels.hybride;
+      else if (carbKey.includes('hydrogene') || carbKey.includes('hydrogène')) carbAffiche = carburantLabels.hydrogene;
+      else carbAffiche = v.typeCarburant || v.carburant; // Garde la casse originale
+    }
+    // Visualiser carte grise : grisé si aucun fichier uploadé
+    const aCarteGrise = !!(v.carteGriseFichier || v.carteGriseUrl);
+    const visuCG = aCarteGrise
+      ? { icon:'📄', label:'Visualiser carte grise', action:`visualiserCarteGrise('${v.id}')` }
+      : { icon:'📄', label:'Visualiser carte grise', action:`afficherToast('Aucune carte grise uploadée pour ce véhicule','info')`, disabled:true };
     return `<tr>
-      <td>${v.photo ? `<img src="${v.photo}" class="veh-photo-thumb" onclick="voirPhotoVehicule('${v.id}')" />` : `<label class="veh-photo-placeholder" title="Ajouter photo"><input type="file" accept="image/*" style="display:none" onchange="uploaderPhotoVehicule('${v.id}',this)" />📷</label>`}</td>
       <td><strong>${v.immat}</strong></td>
       <td>${v.modele||'—'}</td>
       <td>${kmActuel ? formatKm(kmActuel) : '—'}</td>
@@ -3788,14 +3894,19 @@ function afficherVehicules() {
           ? ` <span style="color:var(--text-muted);font-size:.72rem">(1 plein — besoin de 2+)</span>`
           : ''
       }</td>
-      <td style="${ctStyle}">${v.dateCT ? formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</td>
-      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td style="${ctStyle}">
+        ${v.dateCTDernier ? `<div style="font-size:.72rem;color:var(--text-muted);font-weight:400">Dernier : ${formatDateExport(v.dateCTDernier)}</div>` : ''}
+        <div>${v.dateCT ? 'Prochain : ' + formatDateExport(ctLabel) : '—'}${v.dateCT && new Date(v.dateCT)<auj?' ⚠️':''}</div>
+      </td>
       <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${carbAffiche}</td>
+      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${entretienInfos || '—'}</td>
       <td>
         ${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:`ouvrirEditVehicule('${v.id}')` },
           { icon:'👤', label:'Affecter un salarié', action:`ouvrirAffectationVehicule('${v.id}')` },
+          visuCG,
           { icon:'💰', label:'Voir le TCO', action:`ouvrirTCO('${v.id}')` },
           { icon:'🚐', label:'Historique conducteurs', action:`ouvrirHistoriqueConducteurs('${v.id}')` },
           { icon:'🗑️', label:'Supprimer', action:`supprimerVehicule('${v.id}')`, danger:true }
@@ -3949,8 +4060,15 @@ function afficherCarburant() {
     selVeh.value = currentValue;
   }
 
-  // Appliquer les filtres
-  if (filtreType) pleins = pleins.filter(p => (p.typeCarburant||'gasoil') === filtreType);
+  // Appliquer les filtres (avec support synonymes pour les libellés étendus)
+  if (filtreType) {
+    pleins = pleins.filter(p => {
+      const c = (p.typeCarburant || 'diesel').toLowerCase();
+      if (filtreType === 'diesel') return c === 'diesel' || c === 'gazole' || c === 'gasoil';
+      if (filtreType === 'gnv') return c === 'gnv' || c === 'biognv';
+      return c === filtreType;
+    });
+  }
   if (filtreVeh)  pleins = pleins.filter(p => p.vehId === filtreVeh);
   pleins = pleins.filter(p => isDateInRange(p.date, range));
   pleins = pleins.map(enrichirPleinCarburant);
@@ -3977,16 +4095,27 @@ function afficherCarburant() {
       ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">👤 Salarié</span>'
       : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
     const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
-    const typeLabel = (p.typeCarburant||'gasoil')==='essence' ? '🟢 Essence' : '⛽ Gasoil';
+    // Label étendu : matche les 6 types + tolère les synonymes
+    const carbKey = (p.typeCarburant || 'diesel').toLowerCase();
+    let typeLabel = '⛽ Diesel/Gazole';
+    if (carbKey === 'essence') typeLabel = '🟢 Essence';
+    else if (carbKey === 'gnv' || carbKey === 'biognv') typeLabel = '🌿 GNV/BioGNV';
+    else if (carbKey === 'electrique') typeLabel = '⚡ Électrique';
+    else if (carbKey === 'hybride') typeLabel = '🔋 Hybride';
+    else if (carbKey === 'hydrogene') typeLabel = '💧 Hydrogène';
+    // Menu Actions standardisé (pattern Livraisons/Clients)
+    const actionsItems = [
+      { icon: '✏️', label: 'Modifier', action: `ouvrirEditCarburantAdmin('${p.id}')` },
+      p.photoRecu
+        ? { icon: '🧾', label: 'Voir le reçu', action: `voirRecuCarburant('${p.id}')` }
+        : { icon: '🧾', label: 'Voir le reçu (aucun)', action: '', disabled: true, title: 'Aucun reçu uploadé' },
+      { icon: '🗑️', label: 'Supprimer', action: `supprimerCarburant('${p.id}')`, danger: true }
+    ];
     return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
       <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
       <td><strong>${euros(p.total)}</strong></td><td>${euros(p.tvaDeductible||0)}</td><td>${p.kmCompteur ? formatKm(p.kmCompteur) : '—'}</td><td>${formatDateExport(p.date)}</td><td>${src}</td>
-      <td><select class="btn-sm select-actions" onchange="actionCarburant(this.value,'${p.id}');this.value=''">
-  <option value="">Actions ▾</option>
-  <option value="modifier">✏️ Modifier</option>
-  <option value="recu" ${!p.photoRecu ? 'disabled' : ''}>🧾 Voir le reçu${!p.photoRecu ? ' (aucun)' : ''}</option>
-  <option value="supprimer">🗑️ Supprimer</option>
-</select></td></tr>`;
+      <td>${buildInlineActionsDropdown('Actions', actionsItems)}</td>
+    </tr>`;
   }).join('');
 }
 
@@ -4015,9 +4144,9 @@ function toggleMenuCarbAdmin(id) {
 
 function actionCarburant(action, id) {
   if (!action) return;
-  if (action === 'modifier') editerPlein(id);
+  if (action === 'modifier') ouvrirEditCarburantAdmin(id);
   else if (action === 'recu') voirRecuCarburant(id);
-  else if (action === 'supprimer') supprimerPlein(id);
+  else if (action === 'supprimer') supprimerCarburant(id);
 }
 
 function voirRecuCarburant(id) {
@@ -4131,19 +4260,6 @@ async function supprimerKmAdmin(salId, kmId) {
 /* Met à jour le km de départ mémorisé pour la prochaine saisie */
 /* mettreAJourKmReport supprimé — v12fix3 */
 
-/* ===== VOIR PHOTO VÉHICULE EN PLEIN ÉCRAN ===== */
-function voirPhotoVehicule(vehId) {
-  const veh = charger('vehicules').find(v => v.id === vehId);
-  if (!veh || !veh.photo) return;
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
-  overlay.innerHTML = `
-    <img src="${veh.photo}" style="max-width:90%;max-height:80vh;border-radius:8px;object-fit:contain" />
-    <div style="color:#fff;font-size:.9rem;font-weight:600">${veh.immat} — ${veh.modele||''}</div>
-    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">✕ Fermer</button>`;
-  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-  document.body.appendChild(overlay);
-}
 
 /* ===== ALERTES ADMIN ===== */
 function afficherAlertes() {
@@ -4582,13 +4698,6 @@ function rafraichirDashboard() {
       : '<span style="font-size:.82rem;color:var(--text-muted)">Aucun salarié planifié aujourd\'hui</span>';
   }
 
-  // Comparatif mensuel
-  const comp = calculerComparatif();
-  const compEl = document.getElementById('kpi-comp-ca');
-  if (compEl) compEl.innerHTML = `vs mois préc. ${euros(comp.caPrec)} ${badgeEvol(comp.caActuel, comp.caPrec)}`;
-  const compLivEl = document.getElementById('kpi-comp-liv');
-  if (compLivEl) compLivEl.innerHTML = `vs mois préc. ${comp.livPrec} ${badgeEvol(comp.livActuel, comp.livPrec)}`;
-
   // Objectif livraisons
   const objLiv = parseInt(localStorage.getItem('objectif_livraisons_mensuel')||'0', 10);
   const objLivEl = document.getElementById('kpi-objectif-liv-pct');
@@ -4643,27 +4752,33 @@ function rafraichirDashboard() {
   chartActivite = new Chart(_cvActivite, {
     type:'bar', data:{ labels, datasets:[{
       label:'CA (€)', data:donnees,
-      backgroundColor: mcaChartGradient(_cvActivite, '#f5a623', 0.85, 0.15),
-      borderColor:'rgba(245,166,35,1)',
-      borderWidth:0,
-      borderRadius:8,
+      backgroundColor: mcaChartGradient(_cvActivite, '#f2a33b', 0.95, 0.30),
+      hoverBackgroundColor: mcaChartGradient(_cvActivite, '#f6b456', 1, 0.45),
+      borderRadius:10,
       borderSkipped:false,
-      hoverBackgroundColor: mcaChartGradient(_cvActivite, '#ffb94d', 1, 0.25)
+      borderWidth:0,
+      barPercentage:0.62,
+      categoryPercentage:0.78
     }] },
     options: mcaChartBaseOptions(isLight, {
+      layout: { padding: { top: 12, right: 8, bottom: 4, left: 8 } },
+      animation: { duration: 800, easing: 'easeOutCubic' },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
-          titleColor: '#ffffff', bodyColor: '#e2e8f0',
-          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
-          padding: 12, cornerRadius: 8,
+          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(13,21,36,0.95)',
+          titleColor: '#ffffff', bodyColor: '#ffd49e',
+          borderColor: 'rgba(242,163,59,0.5)', borderWidth: 1,
+          padding: 12, cornerRadius: 10,
+          displayColors: false,
+          titleFont: { size: 12, weight: '600' },
+          bodyFont: { size: 14, weight: '700' },
           callbacks: { label: (ctx) => ' ' + euros(ctx.parsed.y || 0) }
         }
       },
       scales: {
-        x: { grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 } } },
-        y: { beginAtZero: true, grid: { color: chartGridColor, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 }, callback: v => euros(v) } }
+        x: { grid: { display: false, drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11, weight: '500' } } },
+        y: { beginAtZero: true, grid: { color: isLight ? 'rgba(15,23,42,0.05)' : 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: chartTickColor, font: { size: 11 }, callback: v => euros(v) } }
       }
     })
   });
@@ -5080,7 +5195,12 @@ function toggleFormulaireNewSalarie() {
 }
 
 function genererMotDePasseFort(prefix) {
-  const base = String(prefix || 'MCA').replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase() || 'MCA';
+  // Format : 1ère lettre majuscule + reste minuscule + '!' + 4 chiffres
+  // → satisfait les 4 règles : majuscule, minuscule, chiffre, caractère spécial
+  // Avant : 'MCA!8370' (sans minuscule) → user recevait l'erreur 'ajouter une minuscule'
+  // Après : 'Mca!8370'
+  const baseRaw = String(prefix || 'MCA').replace(/[^A-Za-z0-9]/g, '').slice(0, 4) || 'MCA';
+  const base = baseRaw.charAt(0).toUpperCase() + baseRaw.slice(1).toLowerCase();
   const suffixe = String(Math.floor(1000 + Math.random() * 9000));
   return base + '!' + suffixe;
 }
@@ -5259,6 +5379,59 @@ async function provisionnerAccesSalarie(salarie, password) {
   return { ok: true, data: result.data || null, salarie: salarie };
 }
 
+// Upload documents salarié (permis / cni / iban / vitale / medecine).
+// En mode création : stockage en window.__salDocsTemp[type]
+// En mode édition : sauvegarde directe sur le salarié via window._editSalarieId
+window.__salDocsTemp = {};
+function uploaderDocSalarie(input, type) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const okType = /^application\/pdf$|^image\//i.test(file.type);
+  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+  // Détecte mode (édition si edit-... ID prefix)
+  const isEdit = input.id.startsWith('edit-');
+  const labelEl = document.getElementById((isEdit ? 'edit-' : '') + 'nsal-doc-' + type + '-label');
+  const wrapper = input.previousElementSibling;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    if (isEdit && window._editSalarieId) {
+      const salaries = charger('salaries');
+      const idx = salaries.findIndex(s => s.id === window._editSalarieId);
+      if (idx > -1) {
+        salaries[idx].docs = salaries[idx].docs || {};
+        salaries[idx].docs[type] = { data: dataUrl, type: file.type, nom: file.name };
+        sauvegarder('salaries', salaries);
+        afficherToast('✅ Document enregistré');
+      }
+    } else {
+      window.__salDocsTemp = window.__salDocsTemp || {};
+      window.__salDocsTemp[type] = { data: dataUrl, type: file.type, nom: file.name };
+    }
+    if (labelEl) labelEl.textContent = '✅ ' + file.name;
+    if (wrapper && wrapper.classList) wrapper.classList.add('has-file');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Visualise un document salarié (PDF embed ou image).
+function visualiserDocSalarie(salId, type) {
+  const sal = charger('salaries').find(s => s.id === salId);
+  const doc = sal && sal.docs && sal.docs[type];
+  if (!doc || !doc.data) { afficherToast('Aucun document de ce type', 'info'); return; }
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
+  const isPdf = (doc.type || '').includes('pdf');
+  const titre = ({ permis:'Permis', cni:'CNI', iban:'IBAN', vitale:'Carte vitale', medecine:'Médecine du travail' })[type] || type;
+  const label = sal.nom + ' — ' + titre;
+  const contenu = isPdf
+    ? '<embed src="' + doc.data + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
+    : '<img src="' + doc.data + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + label + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + label + '</h1>' + contenu + '</body></html>');
+  w.document.close();
+}
+
 async function creerSalarie() {
   const nom    = document.getElementById('nsal-nom').value.trim();
   const prenom = document.getElementById('nsal-prenom')?.value.trim() || '';
@@ -5294,6 +5467,18 @@ async function creerSalarie() {
     visiteMedicale,
     actif:true, creeLe:new Date().toISOString()
   };
+  // Attache les documents uploadés en mode création (permis, cni, iban, vitale, medecine)
+  if (window.__salDocsTemp && Object.keys(window.__salDocsTemp).length) {
+    salarie.docs = Object.assign({}, window.__salDocsTemp);
+    window.__salDocsTemp = {};
+    // Reset visuel des boutons d'upload
+    ['permis', 'cni', 'iban', 'vitale', 'medecine'].forEach(t => {
+      const lbl = document.getElementById('nsal-doc-' + t + '-label');
+      const inp = document.getElementById('nsal-doc-' + t);
+      if (lbl) lbl.textContent = '📎 Choisir un fichier';
+      if (inp) { inp.value = ''; const wrap = inp.previousElementSibling; if (wrap && wrap.classList) wrap.classList.remove('has-file'); }
+    });
+  }
   salaries.push(salarie);
   sauvegarder('salaries', salaries);
 
@@ -6784,38 +6969,6 @@ function confirmerRecurrence() {
   afficherToast(`✅ ${nb} livraison(s) récurrente(s) créée(s)`);
 }
 
-/* ===== TRI COLONNES GÉNÉRIQUE ===== */
-const _sortState = {};
-function trierTableau(tbodyId, colIndex, type='string') {
-  const key = tbodyId + colIndex;
-  _sortState[key] = _sortState[key] === 'asc' ? 'desc' : 'asc';
-  const asc = _sortState[key] === 'asc';
-
-  const tbody = document.getElementById(tbodyId);
-  if (!tbody) return;
-  const rows = Array.from(tbody.querySelectorAll('tr'));
-  rows.sort((a, b) => {
-    const av = a.cells[colIndex]?.textContent.trim() || '';
-    const bv = b.cells[colIndex]?.textContent.trim() || '';
-    if (type === 'number') {
-      return asc ? parseFloat(av)||0 - (parseFloat(bv)||0) : (parseFloat(bv)||0) - (parseFloat(av)||0);
-    }
-    if (type === 'date') {
-      return asc ? av.localeCompare(bv) : bv.localeCompare(av);
-    }
-    return asc ? av.localeCompare(bv,'fr') : bv.localeCompare(av,'fr');
-  });
-  rows.forEach(r => tbody.appendChild(r));
-
-  // Mettre à jour les indicateurs visuels
-  const table = tbody.closest('table');
-  if (table) {
-    table.querySelectorAll('.th-sortable').forEach(th => th.classList.remove('asc','desc'));
-    const ths = table.querySelectorAll('.th-sortable');
-    if (ths[colIndex]) ths[colIndex].classList.add(asc ? 'asc' : 'desc');
-  }
-}
-
 /* ===== PAGINATION GÉNÉRIQUE ===== */
 const _pageState = {};
 function nettoyerPagination(containerId) {
@@ -7257,24 +7410,268 @@ function afficherPonctualite() {
 
 /* ===== TABLEAU DE BORD CLIENT ENRICHI ===== */
 function afficherClientsDashboard() {
-  const clients    = loadSafe('clients', []);
+  const clientsAll = loadSafe('clients', []);
   const tb = document.getElementById('tb-clients');
   if (!tb) return;
-  if (!clients.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
+  if (!clientsAll.length) { tb.innerHTML = emptyState('🧑‍💼','Aucun client','Enregistrez vos clients pour activer l\'auto-complétion.'); return; }
+  // Filtre recherche (nom, contact, ville, SIREN, téléphone, email)
+  const filtre = (document.getElementById('filtre-cl-search')?.value || '').trim().toLowerCase();
+  const clients = filtre
+    ? clientsAll.filter(c => [c.nom, c.prenom, c.contact, c.tel, c.email, c.adresse, c.ville, c.cp, c.siren]
+        .filter(Boolean).join(' ').toLowerCase().includes(filtre))
+    : clientsAll;
+  if (!clients.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
+  const livraisons = charger('livraisons');
 
   tb.innerHTML = clients.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr')).map(c => {
+    const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
+    const caC = livsC.reduce((s,l)=>s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)), 0);
+    const contact = (c.contact || c.prenom || '').trim();
     return `<tr>
-      <td><strong>${c.nom}</strong></td>
-      <td>${c.prenom||'—'}</td>
+      <td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient('${c.id}')" style="font-weight:700">${c.nom}</button></td>
+      <td>${contact||'—'}</td>
       <td>${c.tel||'—'}</td>
       <td style="font-size:.82rem">${c.adresse||'—'}</td>
-      <td>
-        <button class="btn-icon" onclick="ouvrirEditClient('${c.id}')" title="Modifier">✏️</button>
-        <button class="btn-icon" onclick="preFillLivraisonClient('${c.id}')" title="Nouvelle livraison">📦</button>
-        <button class="btn-icon danger" onclick="supprimerClient('${c.id}')">🗑️</button>
-      </td>
+      <td><strong>${euros(caC)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${livsC.length} livraison${livsC.length>1?'s':''}</div></td>
+      <td>${buildInlineActionsDropdown('Actions', [
+        { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
+        { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },
+        { icon:'📦', label:'Nouvelle livraison', action:`preFillLivraisonClient('${c.id}')` },
+        { icon:'🗑️', label:'Supprimer', action:`supprimerClient('${c.id}')`, danger:true }
+      ])}</td>
     </tr>`;
   }).join('');
+}
+
+/* ===== TABLEAU DE BORD FOURNISSEUR (miroir Clients) ===== */
+function afficherFournisseursDashboard() {
+  const fournAll = loadSafe('fournisseurs', []);
+  const tb = document.getElementById('tb-fournisseurs');
+  if (!tb) return;
+  if (!fournAll.length) {
+    tb.innerHTML = emptyState('🏭', 'Aucun fournisseur', 'Enregistrez vos fournisseurs pour suivre vos achats et charges.');
+    return;
+  }
+  const filtre = (document.getElementById('filtre-frn-search')?.value || '').trim().toLowerCase();
+  const fournisseurs = filtre
+    ? fournAll.filter(f => [f.nom, f.contact, f.tel, f.email, f.adresse, f.ville, f.cp, f.siren]
+        .filter(Boolean).join(' ').toLowerCase().includes(filtre))
+    : fournAll;
+  if (!fournisseurs.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
+  const charges = charger('charges');
+  tb.innerHTML = fournisseurs.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr')).map(f => {
+    const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
+    const totalDepense = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
+    const contact = (f.contact || f.prenom || '').trim();
+    return `<tr>
+      <td><strong>${f.nom || '—'}</strong></td>
+      <td>${contact || '—'}</td>
+      <td>${f.tel || '—'}</td>
+      <td style="font-size:.82rem">${f.adresse || '—'}</td>
+      <td><strong>${euros(totalDepense)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${chargesF.length} charge${chargesF.length > 1 ? 's' : ''}</div></td>
+      <td>${buildInlineActionsDropdown('Actions', [
+        { icon: '✏️', label: 'Modifier', action: `ouvrirEditFournisseur('${f.id}')` },
+        { icon: '🗑️', label: 'Supprimer', action: `supprimerFournisseur('${f.id}')`, danger: true }
+      ])}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Bascule l'affichage des champs Pro pour la modal Fournisseur (miroir
+// du toggleChampsClientPro). Un fournisseur peut être Particulier (artisan,
+// auto-entrepreneur sans SIREN, etc.) — auquel cas on masque les champs Pro.
+window.toggleChampsFournisseurPro = function(isEdit) {
+  var prefix = isEdit ? 'edit-frn' : 'frn';
+  var radios = document.getElementsByName(isEdit ? 'edit-frn-type' : 'frn-type');
+  var type = 'pro';
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) { type = radios[i].value; break; }
+  var bloc = document.getElementById(prefix + '-champs-pro');
+  if (bloc) bloc.classList.toggle('is-hidden', type !== 'pro');
+};
+
+// Reset complet du formulaire 'Nouveau Fournisseur' avant ouverture.
+// Garantit un état initial propre (Pro coché, bloc Pro visible, champs vides).
+window.resetFormulaireFournisseur = function() {
+  return resetFormulaireFournisseur();
+};
+function resetFormulaireFournisseur() {
+  ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-iban','frn-notes'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const delai = document.getElementById('frn-delai-paiement');
+  if (delai) delai.value = '30';
+  const mode = document.getElementById('frn-mode-paiement');
+  if (mode) mode.value = 'virement';
+  const proRadio = document.querySelector('input[name="frn-type"][value="pro"]');
+  if (proRadio) proRadio.checked = true;
+  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(false);
+}
+
+function ajouterFournisseur() {
+  const nom = document.getElementById('frn-nom')?.value.trim();
+  if (!nom) { afficherToast('⚠️ Nom obligatoire', 'error'); return; }
+  const type = document.querySelector('input[name="frn-type"]:checked')?.value || 'pro';
+  const fournisseur = {
+    id: genId(),
+    nom,
+    type,
+    secteur: document.getElementById('frn-secteur')?.value || '',
+    contact: document.getElementById('frn-contact')?.value.trim() || '',
+    tel: document.getElementById('frn-tel')?.value.trim() || '',
+    email: document.getElementById('frn-email')?.value.trim() || '',
+    emailFact: document.getElementById('frn-email-fact')?.value.trim() || '',
+    adresse: document.getElementById('frn-adresse')?.value.trim() || '',
+    cp: document.getElementById('frn-cp')?.value.trim() || '',
+    ville: document.getElementById('frn-ville')?.value.trim() || '',
+    siren: type === 'pro' ? (document.getElementById('frn-siren')?.value.trim() || '') : '',
+    tvaIntra: type === 'pro' ? (document.getElementById('frn-tva-intra')?.value.trim() || '') : '',
+    delaiPaiementJours: type === 'pro' ? (parseInt(document.getElementById('frn-delai-paiement')?.value, 10) || 30) : null,
+    modePaiement: document.getElementById('frn-mode-paiement')?.value || 'virement',
+    iban: document.getElementById('frn-iban')?.value.trim() || '',
+    notes: document.getElementById('frn-notes')?.value.trim() || '',
+    creeLe: new Date().toISOString()
+  };
+  const fournisseurs = charger('fournisseurs');
+  fournisseurs.push(fournisseur);
+  sauvegarder('fournisseurs', fournisseurs);
+  closeModal('modal-fournisseur');
+  ['frn-nom','frn-secteur','frn-contact','frn-tel','frn-email','frn-email-fact','frn-adresse','frn-cp','frn-ville','frn-siren','frn-tva-intra','frn-delai-paiement','frn-iban','frn-notes'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = el.tagName === 'SELECT' ? '' : (id === 'frn-delai-paiement' ? '30' : '');
+  });
+  // Reset radio Pro
+  const proRadio = document.querySelector('input[name="frn-type"][value="pro"]');
+  if (proRadio) proRadio.checked = true;
+  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(false);
+  afficherFournisseursDashboard();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Création fournisseur', nom);
+  afficherToast('✅ Fournisseur enregistré');
+}
+
+let _editFournisseurId = null;
+async function ouvrirEditFournisseur(id) {
+  const f = charger('fournisseurs').find(x => x.id === id);
+  if (!f) return;
+  _editFournisseurId = id;
+  const $ = (k) => document.getElementById('edit-frn-' + k);
+  if ($('id')) $('id').value = id;
+  if ($('nom')) $('nom').value = f.nom || '';
+  if ($('secteur')) $('secteur').value = f.secteur || '';
+  if ($('contact')) $('contact').value = f.contact || '';
+  if ($('tel')) $('tel').value = f.tel || '';
+  if ($('email')) $('email').value = f.email || '';
+  if ($('email-fact')) $('email-fact').value = f.emailFact || '';
+  if ($('adresse')) $('adresse').value = f.adresse || '';
+  if ($('cp')) $('cp').value = f.cp || '';
+  if ($('ville')) $('ville').value = f.ville || '';
+  if ($('siren')) $('siren').value = f.siren || '';
+  if ($('tva-intra')) $('tva-intra').value = f.tvaIntra || '';
+  if ($('delai-paiement')) $('delai-paiement').value = f.delaiPaiementJours || 30;
+  if ($('mode-paiement')) $('mode-paiement').value = f.modePaiement || 'virement';
+  if ($('iban')) $('iban').value = f.iban || '';
+  if ($('notes')) $('notes').value = f.notes || '';
+  // Type Pro/Particulier
+  const typeRadio = document.querySelector('input[name="edit-frn-type"][value="' + (f.type || 'pro') + '"]');
+  if (typeRadio) typeRadio.checked = true;
+  if (typeof window.toggleChampsFournisseurPro === 'function') window.toggleChampsFournisseurPro(true);
+  openModal('modal-edit-fournisseur');
+}
+
+function confirmerEditFournisseur() {
+  const id = document.getElementById('edit-frn-id')?.value || _editFournisseurId;
+  if (!id) return;
+  const fournisseurs = charger('fournisseurs');
+  const idx = fournisseurs.findIndex(f => f.id === id);
+  if (idx === -1) return;
+  const $ = (k) => document.getElementById('edit-frn-' + k);
+  const type = document.querySelector('input[name="edit-frn-type"]:checked')?.value || 'pro';
+  fournisseurs[idx].nom = $('nom')?.value.trim() || '';
+  fournisseurs[idx].type = type;
+  fournisseurs[idx].secteur = $('secteur')?.value || '';
+  fournisseurs[idx].contact = $('contact')?.value.trim() || '';
+  fournisseurs[idx].tel = $('tel')?.value.trim() || '';
+  fournisseurs[idx].email = $('email')?.value.trim() || '';
+  fournisseurs[idx].emailFact = $('email-fact')?.value.trim() || '';
+  fournisseurs[idx].adresse = $('adresse')?.value.trim() || '';
+  fournisseurs[idx].cp = $('cp')?.value.trim() || '';
+  fournisseurs[idx].ville = $('ville')?.value.trim() || '';
+  fournisseurs[idx].siren = type === 'pro' ? ($('siren')?.value.trim() || '') : '';
+  fournisseurs[idx].tvaIntra = type === 'pro' ? ($('tva-intra')?.value.trim() || '') : '';
+  fournisseurs[idx].delaiPaiementJours = type === 'pro' ? (parseInt($('delai-paiement')?.value, 10) || 30) : null;
+  fournisseurs[idx].modePaiement = $('mode-paiement')?.value || 'virement';
+  fournisseurs[idx].iban = $('iban')?.value.trim() || '';
+  fournisseurs[idx].notes = $('notes')?.value.trim() || '';
+  sauvegarder('fournisseurs', fournisseurs);
+  closeModal('modal-edit-fournisseur');
+  _editFournisseurId = null;
+  afficherFournisseursDashboard();
+  afficherToast('✅ Fournisseur mis à jour');
+}
+
+async function supprimerFournisseur(id) {
+  const f = charger('fournisseurs').find(x => x.id === id);
+  if (!f) return;
+  const charges = charger('charges');
+  const chargesF = charges.filter(c => c.fournisseurId === id || c.fournisseur === f.nom);
+  let msg = 'Supprimer le fournisseur « ' + (f.nom || 'sans nom') + ' » ?';
+  if (chargesF.length) msg += '\n\n⚠️ Lié à ' + chargesF.length + ' charge' + (chargesF.length > 1 ? 's' : '') + ' (snapshots conservés).';
+  const ok = await confirmDialog(msg, { titre: 'Supprimer le fournisseur', icone: '🏭', btnLabel: 'Supprimer', danger: true });
+  if (!ok) return;
+  sauvegarder('fournisseurs', charger('fournisseurs').filter(x => x.id !== id));
+  afficherFournisseursDashboard();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Suppression fournisseur', f.nom || 'sans nom');
+  afficherToast('🗑️ Fournisseur supprimé');
+}
+
+function exporterHistoriqueFournisseursCSV() {
+  const fournisseurs = charger('fournisseurs');
+  if (!fournisseurs.length) { afficherToast('Aucun fournisseur à exporter', 'info'); return; }
+  const headers = ['Nom', 'Contact', 'Téléphone', 'Email', 'Adresse', 'CP', 'Ville', 'SIREN', 'TVA Intracom', 'IBAN', 'Notes'];
+  const rows = fournisseurs.map(f => [f.nom, f.contact || f.prenom, f.tel, f.email, f.adresse, f.cp, f.ville, f.siren, f.tvaIntra, f.iban, f.notes].map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(','));
+  const csv = headers.map(h => '"' + h + '"').join(',') + '\n' + rows.join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fournisseurs_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  afficherToast('📥 Export CSV fournisseurs');
+}
+
+function genererRapportFournisseurs() {
+  const fournisseurs = charger('fournisseurs');
+  if (!fournisseurs.length) { afficherToast('Aucun fournisseur à exporter', 'info'); return; }
+  const charges = charger('charges');
+  const params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : {};
+  const dateExp = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const esc = (typeof planningEscapeHtml === 'function') ? planningEscapeHtml : (v => String(v || ''));
+  const lignes = fournisseurs.map(f => {
+    const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
+    const total = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
+    return { f, nb: chargesF.length, total };
+  }).sort((a, b) => b.total - a.total);
+  const totalGlobal = lignes.reduce((s, L) => s + L.total, 0);
+  const meta = fournisseurs.length + ' fournisseur(s) · ' + lignes.reduce((s, L) => s + L.nb, 0) + ' charge(s)';
+  const rows = lignes.map(L => `<tr>
+    <td style="padding:7px 10px;font-weight:600">${esc(L.f.nom || '')}${L.f.siren ? '<div style="font-size:.72rem;color:#9ca3af">SIREN ' + esc(L.f.siren) + '</div>' : ''}</td>
+    <td style="padding:7px 10px;font-size:.82rem">${esc(L.f.contact || L.f.prenom || '—')}${L.f.tel ? '<div style="color:#6b7280">' + esc(L.f.tel) + '</div>' : ''}</td>
+    <td style="padding:7px 10px;font-size:.78rem;color:#6b7280">${esc([L.f.adresse, ((L.f.cp || '') + ' ' + (L.f.ville || '')).trim()].filter(Boolean).join(' · ') || '—')}</td>
+    <td style="padding:7px 10px;text-align:right">${L.nb}</td>
+    <td style="padding:7px 10px;text-align:right;font-weight:700">${euros(L.total)}</td>
+  </tr>`).join('');
+  const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">'
+    + construireEnteteExport(params, 'Carnet fournisseurs', '', dateExp, meta)
+    + '<table style="width:100%;border-collapse:collapse;font-size:.82rem">'
+    + '<thead><tr style="background:#f3f4f6;text-align:left">'
+    +   '<th style="padding:8px 10px">Fournisseur</th>'
+    +   '<th style="padding:8px 10px">Contact</th>'
+    +   '<th style="padding:8px 10px">Adresse</th>'
+    +   '<th style="padding:8px 10px;text-align:right">Charges</th>'
+    +   '<th style="padding:8px 10px;text-align:right">Total dépensé</th>'
+    + '</tr></thead><tbody>' + rows + '</tbody>'
+    + '<tfoot><tr style="background:#fef3c7;font-weight:700"><td colspan="4" style="padding:8px 10px">TOTAL</td><td style="padding:8px 10px;text-align:right">' + euros(totalGlobal) + '</td></tr></tfoot>'
+    + '</table></div>';
+  if (typeof ouvrirFenetreImpression === 'function') ouvrirFenetreImpression('Carnet fournisseurs', html, 'width=1200,height=820');
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Rapport fournisseurs', fournisseurs.length + ' fournisseur(s)');
 }
 
 /* ===== CONGÉS / ABSENCES DANS LE PLANNING ===== */
@@ -7875,23 +8272,109 @@ function confirmerNoteInterne() {
 }
 
 /* ===== FLOTTE — PHOTO VÉHICULE ===== */
-function uploaderPhotoVehicule(vehId, input) {
-  const file = input.files[0];
+
+// Upload carte grise PDF (ou image) — stocké en base64 dans le véhicule.
+// Limite 5 Mo pour éviter de saturer localStorage.
+function uploaderCarteGriseVehicule(vehId, input) {
+  const file = input && input.files && input.files[0];
   if (!file) return;
+  const okType = /^application\/pdf$|^image\//i.test(file.type);
+  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
   const reader = new FileReader();
   reader.onload = e => {
-    compresserImage(e.target.result, compressed => {
-      const vehicules = charger('vehicules');
-      const idx = vehicules.findIndex(v => v.id === vehId);
-      if (idx > -1) {
-        vehicules[idx].photo = compressed;
-        sauvegarder('vehicules', vehicules);
-        afficherVehicules();
-        afficherToast('✅ Photo enregistrée');
-      }
-    });
+    const vehicules = charger('vehicules');
+    const idx = vehicules.findIndex(v => v.id === vehId);
+    if (idx > -1) {
+      vehicules[idx].carteGriseFichier = e.target.result;
+      vehicules[idx].carteGriseFichierType = file.type;
+      vehicules[idx].carteGriseFichierNom = file.name;
+      sauvegarder('vehicules', vehicules);
+      afficherVehicules();
+      afficherToast('✅ Carte grise enregistrée');
+    }
   };
   reader.readAsDataURL(file);
+}
+
+// Wrapper appelé par l'input du formulaire véhicule (création + édition).
+// - En édition (window._editVehId set) : sauvegarde directe sur le véhicule
+// - En création : stocke en variable temp pour attachement à la sauvegarde
+function uploaderCarteGriseFromForm(input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  const okType = /^application\/pdf$|^image\//i.test(file.type);
+  if (!okType) { afficherToast('Format non supporté (PDF ou image attendu)', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { afficherToast('Fichier trop lourd (5 Mo max)', 'error'); return; }
+  const btnLabel = document.getElementById('veh-carte-grise-button-label');
+  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
+  const status = document.getElementById('veh-carte-grise-status');
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    if (window._editVehId) {
+      // Mode édition : sauvegarde directe sur le véhicule existant
+      const vehicules = charger('vehicules');
+      const idx = vehicules.findIndex(v => v.id === window._editVehId);
+      if (idx > -1) {
+        vehicules[idx].carteGriseFichier = dataUrl;
+        vehicules[idx].carteGriseFichierType = file.type;
+        vehicules[idx].carteGriseFichierNom = file.name;
+        sauvegarder('vehicules', vehicules);
+        afficherToast('✅ Carte grise enregistrée');
+      }
+    } else {
+      // Mode création : stockage temp pour attachement au véhicule à créer
+      window.__vehCGTemp = { data: dataUrl, type: file.type, nom: file.name };
+    }
+    if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
+    if (wrapper) wrapper.classList.add('has-file');
+    if (status) status.textContent = 'Fichier prêt : ' + file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+// Reset visuel du champ carte grise (appelé à l'ouverture de la modal Création
+// ou au reset après save).
+function resetCarteGriseFormUI() {
+  const btnLabel = document.getElementById('veh-carte-grise-button-label');
+  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
+  const status = document.getElementById('veh-carte-grise-status');
+  const input = document.getElementById('veh-carte-grise-fichier');
+  if (btnLabel) btnLabel.textContent = '📎 Choisir un fichier';
+  if (wrapper) wrapper.classList.remove('has-file');
+  if (status) status.textContent = '';
+  if (input) input.value = '';
+  window.__vehCGTemp = null;
+}
+
+// Affiche le fichier déjà uploadé dans le formulaire d'édition véhicule.
+function prefillCarteGriseFormUI(veh) {
+  if (!veh || !veh.carteGriseFichier) { resetCarteGriseFormUI(); return; }
+  const btnLabel = document.getElementById('veh-carte-grise-button-label');
+  const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
+  const status = document.getElementById('veh-carte-grise-status');
+  if (btnLabel) btnLabel.textContent = '✅ ' + (veh.carteGriseFichierNom || 'Carte grise enregistrée') + ' (cliquez pour remplacer)';
+  if (wrapper) wrapper.classList.add('has-file');
+  if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
+}
+
+// Visualise la carte grise dans une nouvelle fenêtre/onglet.
+function visualiserCarteGrise(vehId) {
+  const veh = charger('vehicules').find(v => v.id === vehId);
+  if (!veh || !veh.carteGriseFichier) {
+    afficherToast('Aucune carte grise uploadée pour ce véhicule', 'info');
+    return;
+  }
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
+  const isPdf = (veh.carteGriseFichierType || '').includes('pdf');
+  const titre = 'Carte grise — ' + (veh.immat || '');
+  const contenu = isPdf
+    ? '<embed src="' + veh.carteGriseFichier + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
+    : '<img src="' + veh.carteGriseFichier + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + titre + '</h1>' + contenu + '</body></html>');
+  w.document.close();
 }
 
 /* ===== FLOTTE — HISTORIQUE CONDUCTEURS ===== */
@@ -8600,6 +9083,103 @@ function getClientHistoriqueSnapshot(clientId) {
   };
 }
 
+function genererRapportClients() {
+  // Rapport PDF du carnet clients : stats globales + ventilation par client.
+  // Utilise construireEnteteExport pour le header unifié.
+  var clients = charger('clients');
+  if (!clients.length) {
+    if (typeof afficherToast === 'function') afficherToast('Aucun client à exporter', 'info');
+    return;
+  }
+  var livraisons = charger('livraisons');
+  var paiements = (typeof charger === 'function') ? charger('paiements') || [] : [];
+  var params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : {};
+  var dateExp = new Date().toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  var esc = (typeof planningEscapeHtml === 'function') ? planningEscapeHtml : function(v){ return String(v||''); };
+
+  var lignes = clients.map(function(c) {
+    var livsC = livraisons.filter(function(l) { return l.client === c.nom || l.clientId === c.id; });
+    var caHT = livsC.reduce(function(s, l) { return s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)); }, 0);
+    var caTTC = livsC.reduce(function(s, l) { return s + (parseFloat(l.prix) || 0); }, 0);
+    var paye = livsC.reduce(function(s, l) { return s + ((l.statutPaiement === 'payé') ? (parseFloat(l.prix) || 0) : 0); }, 0);
+    var attente = caTTC - paye;
+    return { c: c, nb: livsC.length, caHT: caHT, caTTC: caTTC, paye: paye, attente: attente };
+  }).sort(function(a, b) { return b.caTTC - a.caTTC; });
+
+  var totalNb = lignes.reduce(function(s, l) { return s + l.nb; }, 0);
+  var totalHT = lignes.reduce(function(s, l) { return s + l.caHT; }, 0);
+  var totalTTC = lignes.reduce(function(s, l) { return s + l.caTTC; }, 0);
+  var totalPaye = lignes.reduce(function(s, l) { return s + l.paye; }, 0);
+  var totalAttente = lignes.reduce(function(s, l) { return s + l.attente; }, 0);
+  var clientsActifs = lignes.filter(function(l) { return l.nb > 0; }).length;
+
+  var meta = clients.length + ' client(s) · ' + clientsActifs + ' actif(s) · ' + totalNb + ' livraison(s)';
+
+  var blocStats =
+    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px">' +
+      '<div style="padding:12px;background:#f3f4f6;border-radius:8px"><div style="font-size:.7rem;color:#6b7280;text-transform:uppercase">Clients</div><div style="font-size:1.15rem;font-weight:800;color:#111827">' + clients.length + '</div></div>' +
+      '<div style="padding:12px;background:#ecfdf5;border-radius:8px"><div style="font-size:.7rem;color:#065f46;text-transform:uppercase">CA HT total</div><div style="font-size:1.15rem;font-weight:800;color:#065f46">' + euros(totalHT) + '</div></div>' +
+      '<div style="padding:12px;background:#fff7ed;border-radius:8px"><div style="font-size:.7rem;color:#9a3412;text-transform:uppercase">Encaissé TTC</div><div style="font-size:1.15rem;font-weight:800;color:#9a3412">' + euros(totalPaye) + '</div></div>' +
+      '<div style="padding:12px;background:#fef2f2;border-radius:8px"><div style="font-size:.7rem;color:#991b1b;text-transform:uppercase">En attente TTC</div><div style="font-size:1.15rem;font-weight:800;color:#991b1b">' + euros(totalAttente) + '</div></div>' +
+    '</div>';
+
+  var rows = lignes.map(function(L) {
+    var c = L.c;
+    var contact = (c.contact || c.prenom || '').trim();
+    var addr = [c.adresse, ((c.cp || '') + ' ' + (c.ville || '')).trim()].filter(Boolean).join(' · ');
+    return '<tr>' +
+      '<td style="padding:7px 10px;font-weight:600">' + esc(c.nom || '') + (c.siren ? '<div style="font-size:.72rem;color:#9ca3af">SIREN ' + esc(c.siren) + '</div>' : '') + '</td>' +
+      '<td style="padding:7px 10px;font-size:.82rem">' + esc(contact || '—') + (c.tel ? '<div style="color:#6b7280">' + esc(c.tel) + '</div>' : '') + '</td>' +
+      '<td style="padding:7px 10px;font-size:.78rem;color:#6b7280">' + esc(addr || '—') + '</td>' +
+      '<td style="padding:7px 10px;text-align:right">' + L.nb + '</td>' +
+      '<td style="padding:7px 10px;text-align:right">' + euros(L.caHT) + '</td>' +
+      '<td style="padding:7px 10px;text-align:right;font-weight:700">' + euros(L.caTTC) + '</td>' +
+      '<td style="padding:7px 10px;text-align:right;color:#065f46">' + euros(L.paye) + '</td>' +
+      '<td style="padding:7px 10px;text-align:right;color:' + (L.attente > 0 ? '#92400e' : '#9ca3af') + '">' + euros(L.attente) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var tableau =
+    '<h3 style="font-size:.9rem;font-weight:700;margin:20px 0 8px">Détail par client</h3>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:.78rem">' +
+      '<thead><tr style="background:#f3f4f6;text-align:left">' +
+        '<th style="padding:8px 10px">Client</th>' +
+        '<th style="padding:8px 10px">Contact</th>' +
+        '<th style="padding:8px 10px">Adresse</th>' +
+        '<th style="padding:8px 10px;text-align:right">Livs</th>' +
+        '<th style="padding:8px 10px;text-align:right">CA HT</th>' +
+        '<th style="padding:8px 10px;text-align:right">CA TTC</th>' +
+        '<th style="padding:8px 10px;text-align:right">Encaissé</th>' +
+        '<th style="padding:8px 10px;text-align:right">En attente</th>' +
+      '</tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+      '<tfoot><tr style="background:#fef3c7;font-weight:700">' +
+        '<td colspan="3" style="padding:8px 10px">TOTAUX</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + totalNb + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalHT) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalTTC) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalPaye) + '</td>' +
+        '<td style="padding:8px 10px;text-align:right">' + euros(totalAttente) + '</td>' +
+      '</tr></tfoot>' +
+    '</table>';
+
+  var html =
+    '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
+      construireEnteteExport(params, 'Carnet clients', '', dateExp, meta) +
+      blocStats +
+      tableau +
+      '<div style="margin-top:24px;padding-top:14px;border-top:1px solid #e5e7eb;text-align:center;font-size:.72rem;color:#9ca3af">Document généré par ' + esc(params.nom || 'MCA LOGISTICS') + ' le ' + esc(dateExp) + '</div>' +
+    '</div>';
+
+  if (typeof ouvrirFenetreImpression === 'function') {
+    ouvrirFenetreImpression('Carnet clients — ' + (params.nom || 'MCA LOGISTICS'), html, 'width=1200,height=820');
+  } else {
+    var w = window.open('', '_blank', 'width=1200,height=820');
+    if (w) { w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Carnet clients</title></head><body>' + html + '</body></html>'); w.document.close(); }
+  }
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Rapport clients', clients.length + ' client(s)');
+}
+
 function exporterHistoriqueClientsCSV() {
   const clients = charger('clients');
   const rows = clients.map(function(client) {
@@ -8829,38 +9409,26 @@ function exporterDonneesRGPDClientCourant() {
   }
 }
 
+// afficherClients : alias historique. La vraie fonction de rendu est
+// afficherClientsDashboard (ligne ~7232). Ce wrapper évite de casser les
+// nombreux appels existants tout en garantissant un seul code de rendu.
 function afficherClients() {
-  const clients = loadSafe('clients', []);
-  const tb = document.getElementById('tb-clients');
-  if (!tb) return;
-  paginer.__reload_tb_clients = afficherClients;
-  if (!clients.length) {
-    nettoyerPagination('tb-clients');
-    tb.innerHTML=emptyState('🧑‍💼','Aucun client enregistré','Enregistrez vos clients pour activer l\'auto-complétion lors de la création des livraisons.');
-    return;
-  }
-  const livraisons = charger('livraisons');
-  paginer(clients, 'tb-clients', function(items) {
-    return items.map(c => {
-    const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
-    const caC   = livsC.reduce((s,l)=>s+(l.prix||0),0);
-    const contact = (c.contact || c.prenom || '').trim();
-    return `<tr>
-      <td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient('${c.id}')" style="font-weight:700">${c.nom}</button></td>
-      <td>${contact||'—'}</td>
-      <td>${c.tel||'—'}</td>
-      <td style="font-size:.82rem">${c.adresse||'—'}</td>
-      <td>${livsC.length} · ${euros(caC)}</td>
-      <td>${buildInlineActionsDropdown('Actions', [
-        { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
-        { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },
-        { icon:'📦', label:'Nouvelle livraison', action:`preFillLivraisonClient('${c.id}')` },
-        { icon:'🗑️', label:'Supprimer', action:`supprimerClient('${c.id}')`, danger:true }
-      ])}</td>
-    </tr>`;
-  }).join('');
-  }, 12);
+  if (typeof afficherClientsDashboard === 'function') return afficherClientsDashboard();
 }
+
+// Bascule l'affichage des champs Pro (SIREN, TVA, paiement, IBAN, Secteur,
+// Email facturation) selon le type de client. Appelée par les radios cl-type.
+window.toggleChampsClientPro = function(isEdit) {
+  var prefix = isEdit ? 'edit-cl' : 'cl';
+  var radios = document.getElementsByName(isEdit ? 'edit-cl-type' : 'cl-type');
+  var type = 'pro';
+  for (var i = 0; i < radios.length; i++) if (radios[i].checked) { type = radios[i].value; break; }
+  var bloc = document.getElementById(prefix + '-champs-pro');
+  if (bloc) bloc.classList.toggle('is-hidden', type !== 'pro');
+  // Pour Particulier : vider le secteur (au cas où une ancienne valeur 'particulier' subsiste)
+  var secteurEl = document.getElementById(prefix + '-secteur');
+  if (secteurEl && type === 'particulier' && secteurEl.value === 'particulier') secteurEl.value = '';
+};
 
 function ajouterClient() {
   const nom         = document.getElementById('cl-nom')?.value.trim();
@@ -8919,13 +9487,23 @@ function ajouterClient() {
 }
 
 async function supprimerClient(id) {
-  const _ok6 = await confirmDialog('Supprimer ce client ?', {titre:'Supprimer le client',icone:'🧑‍💼',btnLabel:'Supprimer'});
-  if (!_ok6) return;
   const client = charger('clients').find(function(item) { return item.id === id; });
+  if (!client) return;
+  // Vérification des livraisons liées avant suppression
+  const livraisons = charger('livraisons');
+  const livsLiees = livraisons.filter(l => l.clientId === id || l.client === client.nom);
+  let message = 'Supprimer le client « ' + (client.nom || 'sans nom') + ' » ?';
+  if (livsLiees.length) {
+    message += '\n\n⚠️ Ce client est lié à ' + livsLiees.length + ' livraison'
+            + (livsLiees.length > 1 ? 's' : '') + '. '
+            + 'Elles seront conservées (le nom du client reste affiché) mais la fiche client disparaît.';
+  }
+  const _ok6 = await confirmDialog(message, {titre:'Supprimer le client', icone:'🧑‍💼', btnLabel:'Supprimer', danger:true});
+  if (!_ok6) return;
   const clients = loadSafe('clients', []).filter(c=>c.id!==id);
   localStorage.setItem('clients', JSON.stringify(clients));
   afficherClients();
-  ajouterEntreeAudit('Suppression client', (client?.nom || 'Client') + ' supprimé');
+  ajouterEntreeAudit('Suppression client', (client.nom || 'Client') + ' supprimé' + (livsLiees.length ? ' (' + livsLiees.length + ' livraison(s) orpheline(s))' : ''));
   afficherToast('🗑️ Client supprimé');
 }
 
@@ -8935,12 +9513,12 @@ function preFillLivraisonClient(id) {
   naviguerVers('livraisons');
   setTimeout(()=>{
     openModal('modal-livraison');
+    // Utilise la fonction centralisée pour pré-remplir tous les champs
     setTimeout(()=>{
-      const el = document.getElementById('liv-client'); if(el) el.value = c.prenom ? `${c.nom} ${c.prenom}` : c.nom;
-      const zone = document.getElementById('liv-zone'); if(zone&&c.adresse) zone.value=c.adresse;
-      const dep = document.getElementById('liv-depart'); if(dep&&c.adresse) dep.value=c.adresse;
-      const arr = document.getElementById('liv-arrivee'); if(arr) arr.value='';
-    },100);
+      if (typeof selectionnerClientLivraisonParId === 'function') {
+        selectionnerClientLivraisonParId(c.id);
+      }
+    }, 100);
   },100);
 }
 
@@ -8949,41 +9527,67 @@ function autoCompleteClient(val) {
   const sug = document.getElementById('client-suggestions');
   if (!sug) return;
   const terme = (val || '').trim();
-  if (terme.length < 2) { sug.innerHTML = ''; return; }
+  if (terme.length < 2) {
+    sug.innerHTML = '';
+    // Si l'utilisateur efface le nom, on délie le client précédemment sélectionné
+    window.__livSelectedClientId = null;
+    return;
+  }
   const clients = loadSafe('clients', []);
   const termeLc = terme.toLowerCase();
   const matches = clients.filter(c => (c.nom || '').toLowerCase().includes(termeLc)).slice(0, 5);
   const matchExact = clients.some(c => (c.nom || '').toLowerCase() === termeLc);
+  // On passe maintenant l'ID complet du client à selectionnerClientLivraison
+  // (au lieu de juste nom+adresse) pour pouvoir lier proprement TOUS les champs.
   const htmlMatches = matches.map(c => {
-    const nomAttr = escapeAttr(c.nom || '');
-    const adrAttr = escapeAttr(c.adresse || '');
     const nomHtml = escapeHtml(c.nom || '');
     const adrHtml = escapeHtml(c.adresse || '');
-    return `<div onclick="selectionnerClientLivraison('${nomAttr}','${adrAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
+    const idAttr = escapeAttr(c.id || '');
+    return `<div onclick="selectionnerClientLivraisonParId('${idAttr}')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">${nomHtml}${adrHtml?`<span style='color:var(--text-muted);font-size:.78rem;margin-left:6px'>${adrHtml}</span>`:''}</div>`;
   }).join('');
   const htmlCreate = matchExact ? '' : `<div onclick="ouvrirCreationClientDepuisLivraison('${escapeAttr(terme)}')" style="padding:9px 12px;cursor:pointer;font-size:.88rem;color:#4ade80;font-weight:600;background:rgba(74,222,128,.08);border-top:1px solid var(--border)" onmouseover="this.style.background='rgba(74,222,128,.18)'" onmouseout="this.style.background='rgba(74,222,128,.08)'">+ Créer « ${escapeHtml(terme)} » comme nouveau client</div>`;
   sug.innerHTML = htmlMatches + htmlCreate;
 }
 
+// Pré-remplit la modal Nouvelle livraison avec TOUTES les infos du client
+// sélectionné (SIREN, TVA intracom, adresse, zone) et stocke son ID pour
+// liaison fiable à la sauvegarde (sans dépendre du matching par nom).
+function selectionnerClientLivraisonParId(clientId) {
+  const c = loadSafe('clients', []).find(x => x && x.id === clientId);
+  if (!c) return;
+  const $ = (id) => document.getElementById(id);
+  if ($('liv-client'))       $('liv-client').value = c.nom || '';
+  if ($('liv-client-siren')) $('liv-client-siren').value = c.siren || '';
+  // Adresse → zone géographique + champ caché départ
+  if (c.adresse) {
+    const adrComplete = [c.adresse, ((c.cp || '') + ' ' + (c.ville || '')).trim()].filter(Boolean).join(', ');
+    if ($('liv-zone'))   $('liv-zone').value = adrComplete;
+    if ($('liv-depart')) $('liv-depart').value = adrComplete;
+  }
+  if ($('liv-arrivee')) $('liv-arrivee').value = '';
+  // Mémorise l'ID pour ajouterLivraison (lien fiable, écrase le match par nom)
+  window.__livSelectedClientId = c.id;
+  window.__livSelectedClientTva = c.tvaIntra || '';
+  window.__livSelectedClientPays = c.pays || 'FR';
+  // Reset les suggestions
+  const sug = document.getElementById('client-suggestions');
+  if (sug) sug.innerHTML = '';
+}
+
+// Compat : ancienne signature (nom, adresse) — appelée encore depuis quelques
+// endroits historiques. Délègue à la version par ID si possible.
 function selectionnerClientLivraison(nom, adresse) {
+  const c = loadSafe('clients', []).find(x => x && (x.nom || '').toLowerCase() === String(nom || '').toLowerCase());
+  if (c) return selectionnerClientLivraisonParId(c.id);
+  // Pas de match → comportement legacy minimal
   const livClient = document.getElementById('liv-client');
   if (livClient) livClient.value = nom;
   const livZone = document.getElementById('liv-zone');
   if (livZone && adresse) livZone.value = adresse;
   const livDep = document.getElementById('liv-depart');
   if (livDep && adresse) livDep.value = adresse;
-  const livArr = document.getElementById('liv-arrivee');
-  if (livArr) livArr.value = '';
   const sug = document.getElementById('client-suggestions');
   if (sug) sug.innerHTML = '';
-  try {
-    const clients = loadSafe('clients', []);
-    const match = clients.find(c => (c.nom || '').toLowerCase() === String(nom || '').toLowerCase());
-    if (match) {
-      const livSiren = document.getElementById('liv-client-siren');
-      if (livSiren && !livSiren.value && match.siren) livSiren.value = match.siren;
-    }
-  } catch (_) {}
 }
 
 function ouvrirCreationClientDepuisLivraison(nom) {
@@ -10036,6 +10640,21 @@ function afficherEntretiens() {
   }, 12);
 }
 
+// Auto-fill du km actuel quand on sélectionne un véhicule dans la modal Entretien
+// (le user veut pouvoir modifier mais avoir le km actuel pré-rempli).
+// Le champ 'Prochain entretien' reste vide intentionnellement.
+function autoFillKmEntretien() {
+  const sel = document.getElementById('entr-veh');
+  const kmInput = document.getElementById('entr-km');
+  if (!sel || !kmInput || !sel.value) return;
+  const veh = charger('vehicules').find(v => v.id === sel.value);
+  if (!veh) return;
+  const kmActuel = (typeof calculerKilometrageVehiculeActuel === 'function')
+    ? calculerKilometrageVehiculeActuel(veh)
+    : (parseFloat(veh.km) || 0);
+  if (kmActuel) kmInput.value = kmActuel;
+}
+
 function ouvrirModalEntretien() {
   window._editEntretienId = null;
   ['entr-date','entr-desc','entr-km','entr-prochain-km','entr-cout-ht','entr-cout'].forEach(id => {
@@ -10207,14 +10826,27 @@ async function supprimerEntretien(id) {
 /* ===== BLOCAGE COMPTE après X tentatives ===== */
 /* ===== INCIDENTS / RÉCLAMATIONS ===== */
 function afficherIncidents() {
-  const incidents = charger('incidents').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe));
+  let incidents = charger('incidents').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe));
   const tb = document.getElementById('tb-incidents');
   if (!tb) return;
   paginer.__reload_tb_incidents = afficherIncidents;
 
+  // Filtres
+  const filtreSearch = (document.getElementById('filtre-inc-search')?.value || '').trim().toLowerCase();
+  const filtreGravite = document.getElementById('filtre-inc-gravite')?.value || '';
+  const filtreStatut = document.getElementById('filtre-inc-statut')?.value || '';
+  if (filtreGravite) incidents = incidents.filter(i => (i.gravite || 'moyen') === filtreGravite);
+  if (filtreStatut)  incidents = incidents.filter(i => (i.statut || 'ouvert') === filtreStatut);
+  if (filtreSearch) {
+    incidents = incidents.filter(i => [i.client, i.salNom, i.chaufNom, i.description, i.numLiv]
+      .filter(Boolean).join(' ').toLowerCase().includes(filtreSearch));
+  }
+
   if (!incidents.length) {
     nettoyerPagination('tb-incidents');
-    tb.innerHTML = emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.');
+    tb.innerHTML = filtreSearch || filtreGravite || filtreStatut
+      ? '<tr><td colspan="7" class="empty-row">Aucun résultat avec ces filtres</td></tr>'
+      : emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.');
     return;
   }
 
@@ -10233,14 +10865,12 @@ function afficherIncidents() {
     <td style="font-size:.83rem">${i.description||'—'}</td>
     <td>${graviteBadge[i.gravite||'moyen']||graviteBadge.moyen}</td>
     <td>${statBadge[i.statut||'ouvert']||''}</td>
-    <td>
-      <select class="btn-icon" onchange="changerStatutIncident('${i.id}',this.value)">
-        <option value="ouvert"  ${(i.statut||'ouvert')==='ouvert' ?'selected':''}>🔴 Ouvert</option>
-        <option value="encours" ${i.statut==='encours'?'selected':''}>🟡 En cours</option>
-        <option value="traite"  ${i.statut==='traite' ?'selected':''}>✅ Traité</option>
-      </select>
-      <button class="btn-icon danger" onclick="supprimerIncident('${i.id}')">🗑️</button>
-    </td>
+    <td>${buildInlineActionsDropdown('Actions', [
+      { icon:'🔴', label:'Marquer ouvert', action:`changerStatutIncident('${i.id}','ouvert')` },
+      { icon:'🟡', label:'Marquer en cours', action:`changerStatutIncident('${i.id}','encours')` },
+      { icon:'✅', label:'Marquer traité', action:`changerStatutIncident('${i.id}','traite')` },
+      { icon:'🗑️', label:'Supprimer', action:`supprimerIncident('${i.id}')`, danger:true }
+    ])}</td>
   </tr>`).join('');
   }, 12);
 }
@@ -10356,32 +10986,6 @@ function afficherCommentairesLiv(livId) {
       <div style="color:var(--text-muted);font-size:.72rem;margin-bottom:3px">${c.par} · ${new Date(c.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</div>
       ${c.texte}
     </div>`).join('');
-}
-
-/* ===== COMPARATIF MENSUEL ===== */
-function calculerComparatif() {
-  const livraisons = charger('livraisons');
-  const carburant  = charger('carburant');
-  const auj        = new Date();
-  const moisActuel = auj.toLocalISOMonth();
-  const moisPrec   = new Date(auj.getFullYear(), auj.getMonth()-1, 1).toLocalISOMonth();
-
-  const caActuel = livraisons.filter(l=>(l.date||'').startsWith(moisActuel)).reduce((s,l)=>s+(l.prix||0),0);
-  const caPrec   = livraisons.filter(l=>(l.date||'').startsWith(moisPrec)).reduce((s,l)=>s+(l.prix||0),0);
-  const livActuel= livraisons.filter(l=>(l.date||'').startsWith(moisActuel)).length;
-  const livPrec  = livraisons.filter(l=>(l.date||'').startsWith(moisPrec)).length;
-  const carbActuel= carburant.filter(p=>(p.date||'').startsWith(moisActuel)).reduce((s,p)=>s+(p.total||0),0);
-  const carbPrec  = carburant.filter(p=>(p.date||'').startsWith(moisPrec)).reduce((s,p)=>s+(p.total||0),0);
-
-  return { caActuel, caPrec, livActuel, livPrec, carbActuel, carbPrec };
-}
-
-function badgeEvol(actuel, precedent) {
-  if (!precedent) return '';
-  const pct = Math.round((actuel - precedent) / precedent * 100);
-  if (pct > 0)  return `<span class="evol-badge up">↑ +${pct}%</span>`;
-  if (pct < 0)  return `<span class="evol-badge down">↓ ${pct}%</span>`;
-  return `<span class="evol-badge flat">= 0%</span>`;
 }
 
 /* ===== BON DE LIVRAISON PDF ===== */
@@ -10775,7 +11379,7 @@ function genererLettreDeVoiture(livId) {
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:20px">'
     + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature expéditeur</div></div>'
     + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature transporteur</div></div>'
-    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature destinataire (+ éventuelles réserves)</div></div>'
+    + '<div style="border:1px dashed #9ca3af;border-radius:8px;padding:14px;min-height:80px"><div style="font-size:.72rem;color:#6b7280;margin-bottom:6px">Signature destinataire</div></div>'
     + '</div>'
     + '<div style="margin-top:16px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Édité le ' + esc(dateEmission) + ' · Conservation obligatoire 5 ans (R.3411-13 Code des transports)</div>'
     + '</div>';
@@ -11005,19 +11609,36 @@ function confirmerEditClient() {
   }
   const clients = charger('clients');
   const idx = clients.findIndex(c=>c.id===id);
+  let nbLivsRenommees = 0;
   if (idx>-1) {
+    const ancienNom = clients[idx].nom;
+    const ancienSiren = clients[idx].siren;
     clients[idx].nom=nom; clients[idx].prenom=prenom; clients[idx].tel=tel;
     clients[idx].contact=prenom; clients[idx].email=email; clients[idx].adresse=adresse;
     clients[idx].cp=cp; clients[idx].ville=ville;
     clients[idx].type=type; clients[idx].siren=siren; clients[idx].tvaIntra=tvaIntra;
     clients[idx].emailFact=emailFact; clients[idx].delaiPaiementJours=delaiPay; clients[idx].notes=notes;
     sauvegarder('clients', clients);
+    // Propage le nouveau nom + SIREN aux livraisons liées via clientId.
+    // Évite que le filtre `l.client === c.nom` casse le calcul Total CA et
+    // l'historique client après un renommage.
+    if (ancienNom !== nom || ancienSiren !== siren) {
+      const livraisons = charger('livraisons');
+      let dirty = false;
+      livraisons.forEach(l => {
+        if (l.clientId === id) {
+          if (ancienNom !== nom && l.client === ancienNom) { l.client = nom; nbLivsRenommees++; dirty = true; }
+          if (ancienSiren !== siren) { l.clientSiren = siren; dirty = true; }
+        }
+      });
+      if (dirty) sauvegarder('livraisons', livraisons);
+    }
   }
   closeModal('modal-edit-client');
   _editClientId = null;
   afficherClientsDashboard();
-  ajouterEntreeAudit('Modification client', nom + (email ? ' · ' + email : ''));
-  afficherToast('✅ Client mis à jour');
+  ajouterEntreeAudit('Modification client', nom + (email ? ' · ' + email : '') + (nbLivsRenommees ? ' · ' + nbLivsRenommees + ' livraison(s) propagée(s)' : ''));
+  afficherToast(nbLivsRenommees ? '✅ Client mis à jour · ' + nbLivsRenommees + ' livraison(s) synchronisée(s)' : '✅ Client mis à jour');
 }
 
 /* ===== EXPORT STATS PDF ===== */
@@ -11084,6 +11705,7 @@ async function ouvrirEditVehicule(vehId) {
     return;
   }
   window._editVehId = vehId;
+  if (typeof prefillCarteGriseFormUI === 'function') prefillCarteGriseFormUI(veh);
   document.getElementById('veh-immat').value    = veh.immat||'';
   document.getElementById('veh-modele').value   = veh.modele||'';
   document.getElementById('veh-km').value       = calculerKilometrageVehiculeActuel(veh)||'';
@@ -11091,11 +11713,12 @@ async function ouvrirEditVehicule(vehId) {
   document.getElementById('veh-mode-acquisition').value = veh.modeAcquisition || 'achat';
   document.getElementById('veh-date-acquisition').value = veh.dateAcquisition || '';
   document.getElementById('veh-date-ct').value  = veh.dateCT||'';
+  if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = veh.dateCTDernier||'';
   document.getElementById('veh-entretien-interval-km').value = veh.entretienIntervalKm || '';
   document.getElementById('veh-entretien-interval-mois').value = veh.entretienIntervalMois || '';
   hydraterFinanceVehiculeDansForm(veh);
   var selTvaCarb = document.getElementById('veh-tva-carburant');
-  if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 80;
+  if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100;
   const sv = document.getElementById('veh-salarie');
   if (sv) sv.value = veh.salId||'';
   // Flotte étendue (genre, PTAC, Crit'Air, VIN, carte grise...)
@@ -11143,10 +11766,11 @@ function confirmerEditVehicule() {
   vehicules[idx].modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   vehicules[idx].dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
   vehicules[idx].dateCT   = document.getElementById('veh-date-ct').value||'';
+  vehicules[idx].dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value||'';
   vehicules[idx].entretienIntervalKm = parseFloat(document.getElementById('veh-entretien-interval-km')?.value)||0;
   vehicules[idx].entretienIntervalMois = parseFloat(document.getElementById('veh-entretien-interval-mois')?.value)||0;
   Object.assign(vehicules[idx], lireFinanceVehiculeDepuisForm());
-  vehicules[idx].tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 80;
+  vehicules[idx].tvaCarbDeductible = parseFloat(document.getElementById('veh-tva-carburant')?.value) || 100;
   const salId = document.getElementById('veh-salarie')?.value||'';
   vehicules[idx].salId = salId||null;
   vehicules[idx].salNom = salId ? (charger('salaries').find(s=>s.id===salId)?.nom||null) : null;
@@ -12375,20 +12999,11 @@ function genererRapportMensuelPeriode() {
   var mentionsHeader = renderFactureMentionsEntrepriseHeader(params);
   var siege = [params.adresse, ((params.codePostal||'')+' '+(params.ville||'')).trim()].filter(Boolean).map(escape).join(' · ');
 
+  // En-tête unifié via construireEnteteExport (template référence du site)
+  var metaLivraisons = livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'');
   var html =
     '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #f5a623">' +
-        '<div>' +
-          '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">'+nomEntr+'</div>' +
-          (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">'+siege+'</div>' : '') +
-          mentionsHeader +
-          '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">Récapitulatif livraisons — '+escape(periode)+'</div>' +
-        '</div>' +
-        '<div style="text-align:right;font-size:.82rem;color:#6b7280">' +
-          '<div>Généré le <strong>'+escape(dateExp)+'</strong></div>' +
-          '<div>'+livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'') + '</div>' +
-        '</div>' +
-      '</div>' +
+      construireEnteteExport(params, 'Récapitulatif livraisons', periode, dateExp, metaLivraisons) +
       blocResume +
       blocTVA +
       blocClients +
@@ -12758,11 +13373,8 @@ window.__adminFinalLock = function() {
     win.document.close();
   };
 
-  construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-    return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
-      + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
-      + '</div>';
-  };
+  // construireEnteteExport : ancienne définition supprimée (code mort —
+  // écrasée par les redéfinitions ultérieures du fichier).
 
   peuplerAbsenceSal = function() { planningSyncSearchWithSelect('absence-sal-search', 'absence-sal', 'absence-sal-datalist'); };
   filtrerRechercheAbsence = function() {
@@ -12838,8 +13450,8 @@ window.__adminFinalLock = function() {
       const tva = (parseFloat(l.prix) || 0) - ht;
       const ttc = parseFloat(l.prix) || 0;
       const statutPaiement = l.statutPaiement || 'en-attente';
-      const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+      const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
       const client = formatClientLabel(l.client || '—');
       const clientText = escapeHtml(client);
       const depart = l.depart || '';
@@ -12881,9 +13493,36 @@ ouvrirFenetreImpression = function(titre, html, options) {
   win.document.close();
 };
 
-construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
-    + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
+construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom) {
+  // En-tête PDF UNIFIÉ — template aligné sur le rapport Livraisons (référence).
+  // - Bloc gauche : nom entreprise (orange) + adresse + mentions légales + titre+période
+  // - Bloc droit : date de génération + métadonnées custom (ex: '3 livraison(s)…')
+  // - Ligne orange séparatrice
+  var esc = (typeof planningEscapeHtml === 'function')
+    ? planningEscapeHtml
+    : function(v){ return String(v || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var siege = [params.adresse, ((params.codePostal || '') + ' ' + (params.ville || '')).trim()]
+    .filter(Boolean).map(esc).join(' · ');
+  var mentionsLegales = (typeof renderFactureMentionsEntrepriseHeader === 'function')
+    ? renderFactureMentionsEntrepriseHeader(params)
+    : '';
+  var titreLigne = '';
+  if (titre || sousTitre) {
+    var inner = esc(titre || '') + (sousTitre ? ' — ' + esc(sousTitre) : '');
+    titreLigne = '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">' + inner + '</div>';
+  }
+  var blocGauche = '<div>'
+    + '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
+    + (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">' + siege + '</div>' : '')
+    + mentionsLegales
+    + titreLigne
+    + '</div>';
+  var blocDroit = '<div style="text-align:right;font-size:.82rem;color:#6b7280">'
+    + (dateExp ? '<div>Généré le <strong>' + esc(dateExp) + '</strong></div>' : '')
+    + (metaCustom ? '<div style="margin-top:2px">' + metaCustom + '</div>' : '')
+    + '</div>';
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #f5a623;margin-bottom:22px">'
+    + blocGauche + blocDroit
     + '</div>';
 };
 
@@ -13021,8 +13660,8 @@ window.renderLivraisonsAdminFinal = function() {
     const tva = (parseFloat(l.prix) || 0) - ht;
     const ttc = parseFloat(l.prix) || 0;
     const statutPaiement = l.statutPaiement || 'en-attente';
-    const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
     const client = formatClientLabel(l.client || '—');
     const clientText = escapeHtml(client);
     const depart = l.depart || '';
@@ -13104,9 +13743,36 @@ filtrerRecherchePlanningModal = function() {
   if (document.getElementById('plan-salarie')?.value) genererGrilleJours();
 };
 
-construireEnteteExport = function(params, titre, sousTitre, dateExp) {
-  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px">'
-    + '<div><div style="font-size:1.35rem;font-weight:800;color:#f5a623">' + params.nom + '</div><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;margin-top:4px">' + titre + '</div>' + (sousTitre ? '<div style="font-size:.84rem;color:#4b5563;margin-top:6px">' + sousTitre + '</div>' : '') + '</div>'
+construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom) {
+  // En-tête PDF UNIFIÉ — template aligné sur le rapport Livraisons (référence).
+  // - Bloc gauche : nom entreprise (orange) + adresse + mentions légales + titre+période
+  // - Bloc droit : date de génération + métadonnées custom (ex: '3 livraison(s)…')
+  // - Ligne orange séparatrice
+  var esc = (typeof planningEscapeHtml === 'function')
+    ? planningEscapeHtml
+    : function(v){ return String(v || '').replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); };
+  var siege = [params.adresse, ((params.codePostal || '') + ' ' + (params.ville || '')).trim()]
+    .filter(Boolean).map(esc).join(' · ');
+  var mentionsLegales = (typeof renderFactureMentionsEntrepriseHeader === 'function')
+    ? renderFactureMentionsEntrepriseHeader(params)
+    : '';
+  var titreLigne = '';
+  if (titre || sousTitre) {
+    var inner = esc(titre || '') + (sousTitre ? ' — ' + esc(sousTitre) : '');
+    titreLigne = '<div style="font-size:.82rem;color:#111827;margin-top:8px;font-weight:600">' + inner + '</div>';
+  }
+  var blocGauche = '<div>'
+    + '<div style="font-size:1.4rem;font-weight:900;color:#f5a623">' + esc(params.nom || 'MCA LOGISTICS') + '</div>'
+    + (siege ? '<div style="font-size:.78rem;color:#6b7280;margin-top:2px">' + siege + '</div>' : '')
+    + mentionsLegales
+    + titreLigne
+    + '</div>';
+  var blocDroit = '<div style="text-align:right;font-size:.82rem;color:#6b7280">'
+    + (dateExp ? '<div>Généré le <strong>' + esc(dateExp) + '</strong></div>' : '')
+    + (metaCustom ? '<div style="margin-top:2px">' + metaCustom + '</div>' : '')
+    + '</div>';
+  return '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;padding-bottom:14px;border-bottom:2px solid #f5a623;margin-bottom:22px">'
+    + blocGauche + blocDroit
     + '</div>';
 };
 
@@ -14195,6 +14861,10 @@ genererGrilleJours = function() {
 };
 
 ouvrirModalPlanning = function() {
+  // Restaure le titre par défaut '📋 Gérer les horaires' (ouvrirPlanningRecurrence
+  // peut le surcharger avec '🔁 Horaires récurrents' avant nous → on reset ici)
+  var modalTitle = document.querySelector('#modal-planning .modal-header h3');
+  if (modalTitle && !modalTitle.dataset.recurrent) modalTitle.textContent = '📋 Gérer les horaires';
   peuplerSelectPlanningModal();
   var search = document.getElementById('plan-salarie-search');
   var select = document.getElementById('plan-salarie');
@@ -14591,31 +15261,28 @@ exporterPlanningSemainePDF = function() {
 validerLivraisonLivree = async function(id) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
-  if (idx === -1) return;
+  if (idx === -1) return false;
   var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Valider la livraison', icone:'📦', btnLabel:'Valider', danger:false });
-  if (!ok) return;
+  if (!ok) return false;
   livraisons[idx].statut = 'livre';
   livraisons[idx].dateLivraison = new Date().toISOString();
   sauvegarder('livraisons', livraisons);
   afficherLivraisons();
   rafraichirDashboard();
   afficherToast('Livraison marquée comme livrée');
+  return true;
 };
 
 validerLivraisonPayee = async function(id) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
-  if (idx === -1) return;
+  if (idx === -1) return false;
   var liv = livraisons[idx];
-  if (liv.statut !== 'livre') {
-    var okLiv = await confirmDialog('Cette livraison n\'est pas encore marquée comme livrée. La marquer livrée puis payée ?', { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
-    if (!okLiv) return;
-    liv.statut = 'livre';
-    liv.dateLivraison = liv.dateLivraison || new Date().toISOString();
-  } else {
-    var ok = await confirmDialog('Confirmer cette livraison comme payée ?', { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
-    if (!ok) return;
-  }
+  var msg = liv.statut !== 'livre'
+    ? 'Marquer cette livraison comme payée ?\n(le statut de livraison reste inchangé)'
+    : 'Confirmer cette livraison comme payée ?';
+  var ok = await confirmDialog(msg, { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
+  if (!ok) return false;
   liv.statutPaiement = 'payé';
   liv.datePaiement = new Date().toISOString();
   sauvegarder('livraisons', livraisons);
@@ -14623,39 +15290,61 @@ validerLivraisonPayee = async function(id) {
   rafraichirDashboard();
   afficherRelances();
   afficherToast('Livraison marquée comme payée');
+  return true;
 };
 
-changerStatutPaiement = async function(id, statut) {
+changerStatutPaiement = async function(id, statut, selectEl) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return;
-  if (statut === 'payé') return validerLivraisonPayee(id);
-  if (statut === 'en-attente') {
-    var ok = await confirmDialog('Remettre le paiement en attente ?', { titre:'Paiement', icone:'💳', btnLabel:'Confirmer', danger:false });
-    if (!ok) return;
+  var ancienStatut = livraisons[idx].statutPaiement || 'en-attente';
+  var ok = false;
+  if (statut === 'payé') {
+    ok = await validerLivraisonPayee(id);
+  } else if (statut === 'en-attente') {
+    ok = await confirmDialog('Remettre le paiement en attente ?', { titre:'Paiement', icone:'💳', btnLabel:'Confirmer', danger:false });
+    if (ok) {
+      livraisons[idx].statutPaiement = statut;
+      delete livraisons[idx].datePaiement;
+      sauvegarder('livraisons', livraisons);
+      afficherLivraisons();
+      afficherRelances();
+      afficherToast('Paiement mis à jour');
+    }
+  } else {
+    livraisons[idx].statutPaiement = statut;
+    sauvegarder('livraisons', livraisons);
+    afficherLivraisons();
+    afficherRelances();
+    afficherToast('Paiement mis à jour');
+    ok = true;
   }
-  livraisons[idx].statutPaiement = statut;
-  if (statut !== 'payé') delete livraisons[idx].datePaiement;
-  sauvegarder('livraisons', livraisons);
-  afficherLivraisons();
-  afficherRelances();
-  afficherToast('Paiement mis à jour');
+  // Si l'utilisateur a annulé la modal, restaurer la valeur du select
+  if (!ok && selectEl) selectEl.value = ancienStatut;
 };
 
-changerStatutLivraison = async function(id, statut) {
-  if (statut === 'livre') return validerLivraisonLivree(id);
+changerStatutLivraison = async function(id, statut, selectEl) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return;
-  var ok = await confirmDialog('Mettre à jour le statut de cette livraison ?', { titre:'Statut livraison', icone:'📦', btnLabel:'Confirmer', danger:false });
-  if (!ok) return;
-  livraisons[idx].statut = statut;
-  if (statut !== 'livre') delete livraisons[idx].dateLivraison;
-  if (statut !== 'livre' && livraisons[idx].statutPaiement === 'payé') livraisons[idx].statutPaiement = 'en-attente';
-  sauvegarder('livraisons', livraisons);
-  afficherLivraisons();
-  rafraichirDashboard();
-  afficherToast('Statut livraison mis à jour');
+  var ancienStatut = livraisons[idx].statut || 'en-attente';
+  var ok = false;
+  if (statut === 'livre') {
+    ok = await validerLivraisonLivree(id);
+  } else {
+    ok = await confirmDialog('Mettre à jour le statut de cette livraison ?', { titre:'Statut livraison', icone:'📦', btnLabel:'Confirmer', danger:false });
+    if (ok) {
+      livraisons[idx].statut = statut;
+      delete livraisons[idx].dateLivraison;
+      // Découplage : ne plus reset statutPaiement quand on remet en-cours/en-attente
+      sauvegarder('livraisons', livraisons);
+      afficherLivraisons();
+      rafraichirDashboard();
+      afficherToast('Statut livraison mis à jour');
+    }
+  }
+  // Si annulé, restaurer le select
+  if (!ok && selectEl) selectEl.value = ancienStatut;
 };
 
 afficherLivraisons = window.renderLivraisonsAdminFinal;
@@ -16231,19 +16920,6 @@ genererRentabilitePDF = function() {
     initNavSections();
   }
 
-  // Toast de confirmation Sprint 2 (une seule fois)
-  try {
-    if (!localStorage.getItem('sprint2_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 2 appliqué — sidebar hiérarchique', 'success');
-            localStorage.setItem('sprint2_toast_vu', '1');
-          }
-        }, 800);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -16490,19 +17166,6 @@ genererRentabilitePDF = function() {
     });
   }
 
-  // Toast de confirmation Sprint 3 (une seule fois)
-  try {
-    if (!localStorage.getItem('sprint3_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 3 appliqué — Command Palette (Ctrl+K)', 'success');
-            localStorage.setItem('sprint3_toast_vu', '1');
-          }
-        }, 1600);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -16599,19 +17262,6 @@ genererRentabilitePDF = function() {
     initHeroSante();
   }
 
-  // Toast Sprint 4
-  try {
-    if (!localStorage.getItem('sprint4_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 4 appliqué — dashboard hiérarchisé', 'success');
-            localStorage.setItem('sprint4_toast_vu', '1');
-          }
-        }, 2400);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -16722,19 +17372,6 @@ genererRentabilitePDF = function() {
     }, 350);
   };
 
-  // Toast Sprint 5
-  try {
-    if (!localStorage.getItem('sprint5_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 5 appliqué — side drawer prêt', 'success');
-            localStorage.setItem('sprint5_toast_vu', '1');
-          }
-        }, 3200);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* ================================================================
@@ -17049,19 +17686,6 @@ genererRentabilitePDF = function() {
     }
   });
 
-  // Toast Sprint 6
-  try {
-    if (!localStorage.getItem('sprint6_toast_vu')) {
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          if (typeof afficherToast === 'function') {
-            afficherToast('✅ Sprint 6 appliqué — actions en masse', 'success');
-            localStorage.setItem('sprint6_toast_vu', '1');
-          }
-        }, 4000);
-      });
-    }
-  } catch (e) { /* ignore */ }
 })();
 
 /* =========================================================================
@@ -17256,8 +17880,8 @@ genererRentabilitePDF = function() {
         const tva = (parseFloat(l.prix) || 0) - ht;
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
-        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
@@ -17543,8 +18167,8 @@ genererRentabilitePDF = function() {
         const tva = (parseFloat(l.prix) || 0) - ht;
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
-        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
@@ -18288,181 +18912,11 @@ genererRentabilitePDF = function() {
     return load(LS.clients).find(c => (c.nom||'').trim().toLowerCase() === k) || null;
   }
 
-  window.creerFicheClientDepuisFacture = function(factureId) {
-    const f = load(LS.factures).find(x => x.id === factureId);
-    if (!f) return;
-    if (findClientByName(f.client)) { toast('Fiche client déjà existante', 'info'); return; }
-    const newClient = {
-      id: genId(),
-      nom: f.client || 'Client sans nom',
-      type: 'professionnel',
-      siren: f.clientSiren || '',
-      tvaIntra: f.clientTVA || '',
-      email: '', emailFact: '',
-      telephone: '', adresse: '', cp: '', ville: '',
-      delaiPaiementJours: 30,
-      notes: 'Créée automatiquement depuis la facture ' + (f.numero||'—'),
-      dateCreation: new Date().toISOString()
-    };
-    const list = load(LS.clients);
-    list.push(newClient);
-    save(LS.clients, list);
-    // Rattacher la facture au client
-    const factures = load(LS.factures);
-    const fi = factures.findIndex(x => x.id === factureId);
-    if (fi > -1) { factures[fi].clientId = newClient.id; save(LS.factures, factures); }
-    // Rattacher aussi la livraison liée
-    const livs = load(LS.livraisons);
-    let linkedLivs = 0;
-    livs.forEach(l => { if ((l.client||'').trim().toLowerCase() === (f.client||'').trim().toLowerCase() && !l.clientId) { l.clientId = newClient.id; linkedLivs++; } });
-    if (linkedLivs) save(LS.livraisons, livs);
-    audit('Auto-création client', newClient.nom + ' depuis facture ' + (f.numero||''));
-    toast('✅ Fiche client créée : ' + newClient.nom + (linkedLivs ? ' · '+linkedLivs+' livraison(s) rattachée(s)' : ''), 'success');
-    if (typeof window.afficherClients === 'function') window.afficherClients();
-    if (typeof window.afficherFacturation === 'function') window.afficherFacturation();
-  };
 
-  /* ============================================================
-     2. BADGE FACTURE ORPHELINE (sans LIV)
-     ============================================================ */
-  function postProcessFacturationOrphelines() {
-    const tbody = document.getElementById('tb-facturation');
-    if (!tbody) return;
-    const livs = load(LS.livraisons);
-    const livNumSet = new Set(livs.map(l => l.numero).filter(Boolean));
-    const livIdSet = new Set(livs.map(l => l.id).filter(Boolean));
-    const factures = load(LS.factures);
-    const byNumero = new Map();
-    factures.forEach(f => { if (f.numero) byNumero.set(f.numero, f); });
-    tbody.querySelectorAll('tr').forEach(tr => {
-      if (tr.querySelector('.s15-orphan-badge')) return; // already done
-      const strong = tr.querySelector('td:first-child strong, td:first-child');
-      const numeroText = (strong ? strong.textContent : '').trim();
-      const f = byNumero.get(numeroText);
-      if (!f) return;
-      const hasLiv = !!(f.numLiv && livNumSet.has(f.numLiv)) || !!(f.livraisonId && livIdSet.has(f.livraisonId));
-      if (!hasLiv) {
-        const badge = document.createElement('span');
-        badge.className = 's15-orphan-badge';
-        badge.title = 'Facture orpheline : aucun bon de livraison associé';
-        badge.textContent = '🔗❌ Orpheline';
-        const target = tr.querySelector('td:first-child');
-        if (target) target.appendChild(badge);
-      }
-    });
-  }
 
-  /* ============================================================
-     3. BANDEAU ÉCHÉANCES IMMINENTES (J-5 / J-3 / J-1)
-     ============================================================ */
-  function getFacturesEcheanceProche() {
-    const factures = load(LS.factures).filter(f => f.statut !== 'annulée');
-    const avoirs = load(LS.avoirs);
-    const paiements = load(LS.paiements);
-    const clients = load(LS.clients);
-    const today = new Date(); today.setHours(0,0,0,0);
-    const out = [];
-    factures.forEach(f => {
-      const ttc = Number(f.totalTTC || f.total || 0);
-      const paid = paiements.filter(p => p.factureId === f.id).reduce((s,p)=>s+Number(p.montant||0),0);
-      const avoir = avoirs.filter(a => a.factureId === f.id).reduce((s,a)=>s+Number(a.totalTTC||a.total||0),0);
-      const solde = Math.max(0, ttc - paid - avoir);
-      if (solde <= 0.01) return;
-      const client = f.clientId ? clients.find(c => c.id === f.clientId) : (clients.find(c => (c.nom||'').trim().toLowerCase() === (f.client||'').trim().toLowerCase()) || null);
-      const delai = Number(client?.delaiPaiementJours) || 30;
-      const baseDate = new Date(f.dateFacture || f.date || f.dateLivraison || f.dateCreation || Date.now());
-      if (isNaN(baseDate)) return;
-      const ech = new Date(baseDate); ech.setDate(ech.getDate() + delai); ech.setHours(0,0,0,0);
-      const joursRestants = Math.round((ech - today) / 86400000);
-      if (joursRestants > 0 && joursRestants <= 5) {
-        out.push({ facture: f, client, solde, echeance: ech, joursRestants });
-      }
-    });
-    return out.sort((a,b) => a.joursRestants - b.joursRestants);
-  }
 
-  function injecterBandeauEcheances() {
-    const dash = document.getElementById('page-dashboard');
-    if (!dash) return;
-    const rows = getFacturesEcheanceProche();
-    let banner = dash.querySelector('#s15-banner-echeances');
-    if (!rows.length) { if (banner) banner.remove(); return; }
-    const total = rows.reduce((s,r)=>s+r.solde,0);
-    const j1 = rows.filter(r => r.joursRestants <= 1).length;
-    const html = '<div class="s15-banner-content">'
-      + '<div class="s15-banner-icon">🔔</div>'
-      + '<div class="s15-banner-text"><strong>'+rows.length+' échéance'+(rows.length>1?'s':'')+' imminente'+(rows.length>1?'s':'')+'</strong> · '+fmtEur(total)+' attendus'
-      + (j1>0 ? ' · <span style="color:#f97316;font-weight:700">'+j1+' à J-1 ou échéance aujourd\'hui</span>' : '')
-      + '</div>'
-      + '<button class="btn-secondary" onclick="window.voirEcheancesImminentes()">Voir le détail</button>'
-      + '</div>';
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 's15-banner-echeances';
-      banner.className = 's15-banner s15-banner-info';
-      const s14 = dash.querySelector('#s14-banner-retards');
-      if (s14 && s14.nextSibling) s14.parentNode.insertBefore(banner, s14.nextSibling);
-      else {
-        const firstCard = dash.querySelector('.page-actions');
-        if (firstCard?.nextSibling) firstCard.parentNode.insertBefore(banner, firstCard.nextSibling);
-        else dash.appendChild(banner);
-      }
-    }
-    banner.innerHTML = html;
-  }
-  window.__s15RefreshEcheances = injecterBandeauEcheances;
 
-  window.voirEcheancesImminentes = function() {
-    const rows = getFacturesEcheanceProche();
-    if (!rows.length) { toast('Aucune échéance à venir dans les 5 jours', 'info'); return; }
-    const html = '<div style="max-width:720px">'
-      + '<h3 style="margin:0 0 6px 0">🔔 Échéances imminentes (J-5 à J0)</h3>'
-      + '<p style="color:var(--text-muted);font-size:.88rem;margin:6px 0 12px">Factures à échéance dans les 5 jours — considère un rappel préventif (niv 0) pour sécuriser le paiement.</p>'
-      + '<div style="display:flex;flex-direction:column;gap:8px">'
-      + rows.map(r => {
-          const color = r.joursRestants <= 1 ? '#ef4444' : (r.joursRestants <= 3 ? '#f97316' : '#eab308');
-          return '<div style="padding:10px 14px;background:rgba(255,255,255,.03);border-left:3px solid '+color+';border-radius:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-            + '<div><strong>'+escHtml(r.facture.numero||'—')+'</strong> · '+escHtml(r.facture.client||'')
-            + '<div style="font-size:.78rem;color:var(--text-muted)">Échéance : '+fmtDate(r.echeance)+' — <span style="color:'+color+';font-weight:700">J-'+r.joursRestants+'</span></div></div>'
-            + '<div style="display:flex;gap:8px;align-items:center">'
-            + '<span style="font-weight:700">'+fmtEur(r.solde)+'</span>'
-            + '<button class="btn-secondary" style="padding:4px 10px;font-size:.8rem" onclick="closeModal(\'modal-info\');ouvrirEnvoiRelance(\''+r.facture.id+'\',0)">📨 Rappel préventif</button>'
-            + '</div></div>';
-        }).join('')
-      + '</div></div>';
-    if (typeof window.modalInfo === 'function') window.modalInfo(html);
-    else alert(rows.map(r=>r.facture.numero+' J-'+r.joursRestants).join('\n'));
-  };
 
-  /* ============================================================
-     4. BOUTON RAPPEL PRÉVENTIF dans Facturation
-     Action directe depuis la table facturation pour factures J-5
-     ============================================================ */
-  function postProcessFacturationRappelsPreventifs() {
-    const tbody = document.getElementById('tb-facturation');
-    if (!tbody) return;
-    const proches = getFacturesEcheanceProche();
-    const ids = new Set(proches.map(r => r.facture.id));
-    const factures = load(LS.factures);
-    const byNumero = new Map();
-    factures.forEach(f => { if (f.numero) byNumero.set(f.numero, f); });
-    tbody.querySelectorAll('tr').forEach(tr => {
-      if (tr.querySelector('.s15-preventif-badge')) return;
-      const numeroText = (tr.querySelector('td:first-child')?.textContent || '').trim();
-      const f = byNumero.get(numeroText.split(/\s|\n/)[0]) || Array.from(byNumero.values()).find(ff => numeroText.includes(ff.numero));
-      if (!f) return;
-      const proche = proches.find(r => r.facture.id === f.id);
-      if (!proche) return;
-      const cell = tr.querySelector('td:first-child');
-      if (!cell) return;
-      const badge = document.createElement('span');
-      badge.className = 's15-preventif-badge';
-      badge.title = 'Échéance dans '+proche.joursRestants+' jour(s) · clic pour rappel préventif';
-      badge.innerHTML = '🔔 J-'+proche.joursRestants;
-      badge.onclick = (e) => { e.stopPropagation(); if (typeof window.ouvrirEnvoiRelance === 'function') window.ouvrirEnvoiRelance(f.id, 0); };
-      cell.appendChild(badge);
-    });
-  }
 
   /* ============================================================
      5. COPIE RAPIDE AU CLIC (délégation sur [data-copy])
@@ -18491,25 +18945,6 @@ genererRentabilitePDF = function() {
   });
 
   // Rend copiables les éléments correspondant à certains patterns
-  function enrichCopyables() {
-    // N° facture dans tb-facturation (1re colonne strong)
-    document.querySelectorAll('#tb-facturation td:first-child strong').forEach(el => {
-      if (el.hasAttribute('data-copy')) return;
-      const txt = el.textContent.trim();
-      if (/^FAC-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
-    });
-    // N° livraisons LIV-...
-    document.querySelectorAll('.lf-liv').forEach(el => {
-      if (el.hasAttribute('data-copy')) return;
-      const txt = el.textContent.trim();
-      if (/^LIV-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
-    });
-    document.querySelectorAll('.lf-fac').forEach(el => {
-      if (el.hasAttribute('data-copy')) return;
-      const txt = el.textContent.trim();
-      if (/^FAC-\d{4}-\d+/.test(txt)) { el.setAttribute('data-copy', txt); el.classList.add('s15-copyable'); el.title = 'Cliquer pour copier '+txt; }
-    });
-  }
 
   /* ============================================================
      6. RECHERCHE GLOBALE Ctrl+K
@@ -18644,117 +19079,16 @@ genererRentabilitePDF = function() {
     window.confirmerEditClient = w;
   }
 
-  window.voirHistoriqueEntite = function(entity, entityId, titreLabel) {
-    const log = load(LS.history).filter(e => e.entity === entity && e.entityId === entityId).sort((a,b)=>new Date(b.date)-new Date(a.date));
-    if (!log.length) { toast('Aucune modification enregistrée', 'info'); return; }
-    const icons = { client:'👤', livraison:'📦', facture:'📄' };
-    const html = '<div style="padding:14px;max-width:640px">'
-      + '<h3>'+icons[entity]+' Historique · '+escHtml(titreLabel||entityId)+'</h3>'
-      + '<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">'
-      + log.map(e => '<div style="padding:10px 12px;background:rgba(255,255,255,.03);border-left:3px solid var(--primary);border-radius:8px">'
-          + '<div style="font-size:.78rem;color:var(--text-muted)">'+fmtDate(e.date)+' · '+new Date(e.date).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'</div>'
-          + '<div style="margin-top:4px"><strong>'+escHtml(e.field||'modification')+'</strong> : '
-          + '<span style="color:#ef4444;text-decoration:line-through">'+escHtml(String(e.oldValue||'—').slice(0,60))+'</span>'
-          + ' → <span style="color:#22c55e">'+escHtml(String(e.newValue||'—').slice(0,60))+'</span></div>'
-          + '</div>').join('')
-      + '</div></div>';
-    if (typeof window.modalInfo === 'function') window.modalInfo(html);
-    else alert(log.map(e => e.field+': '+e.oldValue+' → '+e.newValue).join('\n'));
-  };
+
+
 
   /* ============================================================
-     8. EXPORT Z QUOTIDIEN (synthèse journée)
+     INIT
      ============================================================ */
-  window.ouvrirExportZ = function() {
-    const today = new Date().toLocalISODate();
-    const html = '<div>'
-      + '<h3 style="margin:0 0 6px 0">📊 Export Z — Synthèse quotidienne</h3>'
-      + '<p style="color:var(--text-muted);font-size:.88rem;margin:0 0 16px">Récap livraisons + factures émises + paiements encaissés pour la date choisie.</p>'
-      + '<div class="form-group" style="margin-bottom:18px"><label>Date</label><input type="date" id="s15-z-date" value="'+today+'" style="width:100%" /></div>'
-      + '<div style="display:flex;gap:8px;justify-content:flex-end">'
-      + '<button class="btn-secondary" onclick="closeModal(\'modal-info\')">Annuler</button>'
-      + '<button class="btn-primary" onclick="window.genererExportZ()">📄 Générer</button>'
-      + '</div></div>';
-    if (typeof window.modalInfo === 'function') {
-      const modal = window.modalInfo(html);
-      const box = modal && modal.querySelector && modal.querySelector('.s15-modal-info-box');
-      if (box) box.classList.add('narrow');
-    }
-  };
-
-  window.genererExportZ = function() {
-    const d = document.getElementById('s15-z-date')?.value;
-    if (!d) { toast('Sélectionne une date', 'warning'); return; }
-    const livs = load(LS.livraisons).filter(l => (l.date||'').slice(0,10) === d);
-    const factures = load(LS.factures).filter(f => (f.dateFacture || f.date || '').slice(0,10) === d && f.statut !== 'annulée');
-    const paiements = load(LS.paiements).filter(p => (p.date||'').slice(0,10) === d);
-    const params = (()=>{ try { return loadSafe(LS.params, {}); } catch(e) { return {}; } })();
-    const totalFact = factures.reduce((s,f)=>s+Number(f.totalTTC||f.total||0), 0);
-    const totalPaye = paiements.reduce((s,p)=>s+Number(p.montant||0), 0);
-    const totalLiv = livs.reduce((s,l)=>s+Number(l.montant||l.totalHT||0), 0);
-    const w = ouvrirPopupSecure('', 'export_z', 'width=780,height=920');
-    if (!w) { toast('Popup bloquée', 'error'); return; }
-    const dFmt = new Date(d).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
-    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Export Z — '+d+'</title><style>'
-      + 'body{font-family:Arial,sans-serif;padding:28px;color:#1f2937} h1{margin:0 0 4px;color:#4f46e5} h2{font-size:1rem;margin:18px 0 8px;padding-bottom:4px;border-bottom:2px solid #e5e7eb}'
-      + 'table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:6px} th,td{padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb} th{background:#f3f4f6}'
-      + '.tot{background:#eef2ff;font-weight:700} .meta{color:#6b7280;font-size:.85rem} .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}'
-      + '.card{padding:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px} .card-label{font-size:.72rem;color:#6b7280;text-transform:uppercase} .card-val{font-size:1.3rem;font-weight:700;color:#4f46e5;margin-top:4px}'
-      + '@media print{button{display:none}} button{padding:8px 14px;background:#4f46e5;color:#fff;border:none;border-radius:6px;cursor:pointer}'
-      + '</style></head><body>'
-      + '<div style="display:flex;justify-content:space-between;align-items:flex-start"><div>'
-      + '<h1>📊 Export Z — Synthèse journée</h1><div class="meta">'+escHtml(params.nom||'MCA Logistics')+(params.siren?' · SIREN '+params.siren:'')+'</div></div>'
-      + '<button onclick="window.print()">🖨️ Imprimer</button></div>'
-      + '<p class="meta" style="margin-top:8px">📅 '+dFmt+' — généré le '+new Date().toLocaleString('fr-FR')+'</p>'
-      + '<div class="grid">'
-      + '<div class="card"><div class="card-label">Livraisons</div><div class="card-val">'+livs.length+'</div><div class="meta">'+fmtEur(totalLiv)+' HT</div></div>'
-      + '<div class="card"><div class="card-label">Factures émises</div><div class="card-val">'+factures.length+'</div><div class="meta">'+fmtEur(totalFact)+' TTC</div></div>'
-      + '<div class="card"><div class="card-label">Paiements encaissés</div><div class="card-val">'+paiements.length+'</div><div class="meta">'+fmtEur(totalPaye)+'</div></div>'
-      + '</div>'
-      + (livs.length ? '<h2>📦 Livraisons ('+livs.length+')</h2><table><thead><tr><th>N°</th><th>Client</th><th>Montant HT</th><th>Statut</th></tr></thead><tbody>'
-          + livs.map(l => '<tr><td>'+escHtml(l.numero||'—')+'</td><td>'+escHtml(l.client||'')+'</td><td>'+fmtEur(l.montant||l.totalHT||0)+'</td><td>'+escHtml(l.statut||'—')+'</td></tr>').join('')
-          + '<tr class="tot"><td colspan="2">TOTAL LIVRAISONS</td><td colspan="2">'+fmtEur(totalLiv)+' HT</td></tr></tbody></table>' : '')
-      + (factures.length ? '<h2>📄 Factures ('+factures.length+')</h2><table><thead><tr><th>N°</th><th>Client</th><th>Total TTC</th><th>Statut</th></tr></thead><tbody>'
-          + factures.map(f => '<tr><td>'+escHtml(f.numero||'—')+'</td><td>'+escHtml(f.client||'')+'</td><td>'+fmtEur(f.totalTTC||f.total||0)+'</td><td>'+escHtml(f.statut||'—')+'</td></tr>').join('')
-          + '<tr class="tot"><td colspan="2">TOTAL FACTURÉ</td><td colspan="2">'+fmtEur(totalFact)+' TTC</td></tr></tbody></table>' : '')
-      + (paiements.length ? '<h2>💰 Paiements ('+paiements.length+')</h2><table><thead><tr><th>Date</th><th>Facture</th><th>Mode</th><th>Montant</th></tr></thead><tbody>'
-          + paiements.map(p => '<tr><td>'+fmtDate(p.date)+'</td><td>'+escHtml(p.factureNumero||'—')+'</td><td>'+escHtml(p.mode||'—')+'</td><td>'+fmtEur(p.montant||0)+'</td></tr>').join('')
-          + '<tr class="tot"><td colspan="3">TOTAL ENCAISSÉ</td><td>'+fmtEur(totalPaye)+'</td></tr></tbody></table>' : '')
-      + (!livs.length && !factures.length && !paiements.length ? '<p style="padding:30px;text-align:center;color:#6b7280">Aucun mouvement pour cette date.</p>' : '')
-      + '</body></html>');
-    w.document.close();
-    audit('Export Z', dFmt + ' · ' + livs.length + ' livs, ' + factures.length + ' facts, ' + paiements.length + ' paiements');
-  };
-
-  /* ============================================================
-     HOOKS & INIT
-     ============================================================ */
-  function hookFacturationPostProcess() {
-    if (typeof window.afficherFacturation === 'function' && !window.afficherFacturation.__s15) {
-      const orig = window.afficherFacturation;
-      const w = function() {
-        const r = orig.apply(this, arguments);
-        setTimeout(() => { postProcessFacturationOrphelines(); postProcessFacturationRappelsPreventifs(); enrichCopyables(); }, 30);
-        return r;
-      };
-      w.__s15 = true;
-      window.afficherFacturation = w;
-    }
-  }
-  function hookDashboardS15() {
-    if (typeof window.afficherDashboard === 'function' && !window.afficherDashboard.__s15) {
-      const orig = window.afficherDashboard;
-      const w = function() { const r = orig.apply(this, arguments); setTimeout(injecterBandeauEcheances, 50); return r; };
-      w.__s15 = true;
-      window.afficherDashboard = w;
-    }
-  }
-
+  // Note : hookFacturationPostProcess et hookDashboardS15 supprimés —
+  // ils patchaient afficherFacturation et afficherDashboard qui n'existent
+  // pas (commit 09dc43e). Le typeof check rendait les hooks toujours no-op.
   function initS15() {
-    hookFacturationPostProcess();
-    hookDashboardS15();
-    setTimeout(injecterBandeauEcheances, 250);
-    setTimeout(enrichCopyables, 400);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initS15);
   else setTimeout(initS15, 90);
@@ -19273,7 +19607,6 @@ genererRentabilitePDF = function() {
     render();
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
     if (typeof window.__s14RefreshBanner === 'function') window.__s14RefreshBanner();
-    if (typeof window.__s15RefreshEcheances === 'function') window.__s15RefreshEcheances();
   }
 
   function ouvrirDetailJour(dateISO) {
@@ -19338,19 +19671,23 @@ genererRentabilitePDF = function() {
         '<div class="ev-print" style="border-left:4px solid '+ev.color+'"><span>'+ev.date.toLocaleDateString('fr-FR')+'</span> '+ev.icon+' '+escHtml(ev.label)+'</div>'
       ).join('') || '<p style="text-align:center;color:#888">Aucun événement</p>';
     }
+    var entreprise = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : (params || {});
+    var dateExp = new Date().toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+    var entete = (typeof construireEnteteExport === 'function')
+      ? construireEnteteExport(entreprise, '🗓️ Calendrier opérationnel', titre, dateExp)
+      : '<div><h1>🗓️ Calendrier — '+escHtml(titre)+'</h1></div>';
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Calendrier — '+titre+'</title><style>'
-      + 'body{font-family:Arial,sans-serif;padding:22px;color:#111827} h1{margin:0 0 4px;color:#111827;font-size:1.3rem;font-weight:600} .meta{color:#6b7280;font-size:.82rem;margin-bottom:18px}'
+      + 'body{font-family:"Segoe UI",Arial,sans-serif;padding:24px;color:#111827;max-width:1080px;margin:0 auto}'
       + 'table.mois{width:100%;border-collapse:collapse;font-size:.76rem} table.mois th{background:#f9fafb;color:#374151;padding:7px 4px;text-align:center;font-weight:600;border-bottom:2px solid #d1d5db;border-right:1px solid #e5e7eb} table.mois th:last-child{border-right:none}'
       + 'table.mois td{border:1px solid #e5e7eb;vertical-align:top;padding:5px;height:92px;width:14.28%} td.other{background:#fafafa;color:#d1d5db} td.fer{background:#fafaf9}'
       + '.dn{font-weight:600;margin-bottom:2px;color:#374151;font-size:.82rem}'
       + '.fer-lbl{font-size:.62rem;color:#b91c1c;background:#fee2e2;padding:1px 4px;border-radius:3px;margin-bottom:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}'
       + '.ev{background:#f9fafb;padding:2px 5px;margin:2px 0;border-radius:3px;font-size:.68rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .more{font-size:.66rem;color:#9ca3af;font-style:italic;margin-top:2px}'
       + '.ev-print{padding:7px 12px;margin:5px 0;background:#f9fafb;border-radius:4px;font-size:.86rem;color:#374151} .ev-print span{color:#6b7280;font-weight:600;margin-right:10px;min-width:85px;display:inline-block}'
-      + 'button{margin-bottom:10px;padding:7px 14px;background:#374151;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.85rem} button:hover{background:#1f2937} @media print{button{display:none}}'
+      + 'button.print-btn{margin-bottom:14px;padding:7px 14px;background:#374151;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.85rem} button.print-btn:hover{background:#1f2937} @media print{button.print-btn{display:none}}'
       + '</style></head><body>'
-      + '<div style="display:flex;justify-content:space-between;align-items:center">'
-      + '<div><h1>🗓️ Calendrier — '+titre+'</h1><div class="meta">'+escHtml(params.nom||'MCA Logistics')+' · généré le '+new Date().toLocaleString('fr-FR')+'</div></div>'
-      + '<button onclick="window.print()">🖨️ Imprimer</button></div>'
+      + '<button class="print-btn" onclick="window.print()">📄 Imprimer / PDF</button>'
+      + entete
       + body + '</body></html>');
     w.document.close();
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Impression calendrier', titre);
@@ -19486,6 +19823,13 @@ genererRentabilitePDF = function() {
     if (table.__s18Sortable) return;
     const ths = table.querySelectorAll('thead th');
     if (!ths.length) return;
+    // Skip les tables qui utilisent déjà le module SORT Sprint 8 (data-sort-key) :
+    // le tri data-based + re-render se chevaucherait avec le tri DOM-based ici,
+    // créant une cascade MutationObserver ↔ re-render qui freeze la page.
+    if (table.querySelector('thead th[data-sort-key]')) {
+      table.__s18Sortable = true;
+      return;
+    }
     table.__s18Sortable = true;
     ths.forEach(function(th, idx){
       const label = (th.textContent || '').trim().toLowerCase();
@@ -19988,14 +20332,9 @@ genererRentabilitePDF = function() {
     if (window.naviguerVers.__s19) return;
     const orig = window.naviguerVers;
     const wrapped = function(page) {
-      if (page === 'incidents') {
-        const ret = orig.call(this, 'alertes');
-        setTimeout(() => {
-          const sel = document.getElementById('s19-filter-source');
-          if (sel) { sel.value = 'incident'; renderCentre(); }
-        }, 150);
-        return ret;
-      }
+      // BUG-FIX : 'incidents' avait son propre onglet mais Sprint 19 redirigeait
+      // vers Alertes (avec filtre source=incident). Le user veut un onglet
+      // Incidents visuellement indépendant. → on laisse passer normalement.
       const ret = orig.apply(this, arguments);
       if (page === 'alertes') setTimeout(renderCentre, 100);
       return ret;
@@ -20931,8 +21270,10 @@ genererRentabilitePDF = function() {
       icon: '👥',
       label: 'Équipe',
       section: 'equipe',
-      pages: ['salaries', 'heures', 'planning', 'messagerie', 'incidents'],
-      labels: { salaries: '👥 Salariés', heures: '⏱️ Heures & Km', planning: '📋 Planning', messagerie: '💬 Messagerie', incidents: '🚨 Incidents' },
+      // Note : 'messagerie' retirée temporairement (page HTML supprimée par
+      // commit 09dc43e). À ré-ajouter quand l'onglet Messagerie sera retravaillé.
+      pages: ['salaries', 'heures', 'planning', 'incidents'],
+      labels: { salaries: '👥 Salariés', heures: '⏱️ Heures & Km', planning: '📋 Planning', incidents: '🚨 Incidents' },
       defaultPage: 'salaries',
       storageKey: 's22_last_rh',
     },
@@ -20953,9 +21294,10 @@ genererRentabilitePDF = function() {
       icon: '💼',
       label: 'Finances',
       section: 'finances',
-      pages: ['charges', 'rentabilite', 'statistiques'],
+      pages: ['charges', 'tva', 'rentabilite', 'statistiques'],
       labels: {
         charges: '💸 Charges',
+        tva: '🧾 TVA',
         rentabilite: '💰 Rentabilité',
         statistiques: '📈 Statistiques',
       },
@@ -20970,6 +21312,41 @@ genererRentabilitePDF = function() {
     if (!page) return null;
     for (const a of HUB_ALIASES) if (HUBS[a].pages.includes(page)) return a;
     return null;
+  }
+
+  /* Validation au boot : signale les incohérences de config (page absente du DOM,
+     label manquant). Évite les "disparitions silencieuses" lorsqu'on ajoute une
+     entrée à HUBS.<alias>.pages mais qu'on oublie la <section id="page-X"> ou
+     le label associé. */
+  function validateHubsConfig() {
+    if (typeof document === 'undefined') return;
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', validateHubsConfig);
+      return;
+    }
+    HUB_ALIASES.forEach(function(alias) {
+      var hub = HUBS[alias];
+      hub.pages.forEach(function(page) {
+        if (!document.getElementById('page-' + page)) {
+          console.warn('[S22] Section DOM manquante : #page-' + page + ' (déclarée dans HUBS.' + alias + '.pages)');
+        }
+        if (!hub.labels[page]) {
+          console.warn('[S22] Label manquant pour "' + page + '" dans HUBS.' + alias + '.labels');
+        }
+      });
+    });
+  }
+  validateHubsConfig();
+
+  /* Expose la config + helpers pour debug rapide en console DevTools.
+     Usage : window.__s22Debug.HUBS.compta.pages, window.__s22Debug.hubFromPage('tva') */
+  if (typeof window !== 'undefined') {
+    window.__s22Debug = {
+      HUBS: HUBS,
+      HUB_ALIASES: HUB_ALIASES,
+      ALL_SUB_PAGES: ALL_SUB_PAGES,
+      hubFromPage: hubFromPage
+    };
   }
 
   /* 1. Masquer tous les anciens liens sidebar (display:none — réversible) */
@@ -22234,83 +22611,6 @@ genererRentabilitePDF = function() {
   window.ouvrirTimelineGlobale = ouvrirTimelineGlobale;
 
   /* ================================================================
-     BLOC 2 — STATS COMPARÉES (dashboard delta M vs M-1)
-     ================================================================ */
-  function calcStatsPeriode(mois) {
-    const [y,m] = mois.split('-').map(Number);
-    const inMonth = (iso) => {
-      if (!iso) return false;
-      const d = new Date(iso);
-      return d.getFullYear()===y && d.getMonth()===m-1;
-    };
-    let ca = 0, nbLiv = 0, nbFact = 0, encaisse = 0, charges = 0;
-    load(LS.factures).forEach(f => {
-      if (inMonth(f.dateFacture)) { ca += Number(f.montantHT||f.totalHT||0); nbFact++; }
-    });
-    load(LS.livraisons).forEach(l => { if (inMonth(l.dateLivraison||l.dateCreation)) nbLiv++; });
-    load(LS.paiements).forEach(p => { if (inMonth(p.datePaiement||p.date)) encaisse += Number(p.montant||0); });
-    load(LS.charges).forEach(c => { if (inMonth(c.date)) charges += Number(c.montantHT||c.montant||0); });
-    return { ca, nbLiv, nbFact, encaisse, charges, marge: ca - charges };
-  }
-
-  function moisAvant(ref, n) {
-    const [y,m] = ref.split('-').map(Number);
-    const d = new Date(y, m-1-n, 1);
-    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-  }
-
-  function renderStatsComparees() {
-    const target = document.querySelector('#page-dashboard');
-    if (!target) return;
-    if (target.querySelector('#s26-stats-comparees')) return;
-    const anchor = target.querySelector('.kpi-grid-primary') || target.querySelector('.kpi-grid') || target.firstElementChild;
-    if (!anchor) return;
-    const mois = todayISO().slice(0,7);
-    const moisPrec = moisAvant(mois, 1);
-    const cur = calcStatsPeriode(mois);
-    const prev = calcStatsPeriode(moisPrec);
-    const delta = (a,b) => {
-      if (!b && !a) return { cls:'empty', txt:'' };
-      if (!b) return { cls:'up', txt:'Nouveau' };
-      const pct = ((a-b)/Math.abs(b))*100;
-      const cls = pct > 1 ? 'up' : pct < -1 ? 'down' : 'neutral';
-      const sign = pct > 0 ? '+' : '';
-      return { cls, txt: sign+pct.toFixed(1)+'%' };
-    };
-    const rows = [
-      { lbl: 'CA (HT)', a: cur.ca, b: prev.ca, fmt: fmtEur, d: delta(cur.ca, prev.ca) },
-      { lbl: 'Livraisons', a: cur.nbLiv, b: prev.nbLiv, fmt: n=>n, d: delta(cur.nbLiv, prev.nbLiv) },
-      { lbl: 'Factures', a: cur.nbFact, b: prev.nbFact, fmt: n=>n, d: delta(cur.nbFact, prev.nbFact) },
-      { lbl: 'Encaissé', a: cur.encaisse, b: prev.encaisse, fmt: fmtEur, d: delta(cur.encaisse, prev.encaisse) },
-      { lbl: 'Charges', a: cur.charges, b: prev.charges, fmt: fmtEur, d: delta(cur.charges, prev.charges), inv: true },
-      { lbl: 'Marge', a: cur.marge, b: prev.marge, fmt: fmtEur, d: delta(cur.marge, prev.marge) },
-    ];
-    const wrap = document.createElement('div');
-    wrap.id = 's26-stats-comparees';
-    wrap.className = 's26-stats-comparees';
-    wrap.innerHTML = `
-      <div class="s26-sc-head">
-        <strong>📈 Mois en cours vs mois précédent</strong>
-        <button type="button" class="s26-sc-link" onclick="window.ouvrirTimelineGlobale()">📊 Timeline globale →</button>
-      </div>
-      <div class="s26-sc-grid">
-        ${rows.map(r => {
-          const cls = r.inv ? (r.d.cls==='up'?'down':r.d.cls==='down'?'up':'neutral') : r.d.cls;
-          const isEmpty = r.d.cls === 'empty';
-          return `
-            <div class="s26-sc-card ${isEmpty ? 's26-sc-empty' : ''}">
-              <div class="s26-sc-lbl">${r.lbl}</div>
-              <div class="s26-sc-val">${r.fmt(r.a)}</div>
-              ${isEmpty ? '<div class="s26-sc-prev">Aucune donnée sur la période</div>' : '<div class="s26-sc-delta '+cls+'">'+r.d.txt+'</div><div class="s26-sc-prev">M-1 · '+r.fmt(r.b)+'</div>'}
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-    anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
-  }
-
-  /* ================================================================
      BLOC 3 — DOUBLE-CLIC INLINE EDIT
      ================================================================ */
   function onDblClickCell(e) {
@@ -22650,13 +22950,8 @@ genererRentabilitePDF = function() {
      ================================================================ */
   function init() {
     document.addEventListener('dblclick', onDblClickCell);
-    // PERF anti-FOUC: render synchrone des stats comparées (était setTimeout 1200ms
-    // → causait le flash "dashboard puis timeline apparaît 1s après")
-    renderStatsComparees();
     injectParamsUI();
     injecterBoutonSignature();
-    // Refresh périodique stats (M vs M-1) toutes les minutes (léger)
-    setInterval(renderStatsComparees, 60*1000);
     // PERF: anciens setInterval injectParamsUI 4s + injecterBoutonSignature 2.5s
     // remplacés par MutationObserver — ne re-injecte que si le DOM mute vraiment
     const reinjectObs = new MutationObserver(() => {
@@ -22664,12 +22959,6 @@ genererRentabilitePDF = function() {
       injecterBoutonSignature();
     });
     reinjectObs.observe(document.body, { childList: true, subtree: true });
-    // Re-render stats si localStorage mute
-    window.addEventListener('storage', () => {
-      const el = document.getElementById('s26-stats-comparees');
-      if (el) el.remove();
-      renderStatsComparees();
-    });
   }
   window.__s26InitDashboard = init;
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
@@ -23251,22 +23540,6 @@ genererRentabilitePDF = function() {
     'liv-exp-nom', 'liv-dest-nom', 'liv-dest-adresse', 'liv-marchandise-nature'
   ];
 
-  function updateProgress() {
-    let filled = 0;
-    for (const id of TRACKED_FIELDS) {
-      const el = document.getElementById(id);
-      if (el && String(el.value || '').trim() !== '') filled++;
-    }
-    const total = TRACKED_FIELDS.length;
-    const pct = Math.round(filled / total * 100);
-    const fillEl = document.getElementById('liv-progress-fill');
-    const countEl = document.getElementById('liv-progress-count');
-    const pctEl = document.getElementById('liv-progress-pct');
-    if (fillEl) fillEl.style.width = pct + '%';
-    if (countEl) countEl.textContent = String(filled);
-    if (pctEl) pctEl.textContent = pct + '%';
-  }
-
   function setFieldState(input, ok, hintMsg) {
     if (!input) return;
     input.classList.remove('fp-invalid', 'fp-valid');
@@ -23288,12 +23561,11 @@ genererRentabilitePDF = function() {
 
   function validateSiren(input) {
     const val = String(input.value || '').replace(/\s+/g, '');
-    if (val === '') { setFieldState(input, true, ''); updateProgress(); return; }
-    if (!/^\d+$/.test(val)) { setFieldState(input, false, '✗ Uniquement des chiffres'); updateProgress(); return; }
-    if (val.length < 9) { setFieldState(input, false, val.length + '/9 chiffres'); updateProgress(); return; }
+    if (val === '') { setFieldState(input, true, ''); return;}
+    if (!/^\d+$/.test(val)) { setFieldState(input, false, '✗ Uniquement des chiffres'); return;}
+    if (val.length < 9) { setFieldState(input, false, val.length + '/9 chiffres'); return;}
     const ok = typeof validerSIREN === 'function' ? validerSIREN(val) : /^\d{9}$/.test(val);
     setFieldState(input, ok, ok ? '✓ SIREN valide' : '✗ Clé Luhn incorrecte');
-    updateProgress();
   }
 
   // Pays ISO 3166-1 alpha-2 — liste étendue (cf. datalist pays-iso-list dans admin.html)
@@ -23316,14 +23588,15 @@ genererRentabilitePDF = function() {
       const hint = document.getElementById(id + '-hint');
       if (hint) { hint.textContent = ''; hint.classList.remove('fp-hint-ok', 'fp-hint-err'); }
     });
-    updateProgress();
   }
 
+  // mcaLivForm : API exposée pour les oninput="..." du HTML.
+  // onInput / updateProgress sont conservés en no-op : la barre de progression
+  // a été supprimée mais les attributs HTML les appellent encore.
   window.mcaLivForm = {
-    onInput: function() { updateProgress(); },
+    onInput: function() {},
     validateSiren: validateSiren,
     validatePays: validatePays,
-    updateProgress: updateProgress,
     reset: reset
   };
 

@@ -279,29 +279,6 @@ body.app-shell > .main-content {
   cursor: pointer;
 }
 
-.topbar-logo-mark {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03));
-  border: 1px solid rgba(255,255,255,.08);
-  overflow: hidden;
-  font-size: 1rem;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
-}
-
-.topbar-logo-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  padding: 4px;
-  background: #fff;
-}
-
 .topbar-logo-name {
   font-size: .95rem;
   font-weight: 700;
@@ -978,48 +955,18 @@ body.light-mode .searchbar-clear:hover {
 .fp-grid-dense select,
 .fp-grid-dense textarea { padding: 7px 10px; font-size: 0.88rem; }
 .fp-grid-dense .form-group.full-width { grid-column: 1 / -1; }
-/* Progress bar */
-.fp-progress {
-  max-width: 1600px;
-  margin: 0 auto;
-  padding: 6px 28px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.fp-progress-bar {
-  height: 4px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.fp-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, rgba(245,166,35,0.9), rgba(46,204,113,0.9));
-  border-radius: 999px;
-  transition: width 0.3s cubic-bezier(.4,0,.2,1);
-}
-.fp-progress-label {
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  letter-spacing: 0.02em;
-}
-.fp-progress-label #liv-progress-pct { color: var(--accent); font-weight: 700; }
-
 /* Lettre de voiture : Expéditeur + Destinataire côte à côte */
 .fp-ldv-expdest {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 14px;
 }
 .fp-ldv-card {
   background: rgba(255,255,255,0.018);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 12px 14px;
+  padding: 14px 18px;
+  min-width: 0;
 }
 
 /* Notes collapsible */
@@ -1110,10 +1057,44 @@ body.light-mode .searchbar-clear:hover {
 #page-parametres .btn-theme-toggle {
   align-self: flex-start;
 }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .form-group.full-width { grid-column: 1 / -1; }
 .form-group label { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
-.form-group input, .form-group select, .form-group textarea { background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; transition: border-color 0.2s; font-family: var(--font); }
+.form-group input, .form-group select, .form-group textarea { width: 100%; min-width: 0; max-width: 100%; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-primary); padding: 9px 12px; border-radius: 8px; font-size: 0.88rem; transition: border-color 0.2s; font-family: var(--font); }
+
+/* Heures & Km : layout horizontal sur grand écran, vertical sur mobile */
+@media (max-width: 1100px) {
+  .heures-km-layout { grid-template-columns: 1fr !important; }
+}
+
+/* Bouton d'upload custom (remplace l'input[type=file] natif) — même look que les autres inputs */
+.file-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--bg-dark);
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  border-radius: 8px;
+  font-size: 0.88rem;
+  cursor: pointer;
+  font-family: var(--font);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  box-sizing: border-box;
+}
+.file-upload-button:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+  background: rgba(242, 163, 59, 0.04);
+}
+.file-upload-button.has-file {
+  border-style: solid;
+  border-color: rgba(46, 204, 113, 0.5);
+  color: var(--green, #2ecc71);
+}
 .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
 .form-group input::placeholder { color: var(--text-muted); }
 
@@ -2938,28 +2919,6 @@ kbd {
 .data-table.compact th { padding: 7px 10px; font-size: .7rem; }
 .data-table.compact td { padding: 7px 10px; font-size: .8rem; }
 
-/* ===== PHOTO VÉHICULE ===== */
-.veh-photo-thumb {
-  width: 80px; height: 55px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  cursor: pointer;
-}
-.veh-photo-placeholder {
-  width: 80px; height: 55px;
-  background: rgba(255,255,255,.04);
-  border: 1px dashed var(--border);
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
-  cursor: pointer;
-  transition: all .2s;
-}
-.veh-photo-placeholder:hover { border-color: var(--accent); }
-
 /* ===== RÉSUMÉ FIN DE JOURNÉE ===== */
 .resume-journee {
   background: linear-gradient(135deg, rgba(46,204,113,.08), rgba(79,142,247,.06));
@@ -4423,8 +4382,9 @@ kbd {
 .inline-dropdown.open-up .inline-dropdown-menu { top: auto; bottom: calc(100% + 6px); }
 .inline-dropdown.align-left .inline-dropdown-menu { right: auto; left: 0; }
 .inline-dropdown-item { display: block; width: 100%; box-sizing: border-box; background: transparent; border: none; color: var(--text-primary); text-align: left; padding: 9px 10px; border-radius: 8px; font-size: 0.84rem; cursor: pointer; font-family: inherit; }
-.inline-dropdown-item:hover { background: rgba(255,255,255,0.05); }
+.inline-dropdown-item:hover:not(.is-disabled) { background: rgba(255,255,255,0.05); }
 .inline-dropdown-item.danger-text { color: var(--red); }
+.inline-dropdown-item.is-disabled { color: var(--text-muted); opacity: 0.5; cursor: not-allowed; }
 .vehicules-table-card {
   overflow: visible;
 }
@@ -4458,12 +4418,6 @@ kbd {
   max-width: 260px;
   z-index: 160;
 }
-.vehicules-table .veh-photo-thumb,
-.vehicules-table .veh-photo-placeholder {
-  width: 78px;
-  height: 54px;
-}
-
 .planning-note-subtle { font-size: 0.8em; color: #888; background: transparent; border: 0; padding: 0; }
 
 
@@ -6196,12 +6150,9 @@ body.light-mode .facture-badge-brouillon {
 }
 .client-champs-pro {
   margin-top: 14px;
-  padding: 14px;
-  background: rgba(99,102,241,0.04);
-  border-left: 3px solid rgba(99,102,241,0.5);
-  border-radius: 8px;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease;
 }
+.client-champs-pro.is-hidden { display: none; }
 .form-section-title {
   font-size: 0.82rem;
   font-weight: 700;
@@ -6310,22 +6261,6 @@ body.light-mode .facture-badge-brouillon {
   color: #ef4444;
 }
 
-/* Couple LIV↔FAC */
-.lf-couple {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-  font-size: 0.82rem;
-}
-.lf-liv { font-weight: 700; color: var(--text); }
-.lf-sep { color: var(--text-muted); }
-.lf-fac { font-weight: 700; color: #6366f1; }
-.lf-fac-empty { color: var(--text-muted); font-style: italic; font-size: 0.78rem; }
-.lf-couple.lf-decalage .lf-liv { color: #f5a623; }
-.lf-couple.lf-decalage .lf-fac { color: #f5a623; }
-.lf-warn { color: #f5a623; font-size: 0.82rem; margin-left: 2px; }
-
 /* Bouton tri toggle facturation */
 .s13-tri-box {
   display: inline-flex;
@@ -6377,7 +6312,6 @@ body.light-mode .btn-toggle-tri.active {
 body.light-mode .client-champs-pro { background: rgba(99,102,241,0.05); }
 body.light-mode .fiche-scoring-row { background: linear-gradient(135deg, rgba(99,102,241,0.05), #fff); }
 body.light-mode .doublons-warning { background: #fef3c7; }
-body.light-mode .lf-fac { color: #4f46e5; }
 
 /* Responsive */
 @media (max-width: 720px) {
@@ -6634,68 +6568,6 @@ body.light-mode .s14-banner {
    SPRINT 15 — Productivité PGI
    ============================================ */
 
-/* --- Badge facture orpheline (sans LIV) --- */
-.s15-orphan-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 1px 7px;
-  font-size: 0.68rem;
-  font-weight: 700;
-  background: rgba(107,114,128,0.15);
-  color: #6b7280;
-  border: 1px solid rgba(107,114,128,0.35);
-  border-radius: 10px;
-  vertical-align: middle;
-}
-
-/* --- Badge rappel préventif J-5 (clic pour action) --- */
-.s15-preventif-badge {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 2px 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  background: rgba(234,179,8,0.15);
-  color: #eab308;
-  border: 1px solid rgba(234,179,8,0.4);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  vertical-align: middle;
-}
-.s15-preventif-badge:hover {
-  background: rgba(234,179,8,0.28);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(234,179,8,0.3);
-}
-
-/* --- Bandeau échéances imminentes dashboard --- */
-.s15-banner {
-  background: linear-gradient(135deg, rgba(234,179,8,0.12), rgba(99,102,241,0.08));
-  border: 1px solid rgba(234,179,8,0.35);
-  border-radius: 12px;
-  padding: 14px 18px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: 0 2px 8px rgba(234,179,8,0.08);
-}
-.s15-banner-info .s15-banner-icon {
-  font-size: 1.8rem;
-  flex-shrink: 0;
-}
-.s15-banner-content {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-.s15-banner-text { color: var(--text); font-size: 0.92rem; }
-.s15-banner-text strong { color: #eab308; font-size: 1.02rem; }
-
 /* --- Copie au clic --- */
 .s15-copyable {
   cursor: pointer;
@@ -6918,9 +6790,6 @@ body.light-mode .s15-modal-info-box {
 }
 
 /* --- Light mode --- */
-body.light-mode .s15-banner {
-  background: linear-gradient(135deg, #fefce8, #eef2ff);
-}
 body.light-mode .s15-palette-box {
   background: #fff;
   border-color: #e5e7eb;
@@ -6933,7 +6802,6 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
 
 /* --- Responsive --- */
 @media (max-width: 720px) {
-  .s15-banner-content { flex-direction: column; align-items: stretch; }
   .s15-palette-box { width: 96vw; max-height: 85vh; }
   .s15-palette-overlay { padding-top: 5vh; }
   .s15-palette-type { display: none; }
@@ -6987,7 +6855,7 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
 .cal16-dot-ech { background: #ef4444; }
 .cal16-dot-rel { background: #f97316; }
 .cal16-dot-pai { background: #eab308; }
-.cal16-dot-fer { background: #9ca3af; }
+.cal16-dot-fer { background: #ef4444; }
 
 /* KPI grid sidebar */
 .cal16-kpi-grid {
