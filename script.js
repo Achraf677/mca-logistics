@@ -757,18 +757,7 @@ function formaterTaux(value) {
 function getVehiculeById(vehId) {
   return charger('vehicules').find(v => v.id === vehId) || null;
 }
-function getTypeEntretienLabel(type) {
-  return {
-    revision: 'Révision',
-    vidange: 'Vidange',
-    pneus: 'Pneus',
-    plaquettes: 'Plaquettes de frein',
-    courroie: 'Courroie de distribution',
-    freins: 'Freins',
-    carrosserie: 'Carrosserie',
-    autre: 'Autre'
-  }[type] || 'Autre';
-}
+// MOVED -> script-entretiens.js : getTypeEntretienLabel
 function getTauxDeductibiliteVehicule(vehId, fallback) {
   const veh = vehId ? getVehiculeById(vehId) : null;
   if (veh && veh.tvaCarbDeductible !== undefined && veh.tvaCarbDeductible !== null && veh.tvaCarbDeductible !== '') {
@@ -776,14 +765,8 @@ function getTauxDeductibiliteVehicule(vehId, fallback) {
   }
   return parseFloat(fallback) || 0;
 }
-function getTauxDeductibiliteCarburant(plein) {
-  const typeCarburant = plein?.typeCarburant || plein?.type || 'gasoil';
-  const fallback = typeCarburant === 'essence' ? 100 : 80;
-  return getTauxDeductibiliteVehicule(plein?.vehId, fallback);
-}
-function getTauxDeductibiliteEntretien(entretien) {
-  return 100;
-}
+// MOVED -> script-carburant.js : getTauxDeductibiliteCarburant
+// MOVED -> script-entretiens.js : getTauxDeductibiliteEntretien
 
 function calculerMontantTVAFromHT(ht, tauxTVA) {
   var base = parseFloat(ht) || 0;
@@ -816,27 +799,13 @@ function getChargeTauxDeductibilite(charge) {
   return 100;
 }
 
-function getCarburantMontantHT(plein) {
-  var total = parseFloat(plein?.total) || 0;
-  var taux = parseFloat(plein?.tauxTVA ?? 20) || 0;
-  return taux > 0 ? total / (1 + taux / 100) : total;
-}
+// MOVED -> script-carburant.js : getCarburantMontantHT
 
-function getCarburantMontantTVA(plein) {
-  return calculerMontantTVAFromHT(getCarburantMontantHT(plein), parseFloat(plein?.tauxTVA ?? 20) || 0);
-}
+// MOVED -> script-carburant.js : getCarburantMontantTVA
 
-function getEntretienMontantHT(entretien) {
-  if (!entretien) return 0;
-  if (entretien.coutHT != null && entretien.coutHT !== '') return parseFloat(entretien.coutHT) || 0;
-  var total = parseFloat(entretien.cout) || 0;
-  var taux = parseFloat(entretien.tauxTVA) || 0;
-  return taux > 0 ? total / (1 + taux / 100) : total;
-}
+// MOVED -> script-entretiens.js : getEntretienMontantHT
 
-function getEntretienMontantTVA(entretien) {
-  return calculerMontantTVAFromHT(getEntretienMontantHT(entretien), parseFloat(entretien?.tauxTVA) || 0);
-}
+// MOVED -> script-entretiens.js : getEntretienMontantTVA
 
 function normaliserDateISO(val) {
   if (!val) return '';
@@ -1197,13 +1166,7 @@ function ouvrirFicheVehiculeDepuisTableau(vehId) {
     ouvrirEditVehicule(vehId);
   }, 180);
 }
-function getLabelVehiculeEntretien(entretien, vehicule) {
-  if (vehicule) {
-    return '<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau(\'' + vehicule.id + '\')" title="Ouvrir le véhicule"><strong>' + planningEscapeHtml(vehicule.immat) + '</strong></button>'
-      + (vehicule.modele ? ' <span style="font-size:.78rem;color:var(--text-muted)">' + planningEscapeHtml(vehicule.modele) + '</span>' : '');
-  }
-  return '<strong>—</strong><span class="orphan-warning">(véhicule supprimé)</span>';
-}
+// MOVED -> script-entretiens.js : getLabelVehiculeEntretien
 function getSalarieVehicule(salarie) {
   if (!salarie) return null;
   var vehicules = charger('vehicules');
@@ -1347,56 +1310,9 @@ function toggleInlineDropdown(button, event) {
   fermerInlineDropdowns();
   if (root && willOpen) positionnerInlineDropdown(root);
 }
-function syncChargeCarburant(plein) {
-  if (!plein) return '';
-  const charges = charger('charges');
-  const tauxTVA = parseFloat(plein.tauxTVA ?? 20) || 20;
-  const total = parseFloat(plein.total) || 0;
-  const chargePayload = {
-    date: plein.date || aujourdhui(),
-    categorie: 'carburant',
-    description: 'Carburant — ' + (plein.vehNom || plein.vehiculeNom || 'Véhicule'),
-    montant: total,
-    montantHT: total / (1 + tauxTVA / 100),
-    tauxTVA,
-    vehId: plein.vehId || '',
-    vehNom: plein.vehNom || '',
-    creeLe: plein.creeLe || new Date().toISOString(),
-    carburantId: plein.id
-  };
-  const idx = charges.findIndex(function(charge) {
-    return charge.carburantId === plein.id;
-  });
-  if (idx > -1) {
-    charges[idx] = { ...charges[idx], ...chargePayload };
-    sauvegarder('charges', charges);
-    return charges[idx].id;
-  }
-  const chargeId = genId();
-  charges.push({ id: chargeId, ...chargePayload });
-  sauvegarder('charges', charges);
-  return chargeId;
-}
-function removeChargeCarburant(carburantId) {
-  if (!carburantId) return;
-  sauvegarder('charges', charger('charges').filter(function(charge) {
-    return charge.carburantId !== carburantId;
-  }));
-}
-function enrichirPleinCarburant(plein) {
-  const tauxTVA = parseFloat(plein?.tauxTVA ?? 20) || 20;
-  const total = parseFloat(plein?.total) || 0;
-  const ht = total / (1 + tauxTVA / 100);
-  const tva = total - ht;
-  const tauxDeductible = getTauxDeductibiliteCarburant(plein);
-  return {
-    ...plein,
-    totalHT: ht,
-    tvaMontant: tva,
-    tauxDeductible,
-    tvaDeductible: tva * (tauxDeductible / 100)
-  };
-}
+// MOVED -> script-carburant.js : syncChargeCarburant
+// MOVED -> script-carburant.js : removeChargeCarburant
+// MOVED -> script-carburant.js : enrichirPleinCarburant
 function calculerDureeJour(heureDebut, heureFin) {
   if (!heureDebut || !heureFin) return 0;
   const [hd, md] = heureDebut.split(':').map(Number);
@@ -1418,19 +1334,8 @@ function getLivraisonStatutPaiement(livraison) {
   if (statut === 'en attente') return 'en-attente';
   return statut;
 }
-function getMontantHTCarburant(plein) {
-  if (plein?.totalHT !== undefined && plein?.totalHT !== null && plein?.totalHT !== '') {
-    return parseFloat(plein.totalHT) || 0;
-  }
-  return (parseFloat(plein?.total) || 0) / 1.2;
-}
-function getMontantHTEntretien(entretien) {
-  if (entretien?.coutHT !== undefined && entretien?.coutHT !== null && entretien?.coutHT !== '') {
-    return parseFloat(entretien.coutHT) || 0;
-  }
-  const taux = parseFloat(entretien?.tauxTVA) || 0;
-  return (parseFloat(entretien?.cout) || 0) / (1 + taux / 100);
-}
+// MOVED -> script-carburant.js : getMontantHTCarburant
+// MOVED -> script-entretiens.js : getMontantHTEntretien
 function getDateRangeInclusive(debut, fin) {
   const dates = [];
   if (!debut || !fin) return dates;
@@ -2140,39 +2045,7 @@ function calculerKilometrageVehiculeActuel(veh) {
   return Math.max(kmReference, Number.isFinite(kmInitial) ? kmInitial : 0, kmLivraisons, kmSaisi);
 }
 
-function getPilotageEntretienVehicule(veh) {
-  if (!veh) return { kmActuel: 0, prochainKm: 0, dateEcheance: '', estEnRetard: false, estProche: false };
-  const kmActuel = calculerKilometrageVehiculeActuel(veh);
-  const intervalKm = parseFloat(veh.entretienIntervalKm) || 0;
-  const intervalMois = parseFloat(veh.entretienIntervalMois) || 0;
-  const entretiensVehicule = charger('entretiens')
-    .filter(function(e) { return e.vehId === veh.id; })
-    .sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
-  const dernier = entretiensVehicule[0] || null;
-  const dernierKm = parseFloat(dernier?.km) || 0;
-  const prochainKm = parseFloat(dernier?.prochainKm) || (intervalKm ? ((dernierKm || kmActuel || (parseFloat(veh.kmInitial) || 0)) + intervalKm) : 0);
-  let dateEcheance = '';
-  if (intervalMois) {
-    const baseDate = dernier?.date || veh.dateAcquisition || '';
-    if (baseDate) {
-      const d = new Date(baseDate + 'T00:00:00');
-      if (!Number.isNaN(d.getTime())) {
-        d.setMonth(d.getMonth() + intervalMois);
-        dateEcheance = d.toLocalISODate();
-      }
-    }
-  }
-  const auj = aujourdhui();
-  const kmRestants = prochainKm ? (prochainKm - kmActuel) : null;
-  return {
-    kmActuel,
-    prochainKm,
-    dateEcheance,
-    estEnRetard: Boolean((prochainKm && kmActuel >= prochainKm) || (dateEcheance && dateEcheance < auj)),
-    estProche: Boolean((prochainKm && kmRestants !== null && kmRestants > 0 && kmRestants <= 1000) || (dateEcheance && dateEcheance >= auj && dateEcheance <= new Date(Date.now() + 30 * 86400000).toLocalISODate())),
-    kmRestants
-  };
-}
+// MOVED -> script-entretiens.js : getPilotageEntretienVehicule
 
 function synchroniserAffectationLivraison(chaufId, vehId) {
   const salaries = charger('salaries');
@@ -3340,17 +3213,7 @@ function appliquerFiltresDatesLivraisons() {
   afficherToast('✅ Période validée');
 }
 
-function alerteRentabilite() {
-  const prix = parseFloat(document.getElementById('liv-prix').value)||0;
-  const dist = parseFloat(document.getElementById('liv-distance').value)||0;
-  const profit = prix - dist * config.coutKmEstime;
-  const ar = document.getElementById('alerte-rent'), pr = document.getElementById('profit-recap');
-  if (prix > 0) {
-    pr.style.display = 'block';
-    document.getElementById('profit-estime').textContent = euros(profit);
-    ar.style.display = (profit < prix*0.2 || profit < 0) ? 'block' : 'none';
-  } else { pr.style.display = 'none'; ar.style.display = 'none'; }
-}
+// MOVED -> script-rentabilite.js : alerteRentabilite
 
 /* ===== CHAUFFEURS ===== */
 function ajouterChauffeur() {
@@ -3574,50 +3437,15 @@ function mettreAJourFormulaireVehicule() {
   mettreAJourInfosVehiculeFinancement();
 }
 
-function getVehiculeMensualiteRentabilite(veh) {
-  if (!veh) return 0;
-  switch (veh.modeAcquisition) {
-    case 'lld':
-    case 'location':
-    case 'loa':
-      return parseFloat(veh.loyerMensuelHT) || 0;
-    case 'credit':
-      return parseFloat(veh.creditMensualiteHT) || 0;
-    case 'achat':
-    case 'occasion':
-      if ((parseFloat(veh.prixAchatHT) || 0) > 0 && (parseFloat(veh.dureeAmortissement) || 0) > 0) {
-        return (parseFloat(veh.prixAchatHT) || 0) / ((parseFloat(veh.dureeAmortissement) || 0) * 12);
-      }
-      return 0;
-    default:
-      return 0;
-  }
-}
+// MOVED -> script-rentabilite.js : getVehiculeMensualiteRentabilite
 
 // BUG-046 fix : TVA déductible sur carburant selon genre (CGI art. 298-4-1° et 298-4 D)
 // - VP (voiture particulière) : 80 % diesel, 80 % essence depuis 2022
 // - VU/CTTE/CAM/TRR (utilitaire, camionnette, camion, tracteur) : 100 % gazole/GPL/GNV, 100 % essence (depuis 2022)
 // - Électrique (tout genre) : 100 % de l'électricité de recharge
 // - REM/SREM (remorque, semi-remorque) : pas de carburant propre, 0 %
-function calculerTauxTVACarburant(genre, carburant) {
-  if (!genre || !carburant) return null;
-  if (genre === 'REM' || genre === 'SREM') return 0;
-  if (carburant === 'electrique' || carburant === 'h2') return 100;
-  if (genre === 'VP') return 80;
-  // VU, CTTE, CAM, TRR : tous carburants 100 %
-  return 100;
-}
-function ajusterTVACarburantSelonGenre() {
-  const genre = document.getElementById('veh-genre')?.value || '';
-  const carb = document.getElementById('veh-carburant')?.value || '';
-  const taux = calculerTauxTVACarburant(genre, carb);
-  if (taux == null) return;
-  const input = document.getElementById('veh-tva-carburant');
-  if (input && (!input.value || input.dataset.autoSet === '1')) {
-    input.value = String(taux);
-    input.dataset.autoSet = '1';
-  }
-}
+// MOVED -> script-carburant.js : calculerTauxTVACarburant
+// MOVED -> script-carburant.js : ajusterTVACarburantSelonGenre
 window.ajusterTVACarburantSelonGenre = ajusterTVACarburantSelonGenre;
 window.calculerTauxTVACarburant = calculerTauxTVACarburant;
 
@@ -3996,157 +3824,16 @@ async function supprimerVehicule(id) {
 }
 
 /* ===== ENTRETIENS (dans page Véhicules — historique simplifié) ===== */
-function afficherEntretiensVehicules() {
-  const vehicules  = charger('vehicules');
-  const entretiens = charger('entretiens').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const tb = document.getElementById('tb-entretiens-vehicules');
-  if (!tb) return;
-  if (!entretiens.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun entretien</td></tr>'; return; }
-  tb.innerHTML = entretiens.slice(0,20).map(e => {
-    const veh = vehicules.find(v=>v.id===e.vehId);
-    return `<tr>
-      <td><strong>${veh?.immat||'—'}</strong></td>
-      <td>${getTypeEntretienLabel(e.type)}</td>
-      <td><strong>${e.cout ? euros(e.cout) : '—'}</strong></td>
-      <td>${formatDateExport(e.date)}</td>
-      <td style="font-size:.82rem">${e.description||'—'}</td>
-      <td><button class="btn-icon" onclick="ouvrirEditEntretien('${e.id}')" title="Modifier">✏️</button><button class="btn-icon danger" onclick="supprimerEntretien('${e.id}');afficherEntretiensVehicules()">🗑️</button></td>
-    </tr>`;
-  }).join('');
-}
+// MOVED -> script-entretiens.js : afficherEntretiensVehicules
 
 /* ===== CARBURANT ===== */
-function ajouterCarburant() {
-  const vehId     = document.getElementById('carb-vehicule').value;
-  const litres    = parseFloat(document.getElementById('carb-litres').value);
-  const prixLitre = parseFloat(document.getElementById('carb-prix-litre').value);
-  const kmCompteur = parseFloat(document.getElementById('carb-km')?.value);
-  const date      = document.getElementById('carb-date').value || aujourdhui();
-  const typeCarb  = document.getElementById('carb-type')?.value || 'gasoil';
-  const tauxTVA   = parseFloat(document.getElementById('carb-taux-tva')?.value) || 20;
-  if (!vehId || isNaN(litres) || isNaN(prixLitre)) { afficherToast('⚠️ Tous les champs sont obligatoires', 'error'); return; }
-  if (hasNegativeNumber(litres, prixLitre, kmCompteur, tauxTVA)) {
-    afficherToast('⚠️ Les montants, litres et kilomètres doivent être positifs', 'error');
-    return;
-  }
-  const veh   = charger('vehicules').find(v => v.id === vehId);
-  const total = litres * prixLitre;
-  let libelle = veh ? veh.immat : 'Inconnu';
-  if (veh?.salNom) libelle = `${veh.immat} — ${veh.salNom}`;
-  const pleins = charger('carburant');
-  const plein = { id: genId(), vehId, vehNom: libelle, litres, prixLitre, total, date, typeCarburant: typeCarb, kmCompteur: Number.isFinite(kmCompteur) ? kmCompteur : null, tauxTVA: tauxTVA, source: 'admin', modifie: false, creeLe: new Date().toISOString() };
-  plein.chargeId = syncChargeCarburant(plein);
-  pleins.push(plein);
-  sauvegarder('carburant', pleins);
-  ajouterEntreeAudit('Création carburant', libelle + ' · ' + euros(total || 0));
-  if (veh && Number.isFinite(kmCompteur) && kmCompteur > (parseFloat(veh.km) || 0)) {
-    const vehicules = charger('vehicules');
-    const idxVeh = vehicules.findIndex(function(item) { return item.id === vehId; });
-    if (idxVeh > -1) {
-      vehicules[idxVeh].km = Math.max(parseFloat(vehicules[idxVeh].km) || 0, kmCompteur);
-      sauvegarder('vehicules', vehicules);
-    }
-  }
-  closeModal('modal-carburant');
-  ['carb-litres','carb-prix-litre','carb-km'].forEach(id => document.getElementById(id).value = '');
-  if (document.getElementById('carb-taux-tva')) document.getElementById('carb-taux-tva').value = '20';
-  afficherCarburant(); afficherToast('✅ Plein enregistré !');
-}
+// MOVED -> script-carburant.js : ajouterCarburant
 
-function afficherCarburant() {
-  let pleins = charger('carburant');
-  const tb = document.getElementById('tb-carburant');
-  const range = getCarburantPeriodeRange();
-  const periodSelect = document.getElementById('vue-carb-select');
-  if (periodSelect) periodSelect.value = _carbPeriode.mode;
-  majPeriodeDisplay('carb-mois-label', 'carb-mois-dates', range);
+// MOVED -> script-carburant.js : afficherCarburant
 
-  // Filtres
-  const filtreType = document.getElementById('filtre-carb-type')?.value || '';
-  const filtreVeh  = document.getElementById('filtre-carb-vehicule')?.value || '';
+// MOVED -> script-carburant.js : resetFiltresCarburant
 
-  // Remplir le select véhicules du filtre
-  const selVeh = document.getElementById('filtre-carb-vehicule');
-  if (selVeh) {
-    const currentValue = selVeh.value;
-    selVeh.innerHTML = '<option value="">Tous les véhicules</option>';
-    charger('vehicules').forEach(v => { selVeh.innerHTML += `<option value="${v.id}">${v.immat}</option>`; });
-    selVeh.value = currentValue;
-  }
-
-  // Appliquer les filtres (avec support synonymes pour les libellés étendus)
-  if (filtreType) {
-    pleins = pleins.filter(p => {
-      const c = (p.typeCarburant || 'diesel').toLowerCase();
-      if (filtreType === 'diesel') return c === 'diesel' || c === 'gazole' || c === 'gasoil';
-      if (filtreType === 'gnv') return c === 'gnv' || c === 'biognv';
-      return c === filtreType;
-    });
-  }
-  if (filtreVeh)  pleins = pleins.filter(p => p.vehId === filtreVeh);
-  pleins = pleins.filter(p => isDateInRange(p.date, range));
-  pleins = pleins.map(enrichirPleinCarburant);
-
-  // KPIs (basés sur la période affichée)
-  const pleinsMois = charger('carburant').filter(p => isDateInRange(p.date, range));
-  const pleinsMoisEnrichis = pleinsMois.map(enrichirPleinCarburant);
-  const tot = pleinsMoisEnrichis.reduce((s,p) => s+p.total,0), lts = pleinsMoisEnrichis.reduce((s,p) => s+p.litres,0);
-  const totalHT = pleinsMoisEnrichis.reduce((s,p) => s + (p.totalHT||0), 0);
-  const totalTVA = pleinsMoisEnrichis.reduce((s,p) => s + (p.tvaDeductible||0), 0);
-  const prixMoyenHT = lts > 0 ? totalHT / lts : 0;
-  const prixMoyenTTC = lts > 0 ? tot / lts : 0;
-  document.getElementById('kpi-carb-mois').textContent   = euros(tot);
-  const elCarbDetail = document.getElementById('kpi-carb-mois-detail');
-  if (elCarbDetail) elCarbDetail.textContent = `HT ${euros(totalHT)} • TVA déductible ${euros(totalTVA)}`;
-  document.getElementById('kpi-litres-mois').textContent = lts.toFixed(1)+' L';
-  document.getElementById('kpi-prix-litre').textContent  = euros(prixMoyenTTC);
-  const elPrixLitreDetail = document.getElementById('kpi-prix-litre-detail');
-  if (elPrixLitreDetail) elPrixLitreDetail.textContent = `HT ${euros(prixMoyenHT)} • TTC ${euros(prixMoyenTTC)}`;
-
-  if (!pleins.length) { tb.innerHTML = emptyState('⛽','Aucun plein enregistré','Les pleins saisis par vos salariés ou vous-même apparaîtront ici.'); return; }
-  tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
-    const src = p.source==='salarie'
-      ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">👤 Salarié</span>'
-      : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
-    const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
-    // Label étendu : matche les 6 types + tolère les synonymes
-    const carbKey = (p.typeCarburant || 'diesel').toLowerCase();
-    let typeLabel = '⛽ Diesel/Gazole';
-    if (carbKey === 'essence') typeLabel = '🟢 Essence';
-    else if (carbKey === 'gnv' || carbKey === 'biognv') typeLabel = '🌿 GNV/BioGNV';
-    else if (carbKey === 'electrique') typeLabel = '⚡ Électrique';
-    else if (carbKey === 'hybride') typeLabel = '🔋 Hybride';
-    else if (carbKey === 'hydrogene') typeLabel = '💧 Hydrogène';
-    // Menu Actions standardisé (pattern Livraisons/Clients)
-    const actionsItems = [
-      { icon: '✏️', label: 'Modifier', action: `ouvrirEditCarburantAdmin('${p.id}')` },
-      p.photoRecu
-        ? { icon: '🧾', label: 'Voir le reçu', action: `voirRecuCarburant('${p.id}')` }
-        : { icon: '🧾', label: 'Voir le reçu (aucun)', action: '', disabled: true, title: 'Aucun reçu uploadé' },
-      { icon: '🗑️', label: 'Supprimer', action: `supprimerCarburant('${p.id}')`, danger: true }
-    ];
-    return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
-      <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
-      <td><strong>${euros(p.total)}</strong></td><td>${euros(p.tvaDeductible||0)}</td><td>${p.kmCompteur ? formatKm(p.kmCompteur) : '—'}</td><td>${formatDateExport(p.date)}</td><td>${src}</td>
-      <td>${buildInlineActionsDropdown('Actions', actionsItems)}</td>
-    </tr>`;
-  }).join('');
-}
-
-function resetFiltresCarburant() {
-  ['filtre-carb-type','filtre-carb-vehicule'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  afficherCarburant();
-}
-
-async function supprimerCarburant(id) {
-  const _ok = await confirmDialog('Supprimer ce plein ?', {titre:'Supprimer',icone:'⛽',btnLabel:'Supprimer'});
-  if (!_ok) return;
-  removeChargeCarburant(id);
-  sauvegarder('carburant', charger('carburant').filter(p => p.id !== id));
-  afficherCarburant(); afficherToast('🗑️ Supprimé');
-}
+// MOVED -> script-carburant.js : supprimerCarburant
 
 function toggleMenuCarbAdmin(id) {
   document.querySelectorAll('.menu-actions-dropdown').forEach(m => {
@@ -4156,37 +3843,9 @@ function toggleMenuCarbAdmin(id) {
   if (menu) menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
 }
 
-function actionCarburant(action, id) {
-  if (!action) return;
-  if (action === 'modifier') ouvrirEditCarburantAdmin(id);
-  else if (action === 'recu') voirRecuCarburant(id);
-  else if (action === 'supprimer') supprimerCarburant(id);
-}
+// MOVED -> script-carburant.js : actionCarburant
 
-async function voirRecuCarburant(id) {
-  const pleins = charger('carburant');
-  const plein = pleins.find(p => p.id === id);
-  if (!plein) return;
-  if (!plein.photoRecu && !plein.photoRecuPath) {
-    afficherToast('Aucun reçu pour ce plein', 'info');
-    return;
-  }
-
-  let url = plein.photoRecu || '';
-  if (!url && plein.photoRecuPath && window.DelivProStorage) {
-    const bucket = plein.photoRecuBucket || 'carburant-recus';
-    const signed = await window.DelivProStorage.getSignedUrl(bucket, plein.photoRecuPath, 600);
-    if (!signed.ok) { afficherToast('⚠️ Lien indisponible : ' + (signed.error?.message || 'erreur'), 'error'); return; }
-    url = signed.signedUrl;
-  }
-  if (!url) { afficherToast('Reçu indisponible', 'info'); return; }
-
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:20px;cursor:zoom-out;';
-  overlay.onclick = () => overlay.remove();
-  overlay.innerHTML = `<button style="position:absolute;top:20px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.5rem;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="this.parentElement.remove()">✕</button><img src="${url}" style="max-width:100%;max-height:100%;border-radius:8px" />`;
-  document.body.appendChild(overlay);
-}
+// MOVED -> script-carburant.js : voirRecuCarburant
 
 document.addEventListener('click', function(e) {
   if (!e.target.closest('.menu-actions-wrap')) {
@@ -4880,87 +4539,10 @@ function navRentMois(delta) {
   _rentMoisOffset = delta === 0 ? 0 : _rentMoisOffset + delta;
   afficherRentabilite();
 }
-function afficherRentabilite() {
-  if (typeof Chart === 'undefined') { ensureChartJs().then(afficherRentabilite).catch(() => {}); return; }
-  let livraisons=charger('livraisons'), pleins=charger('carburant'), entretiens=charger('entretiens'), charges=charger('charges');
-  const range = getRentMoisRange();
-  livraisons = livraisons.filter(l=>l.date>=range.debut&&l.date<=range.fin);
-  pleins = pleins.filter(p=>p.date>=range.debut&&p.date<=range.fin);
-  entretiens = entretiens.filter(e=>e.date>=range.debut&&e.date<=range.fin);
-  charges = charges.filter(c=>c.date>=range.debut&&c.date<=range.fin && c.categorie !== 'entretien');
-  const lbl = document.getElementById('rent-mois-label'); if (lbl) lbl.textContent = range.label;
-  const dates = document.getElementById('rent-mois-dates'); if (dates) dates.textContent = range.dates;
-
-  const ca=livraisons.reduce((s,l)=>s+(l.prix||0),0);
-  const carb=pleins.reduce((s,p)=>s+p.total,0);
-  const entr=entretiens.reduce((s,e)=>s+(e.cout||0),0);
-  const autresCharges = charges.reduce((s,c)=>s+(c.montant||0),0);
-  const dep=carb+entr+autresCharges, profit=ca-dep, marge=ca>0?(profit/ca*100):0;
-  const km=livraisons.reduce((s,l)=>s+(l.distance||0),0);
-  document.getElementById('rent-ca').textContent        = euros(ca);
-  document.getElementById('rent-carb').textContent      = euros(carb);
-  document.getElementById('rent-entretien').textContent = euros(entr);
-  document.getElementById('rent-charges').textContent   = euros(autresCharges);
-  document.getElementById('rent-cout-km').textContent   = euros(km>0?dep/km:0);
-  document.getElementById('rent-profit').textContent    = euros(profit);
-  document.getElementById('rent-marge').textContent     = marge.toFixed(1)+' %';
-  if (chartRentab) chartRentab.destroy();
-  const isLight = document.body.classList.contains('light-mode');
-  chartRentab = new Chart(document.getElementById('chartRentabilite'), {
-    type:'doughnut',
-    data:{
-      labels:['Carburant','Entretien','Autres charges','Profit net'],
-      datasets:[{
-        data:[carb,entr,autresCharges,Math.max(profit,0)],
-        backgroundColor:['rgba(230,126,34,0.9)','rgba(52,152,219,0.9)','rgba(155,89,182,0.9)','rgba(46,204,113,0.9)'],
-        borderColor: isLight ? '#ffffff' : '#1a1d27',
-        borderWidth:4,
-        hoverOffset: 12,
-        spacing: 2
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: true,
-      cutout: '62%',
-      animation: { animateScale: true, animateRotate: true, duration: 800, easing: 'easeOutQuart' },
-      plugins: {
-        legend: { position: 'bottom', labels: { color: isLight ? '#1a1d27' : '#e8eaf0', font: { weight: '600', size: 12 }, padding: 14, boxWidth: 14, usePointStyle: true, pointStyle: 'circle' } },
-        tooltip: {
-          backgroundColor: isLight ? 'rgba(17,24,39,0.95)' : 'rgba(10,13,20,0.95)',
-          titleColor: '#ffffff', bodyColor: '#e2e8f0',
-          borderColor: 'rgba(245,166,35,0.4)', borderWidth: 1,
-          padding: 12, cornerRadius: 8,
-          callbacks: { label: ctx => ' ' + ctx.label + ' : ' + euros(ctx.parsed || 0) }
-        }
-      }
-    }
-  });
-}
+// MOVED -> script-rentabilite.js : afficherRentabilite
 
 /* ===== RENTABILITÉ — Export PDF ===== */
-function genererRentabilitePDF() {
-  const params = getEntrepriseExportParams();
-  const nom    = params.nom;
-  const ca     = document.getElementById('rent-ca')?.textContent || '0 €';
-  const carb   = document.getElementById('rent-carb')?.textContent || '0 €';
-  const entr   = document.getElementById('rent-entretien')?.textContent || '0 €';
-  const autres = document.getElementById('rent-charges')?.textContent || '0 €';
-  const coutKm = document.getElementById('rent-cout-km')?.textContent || '0 €';
-  const profit = document.getElementById('rent-profit')?.textContent || '0 €';
-  const marge  = document.getElementById('rent-marge')?.textContent || '0 %';
-  const dateExp = formatDateHeureExport();
-
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:700px;margin:0 auto;padding:32px;color:#1a1d27">
-    ${construireEnteteExport(params, 'Rapport de rentabilité', '', dateExp)}
-    ${renderBlocInfosEntreprise(params)}
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
-      ${[['💶 CA',ca,'#f5a623'],['⛽ Carburant',carb,'#e74c3c'],['🔧 Entretien',entr,'#3498db'],['📝 Autres charges',autres,'#9b59b6'],['📏 Coût/km',coutKm,'#6b7280'],['💰 Profit',profit,'#2ecc71'],['📊 Marge',marge,'#9b59b6']].map(([l,v,c])=>`<div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${c}"><div style="font-size:.72rem;color:#9ca3af;margin-bottom:6px">${l}</div><div style="font-size:1.1rem;font-weight:800;color:${c}">${v}</div></div>`).join('')}
-    </div>
-    ${renderFooterEntreprise(params, dateExp)}
-  </div>`;
-  ouvrirFenetreImpression('Rentabilité — ' + nom, html, 'width=800,height=600');
-  afficherToast('📄 Rapport rentabilité généré');
-}
+// MOVED -> script-rentabilite.js : genererRentabilitePDF
 
 /* ===== STATISTIQUES ===== */
 let chartCA=null,chartChauff=null,chartVeh=null,chartCAParChauff=null;
@@ -6115,70 +5697,9 @@ function confirmerEditLivraison() {
 
 /* ===== ÉDITION CARBURANT ADMIN ===== */
 let _editCarbId = null;
-function ouvrirEditCarburantAdmin(id) {
-  const p = charger('carburant').find(x => x.id === id);
-  if (!p) return;
-  _editCarbId = id;
-  document.getElementById('edit-carb-id').value     = id;
-  document.getElementById('edit-carb-litres').value = p.litres;
-  document.getElementById('edit-carb-prix').value   = p.prixLitre;
-  document.getElementById('edit-carb-km').value     = p.kmCompteur || '';
-  document.getElementById('edit-carb-date').value   = p.date;
-  if (document.getElementById('edit-carb-taux-tva')) document.getElementById('edit-carb-taux-tva').value = String(p.tauxTVA ?? 20);
-  document.getElementById('modal-edit-carburant').classList.add('open');
-}
+// MOVED -> script-carburant.js : ouvrirEditCarburantAdmin
 
-function confirmerEditCarburantAdmin() {
-  const id        = document.getElementById('edit-carb-id').value;
-  const litres    = parseFloat(document.getElementById('edit-carb-litres').value);
-  const prixLitre = parseFloat(document.getElementById('edit-carb-prix').value);
-  const kmCompteur = parseFloat(document.getElementById('edit-carb-km').value);
-  const date      = document.getElementById('edit-carb-date').value;
-  const tauxTVA   = parseFloat(document.getElementById('edit-carb-taux-tva')?.value) || 20;
-  if (!litres || !prixLitre) { afficherToast('⚠️ Litres et prix obligatoires', 'error'); return; }
-  if (hasNegativeNumber(litres, prixLitre, kmCompteur, tauxTVA)) {
-    afficherToast('⚠️ Les montants, litres et kilomètres doivent être positifs', 'error');
-    return;
-  }
-  const total  = litres * prixLitre;
-  const pleins = charger('carburant');
-  const idx    = pleins.findIndex(p => p.id === id);
-  if (idx === -1) return;
-  const salId = pleins[idx].salId;
-  pleins[idx].litres = litres; pleins[idx].prixLitre = prixLitre;
-  pleins[idx].total  = total;  pleins[idx].date = date;
-  pleins[idx].kmCompteur = Number.isFinite(kmCompteur) ? kmCompteur : null;
-  pleins[idx].tauxTVA = tauxTVA;
-  pleins[idx].modifie = true;  pleins[idx].modifieLe = new Date().toISOString();
-  pleins[idx].chargeId = syncChargeCarburant(pleins[idx]);
-  sauvegarder('carburant', pleins);
-  if (salId) {
-    const cle  = 'carb_sal_' + salId;
-    const perso = loadSafe(cle, []);
-    const pi    = perso.findIndex(p => p.id === id);
-    if (pi > -1) {
-      perso[pi].litres = litres; perso[pi].prixLitre = prixLitre;
-      perso[pi].total  = total;  perso[pi].date = date;
-      perso[pi].kmCompteur = Number.isFinite(kmCompteur) ? kmCompteur : null;
-      perso[pi].tauxTVA = tauxTVA;
-      perso[pi].modifie = true;
-      localStorage.setItem(cle, JSON.stringify(perso));
-    }
-  }
-  const vehId = pleins[idx].vehId;
-  const veh = vehId ? getVehiculeById(vehId) : null;
-  if (veh && Number.isFinite(kmCompteur) && kmCompteur > (parseFloat(veh.km) || 0)) {
-    const vehicules = charger('vehicules');
-    const idxVeh = vehicules.findIndex(function(item) { return item.id === vehId; });
-    if (idxVeh > -1) {
-      vehicules[idxVeh].km = Math.max(parseFloat(vehicules[idxVeh].km) || 0, kmCompteur);
-      sauvegarder('vehicules', vehicules);
-    }
-  }
-  closeModal('modal-edit-carburant');
-  afficherCarburant();
-  afficherToast('✅ Plein mis à jour');
-}
+// MOVED -> script-carburant.js : confirmerEditCarburantAdmin
 
 function voirPhotoAdmin(inspId, idx) {
   const inspections = loadSafe('inspections', []);
@@ -6844,45 +6365,9 @@ function dupliquerLivraison(id) {
 }
 
 /* ===== RÉCURRENCE LIVRAISON ===== */
-function ouvrirRecurrence(id) {
-  const liv = charger('livraisons').find(l => l.id === id);
-  if (!liv) return;
-  document.getElementById('rec-liv-id').value  = id;
-  document.getElementById('rec-liv-info').textContent = `${liv.client} — ${liv.numLiv||''}`;
-  document.getElementById('rec-semaines').value = '4';
-  openModal('modal-recurrence');
-}
+// MOVED -> script-carburant.js : ouvrirRecurrence
 
-function confirmerRecurrence() {
-  const id      = document.getElementById('rec-liv-id').value;
-  const nb      = parseInt(document.getElementById('rec-semaines').value, 10) || 1;
-  const source  = charger('livraisons').find(l => l.id === id);
-  if (!source || nb < 1 || nb > 52) { afficherToast('⚠️ Nombre de semaines invalide (1-52)', 'error'); return; }
-
-  const livraisons = charger('livraisons');
-  const baseDate   = new Date(source.date);
-  const creees     = [];
-
-  for (let i = 1; i <= nb; i++) {
-    const d = new Date(baseDate);
-    d.setDate(d.getDate() + i * 7);
-    const copie = {
-      ...source,
-      id: genId(),
-      numLiv: genNumLivraison(),
-      date: d.toLocalISODate(),
-      statut: 'en-attente',
-      statutPaiement: 'en-attente',
-      creeLe: new Date().toISOString()
-    };
-    livraisons.push(copie);
-    creees.push(copie.numLiv);
-  }
-  sauvegarder('livraisons', livraisons);
-  closeModal('modal-recurrence');
-  afficherLivraisons();
-  afficherToast(`✅ ${nb} livraison(s) récurrente(s) créée(s)`);
-}
+// MOVED -> script-carburant.js : confirmerRecurrence
 
 /* ===== PAGINATION GÉNÉRIQUE ===== */
 const _pageState = {};
@@ -7086,20 +6571,7 @@ function exporterCharges() {
   afficherToast('✅ Export charges CSV téléchargé');
 }
 
-function exporterEntretiens() {
-  const tous = charger('entretiens').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const vehs = charger('vehicules');
-  exporterCSV(tous, [
-    { label:'Date',           get:e=>e.date||'' },
-    { label:'Véhicule',       get:e=>vehs.find(v=>v.id===e.vehId)?.immat||'' },
-    { label:'Type',           get:e=>e.type||'' },
-    { label:'Description',    get:e=>e.description||'' },
-    { label:'Km',             get:e=>e.km||'' },
-    { label:'Prochain km',    get:e=>e.prochainKm||'' },
-    { label:'Coût €',         get:e=>e.cout?parseFloat(e.cout).toFixed(2):'' },
-  ], `entretiens_${aujourdhui()}.csv`);
-  afficherToast('✅ Export entretiens CSV téléchargé');
-}
+// MOVED -> script-entretiens.js : exporterEntretiens
 
 /* ===== RAPPORT MENSUEL PDF ===== */
 function genererRapportMensuel() {
@@ -7758,11 +7230,7 @@ function planningGetLivraisonsForDate(salId, dateStr) {
   });
 }
 
-function planningGetOpenIncidentsForSalarie(salId) {
-  return charger('incidents').filter(function(item) {
-    return item.salId === salId && item.statut !== 'resolu' && item.statut !== 'clos';
-  });
-}
+// MOVED -> script-incidents.js : planningGetOpenIncidentsForSalarie
 
 // MOVED -> script-inspections.js : planningGetInspectionForDate
 
@@ -10625,344 +10093,32 @@ function afficherTCO(vehId) {
 }
 
 /* ===== CARNET ENTRETIEN DÉTAILLÉ ===== */
-function afficherEntretiens() {
-  const vehicules  = charger('vehicules');
-  let entretiens = charger('entretiens').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const tb = document.getElementById('tb-entretiens');
-  if (!tb) return;
-  paginer.__reload_tb_entretiens = afficherEntretiens;
-  const rangeEntr = getEntretiensPeriodeRange();
-  const periodSelect = document.getElementById('vue-entr-select');
-  if (periodSelect) periodSelect.value = _entrPeriode.mode;
-  majPeriodeDisplay('entr-mois-label', 'entr-mois-dates', rangeEntr);
-
-  // Filtres
-  const filtreVeh  = document.getElementById('filtre-entr-vehicule')?.value || '';
-  const filtreType = document.getElementById('filtre-entr-type')?.value || '';
-  const selVeh = document.getElementById('filtre-entr-vehicule');
-  if (selVeh && selVeh.options.length <= 1) {
-    vehicules.forEach(v => { selVeh.innerHTML += `<option value="${v.id}">${v.immat}</option>`; });
-  }
-  if (filtreVeh)  entretiens = entretiens.filter(e => e.vehId === filtreVeh);
-  if (filtreType) entretiens = entretiens.filter(e => e.type === filtreType);
-  entretiens = entretiens.filter(e => isDateInRange(e.date, rangeEntr));
-  if (entretiens.some(e => e.vehId && !vehicules.some(v => v.id === e.vehId))) {
-    ajouterAlerteSiAbsente('entretien_orphelin', '⚠️ Certains entretiens sont liés à un véhicule supprimé.', { vehId: 'entretien_orphelin' });
-  }
-
-  if (!entretiens.length) {
-    nettoyerPagination('tb-entretiens');
-    tb.innerHTML = emptyState('🔧','Aucun entretien ce mois','Changez de mois ou ajoutez un entretien.');
-    return;
-  }
-
-  const typeClass = { revision:'type-revision', pneus:'type-pneus', vidange:'type-vidange', plaquettes:'type-plaquettes', courroie:'type-courroie', freins:'type-plaquettes', carrosserie:'type-autre', autre:'type-autre' };
-  const typeIcons = { revision:'🔩', pneus:'🔘', vidange:'🛢️', plaquettes:'⚙️', courroie:'⛓️', freins:'🛑', carrosserie:'🚘', autre:'🔧' };
-
-  paginer(entretiens, 'tb-entretiens', function(items) {
-    return items.map(e => {
-    const veh = vehicules.find(v=>v.id===e.vehId);
-    const ht = e.coutHT || (e.cout||0) / (1 + (e.tauxTVA||20)/100);
-    const tvaM = (e.cout||0) - ht;
-    return `<tr>
-      <td>${formatDateExport(e.date)}</td>
-      <td>${getLabelVehiculeEntretien(e, veh)}</td>
-      <td><span class="entretien-type-badge ${typeClass[e.type]||'type-autre'}">${typeIcons[e.type]||'🔧'} ${getTypeEntretienLabel(e.type)}</span></td>
-      <td>${e.description||'—'}</td>
-      <td>${e.km ? formatKm(e.km) : '—'}</td>
-      <td>${e.prochainKm ? formatKm(e.prochainKm) : '—'}</td>
-      <td style="font-size:.85rem">${e.cout ? euros(ht) : '—'}</td>
-      <td style="font-size:.82rem;color:var(--text-muted)">${e.cout ? euros(tvaM) : '—'}</td>
-      <td><strong>${e.cout ? euros(e.cout) : '—'}</strong></td>
-      <td>
-        <button class="btn-icon" onclick="ouvrirEditEntretien('${e.id}')" title="Modifier">✏️</button>
-        <button class="btn-icon danger" onclick="supprimerEntretien('${e.id}')" title="Supprimer">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
-  }, 12);
-}
+// MOVED -> script-entretiens.js : afficherEntretiens
 
 // Auto-fill du km actuel quand on sélectionne un véhicule dans la modal Entretien
 // (le user veut pouvoir modifier mais avoir le km actuel pré-rempli).
 // Le champ 'Prochain entretien' reste vide intentionnellement.
-function autoFillKmEntretien() {
-  const sel = document.getElementById('entr-veh');
-  const kmInput = document.getElementById('entr-km');
-  if (!sel || !kmInput || !sel.value) return;
-  const veh = charger('vehicules').find(v => v.id === sel.value);
-  if (!veh) return;
-  const kmActuel = (typeof calculerKilometrageVehiculeActuel === 'function')
-    ? calculerKilometrageVehiculeActuel(veh)
-    : (parseFloat(veh.km) || 0);
-  if (kmActuel) kmInput.value = kmActuel;
-}
+// MOVED -> script-entretiens.js : autoFillKmEntretien
 
-function ouvrirModalEntretien() {
-  window._editEntretienId = null;
-  ['entr-date','entr-desc','entr-km','entr-prochain-km','entr-cout-ht','entr-cout'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.value = id === 'entr-date' ? aujourdhui() : '';
-  });
-  const veh = document.getElementById('entr-veh'); if (veh) veh.value = '';
-  const type = document.getElementById('entr-type'); if (type) type.value = 'revision';
-  const tva = document.getElementById('entr-taux-tva'); if (tva) tva.value = '20';
-  const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = '🔧 Ajouter un entretien';
-  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
-  openModal('modal-entretien');
-}
+// MOVED -> script-entretiens.js : ouvrirModalEntretien
 
-function ajouterEntretien() {
-  if (window._editEntretienId) return confirmerEditEntretien();
-  const vehId      = document.getElementById('entr-veh')?.value || '';
-  const date       = document.getElementById('entr-date')?.value || aujourdhui();
-  const type       = document.getElementById('entr-type')?.value || 'autre';
-  const desc       = document.getElementById('entr-desc')?.value.trim() || '';
-  const km         = parseFloat(document.getElementById('entr-km')?.value) || 0;
-  const prochainKm = parseFloat(document.getElementById('entr-prochain-km')?.value) || 0;
-  const coutHT     = parseFloat(document.getElementById('entr-cout-ht')?.value) || 0;
-  const tauxTVA    = parseFloat(document.getElementById('entr-taux-tva')?.value) || 20;
-  const cout       = parseFloat(document.getElementById('entr-cout')?.value) || (coutHT * (1 + tauxTVA/100));
+// MOVED -> script-entretiens.js : ajouterEntretien
 
-  if (!vehId) { afficherToast('⚠️ Véhicule obligatoire','error'); return; }
-  if (hasNegativeNumber(km, prochainKm, coutHT, cout, tauxTVA)) {
-    afficherToast('⚠️ Les montants et kilométrages doivent être positifs', 'error');
-    return;
-  }
+// MOVED -> script-entretiens.js : ouvrirEditEntretien
 
-  const entretiens = charger('entretiens');
-  const veh = getVehiculeById(vehId);
-  const tauxDeductible = 100;
-  const entretienId = genId();
-  let chargeId = '';
-  if (cout > 0) {
-    chargeId = genId();
-    const charges = charger('charges');
-    charges.push({ id:chargeId, entretienId, date, categorie:'entretien', description:`${getTypeEntretienLabel(type)} — ${desc||veh?.immat||''}`, montant:cout, montantHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, vehId, vehNom:veh?.immat||'', creeLe:new Date().toISOString() });
-    sauvegarder('charges', charges);
-  }
-  entretiens.push({ id:entretienId, chargeId, vehId, date, type, description:desc, km, prochainKm, cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, tauxDeductible, creeLe:new Date().toISOString() });
-  sauvegarder('entretiens', entretiens);
-  ajouterEntreeAudit('Création entretien', (desc || getTypeEntretienLabel(type) || 'Entretien') + ' · ' + euros(cout || 0));
-  if (veh && km > (parseFloat(veh.km) || 0)) {
-    const vehicules = charger('vehicules');
-    const idxVeh = vehicules.findIndex(function(item) { return item.id === vehId; });
-    if (idxVeh > -1) {
-      const kmAvant = parseFloat(vehicules[idxVeh].km) || 0;
-      vehicules[idxVeh].km = Math.max(parseFloat(vehicules[idxVeh].km) || 0, km);
-      if (!Number.isFinite(parseFloat(vehicules[idxVeh].kmInitial))) vehicules[idxVeh].kmInitial = kmAvant || km;
-      sauvegarder('vehicules', vehicules);
-    }
-  }
+// MOVED -> script-entretiens.js : confirmerEditEntretien
 
-  closeModal('modal-entretien');
-  afficherEntretiens();
-  afficherVehicules();
-  afficherTva();
-  afficherToast('✅ Entretien enregistré');
-}
-
-function ouvrirEditEntretien(id) {
-  const e = charger('entretiens').find(x => x.id === id);
-  if (!e) return;
-  window._editEntretienId = id;
-  document.getElementById('entr-veh').value = e.vehId || '';
-  document.getElementById('entr-date').value = e.date || '';
-  document.getElementById('entr-type').value = e.type || 'autre';
-  document.getElementById('entr-desc').value = e.description || '';
-  document.getElementById('entr-km').value = e.km || '';
-  document.getElementById('entr-prochain-km').value = e.prochainKm || '';
-  document.getElementById('entr-cout-ht').value = e.coutHT || '';
-  document.getElementById('entr-taux-tva').value = e.tauxTVA || 20;
-  document.getElementById('entr-cout').value = e.cout || '';
-  calculerTTCDepuisHT('entr');
-  const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = '✏️ Modifier un entretien';
-  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
-  modal.classList.add('open');
-}
-
-function confirmerEditEntretien() {
-  const id = window._editEntretienId;
-  if (!id) return;
-  const entretiens = charger('entretiens');
-  const idx = entretiens.findIndex(e => e.id === id);
-  if (idx === -1) return;
-  const vehId = document.getElementById('entr-veh')?.value || '';
-  const date = document.getElementById('entr-date')?.value || aujourdhui();
-  const type = document.getElementById('entr-type')?.value || 'autre';
-  const description = document.getElementById('entr-desc')?.value.trim() || '';
-  const km = parseFloat(document.getElementById('entr-km')?.value) || 0;
-  const prochainKm = parseFloat(document.getElementById('entr-prochain-km')?.value) || 0;
-  const coutHT = parseFloat(document.getElementById('entr-cout-ht')?.value) || 0;
-  const tauxTVA = parseFloat(document.getElementById('entr-taux-tva')?.value) || 20;
-  const cout = parseFloat(document.getElementById('entr-cout')?.value) || (coutHT * (1 + tauxTVA/100));
-  if (hasNegativeNumber(km, prochainKm, coutHT, cout, tauxTVA)) {
-    afficherToast('⚠️ Les montants et kilométrages doivent être positifs', 'error');
-    return;
-  }
-  const veh = getVehiculeById(vehId);
-  entretiens[idx] = {
-    ...entretiens[idx],
-    vehId, date, type, description, km, prochainKm,
-    cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA,
-    tauxDeductible: 100,
-    modifieLe: new Date().toISOString()
-  };
-  sauvegarder('entretiens', entretiens);
-  if (veh && km > (parseFloat(veh.km) || 0)) {
-    const vehicules = charger('vehicules');
-    const idxVeh = vehicules.findIndex(function(item) { return item.id === vehId; });
-    if (idxVeh > -1) {
-      const kmAvant = parseFloat(vehicules[idxVeh].km) || 0;
-      vehicules[idxVeh].km = Math.max(parseFloat(vehicules[idxVeh].km) || 0, km);
-      if (!Number.isFinite(parseFloat(vehicules[idxVeh].kmInitial))) vehicules[idxVeh].kmInitial = kmAvant || km;
-      sauvegarder('vehicules', vehicules);
-    }
-  }
-  const charges = charger('charges');
-  const chargeIdx = charges.findIndex(c => c.id === entretiens[idx].chargeId || c.entretienId === id);
-  if (chargeIdx > -1) {
-    charges[chargeIdx] = {
-      ...charges[chargeIdx],
-      date,
-      categorie:'entretien',
-      description:`${getTypeEntretienLabel(type)} — ${description||veh?.immat||''}`,
-      montant: cout,
-      montantHT: coutHT || cout/(1+tauxTVA/100),
-      tauxTVA,
-      vehId,
-      vehNom: veh?.immat || ''
-    };
-    sauvegarder('charges', charges);
-  }
-  closeModal('modal-entretien');
-  const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = '🔧 Ajouter un entretien';
-  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
-  window._editEntretienId = null;
-  afficherEntretiens();
-  afficherVehicules();
-  afficherTva();
-  afficherToast('✅ Entretien modifié');
-}
-
-async function supprimerEntretien(id) {
-  const ok = await confirmDialog('Supprimer cet entretien ?',{titre:'Supprimer',icone:'🔧',btnLabel:'Supprimer'});
-  if (!ok) return;
-  // Trouver l'entretien pour supprimer la charge liée
-  const entretien = charger('entretiens').find(e=>e.id===id);
-  sauvegarder('entretiens', charger('entretiens').filter(e=>e.id!==id));
-  // Supprimer la charge correspondante si elle existe
-  if (entretien && entretien.cout > 0) {
-    const charges = charger('charges');
-    const idxCharge = charges.findIndex(c => c.id === entretien.chargeId || c.entretienId === entretien.id || (c.categorie==='entretien' && c.vehId===entretien.vehId && c.date===entretien.date && Math.abs((c.montant||0)-entretien.cout) < 0.01));
-    if (idxCharge > -1) { charges.splice(idxCharge, 1); sauvegarder('charges', charges); }
-  }
-  afficherEntretiens();
-  afficherTva();
-  afficherToast('🗑️ Entretien supprimé');
-}
+// MOVED -> script-entretiens.js : supprimerEntretien
 
 /* ===== BLOCAGE COMPTE après X tentatives ===== */
 /* ===== INCIDENTS / RÉCLAMATIONS ===== */
-function afficherIncidents() {
-  let incidents = charger('incidents').sort((a,b)=>new Date(b.creeLe)-new Date(a.creeLe));
-  const tb = document.getElementById('tb-incidents');
-  if (!tb) return;
-  paginer.__reload_tb_incidents = afficherIncidents;
+// MOVED -> script-incidents.js : afficherIncidents
 
-  // Filtres
-  const filtreSearch = (document.getElementById('filtre-inc-search')?.value || '').trim().toLowerCase();
-  const filtreGravite = document.getElementById('filtre-inc-gravite')?.value || '';
-  const filtreStatut = document.getElementById('filtre-inc-statut')?.value || '';
-  if (filtreGravite) incidents = incidents.filter(i => (i.gravite || 'moyen') === filtreGravite);
-  if (filtreStatut)  incidents = incidents.filter(i => (i.statut || 'ouvert') === filtreStatut);
-  if (filtreSearch) {
-    incidents = incidents.filter(i => [i.client, i.salNom, i.chaufNom, i.description, i.numLiv]
-      .filter(Boolean).join(' ').toLowerCase().includes(filtreSearch));
-  }
+// MOVED -> script-incidents.js : ajouterIncident
 
-  if (!incidents.length) {
-    nettoyerPagination('tb-incidents');
-    tb.innerHTML = filtreSearch || filtreGravite || filtreStatut
-      ? '<tr><td colspan="7" class="empty-row">Aucun résultat avec ces filtres</td></tr>'
-      : emptyState('🚨','Aucun incident','Les réclamations clients et incidents de livraison apparaîtront ici.');
-    return;
-  }
+// MOVED -> script-incidents.js : changerStatutIncident
 
-  const statBadge = { ouvert:'<span class="incident-badge incident-ouvert">🔴 Ouvert</span>', encours:'<span class="incident-badge incident-encours">🟡 En cours</span>', traite:'<span class="incident-badge incident-traite">✅ Traité</span>' };
-  const graviteBadge = {
-    faible:'<span class="incident-badge incident-traite">🟢 Faible</span>',
-    moyen:'<span class="incident-badge incident-encours">🟠 Moyen</span>',
-    grave:'<span class="incident-badge incident-ouvert">🔴 Grave</span>'
-  };
-
-  paginer(incidents, 'tb-incidents', function(items) {
-    return items.map(i => `<tr>
-    <td>${formatDateExport(i.date)}</td>
-    <td><strong>${i.client||'—'}</strong></td>
-    <td>${i.salNom||i.chaufNom||'—'}</td>
-    <td style="font-size:.83rem">${i.description||'—'}</td>
-    <td>${graviteBadge[i.gravite||'moyen']||graviteBadge.moyen}</td>
-    <td>${statBadge[i.statut||'ouvert']||''}</td>
-    <td>${buildInlineActionsDropdown('Actions', [
-      { icon:'🔴', label:'Marquer ouvert', action:`changerStatutIncident('${i.id}','ouvert')` },
-      { icon:'🟡', label:'Marquer en cours', action:`changerStatutIncident('${i.id}','encours')` },
-      { icon:'✅', label:'Marquer traité', action:`changerStatutIncident('${i.id}','traite')` },
-      { icon:'🗑️', label:'Supprimer', action:`supprimerIncident('${i.id}')`, danger:true }
-    ])}</td>
-  </tr>`).join('');
-  }, 12);
-}
-
-function ajouterIncident() {
-  const date     = document.getElementById('inc-date')?.value || aujourdhui();
-  const livId    = document.getElementById('inc-livraison')?.value || '';
-  const salId    = document.getElementById('inc-salarie')?.value || '';
-  const desc     = document.getElementById('inc-description')?.value.trim() || '';
-  const gravite  = document.getElementById('inc-gravite')?.value || 'moyen';
-
-  if (!desc) { afficherToast('⚠️ Description obligatoire','error'); return; }
-
-  const livraisons = charger('livraisons');
-  const liv = livId ? livraisons.find(l=>l.id===livId) : null;
-  const sal = salId ? charger('salaries').find(s=>s.id===salId) : null;
-  const finalSalId  = salId || liv?.chaufId || '';
-  const finalSalNom = sal?.nom || liv?.chaufNom || '';
-
-  const incidents = charger('incidents');
-  const incident  = { id:genId(), date, livId, salId:finalSalId, salNom:finalSalNom, client:liv?.client||'', chaufId:finalSalId, chaufNom:finalSalNom, description:desc, gravite, statut:'ouvert', creeLe:new Date().toISOString() };
-  incidents.push(incident);
-  sauvegarder('incidents', incidents);
-  ajouterEntreeAudit('Création incident', (incident.client || finalSalNom || 'Incident') + ' · ' + gravite);
-
-  if (finalSalId) {
-    const msgs = loadSafe('messages_'+finalSalId, []);
-    msgs.push({ id:genId(), auteur:'admin', texte:`⚠️ Un incident a été signalé${liv?' sur votre livraison du '+date+' ('+liv.client+')':' vous concernant le '+date}. Motif : ${desc}`, lu:false, creeLe:new Date().toISOString() });
-    localStorage.setItem('messages_'+finalSalId, JSON.stringify(msgs));
-  }
-
-  closeModal('modal-incident');
-  afficherIncidents();
-  afficherToast('✅ Incident enregistré');
-}
-
-function changerStatutIncident(id, statut) {
-  const incidents = charger('incidents');
-  const idx = incidents.findIndex(i=>i.id===id);
-  if (idx>-1) { incidents[idx].statut=statut; sauvegarder('incidents',incidents); afficherIncidents(); afficherToast('✅ Statut mis à jour'); }
-}
-
-async function supprimerIncident(id) {
-  const ok = await confirmDialog('Supprimer cet incident ?',{titre:'Supprimer',icone:'🚨',btnLabel:'Supprimer'});
-  if (!ok) return;
-  sauvegarder('incidents', charger('incidents').filter(i=>i.id!==id));
-  afficherIncidents();
-  afficherToast('🗑️ Incident supprimé');
-}
+// MOVED -> script-incidents.js : supprimerIncident
 
 /* ===== HISTORIQUE MODIFICATIONS LIVRAISON ===== */
 function logModifLivraison(livId, champ, ancienne, nouvelle) {
@@ -11930,35 +11086,7 @@ function exporterPlanningPDF() {
 }
 
 /* ===== EXPORT ENTRETIENS PDF ===== */
-function exporterEntretiensPDF() {
-  const range = getEntretiensPeriodeRange();
-  const entretiens = charger('entretiens').filter(e => isDateInRange(e.date, range)).sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const vehicules = charger('vehicules');
-  const params = getEntrepriseExportParams();
-  const nom = params.nom;
-  const total = entretiens.reduce((s,e)=>s+(e.cout||0),0);
-  const dateExp = formatDateHeureExport();
-  const typeIcons = {revision:'🔩',vidange:'🛢️',pneus:'🔘',plaquettes:'⚙️',courroie:'⛓️',autre:'🔧'};
-
-  const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Carnet d'entretien</div><div style="font-size:1rem;font-weight:700">${range.label}</div><div style="font-size:.78rem;color:#9ca3af">${range.datesLabel}</div></div>
-    </div>
-    ${renderBlocInfosEntreprise(params)}
-    <table style="width:100%;border-collapse:collapse;font-size:.85rem">
-      <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Véhicule</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Type</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Description</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Coût</th></tr></thead>
-      <tbody>${entretiens.map((e,i)=>{const veh=vehicules.find(v=>v.id===e.vehId);return `<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}"><td style="padding:8px 12px">${formatDateExport(e.date)}</td><td style="padding:8px 12px;font-weight:600">${veh?.immat||'—'}</td><td style="padding:8px 12px">${typeIcons[e.type]||'🔧'} ${e.type||'autre'}</td><td style="padding:8px 12px">${e.description||'—'}</td><td style="padding:8px 12px;text-align:right;font-weight:700">${e.cout?euros(e.cout):'—'}</td></tr>`;}).join('')}</tbody>
-    </table>
-    <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong>Total : ${euros(total)}</strong></div>
-    ${renderFooterEntreprise(params, dateExp)}
-  </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Entretiens — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
-  win.document.close();
-  afficherToast('📄 Rapport entretiens généré');
-}
+// MOVED -> script-entretiens.js : exporterEntretiensPDF
 
 /* ===== EXPORT VÉHICULES PDF ===== */
 function exporterVehiculesPDF() {
@@ -12128,30 +11256,10 @@ function supprimerAbsencePeriode(id) {
 }
 
 /* ===== CHARGES → SYNCHRO ENTRETIEN ===== */
-function synchroChargeVersEntretien(charge) {
-  if (charge.categorie !== 'entretien') return;
-  var entretiens = charger('entretiens');
-  var existe = entretiens.find(function(e){return e.chargeId===charge.id;});
-  if (existe) return;
-  entretiens.push({
-    id: genId(), chargeId: charge.id, vehId: charge.vehId || '',
-    date: charge.date, type: 'autre', description: charge.description || 'Depuis charges',
-    km: 0, prochainKm: 0, cout: charge.montant || 0, coutHT: charge.montantHT || 0, tauxTVA: charge.tauxTVA || 20,
-    tauxDeductible: 100, creeLe: new Date().toISOString()
-  });
-  sauvegarder('entretiens', entretiens);
-}
+// MOVED -> script-entretiens.js : synchroChargeVersEntretien
 
 /* ===== INCIDENTS — PEUPLER SELECT SALARIÉ ===== */
-function peupleIncSalarie() {
-  var sel = document.getElementById('inc-salarie');
-  if (!sel) return;
-  var salaries = charger('salaries');
-  var v = sel.value;
-  sel.innerHTML = '<option value="">— Aucun salarié spécifique —</option>';
-  salaries.forEach(function(s) { sel.innerHTML += '<option value="' + s.id + '">' + s.nom + (s.poste?' ('+s.poste+')':'') + '</option>'; });
-  sel.value = v;
-}
+// MOVED -> script-incidents.js : peupleIncSalarie
 
 /* ===== PEUPLER SELECT ABSENCE SAL ===== */
 function peuplerAbsenceSal() {
@@ -12577,17 +11685,17 @@ function reinitialiserChargesPeriode() { resetSimplePeriode(_chargesPeriode, aff
 function navChargesMois(delta) { _chargesPeriode.mode = 'mois'; if (delta === 0) _chargesPeriode.offset = 0; else _chargesPeriode.offset += delta; navChargesPeriode(0); }
 function getChargesMoisStr() { return getChargesPeriodeRange().debut.slice(0,7); }
 
-function getCarburantPeriodeRange() { return getPeriodeRange(_carbPeriode.mode, _carbPeriode.offset); }
-function changerVueCarburant(mode) { changeSimplePeriode(_carbPeriode, mode, afficherCarburant, 'carb-mois-label', 'carb-mois-dates', 'vue-carb-select'); }
-function navCarburantPeriode(delta) { navSimplePeriode(_carbPeriode, delta, afficherCarburant, 'carb-mois-label', 'carb-mois-dates', 'vue-carb-select'); }
-function reinitialiserCarburantPeriode() { resetSimplePeriode(_carbPeriode, afficherCarburant, 'carb-mois-label', 'carb-mois-dates', 'vue-carb-select'); }
+// MOVED -> script-carburant.js : getCarburantPeriodeRange
+// MOVED -> script-carburant.js : changerVueCarburant
+// MOVED -> script-carburant.js : navCarburantPeriode
+// MOVED -> script-carburant.js : reinitialiserCarburantPeriode
 function navCarbMois(delta) { _carbPeriode.mode = 'mois'; if (delta === 0) _carbPeriode.offset = 0; else _carbPeriode.offset += delta; navCarburantPeriode(0); }
 function getCarbMoisStr() { return getCarburantPeriodeRange().debut.slice(0,7); }
 
-function getEntretiensPeriodeRange() { return getPeriodeRange(_entrPeriode.mode, _entrPeriode.offset); }
-function changerVueEntretiens(mode) { changeSimplePeriode(_entrPeriode, mode, afficherEntretiens, 'entr-mois-label', 'entr-mois-dates', 'vue-entr-select'); }
-function navEntretiensPeriode(delta) { navSimplePeriode(_entrPeriode, delta, afficherEntretiens, 'entr-mois-label', 'entr-mois-dates', 'vue-entr-select'); }
-function reinitialiserEntretiensPeriode() { resetSimplePeriode(_entrPeriode, afficherEntretiens, 'entr-mois-label', 'entr-mois-dates', 'vue-entr-select'); }
+// MOVED -> script-entretiens.js : getEntretiensPeriodeRange
+// MOVED -> script-entretiens.js : changerVueEntretiens
+// MOVED -> script-entretiens.js : navEntretiensPeriode
+// MOVED -> script-entretiens.js : reinitialiserEntretiensPeriode
 function navEntrMois(delta) { _entrPeriode.mode = 'mois'; if (delta === 0) _entrPeriode.offset = 0; else _entrPeriode.offset += delta; navEntretiensPeriode(0); }
 function getEntrMoisStr() { return getEntretiensPeriodeRange().debut.slice(0,7); }
 
@@ -13163,38 +12271,7 @@ function exporterChargesPDFMois() {
 }
 
 /* --- Carburant export PDF avec HT/TVA/TTC --- */
-function exporterCarburantPDF() {
-  var range = getCarburantPeriodeRange();
-  var pleins = charger('carburant').filter(function(p){return isDateInRange(p.date, range);}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-  var vehicules = charger('vehicules');
-  var params = getEntrepriseExportParams();
-  var nom = params.nom;
-  var dateExp = formatDateHeureExport();
-  var moisLabel = range.label;
-  var totalHT=0, totalTVA=0, totalTTC=0;
-
-  var rows = pleins.map(function(p,i) {
-    var veh = vehicules.find(function(v){return v.id===p.vehId;});
-    var tauxRecup = veh && veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : (p.type==='essence'?100:80);
-    var ht = (p.total||0) / 1.2;
-    var tvaFull = (p.total||0) - ht;
-    var tvaDeduct = tvaFull * tauxRecup / 100;
-    totalHT += ht; totalTVA += tvaDeduct; totalTTC += (p.total||0);
-    return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+p.date+'</td><td style="padding:6px 10px">'+(veh?veh.immat:'—')+'</td><td style="padding:6px 10px">'+(p.type||'gasoil')+'</td><td style="padding:6px 10px;text-align:right">'+(p.litres||0)+' L</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaDeduct)+' ('+tauxRecup+'%)</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(p.total||0)+'</td></tr>';
-  }).join('');
-
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:800px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Carburant — '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
-    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalHT)+'</div></div><div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">TVA déductible</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalTTC)+'</div></div></div>'+
-    '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Véhicule</th><th style="padding:6px 10px">Type</th><th style="padding:6px 10px;text-align:right">Litres</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA déd.</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
-
-  var win = ouvrirPopupSecure('','_blank','width=850,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Carburant '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
-  afficherToast('📄 Rapport carburant généré');
-}
+// MOVED -> script-carburant.js : exporterCarburantPDF
 ajouterPeriodeAbsence = function() {
   var salId = document.getElementById('absence-sal') ? document.getElementById('absence-sal').value : '';
   var type = document.getElementById('absence-type') ? document.getElementById('absence-type').value : 'travail';
@@ -16207,612 +15284,61 @@ document.addEventListener('click', function(event) {
 /* ===== RENTABILITE — Calculateur avancé ===== */
 var RENTABILITE_STORAGE_KEY = 'rentabilite_calculateur_v2';
 
-function getRentabiliteDefaults() {
-  return {
-    modeCalcul: 'manuel',
-    livraisonId: '',
-    repartitionCharges: 'mensuel',
-    kmJour: 0,
-    prixKm: 0,
-    joursTravailles: 0,
-    conso: 0,
-    prixCarburant: 0,
-    lldCredit: 0,
-    assurance: 0,
-    salaireCharge: 0,
-    tva: 20,
-    autresCharges: []
-  };
-}
+// MOVED -> script-rentabilite.js : getRentabiliteDefaults
 
-function chargerRentabiliteConfig() {
-  var config = chargerObj(RENTABILITE_STORAGE_KEY, null);
-  var defaults = getRentabiliteDefaults();
-  if (!config || typeof config !== 'object') return defaults;
-  if (!Object.prototype.hasOwnProperty.call(config, 'modeCalcul')) return defaults;
-  return {
-    modeCalcul: config.modeCalcul === 'livraison' ? 'livraison' : 'manuel',
-    livraisonId: config.livraisonId || '',
-    repartitionCharges: config.repartitionCharges === 'prorata' ? 'prorata' : 'mensuel',
-    kmJour: parseFloat(config.kmJour) || 0,
-    prixKm: parseFloat(config.prixKm) || 0,
-    joursTravailles: parseFloat(config.joursTravailles) || 0,
-    conso: parseFloat(config.conso) || 0,
-    prixCarburant: parseFloat(config.prixCarburant) || 0,
-    lldCredit: parseFloat(config.lldCredit) || 0,
-    assurance: parseFloat(config.assurance) || 0,
-    salaireCharge: parseFloat(config.salaireCharge) || 0,
-    tva: parseFloat(config.tva) || 0,
-    autresCharges: Array.isArray(config.autresCharges) ? config.autresCharges.map(function(item) {
-      return {
-        id: item.id || genId(),
-        label: item.label || '',
-        montant: parseFloat(item.montant) || 0
-      };
-    }) : defaults.autresCharges
-  };
-}
+// MOVED -> script-rentabilite.js : chargerRentabiliteConfig
 
-function sauvegarderRentabiliteConfig(config) {
-  sauvegarder(RENTABILITE_STORAGE_KEY, config);
-}
+// MOVED -> script-rentabilite.js : sauvegarderRentabiliteConfig
 
-function rentabiliteGetContainer() {
-  return document.getElementById('page-rentabilite');
-}
+// MOVED -> script-rentabilite.js : rentabiliteGetContainer
 
-function rentabiliteWireEvents() {
-  var container = rentabiliteGetContainer();
-  if (!container || container.dataset.rentabiliteBound === '1') return;
-  container.dataset.rentabiliteBound = '1';
-  container.addEventListener('input', function(event) {
-    if (!event.target.matches('input[data-rent-field], input[data-rent-charge], select[data-rent-field]')) return;
-    rentabiliteSyncFromDom();
-  });
-  container.addEventListener('change', function(event) {
-    if (!event.target.matches('input[data-rent-field], input[data-rent-charge], select[data-rent-field]')) return;
-    rentabiliteSyncFromDom();
-  });
-}
+// MOVED -> script-rentabilite.js : rentabiliteWireEvents
 
-function getRentabiliteLivraisonLabel(livraison) {
-  if (!livraison) return '';
-  return [
-    livraison.numLiv || 'Livraison',
-    livraison.client || '',
-    livraison.date ? formatDateExport(livraison.date) : ''
-  ].filter(Boolean).join(' - ');
-}
+// MOVED -> script-rentabilite.js : getRentabiliteLivraisonLabel
 
-function rentabiliteGetSelectedLivraison(config) {
-  if (!config.livraisonId) return null;
-  return charger('livraisons').find(function(item) { return item.id === config.livraisonId; }) || null;
-}
+// MOVED -> script-rentabilite.js : rentabiliteGetSelectedLivraison
 
-function rentabiliteGetVehiculeActif(config) {
-  var livraison = rentabiliteGetSelectedLivraison(config);
-  if (livraison?.vehId) return getVehiculeById(livraison.vehId);
-  var vehicules = charger('vehicules');
-  if (vehicules.length === 1) return vehicules[0];
-  return null;
-}
+// MOVED -> script-rentabilite.js : rentabiliteGetVehiculeActif
 
-function rentabiliteGetMoisReference(config) {
-  var livraison = rentabiliteGetSelectedLivraison(config);
-  if (livraison?.date && /^\d{4}-\d{2}/.test(livraison.date)) return livraison.date.slice(0, 7);
-  return aujourdhui().slice(0, 7);
-}
+// MOVED -> script-rentabilite.js : rentabiliteGetMoisReference
 
-function rentabiliteGetChargesReellesMois(config) {
-  var mois = rentabiliteGetMoisReference(config);
-  var charges = charger('charges').filter(function(item) {
-    return (item.date || '').slice(0, 7) === mois;
-  });
-  var totals = {
-    mois: mois,
-    lldCredit: 0,
-    assurance: 0,
-    salaireCharge: 0,
-    autres: {}
-  };
-  charges.forEach(function(item) {
-    var categorie = item.categorie || 'autre';
-    if (categorie === 'tva') return;
-    var montant = parseFloat(item.montantHT || item.montant) || 0;
-    if (categorie === 'lld_credit' || categorie === 'lld-credit') totals.lldCredit += montant;
-    else if (categorie === 'assurance') totals.assurance += montant;
-    else if (categorie === 'salaires') totals.salaireCharge += montant;
-    else totals.autres[categorie] = (totals.autres[categorie] || 0) + montant;
-  });
-  return totals;
-}
+// MOVED -> script-rentabilite.js : rentabiliteGetChargesReellesMois
 
-function rentabiliteGetPrixCarburantMoyen(livraison) {
-  var pleins = charger('carburant');
-  if (!pleins.length) return null;
-  var filtres = [];
-  if (livraison?.vehId) {
-    filtres = pleins.filter(function(plein) { return plein.vehId === livraison.vehId && parseFloat(plein.prixLitre) > 0; });
-  }
-  if (!filtres.length) {
-    filtres = pleins.filter(function(plein) { return parseFloat(plein.prixLitre) > 0; });
-  }
-  if (!filtres.length) return null;
-  var total = filtres.reduce(function(sum, plein) { return sum + (parseFloat(plein.prixLitre) || 0); }, 0);
-  return total / filtres.length;
-}
+// MOVED -> script-rentabilite.js : rentabiliteGetPrixCarburantMoyen
 
-function rentabiliteUpdateFuelHelper(config) {
-  var helper = document.getElementById('rent-fuel-helper');
-  var button = document.getElementById('rent-use-real-fuel');
-  if (!helper || !button) return;
-  var livraison = rentabiliteGetSelectedLivraison(config);
-  var moyenne = rentabiliteGetPrixCarburantMoyen(livraison);
-  if (moyenne && isFinite(moyenne)) {
-    helper.textContent = 'Prix moyen réel disponible : ' + moyenne.toFixed(2).replace('.', ',') + ' €/L';
-    button.style.display = '';
-  } else {
-    helper.textContent = 'Aucun plein exploitable pour proposer un prix moyen réel.';
-    button.style.display = 'none';
-  }
-}
+// MOVED -> script-rentabilite.js : rentabiliteUpdateFuelHelper
 
-function rentabiliteAppliquerPrixCarburantReel() {
-  var config = chargerRentabiliteConfig();
-  var moyenne = rentabiliteGetPrixCarburantMoyen(rentabiliteGetSelectedLivraison(config));
-  if (!moyenne || !isFinite(moyenne)) {
-    afficherToast('Aucune donnée carburant exploitable', 'error');
-    return;
-  }
-  var input = document.getElementById('rent-prix-carburant');
-  if (input) input.value = moyenne.toFixed(2);
-  rentabiliteSyncFromDom();
-}
+// MOVED -> script-rentabilite.js : rentabiliteAppliquerPrixCarburantReel
 
-function rentabiliteChargerDepuisVehicule() {
-  var config = chargerRentabiliteConfig();
-  var vehicule = rentabiliteGetVehiculeActif(config);
-  if (!vehicule) {
-    afficherToast('Aucun véhicule exploitable pour préremplir les coûts', 'error');
-    return;
-  }
-  var mensualiteVehicule = getVehiculeMensualiteRentabilite(vehicule);
-  if (mensualiteVehicule > 0) config.lldCredit = mensualiteVehicule;
-  if ((parseFloat(config.conso) || 0) <= 0 && (parseFloat(vehicule.conso) || 0) > 0) {
-    config.conso = parseFloat(vehicule.conso) || 0;
-  }
-  sauvegarderRentabiliteConfig(config);
-  rentabiliteFillInputs(config);
-  rentabiliteRenderResults(calculerRentabiliteAvancee(config), config);
-  afficherToast('Coûts du véhicule chargés dans le calculateur');
-}
+// MOVED -> script-rentabilite.js : rentabiliteChargerDepuisVehicule
 
-function rentabiliteChargerChargesReelles() {
-  var config = chargerRentabiliteConfig();
-  var chargesMois = rentabiliteGetChargesReellesMois(config);
-  config.lldCredit = chargesMois.lldCredit;
-  config.assurance = chargesMois.assurance;
-  config.salaireCharge = chargesMois.salaireCharge;
-  config.autresCharges = Object.entries(chargesMois.autres).filter(function(entry) {
-    return (parseFloat(entry[1]) || 0) > 0;
-  }).map(function(entry) {
-    return {
-      id: genId(),
-      label: {
-        carburant: 'Carburant réel',
-        peage: 'Péages',
-        entretien: 'Entretiens',
-        autre: 'Autres charges'
-      }[entry[0]] || entry[0],
-      montant: parseFloat(entry[1]) || 0
-    };
-  });
-  var helper = document.getElementById('rent-charges-helper');
-  if (helper) {
-    helper.textContent = 'Import du mois ' + chargesMois.mois.split('-').reverse().join('/') + ' : '
-      + euros(chargesMois.lldCredit + chargesMois.assurance + chargesMois.salaireCharge
-      + Object.values(chargesMois.autres).reduce(function(sum, value) { return sum + (parseFloat(value) || 0); }, 0));
-  }
-  sauvegarderRentabiliteConfig(config);
-  rentabiliteFillInputs(config);
-  rentabiliteRenderResults(calculerRentabiliteAvancee(config), config);
-  afficherToast('Charges réelles du mois chargées');
-}
+// MOVED -> script-rentabilite.js : rentabiliteChargerChargesReelles
 
-function rentabiliteHasChargeDoublonLLD(config) {
-  return (config.autresCharges || []).some(function(item) {
-    var label = (item.label || '').toLowerCase();
-    return /(lld|leasing|credit|crédit)/.test(label) && (parseFloat(item.montant) || 0) > 0;
-  });
-}
+// MOVED -> script-rentabilite.js : rentabiliteHasChargeDoublonLLD
 
-function rentabiliteApplyLivraisonToConfig(config, options) {
-  options = options || {};
-  var livraison = rentabiliteGetSelectedLivraison(config);
-  if (!livraison) return config;
-  var vehicule = livraison.vehId ? getVehiculeById(livraison.vehId) : null;
-  config.kmJour = parseFloat(livraison.distance) || 0;
-  config.prixKm = config.kmJour > 0 ? (getMontantHTLivraison(livraison) / config.kmJour) : 0;
-  if (options.forceDaysMinOne !== false) {
-    config.joursTravailles = Math.max(1, parseFloat(config.joursTravailles) || 0);
-  }
-  if ((!config.tva || config.tva < 0) && livraison.tauxTVA != null) {
-    config.tva = parseFloat(livraison.tauxTVA) || 20;
-  }
-  if ((!config.prixCarburant || config.prixCarburant <= 0)) {
-    var moyenne = rentabiliteGetPrixCarburantMoyen(livraison);
-    if (moyenne && isFinite(moyenne)) config.prixCarburant = moyenne;
-  }
-  if ((!config.conso || config.conso <= 0) && vehicule && (parseFloat(vehicule.conso) || 0) > 0) {
-    config.conso = parseFloat(vehicule.conso) || 0;
-  }
-  if ((!config.lldCredit || config.lldCredit <= 0) && vehicule) {
-    var mensualiteVehicule = getVehiculeMensualiteRentabilite(vehicule);
-    if (mensualiteVehicule > 0) config.lldCredit = mensualiteVehicule;
-  }
-  return config;
-}
+// MOVED -> script-rentabilite.js : rentabiliteApplyLivraisonToConfig
 
-function rentabiliteRenderLivraisonsSelect(config) {
-  var select = document.getElementById('rent-livraison-select');
-  if (!select) return;
-  var livraisons = charger('livraisons').slice().sort(function(a, b) {
-    return new Date(b.date || 0) - new Date(a.date || 0);
-  });
-  if (!config.livraisonId && livraisons.length) config.livraisonId = livraisons[0].id;
-  select.innerHTML = '<option value="">' + (livraisons.length ? '-- Choisir une livraison --' : 'Aucune livraison disponible') + '</option>' + livraisons.map(function(livraison) {
-    return '<option value="' + livraison.id + '">' + planningEscapeHtml(getRentabiliteLivraisonLabel(livraison)) + '</option>';
-  }).join('');
-  select.value = livraisons.some(function(item) { return item.id === config.livraisonId; }) ? config.livraisonId : '';
-  select.setAttribute('data-rent-field', 'rent-livraison-select');
-}
+// MOVED -> script-rentabilite.js : rentabiliteRenderLivraisonsSelect
 
-function rentabiliteToggleMode(config) {
-  var wrap = document.getElementById('rent-livraison-wrap');
-  var modeHelper = document.getElementById('rent-mode-helper');
-  var kmLabel = document.getElementById('rent-km-label');
-  var joursLabel = document.getElementById('rent-jours-label');
-  var joursHelper = document.getElementById('rent-jours-helper');
-  if (wrap) wrap.style.display = config.modeCalcul === 'livraison' ? 'block' : 'none';
-  ['rent-km-jour', 'rent-prix-km'].forEach(function(id) {
-    var input = document.getElementById(id);
-    var group = input?.closest('.form-group');
-    if (!input) return;
-    input.readOnly = config.modeCalcul === 'livraison';
-    if (group) group.classList.toggle('is-disabled', config.modeCalcul === 'livraison');
-  });
-  var joursInput = document.getElementById('rent-jours-travailles');
-  var joursGroup = joursInput?.closest('.form-group');
-  if (joursInput) joursInput.readOnly = false;
-  if (joursInput) joursInput.min = config.modeCalcul === 'livraison' ? '1' : '0';
-  if (joursGroup) joursGroup.classList.remove('is-disabled');
-  if (kmLabel) kmLabel.textContent = config.modeCalcul === 'livraison' ? 'Distance de la livraison (km)' : 'Km par jour';
-  if (joursLabel) joursLabel.textContent = config.modeCalcul === 'livraison' ? 'Fréquence mensuelle de ce type de livraison' : 'Jours travaillés dans le mois';
-  if (joursHelper) {
-    joursHelper.textContent = config.modeCalcul === 'livraison'
-      ? 'Combien de fois par mois réalisez-vous ce type de livraison ?'
-      : 'Renseignez le nombre de jours réellement travaillés sur la période.';
-  }
-  if (modeHelper) {
-    modeHelper.textContent = config.modeCalcul === 'livraison'
-      ? 'Projection mensuelle : l’outil estime la rentabilité si vous répétez cette livraison sur le mois.'
-      : 'Simulez votre activité à partir de vos propres hypothèses.';
-  }
-  var chargesHelper = document.getElementById('rent-charges-helper');
-  if (chargesHelper && !chargesHelper.textContent) {
-    chargesHelper.textContent = 'Importez vos charges réelles du mois si vous voulez partir du terrain.';
-  }
-  rentabiliteUpdateFuelHelper(config);
-}
+// MOVED -> script-rentabilite.js : rentabiliteToggleMode
 
-function rentabiliteRenderCharges(config) {
-  var host = document.getElementById('rent-autres-charges');
-  if (!host) return;
-  if (!config.autresCharges.length) {
-    host.innerHTML = '<div class="rentabilite-alert-item">Aucune autre charge ajoutée pour le moment.</div>';
-    return;
-  }
-  host.innerHTML = config.autresCharges.map(function(item) {
-    return '<div class="rentabilite-charge-row">'
-      + '<input type="text" data-rent-charge="label" data-charge-id="' + item.id + '" value="' + planningEscapeHtml(item.label || '') + '" placeholder="Libellé de la charge" />'
-      + '<input type="number" data-rent-charge="montant" data-charge-id="' + item.id + '" value="' + (parseFloat(item.montant) || 0) + '" min="0" step="0.01" placeholder="Montant HT" />'
-      + '<button type="button" class="btn-secondary" onclick="supprimerChargeRentabilite(\'' + item.id + '\')">Supprimer</button>'
-      + '</div>';
-  }).join('');
-}
+// MOVED -> script-rentabilite.js : rentabiliteRenderCharges
 
-function rentabiliteFillInputs(config) {
-  var fieldMap = {
-    'rent-mode-calcul': config.modeCalcul,
-    'rent-repartition-charges': config.repartitionCharges,
-    'rent-km-jour': config.kmJour,
-    'rent-prix-km': config.prixKm,
-    'rent-jours-travailles': config.joursTravailles,
-    'rent-conso': config.conso,
-    'rent-prix-carburant': config.prixCarburant,
-    'rent-lld-credit': config.lldCredit,
-    'rent-assurance': config.assurance,
-    'rent-salaire-charge': config.salaireCharge,
-    'rent-taux-tva': config.tva
-  };
-  Object.keys(fieldMap).forEach(function(id) {
-    var input = document.getElementById(id);
-    if (input) {
-      if (id === 'rent-prix-km' || id === 'rent-prix-carburant' || id === 'rent-lld-credit' || id === 'rent-assurance' || id === 'rent-salaire-charge') {
-        input.value = fieldMap[id] ? parseFloat(fieldMap[id]).toFixed(2) : fieldMap[id];
-      } else {
-        input.value = fieldMap[id];
-      }
-      input.setAttribute('data-rent-field', id);
-    }
-  });
-  rentabiliteRenderLivraisonsSelect(config);
-  rentabiliteToggleMode(config);
-  rentabiliteRenderCharges(config);
-}
+// MOVED -> script-rentabilite.js : rentabiliteFillInputs
 
-function rentabiliteReadFromDom(config) {
-  var next = {
-    modeCalcul: document.getElementById('rent-mode-calcul')?.value === 'livraison' ? 'livraison' : 'manuel',
-    livraisonId: document.getElementById('rent-livraison-select')?.value || '',
-    repartitionCharges: document.getElementById('rent-repartition-charges')?.value === 'prorata' ? 'prorata' : 'mensuel',
-    kmJour: parseFloat(document.getElementById('rent-km-jour')?.value) || 0,
-    prixKm: parseFloat(document.getElementById('rent-prix-km')?.value) || 0,
-    joursTravailles: parseFloat(document.getElementById('rent-jours-travailles')?.value) || 0,
-    conso: parseFloat(document.getElementById('rent-conso')?.value) || 0,
-    prixCarburant: parseFloat(document.getElementById('rent-prix-carburant')?.value) || 0,
-    lldCredit: parseFloat(document.getElementById('rent-lld-credit')?.value) || 0,
-    assurance: parseFloat(document.getElementById('rent-assurance')?.value) || 0,
-    salaireCharge: parseFloat(document.getElementById('rent-salaire-charge')?.value) || 0,
-    tva: parseFloat(document.getElementById('rent-taux-tva')?.value) || 0,
-    autresCharges: (config.autresCharges || []).map(function(item) {
-      var labelInput = document.querySelector('[data-rent-charge="label"][data-charge-id="' + item.id + '"]');
-      var montantInput = document.querySelector('[data-rent-charge="montant"][data-charge-id="' + item.id + '"]');
-      return {
-        id: item.id,
-        label: labelInput ? labelInput.value.trim() : (item.label || ''),
-        montant: montantInput ? (parseFloat(montantInput.value) || 0) : (parseFloat(item.montant) || 0)
-      };
-    })
-  };
-  if (next.modeCalcul === 'livraison') {
-    next = rentabiliteApplyLivraisonToConfig(next);
-  }
-  return next;
-}
+// MOVED -> script-rentabilite.js : rentabiliteReadFromDom
 
-function calculerRentabiliteAvancee(config) {
-  var livraison = rentabiliteGetSelectedLivraison(config);
-  var isLivraisonMode = config.modeCalcul === 'livraison';
-  var kmJour = isLivraisonMode ? (parseFloat(livraison?.distance) || 0) : config.kmJour;
-  var joursTravailles = Math.max(0, config.joursTravailles || 0);
-  if (isLivraisonMode && !livraison) joursTravailles = 0;
-  var kmTotal = kmJour * joursTravailles;
-  var caJournalierHT = isLivraisonMode ? (livraison ? getMontantHTLivraison(livraison) : 0) : (kmJour * config.prixKm);
-  var caLivraisonHT = isLivraisonMode ? caJournalierHT : null;
-  var caHT = caJournalierHT * joursTravailles;
-  var prixKm = kmJour > 0 ? (caJournalierHT / kmJour) : 0;
-  var caTTC = caHT * (1 + config.tva / 100);
-  var litresMois = kmTotal * config.conso / 100;
-  var coutCarburant = litresMois * config.prixCarburant;
-  var autresCharges = (config.autresCharges || []).reduce(function(sum, item) { return sum + (parseFloat(item.montant) || 0); }, 0);
-  var chargesFixesMensuelles = config.lldCredit + config.assurance + config.salaireCharge + autresCharges;
-  var prorataBlocked = config.repartitionCharges === 'prorata' && joursTravailles <= 0;
-  var chargesFixes = config.repartitionCharges === 'prorata' && !prorataBlocked
-    ? (chargesFixesMensuelles / 30) * config.joursTravailles
-    : chargesFixesMensuelles;
-  var coutTotal = chargesFixes + coutCarburant;
-  var beneficeNet = caHT - coutTotal;
-  var coutParKm = kmTotal > 0 ? coutTotal / kmTotal : 0;
-  var margeParKm = kmTotal > 0 ? beneficeNet / kmTotal : 0;
-  var revenuJournalier = caJournalierHT;
-  var coutVariableJournalier = (kmJour * config.conso / 100) * config.prixCarburant;
-  var margeJournaliere = revenuJournalier - coutVariableJournalier;
-  var seuilJours = margeJournaliere > 0 ? chargesFixes / margeJournaliere : null;
-  var pointMortCA = seuilJours != null ? seuilJours * revenuJournalier : null;
-  var pristine = config.modeCalcul !== 'livraison'
-    && kmJour <= 0
-    && (config.prixKm || 0) <= 0
-    && joursTravailles <= 0
-    && (config.conso || 0) <= 0
-    && (config.prixCarburant || 0) <= 0;
-  return {
-    modeCalcul: config.modeCalcul,
-    livraison: livraison,
-    caLivraisonHT: caLivraisonHT,
-    kmJour: kmJour,
-    prixKm: prixKm,
-    joursTravailles: joursTravailles,
-    kmTotal: kmTotal,
-    caHT: caHT,
-    caTTC: caTTC,
-    litresMois: litresMois,
-    coutCarburant: coutCarburant,
-    autresCharges: autresCharges,
-    chargesFixesMensuelles: chargesFixesMensuelles,
-    chargesFixes: chargesFixes,
-    coutTotal: coutTotal,
-    beneficeNet: beneficeNet,
-    coutParKm: coutParKm,
-    margeParKm: margeParKm,
-    revenuJournalier: revenuJournalier,
-    coutVariableJournalier: coutVariableJournalier,
-    margeJournaliere: margeJournaliere,
-    seuilJours: seuilJours,
-    pointMortCA: pointMortCA,
-    joursInvalides: joursTravailles <= 0,
-    prorataBlocked: prorataBlocked,
-    lldDoublonDetecte: rentabiliteHasChargeDoublonLLD(config),
-    pristine: pristine
-  };
-}
+// MOVED -> script-rentabilite.js : calculerRentabiliteAvancee
 
-function rentabiliteFormatJours(value) {
-  if (value == null || !isFinite(value)) return 'Non atteignable';
-  return value.toFixed(2).replace('.', ',') + ' j';
-}
+// MOVED -> script-rentabilite.js : rentabiliteFormatJours
 
-function rentabiliteRenderAlerts(results, config) {
-  var host = document.getElementById('rent-alertes');
-  if (!host) return;
-  if (results.pristine) {
-    host.innerHTML = '<div class="rentabilite-alert-item">Renseignez vos hypothèses ou chargez vos données réelles pour lancer l’analyse.</div>';
-    return;
-  }
-  var alerts = [];
-  if (results.joursInvalides) {
-    alerts.push({ type: 'warning', text: results.modeCalcul === 'livraison'
-      ? 'La fréquence mensuelle est à 0 : la livraison sélectionnée a bien un CA HT propre, mais la projection mensuelle reste nulle tant que vous ne saisissez pas au moins 1 occurrence.'
-      : 'Les jours travaillés sont à 0 : renseignez au moins 1 jour pour obtenir une projection mensuelle exploitable.' });
-  }
-  if (results.beneficeNet < 0) {
-    alerts.push({ type: 'danger', text: 'Bénéfice négatif : vos coûts dépassent actuellement votre chiffre d’affaires HT.' });
-  }
-  if (results.seuilJours != null && results.seuilJours > config.joursTravailles) {
-    alerts.push({ type: 'warning', text: 'Seuil de rentabilité supérieur aux jours travaillés : l’activité ne couvre pas encore ses charges fixes sur le mois.' });
-  }
-  if (results.seuilJours == null) {
-    alerts.push({ type: 'danger', text: 'Avec les paramètres actuels, la marge journalière ne permet pas d’atteindre la rentabilité.' });
-  }
-  if (results.prorataBlocked) {
-    alerts.push({ type: 'danger', text: 'Prorata bloqué : veuillez renseigner des jours travaillés avant d’activer la proratisation.' });
-  } else if (config.repartitionCharges === 'prorata') {
-    alerts.push({ type: 'warning', text: 'Charges fixes proratisées : le calcul impute uniquement une quote-part selon les jours travaillés saisis.' });
-  }
-  if (results.lldDoublonDetecte && config.lldCredit > 0) {
-    alerts.push({ type: 'warning', text: 'Possible doublon détecté : une autre charge ressemble à une LLD / leasing / crédit en plus du champ dédié.' });
-  }
-  if (!alerts.length) {
-    alerts.push({ type: 'success', text: 'Structure saine : votre activité couvre ses coûts avec les paramètres actuels.' });
-  }
-  host.innerHTML = alerts.map(function(alert) {
-    return '<div class="rentabilite-alert-item is-' + alert.type + '">' + alert.text + '</div>';
-  }).join('');
-}
+// MOVED -> script-rentabilite.js : rentabiliteRenderAlerts
 
-function rentabiliteRenderResults(results, config) {
-  var setText = function(id, value) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = value;
-  };
-  setText('rent-ca-ht', euros(results.caHT));
-  setText('rent-ca-ttc', euros(results.caTTC));
-  setText('rent-cout-carburant', euros(results.coutCarburant));
-  setText('rent-volume-carburant', results.litresMois.toFixed(1).replace('.', ',') + ' L / mois');
-  setText('rent-charges-fixes', euros(results.chargesFixes));
-  setText('rent-cout-total', euros(results.coutTotal));
-  setText('rent-benefice-net-highlight', results.pristine ? '—' : euros(results.beneficeNet));
-  setText('rent-seuil-jours', rentabiliteFormatJours(results.seuilJours));
-  setText('rent-point-mort-ca', results.pointMortCA != null ? euros(results.pointMortCA) : 'Non atteignable');
-  setText('rent-point-mort-jours', results.seuilJours != null ? rentabiliteFormatJours(results.seuilJours) : 'Non atteignable');
-  setText('rent-cout-km', euros(results.coutParKm) + '/km');
-  setText('rent-marge-km', 'Marge : ' + euros(results.margeParKm) + '/km');
-  setText('rent-revenu-journalier', euros(results.revenuJournalier));
-  setText('rent-cout-variable-journalier', euros(results.coutVariableJournalier));
-  setText('rent-marge-journaliere', euros(results.margeJournaliere));
-  setText('rent-marge-totale', euros(results.beneficeNet));
-  setText('rent-resume-activite', results.modeCalcul === 'livraison'
-    ? (results.livraison
-      ? (getRentabiliteLivraisonLabel(results.livraison) + ' • 1 livraison = ' + euros(results.caLivraisonHT || 0) + ' HT')
-      : 'Aucune livraison sélectionnée')
-    : (Math.round(results.kmTotal) + ' km / mois'));
+// MOVED -> script-rentabilite.js : rentabiliteRenderResults
 
-  var benefitCard = document.getElementById('rent-highlight-benefice');
-  var benefitSummary = document.getElementById('rent-benefice-synthese');
-  if (benefitCard) {
-    benefitCard.classList.remove('is-positive', 'is-negative');
-    benefitCard.classList.add(results.beneficeNet >= 0 ? 'is-positive' : 'is-negative');
-  }
-  if (benefitSummary) {
-    benefitSummary.textContent = results.pristine
-      ? 'Renseignez vos données ou importez vos charges réelles pour lancer une analyse fiable.'
-      : results.beneficeNet >= 0
-      ? 'Votre activité dégage une marge positive avec ces paramètres.'
-      : 'Votre activité est déficitaire avec ces paramètres.';
-  }
+// MOVED -> script-rentabilite.js : rentabiliteSyncFromDom
 
-  var chargesCardSub = document.getElementById('rent-charges-fixes')?.closest('.kpi-card')?.querySelector('.kpi-sub');
-  if (chargesCardSub) {
-    chargesCardSub.textContent = config.repartitionCharges === 'prorata' && !results.prorataBlocked
-      ? 'Charges fixes proratisées'
-      : 'Mensuelles HT';
-  }
-  var joursWarning = document.getElementById('rent-jours-warning');
-  if (joursWarning) {
-    if (results.pristine) {
-      joursWarning.style.display = 'none';
-      joursWarning.textContent = '';
-    } else if (results.joursInvalides) {
-      joursWarning.style.display = '';
-      joursWarning.textContent = results.modeCalcul === 'livraison'
-        ? 'Cette vue projette le résultat mensuel. Passez à au moins 1 occurrence mensuelle pour obtenir un CA projeté.'
-        : 'Veuillez renseigner au moins 1 jour travaillé pour éviter une projection mensuelle vide.';
-    } else {
-      joursWarning.style.display = 'none';
-      joursWarning.textContent = '';
-    }
-  }
-  var lldWarning = document.getElementById('rent-lld-warning');
-  if (lldWarning) {
-    if (results.lldDoublonDetecte && config.lldCredit > 0) {
-      lldWarning.style.display = '';
-      lldWarning.textContent = '⚠️ Possible doublon avec le champ LLD dédié : une autre charge contient LLD / leasing / crédit.';
-    } else {
-      lldWarning.style.display = 'none';
-      lldWarning.textContent = '';
-    }
-  }
-
-  var seuilSummary = document.getElementById('rent-resume-seuil');
-  if (seuilSummary) {
-    seuilSummary.textContent = results.seuilJours != null
-      ? (results.modeCalcul === 'livraison'
-        ? 'Avec ce type de livraison, il faut environ ' + rentabiliteFormatJours(results.seuilJours) + ' pour couvrir les charges fixes'
-        : 'Votre activité devient rentable à partir de ' + rentabiliteFormatJours(results.seuilJours) + ' par mois')
-      : 'Votre activité n’atteint pas le seuil de rentabilité avec ces paramètres';
-  }
-  var summaryCard = document.getElementById('rent-summary-empty');
-  var summaryGrid = document.querySelector('#page-rentabilite .rentabilite-summary-grid');
-  if (summaryCard && summaryGrid) {
-    summaryCard.style.display = (results.pristine || results.joursInvalides) ? '' : 'none';
-    summaryGrid.classList.toggle('is-muted', !!(results.pristine || results.joursInvalides));
-    if (results.pristine) {
-      summaryCard.textContent = 'Renseignez vos hypothèses ou importez vos données réelles pour afficher une synthèse mensuelle cohérente.';
-    } else {
-      summaryCard.textContent = 'Renseignez les jours travaillés pour afficher une synthèse mensuelle cohérente.';
-    }
-  }
-  rentabiliteRenderAlerts(results, config);
-}
-
-function rentabiliteSyncFromDom() {
-  var current = chargerRentabiliteConfig();
-  var previousMode = current.modeCalcul;
-  var next = rentabiliteReadFromDom(current);
-  if (next.modeCalcul === 'livraison') {
-    next = rentabiliteApplyLivraisonToConfig(next);
-  } else if (previousMode === 'livraison' && next.modeCalcul === 'manuel') {
-    next.livraisonId = '';
-    next.kmJour = 0;
-    next.prixKm = 0;
-  }
-  sauvegarderRentabiliteConfig(next);
-  if (next.modeCalcul === 'livraison' || previousMode !== next.modeCalcul) {
-    rentabiliteFillInputs(next);
-  } else {
-    rentabiliteToggleMode(next);
-    rentabiliteUpdateFuelHelper(next);
-  }
-  rentabiliteRenderResults(calculerRentabiliteAvancee(next), next);
-}
-
-function ajouterChargeRentabilite() {
-  var config = chargerRentabiliteConfig();
-  config.autresCharges.push({ id: genId(), label: 'Nouvelle charge', montant: 0 });
-  sauvegarderRentabiliteConfig(config);
-  rentabiliteRenderCharges(config);
-  rentabiliteSyncFromDom();
-}
+// MOVED -> script-rentabilite.js : ajouterChargeRentabilite
 
 supprimerChargeRentabilite = async function(id) {
   var ok = await confirmDialog('Supprimer cette charge ?', { titre: 'Supprimer la charge', icone: '💸', btnLabel: 'Supprimer' });
