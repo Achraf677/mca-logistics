@@ -11948,55 +11948,67 @@ function exporterHeuresPDF() {
 
 /* ===== MODIFIER VÉHICULE ===== */
 async function ouvrirEditVehicule(vehId) {
-  const veh = charger('vehicules').find(v=>v.id===vehId);
-  if (!veh) return;
-  await actualiserVerrousEditionDistance();
-  const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
-  if (!lockResult.ok) {
-    afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
-    return;
+  try {
+    const veh = charger('vehicules').find(v=>v.id===vehId);
+    if (!veh) { afficherToast('⚠️ Véhicule introuvable', 'error'); return; }
+    try { await actualiserVerrousEditionDistance(); } catch (_) {}
+    const lockResult = prendreVerrouEdition('vehicule', vehId, veh.immat || 'Véhicule');
+    if (!lockResult.ok) {
+      afficherToast(`⚠️ Véhicule en cours de modification par ${lockResult.lock.actorLabel || 'un autre admin'}`, 'error');
+      return;
+    }
+    window._editVehId = vehId;
+    const modal = document.getElementById('modal-vehicule');
+    if (!modal) { afficherToast('⚠️ Modal véhicule introuvable', 'error'); return; }
+    if (typeof prefillCarteGriseFormUI === 'function') {
+      try { prefillCarteGriseFormUI(veh); } catch (e) { console.warn('prefillCarteGriseFormUI:', e); }
+    }
+    document.getElementById('veh-immat').value    = veh.immat||'';
+    document.getElementById('veh-modele').value   = veh.modele||'';
+    document.getElementById('veh-km').value       = calculerKilometrageVehiculeActuel(veh)||'';
+    document.getElementById('veh-conso').value    = veh.conso||'';
+    document.getElementById('veh-mode-acquisition').value = veh.modeAcquisition || 'achat';
+    document.getElementById('veh-date-acquisition').value = veh.dateAcquisition || '';
+    document.getElementById('veh-date-ct').value  = veh.dateCT||'';
+    if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = veh.dateCTDernier||'';
+    document.getElementById('veh-entretien-interval-km').value = veh.entretienIntervalKm || '';
+    document.getElementById('veh-entretien-interval-mois').value = veh.entretienIntervalMois || '';
+    hydraterFinanceVehiculeDansForm(veh);
+    var selTvaCarb = document.getElementById('veh-tva-carburant');
+    if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100;
+    const sv = document.getElementById('veh-salarie');
+    if (sv) sv.value = veh.salId||'';
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val != null ? val : ''); };
+    setVal('veh-genre', veh.genre);
+    setVal('veh-carburant', veh.carburant);
+    setVal('veh-ptac', veh.ptac);
+    setVal('veh-ptra', veh.ptra);
+    setVal('veh-essieux', veh.essieux);
+    setVal('veh-critair', veh.critAir);
+    setVal('veh-date-1immat', veh.date1Immat);
+    setVal('veh-vin', veh.vin);
+    setVal('veh-carte-grise', veh.carteGrise);
+    const assu = veh.assurance || {};
+    setVal('veh-assurance-compagnie', assu.compagnie);
+    setVal('veh-assurance-numero', assu.numeroContrat);
+    setVal('veh-assurance-date-exp', assu.dateExpiration);
+    mettreAJourFormulaireVehicule();
+    const titleEl = modal.querySelector('h3');
+    const btnPrimary = modal.querySelector('.modal-footer .btn-primary');
+    if (titleEl) titleEl.textContent = '✏️ Modifier le véhicule';
+    if (btnPrimary) {
+      btnPrimary.textContent = '✅ Enregistrer';
+      btnPrimary.setAttribute('onclick', 'confirmerEditVehicule()');
+    }
+    if (typeof openModal === 'function') openModal('modal-vehicule');
+    else modal.classList.add('open');
+    afficherAlerteVerrouModal('modal-vehicule', '');
+  } catch (err) {
+    console.error('[ouvrirEditVehicule] erreur:', err);
+    afficherToast('⚠️ Impossible d\'ouvrir la modification : ' + (err && err.message ? err.message : 'erreur inattendue'), 'error');
   }
-  window._editVehId = vehId;
-  if (typeof prefillCarteGriseFormUI === 'function') prefillCarteGriseFormUI(veh);
-  document.getElementById('veh-immat').value    = veh.immat||'';
-  document.getElementById('veh-modele').value   = veh.modele||'';
-  document.getElementById('veh-km').value       = calculerKilometrageVehiculeActuel(veh)||'';
-  document.getElementById('veh-conso').value    = veh.conso||'';
-  document.getElementById('veh-mode-acquisition').value = veh.modeAcquisition || 'achat';
-  document.getElementById('veh-date-acquisition').value = veh.dateAcquisition || '';
-  document.getElementById('veh-date-ct').value  = veh.dateCT||'';
-  if (document.getElementById('veh-date-ct-dernier')) document.getElementById('veh-date-ct-dernier').value = veh.dateCTDernier||'';
-  document.getElementById('veh-entretien-interval-km').value = veh.entretienIntervalKm || '';
-  document.getElementById('veh-entretien-interval-mois').value = veh.entretienIntervalMois || '';
-  hydraterFinanceVehiculeDansForm(veh);
-  var selTvaCarb = document.getElementById('veh-tva-carburant');
-  if (selTvaCarb) selTvaCarb.value = veh.tvaCarbDeductible !== undefined ? veh.tvaCarbDeductible : 100;
-  const sv = document.getElementById('veh-salarie');
-  if (sv) sv.value = veh.salId||'';
-  // Flotte étendue (genre, PTAC, Crit'Air, VIN, carte grise...)
-  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = (val != null ? val : ''); };
-  setVal('veh-genre', veh.genre);
-  setVal('veh-carburant', veh.carburant);
-  setVal('veh-ptac', veh.ptac);
-  setVal('veh-ptra', veh.ptra);
-  setVal('veh-essieux', veh.essieux);
-  setVal('veh-critair', veh.critAir);
-  setVal('veh-date-1immat', veh.date1Immat);
-  setVal('veh-vin', veh.vin);
-  setVal('veh-carte-grise', veh.carteGrise);
-  // Assurance / carte verte
-  const assu = veh.assurance || {};
-  setVal('veh-assurance-compagnie', assu.compagnie);
-  setVal('veh-assurance-numero', assu.numeroContrat);
-  setVal('veh-assurance-date-exp', assu.dateExpiration);
-  mettreAJourFormulaireVehicule();
-  const modal = document.getElementById('modal-vehicule');
-  modal.querySelector('h3').textContent = '✏️ Modifier le véhicule';
-  modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
-  modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'confirmerEditVehicule()');
-  modal.classList.add('open');
-  afficherAlerteVerrouModal('modal-vehicule', '');
 }
+window.ouvrirEditVehicule = ouvrirEditVehicule;
 
 function confirmerEditVehicule() {
   surveillerConflitsEditionActifs();
