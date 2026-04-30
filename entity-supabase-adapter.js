@@ -116,6 +116,7 @@
     var realtimeChannel = null;
     var suppressLocalSync = false;
     var bootstrapPromise = null;
+    var lastPullAt = 0;
 
     // IMPORTANT : on capture originalSetItem au moment de hookSetItem (pas a l'init du adapter),
     // pour que chaque adapter s'enchaine proprement avec le hook precedent au lieu de le court-circuiter.
@@ -180,6 +181,7 @@
     async function pullAll() {
       var client = getSupabaseClient();
       if (!client) return null;
+      lastPullAt = Date.now();
       var query = client.from(table).select('*');
       if (orderBy) query = query.order(orderBy, { ascending: true });
       // Filtre optionnel cote DB (pour pagination temporelle, etc.)
@@ -395,9 +397,14 @@
           initialized = true;
           subscribeRealtime();
           window.addEventListener('visibilitychange', function () {
-            if (document.visibilityState === 'visible' && initialized) {
-              pullAll().catch(function () {});
-            }
+            if (document.visibilityState !== 'visible' || !initialized) return;
+            // Throttle : max 1 pull toutes les 2 min par adapter, pour eviter
+            // de recharger les memes donnees si l'user switche de tab souvent.
+            // Le realtime garantit deja la sync en quasi temps reel.
+            var now = Date.now();
+            if (lastPullAt && (now - lastPullAt) < 120000) return;
+            lastPullAt = now;
+            pullAll().catch(function () {});
           });
           console.info('[' + table + '-adapter] initialise (table public.' + table + ' native, realtime ON)');
         } catch (e) {
