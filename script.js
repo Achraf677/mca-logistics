@@ -13179,7 +13179,6 @@ genererRentabilitePDF = function() {
           </div>
         </div>
         <div class="s29-conf-actions">
-          <button class="btn btn-primary" onclick="window.ouvrirPackFiscal && window.ouvrirPackFiscal()">📦 Générer le pack fiscal (ZIP)</button>
           <button class="btn btn-ghost" onclick="window.ouvrirTimelineGlobale && window.ouvrirTimelineGlobale()">📊 Ouvrir la timeline d'audit</button>
         </div>
       </div>

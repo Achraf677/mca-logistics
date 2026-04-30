@@ -256,7 +256,7 @@ function ajouterInspectionAdmin() {
   closeModal('modal-inspection-admin');
   ajouterEntreeAudit('Création inspection', (salarie ? getSalarieNomComplet(salarie) : 'Salarié') + ' · ' + date + (vehicule ? ' · ' + vehicule.immat : ''));
   afficherInspections();
-  rafraichirDonnees();
+  if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
   afficherToast('✅ Inspection ajoutée');
 }
 
