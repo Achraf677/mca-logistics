@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260430-15">
-  <link rel="preload" as="script" href="script.js?v=20260430-15">
+  <link rel="preload" as="style" href="style.css?v=20260430-16">
+  <link rel="preload" as="script" href="script.js?v=20260430-16">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -42,7 +42,7 @@
     .nav-item[data-page="rentabilite"],
     .nav-item[data-page="statistiques"] { display: none; }
   </style>
-  <link rel="stylesheet" href="style.css?v=20260430-15" />
+  <link rel="stylesheet" href="style.css?v=20260430-16" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
@@ -515,11 +515,61 @@
 
     <!-- RENTABILITÉ -->
     <section class="page" id="page-rentabilite">
-      <div class="page-actions"><h2>💰 Calculateur de Rentabilité</h2>
+      <div class="page-actions"><h2>💰 Rentabilité</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">⚙️ Config</button>
           <button class="btn-rapport" onclick="genererRentabilitePDF()">📄 Rapport</button>
         </div>
       </div>
+      <!-- Sous-onglets -->
+      <div class="card" style="margin-bottom:14px;padding:8px 12px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button id="rent-tab-btn-vehicule"  class="btn-secondary active" onclick="changerSousOngletRentabilite('vehicule')">🚐 Par véhicule</button>
+          <button id="rent-tab-btn-client"    class="btn-secondary"        onclick="changerSousOngletRentabilite('client')">👤 Par client <span style="opacity:.5;font-size:.75rem">(PR2)</span></button>
+          <button id="rent-tab-btn-chauffeur" class="btn-secondary"        onclick="changerSousOngletRentabilite('chauffeur')">🧑‍✈️ Par chauffeur <span style="opacity:.5;font-size:.75rem">(PR2)</span></button>
+          <button id="rent-tab-btn-tournee"   class="btn-secondary"        onclick="changerSousOngletRentabilite('tournee')">🛣️ Par tournée <span style="opacity:.5;font-size:.75rem">(PR3)</span></button>
+          <button id="rent-tab-btn-simulateur"class="btn-secondary"        onclick="changerSousOngletRentabilite('simulateur')">🧮 Simulateur</button>
+        </div>
+      </div>
+
+      <!-- Sous-onglet : Par vehicule -->
+      <div id="rent-tab-vehicule">
+        <div class="card" style="margin-bottom:12px;padding:10px 16px">
+          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.88rem">
+            <div>CA : <strong id="rent-veh-total-ca">0 €</strong></div>
+            <div>Marge : <strong id="rent-veh-total-marge">0 €</strong></div>
+            <div>Livraisons : <strong id="rent-veh-total-livs">0</strong></div>
+            <div style="color:var(--text-muted);font-size:.78rem">Période : reprend celle du simulateur</div>
+          </div>
+        </div>
+        <div class="card table-card">
+          <div class="table-wrapper">
+            <table class="data-table">
+              <thead><tr>
+                <th>Véhicule</th><th>Livraisons</th><th>Km</th><th>CA HT</th>
+                <th>Carburant</th><th>Charges + entretien</th><th>Amortissement</th><th>Marge</th>
+              </tr></thead>
+              <tbody id="tb-rent-vehicule"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sous-onglet : Par client (PR2) -->
+      <div id="rent-tab-client" style="display:none">
+        <div class="card" style="padding:32px;text-align:center;color:var(--text-muted)">⏳ Disponible en PR2</div>
+      </div>
+      <!-- Sous-onglet : Par chauffeur (PR2) -->
+      <div id="rent-tab-chauffeur" style="display:none">
+        <div class="card" style="padding:32px;text-align:center;color:var(--text-muted)">⏳ Disponible en PR2</div>
+      </div>
+      <!-- Sous-onglet : Par tournee (PR3) -->
+      <div id="rent-tab-tournee" style="display:none">
+        <div class="card" style="padding:32px;text-align:center;color:var(--text-muted)">⏳ Disponible en PR3</div>
+      </div>
+
+      <!-- Sous-onglet : Simulateur (existant) -->
+      <div id="rent-tab-simulateur" style="display:none">
       <div class="rentabilite-shell">
         <div class="card rentabilite-form-card">
           <div class="card-header"><h2>Paramètres d'activité</h2></div>
@@ -686,6 +736,7 @@
 
           <div id="rent-alertes" class="rentabilite-alerts"></div>
         </div>
+      </div>
       </div>
     </section>
 
@@ -2314,6 +2365,33 @@
     </div>
   </div>
 
+  <!-- Modal : Configuration rentabilité -->
+  <div class="modal-overlay" id="modal-config-rentabilite">
+    <div class="modal">
+      <div class="modal-header"><h3>⚙️ Paramètres rentabilité</h3><button class="modal-close" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
+      <div class="modal-body">
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
+        <div class="form-grid">
+          <div class="form-group"><label>Tarif horaire chauffeur par défaut (€/h, brut chargé)</label><input type="number" id="cfg-rent-tarif-horaire" min="0" step="0.5" placeholder="12" /></div>
+          <div class="form-group"><label>Coût km véhicule (€/km, amortissement + entretien)</label><input type="number" id="cfg-rent-cout-km" min="0" step="0.01" placeholder="0.15" /></div>
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Méthode de répartition des coûts indirects</label>
+            <select id="cfg-rent-methode">
+              <option value="livraisons">Au prorata du nombre de livraisons</option>
+              <option value="ca">Au prorata du CA</option>
+              <option value="km">Au prorata des km parcourus</option>
+            </select>
+            <div style="font-size:.78rem;color:var(--text-muted);margin-top:4px">Utilisé en PR2 pour répartir les coûts non rattachables à un véhicule.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-config-rentabilite')">Annuler</button>
+        <button class="btn-primary" onclick="enregistrerConfigRentabilite()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal : Configuration anomalies carburant -->
   <div class="modal-overlay" id="modal-config-carburant-anomalies">
     <div class="modal">
@@ -2982,54 +3060,55 @@
 
   <div id="panneau-agent-overlay" onclick="togglePanneauAgent()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;backdrop-filter:blur(2px)"></div>
 
-  <script defer src="monitoring.js?v=20260430-15"></script>
+  <script defer src="monitoring.js?v=20260430-16"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="supabase-client.js"></script>
   <script defer src="supabase-auth.js"></script>
-  <script defer src="security-utils.js?v=20260430-15"></script>
+  <script defer src="security-utils.js?v=20260430-16"></script>
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
-  <script defer src="script-core-utils.js?v=20260430-15"></script>
-  <script defer src="script-core-storage.js?v=20260430-15"></script>
-  <script defer src="script-core-ui.js?v=20260430-15"></script>
-  <script defer src="script-core-auth.js?v=20260430-15"></script>
-  <script defer src="script-core-periodes.js?v=20260430-15"></script>
-  <script defer src="script-core-navigation.js?v=20260430-15"></script>
-  <script defer src="script-core-edit-locks.js?v=20260430-15"></script>
-  <script defer src="script-core-branding.js?v=20260430-15"></script>
-  <script defer src="script-core-audit.js?v=20260430-15"></script>
-  <script defer src="script-core-recherche.js?v=20260430-15"></script>
-  <script defer src="storage-uploader.js?v=20260430-15"></script>
-  <script defer src="entity-supabase-adapter.js?v=20260430-15"></script>
-  <script defer src="clients-supabase-adapter.js?v=20260430-15"></script>
-  <script defer src="vehicules-supabase-adapter.js?v=20260430-15"></script>
-  <script defer src="salaries-supabase-adapter.js?v=20260430-15"></script>
-  <script defer src="all-entity-adapters.js?v=20260430-15"></script>
-  <script defer src="repo.js?v=20260430-15"></script>
-  <script defer src="lazy-loader.js?v=20260430-15"></script>
-  <script defer src="lazy-stubs.js?v=20260430-15"></script>
-  <script defer src="script-inspections.js?v=20260430-15"></script>
-  <script defer src="script-incidents.js?v=20260430-15"></script>
-  <script defer src="script-rentabilite.js?v=20260430-15"></script>
-  <script defer src="script-carburant.js?v=20260430-15"></script>
-  <script defer src="script-carburant-anomalies.js?v=20260430-15"></script>
-  <script defer src="script-entretiens.js?v=20260430-15"></script>
-  <script defer src="script-alertes.js?v=20260430-15"></script>
-  <script defer src="script-stats.js?v=20260430-15"></script>
-  <script defer src="script-tva.js?v=20260430-15"></script>
-  <script defer src="script-paiements.js?v=20260430-15"></script>
-  <script defer src="script-heures.js?v=20260430-15"></script>
-  <script defer src="script-planning.js?v=20260430-15"></script>
-  <script defer src="script-fournisseurs.js?v=20260430-15"></script>
-  <script defer src="script-clients.js?v=20260430-15"></script>
-  <script defer src="script-charges.js?v=20260430-15"></script>
-  <script defer src="script-salaries.js?v=20260430-15"></script>
-  <script defer src="script-vehicules.js?v=20260430-15"></script>
-  <script defer src="script-livraisons.js?v=20260430-15"></script>
-  <script defer src="script.js?v=20260430-15"></script>
-  <script defer src="health-check.js?v=20260430-15"></script>
-  <script defer src="watchdog.js?v=20260430-15"></script>
+  <script defer src="script-core-utils.js?v=20260430-16"></script>
+  <script defer src="script-core-storage.js?v=20260430-16"></script>
+  <script defer src="script-core-ui.js?v=20260430-16"></script>
+  <script defer src="script-core-auth.js?v=20260430-16"></script>
+  <script defer src="script-core-periodes.js?v=20260430-16"></script>
+  <script defer src="script-core-navigation.js?v=20260430-16"></script>
+  <script defer src="script-core-edit-locks.js?v=20260430-16"></script>
+  <script defer src="script-core-branding.js?v=20260430-16"></script>
+  <script defer src="script-core-audit.js?v=20260430-16"></script>
+  <script defer src="script-core-recherche.js?v=20260430-16"></script>
+  <script defer src="storage-uploader.js?v=20260430-16"></script>
+  <script defer src="entity-supabase-adapter.js?v=20260430-16"></script>
+  <script defer src="clients-supabase-adapter.js?v=20260430-16"></script>
+  <script defer src="vehicules-supabase-adapter.js?v=20260430-16"></script>
+  <script defer src="salaries-supabase-adapter.js?v=20260430-16"></script>
+  <script defer src="all-entity-adapters.js?v=20260430-16"></script>
+  <script defer src="repo.js?v=20260430-16"></script>
+  <script defer src="lazy-loader.js?v=20260430-16"></script>
+  <script defer src="lazy-stubs.js?v=20260430-16"></script>
+  <script defer src="script-inspections.js?v=20260430-16"></script>
+  <script defer src="script-incidents.js?v=20260430-16"></script>
+  <script defer src="script-rentabilite.js?v=20260430-16"></script>
+  <script defer src="script-rentabilite-multi.js?v=20260430-16"></script>
+  <script defer src="script-carburant.js?v=20260430-16"></script>
+  <script defer src="script-carburant-anomalies.js?v=20260430-16"></script>
+  <script defer src="script-entretiens.js?v=20260430-16"></script>
+  <script defer src="script-alertes.js?v=20260430-16"></script>
+  <script defer src="script-stats.js?v=20260430-16"></script>
+  <script defer src="script-tva.js?v=20260430-16"></script>
+  <script defer src="script-paiements.js?v=20260430-16"></script>
+  <script defer src="script-heures.js?v=20260430-16"></script>
+  <script defer src="script-planning.js?v=20260430-16"></script>
+  <script defer src="script-fournisseurs.js?v=20260430-16"></script>
+  <script defer src="script-clients.js?v=20260430-16"></script>
+  <script defer src="script-charges.js?v=20260430-16"></script>
+  <script defer src="script-salaries.js?v=20260430-16"></script>
+  <script defer src="script-vehicules.js?v=20260430-16"></script>
+  <script defer src="script-livraisons.js?v=20260430-16"></script>
+  <script defer src="script.js?v=20260430-16"></script>
+  <script defer src="health-check.js?v=20260430-16"></script>
+  <script defer src="watchdog.js?v=20260430-16"></script>
   <script>
     // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
     // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).

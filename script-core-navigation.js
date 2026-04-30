@@ -44,7 +44,10 @@ function naviguerVers(page) {
         case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
         case 'vehicules':    afficherVehicules(); break;
         case 'carburant':    navCarbMois(0); break;
-        case 'rentabilite':  afficherRentabilite(); break;
+        case 'rentabilite':
+          afficherRentabilite();
+          if (typeof afficherRentabiliteParVehicule === 'function') afficherRentabiliteParVehicule();
+          break;
         case 'statistiques': afficherStatistiques(); break;
         case 'salaries':
           afficherSalaries();
