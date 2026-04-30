@@ -1641,10 +1641,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSwipeSidebar();
   initPullToRefresh();
   initDensiteTableau();
-  verifierMessagesAutomatiques();
   verifierNotificationsAutomatiquesMois2();
-  if (window.__delivproMessagesInterval) clearInterval(window.__delivproMessagesInterval);
-  window.__delivproMessagesInterval = setInterval(verifierMessagesAutomatiques, 5 * 60 * 1000);
   mettreAJourBadgesNav();
   verifierTriggersPlanningAuto(); // Vérifier au démarrage
   naviguerVers('dashboard');
@@ -2158,13 +2155,6 @@ function gererChangementStorageAdmin(key) {
     return;
   }
 
-  if (key && (key.indexOf('messages_') === 0 || key === 'messages_admin')) {
-    planifierRafraichissementStorage('badge-messages', mettreAJourBadgeMsgAdmin);
-    planifierRafraichissementSiPageActive('page-messagerie', 'page-messagerie', afficherMessagerie);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-messages', rafraichirDashboard);
-    return;
-  }
-
   if (key && (key.indexOf('km_sal_') === 0 || key.indexOf('km_report_') === 0)) {
     planifierRafraichissementSiPageActive('page-salaries', 'page-salaries-km', afficherSalaries);
     planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-km', afficherVehicules);
@@ -2604,14 +2594,6 @@ function rafraichirDashboard() {
   setText('kpi-chauffeurs', chauffeurs.filter(c=>c.statut!=='inactif').length);
   setText('kpi-vehicules', vehicules.length);
   setText('kpi-alertes', alertes);
-
-  // KPI nouveaux messages
-  let totalMsgsNonLus = 0;
-  salaries.forEach(s => {
-    const msgs = loadSafe('messages_' + s.id, []);
-    totalMsgsNonLus += msgs.filter(m => m.auteur === 'salarie' && !m.lu).length;
-  });
-  setText('kpi-messages', totalMsgsNonLus);
 
   // Objectif CA mensuel
   const objectif = parseFloat(localStorage.getItem('objectif_ca_mensuel') || '0');
@@ -12332,7 +12314,6 @@ genererRentabilitePDF = function() {
 
       <div class="s20-fiche-actions">
         <button class="btn-secondary" onclick="window.s20GoToHeures('${esc(sal.nom)}')">⏱️ Heures</button>
-        <button class="btn-secondary" onclick="window.s20GoToMessagerie('${sal.id}')">💬 Conversation</button>
         <button class="btn-primary" onclick="window.s20GoToEdit('${sal.id}')">✏️ Modifier</button>
       </div>`;
   }
@@ -12451,14 +12432,6 @@ genererRentabilitePDF = function() {
         i.value = nom;
         if (typeof window.afficherCompteurHeures === 'function') window.afficherCompteurHeures();
       }
-    }, 200);
-  };
-
-  window.s20GoToMessagerie = function(salId) {
-    window.fermerFiche360();
-    if (typeof window.naviguerVers === 'function') window.naviguerVers('messagerie');
-    setTimeout(() => {
-      if (typeof window.ouvrirConversation === 'function') window.ouvrirConversation(salId);
     }, 200);
   };
 

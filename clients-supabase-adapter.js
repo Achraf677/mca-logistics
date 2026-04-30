@@ -312,7 +312,16 @@
   // ============================================================
   function subscribeRealtime() {
     var client = getClient();
-    if (!client || realtimeChannel) return;
+    if (!client) return;
+    // Mutualise sur le channel partage cree par entity-supabase-adapter.js
+    if (window.__mcaSharedRealtimeChannel && !window.__mcaSharedRealtimeSubscribed) {
+      window.__mcaSharedRealtimeChannel.on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, function () {
+        pullAll().catch(function (e) { console.warn('[clients-adapter] realtime pull failed:', e); });
+      });
+      return;
+    }
+    // Fallback : channel dedie si shared deja subscribed ou pas dispo
+    if (realtimeChannel) return;
     realtimeChannel = client
       .channel(REALTIME_CHANNEL)
       .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, function () {

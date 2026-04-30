@@ -471,7 +471,6 @@ function verifierTriggersPlanningAuto() {
         lu:false, auto:true, creeLe:new Date().toISOString() });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       localStorage.setItem(cleDep, '1');
-      mettreAJourBadgeMsgAdmin();
     }
 
     // H+30min après fin → rappel km retour
@@ -483,7 +482,6 @@ function verifierTriggersPlanningAuto() {
         lu:false, auto:true, creeLe:new Date().toISOString() });
       localStorage.setItem('messages_'+s.id, JSON.stringify(msgs));
       localStorage.setItem(cleFin, '1');
-      mettreAJourBadgeMsgAdmin();
     }
   });
 }

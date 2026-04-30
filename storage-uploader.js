@@ -95,7 +95,7 @@
       return { ok: true, signedUrl: cached.url, cached: true };
     }
 
-    var ttl = (typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : 600; // 10 min
+    var ttl = (typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : 3600; // 1h par defaut
     var res = await client.storage.from(bucket).createSignedUrl(path, ttl);
     if (res.error) return { ok: false, error: res.error };
     var url = res.data && res.data.signedUrl;

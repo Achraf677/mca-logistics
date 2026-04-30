@@ -32,6 +32,38 @@
   var FLUSH_DELAY_MS = 400;
   var BOOTSTRAP_RETRY_MS = 1500;
 
+  // ============================================================
+  // CHANNEL REALTIME PARTAGE
+  // ============================================================
+  // Au lieu d'un channel par adapter (couteux en WebSocket), on mutualise
+  // tous les listeners postgres_changes dans un seul channel global.
+  // Reduit drastiquement le nombre de connexions WebSocket Supabase.
+  var SHARED_CHANNEL_NAME = 'mca-shared-realtime';
+  var sharedSubscribeTimer = null;
+
+  function getSharedRealtimeChannel(client) {
+    if (!client) return null;
+    if (!window.__mcaSharedRealtimeChannel) {
+      window.__mcaSharedRealtimeChannel = client.channel(SHARED_CHANNEL_NAME);
+      window.__mcaSharedRealtimeSubscribed = false;
+    }
+    return window.__mcaSharedRealtimeChannel;
+  }
+
+  function scheduleSharedSubscribe() {
+    if (window.__mcaSharedRealtimeSubscribed) return;
+    if (sharedSubscribeTimer) clearTimeout(sharedSubscribeTimer);
+    sharedSubscribeTimer = setTimeout(function () {
+      if (window.__mcaSharedRealtimeSubscribed || !window.__mcaSharedRealtimeChannel) return;
+      window.__mcaSharedRealtimeSubscribed = true;
+      window.__mcaSharedRealtimeChannel.subscribe(function (status) {
+        if (window.MCA && window.MCA.log) {
+          window.MCA.log('sync', 'shared-realtime status:', status);
+        }
+      });
+    }, 1500);
+  }
+
   function getSupabaseClient() {
     return window.DelivProSupabase && window.DelivProSupabase.getClient
       ? window.DelivProSupabase.getClient()
@@ -150,6 +182,15 @@
       if (!client) return null;
       var query = client.from(table).select('*');
       if (orderBy) query = query.order(orderBy, { ascending: true });
+      // Filtre optionnel cote DB (pour pagination temporelle, etc.)
+      // Exemple : config.pullFilter = { column: 'date_livraison', operator: 'gte', value: '2025-01-01' }
+      if (config.pullFilter && config.pullFilter.column && config.pullFilter.operator) {
+        query = query.filter(config.pullFilter.column, config.pullFilter.operator, config.pullFilter.value);
+      }
+      // Limite optionnelle (default Supabase = 1000)
+      if (typeof config.pullLimit === 'number' && config.pullLimit > 0) {
+        query = query.limit(config.pullLimit);
+      }
       var res = await query;
       if (res.error) {
         console.warn('[' + table + '-adapter] pull error:', res.error.message);
@@ -300,13 +341,25 @@
 
     function subscribeRealtime() {
       var client = getSupabaseClient();
-      if (!client || realtimeChannel) return;
-      realtimeChannel = client
-        .channel(channelName)
-        .on('postgres_changes', { event: '*', schema: 'public', table: table }, function (payload) {
-          applyRealtimeEvent(payload);
-        })
-        .subscribe();
+      if (!client) return;
+      // Mutualise sur le channel partage : un seul WebSocket pour toutes les tables
+      var shared = getSharedRealtimeChannel(client);
+      if (!shared) return;
+      // Si deja subscribed, on ne peut plus ajouter de listener au meme channel.
+      // Dans ce cas (rare : adapter init >1.5s apres le boot), on cree un channel dedie.
+      if (window.__mcaSharedRealtimeSubscribed) {
+        if (realtimeChannel) return;
+        realtimeChannel = client.channel(channelName)
+          .on('postgres_changes', { event: '*', schema: 'public', table: table }, function (payload) {
+            applyRealtimeEvent(payload);
+          })
+          .subscribe();
+        return;
+      }
+      shared.on('postgres_changes', { event: '*', schema: 'public', table: table }, function (payload) {
+        applyRealtimeEvent(payload);
+      });
+      scheduleSharedSubscribe();
     }
 
     function hookSetItem() {

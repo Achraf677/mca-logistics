@@ -44,6 +44,19 @@
     if (key === 's29_section_active') return false;
     if (key === 'audit_log') return false;
     if (key === 'agent_decisions') return false;
+    // Cles UI locales : preferences d'affichage propres a chaque device,
+    // ne doivent PAS etre synchronisees entre admins (evite que les onglets
+    // se replient chez Mohammed quand Achraf navigue, etc.)
+    if (key === 'nav_sections_collapsed') return false;
+    if (key === 'pagination_state') return false;
+    if (key === 'sort_state') return false;
+    if (key === 'cloture_auto_check_2026') return false;
+    // Toasts vus : flag local (ne doit pas faire reapparaitre un toast deja vu sur autre device)
+    if (key.indexOf('sprint') === 0 && key.indexOf('_toast_vu') > 0) return false;
+    // Logs locaux d'historique de modifications : volumineux et inutile multi-device
+    if (key.indexOf('modifs_liv_') === 0) return false;
+    // Cache messages auto par date : reconstruit au boot
+    if (key.indexOf('msg_auto_') === 0) return false;
     // Phase 2.1 : clients sync via clients-supabase-adapter.js (table native public.clients)
     if (key === 'clients') return false;
     // Phase 2.2 : vehicules sync via vehicules-supabase-adapter.js (table native public.vehicules)
@@ -58,7 +71,6 @@
     if (key === 'paiements') return false;
     if (key === 'incidents') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
-    if (key.indexOf('msg_auto_') === 0) return false;
     return true;
   }
 

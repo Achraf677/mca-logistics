@@ -83,7 +83,6 @@ function rafraichirDependancesSalaries() {
   if (typeof afficherCompteurHeures === 'function') afficherCompteurHeures();
   if (typeof afficherChauffeurs === 'function') afficherChauffeurs();
   if (typeof afficherVehicules === 'function') afficherVehicules();
-  if (typeof afficherMessagerie === 'function') afficherMessagerie();
   if (typeof afficherAlertes === 'function') afficherAlertes();
   if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
 }

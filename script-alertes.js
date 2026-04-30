@@ -47,7 +47,6 @@ function afficherBadgeAlertes() {
   if (!el) return;
   el.textContent = n > 0 ? n : '';
   el.style.display = n > 0 ? 'inline-flex' : 'none';
-  mettreAJourBadgeMsgAdmin();
 }
 
 // L3763 (script.js d'origine)
