@@ -173,12 +173,77 @@ function ouvrirEditCharge(id) {
 
 // L7065 (script.js d'origine)
 function resetFiltresCharges() {
-  ['filtre-charge-cat', 'filtre-charge-vehicule', 'filtre-charge-search'].forEach(function(id) {
+  ['filtre-charge-cat', 'filtre-charge-vehicule', 'filtre-charge-search', 'filtre-charge-statut'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
   afficherCharges();
 }
+
+// PGI : statut paiement effectif (calcule "en_retard" si la charge est encore
+// "a_payer" et que la date d'echeance est depassee). Echeance = date charge +
+// delai_paiement_jours du fournisseur (defaut 30j si fournisseur sans delai).
+function getChargeStatutEffectif(charge) {
+  var statut = charge.statutPaiement || 'a_payer';
+  if (statut === 'paye' || statut === 'partiel') return statut;
+  var dateLimite = getChargeDateEcheance(charge);
+  if (!dateLimite) return statut;
+  var auj = new Date();
+  auj.setHours(0, 0, 0, 0);
+  return dateLimite < auj ? 'en_retard' : 'a_payer';
+}
+window.getChargeStatutEffectif = getChargeStatutEffectif;
+
+function getChargeDateEcheance(charge) {
+  if (!charge || !charge.date) return null;
+  var dateBase = new Date(charge.date);
+  if (isNaN(dateBase)) return null;
+  var delai = 30; // defaut PGI
+  if (charge.fournisseurId) {
+    var f = charger('fournisseurs').find(function(x) { return x.id === charge.fournisseurId; });
+    if (f && f.delaiPaiementJours != null && f.delaiPaiementJours !== '') {
+      delai = parseInt(f.delaiPaiementJours, 10) || 30;
+    }
+  }
+  var ech = new Date(dateBase);
+  ech.setDate(ech.getDate() + delai);
+  ech.setHours(0, 0, 0, 0);
+  return ech;
+}
+window.getChargeDateEcheance = getChargeDateEcheance;
+
+// Bascule rapide a_payer <-> paye depuis le tableau
+async function basculerStatutCharge(id) {
+  var charges = charger('charges');
+  var idx = charges.findIndex(function(c) { return c.id === id; });
+  if (idx === -1) return;
+  var c = charges[idx];
+  var actuel = c.statutPaiement || 'a_payer';
+  if (actuel === 'paye') {
+    c.statutPaiement = 'a_payer';
+    c.datePaiement = null;
+    c.modePaiement = null;
+  } else {
+    c.statutPaiement = 'paye';
+    c.datePaiement = aujourdhui();
+    // PGI : pre-remplit le mode avec celui du fournisseur si dispo
+    if (!c.modePaiement && c.fournisseurId) {
+      var f = charger('fournisseurs').find(function(x) { return x.id === c.fournisseurId; });
+      if (f && f.modePaiement) c.modePaiement = f.modePaiement;
+      else c.modePaiement = 'virement';
+    } else if (!c.modePaiement) {
+      c.modePaiement = 'virement';
+    }
+  }
+  c.modifieLe = new Date().toISOString();
+  charges[idx] = c;
+  sauvegarder('charges', charges);
+  ajouterEntreeAudit('Statut paiement charge', (c.description || c.categorie || '') + ' -> ' + c.statutPaiement);
+  afficherCharges();
+  if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
+  afficherToast(c.statutPaiement === 'paye' ? '✅ Charge marquée payée' : '⏳ Charge à payer');
+}
+window.basculerStatutCharge = basculerStatutCharge;
 
 // L7072 (script.js d'origine)
 function afficherCharges() {
@@ -192,6 +257,7 @@ function afficherCharges() {
   const vehicules = charger('vehicules');
   const filtreCat = document.getElementById('filtre-charge-cat')?.value || '';
   const filtreVeh = document.getElementById('filtre-charge-vehicule')?.value || '';
+  const filtreStatut = document.getElementById('filtre-charge-statut')?.value || '';
   const filtreSearch = (document.getElementById('filtre-charge-search')?.value || '').trim().toLowerCase();
   const selVeh = document.getElementById('filtre-charge-vehicule');
   if (selVeh) {
@@ -202,6 +268,7 @@ function afficherCharges() {
   }
   if (filtreCat) charges = charges.filter(function(c){ return (c.categorie || 'autre') === filtreCat; });
   if (filtreVeh) charges = charges.filter(function(c){ return (c.vehId || '') === filtreVeh; });
+  if (filtreStatut) charges = charges.filter(function(c){ return getChargeStatutEffectif(c) === filtreStatut; });
   if (filtreSearch) {
     charges = charges.filter(function(c) {
       var vehicule = c.vehId ? getVehiculeById(c.vehId) : null;
@@ -221,6 +288,23 @@ function afficherCharges() {
   const total = charges.reduce((s,c)=>s+(c.montant||0),0);
   const totalEl = document.getElementById('charges-total-mois');
   if (totalEl) totalEl.textContent = euros(total);
+
+  // KPI statut paiement (sur les charges filtrees)
+  var kpiImpaye = 0, kpiPaye = 0, kpiRetard = 0;
+  charges.forEach(function(c) {
+    var st = getChargeStatutEffectif(c);
+    var m = c.montant || 0;
+    if (st === 'paye') kpiPaye += m;
+    else if (st === 'partiel') { kpiPaye += m / 2; kpiImpaye += m / 2; }
+    else kpiImpaye += m;
+    if (st === 'en_retard') kpiRetard++;
+  });
+  var elI = document.getElementById('charges-kpi-impaye');
+  var elP = document.getElementById('charges-kpi-paye');
+  var elR = document.getElementById('charges-kpi-retard');
+  if (elI) elI.textContent = euros(kpiImpaye);
+  if (elP) elP.textContent = euros(kpiPaye);
+  if (elR) elR.textContent = String(kpiRetard);
 
   paginer.__reload_tb_charges = afficherCharges;
   if (!charges.length) {
@@ -248,6 +332,18 @@ function afficherCharges() {
         descAffichee += '<div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">🏭 ' + planningEscapeHtml(fNom) + '</div>';
       }
     }
+    var statutEff = getChargeStatutEffectif(c);
+    var statutLabels = {
+      a_payer:  { txt: '⏳ À payer',   bg: '#fff3cd', col: '#856404' },
+      paye:     { txt: '✅ Payé',      bg: '#d4edda', col: '#155724' },
+      partiel:  { txt: '🟡 Partiel',   bg: '#fff3cd', col: '#856404' },
+      en_retard:{ txt: '🔴 En retard', bg: '#f8d7da', col: '#721c24' }
+    };
+    var st = statutLabels[statutEff] || statutLabels.a_payer;
+    var btnToggleTitre = (statutEff === 'paye') ? 'Marquer à payer' : 'Marquer payée';
+    var btnToggleIcone = (statutEff === 'paye') ? '↩️' : '✅';
+    var statutCell = '<span style="display:inline-block;padding:3px 8px;border-radius:10px;font-size:.74rem;background:' + st.bg + ';color:' + st.col + ';font-weight:600">' + st.txt + '</span>'
+      + ' <button class="btn-icon" onclick="basculerStatutCharge(\'' + c.id + '\')" title="' + btnToggleTitre + '" style="padding:2px 4px;font-size:.85rem">' + btnToggleIcone + '</button>';
     return `<tr>
     <td>${formatDateExport(c.date)}</td>
     <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</span></td>
@@ -256,6 +352,7 @@ function afficherCharges() {
     <td style="font-size:.85rem">${euros(ht)}</td>
     <td style="font-size:.82rem;color:var(--text-muted)">${euros(tvaM)}</td>
     <td><strong>${euros(c.montant||0)}</strong></td>
+    <td>${statutCell}</td>
     <td>
       <button class="btn-icon" onclick="ouvrirEditCharge('${c.id}')" title="Modifier">✏️</button>
       <button class="btn-icon danger" onclick="supprimerCharge('${c.id}')">🗑️</button>

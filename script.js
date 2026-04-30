@@ -1608,6 +1608,22 @@ function rafraichirDashboard() {
       return l.statut === 'livre' && getLivraisonStatutPaiement(l) !== 'payé' && (parseFloat(l.prix) || 0) > 0;
     })
     .reduce(function(sum, l) { return sum + (parseFloat(l.prix) || 0); }, 0);
+  // PGI : charges impayees (toutes periodes confondues, statut != paye)
+  const chargesImpayees = charges.filter(function(c) {
+    var st = c.statutPaiement || 'a_payer';
+    return st !== 'paye';
+  });
+  const totalChargesImpayees = chargesImpayees.reduce(function(s, c) {
+    var st = c.statutPaiement || 'a_payer';
+    return s + (st === 'partiel' ? (c.montant || 0) / 2 : (c.montant || 0));
+  }, 0);
+  const nbChargesEnRetard = chargesImpayees.filter(function(c) {
+    return typeof getChargeStatutEffectif === 'function' && getChargeStatutEffectif(c) === 'en_retard';
+  }).length;
+  setText('kpi-charges-impayees', euros(totalChargesImpayees));
+  setText('kpi-charges-impayees-sub', nbChargesEnRetard > 0
+    ? (nbChargesEnRetard + ' en retard')
+    : (chargesImpayees.length + ' à payer'));
   const alertes  = compterAlertesNonLues();
   const totalTvaCollectee = tvaSummary.totalCollectee;
   const totalTvaDeductible = tvaSummary.totalDeductible;
@@ -2951,6 +2967,25 @@ function verifierNotificationsAutomatiquesMois2() {
         stageKey:'ct-' + seuil + '-' + item.id
       });
     }
+  });
+
+  // PGI : alertes retard paiement charges (echeance = date charge + delai
+  // fournisseur, defaut 30j). On n'alerte que si statut still "a_payer".
+  charger('charges').forEach(function(c) {
+    var statut = c.statutPaiement || 'a_payer';
+    if (statut === 'paye' || statut === 'partiel') return;
+    var ech = (typeof getChargeDateEcheance === 'function') ? getChargeDateEcheance(c) : null;
+    if (!ech) return;
+    var joursRetard = Math.floor((auj - ech) / 86400000);
+    if (joursRetard < 0) return;
+    var libelle = (c.fournisseur || c.description || c.categorie || 'charge');
+    var msg;
+    if (joursRetard === 0) msg = '💸 Charge à payer aujourd’hui — ' + libelle + ' (' + euros(c.montant || 0) + ')';
+    else msg = '🔴 Charge en retard de paiement (' + joursRetard + 'j) — ' + libelle + ' (' + euros(c.montant || 0) + ')';
+    ajouterAlerteSiAbsente('charge_retard_paiement', msg, {
+      chargeId: c.id,
+      stageKey: 'charge-retard-' + c.id + '-' + (joursRetard > 30 ? '30' : joursRetard > 7 ? '7' : '0')
+    });
   });
 
   if (alertes.length !== charger('alertes_admin').length) afficherBadgeAlertes();
