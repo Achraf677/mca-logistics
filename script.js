@@ -2988,6 +2988,11 @@ function verifierNotificationsAutomatiquesMois2() {
     });
   });
 
+  // PGI : sweep anomalies carburant (conso anormale + capacite reservoir)
+  if (typeof sweepAnomaliesCarburant === 'function') {
+    try { sweepAnomaliesCarburant(); } catch (e) { console.warn('[anomalies-carb] sweep:', e); }
+  }
+
   if (alertes.length !== charger('alertes_admin').length) afficherBadgeAlertes();
 }
 

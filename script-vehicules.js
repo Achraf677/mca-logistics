@@ -266,6 +266,7 @@ async function ajouterVehicule() {
   const modele = document.getElementById('veh-modele').value.trim();
   const km     = parseFloat(document.getElementById('veh-km').value) || 0;
   const conso  = parseFloat(document.getElementById('veh-conso').value) || 0;
+  const capaciteReservoir = parseFloat(document.getElementById('veh-capacite-reservoir')?.value) || 0;
   const salId  = document.getElementById('veh-salarie')?.value || '';
   const dateCT = document.getElementById('veh-date-ct')?.value || '';
   const dateCTDernier = document.getElementById('veh-date-ct-dernier')?.value || '';
@@ -306,7 +307,7 @@ async function ajouterVehicule() {
     dateExpiration: getV('veh-assurance-date-exp')
   };
   const vehicule = Object.assign({
-    id: genId(), immat, modele, km, kmInitial: km, conso, dateCT, dateCTDernier, tvaCarbDeductible,
+    id: genId(), immat, modele, km, kmInitial: km, conso, capaciteReservoir, dateCT, dateCTDernier, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
     genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
     salId: salId||null, salNom: sal ? sal.nom : null,
@@ -343,7 +344,7 @@ async function ajouterVehicule() {
   }
 
   closeModal('modal-vehicule');
-  ['veh-immat','veh-modele','veh-km','veh-conso','veh-entretien-interval-km','veh-entretien-interval-mois',
+  ['veh-immat','veh-modele','veh-km','veh-conso','veh-capacite-reservoir','veh-entretien-interval-km','veh-entretien-interval-mois',
    'veh-assurance-compagnie','veh-assurance-numero','veh-assurance-date-exp'].forEach(id => { const e = document.getElementById(id); if(e) e.value=''; });
   reinitialiserFinanceVehiculeForm();
   if (document.getElementById('veh-mode-acquisition')) document.getElementById('veh-mode-acquisition').value = 'achat';
@@ -883,6 +884,7 @@ async function ouvrirEditVehicule(vehId) {
     setVal('veh-modele',   veh.modele);
     setVal('veh-km',       calculerKilometrageVehiculeActuel(veh));
     setVal('veh-conso',    veh.conso);
+    setVal('veh-capacite-reservoir', veh.capaciteReservoir);
     setVal('veh-mode-acquisition',  veh.modeAcquisition || 'achat');
     setVal('veh-date-acquisition',  veh.dateAcquisition);
     setVal('veh-date-ct',  veh.dateCT);
@@ -947,6 +949,7 @@ function confirmerEditVehicule() {
   vehicules[idx].km       = parseFloat(document.getElementById('veh-km').value)||0;
   if (!Number.isFinite(parseFloat(vehicules[idx].kmInitial))) vehicules[idx].kmInitial = vehicules[idx].km;
   vehicules[idx].conso    = parseFloat(document.getElementById('veh-conso').value)||0;
+  vehicules[idx].capaciteReservoir = parseFloat(document.getElementById('veh-capacite-reservoir')?.value)||0;
   vehicules[idx].modeAcquisition = document.getElementById('veh-mode-acquisition')?.value || 'achat';
   vehicules[idx].dateAcquisition = document.getElementById('veh-date-acquisition')?.value || '';
   vehicules[idx].dateCT   = document.getElementById('veh-date-ct').value||'';

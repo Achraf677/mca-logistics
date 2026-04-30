@@ -203,12 +203,38 @@ function afficherCarburant() {
   const elPrixLitreDetail = document.getElementById('kpi-prix-litre-detail');
   if (elPrixLitreDetail) elPrixLitreDetail.textContent = `HT ${euros(prixMoyenHT)} • TTC ${euros(prixMoyenTTC)}`;
 
+  // Sweep anomalies (genere les alertes admin manquantes a chaque affichage)
+  if (typeof sweepAnomaliesCarburant === 'function') {
+    try { sweepAnomaliesCarburant(); } catch (e) { /* non bloquant */ }
+  }
   if (!pleins.length) { tb.innerHTML = emptyState('⛽','Aucun plein enregistré','Les pleins saisis par vos salariés ou vous-même apparaîtront ici.'); return; }
+  // Index pleins par vehicule pour calcul anomalies (perf)
+  const pleinsByVeh = {};
+  charger('carburant').forEach(function(p) {
+    if (!p.vehId) return;
+    (pleinsByVeh[p.vehId] = pleinsByVeh[p.vehId] || []).push(p);
+  });
+  const allVehicules = charger('vehicules');
   tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
     const src = p.source==='salarie'
       ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">👤 Salarié</span>'
       : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
     const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
+    // Badge anomalie carburant
+    let badgeAnom = '';
+    if (typeof detecterAnomaliesPlein === 'function') {
+      try {
+        const anomalies = detecterAnomaliesPlein(p, { pleinsVeh: pleinsByVeh[p.vehId] || [], vehicules: allVehicules });
+        if (anomalies && anomalies.length) {
+          const maxNiveau = anomalies.some(a => a.niveau === 'rouge') ? 'rouge' : 'orange';
+          const couleur = maxNiveau === 'rouge' ? '#e74c3c' : '#f5a623';
+          const bg = maxNiveau === 'rouge' ? 'rgba(231,76,60,0.15)' : 'rgba(245,166,35,0.15)';
+          const tooltip = anomalies.map(a => '• ' + a.message).join('\n');
+          const icone = maxNiveau === 'rouge' ? '🔴' : '🟠';
+          badgeAnom = '<span title="' + tooltip.replace(/"/g, '&quot;') + '" style="background:' + bg + ';color:' + couleur + ';padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;cursor:help">' + icone + ' Anomalie</span>';
+        }
+      } catch (e) { /* pas bloquant */ }
+    }
     // Label étendu : matche les 6 types + tolère les synonymes
     const carbKey = (p.typeCarburant || 'diesel').toLowerCase();
     let typeLabel = '⛽ Diesel/Gazole';
@@ -226,7 +252,7 @@ function afficherCarburant() {
       { icon: '🗑️', label: 'Supprimer', action: `supprimerCarburant('${p.id}')`, danger: true }
     ];
     return `<tr${p.modifie?' style="background:rgba(231,76,60,0.04)"':''}>
-      <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
+      <td>${p.vehId ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${p.vehId}')" title="Ouvrir le véhicule">${p.vehNom}</button>` : p.vehNom}${mod}${badgeAnom}</td><td>${typeLabel}</td><td>${p.litres}L</td><td>${euros(p.prixLitre)}</td>
       <td><strong>${euros(p.total)}</strong></td><td>${euros(p.tvaDeductible||0)}</td><td>${p.kmCompteur ? formatKm(p.kmCompteur) : '—'}</td><td>${formatDateExport(p.date)}</td><td>${src}</td>
       <td>${buildInlineActionsDropdown('Actions', actionsItems)}</td>
     </tr>`;
