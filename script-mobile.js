@@ -212,9 +212,6 @@
         { value: 'livree',    label: 'Livrée' },
         { value: 'facturee',  label: 'Facturée' }
       ], { value: 'livree' }))}
-      <p class="m-form-hint" style="margin-top:14px;background:var(--m-accent-soft);padding:10px 12px;border-radius:8px;border-left:3px solid var(--m-accent)">
-        💡 v2.4 — Aspect visuel uniquement. La sauvegarde sera connectee dans la prochaine version.
-      </p>
     `;
 
     M.openSheet({
@@ -243,9 +240,6 @@
         ${M.formField('Prix au litre', M.formInputWithSuffix('prixLitre', '€/L', { type: 'number', step: '0.001', min: '0', placeholder: '0.000' }))}
       </div>
       ${M.formField('Total payé', M.formInputWithSuffix('total', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { hint: 'Si laissé vide, calculé automatiquement (litres × prix/L)', required: true })}
-      <p class="m-form-hint" style="margin-top:14px;background:var(--m-accent-soft);padding:10px 12px;border-radius:8px;border-left:3px solid var(--m-accent)">
-        💡 v2.4 — Aspect visuel uniquement. La sauvegarde sera connectee dans la prochaine version.
-      </p>
     `;
 
     M.openSheet({
@@ -296,9 +290,6 @@
         { value: 'paye',    label: '✅ Payée' },
         { value: 'partiel', label: '🟡 Partielle' }
       ], { value: 'a_payer' }))}
-      <p class="m-form-hint" style="margin-top:14px;background:var(--m-accent-soft);padding:10px 12px;border-radius:8px;border-left:3px solid var(--m-accent)">
-        💡 v2.4 — Aspect visuel uniquement. La sauvegarde sera connectee dans la prochaine version.
-      </p>
     `;
 
     M.openSheet({
