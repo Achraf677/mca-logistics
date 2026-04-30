@@ -8,38 +8,6 @@
  * A charger AVANT script.js dans admin.html.
  */
 
-// L647 (script.js d'origine)
-function calculerAmortissementVehicule(veh) {
-  const ht = parseFloat(veh?.prixAchatHT) || 0;
-  const valeurRebut = parseFloat(veh?.valeurMiseAuRebut) || 0;
-  const duree = parseFloat(veh?.dureeAmortissement) || 0;
-  const mode = veh?.modeAmortissement === 'degressif' ? 'degressif' : 'lineaire';
-  const base = Math.max(0, ht - valeurRebut);
-  if (!base || !duree) {
-    return { annuel: 0, mensuel: 0, cumule: 0, reste: base, mode, prorataPremierExercice: 0 };
-  }
-  const built = construirePlanAmortissement({
-    valeurHT: ht,
-    valeurRebut,
-    dureeAnnees: duree,
-    mode,
-    dateMiseEnService: veh?.dateAcquisition || '',
-    dateCession: veh?.dateMiseAuRebut || ''
-  });
-  // "Annuel" = annuité théorique affichée en flotte (base × taux nominal)
-  const tauxLineaire = duree > 0 ? 1 / duree : 0;
-  const coef = mode === 'degressif' ? coefAmortissementDegressif(duree) : 1;
-  const annuel = base * tauxLineaire * coef;
-  return {
-    annuel,
-    mensuel: annuel / 12,
-    cumule: built.cumuleAujourdHui,
-    reste: built.reste,
-    mode,
-    prorataPremierExercice: built.prorataPremierExercice
-  };
-}
-
 // L679 (script.js d'origine)
 function getVehiculeById(vehId) {
   return charger('vehicules').find(v => v.id === vehId) || null;
@@ -206,22 +174,15 @@ function mettreAJourFinContratVehicule() {
 // L2697 (script.js d'origine)
 function mettreAJourInfosVehiculeFinancement() {
   var mode = document.getElementById('veh-mode-acquisition')?.value || 'achat';
-  var amortInfo = document.getElementById('veh-amortissement-info');
   var creditInfo = document.getElementById('veh-credit-info');
   var locationInfo = document.getElementById('veh-location-info');
   var prixHt = parseFloat(document.getElementById('veh-acq-prix-ht')?.value) || 0;
-  var dureeAmort = parseFloat(document.getElementById('veh-duree-amortissement')?.value) || 0;
   var mensualite = parseFloat(document.getElementById('veh-credit-mensualite-ht')?.value) || 0;
   var dureeCredit = parseFloat(document.getElementById('veh-credit-duree-mois')?.value) || 0;
   var apportCredit = parseFloat(document.getElementById('veh-credit-apport-ht')?.value) || 0;
   var coutCredit = Math.max(0, (mensualite * dureeCredit) + apportCredit - prixHt);
   var coutCreditInput = document.getElementById('veh-credit-cout-total-ht');
   if (coutCreditInput) coutCreditInput.value = coutCredit ? coutCredit.toFixed(2) : '';
-  if (amortInfo) {
-    amortInfo.textContent = (prixHt > 0 && dureeAmort > 0)
-      ? ('Amortissement mensuel estimé : ' + euros(prixHt / (dureeAmort * 12)))
-      : '';
-  }
   if (creditInfo) {
     creditInfo.textContent = (mensualite > 0 && dureeCredit > 0)
       ? ('Coût total estimé du crédit : ' + euros(coutCredit))
@@ -485,24 +446,20 @@ function afficherVehicules() {
       if (dct < auj) ctStyle = 'color:#e74c3c;font-weight:600';
       else if (dct < dans30j) ctStyle = 'color:var(--accent);font-weight:600';
     }
-    const amort = calculerAmortissementVehicule(v);
     const acquisitionInfos = [
       v.modeAcquisition ? `<div style="font-weight:600">${(v.modeAcquisition||'').toUpperCase()}</div>` : '',
       v.dateAcquisition ? `<div style="font-size:.76rem;color:var(--text-muted)">Depuis le ${formatDateExport(v.dateAcquisition)}</div>` : '',
       (v.modeAcquisition === 'credit' && v.creditDureeMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Crédit ${v.creditDureeMois} mois</div>` : '',
       (['lld','loa','location'].includes(v.modeAcquisition) && v.dureeContratMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Contrat ${v.dureeContratMois} mois</div>` : '',
-      (['achat','occasion'].includes(v.modeAcquisition) && v.dureeAmortissement) ? `<div style="font-size:.76rem;color:var(--text-muted)">Amort. ${v.dureeAmortissement} an(s)</div>` : '',
       (v.entretienIntervalKm || v.entretienIntervalMois) ? `<div style="font-size:.76rem;color:var(--text-muted)">Révision ${v.entretienIntervalKm ? 'tous les ' + formatKm(v.entretienIntervalKm) : ''}${v.entretienIntervalKm && v.entretienIntervalMois ? ' / ' : ''}${v.entretienIntervalMois ? 'tous les ' + v.entretienIntervalMois + ' mois' : ''}</div>` : ''
     ].filter(Boolean).join('');
     const financeInfos = [
       (['achat','occasion','credit'].includes(v.modeAcquisition) && v.prixAchatHT) ? `<div><strong>${euros(v.prixAchatHT)}</strong> HT</div>` : '',
       (['achat','occasion','credit'].includes(v.modeAcquisition) && v.prixAchatTTC) ? `<div style="font-size:.76rem;color:var(--text-muted)">${euros((v.prixAchatTTC||0) - (v.prixAchatHT||0))} TVA • ${euros(v.prixAchatTTC)} TTC</div>` : '',
-      (['achat','occasion'].includes(v.modeAcquisition) && v.dureeAmortissement && amort.annuel) ? `<div style="font-size:.76rem;color:var(--accent)">Amort. ${euros(amort.annuel)}/an • ${amort.mode === 'degressif' ? 'dégressif' : 'linéaire'}</div>` : '',
       (['lld','loa','location'].includes(v.modeAcquisition) && v.loyerMensuelHT) ? `<div style="font-size:.76rem;color:var(--accent)">Loyer mensuel : ${euros(v.loyerMensuelHT)}</div>` : '',
       (v.modeAcquisition === 'credit' && v.creditMensualiteHT) ? `<div style="font-size:.76rem;color:var(--accent)">Mensualité : ${euros(v.creditMensualiteHT)}</div>` : '',
       (v.modeAcquisition === 'loa' && v.loaOptionAchatHT) ? `<div style="font-size:.76rem;color:var(--text-muted)">Option achat : ${euros(v.loaOptionAchatHT)}</div>` : '',
       (['lld','loa','location'].includes(v.modeAcquisition) && v.dateFinContrat) ? `<div style="font-size:.76rem;color:var(--text-muted)">Fin contrat : ${formatDateExport(v.dateFinContrat)}</div>` : '',
-      amort.prorataPremierExercice ? `<div style="font-size:.76rem;color:var(--text-muted)">Prorata fiscal 1er exercice : ${(amort.prorataPremierExercice * 100).toFixed(1)} %</div>` : '',
       v.dateMiseAuRebut ? `<div style="font-size:.76rem;color:var(--text-muted)">Mise au rebut : ${formatDateExport(v.dateMiseAuRebut)}</div>` : '',
       `<div style="font-size:.76rem;color:var(--text-muted)">TVA carburant ${formaterTaux(v.tvaCarbDeductible || 0)}</div>`
     ].filter(Boolean).join('');

@@ -6,7 +6,7 @@
  *   - script-rentabilite-multi : ANALYSES (donnees reelles, marges par axe)
  *
  * 4 axes :
- *   1. Par vehicule  : CA livraisons - couts directs (carburant, charges) - couts amortissement
+ *   1. Par vehicule  : CA livraisons - couts directs (carburant, charges, entretiens)
  *   2. Par client    : marge brute = CA - couts directs imputables (carburant si rattache, prorata salaire)
  *   3. Par chauffeur : marge = CA livraisons effectuees - salaire - heures - carburant vehicules
  *   4. Par tournee   : marge journaliere chauffeur (CA - couts directs du jour)
@@ -65,7 +65,7 @@
   // ===== Calcul par vehicule =====
   // CA = Σ HT livraisons assignees au vehicule
   // Couts = carburant rattache (vehId) + charges rattachees (vehId, hors TVA/salaires)
-  //         + entretiens lies + km × coutKmDefaut (amortissement)
+  //         + entretiens lies au vehicule
   function calculerRentabiliteParVehicule(range) {
     var livraisons = (typeof charger === 'function' ? charger('livraisons') : []).filter(function (l) {
       return inRange(l.date, range);

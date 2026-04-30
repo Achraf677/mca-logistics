@@ -309,9 +309,8 @@ function calculerTCO(vehId) {
   const totalEntr  = entretiens.reduce((s,e)=>s+(e.cout||0),0);
   const achatHT    = parseFloat(veh.prixAchatHT) || 0;
   const total      = achatHT + totalCarb + totalCharg + totalEntr;
-  const amort      = calculerAmortissementVehicule(veh);
 
-  return { totalCarb, totalCharg, totalEntr, total, achatHT, amort };
+  return { totalCarb, totalCharg, totalEntr, total, achatHT };
 }
 
 // L4985 (script.js d'origine)

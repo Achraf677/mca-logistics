@@ -243,7 +243,7 @@ window.lireStockageJSON = lireStockageJSON;
     const CLES_JSON = [
       'factures_emises', 'livraisons', 'clients', 'fournisseurs',
       'vehicules', 'salaries', 'employes', 'charges', 'entretiens',
-      'paiements', 'avoirs_emis', 'immobilisations', 'amortissements_dotations',
+      'paiements', 'avoirs_emis',
       'cloture_ajustements', 'audit_log'
     ];
     let purges = 0;
@@ -413,127 +413,7 @@ function renderFooterEntreprise(params, dateExp, extra) {
 }
 // MOVED -> script-core-branding.js : getLogoEntrepriseExportSrc
 // MOVED -> script-core-branding.js : renderLogoEntrepriseExport
-// ==========================================================================
-// AMORTISSEMENT — moteur unifié (CGI art. 39 A, PCG base 360)
-// Sert aux véhicules (calculerAmortissementVehicule) ET aux immobilisations
-// générales (s30CalculerPlan). Coefficients dégressifs fiscaux :
-//   durée 3-4 ans → 1.25 · 5-6 ans → 1.75 · 7+ ans → 2.25
-// Switchover automatique vers le taux linéaire résiduel en dégressif.
-// ==========================================================================
-function coefAmortissementDegressif(duree) {
-  const d = Number(duree) || 0;
-  if (d >= 3 && d <= 4) return 1.25;
-  if (d >= 5 && d <= 6) return 1.75;
-  if (d >= 7) return 2.25;
-  return 1;
-}
-window.coefAmortissementDegressif = coefAmortissementDegressif;
 
-function construirePlanAmortissement(opts) {
-  opts = opts || {};
-  const valeurHT = parseFloat(opts.valeurHT) || 0;
-  const valeurRebut = parseFloat(opts.valeurRebut) || 0;
-  const base = Math.max(0, valeurHT - valeurRebut);
-  const duree = Math.max(0, Math.round(Number(opts.dureeAnnees) || 0));
-  const mode = opts.mode === 'degressif' ? 'degressif' : 'lineaire';
-  const parseISO = (s) => {
-    if (!s) return null;
-    const str = String(s);
-    const d = new Date(str.length <= 10 ? str + 'T00:00:00' : str);
-    return Number.isNaN(d.getTime()) ? null : d;
-  };
-  const dateMes = parseISO(opts.dateMiseEnService);
-  const dateCession = parseISO(opts.dateCession);
-  const refDate = parseISO(opts.dateReference) || new Date();
-  const plan = [];
-  const empty = {
-    plan, mode, base, duree,
-    coefficient: mode === 'degressif' ? coefAmortissementDegressif(duree) : 1,
-    dotationAnnuelleTheorique: 0, dotationMensuelleTheorique: 0,
-    cumuleAujourdHui: 0, reste: base,
-    prorataPremierExercice: 0
-  };
-  if (!base || !duree || !dateMes) return empty;
-
-  const anneeStart = dateMes.getFullYear();
-  const jourDebut = dateMes.getDate();
-  const moisDebut = dateMes.getMonth() + 1;
-  const joursAnnee1 = Math.max(0, (12 - moisDebut) * 30 + (30 - jourDebut + 1));
-  const proRata1 = joursAnnee1 / 360;
-
-  if (mode === 'lineaire') {
-    const dotationComplete = round2(base / duree);
-    const dotationAnnee1 = round2(dotationComplete * proRata1);
-    let vnc = base, restant = base;
-    const d1 = Math.min(dotationAnnee1, restant);
-    vnc = round2(vnc - d1); restant = round2(restant - d1);
-    plan.push({ annee: anneeStart, dotation: d1, vnc, base, proRata: Math.round(proRata1 * 100) });
-    let anneesUtilisees = proRata1;
-    let year = anneeStart + 1;
-    while (restant > 0.01 && anneesUtilisees < duree + 1.1) {
-      const anneesRestantes = Math.max(1, duree - anneesUtilisees);
-      let dot = (anneesRestantes >= 1) ? dotationComplete : round2(dotationComplete * anneesRestantes);
-      if (dot > restant) dot = round2(restant);
-      vnc = round2(vnc - dot); restant = round2(restant - dot);
-      plan.push({ annee: year, dotation: dot, vnc, base, proRata: 100 });
-      year++; anneesUtilisees += 1;
-      if (plan.length > 40) break;
-    }
-  } else {
-    const coef = coefAmortissementDegressif(duree);
-    const tauxDegressif = duree > 0 ? (1 / duree) * coef : 0;
-    let vnc = base;
-    for (let i = 0; i < duree; i++) {
-      const annee = anneeStart + i;
-      const anneesRestantes = duree - i;
-      const tauxLineaireResid = anneesRestantes > 0 ? 1 / anneesRestantes : 0;
-      const tauxEffectif = Math.max(tauxDegressif, tauxLineaireResid);
-      let dot = vnc * tauxEffectif;
-      if (i === 0) {
-        const moisRestants = 13 - moisDebut;
-        dot = vnc * tauxDegressif * (moisRestants / 12);
-      }
-      dot = round2(dot);
-      if (dot > vnc) dot = round2(vnc);
-      vnc = round2(vnc - dot);
-      plan.push({ annee, dotation: dot, vnc, base, proRata: i === 0 ? Math.round(((13 - moisDebut) / 12) * 100) : 100 });
-      if (vnc <= 0.01) break;
-    }
-    if (vnc > 0.01 && plan.length > 0) {
-      plan[plan.length - 1].dotation = round2(plan[plan.length - 1].dotation + vnc);
-      plan[plan.length - 1].vnc = 0;
-    }
-  }
-
-  // Synthèse (dotations "typiques" + cumul à la date de référence)
-  const dotationAnnuelleTheorique = round2(base / Math.max(1, duree));
-  const dotationMensuelleTheorique = round2(dotationAnnuelleTheorique / 12);
-  const stopDate = (dateCession && dateCession < refDate) ? dateCession : refDate;
-  let cumule = 0;
-  plan.forEach(l => {
-    if (l.annee < stopDate.getFullYear()) {
-      cumule += l.dotation;
-    } else if (l.annee === stopDate.getFullYear()) {
-      const moisEcoulesDansAnnee = stopDate.getMonth() + 1;
-      cumule += l.dotation * (moisEcoulesDansAnnee / 12);
-    }
-  });
-  cumule = Math.min(base, round2(cumule));
-
-  return {
-    plan, mode, base, duree,
-    coefficient: mode === 'degressif' ? coefAmortissementDegressif(duree) : 1,
-    dotationAnnuelleTheorique,
-    dotationMensuelleTheorique,
-    cumuleAujourdHui: cumule,
-    reste: Math.max(0, round2(base - cumule)),
-    prorataPremierExercice: proRata1
-  };
-}
-window.construirePlanAmortissement = construirePlanAmortissement;
-
-// MOVED -> script-vehicules.js : calculerAmortissementVehicule
-window.calculerAmortissementVehicule = calculerAmortissementVehicule;
 // MOVED -> script-tva.js : formaterTaux
 // MOVED -> script-vehicules.js : getVehiculeById
 // MOVED -> script-entretiens.js : getTypeEntretienLabel
@@ -3356,7 +3236,6 @@ function afficherTCO(vehId) {
       <div class="tco-item"><div class="tco-label">⛽ Carburant</div><div class="tco-value" style="color:#e74c3c">${euros(tco.totalCarb)}</div></div>
       <div class="tco-item"><div class="tco-label">🔧 Entretiens</div><div class="tco-value" style="color:var(--accent)">${euros(tco.totalEntr)}</div></div>
       <div class="tco-item"><div class="tco-label">💸 Autres charges</div><div class="tco-value" style="color:#9b59b6">${euros(tco.totalCharg)}</div></div>
-      <div class="tco-item"><div class="tco-label">📉 Amorti cumulé</div><div class="tco-value" style="color:#16a34a">${euros(tco.amort.cumule)}</div></div>
       <div class="tco-item" style="border:1px solid var(--border)"><div class="tco-label">💰 Total TCO</div><div class="tco-value" style="color:var(--text-primary)">${euros(tco.total)}</div></div>
     </div>`;
 }
