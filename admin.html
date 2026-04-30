@@ -949,8 +949,9 @@
     <section class="page" id="page-alertes">
       <div class="page-actions"><h2>🔔 Alertes administrateur</h2><button class="btn-secondary" onclick="viderAlertes()">🗑️ Vider l'historique traité</button></div>
 
-      <!-- Filtres alertes -->
-      <div class="filters" style="margin-bottom:16px">
+      <!-- Filtres alertes (sticky : reste visible quand on scroll dans une longue liste) -->
+      <div class="filters alertes-filters-sticky" style="margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+        <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="🔍 Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" />
         <select id="filtre-alerte-type" onchange="afficherAlertes()">
           <option value="">Tous les types</option>
           <option value="ct_expire">⚠️ CT expiré</option>
@@ -981,7 +982,7 @@
           <option value="toutes">📋 Toutes</option>
         </select>
         <input type="date" id="filtre-alerte-date" onchange="afficherAlertes()" title="Filtrer par date" />
-        <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';afficherAlertes()">Réinitialiser</button>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';afficherAlertes()">Réinitialiser</button>
       </div>
 
       <!-- Alertes actives triées par catégorie (généré dynamiquement) -->
