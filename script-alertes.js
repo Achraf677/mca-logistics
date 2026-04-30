@@ -43,10 +43,13 @@ function compterAlertesNonLues() {
 // L2098 (script.js d'origine)
 function afficherBadgeAlertes() {
   const n = compterAlertesNonLues();
-  const el = document.getElementById('badge-alertes');
-  if (!el) return;
-  el.textContent = n > 0 ? n : '';
-  el.style.display = n > 0 ? 'inline-flex' : 'none';
+  // 2 badges a synchroniser : sidebar (#badge-alertes) et mobile bottom nav (#badge-alertes-mbn)
+  ['badge-alertes', 'badge-alertes-mbn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = n > 0 ? n : '';
+    el.style.display = n > 0 ? 'inline-flex' : 'none';
+  });
 }
 
 // Cooldown post-traitement/ignore : ~30 jours sans regen automatique du même couple (type, scope).

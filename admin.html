@@ -3115,6 +3115,59 @@
   <!-- Sidebar overlay mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="fermerMenuMobile()"></div>
 
+  <!-- Mobile bottom nav (Sprint 25) — visible <= 760px uniquement (CSS) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navigation mobile">
+    <a href="#" class="mbn-item" data-page="dashboard"><span class="mbn-icon">📊</span><span class="mbn-label">Dashboard</span></a>
+    <a href="#" class="mbn-item" data-page="livraisons"><span class="mbn-icon">📦</span><span class="mbn-label">Livraisons</span></a>
+    <a href="#" class="mbn-item" data-page="planning"><span class="mbn-icon">📅</span><span class="mbn-label">Planning</span></a>
+    <a href="#" class="mbn-item" data-page="alertes"><span class="mbn-icon">🔔</span><span class="mbn-label">Alertes</span><span class="mbn-badge" id="badge-alertes-mbn"></span></a>
+    <button type="button" class="mbn-item mbn-item-more" id="mbnMoreBtn"><span class="mbn-icon">⋯</span><span class="mbn-label">Plus</span></button>
+  </nav>
+  <script>
+    // Mobile bottom nav wiring : navigation + état actif
+    (function() {
+      function syncMbnActive(page) {
+        document.querySelectorAll('.mbn-item[data-page]').forEach(item => {
+          item.classList.toggle('active', item.dataset.page === page);
+        });
+      }
+      // Wire chaque mbn-item -> naviguerVers + ferme drawer si ouvert
+      document.querySelectorAll('.mbn-item[data-page]').forEach(item => {
+        item.addEventListener('click', e => {
+          e.preventDefault();
+          if (typeof window.naviguerVers === 'function') window.naviguerVers(item.dataset.page);
+          if (typeof window.fermerMenuMobile === 'function') window.fermerMenuMobile();
+          syncMbnActive(item.dataset.page);
+        });
+      });
+      // Bouton "Plus" -> ouvre le drawer
+      document.getElementById('mbnMoreBtn')?.addEventListener('click', () => {
+        if (typeof window.ouvrirMenuMobile === 'function') window.ouvrirMenuMobile();
+      });
+      // Initialise l'état actif depuis l'item .nav-item.active de la sidebar
+      const activeNav = document.querySelector('.nav-item.active[data-page]');
+      if (activeNav) syncMbnActive(activeNav.dataset.page);
+      // Hook naviguerVers pour synchroniser l'état actif quand l'utilisateur passe par la sidebar/drawer
+      const tryHook = () => {
+        if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__mbn) {
+          if (typeof window.naviguerVers !== 'function') return setTimeout(tryHook, 200);
+          return;
+        }
+        const orig = window.naviguerVers;
+        const wrapped = function(page) {
+          const r = orig.apply(this, arguments);
+          syncMbnActive(page);
+          return r;
+        };
+        wrapped.__mbn = true;
+        // Préserver les marqueurs hooks précédents
+        Object.keys(orig).forEach(k => { if (k.startsWith('__')) wrapped[k] = orig[k]; });
+        window.naviguerVers = wrapped;
+      };
+      tryHook();
+    })();
+  </script>
+
   <div id="panneau-agent" style="position:fixed;top:0;right:-420px;width:400px;height:100vh;background:#1a1d27;border-left:1px solid #2a2d3d;z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:24px 20px;box-shadow:-8px 0 32px rgba(0,0,0,0.4)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>

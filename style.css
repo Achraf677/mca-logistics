@@ -8417,26 +8417,53 @@ body.light-mode .s30-ac-filter-tab-count { background: rgba(0,0,0,0.08); }
     padding: 8px 12px;
   }
 
-  /* --- Topbar compacte ---
-     Trop d'elements (8 boutons + agent IA + user menu + date) -> on reorganise
-     et on cache le moins essentiel pour eviter le wrap chaotique. */
+  /* --- Topbar compacte mobile ---
+     1 ligne 52px : [☰] [Title]                              [🌙] [A]
+     Tout le reste est masque (search Cmd+K dispo via le shortcut, date dans le
+     header de page, agent IA dans son drawer dedie, install PWA via banniere). */
   .topbar {
-    flex-wrap: wrap;
+    flex-wrap: nowrap !important;
     gap: 8px;
     padding: 8px 10px;
+    height: 52px;
     align-items: center;
+    overflow: hidden;
   }
+  .topbar-branding,
   .topbar-search-trigger,
   .topbar-date,
-  #ai-status-bar {
-    display: none !important; /* recherche dispo via Ctrl+K, date dans le header de page, agent IA dans son drawer */
+  #ai-status-bar,
+  #btn-install-pwa {
+    display: none !important;
   }
   .topbar-title {
     font-size: 1rem;
     flex: 1 1 auto;
-    text-align: center;
+    text-align: left;
+    margin-left: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .topbar-branding { font-size: .9rem; }
+  .btn-menu-mobile {
+    flex-shrink: 0;
+    margin-right: 0;
+  }
+  .btn-theme-toggle {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .topbar-user-menu {
+    flex-shrink: 0;
+  }
+  .topbar-user span:not(.topbar-user-caret):not(.topbar-avatar) {
+    display: none; /* "Admin" label cache, on garde juste l'avatar et le caret */
+  }
 
   /* --- Page actions : stack vertical et boutons full-width sur tres petit --- */
   .page-actions {
@@ -8586,5 +8613,115 @@ body.light-mode .s30-ac-filter-tab-count { background: rgba(0,0,0,0.08); }
     grid-template-columns: 1fr !important;
   }
   .page { padding: 10px 8px 12px !important; }
+}
+
+/* ============================================================================
+   MOBILE BOTTOM NAV — Sprint 25 phase 1
+   Navigation iOS-like en bas d'ecran avec 5 raccourcis vers les onglets les
+   plus utilises. Le 5e (Plus) ouvre le drawer pour acceder au reste.
+   ============================================================================ */
+.mobile-bottom-nav {
+  display: none; /* Mobile only, voir media query plus bas */
+}
+
+@media (max-width: 760px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--bg-card, #1a1d27);
+    border-top: 1px solid var(--border, #2a2d3d);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.25);
+    z-index: 90;
+    align-items: stretch;
+  }
+  body.light-mode .mobile-bottom-nav {
+    background: #ffffff;
+    border-top-color: rgba(0,0,0,0.08);
+    box-shadow: 0 -1px 8px rgba(0,0,0,0.08);
+  }
+  .mbn-item {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 4px;
+    background: none;
+    border: none;
+    color: var(--text-muted, #7c8299);
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    transition: color 0.15s ease;
+    position: relative;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mbn-item:active {
+    background: rgba(255,255,255,0.05);
+  }
+  body.light-mode .mbn-item:active {
+    background: rgba(0,0,0,0.05);
+  }
+  .mbn-item.active {
+    color: var(--accent, #f5a623);
+  }
+  .mbn-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 3px;
+    background: var(--accent, #f5a623);
+    border-radius: 0 0 3px 3px;
+  }
+  .mbn-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+  .mbn-label {
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    line-height: 1;
+  }
+  .mbn-badge {
+    position: absolute;
+    top: 6px;
+    right: calc(50% - 22px);
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--red, #e74c3c);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    border-radius: 9px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+  .mbn-badge:not(:empty) {
+    display: inline-flex;
+  }
+
+  /* Padding-bottom sur le main pour eviter que le contenu passe sous la bottom nav.
+     64px de hauteur + safe-area pour iPhone home bar. */
+  .main-content {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+  }
+  /* Bouton scroll-top au-dessus de la bottom nav, pas sous */
+  #btn-scroll-top {
+    bottom: calc(80px + env(safe-area-inset-bottom)) !important;
+  }
 }
 
