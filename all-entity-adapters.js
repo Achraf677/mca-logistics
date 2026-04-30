@@ -126,6 +126,9 @@
       fournisseur_nom: emptyToNull(c.fournisseur),
       vehicule_id: isUuidLike(c.vehId) ? c.vehId : null,
       fournisseur_id: isUuidLike(c.fournisseurId) ? c.fournisseurId : null,
+      statut_paiement: emptyToNull(c.statutPaiement) || 'a_payer',
+      date_paiement: emptyToNull(c.datePaiement),
+      mode_paiement: emptyToNull(c.modePaiement),
       extra: c
     };
     if (isUuidLike(c.id)) row.id = c.id;
@@ -150,6 +153,9 @@
       fournisseur: r.fournisseur_nom || '',
       vehId: r.vehicule_id || null,
       fournisseurId: r.fournisseur_id || null,
+      statutPaiement: r.statut_paiement || 'a_payer',
+      datePaiement: r.date_paiement || '',
+      modePaiement: r.mode_paiement || '',
       creeLe: r.created_at || ''
     });
   }

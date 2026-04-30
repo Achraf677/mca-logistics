@@ -19,7 +19,7 @@ function getChargeMontantHT(charge) {
 
 // L6982 (script.js d'origine)
 function resetFormulaireCharge() {
-  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period','charge-fournisseur'];
+  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period','charge-fournisseur','charge-date-paiement','charge-mode-paiement'];
   fields.forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -33,6 +33,9 @@ function resetFormulaireCharge() {
   if (tva) tva.value = '20';
   var tvaInfo = document.getElementById('charge-montant-tva');
   if (tvaInfo) tvaInfo.textContent = '';
+  var statut = document.getElementById('charge-statut-paiement');
+  if (statut) statut.value = 'a_payer';
+  toggleChargeStatutPaiement();
   var fSug = document.getElementById('fournisseur-suggestions');
   if (fSug) fSug.innerHTML = '';
   window.__chargeSelectedFournisseurId = null;
@@ -45,6 +48,40 @@ function resetFormulaireCharge() {
     if (btn) btn.textContent = '✅ Enregistrer';
   }
 }
+
+// Affiche / cache les champs date + mode de paiement selon le statut.
+// Si "paye" -> affiche date (defaut: aujourd'hui) et mode (defaut: virement
+// ou mode du fournisseur si dispo).
+// Si "a_payer" -> cache les deux et reset.
+function toggleChargeStatutPaiement() {
+  var statut = document.getElementById('charge-statut-paiement')?.value || 'a_payer';
+  var dateWrap = document.getElementById('charge-date-paiement-wrap');
+  var modeWrap = document.getElementById('charge-mode-paiement-wrap');
+  var dateInput = document.getElementById('charge-date-paiement');
+  var modeInput = document.getElementById('charge-mode-paiement');
+  if (statut === 'paye' || statut === 'partiel') {
+    if (dateWrap) dateWrap.style.display = '';
+    if (modeWrap) modeWrap.style.display = '';
+    if (dateInput && !dateInput.value) dateInput.value = aujourdhui();
+    if (modeInput && !modeInput.value) {
+      // Pre-remplit avec le mode du fournisseur si selectionne
+      var fId = window.__chargeSelectedFournisseurId;
+      if (fId) {
+        var f = charger('fournisseurs').find(function(x) { return x.id === fId; });
+        if (f && f.modePaiement) modeInput.value = f.modePaiement;
+        else modeInput.value = 'virement';
+      } else {
+        modeInput.value = 'virement';
+      }
+    }
+  } else {
+    if (dateWrap) dateWrap.style.display = 'none';
+    if (modeWrap) modeWrap.style.display = 'none';
+    if (dateInput) dateInput.value = '';
+    if (modeInput) modeInput.value = '';
+  }
+}
+window.toggleChargeStatutPaiement = toggleChargeStatutPaiement;
 
 // L7005 (script.js d'origine)
 function ajusterCategorieCharge() {
@@ -111,6 +148,9 @@ function ouvrirEditCharge(id) {
     'charge-taux-tva': charge.tauxTVA || 20,
     'charge-montant': charge.montant || '',
     'charge-veh': charge.vehId || '',
+    'charge-statut-paiement': charge.statutPaiement || 'a_payer',
+    'charge-date-paiement': charge.datePaiement || '',
+    'charge-mode-paiement': charge.modePaiement || '',
     'charge-tva-period': getTVADeclarationPeriodRangeFromKey(charge.tvaPeriodeKey || charge.tvaPeriode || '')?.debut?.slice(0, 7) || ''
   };
   Object.keys(setters).forEach(function(idField) {
@@ -120,6 +160,7 @@ function ouvrirEditCharge(id) {
   var fSug = document.getElementById('fournisseur-suggestions');
   if (fSug) fSug.innerHTML = '';
   ajusterCategorieCharge();
+  toggleChargeStatutPaiement();
   var modal = document.getElementById('modal-charge');
   if (modal) {
     var title = modal.querySelector('.modal-header h3');
@@ -282,6 +323,15 @@ async function ajouterCharge() {
     fournisseurId = fExisting.id;
   }
 
+  // Statut de paiement
+  const statutPaiement = document.getElementById('charge-statut-paiement')?.value || 'a_payer';
+  const datePaiement   = (statutPaiement === 'paye' || statutPaiement === 'partiel')
+    ? (document.getElementById('charge-date-paiement')?.value || aujourdhui())
+    : '';
+  const modePaiement   = (statutPaiement === 'paye' || statutPaiement === 'partiel')
+    ? (document.getElementById('charge-mode-paiement')?.value || '')
+    : '';
+
   const vehicule = vehId ? charger('vehicules').find(v=>v.id===vehId) : null;
   const charges  = charger('charges');
   const charge = {
@@ -296,6 +346,9 @@ async function ajouterCharge() {
     vehNom:vehicule?.immat||'',
     fournisseurId: fournisseurId || null,
     fournisseur: fournisseurNom || '', // snapshot du nom (preserve l'historique)
+    statutPaiement,
+    datePaiement: datePaiement || null,
+    modePaiement: modePaiement || null,
     tvaPeriodeKey: tvaPeriodeKey || undefined,
     creeLe:new Date().toISOString()
   };
