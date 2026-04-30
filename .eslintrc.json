@@ -1,0 +1,56 @@
+{
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "worker": true,
+    "serviceworker": true
+  },
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "script"
+  },
+  "globals": {
+    "Sentry": "readonly",
+    "supabase": "readonly",
+    "Chart": "readonly",
+    "MCA": "readonly",
+    "DelivProSupabase": "readonly",
+    "DelivProStorage": "readonly",
+    "DelivProRemoteStorage": "readonly",
+    "DelivProSecurity": "readonly",
+    "DelivProEntityAdapters": "readonly",
+    "Repo": "readonly",
+    "createSupabaseEntityAdapter": "readonly",
+    "lazyLoadModule": "readonly",
+    "lazyCreateStub": "readonly"
+  },
+  "rules": {
+    "eqeqeq": ["warn", "always", { "null": "ignore" }],
+    "no-undef": "error",
+    "no-redeclare": "warn",
+    "no-unused-vars": ["off"],
+    "no-implicit-globals": "off",
+    "no-console": "off",
+    "no-empty": ["warn", { "allowEmptyCatch": true }],
+    "no-extra-semi": "warn",
+    "no-irregular-whitespace": "warn",
+    "no-unreachable": "warn",
+    "no-dupe-keys": "error",
+    "no-dupe-args": "error",
+    "no-func-assign": "warn",
+    "no-cond-assign": "warn",
+    "no-constant-condition": ["warn", { "checkLoops": false }],
+    "valid-typeof": "warn",
+    "use-isnan": "error",
+    "no-unsafe-negation": "warn",
+    "no-self-assign": "warn",
+    "no-self-compare": "warn",
+    "no-unmodified-loop-condition": "warn"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "chart.min.js",
+    "tests/",
+    "infra/"
+  ]
+}

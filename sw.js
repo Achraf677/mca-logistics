@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-04-30-cleanup';
+const CACHE_VERSION = 'mca-v2026-04-30-lazy';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -32,7 +32,6 @@ const CORE_ASSETS = [
   '/script-alertes.js',
   '/script-stats.js',
   '/script-paiements.js',
-  '/script-exports.js',
   '/script-heures.js',
   '/script-planning.js',
   '/script-tva.js',
@@ -48,6 +47,9 @@ const CORE_ASSETS = [
   '/salaries-supabase-adapter.js',
   '/all-entity-adapters.js',
   '/storage-uploader.js',
+  '/lazy-loader.js',
+  '/lazy-stubs.js',
+  '/manifest.json',
   '/monitoring.js',
 ];
 

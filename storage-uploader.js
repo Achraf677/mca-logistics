@@ -136,6 +136,41 @@
     return s || 'file';
   }
 
+  // Feature detection : WebP supporte par le navigateur ?
+  // WebP = ~30% plus petit que JPEG a qualite equivalente.
+  // Tous browsers modernes supportent WebP (Chrome, Firefox, Safari 14+, Edge).
+  var _webpSupported = null;
+  function supportsWebP() {
+    if (_webpSupported !== null) return _webpSupported;
+    try {
+      var canvas = document.createElement('canvas');
+      canvas.width = 1; canvas.height = 1;
+      _webpSupported = canvas.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+    } catch (_) { _webpSupported = false; }
+    return _webpSupported;
+  }
+
+  // Compresse un canvas en blob optimal (WebP si possible, JPEG sinon).
+  // Retourne { blob, mime, ext }
+  function canvasToOptimalBlob(canvas, quality) {
+    var q = (typeof quality === 'number') ? quality : 0.78;
+    var useWebP = supportsWebP();
+    var mime = useWebP ? 'image/webp' : 'image/jpeg';
+    var ext = useWebP ? 'webp' : 'jpg';
+    return new Promise(function (resolve) {
+      canvas.toBlob(function (blob) {
+        // Si WebP fail (rare), fallback JPEG
+        if (!blob && useWebP) {
+          canvas.toBlob(function (b) {
+            resolve({ blob: b, mime: 'image/jpeg', ext: 'jpg' });
+          }, 'image/jpeg', q);
+        } else {
+          resolve({ blob: blob, mime: mime, ext: ext });
+        }
+      }, mime, q);
+    });
+  }
+
   window.DelivProStorage = {
     uploadDataUrl: uploadDataUrl,
     uploadBlob: uploadBlob,
@@ -145,6 +180,8 @@
     remove: remove,
     dataUrlToBlob: dataUrlToBlob,
     isStoragePath: isStoragePath,
-    sanitizeFilename: sanitizeFilename
+    sanitizeFilename: sanitizeFilename,
+    supportsWebP: supportsWebP,
+    canvasToOptimalBlob: canvasToOptimalBlob
   };
 })();

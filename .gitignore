@@ -1,22 +1,21 @@
-# Dependencies
-node_modules/
-
-# Environment files (secrets)
-.env
-.env.local
-.env.*.local
-
-# OS files
-.DS_Store
-Thumbs.db
 
 # Build outputs
-dist/
-.wrangler/
-
-# Supabase CLI artifacts (linked-project, cli-latest cache)
-supabase/.temp/
-infra/supabase/.temp/
-
+# Dependencies
+# Environment files (secrets)
 # Logs
+# OS files
+# Supabase CLI artifacts (linked-project, cli-latest cache)
 *.log
+.DS_Store
+.env
+.env*
+.env.*.local
+.env.local
+.idea/
+.vscode/
+.wrangler/
+Thumbs.db
+dist/
+infra/supabase/.temp/
+node_modules/
+supabase/.temp/

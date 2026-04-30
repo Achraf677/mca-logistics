@@ -1,0 +1,13 @@
+{
+  "name": "mca-logistics",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PGI interne MCA Logistics - gestion transport et livraisons",
+  "scripts": {
+    "test": "node --test tests/business-rules.test.js tests/financial-regressions.test.js",
+    "lint": "eslint script.js script-*.js *-supabase-adapter.js storage-uploader.js entity-supabase-adapter.js repo.js monitoring.js lazy-loader.js lazy-stubs.js auth-2fa.js all-entity-adapters.js"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
+  }
+}

@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="MCA Logistics" />
   <meta name="theme-color" content="#0a0d14" />
+  <link rel="manifest" href="/manifest.json" />
   <meta name="robots" content="noindex, nofollow" />
   <title>MCA Logistics — Espace Salarié</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
@@ -1281,15 +1282,15 @@ html, body {
 
 <div class="toast" id="toast-sal"></div>
 
-<script src="monitoring.js?v=20260430-1"></script>
+<script src="monitoring.js?v=20260430-2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="supabase-client.js"></script>
 <script src="supabase-auth.js"></script>
 <script src="security-utils.js"></script>
 <script src="supabase-storage-sync.js"></script>
-<script src="storage-uploader.js?v=20260430-1"></script>
-<script src="repo.js?v=20260430-1"></script>
+<script src="storage-uploader.js?v=20260430-2"></script>
+<script src="repo.js?v=20260430-2"></script>
 <script>
 /* ===== ÉTAT ===== */
 let salarieCourant = null;
@@ -1731,12 +1732,12 @@ function envoyerPhotoSal(input) {
       let photoPath = null;
       let photoBase64 = null;
 
-      // Upload vers Supabase Storage si dispo
+      // Upload vers Supabase Storage si dispo (WebP si supporte, sinon JPEG)
       if (window.DelivProStorage) {
-        const blob = await new Promise(res => c.toBlob(b => res(b), 'image/jpeg', 0.72));
-        if (blob) {
-          const path = `${msgId}/${Date.now()}_photo.jpg`;
-          const up = await window.DelivProStorage.uploadBlob('messages-photos', path, blob, { contentType: 'image/jpeg' });
+        const out = await window.DelivProStorage.canvasToOptimalBlob(c, 0.78);
+        if (out && out.blob) {
+          const path = `${msgId}/${Date.now()}_photo.${out.ext}`;
+          const up = await window.DelivProStorage.uploadBlob('messages-photos', path, out.blob, { contentType: out.mime });
           if (up.ok) photoPath = path;
         }
       }
@@ -2447,14 +2448,15 @@ async function enregistrerPlein() {
   // Compresse la photo (max 1200px, JPEG quality 0.7) pour eviter les payloads enormes
   let photoBlob = null;
   let photoMime = null;
+  let photoExt = 'jpg';
   const photoInput = document.getElementById('carb-photo');
   const photoFile = photoInput?.files?.[0];
   if (photoFile) {
-    photoBlob = await new Promise((resolve) => {
+    const out = await new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
-        img.onload = () => {
+        img.onload = async () => {
           const max = 1200;
           let w = img.width, h = img.height;
           if (w > max || h > max) {
@@ -2464,13 +2466,21 @@ async function enregistrerPlein() {
           const canvas = document.createElement('canvas');
           canvas.width = w; canvas.height = h;
           canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          canvas.toBlob(b => resolve(b), 'image/jpeg', 0.7);
+          // WebP si supporte (~30% plus leger), JPEG sinon
+          if (window.DelivProStorage && window.DelivProStorage.canvasToOptimalBlob) {
+            const r = await window.DelivProStorage.canvasToOptimalBlob(canvas, 0.78);
+            resolve(r);
+          } else {
+            canvas.toBlob(b => resolve({ blob: b, mime: 'image/jpeg', ext: 'jpg' }), 'image/jpeg', 0.7);
+          }
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(photoFile);
     });
-    photoMime = 'image/jpeg';
+    photoBlob = out.blob;
+    photoMime = out.mime;
+    photoExt = out.ext;
   }
 
   const veh = getMonVehicule();
@@ -2482,7 +2492,7 @@ async function enregistrerPlein() {
   let photoRecu = null;
   if (photoBlob) {
     if (window.DelivProStorage) {
-      const path = `${pleinId}/${Date.now()}_recu.jpg`;
+      const path = `${pleinId}/${Date.now()}_recu.${photoExt}`;
       const up = await window.DelivProStorage.uploadBlob('carburant-recus', path, photoBlob, { contentType: photoMime });
       if (up.ok) {
         photoRecuPath = path;
