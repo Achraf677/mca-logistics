@@ -117,6 +117,8 @@ if (!toutesDejaLues) {
     { type: 'assurance_proche', label: '🛡️ Assurances expirent bientôt',   color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
     { type: 'charge_retard_paiement', label: '💸 Charges en retard de paiement', color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)' },
     { type: 'carburant_anomalie',     label: '⛽ Anomalies carburant (conso / fraude)', color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)' },
+    { type: 'planning_manquant',      label: '📅 Salariés sans planning défini',       color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
+    { type: 'inspection_manquante',   label: '🚗 Véhicules sans inspection récente',    color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
   ];
   // Types à ne jamais afficher dans les alertes (gérés ailleurs)
   const typesExclus = ['message'];
@@ -163,6 +165,10 @@ if (!toutesDejaLues) {
             btnRaccourci = `<button class="btn-icon" style="background:rgba(46,204,113,.12);color:#2ecc71;border:1px solid rgba(46,204,113,.3);font-size:.75rem" onclick="basculerStatutCharge('${a.meta.chargeId}');validerAlerte('${a.id}')" title="Marquer la charge payée">💸 Marquer payée</button>`;
           } else if (cat.type === 'carburant_anomalie' && a.meta?.vehId) {
             btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('carburant');setTimeout(()=>{var f=document.getElementById('filtre-carb-vehicule');if(f){f.value='${a.meta.vehId}';if(typeof afficherCarburant==='function')afficherCarburant();}},80)" title="Voir les pleins de ce véhicule">⛽ Voir pleins</button>`;
+          } else if (cat.type === 'planning_manquant' && a.meta?.salId) {
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('planning');setTimeout(()=>{if(typeof ouvrirModalPlanning==='function')ouvrirModalPlanning();},80)" title="Definir le planning">📅 Définir planning</button>`;
+          } else if (cat.type === 'inspection_manquante' && a.meta?.vehId) {
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('inspections')" title="Demander/saisir une inspection">🚗 Inspections</button>`;
           }
 
           if (estPrixManquant) {

@@ -2873,6 +2873,52 @@ function verifierNotificationsAutomatiquesMois2() {
     try { sweepAnomaliesCarburant(); } catch (e) { console.warn('[anomalies-carb] sweep:', e); }
   }
 
+  // PGI : salaries actifs sans planning defini (template vide ou aucun jour de
+  // travail). Detecte les onboardings incomplets et evite les angles morts RH.
+  charger('salaries').forEach(function(sal) {
+    if (!sal || sal.statut === 'inactif' || sal.archive) return;
+    var planning = (charger('plannings') || []).find(function(p) { return p.salId === sal.id; });
+    var aJourTravail = planning && Array.isArray(planning.semaine)
+      && planning.semaine.some(function(j) { return j.typeJour === 'travail' || j.travaille === true; });
+    if (!aJourTravail) {
+      ajouterAlerteSiAbsente('planning_manquant',
+        '📅 Aucun planning de travail defini — ' + (sal.nom || sal.id),
+        { salId: sal.id, salNom: sal.nom || '', stageKey: 'planning-manquant-' + sal.id });
+    }
+  });
+
+  // PGI : vehicules sans inspection recente. Securite operationnelle (etat
+  // vehicule, conformite). Seuil 30j = avertissement, 60j = critique.
+  var inspections = charger('inspections') || [];
+  var lastInspByVeh = {};
+  inspections.forEach(function(insp) {
+    if (!insp || !insp.vehId) return;
+    var d = insp.date || (insp.creeLe ? insp.creeLe.slice(0, 10) : '');
+    if (!d) return;
+    if (!lastInspByVeh[insp.vehId] || d > lastInspByVeh[insp.vehId]) {
+      lastInspByVeh[insp.vehId] = d;
+    }
+  });
+  var aujMs = Date.now();
+  charger('vehicules').forEach(function(v) {
+    if (!v || v.archive) return;
+    var last = lastInspByVeh[v.id];
+    var ageJ = last ? Math.floor((aujMs - new Date(last).getTime()) / 86400000) : null;
+    if (last == null) {
+      ajouterAlerteSiAbsente('inspection_manquante',
+        '🚗 Aucune inspection enregistree — ' + (v.immat || v.id),
+        { vehId: v.id, stageKey: 'insp-manquante-jamais-' + v.id });
+    } else if (ageJ >= 60) {
+      ajouterAlerteSiAbsente('inspection_manquante',
+        '🚗 Pas d\'inspection depuis ' + ageJ + ' jours (>60j) — ' + (v.immat || v.id),
+        { vehId: v.id, stageKey: 'insp-manquante-60-' + v.id });
+    } else if (ageJ >= 30) {
+      ajouterAlerteSiAbsente('inspection_manquante',
+        '🚗 Pas d\'inspection depuis ' + ageJ + ' jours — ' + (v.immat || v.id),
+        { vehId: v.id, stageKey: 'insp-manquante-30-' + v.id });
+    }
+  });
+
   if (alertes.length !== charger('alertes_admin').length) afficherBadgeAlertes();
 }
 
