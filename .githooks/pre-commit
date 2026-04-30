@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# MCA Logistics - pre-commit hook
+# Lance les tests rapides avant chaque commit. Bloque le commit si echec.
+# Activation : git config core.hooksPath .githooks (cf README)
+
+set -e
+
+echo "▶ Pre-commit : tests business rules + financial regressions..."
+node --test tests/business-rules.test.js tests/financial-regressions.test.js > /tmp/mca_pre_commit_tests.log 2>&1 || {
+  echo "❌ Tests echec :"
+  tail -20 /tmp/mca_pre_commit_tests.log
+  echo ""
+  echo "Pour bypass exceptionnel : git commit --no-verify"
+  exit 1
+}
+
+# Verifie syntaxe JS sur les fichiers stagged
+echo "▶ Verification syntaxe JS sur fichiers stagged..."
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.js$' | grep -v 'chart.min.js' | grep -v 'node_modules' || true)
+if [ -n "$files" ]; then
+  for f in $files; do
+    if [ -f "$f" ]; then
+      node -c "$f" || { echo "❌ Erreur syntaxe : $f"; exit 1; }
+    fi
+  done
+fi
+
+echo "✅ Pre-commit OK"

@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, claude/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests + syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Verify JS syntax (all *.js at root)
+        run: |
+          set -e
+          for f in *.js; do
+            if [ -f "$f" ] && [ "$f" != "chart.min.js" ]; then
+              echo "Checking $f..."
+              node -c "$f"
+            fi
+          done
+
+      - name: Run business rules tests
+        run: node --test tests/business-rules.test.js tests/financial-regressions.test.js
+
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    continue-on-error: true # warnings only pour l'instant
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dev dependencies
+        run: npm install --no-save eslint@^9.0.0 || npm install --no-save eslint@^8.0.0
+
+      - name: Run ESLint
+        run: npx eslint script.js script-*.js *-supabase-adapter.js storage-uploader.js entity-supabase-adapter.js repo.js monitoring.js lazy-loader.js lazy-stubs.js auth-2fa.js all-entity-adapters.js || true
