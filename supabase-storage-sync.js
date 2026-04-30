@@ -75,6 +75,7 @@
     if (key === 'entretiens') return false;
     if (key === 'paiements') return false;
     if (key === 'incidents') return false;
+    if (key === 'fournisseurs') return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     return true;
   }

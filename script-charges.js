@@ -225,7 +225,7 @@ function afficherCharges() {
 }
 
 // L7145 (script.js d'origine)
-function ajouterCharge() {
+async function ajouterCharge() {
   const editId    = document.getElementById('charge-edit-id')?.value || '';
   const date      = document.getElementById('charge-date')?.value || aujourdhui();
   const categorie = document.getElementById('charge-cat')?.value || 'autre';
@@ -268,6 +268,15 @@ function ajouterCharge() {
       if (typeof ajouterEntreeAudit === 'function') {
         ajouterEntreeAudit('Création fournisseur (depuis charge)', fournisseurNom);
       }
+      // PGI : forcer le flush immediat du fournisseur en DB avant de creer
+      // la charge qui le reference (FK constraint charges.fournisseur_id ->
+      // fournisseurs.id). Sans ce flush, la charge peut arriver avant le
+      // fournisseur en DB et la FK rejette.
+      try {
+        if (window.DelivProEntityAdapters?.fournisseurs?.flushDiff) {
+          await window.DelivProEntityAdapters.fournisseurs.flushDiff();
+        }
+      } catch (e) { console.warn('[ajouterCharge] flush fournisseur:', e); }
       afficherToast('✅ Fournisseur « ' + fournisseurNom + ' » créé automatiquement', 'info');
     }
     fournisseurId = fExisting.id;

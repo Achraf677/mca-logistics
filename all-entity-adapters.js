@@ -345,5 +345,66 @@
     noRealtime: true
   });
 
-  console.info('[all-entity-adapters] 6 adapters initialises (livraisons, charges, carburant, entretiens, paiements, incidents)');
+  // ============================================================
+  // FOURNISSEURS
+  // ============================================================
+  function fournisseurJsToDb(f) {
+    if (!f || typeof f !== 'object') return null;
+    var row = {
+      nom: emptyToNull(f.nom) || 'Sans nom',
+      type: emptyToNull(f.type) || 'Pro',
+      secteur: emptyToNull(f.secteur),
+      contact: emptyToNull(f.contact),
+      prenom: emptyToNull(f.prenom),
+      telephone: emptyToNull(f.tel),
+      email: emptyToNull(f.email),
+      email_fact: emptyToNull(f.emailFact),
+      adresse: emptyToNull(f.adresse),
+      cp: emptyToNull(f.cp),
+      ville: emptyToNull(f.ville),
+      siren: emptyToNull(f.siren),
+      tva_intracom: emptyToNull(f.tvaIntra),
+      paiement_mode: emptyToNull(f.modePaiement) || 'virement',
+      iban: emptyToNull(f.iban),
+      bic: emptyToNull(f.bic),
+      delai_paiement_jours: (typeof f.delaiPaiementJours === 'number' ? f.delaiPaiementJours : 30),
+      notes: emptyToNull(f.notes),
+      extra: f
+    };
+    if (isUuidLike(f.id)) row.id = f.id;
+    if (f.creeLe && !isNaN(Date.parse(f.creeLe))) row.created_at = f.creeLe;
+    return row;
+  }
+  function fournisseurDbToJs(r) {
+    if (!r) return null;
+    var extra = (r.extra && typeof r.extra === 'object') ? r.extra : {};
+    return Object.assign({}, extra, {
+      id: r.id,
+      nom: r.nom || '',
+      type: r.type || 'Pro',
+      secteur: r.secteur || '',
+      contact: r.contact || '',
+      prenom: r.prenom || '',
+      tel: r.telephone || '',
+      email: r.email || '',
+      emailFact: r.email_fact || '',
+      adresse: r.adresse || '',
+      cp: r.cp || '',
+      ville: r.ville || '',
+      siren: r.siren || '',
+      tvaIntra: r.tva_intracom || '',
+      modePaiement: r.paiement_mode || 'virement',
+      iban: r.iban || '',
+      bic: r.bic || '',
+      delaiPaiementJours: r.delai_paiement_jours == null ? 30 : Number(r.delai_paiement_jours),
+      notes: r.notes || '',
+      creeLe: r.created_at || ''
+    });
+  }
+  window.DelivProEntityAdapters.fournisseurs = window.createSupabaseEntityAdapter({
+    storageKey: 'fournisseurs', table: 'fournisseurs', channelName: 'mca-fournisseurs-sync',
+    jsToDb: fournisseurJsToDb, dbToJs: fournisseurDbToJs, orderBy: 'created_at'
+  });
+
+  console.info('[all-entity-adapters] 7 adapters initialises (livraisons, charges, carburant, entretiens, paiements, incidents, fournisseurs)');
 })();
