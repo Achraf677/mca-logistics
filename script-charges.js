@@ -19,7 +19,7 @@ function getChargeMontantHT(charge) {
 
 // L6982 (script.js d'origine)
 function resetFormulaireCharge() {
-  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period','charge-fournisseur','charge-date-paiement','charge-mode-paiement'];
+  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period','charge-fournisseur','charge-date-paiement','charge-mode-paiement','charge-carb-litres','charge-carb-prix-litre'];
   fields.forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -163,6 +163,8 @@ function ajusterCategorieCharge() {
   var periodWrap = document.getElementById('charge-tva-period-wrap');
   var vehWrap = document.getElementById('charge-veh-wrap');
   var periodInput = document.getElementById('charge-tva-period');
+  var litresWrap = document.getElementById('charge-carb-litres-wrap');
+  var prixLWrap = document.getElementById('charge-carb-prix-litre-wrap');
   if (!cat || !tva) return;
   if (cat.value === 'tva') {
     tva.value = '0';
@@ -180,6 +182,10 @@ function ajusterCategorieCharge() {
     if (vehWrap) vehWrap.style.display = '';
     if (parseFloat(tva.value || '0') === 0) tva.value = '20';
   }
+  // Litres + prix/L : visible uniquement pour categorie carburant
+  var isCarb = cat.value === 'carburant';
+  if (litresWrap) litresWrap.style.display = isCarb ? '' : 'none';
+  if (prixLWrap) prixLWrap.style.display = isCarb ? '' : 'none';
   calculerTTCDepuisHT('charge');
 }
 
@@ -222,8 +228,18 @@ function ouvrirEditCharge(id) {
     'charge-statut-paiement': charge.statutPaiement || 'a_payer',
     'charge-date-paiement': charge.datePaiement || '',
     'charge-mode-paiement': charge.modePaiement || '',
-    'charge-tva-period': getTVADeclarationPeriodRangeFromKey(charge.tvaPeriodeKey || charge.tvaPeriode || '')?.debut?.slice(0, 7) || ''
+    'charge-tva-period': getTVADeclarationPeriodRangeFromKey(charge.tvaPeriodeKey || charge.tvaPeriode || '')?.debut?.slice(0, 7) || '',
+    'charge-carb-litres': '',
+    'charge-carb-prix-litre': ''
   };
+  // Pre-remplit litres + prix/L si la charge est liee a un plein existant
+  if (charge.carburantId) {
+    var pleinLie = charger('carburant').find(function(p) { return p.id === charge.carburantId; });
+    if (pleinLie) {
+      setters['charge-carb-litres'] = pleinLie.litres != null ? pleinLie.litres : '';
+      setters['charge-carb-prix-litre'] = pleinLie.prixLitre != null ? pleinLie.prixLitre : '';
+    }
+  }
   Object.keys(setters).forEach(function(idField) {
     var el = document.getElementById(idField);
     if (el) el.value = setters[idField];
@@ -288,6 +304,77 @@ function getChargeDateEcheance(charge) {
   return ech;
 }
 window.getChargeDateEcheance = getChargeDateEcheance;
+
+// PGI : sync charge carburant -> plein (carburant module). Cree ou met a
+// jour le plein associe quand l'utilisateur saisit/modifie une charge cat=
+// 'carburant' depuis le module charges. Symetrique de syncChargeCarburant.
+function synchroChargeVersCarburant(charge) {
+  if (!charge || charge.categorie !== 'carburant') return;
+  var pleins = charger('carburant');
+  // Si la charge a deja un carburantId, on met a jour le plein
+  // Sinon : on en cree un nouveau (et on pose carburantId sur la charge)
+  var existIdx = charge.carburantId
+    ? pleins.findIndex(function(p) { return p.id === charge.carburantId; })
+    : -1;
+  // Recupere les champs additionnels saisis dans la modal
+  var litres = parseFloat(document.getElementById('charge-carb-litres')?.value);
+  var prixLitre = parseFloat(document.getElementById('charge-carb-prix-litre')?.value);
+  // Fallback : deduit prixLitre si litres mais pas prixLitre, et inversement
+  var total = parseFloat(charge.montant) || 0;
+  if (Number.isFinite(litres) && litres > 0 && (!Number.isFinite(prixLitre) || prixLitre <= 0)) {
+    prixLitre = total / litres;
+  } else if (Number.isFinite(prixLitre) && prixLitre > 0 && (!Number.isFinite(litres) || litres <= 0)) {
+    litres = total / prixLitre;
+  }
+  var vehNom = '';
+  if (charge.vehId) {
+    var v = charger('vehicules').find(function(x) { return x.id === charge.vehId; });
+    if (v) vehNom = v.salNom ? (v.immat + ' — ' + v.salNom) : v.immat;
+  }
+  if (existIdx > -1) {
+    // Update
+    pleins[existIdx] = Object.assign({}, pleins[existIdx], {
+      vehId: charge.vehId || pleins[existIdx].vehId,
+      vehNom: vehNom || pleins[existIdx].vehNom,
+      date: charge.date,
+      total: total,
+      tauxTVA: parseFloat(charge.tauxTVA) || 20,
+      litres: Number.isFinite(litres) ? litres : pleins[existIdx].litres,
+      prixLitre: Number.isFinite(prixLitre) ? prixLitre : pleins[existIdx].prixLitre,
+      modifie: true,
+      modifieLe: new Date().toISOString()
+    });
+  } else {
+    // Create
+    var pleinId = (typeof genId === 'function') ? genId() : ('p_' + Date.now());
+    pleins.push({
+      id: pleinId,
+      vehId: charge.vehId || '',
+      vehNom: vehNom,
+      litres: Number.isFinite(litres) && litres > 0 ? litres : null,
+      prixLitre: Number.isFinite(prixLitre) && prixLitre > 0 ? prixLitre : null,
+      total: total,
+      date: charge.date,
+      typeCarburant: 'gasoil',
+      kmCompteur: null,
+      tauxTVA: parseFloat(charge.tauxTVA) || 20,
+      source: 'admin',
+      modifie: false,
+      chargeId: charge.id,
+      creeLe: new Date().toISOString()
+    });
+    // Stocke carburantId sur la charge pour les futurs updates
+    var charges = charger('charges');
+    var idxC = charges.findIndex(function(c) { return c.id === charge.id; });
+    if (idxC > -1) {
+      charges[idxC].carburantId = pleinId;
+      sauvegarder('charges', charges);
+    }
+  }
+  sauvegarder('carburant', pleins);
+  if (typeof afficherCarburant === 'function') afficherCarburant();
+}
+window.synchroChargeVersCarburant = synchroChargeVersCarburant;
 
 // Bascule rapide a_payer <-> paye depuis le tableau
 async function basculerStatutCharge(id) {
@@ -537,6 +624,7 @@ async function ajouterCharge() {
   sauvegarder('charges', charges);
   ajouterEntreeAudit(editId ? 'Modification charge' : 'Création charge', (charge.categorie || 'charge') + ' · ' + euros(charge.montant || 0) + ' · ' + (charge.description || ''));
   synchroChargeVersEntretien(charge);
+  synchroChargeVersCarburant(charge);
   closeModal('modal-charge');
   resetFormulaireCharge();
   afficherCharges();
@@ -552,14 +640,24 @@ async function supprimerCharge(id) {
   if (!ok) return;
   const charge = charger('charges').find(function(item) { return item.id === id; });
   sauvegarder('charges', charger('charges').filter(c=>c.id!==id));
-  // PGI : si la charge est liee a un plein carburant (charge auto-creee depuis
-  // module carburant), on supprime aussi le plein source pour eviter une
-  // resync immediate qui re-creerait la charge.
+  // PGI : si la charge est liee a un plein carburant, on supprime aussi
+  // le plein source pour eviter une resync immediate qui re-creerait la
+  // charge.
   if (charge?.categorie === 'carburant' && charge.carburantId) {
     var pleins = charger('carburant');
-    var avant = pleins.length;
     sauvegarder('carburant', pleins.filter(function(p) { return p.id !== charge.carburantId; }));
-    if (typeof afficherCarburant === 'function' && avant !== pleins.length - 1) afficherCarburant();
+  }
+  // Idem pour entretien : suppression de l'entretien lie (sinon il reste
+  // orphelin dans le module Entretiens et fausse la rentabilite).
+  if (charge?.categorie === 'entretien') {
+    var entretiens = charger('entretiens');
+    sauvegarder('entretiens', entretiens.filter(function(e) {
+      // Lien direct via entretienId sur la charge OU chargeId sur l'entretien
+      if (charge.entretienId && e.id === charge.entretienId) return false;
+      if (e.chargeId && e.chargeId === charge.id) return false;
+      return true;
+    }));
+    if (typeof afficherEntretiens === 'function') afficherEntretiens();
   }
   afficherCharges();
   afficherTva();

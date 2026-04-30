@@ -410,15 +410,28 @@ function exporterEntretiensPDF() {
 function synchroChargeVersEntretien(charge) {
   if (charge.categorie !== 'entretien') return;
   var entretiens = charger('entretiens');
-  var existe = entretiens.find(function(e){return e.chargeId===charge.id;});
-  if (existe) return;
-  entretiens.push({
-    id: genId(), chargeId: charge.id, vehId: charge.vehId || '',
-    date: charge.date, type: 'autre', description: charge.description || 'Depuis charges',
-    km: 0, prochainKm: 0, cout: charge.montant || 0, coutHT: charge.montantHT || 0, tauxTVA: charge.tauxTVA || 20,
-    tauxDeductible: 100, creeLe: new Date().toISOString()
-  });
+  var existeIdx = entretiens.findIndex(function(e){return e.chargeId===charge.id;});
+  if (existeIdx > -1) {
+    // Update : la charge a ete modifiee, on synchronise les champs sur l'entretien
+    entretiens[existeIdx] = Object.assign({}, entretiens[existeIdx], {
+      vehId: charge.vehId || entretiens[existeIdx].vehId,
+      date: charge.date,
+      description: charge.description || entretiens[existeIdx].description,
+      cout: charge.montant || 0,
+      coutHT: charge.montantHT || 0,
+      tauxTVA: charge.tauxTVA || 20,
+      modifieLe: new Date().toISOString()
+    });
+  } else {
+    entretiens.push({
+      id: genId(), chargeId: charge.id, vehId: charge.vehId || '',
+      date: charge.date, type: 'autre', description: charge.description || 'Depuis charges',
+      km: 0, prochainKm: 0, cout: charge.montant || 0, coutHT: charge.montantHT || 0, tauxTVA: charge.tauxTVA || 20,
+      tauxDeductible: 100, creeLe: new Date().toISOString()
+    });
+  }
   sauvegarder('entretiens', entretiens);
+  if (typeof afficherEntretiens === 'function') afficherEntretiens();
 }
 
 // L12054 (script.js d'origine)
