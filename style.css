@@ -8376,3 +8376,215 @@ body.light-mode .s30-ac-scroll table thead th { background: #f8fafc; }
 
 body.light-mode .s30-ac-filter-tab-count { background: rgba(0,0,0,0.08); }
 
+/* ============================================================================
+   MOBILE REFONTE — Sprint 25 (avril 2026)
+   Bloc additif qui corrige les douleurs mobile/iPhone sans toucher aux 42
+   @media existantes. Si tu ajoutes/modifies des regles ici, garde-les
+   focalisees mobile-only et evite les !important sauf si vraiment necessaire.
+   ============================================================================ */
+
+/* --- Safe areas iPhone (notch + home indicator) ---
+   Padding adapte au device. Evite le contenu sous la barre de statut/home bar. */
+@supports (padding: env(safe-area-inset-top)) {
+  body.app-shell {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (max-width: 760px) {
+
+  /* --- Anti-zoom Safari iOS ---
+     iOS zoome auto si l'input a font-size < 16px. On force le minimum. */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* --- Touch targets WCAG (>=44x44 sur les CTA principaux) --- */
+  .btn-primary,
+  .btn-secondary,
+  .btn-rapport,
+  .btn-export,
+  .btn-theme-toggle,
+  .btn-hamburger,
+  .btn-menu-mobile {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  /* btn-icon : on garde compact mais on garantit la zone tactile via padding */
+  .btn-icon {
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+
+  /* --- Topbar compacte ---
+     Trop d'elements (8 boutons + agent IA + user menu + date) -> on reorganise
+     et on cache le moins essentiel pour eviter le wrap chaotique. */
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+    align-items: center;
+  }
+  .topbar-search-trigger,
+  .topbar-date,
+  #ai-status-bar {
+    display: none !important; /* recherche dispo via Ctrl+K, date dans le header de page, agent IA dans son drawer */
+  }
+  .topbar-title {
+    font-size: 1rem;
+    flex: 1 1 auto;
+    text-align: center;
+  }
+  .topbar-branding { font-size: .9rem; }
+
+  /* --- Page actions : stack vertical et boutons full-width sur tres petit --- */
+  .page-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .page-actions h2 { font-size: 1.15rem; }
+  .page-actions-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* --- Filtres : wrap propre, inputs/selects pleine largeur si seuls sur la ligne --- */
+  .filters {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .filters > input,
+  .filters > select {
+    flex: 1 1 140px;
+    min-width: 140px;
+  }
+  .filters > button {
+    flex: 1 1 100%;
+  }
+
+  /* --- Sticky filter bar alertes : moins de top padding + blur denser --- */
+  .alertes-filters-sticky {
+    padding: 8px 0 !important;
+    gap: 6px;
+  }
+  .alertes-filters-sticky > input[type=search] {
+    flex-basis: 100% !important;
+  }
+
+  /* --- Bandeau de stats alertes : 2 colonnes au lieu de 4 sur mobile --- */
+  #alertes-categories > div[style*="grid-template-columns"]:first-child {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* --- Tables : amelioration du scroll horizontal (necessite pour ne pas casser
+        les pages avec data-table actuelles). On ajoute un fade indicator a droite
+        et on reduit le min-width des cellules. */
+  .table-wrapper {
+    position: relative;
+    margin: 0 -10px; /* full-bleed a l'interieur du padding du .page */
+    padding: 0 10px;
+  }
+  .table-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 24px;
+    background: linear-gradient(to right, transparent, rgba(13,21,36,0.85));
+    pointer-events: none;
+  }
+  body.light-mode .table-wrapper::after {
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.85));
+  }
+  .data-table th, .data-table td {
+    padding: 10px 8px;
+    font-size: .82rem;
+  }
+  /* Premiere colonne sticky pour garder le contexte au scroll lateral */
+  .data-table thead th:first-child,
+  .data-table tbody td:first-child {
+    position: sticky;
+    left: 0;
+    background: var(--bg-card, #1a1d27);
+    z-index: 1;
+  }
+  body.light-mode .data-table thead th:first-child,
+  body.light-mode .data-table tbody td:first-child {
+    background: #fff;
+  }
+
+  /* --- Modales : fullscreen mobile pour utiliser tout l'ecran ---
+     Structure : .modal-overlay > .modal. En desktop la modal a max-width:600px
+     et max-height:90vh (centree). En mobile on l'etend bord a bord. */
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+  .modal-overlay.open > .modal {
+    max-width: 100% !important;
+    max-height: 100vh !important;
+    width: 100%;
+    height: 100vh;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  .modal-body {
+    -webkit-overflow-scrolling: touch;
+    padding: 16px !important;
+  }
+  .modal-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .modal-footer > button {
+    flex: 1 1 auto;
+    min-height: 44px;
+  }
+
+  /* --- KPI grids tres petites : 1 colonne sur ecran < 380px --- */
+  /* (la regle generale @ 768px met deja 2 colonnes, on descend a 1 sur tres petit) */
+
+  /* --- Snooze select alertes : tap target plus large --- */
+  #alertes-categories select {
+    min-height: 36px;
+    padding: 6px 8px;
+  }
+
+  /* --- Section header alertes : compact, retour ligne ok --- */
+  #alertes-categories > div > div[style*="border-bottom"]:first-child {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* --- Empty state alertes : padding reduit --- */
+  #alertes-categories > div[style*="border:1px dashed"] {
+    padding: 32px 16px !important;
+  }
+
+  /* --- Bouton scroll-top : decale au-dessus du home indicator iPhone --- */
+  #btn-scroll-top {
+    bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+    right: calc(16px + env(safe-area-inset-right)) !important;
+  }
+
+  /* --- Topbar respecte le notch (ajustement du padding-left pour iPhone landscape) --- */
+  .topbar {
+    padding-left: max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+/* --- Tres petit ecran (iPhone SE 1ere gen, vieux Android) --- */
+@media (max-width: 380px) {
+  .kpi-grid { grid-template-columns: 1fr !important; }
+  .topbar-title { font-size: .9rem; }
+  .topbar-branding { display: none; }
+  /* Bandeau stats alertes : 1 col sur tres petit ecran */
+  #alertes-categories > div[style*="grid-template-columns"]:first-child {
+    grid-template-columns: 1fr !important;
+  }
+  .page { padding: 10px 8px 12px !important; }
+}
+
