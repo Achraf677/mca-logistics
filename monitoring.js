@@ -96,7 +96,9 @@
     var script = document.createElement('script');
     script.src = 'https://browser.sentry-cdn.com/8.40.0/bundle.min.js';
     script.crossOrigin = 'anonymous';
-    script.integrity = 'sha384-iFsXFZA0xtA3zPuO0CFJbpPDk0GpBFG7sgsCoXvsxqL5Ap4kRSCe6bXr4QfbQiDc';
+    // Note : pas d'integrity SRI car Sentry CDN met a jour la version
+    // periodiquement ; un hash fixe se desyncroniserait. La CSP whitelist
+    // browser.sentry-cdn.com en script-src, ce qui suffit comme garantie.
     script.onload = function () {
       if (!window.Sentry) { console.warn('[MCA monitoring] Sentry SDK non charge'); return; }
       window.Sentry.init({
