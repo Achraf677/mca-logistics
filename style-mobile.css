@@ -438,6 +438,37 @@ a { color: var(--m-accent); text-decoration: none; }
 }
 .m-fab:active { transform: scale(0.92); }
 
+/* ============================ ALERTES (chips statut + actions) ============================ */
+.m-alertes-chip {
+  flex: 0 0 auto;
+  background: var(--m-bg-elevated);
+  color: var(--m-text);
+  border: 1px solid var(--m-border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: .82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+.m-alertes-chip.active {
+  background: var(--m-accent);
+  color: #1a1208;
+  border-color: var(--m-accent);
+}
+.m-alerte-action {
+  background: var(--m-bg-elevated);
+  border: 1px solid var(--m-border);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: .75rem;
+  font-weight: 600;
+  min-height: 32px;
+  white-space: nowrap;
+}
+.m-alerte-action:active { transform: scale(0.94); }
+.m-alertes-bulk:active  { transform: scale(0.94); }
+
 /* ============================ STUB (pages a venir) ============================ */
 .m-stub {
   text-align: center;

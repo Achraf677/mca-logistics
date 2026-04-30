@@ -20,7 +20,7 @@
     backStack: [],
   };
 
-  // localStorage helper (memes cles que desktop : on partage les donnees)
+  // localStorage helpers (memes cles que desktop : on partage les donnees)
   M.charger = function(key) {
     try { return JSON.parse(localStorage.getItem(key) || '[]'); }
     catch (_) { return []; }
@@ -28,6 +28,16 @@
   M.chargerObj = function(key) {
     try { return JSON.parse(localStorage.getItem(key) || '{}'); }
     catch (_) { return {}; }
+  };
+  M.sauvegarder = function(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+    catch (_) { return false; }
+  };
+
+  // Native confirm wrapper (pour parite UX avec confirmDialog desktop, sans ses styles)
+  M.confirm = function(message, opts = {}) {
+    const titre = opts.titre ? opts.titre + '\n\n' : '';
+    return Promise.resolve(window.confirm(titre + message));
   };
 
   // Formatters
@@ -410,7 +420,344 @@
     }
   });
   M.register('planning',    makeStub('Planning',    '📅', 'Planning équipe, qui bosse aujourd\'hui, absences.'));
-  M.register('alertes',     makeStub('Alertes',     '🔔', 'Critique / À traiter / Info, actions groupées, snooze.'));
+  // ============================================================
+  // ALERTES — namespace data (mirror script-alertes.js cote desktop)
+  // ============================================================
+  // Doit rester aligne avec ALERTE_COOLDOWN_JOURS / bloqueRegen / purgerAlertesAnciennes
+  // de script-alertes.js. Si tu changes la logique cote desktop, repercute ici.
+  M.alertes = {
+    COOLDOWN_JOURS: 30,
+    estReportee(a) {
+      return a?.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > new Date();
+    },
+    bloqueRegen(a) {
+      if (!a.traitee && !a.ignoree) return true;
+      if (a.cooldownJusquA && new Date(a.cooldownJusquA) > new Date()) return true;
+      return false;
+    },
+    dateCooldownIso(jours) {
+      const d = new Date();
+      d.setDate(d.getDate() + (Number(jours) || M.alertes.COOLDOWN_JOURS));
+      return d.toISOString();
+    },
+    purger() {
+      const now = new Date();
+      const arr = M.charger('alertes_admin');
+      const out = arr.filter(a => {
+        if (!a.traitee && !a.ignoree) return true;
+        if (a.cooldownJusquA && new Date(a.cooldownJusquA) > now) return true;
+        return false;
+      });
+      if (out.length !== arr.length) M.sauvegarder('alertes_admin', out);
+    },
+    valider(id) {
+      const arr = M.charger('alertes_admin');
+      const idx = arr.findIndex(a => a.id === id);
+      if (idx < 0) return false;
+      const now = new Date().toISOString();
+      arr[idx].traitee = true;
+      arr[idx].traiteLe = now;
+      arr[idx].cooldownJusquA = M.alertes.dateCooldownIso();
+      M.sauvegarder('alertes_admin', arr);
+      M.toast('✅ Alerte traitée');
+      return true;
+    },
+    ignorer(id) {
+      const arr = M.charger('alertes_admin');
+      const idx = arr.findIndex(a => a.id === id);
+      if (idx < 0) return false;
+      arr[idx].ignoree = true;
+      arr[idx].ignoreeLe = new Date().toISOString();
+      arr[idx].cooldownJusquA = M.alertes.dateCooldownIso();
+      M.sauvegarder('alertes_admin', arr);
+      M.toast('🗑️ Alerte ignorée (silencieuse 30j)');
+      return true;
+    },
+    reporter(id, jours) {
+      const n = Number(jours) || 7;
+      const arr = M.charger('alertes_admin');
+      const a = arr.find(x => x.id === id);
+      if (!a) return false;
+      const d = new Date(); d.setDate(d.getDate() + n);
+      a.meta = { ...(a.meta || {}), repousseJusquA: d.toISOString() };
+      M.sauvegarder('alertes_admin', arr);
+      M.toast(`⏰ Reportée de ${n} jour${n > 1 ? 's' : ''}`);
+      return true;
+    },
+    reprendre(id) {
+      const arr = M.charger('alertes_admin');
+      const a = arr.find(x => x.id === id);
+      if (!a || !a.meta?.repousseJusquA) return false;
+      delete a.meta.repousseJusquA;
+      M.sauvegarder('alertes_admin', arr);
+      M.toast('▶️ Alerte reprise');
+      return true;
+    },
+    async validerParType(type) {
+      const arr = M.charger('alertes_admin');
+      const cibles = arr.filter(a => a.type === type && !a.traitee && !a.ignoree && !M.alertes.estReportee(a));
+      if (!cibles.length) return false;
+      const ok = await M.confirm(`Marquer ${cibles.length} alerte${cibles.length>1?'s':''} comme traitée${cibles.length>1?'s':''} ?`, { titre: 'Tout valider' });
+      if (!ok) return false;
+      const now = new Date().toISOString();
+      const cd = M.alertes.dateCooldownIso();
+      const ids = new Set(cibles.map(a => a.id));
+      const out = arr.map(a => ids.has(a.id) ? { ...a, traitee: true, traiteLe: now, cooldownJusquA: cd } : a);
+      M.sauvegarder('alertes_admin', out);
+      M.toast(`✅ ${cibles.length} alerte${cibles.length>1?'s':''} traitée${cibles.length>1?'s':''}`);
+      return true;
+    },
+    async ignorerParType(type) {
+      const arr = M.charger('alertes_admin');
+      const cibles = arr.filter(a => a.type === type && !a.traitee && !a.ignoree && !M.alertes.estReportee(a));
+      if (!cibles.length) return false;
+      const ok = await M.confirm(`Ignorer ${cibles.length} alerte${cibles.length>1?'s':''} (silencieuses 30 jours) ?`, { titre: 'Tout ignorer' });
+      if (!ok) return false;
+      const now = new Date().toISOString();
+      const cd = M.alertes.dateCooldownIso();
+      const ids = new Set(cibles.map(a => a.id));
+      const out = arr.map(a => ids.has(a.id) ? { ...a, ignoree: true, ignoreeLe: now, cooldownJusquA: cd } : a);
+      M.sauvegarder('alertes_admin', out);
+      M.toast(`🗑️ ${cibles.length} alerte${cibles.length>1?'s':''} ignorée${cibles.length>1?'s':''}`);
+      return true;
+    },
+  };
+
+  // ---------- Alertes (v2.2 : port refonte PR #19 sur mobile) ----------
+  // Memes categories / severites que desktop pour coherence visuelle.
+  const M_ALERTES_CATEGORIES = [
+    // critique = action immediate (securite, conformite, cash)
+    { type: 'ct_expire',              severity: 'critique', label: 'CT expirés',                       icon: '⚠️' },
+    { type: 'permis_expire',          severity: 'critique', label: 'Permis expirés',                   icon: '🪪' },
+    { type: 'assurance_expire',       severity: 'critique', label: 'Assurances expirées',              icon: '🛡️' },
+    { type: 'charge_retard_paiement', severity: 'critique', label: 'Charges en retard',                icon: '💸' },
+    { type: 'carburant_anomalie',     severity: 'critique', label: 'Anomalies carburant',              icon: '⛽' },
+    // alerte = a traiter cette semaine
+    { type: 'ct_proche',              severity: 'alerte',   label: 'CT à renouveler',                  icon: '🔔' },
+    { type: 'permis_proche',          severity: 'alerte',   label: 'Permis bientôt expirés',           icon: '🪪' },
+    { type: 'assurance_proche',       severity: 'alerte',   label: 'Assurances bientôt expirées',      icon: '🛡️' },
+    { type: 'vidange',                severity: 'alerte',   label: 'Vidanges',                         icon: '🔧' },
+    { type: 'prix_manquant',          severity: 'alerte',   label: 'Prix manquants',                   icon: '💶' },
+    { type: 'planning_manquant',      severity: 'alerte',   label: 'Salariés sans planning',           icon: '📅' },
+    { type: 'inspection_manquante',   severity: 'alerte',   label: 'Véhicules sans inspection',        icon: '🚗' },
+    // info = trace de modif
+    { type: 'livraison_modif',        severity: 'info',     label: 'Livraisons modifiées',             icon: '✏️' },
+    { type: 'carburant_modif',        severity: 'info',     label: 'Modifs carburant',                 icon: '✏️' },
+    { type: 'km_modif',               severity: 'info',     label: 'Modifs km',                        icon: '✏️' },
+    { type: 'inspection',             severity: 'info',     label: 'Inspections reçues',               icon: '🚗' },
+  ];
+  const M_SEVERITES = {
+    critique: { label: 'Critique', color: 'var(--m-red)',    order: 1 },
+    alerte:   { label: 'À traiter', color: 'var(--m-accent)', order: 2 },
+    info:     { label: 'Info',      color: 'var(--m-blue)',   order: 3 },
+  };
+
+  M.state.alertesStatut = 'actives'; // actives | reportees | traitees
+  M.state.alertesRecherche = '';
+
+  M.register('alertes', {
+    title: 'Alertes',
+    render() {
+      M.alertes.purger(); // auto-purge a chaque rendu (cf. desktop)
+
+      const toutes = M.charger('alertes_admin').sort((a,b) => new Date(b.creeLe||0) - new Date(a.creeLe||0));
+      const recherche = (M.state.alertesRecherche || '').toLowerCase();
+      const statut = M.state.alertesStatut;
+
+      // Filtre statut
+      let filtered = toutes;
+      if (statut === 'actives')   filtered = filtered.filter(a => !a.traitee && !a.ignoree && !M.alertes.estReportee(a));
+      if (statut === 'reportees') filtered = filtered.filter(a => !a.traitee && !a.ignoree && M.alertes.estReportee(a));
+      if (statut === 'traitees')  filtered = filtered.filter(a => a.traitee);
+
+      // Filtre recherche
+      if (recherche) {
+        filtered = filtered.filter(a => {
+          const hay = `${a.message||''} ${a.meta?.salNom||''} ${a.meta?.client||''} ${a.meta?.immat||''}`.toLowerCase();
+          return hay.includes(recherche);
+        });
+      }
+
+      // Stats globales (banner)
+      const allActives = toutes.filter(a => !a.traitee && !a.ignoree && !M.alertes.estReportee(a));
+      const countBySev = { critique: 0, alerte: 0, info: 0 };
+      allActives.forEach(a => {
+        const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
+        if (cat) countBySev[cat.severity]++;
+      });
+      const allReportees = toutes.filter(a => !a.traitee && !a.ignoree && M.alertes.estReportee(a)).length;
+
+      // Header : recherche + chips statut
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-alertes-search" placeholder="🔍 Rechercher" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${statut==='actives'?'active':''}" data-statut="actives">🔴 Actives</button>
+          <button class="m-alertes-chip ${statut==='reportees'?'active':''}" data-statut="reportees">⏰ Reportées${allReportees ? ` (${allReportees})` : ''}</button>
+          <button class="m-alertes-chip ${statut==='traitees'?'active':''}" data-statut="traitees">✅ Traitées</button>
+        </div>
+      `;
+
+      // Stats banner (uniquement en vue actives)
+      if (statut === 'actives' && allActives.length) {
+        html += `
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px">
+            ${['critique','alerte','info'].map(sev => {
+              const cfg = M_SEVERITES[sev];
+              const n = countBySev[sev];
+              return `<div style="background:linear-gradient(135deg,${cfg.color}1a,${cfg.color}0a);border:1px solid ${cfg.color}55;border-radius:12px;padding:10px 8px;text-align:center;${n===0?'opacity:0.45':''}">
+                <div style="font-size:.62rem;color:${cfg.color};font-weight:700;text-transform:uppercase;letter-spacing:.04em">${cfg.label}</div>
+                <div style="font-size:1.3rem;font-weight:700;color:${cfg.color};margin-top:2px">${n}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // Empty states
+      if (!filtered.length) {
+        let icone = '✅', titre = 'Aucune alerte', sous = 'Tout est sous contrôle.';
+        if (recherche) { icone = '🔍'; titre = 'Aucun résultat'; sous = 'Essaie un autre mot-clé.'; }
+        else if (statut === 'reportees') { icone = '⏰'; titre = 'Aucune alerte reportée'; sous = 'Quand tu reportes une alerte, elle apparait ici jusqu\'à la date de reprise.'; }
+        else if (statut === 'traitees')  { icone = '📋'; titre = 'Aucune alerte traitée'; sous = 'L\'historique apparait ici. Auto-purge après 30 jours.'; }
+        html += `<div class="m-empty"><div class="m-empty-icon">${icone}</div><h3 class="m-empty-title">${titre}</h3><p class="m-empty-text">${sous}</p></div>`;
+        return html;
+      }
+
+      // Render group par severite -> categorie
+      const enModeReportees = statut === 'reportees';
+      const enModeTraitees = statut === 'traitees';
+      ['critique', 'alerte', 'info'].forEach(sev => {
+        const itemsSev = filtered.filter(a => {
+          const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
+          return cat?.severity === sev;
+        });
+        if (!itemsSev.length) return;
+        const cfg = M_SEVERITES[sev];
+        html += `<div style="font-size:.7rem;font-weight:700;color:${cfg.color};text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px;border-bottom:1px solid ${cfg.color}33;padding-bottom:6px">${cfg.label} — ${itemsSev.length}</div>`;
+
+        // Group par categorie au sein de la severite
+        const cats = M_ALERTES_CATEGORIES.filter(c => c.severity === sev);
+        cats.forEach(cat => {
+          const items = itemsSev.filter(a => a.type === cat.type);
+          if (!items.length) return;
+
+          // Card categorie
+          html += `<div class="m-card" style="padding:0;margin-bottom:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--m-border)">
+              <div style="font-weight:600;font-size:.9rem;display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0">
+                <span>${cat.icon}</span>
+                <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat.label}</span>
+                <span style="background:var(--m-bg-elevated);padding:1px 8px;border-radius:10px;font-size:.7rem;color:var(--m-text-muted);flex-shrink:0">${items.length}</span>
+              </div>
+              ${!enModeReportees && !enModeTraitees && items.length > 1 ? `
+                <div style="display:flex;gap:4px;flex-shrink:0">
+                  <button class="m-alertes-bulk" data-action="valider" data-type="${M.escHtml(cat.type)}" title="Tout valider" style="background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);padding:4px 8px;border-radius:6px;font-size:.7rem;font-weight:600">✓ Tout</button>
+                  <button class="m-alertes-bulk" data-action="ignorer" data-type="${M.escHtml(cat.type)}" title="Tout ignorer" style="background:rgba(231,76,60,0.12);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);padding:4px 8px;border-radius:6px;font-size:.7rem;font-weight:600">✕ Tout</button>
+                </div>
+              ` : ''}
+            </div>
+            ${items.map((a, idx) => {
+              const isLast = idx === items.length - 1;
+              const dateLabel = enModeReportees && a.meta?.repousseJusquA
+                ? `⏰ ${M.formatDate(a.meta.repousseJusquA)}`
+                : M.formatDate(a.creeLe);
+              const sub = a.meta?.salNom || a.meta?.client || a.meta?.immat || '';
+              const estCritiqueExpire = ['ct_expire','permis_expire','assurance_expire'].includes(cat.type);
+
+              let actions;
+              if (enModeReportees) {
+                actions = `<button class="m-alerte-action" data-action="reprendre" data-id="${M.escHtml(a.id)}" style="color:var(--m-purple)">▶️ Reprendre</button>`;
+              } else if (enModeTraitees) {
+                actions = `<span style="color:var(--m-text-muted);font-size:.78rem">Traité ${M.formatDate(a.traiteLe)}</span>`;
+              } else if (estCritiqueExpire) {
+                actions = `<button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green)">✓ Traité</button>`;
+              } else {
+                actions = `
+                  <button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green)">✓ Valider</button>
+                  <select class="m-alerte-snooze" data-id="${M.escHtml(a.id)}" style="font-size:.75rem;padding:5px 6px;background:rgba(155,89,182,0.1);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:6px;width:auto;min-width:0">
+                    <option value="">⏰</option>
+                    <option value="1">+1 j</option>
+                    <option value="7">+7 j</option>
+                    <option value="30">+30 j</option>
+                  </select>
+                  <button class="m-alerte-action" data-action="ignorer" data-id="${M.escHtml(a.id)}" style="color:var(--m-red)">✕</button>
+                `;
+              }
+
+              return `<div style="padding:12px 14px${isLast ? '' : ';border-bottom:1px solid var(--m-border)'}">
+                <div style="font-size:.88rem;line-height:1.4;margin-bottom:6px">${M.escHtml(a.message || '')}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--m-text-muted)">
+                  <span>${sub ? M.escHtml(sub) + ' · ' : ''}${dateLabel}</span>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`;
+        });
+      });
+
+      return html;
+    },
+
+    afterRender(container) {
+      // Recherche debouncee
+      const searchInput = container.querySelector('#m-alertes-search');
+      if (searchInput) {
+        let t = null;
+        searchInput.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state.alertesRecherche = e.target.value; M.go('alertes'); }, 220);
+        });
+        if (M.state.alertesRecherche) {
+          searchInput.focus();
+          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+      }
+      // Chips statut
+      container.querySelectorAll('.m-alertes-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.alertesStatut = btn.dataset.statut;
+          M.go('alertes');
+        });
+      });
+      // Actions individuelles
+      container.querySelectorAll('.m-alerte-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const action = btn.dataset.action;
+          if (action === 'valider')   M.alertes.valider(id);
+          if (action === 'ignorer')   M.alertes.ignorer(id);
+          if (action === 'reprendre') M.alertes.reprendre(id);
+          M.updateAlertesBadge();
+          M.go('alertes');
+        });
+      });
+      // Snooze select
+      container.querySelectorAll('.m-alerte-snooze').forEach(sel => {
+        sel.addEventListener('change', e => {
+          if (!e.target.value) return;
+          M.alertes.reporter(e.target.dataset.id, e.target.value);
+          M.updateAlertesBadge();
+          M.go('alertes');
+        });
+      });
+      // Bulk actions
+      container.querySelectorAll('.m-alertes-bulk').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const action = btn.dataset.action;
+          const type = btn.dataset.type;
+          const fn = action === 'valider' ? M.alertes.validerParType : M.alertes.ignorerParType;
+          const ok = await fn(type);
+          if (ok) {
+            M.updateAlertesBadge();
+            M.go('alertes');
+          }
+        });
+      });
+    }
+  });
   M.register('carburant',   makeStub('Carburant',   '⛽', 'Saisie de pleins, anomalies, suivi conso.'));
   M.register('charges',     makeStub('Charges',     '💸', 'Charges fournisseur, statut paiement, alertes retard.'));
   // ---------- Rentabilite (v2.1 : KPI vue d'ensemble + selecteur periode) ----------
