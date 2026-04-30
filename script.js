@@ -301,49 +301,11 @@ function hasNegativeNumber()   {
 // MOVED -> script-core-utils.js : formatKm
 // MOVED -> script-core-utils.js : formatDateExport
 // MOVED -> script-heures.js : formatDateHeureExport
-function getAuditActorLabel() {
-  const sessionAdmin = typeof getAdminSession === 'function' ? getAdminSession() : {};
-  return sessionAdmin.nom || sessionAdmin.identifiant || sessionAdmin.email || 'Admin';
-}
-function ajouterEntreeAudit(action, detail, meta) {
-  const logs = charger('audit_log');
-  logs.push({
-    id: genId(),
-    date: new Date().toISOString(),
-    admin: getAuditActorLabel(),
-    action: action || 'Action',
-    detail: detail || '—',
-    meta: meta || {}
-  });
-  while (logs.length > 400) logs.shift();
-  sauvegarder('audit_log', logs);
-  if (typeof afficherJournalAudit === 'function' && window.__delivproCurrentPage === 'parametres') afficherJournalAudit();
-}
-function afficherJournalAudit() {
-  const tb = document.getElementById('tb-audit-log');
-  if (!tb) return;
-  const logs = charger('audit_log').slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 40);
-  if (!logs.length) {
-    tb.innerHTML = '<tr><td colspan="4" class="empty-row">Aucune action journalisée</td></tr>';
-    return;
-  }
-  tb.innerHTML = logs.map(function(log) {
-    return '<tr>'
-      + '<td style="white-space:nowrap">' + formatDateHeureExport(log.date) + '</td>'
-      + '<td>' + (log.admin || 'Admin') + '</td>'
-      + '<td><strong>' + (log.action || 'Action') + '</strong></td>'
-      + '<td style="font-size:.84rem;color:var(--text-muted)">' + (log.detail || '—') + '</td>'
-      + '</tr>';
-  }).join('');
-}
+// MOVED -> script-core-audit.js : getAuditActorLabel
+// MOVED -> script-core-audit.js : ajouterEntreeAudit
+// MOVED -> script-core-audit.js : afficherJournalAudit
 // MOVED -> script-exports.js : exporterJournalAuditCSV
-async function viderJournalAudit() {
-  const ok = await confirmDialog('Vider le journal d’audit ? Cette action supprime l’historique local enregistré.', { titre:'Journal d’audit', icone:'📜', btnLabel:'Vider' });
-  if (!ok) return;
-  sauvegarder('audit_log', []);
-  afficherJournalAudit();
-  afficherToast('🗑️ Journal d’audit vidé');
-}
+// MOVED -> script-core-audit.js : viderJournalAudit
 // MOVED -> script-salaries.js : notifierSalarieSiAbsente
 function getEntrepriseExportParams() {
   const params = chargerObj('params_entreprise', {});
@@ -449,18 +411,8 @@ function renderBlocInfosEntreprise(params) {
 function renderFooterEntreprise(params, dateExp, extra) {
   return `<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between;gap:12px"><span>${extra || params.nom}</span><span>${dateExp}</span></div>`;
 }
-function getLogoEntrepriseExportSrc() {
-  return getLogoEntreprise()
-    || document.querySelector('.logo-icon img')?.src
-    || document.querySelector('#param-logo-preview img')?.src
-    || '';
-}
-function renderLogoEntrepriseExport() {
-  const logo = getLogoEntrepriseExportSrc();
-  return logo
-    ? `<img src="${logo}" alt="Logo entreprise" class="export-logo" style="width:62px;height:62px;object-fit:contain;border-radius:14px;border:1px solid #e5e7eb;background:#fff;padding:6px" />`
-    : '';
-}
+// MOVED -> script-core-branding.js : getLogoEntrepriseExportSrc
+// MOVED -> script-core-branding.js : renderLogoEntrepriseExport
 // ==========================================================================
 // AMORTISSEMENT — moteur unifié (CGI art. 39 A, PCG base 360)
 // Sert aux véhicules (calculerAmortissementVehicule) ET aux immobilisations
@@ -695,9 +647,7 @@ function getDateRangeInclusive(debut, fin) {
   }
   return dates;
 }
-function getLogoEntreprise() {
-  return localStorage.getItem('logo_entreprise_url') || localStorage.getItem('logo_entreprise') || '';
-}
+// MOVED -> script-core-branding.js : getLogoEntreprise
 // MOVED -> script-core-auth.js : getDefaultAdminAccounts
 // MOVED -> script-core-auth.js : adminCompteEstConfigureLocal
 // MOVED -> script-core-auth.js : getAdminAccounts
@@ -754,111 +704,23 @@ let derniereAlerteConflitEdition = '';
 
 // MOVED -> script-core-auth.js : getAdminEditLockKey
 
-function synchroniserVerrousEdition() {
-  if (window.DelivProRemoteStorage && typeof window.DelivProRemoteStorage.flush === 'function') {
-    window.DelivProRemoteStorage.flush().catch(function () {});
-  }
-}
+// MOVED -> script-core-edit-locks.js : synchroniserVerrousEdition
 
-async function actualiserVerrousEditionDistance() {
-  if (window.DelivProRemoteStorage && typeof window.DelivProRemoteStorage.pullLatest === 'function') {
-    try {
-      await window.DelivProRemoteStorage.pullLatest();
-    } catch (_) {}
-  }
-}
+// MOVED -> script-core-edit-locks.js : actualiserVerrousEditionDistance
 
 // MOVED -> script-core-ui.js : getModalIdForLockType
 
 // MOVED -> script-alertes.js : afficherAlerteVerrouModal
 
-function surveillerConflitsEditionActifs() {
-  const modals = [
-    { id: 'modal-edit-salarie', type: 'salarie', entityId: editSalarieId || window._editSalarieId },
-    { id: 'modal-edit-livraison', type: 'livraison', entityId: window._editLivId },
-    { id: 'modal-edit-client', type: 'client', entityId: _editClientId },
-    { id: 'modal-vehicule', type: 'vehicule', entityId: window._editVehId }
-  ];
+// MOVED -> script-core-edit-locks.js : surveillerConflitsEditionActifs
 
-  modals.forEach(function(entry) {
-    const modal = document.getElementById(entry.id);
-    if (!modal?.classList.contains('open') || !entry.entityId) {
-      afficherAlerteVerrouModal(entry.id, '');
-      return;
-    }
-    const lockState = verifierVerrouEdition(entry.type, entry.entityId);
-    if (!lockState.ok) {
-      const lock = lockState.lock || {};
-      const signature = `${entry.type}:${entry.entityId}:${lock.actorKey || ''}:${lock.createdAt || ''}`;
-      const message = `Modification en cours par ${lock.actorLabel || 'un autre admin'}. Évite d'enregistrer cette fiche tant que le verrou n'est pas libéré.`;
-      afficherAlerteVerrouModal(entry.id, message);
-      if (signature !== derniereAlerteConflitEdition) {
-        derniereAlerteConflitEdition = signature;
-        afficherToast(`⚠️ ${lock.actorLabel || 'Un autre admin'} modifie déjà cette fiche`, 'error');
-      }
-      return;
-    }
-    afficherAlerteVerrouModal(entry.id, '');
-  });
-}
+// MOVED -> script-core-edit-locks.js : prendreVerrouEdition
 
-function prendreVerrouEdition(type, id, label) {
-  if (!type || !id || sessionStorage.getItem('role') !== 'admin') return { ok: true };
-  const locks = getAdminEditLocks();
-  const lockKey = getAdminEditLockKey(type, id);
-  const actorKey = getAdminActorKey();
-  const existing = locks[lockKey];
-  if (existing && existing.actorKey && existing.actorKey !== actorKey) {
-    return { ok: false, lock: existing };
-  }
-  locks[lockKey] = {
-    actorKey: actorKey,
-    actorLabel: getAdminActorLabel(),
-    type: type,
-    id: id,
-    label: label || '',
-    createdAt: new Date().toISOString()
-  };
-  sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
-  adminHeldEditLocks.add(lockKey);
-  synchroniserVerrousEdition();
-  return { ok: true, lock: locks[lockKey] };
-}
+// MOVED -> script-core-edit-locks.js : verifierVerrouEdition
 
-function verifierVerrouEdition(type, id) {
-  if (!type || !id || sessionStorage.getItem('role') !== 'admin') return { ok: true };
-  const locks = getAdminEditLocks();
-  const lock = locks[getAdminEditLockKey(type, id)];
-  const actorKey = getAdminActorKey();
-  if (!lock || !lock.actorKey || lock.actorKey === actorKey) return { ok: true };
-  return { ok: false, lock: lock };
-}
+// MOVED -> script-core-edit-locks.js : libererVerrouEdition
 
-function libererVerrouEdition(type, id) {
-  if (!type || !id) return;
-  const locks = getAdminEditLocks();
-  const lockKey = getAdminEditLockKey(type, id);
-  const lock = locks[lockKey];
-  if (lock && lock.actorKey === getAdminActorKey()) {
-    delete locks[lockKey];
-    sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
-    synchroniserVerrousEdition();
-  }
-  adminHeldEditLocks.delete(lockKey);
-}
-
-function libererTousVerrousEdition() {
-  if (!adminHeldEditLocks.size) return;
-  const locks = getAdminEditLocks();
-  const actorKey = getAdminActorKey();
-  adminHeldEditLocks.forEach(function(lockKey) {
-    const lock = locks[lockKey];
-    if (lock && lock.actorKey === actorKey) delete locks[lockKey];
-  });
-  adminHeldEditLocks.clear();
-  sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
-  synchroniserVerrousEdition();
-}
+// MOVED -> script-core-edit-locks.js : libererTousVerrousEdition
 
 // MOVED -> script-core-ui.js : getEditLockContextForModal
 
@@ -882,45 +744,13 @@ window.addEventListener('delivpro:storage-sync', function(event) {
 // MOVED -> script-core-auth.js : redirigerVersLoginAdmin
 // MOVED -> script-core-auth.js : purgerSessionAdminLocale
 // MOVED -> script-core-auth.js : deconnexionAdmin
-function appliquerBranding() {
-  const logo = getLogoEntreprise();
-  const params = getEntrepriseExportParams();
-  const nomEntreprise = params.nom || 'MCA Logistics';
-  const iconTargets = document.querySelectorAll('.logo-icon');
-  iconTargets.forEach(el => {
-    el.innerHTML = logo ? `<img src="${logo}" alt="Logo" />` : '🚐';
-  });
-  const topbarMarks = document.querySelectorAll('.topbar-logo-mark');
-  topbarMarks.forEach(el => {
-    el.innerHTML = logo ? `<img src="${logo}" alt="Logo" />` : '🚐';
-  });
-  const names = [
-    document.getElementById('sidebar-nom-entreprise'),
-    document.getElementById('topbar-brand-name')
-  ].filter(Boolean);
-  names.forEach(function(el) {
-    el.textContent = nomEntreprise;
-  });
-  const preview = document.getElementById('param-logo-preview');
-  if (preview) preview.innerHTML = logo ? `<img src="${logo}" alt="Logo" style="width:100%;height:100%;object-fit:contain;border-radius:12px" />` : '🚐';
-  const link = document.querySelector("link[rel='icon']") || document.createElement('link');
-  link.rel = 'icon';
-  link.href = logo || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>";
-  document.head.appendChild(link);
-}
+// MOVED -> script-core-branding.js : appliquerBranding
 
 // MOVED -> script-core-storage.js : getCompanyAssetsStorageHelper
 
-function sanitiserNomFichierLogo(value) {
-  return String(value || 'logo-entreprise')
-    .toLowerCase()
-    .replace(/[^a-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '') || 'logo-entreprise';
-}
+// MOVED -> script-core-branding.js : sanitiserNomFichierLogo
 
-function getLogoEntreprisePath() {
-  return localStorage.getItem('logo_entreprise_path') || '';
-}
+// MOVED -> script-core-branding.js : getLogoEntreprisePath
 
 function compresserFichierImage(file, maxW, maxH, qualite, mimeType) {
   return new Promise(function(resolve, reject) {
@@ -952,35 +782,7 @@ function compresserFichierImage(file, maxW, maxH, qualite, mimeType) {
   });
 }
 
-async function uploaderLogoEntreprise(file) {
-  const storageHelper = getCompanyAssetsStorageHelper();
-  if (!storageHelper) throw new Error('storage_unavailable');
-  const sessionAdmin = getAdminSession();
-  if (sessionAdmin.authMode !== 'supabase') throw new Error('admin_session_required');
-
-  const nomEntreprise = chargerObj('params_entreprise', {}).nom || 'mca-logistics';
-  const prefix = sanitiserNomFichierLogo(nomEntreprise);
-  const previousPath = getLogoEntreprisePath();
-  const blob = await compresserFichierImage(file, 900, 900, 0.84, 'image/webp');
-  const path = 'logos/' + prefix + '-' + Date.now() + '.webp';
-  const result = await storageHelper.uploadInspectionPhoto(path, blob, {
-    contentType: 'image/webp',
-    cacheControl: '31536000'
-  });
-
-  if (!result || !result.ok || !result.url) {
-    throw (result && result.error) || new Error('upload_failed');
-  }
-
-  localStorage.setItem('logo_entreprise_url', result.url);
-  localStorage.setItem('logo_entreprise_path', result.path || path);
-  localStorage.removeItem('logo_entreprise');
-
-  if (previousPath && previousPath !== (result.path || path)) {
-    storageHelper.removeInspectionPhotos([previousPath]).catch(function () {});
-  }
-  return result.url;
-}
+// MOVED -> script-core-branding.js : uploaderLogoEntreprise
 /* Génère un numéro de livraison unique LIV-AAAA-XXXX */
 // MOVED -> script-livraisons.js : genNumLivraison
 
@@ -1003,24 +805,9 @@ function compresserImage(base64, callback) {
 // MOVED -> script-core-utils.js : calculerHTDepuisTTC
 
 /* ===== THÈME MODE CLAIR / SOMBRE ===== */
-function initTheme() {
-  const theme = localStorage.getItem('theme') || 'dark';
-  if (theme === 'light') {
-    document.body.classList.add('light-mode');
-    const btn = document.getElementById('btn-theme');
-    if (btn) btn.textContent = '☀️';
-  }
-  // Appliquer couleur accent personnalisée
-  const accent = localStorage.getItem('accent_color');
-  if (accent) document.documentElement.style.setProperty('--accent', accent);
-}
+// MOVED -> script-core-branding.js : initTheme
 
-function toggleTheme() {
-  const isLight = document.body.classList.toggle('light-mode');
-  localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  const btn = document.getElementById('btn-theme');
-  if (btn) btn.textContent = isLight ? '☀️' : '🌙';
-}
+// MOVED -> script-core-branding.js : toggleTheme
 
 /* ===== MODAL CONFIRMATION STYLÉE ===== */
 let _confirmResolve = null;
@@ -1268,62 +1055,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }, 0);
 });
 
-function naviguerVers(page) {
-  if (!page) return;
-  window.__delivproCurrentPage = page;
-  if (getRoleSessionCourant() === 'admin') {
-    mettreAJourBadgesNav();
-  }
-  document.querySelectorAll('.nav-item').forEach(el => { el.classList.remove('active'); el.removeAttribute('aria-current'); });
-  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
-  if (navItem) { navItem.classList.add('active'); navItem.setAttribute('aria-current', 'page'); }
-  const pageEl = document.getElementById(`page-${page}`);
-  if (pageEl) {
-    pageEl.classList.add('active', 'route-enter');
-    setTimeout(() => pageEl.classList.remove('route-enter'), 240);
-  }
-  const titres = {
-    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients', fournisseurs:'🏭 Carnet Fournisseurs',
-    vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
-    rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
-    salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
-    alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
-    messagerie:'💬 Messagerie interne', parametres:'⚙️ Paramètres',
-    charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
-    heures:'⏱️ Heures & Km',
-    'espace-salarie':'Espace salarié'
-  };
-  const titleEl = document.getElementById('pageTitle');
-  if (titleEl) titleEl.textContent = titres[page] || page;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      switch (page) {
-        case 'dashboard':    rafraichirDashboard(); break;
-        case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
-        case 'vehicules':    afficherVehicules(); break;
-        case 'carburant':    navCarbMois(0); break;
-        case 'rentabilite':  afficherRentabilite(); break;
-        case 'statistiques': afficherStatistiques(); break;
-        case 'salaries':
-          afficherSalaries();
-          break;
-        case 'heures':       navHeuresSemaine(0); break;
-        case 'planning':     afficherPlanning(); afficherPlanningSemaine(); peuplerAbsenceSal(); afficherAbsencesPeriodes(); initFormulairePlanningRapide(); break;
-        case 'alertes':      verifierNotificationsAutomatiquesMois2(); verifierDocumentsSalaries(); afficherAlertes(); break;
-        case 'inspections':  navInspSemaine(0); break;
-        case 'clients':      afficherClientsDashboard(); break;
-        case 'fournisseurs': afficherFournisseursDashboard(); break;
-        case 'charges':      navChargesMois(0); break;
-        case 'tva':          navTvaPeriode(0); afficherTva(); break;
-        case 'incidents':    afficherIncidents(); break;
-        case 'entretiens':   navEntrMois(0); break;
-        case 'parametres':   chargerParametres(); break;
-        case 'espace-salarie': chargerCadreSalarieUnifie(); break;
-      }
-    });
-  });
-}
+// MOVED -> script-core-navigation.js : naviguerVers
 
 /* ===== GARDE-FOU ROUTES =====
    Au boot, vérifie que toutes les sections <section class="page" id="page-X">
@@ -1525,10 +1257,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // MOVED -> script-planning.js : rafraichirVuePlanningAdmin
 
-function planifierRafraichissementSiPageActive(pageId, cle, callback) {
-  if (getPageActiveAdminId() !== pageId) return;
-  planifierRafraichissementStorage(cle, callback);
-}
+// MOVED -> script-core-navigation.js : planifierRafraichissementSiPageActive
 
 // MOVED -> script-core-auth.js : gererChangementStorageAdmin
 
@@ -2081,27 +1810,13 @@ function rafraichirDashboard() {
     }
   })();
 }
-function getSemaineDebut() {
-  const d=new Date(), j=d.getDay(), diff=d.getDate()-j+(j===0?-6:1);
-  return new Date(new Date().setDate(diff)).toLocalISODate();
-}
+// MOVED -> script-core-periodes.js : getSemaineDebut
 
 /* ===== RENTABILITÉ ===== */
 let chartRentab = null;
 var _rentMoisOffset = 0;
-function getRentMoisRange() {
-  var d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() + _rentMoisOffset);
-  var debut = d.toLocalISODate();
-  var finDate = new Date(d.getFullYear(), d.getMonth()+1, 0);
-  var fin = finDate.toLocalISODate();
-  return { debut, fin, label: d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}), dates: formatDateExport(debut) + ' au ' + formatDateExport(fin) };
-}
-function navRentMois(delta) {
-  _rentMoisOffset = delta === 0 ? 0 : _rentMoisOffset + delta;
-  afficherRentabilite();
-}
+// MOVED -> script-core-periodes.js : getRentMoisRange
+// MOVED -> script-core-periodes.js : navRentMois
 // MOVED -> script-rentabilite.js : afficherRentabilite
 
 /* ===== RENTABILITÉ — Export PDF ===== */
@@ -2205,71 +1920,15 @@ function badgeStatut(s) {
   }[s] || s;
 }
 // MOVED -> script-salaries.js : badgeChauffeur
-function togglePanneauAgent() {
-  const panneau = document.getElementById('panneau-agent');
-  const overlay = document.getElementById('panneau-agent-overlay');
-  if (!panneau) return;
-  const isOpen = panneau.style.right === '0px';
-  panneau.style.right = isOpen ? '-420px' : '0px';
-  overlay.style.display = isOpen ? 'none' : 'block';
-  if (!isOpen) {
-    const decisions = loadSafe('agent_decisions', []);
-    decisions.forEach(d => d.lu = true);
-    localStorage.setItem('agent_decisions', JSON.stringify(decisions));
-    majBadgeAgent();
-  }
-}
+// MOVED -> script-core-audit.js : togglePanneauAgent
 
-function majBadgeAgent() {
-  const decisions = loadSafe('agent_decisions', []);
-  const nonLues = decisions.filter(d => !d.lu).length;
-  const badge = document.getElementById('ai-decisions-badge');
-  if (!badge) return;
-  badge.textContent = nonLues;
-  badge.style.display = nonLues > 0 ? 'inline-block' : 'none';
-}
+// MOVED -> script-core-audit.js : majBadgeAgent
 
-function ajouterDecisionAgent(decision) {
-  const decisions = loadSafe('agent_decisions', []);
-  decisions.unshift({ ...decision, id: genId(), creeLe: new Date().toISOString(), lu: false });
-  localStorage.setItem('agent_decisions', JSON.stringify(decisions));
-  majBadgeAgent();
-  afficherDecisionsAgent();
-}
+// MOVED -> script-core-audit.js : ajouterDecisionAgent
 
-function afficherDecisionsAgent() {
-  const decisions = loadSafe('agent_decisions', []);
-  const container = document.getElementById('agent-decisions-list');
-  if (!container) return;
-  if (!decisions.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#7c8299"><div style="font-size:2rem;margin-bottom:12px">✅</div><div style="font-size:.88rem">Aucune décision en attente</div></div>';
-    return;
-  }
-  const couleurs = { haute: 'rgba(231,76,60,0.4)', opportunite: 'rgba(46,204,113,0.4)', info: 'rgba(52,152,219,0.3)' };
-  container.innerHTML = decisions.map(d => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid ${couleurs[d.priorite] || '#2a2d3d'};border-radius:12px;padding:16px;margin-bottom:12px;${!d.lu ? 'border-left:3px solid #f5a623' : ''}">
-      <div style="font-size:.82rem;font-weight:700;margin-bottom:6px;color:#e8eaf0">${d.titre}</div>
-      <div style="font-size:.78rem;color:#7c8299;margin-bottom:12px;line-height:1.5">${d.description}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${(d.actions || []).map(a => `<button onclick="executerActionAgent('${d.id}','${a.id}')" style="background:${a.style === 'primary' ? '#f5a623' : 'rgba(255,255,255,0.08)'};color:${a.style === 'primary' ? '#000' : '#e8eaf0'};border:1px solid ${a.style === 'primary' ? '#f5a623' : '#2a2d3d'};border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">${a.label}</button>`).join('')}
-      </div>
-      <div style="font-size:.7rem;color:#7c8299;margin-top:10px">${new Date(d.creeLe).toLocaleString('fr-FR')}</div>
-    </div>
-  `).join('');
-}
+// MOVED -> script-core-audit.js : afficherDecisionsAgent
 
-function executerActionAgent(decisionId, actionId) {
-  const decisions = loadSafe('agent_decisions', []);
-  const idx = decisions.findIndex(d => d.id === decisionId);
-  if (idx === -1) return;
-  decisions[idx].lu = true;
-  decisions[idx].actionPrise = actionId;
-  decisions[idx].actionLe = new Date().toISOString();
-  localStorage.setItem('agent_decisions', JSON.stringify(decisions));
-  afficherDecisionsAgent();
-  majBadgeAgent();
-  afficherToast('✅ Action enregistrée');
-}
+// MOVED -> script-core-audit.js : executerActionAgent
 
 const __toastRecents = new Map();
 function afficherToast(message, type='success') {
@@ -2616,10 +2275,7 @@ function afficherCalendrier() {
   cal.innerHTML = html;
 }
 
-function calNaviguer(delta) {
-  _calMois = new Date(_calMois.getFullYear(), _calMois.getMonth() + delta, 1);
-  afficherCalendrier();
-}
+// MOVED -> script-core-navigation.js : calNaviguer
 
 function filtrerCalJour(date) {
   changerVueLivraisons('tableau');
@@ -2782,22 +2438,7 @@ window.csvCelluleSecurisee = csvCelluleSecurisee;
 // MOVED -> script-core-utils.js : formatPrixAvecHT
 
 /* ===== BADGES NAV — INCIDENTS + RELANCES ===== */
-function mettreAJourBadgesNav() {
-  // Badge incidents ouverts
-  const incOpen = charger('incidents').filter(i=>i.statut==='ouvert').length;
-  const badgeInc = document.getElementById('badge-incidents-nav');
-  if (badgeInc) { badgeInc.textContent=incOpen; badgeInc.style.display=incOpen>0?'inline-flex':'none'; }
-
-  // Badge relances
-  const delai   = parseInt(localStorage.getItem('relance_delai')||'7', 10);
-  const limite  = new Date(); limite.setDate(limite.getDate()-delai);
-  const limStr  = limite.toLocalISODate();
-  const relOpen = charger('livraisons').filter(l=>
-    l.statut==='livre' && (l.statutPaiement==='en-attente'||!l.statutPaiement) && l.prix>0 && l.date<=limStr
-  ).length;
-  const badgeRel = document.getElementById('badge-relances');
-  if (badgeRel) { badgeRel.textContent=relOpen; badgeRel.style.display=relOpen>0?'inline-flex':'none'; }
-}
+// MOVED -> script-core-navigation.js : mettreAJourBadgesNav
 
 /* ===== TAUX DE PONCTUALITÉ ===== */
 // MOVED -> script-core-utils.js : calculerPonctualite
@@ -3083,25 +2724,7 @@ function enregistrerConduite(livraison) {
 setInterval(verifierTriggersPlanningAuto, 60000);
 
 /* ===== MOBILE — SWIPE SIDEBAR ===== */
-function initSwipeSidebar() {
-  let startX = 0, isDragging = false;
-  const sidebar  = document.getElementById('sidebar');
-  const overlay  = document.getElementById('sidebarOverlay');
-  if (!sidebar) return;
-
-  document.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX;
-    isDragging = true;
-  }, { passive: true });
-
-  document.addEventListener('touchend', e => {
-    if (!isDragging) return;
-    isDragging = false;
-    const diff = e.changedTouches[0].clientX - startX;
-    if (diff > 60 && startX < 40) ouvrirMenuMobile();
-    if (diff < -60) fermerMenuMobile();
-  }, { passive: true });
-}
+// MOVED -> script-core-navigation.js : initSwipeSidebar
 
 /* ===== MOBILE — PULL TO REFRESH ===== */
 function initPullToRefresh() {
@@ -3380,54 +3003,12 @@ document.addEventListener('keydown', e => {
 });
 
 /* ===== RECHERCHE UNIVERSELLE ===== */
-function ouvrirRechercheGlobale() {
-  var modal = document.getElementById('modal-recherche-globale');
-  var input = document.getElementById('barre-recherche-univ');
-  if (!modal || !input) return;
-  modal.classList.add('open');
-  setTimeout(function() { input.focus(); input.select(); }, 30);
-}
-function fermerRechercheGlobale() {
-  var modal = document.getElementById('modal-recherche-globale');
-  if (modal) modal.classList.remove('open');
-  fermerRecherche();
-}
+// MOVED -> script-core-recherche.js : ouvrirRechercheGlobale
+// MOVED -> script-core-recherche.js : fermerRechercheGlobale
 // MOVED -> script-livraisons.js : rechercheOuvrirLivraison
 // MOVED -> script-clients.js : rechercheOuvrirClient
-function rechercheUniverselle(q) {
-  const cont = document.getElementById('recherche-resultats');
-  if (!cont) return;
-  if (!q || q.length < 2) { cont.style.display='none'; return; }
-  q = q.toLowerCase();
-  const livraisons = charger('livraisons');
-  const salaries   = charger('salaries');
-  const vehicules  = charger('vehicules');
-  const clients    = loadSafe('clients', []);
-  const res = [];
-
-  livraisons.filter(l => (l.client||'').toLowerCase().includes(q)||(l.numLiv||'').toLowerCase().includes(q)||(l.chaufNom||'').toLowerCase().includes(q))
-    .slice(0,4).forEach(l => res.push({ label:`📦 ${l.numLiv||''} — ${l.client}`, sub:`${formatDateExport(l.date)} · ${euros(l.prix||0)}`, action:`rechercheOuvrirLivraison('${l.id}')` }));
-  salaries.filter(s => [s.nom, s.prenom, s.numero].filter(Boolean).join(' ').toLowerCase().includes(q))
-    .slice(0,3).forEach(s => res.push({ label:`👤 ${getSalarieNomComplet(s)}`, sub:`N° ${s.numero || '—'}`, action:`ouvrirEditSalarie('${s.id}')` }));
-  vehicules.filter(v => (v.immat||'').toLowerCase().includes(q)||(v.modele||'').toLowerCase().includes(q))
-    .slice(0,3).forEach(v => res.push({ label:`🚐 ${v.immat}`, sub:v.modele||'', action:`ouvrirFicheVehiculeDepuisTableau('${v.id}')` }));
-  clients.filter(c => [c.nom, c.prenom, c.tel].filter(Boolean).join(' ').toLowerCase().includes(q))
-    .slice(0,3).forEach(c => res.push({ label:`🧑‍💼 ${c.nom}`, sub:c.adresse||c.tel||'', action:`rechercheOuvrirClient('${c.id}')` }));
-
-  if (!res.length) { cont.innerHTML='<div style="padding:10px 14px;color:var(--text-muted);font-size:.85rem">Aucun résultat</div>'; cont.style.display='block'; return; }
-  cont.innerHTML = res.map(r => `
-    <div onclick="${r.action};fermerRechercheGlobale()" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='transparent'">
-      <div style="font-size:.88rem;font-weight:500">${r.label}</div>
-      ${r.sub?`<div style="font-size:.76rem;color:var(--text-muted)">${r.sub}</div>`:''}
-    </div>`).join('');
-  cont.style.display = 'block';
-}
-function fermerRecherche() {
-  const el = document.getElementById('recherche-resultats');
-  if (el) el.style.display='none';
-  const input = document.getElementById('barre-recherche-univ');
-  if (input) input.value = '';
-}
+// MOVED -> script-core-recherche.js : rechercheUniverselle
+// MOVED -> script-core-recherche.js : fermerRecherche
 
 /* ===== CARNET CLIENTS ===== */
 let _clientHistoryCurrentId = null;
@@ -3609,42 +3190,9 @@ function majSelectsPostes() {
 
 // MOVED -> script-core-storage.js : sauvegarderParametres
 
-async function changerLogoEntreprise(input) {
-  const file = input?.files?.[0];
-  if (!file) return;
-  try {
-    await uploaderLogoEntreprise(file);
-    appliquerBranding();
-    afficherToast('✅ Logo mis à jour');
-  } catch (error) {
-    const reason = error?.message || 'erreur inconnue';
-    const message = reason === 'admin_session_required'
-      ? '⚠️ Connectez-vous en admin Supabase pour enregistrer un logo partagé.'
-      : reason === 'storage_unavailable'
-        ? '⚠️ Supabase Storage est indisponible pour le moment.'
-        : `⚠️ Logo non envoyé vers le cloud (${reason})`;
-    afficherToast(message, 'error');
-  } finally {
-    if (input) input.value = '';
-  }
-}
+// MOVED -> script-core-branding.js : changerLogoEntreprise
 
-async function supprimerLogoEntreprise() {
-  const storageHelper = getCompanyAssetsStorageHelper();
-  const path = getLogoEntreprisePath();
-  if (storageHelper && path) {
-    try {
-      await storageHelper.removeInspectionPhotos([path]);
-    } catch (_) {}
-  }
-  localStorage.removeItem('logo_entreprise_url');
-  localStorage.removeItem('logo_entreprise_path');
-  localStorage.removeItem('logo_entreprise');
-  const input = document.getElementById('param-logo-file');
-  if (input) input.value = '';
-  appliquerBranding();
-  afficherToast('🗑️ Logo supprimé');
-}
+// MOVED -> script-core-branding.js : supprimerLogoEntreprise
 
 // MOVED -> script-tva.js : sauvegarderTVA
 
@@ -3687,12 +3235,7 @@ function sauvegarderConfigurationTresorerie() {
 
 // MOVED -> script-paiements.js : sauvegarderRelanceDelai
 
-function appliquerAccentColor() {
-  const color = document.getElementById('param-accent-color')?.value || '#f5a623';
-  document.documentElement.style.setProperty('--accent', color);
-  localStorage.setItem('accent_color', color);
-  afficherToast('🎨 Couleur appliquée');
-}
+// MOVED -> script-core-branding.js : appliquerAccentColor
 
 // MOVED -> script-core-auth.js : majResumeSauvegardeAdmin
 
@@ -4161,20 +3704,9 @@ window.confirmerEditVehicule = confirmerEditVehicule;
 var _planningSemaineOffset = 0; // 0 = semaine courante
 var _planningPeriode = buildSimplePeriodeState('semaine');
 
-function getLundiDeSemaine(offset) {
-  var d = new Date();
-  var day = d.getDay(); // 0=dim
-  var diff = d.getDate() - day + (day === 0 ? -6 : 1); // lundi
-  d.setDate(diff + (offset||0) * 7);
-  d.setHours(0,0,0,0);
-  return d;
-}
+// MOVED -> script-core-periodes.js : getLundiDeSemaine
 
-function naviguerSemaine(delta) {
-  if (delta === 0) _planningSemaineOffset = 0;
-  else _planningSemaineOffset += delta;
-  afficherPlanningSemaine();
-}
+// MOVED -> script-core-navigation.js : naviguerSemaine
 
 // MOVED -> script-planning.js : changerVuePlanning
 
@@ -4184,12 +3716,7 @@ function naviguerSemaine(delta) {
 
 // MOVED -> script-planning.js : afficherPlanningSemaine
 
-function getNumSemaine(d) {
-  var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay()||7));
-  var yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
-  return Math.ceil((((date - yearStart) / 86400000) + 1)/7);
-}
+// MOVED -> script-core-periodes.js : getNumSemaine
 
 /* ===== EXPORT PDF SEMAINE ===== */
 // MOVED -> script-exports.js : exporterPlanningSemainePDF
@@ -4200,27 +3727,13 @@ function getNumSemaine(d) {
 
 // MOVED -> script-core-utils.js : formatPeriodeDateFr
 
-function getStartOfWeek(date) {
-  var d = new Date(date);
-  var day = d.getDay();
-  var diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
+// MOVED -> script-core-periodes.js : getStartOfWeek
 
 // MOVED -> script-stats.js : buildSimplePeriodeState
 
-function majPeriodeDisplay(labelId, datesId, range) {
-  var lbl = document.getElementById(labelId);
-  var dates = document.getElementById(datesId);
-  if (lbl) lbl.textContent = (range.label || '').charAt(0).toUpperCase() + (range.label || '').slice(1);
-  if (dates) dates.textContent = range.datesLabel || '';
-}
+// MOVED -> script-core-periodes.js : majPeriodeDisplay
 
-function isDateInRange(dateStr, range) {
-  return !!dateStr && !!range && dateStr >= range.debut && dateStr <= range.fin;
-}
+// MOVED -> script-core-periodes.js : isDateInRange
 
 /* --- LIVRAISONS : mois + semaine --- */
 var _livPeriodeOffset = 0;
@@ -4246,33 +3759,17 @@ var _chargesPeriode = buildSimplePeriodeState('mois');
 var _carbPeriode = buildSimplePeriodeState('mois');
 var _entrPeriode = buildSimplePeriodeState('mois');
 
-function changeSimplePeriode(state, mode, refreshFn, labelId, datesId, selectId) {
-  state.mode = ['jour', 'semaine', 'mois', 'annee'].includes(mode) ? mode : state.mode;
-  state.offset = 0;
-  var select = selectId ? document.getElementById(selectId) : null;
-  if (select) select.value = state.mode;
-  majPeriodeDisplay(labelId, datesId, getPeriodeRange(state.mode, state.offset));
-  if (typeof refreshFn === 'function') refreshFn();
-}
+// MOVED -> script-core-periodes.js : changeSimplePeriode
 
-function navSimplePeriode(state, delta, refreshFn, labelId, datesId, selectId) {
-  state.offset += delta || 0;
-  var select = selectId ? document.getElementById(selectId) : null;
-  if (select) select.value = state.mode;
-  majPeriodeDisplay(labelId, datesId, getPeriodeRange(state.mode, state.offset));
-  if (typeof refreshFn === 'function') refreshFn();
-}
+// MOVED -> script-core-periodes.js : navSimplePeriode
 
-function resetSimplePeriode(state, refreshFn, labelId, datesId, selectId) {
-  state.offset = 0;
-  navSimplePeriode(state, 0, refreshFn, labelId, datesId, selectId);
-}
+// MOVED -> script-core-periodes.js : resetSimplePeriode
 
 // MOVED -> script-inspections.js : getInspectionsPeriodeRange
 // MOVED -> script-inspections.js : changerVueInspections
 // MOVED -> script-inspections.js : navInspectionsPeriode
 // MOVED -> script-inspections.js : reinitialiserInspectionsPeriode
-function navInspSemaine(delta) { _inspPeriode.mode = 'semaine'; if (delta === 0) _inspPeriode.offset = 0; else _inspPeriode.offset += delta; navInspectionsPeriode(0); }
+// MOVED -> script-core-periodes.js : navInspSemaine
 
 // MOVED -> script-charges.js : getChargesPeriodeRange
 // MOVED -> script-charges.js : changerVueCharges
@@ -4285,74 +3782,18 @@ function navInspSemaine(delta) { _inspPeriode.mode = 'semaine'; if (delta === 0)
 // MOVED -> script-carburant.js : changerVueCarburant
 // MOVED -> script-carburant.js : navCarburantPeriode
 // MOVED -> script-carburant.js : reinitialiserCarburantPeriode
-function navCarbMois(delta) { _carbPeriode.mode = 'mois'; if (delta === 0) _carbPeriode.offset = 0; else _carbPeriode.offset += delta; navCarburantPeriode(0); }
-function getCarbMoisStr() { return getCarburantPeriodeRange().debut.slice(0,7); }
+// MOVED -> script-core-periodes.js : navCarbMois
+// MOVED -> script-core-periodes.js : getCarbMoisStr
 
 // MOVED -> script-entretiens.js : getEntretiensPeriodeRange
 // MOVED -> script-entretiens.js : changerVueEntretiens
 // MOVED -> script-entretiens.js : navEntretiensPeriode
 // MOVED -> script-entretiens.js : reinitialiserEntretiensPeriode
-function navEntrMois(delta) { _entrPeriode.mode = 'mois'; if (delta === 0) _entrPeriode.offset = 0; else _entrPeriode.offset += delta; navEntretiensPeriode(0); }
-function getEntrMoisStr() { return getEntretiensPeriodeRange().debut.slice(0,7); }
+// MOVED -> script-core-periodes.js : navEntrMois
+// MOVED -> script-core-periodes.js : getEntrMoisStr
 
 /* --- Utilitaire getPeriodeRange --- */
-function getPeriodeRange(mode, offset) {
-  mode = mode || 'mois';
-  offset = offset || 0;
-  var base = new Date();
-  base.setHours(0, 0, 0, 0);
-
-  if (mode === 'jour') {
-    base.setDate(base.getDate() + offset);
-    var jour = dateToLocalISO(base);
-    return {
-      mode: mode,
-      debut: jour,
-      fin: jour,
-      label: formatPeriodeDateFr(base),
-      datesLabel: 'Du ' + formatPeriodeDateFr(base) + ' au ' + formatPeriodeDateFr(base)
-    };
-  }
-
-  if (mode === 'semaine') {
-    var lundi = getStartOfWeek(base);
-    lundi.setDate(lundi.getDate() + (offset * 7));
-    var dim = new Date(lundi);
-    dim.setDate(lundi.getDate() + 6);
-    return {
-      mode: mode,
-      debut: dateToLocalISO(lundi),
-      fin: dateToLocalISO(dim),
-      label: 'Semaine ' + getNumSemaine(lundi),
-      datesLabel: 'Du ' + formatPeriodeDateFr(lundi) + ' au ' + formatPeriodeDateFr(dim)
-    };
-  }
-
-  if (mode === 'annee') {
-    var annee = base.getFullYear() + offset;
-    var debutA = new Date(annee, 0, 1);
-    var finA = new Date(annee, 11, 31);
-    return {
-      mode: mode,
-      debut: dateToLocalISO(debutA),
-      fin: dateToLocalISO(finA),
-      label: String(annee),
-      datesLabel: 'Du ' + formatPeriodeDateFr(debutA) + ' au ' + formatPeriodeDateFr(finA)
-    };
-  }
-
-  base.setDate(1);
-  base.setMonth(base.getMonth() + offset);
-  var debut = new Date(base.getFullYear(), base.getMonth(), 1);
-  var finD = new Date(base.getFullYear(), base.getMonth() + 1, 0);
-  return {
-    mode: 'mois',
-    debut: dateToLocalISO(debut),
-    fin: dateToLocalISO(finD),
-    label: debut.toLocaleDateString('fr-FR',{month:'long',year:'numeric'}),
-    datesLabel: 'Du ' + formatPeriodeDateFr(debut) + ' au ' + formatPeriodeDateFr(finD)
-  };
-}
+// MOVED -> script-core-periodes.js : getPeriodeRange
 
 /* --- EXPORT RELEVÉ KM PDF --- */
 // MOVED -> script-exports.js : exporterReleveKmPDF

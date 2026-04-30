@@ -5,9 +5,18 @@
   "description": "PGI interne MCA Logistics - gestion transport et livraisons",
   "scripts": {
     "test": "node --test tests/business-rules.test.js tests/financial-regressions.test.js",
-    "lint": "eslint script.js script-*.js *-supabase-adapter.js storage-uploader.js entity-supabase-adapter.js repo.js monitoring.js lazy-loader.js lazy-stubs.js auth-2fa.js all-entity-adapters.js"
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install --with-deps chromium",
+    "lint": "eslint script.js script-*.js *-supabase-adapter.js storage-uploader.js entity-supabase-adapter.js repo.js monitoring.js lazy-loader.js lazy-stubs.js auth-2fa.js all-entity-adapters.js watchdog.js health-check.js",
+    "lint:css": "stylelint style.css",
+    "lint:html": "htmlhint admin.html salarie.html login.html index.html"
   },
   "devDependencies": {
-    "eslint": "^9.0.0"
+    "@playwright/test": "^1.48.0",
+    "eslint": "^8.57.0",
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^36.0.0",
+    "htmlhint": "^1.1.4"
   }
 }

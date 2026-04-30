@@ -8,7 +8,12 @@
  * A charger AVANT script.js dans admin.html.
  */
 
-// L28 (script.js d'origine)
+/**
+ * Echappe les caracteres speciaux HTML pour eviter les XSS quand on insere
+ * du texte utilisateur dans innerHTML.
+ * @param {*} s - Chaine ou valeur a echapper.
+ * @returns {string} Chaine avec &<>"' echappes.
+ */
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s).replace(/[&<>"']/g, function(c) {
@@ -16,7 +21,11 @@ function escapeHtml(s) {
   });
 }
 
-// L34 (script.js d'origine)
+/**
+ * Echappe les caracteres dangereux pour les attributs HTML (=").
+ * @param {*} s - Valeur a echapper.
+ * @returns {string}
+ */
 function escapeAttr(s) {
   if (s == null) return '';
   return String(s).replace(/[&"<>]/g, function(c) {
@@ -24,7 +33,12 @@ function escapeAttr(s) {
   });
 }
 
-// L322 (script.js d'origine)
+/**
+ * Genere un identifiant unique au format UUID v4 (RFC 4122).
+ * Utilise crypto.randomUUID si disponible (HTTPS uniquement), fallback
+ * sur crypto.getRandomValues, ou en dernier recours timestamp + random.
+ * @returns {string} UUID v4 (ex: "6c10b71d-8d2f-4de0-bf09-29abe101ccd1").
+ */
 function genId() {
   try {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
@@ -40,10 +54,18 @@ function genId() {
   return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
 }
 
-// L355 (script.js d'origine)
-function formatKm(n)           { return new Intl.NumberFormat('fr-FR').format(Math.round(parseFloat(n||0)))+' km'; }
+/**
+ * Formate un nombre de kilometres en notation francaise + suffixe " km".
+ * @param {number|string} n - Valeur (peut etre une string).
+ * @returns {string} Ex: "12 345 km"
+ */
+function formatKm(n) { return new Intl.NumberFormat('fr-FR').format(Math.round(parseFloat(n||0)))+' km'; }
 
-// L356 (script.js d'origine)
+/**
+ * Formate une date ISO ou Date en JJ/MM/YYYY.
+ * @param {string|Date} val - Date ISO ou objet Date.
+ * @returns {string} Ex: "29/04/2026" ou "—" si invalide.
+ */
 function formatDateExport(val) {
   if (!val) return '—';
   const source = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val) ? val + 'T00:00:00' : val;
@@ -52,14 +74,23 @@ function formatDateExport(val) {
   return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
 }
 
-// L458 (script.js d'origine)
+/**
+ * Formate un nombre en euros avec 2 decimales en francais.
+ * @param {number|string} n
+ * @returns {string} Ex: "1 234,56 €" ou "" si invalide.
+ */
 function __formatEurFR(n) {
   const val = parseFloat(n);
   if (!Number.isFinite(val)) return '';
   return val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
 
-// L791 (script.js d'origine)
+/**
+ * Calcule la duree en heures entre deux horaires "HH:MM".
+ * @param {string} heureDebut - Format "HH:MM".
+ * @param {string} heureFin - Format "HH:MM".
+ * @returns {number} Duree en heures (decimal). 0 si invalide.
+ */
 function calculerDureeJour(heureDebut, heureFin) {
   if (!heureDebut || !heureFin) return 0;
   const [hd, md] = heureDebut.split(':').map(Number);

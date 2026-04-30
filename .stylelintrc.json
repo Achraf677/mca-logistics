@@ -1,0 +1,23 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "selector-class-pattern": null,
+    "custom-property-pattern": null,
+    "keyframes-name-pattern": null,
+    "no-descending-specificity": null,
+    "selector-id-pattern": null,
+    "declaration-empty-line-before": null,
+    "rule-empty-line-before": null,
+    "comment-empty-line-before": null,
+    "no-duplicate-selectors": "warning",
+    "color-hex-length": null,
+    "shorthand-property-no-redundant-values": "warning",
+    "alpha-value-notation": null,
+    "color-function-notation": null,
+    "hue-degree-notation": null
+  },
+  "ignoreFiles": [
+    "node_modules/**",
+    "tests/**"
+  ]
+}

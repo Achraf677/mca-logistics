@@ -13,6 +13,12 @@ const assert = require('node:assert/strict');
 // ============================================================
 // Validation SIREN (CGI art. 289 II)
 // ============================================================
+/**
+ * Valide un SIREN francais (9 chiffres, algorithme de Luhn).
+ * @param {string} siren - Le numero SIREN (espaces toleres).
+ * @returns {boolean} true si SIREN valide.
+ * @example validerSIREN('552120222') // -> true
+ */
 function validerSIREN(siren) {
   if (typeof siren !== 'string') return false;
   var s = siren.replace(/\s+/g, '');
