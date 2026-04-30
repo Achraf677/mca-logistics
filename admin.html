@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260430-14">
-  <link rel="preload" as="script" href="script.js?v=20260430-14">
+  <link rel="preload" as="style" href="style.css?v=20260430-15">
+  <link rel="preload" as="script" href="script.js?v=20260430-15">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -42,7 +42,7 @@
     .nav-item[data-page="rentabilite"],
     .nav-item[data-page="statistiques"] { display: none; }
   </style>
-  <link rel="stylesheet" href="style.css?v=20260430-14" />
+  <link rel="stylesheet" href="style.css?v=20260430-15" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
@@ -459,6 +459,7 @@
     <section class="page" id="page-carburant">
       <div class="page-actions"><h2>⛽ Suivi Carburant</h2>
         <div style="display:flex;gap:8px">
+          <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()" title="Configurer la détection d'anomalies">⚙️ Anomalies</button>
           <button class="btn-rapport" onclick="exporterCarburantPDF()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-carburant')">+ Enregistrer un plein</button>
         </div>
@@ -2132,7 +2133,7 @@
           <div class="form-group"><label>Modèle</label><input type="text" id="veh-modele" placeholder="Mod&egrave;le" /></div>
           <div class="form-group"><label>Kilométrage actuel</label><input type="number" id="veh-km" placeholder="Kilom&eacute;trage actuel" min="0" /></div>
           <div class="form-group"><label>Consommation (L/100km)</label><input type="number" id="veh-conso" placeholder="8.5" min="0" step="0.1" /></div>
-          <div class="form-group"><label>Capacité réservoir (L) <span style="color:var(--text-muted);font-size:.78rem">— pour détection fraude</span></label><input type="number" id="veh-capacite-reservoir" placeholder="80" min="0" step="1" /></div>
+          <div class="form-group"><label>Capacité réservoir (L)</label><input type="number" id="veh-capacite-reservoir" placeholder="80" min="0" step="1" /></div>
           <div class="form-group"><label>Mode d'acquisition</label>
             <select id="veh-mode-acquisition" onchange="mettreAJourFormulaireVehicule()">
               <option value="achat">Achat comptant</option>
@@ -2310,6 +2311,42 @@
         </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-carburant')">Annuler</button><button class="btn-primary" onclick="ajouterCarburant()">Enregistrer</button></div>
+    </div>
+  </div>
+
+  <!-- Modal : Configuration anomalies carburant -->
+  <div class="modal-overlay" id="modal-config-carburant-anomalies">
+    <div class="modal">
+      <div class="modal-header"><h3>⚙️ Détection anomalies carburant</h3><button class="modal-close" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
+      <div class="modal-body">
+        <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Configure les seuils de détection. Les anomalies créent automatiquement des alertes admin et un badge sur le plein concerné.</p>
+
+        <div style="font-weight:600;margin-bottom:8px;font-size:.92rem">Conso L/100 anormale</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Seuil avertissement (% au-dessus de la moyenne)</label><input type="number" id="cfg-carb-seuil-orange" min="5" max="200" step="5" placeholder="25" /></div>
+          <div class="form-group"><label>Seuil critique (% au-dessus de la moyenne)</label><input type="number" id="cfg-carb-seuil-rouge" min="10" max="300" step="5" placeholder="50" /></div>
+          <div class="form-group"><label>Fenêtre historique (nb pleins)</label><input type="number" id="cfg-carb-fenetre" min="2" max="20" step="1" placeholder="6" /></div>
+        </div>
+
+        <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Patterns suspects</div>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-doublons" /> Détecter 2 pleins en moins de 24h sans km parcourus</label></div>
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-regression" /> Détecter régression km (km saisi &lt; km précédent)</label></div>
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-km-excessif" /> Détecter km/jour excessif</label></div>
+          <div class="form-group"><label>Seuil km/jour max</label><input type="number" id="cfg-carb-km-jour" min="100" max="3000" step="50" placeholder="1000" /></div>
+        </div>
+
+        <div style="font-weight:600;margin:14px 0 8px;font-size:.92rem">Pleins hors heures (week-end / nuit)</div>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1"><label><input type="checkbox" id="cfg-carb-hors-heures" /> Activer la détection (alertes peuvent être nombreuses)</label></div>
+          <div class="form-group"><label>Heure début journée normale</label><input type="number" id="cfg-carb-h-debut" min="0" max="23" step="1" placeholder="6" /></div>
+          <div class="form-group"><label>Heure fin journée normale</label><input type="number" id="cfg-carb-h-fin" min="1" max="24" step="1" placeholder="22" /></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modal-config-carburant-anomalies')">Annuler</button>
+        <button class="btn-primary" onclick="enregistrerConfigAnomaliesCarburant()">Enregistrer</button>
+      </div>
     </div>
   </div>
 
@@ -2945,54 +2982,54 @@
 
   <div id="panneau-agent-overlay" onclick="togglePanneauAgent()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;backdrop-filter:blur(2px)"></div>
 
-  <script defer src="monitoring.js?v=20260430-14"></script>
+  <script defer src="monitoring.js?v=20260430-15"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="supabase-client.js"></script>
   <script defer src="supabase-auth.js"></script>
-  <script defer src="security-utils.js?v=20260430-14"></script>
+  <script defer src="security-utils.js?v=20260430-15"></script>
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
-  <script defer src="script-core-utils.js?v=20260430-14"></script>
-  <script defer src="script-core-storage.js?v=20260430-14"></script>
-  <script defer src="script-core-ui.js?v=20260430-14"></script>
-  <script defer src="script-core-auth.js?v=20260430-14"></script>
-  <script defer src="script-core-periodes.js?v=20260430-14"></script>
-  <script defer src="script-core-navigation.js?v=20260430-14"></script>
-  <script defer src="script-core-edit-locks.js?v=20260430-14"></script>
-  <script defer src="script-core-branding.js?v=20260430-14"></script>
-  <script defer src="script-core-audit.js?v=20260430-14"></script>
-  <script defer src="script-core-recherche.js?v=20260430-14"></script>
-  <script defer src="storage-uploader.js?v=20260430-14"></script>
-  <script defer src="entity-supabase-adapter.js?v=20260430-14"></script>
-  <script defer src="clients-supabase-adapter.js?v=20260430-14"></script>
-  <script defer src="vehicules-supabase-adapter.js?v=20260430-14"></script>
-  <script defer src="salaries-supabase-adapter.js?v=20260430-14"></script>
-  <script defer src="all-entity-adapters.js?v=20260430-14"></script>
-  <script defer src="repo.js?v=20260430-14"></script>
-  <script defer src="lazy-loader.js?v=20260430-14"></script>
-  <script defer src="lazy-stubs.js?v=20260430-14"></script>
-  <script defer src="script-inspections.js?v=20260430-14"></script>
-  <script defer src="script-incidents.js?v=20260430-14"></script>
-  <script defer src="script-rentabilite.js?v=20260430-14"></script>
-  <script defer src="script-carburant.js?v=20260430-14"></script>
-  <script defer src="script-carburant-anomalies.js?v=20260430-14"></script>
-  <script defer src="script-entretiens.js?v=20260430-14"></script>
-  <script defer src="script-alertes.js?v=20260430-14"></script>
-  <script defer src="script-stats.js?v=20260430-14"></script>
-  <script defer src="script-tva.js?v=20260430-14"></script>
-  <script defer src="script-paiements.js?v=20260430-14"></script>
-  <script defer src="script-heures.js?v=20260430-14"></script>
-  <script defer src="script-planning.js?v=20260430-14"></script>
-  <script defer src="script-fournisseurs.js?v=20260430-14"></script>
-  <script defer src="script-clients.js?v=20260430-14"></script>
-  <script defer src="script-charges.js?v=20260430-14"></script>
-  <script defer src="script-salaries.js?v=20260430-14"></script>
-  <script defer src="script-vehicules.js?v=20260430-14"></script>
-  <script defer src="script-livraisons.js?v=20260430-14"></script>
-  <script defer src="script.js?v=20260430-14"></script>
-  <script defer src="health-check.js?v=20260430-14"></script>
-  <script defer src="watchdog.js?v=20260430-14"></script>
+  <script defer src="script-core-utils.js?v=20260430-15"></script>
+  <script defer src="script-core-storage.js?v=20260430-15"></script>
+  <script defer src="script-core-ui.js?v=20260430-15"></script>
+  <script defer src="script-core-auth.js?v=20260430-15"></script>
+  <script defer src="script-core-periodes.js?v=20260430-15"></script>
+  <script defer src="script-core-navigation.js?v=20260430-15"></script>
+  <script defer src="script-core-edit-locks.js?v=20260430-15"></script>
+  <script defer src="script-core-branding.js?v=20260430-15"></script>
+  <script defer src="script-core-audit.js?v=20260430-15"></script>
+  <script defer src="script-core-recherche.js?v=20260430-15"></script>
+  <script defer src="storage-uploader.js?v=20260430-15"></script>
+  <script defer src="entity-supabase-adapter.js?v=20260430-15"></script>
+  <script defer src="clients-supabase-adapter.js?v=20260430-15"></script>
+  <script defer src="vehicules-supabase-adapter.js?v=20260430-15"></script>
+  <script defer src="salaries-supabase-adapter.js?v=20260430-15"></script>
+  <script defer src="all-entity-adapters.js?v=20260430-15"></script>
+  <script defer src="repo.js?v=20260430-15"></script>
+  <script defer src="lazy-loader.js?v=20260430-15"></script>
+  <script defer src="lazy-stubs.js?v=20260430-15"></script>
+  <script defer src="script-inspections.js?v=20260430-15"></script>
+  <script defer src="script-incidents.js?v=20260430-15"></script>
+  <script defer src="script-rentabilite.js?v=20260430-15"></script>
+  <script defer src="script-carburant.js?v=20260430-15"></script>
+  <script defer src="script-carburant-anomalies.js?v=20260430-15"></script>
+  <script defer src="script-entretiens.js?v=20260430-15"></script>
+  <script defer src="script-alertes.js?v=20260430-15"></script>
+  <script defer src="script-stats.js?v=20260430-15"></script>
+  <script defer src="script-tva.js?v=20260430-15"></script>
+  <script defer src="script-paiements.js?v=20260430-15"></script>
+  <script defer src="script-heures.js?v=20260430-15"></script>
+  <script defer src="script-planning.js?v=20260430-15"></script>
+  <script defer src="script-fournisseurs.js?v=20260430-15"></script>
+  <script defer src="script-clients.js?v=20260430-15"></script>
+  <script defer src="script-charges.js?v=20260430-15"></script>
+  <script defer src="script-salaries.js?v=20260430-15"></script>
+  <script defer src="script-vehicules.js?v=20260430-15"></script>
+  <script defer src="script-livraisons.js?v=20260430-15"></script>
+  <script defer src="script.js?v=20260430-15"></script>
+  <script defer src="health-check.js?v=20260430-15"></script>
+  <script defer src="watchdog.js?v=20260430-15"></script>
   <script>
     // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
     // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
