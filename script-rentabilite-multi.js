@@ -500,6 +500,200 @@
     setTxt('rent-' + suffix + '-total-livs', totaux.nbLivraisons || 0);
   }
 
+  // ===== Par tournee =====
+  // Une "tournee" = ensemble des livraisons d'un meme chauffeur sur une meme date.
+  // CA tournee = Σ HT livraisons du jour
+  // Couts directs : carburant du vehicule du jour (pleins date == jour)
+  //                 + amortissement km tournee × coutKmDefaut
+  //                 + salaire jour = (cout salaire mensuel chauffeur / nb jours travailles)
+  //                   approxime ici : salaire = coutSalaireMensuel × (nbLivsTournee / totalLivsChauffeurMois)
+  function calculerRentabiliteParTournee(range) {
+    var livraisons = (typeof charger === 'function' ? charger('livraisons') : []).filter(function (l) {
+      return inRange(l.date, range);
+    });
+    var pleins = (typeof charger === 'function' ? charger('carburant') : []).filter(function (p) {
+      return inRange(p.date, range);
+    });
+    var charges = (typeof charger === 'function' ? charger('charges') : []).filter(function (c) {
+      return inRange(c.date, range);
+    });
+    var salaries = (typeof charger === 'function' ? charger('salaries') : []);
+    var vehicules = (typeof charger === 'function' ? charger('vehicules') : []);
+    var cfg = getConfig();
+    var coutKm = parseFloat(cfg.coutKmDefaut) || 0;
+
+    // Cout salaire mensuel par chauffeur (charges cat='salaires' periode entiere)
+    var salaireParChauf = {};
+    charges.forEach(function (c) {
+      if (c.categorie !== 'salaires' || !c.salId) return;
+      var ttc = parseFloat(c.montant) || 0;
+      var taux = parseFloat(c.tauxTVA) || 20;
+      salaireParChauf[c.salId] = (salaireParChauf[c.salId] || 0) + ttc / (1 + taux / 100);
+    });
+    // Total livraisons periode par chauffeur (pour repartition salaire)
+    var livsTotalParChauf = {};
+    livraisons.forEach(function (l) {
+      var ch = l.chaufId || 'sans-chauffeur';
+      livsTotalParChauf[ch] = (livsTotalParChauf[ch] || 0) + 1;
+    });
+    // Carburant total par (vehicule, jour)
+    var carbParVehJour = {};
+    pleins.forEach(function (p) {
+      if (!p.vehId) return;
+      var key = p.vehId + '__' + (p.date || '').slice(0, 10);
+      var ttc = parseFloat(p.total) || 0;
+      var taux = parseFloat(p.tauxTVA) || 20;
+      carbParVehJour[key] = (carbParVehJour[key] || 0) + ttc / (1 + taux / 100);
+    });
+
+    // Agregation par tournee (chaufId + date)
+    var tournees = {};
+    livraisons.forEach(function (l) {
+      var tId = getTourneeId(l);
+      if (!tId) return;
+      if (!tournees[tId]) {
+        var sal = salaries.find(function (s) { return s.id === l.chaufId; });
+        var veh = vehicules.find(function (v) { return v.id === l.vehId; });
+        tournees[tId] = {
+          tourneeId: tId,
+          date: (l.date || '').slice(0, 10),
+          chaufId: l.chaufId || null,
+          chaufNom: sal ? sal.nom : (l.chaufNom || '— Sans chauffeur —'),
+          vehId: l.vehId || null,
+          vehImmat: veh ? veh.immat : (l.vehNom || ''),
+          ca: 0, nbLivraisons: 0, kmTotal: 0,
+          coutCarburant: 0, coutSalaire: 0, coutAmortissement: 0,
+          livraisons: []
+        };
+      }
+      var t = tournees[tId];
+      t.ca += getMontantHTLiv(l);
+      t.nbLivraisons++;
+      t.kmTotal += parseFloat(l.distance) || 0;
+      t.livraisons.push({ id: l.id, client: l.client, prix: l.prix, distance: l.distance, numLiv: l.numLiv });
+    });
+
+    Object.keys(tournees).forEach(function (k) {
+      var t = tournees[k];
+      // Carburant : on prend le carburant du vehicule sur la date de tournee
+      var keyCarb = (t.vehId || '') + '__' + t.date;
+      t.coutCarburant = carbParVehJour[keyCarb] || 0;
+      // Salaire : prorata nb livs tournee / total livs chauffeur sur la periode
+      var totalLivsChauf = livsTotalParChauf[t.chaufId || 'sans-chauffeur'] || 0;
+      if (totalLivsChauf > 0) {
+        t.coutSalaire = (salaireParChauf[t.chaufId] || 0) * (t.nbLivraisons / totalLivsChauf);
+      }
+      t.coutAmortissement = (t.kmTotal || 0) * coutKm;
+      t.coutTotal = t.coutCarburant + t.coutSalaire + t.coutAmortissement;
+      t.marge = t.ca - t.coutTotal;
+      t.margePct = t.ca > 0 ? (t.marge / t.ca) * 100 : 0;
+    });
+
+    return Object.values(tournees).sort(function (a, b) {
+      // Tri : date desc, puis marge desc
+      if (a.date !== b.date) return b.date.localeCompare(a.date);
+      return b.marge - a.marge;
+    });
+  }
+
+  function afficherRentabiliteParTournee() {
+    var range = getRangeAnalyse();
+    var stats = calculerRentabiliteParTournee(range);
+    var tb = document.getElementById('tb-rent-tournee');
+    if (!tb) return;
+    if (!stats.length) {
+      tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucune tournée sur cette période.</td></tr>';
+      majTotauxRent('tournee', { ca: 0, marge: 0, nbLivraisons: 0 });
+      return;
+    }
+    tb.innerHTML = stats.map(function (t) {
+      var couleur = t.marge >= 0 ? '#28a745' : '#dc3545';
+      return '<tr>' +
+        '<td>' + escapeHtml(t.date) + '</td>' +
+        '<td><strong>' + escapeHtml(t.chaufNom) + '</strong></td>' +
+        '<td>' + escapeHtml(t.vehImmat || '—') + '</td>' +
+        '<td>' + t.nbLivraisons + '</td>' +
+        '<td>' + (t.kmTotal ? Math.round(t.kmTotal) + ' km' : '—') + '</td>' +
+        '<td>' + euros(t.ca) + '</td>' +
+        '<td style="font-size:.85rem">' + euros(t.coutTotal) + '</td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(t.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + t.margePct.toFixed(1) + '%)</span></td>' +
+      '</tr>';
+    }).join('');
+    var totaux = stats.reduce(function (acc, t) {
+      acc.ca += t.ca; acc.marge += t.marge; acc.nbLivraisons += t.nbLivraisons;
+      return acc;
+    }, { ca: 0, marge: 0, nbLivraisons: 0 });
+    majTotauxRent('tournee', totaux);
+  }
+
+  // ===== Export PDF rapport mensuel multi-axes =====
+  function exporterRapportRentabilitePDF() {
+    var range = getRangeAnalyse();
+    var v = calculerRentabiliteParVehicule(range);
+    var c = calculerRentabiliteParClient(range);
+    var ch = calculerRentabiliteParChauffeur(range);
+    var tr = calculerRentabiliteParTournee(range);
+    var sumV = sumStats(v), sumC = sumStats(c), sumCh = sumStats(ch), sumT = sumStats(tr);
+
+    var renderRow = function (cells) {
+      return '<tr>' + cells.map(function (c) { return '<td style="padding:6px 10px;border-bottom:1px solid #eee">' + c + '</td>'; }).join('') + '</tr>';
+    };
+    var renderTable = function (titre, headers, rows) {
+      return '<h2 style="font-size:14pt;color:#222;margin:18pt 0 6pt">' + titre + '</h2>' +
+        '<table style="width:100%;border-collapse:collapse;font-size:9pt">' +
+        '<thead><tr>' + headers.map(function (h) { return '<th style="padding:6px 10px;background:#f5f5f5;text-align:left;font-weight:700">' + h + '</th>'; }).join('') + '</tr></thead>' +
+        '<tbody>' + rows.join('') + '</tbody></table>';
+    };
+
+    var rowsV = v.slice(0, 20).map(function (s) {
+      return renderRow([escapeHtml(s.immat), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), euros(s.marge) + ' (' + s.margePct.toFixed(1) + '%)']);
+    });
+    var rowsC = c.slice(0, 20).map(function (s) {
+      return renderRow([escapeHtml(s.clientNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), euros(s.marge) + ' (' + s.margePct.toFixed(1) + '%)']);
+    });
+    var rowsCh = ch.slice(0, 20).map(function (s) {
+      return renderRow([escapeHtml(s.chaufNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), euros(s.marge) + ' (' + s.margePct.toFixed(1) + '%)']);
+    });
+    var rowsT = tr.slice(0, 30).map(function (t) {
+      return renderRow([t.date, escapeHtml(t.chaufNom), escapeHtml(t.vehImmat || '—'), t.nbLivraisons, euros(t.ca), euros(t.marge) + ' (' + t.margePct.toFixed(1) + '%)']);
+    });
+
+    var html =
+      '<h1 style="font-size:18pt;color:#000;margin:0 0 6pt">📊 Rapport rentabilité — MCA Logistics</h1>' +
+      '<div style="color:#666;font-size:10pt;margin-bottom:12pt">Période : ' + escapeHtml(range.debut || '') + ' → ' + escapeHtml(range.fin || '') + '</div>' +
+      '<div style="display:flex;gap:18pt;font-size:10pt;margin-bottom:12pt">' +
+        '<div><strong>CA total :</strong> ' + euros(sumV.ca) + '</div>' +
+        '<div><strong>Marge :</strong> ' + euros(sumV.marge) + '</div>' +
+        '<div><strong>Livraisons :</strong> ' + sumV.nb + '</div>' +
+      '</div>' +
+      renderTable('🚐 Par véhicule (top 20)',
+        ['Véhicule', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsV) +
+      renderTable('👤 Par client (top 20 par marge)',
+        ['Client', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsC) +
+      renderTable('🧑‍✈️ Par chauffeur (top 20 par marge)',
+        ['Chauffeur', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsCh) +
+      renderTable('🛣️ Tournées (30 plus récentes)',
+        ['Date', 'Chauffeur', 'Véhicule', 'Livraisons', 'CA HT', 'Marge'], rowsT);
+
+    var win = window.open('', '_blank');
+    if (!win) {
+      if (typeof afficherToast === 'function') afficherToast('⚠️ Bloqué par le navigateur (popup)', 'error');
+      return;
+    }
+    win.document.write('<!DOCTYPE html><html><head><title>Rentabilité ' + escapeHtml(range.debut || '') + '</title>' +
+      '<style>body{margin:0;padding:24px;background:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#222}@page{margin:12mm}h1,h2{page-break-after:avoid}table{page-break-inside:avoid}</style>' +
+      '</head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
+  }
+
+  function sumStats(arr) {
+    return arr.reduce(function (acc, s) {
+      acc.ca += s.ca || 0;
+      acc.marge += s.marge || 0;
+      acc.nb += s.nbLivraisons || 0;
+      return acc;
+    }, { ca: 0, marge: 0, nb: 0 });
+  }
+
   // Expose
   window.getConfigRentabilite          = getConfig;
   window.getTourneeIdLivraison         = getTourneeId;
@@ -509,6 +703,9 @@
   window.afficherRentabiliteParClient  = afficherRentabiliteParClient;
   window.calculerRentabiliteParChauffeur = calculerRentabiliteParChauffeur;
   window.afficherRentabiliteParChauffeur = afficherRentabiliteParChauffeur;
+  window.calculerRentabiliteParTournee = calculerRentabiliteParTournee;
+  window.afficherRentabiliteParTournee = afficherRentabiliteParTournee;
+  window.exporterRapportRentabilitePDF = exporterRapportRentabilitePDF;
   window.changerSousOngletRentabilite  = changerSousOngletRentabilite;
   window.ouvrirConfigRentabilite       = ouvrirConfigRentabilite;
   window.enregistrerConfigRentabilite  = enregistrerConfigRentabilite;
