@@ -2,6 +2,20 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
+  <script>
+    // Redirection mobile : si UA mobile + ecran etroit, on bascule vers m.html
+    // sauf si override explicite via "Voir version PC" (sessionStorage flag).
+    (function() {
+      try {
+        if (sessionStorage.getItem('mca_force_desktop') === '1') return;
+        var uaMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '');
+        var ecranEtroit = (window.innerWidth || document.documentElement.clientWidth || 0) <= 760;
+        if (uaMobile && ecranEtroit) {
+          window.location.replace('m.html' + window.location.search + window.location.hash);
+        }
+      } catch(_) {}
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#1a1d27" />

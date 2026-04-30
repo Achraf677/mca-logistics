@@ -569,10 +569,25 @@
       return url + separateur + 'tab_auth=' + encodeURIComponent(ticket);
     }
 
+    // Detection mobile : on bascule l'app admin vers m.html si l'utilisateur est
+    // sur un telephone (UA mobile + ecran etroit). Override possible via le
+    // sessionStorage 'mca_force_desktop' (toggle "Voir version PC" cote mobile).
+    function ciblerAppAdmin(url) {
+      if (url !== 'admin.html') return url;
+      try {
+        if (sessionStorage.getItem('mca_force_desktop') === '1') return url;
+      } catch (_) {}
+      var uaMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '');
+      var ecranEtroit = (window.innerWidth || document.documentElement.clientWidth || 0) <= 760;
+      if (uaMobile && ecranEtroit) return 'm.html';
+      return url;
+    }
+
     function redirigerAvecTransition(url) {
       document.body.classList.add('route-leaving');
+      var cible = ciblerAppAdmin(url);
       setTimeout(function() {
-        window.location.href = construireUrlAppProtegee(url);
+        window.location.href = construireUrlAppProtegee(cible);
       }, 24);
     }
 
