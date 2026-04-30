@@ -19,7 +19,7 @@ function getChargeMontantHT(charge) {
 
 // L6982 (script.js d'origine)
 function resetFormulaireCharge() {
-  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period'];
+  var fields = ['charge-edit-id','charge-date','charge-desc','charge-montant-ht','charge-montant','charge-veh','charge-tva-period','charge-fournisseur'];
   fields.forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
@@ -33,6 +33,10 @@ function resetFormulaireCharge() {
   if (tva) tva.value = '20';
   var tvaInfo = document.getElementById('charge-montant-tva');
   if (tvaInfo) tvaInfo.textContent = '';
+  var fSug = document.getElementById('fournisseur-suggestions');
+  if (fSug) fSug.innerHTML = '';
+  window.__chargeSelectedFournisseurId = null;
+  window.__chargeSelectedFournisseurNom = null;
   var modal = document.getElementById('modal-charge');
   if (modal) {
     var title = modal.querySelector('.modal-header h3');
@@ -82,11 +86,27 @@ function ouvrirModalCharge() {
 function ouvrirEditCharge(id) {
   var charge = charger('charges').find(function(item) { return item.id === id; });
   if (!charge) return;
+  // Pre-remplit le fournisseur (lien stable + snapshot nom).
+  // Si fournisseurId existe et est encore valide -> on prend son nom actuel.
+  // Sinon (fournisseur supprime) -> snapshot nom conserve sur la charge.
+  var fournisseurNomAffiche = '';
+  if (charge.fournisseurId) {
+    var fLive = charger('fournisseurs').find(function(x) { return x.id === charge.fournisseurId; });
+    fournisseurNomAffiche = fLive ? (fLive.nom || charge.fournisseur || '') : (charge.fournisseur || '');
+    window.__chargeSelectedFournisseurId = fLive ? fLive.id : null;
+    window.__chargeSelectedFournisseurNom = fournisseurNomAffiche;
+  } else {
+    fournisseurNomAffiche = charge.fournisseur || '';
+    window.__chargeSelectedFournisseurId = null;
+    window.__chargeSelectedFournisseurNom = fournisseurNomAffiche;
+  }
+
   var setters = {
     'charge-edit-id': charge.id,
     'charge-date': charge.date || aujourdhui(),
     'charge-cat': charge.categorie || 'autre',
     'charge-desc': charge.description || '',
+    'charge-fournisseur': fournisseurNomAffiche,
     'charge-montant-ht': charge.montantHT || '',
     'charge-taux-tva': charge.tauxTVA || 20,
     'charge-montant': charge.montant || '',
@@ -97,6 +117,8 @@ function ouvrirEditCharge(id) {
     var el = document.getElementById(idField);
     if (el) el.value = setters[idField];
   });
+  var fSug = document.getElementById('fournisseur-suggestions');
+  if (fSug) fSug.innerHTML = '';
   ajusterCategorieCharge();
   var modal = document.getElementById('modal-charge');
   if (modal) {
@@ -147,6 +169,7 @@ function afficherCharges() {
         c.categorie,
         c.tvaPeriodeKey,
         c.vehNom,
+        c.fournisseur,
         vehicule?.immat,
         vehicule?.modele,
         c.date
@@ -171,9 +194,19 @@ function afficherCharges() {
     const ht = c.montantHT || (c.montant||0) / (1 + (c.tauxTVA||20)/100);
     const tvaM = getChargeMontantTVA(c);
     const vehicule = c.vehId ? getVehiculeById(c.vehId) : null;
-    const descAffichee = (c.categorie === 'tva' && getTVASettlementPeriodKey(c, getTVAConfig()))
+    let descAffichee = (c.categorie === 'tva' && getTVASettlementPeriodKey(c, getTVAConfig()))
       ? (c.description || 'Versement TVA') + '<div style="font-size:.76rem;color:var(--text-muted)">Période TVA : ' + planningEscapeHtml(getTVASettlementLabel(c, getTVAConfig())) + '</div>'
       : (c.description || '—');
+    // PGI : affichage du fournisseur en sous-ligne si lien existe.
+    // On utilise fournisseurId pour retrouver le nom courant (en cas de
+    // changement de nom apres creation), avec fallback sur snapshot.
+    if (c.fournisseurId || c.fournisseur) {
+      const fLive = c.fournisseurId ? charger('fournisseurs').find(f => f.id === c.fournisseurId) : null;
+      const fNom = fLive ? fLive.nom : c.fournisseur;
+      if (fNom) {
+        descAffichee += '<div style="font-size:.74rem;color:var(--text-muted);margin-top:2px">🏭 ' + planningEscapeHtml(fNom) + '</div>';
+      }
+    }
     return `<tr>
     <td>${formatDateExport(c.date)}</td>
     <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</span></td>
@@ -212,6 +245,34 @@ function ajouterCharge() {
     return;
   }
 
+  // PGI : resolution fournisseur (lien id + snapshot nom).
+  // - Si un fournisseur a ete selectionne via autocomplete -> __chargeSelectedFournisseurId rempli
+  // - Si un nom a ete tape sans selection -> auto-creation du fournisseur
+  // - Si vide -> pas de lien fournisseur
+  const fournisseurNom = (document.getElementById('charge-fournisseur')?.value || '').trim();
+  let fournisseurId = window.__chargeSelectedFournisseurId || null;
+  if (fournisseurNom && !fournisseurId) {
+    const fournisseurs = charger('fournisseurs');
+    let fExisting = fournisseurs.find(function(x) {
+      return (x.nom || '').toLowerCase() === fournisseurNom.toLowerCase();
+    });
+    if (!fExisting) {
+      fExisting = {
+        id: genId(),
+        nom: fournisseurNom,
+        type: 'Pro',
+        creeLe: new Date().toISOString()
+      };
+      fournisseurs.push(fExisting);
+      sauvegarder('fournisseurs', fournisseurs);
+      if (typeof ajouterEntreeAudit === 'function') {
+        ajouterEntreeAudit('Création fournisseur (depuis charge)', fournisseurNom);
+      }
+      afficherToast('✅ Fournisseur « ' + fournisseurNom + ' » créé automatiquement', 'info');
+    }
+    fournisseurId = fExisting.id;
+  }
+
   const vehicule = vehId ? charger('vehicules').find(v=>v.id===vehId) : null;
   const charges  = charger('charges');
   const charge = {
@@ -224,6 +285,8 @@ function ajouterCharge() {
     tauxTVA,
     vehId,
     vehNom:vehicule?.immat||'',
+    fournisseurId: fournisseurId || null,
+    fournisseur: fournisseurNom || '', // snapshot du nom (preserve l'historique)
     tvaPeriodeKey: tvaPeriodeKey || undefined,
     creeLe:new Date().toISOString()
   };

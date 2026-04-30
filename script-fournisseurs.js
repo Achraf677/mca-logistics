@@ -134,6 +134,7 @@ function confirmerEditFournisseur() {
   const fournisseurs = charger('fournisseurs');
   const idx = fournisseurs.findIndex(f => f.id === id);
   if (idx === -1) return;
+  const ancienNom = fournisseurs[idx].nom || '';
   const $ = (k) => document.getElementById('edit-frn-' + k);
   const type = document.querySelector('input[name="edit-frn-type"]:checked')?.value || 'pro';
   fournisseurs[idx].nom = $('nom')?.value.trim() || '';
@@ -153,10 +154,39 @@ function confirmerEditFournisseur() {
   fournisseurs[idx].iban = $('iban')?.value.trim() || '';
   fournisseurs[idx].notes = $('notes')?.value.trim() || '';
   sauvegarder('fournisseurs', fournisseurs);
+
+  // PGI : propagation auto du nouveau nom sur les charges liees (snapshot mis a jour)
+  // Si le nom a change, on actualise le snapshot fournisseur sur toutes les
+  // charges qui pointent vers ce fournisseurId. Comme ca, l'historique reste
+  // coherent meme apres modification.
+  const nouveauNom = fournisseurs[idx].nom || '';
+  let nbChargesPropagees = 0;
+  if (ancienNom && nouveauNom && ancienNom !== nouveauNom) {
+    const charges = charger('charges');
+    let changed = false;
+    charges.forEach(function(c) {
+      if (c.fournisseurId === id) {
+        c.fournisseur = nouveauNom;
+        nbChargesPropagees++;
+        changed = true;
+      } else if (!c.fournisseurId && (c.fournisseur || '').toLowerCase() === ancienNom.toLowerCase()) {
+        // Charge orpheline (sans id) qui pointait vers l'ancien nom : on la rattache
+        c.fournisseurId = id;
+        c.fournisseur = nouveauNom;
+        nbChargesPropagees++;
+        changed = true;
+      }
+    });
+    if (changed) sauvegarder('charges', charges);
+  }
+
   closeModal('modal-edit-fournisseur');
   _editFournisseurId = null;
   afficherFournisseursDashboard();
-  afficherToast('✅ Fournisseur mis à jour');
+  if (typeof afficherCharges === 'function') afficherCharges();
+  afficherToast(nbChargesPropagees
+    ? '✅ Fournisseur mis à jour · ' + nbChargesPropagees + ' charge(s) synchronisée(s)'
+    : '✅ Fournisseur mis à jour');
 }
 
 // L5699 (script.js d'origine)
@@ -174,4 +204,118 @@ async function supprimerFournisseur(id) {
   if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Suppression fournisseur', f.nom || 'sans nom');
   afficherToast('🗑️ Fournisseur supprimé');
 }
+
+// ============================================================
+// AUTOCOMPLETE FOURNISSEUR DANS MODAL CHARGE (PGI)
+// ============================================================
+// Pattern identique a autoCompleteClient (modal livraison) : input + suggestions
+// + selection par id ou auto-creation si nom inexistant.
+
+/**
+ * Autocomplete des fournisseurs pour le formulaire charge.
+ * Filtre par nom, secteur, email, SIREN, ville. Si aucun match, propose
+ * de creer le fournisseur a la volee.
+ */
+function autoCompleteFournisseurCharge(val) {
+  const sug = document.getElementById('fournisseur-suggestions');
+  if (!sug) return;
+  // Reset selectedId si l'utilisateur retape (sinon le selected colle)
+  const saisi = (val || '').trim();
+  if (window.__chargeSelectedFournisseurNom && saisi !== window.__chargeSelectedFournisseurNom) {
+    window.__chargeSelectedFournisseurId = null;
+    window.__chargeSelectedFournisseurNom = null;
+  }
+  if (saisi.length < 1) { sug.innerHTML = ''; return; }
+  const q = saisi.toLowerCase();
+  const fournisseurs = charger('fournisseurs');
+  const matches = fournisseurs.filter(function(f) {
+    const blob = [f.nom, f.contact, f.secteur, f.email, f.siren, f.ville, f.cp]
+      .filter(Boolean).join(' ').toLowerCase();
+    return blob.indexOf(q) >= 0;
+  }).slice(0, 8);
+
+  if (!matches.length) {
+    const safeName = escapeAttr(saisi);
+    const displayName = escapeHtml(saisi);
+    sug.innerHTML = '<div onclick="ouvrirCreationFournisseurDepuisCharge(\'' + safeName + '\')" style="padding:8px 12px;cursor:pointer;font-size:.88rem;color:var(--accent);font-weight:600;border-bottom:1px solid var(--border)">+ Créer fournisseur « ' + displayName + ' »</div>';
+    return;
+  }
+
+  sug.innerHTML = matches.map(function(f) {
+    const idAttr = escapeAttr(f.id);
+    const nomHtml = escapeHtml(f.nom || 'Sans nom');
+    const secteurHtml = f.secteur ? '<span style="color:var(--text-muted);font-size:.78rem;margin-left:6px">' + escapeHtml(f.secteur) + '</span>' : '';
+    const sirenHtml = f.siren ? '<span style="color:var(--text-muted);font-size:.72rem;margin-left:8px">SIREN ' + escapeHtml(f.siren) + '</span>' : '';
+    return '<div onclick="selectionnerFournisseurChargeParId(\'' + idAttr + '\')" style="padding:7px 12px;cursor:pointer;font-size:.88rem;border-bottom:1px solid var(--border)" onmouseover="this.style.background=\'rgba(255,255,255,.05)\'" onmouseout="this.style.background=\'transparent\'">' + nomHtml + secteurHtml + sirenHtml + '</div>';
+  }).join('');
+}
+
+/**
+ * Selection d'un fournisseur existant via clic dans les suggestions.
+ * Pre-remplit le champ + suggere intelligemment la categorie de charge
+ * selon le secteur du fournisseur (PGI : automatisation).
+ */
+function selectionnerFournisseurChargeParId(fournisseurId) {
+  const sug = document.getElementById('fournisseur-suggestions');
+  if (sug) sug.innerHTML = '';
+  const f = charger('fournisseurs').find(function(x) { return x.id === fournisseurId; });
+  if (!f) return;
+  const inp = document.getElementById('charge-fournisseur');
+  if (inp) inp.value = f.nom || '';
+  window.__chargeSelectedFournisseurId = f.id;
+  window.__chargeSelectedFournisseurNom = f.nom || '';
+
+  // PGI : pre-remplit la categorie de charge selon le secteur du fournisseur
+  // (ex: "Carburant" -> categorie "carburant", "Garage" -> "entretien", etc.)
+  const cat = document.getElementById('charge-cat');
+  if (cat && f.secteur && !document.getElementById('charge-edit-id')?.value) {
+    const sec = (f.secteur || '').toLowerCase();
+    let suggCat = null;
+    if (/carbur|station|essence|diesel/.test(sec)) suggCat = 'carburant';
+    else if (/garage|entretien|mecanic|reparation|pneu/.test(sec)) suggCat = 'entretien';
+    else if (/assur/.test(sec)) suggCat = 'assurance';
+    else if (/peage|autoroute/.test(sec)) suggCat = 'peage';
+    if (suggCat && cat.value === 'autre') {
+      cat.value = suggCat;
+      if (typeof ajusterCategorieCharge === 'function') ajusterCategorieCharge();
+    }
+  }
+
+  // PGI : pre-remplit la description avec le nom + secteur si vide
+  const desc = document.getElementById('charge-desc');
+  if (desc && !desc.value.trim() && f.secteur) {
+    desc.placeholder = f.nom + (f.secteur ? ' — ' + f.secteur : '');
+  }
+}
+
+/**
+ * Marque le nom comme a creer a la sauvegarde (auto-creation lors du
+ * ajouterCharge). Pas d'ouverture de modal pour rester rapide.
+ */
+function ouvrirCreationFournisseurDepuisCharge(nom) {
+  const sug = document.getElementById('fournisseur-suggestions');
+  if (sug) sug.innerHTML = '';
+  const inp = document.getElementById('charge-fournisseur');
+  if (inp) inp.value = nom;
+  // Pas d'id encore : sera cree au moment de ajouterCharge
+  window.__chargeSelectedFournisseurId = null;
+  window.__chargeSelectedFournisseurNom = nom;
+  if (typeof afficherToast === 'function') {
+    afficherToast('💡 « ' + nom + ' » sera créé à l\'enregistrement', 'info');
+  }
+}
+
+// Ferme les suggestions si on clique en dehors
+document.addEventListener('click', function(e) {
+  const inp = document.getElementById('charge-fournisseur');
+  const sug = document.getElementById('fournisseur-suggestions');
+  if (!inp || !sug) return;
+  if (e.target !== inp && !sug.contains(e.target)) {
+    sug.innerHTML = '';
+  }
+});
+
+window.autoCompleteFournisseurCharge = autoCompleteFournisseurCharge;
+window.selectionnerFournisseurChargeParId = selectionnerFournisseurChargeParId;
+window.ouvrirCreationFournisseurDepuisCharge = ouvrirCreationFournisseurDepuisCharge;
 
