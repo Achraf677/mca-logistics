@@ -18,6 +18,9 @@
     currentPage: null,
     theme: localStorage.getItem('mca_mobile_theme') || 'dark',
     backStack: [],
+    // Detail navigation : pour les onglets read+detail (clients, vehicules, salaries)
+    // M.state.detail.clients = id du client en cours de visualisation, null si liste
+    detail: { clients: null, vehicules: null, salaries: null },
   };
 
   // localStorage helpers (memes cles que desktop : on partage les donnees)
@@ -409,7 +412,11 @@
       return;
     }
     M.state.currentPage = page;
+    // Mode detail : si la page a un detailId actif, on affiche le bouton back
+    // et on titre dynamiquement (la page render() met le bon titre via M.setTitle)
+    const inDetail = M.state.detail && M.state.detail[page];
     $('#m-title').textContent = route.title || '—';
+    $('#m-back-btn').hidden = !inDetail;
     // Bouton menu page (kebab) ouvre un menu page-specifique si defini
     const kebabBtn = $('#m-page-menu-btn');
     kebabBtn.hidden = !route.kebab;
@@ -1471,12 +1478,415 @@
       }
     }
   });
-  M.register('clients',     makeStub('Clients',     '🧑‍💼', 'Fiche client, historique, relances.'));
+  // ---------- Clients (v2.7 : list + recherche + detail tap-to-call) ----------
+  M.state.clientsRecherche = '';
+  M.register('clients', {
+    title: 'Clients',
+    render() {
+      const detailId = M.state.detail.clients;
+      if (detailId) return M.renderClientDetail(detailId);
+
+      const clients = M.charger('clients');
+      const recherche = (M.state.clientsRecherche || '').toLowerCase();
+      let filtered = clients;
+      if (recherche) {
+        filtered = clients.filter(c => {
+          const hay = `${c.nom||''} ${c.tel||''} ${c.email||''} ${c.ville||''} ${c.adresse||''}`.toLowerCase();
+          return hay.includes(recherche);
+        });
+      }
+      filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
+
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      if (!clients.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucun client</h3><p class="m-empty-text">Ajoute tes premiers clients depuis la version PC.</p></div>`;
+        return html;
+      }
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé.</p></div>`;
+        return html;
+      }
+
+      // Group alphabetique
+      const byLetter = {};
+      filtered.forEach(c => {
+        const letter = ((c.nom||'').charAt(0).toUpperCase() || '#').replace(/[^A-Z]/, '#');
+        if (!byLetter[letter]) byLetter[letter] = [];
+        byLetter[letter].push(c);
+      });
+      const letters = Object.keys(byLetter).sort();
+
+      letters.forEach(letter => {
+        html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${letter}</div>`;
+        byLetter[letter].forEach(c => {
+          html += `<button type="button" class="m-card m-card-pressable m-client-row" data-id="${M.escHtml(c.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.nom || '—')}</div>
+              <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.tel || c.email || c.ville || '—')}</div>
+            </div>
+            <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+          </button>`;
+        });
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const searchInput = container.querySelector('#m-clients-search');
+      if (searchInput) {
+        let t = null;
+        searchInput.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state.clientsRecherche = e.target.value; M.go('clients'); }, 220);
+        });
+        if (M.state.clientsRecherche) {
+          searchInput.focus();
+          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+      }
+      container.querySelectorAll('.m-client-row').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('clients', btn.dataset.id));
+      });
+    }
+  });
+
+  M.renderClientDetail = function(id) {
+    const c = M.charger('clients').find(x => x.id === id);
+    if (!c) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Client introuvable</h3></div>`;
+
+    // Telephone : nettoie pour href:tel + format affichage
+    const telClean = (c.tel || '').replace(/[^\d+]/g, '');
+    const livClient = M.charger('livraisons').filter(l => (l.client || '').toLowerCase() === (c.nom || '').toLowerCase());
+    const totalCa = livClient.reduce((s, l) => s + (Number(l.prix) || 0), 0);
+    const adresseFull = [c.adresse, c.cp, c.ville].filter(Boolean).join(' ');
+    const adresseEnc = encodeURIComponent(adresseFull);
+
+    return `
+      <div style="text-align:center;padding:8px 0 18px">
+        <div style="width:64px;height:64px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 10px">${M.escHtml((c.nom || '?').charAt(0).toUpperCase())}</div>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(c.nom || '—')}</h2>
+        ${c.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(c.ville)}</p>` : ''}
+      </div>
+
+      ${c.tel || c.email || adresseFull ? `
+        <div class="m-card-row" style="grid-template-columns:repeat(${(c.tel?1:0)+(c.email?1:0)+(adresseFull?1:0)},1fr);gap:8px;margin-bottom:12px">
+          ${c.tel ? `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
+          ${c.email ? `<a href="mailto:${M.escHtml(c.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
+          ${adresseFull ? `<a href="https://maps.apple.com/?q=${adresseEnc}" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">🗺️</span><span>Itinéraire</span></a>` : ''}
+        </div>
+      ` : ''}
+
+      <div class="m-card" style="padding:0">
+        ${c.tel ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(c.tel)}</span></div>` : ''}
+        ${c.email ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(c.email)}</span></div>` : ''}
+        ${adresseFull ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(adresseFull)}</span></div>` : ''}
+        ${c.tva ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(c.tva)}</span></div>` : ''}
+        ${c.notes ?     `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Notes</span><span style="font-size:.88rem;line-height:1.45">${M.escHtml(c.notes)}</span></div>` : ''}
+      </div>
+
+      <div class="m-section">
+        <div class="m-section-header">
+          <h3 class="m-section-title">📦 Livraisons</h3>
+          <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(totalCa)}</span>
+        </div>
+        ${livClient.length ? livClient.slice(0, 10).sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(l => `
+          <div class="m-card" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:500;font-size:.88rem">${M.formatDate(l.date)}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
+              <div style="color:var(--m-text-muted);font-size:.78rem">${l.distance ? M.formatNum(l.distance) + ' km' : '—'}</div>
+            </div>
+            <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prix || 0)}</div>
+          </div>
+        `).join('') : `<p class="m-empty-text" style="text-align:center;padding:20px">Aucune livraison pour ce client.</p>`}
+      </div>
+    `;
+  };
   M.register('fournisseurs',makeStub('Fournisseurs','🏭', 'Fiches fournisseurs, charges associees.'));
-  M.register('vehicules',   makeStub('Véhicules',   '🚐', 'Parc auto, CT, assurances.'));
+  // ---------- Vehicules (v2.7 : list + detail avec CT/assurance dates colorees) ----------
+  M.state.vehiculesRecherche = '';
+
+  // Helper : couleur + label selon proximite d'expiration d'une date
+  M.statutDate = function(dateIso, opts = {}) {
+    if (!dateIso) return { color: 'var(--m-text-muted)', label: '—', icon: '' };
+    const d = new Date(dateIso);
+    if (isNaN(d)) return { color: 'var(--m-text-muted)', label: '—', icon: '' };
+    const now = new Date();
+    const diffJours = Math.floor((d - now) / 86400000);
+    if (diffJours < 0)        return { color: 'var(--m-red)',    label: `Expiré (${-diffJours}j)`, icon: '⚠️' };
+    if (diffJours < 30)       return { color: 'var(--m-red)',    label: `Dans ${diffJours}j`,      icon: '🔴' };
+    if (diffJours < 60)       return { color: 'var(--m-accent)', label: `Dans ${diffJours}j`,      icon: '🟠' };
+    return { color: 'var(--m-green)', label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }), icon: '✅' };
+  };
+
+  M.register('vehicules', {
+    title: 'Véhicules',
+    render() {
+      const detailId = M.state.detail.vehicules;
+      if (detailId) return M.renderVehiculeDetail(detailId);
+
+      const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+      const recherche = (M.state.vehiculesRecherche || '').toLowerCase();
+      let filtered = vehicules;
+      if (recherche) {
+        filtered = vehicules.filter(v => {
+          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''}`.toLowerCase();
+          return hay.includes(recherche);
+        });
+      }
+      filtered = [...filtered].sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
+
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, modèle)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      if (!vehicules.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Ajoute ton parc depuis la version PC.</p></div>`;
+        return html;
+      }
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3></div>`;
+        return html;
+      }
+
+      filtered.forEach(v => {
+        const ct = M.statutDate(v.dateCT);
+        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+          <div style="flex:1 1 auto;min-width:0">
+            <div style="font-weight:700;font-size:1rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(v.modele || '')}${v.salNom ? ' · ' + M.escHtml(v.salNom) : ''}</div>
+            <div style="margin-top:6px;font-size:.75rem"><span style="color:${ct.color};font-weight:600">${ct.icon} CT ${ct.label}</span></div>
+          </div>
+          <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+        </button>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const searchInput = container.querySelector('#m-veh-search');
+      if (searchInput) {
+        let t = null;
+        searchInput.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state.vehiculesRecherche = e.target.value; M.go('vehicules'); }, 220);
+        });
+        if (M.state.vehiculesRecherche) {
+          searchInput.focus();
+          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+      }
+      container.querySelectorAll('.m-veh-row').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('vehicules', btn.dataset.id));
+      });
+    }
+  });
+
+  M.renderVehiculeDetail = function(id) {
+    const v = M.charger('vehicules').find(x => x.id === id);
+    if (!v) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Véhicule introuvable</h3></div>`;
+
+    const ct = M.statutDate(v.dateCT);
+    // Pleins du vehicule pour mini KPI
+    const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id);
+    const totalCarb = pleins.reduce((s, p) => s + (Number(p.total) || 0), 0);
+    const totalLitres = pleins.reduce((s, p) => s + (Number(p.litres) || 0), 0);
+    const dernierPlein = pleins.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id);
+
+    return `
+      <div style="text-align:center;padding:8px 0 18px">
+        <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
+        ${v.modele ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(v.modele)}</p>` : ''}
+        ${v.salNom ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>` : ''}
+      </div>
+
+      <!-- CT highlight (le plus important) -->
+      <div class="m-card" style="border-left:4px solid ${ct.color};padding:14px 16px;margin-bottom:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <div>
+            <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Contrôle technique</div>
+            <div style="font-size:1.05rem;font-weight:700;color:${ct.color};margin-top:4px">${ct.icon} ${ct.label}</div>
+          </div>
+          ${v.dateCT ? `<div style="text-align:right;font-size:.78rem;color:var(--m-text-muted)">${new Date(v.dateCT).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' })}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Detail technique -->
+      <div class="m-card" style="padding:0">
+        ${v.km != null ?            `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Kilométrage</span><span style="font-weight:600">${M.formatNum(v.km)} km</span></div>` : ''}
+        ${v.kmInitial != null ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Km initial</span><span style="font-weight:500">${M.formatNum(v.kmInitial)} km</span></div>` : ''}
+        ${v.modeAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Acquisition</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.modeAcquisition)}</span></div>` : ''}
+        ${v.dateAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Date acquisition</span><span style="font-weight:500">${M.formatDate(v.dateAcquisition)}</span></div>` : ''}
+        ${v.entretienIntervalKm ?   `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Vidange tous les</span><span style="font-weight:500">${M.formatNum(v.entretienIntervalKm)} km</span></div>` : ''}
+      </div>
+
+      <!-- Carburant resume -->
+      ${pleins.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">⛽ Carburant</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${pleins.length} plein${pleins.length>1?'s':''}</span>
+          </div>
+          <div class="m-card-row">
+            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
+            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+          </div>
+        </div>
+      ` : ''}
+
+      ${livraisons.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">📦 Activité</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${livraisons.length} livraison${livraisons.length>1?'s':''}</span>
+          </div>
+        </div>
+      ` : ''}
+    `;
+  };
   M.register('entretiens',  makeStub('Entretiens',  '🔧', 'Vidanges, reparations, rappels.'));
   M.register('inspections', makeStub('Inspections', '🚗', 'Etat reel des vehicules, conformite.'));
-  M.register('salaries',    makeStub('Salariés',    '👥', 'Fiches, contrats, permis, assurances.'));
+  // ---------- Salaries (v2.7 : list + detail avec contact + permis/assurance) ----------
+  M.state.salariesRecherche = '';
+  M.register('salaries', {
+    title: 'Salariés',
+    render() {
+      const detailId = M.state.detail.salaries;
+      if (detailId) return M.renderSalarieDetail(detailId);
+
+      const salaries = M.charger('salaries').filter(s => s && !s.archive);
+      const recherche = (M.state.salariesRecherche || '').toLowerCase();
+      let filtered = salaries;
+      if (recherche) {
+        filtered = salaries.filter(s => {
+          const hay = `${s.nom||''} ${s.prenom||''} ${s.tel||''} ${s.email||''} ${s.poste||''}`.toLowerCase();
+          return hay.includes(recherche);
+        });
+      }
+      // Actifs en premier, puis inactifs
+      filtered = [...filtered].sort((a,b) => {
+        const aActif = a.actif !== false && a.statut !== 'inactif' ? 0 : 1;
+        const bActif = b.actif !== false && b.statut !== 'inactif' ? 0 : 1;
+        if (aActif !== bActif) return aActif - bActif;
+        return (a.nom||'').localeCompare(b.nom||'');
+      });
+
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-sal-search" placeholder="🔍 Rechercher (nom, tel, poste)" value="${M.escHtml(M.state.salariesRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      if (!salaries.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Ajoute ton équipe depuis la version PC.</p></div>`;
+        return html;
+      }
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3></div>`;
+        return html;
+      }
+
+      filtered.forEach(s => {
+        const estActif = s.actif !== false && s.statut !== 'inactif';
+        const permis = M.statutDate(s.datePermis);
+        const initiales = ((s.nom || '').charAt(0) + (s.prenom || '').charAt(0)).toUpperCase() || '?';
+        html += `<button type="button" class="m-card m-card-pressable m-sal-row" data-id="${M.escHtml(s.id)}" style="display:flex;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;${!estActif ? 'opacity:.55' : ''}">
+          <div style="width:42px;height:42px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.92rem;flex-shrink:0">${M.escHtml(initiales)}</div>
+          <div style="flex:1 1 auto;min-width:0">
+            <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((s.prenom ? s.prenom + ' ' : '') + (s.nom || ''))}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(s.poste || s.tel || '—')}${!estActif ? ' · Inactif' : ''}</div>
+            ${s.datePermis ? `<div style="margin-top:4px;font-size:.72rem"><span style="color:${permis.color};font-weight:600">${permis.icon} Permis ${permis.label}</span></div>` : ''}
+          </div>
+          <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+        </button>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const searchInput = container.querySelector('#m-sal-search');
+      if (searchInput) {
+        let t = null;
+        searchInput.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state.salariesRecherche = e.target.value; M.go('salaries'); }, 220);
+        });
+        if (M.state.salariesRecherche) {
+          searchInput.focus();
+          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+      }
+      container.querySelectorAll('.m-sal-row').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.id));
+      });
+    }
+  });
+
+  M.renderSalarieDetail = function(id) {
+    const s = M.charger('salaries').find(x => x.id === id);
+    if (!s) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Salarié introuvable</h3></div>`;
+
+    const estActif = s.actif !== false && s.statut !== 'inactif';
+    const initiales = ((s.nom || '').charAt(0) + (s.prenom || '').charAt(0)).toUpperCase() || '?';
+    const telClean = (s.tel || '').replace(/[^\d+]/g, '');
+    const permis = M.statutDate(s.datePermis);
+    const assurance = M.statutDate(s.dateAssurance);
+    const visite = M.statutDate(s.visiteMedicale);
+    const livSal = M.charger('livraisons').filter(l => l.salarieId === s.id);
+    const totalCa = livSal.reduce((sum, l) => sum + (Number(l.prix) || 0), 0);
+
+    return `
+      <div style="text-align:center;padding:8px 0 18px">
+        <div style="width:72px;height:72px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;margin:0 auto 12px">${M.escHtml(initiales)}</div>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml((s.prenom ? s.prenom + ' ' : '') + (s.nom || '—'))}</h2>
+        ${s.poste ? `<p style="color:var(--m-text-muted);font-size:.88rem;margin:4px 0 0">${M.escHtml(s.poste)}</p>` : ''}
+        ${!estActif ? `<p style="display:inline-block;background:rgba(231,76,60,0.12);color:var(--m-red);padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:600;margin-top:8px">⏸️ Inactif</p>` : ''}
+      </div>
+
+      ${s.tel || s.email ? `
+        <div class="m-card-row" style="grid-template-columns:repeat(${(s.tel?1:0)+(s.email?1:0)},1fr);gap:8px;margin-bottom:12px">
+          ${s.tel ?   `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
+          ${s.email ? `<a href="mailto:${M.escHtml(s.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
+        </div>
+      ` : ''}
+
+      <!-- Documents -->
+      ${(s.datePermis || s.dateAssurance || s.visiteMedicale) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">📋 Documents</h3></div>
+          <div class="m-card" style="padding:0">
+            ${s.datePermis ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">🪪 Permis</span><span style="font-weight:600;color:${permis.color};font-size:.85rem">${permis.icon} ${permis.label}</span></div>` : ''}
+            ${s.dateAssurance ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">🛡️ Assurance</span><span style="font-weight:600;color:${assurance.color};font-size:.85rem">${assurance.icon} ${assurance.label}</span></div>` : ''}
+            ${s.visiteMedicale ?  `<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">🩺 Visite médicale</span><span style="font-weight:600;color:${visite.color};font-size:.85rem">${visite.icon} ${visite.label}</span></div>` : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Detail -->
+      <div class="m-card" style="padding:0;margin-top:12px">
+        ${s.numero ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° matricule</span><span style="font-weight:500">${M.escHtml(s.numero)}</span></div>` : ''}
+        ${s.tel ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(s.tel)}</span></div>` : ''}
+        ${s.email ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(s.email)}</span></div>` : ''}
+        ${s.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(s.adresse)}</span></div>` : ''}
+      </div>
+
+      ${livSal.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">📦 Livraisons effectuées</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${livSal.length} · ${M.format$(totalCa)}</span>
+          </div>
+        </div>
+      ` : ''}
+    `;
+  };
   M.register('heures',      makeStub('Heures & Km', '⏱️', 'Heures sup, indemnites, km parcourus.'));
   M.register('incidents',   makeStub('Incidents',   '🚨', 'Incidents de route, sinistres.'));
   M.register('tva',         makeStub('TVA',         '🧾', 'Recap TVA collectee/deductible/a reverser.'));
@@ -1546,12 +1956,25 @@
       }
     });
 
-    // Back button (pour vues filles, pas utilise en v1)
+    // Back button (vues detail clients/vehicules/salaries) : retour a la liste
     $('#m-back-btn')?.addEventListener('click', () => {
-      if (M.state.backStack.length) {
-        M.go(M.state.backStack.pop());
+      // Cherche un detail actif sur la page courante et le ferme
+      const page = M.state.currentPage;
+      if (page && M.state.detail && M.state.detail[page]) {
+        M.state.detail[page] = null;
+        M.go(page);
+        return;
       }
+      // Fallback : back stack (pas utilise pour l'instant)
+      if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
+
+    // Helper pour ouvrir un detail
+    M.openDetail = function(entity, id) {
+      if (!M.state.detail) M.state.detail = {};
+      M.state.detail[entity] = id;
+      M.go(entity);
+    };
 
     // Initial route : dashboard ou page demandee via #
     const initialPage = (location.hash || '').replace('#', '') || 'dashboard';
