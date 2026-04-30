@@ -37,7 +37,7 @@ function ajouterAlerte(type, message, meta) {
 
 // L2094 (script.js d'origine)
 function compterAlertesNonLues() {
-  return charger('alertes_admin').filter(a => !a.lu && !a.traitee).length;
+  return charger('alertes_admin').filter(a => !a.lu && !a.traitee && !estReportee(a)).length;
 }
 
 // L2098 (script.js d'origine)
@@ -64,6 +64,10 @@ function ajouterAlerteSiAbsente(type, message, meta) {
   if (!existe) ajouterAlerte(type, message, meta);
 }
 
+function estReportee(a) {
+  return a?.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > new Date();
+}
+
 // L3952 (script.js d'origine)
 function afficherAlertes() {
   const toutes  = charger('alertes_admin').sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe));
@@ -81,8 +85,9 @@ function afficherAlertes() {
   }
 
   let filtered = toutes;
-  if (filtreStatut === 'actives')  filtered = filtered.filter(a => !a.traitee);
-  if (filtreStatut === 'traitees') filtered = filtered.filter(a => a.traitee);
+  if (filtreStatut === 'actives')   filtered = filtered.filter(a => !a.traitee && !estReportee(a));
+  if (filtreStatut === 'traitees')  filtered = filtered.filter(a => a.traitee);
+  if (filtreStatut === 'reportees') filtered = filtered.filter(a => !a.traitee && estReportee(a));
   if (filtreType)   filtered = filtered.filter(a => a.type === filtreType);
   if (filtreSal)    filtered = filtered.filter(a => a.meta?.salId === filtreSal);
   if (filtreDate)   filtered = filtered.filter(a => (a.creeLe||'').startsWith(filtreDate));
@@ -99,55 +104,75 @@ if (!toutesDejaLues) {
 
   // Afficher/masquer la section historique selon le filtre
   const cardTraitees = document.getElementById('card-alertes-traitees');
-  if (cardTraitees) cardTraitees.style.display = (filtreStatut === 'actives') ? 'none' : 'block';
+  if (cardTraitees) cardTraitees.style.display = (filtreStatut === 'actives' || filtreStatut === 'reportees') ? 'none' : 'block';
 
-  // ── Catégories d'alertes actives ──
+  // ── Catégories d'alertes (sévérité : critique / alerte / info) ──
+  // critique = action immédiate (sécurité, conformité, cash) ; alerte = à traiter cette semaine ; info = trace de modif salarié
   const categories = [
-    { type: 'prix_manquant',   label: '💶 Prix de livraison manquant',  color: 'rgba(245,166,35,0.08)',  border: 'rgba(245,166,35,0.3)'  },
-    { type: 'livraison_modif', label: '✏️ Livraisons modifiées',         color: 'rgba(155,89,182,0.06)',  border: 'rgba(155,89,182,0.25)' },
-    { type: 'carburant_modif', label: '✏️ Modifications carburant',      color: 'rgba(231,76,60,0.06)',   border: 'rgba(231,76,60,0.25)'  },
-    { type: 'km_modif',        label: '✏️ Modifications relevés km',     color: 'rgba(79,142,247,0.06)',  border: 'rgba(79,142,247,0.25)' },
-    { type: 'inspection',      label: '🚗 Inspections véhicules reçues', color: 'rgba(46,204,113,0.06)',  border: 'rgba(46,204,113,0.25)' },
-    { type: 'ct_expire',       label: '⚠️ Contrôles techniques expirés', color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'ct_proche',       label: '🔔 CT à renouveler (< 30 jours)', color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'vidange',            label: '🔧 Vidanges à effectuer',           color: 'rgba(52,152,219,0.06)',  border: 'rgba(52,152,219,0.2)'  },
-    { type: 'permis_expire',    label: '⚠️ Permis de conduire expirés',     color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'permis_proche',    label: '🪪 Permis expirent bientôt',        color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'assurance_expire', label: '⚠️ Assurances expirées',            color: 'rgba(231,76,60,0.08)',   border: 'rgba(231,76,60,0.3)'   },
-    { type: 'assurance_proche', label: '🛡️ Assurances expirent bientôt',   color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'charge_retard_paiement', label: '💸 Charges en retard de paiement', color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)' },
-    { type: 'carburant_anomalie',     label: '⛽ Anomalies carburant (conso / fraude)', color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)' },
-    { type: 'planning_manquant',      label: '📅 Salariés sans planning défini',       color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
-    { type: 'inspection_manquante',   label: '🚗 Véhicules sans inspection récente',    color: 'rgba(245,166,35,0.06)',  border: 'rgba(245,166,35,0.2)'  },
+    // 🔴 CRITIQUE
+    { type: 'ct_expire',              severity: 'critique', label: '⚠️ Contrôles techniques expirés',           color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
+    { type: 'permis_expire',          severity: 'critique', label: '⚠️ Permis de conduire expirés',             color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
+    { type: 'assurance_expire',       severity: 'critique', label: '⚠️ Assurances expirées',                    color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
+    { type: 'charge_retard_paiement', severity: 'critique', label: '💸 Charges en retard de paiement',          color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
+    { type: 'carburant_anomalie',     severity: 'critique', label: '⛽ Anomalies carburant (conso / fraude)',    color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
+    // 🟠 ALERTE
+    { type: 'ct_proche',              severity: 'alerte',   label: '🔔 CT à renouveler (< 30 jours)',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'permis_proche',          severity: 'alerte',   label: '🪪 Permis expirent bientôt',                color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'assurance_proche',       severity: 'alerte',   label: '🛡️ Assurances expirent bientôt',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'vidange',                severity: 'alerte',   label: '🔧 Vidanges à effectuer',                   color: 'rgba(52,152,219,0.06)', border: 'rgba(52,152,219,0.2)' },
+    { type: 'prix_manquant',          severity: 'alerte',   label: '💶 Prix de livraison manquant',             color: 'rgba(245,166,35,0.08)', border: 'rgba(245,166,35,0.3)' },
+    { type: 'planning_manquant',      severity: 'alerte',   label: '📅 Salariés sans planning défini',          color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'inspection_manquante',   severity: 'alerte',   label: '🚗 Véhicules sans inspection récente',      color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    // 🔵 INFO
+    { type: 'livraison_modif',        severity: 'info',     label: '✏️ Livraisons modifiées',                   color: 'rgba(155,89,182,0.06)', border: 'rgba(155,89,182,0.25)'},
+    { type: 'carburant_modif',        severity: 'info',     label: '✏️ Modifications carburant',                color: 'rgba(231,76,60,0.06)',  border: 'rgba(231,76,60,0.25)' },
+    { type: 'km_modif',               severity: 'info',     label: '✏️ Modifications relevés km',               color: 'rgba(79,142,247,0.06)', border: 'rgba(79,142,247,0.25)'},
+    { type: 'inspection',             severity: 'info',     label: '🚗 Inspections véhicules reçues',           color: 'rgba(46,204,113,0.06)', border: 'rgba(46,204,113,0.25)'},
   ];
   // Types à ne jamais afficher dans les alertes (gérés ailleurs)
   const typesExclus = ['message'];
+
+  const SEVERITES_ORDER = ['critique', 'alerte', 'info'];
+  const SEVERITES_HEADER = {
+    critique: { label: '🔴 Critique — à traiter immédiatement', color: '#e74c3c' },
+    alerte:   { label: '🟠 À traiter prochainement',             color: '#f5a623' },
+    info:     { label: '🔵 Pour information',                    color: '#4f8ef7' },
+  };
 
   const container = document.getElementById('alertes-categories');
   if (!container) return;
   container.innerHTML = '';
 
   let totalActives = 0;
+  // Mode reportées : vue spéciale pour reprendre les alertes en attente
+  const enModeReportees = filtreStatut === 'reportees';
 
-  categories.forEach(cat => {
+  const renderCategorie = (cat) => {
     const items = actives.filter(a => a.type === cat.type);
     if (!items.length) return;
     totalActives += items.length;
 
     const section = document.createElement('div');
     section.style.cssText = `background:${cat.color};border:1px solid ${cat.border};border-radius:10px;margin-bottom:16px;overflow:hidden`;
+    // Boutons "Tout valider / Tout ignorer" cachés en mode reportées (ils n'auraient pas de sens)
+    const bulkBtns = enModeReportees
+      ? ''
+      : `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3);font-size:.72rem;padding:3px 8px" onclick="validerAlertesParType('${cat.type}')" title="Marquer toutes ces alertes comme traitées">✅ Tout</button>
+         <button class="btn-icon danger" style="font-size:.72rem;padding:3px 8px;margin-left:4px" onclick="ignorerAlertesParType('${cat.type}')" title="Ignorer toutes ces alertes">✕ Tout</button>`;
     section.innerHTML = `
-      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid ${cat.border};display:flex;justify-content:space-between;align-items:center">
+      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid ${cat.border};display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
         <span>${cat.label}</span>
-        <span style="background:rgba(255,255,255,0.1);padding:2px 10px;border-radius:20px;font-size:0.78rem">${items.length}</span>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <span style="background:rgba(255,255,255,0.1);padding:2px 10px;border-radius:20px;font-size:0.78rem">${items.length}</span>
+          ${bulkBtns}
+        </div>
       </div>
       <table class="data-table" style="background:transparent">
         <thead><tr><th>Message</th><th>Salarié</th><th>Date/Heure</th><th>Action</th></tr></thead>
         <tbody>${items.map(a => {
           const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
-          // Types critiques = pas d'ignorer (CT expiré uniquement)
-          const estCritique = ['ct_expire'].includes(cat.type);
-          // Types avec saisie rapide
+          // Critique = pas de bouton "ignorer" (on doit traiter, pas planquer)
+          const estCritique = ['ct_expire','permis_expire','assurance_expire'].includes(cat.type);
           const estPrixManquant = cat.type === 'prix_manquant';
 
           let btnActions = '';
@@ -171,24 +196,52 @@ if (!toutesDejaLues) {
             btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('inspections')" title="Demander/saisir une inspection">🚗 Inspections</button>`;
           }
 
-          if (estPrixManquant) {
+          // Mode reportées : un seul bouton "Reprendre" (la date de reprise s'affiche dans la colonne date)
+          if (enModeReportees) {
+            btnActions = `<button class="btn-icon" style="background:rgba(155,89,182,.12);color:#9b59b6;border:1px solid rgba(155,89,182,.3)" onclick="reprendreAlerte('${a.id}')" title="Réafficher l'alerte maintenant">▶️ Reprendre</button>`;
+          } else if (estPrixManquant) {
             btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">📝 Saisir</button>
+              <button class="btn-icon" style="background:rgba(155,89,182,.1);color:#9b59b6;border:1px solid rgba(155,89,182,.3);font-size:.75rem;margin-left:4px" onclick="repousserAlerte('${a.id}',7)" title="Reporter de 7 jours">⏰ +7j</button>
               <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer définitivement">✕ Ignorer</button>`;
           } else if (estCritique) {
             btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Traité</button>`;
           } else {
             btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button>
+              <button class="btn-icon" style="background:rgba(155,89,182,.1);color:#9b59b6;border:1px solid rgba(155,89,182,.3);font-size:.75rem;margin-left:4px" onclick="repousserAlerte('${a.id}',7)" title="Reporter de 7 jours">⏰ +7j</button>
               <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer définitivement">✕ Ignorer</button>`;
           }
+
+          // En mode reportées, afficher la date de reprise au lieu de la date de création
+          let dateCol = `<span style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</span>`;
+          if (enModeReportees && a.meta?.repousseJusquA) {
+            const repriseFmt = new Date(a.meta.repousseJusquA).toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+            dateCol = `<span style="color:#9b59b6;font-size:0.82rem">⏰ Reprise le ${repriseFmt}</span>`;
+          }
+
           return `<tr>
             <td style="font-size:0.85rem">${a.message}</td>
             <td>${a.meta?.salNom||a.meta?.client||'—'}</td>
-            <td style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</td>
+            <td>${dateCol}</td>
             <td style="white-space:nowrap">${btnRaccourci} ${btnActions}</td>
           </tr>`;
         }).join('')}</tbody>
       </table>`;
     container.appendChild(section);
+  };
+
+  // Itère par sévérité, ajoute un en-tête de groupe avant chaque cluster non vide
+  SEVERITES_ORDER.forEach(sev => {
+    const catsOfSev = categories.filter(c => c.severity === sev);
+    const itemsCount = catsOfSev.reduce((acc, c) => acc + actives.filter(a => a.type === c.type).length, 0);
+    if (!itemsCount) return;
+
+    const header = document.createElement('div');
+    const cfg = SEVERITES_HEADER[sev];
+    header.style.cssText = `margin:24px 0 12px;padding:6px 0;font-size:.78rem;font-weight:700;color:${cfg.color};text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid ${cfg.color}33`;
+    header.textContent = `${cfg.label} — ${itemsCount} alerte${itemsCount > 1 ? 's' : ''}`;
+    container.appendChild(header);
+
+    catsOfSev.forEach(renderCategorie);
   });
 
   // Alertes d'autres types non catégorisés
@@ -210,7 +263,8 @@ if (!toutesDejaLues) {
   }
 
   if (!totalActives) {
-    container.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.9rem">✅ Aucune alerte en attente</div>';
+    const emptyMsg = enModeReportees ? '⏰ Aucune alerte reportée' : '✅ Aucune alerte en attente';
+    container.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:32px;font-size:0.9rem">${emptyMsg}</div>`;
   }
 
   // ── Historique traité ──
@@ -276,5 +330,68 @@ async function viderAlertes() {
   if (!_ok7) return;
   sauvegarder('alertes_admin', charger('alertes_admin').filter(a => !a.traitee));
   afficherAlertes(); afficherToast('🗑️ Historique effacé');
+}
+
+// Bulk : valider toutes les alertes actives d'un type
+async function validerAlertesParType(type) {
+  const alertes = charger('alertes_admin');
+  const cibles = alertes.filter(a => a.type === type && !a.traitee && !estReportee(a));
+  if (!cibles.length) return;
+  const ok = await confirmDialog(
+    `Marquer ${cibles.length} alerte${cibles.length > 1 ? 's' : ''} comme traitée${cibles.length > 1 ? 's' : ''} ?`,
+    { titre: 'Tout valider', icone: '✅', btnLabel: 'Tout valider', danger: false }
+  );
+  if (!ok) return;
+  const now = new Date().toISOString();
+  const ids = new Set(cibles.map(a => a.id));
+  const out = alertes.map(a => ids.has(a.id) ? { ...a, traitee: true, traiteLe: now } : a);
+  sauvegarder('alertes_admin', out);
+  afficherAlertes();
+  afficherBadgeAlertes();
+  afficherToast(`✅ ${cibles.length} alerte${cibles.length > 1 ? 's' : ''} traitée${cibles.length > 1 ? 's' : ''}`);
+}
+
+// Bulk : ignorer (suppression définitive) toutes les alertes actives d'un type
+async function ignorerAlertesParType(type) {
+  const alertes = charger('alertes_admin');
+  const cibles = alertes.filter(a => a.type === type && !a.traitee && !estReportee(a));
+  if (!cibles.length) return;
+  const ok = await confirmDialog(
+    `Ignorer définitivement ${cibles.length} alerte${cibles.length > 1 ? 's' : ''} ?`,
+    { titre: 'Tout ignorer', icone: '🗑️', btnLabel: 'Ignorer', danger: true }
+  );
+  if (!ok) return;
+  const ids = new Set(cibles.map(a => a.id));
+  sauvegarder('alertes_admin', alertes.filter(a => !ids.has(a.id)));
+  afficherAlertes();
+  afficherBadgeAlertes();
+  afficherToast(`🗑️ ${cibles.length} alerte${cibles.length > 1 ? 's' : ''} ignorée${cibles.length > 1 ? 's' : ''}`);
+}
+
+// Snooze : reporte une alerte de N jours (cachée du listing actives jusqu'à expiration)
+function repousserAlerte(id, jours) {
+  const n = Number(jours) || 7;
+  const alertes = charger('alertes_admin');
+  const a = alertes.find(x => x.id === id);
+  if (!a) return;
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  a.meta = { ...(a.meta || {}), repousseJusquA: d.toISOString() };
+  sauvegarder('alertes_admin', alertes);
+  afficherAlertes();
+  afficherBadgeAlertes();
+  afficherToast(`⏰ Alerte reportée de ${n} jour${n > 1 ? 's' : ''}`);
+}
+
+// Inverse de repousserAlerte : remet l'alerte en visible immédiatement
+function reprendreAlerte(id) {
+  const alertes = charger('alertes_admin');
+  const a = alertes.find(x => x.id === id);
+  if (!a || !a.meta?.repousseJusquA) return;
+  delete a.meta.repousseJusquA;
+  sauvegarder('alertes_admin', alertes);
+  afficherAlertes();
+  afficherBadgeAlertes();
+  afficherToast('▶️ Alerte reprise');
 }
 
