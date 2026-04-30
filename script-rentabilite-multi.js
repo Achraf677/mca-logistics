@@ -15,8 +15,11 @@
  *
  * Config (localStorage 'config_rentabilite') :
  *   - tarifHoraireDefaut   : taux horaire par defaut chauffeur (€/h)
- *   - coutKmDefaut         : cout km vehicule (amortissement + entretien)
  *   - methodeRepartition   : 'livraisons' | 'ca' | 'km'
+ *
+ * Note : seuls les couts decaissables sont comptes (carburant, salaires,
+ * entretiens reels, charges payees). L'amortissement comptable n'est pas
+ * une sortie de cash, donc exclu.
  */
 
 (function () {
@@ -24,7 +27,6 @@
 
   var DEFAULTS = {
     tarifHoraireDefaut: 12,    // €/h brut chargé estime
-    coutKmDefaut: 0.15,        // € par km roule (amortissement + entretien)
     methodeRepartition: 'livraisons'
   };
 
@@ -90,7 +92,7 @@
           immat: v ? v.immat : (vehId === 'sans-vehicule' ? '— Sans véhicule —' : '?'),
           modele: v ? v.modele : '',
           ca: 0, nbLivraisons: 0, kmTotal: 0,
-          coutCarburant: 0, coutCharges: 0, coutEntretien: 0, coutAmortissement: 0
+          coutCarburant: 0, coutCharges: 0, coutEntretien: 0
         };
       }
       return stats[vehId];
@@ -121,11 +123,9 @@
       s.coutEntretien += parseFloat(e.cout) || 0;
     });
 
-    // Amortissement = km × coutKmDefaut (proxy d'usure)
     Object.keys(stats).forEach(function (k) {
       var s = stats[k];
-      s.coutAmortissement = (s.kmTotal || 0) * coutKm;
-      s.coutTotal = s.coutCarburant + s.coutCharges + s.coutEntretien + s.coutAmortissement;
+      s.coutTotal = s.coutCarburant + s.coutCharges + s.coutEntretien;
       s.marge = s.ca - s.coutTotal;
       s.margePct = s.ca > 0 ? (s.marge / s.ca) * 100 : 0;
     });
@@ -191,7 +191,6 @@
         '<td>' + euros(s.ca) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutCarburant) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutCharges + s.coutEntretien) + '</td>' +
-        '<td style="font-size:.85rem;color:var(--text-muted)">' + euros(s.coutAmortissement) + '</td>' +
         '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
       '</tr>';
     }).join('');
@@ -223,7 +222,6 @@
     var cfg = getConfig();
     var setVal = function (id, v) { var el = document.getElementById(id); if (el) el.value = v; };
     setVal('cfg-rent-tarif-horaire', cfg.tarifHoraireDefaut);
-    setVal('cfg-rent-cout-km',       cfg.coutKmDefaut);
     setVal('cfg-rent-methode',       cfg.methodeRepartition);
     if (typeof openModal === 'function') openModal('modal-config-rentabilite');
   }
@@ -235,7 +233,6 @@
     };
     var newCfg = {
       tarifHoraireDefaut: Math.max(0, getNum('cfg-rent-tarif-horaire', 12)),
-      coutKmDefaut:       Math.max(0, getNum('cfg-rent-cout-km', 0.15)),
       methodeRepartition: document.getElementById('cfg-rent-methode')?.value || 'livraisons'
     };
     saveConfig(newCfg);
@@ -248,8 +245,7 @@
 
   // ===== Par client =====
   // CA   = Σ HT livraisons du client
-  // Couts directs identifiables = km livraisons × coutKmDefaut (amortissement)
-  // Couts repartis (carburant + autres charges + salaires) selon methode :
+  // Couts repartis (carburant + autres charges + entretiens + salaires) selon methode :
   //   - 'livraisons' : prorata nb livraisons
   //   - 'ca'         : prorata CA HT
   //   - 'km'         : prorata km parcourus
@@ -267,16 +263,33 @@
       return inRange(e.date, range);
     });
     var clients = (typeof charger === 'function' ? charger('clients') : []);
+    var livraisonsById = {};
+    livraisons.forEach(function (l) { livraisonsById[l.id] = l; });
     var cfg = getConfig();
-    var coutKm = parseFloat(cfg.coutKmDefaut) || 0;
 
-    // Couts globaux a repartir
+    // Charges directement imputees a une livraison (champ livraisonId) :
+    // on les attribue directement au client de cette livraison, pas a la
+    // repartition globale. Permet a l'utilisateur d'avoir une attribution
+    // precise pour les charges qui le meritent (ex : carburant rattache).
+    var coutsImputesParClient = {};
+    var chargesNonImputees = charges.filter(function (c) {
+      if (!c.livraisonId) return true;
+      var liv = livraisonsById[c.livraisonId];
+      if (!liv) return true; // livraison hors range -> reparti
+      var clientKey = liv.clientId || liv.client || 'sans-client';
+      var ttc = parseFloat(c.montant) || 0;
+      var taux = parseFloat(c.tauxTVA) || 20;
+      coutsImputesParClient[clientKey] = (coutsImputesParClient[clientKey] || 0) + ttc / (1 + taux / 100);
+      return false;
+    });
+
+    // Couts globaux a repartir (apres deduction des charges imputees)
     var coutCarburantTotal = pleins.reduce(function (s, p) {
       var ttc = parseFloat(p.total) || 0;
       var taux = parseFloat(p.tauxTVA) || 20;
       return s + ttc / (1 + taux / 100);
     }, 0);
-    var coutChargesTotal = charges.reduce(function (s, c) {
+    var coutChargesTotal = chargesNonImputees.reduce(function (s, c) {
       var ttc = parseFloat(c.montant) || 0;
       var taux = parseFloat(c.tauxTVA) || 20;
       return s + ttc / (1 + taux / 100);
@@ -292,7 +305,7 @@
           clientKey: clientKey,
           clientNom: clientNom || '— Sans client —',
           ca: 0, nbLivraisons: 0, kmTotal: 0,
-          coutAmortissement: 0, coutRepartis: 0
+          coutRepartis: 0
         };
       }
       return stats[clientKey];
@@ -314,13 +327,13 @@
 
     Object.keys(stats).forEach(function (k) {
       var s = stats[k];
-      s.coutAmortissement = (s.kmTotal || 0) * coutKm;
       var part = 0;
       if (cfg.methodeRepartition === 'ca' && totalCA > 0) part = s.ca / totalCA;
       else if (cfg.methodeRepartition === 'km' && totalKm > 0) part = s.kmTotal / totalKm;
       else if (totalLivs > 0) part = s.nbLivraisons / totalLivs;
       s.coutRepartis = coutGlobalAReparti * part;
-      s.coutTotal = s.coutAmortissement + s.coutRepartis;
+      s.coutImpute = coutsImputesParClient[k] || 0;
+      s.coutTotal = s.coutRepartis + s.coutImpute;
       s.marge = s.ca - s.coutTotal;
       s.margePct = s.ca > 0 ? (s.marge / s.ca) * 100 : 0;
     });
@@ -362,7 +375,6 @@
   // Cout carburant reparti : pour chaque vehicule conduit, on prend le carburant
   //   du vehicule sur la periode et on repartit selon nb livraisons du chauffeur
   //   sur ce vehicule / total livraisons sur ce vehicule
-  // Cout amortissement = km livraisons × coutKmDefaut
   function calculerRentabiliteParChauffeur(range) {
     var livraisons = (typeof charger === 'function' ? charger('livraisons') : []).filter(function (l) {
       return inRange(l.date, range);
@@ -374,8 +386,6 @@
       return inRange(c.date, range);
     });
     var salaries = (typeof charger === 'function' ? charger('salaries') : []);
-    var cfg = getConfig();
-    var coutKm = parseFloat(cfg.coutKmDefaut) || 0;
 
     // Index : carburant total HT par vehicule sur la periode
     var carburantParVeh = {};
@@ -405,7 +415,7 @@
           chaufKey: chaufKey,
           chaufNom: chaufNom || '— Sans chauffeur —',
           ca: 0, nbLivraisons: 0, kmTotal: 0,
-          coutSalaire: 0, coutCarburant: 0, coutAmortissement: 0,
+          coutSalaire: 0, coutCarburant: 0,
           salairManquant: false
         };
       }
@@ -451,8 +461,7 @@
 
     Object.keys(stats).forEach(function (k) {
       var s = stats[k];
-      s.coutAmortissement = (s.kmTotal || 0) * coutKm;
-      s.coutTotal = s.coutSalaire + s.coutCarburant + s.coutAmortissement;
+      s.coutTotal = s.coutSalaire + s.coutCarburant;
       s.marge = s.ca - s.coutTotal;
       s.margePct = s.ca > 0 ? (s.marge / s.ca) * 100 : 0;
       s.caParH = s.nbLivraisons > 0 ? s.ca / s.nbLivraisons : 0; // proxy productivite
@@ -482,7 +491,7 @@
         '<td>' + (s.kmTotal ? Math.round(s.kmTotal) + ' km' : '—') + '</td>' +
         '<td>' + euros(s.ca) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutSalaire) + '</td>' +
-        '<td style="font-size:.85rem">' + euros(s.coutCarburant + s.coutAmortissement) + '</td>' +
+        '<td style="font-size:.85rem">' + euros(s.coutCarburant) + '</td>' +
         '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
       '</tr>';
     }).join('');
@@ -504,7 +513,6 @@
   // Une "tournee" = ensemble des livraisons d'un meme chauffeur sur une meme date.
   // CA tournee = Σ HT livraisons du jour
   // Couts directs : carburant du vehicule du jour (pleins date == jour)
-  //                 + amortissement km tournee × coutKmDefaut
   //                 + salaire jour = (cout salaire mensuel chauffeur / nb jours travailles)
   //                   approxime ici : salaire = coutSalaireMensuel × (nbLivsTournee / totalLivsChauffeurMois)
   function calculerRentabiliteParTournee(range) {
@@ -519,8 +527,6 @@
     });
     var salaries = (typeof charger === 'function' ? charger('salaries') : []);
     var vehicules = (typeof charger === 'function' ? charger('vehicules') : []);
-    var cfg = getConfig();
-    var coutKm = parseFloat(cfg.coutKmDefaut) || 0;
 
     // Cout salaire mensuel par chauffeur (charges cat='salaires' periode entiere)
     var salaireParChauf = {};
@@ -562,7 +568,7 @@
           vehId: l.vehId || null,
           vehImmat: veh ? veh.immat : (l.vehNom || ''),
           ca: 0, nbLivraisons: 0, kmTotal: 0,
-          coutCarburant: 0, coutSalaire: 0, coutAmortissement: 0,
+          coutCarburant: 0, coutSalaire: 0,
           livraisons: []
         };
       }
@@ -583,8 +589,7 @@
       if (totalLivsChauf > 0) {
         t.coutSalaire = (salaireParChauf[t.chaufId] || 0) * (t.nbLivraisons / totalLivsChauf);
       }
-      t.coutAmortissement = (t.kmTotal || 0) * coutKm;
-      t.coutTotal = t.coutCarburant + t.coutSalaire + t.coutAmortissement;
+      t.coutTotal = t.coutCarburant + t.coutSalaire;
       t.marge = t.ca - t.coutTotal;
       t.margePct = t.ca > 0 ? (t.marge / t.ca) * 100 : 0;
     });
@@ -599,6 +604,9 @@
   function afficherRentabiliteParTournee() {
     var range = getRangeAnalyse();
     var stats = calculerRentabiliteParTournee(range);
+    // Cache pour le drill-down
+    window.__rentTourneesCache = {};
+    stats.forEach(function (t) { window.__rentTourneesCache[t.tourneeId] = t; });
     var tb = document.getElementById('tb-rent-tournee');
     if (!tb) return;
     if (!stats.length) {
@@ -608,7 +616,7 @@
     }
     tb.innerHTML = stats.map(function (t) {
       var couleur = t.marge >= 0 ? '#28a745' : '#dc3545';
-      return '<tr>' +
+      return '<tr style="cursor:pointer" onclick="voirDetailTournee(\'' + t.tourneeId + '\')" title="Voir le détail des livraisons">' +
         '<td>' + escapeHtml(t.date) + '</td>' +
         '<td><strong>' + escapeHtml(t.chaufNom) + '</strong></td>' +
         '<td>' + escapeHtml(t.vehImmat || '—') + '</td>' +
@@ -624,6 +632,46 @@
       return acc;
     }, { ca: 0, marge: 0, nbLivraisons: 0 });
     majTotauxRent('tournee', totaux);
+  }
+
+  // ===== Drill-down tournee : detail livraisons =====
+  function voirDetailTournee(tourneeId) {
+    var t = (window.__rentTourneesCache || {})[tourneeId];
+    if (!t) return;
+    var corps = document.getElementById('detail-tournee-body');
+    var titre = document.getElementById('detail-tournee-title');
+    if (!corps || !titre) return;
+    titre.textContent = '🛣️ Tournée ' + t.date + ' — ' + t.chaufNom;
+    var couleur = t.marge >= 0 ? '#28a745' : '#dc3545';
+    var html =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">' +
+        kpiBox('CA HT', euros(t.ca)) +
+        kpiBox('Carburant', euros(t.coutCarburant)) +
+        kpiBox('Salaire imputé', euros(t.coutSalaire)) +
+        kpiBox('Marge', '<span style="color:' + couleur + '">' + euros(t.marge) + ' (' + t.margePct.toFixed(1) + '%)</span>') +
+      '</div>' +
+      '<div style="font-weight:600;margin-bottom:6px">Livraisons (' + t.livraisons.length + ')</div>' +
+      '<table class="data-table" style="font-size:.88rem">' +
+        '<thead><tr><th>N°</th><th>Client</th><th>Distance</th><th>Prix</th></tr></thead>' +
+        '<tbody>' +
+          t.livraisons.map(function (l) {
+            return '<tr>' +
+              '<td>' + escapeHtml(l.numLiv || '?') + '</td>' +
+              '<td>' + escapeHtml(l.client || '—') + '</td>' +
+              '<td>' + (l.distance ? Math.round(l.distance) + ' km' : '—') + '</td>' +
+              '<td>' + euros(parseFloat(l.prix) || 0) + '</td>' +
+            '</tr>';
+          }).join('') +
+        '</tbody></table>';
+    corps.innerHTML = html;
+    if (typeof openModal === 'function') openModal('modal-detail-tournee');
+  }
+
+  function kpiBox(label, val) {
+    return '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px">' +
+      '<div style="font-size:.74rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">' + label + '</div>' +
+      '<div style="font-size:1.05rem;font-weight:700;margin-top:2px">' + val + '</div>' +
+    '</div>';
   }
 
   // ===== Export PDF rapport mensuel multi-axes =====
@@ -705,6 +753,7 @@
   window.afficherRentabiliteParChauffeur = afficherRentabiliteParChauffeur;
   window.calculerRentabiliteParTournee = calculerRentabiliteParTournee;
   window.afficherRentabiliteParTournee = afficherRentabiliteParTournee;
+  window.voirDetailTournee = voirDetailTournee;
   window.exporterRapportRentabilitePDF = exporterRapportRentabilitePDF;
   window.changerSousOngletRentabilite  = changerSousOngletRentabilite;
   window.ouvrirConfigRentabilite       = ouvrirConfigRentabilite;

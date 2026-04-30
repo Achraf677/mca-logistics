@@ -40,6 +40,13 @@ function resetFormulaireCharge() {
   if (fSug) fSug.innerHTML = '';
   window.__chargeSelectedFournisseurId = null;
   window.__chargeSelectedFournisseurNom = null;
+  window.__chargeSelectedLivraisonId = null;
+  var livInput = document.getElementById('charge-livraison-search');
+  if (livInput) livInput.value = '';
+  var livInfo = document.getElementById('charge-livraison-selected');
+  if (livInfo) { livInfo.style.display = 'none'; livInfo.innerHTML = ''; }
+  var livSug = document.getElementById('livraison-suggestions');
+  if (livSug) livSug.innerHTML = '';
   var modal = document.getElementById('modal-charge');
   if (modal) {
     var title = modal.querySelector('.modal-header h3');
@@ -53,6 +60,70 @@ function resetFormulaireCharge() {
 // Si "paye" -> affiche date (defaut: aujourd'hui) et mode (defaut: virement
 // ou mode du fournisseur si dispo).
 // Si "a_payer" -> cache les deux et reset.
+// PGI : autocomplete livraison dans modal charge.
+// Recherche multi-champs : numLiv, client, date.
+// Selection -> stocke window.__chargeSelectedLivraisonId pour rattachement.
+function autoCompleteLivraisonCharge(query) {
+  var sug = document.getElementById('livraison-suggestions');
+  if (!sug) return;
+  var q = (query || '').trim().toLowerCase();
+  if (q.length < 2) {
+    sug.innerHTML = '';
+    return;
+  }
+  var livraisons = charger('livraisons').filter(function(l) {
+    return [l.numLiv, l.client, l.date, l.chaufNom, l.vehNom].filter(Boolean)
+      .join(' ').toLowerCase().includes(q);
+  }).sort(function(a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 8);
+  if (!livraisons.length) {
+    sug.innerHTML = '<div style="padding:8px 12px;color:var(--text-muted);font-size:.85rem">Aucune livraison trouvée</div>';
+    return;
+  }
+  sug.innerHTML = livraisons.map(function(l) {
+    var prix = (typeof euros === 'function') ? euros(l.prix || 0) : ((l.prix || 0) + ' €');
+    return '<div style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center" '
+      + 'onclick="selectionnerLivraisonChargeParId(\'' + l.id + '\')" '
+      + 'onmouseover="this.style.background=\'rgba(245,166,35,0.08)\'" '
+      + 'onmouseout="this.style.background=\'transparent\'">'
+      + '<div><strong>' + (l.numLiv || '?') + '</strong> · ' + (l.client || '—')
+      + '<div style="font-size:.74rem;color:var(--text-muted)">' + (l.date || '') + (l.chaufNom ? ' · ' + l.chaufNom : '') + '</div></div>'
+      + '<div style="font-size:.85rem;font-weight:600">' + prix + '</div>'
+      + '</div>';
+  }).join('');
+}
+window.autoCompleteLivraisonCharge = autoCompleteLivraisonCharge;
+
+function selectionnerLivraisonChargeParId(id) {
+  var liv = charger('livraisons').find(function(l) { return l.id === id; });
+  if (!liv) return;
+  window.__chargeSelectedLivraisonId = liv.id;
+  var input = document.getElementById('charge-livraison-search');
+  var info  = document.getElementById('charge-livraison-selected');
+  var sug   = document.getElementById('livraison-suggestions');
+  if (input) input.value = (liv.numLiv || '?') + ' · ' + (liv.client || '—');
+  if (info) {
+    info.style.display = '';
+    info.innerHTML = '✅ Imputée à : <strong>' + (liv.numLiv || '?') + '</strong> (' + (liv.client || '—') + ', ' + (liv.date || '') + ') '
+      + '<button type="button" class="btn-icon" style="font-size:.75rem;padding:0 4px" onclick="effacerLivraisonCharge()" title="Retirer l\'imputation">✕</button>';
+  }
+  if (sug) sug.innerHTML = '';
+  // PGI : si la livraison a un vehicule, on l'auto-selectionne
+  if (liv.vehId) {
+    var sel = document.getElementById('charge-veh');
+    if (sel && !sel.value) sel.value = liv.vehId;
+  }
+}
+window.selectionnerLivraisonChargeParId = selectionnerLivraisonChargeParId;
+
+function effacerLivraisonCharge() {
+  window.__chargeSelectedLivraisonId = null;
+  var input = document.getElementById('charge-livraison-search');
+  var info  = document.getElementById('charge-livraison-selected');
+  if (input) input.value = '';
+  if (info) { info.style.display = 'none'; info.innerHTML = ''; }
+}
+window.effacerLivraisonCharge = effacerLivraisonCharge;
+
 function toggleChargeStatutPaiement() {
   var statut = document.getElementById('charge-statut-paiement')?.value || 'a_payer';
   var dateWrap = document.getElementById('charge-date-paiement-wrap');
@@ -159,6 +230,12 @@ function ouvrirEditCharge(id) {
   });
   var fSug = document.getElementById('fournisseur-suggestions');
   if (fSug) fSug.innerHTML = '';
+  // Pre-remplit la livraison rattachee si dispo
+  if (charge.livraisonId) {
+    selectionnerLivraisonChargeParId(charge.livraisonId);
+  } else {
+    effacerLivraisonCharge();
+  }
   ajusterCategorieCharge();
   toggleChargeStatutPaiement();
   var modal = document.getElementById('modal-charge');
@@ -443,6 +520,7 @@ async function ajouterCharge() {
     vehNom:vehicule?.immat||'',
     fournisseurId: fournisseurId || null,
     fournisseur: fournisseurNom || '', // snapshot du nom (preserve l'historique)
+    livraisonId: window.__chargeSelectedLivraisonId || null,
     statutPaiement,
     datePaiement: datePaiement || null,
     modePaiement: modePaiement || null,
@@ -474,10 +552,20 @@ async function supprimerCharge(id) {
   if (!ok) return;
   const charge = charger('charges').find(function(item) { return item.id === id; });
   sauvegarder('charges', charger('charges').filter(c=>c.id!==id));
+  // PGI : si la charge est liee a un plein carburant (charge auto-creee depuis
+  // module carburant), on supprime aussi le plein source pour eviter une
+  // resync immediate qui re-creerait la charge.
+  if (charge?.categorie === 'carburant' && charge.carburantId) {
+    var pleins = charger('carburant');
+    var avant = pleins.length;
+    sauvegarder('carburant', pleins.filter(function(p) { return p.id !== charge.carburantId; }));
+    if (typeof afficherCarburant === 'function' && avant !== pleins.length - 1) afficherCarburant();
+  }
   afficherCharges();
   afficherTva();
   rafraichirDashboard();
   afficherRentabilite();
+  if (typeof afficherCarburant === 'function') afficherCarburant();
   ajouterEntreeAudit('Suppression charge', (charge?.categorie || 'charge') + ' · ' + euros(charge?.montant || 0));
   afficherToast('🗑️ Charge supprimée');
 }
