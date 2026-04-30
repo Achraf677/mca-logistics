@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <script>
-    // Redirection mobile : si UA mobile + ecran etroit, on bascule vers m.html
-    // sauf si override explicite via "Voir version PC" (sessionStorage flag).
+    // Redirection mobile stricte : si UA mobile + ecran etroit -> m.html.
+    // Pas d'override : tel = m.html, PC = admin.html.
     (function() {
       try {
-        if (sessionStorage.getItem('mca_force_desktop') === '1') return;
         var uaMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '');
         var ecranEtroit = (window.innerWidth || document.documentElement.clientWidth || 0) <= 760;
         if (uaMobile && ecranEtroit) {
