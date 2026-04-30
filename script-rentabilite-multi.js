@@ -242,6 +242,262 @@
     if (typeof closeModal === 'function') closeModal('modal-config-rentabilite');
     if (typeof afficherToast === 'function') afficherToast('✅ Config rentabilité enregistrée');
     afficherRentabiliteParVehicule();
+    if (typeof afficherRentabiliteParClient === 'function') afficherRentabiliteParClient();
+    if (typeof afficherRentabiliteParChauffeur === 'function') afficherRentabiliteParChauffeur();
+  }
+
+  // ===== Par client =====
+  // CA   = Σ HT livraisons du client
+  // Couts directs identifiables = km livraisons × coutKmDefaut (amortissement)
+  // Couts repartis (carburant + autres charges + salaires) selon methode :
+  //   - 'livraisons' : prorata nb livraisons
+  //   - 'ca'         : prorata CA HT
+  //   - 'km'         : prorata km parcourus
+  function calculerRentabiliteParClient(range) {
+    var livraisons = (typeof charger === 'function' ? charger('livraisons') : []).filter(function (l) {
+      return inRange(l.date, range);
+    });
+    var pleins = (typeof charger === 'function' ? charger('carburant') : []).filter(function (p) {
+      return inRange(p.date, range);
+    });
+    var charges = (typeof charger === 'function' ? charger('charges') : []).filter(function (c) {
+      return inRange(c.date, range) && c.categorie !== 'tva';
+    });
+    var entretiens = (typeof charger === 'function' ? charger('entretiens') : []).filter(function (e) {
+      return inRange(e.date, range);
+    });
+    var clients = (typeof charger === 'function' ? charger('clients') : []);
+    var cfg = getConfig();
+    var coutKm = parseFloat(cfg.coutKmDefaut) || 0;
+
+    // Couts globaux a repartir
+    var coutCarburantTotal = pleins.reduce(function (s, p) {
+      var ttc = parseFloat(p.total) || 0;
+      var taux = parseFloat(p.tauxTVA) || 20;
+      return s + ttc / (1 + taux / 100);
+    }, 0);
+    var coutChargesTotal = charges.reduce(function (s, c) {
+      var ttc = parseFloat(c.montant) || 0;
+      var taux = parseFloat(c.tauxTVA) || 20;
+      return s + ttc / (1 + taux / 100);
+    }, 0);
+    var coutEntretienTotal = entretiens.reduce(function (s, e) { return s + (parseFloat(e.cout) || 0); }, 0);
+    var coutGlobalAReparti = coutCarburantTotal + coutChargesTotal + coutEntretienTotal;
+
+    // Agregation par client
+    var stats = {};
+    function ensure(clientKey, clientNom) {
+      if (!stats[clientKey]) {
+        stats[clientKey] = {
+          clientKey: clientKey,
+          clientNom: clientNom || '— Sans client —',
+          ca: 0, nbLivraisons: 0, kmTotal: 0,
+          coutAmortissement: 0, coutRepartis: 0
+        };
+      }
+      return stats[clientKey];
+    }
+    livraisons.forEach(function (l) {
+      var key = l.clientId || l.client || 'sans-client';
+      var c = clients.find(function (x) { return x.id === l.clientId; });
+      var nom = c ? c.nom : (l.client || '');
+      var s = ensure(key, nom);
+      s.ca += getMontantHTLiv(l);
+      s.nbLivraisons++;
+      s.kmTotal += parseFloat(l.distance) || 0;
+    });
+
+    // Totaux pour repartition
+    var totalLivs = Object.values(stats).reduce(function (s, x) { return s + x.nbLivraisons; }, 0);
+    var totalCA   = Object.values(stats).reduce(function (s, x) { return s + x.ca; }, 0);
+    var totalKm   = Object.values(stats).reduce(function (s, x) { return s + x.kmTotal; }, 0);
+
+    Object.keys(stats).forEach(function (k) {
+      var s = stats[k];
+      s.coutAmortissement = (s.kmTotal || 0) * coutKm;
+      var part = 0;
+      if (cfg.methodeRepartition === 'ca' && totalCA > 0) part = s.ca / totalCA;
+      else if (cfg.methodeRepartition === 'km' && totalKm > 0) part = s.kmTotal / totalKm;
+      else if (totalLivs > 0) part = s.nbLivraisons / totalLivs;
+      s.coutRepartis = coutGlobalAReparti * part;
+      s.coutTotal = s.coutAmortissement + s.coutRepartis;
+      s.marge = s.ca - s.coutTotal;
+      s.margePct = s.ca > 0 ? (s.marge / s.ca) * 100 : 0;
+    });
+
+    return Object.values(stats).sort(function (a, b) { return b.marge - a.marge; });
+  }
+
+  function afficherRentabiliteParClient() {
+    var range = getRangeAnalyse();
+    var stats = calculerRentabiliteParClient(range);
+    var tb = document.getElementById('tb-rent-client');
+    if (!tb) return;
+    if (!stats.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucune donnée sur cette période.</td></tr>';
+      majTotauxRent('client', { ca: 0, marge: 0, nbLivraisons: 0 });
+      return;
+    }
+    tb.innerHTML = stats.map(function (s) {
+      var couleur = s.marge >= 0 ? '#28a745' : '#dc3545';
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(s.clientNom) + '</strong></td>' +
+        '<td>' + s.nbLivraisons + '</td>' +
+        '<td>' + (s.kmTotal ? Math.round(s.kmTotal) + ' km' : '—') + '</td>' +
+        '<td>' + euros(s.ca) + '</td>' +
+        '<td style="font-size:.85rem">' + euros(s.coutTotal) + '</td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
+      '</tr>';
+    }).join('');
+    var totaux = stats.reduce(function (acc, s) {
+      acc.ca += s.ca; acc.marge += s.marge; acc.nbLivraisons += s.nbLivraisons;
+      return acc;
+    }, { ca: 0, marge: 0, nbLivraisons: 0 });
+    majTotauxRent('client', totaux);
+  }
+
+  // ===== Par chauffeur =====
+  // CA           = Σ HT livraisons effectuees (chaufId)
+  // Cout salaire = Σ charges cat='salaires' avec salId=chaufId (sinon 0 + warning)
+  // Cout carburant reparti : pour chaque vehicule conduit, on prend le carburant
+  //   du vehicule sur la periode et on repartit selon nb livraisons du chauffeur
+  //   sur ce vehicule / total livraisons sur ce vehicule
+  // Cout amortissement = km livraisons × coutKmDefaut
+  function calculerRentabiliteParChauffeur(range) {
+    var livraisons = (typeof charger === 'function' ? charger('livraisons') : []).filter(function (l) {
+      return inRange(l.date, range);
+    });
+    var pleins = (typeof charger === 'function' ? charger('carburant') : []).filter(function (p) {
+      return inRange(p.date, range);
+    });
+    var charges = (typeof charger === 'function' ? charger('charges') : []).filter(function (c) {
+      return inRange(c.date, range);
+    });
+    var salaries = (typeof charger === 'function' ? charger('salaries') : []);
+    var cfg = getConfig();
+    var coutKm = parseFloat(cfg.coutKmDefaut) || 0;
+
+    // Index : carburant total HT par vehicule sur la periode
+    var carburantParVeh = {};
+    pleins.forEach(function (p) {
+      if (!p.vehId) return;
+      var ttc = parseFloat(p.total) || 0;
+      var taux = parseFloat(p.tauxTVA) || 20;
+      carburantParVeh[p.vehId] = (carburantParVeh[p.vehId] || 0) + ttc / (1 + taux / 100);
+    });
+    // Index : nb livraisons par (vehicule, chauffeur)
+    var livsParVehChauf = {}; // { vehId: { chaufId: count } }
+    var livsTotalParVeh = {}; // { vehId: count }
+    livraisons.forEach(function (l) {
+      if (!l.vehId) return;
+      var v = l.vehId;
+      var ch = l.chaufId || 'sans-chauffeur';
+      livsParVehChauf[v] = livsParVehChauf[v] || {};
+      livsParVehChauf[v][ch] = (livsParVehChauf[v][ch] || 0) + 1;
+      livsTotalParVeh[v] = (livsTotalParVeh[v] || 0) + 1;
+    });
+
+    // Agregation par chauffeur
+    var stats = {};
+    function ensure(chaufKey, chaufNom) {
+      if (!stats[chaufKey]) {
+        stats[chaufKey] = {
+          chaufKey: chaufKey,
+          chaufNom: chaufNom || '— Sans chauffeur —',
+          ca: 0, nbLivraisons: 0, kmTotal: 0,
+          coutSalaire: 0, coutCarburant: 0, coutAmortissement: 0,
+          salairManquant: false
+        };
+      }
+      return stats[chaufKey];
+    }
+    livraisons.forEach(function (l) {
+      var key = l.chaufId || 'sans-chauffeur';
+      var sal = salaries.find(function (x) { return x.id === l.chaufId; });
+      var nom = sal ? sal.nom : (l.chaufNom || '');
+      var s = ensure(key, nom);
+      s.ca += getMontantHTLiv(l);
+      s.nbLivraisons++;
+      s.kmTotal += parseFloat(l.distance) || 0;
+    });
+
+    // Cout salaire = charges salaires avec salId == chaufId
+    Object.keys(stats).forEach(function (chaufId) {
+      if (chaufId === 'sans-chauffeur') return;
+      var totalSal = charges.filter(function (c) {
+        return c.categorie === 'salaires' && c.salId === chaufId;
+      }).reduce(function (s, c) {
+        var ttc = parseFloat(c.montant) || 0;
+        var taux = parseFloat(c.tauxTVA) || 20;
+        return s + ttc / (1 + taux / 100);
+      }, 0);
+      stats[chaufId].coutSalaire = totalSal;
+      stats[chaufId].salairManquant = totalSal === 0;
+    });
+
+    // Cout carburant reparti : pour chaque vehicule conduit par le chauffeur,
+    // on prend le carburant du vehicule × (livs chauffeur / livs totales vehicule)
+    Object.keys(stats).forEach(function (chaufId) {
+      var coutC = 0;
+      Object.keys(livsParVehChauf).forEach(function (vehId) {
+        var nbChauf = livsParVehChauf[vehId][chaufId] || 0;
+        var nbTotal = livsTotalParVeh[vehId] || 0;
+        if (nbChauf > 0 && nbTotal > 0) {
+          coutC += (carburantParVeh[vehId] || 0) * (nbChauf / nbTotal);
+        }
+      });
+      stats[chaufId].coutCarburant = coutC;
+    });
+
+    Object.keys(stats).forEach(function (k) {
+      var s = stats[k];
+      s.coutAmortissement = (s.kmTotal || 0) * coutKm;
+      s.coutTotal = s.coutSalaire + s.coutCarburant + s.coutAmortissement;
+      s.marge = s.ca - s.coutTotal;
+      s.margePct = s.ca > 0 ? (s.marge / s.ca) * 100 : 0;
+      s.caParH = s.nbLivraisons > 0 ? s.ca / s.nbLivraisons : 0; // proxy productivite
+    });
+
+    return Object.values(stats).sort(function (a, b) { return b.marge - a.marge; });
+  }
+
+  function afficherRentabiliteParChauffeur() {
+    var range = getRangeAnalyse();
+    var stats = calculerRentabiliteParChauffeur(range);
+    var tb = document.getElementById('tb-rent-chauffeur');
+    if (!tb) return;
+    if (!stats.length) {
+      tb.innerHTML = '<tr><td colspan="7" class="empty-row">Aucune donnée sur cette période.</td></tr>';
+      majTotauxRent('chauffeur', { ca: 0, marge: 0, nbLivraisons: 0 });
+      return;
+    }
+    tb.innerHTML = stats.map(function (s) {
+      var couleur = s.marge >= 0 ? '#28a745' : '#dc3545';
+      var warnSal = s.salairManquant
+        ? ' <span style="background:rgba(245,166,35,.12);color:var(--accent);padding:2px 6px;border-radius:8px;font-size:.7rem" title="Aucune charge \'salaires\' avec salId=chauffeur trouvée — coût salaire non comptabilisé">⚠</span>'
+        : '';
+      return '<tr>' +
+        '<td><strong>' + escapeHtml(s.chaufNom) + '</strong>' + warnSal + '</td>' +
+        '<td>' + s.nbLivraisons + '</td>' +
+        '<td>' + (s.kmTotal ? Math.round(s.kmTotal) + ' km' : '—') + '</td>' +
+        '<td>' + euros(s.ca) + '</td>' +
+        '<td style="font-size:.85rem">' + euros(s.coutSalaire) + '</td>' +
+        '<td style="font-size:.85rem">' + euros(s.coutCarburant + s.coutAmortissement) + '</td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
+      '</tr>';
+    }).join('');
+    var totaux = stats.reduce(function (acc, s) {
+      acc.ca += s.ca; acc.marge += s.marge; acc.nbLivraisons += s.nbLivraisons;
+      return acc;
+    }, { ca: 0, marge: 0, nbLivraisons: 0 });
+    majTotauxRent('chauffeur', totaux);
+  }
+
+  function majTotauxRent(suffix, totaux) {
+    var setTxt = function (id, v) { var el = document.getElementById(id); if (el) el.textContent = v; };
+    setTxt('rent-' + suffix + '-total-ca', euros(totaux.ca || 0));
+    setTxt('rent-' + suffix + '-total-marge', euros(totaux.marge || 0));
+    setTxt('rent-' + suffix + '-total-livs', totaux.nbLivraisons || 0);
   }
 
   // Expose
@@ -249,6 +505,10 @@
   window.getTourneeIdLivraison         = getTourneeId;
   window.calculerRentabiliteParVehicule = calculerRentabiliteParVehicule;
   window.afficherRentabiliteParVehicule = afficherRentabiliteParVehicule;
+  window.calculerRentabiliteParClient  = calculerRentabiliteParClient;
+  window.afficherRentabiliteParClient  = afficherRentabiliteParClient;
+  window.calculerRentabiliteParChauffeur = calculerRentabiliteParChauffeur;
+  window.afficherRentabiliteParChauffeur = afficherRentabiliteParChauffeur;
   window.changerSousOngletRentabilite  = changerSousOngletRentabilite;
   window.ouvrirConfigRentabilite       = ouvrirConfigRentabilite;
   window.enregistrerConfigRentabilite  = enregistrerConfigRentabilite;
