@@ -419,7 +419,115 @@
       });
     }
   });
-  M.register('planning',    makeStub('Planning',    '📅', 'Planning équipe, qui bosse aujourd\'hui, absences.'));
+  // ---------- Planning (v2.3 : qui bosse aujourd'hui + selecteur jour) ----------
+  const M_JOURS_FR = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  const M_JOURS_COURT = ['L','M','M','J','V','S','D'];
+  // Date.getDay() : 0 = dimanche, 1 = lundi, ..., 6 = samedi -> on remap vers 0-6 lundi-dimanche
+  const jourIndexAuj = () => {
+    const d = new Date().getDay(); return (d + 6) % 7;
+  };
+  M.state.planningJour = jourIndexAuj();
+
+  M.register('planning', {
+    title: 'Planning',
+    render() {
+      const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
+      const plannings = M.charger('plannings');
+      const jourIdx = M.state.planningJour;
+      const jourCle = M_JOURS_FR[jourIdx];
+      const estAujourd = jourIdx === jourIndexAuj();
+
+      // Pour chaque salarie : son etat du jour selectionne
+      const lignes = salaries.map(sal => {
+        const planning = plannings.find(p => p.salId === sal.id);
+        const jourData = planning && Array.isArray(planning.semaine)
+          ? planning.semaine.find(j => j.jour === jourCle) : null;
+        const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
+        return { sal, typeJour, jourData };
+      });
+
+      const auTravail = lignes.filter(l => l.typeJour === 'travail');
+      const enConge   = lignes.filter(l => l.typeJour === 'conge');
+      const enAbsence = lignes.filter(l => l.typeJour === 'absence' || l.typeJour === 'maladie');
+      const enRepos   = lignes.filter(l => l.typeJour === 'repos');
+
+      // Header : selecteur jour de la semaine
+      let html = `
+        <div style="display:flex;gap:6px;margin-bottom:18px">
+          ${M_JOURS_COURT.map((j, i) => `
+            <button class="m-planning-jour ${i === jourIdx ? 'active' : ''}" data-jour="${i}" style="flex:1 1 0;min-height:44px;border-radius:10px;font-weight:600;font-size:.85rem;background:${i === jourIdx ? 'var(--m-accent)' : 'var(--m-bg-elevated)'};color:${i === jourIdx ? '#1a1208' : 'var(--m-text)'};border:1px solid ${i === jourIdx ? 'var(--m-accent)' : 'var(--m-border)'};padding:0;${i === jourIndexAuj() && i !== jourIdx ? 'box-shadow:inset 0 0 0 2px var(--m-accent-soft)' : ''}">${j}</button>
+          `).join('')}
+        </div>
+        <p style="text-align:center;color:var(--m-text-muted);font-size:.82rem;margin:-8px 0 18px">${jourCle.charAt(0).toUpperCase() + jourCle.slice(1)}${estAujourd ? ' (aujourd\'hui)' : ''}</p>
+      `;
+
+      // KPI : nb au travail / total
+      html += `
+        <div class="m-card-row">
+          <div class="m-card m-card-green">
+            <div class="m-card-title">Au travail</div>
+            <div class="m-card-value">${auTravail.length}</div>
+            <div class="m-card-sub">/ ${salaries.length} salarié${salaries.length>1?'s':''}</div>
+          </div>
+          <div class="m-card m-card-purple">
+            <div class="m-card-title">Hors travail</div>
+            <div class="m-card-value">${salaries.length - auTravail.length}</div>
+            <div class="m-card-sub">${enConge.length} congé · ${enAbsence.length} abs · ${enRepos.length} repos</div>
+          </div>
+        </div>
+      `;
+
+      // Section "Au travail"
+      if (auTravail.length) {
+        html += `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">✅ Au travail</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${auTravail.length}</span></div>`;
+        auTravail.forEach(({ sal, jourData }) => {
+          const horaires = jourData?.heureDebut && jourData?.heureFin
+            ? `${jourData.heureDebut} – ${jourData.heureFin}` : '—';
+          html += `<div class="m-card m-card-green" style="padding:12px 14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.95rem">${M.escHtml(sal.nom || sal.id)}</div>
+                <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${horaires}${jourData?.zone ? ' · ' + M.escHtml(jourData.zone) : ''}</div>
+              </div>
+            </div>
+            ${jourData?.note ? `<div style="font-size:.78rem;color:var(--m-text-muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--m-border);font-style:italic">${M.escHtml(jourData.note)}</div>` : ''}
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      // Section "Hors travail" (regroupe conge / absence / repos)
+      const horsTravail = [...enConge, ...enAbsence, ...enRepos];
+      if (horsTravail.length) {
+        html += `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">⏸️ Hors travail</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${horsTravail.length}</span></div>`;
+        horsTravail.forEach(({ sal, typeJour }) => {
+          const labels = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie', repos: '😴 Repos' };
+          const colors = { conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'var(--m-text-muted)' };
+          html += `<div class="m-card" style="padding:12px 14px;border-left:3px solid ${colors[typeJour] || 'var(--m-border)'}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+              <span style="font-weight:600;font-size:.92rem">${M.escHtml(sal.nom || sal.id)}</span>
+              <span style="font-size:.78rem;color:${colors[typeJour] || 'var(--m-text-muted)'};font-weight:600">${labels[typeJour] || typeJour}</span>
+            </div>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+
+      if (!salaries.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Les salariés ajoutés apparaitront ici avec leur planning.</p></div>`;
+      }
+
+      return html;
+    },
+    afterRender(container) {
+      container.querySelectorAll('.m-planning-jour').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.planningJour = parseInt(btn.dataset.jour);
+          M.go('planning');
+        });
+      });
+    }
+  });
   // ============================================================
   // ALERTES — namespace data (mirror script-alertes.js cote desktop)
   // ============================================================
@@ -758,8 +866,208 @@
       });
     }
   });
-  M.register('carburant',   makeStub('Carburant',   '⛽', 'Saisie de pleins, anomalies, suivi conso.'));
-  M.register('charges',     makeStub('Charges',     '💸', 'Charges fournisseur, statut paiement, alertes retard.'));
+  // ---------- Helper : index immat par vehiculeId (utilise sur Carburant) ----------
+  M.indexVehicules = function() {
+    const arr = M.charger('vehicules');
+    const idx = {};
+    arr.forEach(v => { if (v && v.id) idx[v.id] = v; });
+    return idx;
+  };
+
+  // ---------- Helper : index nom par salId (utilise sur Planning) ----------
+  M.indexSalaries = function() {
+    const arr = M.charger('salaries');
+    const idx = {};
+    arr.forEach(s => { if (s && s.id) idx[s.id] = s; });
+    return idx;
+  };
+
+  // ---------- Carburant (v2.3 : liste lecture seule, grouped par mois) ----------
+  M.state.carbMoisOuverts = {};
+  M.register('carburant', {
+    title: 'Carburant',
+    render() {
+      const pleins = M.charger('carburant');
+      const vehIdx = M.indexVehicules();
+
+      // KPI mois courant
+      const moisCourant = new Date().toISOString().slice(0, 7);
+      const pleinsCourants = pleins.filter(p => (p.date || '').startsWith(moisCourant));
+      const totalMois = pleinsCourants.reduce((s, p) => s + (Number(p.total) || 0), 0);
+      const litresMois = pleinsCourants.reduce((s, p) => s + (Number(p.litres) || 0), 0);
+      const prixMoyen = litresMois > 0 ? totalMois / litresMois : 0;
+
+      let html = `
+        <div class="m-card-row">
+          <div class="m-card m-card-red">
+            <div class="m-card-title">⛽ Coût mois</div>
+            <div class="m-card-value">${M.format$(totalMois)}</div>
+            <div class="m-card-sub">${M.formatNum(pleinsCourants.length)} plein${pleinsCourants.length>1?'s':''}</div>
+          </div>
+          <div class="m-card m-card-blue">
+            <div class="m-card-title">Litres mois</div>
+            <div class="m-card-value">${M.formatNum(litresMois.toFixed(0))} L</div>
+            <div class="m-card-sub">${prixMoyen > 0 ? M.format$(prixMoyen) + '/L' : '—'}</div>
+          </div>
+        </div>
+      `;
+
+      if (!pleins.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">⛽</div><h3 class="m-empty-title">Aucun plein</h3><p class="m-empty-text">Les pleins saisis apparaitront ici.</p></div>`;
+        return html;
+      }
+
+      // Group by month desc
+      const sorted = [...pleins].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      const byMonth = {};
+      sorted.forEach(p => {
+        const m = (p.date || '0000-00').slice(0, 7);
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(p);
+      });
+      const monthsSorted = Object.keys(byMonth).sort().reverse();
+
+      monthsSorted.forEach(month => {
+        const items = byMonth[month];
+        const total = items.reduce((s, p) => s + (Number(p.total) || 0), 0);
+        const dateLabel = month === '0000-00' ? 'Sans date' : (() => {
+          const [y, m] = month.split('-');
+          return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+        })();
+        const isOpen = M.state.carbMoisOuverts[month] !== undefined ? M.state.carbMoisOuverts[month] : (month === moisCourant);
+
+        html += `
+          <div class="m-section" style="margin-top:18px">
+            <button type="button" class="m-section-header m-carb-mois" data-mois="${M.escHtml(month)}" style="width:100%;background:transparent;border:none;color:inherit;text-align:left;cursor:pointer;padding:0 4px 10px">
+              <span style="display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0">
+                <span style="color:var(--m-text-muted);font-size:.9rem;display:inline-block;transform:rotate(${isOpen ? '90' : '0'}deg);transition:transform 0.15s ease">▶</span>
+                <h3 class="m-section-title" style="font-size:1rem">${dateLabel}</h3>
+              </span>
+              <span style="text-align:right;font-size:.78rem;color:var(--m-text-muted);font-weight:500">
+                <div>${items.length} plein${items.length>1?'s':''}</div>
+                <div style="color:var(--m-red);font-weight:600;margin-top:2px">${M.format$(total)}</div>
+              </span>
+            </button>
+            <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
+              ${items.map(p => {
+                const veh = p.vehiculeId ? vehIdx[p.vehiculeId] : null;
+                const immat = veh?.immat || veh?.immatriculation || (p.immat || '—');
+                return `<div class="m-card" style="padding:14px">
+                  <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+                    <div style="flex:1 1 auto;min-width:0">
+                      <div style="font-weight:600;font-size:.95rem">${M.escHtml(immat)}</div>
+                      <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px">${M.formatDate(p.date)}${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}</div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                      <div style="font-weight:700;color:var(--m-red);white-space:nowrap;font-size:.95rem">${M.format$(p.total)}</div>
+                      <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(Number(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + Number(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      container.querySelectorAll('button.m-carb-mois').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const m = btn.dataset.mois;
+          const c = container.querySelector(`[data-content="${m}"]`);
+          const ch = btn.querySelector('span > span');
+          if (!c) return;
+          const willOpen = c.style.display === 'none';
+          M.state.carbMoisOuverts[m] = willOpen;
+          c.style.display = willOpen ? 'block' : 'none';
+          if (ch) ch.style.transform = `rotate(${willOpen ? '90' : '0'}deg)`;
+        });
+      });
+    }
+  });
+
+  // ---------- Charges (v2.3 : liste lecture seule + filtre statut) ----------
+  M.state.chargesStatut = 'tous'; // tous | a_payer | paye
+  M.register('charges', {
+    title: 'Charges',
+    render() {
+      const charges = M.charger('charges');
+      const moisCourant = new Date().toISOString().slice(0, 7);
+      const courantes = charges.filter(c => (c.date || '').startsWith(moisCourant));
+      const totalMois = courantes.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+      const aPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
+      const totalImpayes = aPayer.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+
+      // Statut filter
+      const statut = M.state.chargesStatut;
+      let filtered = charges;
+      if (statut === 'a_payer') filtered = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
+      if (statut === 'paye')    filtered = charges.filter(c => c.statut === 'paye' || c.statut === 'payee');
+
+      const sorted = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+      let html = `
+        <div class="m-card-row">
+          <div class="m-card m-card-red">
+            <div class="m-card-title">💸 Impayés</div>
+            <div class="m-card-value">${M.format$(totalImpayes)}</div>
+            <div class="m-card-sub">${M.formatNum(aPayer.length)} charge${aPayer.length>1?'s':''}</div>
+          </div>
+          <div class="m-card m-card-accent">
+            <div class="m-card-title">Total mois</div>
+            <div class="m-card-value">${M.format$(totalMois)}</div>
+            <div class="m-card-sub">${M.formatNum(courantes.length)} entrée${courantes.length>1?'s':''}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">📋 Toutes</button>
+          <button class="m-alertes-chip ${statut==='a_payer'?'active':''}" data-statut="a_payer">⚠️ À payer${aPayer.length?` (${aPayer.length})`:''}</button>
+          <button class="m-alertes-chip ${statut==='paye'?'active':''}" data-statut="paye">✅ Payées</button>
+        </div>
+      `;
+
+      if (!sorted.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">💸</div><h3 class="m-empty-title">Aucune charge</h3><p class="m-empty-text">${statut === 'a_payer' ? 'Tu es à jour, aucune charge en attente.' : 'Les charges saisies apparaitront ici.'}</p></div>`;
+        return html;
+      }
+
+      sorted.forEach(c => {
+        const montant = Number(c.montantTtc) || Number(c.montant) || 0;
+        const estPayee = c.statut === 'paye' || c.statut === 'payee';
+        const estPartielle = c.statut === 'partiel';
+        // Retard : non payee + date passee de plus de 7j
+        const enRetard = !estPayee && c.date && (new Date(c.date) < new Date(Date.now() - 7*86400000));
+        const statutLabel = estPayee ? '✅ Payée' : estPartielle ? '🟡 Partielle' : (enRetard ? '🔴 Retard' : '⏳ À payer');
+        const statutColor = estPayee ? 'var(--m-green)' : estPartielle ? 'var(--m-accent)' : (enRetard ? 'var(--m-red)' : 'var(--m-text-muted)');
+        const borderColor = estPayee ? 'var(--m-green)' : (enRetard ? 'var(--m-red)' : 'var(--m-accent)');
+
+        html += `<div class="m-card" style="padding:14px;border-left:4px solid ${borderColor}">
+          <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
+              <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
+              <div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>
+            </div>
+          </div>
+        </div>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      container.querySelectorAll('.m-alertes-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.chargesStatut = btn.dataset.statut;
+          M.go('charges');
+        });
+      });
+    }
+  });
   // ---------- Rentabilite (v2.1 : KPI vue d'ensemble + selecteur periode) ----------
   M.state.rentMois = new Date().toISOString().slice(0, 7); // mois selectionne YYYY-MM
 
