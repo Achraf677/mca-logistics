@@ -2,7 +2,12 @@
   var STORAGE_SCOPE = 'global';
   var FLUSH_DELAY_MS = 500;
   var FAST_FLUSH_DELAY_MS = 200;
-  var POLL_INTERVAL_MS = 300000;
+  // Polling app_state : passe de 5 min a 1h.
+  // Les entites metier sont toutes sur tables natives + realtime depuis Phase 4,
+  // donc app_state ne contient plus que des cles UI / config peu critiques.
+  // Un poll d'1h suffit comme filet de securite (visibilitychange declenche
+  // un pull plus reactif quand le user revient sur l'app).
+  var POLL_INTERVAL_MS = 3600000;
   var RETRY_DELAY_MS = 600;
   var suppressLocalSync = false;
   var pendingChanges = {};

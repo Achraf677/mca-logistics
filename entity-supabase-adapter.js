@@ -340,6 +340,10 @@
     }
 
     function subscribeRealtime() {
+      // Option noRealtime : skip le subscribe. Pour les entites peu modifiees
+      // (paiements, incidents), economise du WebSocket. Un pull au
+      // visibilitychange suffit pour rafraichir.
+      if (config.noRealtime) return;
       var client = getSupabaseClient();
       if (!client) return;
       // Mutualise sur le channel partage : un seul WebSocket pour toutes les tables

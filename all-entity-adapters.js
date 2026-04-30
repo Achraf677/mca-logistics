@@ -105,6 +105,9 @@
   window.DelivProEntityAdapters.livraisons = window.createSupabaseEntityAdapter({
     storageKey: 'livraisons', table: 'livraisons', channelName: 'mca-livraisons-sync',
     jsToDb: livraisonJsToDb, dbToJs: livraisonDbToJs, orderBy: 'created_at'
+    // pullFilter dispo dans la factory. A activer (ex: 6 mois) quand l'historique
+    // depassera ~1000 livraisons. Garde tout pour l'instant car stats annuelles
+    // et TVA declarative ont besoin de l'historique complet.
   });
 
   // ============================================================
@@ -293,7 +296,10 @@
   }
   window.DelivProEntityAdapters.paiements = window.createSupabaseEntityAdapter({
     storageKey: 'paiements', table: 'paiements', channelName: 'mca-paiements-sync',
-    jsToDb: paiementJsToDb, dbToJs: paiementDbToJs, orderBy: 'created_at'
+    jsToDb: paiementJsToDb, dbToJs: paiementDbToJs, orderBy: 'created_at',
+    // Pas de realtime : entite peu modifiee, le pull au visibilitychange suffit.
+    // Un paiement ne change pas plusieurs fois par minute.
+    noRealtime: true
   });
 
   // ============================================================
@@ -334,7 +340,9 @@
   }
   window.DelivProEntityAdapters.incidents = window.createSupabaseEntityAdapter({
     storageKey: 'incidents', table: 'incidents', channelName: 'mca-incidents-sync',
-    jsToDb: incidentJsToDb, dbToJs: incidentDbToJs, orderBy: 'created_at'
+    jsToDb: incidentJsToDb, dbToJs: incidentDbToJs, orderBy: 'created_at',
+    // Pas de realtime : entite peu modifiee, le pull au visibilitychange suffit.
+    noRealtime: true
   });
 
   console.info('[all-entity-adapters] 6 adapters initialises (livraisons, charges, carburant, entretiens, paiements, incidents)');
