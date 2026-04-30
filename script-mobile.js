@@ -34,6 +34,13 @@
     catch (_) { return false; }
   };
 
+  // Generation d'ID stable (UUID si dispo, fallback timestamp+random).
+  // Le prefixe 'm-' permet de tracer les entrees creees depuis mobile (debug).
+  M.genId = function() {
+    if (window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return 'm-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  };
+
   // Native confirm wrapper (pour parite UX avec confirmDialog desktop, sans ses styles)
   M.confirm = function(message, opts = {}) {
     const titre = opts.titre ? opts.titre + '\n\n' : '';
@@ -219,7 +226,28 @@
       body,
       submitLabel: 'Enregistrer',
       onSubmit() {
-        M.toast('💡 Visuel OK — connexion en v2.5');
+        const form = M.lireFormSheet();
+        const prix = parseFloat(form.prix);
+        if (!form.client?.trim() || !form.date || !(prix > 0)) {
+          M.toast('⚠️ Client, date et prix obligatoires');
+          return false; // garde la sheet ouverte
+        }
+        const arr = M.charger('livraisons');
+        arr.push({
+          id: M.genId(),
+          creeLe: new Date().toISOString(),
+          date: form.date,
+          client: form.client.trim(),
+          prix,
+          distance: parseFloat(form.distance) || 0,
+          vehiculeId: form.vehiculeId || null,
+          salarieId: form.salarieId || null,
+          statut: form.statut || 'livree',
+          numLiv: form.numLiv?.trim() || ''
+        });
+        M.sauvegarder('livraisons', arr);
+        M.toast('✅ Livraison enregistrée');
+        M.go('livraisons');
         return true;
       }
     });
@@ -260,7 +288,29 @@
         prixL.addEventListener('input', recalc);
       },
       onSubmit() {
-        M.toast('💡 Visuel OK — connexion en v2.5');
+        const form = M.lireFormSheet();
+        const litres = parseFloat(form.litres) || 0;
+        const prixL = parseFloat(form.prixLitre) || 0;
+        let total = parseFloat(form.total) || 0;
+        if (!total && litres && prixL) total = +(litres * prixL).toFixed(2); // fallback auto-calc
+        if (!form.vehiculeId || !form.date || !(litres > 0) || !(total > 0)) {
+          M.toast('⚠️ Véhicule, date, litres et total obligatoires');
+          return false;
+        }
+        const arr = M.charger('carburant');
+        arr.push({
+          id: M.genId(),
+          creeLe: new Date().toISOString(),
+          vehiculeId: form.vehiculeId,
+          date: form.date,
+          litres,
+          prixLitre: prixL,
+          total,
+          kmCompteur: parseFloat(form.kmCompteur) || 0
+        });
+        M.sauvegarder('carburant', arr);
+        M.toast('✅ Plein enregistré');
+        M.go('carburant');
         return true;
       }
     });
@@ -297,7 +347,27 @@
       body,
       submitLabel: 'Enregistrer',
       onSubmit() {
-        M.toast('💡 Visuel OK — connexion en v2.5');
+        const form = M.lireFormSheet();
+        const montant = parseFloat(form.montantTtc) || 0;
+        if (!form.libelle?.trim() || !form.date || !(montant > 0)) {
+          M.toast('⚠️ Libellé, date et montant obligatoires');
+          return false;
+        }
+        const arr = M.charger('charges');
+        arr.push({
+          id: M.genId(),
+          creeLe: new Date().toISOString(),
+          date: form.date,
+          libelle: form.libelle.trim(),
+          fournisseur: form.fournisseur?.trim() || '',
+          montantTtc: montant,
+          montant: montant, // compat desktop : certains modules lisent .montant
+          categorie: form.categorie || '',
+          statut: form.statut || 'a_payer'
+        });
+        M.sauvegarder('charges', arr);
+        M.toast('✅ Charge enregistrée');
+        M.go('charges');
         return true;
       }
     });
@@ -1426,6 +1496,22 @@
   // ============================================================
   // Init / wiring
   // ============================================================
+  // Init Supabase remote sync : pull latest data from Supabase, hooks setItem
+  // pour push automatique des saisies mobile. Echoue silencieusement si pas de
+  // session Supabase (dans ce cas, les saisies restent locales et seront sync
+  // au prochain ouverture desktop).
+  function initRemoteSync() {
+    if (!window.DelivProRemoteStorage || typeof window.DelivProRemoteStorage.init !== 'function') return Promise.resolve();
+    return window.DelivProRemoteStorage.init().then(result => {
+      // Refresh la page courante avec les donnees fraiches Supabase
+      if (M.state.currentPage) M.go(M.state.currentPage);
+      M.updateAlertesBadge();
+      return result;
+    }).catch(err => {
+      console.warn('[mobile] DelivProRemoteStorage init', err);
+    });
+  }
+
   function init() {
     if (!M.verifierAuth()) return;
     M.applyTheme();
@@ -1473,6 +1559,11 @@
 
     // Auto-refresh badge alertes toutes les 30s (au cas ou desktop sync nouvelles alertes)
     setInterval(M.updateAlertesBadge, 30000);
+
+    // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
+    // render se faire vite avec les donnees localStorage cachees, puis
+    // refresh une fois la version Supabase recue).
+    setTimeout(initRemoteSync, 200);
   }
 
   if (document.readyState === 'loading') {
