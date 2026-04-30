@@ -1606,7 +1606,114 @@
       </div>
     `;
   };
-  M.register('fournisseurs',makeStub('Fournisseurs','🏭', 'Fiches fournisseurs, charges associees.'));
+  // ---------- Fournisseurs (v2.8 : list + detail) ----------
+  M.state.fournisseursRecherche = '';
+  M.state.detail.fournisseurs = null;
+  M.register('fournisseurs', {
+    title: 'Fournisseurs',
+    render() {
+      const detailId = M.state.detail.fournisseurs;
+      if (detailId) return M.renderFournisseurDetail(detailId);
+
+      const fournisseurs = M.charger('fournisseurs');
+      const recherche = (M.state.fournisseursRecherche || '').toLowerCase();
+      let filtered = fournisseurs;
+      if (recherche) {
+        filtered = fournisseurs.filter(f => {
+          const hay = `${f.nom||''} ${f.tel||''} ${f.email||''} ${f.ville||''}`.toLowerCase();
+          return hay.includes(recherche);
+        });
+      }
+      filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
+
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-four-search" placeholder="🔍 Rechercher" value="${M.escHtml(M.state.fournisseursRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      if (!fournisseurs.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🏭</div><h3 class="m-empty-title">Aucun fournisseur</h3><p class="m-empty-text">Ajoute tes fournisseurs depuis la version PC.</p></div>`;
+        return html;
+      }
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3></div>`;
+        return html;
+      }
+
+      filtered.forEach(f => {
+        // Compteur charges associees pour mini-stat
+        const chargesF = M.charger('charges').filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
+        const totalCharges = chargesF.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+        html += `<button type="button" class="m-card m-card-pressable m-four-row" data-id="${M.escHtml(f.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+          <div style="flex:1 1 auto;min-width:0">
+            <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(f.nom || '—')}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(f.tel || f.email || f.ville || '—')}</div>
+            ${chargesF.length ? `<div style="margin-top:4px;font-size:.74rem;color:var(--m-accent);font-weight:600">${chargesF.length} charge${chargesF.length>1?'s':''} · ${M.format$(totalCharges)}</div>` : ''}
+          </div>
+          <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+        </button>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const searchInput = container.querySelector('#m-four-search');
+      if (searchInput) {
+        let t = null;
+        searchInput.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state.fournisseursRecherche = e.target.value; M.go('fournisseurs'); }, 220);
+        });
+        if (M.state.fournisseursRecherche) {
+          searchInput.focus();
+          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+      }
+      container.querySelectorAll('.m-four-row').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('fournisseurs', btn.dataset.id));
+      });
+    }
+  });
+
+  M.renderFournisseurDetail = function(id) {
+    const f = M.charger('fournisseurs').find(x => x.id === id);
+    if (!f) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Fournisseur introuvable</h3></div>`;
+
+    const telClean = (f.tel || '').replace(/[^\d+]/g, '');
+    const chargesF = M.charger('charges').filter(c => c.fournisseurId === id || c.fournisseur === f.nom);
+    const totalCharges = chargesF.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+    const aPayer = chargesF.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
+    const totalAPayer = aPayer.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+
+    return `
+      <div style="text-align:center;padding:8px 0 18px">
+        <div style="width:64px;height:64px;border-radius:14px;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px">🏭</div>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(f.nom || '—')}</h2>
+        ${f.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(f.ville)}</p>` : ''}
+      </div>
+
+      ${f.tel || f.email ? `
+        <div class="m-card-row" style="grid-template-columns:repeat(${(f.tel?1:0)+(f.email?1:0)},1fr);gap:8px;margin-bottom:12px">
+          ${f.tel ?   `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
+          ${f.email ? `<a href="mailto:${M.escHtml(f.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
+        </div>
+      ` : ''}
+
+      ${chargesF.length ? `
+        <div class="m-card-row">
+          <div class="m-card m-card-red"><div class="m-card-title">À payer</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalAPayer)}</div><div class="m-card-sub">${aPayer.length} charge${aPayer.length>1?'s':''}</div></div>
+          <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCharges)}</div><div class="m-card-sub">${chargesF.length} charge${chargesF.length>1?'s':''}</div></div>
+        </div>
+      ` : ''}
+
+      <div class="m-card" style="padding:0">
+        ${f.tel ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(f.tel)}</span></div>` : ''}
+        ${f.email ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(f.email)}</span></div>` : ''}
+        ${f.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(f.adresse)}</span></div>` : ''}
+      </div>
+    `;
+  };
   // ---------- Vehicules (v2.7 : list + detail avec CT/assurance dates colorees) ----------
   M.state.vehiculesRecherche = '';
 
@@ -1751,8 +1858,205 @@
       ` : ''}
     `;
   };
-  M.register('entretiens',  makeStub('Entretiens',  '🔧', 'Vidanges, reparations, rappels.'));
-  M.register('inspections', makeStub('Inspections', '🚗', 'Etat reel des vehicules, conformite.'));
+  // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------
+  M.state.entretiensVehFilter = '';
+  M.register('entretiens', {
+    title: 'Entretiens',
+    render() {
+      const entretiens = M.charger('entretiens');
+      const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+      const vehIdx = M.indexVehicules();
+      const filterId = M.state.entretiensVehFilter;
+
+      const sorted = [...entretiens].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      const filtered = filterId ? sorted.filter(e => e.vehiculeId === filterId) : sorted;
+
+      // KPI mois courant
+      const moisCourant = new Date().toISOString().slice(0, 7);
+      const courants = filtered.filter(e => (e.date || '').startsWith(moisCourant));
+      const totalMois = courants.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+      const totalAll = filtered.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+
+      let html = `
+        <div class="m-card-row">
+          <div class="m-card m-card-blue"><div class="m-card-title">Mois en cours</div><div class="m-card-value">${M.format$(totalMois)}</div><div class="m-card-sub">${courants.length} entretien${courants.length>1?'s':''}</div></div>
+          <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${M.format$(totalAll)}</div><div class="m-card-sub">${filtered.length} entretien${filtered.length>1?'s':''}</div></div>
+        </div>
+      `;
+
+      // Filtre vehicule (si plusieurs)
+      if (vehicules.length > 1) {
+        html += `
+          <div style="margin:14px 0">
+            <select id="m-ent-vehfilter">
+              <option value="">🚐 Tous les véhicules</option>
+              ${vehicules.map(v => `<option value="${M.escHtml(v.id)}" ${v.id === filterId ? 'selected' : ''}>${M.escHtml(v.immat || v.id)}</option>`).join('')}
+            </select>
+          </div>
+        `;
+      }
+
+      if (!entretiens.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔧</div><h3 class="m-empty-title">Aucun entretien</h3><p class="m-empty-text">L'historique des vidanges et reparations apparaitra ici.</p></div>`;
+        return html;
+      }
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun entretien pour ce véhicule</h3></div>`;
+        return html;
+      }
+
+      // Group par mois
+      const byMonth = {};
+      filtered.forEach(e => {
+        const m = (e.date || '0000-00').slice(0, 7);
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(e);
+      });
+      const monthsSorted = Object.keys(byMonth).sort().reverse();
+
+      monthsSorted.forEach(month => {
+        const items = byMonth[month];
+        const total = items.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+        const dateLabel = month === '0000-00' ? 'Sans date' : (() => {
+          const [y, m] = month.split('-');
+          return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+        })();
+
+        html += `
+          <div class="m-section" style="margin-top:16px">
+            <div class="m-section-header"><h3 class="m-section-title" style="font-size:.95rem">${dateLabel}</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${items.length} · ${M.format$(total)}</span></div>
+            ${items.map(e => {
+              const veh = e.vehiculeId ? vehIdx[e.vehiculeId] : null;
+              const immat = veh?.immat || (e.immat || '—');
+              const typeLabel = (e.type || 'autre').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+              return `<div class="m-card" style="padding:14px;display:flex;justify-content:space-between;align-items:start;gap:10px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.92rem">${M.escHtml(typeLabel)}</div>
+                  <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
+                  ${e.description ? `<div style="font-size:.82rem;margin-top:6px;color:var(--m-text);line-height:1.4">${M.escHtml(e.description)}</div>` : ''}
+                </div>
+                <div style="font-weight:700;color:var(--m-blue);white-space:nowrap;flex-shrink:0">${M.format$(e.cout || 0)}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        `;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const sel = container.querySelector('#m-ent-vehfilter');
+      if (sel) {
+        sel.addEventListener('change', e => {
+          M.state.entretiensVehFilter = e.target.value;
+          M.go('entretiens');
+        });
+      }
+    }
+  });
+  // ---------- Inspections (v2.8 : list + detail avec photos) ----------
+  M.state.detail.inspections = null;
+  M.state.inspectionsRecherche = '';
+  M.register('inspections', {
+    title: 'Inspections',
+    render() {
+      const detailId = M.state.detail.inspections;
+      if (detailId) return M.renderInspectionDetail(detailId);
+
+      const inspections = M.charger('inspections');
+      const recherche = (M.state.inspectionsRecherche || '').toLowerCase();
+      let filtered = inspections;
+      if (recherche) {
+        filtered = inspections.filter(i => {
+          const hay = `${i.vehImmat||''} ${i.salNom||''} ${i.date||''}`.toLowerCase();
+          return hay.includes(recherche);
+        });
+      }
+      filtered = [...filtered].sort((a,b) => (b.date||b.creeLe||'').localeCompare(a.date||a.creeLe||''));
+
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-insp-search" placeholder="🔍 Rechercher (immat, salarié)" value="${M.escHtml(M.state.inspectionsRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      if (!inspections.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🚗</div><h3 class="m-empty-title">Aucune inspection</h3><p class="m-empty-text">Les inspections recues des salaries apparaitront ici.</p></div>`;
+        return html;
+      }
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3></div>`;
+        return html;
+      }
+
+      filtered.forEach(i => {
+        const nbPhotos = Array.isArray(i.photos) ? i.photos.length : 0;
+        html += `<button type="button" class="m-card m-card-pressable m-insp-row" data-id="${M.escHtml(i.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+          <div style="flex:1 1 auto;min-width:0">
+            <div style="font-weight:600;font-size:.95rem">${M.escHtml(i.vehImmat || '—')}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.formatDate(i.date)}${i.salNom ? ' · 👤 ' + M.escHtml(i.salNom) : ''}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
+            ${nbPhotos ? `<div style="margin-top:4px;font-size:.75rem;color:var(--m-blue);font-weight:600">📸 ${nbPhotos} photo${nbPhotos>1?'s':''}</div>` : ''}
+          </div>
+          <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+        </button>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const searchInput = container.querySelector('#m-insp-search');
+      if (searchInput) {
+        let t = null;
+        searchInput.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state.inspectionsRecherche = e.target.value; M.go('inspections'); }, 220);
+        });
+        if (M.state.inspectionsRecherche) {
+          searchInput.focus();
+          searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+        }
+      }
+      container.querySelectorAll('.m-insp-row').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('inspections', btn.dataset.id));
+      });
+    }
+  });
+
+  M.renderInspectionDetail = function(id) {
+    const i = M.charger('inspections').find(x => x.id === id);
+    if (!i) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Inspection introuvable</h3></div>`;
+
+    const photos = Array.isArray(i.photos) ? i.photos : [];
+
+    return `
+      <div style="text-align:center;padding:8px 0 18px">
+        <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(i.vehImmat || '—')}</div>
+        <p style="font-size:.95rem;margin:8px 0 0;font-weight:500">Inspection du ${M.formatDate(i.date)}</p>
+        ${i.salNom ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(i.salNom)}</p>` : ''}
+      </div>
+
+      <div class="m-card" style="padding:0">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Date</span><span style="font-weight:500">${M.formatDate(i.date)}</span></div>
+        ${i.km ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Kilométrage</span><span style="font-weight:500">${M.formatNum(i.km)} km</span></div>` : ''}
+        ${i.salNom ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:500">${M.escHtml(i.salNom)}</span></div>` : ''}
+        ${i.source ? `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Source</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(i.source)}</span></div>` : ''}
+      </div>
+
+      ${photos.length ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">📸 Photos (${photos.length})</h3></div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            ${photos.map((p, idx) => {
+              const url = typeof p === 'string' ? p : (p.url || p.dataUrl || '');
+              if (!url) return '';
+              return `<div style="aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--m-bg-elevated);border:1px solid var(--m-border)"><img src="${M.escHtml(url)}" alt="Photo ${idx+1}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" /></div>`;
+            }).join('')}
+          </div>
+          <p class="m-form-hint" style="text-align:center;margin-top:10px">Tape sur une photo pour la voir en grand (bientôt)</p>
+        </div>
+      ` : `<div class="m-empty" style="margin-top:18px"><div class="m-empty-icon">📷</div><p class="m-empty-text">Aucune photo pour cette inspection</p></div>`}
+    `;
+  };
   // ---------- Salaries (v2.7 : list + detail avec contact + permis/assurance) ----------
   M.state.salariesRecherche = '';
   M.register('salaries', {
