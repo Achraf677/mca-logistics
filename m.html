@@ -11,7 +11,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
-  <link rel="stylesheet" href="/style-mobile.css?v=4" />
+  <link rel="stylesheet" href="/style-mobile.css?v=5" />
 </head>
 <body class="m-app m-theme-dark">
   <!-- Header compact (titre + bouton kebab pour menu page) -->
@@ -95,12 +95,27 @@
     </nav>
   </aside>
 
+  <!-- Bottom sheet (saisie rapide depuis FAB) -->
+  <div class="m-sheet-overlay" id="m-sheet-overlay" hidden></div>
+  <aside class="m-sheet" id="m-sheet" aria-hidden="true">
+    <div class="m-sheet-handle" aria-hidden="true"></div>
+    <header class="m-sheet-header">
+      <h2 class="m-sheet-title" id="m-sheet-title">—</h2>
+      <button class="m-header-action" id="m-sheet-close" aria-label="Fermer">✕</button>
+    </header>
+    <div class="m-sheet-body" id="m-sheet-body"></div>
+    <footer class="m-sheet-footer">
+      <button class="m-btn" id="m-sheet-cancel">Annuler</button>
+      <button class="m-btn m-btn-primary" id="m-sheet-submit">Enregistrer</button>
+    </footer>
+  </aside>
+
   <!-- Toast (notifications éphémères) -->
   <div class="m-toast" id="m-toast" hidden></div>
 
   <!-- Couche données (partagée avec desktop : memes Supabase tables, meme localStorage) -->
-  <script src="/repo.js?v=4"></script>
+  <script src="/repo.js?v=5"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=4"></script>
+  <script src="/script-mobile.js?v=5"></script>
 </body>
 </html>

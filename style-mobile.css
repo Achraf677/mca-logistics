@@ -438,6 +438,134 @@ a { color: var(--m-accent); text-decoration: none; }
 }
 .m-fab:active { transform: scale(0.92); }
 
+/* ============================ BOTTOM SHEET (saisie rapide) ============================ */
+.m-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.m-sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.m-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--m-bg);
+  border-top: 1px solid var(--m-border);
+  border-radius: 22px 22px 0 0;
+  z-index: 110;
+  transform: translateY(100%);
+  transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  max-height: 92vh;
+  max-height: 92dvh;
+  box-shadow: 0 -10px 32px rgba(0,0,0,0.42);
+}
+.m-sheet.open {
+  transform: translateY(0);
+}
+.m-sheet-handle {
+  width: 38px;
+  height: 4px;
+  background: var(--m-border);
+  border-radius: 2px;
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+.m-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 12px;
+  border-bottom: 1px solid var(--m-border);
+  flex-shrink: 0;
+}
+.m-sheet-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.m-sheet-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 18px 16px 8px;
+}
+.m-sheet-footer {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px calc(12px + var(--m-safe-bottom));
+  border-top: 1px solid var(--m-border);
+  flex-shrink: 0;
+  background: var(--m-bg);
+}
+.m-sheet-footer > .m-btn {
+  flex: 1 1 0;
+}
+
+/* ============================ FORM (inputs, labels, layouts) ============================ */
+.m-form-field {
+  margin-bottom: 14px;
+}
+.m-form-label {
+  display: block;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--m-text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.m-form-label-required::after {
+  content: ' *';
+  color: var(--m-red);
+}
+.m-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.m-form-row > .m-form-field {
+  margin-bottom: 14px;
+}
+.m-form-input-suffix {
+  position: relative;
+}
+.m-form-input-suffix > input {
+  padding-right: 44px;
+}
+.m-form-input-suffix-text {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--m-text-muted);
+  font-size: .85rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+.m-form-hint {
+  font-size: .75rem;
+  color: var(--m-text-muted);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+.m-form-error {
+  font-size: .78rem;
+  color: var(--m-red);
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
 /* ============================ ALERTES (chips statut + actions) ============================ */
 .m-alertes-chip {
   flex: 0 0 auto;

@@ -94,6 +94,225 @@
   };
 
   // ============================================================
+  // Bottom sheet (saisie rapide)
+  // opts = { title, body (HTML string), submitLabel?, onSubmit (returns true/Promise to close, false to keep open), afterMount? }
+  // ============================================================
+  M._sheetCtx = null;
+
+  M.openSheet = function(opts) {
+    M._sheetCtx = opts || {};
+    $('#m-sheet-title').textContent = opts.title || '—';
+    $('#m-sheet-body').innerHTML = opts.body || '';
+    $('#m-sheet-submit').textContent = opts.submitLabel || 'Enregistrer';
+    $('#m-sheet-overlay').hidden = false;
+    requestAnimationFrame(() => {
+      $('#m-sheet-overlay').classList.add('open');
+      $('#m-sheet').classList.add('open');
+      $('#m-sheet').setAttribute('aria-hidden', 'false');
+    });
+    if (typeof opts.afterMount === 'function') {
+      opts.afterMount($('#m-sheet-body'));
+    }
+    // Focus sur le premier input pour saisie immediate
+    setTimeout(() => {
+      const firstInput = $('#m-sheet-body').querySelector('input:not([type=hidden]),select,textarea');
+      // On ne focus pas auto sur mobile pour eviter le saut clavier intempestif ; le user tape sur le champ qu'il veut.
+      // (laisser firstInput non utilise volontairement)
+    }, 80);
+  };
+
+  M.closeSheet = function() {
+    $('#m-sheet-overlay').classList.remove('open');
+    $('#m-sheet').classList.remove('open');
+    $('#m-sheet').setAttribute('aria-hidden', 'true');
+    setTimeout(() => {
+      $('#m-sheet-overlay').hidden = true;
+      $('#m-sheet-body').innerHTML = '';
+    }, 320);
+    M._sheetCtx = null;
+  };
+
+  M.submitSheet = async function() {
+    if (!M._sheetCtx) return;
+    if (typeof M._sheetCtx.onSubmit !== 'function') { M.closeSheet(); return; }
+    const ok = await Promise.resolve(M._sheetCtx.onSubmit($('#m-sheet-body')));
+    if (ok !== false) M.closeSheet();
+  };
+
+  // ============================================================
+  // Form helpers (HTML templates partages)
+  // ============================================================
+  M.formField = function(label, html, opts = {}) {
+    return `<div class="m-form-field">
+      <label class="m-form-label${opts.required ? ' m-form-label-required' : ''}">${M.escHtml(label)}</label>
+      ${html}
+      ${opts.hint ? `<p class="m-form-hint">${M.escHtml(opts.hint)}</p>` : ''}
+    </div>`;
+  };
+
+  M.formInput = function(name, opts = {}) {
+    const type = opts.type || 'text';
+    const value = opts.value != null ? String(opts.value) : '';
+    const ph = opts.placeholder || '';
+    const step = opts.step ? `step="${opts.step}"` : '';
+    const min = opts.min != null ? `min="${opts.min}"` : '';
+    return `<input type="${type}" name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
+  };
+
+  M.formInputWithSuffix = function(name, suffix, opts = {}) {
+    return `<div class="m-form-input-suffix">${M.formInput(name, opts)}<span class="m-form-input-suffix-text">${M.escHtml(suffix)}</span></div>`;
+  };
+
+  M.formSelect = function(name, options, opts = {}) {
+    const sel = opts.value || '';
+    return `<select name="${M.escHtml(name)}" ${opts.required ? 'required' : ''}>
+      ${opts.placeholder ? `<option value="" ${!sel ? 'selected' : ''} disabled>${M.escHtml(opts.placeholder)}</option>` : ''}
+      ${options.map(o => {
+        const val = typeof o === 'object' ? o.value : o;
+        const lab = typeof o === 'object' ? o.label : o;
+        return `<option value="${M.escHtml(val)}" ${val === sel ? 'selected' : ''}>${M.escHtml(lab)}</option>`;
+      }).join('')}
+    </select>`;
+  };
+
+  // Utilitaire : extrait les valeurs d'un formulaire dans le sheet body
+  M.lireFormSheet = function() {
+    const body = $('#m-sheet-body');
+    const out = {};
+    body.querySelectorAll('input, select, textarea').forEach(el => {
+      if (!el.name) return;
+      out[el.name] = el.value;
+    });
+    return out;
+  };
+
+  // ============================================================
+  // Saisies (v2.4 : visuel uniquement, submit = toast "a venir v2.5")
+  // ============================================================
+  M.formNouvelleLivraison = function() {
+    const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+    const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const body = `
+      ${M.formField('Client', M.formInput('client', { placeholder: 'Nom du client', required: true, autocomplete: 'off' }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
+        ${M.formField('N° livraison', M.formInput('numLiv', { placeholder: 'Auto si vide' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Prix HT', M.formInputWithSuffix('prix', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true })}
+        ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0' }))}
+      </div>
+      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: '' }))}
+      ${M.formField('Chauffeur', M.formSelect('salarieId', salaries.map(s => ({ value: s.id, label: s.nom || s.id })), { placeholder: 'Choisir un chauffeur', value: '' }))}
+      ${M.formField('Statut', M.formSelect('statut', [
+        { value: 'planifiee', label: 'Planifiée' },
+        { value: 'en_cours',  label: 'En cours' },
+        { value: 'livree',    label: 'Livrée' },
+        { value: 'facturee',  label: 'Facturée' }
+      ], { value: 'livree' }))}
+      <p class="m-form-hint" style="margin-top:14px;background:var(--m-accent-soft);padding:10px 12px;border-radius:8px;border-left:3px solid var(--m-accent)">
+        💡 v2.4 — Aspect visuel uniquement. La sauvegarde sera connectee dans la prochaine version.
+      </p>
+    `;
+
+    M.openSheet({
+      title: '➕ Nouvelle livraison',
+      body,
+      submitLabel: 'Enregistrer',
+      onSubmit() {
+        M.toast('💡 Visuel OK — connexion en v2.5');
+        return true;
+      }
+    });
+  };
+
+  M.formNouveauPlein = function() {
+    const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const body = `
+      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', required: true }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
+        ${M.formField('Km compteur', M.formInputWithSuffix('kmCompteur', 'km', { type: 'number', step: '1', min: '0', placeholder: '0' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Litres', M.formInputWithSuffix('litres', 'L', { type: 'number', step: '0.01', min: '0', placeholder: '0', required: true }), { required: true })}
+        ${M.formField('Prix au litre', M.formInputWithSuffix('prixLitre', '€/L', { type: 'number', step: '0.001', min: '0', placeholder: '0.000' }))}
+      </div>
+      ${M.formField('Total payé', M.formInputWithSuffix('total', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { hint: 'Si laissé vide, calculé automatiquement (litres × prix/L)', required: true })}
+      <p class="m-form-hint" style="margin-top:14px;background:var(--m-accent-soft);padding:10px 12px;border-radius:8px;border-left:3px solid var(--m-accent)">
+        💡 v2.4 — Aspect visuel uniquement. La sauvegarde sera connectee dans la prochaine version.
+      </p>
+    `;
+
+    M.openSheet({
+      title: '⛽ Nouveau plein',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(body) {
+        // Auto-calcul total si litres + prix/L sont remplis et total est vide
+        const litres = body.querySelector('input[name=litres]');
+        const prixL  = body.querySelector('input[name=prixLitre]');
+        const total  = body.querySelector('input[name=total]');
+        const recalc = () => {
+          if (!total.value && litres.value && prixL.value) {
+            total.value = (parseFloat(litres.value) * parseFloat(prixL.value)).toFixed(2);
+          }
+        };
+        litres.addEventListener('input', recalc);
+        prixL.addEventListener('input', recalc);
+      },
+      onSubmit() {
+        M.toast('💡 Visuel OK — connexion en v2.5');
+        return true;
+      }
+    });
+  };
+
+  M.formNouvelleCharge = function() {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const body = `
+      ${M.formField('Libellé', M.formInput('libelle', { placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
+      ${M.formField('Fournisseur', M.formInput('fournisseur', { placeholder: 'Nom fournisseur' }))}
+      <div class="m-form-row">
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
+        ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true })}
+      </div>
+      ${M.formField('Catégorie', M.formSelect('categorie', [
+        { value: 'loyer',     label: '🏢 Loyer' },
+        { value: 'assurance', label: '🛡️ Assurance' },
+        { value: 'energie',   label: '⚡ Énergie' },
+        { value: 'telecom',   label: '📞 Télécom' },
+        { value: 'banque',    label: '🏦 Frais bancaires' },
+        { value: 'compta',    label: '📊 Comptabilité' },
+        { value: 'autre',     label: '📌 Autre' }
+      ], { placeholder: 'Choisir une catégorie' }))}
+      ${M.formField('Statut', M.formSelect('statut', [
+        { value: 'a_payer', label: '⏳ À payer' },
+        { value: 'paye',    label: '✅ Payée' },
+        { value: 'partiel', label: '🟡 Partielle' }
+      ], { value: 'a_payer' }))}
+      <p class="m-form-hint" style="margin-top:14px;background:var(--m-accent-soft);padding:10px 12px;border-radius:8px;border-left:3px solid var(--m-accent)">
+        💡 v2.4 — Aspect visuel uniquement. La sauvegarde sera connectee dans la prochaine version.
+      </p>
+    `;
+
+    M.openSheet({
+      title: '💸 Nouvelle charge',
+      body,
+      submitLabel: 'Enregistrer',
+      onSubmit() {
+        M.toast('💡 Visuel OK — connexion en v2.5');
+        return true;
+      }
+    });
+  };
+
+  // ============================================================
   // Drawer (Plus)
   // ============================================================
   M.openDrawer = function() {
@@ -322,15 +541,18 @@
       const monthsSorted = Object.keys(byMonth).sort().reverse();
       const moisCourant = new Date().toISOString().slice(0, 7);
 
+      // FAB toujours present (position:fixed -> place dans le HTML peu importe)
+      let html = `<button class="m-fab" onclick="MCAm.formNouvelleLivraison()" aria-label="Nouvelle livraison">+</button>`;
+
       // Recherche bar
-      let html = `
+      html += `
         <div style="margin-bottom:16px">
           <input type="search" id="m-liv-search" placeholder="🔍 Rechercher (client, n°, adresse...)" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
         </div>
       `;
 
       if (!livraisons.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">📦</div><h3 class="m-empty-title">Aucune livraison</h3><p class="m-empty-text">Les livraisons saisies depuis la version PC apparaitront ici.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">📦</div><h3 class="m-empty-title">Aucune livraison</h3><p class="m-empty-text">Tape sur le bouton ➕ pour ajouter ta première livraison.</p></div>`;
         return html;
       }
       if (!filtered.length) {
@@ -897,7 +1119,8 @@
       const litresMois = pleinsCourants.reduce((s, p) => s + (Number(p.litres) || 0), 0);
       const prixMoyen = litresMois > 0 ? totalMois / litresMois : 0;
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouveauPlein()" aria-label="Nouveau plein">+</button>`;
+      html += `
         <div class="m-card-row">
           <div class="m-card m-card-red">
             <div class="m-card-title">⛽ Coût mois</div>
@@ -913,7 +1136,7 @@
       `;
 
       if (!pleins.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">⛽</div><h3 class="m-empty-title">Aucun plein</h3><p class="m-empty-text">Les pleins saisis apparaitront ici.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">⛽</div><h3 class="m-empty-title">Aucun plein</h3><p class="m-empty-text">Tape sur ➕ pour saisir ton premier plein.</p></div>`;
         return html;
       }
 
@@ -1008,7 +1231,8 @@
 
       const sorted = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouvelleCharge()" aria-label="Nouvelle charge">+</button>`;
+      html += `
         <div class="m-card-row">
           <div class="m-card m-card-red">
             <div class="m-card-title">💸 Impayés</div>
@@ -1231,6 +1455,19 @@
     $('#m-drawer-overlay')?.addEventListener('click', M.closeDrawer);
     $('#m-toggle-theme')?.addEventListener('click', M.toggleTheme);
     $('#m-logout')?.addEventListener('click', M.logout);
+
+    // Sheet handlers (saisie rapide)
+    $('#m-sheet-overlay')?.addEventListener('click', M.closeSheet);
+    $('#m-sheet-close')?.addEventListener('click', M.closeSheet);
+    $('#m-sheet-cancel')?.addEventListener('click', M.closeSheet);
+    $('#m-sheet-submit')?.addEventListener('click', M.submitSheet);
+    // Submit avec Enter dans un input (sauf textarea)
+    $('#m-sheet-body')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        M.submitSheet();
+      }
+    });
 
     // Back button (pour vues filles, pas utilise en v1)
     $('#m-back-btn')?.addEventListener('click', () => {
