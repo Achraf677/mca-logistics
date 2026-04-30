@@ -3119,7 +3119,7 @@ function majSelectsPostes() {
 // MOVED -> script-tva.js : chargerConfigurationTVAParametres
 
 function chargerConfigurationTresorerieParametres() {
-  var cfg = getTresoConfigBudget();
+  var cfg = (typeof chargerObj === 'function') ? chargerObj('treso_config', {}) : {};
   var map = {
     'param-treso-solde-depart': cfg.soldeDepart || 0,
     'param-treso-echeance-tva': cfg.echeanceTVA || ''
