@@ -32,9 +32,8 @@ jobs:
         run: node --test tests/business-rules.test.js tests/financial-regressions.test.js
 
   lint:
-    name: ESLint
+    name: ESLint (advisory)
     runs-on: ubuntu-latest
-    continue-on-error: true # warnings only pour l'instant
     steps:
       - uses: actions/checkout@v4
 
@@ -42,10 +41,18 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
-      - name: Install dev dependencies
-        run: npm install --no-save eslint@^9.0.0 || npm install --no-save eslint@^8.0.0
+      - name: Install ESLint
+        run: npm install --no-save eslint@^8.57.0 || true
 
-      - name: Run ESLint
-        run: npx eslint script.js script-*.js *-supabase-adapter.js storage-uploader.js entity-supabase-adapter.js repo.js monitoring.js lazy-loader.js lazy-stubs.js auth-2fa.js all-entity-adapters.js || true
+      - name: Run ESLint (informational only)
+        # eslint affiche les warnings mais le job reste vert (les warnings
+        # sont remontes pour info, pas bloquants). Activera 'fail on error'
+        # quand le code sera 100% lint clean.
+        run: |
+          if [ -d node_modules/eslint ]; then
+            npx eslint script.js script-*.js *-supabase-adapter.js storage-uploader.js entity-supabase-adapter.js repo.js monitoring.js lazy-loader.js lazy-stubs.js auth-2fa.js all-entity-adapters.js watchdog.js 2>&1 | head -100 || true
+          else
+            echo "ESLint non installe - skipping"
+          fi
+        continue-on-error: true

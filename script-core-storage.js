@@ -1,0 +1,281 @@
+/**
+ * MCA Logistics — Module Core-storage
+ *
+ * Extrait de script.js (decomposition modulaire).
+ * Toutes les fonctions restent au scope global (window.*) pour conserver la
+ * compatibilite avec les onclick="X()" du HTML.
+ *
+ * A charger AVANT script.js dans admin.html.
+ */
+
+// L227 (script.js d'origine)
+function charger(cle)          { return lireStockageJSON(cle, []); }
+
+// L231 (script.js d'origine)
+function loadSafe(cle, fallback) { return lireStockageJSON(cle, fallback !== undefined ? fallback : []); }
+
+// L234 (script.js d'origine)
+function sauvegarder(cle, val) {
+  try {
+    const raw = JSON.stringify(val);
+    localStorage.setItem(cle, raw);
+    STORAGE_CACHE.set(cle, { raw, value: dupliquerValeurStockage(val) });
+    return true;
+  } catch (error) {
+    console.error(`[DelivPro] Impossible d'enregistrer "${cle}" dans le stockage local.`, error);
+    const maintenant = Date.now();
+    if (maintenant - lastStorageWarningAt > 4000 && typeof afficherToast === 'function') {
+      lastStorageWarningAt = maintenant;
+      afficherToast('⚠️ Enregistrement local impossible. Vérifiez l’espace navigateur disponible.', 'error');
+    }
+    return false;
+  }
+}
+
+// L250 (script.js d'origine)
+function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
+
+// L1041 (script.js d'origine)
+function getCompanyAssetsStorageHelper() {
+  return window.DelivProSupabase && window.DelivProSupabase.getCompanyAssetsStorage
+    ? window.DelivProSupabase.getCompanyAssetsStorage()
+    : null;
+}
+
+// L1180 (script.js d'origine)
+function chargerNomEntreprise() {
+  const params = chargerObj('params_entreprise', {});
+  const sessionAdmin = getAdminSession();
+  const nom = params.nom || 'MCA Logistics';
+  const el  = document.getElementById('sidebar-nom-entreprise');
+  if (el) el.textContent = nom;
+  const adminLabel = sessionAdmin.nom || 'Admin';
+  const label = document.getElementById('topbar-admin-label');
+  if (label) label.textContent = adminLabel;
+  const avatar = document.getElementById('topbar-avatar-text');
+  if (avatar) avatar.textContent = adminLabel[0].toUpperCase();
+}
+
+// L1292 (script.js d'origine)
+function chargerCadreSalarieUnifie() {
+  const frame = document.getElementById('espace-salarie-frame');
+  if (!frame) return;
+  const cible = 'salarie.html?embed=1';
+  if (!frame.dataset.loadedSrc) {
+    frame.src = cible;
+    frame.dataset.loadedSrc = cible;
+  }
+}
+
+// L1687 (script.js d'origine)
+function planifierRafraichissementStorage(cle, callback) {
+  if (typeof callback !== 'function') return;
+  if (STORAGE_REFRESH_QUEUE.has(cle)) return;
+  const executer = function() {
+    STORAGE_REFRESH_QUEUE.delete(cle);
+    callback();
+  };
+  const timer = document.visibilityState === 'visible' && typeof window.requestAnimationFrame === 'function'
+    ? window.requestAnimationFrame(executer)
+    : setTimeout(executer, 16);
+  STORAGE_REFRESH_QUEUE.set(cle, timer);
+}
+
+// L3418 (script.js d'origine)
+function charger_note_interne(salId) {
+  const notes = loadSafe('notes_internes', {});
+  return notes[salId]?.texte || '';
+}
+
+// L3423 (script.js d'origine)
+function chargerNoteInterne(salId) {
+  const notes = loadSafe('notes_internes', {});
+  return notes[salId]?.texte || '';
+}
+
+// L3557 (script.js d'origine)
+async function resolveStorageImages(container) {
+  if (!container || !window.DelivProStorage) return;
+  const imgs = container.querySelectorAll('img[data-photo-path]:not([data-resolved])');
+  for (const img of imgs) {
+    const path = img.dataset.photoPath;
+    const bucket = img.dataset.photoBucket || 'messages-photos';
+    if (!path) continue;
+    const signed = await window.DelivProStorage.getSignedUrl(bucket, path, 600);
+    if (signed.ok) {
+      img.src = signed.signedUrl;
+      img.dataset.resolved = '1';
+    }
+  }
+}
+
+// L4002 (script.js d'origine)
+function sauvegarderObjectifCA() {
+  const val = parseFloat(document.getElementById('param-objectif-ca')?.value) || 0;
+  localStorage.setItem('objectif_ca_mensuel', val);
+  afficherToast('✅ Objectif CA enregistré : ' + euros(val));
+}
+
+// L4028 (script.js d'origine)
+function chargerParametres() {
+  let params = chargerObj('params_entreprise', {});
+  // Pré-remplissage initial MCA au premier affichage (ne stocke pas tant que l'utilisateur n'a pas cliqué Enregistrer)
+  if (!params || !Object.keys(params).length) {
+    params = Object.assign({}, MCA_DEFAULTS_ENTREPRISE);
+  }
+  const sessionAdmin = getAdminSession();
+  const map = {
+    'param-nom-entreprise':       params.nom || '',
+    'param-nom-admin':             sessionAdmin.nom || '',
+    'param-forme-juridique':       params.formeJuridique || '',
+    'param-siret':                 params.siret || '',
+    'param-code-ape':              params.codeAPE || '',
+    'param-tva-intracom':          params.tvaIntracom || '',
+    'param-rcs-ville':             params.rcsVille || '',
+    'param-rcs-numero':            params.rcsNumero || '',
+    'param-capital':               params.capital != null ? params.capital : '',
+    'param-capital-libere':        params.capitalLibere != null ? params.capitalLibere : '',
+    'param-adresse':               params.adresse || '',
+    'param-code-postal':           params.codePostal || '',
+    'param-ville':                 params.ville || '',
+    'param-pays':                  params.pays || 'FR',
+    'param-tel-entreprise':        params.tel || '',
+    'param-email':                 params.email || '',
+    'param-lti-numero':            params.ltiNumero || '',
+    'param-lti-date-emission':     params.ltiDateEmission || '',
+    'param-lti-date-expiration':   params.ltiDateExpiration || '',
+    'param-dreal-dossier':         params.drealDossier || '',
+    'param-registre-transporteurs':params.registreTransporteurs || '',
+    'param-gestionnaire-nom':      params.gestionnaireNom || '',
+    'param-capacite-pro-numero':   params.capaciteProNumero || '',
+    'param-capacite-pro-date':     params.capaciteProDate || '',
+    'param-iban':                  params.iban || '',
+    'param-bic':                   params.bic || '',
+    'param-banque':                params.banque || '',
+    'param-delai-paiement':        params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30,
+    'param-taux-penalites':        params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15
+  };
+  Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
+  const colorEl = document.getElementById('param-accent-color');
+  if (colorEl) colorEl.value = localStorage.getItem('accent_color') || '#f5a623';
+  const maxTentEl = document.getElementById('param-max-tentatives');
+  if (maxTentEl) maxTentEl.value = localStorage.getItem('max_tentatives') || '5';
+  const sessionTimeoutEl = document.getElementById('param-session-timeout');
+  if (sessionTimeoutEl) sessionTimeoutEl.value = String(getSessionTimeoutMinutesAdmin());
+  const compteEl = document.getElementById('param-admin-compte');
+  if (compteEl) compteEl.textContent = 'Compte connecté : ' + (sessionAdmin.identifiant || '—');
+  appliquerBranding();
+  afficherPostes();
+  chargerConfigurationTVAParametres();
+  chargerConfigurationTresorerieParametres();
+  const nouveauPosteInput = document.getElementById('nouveau-poste');
+  if (nouveauPosteInput) nouveauPosteInput.value = '';
+  majResumeSauvegardeAdmin();
+  afficherJournalAudit();
+}
+
+// L4087 (script.js d'origine)
+function sauvegarderPostes(postes) { localStorage.setItem('postes', JSON.stringify(postes)); }
+
+// L4138 (script.js d'origine)
+function sauvegarderParametres() {
+  const sessionAdmin = getAdminSession();
+  const adminNomSaisi = document.getElementById('param-nom-admin')?.value.trim() || 'Admin';
+  const siretRaw = (document.getElementById('param-siret')?.value || '').replace(/\s+/g, '');
+  // SIRET optionnel tant que la société n'est pas immatriculée — validation uniquement si saisi
+  if (siretRaw) {
+    if (!/^\d{14}$/.test(siretRaw)) {
+      afficherToast('⚠️ Le SIRET doit contenir 14 chiffres (ou laissez vide si en cours d\'immatriculation)', 'error');
+      return;
+    }
+    if (!validerSIRET(siretRaw)) {
+      afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
+      return;
+    }
+  }
+  const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
+    ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
+    : adminNomSaisi;
+  const tvaIntracomRaw = (document.getElementById('param-tva-intracom')?.value || '').replace(/\s+/g, '').toUpperCase();
+  if (tvaIntracomRaw) {
+    const validation = validerTVAIntracomFR(tvaIntracomRaw);
+    if (!validation.valid) {
+      afficherToast('⚠️ N° TVA intracom invalide : ' + (validation.message || 'format incorrect'), 'error');
+      return;
+    }
+  }
+  const getParamVal = (id) => (document.getElementById(id)?.value || '').trim();
+  const getParamNum = (id) => {
+    const v = getParamVal(id);
+    if (v === '') return null;
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  };
+  const paramsExistants = chargerObj('params_entreprise', {});
+  const params = Object.assign({}, paramsExistants, {
+    nom:                   getParamVal('param-nom-entreprise') || 'MCA LOGISTICS',
+    nomAdmin:              adminNom,
+    formeJuridique:        getParamVal('param-forme-juridique'),
+    siret:                 siretRaw,
+    codeAPE:               getParamVal('param-code-ape').toUpperCase(),
+    tvaIntracom:           tvaIntracomRaw,
+    rcsVille:              getParamVal('param-rcs-ville'),
+    rcsNumero:             getParamVal('param-rcs-numero').replace(/\s+/g, ''),
+    capital:               getParamNum('param-capital'),
+    capitalLibere:         getParamNum('param-capital-libere'),
+    adresse:               getParamVal('param-adresse'),
+    codePostal:            getParamVal('param-code-postal'),
+    ville:                 getParamVal('param-ville'),
+    pays:                  (getParamVal('param-pays') || 'FR').toUpperCase(),
+    tel:                   getParamVal('param-tel-entreprise'),
+    email:                 getParamVal('param-email'),
+    ltiNumero:             getParamVal('param-lti-numero'),
+    ltiDateEmission:       getParamVal('param-lti-date-emission'),
+    ltiDateExpiration:     getParamVal('param-lti-date-expiration'),
+    drealDossier:          getParamVal('param-dreal-dossier'),
+    registreTransporteurs: getParamVal('param-registre-transporteurs'),
+    gestionnaireNom:       getParamVal('param-gestionnaire-nom'),
+    capaciteProNumero:     getParamVal('param-capacite-pro-numero'),
+    capaciteProDate:       getParamVal('param-capacite-pro-date'),
+    iban:                  getParamVal('param-iban').replace(/\s+/g, '').toUpperCase(),
+    bic:                   getParamVal('param-bic').toUpperCase(),
+    banque:                getParamVal('param-banque'),
+    delaiPaiementDefaut:   (getParamNum('param-delai-paiement') != null) ? getParamNum('param-delai-paiement') : 30,
+    tauxPenalitesRetard:   (getParamNum('param-taux-penalites') != null) ? getParamNum('param-taux-penalites') : 10.15,
+    // Compat : champ legacy "rcs" = "Ville Numéro" (consommé par renderFactureMentionsEntrepriseHeader existant)
+    rcs: [getParamVal('param-rcs-ville'), getParamVal('param-rcs-numero').replace(/\s+/g,'')].filter(Boolean).join(' ')
+  });
+  sauvegarder('params_entreprise', params);
+  const comptes = getAdminAccounts();
+  const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
+  if (idx > -1) {
+    comptes[idx].nom = adminNom;
+    saveAdminAccounts(comptes);
+  }
+  sessionStorage.setItem('admin_nom', adminNom);
+  chargerNomEntreprise();
+  appliquerBranding();
+  // BUG-020 fix : rafraîchir le formulaire pour refléter immédiatement la valeur
+  // normalisée (ex. TVA intracom nettoyée, SIRET formaté, capital, forme juridique).
+  if (typeof chargerParametres === 'function') {
+    try { chargerParametres(); } catch (_) { /* silencieux : non bloquant */ }
+  }
+  ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + (siretRaw ? ' · SIRET ' + siretRaw : ' · en cours d\'immatriculation'));
+  afficherToast('✅ Paramètres enregistrés');
+}
+
+// L4298 (script.js d'origine)
+function sauvegarderMaxTentatives() {
+  const val = parseInt(document.getElementById('param-max-tentatives')?.value, 10) || 5;
+  const timeoutVal = Math.min(240, Math.max(5, parseInt(document.getElementById('param-session-timeout')?.value || '30', 10) || 30));
+  localStorage.setItem('max_tentatives', val);
+  localStorage.setItem('session_timeout_min', timeoutVal);
+  resetTimerInactivite();
+  afficherToast('✅ Blocage après ' + val + ' tentatives · Déconnexion auto ' + timeoutVal + ' min');
+}
+
+// L4491 (script.js d'origine)
+function sauvegarderFacturesEmises(factures) {
+  sauvegarder('factures_emises', factures);
+}
+

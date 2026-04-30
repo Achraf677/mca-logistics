@@ -25,18 +25,8 @@ if (!Date.prototype.toLocalISOMonth) {
 
 // BUG-012 fix : escape HTML/attribute centralisés — source unique de vérité pour prévenir XSS.
 // Exposés sur window + fonctions nommées hoistées (disponibles dans tous les scopes IIFE/helpers).
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&<>"']/g, function(c) {
-    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
-  });
-}
-function escapeAttr(s) {
-  if (s == null) return '';
-  return String(s).replace(/[&"<>]/g, function(c) {
-    return ({'&':'&amp;','"':'&quot;','<':'&lt;','>':'&gt;'})[c];
-  });
-}
+// MOVED -> script-core-utils.js : escapeHtml
+// MOVED -> script-core-utils.js : escapeAttr
 window.escapeHtml = escapeHtml;
 window.escapeAttr = escapeAttr;
 window.escHtml = escapeHtml; // alias attendu par certains call sites existants
@@ -104,23 +94,7 @@ function validerSIRET(siret) {
 
 // BUG-029 fix : garde popup blocker — toute ouverture passe par ouvrirPopupSecure() qui détecte le blocage et notifie.
 // Centralisation : un seul site à auditer si on change le message / le fallback.
-function ouvrirPopupSecure(url, cible, opts) {
-  var win = null;
-  try {
-    win = window.open(url || '', cible || '_blank', opts || '');
-  } catch (e) {
-    win = null;
-  }
-  if (!win || win.closed || typeof win.closed === 'undefined') {
-    if (typeof afficherToast === 'function') {
-      afficherToast('⚠️ Fenêtre bloquée par le navigateur — autorisez les popups pour ce site', 'error');
-    } else {
-      console.warn('[MCA] Popup bloquée par le navigateur:', url);
-    }
-    return null;
-  }
-  return win;
-}
+// MOVED -> script-core-ui.js : ouvrirPopupSecure
 window.ouvrirPopupSecure = ouvrirPopupSecure;
 
 // BUG-018/019/031 fix : registre global + cleanup au unload (timers + observers orphelins).
@@ -250,30 +224,15 @@ window.__MCA_DEBUG = window.__MCA_DEBUG || (function(){ try { return localStorag
 function logMCA() { if (window.__MCA_DEBUG && typeof console !== 'undefined' && console.log) console.log.apply(console, arguments); }
 window.logMCA = logMCA;
 
-function charger(cle)          { return lireStockageJSON(cle, []); }
+// MOVED -> script-core-storage.js : charger
 // loadSafe : alias global pour JSON.parse résilient du localStorage.
 // Usage : loadSafe('factures_emises', []) ou loadSafe('params', {}).
 // Toujours préférer à loadSafe(..., []) qui crash sur corruption.
-function loadSafe(cle, fallback) { return lireStockageJSON(cle, fallback !== undefined ? fallback : []); }
+// MOVED -> script-core-storage.js : loadSafe
 window.loadSafe = loadSafe;
 window.lireStockageJSON = lireStockageJSON;
-function sauvegarder(cle, val) {
-  try {
-    const raw = JSON.stringify(val);
-    localStorage.setItem(cle, raw);
-    STORAGE_CACHE.set(cle, { raw, value: dupliquerValeurStockage(val) });
-    return true;
-  } catch (error) {
-    console.error(`[DelivPro] Impossible d'enregistrer "${cle}" dans le stockage local.`, error);
-    const maintenant = Date.now();
-    if (maintenant - lastStorageWarningAt > 4000 && typeof afficherToast === 'function') {
-      lastStorageWarningAt = maintenant;
-      afficherToast('⚠️ Enregistrement local impossible. Vérifiez l’espace navigateur disponible.', 'error');
-    }
-    return false;
-  }
-}
-function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
+// MOVED -> script-core-storage.js : sauvegarder
+// MOVED -> script-core-storage.js : chargerObj
 
 // BUG-050 fix : purge défensive de données corrompues ou de test résiduelles en localStorage.
 // Exécuté une seule fois au chargement du script, avant toute lecture métier.
@@ -319,20 +278,7 @@ function chargerObj(cle, def)  { return lireStockageJSON(cle, def); }
 
 // genId — identifiant unique. Préfère crypto.randomUUID() (RFC 4122 v4, collision ~0).
 // Fallback getRandomValues pour 16 octets aléatoires, puis Math.random en dernier recours.
-function genId() {
-  try {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-    if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
-      const b = new Uint8Array(16);
-      crypto.getRandomValues(b);
-      b[6] = (b[6] & 0x0f) | 0x40; // version 4
-      b[8] = (b[8] & 0x3f) | 0x80; // variant 10
-      const h = Array.from(b, x => x.toString(16).padStart(2, '0')).join('');
-      return h.slice(0,8)+'-'+h.slice(8,12)+'-'+h.slice(12,16)+'-'+h.slice(16,20)+'-'+h.slice(20);
-    }
-  } catch(e) {}
-  return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,10) + Math.random().toString(36).slice(2,10);
-}
+// MOVED -> script-core-utils.js : genId
 window.genId = genId;
 function dateToLocalISO(date)  {
   const d = date instanceof Date ? new Date(date) : new Date(date);
@@ -352,14 +298,8 @@ function hasNegativeNumber()   {
   }
   return false;
 }
-function formatKm(n)           { return new Intl.NumberFormat('fr-FR').format(Math.round(parseFloat(n||0)))+' km'; }
-function formatDateExport(val) {
-  if (!val) return '—';
-  const source = typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val) ? val + 'T00:00:00' : val;
-  const d = new Date(source);
-  if (Number.isNaN(d.getTime())) return val;
-  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
-}
+// MOVED -> script-core-utils.js : formatKm
+// MOVED -> script-core-utils.js : formatDateExport
 // MOVED -> script-heures.js : formatDateHeureExport
 function getAuditActorLabel() {
   const sessionAdmin = typeof getAdminSession === 'function' ? getAdminSession() : {};
@@ -455,11 +395,7 @@ function getEntrepriseExportParams() {
 // MOVED -> script-tva.js : validerTVAIntracomFR
 
 // BUG-002 helpers : blocs HTML partagés entre buildFactureHTML et genererFactureLivraison
-function __formatEurFR(n) {
-  const val = parseFloat(n);
-  if (!Number.isFinite(val)) return '';
-  return val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
-}
+// MOVED -> script-core-utils.js : __formatEurFR
 function renderFactureMentionsEntrepriseHeader(params) {
   const parts = [];
   if (params.formeJuridique) parts.push(params.formeJuridique);
@@ -735,66 +671,14 @@ function normaliserDateISO(val) {
 // MOVED -> script-planning.js : ouvrirPlanningSalarie
 // MOVED -> script-heures.js : ouvrirHeuresSalarie
 // MOVED -> script-planning.js : ouvrirPlanningRecurrence
-function fermerInlineDropdowns() {
-  document.querySelectorAll('.inline-dropdown.open').forEach(function(el) {
-    el.classList.remove('open');
-    el.classList.remove('open-up');
-    el.classList.remove('align-left');
-  });
-}
-function positionnerInlineDropdown(root) {
-  if (!root) return;
-  var menu = root.querySelector('.inline-dropdown-menu');
-  if (!menu) return;
-  root.classList.remove('open-up');
-  root.classList.remove('align-left');
-  root.classList.add('open');
-  var rect = menu.getBoundingClientRect();
-  var margin = 12;
-  var viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
-  var viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
-  if (rect.bottom > viewportHeight - margin) root.classList.add('open-up');
-  if (rect.left < margin) root.classList.add('align-left');
-  rect = menu.getBoundingClientRect();
-  if (rect.right > viewportWidth - margin) root.classList.remove('align-left');
-}
-function buildInlineActionsDropdown(triggerLabel, items) {
-  return '<div class="inline-dropdown">'
-    + '<button type="button" class="btn-secondary table-actions-dropdown" onclick="event.preventDefault();event.stopPropagation();toggleInlineDropdown(this,event)">' + triggerLabel + ' ▾</button>'
-    + '<div class="inline-dropdown-menu">'
-    + items.map(function(item) {
-      var classes = ['inline-dropdown-item'];
-      if (item.danger) classes.push('danger-text');
-      if (item.disabled) classes.push('is-disabled');
-      // Item désactivé : grisé, non cliquable, garde le tooltip via title
-      var attrs = item.disabled ? ' disabled aria-disabled="true" title="' + (item.title || 'Indisponible') + '"' : '';
-      var onclick = item.disabled
-        ? ''
-        : ' onclick="event.preventDefault();event.stopPropagation();fermerInlineDropdowns();' + item.action + '"';
-      return '<button type="button" class="' + classes.join(' ') + '"' + attrs + onclick + '>'
-        + (item.icon ? item.icon + ' ' : '')
-        + item.label
-        + '</button>';
-    }).join('')
-    + '</div></div>';
-}
-function toggleInlineDropdown(button, event) {
-  if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
-  var root = button ? button.closest('.inline-dropdown') : null;
-  var willOpen = root && !root.classList.contains('open');
-  fermerInlineDropdowns();
-  if (root && willOpen) positionnerInlineDropdown(root);
-}
+// MOVED -> script-core-ui.js : fermerInlineDropdowns
+// MOVED -> script-core-ui.js : positionnerInlineDropdown
+// MOVED -> script-core-ui.js : buildInlineActionsDropdown
+// MOVED -> script-core-ui.js : toggleInlineDropdown
 // MOVED -> script-carburant.js : syncChargeCarburant
 // MOVED -> script-carburant.js : removeChargeCarburant
 // MOVED -> script-carburant.js : enrichirPleinCarburant
-function calculerDureeJour(heureDebut, heureFin) {
-  if (!heureDebut || !heureFin) return 0;
-  const [hd, md] = heureDebut.split(':').map(Number);
-  const [hf, mf] = heureFin.split(':').map(Number);
-  const duree = (hf * 60 + mf) - (hd * 60 + md);
-  return duree > 0 ? duree / 60 : 0;
-}
+// MOVED -> script-core-utils.js : calculerDureeJour
 // MOVED -> script-livraisons.js : getMontantHTLivraison
 
 // MOVED -> script-livraisons.js : getLivraisonStatutPaiement
@@ -814,55 +698,14 @@ function getDateRangeInclusive(debut, fin) {
 function getLogoEntreprise() {
   return localStorage.getItem('logo_entreprise_url') || localStorage.getItem('logo_entreprise') || '';
 }
-function getDefaultAdminAccounts() {
-  // BUG-020 fix : plus aucun mot de passe par défaut. Premier démarrage = setup obligatoire.
-  return [
-    { identifiant: 'achraf.chikri', nom: 'Achraf Chikri', motDePasse: '' },
-    { identifiant: 'mohammed.chikri', nom: 'Mohammed Chikri', motDePasse: '' }
-  ];
-}
-function adminCompteEstConfigureLocal(compte) {
-  if (!compte) return false;
-  const hash = typeof compte.motDePasseHash === 'string' ? compte.motDePasseHash.trim() : '';
-  if (hash.length >= 10) return true;
-  const legacy = typeof compte.motDePasse === 'string' ? compte.motDePasse.trim() : '';
-  return legacy.length > 0;
-}
-function getAdminAccounts() {
-  const comptesExistants = chargerObj('admin_accounts', null);
-  if (Array.isArray(comptesExistants) && comptesExistants.length) {
-    // BUG-052 : purge les comptes sans mot de passe configuré (hash vide ou trop court)
-    const valides = comptesExistants.filter(adminCompteEstConfigureLocal);
-    if (valides.length !== comptesExistants.length) {
-      sauvegarder('admin_accounts', valides);
-    }
-    if (valides.length) return valides;
-  }
-  // BUG-020 : si une clé legacy 'mdp_admin' existe (migration), on l'utilise pour le 1er compte.
-  // Sinon, comptes créés sans mot de passe → login.html force le setup initial.
-  const legacyPassword = localStorage.getItem('mdp_admin') || '';
-  const comptes = getDefaultAdminAccounts().map((compte, idx) => ({
-    ...compte,
-    motDePasse: idx === 0 && legacyPassword ? legacyPassword : compte.motDePasse
-  }));
-  sauvegarder('admin_accounts', comptes);
-  return comptes;
-}
-function saveAdminAccounts(comptes) {
-  // BUG-052 : ne jamais persister un compte admin sans mot de passe
-  const valides = Array.isArray(comptes) ? comptes.filter(adminCompteEstConfigureLocal) : [];
-  sauvegarder('admin_accounts', valides);
-}
+// MOVED -> script-core-auth.js : getDefaultAdminAccounts
+// MOVED -> script-core-auth.js : adminCompteEstConfigureLocal
+// MOVED -> script-core-auth.js : getAdminAccounts
+// MOVED -> script-core-auth.js : saveAdminAccounts
 function getSecurityHelper() {
   return window.DelivProSecurity || null;
 }
-function getSessionTimeoutMinutesAdmin() {
-  const security = getSecurityHelper();
-  if (security && typeof security.getSessionTimeoutMinutes === 'function') {
-    return security.getSessionTimeoutMinutes();
-  }
-  return 30;
-}
+// MOVED -> script-core-auth.js : getSessionTimeoutMinutesAdmin
 function evaluerQualiteMotDePasseFort(value) {
   const security = getSecurityHelper();
   if (security && typeof security.evaluatePassword === 'function') {
@@ -897,57 +740,19 @@ async function verifierMotDePasseLocal(value, storedValue) {
   const plain = String(value || '');
   return stored === plain || stored === btoaUnicodeSafe(plain);
 }
-function getAdminSession() {
-  const identifiant = sessionStorage.getItem('admin_login') || '';
-  const email = sessionStorage.getItem('admin_email') || '';
-  const nomBrut = sessionStorage.getItem('admin_nom') || '';
-  const nomNormalise = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
-    ? window.DelivProAuth.normalizeAdminDisplayName(nomBrut, identifiant, email)
-    : (nomBrut || '');
-  if (nomNormalise && nomNormalise !== nomBrut) {
-    sessionStorage.setItem('admin_nom', nomNormalise);
-  }
-  return {
-    identifiant: identifiant,
-    email: email,
-    authMode: sessionStorage.getItem('auth_mode') || 'local',
-    nom: nomNormalise
-  };
-}
+// MOVED -> script-core-auth.js : getAdminSession
 const ADMIN_EDIT_LOCKS_KEY = 'admin_edit_locks';
 const ADMIN_EDIT_LOCK_TTL_MS = 20 * 60 * 1000;
 const adminHeldEditLocks = new Set();
 let derniereAlerteConflitEdition = '';
 
-function getAdminActorKey() {
-  const session = getAdminSession();
-  return session.email || session.identifiant || 'admin';
-}
+// MOVED -> script-core-auth.js : getAdminActorKey
 
-function getAdminActorLabel() {
-  const session = getAdminSession();
-  return session.nom || session.identifiant || session.email || 'Admin';
-}
+// MOVED -> script-core-auth.js : getAdminActorLabel
 
-function getAdminEditLocks() {
-  const locks = chargerObj(ADMIN_EDIT_LOCKS_KEY, {});
-  const now = Date.now();
-  let changed = false;
-  Object.keys(locks).forEach(function(key) {
-    const lock = locks[key];
-    const createdAt = lock && lock.createdAt ? Date.parse(lock.createdAt) : 0;
-    if (!lock || !createdAt || Number.isNaN(createdAt) || now - createdAt > ADMIN_EDIT_LOCK_TTL_MS) {
-      delete locks[key];
-      changed = true;
-    }
-  });
-  if (changed) sauvegarder(ADMIN_EDIT_LOCKS_KEY, locks);
-  return locks;
-}
+// MOVED -> script-core-auth.js : getAdminEditLocks
 
-function getAdminEditLockKey(type, id) {
-  return `${type}:${id}`;
-}
+// MOVED -> script-core-auth.js : getAdminEditLockKey
 
 function synchroniserVerrousEdition() {
   if (window.DelivProRemoteStorage && typeof window.DelivProRemoteStorage.flush === 'function') {
@@ -963,14 +768,7 @@ async function actualiserVerrousEditionDistance() {
   }
 }
 
-function getModalIdForLockType(type) {
-  return {
-    salarie: 'modal-edit-salarie',
-    livraison: 'modal-edit-livraison',
-    client: 'modal-edit-client',
-    vehicule: 'modal-vehicule'
-  }[type] || '';
-}
+// MOVED -> script-core-ui.js : getModalIdForLockType
 
 // MOVED -> script-alertes.js : afficherAlerteVerrouModal
 
@@ -1062,21 +860,7 @@ function libererTousVerrousEdition() {
   synchroniserVerrousEdition();
 }
 
-function getEditLockContextForModal(modalId) {
-  if (modalId === 'modal-edit-salarie' && (editSalarieId || window._editSalarieId)) {
-    return { type: 'salarie', id: editSalarieId || window._editSalarieId };
-  }
-  if (modalId === 'modal-edit-livraison' && window._editLivId) {
-    return { type: 'livraison', id: window._editLivId };
-  }
-  if (modalId === 'modal-edit-client' && _editClientId) {
-    return { type: 'client', id: _editClientId };
-  }
-  if (modalId === 'modal-vehicule' && window._editVehId) {
-    return { type: 'vehicule', id: window._editVehId };
-  }
-  return null;
-}
+// MOVED -> script-core-ui.js : getEditLockContextForModal
 
 window.addEventListener('pagehide', libererTousVerrousEdition);
 window.addEventListener('beforeunload', libererTousVerrousEdition);
@@ -1090,49 +874,14 @@ window.addEventListener('delivpro:storage-sync', function(event) {
     surveillerConflitsEditionActifs();
   }
 });
-function fermerMenuAdmin() {
-  document.getElementById('topbar-user-menu')?.classList.remove('open');
-}
+// MOVED -> script-core-auth.js : fermerMenuAdmin
 // MOVED -> script-exports.js : fermerHeuresRapportsMenu
 // MOVED -> script-exports.js : toggleHeuresRapportsMenu
-function toggleAdminMenu(event) {
-  event?.stopPropagation();
-  const menu = document.getElementById('topbar-user-menu');
-  if (!menu) return;
-  menu.classList.toggle('open');
-}
-function setBoutonDeconnexionAdminEtat(enCours) {
-  const btn = document.getElementById('btn-admin-logout');
-  if (!btn) return;
-  if (!btn.dataset.defaultLabel) btn.dataset.defaultLabel = btn.textContent;
-  btn.disabled = !!enCours;
-  btn.textContent = enCours ? 'Déconnexion...' : btn.dataset.defaultLabel;
-}
-function redirigerVersLoginAdmin() {
-  if (window.__delivproRedirectPending) return;
-  window.__delivproRedirectPending = true;
-  document.body.classList.add('app-booting');
-  window.location.replace('login.html');
-}
-function purgerSessionAdminLocale() {
-  sessionStorage.removeItem('role');
-  sessionStorage.removeItem('auth_mode');
-  sessionStorage.removeItem('admin_login');
-  sessionStorage.removeItem('admin_email');
-  sessionStorage.removeItem('admin_nom');
-  sessionStorage.removeItem('delivpro_fast_boot_role');
-}
-function deconnexionAdmin() {
-  if (window.__delivproAdminLogoutPending) return;
-  window.__delivproAdminLogoutPending = true;
-  ajouterEntreeAudit('Déconnexion admin', 'Fin de session admin');
-  setBoutonDeconnexionAdminEtat(true);
-  sessionStorage.setItem('delivpro_logged_out', '1');
-  sessionStorage.setItem('delivpro_pending_signout', '1');
-  purgerSessionAdminLocale();
-  fermerMenuAdmin();
-  redirigerVersLoginAdmin();
-}
+// MOVED -> script-core-auth.js : toggleAdminMenu
+// MOVED -> script-core-auth.js : setBoutonDeconnexionAdminEtat
+// MOVED -> script-core-auth.js : redirigerVersLoginAdmin
+// MOVED -> script-core-auth.js : purgerSessionAdminLocale
+// MOVED -> script-core-auth.js : deconnexionAdmin
 function appliquerBranding() {
   const logo = getLogoEntreprise();
   const params = getEntrepriseExportParams();
@@ -1160,11 +909,7 @@ function appliquerBranding() {
   document.head.appendChild(link);
 }
 
-function getCompanyAssetsStorageHelper() {
-  return window.DelivProSupabase && window.DelivProSupabase.getCompanyAssetsStorage
-    ? window.DelivProSupabase.getCompanyAssetsStorage()
-    : null;
-}
+// MOVED -> script-core-storage.js : getCompanyAssetsStorageHelper
 
 function sanitiserNomFichierLogo(value) {
   return String(value || 'logo-entreprise')
@@ -1254,28 +999,8 @@ function compresserImage(base64, callback) {
 }
 
 /* ===== HT / TVA / TTC — Calculs bidirectionnels ===== */
-function calculerTTCDepuisHT(prefix) {
-  const ht   = parseFloat(document.getElementById(prefix+'-prix-ht')?.value || document.getElementById(prefix+'-montant-ht')?.value || document.getElementById(prefix+'-cout-ht')?.value) || 0;
-  const taux = parseFloat(document.getElementById(prefix+'-taux-tva')?.value) || 0;
-  const ttc  = ht * (1 + taux / 100);
-  const tvaM = ttc - ht;
-  const elTTC = document.getElementById(prefix+'-prix') || document.getElementById(prefix+'-montant') || document.getElementById(prefix+'-cout');
-  if (elTTC) elTTC.value = ttc.toFixed(2);
-  const elTVA = document.getElementById(prefix+'-montant-tva');
-  if (elTVA) elTVA.textContent = ht > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
-  if (prefix === 'liv') alerteRentabilite();
-}
-function calculerHTDepuisTTC(prefix) {
-  const ttc  = parseFloat(document.getElementById(prefix+'-prix')?.value || document.getElementById(prefix+'-montant')?.value || document.getElementById(prefix+'-cout')?.value) || 0;
-  const taux = parseFloat(document.getElementById(prefix+'-taux-tva')?.value) || 0;
-  const ht   = ttc / (1 + taux / 100);
-  const tvaM = ttc - ht;
-  const elHT = document.getElementById(prefix+'-prix-ht') || document.getElementById(prefix+'-montant-ht') || document.getElementById(prefix+'-cout-ht');
-  if (elHT) elHT.value = ht.toFixed(2);
-  const elTVA = document.getElementById(prefix+'-montant-tva');
-  if (elTVA) elTVA.textContent = ttc > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
-  if (prefix === 'liv') alerteRentabilite();
-}
+// MOVED -> script-core-utils.js : calculerTTCDepuisHT
+// MOVED -> script-core-utils.js : calculerHTDepuisTTC
 
 /* ===== THÈME MODE CLAIR / SOMBRE ===== */
 function initTheme() {
@@ -1299,75 +1024,12 @@ function toggleTheme() {
 
 /* ===== MODAL CONFIRMATION STYLÉE ===== */
 let _confirmResolve = null;
-function confirmDialog(msg, { titre='Confirmation', icone='⚠️', btnLabel='Confirmer', danger=true } = {}) {
-  return new Promise(resolve => {
-    _confirmResolve = resolve;
-    document.getElementById('confirm-icon').textContent  = icone;
-    document.getElementById('confirm-title').textContent = titre;
-    document.getElementById('confirm-msg').textContent   = msg;
-    const btn = document.getElementById('confirm-ok-btn');
-    btn.textContent = btnLabel;
-    btn.style.background = danger ? 'var(--red)' : 'var(--accent)';
-    btn.style.color = danger ? '#fff' : '#000';
-    document.getElementById('modal-confirm').classList.add('open');
-  });
-}
-function confirmResolve() { document.getElementById('modal-confirm').classList.remove('open'); if(_confirmResolve) _confirmResolve(true); }
-function confirmReject()  { document.getElementById('modal-confirm').classList.remove('open'); if(_confirmResolve) _confirmResolve(false); }
+// MOVED -> script-core-ui.js : confirmDialog
+// MOVED -> script-core-ui.js : confirmResolve
+// MOVED -> script-core-ui.js : confirmReject
 
 // BUG-010 fix : promptDialog stylée (remplace window.prompt). DOM créé à la volée, focus trap via listeners locaux.
-function promptDialog(msg, { titre='Saisir une valeur', icone='✍️', btnLabel='Valider', defaultValue='', placeholder='', type='text', validate=null } = {}) {
-  return new Promise(resolve => {
-    const esc = window.escapeHtml;
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay open';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.style.zIndex = '10000';
-    overlay.innerHTML =
-      '<div class="modal" style="max-width:440px">' +
-        '<div class="modal-body" style="padding:28px 24px 8px;text-align:center">' +
-          '<div class="confirm-icon" style="font-size:2rem">' + esc(icone) + '</div>' +
-          '<div class="confirm-title" style="font-size:1.05rem;font-weight:700;margin-top:6px">' + esc(titre) + '</div>' +
-          '<p style="font-size:.88rem;color:var(--text-muted);margin:10px 0 14px;line-height:1.5">' + esc(msg) + '</p>' +
-          '<input class="__prompt-input" type="' + esc(type) + '" placeholder="' + esc(placeholder) + '" value="' + esc(defaultValue) + '" ' +
-                 'style="width:100%;padding:10px 12px;border:1px solid var(--border,#2a3349);border-radius:8px;background:var(--bg,#0f1626);color:var(--text,#e5e7eb);font-size:.95rem" />' +
-          '<p class="__prompt-err" style="color:var(--red,#ef4444);font-size:.78rem;margin-top:6px;min-height:1em" aria-live="polite"></p>' +
-        '</div>' +
-        '<div class="modal-footer" style="justify-content:center;gap:12px">' +
-          '<button type="button" class="btn-secondary __prompt-cancel" style="min-width:100px">Annuler</button>' +
-          '<button type="button" class="btn-primary __prompt-ok" style="min-width:100px">' + esc(btnLabel) + '</button>' +
-        '</div>' +
-      '</div>';
-    document.body.appendChild(overlay);
-    const input = overlay.querySelector('.__prompt-input');
-    const err = overlay.querySelector('.__prompt-err');
-    const btnOk = overlay.querySelector('.__prompt-ok');
-    const btnCancel = overlay.querySelector('.__prompt-cancel');
-    setTimeout(() => { input.focus(); input.select(); }, 50);
-    function cleanup(result) {
-      document.removeEventListener('keydown', onKey, true);
-      if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-      resolve(result);
-    }
-    function submit() {
-      const val = input.value;
-      if (typeof validate === 'function') {
-        const r = validate(val);
-        if (r !== true && r !== null && r !== undefined) { err.textContent = String(r); return; }
-      }
-      cleanup(val);
-    }
-    function onKey(e) {
-      if (e.key === 'Escape') { e.preventDefault(); cleanup(null); }
-      else if (e.key === 'Enter' && document.activeElement === input) { e.preventDefault(); submit(); }
-    }
-    btnOk.addEventListener('click', submit);
-    btnCancel.addEventListener('click', () => cleanup(null));
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) cleanup(null); });
-    document.addEventListener('keydown', onKey, true);
-  });
-}
+// MOVED -> script-core-ui.js : promptDialog
 window.promptDialog = promptDialog;
 
 /* ===== SCROLL TO TOP ===== */
@@ -1382,18 +1044,7 @@ function initScrollTop() {
 }
 
 /* ===== NOM ENTREPRISE DANS TOPBAR ===== */
-function chargerNomEntreprise() {
-  const params = chargerObj('params_entreprise', {});
-  const sessionAdmin = getAdminSession();
-  const nom = params.nom || 'MCA Logistics';
-  const el  = document.getElementById('sidebar-nom-entreprise');
-  if (el) el.textContent = nom;
-  const adminLabel = sessionAdmin.nom || 'Admin';
-  const label = document.getElementById('topbar-admin-label');
-  if (label) label.textContent = adminLabel;
-  const avatar = document.getElementById('topbar-avatar-text');
-  if (avatar) avatar.textContent = adminLabel[0].toUpperCase();
-}
+// MOVED -> script-core-storage.js : chargerNomEntreprise
 
 // MOVED -> script-salaries.js : rafraichirDependancesSalaries
 
@@ -1430,17 +1081,7 @@ const FAST_BOOT_ROLE_KEY = 'delivpro_fast_boot_role';
 const PAGE_SALARIE_UNIFIED = 'espace-salarie';
 const TAB_AUTH_PENDING_KEY = 'delivpro_tab_auth_pending';
 
-function nettoyerSessionAppCourante() {
-  sessionStorage.removeItem('role');
-  sessionStorage.removeItem('auth_mode');
-  sessionStorage.removeItem('admin_login');
-  sessionStorage.removeItem('admin_email');
-  sessionStorage.removeItem('admin_nom');
-  sessionStorage.removeItem('salarie_id');
-  sessionStorage.removeItem('salarie_numero');
-  sessionStorage.removeItem(FAST_BOOT_ROLE_KEY);
-  sessionStorage.removeItem(TAB_AUTH_PENDING_KEY);
-}
+// MOVED -> script-core-auth.js : nettoyerSessionAppCourante
 
 function consommerTicketAccesOnglet() {
   if (window.__delivproTabUnlocked) return true;
@@ -1463,46 +1104,13 @@ function consommerTicketAccesOnglet() {
   return true;
 }
 
-function notifierMajAutreAdmin(detail) {
-  // Toast retire : avec la sync realtime native (Phase 2.x), les changements
-  // sont propages instantanement et silencieusement. Plus besoin de notifier.
-  return;
-}
+// MOVED -> script-core-auth.js : notifierMajAutreAdmin
 
-function lancerWarmupAdmin() {
-  if (warmupAdminPromise) return warmupAdminPromise;
-  warmupAdminPromise = (async function() {
-    let syncInitResult = null;
-    if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.init) {
-      syncInitResult = await window.DelivProRemoteStorage.init();
-    }
-    if (!syncInitResult?.ok) {
-      afficherToast('⚠️ Mode local actif: synchro distante inactive, mais la synchro locale entre onglets reste disponible.', 'error');
-    }
-    nettoyerPhotosInspectionsAnciennes(false).catch(function(error) {
-      console.warn('Nettoyage automatique des photos d’inspection échoué', error);
-    });
-    return { syncInitResult: syncInitResult };
-  })().catch(function(error) {
-    console.warn('Warmup admin différé échoué', error);
-    return { ok: false, error: error };
-  });
-  return warmupAdminPromise;
-}
+// MOVED -> script-core-auth.js : lancerWarmupAdmin
 
-function getRoleSessionCourant() {
-  return sessionStorage.getItem('role') || '';
-}
+// MOVED -> script-core-auth.js : getRoleSessionCourant
 
-function chargerCadreSalarieUnifie() {
-  const frame = document.getElementById('espace-salarie-frame');
-  if (!frame) return;
-  const cible = 'salarie.html?embed=1';
-  if (!frame.dataset.loadedSrc) {
-    frame.src = cible;
-    frame.dataset.loadedSrc = cible;
-  }
-}
+// MOVED -> script-core-storage.js : chargerCadreSalarieUnifie
 
 // MOVED -> script-salaries.js : activerModeSalarieUnifie
 
@@ -1791,112 +1399,12 @@ function fermerMenuMobile()  { document.getElementById('sidebar').classList.remo
 const MODAL_FOCUSABLES = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const __modalFocusStack = [];
 
-function __appliquerA11yModale(overlay) {
-  if (!overlay) return;
-  overlay.setAttribute('role', 'dialog');
-  overlay.setAttribute('aria-modal', 'true');
-  const title = overlay.querySelector('.modal-header h3, .modal-header h2');
-  if (title) {
-    if (!title.id) title.id = 'modal-title-' + (overlay.id || Math.random().toString(36).slice(2, 8));
-    overlay.setAttribute('aria-labelledby', title.id);
-  }
-}
+// MOVED -> script-core-ui.js : __appliquerA11yModale
 
-function __modalTrapKeydown(e) {
-  if (e.key === 'Escape') {
-    const top = __modalFocusStack[__modalFocusStack.length - 1];
-    if (top && top.modalId) {
-      e.preventDefault();
-      closeModal(top.modalId);
-    }
-    return;
-  }
-  if (e.key !== 'Tab') return;
-  const top = __modalFocusStack[__modalFocusStack.length - 1];
-  if (!top) return;
-  const overlay = document.getElementById(top.modalId);
-  if (!overlay) return;
-  const focusables = Array.from(overlay.querySelectorAll(MODAL_FOCUSABLES)).filter(function(el) {
-    return el.offsetParent !== null || el === document.activeElement;
-  });
-  if (!focusables.length) return;
-  const first = focusables[0];
-  const last = focusables[focusables.length - 1];
-  if (e.shiftKey && document.activeElement === first) {
-    e.preventDefault(); last.focus();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    e.preventDefault(); first.focus();
-  }
-}
+// MOVED -> script-core-ui.js : __modalTrapKeydown
 
-function openModal(id)  {
-  mettreAJourSelects();
-  const overlay = document.getElementById(id);
-  if (!overlay) return;
-  // BUG-022 fix : éviter de pousser 2× la même modale dans le focus stack.
-  const existsInStack = __modalFocusStack.some(function(s){ return s.modalId === id; });
-  overlay.classList.add('open');
-  __appliquerA11yModale(overlay);
-  if (!existsInStack) {
-    __modalFocusStack.push({ modalId: id, previousFocus: document.activeElement });
-  }
-  if (__modalFocusStack.length === 1) {
-    document.addEventListener('keydown', __modalTrapKeydown);
-  }
-  setTimeout(function() {
-    const focusables = overlay.querySelectorAll(MODAL_FOCUSABLES);
-    const btnClose = overlay.querySelector('.modal-close');
-    const target = Array.from(focusables).find(function(el){ return el !== btnClose; }) || btnClose || focusables[0];
-    if (target) try { target.focus(); } catch(_){}
-  }, 50);
-
-  if (id === 'modal-vehicule') {
-    if (!window._editVehId) {
-      resetModalVehiculeToCreateMode();
-      reinitialiserFinanceVehiculeForm();
-      ['veh-immat','veh-modele','veh-km','veh-conso','veh-date-acquisition','veh-date-ct','veh-entretien-interval-km','veh-entretien-interval-mois'].forEach(function(fieldId) {
-        var field = document.getElementById(fieldId);
-        if (field) field.value = '';
-      });
-      var tvaCarb = document.getElementById('veh-tva-carburant');
-      if (tvaCarb) tvaCarb.value = '80';
-      var salarie = document.getElementById('veh-salarie');
-      if (salarie) salarie.value = '';
-      var modeSel = document.getElementById('veh-mode-acquisition');
-      if (modeSel) modeSel.value = 'achat';
-    }
-    mettreAJourFormulaireVehicule();
-  }
-}
-function closeModal(id) {
-  const editLockContext = getEditLockContextForModal(id);
-  if (editLockContext) libererVerrouEdition(editLockContext.type, editLockContext.id);
-  const overlay = document.getElementById(id);
-  if (overlay) overlay.classList.remove('open');
-  const idx = __modalFocusStack.findIndex(function(s){ return s.modalId === id; });
-  if (idx > -1) {
-    const state = __modalFocusStack.splice(idx, 1)[0];
-    if (state && state.previousFocus && typeof state.previousFocus.focus === 'function') {
-      try { state.previousFocus.focus(); } catch(_){}
-    }
-  }
-  if (!__modalFocusStack.length) {
-    document.removeEventListener('keydown', __modalTrapKeydown);
-  }
-  if (id === 'modal-edit-salarie') { editSalarieId = null; window._editSalarieId = null; }
-  if (id === 'modal-edit-livraison') { window._editLivId = null; }
-  if (id === 'modal-edit-client') { _editClientId = null; }
-  if (id === 'modal-vehicule') { window._editVehId = null; resetModalVehiculeToCreateMode(); }
-  ['alerte-rent','profit-recap'].forEach(i => { const e = document.getElementById(i); if (e) e.style.display='none'; });
-  // BUG-023 fix : purge défensive des backdrops orphelins (injectés par des modales
-  // externes type tippy, swal, etc.) quand le stack devient vide.
-  if (!__modalFocusStack.length) {
-    document.body.classList.remove('modal-open');
-    document.querySelectorAll('.modal-backdrop:not([data-keep])').forEach(function(el){
-      try { el.parentNode && el.parentNode.removeChild(el); } catch(_) {}
-    });
-  }
-}
+// MOVED -> script-core-ui.js : openModal
+// MOVED -> script-core-ui.js : closeModal
 document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id); });
 
 function mettreAJourSelects() {
@@ -1989,18 +1497,7 @@ function mettreAJourSelects() {
 
 const STORAGE_REFRESH_QUEUE = new Map();
 
-function planifierRafraichissementStorage(cle, callback) {
-  if (typeof callback !== 'function') return;
-  if (STORAGE_REFRESH_QUEUE.has(cle)) return;
-  const executer = function() {
-    STORAGE_REFRESH_QUEUE.delete(cle);
-    callback();
-  };
-  const timer = document.visibilityState === 'visible' && typeof window.requestAnimationFrame === 'function'
-    ? window.requestAnimationFrame(executer)
-    : setTimeout(executer, 16);
-  STORAGE_REFRESH_QUEUE.set(cle, timer);
-}
+// MOVED -> script-core-storage.js : planifierRafraichissementStorage
 
 /* Auto-remplir le véhicule quand on choisit un salarié dans le modal livraison */
 document.addEventListener('DOMContentLoaded', () => {
@@ -2020,9 +1517,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-function getPageActiveAdminId() {
-  return document.querySelector('.page.active')?.id || '';
-}
+// MOVED -> script-core-auth.js : getPageActiveAdminId
 
 // MOVED -> script-livraisons.js : rafraichirVueLivraisonsActive
 
@@ -2035,138 +1530,7 @@ function planifierRafraichissementSiPageActive(pageId, cle, callback) {
   planifierRafraichissementStorage(cle, callback);
 }
 
-function gererChangementStorageAdmin(key) {
-  if (!key) return;
-
-  if (key === 'livraisons') {
-    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons', rafraichirVueLivraisonsActive);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-livraisons', rafraichirDashboard);
-    planifierRafraichissementSiPageActive('page-relances', 'page-relances-livraisons', afficherRelances);
-    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-livraisons', afficherStatistiques);
-    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-livraisons', calculerPrevision);
-    planifierRafraichissementSiPageActive('page-rentabilite', 'page-rentabilite-livraisons', afficherRentabilite);
-    planifierRafraichissementSiPageActive('page-tva', 'page-tva-livraisons', afficherTva);
-    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-livraisons', afficherChauffeurs);
-    planifierRafraichissementSiPageActive('page-clients', 'page-clients-livraisons', afficherClients);
-    planifierRafraichissementSiPageActive('page-heures', 'page-heures-livraisons', rafraichirVueHeuresEtKm);
-    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
-    return;
-  }
-
-  if (key === 'clients') {
-    planifierRafraichissementSiPageActive('page-clients', 'page-clients', afficherClients);
-    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-clients', rafraichirVueLivraisonsActive);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-clients', afficherClientsDashboard);
-    return;
-  }
-
-  if (key === 'salaries') {
-    planifierRafraichissementSiPageActive('page-salaries', 'page-salaries', afficherSalaries);
-    planifierRafraichissementSiPageActive('page-planning', 'page-planning-salaries', rafraichirVuePlanningAdmin);
-    planifierRafraichissementSiPageActive('page-heures', 'page-heures-salaries', rafraichirVueHeuresEtKm);
-    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-salaries', afficherVehicules);
-    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-salaries', rafraichirVueLivraisonsActive);
-    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-salaries', afficherAlertes);
-    planifierRafraichissementSiPageActive('page-incidents', 'page-incidents-salaries', afficherIncidents);
-    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-salaries', afficherChauffeurs);
-    return;
-  }
-
-  if (key === 'chauffeurs') {
-    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs', afficherChauffeurs);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-chauffeurs', rafraichirDashboard);
-    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-chauffeurs', rafraichirVueLivraisonsActive);
-    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-chauffeurs', afficherStatistiques);
-    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-chauffeurs', calculerPrevision);
-    return;
-  }
-
-  if (key === 'vehicules') {
-    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules', afficherVehicules);
-    planifierRafraichissementSiPageActive('page-carburant', 'page-carburant-vehicules', afficherCarburant);
-    planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens-vehicules', afficherEntretiens);
-    planifierRafraichissementSiPageActive('page-livraisons', 'page-livraisons-vehicules', rafraichirVueLivraisonsActive);
-    planifierRafraichissementSiPageActive('page-tva', 'page-tva-vehicules', afficherTva);
-    planifierRafraichissementSiPageActive('page-chauffeurs', 'page-chauffeurs-vehicules', afficherChauffeurs);
-    planifierRafraichissementSiPageActive('page-heures', 'page-heures-vehicules', rafraichirVueHeuresEtKm);
-    return;
-  }
-
-  if (key === 'carburant') {
-    planifierRafraichissementSiPageActive('page-carburant', 'page-carburant', afficherCarburant);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-carburant', rafraichirDashboard);
-    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-carburant', afficherVehicules);
-    planifierRafraichissementSiPageActive('page-tva', 'page-tva-carburant', afficherTva);
-    planifierRafraichissementSiPageActive('page-rentabilite', 'page-rentabilite-carburant', afficherRentabilite);
-    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-carburant', afficherStatistiques);
-    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-carburant', calculerPrevision);
-    return;
-  }
-
-  if (key === 'charges') {
-    planifierRafraichissementSiPageActive('page-charges', 'page-charges', afficherCharges);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-charges', rafraichirDashboard);
-    planifierRafraichissementSiPageActive('page-tva', 'page-tva-charges', afficherTva);
-    planifierRafraichissementSiPageActive('page-rentabilite', 'page-rentabilite-charges', afficherRentabilite);
-    planifierRafraichissementSiPageActive('page-statistiques', 'page-statistiques-charges', afficherStatistiques);
-    planifierRafraichissementSiPageActive('page-previsions', 'page-previsions-charges', calculerPrevision);
-    planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens-charges', afficherEntretiens);
-    return;
-  }
-
-  if (key === 'entretiens') {
-    planifierRafraichissementSiPageActive('page-entretiens', 'page-entretiens', afficherEntretiens);
-    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-entretiens', afficherVehicules);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-entretiens', rafraichirDashboard);
-    planifierRafraichissementSiPageActive('page-tva', 'page-tva-entretiens', afficherTva);
-    planifierRafraichissementSiPageActive('page-charges', 'page-charges-entretiens', afficherCharges);
-    return;
-  }
-
-  if (key === 'plannings' || key === 'absences_periodes') {
-    planifierRafraichissementSiPageActive('page-planning', 'page-planning', rafraichirVuePlanningAdmin);
-    planifierRafraichissementSiPageActive('page-heures', 'page-heures-planning', rafraichirVueHeuresEtKm);
-    planifierRafraichissementSiPageActive('page-salaries', 'page-salaries-planning', afficherSalaries);
-    return;
-  }
-
-  if (key === 'inspections') {
-    planifierRafraichissementSiPageActive('page-inspections', 'page-inspections', afficherInspections);
-    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-inspections', afficherVehicules);
-    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-inspections', afficherAlertes);
-    return;
-  }
-
-  if (key === 'incidents') {
-    planifierRafraichissementSiPageActive('page-incidents', 'page-incidents', afficherIncidents);
-    return;
-  }
-
-  if (key === 'alertes_admin') {
-    planifierRafraichissementStorage('badge-alertes', afficherBadgeAlertes);
-    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes', afficherAlertes);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-alertes', rafraichirDashboard);
-    return;
-  }
-
-  if (key === 'postes' || key === 'params_entreprise') {
-    planifierRafraichissementSiPageActive('page-parametres', 'page-parametres', chargerParametres);
-    if (key === 'params_entreprise') planifierRafraichissementStorage('branding-admin', appliquerBranding);
-    return;
-  }
-
-  if (key && (key.indexOf('km_sal_') === 0 || key.indexOf('km_report_') === 0)) {
-    planifierRafraichissementSiPageActive('page-salaries', 'page-salaries-km', afficherSalaries);
-    planifierRafraichissementSiPageActive('page-vehicules', 'page-vehicules-km', afficherVehicules);
-    planifierRafraichissementSiPageActive('page-alertes', 'page-alertes-km', afficherAlertes);
-    planifierRafraichissementSiPageActive('page-heures', 'page-heures-km', rafraichirVueHeuresEtKm);
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-km', rafraichirDashboard);
-  }
-
-  if (key && key.indexOf('notifs_sal_') === 0) {
-    planifierRafraichissementSiPageActive('page-dashboard', 'dashboard-notifs', rafraichirDashboard);
-  }
-}
+// MOVED -> script-core-auth.js : gererChangementStorageAdmin
 
 /* ===== SYNCHRO STORAGE (salarié → admin en temps réel) ===== */
 window.addEventListener('storage', function(e) {
@@ -2342,51 +1706,11 @@ function afficherReleveKm() {
 }
 
 let _editKmSalId = null, _editKmId = null;
-function ouvrirEditKmAdmin(salId, kmId) {
-  _editKmSalId = salId; _editKmId = kmId;
-  const entrees = charger('km_sal_'+salId);
-  const e = entrees.find(x => x.id === kmId); if (!e) return;
-  document.getElementById('admin-km-dep').value  = e.kmDepart;
-  document.getElementById('admin-km-arr').value  = e.kmArrivee || '';
-  document.getElementById('admin-km-date').value = e.date;
-  document.getElementById('modal-edit-km').classList.add('open');
-}
+// MOVED -> script-core-auth.js : ouvrirEditKmAdmin
 
-function confirmerEditKmAdmin() {
-  const dep  = parseFloat(document.getElementById('admin-km-dep').value);
-  const arrRaw = document.getElementById('admin-km-arr').value;
-  const arr  = arrRaw === '' ? null : parseFloat(arrRaw);
-  const date = document.getElementById('admin-km-date').value;
-  if (!dep) { afficherToast('⚠️ Km départ obligatoire', 'error'); return; }
-  if (arr !== null && arr <= dep) { afficherToast('⚠️ Km arrivée doit être supérieur au km départ', 'error'); return; }
+// MOVED -> script-core-auth.js : confirmerEditKmAdmin
 
-  const cle = 'km_sal_'+_editKmSalId;
-  const entrees = charger(cle);
-  const idx = entrees.findIndex(e => e.id === _editKmId);
-  if (idx > -1) {
-    entrees[idx].kmDepart  = dep;
-    entrees[idx].kmArrivee = arr;
-    entrees[idx].distance  = arr !== null ? arr - dep : 0;
-    entrees[idx].date      = date;
-    entrees[idx].modifieAdmin = true;
-    sauvegarder(cle, entrees);
-    if (arr !== null) mettreAJourKmVehiculeParSalarie(_editKmSalId, arr);
-    else mettreAJourKmVehiculeParSalarie(_editKmSalId, dep);
-    // Km de report automatique supprimé en v12fix3
-  }
-  closeModal('modal-edit-km');
-  _editKmSalId = null; _editKmId = null;
-  afficherReleveKm(); afficherToast('✅ Relevé mis à jour');
-}
-
-async function supprimerKmAdmin(salId, kmId) {
-  const _ok = await confirmDialog('Supprimer ce relevé ?', {titre:'Supprimer',icone:'🛣️',btnLabel:'Supprimer'});
-  if (!_ok) return;
-  const cle = 'km_sal_'+salId;
-  const entrees = charger(cle).filter(e => e.id !== kmId);
-  sauvegarder(cle, entrees);
-  afficherReleveKm(); afficherToast('🗑️ Relevé supprimé');
-}
+// MOVED -> script-core-auth.js : supprimerKmAdmin
 
 /* Met à jour le km de départ mémorisé pour la prochaine saisie */
 /* mettreAJourKmReport supprimé — v12fix3 */
@@ -2795,109 +2119,7 @@ var _statsPeriode = buildSimplePeriodeState('mois');
 
 /* ===== PRÉVISIONS ===== */
 let chartPrev=null;
-function calculerPrevision() {
-  if (typeof Chart === 'undefined') { ensureChartJs().then(calculerPrevision).catch(() => {}); return; }
-  const livraisons = charger('livraisons');
-  const carburant  = charger('carburant');
-  const charges    = charger('charges');
-
-  // ── Calcul basé sur les 3 derniers mois réels ──
-  const moisReels = [];
-  for (let i = 1; i <= 3; i++) {
-    const d = new Date();
-    d.setDate(1);
-    d.setMonth(d.getMonth() - i);
-    const moisStr = d.toLocalISOMonth();
-    const livsM   = livraisons.filter(l=>(l.date||'').startsWith(moisStr));
-    const caM     = livsM.reduce((s,l)=>s+(l.prix||0),0);
-    const carbM   = carburant.filter(p=>(p.date||'').startsWith(moisStr)).reduce((s,p)=>s+(p.total||0),0);
-    const chargM  = charges.filter(c=>(c.date||'').startsWith(moisStr)).reduce((s,c)=>s+(c.montant||0),0);
-    moisReels.push({ mois:moisStr, ca:caM, depenses:carbM+chargM, livraisons:livsM.length });
-  }
-
-  const nbMoisDonnees = moisReels.filter(m=>m.ca>0||m.livraisons>0).length;
-  const avertissement = nbMoisDonnees < 3
-    ? `⚠️ Prévision basée sur ${nbMoisDonnees} mois de données — résultats peu fiables en dessous de 3 mois.`
-    : `✅ Prévision basée sur ${nbMoisDonnees} mois de données réelles.`;
-
-  // Moyennes réelles
-  const moyCA    = nbMoisDonnees > 0 ? moisReels.slice(0,nbMoisDonnees).reduce((s,m)=>s+m.ca,0) / nbMoisDonnees : 0;
-  const moyDep   = nbMoisDonnees > 0 ? moisReels.slice(0,nbMoisDonnees).reduce((s,m)=>s+m.depenses,0) / nbMoisDonnees : 0;
-  const moyLivs  = nbMoisDonnees > 0 ? moisReels.slice(0,nbMoisDonnees).reduce((s,m)=>s+m.livraisons,0) / nbMoisDonnees : 0;
-
-  // Tendance (mois 1 vs mois 3)
-  const tendanceCA  = moisReels[2]?.ca > 0 ? ((moisReels[0].ca - moisReels[2].ca) / moisReels[2].ca * 100) : 0;
-  const prevCA      = moyCA * (1 + tendanceCA/100 * 0.5); // Lissage tendance à 50%
-  const prevDep     = moyDep;
-  const prevBen     = prevCA - prevDep;
-  const prevMarge   = prevCA > 0 ? (prevBen/prevCA*100) : 0;
-
-  // Afficher les prévisions
-  const elCA  = document.getElementById('prev-ca');
-  const elDep = document.getElementById('prev-depenses');
-  const elBen = document.getElementById('prev-benefice');
-  const elMrg = document.getElementById('prev-marge');
-  const elLiv = document.getElementById('prev-livraisons-calc');
-  const elAvt = document.getElementById('prev-avertissement');
-  const elTend= document.getElementById('prev-tendance');
-
-  if (elCA)   elCA.textContent   = euros(prevCA);
-  if (elDep)  elDep.textContent  = euros(prevDep);
-  if (elBen)  elBen.textContent  = euros(prevBen);
-  if (elMrg)  elMrg.textContent  = prevMarge.toFixed(1)+' %';
-  if (elLiv)  elLiv.textContent  = Math.round(moyLivs)+' liv.';
-  if (elAvt)  { elAvt.textContent = avertissement; elAvt.style.color = nbMoisDonnees<3?'var(--accent)':'var(--green)'; }
-  if (elTend) {
-    const signe = tendanceCA > 0 ? '+' : '';
-    elTend.textContent = `Tendance : ${signe}${tendanceCA.toFixed(1)}% vs mois précédent`;
-    elTend.style.color = tendanceCA >= 0 ? 'var(--green)' : 'var(--red)';
-  }
-
-  // Historique 6 derniers mois pour le graphique
-  const labels = [], dataCA = [], dataBen = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()-i);
-    const mStr = d.toLocalISOMonth();
-    const caM  = livraisons.filter(l=>(l.date||'').startsWith(mStr)).reduce((s,l)=>s+(l.prix||0),0);
-    const depM = carburant.filter(p=>(p.date||'').startsWith(mStr)).reduce((s,p)=>s+(p.total||0),0)
-               + charges.filter(c=>(c.date||'').startsWith(mStr)).reduce((s,c)=>s+(c.montant||0),0);
-    labels.push(d.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}));
-    dataCA.push(caM);
-    dataBen.push(caM - depM);
-  }
-  // Ajouter prévision mois prochain
-  const dNext = new Date(); dNext.setMonth(dNext.getMonth()+1);
-  labels.push(dNext.toLocaleDateString('fr-FR',{month:'short',year:'2-digit'})+' *');
-  dataCA.push(Math.round(prevCA));
-  dataBen.push(Math.round(prevBen));
-
-  if (chartPrev) chartPrev.destroy();
-  const ctx = document.getElementById('chartPrevision');
-  if (!ctx) return;
-  chartPrev = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'CA réel (€)', data:dataCA.slice(0,-1).concat([null]),
-          backgroundColor:'rgba(79,142,247,0.4)', borderColor:'rgba(79,142,247,0.9)', borderWidth:2, borderRadius:6 },
-        { label:'CA prévu (€)', data:Array(6).fill(null).concat([dataCA[6]]),
-          backgroundColor:'rgba(245,166,35,0.3)', borderColor:'rgba(245,166,35,0.9)', borderWidth:2, borderRadius:6, borderDash:[5,5] },
-        { label:'Bénéfice net (€)', data:dataBen.slice(0,-1).concat([null]),
-          type:'line', borderColor:'#2ecc71', backgroundColor:'rgba(46,204,113,0.1)', fill:true, tension:0.4, pointRadius:4 },
-      ]
-    },
-    options: {
-      responsive:true,
-      plugins:{ legend:{ labels:{ color:'#e8eaf0' } },
-        tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${euros(ctx.parsed.y||0)}` } } },
-      scales:{
-        x:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#7c8299'} },
-        y:{ grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'#7c8299', callback:v=>euros(v)} }
-      }
-    }
-  });
-}
+// MOVED -> script-core-utils.js : calculerPrevision
 
 /* ===== GESTION SALARIÉS ===== */
 let accessSalarieTargetId=null, editSalarieId=null;
@@ -2968,26 +2190,7 @@ window.__salDocsTemp = {};
 
 // MOVED -> script-salaries.js : ouvrirGestionAccesSalarie
 
-async function confirmerResetMdp() {
-  const nouveau=document.getElementById('reset-mdp-val').value;
-  if(!nouveau){afficherToast('⚠️ Mot de passe vide','error');return;}
-  const qualiteMdp = evaluerQualiteMotDePasseFort(nouveau);
-  if(!qualiteMdp.ok){afficherToast('⚠️ ' + qualiteMdp.message,'error');return;}
-  const salaries=charger('salaries');
-  const idx=salaries.findIndex(s=>s.id===accessSalarieTargetId);
-  if(idx===-1){afficherToast('⚠️ Salarie introuvable','error');return;}
-  if(salaries[idx].actif===false){afficherToast('⚠️ Reactivez d abord ce salarie avant de modifier son acces','error');return;}
-  const provisionResult = await provisionnerAccesSalarie(salaries[idx], nouveau);
-  if (provisionResult?.ok) {
-    salaries[idx].mdpHash=await hasherMotDePasseLocal(nouveau);
-    sauvegarder('salaries', salaries);
-    closeModal('modal-reset-mdp');
-    accessSalarieTargetId=null;
-    afficherToast('✅ Acces salarie mis a jour');
-    return;
-  }
-  afficherToast(`⚠️ Mise a jour de l'acces impossible (${provisionResult?.error?.message || provisionResult?.reason || 'erreur inconnue'})`, 'error');
-}
+// MOVED -> script-core-auth.js : confirmerResetMdp
 
 // MOVED -> script-salaries.js : toggleActifSalarie
 
@@ -3133,26 +2336,8 @@ let _editCarbId = null;
 
 // MOVED -> script-carburant.js : confirmerEditCarburantAdmin
 
-function voirPhotoAdmin(inspId, idx) {
-  const inspections = loadSafe('inspections', []);
-  const insp = inspections.find(i => i.id === inspId);
-  if (!insp) return;
-  _adminPhotos = getInspectionPhotoList(insp);
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
-  overlay.innerHTML = `
-    <img src="${getInspectionPhotoFull(_adminPhotos[idx])}" id="photo-plein-ecran" style="max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain" />
-    <div style="display:flex;gap:10px">
-      ${_adminPhotos.map((_, i) => `<div onclick="changerPhotoAdmin(${i})" style="width:48px;height:48px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid ${i===idx?'var(--accent)':'transparent'}"><img src="${getInspectionPhotoThumb(_adminPhotos[i])}" style="width:100%;height:100%;object-fit:cover"/></div>`).join('')}
-    </div>
-    <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">✕ Fermer</button>`;
-  overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
-  document.body.appendChild(overlay);
-}
-function changerPhotoAdmin(idx) {
-  const img = document.getElementById('photo-plein-ecran');
-  if (img && _adminPhotos[idx]) img.src = getInspectionPhotoFull(_adminPhotos[idx]);
-}
+// MOVED -> script-core-auth.js : voirPhotoAdmin
+// MOVED -> script-core-auth.js : changerPhotoAdmin
 
 /* ===== MESSAGERIE ADMIN ===== */
 let _msgSalarieActif = null;
@@ -3591,50 +2776,10 @@ window.csvCelluleSecurisee = csvCelluleSecurisee;
 
 /* ===== ACCUSÉ DE LECTURE MESSAGERIE ===== */
 /* ===== GOOGLE MAPS — CALCUL DISTANCE AUTO ===== */
-async function calculerDistanceMaps(depart, arrivee, inputId) {
-  if (!depart || !arrivee) { afficherToast('⚠️ Saisissez départ et arrivée d\'abord', 'error'); return; }
-  const btn = document.getElementById('maps-calc-btn');
-  if (btn) { btn.classList.add('maps-loading'); btn.textContent = '⏳ Calcul...'; }
-
-  try {
-    // Utiliser l'API Nominatim (OSM) pour géocoder + calcul à vol d'oiseau
-    const encD = encodeURIComponent(depart);
-    const encA = encodeURIComponent(arrivee);
-    const [resD, resA] = await Promise.all([
-      fetch(`https://nominatim.openstreetmap.org/search?q=${encD}&format=json&limit=1`).then(r=>r.json()),
-      fetch(`https://nominatim.openstreetmap.org/search?q=${encA}&format=json&limit=1`).then(r=>r.json())
-    ]);
-    if (!resD.length || !resA.length) { afficherToast('⚠️ Adresse introuvable — saisissez manuellement', 'error'); return; }
-
-    const lat1 = parseFloat(resD[0].lat), lon1 = parseFloat(resD[0].lon);
-    const lat2 = parseFloat(resA[0].lat), lon2 = parseFloat(resA[0].lon);
-
-    // Formule Haversine (distance à vol d'oiseau)
-    const R = 6371;
-    const dLat = (lat2-lat1) * Math.PI/180;
-    const dLon = (lon2-lon1) * Math.PI/180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
-    const distVol = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    // Facteur routier ~1.3
-    const distRoute = Math.round(distVol * 1.3);
-
-    const input = document.getElementById(inputId);
-    if (input) { input.value = distRoute; input.dispatchEvent(new Event('input')); }
-    afficherToast(`📍 Distance estimée : ${distRoute} km (via OSM)`);
-  } catch(e) {
-    afficherToast('⚠️ Erreur de calcul — vérifiez votre connexion', 'error');
-  } finally {
-    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = '📍 Calculer distance'; }
-  }
-}
+// MOVED -> script-core-utils.js : calculerDistanceMaps
 
 /* ===== HT/TVA DANS LE TABLEAU LIVRAISONS ===== */
-function formatPrixAvecHT(prix) {
-  if (!prix) return '—';
-  const taux = getTauxTVA();
-  const ht   = prixHT(prix, taux);
-  return `<div><strong>${euros(prix)}</strong></div><div style="font-size:.72rem;color:var(--text-muted)">${euros(ht)} HT</div>`;
-}
+// MOVED -> script-core-utils.js : formatPrixAvecHT
 
 /* ===== BADGES NAV — INCIDENTS + RELANCES ===== */
 function mettreAJourBadgesNav() {
@@ -3655,12 +2800,7 @@ function mettreAJourBadgesNav() {
 }
 
 /* ===== TAUX DE PONCTUALITÉ ===== */
-function calculerPonctualite() {
-  const livraisons = charger('livraisons').filter(l=>l.statut==='livre'||l.statut==='en-attente');
-  if (!livraisons.length) return { taux:0, livrees:0, total:0 };
-  const livrees = livraisons.filter(l=>l.statut==='livre').length;
-  return { taux: Math.round(livrees/livraisons.length*100), livrees, total: livraisons.length };
-}
+// MOVED -> script-core-utils.js : calculerPonctualite
 
 function afficherPonctualite() {
   const cont = document.getElementById('ponctualite-container');
@@ -3867,15 +3007,9 @@ var _heuresAnneeOffset = 0;
 // MOVED -> script-exports.js : exporterRecapHeures
 
 /* ===== RH — NOTE INTERNE SALARIÉ ===== */
-function charger_note_interne(salId) {
-  const notes = loadSafe('notes_internes', {});
-  return notes[salId]?.texte || '';
-}
+// MOVED -> script-core-storage.js : charger_note_interne
 
-function chargerNoteInterne(salId) {
-  const notes = loadSafe('notes_internes', {});
-  return notes[salId]?.texte || '';
-}
+// MOVED -> script-core-storage.js : chargerNoteInterne
 
 function ouvrirNoteInterne(salId, salNom) {
   document.getElementById('note-interne-sal-id').value  = salId;
@@ -3884,15 +3018,7 @@ function ouvrirNoteInterne(salId, salNom) {
   openModal('modal-note-interne');
 }
 
-function confirmerNoteInterne() {
-  const salId = document.getElementById('note-interne-sal-id').value;
-  const texte = document.getElementById('note-interne-texte').value;
-  const notes = loadSafe('notes_internes', {});
-  notes[salId] = { texte, date: new Date().toISOString() };
-  localStorage.setItem('notes_internes', JSON.stringify(notes));
-  closeModal('modal-note-interne');
-  afficherToast('📝 Note enregistrée');
-}
+// MOVED -> script-core-ui.js : confirmerNoteInterne
 
 /* ===== FLOTTE — PHOTO VÉHICULE ===== */
 
@@ -4014,20 +3140,7 @@ function initPullToRefresh() {
 
 // Helper : apres render d'un container avec messages, resoud les signed URLs
 // pour les <img data-photo-path="..." data-photo-bucket="...">.
-async function resolveStorageImages(container) {
-  if (!container || !window.DelivProStorage) return;
-  const imgs = container.querySelectorAll('img[data-photo-path]:not([data-resolved])');
-  for (const img of imgs) {
-    const path = img.dataset.photoPath;
-    const bucket = img.dataset.photoBucket || 'messages-photos';
-    if (!path) continue;
-    const signed = await window.DelivProStorage.getSignedUrl(bucket, path, 600);
-    if (signed.ok) {
-      img.src = signed.signedUrl;
-      img.dataset.resolved = '1';
-    }
-  }
-}
+// MOVED -> script-core-storage.js : resolveStorageImages
 window.resolveStorageImages = resolveStorageImages;
 
 /* ===== SON / VIBRATION MESSAGES ===== */
@@ -4413,57 +3526,11 @@ function resetTimerInactivite() {
 ['click','keydown','mousemove','scroll'].forEach(ev => document.addEventListener(ev, resetTimerInactivite, { passive:true }));
 
 /* ===== PARAMÈTRES ADMIN ===== */
-function toggleParamMdp(inputId) {
-  const input = document.getElementById(inputId);
-  if (input) input.type = input.type === 'password' ? 'text' : 'password';
-}
+// MOVED -> script-core-auth.js : toggleParamMdp
 
-async function changerMdpAdmin() {
-  const actuel    = document.getElementById('param-mdp-actuel').value;
-  const nouveau   = document.getElementById('param-mdp-nouveau').value;
-  const confirmer = document.getElementById('param-mdp-confirmer').value;
-  if (!actuel || !nouveau || !confirmer) { afficherToast('⚠️ Remplissez tous les champs', 'error'); return; }
-  const sessionAdmin = getAdminSession();
-  const comptes = getAdminAccounts();
-  const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
-  if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
-  const motDePasseStocke = comptes[idx].motDePasseHash || comptes[idx].motDePasse || '';
-  if (!await verifierMotDePasseLocal(actuel, motDePasseStocke)) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
-  const qualiteMdp = evaluerQualiteMotDePasseFort(nouveau);
-  if (!qualiteMdp.ok) { afficherToast('⚠️ ' + qualiteMdp.message, 'error'); return; }
-  if (nouveau !== confirmer) { afficherToast('⚠️ Les mots de passe ne correspondent pas', 'error'); return; }
-  const client = getSupabaseClientSafe();
-  const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
-  if (supabaseReady) {
-    if (sessionAdmin.authMode !== 'supabase' || !client) {
-      afficherToast('⚠️ Connectez-vous via Supabase pour changer un mot de passe admin synchronisé.', 'error');
-      return;
-    }
-  }
-  if (supabaseReady) {
-    const sessionResult = await client.auth.getSession();
-    if (!sessionResult?.data?.session) {
-      afficherToast('⚠️ Session Supabase administrateur introuvable. Reconnectez-vous.', 'error');
-      return;
-    }
-    const updateResult = await client.auth.updateUser({ password: nouveau });
-    if (updateResult.error) {
-      afficherToast(`⚠️ Mot de passe Supabase non mis à jour (${updateResult.error.message})`, 'error');
-      return;
-    }
-  }
-  comptes[idx].motDePasseHash = await hasherMotDePasseLocal(nouveau);
-  delete comptes[idx].motDePasse;
-  saveAdminAccounts(comptes);
-  ['param-mdp-actuel','param-mdp-nouveau','param-mdp-confirmer'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
-  afficherToast(supabaseReady ? '✅ Mot de passe administrateur mis à jour et synchronisé avec Supabase' : '✅ Mot de passe administrateur mis à jour pour votre compte');
-}
+// MOVED -> script-core-auth.js : changerMdpAdmin
 
-function sauvegarderObjectifCA() {
-  const val = parseFloat(document.getElementById('param-objectif-ca')?.value) || 0;
-  localStorage.setItem('objectif_ca_mensuel', val);
-  afficherToast('✅ Objectif CA enregistré : ' + euros(val));
-}
+// MOVED -> script-core-storage.js : sauvegarderObjectifCA
 
 // Valeurs par défaut MCA LOGISTICS (Statuts SAS signés 22/03/2026, PV désignation
 // gestionnaire transport 17/04/2026, dossier DREAL 2026-15119). Utilisées uniquement
@@ -4485,66 +3552,11 @@ const MCA_DEFAULTS_ENTREPRISE = {
   tauxPenalitesRetard: 10.15
 };
 
-function chargerParametres() {
-  let params = chargerObj('params_entreprise', {});
-  // Pré-remplissage initial MCA au premier affichage (ne stocke pas tant que l'utilisateur n'a pas cliqué Enregistrer)
-  if (!params || !Object.keys(params).length) {
-    params = Object.assign({}, MCA_DEFAULTS_ENTREPRISE);
-  }
-  const sessionAdmin = getAdminSession();
-  const map = {
-    'param-nom-entreprise':       params.nom || '',
-    'param-nom-admin':             sessionAdmin.nom || '',
-    'param-forme-juridique':       params.formeJuridique || '',
-    'param-siret':                 params.siret || '',
-    'param-code-ape':              params.codeAPE || '',
-    'param-tva-intracom':          params.tvaIntracom || '',
-    'param-rcs-ville':             params.rcsVille || '',
-    'param-rcs-numero':            params.rcsNumero || '',
-    'param-capital':               params.capital != null ? params.capital : '',
-    'param-capital-libere':        params.capitalLibere != null ? params.capitalLibere : '',
-    'param-adresse':               params.adresse || '',
-    'param-code-postal':           params.codePostal || '',
-    'param-ville':                 params.ville || '',
-    'param-pays':                  params.pays || 'FR',
-    'param-tel-entreprise':        params.tel || '',
-    'param-email':                 params.email || '',
-    'param-lti-numero':            params.ltiNumero || '',
-    'param-lti-date-emission':     params.ltiDateEmission || '',
-    'param-lti-date-expiration':   params.ltiDateExpiration || '',
-    'param-dreal-dossier':         params.drealDossier || '',
-    'param-registre-transporteurs':params.registreTransporteurs || '',
-    'param-gestionnaire-nom':      params.gestionnaireNom || '',
-    'param-capacite-pro-numero':   params.capaciteProNumero || '',
-    'param-capacite-pro-date':     params.capaciteProDate || '',
-    'param-iban':                  params.iban || '',
-    'param-bic':                   params.bic || '',
-    'param-banque':                params.banque || '',
-    'param-delai-paiement':        params.delaiPaiementDefaut != null ? params.delaiPaiementDefaut : 30,
-    'param-taux-penalites':        params.tauxPenalitesRetard != null ? params.tauxPenalitesRetard : 10.15
-  };
-  Object.entries(map).forEach(([id,val]) => { const el=document.getElementById(id); if(el) el.value=val; });
-  const colorEl = document.getElementById('param-accent-color');
-  if (colorEl) colorEl.value = localStorage.getItem('accent_color') || '#f5a623';
-  const maxTentEl = document.getElementById('param-max-tentatives');
-  if (maxTentEl) maxTentEl.value = localStorage.getItem('max_tentatives') || '5';
-  const sessionTimeoutEl = document.getElementById('param-session-timeout');
-  if (sessionTimeoutEl) sessionTimeoutEl.value = String(getSessionTimeoutMinutesAdmin());
-  const compteEl = document.getElementById('param-admin-compte');
-  if (compteEl) compteEl.textContent = 'Compte connecté : ' + (sessionAdmin.identifiant || '—');
-  appliquerBranding();
-  afficherPostes();
-  chargerConfigurationTVAParametres();
-  chargerConfigurationTresorerieParametres();
-  const nouveauPosteInput = document.getElementById('nouveau-poste');
-  if (nouveauPosteInput) nouveauPosteInput.value = '';
-  majResumeSauvegardeAdmin();
-  afficherJournalAudit();
-}
+// MOVED -> script-core-storage.js : chargerParametres
 
 /* ===== GESTION DES POSTES ===== */
 function getPostes() { return loadSafe('postes', ["Livreur","Dispatcher"]); }
-function sauvegarderPostes(postes) { localStorage.setItem('postes', JSON.stringify(postes)); }
+// MOVED -> script-core-storage.js : sauvegarderPostes
 
 function afficherPostes() {
   const postes = getPostes();
@@ -4595,91 +3607,7 @@ function majSelectsPostes() {
   });
 }
 
-function sauvegarderParametres() {
-  const sessionAdmin = getAdminSession();
-  const adminNomSaisi = document.getElementById('param-nom-admin')?.value.trim() || 'Admin';
-  const siretRaw = (document.getElementById('param-siret')?.value || '').replace(/\s+/g, '');
-  // SIRET optionnel tant que la société n'est pas immatriculée — validation uniquement si saisi
-  if (siretRaw) {
-    if (!/^\d{14}$/.test(siretRaw)) {
-      afficherToast('⚠️ Le SIRET doit contenir 14 chiffres (ou laissez vide si en cours d\'immatriculation)', 'error');
-      return;
-    }
-    if (!validerSIRET(siretRaw)) {
-      afficherToast('⚠️ SIRET invalide (clé de contrôle Luhn incorrecte)', 'error');
-      return;
-    }
-  }
-  const adminNom = window.DelivProAuth && typeof window.DelivProAuth.normalizeAdminDisplayName === 'function'
-    ? window.DelivProAuth.normalizeAdminDisplayName(adminNomSaisi, sessionAdmin.identifiant, sessionAdmin.email)
-    : adminNomSaisi;
-  const tvaIntracomRaw = (document.getElementById('param-tva-intracom')?.value || '').replace(/\s+/g, '').toUpperCase();
-  if (tvaIntracomRaw) {
-    const validation = validerTVAIntracomFR(tvaIntracomRaw);
-    if (!validation.valid) {
-      afficherToast('⚠️ N° TVA intracom invalide : ' + (validation.message || 'format incorrect'), 'error');
-      return;
-    }
-  }
-  const getParamVal = (id) => (document.getElementById(id)?.value || '').trim();
-  const getParamNum = (id) => {
-    const v = getParamVal(id);
-    if (v === '') return null;
-    const n = parseFloat(v);
-    return Number.isFinite(n) ? n : null;
-  };
-  const paramsExistants = chargerObj('params_entreprise', {});
-  const params = Object.assign({}, paramsExistants, {
-    nom:                   getParamVal('param-nom-entreprise') || 'MCA LOGISTICS',
-    nomAdmin:              adminNom,
-    formeJuridique:        getParamVal('param-forme-juridique'),
-    siret:                 siretRaw,
-    codeAPE:               getParamVal('param-code-ape').toUpperCase(),
-    tvaIntracom:           tvaIntracomRaw,
-    rcsVille:              getParamVal('param-rcs-ville'),
-    rcsNumero:             getParamVal('param-rcs-numero').replace(/\s+/g, ''),
-    capital:               getParamNum('param-capital'),
-    capitalLibere:         getParamNum('param-capital-libere'),
-    adresse:               getParamVal('param-adresse'),
-    codePostal:            getParamVal('param-code-postal'),
-    ville:                 getParamVal('param-ville'),
-    pays:                  (getParamVal('param-pays') || 'FR').toUpperCase(),
-    tel:                   getParamVal('param-tel-entreprise'),
-    email:                 getParamVal('param-email'),
-    ltiNumero:             getParamVal('param-lti-numero'),
-    ltiDateEmission:       getParamVal('param-lti-date-emission'),
-    ltiDateExpiration:     getParamVal('param-lti-date-expiration'),
-    drealDossier:          getParamVal('param-dreal-dossier'),
-    registreTransporteurs: getParamVal('param-registre-transporteurs'),
-    gestionnaireNom:       getParamVal('param-gestionnaire-nom'),
-    capaciteProNumero:     getParamVal('param-capacite-pro-numero'),
-    capaciteProDate:       getParamVal('param-capacite-pro-date'),
-    iban:                  getParamVal('param-iban').replace(/\s+/g, '').toUpperCase(),
-    bic:                   getParamVal('param-bic').toUpperCase(),
-    banque:                getParamVal('param-banque'),
-    delaiPaiementDefaut:   (getParamNum('param-delai-paiement') != null) ? getParamNum('param-delai-paiement') : 30,
-    tauxPenalitesRetard:   (getParamNum('param-taux-penalites') != null) ? getParamNum('param-taux-penalites') : 10.15,
-    // Compat : champ legacy "rcs" = "Ville Numéro" (consommé par renderFactureMentionsEntrepriseHeader existant)
-    rcs: [getParamVal('param-rcs-ville'), getParamVal('param-rcs-numero').replace(/\s+/g,'')].filter(Boolean).join(' ')
-  });
-  sauvegarder('params_entreprise', params);
-  const comptes = getAdminAccounts();
-  const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
-  if (idx > -1) {
-    comptes[idx].nom = adminNom;
-    saveAdminAccounts(comptes);
-  }
-  sessionStorage.setItem('admin_nom', adminNom);
-  chargerNomEntreprise();
-  appliquerBranding();
-  // BUG-020 fix : rafraîchir le formulaire pour refléter immédiatement la valeur
-  // normalisée (ex. TVA intracom nettoyée, SIRET formaté, capital, forme juridique).
-  if (typeof chargerParametres === 'function') {
-    try { chargerParametres(); } catch (_) { /* silencieux : non bloquant */ }
-  }
-  ajouterEntreeAudit('Paramètres entreprise', (params.nom || 'Entreprise') + (siretRaw ? ' · SIRET ' + siretRaw : ' · en cours d\'immatriculation'));
-  afficherToast('✅ Paramètres enregistrés');
-}
+// MOVED -> script-core-storage.js : sauvegarderParametres
 
 async function changerLogoEntreprise(input) {
   const file = input?.files?.[0];
@@ -4755,14 +3683,7 @@ function sauvegarderConfigurationTresorerie() {
 
 // MOVED -> script-livraisons.js : sauvegarderObjectifLivraisons
 
-function sauvegarderMaxTentatives() {
-  const val = parseInt(document.getElementById('param-max-tentatives')?.value, 10) || 5;
-  const timeoutVal = Math.min(240, Math.max(5, parseInt(document.getElementById('param-session-timeout')?.value || '30', 10) || 30));
-  localStorage.setItem('max_tentatives', val);
-  localStorage.setItem('session_timeout_min', timeoutVal);
-  resetTimerInactivite();
-  afficherToast('✅ Blocage après ' + val + ' tentatives · Déconnexion auto ' + timeoutVal + ' min');
-}
+// MOVED -> script-core-storage.js : sauvegarderMaxTentatives
 
 // MOVED -> script-paiements.js : sauvegarderRelanceDelai
 
@@ -4773,59 +3694,13 @@ function appliquerAccentColor() {
   afficherToast('🎨 Couleur appliquée');
 }
 
-function majResumeSauvegardeAdmin() {
-  const dateEl = document.getElementById('backup-stat-date');
-  const last = localStorage.getItem('backup_admin_last_export');
-  if (dateEl) dateEl.textContent = last ? formatDateHeureExport(last) : 'Jamais';
-}
+// MOVED -> script-core-auth.js : majResumeSauvegardeAdmin
 
-function construireSauvegardeAdmin() {
-  const data = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (!key) continue;
-    data[key] = localStorage.getItem(key);
-  }
-  return {
-    app: 'MCA Logistics',
-    exportedAt: new Date().toISOString(),
-    version: 'admin-backup-v1',
-    data
-  };
-}
+// MOVED -> script-core-auth.js : construireSauvegardeAdmin
 
 // MOVED -> script-exports.js : exporterSauvegardeAdmin
 
-async function importerSauvegardeAdmin(input) {
-  const file = input?.files?.[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const payload = JSON.parse(text);
-    if (!payload || typeof payload !== 'object' || !payload.data || typeof payload.data !== 'object') {
-      afficherToast('Fichier de sauvegarde invalide', 'error');
-      if (input) input.value = '';
-      return;
-    }
-    const ok = await confirmDialog('Restaurer cette sauvegarde va remplacer les données actuelles de l’application sur ce navigateur. Continuer ?', { titre:'Restaurer une sauvegarde', icone:'💾', btnLabel:'Restaurer' });
-    if (!ok) {
-      if (input) input.value = '';
-      return;
-    }
-    localStorage.clear();
-    Object.entries(payload.data).forEach(([key, value]) => {
-      localStorage.setItem(key, value);
-    });
-    localStorage.setItem('backup_admin_last_export', payload.exportedAt || new Date().toISOString());
-    if (input) input.value = '';
-    afficherToast('Sauvegarde restaurée');
-    setTimeout(() => window.location.reload(), 300);
-  } catch (err) {
-    console.error(err);
-    afficherToast('Impossible de restaurer ce fichier', 'error');
-    if (input) input.value = '';
-  }
-}
+// MOVED -> script-core-auth.js : importerSauvegardeAdmin
 
 /* ===== HT / TVA ===== */
 function prixHT(prixTTC, tauxTVA) {
@@ -4833,17 +3708,7 @@ function prixHT(prixTTC, tauxTVA) {
 }
 // MOVED -> script-tva.js : getTauxTVA
 /* ===== SOLDE TRÉSORERIE ===== */
-function calculerSoldeTresorerie() {
-  const mois      = aujourdhui().slice(0,7);
-  const livraisons= charger('livraisons').filter(l => (l.date||'').startsWith(mois));
-  const carburant = charger('carburant').filter(p => (p.date||'').startsWith(mois));
-  const charges   = charger('charges').filter(c => (c.date||'').startsWith(mois));
-
-  const encaisse  = livraisons.filter(l => l.statutPaiement==='payé').reduce((s,l)=>s+(l.prix||0), 0);
-  const depenses  = carburant.reduce((s,p)=>s+(p.total||0), 0)
-                  + charges.reduce((s,c)=>s+(c.montant||0), 0);
-  return { encaisse, depenses, solde: encaisse - depenses };
-}
+// MOVED -> script-core-utils.js : calculerSoldeTresorerie
 
 /* ===== CATÉGORIES DE CHARGES ===== */
 // MOVED -> script-charges.js : resetFormulaireCharge
@@ -4893,21 +3758,7 @@ function marquerPaye(id) {
 // MOVED -> script-paiements.js : marquerRelance
 
 /* ===== TCO VÉHICULE ===== */
-function calculerTCO(vehId) {
-  const veh = charger('vehicules').find(v=>v.id===vehId) || {};
-  const carburant  = charger('carburant').filter(p=>p.vehId===vehId);
-  const charges    = charger('charges').filter(c=>c.vehId===vehId);
-  const entretiens = charger('entretiens').filter(e=>e.vehId===vehId);
-
-  const totalCarb  = carburant.reduce((s,p)=>s+(p.total||0),0);
-  const totalCharg = charges.reduce((s,c)=>s+(c.montant||0),0);
-  const totalEntr  = entretiens.reduce((s,e)=>s+(e.cout||0),0);
-  const achatHT    = parseFloat(veh.prixAchatHT) || 0;
-  const total      = achatHT + totalCarb + totalCharg + totalEntr;
-  const amort      = calculerAmortissementVehicule(veh);
-
-  return { totalCarb, totalCharg, totalEntr, total, achatHT, amort };
-}
+// MOVED -> script-core-utils.js : calculerTCO
 
 function afficherTCO(vehId) {
   const veh  = charger('vehicules').find(v=>v.id===vehId);
@@ -4972,9 +3823,7 @@ function afficherTCO(vehId) {
 
 // MOVED -> script-charges.js : chargerFacturesEmises
 
-function sauvegarderFacturesEmises(factures) {
-  sauvegarder('factures_emises', factures);
-}
+// MOVED -> script-core-storage.js : sauvegarderFacturesEmises
 
 function getAnneeFactureReference(livraison) {
   const source = livraison?.datePaiement || livraison?.date || aujourdhui();
@@ -4982,9 +3831,7 @@ function getAnneeFactureReference(livraison) {
   return match ? match[1] : String(new Date().getFullYear());
 }
 
-function formatNumeroFacture(annee, sequence) {
-  return 'FAC-' + annee + '-' + String(sequence || 0).padStart(4, '0');
-}
+// MOVED -> script-core-utils.js : formatNumeroFacture
 
 // BUG-001 — compteur facture persistant par année (CGI art. 289)
 // La séquence ne régresse jamais, même après suppression.
@@ -5276,13 +4123,7 @@ window.confirmerEditVehicule = confirmerEditVehicule;
    =============================================== */
 
 /* ===== FORMAT PRIX COMPLET HT/TVA€/TTC ===== */
-function formatPrixComplet(l) {
-  if (!l.prix) return '—';
-  const taux = l.tauxTVA || parseFloat(localStorage.getItem('taux_tva')||'20');
-  const ht   = l.prixHT || (l.prix / (1 + taux/100));
-  const tvaM = l.prix - ht;
-  return `<div><strong>${euros(l.prix)} TTC</strong></div><div style="font-size:.72rem;color:var(--text-muted)">${euros(ht)} HT · TVA ${euros(tvaM)}</div>`;
-}
+// MOVED -> script-core-utils.js : formatPrixComplet
 
 /* ===== RELANCES — LETTRES PDF 3 NIVEAUX ===== */
 // MOVED -> script-paiements.js : genererLettreRelance
@@ -5357,12 +4198,7 @@ function getNumSemaine(d) {
    NAVIGATION PÉRIODE — Toutes les pages
    =============================================== */
 
-function formatPeriodeDateFr(dateLike) {
-  if (!dateLike) return '';
-  var d = dateLike instanceof Date ? new Date(dateLike) : new Date(dateLike);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
+// MOVED -> script-core-utils.js : formatPeriodeDateFr
 
 function getStartOfWeek(date) {
   var d = new Date(date);

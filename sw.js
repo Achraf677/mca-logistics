@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-04-30-watchdog';
+const CACHE_VERSION = 'mca-v2026-04-30-decoupage';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -47,8 +47,13 @@ const CORE_ASSETS = [
   '/salaries-supabase-adapter.js',
   '/all-entity-adapters.js',
   '/storage-uploader.js',
+  '/script-core-utils.js',
+  '/script-core-storage.js',
+  '/script-core-ui.js',
+  '/script-core-auth.js',
   '/lazy-loader.js',
   '/lazy-stubs.js',
+  '/script-salarie.js',
   '/watchdog.js',
   '/manifest.json',
   '/monitoring.js',
