@@ -13,8 +13,8 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260430-24">
-  <link rel="preload" as="script" href="script.js?v=20260430-24">
+  <link rel="preload" as="style" href="style.css?v=20260430-28">
+  <link rel="preload" as="script" href="script.js?v=20260430-28">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -42,7 +42,7 @@
     .nav-item[data-page="rentabilite"],
     .nav-item[data-page="statistiques"] { display: none; }
   </style>
-  <link rel="stylesheet" href="style.css?v=20260430-24" />
+  <link rel="stylesheet" href="style.css?v=20260430-28" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
@@ -949,8 +949,9 @@
     <section class="page" id="page-alertes">
       <div class="page-actions"><h2>🔔 Alertes administrateur</h2><button class="btn-secondary" onclick="viderAlertes()">🗑️ Vider l'historique traité</button></div>
 
-      <!-- Filtres alertes -->
-      <div class="filters" style="margin-bottom:16px">
+      <!-- Filtres alertes (sticky : reste visible quand on scroll dans une longue liste) -->
+      <div class="filters alertes-filters-sticky" style="margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+        <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="🔍 Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" />
         <select id="filtre-alerte-type" onchange="afficherAlertes()">
           <option value="">Tous les types</option>
           <option value="ct_expire">⚠️ CT expiré</option>
@@ -976,11 +977,12 @@
         </select>
         <select id="filtre-alerte-statut" onchange="afficherAlertes()">
           <option value="actives">🔴 Alertes actives</option>
+          <option value="reportees">⏰ Alertes reportées</option>
           <option value="traitees">✅ Historique traité</option>
           <option value="toutes">📋 Toutes</option>
         </select>
         <input type="date" id="filtre-alerte-date" onchange="afficherAlertes()" title="Filtrer par date" />
-        <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';afficherAlertes()">Réinitialiser</button>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';afficherAlertes()">Réinitialiser</button>
       </div>
 
       <!-- Alertes actives triées par catégorie (généré dynamiquement) -->
@@ -3113,6 +3115,59 @@
   <!-- Sidebar overlay mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="fermerMenuMobile()"></div>
 
+  <!-- Mobile bottom nav (Sprint 25) — visible <= 760px uniquement (CSS) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navigation mobile">
+    <a href="#" class="mbn-item" data-page="dashboard"><span class="mbn-icon">📊</span><span class="mbn-label">Dashboard</span></a>
+    <a href="#" class="mbn-item" data-page="livraisons"><span class="mbn-icon">📦</span><span class="mbn-label">Livraisons</span></a>
+    <a href="#" class="mbn-item" data-page="planning"><span class="mbn-icon">📅</span><span class="mbn-label">Planning</span></a>
+    <a href="#" class="mbn-item" data-page="alertes"><span class="mbn-icon">🔔</span><span class="mbn-label">Alertes</span><span class="mbn-badge" id="badge-alertes-mbn"></span></a>
+    <button type="button" class="mbn-item mbn-item-more" id="mbnMoreBtn"><span class="mbn-icon">⋯</span><span class="mbn-label">Plus</span></button>
+  </nav>
+  <script>
+    // Mobile bottom nav wiring : navigation + état actif
+    (function() {
+      function syncMbnActive(page) {
+        document.querySelectorAll('.mbn-item[data-page]').forEach(item => {
+          item.classList.toggle('active', item.dataset.page === page);
+        });
+      }
+      // Wire chaque mbn-item -> naviguerVers + ferme drawer si ouvert
+      document.querySelectorAll('.mbn-item[data-page]').forEach(item => {
+        item.addEventListener('click', e => {
+          e.preventDefault();
+          if (typeof window.naviguerVers === 'function') window.naviguerVers(item.dataset.page);
+          if (typeof window.fermerMenuMobile === 'function') window.fermerMenuMobile();
+          syncMbnActive(item.dataset.page);
+        });
+      });
+      // Bouton "Plus" -> ouvre le drawer
+      document.getElementById('mbnMoreBtn')?.addEventListener('click', () => {
+        if (typeof window.ouvrirMenuMobile === 'function') window.ouvrirMenuMobile();
+      });
+      // Initialise l'état actif depuis l'item .nav-item.active de la sidebar
+      const activeNav = document.querySelector('.nav-item.active[data-page]');
+      if (activeNav) syncMbnActive(activeNav.dataset.page);
+      // Hook naviguerVers pour synchroniser l'état actif quand l'utilisateur passe par la sidebar/drawer
+      const tryHook = () => {
+        if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__mbn) {
+          if (typeof window.naviguerVers !== 'function') return setTimeout(tryHook, 200);
+          return;
+        }
+        const orig = window.naviguerVers;
+        const wrapped = function(page) {
+          const r = orig.apply(this, arguments);
+          syncMbnActive(page);
+          return r;
+        };
+        wrapped.__mbn = true;
+        // Préserver les marqueurs hooks précédents
+        Object.keys(orig).forEach(k => { if (k.startsWith('__')) wrapped[k] = orig[k]; });
+        window.naviguerVers = wrapped;
+      };
+      tryHook();
+    })();
+  </script>
+
   <div id="panneau-agent" style="position:fixed;top:0;right:-420px;width:400px;height:100vh;background:#1a1d27;border-left:1px solid #2a2d3d;z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:24px 20px;box-shadow:-8px 0 32px rgba(0,0,0,0.4)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
@@ -3132,55 +3187,55 @@
 
   <div id="panneau-agent-overlay" onclick="togglePanneauAgent()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;backdrop-filter:blur(2px)"></div>
 
-  <script defer src="monitoring.js?v=20260430-24"></script>
+  <script defer src="monitoring.js?v=20260430-28"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="supabase-client.js"></script>
   <script defer src="supabase-auth.js"></script>
-  <script defer src="security-utils.js?v=20260430-24"></script>
+  <script defer src="security-utils.js?v=20260430-28"></script>
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
-  <script defer src="script-core-utils.js?v=20260430-24"></script>
-  <script defer src="script-core-storage.js?v=20260430-24"></script>
-  <script defer src="script-core-ui.js?v=20260430-24"></script>
-  <script defer src="script-core-auth.js?v=20260430-24"></script>
-  <script defer src="script-core-periodes.js?v=20260430-24"></script>
-  <script defer src="script-core-navigation.js?v=20260430-24"></script>
-  <script defer src="script-core-edit-locks.js?v=20260430-24"></script>
-  <script defer src="script-core-branding.js?v=20260430-24"></script>
-  <script defer src="script-core-audit.js?v=20260430-24"></script>
-  <script defer src="script-core-recherche.js?v=20260430-24"></script>
-  <script defer src="storage-uploader.js?v=20260430-24"></script>
-  <script defer src="entity-supabase-adapter.js?v=20260430-24"></script>
-  <script defer src="clients-supabase-adapter.js?v=20260430-24"></script>
-  <script defer src="vehicules-supabase-adapter.js?v=20260430-24"></script>
-  <script defer src="salaries-supabase-adapter.js?v=20260430-24"></script>
-  <script defer src="all-entity-adapters.js?v=20260430-24"></script>
-  <script defer src="repo.js?v=20260430-24"></script>
-  <script defer src="lazy-loader.js?v=20260430-24"></script>
-  <script defer src="lazy-stubs.js?v=20260430-24"></script>
-  <script defer src="script-inspections.js?v=20260430-24"></script>
-  <script defer src="script-incidents.js?v=20260430-24"></script>
-  <script defer src="script-rentabilite.js?v=20260430-24"></script>
-  <script defer src="script-rentabilite-multi.js?v=20260430-24"></script>
-  <script defer src="script-carburant.js?v=20260430-24"></script>
-  <script defer src="script-carburant-anomalies.js?v=20260430-24"></script>
-  <script defer src="script-entretiens.js?v=20260430-24"></script>
-  <script defer src="script-alertes.js?v=20260430-24"></script>
-  <script defer src="script-stats.js?v=20260430-24"></script>
-  <script defer src="script-tva.js?v=20260430-24"></script>
-  <script defer src="script-paiements.js?v=20260430-24"></script>
-  <script defer src="script-heures.js?v=20260430-24"></script>
-  <script defer src="script-planning.js?v=20260430-24"></script>
-  <script defer src="script-fournisseurs.js?v=20260430-24"></script>
-  <script defer src="script-clients.js?v=20260430-24"></script>
-  <script defer src="script-charges.js?v=20260430-24"></script>
-  <script defer src="script-salaries.js?v=20260430-24"></script>
-  <script defer src="script-vehicules.js?v=20260430-24"></script>
-  <script defer src="script-livraisons.js?v=20260430-24"></script>
-  <script defer src="script.js?v=20260430-24"></script>
-  <script defer src="health-check.js?v=20260430-24"></script>
-  <script defer src="watchdog.js?v=20260430-24"></script>
+  <script defer src="script-core-utils.js?v=20260430-28"></script>
+  <script defer src="script-core-storage.js?v=20260430-28"></script>
+  <script defer src="script-core-ui.js?v=20260430-28"></script>
+  <script defer src="script-core-auth.js?v=20260430-28"></script>
+  <script defer src="script-core-periodes.js?v=20260430-28"></script>
+  <script defer src="script-core-navigation.js?v=20260430-28"></script>
+  <script defer src="script-core-edit-locks.js?v=20260430-28"></script>
+  <script defer src="script-core-branding.js?v=20260430-28"></script>
+  <script defer src="script-core-audit.js?v=20260430-28"></script>
+  <script defer src="script-core-recherche.js?v=20260430-28"></script>
+  <script defer src="storage-uploader.js?v=20260430-28"></script>
+  <script defer src="entity-supabase-adapter.js?v=20260430-28"></script>
+  <script defer src="clients-supabase-adapter.js?v=20260430-28"></script>
+  <script defer src="vehicules-supabase-adapter.js?v=20260430-28"></script>
+  <script defer src="salaries-supabase-adapter.js?v=20260430-28"></script>
+  <script defer src="all-entity-adapters.js?v=20260430-28"></script>
+  <script defer src="repo.js?v=20260430-28"></script>
+  <script defer src="lazy-loader.js?v=20260430-28"></script>
+  <script defer src="lazy-stubs.js?v=20260430-28"></script>
+  <script defer src="script-inspections.js?v=20260430-28"></script>
+  <script defer src="script-incidents.js?v=20260430-28"></script>
+  <script defer src="script-rentabilite.js?v=20260430-28"></script>
+  <script defer src="script-rentabilite-multi.js?v=20260430-28"></script>
+  <script defer src="script-carburant.js?v=20260430-28"></script>
+  <script defer src="script-carburant-anomalies.js?v=20260430-28"></script>
+  <script defer src="script-entretiens.js?v=20260430-28"></script>
+  <script defer src="script-alertes.js?v=20260430-28"></script>
+  <script defer src="script-stats.js?v=20260430-28"></script>
+  <script defer src="script-tva.js?v=20260430-28"></script>
+  <script defer src="script-paiements.js?v=20260430-28"></script>
+  <script defer src="script-heures.js?v=20260430-28"></script>
+  <script defer src="script-planning.js?v=20260430-28"></script>
+  <script defer src="script-fournisseurs.js?v=20260430-28"></script>
+  <script defer src="script-clients.js?v=20260430-28"></script>
+  <script defer src="script-charges.js?v=20260430-28"></script>
+  <script defer src="script-salaries.js?v=20260430-28"></script>
+  <script defer src="script-vehicules.js?v=20260430-28"></script>
+  <script defer src="script-livraisons.js?v=20260430-28"></script>
+  <script defer src="script.js?v=20260430-28"></script>
+  <script defer src="health-check.js?v=20260430-28"></script>
+  <script defer src="watchdog.js?v=20260430-28"></script>
   <script>
     // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
     // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
