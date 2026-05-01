@@ -241,8 +241,14 @@
         { value: 'livree',    label: 'Livrée' },
         { value: 'facturee',  label: 'Facturée' }
       ], { value: v.statut || 'livree' }))}
+      ${enEdition && (v.vehiculeId || v.salarieId) ? `
+        <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+          ${v.vehiculeId ? `<button type="button" class="m-btn" data-goto-veh="${M.escHtml(v.vehiculeId)}" style="flex:1 1 140px">🚐 Fiche véhicule</button>` : ''}
+          ${v.salarieId ? `<button type="button" class="m-btn" data-goto-sal="${M.escHtml(v.salarieId)}" style="flex:1 1 140px">👤 Fiche salarié</button>` : ''}
+        </div>
+      ` : ''}
       ${enEdition ? `
-        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette livraison</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:14px">🗑️ Supprimer cette livraison</button>
       ` : ''}
     `;
 
@@ -273,7 +279,7 @@
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
-        // Bouton supprimer (mode edition)
+        // Bouton supprimer + liens vers entites liees (mode edition)
         if (enEdition) {
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm(`Supprimer définitivement cette livraison (${v.client || ''}) ?`, { titre: 'Supprimer livraison' })) return;
@@ -281,6 +287,14 @@
             M.toast('🗑️ Livraison supprimée');
             M.closeSheet();
             M.go('livraisons');
+          });
+          body.querySelector('[data-goto-veh]')?.addEventListener('click', e => {
+            M.closeSheet();
+            M.openDetail('vehicules', e.currentTarget.dataset.gotoVeh);
+          });
+          body.querySelector('[data-goto-sal]')?.addEventListener('click', e => {
+            M.closeSheet();
+            M.openDetail('salaries', e.currentTarget.dataset.gotoSal);
           });
         }
       },
@@ -349,7 +363,10 @@
         ${M.formField('Prix au litre', M.formInputWithSuffix('prixLitre', '€/L', { type: 'number', step: '0.001', min: '0', placeholder: '0.000', value: p.prixLitre || '' }))}
       </div>
       ${M.formField('Total payé', M.formInputWithSuffix('total', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: p.total || '', required: true }), { hint: 'Si laissé vide, calculé automatiquement (litres × prix/L)', required: true })}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce plein</button>` : ''}
+      ${enEdition && p.vehiculeId ? `
+        <button type="button" class="m-btn" data-goto-veh="${M.escHtml(p.vehiculeId)}" style="margin-top:18px">🚐 Voir fiche véhicule</button>
+      ` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:14px">🗑️ Supprimer ce plein</button>` : ''}
     `;
 
     M.openSheet({
@@ -374,6 +391,10 @@
             M.toast('🗑️ Plein supprimé');
             M.closeSheet();
             M.go('carburant');
+          });
+          body.querySelector('[data-goto-veh]')?.addEventListener('click', e => {
+            M.closeSheet();
+            M.openDetail('vehicules', e.currentTarget.dataset.gotoVeh);
           });
         }
       },
@@ -455,7 +476,15 @@
         { value: 'paye',    label: '✅ Payée' },
         { value: 'partiel', label: '🟡 Partielle' }
       ], { value: c.statut || 'a_payer' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette charge</button>` : ''}
+      ${enEdition && (c.fournisseurId || c.fournisseur) ? (() => {
+        const four = c.fournisseurId
+          ? M.charger('fournisseurs').find(f => f.id === c.fournisseurId)
+          : M.findFournisseurByName(c.fournisseur);
+        return four
+          ? `<button type="button" class="m-btn" data-goto-four="${M.escHtml(four.id)}" style="margin-top:18px">🏭 Voir fiche fournisseur</button>`
+          : '';
+      })() : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:14px">🗑️ Supprimer cette charge</button>` : ''}
     `;
 
     M.openSheet({
@@ -492,6 +521,10 @@
             M.toast('🗑️ Charge supprimée');
             M.closeSheet();
             M.go('charges');
+          });
+          body.querySelector('[data-goto-four]')?.addEventListener('click', e => {
+            M.closeSheet();
+            M.openDetail('fournisseurs', e.currentTarget.dataset.gotoFour);
           });
         }
       },
@@ -1340,6 +1373,32 @@
     return idx;
   };
 
+  // ---------- Helpers : lookup entites par nom (utilises pour liaisons inter-onglets) ----------
+  // Le desktop stocke parfois juste le nom (sans id) -> on cherche fuzzy par lowercase.
+  M.findSalarieByName = function(nom) {
+    if (!nom) return null;
+    const target = String(nom).trim().toLowerCase();
+    return M.charger('salaries').find(s => {
+      const full = `${s.prenom || ''} ${s.nom || ''}`.trim().toLowerCase();
+      return full === target || (s.nom || '').toLowerCase() === target;
+    }) || null;
+  };
+  M.findClientByName = function(nom) {
+    if (!nom) return null;
+    const target = String(nom).trim().toLowerCase();
+    return M.charger('clients').find(c => (c.nom || '').toLowerCase() === target) || null;
+  };
+  M.findVehiculeByImmat = function(immat) {
+    if (!immat) return null;
+    const target = String(immat).trim().toUpperCase();
+    return M.charger('vehicules').find(v => (v.immat || v.immatriculation || '').toUpperCase() === target) || null;
+  };
+  M.findFournisseurByName = function(nom) {
+    if (!nom) return null;
+    const target = String(nom).trim().toLowerCase();
+    return M.charger('fournisseurs').find(f => (f.nom || '').toLowerCase() === target) || null;
+  };
+
   // ---------- Carburant (v2.3 : liste lecture seule, grouped par mois) ----------
   M.state.carbMoisOuverts = {};
   M.register('carburant', {
@@ -1814,13 +1873,13 @@
           <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(totalCa)}</span>
         </div>
         ${livClient.length ? livClient.slice(0, 10).sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(l => `
-          <div class="m-card" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+          <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:500;font-size:.88rem">${M.formatDate(l.date)}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
               <div style="color:var(--m-text-muted);font-size:.78rem">${l.distance ? M.formatNum(l.distance) + ' km' : '—'}</div>
             </div>
             <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prix || 0)}</div>
-          </div>
+          </button>
         `).join('') : `<p class="m-empty-text" style="text-align:center;padding:20px">Aucune livraison pour ce client.</p>`}
       </div>
     `;
@@ -2030,7 +2089,12 @@
       <div style="text-align:center;padding:8px 0 18px">
         <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
         ${v.modele ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(v.modele)}</p>` : ''}
-        ${v.salNom ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>` : ''}
+        ${v.salNom ? (() => {
+          const sal = v.salId ? M.charger('salaries').find(s => s.id === v.salId) : M.findSalarieByName(v.salNom);
+          return sal
+            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(v.salNom)} ›</button>`
+            : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>`;
+        })() : ''}
       </div>
 
       <!-- CT highlight (le plus important) -->
@@ -2247,11 +2311,19 @@
 
     const photos = Array.isArray(i.photos) ? i.photos : [];
 
+    const vehInsp = M.findVehiculeByImmat(i.vehImmat);
+    const salInsp = i.salId
+      ? M.charger('salaries').find(s => s.id === i.salId)
+      : M.findSalarieByName(i.salNom);
     return `
       <div style="text-align:center;padding:8px 0 18px">
-        <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(i.vehImmat || '—')}</div>
+        ${vehInsp
+          ? `<button type="button" onclick="MCAm.openDetail('vehicules','${M.escHtml(vehInsp.id)}')" style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em;border:none;cursor:pointer;font-family:inherit">${M.escHtml(i.vehImmat || '—')} ›</button>`
+          : `<div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(i.vehImmat || '—')}</div>`}
         <p style="font-size:.95rem;margin:8px 0 0;font-weight:500">Inspection du ${M.formatDate(i.date)}</p>
-        ${i.salNom ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(i.salNom)}</p>` : ''}
+        ${i.salNom ? (salInsp
+          ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(salInsp.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(i.salNom)} ›</button>`
+          : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(i.salNom)}</p>`) : ''}
       </div>
 
       <div class="m-card" style="padding:0">
@@ -2577,8 +2649,18 @@
       </div>
 
       <div class="m-card" style="padding:0">
-        ${i.client ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:500">${M.escHtml(i.client)}</span></div>` : ''}
-        ${i.salNom ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:500">${M.escHtml(i.salNom)}</span></div>` : ''}
+        ${i.client ? (() => {
+          const cli = M.findClientByName(i.client);
+          return cli
+            ? `<button type="button" onclick="MCAm.openDetail('clients','${M.escHtml(cli.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(i.client)} ›</span></button>`
+            : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:500">${M.escHtml(i.client)}</span></div>`;
+        })() : ''}
+        ${i.salNom ? (() => {
+          const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : M.findSalarieByName(i.salNom);
+          return sal
+            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(i.salNom)} ›</span></button>`
+            : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:500">${M.escHtml(i.salNom)}</span></div>`;
+        })() : ''}
         ${i.chaufNom ?    `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:500">${M.escHtml(i.chaufNom)}</span></div>` : ''}
         ${i.numLiv ?      `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° livraison</span><span style="font-weight:500">${M.escHtml(i.numLiv)}</span></div>` : ''}
       </div>
