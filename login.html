@@ -1047,10 +1047,12 @@
         });
       }
 
-      // BUG-020 — premier démarrage : basculer automatiquement si aucun mdp admin n'existe
-      if (admin_AucunMotDePasseConfigure()) {
-        basculerVersSetupInitial();
-      }
+      // SECURITE : page setup desactivee (decision user). Empeche un salarie
+      // sur un device vierge d'arriver par erreur sur le formulaire de creation
+      // de compte admin et de creer un compte non autorise.
+      // L'auto-bascule vers basculerVersSetupInitial() est retiree.
+      // Si localStorage est vide, le form login s'affichera et le user devra
+      // se connecter avec un compte existant (sync depuis Supabase au login).
     });
   </script>
   <script>
