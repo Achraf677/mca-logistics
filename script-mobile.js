@@ -358,8 +358,20 @@
     const enEdition = !!existing;
     const p = existing || {};
 
+    // Pre-remplit le type carburant depuis le vehicule selectionne (si dispo)
+    const vehDuPlein = p.vehiculeId ? vehicules.find(v => v.id === p.vehiculeId) : null;
+    const typeCarbDefaut = p.typeCarburant || vehDuPlein?.typeCarburant || '';
+
     const body = `
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: p.vehiculeId || '', required: true }), { required: true })}
+      ${M.formField('Type carburant', M.formSelect('typeCarburant', [
+        { value: 'diesel',     label: '⛽ Diesel/Gazole' },
+        { value: 'essence',    label: '⛽ Essence' },
+        { value: 'gnv',        label: '🌿 GNV/BioGNV' },
+        { value: 'electrique', label: '⚡ Électrique' },
+        { value: 'hybride',    label: '🔋 Hybride' },
+        { value: 'hydrogene',  label: '💧 Hydrogène' }
+      ], { placeholder: 'Choisir', value: typeCarbDefaut }))}
       <div class="m-form-row">
         ${M.formField('Date', M.formInput('date', { type: 'date', value: p.date || today, required: true }), { required: true })}
         ${M.formField('Km compteur', M.formInputWithSuffix('kmCompteur', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: p.kmCompteur || '' }))}
@@ -383,6 +395,8 @@
         const litres = body.querySelector('input[name=litres]');
         const prixL  = body.querySelector('input[name=prixLitre]');
         const total  = body.querySelector('input[name=total]');
+        const vehSelect = body.querySelector('select[name=vehiculeId]');
+        const carbSelect = body.querySelector('select[name=typeCarburant]');
         const recalc = () => {
           if (!total.value && litres.value && prixL.value) {
             total.value = (parseFloat(litres.value) * parseFloat(prixL.value)).toFixed(2);
@@ -390,6 +404,14 @@
         };
         litres.addEventListener('input', recalc);
         prixL.addEventListener('input', recalc);
+        // Auto-remplit le type carburant depuis le vehicule selectionne (si non deja choisi par user)
+        if (vehSelect && carbSelect) {
+          vehSelect.addEventListener('change', () => {
+            if (carbSelect.value) return; // ne pas ecraser un choix manuel
+            const v = vehicules.find(x => x.id === vehSelect.value);
+            if (v?.typeCarburant) carbSelect.value = v.typeCarburant;
+          });
+        }
         if (enEdition) {
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm('Supprimer définitivement ce plein ?', { titre: 'Supprimer plein' })) return;
@@ -417,6 +439,7 @@
         const arr = M.charger('carburant');
         const data = {
           vehiculeId: form.vehiculeId,
+          typeCarburant: form.typeCarburant || '',
           date: form.date,
           litres,
           prixLitre: prixL,
@@ -2736,7 +2759,7 @@
 
       // ---- DEVIS : calculateur de rentabilite avant proposition ----
       if (tab === 'devis') {
-        const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm : (kmTotal > 0 ? (carbTotal + entrTotal + autresChargesTotal) / kmTotal : 0.50);
+        const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm : (kmTotal > 0 ? (carbTotal + entrTotal + autresTotal) / kmTotal : 0.50);
         const prix = parseFloat(M.state.devisPrix) || 0;
         const km = parseFloat(M.state.devisKm) || 0;
         const depEstim = km * coutKmStocke;
@@ -2770,7 +2793,7 @@
                 <input type="number" id="m-devis-coutkm" step="0.01" min="0" placeholder="0.50" value="${coutKmStocke.toFixed(2)}" />
                 <span class="m-form-input-suffix-text">€/km</span>
               </div>
-              <p class="m-form-hint">Calculé auto depuis tes dépenses ${moisSel} (${M.format$((carbTotal + entrTotal + autresChargesTotal))} / ${M.formatNum(kmTotal.toFixed(0))} km). Ajustable.</p>
+              <p class="m-form-hint">Calculé auto depuis tes dépenses (${M.format$((carbTotal + entrTotal + autresTotal))} / ${M.formatNum(kmTotal.toFixed(0))} km). Ajustable.</p>
             </div>
           </div>
 
