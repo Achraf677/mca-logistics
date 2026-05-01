@@ -199,54 +199,56 @@
   // ============================================================
   // Saisies (v2.4 : visuel uniquement, submit = toast "a venir v2.5")
   // ============================================================
-  M.formNouvelleLivraison = function() {
+  M.formNouvelleLivraison = function(existing) {
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
     const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
     const today = new Date().toISOString().slice(0, 10);
+    const enEdition = !!existing;
+    const v = existing || {};
 
     const body = `
-      ${M.formField('Client', M.formInput('client', { placeholder: 'Nom du client', required: true, autocomplete: 'off' }), { required: true })}
+      ${M.formField('Client', M.formInput('client', { value: v.client || '', placeholder: 'Nom du client', required: true, autocomplete: 'off' }), { required: true })}
       <div class="m-form-row">
-        ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
-        ${M.formField('N° livraison', M.formInput('numLiv', { placeholder: 'Auto si vide' }))}
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: v.date || today, required: true }), { required: true })}
+        ${M.formField('N° livraison', M.formInput('numLiv', { value: v.numLiv || '', placeholder: 'Auto si vide' }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('Prix HT', M.formInputWithSuffix('prixHT', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true })}
+        ${M.formField('Prix HT', M.formInputWithSuffix('prixHT', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.prixHT || v.prix || '', required: true }), { required: true })}
         ${M.formField('Taux TVA', M.formSelect('tauxTva', [
           { value: '0',    label: '0% (exonéré)' },
           { value: '5.5',  label: '5,5%' },
           { value: '10',   label: '10%' },
           { value: '20',   label: '20%' }
-        ], { value: '20' }))}
+        ], { value: String(v.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }), { hint: 'Calcul auto' })}
-        ${M.formField('Prix TTC', M.formInputWithSuffix('prixTTC', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }), { hint: 'Calcul auto' })}
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.tva || '' }), { hint: 'Calcul auto' })}
+        ${M.formField('Prix TTC', M.formInputWithSuffix('prixTTC', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.prixTTC || '' }), { hint: 'Calcul auto' })}
       </div>
-      ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0' }))}
-      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: '' }))}
-      ${M.formField('Chauffeur', M.formSelect('salarieId', salaries.map(s => ({ value: s.id, label: s.nom || s.id })), { placeholder: 'Choisir un chauffeur', value: '' }))}
+      ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0', value: v.distance || '' }))}
+      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(x => ({ value: x.id, label: x.immat || x.immatriculation || x.id })), { placeholder: 'Choisir un véhicule', value: v.vehiculeId || '' }))}
+      ${M.formField('Chauffeur', M.formSelect('salarieId', salaries.map(s => ({ value: s.id, label: s.nom || s.id })), { placeholder: 'Choisir un chauffeur', value: v.salarieId || '' }))}
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'planifiee', label: 'Planifiée' },
         { value: 'en_cours',  label: 'En cours' },
         { value: 'livree',    label: 'Livrée' },
         { value: 'facturee',  label: 'Facturée' }
-      ], { value: 'livree' }))}
+      ], { value: v.statut || 'livree' }))}
+      ${enEdition ? `
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette livraison</button>
+      ` : ''}
     `;
 
     M.openSheet({
-      title: '➕ Nouvelle livraison',
+      title: enEdition ? '✏️ Modifier livraison' : '➕ Nouvelle livraison',
       body,
       submitLabel: 'Enregistrer',
       afterMount(body) {
-        // Calcul auto bidirectionnel HT <-> TTC selon le champ qui change.
-        // Logique : si user tape HT -> TVA et TTC se calculent. Si user tape TTC -> HT et TVA se calculent.
-        // Si user change le taux -> recalcul depuis HT (par defaut).
         const ht  = body.querySelector('input[name=prixHT]');
         const sel = body.querySelector('select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
-        let dernierEdit = 'ht'; // 'ht' | 'ttc'
+        let dernierEdit = 'ht';
         const recalc = () => {
           const taux = parseFloat(sel.value) / 100 || 0;
           if (dernierEdit === 'ttc' && ttc.value) {
@@ -264,6 +266,16 @@
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
+        // Bouton supprimer (mode edition)
+        if (enEdition) {
+          body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+            if (!await M.confirm(`Supprimer définitivement cette livraison (${v.client || ''}) ?`, { titre: 'Supprimer livraison' })) return;
+            M.sauvegarder('livraisons', M.charger('livraisons').filter(x => x.id !== v.id));
+            M.toast('🗑️ Livraison supprimée');
+            M.closeSheet();
+            M.go('livraisons');
+          });
+        }
       },
       onSubmit() {
         const form = M.lireFormSheet();
@@ -276,12 +288,10 @@
           return false;
         }
         const arr = M.charger('livraisons');
-        arr.push({
-          id: M.genId(),
-          creeLe: new Date().toISOString(),
+        const data = {
           date: form.date,
           client: form.client.trim(),
-          prix: prixHT,         // compat desktop : prix = HT
+          prix: prixHT,
           prixHT,
           prixTTC,
           tauxTva: taux,
@@ -291,38 +301,55 @@
           salarieId: form.salarieId || null,
           statut: form.statut || 'livree',
           numLiv: form.numLiv?.trim() || ''
-        });
-        M.sauvegarder('livraisons', arr);
-        M.toast('✅ Livraison enregistrée');
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === v.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('livraisons', arr);
+          M.toast('✅ Livraison modifiée');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('livraisons', arr);
+          M.toast('✅ Livraison enregistrée');
+        }
         M.go('livraisons');
         return true;
       }
     });
   };
 
-  M.formNouveauPlein = function() {
+  // Wrapper : ouvre le form en mode edition pour une livraison existante
+  M.editerLivraison = function(id) {
+    const liv = M.charger('livraisons').find(x => x.id === id);
+    if (!liv) return M.toast('Livraison introuvable');
+    M.formNouvelleLivraison(liv);
+  };
+
+  M.formNouveauPlein = function(existing) {
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
     const today = new Date().toISOString().slice(0, 10);
+    const enEdition = !!existing;
+    const p = existing || {};
 
     const body = `
-      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', required: true }), { required: true })}
+      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: p.vehiculeId || '', required: true }), { required: true })}
       <div class="m-form-row">
-        ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
-        ${M.formField('Km compteur', M.formInputWithSuffix('kmCompteur', 'km', { type: 'number', step: '1', min: '0', placeholder: '0' }))}
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: p.date || today, required: true }), { required: true })}
+        ${M.formField('Km compteur', M.formInputWithSuffix('kmCompteur', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: p.kmCompteur || '' }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('Litres', M.formInputWithSuffix('litres', 'L', { type: 'number', step: '0.01', min: '0', placeholder: '0', required: true }), { required: true })}
-        ${M.formField('Prix au litre', M.formInputWithSuffix('prixLitre', '€/L', { type: 'number', step: '0.001', min: '0', placeholder: '0.000' }))}
+        ${M.formField('Litres', M.formInputWithSuffix('litres', 'L', { type: 'number', step: '0.01', min: '0', placeholder: '0', value: p.litres || '', required: true }), { required: true })}
+        ${M.formField('Prix au litre', M.formInputWithSuffix('prixLitre', '€/L', { type: 'number', step: '0.001', min: '0', placeholder: '0.000', value: p.prixLitre || '' }))}
       </div>
-      ${M.formField('Total payé', M.formInputWithSuffix('total', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { hint: 'Si laissé vide, calculé automatiquement (litres × prix/L)', required: true })}
+      ${M.formField('Total payé', M.formInputWithSuffix('total', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: p.total || '', required: true }), { hint: 'Si laissé vide, calculé automatiquement (litres × prix/L)', required: true })}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce plein</button>` : ''}
     `;
 
     M.openSheet({
-      title: '⛽ Nouveau plein',
+      title: enEdition ? '✏️ Modifier plein' : '⛽ Nouveau plein',
       body,
       submitLabel: 'Enregistrer',
       afterMount(body) {
-        // Auto-calcul total si litres + prix/L sont remplis et total est vide
         const litres = body.querySelector('input[name=litres]');
         const prixL  = body.querySelector('input[name=prixLitre]');
         const total  = body.querySelector('input[name=total]');
@@ -333,55 +360,78 @@
         };
         litres.addEventListener('input', recalc);
         prixL.addEventListener('input', recalc);
+        if (enEdition) {
+          body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+            if (!await M.confirm('Supprimer définitivement ce plein ?', { titre: 'Supprimer plein' })) return;
+            M.sauvegarder('carburant', M.charger('carburant').filter(x => x.id !== p.id));
+            M.toast('🗑️ Plein supprimé');
+            M.closeSheet();
+            M.go('carburant');
+          });
+        }
       },
       onSubmit() {
         const form = M.lireFormSheet();
         const litres = parseFloat(form.litres) || 0;
         const prixL = parseFloat(form.prixLitre) || 0;
         let total = parseFloat(form.total) || 0;
-        if (!total && litres && prixL) total = +(litres * prixL).toFixed(2); // fallback auto-calc
+        if (!total && litres && prixL) total = +(litres * prixL).toFixed(2);
         if (!form.vehiculeId || !form.date || !(litres > 0) || !(total > 0)) {
           M.toast('⚠️ Véhicule, date, litres et total obligatoires');
           return false;
         }
         const arr = M.charger('carburant');
-        arr.push({
-          id: M.genId(),
-          creeLe: new Date().toISOString(),
+        const data = {
           vehiculeId: form.vehiculeId,
           date: form.date,
           litres,
           prixLitre: prixL,
           total,
           kmCompteur: parseFloat(form.kmCompteur) || 0
-        });
-        M.sauvegarder('carburant', arr);
-        M.toast('✅ Plein enregistré');
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === p.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('carburant', arr);
+          M.toast('✅ Plein modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('carburant', arr);
+          M.toast('✅ Plein enregistré');
+        }
         M.go('carburant');
         return true;
       }
     });
   };
 
-  M.formNouvelleCharge = function() {
+  M.editerPlein = function(id) {
+    const p = M.charger('carburant').find(x => x.id === id);
+    if (!p) return M.toast('Plein introuvable');
+    M.formNouveauPlein(p);
+  };
+
+  M.formNouvelleCharge = function(existing) {
     const today = new Date().toISOString().slice(0, 10);
+    const enEdition = !!existing;
+    const c = existing || {};
 
     const body = `
-      ${M.formField('Libellé', M.formInput('libelle', { placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
-      ${M.formField('Fournisseur', M.formInput('fournisseur', { placeholder: 'Nom fournisseur' }))}
-      ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
+      ${M.formField('Libellé', M.formInput('libelle', { value: c.libelle || '', placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
+      ${M.formField('Fournisseur', M.formInput('fournisseur', { value: c.fournisseur || '', placeholder: 'Nom fournisseur' }))}
+      ${M.formField('Date', M.formInput('date', { type: 'date', value: c.date || today, required: true }), { required: true })}
       <div class="m-form-row">
-        ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }))}
+        ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantHT || '' }))}
         ${M.formField('Taux TVA', M.formSelect('tauxTva', [
           { value: '0',    label: '0%' },
           { value: '5.5',  label: '5,5%' },
           { value: '10',   label: '10%' },
           { value: '20',   label: '20%' }
-        ], { value: '20' }))}
+        ], { value: String(c.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }), { hint: 'Calcul auto' })}
-        ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true, hint: 'Calcul auto' })}
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.tva || '' }), { hint: 'Calcul auto' })}
+        ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantTtc || c.montant || '', required: true }), { required: true, hint: 'Calcul auto' })}
       </div>
       ${M.formField('Catégorie', M.formSelect('categorie', [
         { value: 'loyer',     label: '🏢 Loyer' },
@@ -392,25 +442,25 @@
         { value: 'compta',    label: '📊 Comptabilité' },
         { value: 'entretien', label: '🔧 Entretien' },
         { value: 'autre',     label: '📌 Autre' }
-      ], { placeholder: 'Choisir une catégorie' }))}
+      ], { placeholder: 'Choisir une catégorie', value: c.categorie || '' }))}
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'a_payer', label: '⏳ À payer' },
         { value: 'paye',    label: '✅ Payée' },
         { value: 'partiel', label: '🟡 Partielle' }
-      ], { value: 'a_payer' }))}
+      ], { value: c.statut || 'a_payer' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette charge</button>` : ''}
     `;
 
     M.openSheet({
-      title: '💸 Nouvelle charge',
+      title: enEdition ? '✏️ Modifier charge' : '💸 Nouvelle charge',
       body,
       submitLabel: 'Enregistrer',
       afterMount(body) {
-        // Calcul auto bidirectionnel HT <-> TTC (idem livraison)
         const ht  = body.querySelector('input[name=montantHt]');
         const sel = body.querySelector('select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
-        let dernierEdit = 'ttc'; // par defaut on tape TTC sur les charges (recu fournisseur)
+        let dernierEdit = 'ttc';
         const recalc = () => {
           const taux = parseFloat(sel.value) / 100 || 0;
           if (dernierEdit === 'ht' && ht.value) {
@@ -428,6 +478,15 @@
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
+        if (enEdition) {
+          body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+            if (!await M.confirm(`Supprimer définitivement cette charge (${c.libelle || ''}) ?`, { titre: 'Supprimer charge' })) return;
+            M.sauvegarder('charges', M.charger('charges').filter(x => x.id !== c.id));
+            M.toast('🗑️ Charge supprimée');
+            M.closeSheet();
+            M.go('charges');
+          });
+        }
       },
       onSubmit() {
         const form = M.lireFormSheet();
@@ -440,26 +499,38 @@
           return false;
         }
         const arr = M.charger('charges');
-        arr.push({
-          id: M.genId(),
-          creeLe: new Date().toISOString(),
+        const data = {
           date: form.date,
           libelle: form.libelle.trim(),
           fournisseur: form.fournisseur?.trim() || '',
           montantHT: +ht.toFixed(2),
           montantTtc: ttc,
-          montant: ttc, // compat desktop
+          montant: ttc,
           tauxTva: taux,
           tva: +tvaMontant.toFixed(2),
           categorie: form.categorie || '',
           statut: form.statut || 'a_payer'
-        });
-        M.sauvegarder('charges', arr);
-        M.toast('✅ Charge enregistrée');
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === c.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('charges', arr);
+          M.toast('✅ Charge modifiée');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('charges', arr);
+          M.toast('✅ Charge enregistrée');
+        }
         M.go('charges');
         return true;
       }
     });
+  };
+
+  M.editerCharge = function(id) {
+    const c = M.charger('charges').find(x => x.id === id);
+    if (!c) return M.toast('Charge introuvable');
+    M.formNouvelleCharge(c);
   };
 
   // ============================================================
@@ -735,7 +806,7 @@
             </button>
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
               ${items.map(l => `
-                <div class="m-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px">
+                <button type="button" class="m-card m-card-pressable m-liv-edit" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
                   <div style="flex:1 1 auto;min-width:0">
                     <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
                     <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
@@ -748,7 +819,7 @@
                     <div style="font-weight:700;color:var(--m-green);white-space:nowrap;font-size:.95rem">${M.format$(l.prix || l.prixHT || 0)}</div>
                     ${l.statut ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(l.statut)}</div>` : ''}
                   </div>
-                </div>
+                </button>
               `).join('')}
             </div>
           </div>
@@ -787,6 +858,10 @@
           content.style.display = willOpen ? 'block' : 'none';
           if (chevron) chevron.style.transform = `rotate(${willOpen ? '90' : '0'}deg)`;
         });
+      });
+      // Tap card livraison -> ouvre le form en mode edition
+      container.querySelectorAll('.m-liv-edit').forEach(btn => {
+        btn.addEventListener('click', () => M.editerLivraison(btn.dataset.id));
       });
     }
   });
@@ -1324,18 +1399,16 @@
               ${items.map(p => {
                 const veh = p.vehiculeId ? vehIdx[p.vehiculeId] : null;
                 const immat = veh?.immat || veh?.immatriculation || (p.immat || '—');
-                return `<div class="m-card" style="padding:14px">
-                  <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
-                    <div style="flex:1 1 auto;min-width:0">
-                      <div style="font-weight:600;font-size:.95rem">${M.escHtml(immat)}</div>
-                      <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px">${M.formatDate(p.date)}${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}</div>
-                    </div>
-                    <div style="text-align:right;flex-shrink:0">
-                      <div style="font-weight:700;color:var(--m-red);white-space:nowrap;font-size:.95rem">${M.format$(p.total)}</div>
-                      <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(Number(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + Number(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
-                    </div>
+                return `<button type="button" class="m-card m-card-pressable m-carb-edit" data-id="${M.escHtml(p.id)}" style="padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;display:flex;justify-content:space-between;align-items:start;gap:10px">
+                  <div style="flex:1 1 auto;min-width:0">
+                    <div style="font-weight:600;font-size:.95rem">${M.escHtml(immat)}</div>
+                    <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px">${M.formatDate(p.date)}${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}</div>
                   </div>
-                </div>`;
+                  <div style="text-align:right;flex-shrink:0">
+                    <div style="font-weight:700;color:var(--m-red);white-space:nowrap;font-size:.95rem">${M.format$(p.total)}</div>
+                    <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(Number(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + Number(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
+                  </div>
+                </button>`;
               }).join('')}
             </div>
           </div>
@@ -1345,6 +1418,9 @@
       return html;
     },
     afterRender(container) {
+      container.querySelectorAll('.m-carb-edit').forEach(btn => {
+        btn.addEventListener('click', () => M.editerPlein(btn.dataset.id));
+      });
       container.querySelectorAll('button.m-carb-mois').forEach(btn => {
         btn.addEventListener('click', () => {
           const m = btn.dataset.mois;
@@ -1447,7 +1523,7 @@
                 const statutLabel = estPayee ? '✅ Payée' : estPartielle ? '🟡 Partielle' : (enRetard ? '🔴 Retard' : '⏳ À payer');
                 const statutColor = estPayee ? 'var(--m-green)' : estPartielle ? 'var(--m-accent)' : (enRetard ? 'var(--m-red)' : 'var(--m-text-muted)');
                 const borderColor = estPayee ? 'var(--m-green)' : (enRetard ? 'var(--m-red)' : 'var(--m-accent)');
-                return `<div class="m-card" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px">
+                return `<button type="button" class="m-card m-card-pressable m-charge-edit" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
                   <div style="flex:1 1 auto;min-width:0">
                     <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
                     <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
@@ -1456,7 +1532,7 @@
                     <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
                     <div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>
                   </div>
-                </div>`;
+                </button>`;
               }).join('')}
             </div>
           </div>
@@ -1471,6 +1547,10 @@
           M.state.chargesStatut = btn.dataset.statut;
           M.go('charges');
         });
+      });
+      // Tap card charge -> ouvre le form en mode edition
+      container.querySelectorAll('.m-charge-edit').forEach(btn => {
+        btn.addEventListener('click', () => M.editerCharge(btn.dataset.id));
       });
       // Toggle collapse/expand par mois
       container.querySelectorAll('button.m-charges-mois').forEach(btn => {
