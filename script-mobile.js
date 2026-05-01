@@ -599,7 +599,10 @@
         ${M.formField('Code postal', M.formInput('cp', { value: c.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
         ${M.formField('Ville', M.formInput('ville', { value: c.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
       </div>
-      ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || '', placeholder: 'FR12345678901' }))}
+      <div class="m-form-row">
+        ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '123 456 789' }))}
+        ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || '', placeholder: 'FR12345678901' }))}
+      </div>
       ${M.formField('Notes', M.formTextarea('notes', { value: c.notes || '', rows: 3, placeholder: 'Infos contact, accords commerciaux...' }))}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce client</button>` : ''}
     `;
@@ -629,6 +632,7 @@
           adresse: f.adresse?.trim() || '',
           cp: f.cp?.trim() || '',
           ville: f.ville?.trim() || '',
+          siren: f.siren?.trim() || '',
           tva: f.tva?.trim() || '',
           notes: f.notes?.trim() || ''
         };
@@ -677,6 +681,14 @@
         { value: 'credit',   label: '🏦 Crédit' },
         { value: 'location', label: '📅 Location simple' }
       ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
+      ${M.formField('Type carburant', M.formSelect('typeCarburant', [
+        { value: 'diesel',     label: '⛽ Diesel' },
+        { value: 'essence',    label: '⛽ Essence (SP95/98)' },
+        { value: 'electrique', label: '🔋 Électrique' },
+        { value: 'hybride',    label: '🔋⛽ Hybride' },
+        { value: 'gnv',        label: '💨 GNV / Bio-GNV' },
+        { value: 'autre',      label: '📌 Autre' }
+      ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
       ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce véhicule</button>` : ''}
@@ -710,6 +722,7 @@
           km: parseFloat(f.km) || 0,
           kmInitial: parseFloat(f.kmInitial) || 0,
           modeAcquisition: f.modeAcquisition || '',
+          typeCarburant: f.typeCarburant || '',
           entretienIntervalKm: parseFloat(f.entretienIntervalKm) || 0,
           salId: f.salId || null,
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : ''
@@ -833,6 +846,10 @@
         ${M.formField('Code postal', M.formInput('cp', { value: f.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
         ${M.formField('Ville', M.formInput('ville', { value: f.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
       </div>
+      <div class="m-form-row">
+        ${M.formField('SIRET', M.formInput('siret', { value: f.siret || '', placeholder: '123 456 789 00012' }))}
+        ${M.formField('N° TVA', M.formInput('tva', { value: f.tva || '', placeholder: 'FR12345678901' }))}
+      </div>
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce fournisseur</button>` : ''}
     `;
     M.openSheet({
@@ -860,7 +877,9 @@
           email: v.email?.trim() || '',
           adresse: v.adresse?.trim() || '',
           cp: v.cp?.trim() || '',
-          ville: v.ville?.trim() || ''
+          ville: v.ville?.trim() || '',
+          siret: v.siret?.trim() || '',
+          tva: v.tva?.trim() || ''
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === f.id);
@@ -1467,14 +1486,26 @@
       const charges    = M.charger('charges');
       const alertes    = M.charger('alertes_admin');
       const salaries   = M.charger('salaries');
+      const carburant  = M.charger('carburant');
+      const entretiens = M.charger('entretiens');
+      const plannings  = M.charger('plannings');
 
       // Mois courant
       const now = new Date();
       const moisCle = now.toISOString().slice(0, 7); // YYYY-MM
 
       const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(moisCle));
-      const caMoisHt = livraisonsMois.reduce((acc, l) => acc + (Number(l.prixHT) || Number(l.prix_ht) || 0), 0);
-      const caMoisTtc = livraisonsMois.reduce((acc, l) => acc + (Number(l.prixTTC) || Number(l.prix_ttc) || 0), 0);
+      const caMoisHt = livraisonsMois.reduce((acc, l) => acc + (Number(l.prix) || Number(l.prixHT) || Number(l.prix_ht) || 0), 0);
+      const caMoisTtc = livraisonsMois.reduce((acc, l) => acc + (Number(l.prixTTC) || Number(l.prix_ttc) || (Number(l.prix) || 0) * 1.2), 0);
+
+      // Depenses du mois pour le benefice estime (HT, hors carburant qui est TTC)
+      const carbMois = carburant.filter(p => (p.date || '').startsWith(moisCle)).reduce((s, p) => s + (Number(p.total) || 0), 0);
+      const entrMois = entretiens.filter(e => (e.date || '').startsWith(moisCle)).reduce((s, e) => s + (Number(e.coutHt) || Number(e.cout) || 0), 0);
+      const chargesMois = charges.filter(c => (c.date || '').startsWith(moisCle) && c.categorie !== 'entretien')
+        .reduce((s, c) => s + (Number(c.montantHT) || Number(c.montant) || 0), 0);
+      const depMois = carbMois + entrMois + chargesMois;
+      const beneficeEstime = caMoisHt - depMois;
+      const benefColor = beneficeEstime >= 0 ? 'var(--m-green)' : 'var(--m-red)';
 
       const chargesAPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
       const totalImpayes  = chargesAPayer.reduce((acc, c) => acc + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
@@ -1482,7 +1513,17 @@
       const alertesActives = alertes.filter(a => !a.traitee && !a.ignoree && !(a.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > now));
       const alertesCritiques = alertesActives.filter(a => ['ct_expire','permis_expire','assurance_expire','charge_retard_paiement','carburant_anomalie'].includes(a.type)).length;
 
-      const salariesActifs = salaries.filter(s => s.actif !== false).length;
+      const salariesActifs = salaries.filter(s => s.actif !== false && s.statut !== 'inactif' && !s.archive).length;
+
+      // Qui travaille aujourd'hui ?
+      const jourIdx = (now.getDay() + 6) % 7; // 0 = lundi
+      const jourCle = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][jourIdx];
+      const auTravail = salaries.filter(s => s && !s.archive && s.statut !== 'inactif').map(sal => {
+        const planning = plannings.find(p => p.salId === sal.id);
+        const jourData = planning?.semaine?.find(j => j.jour === jourCle);
+        const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
+        return { sal, jourData, typeJour };
+      }).filter(x => x.typeJour === 'travail');
 
       return `
         <h2 style="font-size:1.4rem;font-weight:700;margin:0 0 4px;letter-spacing:-0.02em">Bonjour ${M.escHtml(sessionStorage.getItem('admin_nom') || 'Admin')}</h2>
@@ -1490,14 +1531,27 @@
 
         <div class="m-card-row">
           <div class="m-card m-card-green">
-            <div class="m-card-title">CA ce mois</div>
+            <div class="m-card-title">CA ce mois HT</div>
             <div class="m-card-value">${M.format$(caMoisHt)}</div>
             <div class="m-card-sub">TTC ${M.format$(caMoisTtc)}</div>
           </div>
-          <div class="m-card m-card-blue">
-            <div class="m-card-title">Livraisons</div>
+          <div class="m-card m-card-pressable" style="border-left:4px solid ${benefColor}" onclick="MCAm.go('rentabilite')">
+            <div class="m-card-title">📈 Bénéfice estimé</div>
+            <div class="m-card-value" style="color:${benefColor}">${M.format$(beneficeEstime)}</div>
+            <div class="m-card-sub">CA HT − dépenses</div>
+          </div>
+        </div>
+
+        <div class="m-card-row">
+          <div class="m-card m-card-blue m-card-pressable" onclick="MCAm.go('livraisons')">
+            <div class="m-card-title">📦 Livraisons</div>
             <div class="m-card-value">${M.formatNum(livraisonsMois.length)}</div>
             <div class="m-card-sub">ce mois</div>
+          </div>
+          <div class="m-card m-card-purple m-card-pressable" onclick="MCAm.go('planning')">
+            <div class="m-card-title">👤 Au travail</div>
+            <div class="m-card-value">${auTravail.length}</div>
+            <div class="m-card-sub">aujourd'hui</div>
           </div>
         </div>
 
@@ -1513,6 +1567,27 @@
             <div class="m-card-sub">${M.formatNum(chargesAPayer.length)} charge${chargesAPayer.length>1?'s':''}</div>
           </div>
         </div>
+
+        ${auTravail.length ? `
+          <div class="m-section">
+            <div class="m-section-header">
+              <h3 class="m-section-title">📅 Qui travaille aujourd'hui</h3>
+              <button class="m-section-link" onclick="MCAm.go('planning')">Planning →</button>
+            </div>
+            ${auTravail.slice(0, 5).map(({ sal, jourData }) => {
+              const initiales = ((sal.nom || '').charAt(0) + (sal.prenom || '').charAt(0)).toUpperCase() || '?';
+              const horaires = jourData?.heureDebut && jourData?.heureFin ? `${jourData.heureDebut}–${jourData.heureFin}` : 'Présent';
+              return `<button type="button" class="m-card m-card-pressable" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-left:4px solid var(--m-green);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+                <div style="width:36px;height:36px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.82rem;flex-shrink:0">${M.escHtml(initiales)}</div>
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div>
+                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:1px">${horaires}${jourData?.zone ? ' · ' + M.escHtml(jourData.zone) : ''}</div>
+                </div>
+              </button>`;
+            }).join('')}
+            ${auTravail.length > 5 ? `<p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin:6px 0 0">… et ${auTravail.length - 5} autre${auTravail.length-5>1?'s':''}</p>` : ''}
+          </div>
+        ` : ''}
 
         <div class="m-card m-card-purple m-card-pressable" onclick="MCAm.go('salaries')">
           <div class="m-card-title">👥 Équipe active</div>
@@ -2788,6 +2863,7 @@
         ${c.tel ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(c.tel)}</span></div>` : ''}
         ${c.email ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(c.email)}</span></div>` : ''}
         ${adresseFull ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(adresseFull)}</span></div>` : ''}
+        ${c.siren ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIREN</span><span style="font-weight:500">${M.escHtml(c.siren)}</span></div>` : ''}
         ${c.tva ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(c.tva)}</span></div>` : ''}
         ${c.notes ?     `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Notes</span><span style="font-size:.88rem;line-height:1.45">${M.escHtml(c.notes)}</span></div>` : ''}
       </div>
@@ -2915,7 +2991,9 @@
       <div class="m-card" style="padding:0">
         ${f.tel ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(f.tel)}</span></div>` : ''}
         ${f.email ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(f.email)}</span></div>` : ''}
-        ${f.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(f.adresse)}</span></div>` : ''}
+        ${f.adresse ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(f.adresse)}</span></div>` : ''}
+        ${f.siret ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIRET</span><span style="font-weight:500">${M.escHtml(f.siret)}</span></div>` : ''}
+        ${f.tva ?     `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(f.tva)}</span></div>` : ''}
       </div>
     `;
   };
@@ -3039,7 +3117,18 @@
 
       <!-- Detail technique -->
       <div class="m-card" style="padding:0">
+        ${v.typeCarburant ?         `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Carburant</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.typeCarburant)}</span></div>` : ''}
         ${v.km != null ?            `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Kilométrage</span><span style="font-weight:600">${M.formatNum(v.km)} km</span></div>` : ''}
+        ${(() => {
+          // Conso L/100km = totalLitres / (km - kmInitial) * 100
+          const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
+          if (kmParcourus > 0 && totalLitres > 0) {
+            const conso = totalLitres / kmParcourus * 100;
+            const consoColor = conso > 12 ? 'var(--m-red)' : conso > 8 ? 'var(--m-accent)' : 'var(--m-green)';
+            return `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Conso moyenne</span><span style="font-weight:600;color:${consoColor}">${conso.toFixed(1)} L/100km</span></div>`;
+          }
+          return '';
+        })()}
         ${v.kmInitial != null ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Km initial</span><span style="font-weight:500">${M.formatNum(v.kmInitial)} km</span></div>` : ''}
         ${v.modeAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Acquisition</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.modeAcquisition)}</span></div>` : ''}
         ${v.dateAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Date acquisition</span><span style="font-weight:500">${M.formatDate(v.dateAcquisition)}</span></div>` : ''}
