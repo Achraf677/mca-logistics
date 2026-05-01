@@ -233,7 +233,22 @@
     const ph = opts.placeholder || '';
     const step = opts.step ? `step="${opts.step}"` : '';
     const min = opts.min != null ? `min="${opts.min}"` : '';
-    return `<input type="${type}" name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
+    // iOS clavier FR : input[type=number] n'accepte pas la virgule decimale.
+    // Pour les nombres on bascule en type=text + inputmode=decimal -> clavier
+    // numerique iOS qui propose ", . -" au lieu de bloquer. Le parsing M.parseNum
+    // gere les deux separateurs cote save.
+    const isNum = type === 'number';
+    const realType = isNum ? 'text' : type;
+    const inputmode = isNum ? 'inputmode="decimal" pattern="[0-9.,]*"' : '';
+    return `<input type="${realType}" ${inputmode} name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
+  };
+
+  // Parse un nombre en acceptant virgule OU point (clavier FR / EN)
+  M.parseNum = function(v) {
+    if (v == null || v === '') return 0;
+    const s = String(v).replace(/\s/g, '').replace(',', '.');
+    const n = M.parseNum(s);
+    return isNaN(n) ? 0 : n;
   };
 
   M.formInputWithSuffix = function(name, suffix, opts = {}) {
@@ -329,14 +344,14 @@
         const ttc = body.querySelector('input[name=prixTTC]');
         let dernierEdit = 'ht';
         const recalc = () => {
-          const taux = parseFloat(sel.value) / 100 || 0;
+          const taux = M.parseNum(sel.value) / 100 || 0;
           if (dernierEdit === 'ttc' && ttc.value) {
-            const tt = parseFloat(ttc.value);
+            const tt = M.parseNum(ttc.value);
             const hh = taux > 0 ? tt / (1 + taux) : tt;
             ht.value = hh.toFixed(2);
             tva.value = (tt - hh).toFixed(2);
           } else if (ht.value) {
-            const hh = parseFloat(ht.value);
+            const hh = M.parseNum(ht.value);
             const tv = hh * taux;
             tva.value = tv.toFixed(2);
             ttc.value = (hh + tv).toFixed(2);
@@ -366,10 +381,10 @@
       },
       onSubmit() {
         const form = M.lireFormSheet();
-        const prixHT = parseFloat(form.prixHT);
-        const taux = parseFloat(form.tauxTva) || 0;
-        const tvaMontant = parseFloat(form.tva) || (prixHT * taux / 100);
-        const prixTTC = parseFloat(form.prixTTC) || (prixHT + tvaMontant);
+        const prixHT = M.parseNum(form.prixHT);
+        const taux = M.parseNum(form.tauxTva) || 0;
+        const tvaMontant = M.parseNum(form.tva) || (prixHT * taux / 100);
+        const prixTTC = M.parseNum(form.prixTTC) || (prixHT + tvaMontant);
         if (!form.client?.trim() || !form.date || !(prixHT > 0)) {
           M.toast('⚠️ Client, date et prix HT obligatoires');
           return false;
@@ -386,7 +401,7 @@
           tauxTva: taux,       // mobile
           tauxTVA: taux,       // PC (casse !)
           tva: tvaMontant,
-          distance: parseFloat(form.distance) || 0,
+          distance: M.parseNum(form.distance) || 0,
           vehiculeId: form.vehiculeId || null,  // mobile
           vehId: form.vehiculeId || null,        // PC
           salarieId: form.salarieId || null,    // mobile
@@ -464,7 +479,7 @@
         const carbSelect = body.querySelector('select[name=typeCarburant]');
         const recalc = () => {
           if (!total.value && litres.value && prixL.value) {
-            total.value = (parseFloat(litres.value) * parseFloat(prixL.value)).toFixed(2);
+            total.value = (M.parseNum(litres.value) * M.parseNum(prixL.value)).toFixed(2);
           }
         };
         litres.addEventListener('input', recalc);
@@ -493,9 +508,9 @@
       },
       onSubmit() {
         const form = M.lireFormSheet();
-        const litres = parseFloat(form.litres) || 0;
-        const prixL = parseFloat(form.prixLitre) || 0;
-        let total = parseFloat(form.total) || 0;
+        const litres = M.parseNum(form.litres) || 0;
+        const prixL = M.parseNum(form.prixLitre) || 0;
+        let total = M.parseNum(form.total) || 0;
         if (!total && litres && prixL) total = +(litres * prixL).toFixed(2);
         if (!form.vehiculeId || !form.date || !(litres > 0) || !(total > 0)) {
           M.toast('⚠️ Véhicule, date, litres et total obligatoires');
@@ -511,7 +526,7 @@
           litres,
           prixLitre: prixL,
           total,
-          kmCompteur: parseFloat(form.kmCompteur) || 0
+          kmCompteur: M.parseNum(form.kmCompteur) || 0
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === p.id);
@@ -594,14 +609,14 @@
         const ttc = body.querySelector('input[name=montantTtc]');
         let dernierEdit = 'ttc';
         const recalc = () => {
-          const taux = parseFloat(sel.value) / 100 || 0;
+          const taux = M.parseNum(sel.value) / 100 || 0;
           if (dernierEdit === 'ht' && ht.value) {
-            const hh = parseFloat(ht.value);
+            const hh = M.parseNum(ht.value);
             const tv = hh * taux;
             tva.value = tv.toFixed(2);
             ttc.value = (hh + tv).toFixed(2);
           } else if (ttc.value) {
-            const tt = parseFloat(ttc.value);
+            const tt = M.parseNum(ttc.value);
             const hh = taux > 0 ? tt / (1 + taux) : tt;
             ht.value = hh.toFixed(2);
             tva.value = (tt - hh).toFixed(2);
@@ -626,10 +641,10 @@
       },
       onSubmit() {
         const form = M.lireFormSheet();
-        const ttc = parseFloat(form.montantTtc) || 0;
-        const taux = parseFloat(form.tauxTva) || 0;
-        const ht = parseFloat(form.montantHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
-        const tvaMontant = parseFloat(form.tva) || (ttc - ht);
+        const ttc = M.parseNum(form.montantTtc) || 0;
+        const taux = M.parseNum(form.tauxTva) || 0;
+        const ht = M.parseNum(form.montantHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
+        const tvaMontant = M.parseNum(form.tva) || (ttc - ht);
         if (!form.libelle?.trim() || !form.date || !(ttc > 0)) {
           M.toast('⚠️ Libellé, date et montant TTC obligatoires');
           return false;
@@ -811,12 +826,12 @@
           modele: f.modele?.trim() || '',
           dateCT: f.dateCT || '',
           dateAcquisition: f.dateAcquisition || '',
-          km: parseFloat(f.km) || 0,
-          kmInitial: parseFloat(f.kmInitial) || 0,
+          km: M.parseNum(f.km) || 0,
+          kmInitial: M.parseNum(f.kmInitial) || 0,
           modeAcquisition: f.modeAcquisition || '',
           typeCarburant: f.typeCarburant || '',
           carburant: f.typeCarburant || '',  // alias PC pour filtres
-          entretienIntervalKm: parseFloat(f.entretienIntervalKm) || 0,
+          entretienIntervalKm: M.parseNum(f.entretienIntervalKm) || 0,
           salId: f.salId || null,
           chaufId: f.salId || null,           // dual-write PC
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : ''
@@ -869,6 +884,17 @@
         { value: 'actif',    label: '✅ Actif' },
         { value: 'inactif',  label: '⏸️ Inactif' }
       ], { value: s.statut || (s.actif === false ? 'inactif' : 'actif') }))}
+
+      <!-- Mot de passe (acces salarie) : option de generation, hash via security-utils PBKDF2 (compat PC) -->
+      <div class="m-form-field" style="margin-top:14px">
+        <label class="m-form-label">${s.mdpHash ? '🔐 Réinitialiser mot de passe' : '🔐 Mot de passe (accès salarié)'}</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" name="mdpClair" id="m-sal-mdp" placeholder="${s.mdpHash ? 'Laisser vide = inchangé' : 'Au moins 8 caractères'}" value="" autocomplete="new-password" style="flex:1 1 auto" />
+          <button type="button" id="m-sal-mdp-gen" class="m-btn" style="flex:0 0 auto;width:auto;padding:0 14px">🎲 Générer</button>
+        </div>
+        <p class="m-form-hint">${s.mdpHash ? 'Le mot de passe actuel est conservé si tu laisses vide.' : 'Génère ou tape un mot de passe. Hashé via PBKDF2 avant stockage.'}</p>
+      </div>
+
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce salarié</button>` : ''}
     `;
     M.openSheet({
@@ -876,6 +902,20 @@
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
+        // Bouton "Générer" mot de passe (toujours dispo, edit ou nouveau)
+        b.querySelector('#m-sal-mdp-gen')?.addEventListener('click', () => {
+          const nomRaw = b.querySelector('input[name=nom]')?.value || s.nom || 'MCA';
+          // Format : 1ere lettre maj + reste min + '!' + 4 chiffres (memes regles que PC)
+          const baseRaw = String(nomRaw).replace(/[^A-Za-z0-9]/g, '').slice(0, 4) || 'MCA';
+          const base = baseRaw.charAt(0).toUpperCase() + baseRaw.slice(1).toLowerCase();
+          const suffixe = String(Math.floor(1000 + Math.random() * 9000));
+          const mdp = base + '!' + suffixe;
+          const input = b.querySelector('#m-sal-mdp');
+          if (input) input.value = mdp;
+          M.toast(`🔐 ${mdp} (copié)`, { duration: 4500 });
+          // Copie auto dans le presse-papier
+          if (navigator.clipboard) navigator.clipboard.writeText(mdp).catch(()=>{});
+        });
         if (!enEdition) return;
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement ${s.prenom || ''} ${s.nom || ''} ?`, { titre: 'Supprimer salarié' })) return;
@@ -886,7 +926,7 @@
           M.go('salaries');
         });
       },
-      onSubmit() {
+      async onSubmit() {
         const f = M.lireFormSheet();
         if (!f.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
         const arr = M.charger('salaries');
@@ -904,6 +944,22 @@
           statut: f.statut || 'actif',
           actif: (f.statut || 'actif') === 'actif'
         };
+        // Mot de passe : si saisi, hasher via security-utils.hashPassword (PBKDF2)
+        // pour compat avec verification cote PC
+        const mdpClair = (f.mdpClair || '').trim();
+        if (mdpClair) {
+          try {
+            if (window.DelivProSecurity?.hashPassword) {
+              data.mdpHash = await window.DelivProSecurity.hashPassword(mdpClair);
+            } else {
+              // fallback btoa si security-utils pas charge (ne devrait pas arriver)
+              data.mdpHash = btoa(unescape(encodeURIComponent(mdpClair)));
+            }
+          } catch (e) {
+            M.toast('⚠️ Erreur hash mot de passe');
+            return false;
+          }
+        }
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === s.id);
           if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
@@ -1119,7 +1175,7 @@
           salId: f.salId || null,
           chaufId: f.salId || null,      // dual-write PC
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
-          km: parseFloat(f.km) || 0,
+          km: M.parseNum(f.km) || 0,
           photos: [...photos],
           source: 'mobile'
         };
@@ -1276,14 +1332,14 @@
         const ttc = b.querySelector('input[name=cout]');
         let dernierEdit = 'ttc';
         const recalc = () => {
-          const taux = parseFloat(sel.value) / 100 || 0;
+          const taux = M.parseNum(sel.value) / 100 || 0;
           if (dernierEdit === 'ht' && ht.value) {
-            const hh = parseFloat(ht.value);
+            const hh = M.parseNum(ht.value);
             const tv = hh * taux;
             tva.value = tv.toFixed(2);
             ttc.value = (hh + tv).toFixed(2);
           } else if (ttc.value) {
-            const tt = parseFloat(ttc.value);
+            const tt = M.parseNum(ttc.value);
             const hh = taux > 0 ? tt / (1 + taux) : tt;
             ht.value = hh.toFixed(2);
             tva.value = (tt - hh).toFixed(2);
@@ -1304,10 +1360,10 @@
       },
       onSubmit() {
         const f = M.lireFormSheet();
-        const ttc = parseFloat(f.cout) || 0;
-        const taux = parseFloat(f.tauxTva) || 0;
-        const ht = parseFloat(f.coutHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
-        const tvaMontant = parseFloat(f.tva) || (ttc - ht);
+        const ttc = M.parseNum(f.cout) || 0;
+        const taux = M.parseNum(f.tauxTva) || 0;
+        const ht = M.parseNum(f.coutHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
+        const tvaMontant = M.parseNum(f.tva) || (ttc - ht);
         if (!f.vehiculeId || !(ttc > 0)) { M.toast('⚠️ Véhicule et coût TTC obligatoires'); return false; }
         const arr = M.charger('entretiens');
         const data = {
@@ -1316,8 +1372,8 @@
           vehId: f.vehiculeId,        // dual-write PC
           type: f.type || 'autre',
           description: f.description?.trim() || '',
-          km: parseFloat(f.km) || 0,
-          prochainKm: parseFloat(f.prochainKm) || 0,
+          km: M.parseNum(f.km) || 0,
+          prochainKm: M.parseNum(f.prochainKm) || 0,
           coutHt: +ht.toFixed(2),
           coutHT: +ht.toFixed(2),     // dual casse
           tauxTva: taux,
@@ -1382,8 +1438,8 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.salId || !f.date) { M.toast('⚠️ Salarié et date obligatoires'); return false; }
-        const heures = parseFloat(f.heures) || 0;
-        const km = parseFloat(f.km) || 0;
+        const heures = M.parseNum(f.heures) || 0;
+        const km = M.parseNum(f.km) || 0;
         if (!(heures > 0) && !(km > 0)) { M.toast('⚠️ Au moins heures ou km > 0'); return false; }
         const arr = M.charger('heures');
         const data = {
@@ -2169,6 +2225,7 @@
           <button class="m-alertes-chip ${statut==='reportees'?'active':''}" data-statut="reportees">⏰ Reportées${allReportees ? ` (${allReportees})` : ''}</button>
           <button class="m-alertes-chip ${statut==='traitees'?'active':''}" data-statut="traitees">✅ Traitées</button>
         </div>
+        ${statut === 'traitees' ? `<button type="button" id="m-alertes-vider" class="m-btn m-btn-danger" style="margin-bottom:14px">🗑️ Vider l'historique traité</button>` : ''}
       `;
 
       // Stats banner (uniquement en vue actives)
@@ -2294,6 +2351,16 @@
           M.go('alertes');
         });
       });
+      // Bouton "Vider l'historique traite" (uniquement en vue traitees)
+      container.querySelector('#m-alertes-vider')?.addEventListener('click', async () => {
+        const arr = M.charger('alertes_admin');
+        const traitees = arr.filter(a => a.traitee);
+        if (!traitees.length) return M.toast('Aucune alerte traitée à vider');
+        if (!await M.confirm(`Effacer définitivement ${traitees.length} alerte${traitees.length>1?'s':''} traitée${traitees.length>1?'s':''} ?`, { titre: "Vider l'historique" })) return;
+        M.sauvegarder('alertes_admin', arr.filter(a => !a.traitee));
+        M.toast(`🗑️ ${traitees.length} alerte${traitees.length>1?'s':''} effacée${traitees.length>1?'s':''}`);
+        M.go('alertes');
+      });
       // Actions individuelles
       container.querySelectorAll('.m-alerte-action').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -2377,8 +2444,11 @@
   M.register('carburant', {
     title: 'Carburant',
     render() {
-      const pleins = M.charger('carburant');
+      const allPleins = M.charger('carburant');
       const vehIdx = M.indexVehicules();
+      const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+      const filterVeh = M.state.carburantVehFilter || '';
+      const pleins = filterVeh ? allPleins.filter(p => (p.vehiculeId || p.vehId) === filterVeh) : allPleins;
 
       // KPI mois courant
       const moisCourant = new Date().toISOString().slice(0, 7);
@@ -2401,6 +2471,14 @@
             <div class="m-card-sub">${prixMoyen > 0 ? M.format$(prixMoyen) + '/L' : '—'}</div>
           </div>
         </div>
+        ${vehicules.length > 1 ? `
+          <div style="margin:14px 0">
+            <select id="m-carb-veh">
+              <option value="">🚐 Tous les véhicules</option>
+              ${vehicules.map(v => `<option value="${M.escHtml(v.id)}" ${v.id === filterVeh ? 'selected' : ''}>${M.escHtml(v.immat || v.id)}</option>`).join('')}
+            </select>
+          </div>
+        ` : ''}
       `;
 
       if (!pleins.length) {
@@ -2462,6 +2540,7 @@
       return html;
     },
     afterRender(container) {
+      container.querySelector('#m-carb-veh')?.addEventListener('change', e => { M.state.carburantVehFilter = e.target.value; M.go('carburant'); });
       container.querySelectorAll('.m-carb-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerPlein(btn.dataset.id));
       });
@@ -2581,16 +2660,22 @@
                 const statutLabel = estPayee ? '✅ Payée' : estPartielle ? '🟡 Partielle' : (enRetard ? '🔴 Retard' : '⏳ À payer');
                 const statutColor = estPayee ? 'var(--m-green)' : estPartielle ? 'var(--m-accent)' : (enRetard ? 'var(--m-red)' : 'var(--m-text-muted)');
                 const borderColor = estPayee ? 'var(--m-green)' : (enRetard ? 'var(--m-red)' : 'var(--m-accent)');
-                return `<button type="button" class="m-card m-card-pressable m-charge-edit" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
-                  <div style="flex:1 1 auto;min-width:0">
-                    <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
-                    <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
-                  </div>
-                  <div style="text-align:right;flex-shrink:0">
-                    <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
-                    <div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>
-                  </div>
-                </button>`;
+                // Si pas payee, le badge statut devient un bouton "Marquer payee" (stopPropagation pour ne pas declencher l'edit)
+                const statutBadge = estPayee
+                  ? `<div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>`
+                  : `<button type="button" class="m-charge-pay" data-id="${M.escHtml(c.id)}" style="margin-top:4px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:3px 8px;font-size:.7rem;font-weight:700;font-family:inherit;cursor:pointer">✅ Marquer payée</button>`;
+                return `<div style="position:relative;margin-bottom:10px">
+                  <button type="button" class="m-card m-card-pressable m-charge-edit" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit">
+                    <div style="flex:1 1 auto;min-width:0">
+                      <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
+                      <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                      <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
+                      ${statutBadge}
+                    </div>
+                  </button>
+                </div>`;
               }).join('')}
             </div>
           </div>
@@ -2617,6 +2702,24 @@
       // Tap card charge -> ouvre le form en mode edition
       container.querySelectorAll('.m-charge-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerCharge(btn.dataset.id));
+      });
+      // Bouton "Marquer payée" rapide (stopPropagation pour ne pas declencher l'edit)
+      container.querySelectorAll('.m-charge-pay').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const id = btn.dataset.id;
+          const arr = M.charger('charges');
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx < 0) return;
+          arr[idx].statut = 'paye';
+          arr[idx].statutPaiement = 'paye';
+          arr[idx].datePaiement = new Date().toISOString().slice(0, 10);
+          arr[idx].modifieLe = new Date().toISOString();
+          M.sauvegarder('charges', arr);
+          M.toast('✅ Charge marquée payée');
+          M.go('charges');
+        });
       });
       // Toggle collapse/expand par mois
       container.querySelectorAll('button.m-charges-mois').forEach(btn => {
@@ -2840,8 +2943,8 @@
       // ---- DEVIS : calculateur de rentabilite avant proposition ----
       if (tab === 'devis') {
         const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm : (kmTotal > 0 ? (carbTotal + entrTotal + autresTotal) / kmTotal : 0.50);
-        const prix = parseFloat(M.state.devisPrix) || 0;
-        const km = parseFloat(M.state.devisKm) || 0;
+        const prix = M.parseNum(M.state.devisPrix) || 0;
+        const km = M.parseNum(M.state.devisKm) || 0;
         const depEstim = km * coutKmStocke;
         const marge = prix - depEstim;
         const margePct = prix > 0 ? (marge / prix * 100) : 0;
@@ -2916,7 +3019,7 @@
         let t = null;
         el.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state[key] = parseFloat(e.target.value) || 0; M.go('rentabilite'); }, 350);
+          t = setTimeout(() => { M.state[key] = M.parseNum(e.target.value) || 0; M.go('rentabilite'); }, 350);
         });
       };
       wireDevis('#m-devis-prix', 'devisPrix');
@@ -2954,6 +3057,15 @@
       }
       filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
 
+      // Pre-calcule le CA total par client (sur tous les mois) pour affichage en liste
+      const livrAll = M.charger('livraisons');
+      const caByClient = {};
+      livrAll.forEach(l => {
+        const k = (l.client || '').toLowerCase();
+        if (!k) return;
+        caByClient[k] = (caByClient[k] || 0) + (Number(l.prix) || Number(l.prixHT) || 0);
+      });
+
       let html = `<button class="m-fab" onclick="MCAm.formNouveauClient()" aria-label="Nouveau client">+</button>`;
       html += `
         <div style="margin-bottom:14px">
@@ -2982,10 +3094,12 @@
       letters.forEach(letter => {
         html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${letter}</div>`;
         byLetter[letter].forEach(c => {
+          const caClient = caByClient[(c.nom || '').toLowerCase()] || 0;
           html += `<button type="button" class="m-card m-card-pressable m-client-row" data-id="${M.escHtml(c.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.nom || '—')}</div>
               <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.tel || c.email || c.ville || '—')}</div>
+              ${caClient > 0 ? `<div style="color:var(--m-green);font-size:.78rem;margin-top:3px;font-weight:600">${M.format$(caClient)} HT total</div>` : ''}
             </div>
             <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
           </button>`;
@@ -3202,19 +3316,40 @@
 
       const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
       const recherche = (M.state.vehiculesRecherche || '').toLowerCase();
+      const filtreCarb = M.state.vehiculesCarburant || '';
+      const filtreSal  = M.state.vehiculesSalarie || '';
       let filtered = vehicules;
       if (recherche) {
-        filtered = vehicules.filter(v => {
+        filtered = filtered.filter(v => {
           const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
+      if (filtreCarb) filtered = filtered.filter(v => (v.typeCarburant || v.carburant || '') === filtreCarb);
+      if (filtreSal)  filtered = filtered.filter(v => (v.salId || v.chaufId) === filtreSal);
       filtered = [...filtered].sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
+
+      const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauVehicule()" aria-label="Nouveau véhicule">+</button>`;
       html += `
-        <div style="margin-bottom:14px">
+        <div style="margin-bottom:10px">
           <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, modèle)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <select id="m-veh-carb" style="flex:1 1 auto">
+            <option value="">⛽ Tous carburants</option>
+            <option value="diesel"     ${filtreCarb==='diesel'?'selected':''}>⛽ Diesel/Gazole</option>
+            <option value="essence"    ${filtreCarb==='essence'?'selected':''}>⛽ Essence</option>
+            <option value="gnv"        ${filtreCarb==='gnv'?'selected':''}>🌿 GNV/BioGNV</option>
+            <option value="electrique" ${filtreCarb==='electrique'?'selected':''}>⚡ Électrique</option>
+            <option value="hybride"    ${filtreCarb==='hybride'?'selected':''}>🔋 Hybride</option>
+            <option value="hydrogene"  ${filtreCarb==='hydrogene'?'selected':''}>💧 Hydrogène</option>
+          </select>
+          <select id="m-veh-sal" style="flex:1 1 auto">
+            <option value="">👤 Tous chauffeurs</option>
+            ${salaries.map(s => `<option value="${M.escHtml(s.id)}" ${filtreSal===s.id?'selected':''}>${M.escHtml(((s.prenom?s.prenom+' ':'') + (s.nom||s.id)).trim())}</option>`).join('')}
+          </select>
         </div>
       `;
 
@@ -3254,6 +3389,9 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
+      // Filtres carburant + chauffeur
+      container.querySelector('#m-veh-carb')?.addEventListener('change', e => { M.state.vehiculesCarburant = e.target.value; M.go('vehicules'); });
+      container.querySelector('#m-veh-sal')?.addEventListener('change',  e => { M.state.vehiculesSalarie   = e.target.value; M.go('vehicules'); });
       container.querySelectorAll('.m-veh-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('vehicules', btn.dataset.id));
       });
@@ -4071,12 +4209,16 @@
         <div style="margin-bottom:14px"><select id="m-stats-mois">${moisOptions.join('')}</select></div>
 
         <div class="m-card-row">
-          <div class="m-card m-card-green"><div class="m-card-title">CA du mois</div><div class="m-card-value">${M.format$(ca)}</div><div class="m-card-sub">${evolBadge(evolCa)} vs précédent</div></div>
+          <div class="m-card m-card-green"><div class="m-card-title">CA du mois HT</div><div class="m-card-value">${M.format$(ca)}</div><div class="m-card-sub">${evolBadge(evolCa)} vs précédent</div></div>
           <div class="m-card m-card-blue"><div class="m-card-title">Livraisons</div><div class="m-card-value">${livMois.length}</div><div class="m-card-sub">${evolBadge(livMois.length - livPrec.length)} vs précédent</div></div>
         </div>
         <div class="m-card-row">
+          <div class="m-card m-card-accent"><div class="m-card-title">Panier moyen</div><div class="m-card-value">${M.format$(livMois.length > 0 ? ca / livMois.length : 0)}</div><div class="m-card-sub">par livraison</div></div>
           <div class="m-card m-card-purple"><div class="m-card-title">Km parcourus</div><div class="m-card-value">${M.formatNum(km.toFixed(0))}</div><div class="m-card-sub">${evolBadge(evolKm)} vs précédent</div></div>
-          <div class="m-card m-card-accent"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(carbMois.reduce((s,p)=>s+(Number(p.total)||0),0))}</div></div>
+        </div>
+        <div class="m-card-row">
+          <div class="m-card m-card-red"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(carbMois.reduce((s,p)=>s+(Number(p.total)||0),0))}</div></div>
+          <div class="m-card"><div class="m-card-title">€/km</div><div class="m-card-value" style="font-size:1.3rem">${M.format$(km > 0 ? ca / km : 0)}</div><div class="m-card-sub">prix moyen</div></div>
         </div>
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📊 Vue d'ensemble</h3></div>
