@@ -47,6 +47,10 @@
 /* Reset minimal */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* L'attribut HTML `hidden` doit toujours masquer, meme si l'element a un
+   display flex/grid via une classe. Sinon les boutons header restent visibles
+   alors qu'ils sont logiquement masques (cf. bug back btn visible sur Accueil). */
+[hidden] { display: none !important; }
 body {
   background: var(--m-bg);
   color: var(--m-text);

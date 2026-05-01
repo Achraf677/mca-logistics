@@ -211,9 +211,19 @@
         ${M.formField('N° livraison', M.formInput('numLiv', { placeholder: 'Auto si vide' }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('Prix HT', M.formInputWithSuffix('prix', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true })}
-        ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0' }))}
+        ${M.formField('Prix HT', M.formInputWithSuffix('prixHT', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true })}
+        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
+          { value: '0',    label: '0% (exonéré)' },
+          { value: '5.5',  label: '5,5%' },
+          { value: '10',   label: '10%' },
+          { value: '20',   label: '20%' }
+        ], { value: '20' }))}
       </div>
+      <div class="m-form-row">
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }), { hint: 'Calcul auto' })}
+        ${M.formField('Prix TTC', M.formInputWithSuffix('prixTTC', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }), { hint: 'Calcul auto' })}
+      </div>
+      ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0' }))}
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: '' }))}
       ${M.formField('Chauffeur', M.formSelect('salarieId', salaries.map(s => ({ value: s.id, label: s.nom || s.id })), { placeholder: 'Choisir un chauffeur', value: '' }))}
       ${M.formField('Statut', M.formSelect('statut', [
@@ -228,12 +238,42 @@
       title: '➕ Nouvelle livraison',
       body,
       submitLabel: 'Enregistrer',
+      afterMount(body) {
+        // Calcul auto bidirectionnel HT <-> TTC selon le champ qui change.
+        // Logique : si user tape HT -> TVA et TTC se calculent. Si user tape TTC -> HT et TVA se calculent.
+        // Si user change le taux -> recalcul depuis HT (par defaut).
+        const ht  = body.querySelector('input[name=prixHT]');
+        const sel = body.querySelector('select[name=tauxTva]');
+        const tva = body.querySelector('input[name=tva]');
+        const ttc = body.querySelector('input[name=prixTTC]');
+        let dernierEdit = 'ht'; // 'ht' | 'ttc'
+        const recalc = () => {
+          const taux = parseFloat(sel.value) / 100 || 0;
+          if (dernierEdit === 'ttc' && ttc.value) {
+            const tt = parseFloat(ttc.value);
+            const hh = taux > 0 ? tt / (1 + taux) : tt;
+            ht.value = hh.toFixed(2);
+            tva.value = (tt - hh).toFixed(2);
+          } else if (ht.value) {
+            const hh = parseFloat(ht.value);
+            const tv = hh * taux;
+            tva.value = tv.toFixed(2);
+            ttc.value = (hh + tv).toFixed(2);
+          }
+        };
+        ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
+        ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
+        sel.addEventListener('change', recalc);
+      },
       onSubmit() {
         const form = M.lireFormSheet();
-        const prix = parseFloat(form.prix);
-        if (!form.client?.trim() || !form.date || !(prix > 0)) {
-          M.toast('⚠️ Client, date et prix obligatoires');
-          return false; // garde la sheet ouverte
+        const prixHT = parseFloat(form.prixHT);
+        const taux = parseFloat(form.tauxTva) || 0;
+        const tvaMontant = parseFloat(form.tva) || (prixHT * taux / 100);
+        const prixTTC = parseFloat(form.prixTTC) || (prixHT + tvaMontant);
+        if (!form.client?.trim() || !form.date || !(prixHT > 0)) {
+          M.toast('⚠️ Client, date et prix HT obligatoires');
+          return false;
         }
         const arr = M.charger('livraisons');
         arr.push({
@@ -241,7 +281,11 @@
           creeLe: new Date().toISOString(),
           date: form.date,
           client: form.client.trim(),
-          prix,
+          prix: prixHT,         // compat desktop : prix = HT
+          prixHT,
+          prixTTC,
+          tauxTva: taux,
+          tva: tvaMontant,
           distance: parseFloat(form.distance) || 0,
           vehiculeId: form.vehiculeId || null,
           salarieId: form.salarieId || null,
@@ -325,9 +369,19 @@
     const body = `
       ${M.formField('Libellé', M.formInput('libelle', { placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
       ${M.formField('Fournisseur', M.formInput('fournisseur', { placeholder: 'Nom fournisseur' }))}
+      ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
       <div class="m-form-row">
-        ${M.formField('Date', M.formInput('date', { type: 'date', value: today, required: true }), { required: true })}
-        ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true })}
+        ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }))}
+        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
+          { value: '0',    label: '0%' },
+          { value: '5.5',  label: '5,5%' },
+          { value: '10',   label: '10%' },
+          { value: '20',   label: '20%' }
+        ], { value: '20' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00' }), { hint: 'Calcul auto' })}
+        ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', required: true }), { required: true, hint: 'Calcul auto' })}
       </div>
       ${M.formField('Catégorie', M.formSelect('categorie', [
         { value: 'loyer',     label: '🏢 Loyer' },
@@ -336,6 +390,7 @@
         { value: 'telecom',   label: '📞 Télécom' },
         { value: 'banque',    label: '🏦 Frais bancaires' },
         { value: 'compta',    label: '📊 Comptabilité' },
+        { value: 'entretien', label: '🔧 Entretien' },
         { value: 'autre',     label: '📌 Autre' }
       ], { placeholder: 'Choisir une catégorie' }))}
       ${M.formField('Statut', M.formSelect('statut', [
@@ -349,11 +404,39 @@
       title: '💸 Nouvelle charge',
       body,
       submitLabel: 'Enregistrer',
+      afterMount(body) {
+        // Calcul auto bidirectionnel HT <-> TTC (idem livraison)
+        const ht  = body.querySelector('input[name=montantHt]');
+        const sel = body.querySelector('select[name=tauxTva]');
+        const tva = body.querySelector('input[name=tva]');
+        const ttc = body.querySelector('input[name=montantTtc]');
+        let dernierEdit = 'ttc'; // par defaut on tape TTC sur les charges (recu fournisseur)
+        const recalc = () => {
+          const taux = parseFloat(sel.value) / 100 || 0;
+          if (dernierEdit === 'ht' && ht.value) {
+            const hh = parseFloat(ht.value);
+            const tv = hh * taux;
+            tva.value = tv.toFixed(2);
+            ttc.value = (hh + tv).toFixed(2);
+          } else if (ttc.value) {
+            const tt = parseFloat(ttc.value);
+            const hh = taux > 0 ? tt / (1 + taux) : tt;
+            ht.value = hh.toFixed(2);
+            tva.value = (tt - hh).toFixed(2);
+          }
+        };
+        ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
+        ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
+        sel.addEventListener('change', recalc);
+      },
       onSubmit() {
         const form = M.lireFormSheet();
-        const montant = parseFloat(form.montantTtc) || 0;
-        if (!form.libelle?.trim() || !form.date || !(montant > 0)) {
-          M.toast('⚠️ Libellé, date et montant obligatoires');
+        const ttc = parseFloat(form.montantTtc) || 0;
+        const taux = parseFloat(form.tauxTva) || 0;
+        const ht = parseFloat(form.montantHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
+        const tvaMontant = parseFloat(form.tva) || (ttc - ht);
+        if (!form.libelle?.trim() || !form.date || !(ttc > 0)) {
+          M.toast('⚠️ Libellé, date et montant TTC obligatoires');
           return false;
         }
         const arr = M.charger('charges');
@@ -363,8 +446,11 @@
           date: form.date,
           libelle: form.libelle.trim(),
           fournisseur: form.fournisseur?.trim() || '',
-          montantTtc: montant,
-          montant: montant, // compat desktop : certains modules lisent .montant
+          montantHT: +ht.toFixed(2),
+          montantTtc: ttc,
+          montant: ttc, // compat desktop
+          tauxTva: taux,
+          tva: +tvaMontant.toFixed(2),
           categorie: form.categorie || '',
           statut: form.statut || 'a_payer'
         });
@@ -412,15 +498,10 @@
       return;
     }
     M.state.currentPage = page;
-    // Mode detail : si la page a un detailId actif, on affiche le bouton back
-    // et on titre dynamiquement (la page render() met le bon titre via M.setTitle)
+    // Mode detail : back btn visible uniquement quand on est dans une fiche detail.
     const inDetail = M.state.detail && M.state.detail[page];
     $('#m-title').textContent = route.title || '—';
     $('#m-back-btn').hidden = !inDetail;
-    // Bouton menu page (kebab) ouvre un menu page-specifique si defini
-    const kebabBtn = $('#m-page-menu-btn');
-    kebabBtn.hidden = !route.kebab;
-    if (route.kebab) kebabBtn.onclick = route.kebab;
     // Update bottom nav active state
     $$('.m-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.page === page));
     // Render
@@ -1279,8 +1360,9 @@
     }
   });
 
-  // ---------- Charges (v2.3 : liste lecture seule + filtre statut) ----------
+  // ---------- Charges (v3.0 : groupees par mois + filtre statut) ----------
   M.state.chargesStatut = 'tous'; // tous | a_payer | paye
+  M.state.chargesMoisOuverts = {};
   M.register('charges', {
     title: 'Charges',
     render() {
@@ -1291,7 +1373,6 @@
       const aPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
       const totalImpayes = aPayer.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
 
-      // Statut filter
       const statut = M.state.chargesStatut;
       let filtered = charges;
       if (statut === 'a_payer') filtered = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
@@ -1321,32 +1402,65 @@
       `;
 
       if (!sorted.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">💸</div><h3 class="m-empty-title">Aucune charge</h3><p class="m-empty-text">${statut === 'a_payer' ? 'Tu es à jour, aucune charge en attente.' : 'Les charges saisies apparaitront ici.'}</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">💸</div><h3 class="m-empty-title">Aucune charge</h3><p class="m-empty-text">${statut === 'a_payer' ? 'Tu es à jour, aucune charge en attente.' : 'Tape sur ➕ pour saisir ta première charge.'}</p></div>`;
         return html;
       }
 
+      // Group par mois (mois courant ouvert par defaut, autres collapses)
+      const byMonth = {};
       sorted.forEach(c => {
-        const montant = Number(c.montantTtc) || Number(c.montant) || 0;
-        const estPayee = c.statut === 'paye' || c.statut === 'payee';
-        const estPartielle = c.statut === 'partiel';
-        // Retard : non payee + date passee de plus de 7j
-        const enRetard = !estPayee && c.date && (new Date(c.date) < new Date(Date.now() - 7*86400000));
-        const statutLabel = estPayee ? '✅ Payée' : estPartielle ? '🟡 Partielle' : (enRetard ? '🔴 Retard' : '⏳ À payer');
-        const statutColor = estPayee ? 'var(--m-green)' : estPartielle ? 'var(--m-accent)' : (enRetard ? 'var(--m-red)' : 'var(--m-text-muted)');
-        const borderColor = estPayee ? 'var(--m-green)' : (enRetard ? 'var(--m-red)' : 'var(--m-accent)');
+        const m = (c.date || '0000-00').slice(0, 7);
+        if (!byMonth[m]) byMonth[m] = [];
+        byMonth[m].push(c);
+      });
+      const monthsSorted = Object.keys(byMonth).sort().reverse();
 
-        html += `<div class="m-card" style="padding:14px;border-left:4px solid ${borderColor}">
-          <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
-            <div style="flex:1 1 auto;min-width:0">
-              <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
-              <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
-            </div>
-            <div style="text-align:right;flex-shrink:0">
-              <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
-              <div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>
+      monthsSorted.forEach(month => {
+        const items = byMonth[month];
+        const totalMonth = items.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+        const aPayerMonth = items.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
+        const totalAPayerMonth = aPayerMonth.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+        const dateLabel = month === '0000-00' ? 'Sans date' : (() => {
+          const [y, m] = month.split('-');
+          return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+        })();
+        const isOpen = M.state.chargesMoisOuverts[month] !== undefined ? M.state.chargesMoisOuverts[month] : (month === moisCourant);
+
+        html += `
+          <div class="m-section" style="margin-top:18px">
+            <button type="button" class="m-charges-mois" data-mois="${M.escHtml(month)}" style="width:100%;background:transparent;border:none;color:inherit;text-align:left;cursor:pointer;padding:0 4px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <span style="display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0">
+                <span style="color:var(--m-text-muted);font-size:.9rem;display:inline-block;transform:rotate(${isOpen ? '90' : '0'}deg);transition:transform 0.15s ease">▶</span>
+                <h3 class="m-section-title" style="font-size:1rem">${dateLabel}</h3>
+              </span>
+              <span style="text-align:right;font-size:.78rem;color:var(--m-text-muted);font-weight:500">
+                <div>${items.length} charge${items.length>1?'s':''}</div>
+                <div style="color:${aPayerMonth.length ? 'var(--m-red)' : 'var(--m-green)'};font-weight:600;margin-top:2px">${aPayerMonth.length ? `${M.format$(totalAPayerMonth)} dû` : M.format$(totalMonth)}</div>
+              </span>
+            </button>
+            <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
+              ${items.map(c => {
+                const montant = Number(c.montantTtc) || Number(c.montant) || 0;
+                const estPayee = c.statut === 'paye' || c.statut === 'payee';
+                const estPartielle = c.statut === 'partiel';
+                const enRetard = !estPayee && c.date && (new Date(c.date) < new Date(Date.now() - 7*86400000));
+                const statutLabel = estPayee ? '✅ Payée' : estPartielle ? '🟡 Partielle' : (enRetard ? '🔴 Retard' : '⏳ À payer');
+                const statutColor = estPayee ? 'var(--m-green)' : estPartielle ? 'var(--m-accent)' : (enRetard ? 'var(--m-red)' : 'var(--m-text-muted)');
+                const borderColor = estPayee ? 'var(--m-green)' : (enRetard ? 'var(--m-red)' : 'var(--m-accent)');
+                return `<div class="m-card" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px">
+                  <div style="flex:1 1 auto;min-width:0">
+                    <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
+                    <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
+                  </div>
+                  <div style="text-align:right;flex-shrink:0">
+                    <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
+                    <div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>
+                  </div>
+                </div>`;
+              }).join('')}
             </div>
           </div>
-        </div>`;
+        `;
       });
 
       return html;
@@ -1356,6 +1470,19 @@
         btn.addEventListener('click', () => {
           M.state.chargesStatut = btn.dataset.statut;
           M.go('charges');
+        });
+      });
+      // Toggle collapse/expand par mois
+      container.querySelectorAll('button.m-charges-mois').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const m = btn.dataset.mois;
+          const c = container.querySelector(`[data-content="${m}"]`);
+          const ch = btn.querySelector('span > span');
+          if (!c) return;
+          const willOpen = c.style.display === 'none';
+          M.state.chargesMoisOuverts[m] = willOpen;
+          c.style.display = willOpen ? 'block' : 'none';
+          if (ch) ch.style.transform = `rotate(${willOpen ? '90' : '0'}deg)`;
         });
       });
     }
