@@ -33,8 +33,15 @@
     catch (_) { return {}; }
   };
   M.sauvegarder = function(key, value) {
-    try { localStorage.setItem(key, JSON.stringify(value)); return true; }
-    catch (_) { return false; }
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      // Force flush Supabase immediat (au lieu d'attendre les 500ms du debounce)
+      // -> rend la sync mobile->PC quasi instantanee.
+      if (window.DelivProRemoteStorage?.flush) {
+        window.DelivProRemoteStorage.flush().catch(() => {});
+      }
+      return true;
+    } catch (_) { return false; }
   };
 
   // Generation d'ID stable (UUID si dispo, fallback timestamp+random).
@@ -2927,6 +2934,25 @@
     // render se faire vite avec les donnees localStorage cachees, puis
     // refresh une fois la version Supabase recue).
     setTimeout(initRemoteSync, 200);
+
+    // Realtime : ecoute les events de sync emis par supabase-storage-sync.
+    // Quand le PC modifie des donnees, l'event 'delivpro:remote-update' est
+    // dispatche apres applyRemoteSnapshot -> on re-render la page courante
+    // pour afficher les nouvelles donnees sans avoir besoin de tirer manuellement.
+    window.addEventListener('delivpro:remote-update', () => {
+      if (M.state.currentPage) M.go(M.state.currentPage);
+      M.updateAlertesBadge();
+    });
+
+    // Quand l'app revient au premier plan (visibility), le storage-sync fait
+    // un pullLatest automatique. On force aussi un re-render pour etre sur
+    // que la page affiche les dernieres donnees recues.
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && M.state.currentPage) {
+        // Petit delay pour laisser le pull se faire avant le re-render
+        setTimeout(() => { M.go(M.state.currentPage); M.updateAlertesBadge(); }, 600);
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
