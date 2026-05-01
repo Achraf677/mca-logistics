@@ -243,11 +243,10 @@
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(x => ({ value: x.id, label: x.immat || x.immatriculation || x.id })), { placeholder: 'Choisir un véhicule', value: v.vehiculeId || '' }))}
       ${M.formField('Chauffeur', M.formSelect('salarieId', salaries.map(s => ({ value: s.id, label: s.nom || s.id })), { placeholder: 'Choisir un chauffeur', value: v.salarieId || '' }))}
       ${M.formField('Statut', M.formSelect('statut', [
-        { value: 'planifiee', label: 'Planifiée' },
-        { value: 'en_cours',  label: 'En cours' },
-        { value: 'livree',    label: 'Livrée' },
-        { value: 'facturee',  label: 'Facturée' }
-      ], { value: v.statut || 'livree' }))}
+        { value: 'en-attente', label: 'En attente' },
+        { value: 'en-cours',   label: 'En cours' },
+        { value: 'livre',      label: 'Livré' }
+      ], { value: v.statut || 'livre' }))}
       ${enEdition && (v.vehiculeId || v.salarieId) ? `
         <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
           ${v.vehiculeId ? `<button type="button" class="m-btn" data-goto-veh="${M.escHtml(v.vehiculeId)}" style="flex:1 1 140px">🚐 Fiche véhicule</button>` : ''}
@@ -327,7 +326,7 @@
           distance: parseFloat(form.distance) || 0,
           vehiculeId: form.vehiculeId || null,
           salarieId: form.salarieId || null,
-          statut: form.statut || 'livree',
+          statut: form.statut || 'livre',
           numLiv: form.numLiv?.trim() || ''
         };
         if (enEdition) {
@@ -469,14 +468,14 @@
         ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantTtc || c.montant || '', required: true }), { required: true, hint: 'Calcul auto' })}
       </div>
       ${M.formField('Catégorie', M.formSelect('categorie', [
-        { value: 'loyer',     label: '🏢 Loyer' },
-        { value: 'assurance', label: '🛡️ Assurance' },
-        { value: 'energie',   label: '⚡ Énergie' },
-        { value: 'telecom',   label: '📞 Télécom' },
-        { value: 'banque',    label: '🏦 Frais bancaires' },
-        { value: 'compta',    label: '📊 Comptabilité' },
-        { value: 'entretien', label: '🔧 Entretien' },
-        { value: 'autre',     label: '📌 Autre' }
+        { value: 'carburant',  label: '⛽ Carburant' },
+        { value: 'peage',      label: '🛣️ Péage' },
+        { value: 'entretien',  label: '🔧 Entretien' },
+        { value: 'assurance',  label: '🛡️ Assurance' },
+        { value: 'salaires',   label: '👥 Salaires' },
+        { value: 'lld_credit', label: '🚐 LLD / Crédit' },
+        { value: 'tva',        label: '🧾 TVA' },
+        { value: 'autre',      label: '📝 Autre' }
       ], { placeholder: 'Choisir une catégorie', value: c.categorie || '' }))}
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'a_payer', label: '⏳ À payer' },
@@ -682,12 +681,12 @@
         { value: 'location', label: '📅 Location simple' }
       ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
-        { value: 'diesel',     label: '⛽ Diesel' },
-        { value: 'essence',    label: '⛽ Essence (SP95/98)' },
-        { value: 'electrique', label: '🔋 Électrique' },
-        { value: 'hybride',    label: '🔋⛽ Hybride' },
-        { value: 'gnv',        label: '💨 GNV / Bio-GNV' },
-        { value: 'autre',      label: '📌 Autre' }
+        { value: 'diesel',     label: '⛽ Diesel/Gazole' },
+        { value: 'essence',    label: '⛽ Essence' },
+        { value: 'gnv',        label: '🌿 GNV/BioGNV' },
+        { value: 'electrique', label: '⚡ Électrique' },
+        { value: 'hybride',    label: '🔋 Hybride' },
+        { value: 'hydrogene',  label: '💧 Hydrogène' }
       ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
       ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
@@ -1137,13 +1136,14 @@
       <div class="m-form-row">
         ${M.formField('Date', M.formInput('date', { type: 'date', value: e.date || today, required: true }), { required: true })}
         ${M.formField('Type', M.formSelect('type', [
-          { value: 'vidange',     label: '🛢️ Vidange' },
-          { value: 'freinage',    label: '🛑 Freinage' },
-          { value: 'pneus',       label: '🛞 Pneus' },
-          { value: 'revision',    label: '🔧 Révision' },
-          { value: 'reparation',  label: '⚙️ Réparation' },
-          { value: 'controle',    label: '✅ Contrôle technique' },
-          { value: 'autre',       label: '📌 Autre' }
+          { value: 'revision',     label: 'Révision' },
+          { value: 'vidange',      label: 'Vidange' },
+          { value: 'pneus',        label: 'Pneus' },
+          { value: 'plaquettes',   label: 'Plaquettes' },
+          { value: 'courroie',     label: 'Courroie' },
+          { value: 'freins',       label: 'Freins' },
+          { value: 'carrosserie',  label: 'Carrosserie' },
+          { value: 'autre',        label: 'Autre' }
         ], { value: e.type || 'revision' }))}
       </div>
       <div class="m-form-row">
@@ -2421,14 +2421,14 @@
         </div>
         <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip m-charges-cat ${cat===''?'active':''}" data-cat="">Toutes catégories</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='loyer'?'active':''}" data-cat="loyer">🏢 Loyer</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='assurance'?'active':''}" data-cat="assurance">🛡️ Assurance</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='energie'?'active':''}" data-cat="energie">⚡ Énergie</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='telecom'?'active':''}" data-cat="telecom">📞 Télécom</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='banque'?'active':''}" data-cat="banque">🏦 Banque</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='compta'?'active':''}" data-cat="compta">📊 Compta</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='carburant'?'active':''}" data-cat="carburant">⛽ Carburant</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='peage'?'active':''}" data-cat="peage">🛣️ Péage</button>
           <button class="m-alertes-chip m-charges-cat ${cat==='entretien'?'active':''}" data-cat="entretien">🔧 Entretien</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='autre'?'active':''}" data-cat="autre">📌 Autre</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='assurance'?'active':''}" data-cat="assurance">🛡️ Assurance</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='salaires'?'active':''}" data-cat="salaires">👥 Salaires</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='lld_credit'?'active':''}" data-cat="lld_credit">🚐 LLD/Crédit</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='tva'?'active':''}" data-cat="tva">🧾 TVA</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='autre'?'active':''}" data-cat="autre">📝 Autre</button>
         </div>
       `;
 
@@ -2583,6 +2583,7 @@
           <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">🚐 Véhicule</button>
           <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">🧑‍💼 Client</button>
           <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">👤 Chauffeur</button>
+          <button class="m-alertes-chip ${tab==='devis'?'active':''}" data-tab="devis">🧮 Devis</button>
         </div>
       `;
 
@@ -2733,6 +2734,70 @@
         });
       }
 
+      // ---- DEVIS : calculateur de rentabilite avant proposition ----
+      if (tab === 'devis') {
+        const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm : (kmTotal > 0 ? (carbTotal + entrTotal + autresChargesTotal) / kmTotal : 0.50);
+        const prix = parseFloat(M.state.devisPrix) || 0;
+        const km = parseFloat(M.state.devisKm) || 0;
+        const depEstim = km * coutKmStocke;
+        const marge = prix - depEstim;
+        const margePct = prix > 0 ? (marge / prix * 100) : 0;
+        const couleur = margePct >= 25 ? 'var(--m-green)' : margePct >= 15 ? 'var(--m-accent)' : margePct >= 5 ? 'var(--m-red)' : 'var(--m-red)';
+        const verdict = margePct >= 25 ? '🟢 Excellente' : margePct >= 15 ? '🟡 Acceptable' : margePct >= 5 ? '🟠 Limite' : margePct >= 0 ? '🔴 À renégocier' : '🔴 PERTE';
+
+        html += `
+          <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 14px;line-height:1.4">💡 Estime la rentabilité d'une nouvelle livraison avant de proposer un prix au client.</p>
+          <div class="m-card" style="padding:18px;margin-bottom:14px">
+            <div class="m-form-row" style="margin-bottom:0">
+              <div class="m-form-field" style="margin-bottom:0">
+                <label class="m-form-label">Prix proposé HT</label>
+                <div class="m-form-input-suffix">
+                  <input type="number" id="m-devis-prix" step="0.01" min="0" placeholder="0.00" value="${prix > 0 ? prix : ''}" />
+                  <span class="m-form-input-suffix-text">€</span>
+                </div>
+              </div>
+              <div class="m-form-field" style="margin-bottom:0">
+                <label class="m-form-label">Distance</label>
+                <div class="m-form-input-suffix">
+                  <input type="number" id="m-devis-km" step="0.1" min="0" placeholder="0" value="${km > 0 ? km : ''}" />
+                  <span class="m-form-input-suffix-text">km</span>
+                </div>
+              </div>
+            </div>
+            <div class="m-form-field" style="margin-bottom:0;margin-top:14px">
+              <label class="m-form-label">Coût km de référence</label>
+              <div class="m-form-input-suffix">
+                <input type="number" id="m-devis-coutkm" step="0.01" min="0" placeholder="0.50" value="${coutKmStocke.toFixed(2)}" />
+                <span class="m-form-input-suffix-text">€/km</span>
+              </div>
+              <p class="m-form-hint">Calculé auto depuis tes dépenses ${moisSel} (${M.format$((carbTotal + entrTotal + autresChargesTotal))} / ${M.formatNum(kmTotal.toFixed(0))} km). Ajustable.</p>
+            </div>
+          </div>
+
+          ${prix > 0 && km > 0 ? `
+            <div class="m-card" style="border-left:4px solid ${couleur};padding:18px;margin-bottom:12px">
+              <div class="m-card-title">${verdict}</div>
+              <div class="m-card-value" style="color:${couleur};font-size:1.8rem">${margePct.toFixed(1)}%</div>
+              <div class="m-card-sub">Marge estimée ${M.format$(marge)}</div>
+            </div>
+
+            <div class="m-card" style="padding:0">
+              <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Prix HT proposé</span><span style="font-weight:600">${M.format$(prix)}</span></div>
+              <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Coût estimé (${km} km × ${coutKmStocke.toFixed(2)}€)</span><span style="font-weight:600;color:var(--m-red)">−${M.format$(depEstim)}</span></div>
+              <div style="padding:14px 16px;display:flex;justify-content:space-between;background:var(--m-accent-soft)"><span style="font-weight:600">Marge nette estimée</span><span style="font-weight:700;color:${couleur}">${M.format$(marge)}</span></div>
+            </div>
+
+            ${margePct < 15 ? `
+              <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:12px;line-height:1.5">
+                💡 Pour atteindre 20% de marge, vise un prix d'au moins <strong>${M.format$(depEstim / 0.8)}</strong>
+              </p>
+            ` : ''}
+          ` : `
+            <div class="m-empty" style="padding:32px 16px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Saisis un prix et une distance pour calculer la marge estimée.</p></div>
+          `}
+        `;
+      }
+
       return html;
     },
     afterRender(container) {
@@ -2741,6 +2806,19 @@
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
       });
+      // Calculateur devis : input listeners (debounce léger)
+      const wireDevis = (id, key) => {
+        const el = container.querySelector(id);
+        if (!el) return;
+        let t = null;
+        el.addEventListener('input', e => {
+          clearTimeout(t);
+          t = setTimeout(() => { M.state[key] = parseFloat(e.target.value) || 0; M.go('rentabilite'); }, 350);
+        });
+      };
+      wireDevis('#m-devis-prix', 'devisPrix');
+      wireDevis('#m-devis-km', 'devisKm');
+      wireDevis('#m-devis-coutkm', 'devisCoutKm');
       // Tap sur une ligne -> navigue vers la fiche detail correspondante
       container.querySelectorAll('.m-rent-row[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -3592,11 +3670,14 @@
 
       const incidents = M.charger('incidents').sort((a,b) => new Date(b.creeLe||b.date||0) - new Date(a.creeLe||a.date||0));
       const statut = M.state.incidentsStatut;
-      const ouverts = incidents.filter(i => i.statut !== 'traite' && i.statut !== 'resolu' && i.statut !== 'clos');
+      const ouverts = incidents.filter(i => (i.statut || 'ouvert') === 'ouvert');
+      const enCours = incidents.filter(i => i.statut === 'encours');
+      const traites = incidents.filter(i => ['traite','resolu','clos'].includes(i.statut));
 
       let filtered = incidents;
-      if (statut === 'ouverts')  filtered = ouverts;
-      if (statut === 'traites')  filtered = incidents.filter(i => i.statut === 'traite' || i.statut === 'resolu' || i.statut === 'clos');
+      if (statut === 'ouverts') filtered = ouverts;
+      if (statut === 'encours') filtered = enCours;
+      if (statut === 'traites') filtered = traites;
 
       let html = `<button class="m-fab" onclick="MCAm.formNouvelIncident()" aria-label="Nouvel incident">+</button>`;
       html += `
@@ -3607,6 +3688,7 @@
         <div style="display:flex;gap:6px;margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">📋 Tous</button>
           <button class="m-alertes-chip ${statut==='ouverts'?'active':''}" data-statut="ouverts">🔴 Ouverts${ouverts.length?` (${ouverts.length})`:''}</button>
+          <button class="m-alertes-chip ${statut==='encours'?'active':''}" data-statut="encours">🟡 En cours${enCours.length?` (${enCours.length})`:''}</button>
           <button class="m-alertes-chip ${statut==='traites'?'active':''}" data-statut="traites">✅ Traités</button>
         </div>
       `;
