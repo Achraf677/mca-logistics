@@ -1948,8 +1948,9 @@
       });
     }
   });
-  // ---------- Rentabilite (v2.1 : KPI vue d'ensemble + selecteur periode) ----------
-  M.state.rentMois = new Date().toISOString().slice(0, 7); // mois selectionne YYYY-MM
+  // ---------- Rentabilite v3.7 : 4 sous-onglets (Global / Vehicule / Client / Chauffeur) ----------
+  M.state.rentMois = new Date().toISOString().slice(0, 7);
+  M.state.rentTab = 'global';
 
   M.register('rentabilite', {
     title: 'Rentabilité',
@@ -1958,28 +1959,30 @@
       const carburant  = M.charger('carburant');
       const entretiens = M.charger('entretiens');
       const charges    = M.charger('charges');
+      const vehicules  = M.charger('vehicules').filter(v => v && !v.archive);
+      const salaries   = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
       const moisSel = M.state.rentMois;
-      const inMois = (date) => (date || '').startsWith(moisSel);
+      const tab     = M.state.rentTab;
+      const inMois  = (date) => (date || '').startsWith(moisSel);
 
-      const livMois = livraisons.filter(l => inMois(l.date));
-      const carbMois = carburant.filter(p => inMois(p.date));
-      const entrMois = entretiens.filter(e => inMois(e.date));
+      const livMois     = livraisons.filter(l => inMois(l.date));
+      const carbMois    = carburant.filter(p => inMois(p.date));
+      const entrMois    = entretiens.filter(e => inMois(e.date));
       const chargesMois = charges.filter(c => inMois(c.date) && c.categorie !== 'entretien');
 
-      // Memes formules que script-rentabilite.js (afficherRentabilite)
-      const ca = livMois.reduce((s, l) => s + (Number(l.prix) || 0), 0);
-      const carb = carbMois.reduce((s, p) => s + (Number(p.total) || 0), 0);
-      const entr = entrMois.reduce((s, e) => s + (Number(e.cout) || 0), 0);
-      const autresCharges = chargesMois.reduce((s, c) => s + (Number(c.montant) || 0), 0);
-      const dep = carb + entr + autresCharges;
-      const profit = ca - dep;
-      const marge = ca > 0 ? (profit / ca * 100) : 0;
-      const km = livMois.reduce((s, l) => s + (Number(l.distance) || 0), 0);
-      const coutKm = km > 0 ? dep / km : 0;
-      const margeColor = marge >= 20 ? 'var(--m-green)' : marge >= 10 ? 'var(--m-accent)' : 'var(--m-red)';
+      // KPI globaux du mois (utilises pour le coverage et le cout/km de reference)
+      const caTotal = livMois.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+      const kmTotal = livMois.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+      const carbTotal    = carbMois.reduce((s, p) => s + (Number(p.total) || 0), 0);
+      const entrTotal    = entrMois.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+      const autresTotal  = chargesMois.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+      const depTotal     = carbTotal + entrTotal + autresTotal;
+      const profitTotal  = caTotal - depTotal;
+      const margeTotal   = caTotal > 0 ? (profitTotal / caTotal * 100) : 0;
+      const coutKmRef    = kmTotal > 0 ? depTotal / kmTotal : 0;
 
-      // Selecteur mois : courant +/- 11 mois
+      // Selecteur mois
       const moisOptions = [];
       const now = new Date();
       for (let i = 0; i < 12; i++) {
@@ -1989,81 +1992,184 @@
         moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
       }
 
-      // Pourcentages pour la barre breakdown
-      const pct = (v) => dep > 0 ? Math.round(v / dep * 100) : 0;
-      const pctCarb = pct(carb), pctEntr = pct(entr), pctAutres = pct(autresCharges);
-
-      return `
-        <div style="margin-bottom:16px">
-          <select id="m-rent-mois" style="font-size:16px">
-            ${moisOptions.join('')}
-          </select>
+      let html = `
+        <div style="margin-bottom:14px">
+          <select id="m-rent-mois">${moisOptions.join('')}</select>
         </div>
-
-        <!-- KPI principaux : 2 cards highlight -->
-        <div class="m-card-row">
-          <div class="m-card m-card-green">
-            <div class="m-card-title">Chiffre d'affaires</div>
-            <div class="m-card-value">${M.format$(ca)}</div>
-            <div class="m-card-sub">${livMois.length} liv. · ${M.formatNum(km)} km</div>
-          </div>
-          <div class="m-card" style="border-left:4px solid ${margeColor}">
-            <div class="m-card-title">Marge nette</div>
-            <div class="m-card-value" style="color:${margeColor}">${marge.toFixed(1)}%</div>
-            <div class="m-card-sub">Profit ${M.format$(profit)}</div>
-          </div>
+        <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${tab==='global'?'active':''}" data-tab="global">📊 Global</button>
+          <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">🚐 Véhicule</button>
+          <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">🧑‍💼 Client</button>
+          <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">👤 Chauffeur</button>
         </div>
-
-        <!-- Depenses : breakdown -->
-        <div class="m-card">
-          <div class="m-card-title">Dépenses du mois</div>
-          <div class="m-card-value" style="color:var(--m-red)">${M.format$(dep)}</div>
-          <div class="m-card-sub">${M.format$(coutKm)} / km</div>
-
-          <!-- Barre stack visuelle -->
-          ${dep > 0 ? `
-            <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:14px;background:var(--m-border)">
-              <div style="background:rgba(230,126,34,0.85);width:${pctCarb}%" title="Carburant"></div>
-              <div style="background:rgba(52,152,219,0.85);width:${pctEntr}%" title="Entretien"></div>
-              <div style="background:rgba(155,89,182,0.85);width:${pctAutres}%" title="Autres charges"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;margin-top:10px;gap:8px;flex-wrap:wrap;font-size:.78rem">
-              <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(230,126,34,0.85);border-radius:2px"></span>Carburant ${pctCarb}%</span>
-              <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(52,152,219,0.85);border-radius:2px"></span>Entretien ${pctEntr}%</span>
-              <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(155,89,182,0.85);border-radius:2px"></span>Autres ${pctAutres}%</span>
-            </div>
-          ` : ''}
-        </div>
-
-        <!-- Detail depenses : 3 lignes -->
-        <div class="m-card" style="padding:0">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)">
-            <span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span>
-            <span style="font-weight:600">${M.format$(carb)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)">
-            <span style="display:flex;align-items:center;gap:10px"><span>🔧</span><span>Entretien</span></span>
-            <span style="font-weight:600">${M.format$(entr)}</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px">
-            <span style="display:flex;align-items:center;gap:10px"><span>💸</span><span>Autres charges</span></span>
-            <span style="font-weight:600">${M.format$(autresCharges)}</span>
-          </div>
-        </div>
-
-        <p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:16px;line-height:1.5">
-          Vue d'ensemble du mois sélectionné. Les analyses détaillées (par véhicule, tournée, client, chauffeur) sont disponibles sur la version PC.
-        </p>
       `;
+
+      const margeColor = (m) => m >= 20 ? 'var(--m-green)' : m >= 10 ? 'var(--m-accent)' : 'var(--m-red)';
+
+      // ---------- Tab GLOBAL ----------
+      if (tab === 'global') {
+        const pct = (v) => depTotal > 0 ? Math.round(v / depTotal * 100) : 0;
+        const pctCarb = pct(carbTotal), pctEntr = pct(entrTotal), pctAutres = pct(autresTotal);
+        html += `
+          <div class="m-card-row">
+            <div class="m-card m-card-green">
+              <div class="m-card-title">Chiffre d'affaires</div>
+              <div class="m-card-value">${M.format$(caTotal)}</div>
+              <div class="m-card-sub">${livMois.length} liv. · ${M.formatNum(kmTotal)} km</div>
+            </div>
+            <div class="m-card" style="border-left:4px solid ${margeColor(margeTotal)}">
+              <div class="m-card-title">Marge nette</div>
+              <div class="m-card-value" style="color:${margeColor(margeTotal)}">${margeTotal.toFixed(1)}%</div>
+              <div class="m-card-sub">Profit ${M.format$(profitTotal)}</div>
+            </div>
+          </div>
+          <div class="m-card">
+            <div class="m-card-title">Dépenses du mois</div>
+            <div class="m-card-value" style="color:var(--m-red)">${M.format$(depTotal)}</div>
+            <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
+            ${depTotal > 0 ? `
+              <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:14px;background:var(--m-border)">
+                <div style="background:rgba(230,126,34,0.85);width:${pctCarb}%"></div>
+                <div style="background:rgba(52,152,219,0.85);width:${pctEntr}%"></div>
+                <div style="background:rgba(155,89,182,0.85);width:${pctAutres}%"></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:10px;gap:8px;flex-wrap:wrap;font-size:.78rem">
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(230,126,34,0.85);border-radius:2px"></span>Carburant ${pctCarb}%</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(52,152,219,0.85);border-radius:2px"></span>Entretien ${pctEntr}%</span>
+                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(155,89,182,0.85);border-radius:2px"></span>Autres ${pctAutres}%</span>
+              </div>
+            ` : ''}
+          </div>
+          <div class="m-card" style="padding:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>🔧</span><span>Entretien</span></span><span style="font-weight:600">${M.format$(entrTotal)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="display:flex;align-items:center;gap:10px"><span>💸</span><span>Autres charges</span></span><span style="font-weight:600">${M.format$(autresTotal)}</span></div>
+          </div>
+        `;
+        return html;
+      }
+
+      // ---------- Helper card ligne (pour les 3 sous-onglets analytiques) ----------
+      const renderLigne = (titre, sub, ca, dep, marge, km, onClick, icone) => {
+        const profit = ca - dep;
+        const margePct = ca > 0 ? (profit / ca * 100) : 0;
+        const color = margeColor(margePct);
+        const action = onClick ? `data-action="${onClick}"` : '';
+        const tag = onClick ? 'button' : 'div';
+        return `<${tag} type="button" class="m-card m-card-pressable m-rent-row" ${action} style="padding:14px;border-left:4px solid ${color};margin-bottom:10px;display:block;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit">
+          <div style="display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px">
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px">${icone ? `<span>${icone}</span>` : ''}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre)}</span></div>
+              ${sub ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(sub)}</div>` : ''}
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-weight:700;color:${color};font-size:1.1rem">${margePct.toFixed(0)}%</div>
+              <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.04em">marge</div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:var(--m-text-muted);padding-top:8px;border-top:1px solid var(--m-border)">
+            <div><span style="color:var(--m-green);font-weight:600">${M.format$(ca)}</span> CA</div>
+            <div><span style="color:var(--m-red);font-weight:600">${M.format$(dep)}</span> dép.</div>
+            ${km > 0 ? `<div><span style="color:var(--m-text);font-weight:600">${M.formatNum(km)}</span> km</div>` : ''}
+          </div>
+        </${tag}>`;
+      };
+
+      // ---------- Tab PAR VEHICULE ----------
+      if (tab === 'vehicule') {
+        const stats = vehicules.map(v => {
+          const livV   = livMois.filter(l => l.vehiculeId === v.id);
+          const carbV  = carbMois.filter(p => p.vehiculeId === v.id);
+          const entrV  = entrMois.filter(e => e.vehiculeId === v.id);
+          const chrgV  = chargesMois.filter(c => c.vehiculeId === v.id);
+          const ca   = livV.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+          const carb = carbV.reduce((s, p) => s + (Number(p.total) || 0), 0);
+          const entr = entrV.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+          const chrg = chrgV.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+          const km   = livV.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+          return { v, ca, dep: carb + entr + chrg, km, nbLiv: livV.length };
+        }).filter(x => x.ca > 0 || x.dep > 0)
+          .sort((a, b) => b.ca - a.ca);
+
+        if (!stats.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas d'activité véhicule pour ce mois. Saisis des livraisons rattachées à un véhicule.</p></div>`;
+          return html;
+        }
+        stats.forEach(({ v, ca, dep, km, nbLiv }) => {
+          html += renderLigne(v.immat || v.id, `${v.modele || ''}${v.salNom ? ' · ' + v.salNom : ''} · ${nbLiv} liv.`, ca, dep, 0, km, `veh:${v.id}`, '🚐');
+        });
+      }
+
+      // ---------- Tab PAR CLIENT ----------
+      // Pas de coûts directs rattachés -> marge estimée = CA - (km × coût/km flotte)
+      if (tab === 'client') {
+        const byClient = {};
+        livMois.forEach(l => {
+          const key = (l.client || '—').trim();
+          if (!byClient[key]) byClient[key] = { nom: key, ca: 0, km: 0, nbLiv: 0 };
+          byClient[key].ca += Number(l.prix) || Number(l.prixHT) || 0;
+          byClient[key].km += Number(l.distance) || 0;
+          byClient[key].nbLiv++;
+        });
+        const stats = Object.values(byClient).sort((a, b) => b.ca - a.ca);
+
+        if (!stats.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons ce mois.</p></div>`;
+          return html;
+        }
+        html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée = CA - (km × coût/km flotte ${M.format$(coutKmRef)}/km)</p>`;
+        stats.forEach(({ nom, ca, km, nbLiv }) => {
+          const depEstim = km * coutKmRef;
+          const cli = M.findClientByName(nom);
+          html += renderLigne(nom, `${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, depEstim, 0, km, cli ? `cli:${cli.id}` : '', '🧑‍💼');
+        });
+      }
+
+      // ---------- Tab PAR CHAUFFEUR ----------
+      if (tab === 'chauffeur') {
+        const stats = salaries.map(s => {
+          const livS = livMois.filter(l => l.salarieId === s.id);
+          const ca = livS.reduce((sum, l) => sum + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+          const km = livS.reduce((sum, l) => sum + (Number(l.distance) || 0), 0);
+          // Carburant rattachable si le chauffeur a un vehicule attribue (via veh.salId)
+          const vehAttribues = vehicules.filter(v => v.salId === s.id).map(v => v.id);
+          const carbS = carbMois.filter(p => vehAttribues.includes(p.vehiculeId)).reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+          // Estimation : marge = CA - carburant chauffeur - (km × cout autres flotte)
+          const depEstim = carbS + (km * (coutKmRef - (kmTotal > 0 ? carbTotal / kmTotal : 0)));
+          return { s, ca, dep: depEstim, km, nbLiv: livS.length };
+        }).filter(x => x.ca > 0)
+          .sort((a, b) => b.ca - a.ca);
+
+        if (!stats.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">👤</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons rattachées à un chauffeur ce mois.</p></div>`;
+          return html;
+        }
+        html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée : CA - carburant chauffeur - autres charges (au prorata des km)</p>`;
+        stats.forEach(({ s, ca, dep, km, nbLiv }) => {
+          const fullName = `${s.prenom ? s.prenom + ' ' : ''}${s.nom || s.id}`;
+          html += renderLigne(fullName, `${s.poste || 'Chauffeur'} · ${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `sal:${s.id}`, '👤');
+        });
+      }
+
+      return html;
     },
     afterRender(container) {
       const sel = container.querySelector('#m-rent-mois');
-      if (sel) {
-        sel.addEventListener('change', e => {
-          M.state.rentMois = e.target.value;
-          M.go('rentabilite');
+      if (sel) sel.addEventListener('change', e => { M.state.rentMois = e.target.value; M.go('rentabilite'); });
+      container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
+      });
+      // Tap sur une ligne -> navigue vers la fiche detail correspondante
+      container.querySelectorAll('.m-rent-row[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          if (!action) return;
+          const [type, id] = action.split(':');
+          if (type === 'veh') M.openDetail('vehicules', id);
+          else if (type === 'cli') M.openDetail('clients', id);
+          else if (type === 'sal') M.openDetail('salaries', id);
         });
-      }
+      });
     }
   });
   // ---------- Clients (v2.7 : list + recherche + detail tap-to-call) ----------
