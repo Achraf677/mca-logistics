@@ -2304,6 +2304,7 @@
 
   // ---------- Charges (v3.0 : groupees par mois + filtre statut) ----------
   M.state.chargesStatut = 'tous'; // tous | a_payer | paye
+  M.state.chargesCategorie = ''; // '' = toutes
   M.state.chargesMoisOuverts = {};
   M.register('charges', {
     title: 'Charges',
@@ -2316,9 +2317,11 @@
       const totalImpayes = aPayer.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
 
       const statut = M.state.chargesStatut;
+      const cat = M.state.chargesCategorie;
       let filtered = charges;
-      if (statut === 'a_payer') filtered = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
-      if (statut === 'paye')    filtered = charges.filter(c => c.statut === 'paye' || c.statut === 'payee');
+      if (cat) filtered = filtered.filter(c => (c.categorie || '') === cat);
+      if (statut === 'a_payer') filtered = filtered.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
+      if (statut === 'paye')    filtered = filtered.filter(c => c.statut === 'paye' || c.statut === 'payee');
 
       const sorted = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
@@ -2336,10 +2339,21 @@
             <div class="m-card-sub">${M.formatNum(courantes.length)} entrée${courantes.length>1?'s':''}</div>
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+        <div style="display:flex;gap:6px;margin:16px 0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">📋 Toutes</button>
           <button class="m-alertes-chip ${statut==='a_payer'?'active':''}" data-statut="a_payer">⚠️ À payer${aPayer.length?` (${aPayer.length})`:''}</button>
           <button class="m-alertes-chip ${statut==='paye'?'active':''}" data-statut="paye">✅ Payées</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip m-charges-cat ${cat===''?'active':''}" data-cat="">Toutes catégories</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='loyer'?'active':''}" data-cat="loyer">🏢 Loyer</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='assurance'?'active':''}" data-cat="assurance">🛡️ Assurance</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='energie'?'active':''}" data-cat="energie">⚡ Énergie</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='telecom'?'active':''}" data-cat="telecom">📞 Télécom</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='banque'?'active':''}" data-cat="banque">🏦 Banque</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='compta'?'active':''}" data-cat="compta">📊 Compta</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='entretien'?'active':''}" data-cat="entretien">🔧 Entretien</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='autre'?'active':''}" data-cat="autre">📌 Autre</button>
         </div>
       `;
 
@@ -2408,9 +2422,17 @@
       return html;
     },
     afterRender(container) {
-      container.querySelectorAll('.m-alertes-chip').forEach(btn => {
+      // Chips statut (data-statut)
+      container.querySelectorAll('.m-alertes-chip[data-statut]').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.chargesStatut = btn.dataset.statut;
+          M.go('charges');
+        });
+      });
+      // Chips categorie (data-cat)
+      container.querySelectorAll('.m-charges-cat').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.chargesCategorie = btn.dataset.cat;
           M.go('charges');
         });
       });
@@ -3587,24 +3609,45 @@
     `;
   };
 
-  // ---------- TVA (v2.9 : recap mensuel collectee/deductible/a reverser) ----------
+  // ---------- TVA (v3.9 : recap mensuel + tableaux details collectee/deductible) ----------
   M.state.tvaMois = new Date().toISOString().slice(0, 7);
+  M.state.tvaTab = 'recap'; // recap | collectee | deductible
   M.register('tva', {
     title: 'TVA',
     render() {
       const moisSel = M.state.tvaMois;
+      const tab = M.state.tvaTab;
       const livraisons = M.charger('livraisons').filter(l => (l.date || '').startsWith(moisSel));
       const charges = M.charger('charges').filter(c => (c.date || '').startsWith(moisSel));
+      const carburant = M.charger('carburant').filter(p => (p.date || '').startsWith(moisSel));
 
-      // TVA collectee = somme des (TTC - HT) des livraisons
-      const caHT = livraisons.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
-      const caTTC = livraisons.reduce((s, l) => s + (Number(l.prixTTC) || (Number(l.prix) || 0) * 1.2), 0);
-      const tvaCollectee = Math.max(0, caTTC - caHT);
+      // TVA collectee : par livraison, base = HT, montant = TVA explicite ou (TTC - HT)
+      const livAvecTva = livraisons.map(l => {
+        const ht = Number(l.prix) || Number(l.prixHT) || 0;
+        const ttc = Number(l.prixTTC) || ht * (1 + (Number(l.tauxTva) || 0) / 100) || ht * 1.2;
+        const tva = Number(l.tva) || (ttc - ht);
+        const taux = Number(l.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
+        return { ...l, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
+      });
+      const tvaCollectee = livAvecTva.reduce((s, l) => s + l._tva, 0);
+      const baseCollectee = livAvecTva.reduce((s, l) => s + l._ht, 0);
 
-      // TVA deductible = somme des TVA des charges
-      const tvaDeductible = charges.reduce((s, c) => s + (Number(c.tva) || 0), 0);
+      // TVA deductible : charges + carburant (TVA carburant deductible souvent partielle, on laisse au user)
+      const chargesAvecTva = charges.filter(c => (Number(c.tva) || 0) > 0).map(c => {
+        const ttc = Number(c.montantTtc) || Number(c.montant) || 0;
+        const tva = Number(c.tva) || 0;
+        const ht = Number(c.montantHT) || (ttc - tva);
+        const taux = Number(c.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
+        return { ...c, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
+      });
+      const tvaDeductibleCharges = chargesAvecTva.reduce((s, c) => s + c._tva, 0);
+      const baseDeductibleCharges = chargesAvecTva.reduce((s, c) => s + c._ht, 0);
 
-      // A reverser = collectee - deductible
+      // Carburant : TVA souvent indiquee sur ticket, ici on n'a pas le champ mais on peut estimer 20% sur HT
+      // Pour simplicite : la TVA carburant n'est PAS comptee automatiquement (a saisir comme charges).
+      // On affiche juste la liste pleins.
+
+      const tvaDeductible = tvaDeductibleCharges;
       const aReverser = tvaCollectee - tvaDeductible;
       const enCredit = aReverser < 0;
 
@@ -3617,28 +3660,94 @@
         moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
       }
 
-      return `
+      let html = `
         <div style="margin-bottom:14px"><select id="m-tva-mois">${moisOptions.join('')}</select></div>
-
-        <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
-          <div class="m-card-title">${enCredit ? '💚 Crédit TVA' : '💸 TVA à reverser'}</div>
-          <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
-          <div class="m-card-sub">${enCredit ? 'Tu peux te faire rembourser' : 'À déclarer ce mois'}</div>
+        <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap">📊 Récap</button>
+          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee">📥 Collectée (${livAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible">📤 Déductible (${chargesAvecTva.length})</button>
         </div>
-
-        <div class="m-card-row">
-          <div class="m-card m-card-green"><div class="m-card-title">Collectée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaCollectee)}</div><div class="m-card-sub">sur livraisons</div></div>
-          <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">sur charges</div></div>
-        </div>
-
-        <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
-          Récap simplifié. La déclaration officielle (CA3, justificatifs) se fait sur la version PC.
-        </p>
       `;
+
+      if (tab === 'recap') {
+        html += `
+          <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
+            <div class="m-card-title">${enCredit ? '💚 Crédit TVA' : '💸 TVA à reverser'}</div>
+            <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
+            <div class="m-card-sub">${enCredit ? 'Tu peux te faire rembourser' : 'À déclarer ce mois'}</div>
+          </div>
+          <div class="m-card-row">
+            <div class="m-card m-card-green"><div class="m-card-title">Collectée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaCollectee)}</div><div class="m-card-sub">${livAvecTva.length} livraison${livAvecTva.length>1?'s':''}</div></div>
+            <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">${chargesAvecTva.length} charge${chargesAvecTva.length>1?'s':''}</div></div>
+          </div>
+          <div class="m-card" style="padding:0">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base collectée HT</span><span style="font-weight:600">${M.format$(baseCollectee)}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base déductible HT</span><span style="font-weight:600">${M.format$(baseDeductibleCharges)}</span></div>
+          </div>
+          <p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
+            Récap simplifié. La TVA sur carburant doit être saisie comme charge pour être prise en compte. Déclaration officielle (CA3) sur version PC.
+          </p>
+        `;
+      }
+
+      if (tab === 'collectee') {
+        if (!livAvecTva.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">📥</div><h3 class="m-empty-title">Aucune livraison ce mois</h3></div>`;
+        } else {
+          html += `<div class="m-card" style="padding:0">
+            ${livAvecTva.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(l => `
+              <div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:start;gap:10px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:500;font-size:.9rem">${M.escHtml(l.client || '—')}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
+                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(l.date)} · HT ${M.format$(l._ht)} · ${l._taux.toFixed(1)}%</div>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l._tva)}</div>
+                  <div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">TTC ${M.format$(l._ttc)}</div>
+                </div>
+              </div>
+            `).join('').replace(/border-bottom:1px solid var\(--m-border\);(?=[^;]*style[^>]*>$|[^"]*">[^<]*<\/div>\s*$)/, '')}
+          </div>
+          <div class="m-card" style="margin-top:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--m-accent-soft)">
+            <span style="font-weight:600">Total TVA collectée</span>
+            <span style="font-weight:700;color:var(--m-green);font-size:1.1rem">${M.format$(tvaCollectee)}</span>
+          </div>`;
+        }
+      }
+
+      if (tab === 'deductible') {
+        if (!chargesAvecTva.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">📤</div><h3 class="m-empty-title">Aucune charge avec TVA ce mois</h3><p class="m-empty-text">Les charges sans TVA explicite ne sont pas comptees comme deductibles.</p></div>`;
+        } else {
+          html += `<div class="m-card" style="padding:0">
+            ${chargesAvecTva.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(c => `
+              <div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:start;gap:10px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:500;font-size:.9rem">${M.escHtml(c.libelle || c.fournisseur || '—')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(c.date)} · HT ${M.format$(c._ht)} · ${c._taux.toFixed(1)}%${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
+                </div>
+                <div style="text-align:right;flex-shrink:0">
+                  <div style="font-weight:700;color:var(--m-blue);white-space:nowrap">${M.format$(c._tva)}</div>
+                  <div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">TTC ${M.format$(c._ttc)}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="m-card" style="margin-top:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--m-accent-soft)">
+            <span style="font-weight:600">Total TVA déductible</span>
+            <span style="font-weight:700;color:var(--m-blue);font-size:1.1rem">${M.format$(tvaDeductible)}</span>
+          </div>`;
+        }
+      }
+
+      return html;
     },
     afterRender(container) {
       const sel = container.querySelector('#m-tva-mois');
       if (sel) sel.addEventListener('change', e => { M.state.tvaMois = e.target.value; M.go('tva'); });
+      container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.tvaTab = btn.dataset.tab; M.go('tva'); });
+      });
     }
   });
 
