@@ -939,7 +939,10 @@
     function basculerVersSetupInitial() {
       const defauts = getDefaultAdminAccounts();
       const cible = defauts[0] || {};
-      document.getElementById('setup-identifiant-display').textContent = cible.identifiant || '—';
+      // L'element setup-identifiant-display a ete retire de la mise en page :
+      // on guard pour eviter le TypeError sur null.textContent (Sentry mobile).
+      var ident = document.getElementById('setup-identifiant-display');
+      if (ident) ident.textContent = cible.identifiant || '—';
       document.getElementById('auth-title').textContent = 'Premier démarrage';
       document.getElementById('login-form').style.display = 'none';
       document.getElementById('setup-form').style.display = '';
