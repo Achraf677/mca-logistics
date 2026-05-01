@@ -1227,6 +1227,145 @@
     M.formNouvelEntretien(e);
   };
 
+  // ---- HEURES + KM ----
+  M.formNouveauHeures = function(existing) {
+    const enEdition = !!existing;
+    const h = existing || {};
+    const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+    const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+    const today = new Date().toISOString().slice(0, 10);
+    const body = `
+      ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Choisir', value: h.salId || h.salarieId || '', required: true }), { required: true })}
+      ${M.formField('Date', M.formInput('date', { type: 'date', value: h.date || today, required: true }), { required: true })}
+      ${M.formField('Véhicule (optionnel)', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Aucun', value: h.vehiculeId || '' }))}
+      <div class="m-form-row">
+        ${M.formField('Heures travaillées', M.formInputWithSuffix('heures', 'h', { type: 'number', step: '0.25', min: '0', placeholder: '8', value: h.heures || '' }))}
+        ${M.formField('Km parcourus', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: h.km || '' }))}
+      </div>
+      ${M.formField('Notes', M.formTextarea('notes', { value: h.notes || '', rows: 2, placeholder: 'Détails (heures sup, dépassement...)' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette saisie</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier saisie' : '⏱️ Saisie heures / km',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm('Supprimer définitivement cette saisie ?', { titre: 'Supprimer saisie' })) return;
+          M.sauvegarder('heures', M.charger('heures').filter(x => x.id !== h.id));
+          M.toast('🗑️ Saisie supprimée');
+          M.closeSheet();
+          M.go('heures');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.salId || !f.date) { M.toast('⚠️ Salarié et date obligatoires'); return false; }
+        const heures = parseFloat(f.heures) || 0;
+        const km = parseFloat(f.km) || 0;
+        if (!(heures > 0) && !(km > 0)) { M.toast('⚠️ Au moins heures ou km > 0'); return false; }
+        const arr = M.charger('heures');
+        const data = {
+          salId: f.salId,
+          salarieId: f.salId, // compat desktop (script.js utilise les 2 cles)
+          date: f.date,
+          vehiculeId: f.vehiculeId || null,
+          heures,
+          km,
+          notes: f.notes?.trim() || ''
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === h.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('heures', arr);
+          M.toast('✅ Saisie modifiée');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('heures', arr);
+          M.toast('✅ Saisie enregistrée');
+        }
+        M.go('heures');
+        return true;
+      }
+    });
+  };
+  M.editerHeures = function(id) {
+    const h = M.charger('heures').find(x => x.id === id);
+    if (!h) return M.toast('Saisie introuvable');
+    M.formNouveauHeures(h);
+  };
+
+  // ---- PLANNING (saisie horaires d'un salarie pour le jour selectionne) ----
+  M.formPlanningJour = function(salId) {
+    const salaries = M.charger('salaries');
+    const sal = salaries.find(s => s.id === salId);
+    if (!sal) return M.toast('Salarié introuvable');
+    const plannings = M.charger('plannings');
+    const planning = plannings.find(p => p.salId === salId) || { salId, semaine: [] };
+    const jourIdx = M.state.planningJour;
+    const jourCle = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][jourIdx];
+    const jourLabel = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
+    const data = (planning.semaine || []).find(j => j.jour === jourCle) || {};
+    const typeJour = data.typeJour || (data.travaille ? 'travail' : 'repos');
+    const fullName = ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || sal.id)).trim();
+
+    const body = `
+      <div style="background:var(--m-accent-soft);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:.88rem">
+        <strong>${jourLabel}</strong> · ${M.escHtml(fullName)}
+      </div>
+      ${M.formField('Type de jour', M.formSelect('typeJour', [
+        { value: 'travail', label: '✅ Travail' },
+        { value: 'repos',   label: '😴 Repos' },
+        { value: 'conge',   label: '🏖️ Congé' },
+        { value: 'absence', label: '⚠️ Absence' },
+        { value: 'maladie', label: '🤒 Maladie' }
+      ], { value: typeJour }))}
+      <div class="m-form-row" id="m-plan-horaires" style="display:${typeJour === 'travail' ? 'grid' : 'none'}">
+        ${M.formField('Début', M.formInput('heureDebut', { type: 'time', value: data.heureDebut || '08:00' }))}
+        ${M.formField('Fin', M.formInput('heureFin', { type: 'time', value: data.heureFin || '18:00' }))}
+      </div>
+      <div id="m-plan-extras" style="display:${typeJour === 'travail' ? 'block' : 'none'}">
+        ${M.formField('Zone / tournée', M.formInput('zone', { value: data.zone || '', placeholder: 'Île-de-France, Normandie...' }))}
+        ${M.formField('Note', M.formInput('note', { value: data.note || '', placeholder: 'Info utile (RDV, pause...)' }))}
+      </div>
+    `;
+    M.openSheet({
+      title: '📅 Planning ' + jourLabel,
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        const select = b.querySelector('select[name=typeJour]');
+        const horaires = b.querySelector('#m-plan-horaires');
+        const extras = b.querySelector('#m-plan-extras');
+        select.addEventListener('change', () => {
+          const isTrav = select.value === 'travail';
+          horaires.style.display = isTrav ? 'grid' : 'none';
+          extras.style.display = isTrav ? 'block' : 'none';
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        const arr = M.charger('plannings');
+        let p = arr.find(x => x.salId === salId);
+        if (!p) { p = { salId, semaine: [] }; arr.push(p); }
+        p.semaine = p.semaine || [];
+        let jourEntry = p.semaine.find(j => j.jour === jourCle);
+        if (!jourEntry) { jourEntry = { jour: jourCle }; p.semaine.push(jourEntry); }
+        jourEntry.typeJour = f.typeJour;
+        jourEntry.travaille = f.typeJour === 'travail';
+        jourEntry.heureDebut = f.heureDebut || '';
+        jourEntry.heureFin = f.heureFin || '';
+        jourEntry.zone = f.zone?.trim() || '';
+        jourEntry.note = f.note?.trim() || '';
+        M.sauvegarder('plannings', arr);
+        M.toast('✅ Planning mis à jour');
+        M.go('planning');
+        return true;
+      }
+    });
+  };
+
   // ============================================================
   // Drawer (Plus)
   // ============================================================
@@ -1668,8 +1807,10 @@
         });
       });
       // Tap salarie -> ouvre sa fiche
+      // Tap card salarie -> ouvre form planning pour CE jour selectionne
+      // (plus pertinent dans le contexte Planning que d'aller a la fiche salarie)
       container.querySelectorAll('.m-planning-sal').forEach(btn => {
-        btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.salId));
+        btn.addEventListener('click', () => M.formPlanningJour(btn.dataset.salId));
       });
     }
   });
@@ -3290,7 +3431,8 @@
       const grandTotalH  = stats.reduce((s, x) => s + x.totalHeures, 0);
       const grandTotalLiv = stats.reduce((s, x) => s + x.nbLiv, 0);
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouveauHeures()" aria-label="Nouvelle saisie heures">+</button>`;
+      html += `
         <div style="margin-bottom:14px"><select id="m-heures-mois">${moisOptions.join('')}</select></div>
         <div class="m-card-row">
           <div class="m-card m-card-blue"><div class="m-card-title">Total km</div><div class="m-card-value">${M.formatNum(grandTotalKm.toFixed(0))}</div><div class="m-card-sub">${grandTotalLiv} livraison${grandTotalLiv>1?'s':''}</div></div>
