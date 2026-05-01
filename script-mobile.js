@@ -688,7 +688,7 @@
           </div>
         </div>
 
-        <div class="m-card m-card-purple">
+        <div class="m-card m-card-purple m-card-pressable" onclick="MCAm.go('salaries')">
           <div class="m-card-title">👥 Équipe active</div>
           <div class="m-card-value">${M.formatNum(salariesActifs)}</div>
           <div class="m-card-sub">salarié${salariesActifs>1?'s':''} actif${salariesActifs>1?'s':''}</div>
@@ -705,13 +705,13 @@
               return `<div class="m-empty"><div class="m-empty-icon">📦</div><h3 class="m-empty-title">Aucune livraison</h3><p class="m-empty-text">Les livraisons saisies apparaitront ici.</p></div>`;
             }
             return dernieres.map(l => `
-              <div class="m-card" style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;padding:16px;margin-bottom:12px;color:inherit;font-family:inherit">
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || l.client_nom || '—')}</div>
                   <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.formatDate(l.date)} · ${M.escHtml(l.numLiv || l.num_livraison || '—')}</div>
                 </div>
-                <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prixHT || l.prix_ht || 0)}</div>
-              </div>
+                <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prixHT || l.prix_ht || l.prix || 0)}</div>
+              </button>
             `).join('');
           })()}
         </div>
@@ -936,15 +936,16 @@
         auTravail.forEach(({ sal, jourData }) => {
           const horaires = jourData?.heureDebut && jourData?.heureFin
             ? `${jourData.heureDebut} – ${jourData.heureFin}` : '—';
-          html += `<div class="m-card m-card-green" style="padding:12px 14px">
+          html += `<button type="button" class="m-card m-card-green m-card-pressable m-planning-sal" data-sal-id="${M.escHtml(sal.id)}" style="padding:12px 14px;width:100%;text-align:left;border-radius:18px;border:1px solid var(--m-border);background:var(--m-card);border-left:4px solid var(--m-green);margin-bottom:10px;color:inherit;font-family:inherit;display:block">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
               <div style="flex:1 1 auto;min-width:0">
                 <div style="font-weight:600;font-size:.95rem">${M.escHtml(sal.nom || sal.id)}</div>
                 <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${horaires}${jourData?.zone ? ' · ' + M.escHtml(jourData.zone) : ''}</div>
               </div>
+              <span style="color:var(--m-text-muted);font-size:1.1rem">›</span>
             </div>
             ${jourData?.note ? `<div style="font-size:.78rem;color:var(--m-text-muted);margin-top:6px;padding-top:6px;border-top:1px solid var(--m-border);font-style:italic">${M.escHtml(jourData.note)}</div>` : ''}
-          </div>`;
+          </button>`;
         });
         html += `</div>`;
       }
@@ -956,12 +957,12 @@
         horsTravail.forEach(({ sal, typeJour }) => {
           const labels = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie', repos: '😴 Repos' };
           const colors = { conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'var(--m-text-muted)' };
-          html += `<div class="m-card" style="padding:12px 14px;border-left:3px solid ${colors[typeJour] || 'var(--m-border)'}">
+          html += `<button type="button" class="m-card m-card-pressable m-planning-sal" data-sal-id="${M.escHtml(sal.id)}" style="padding:12px 14px;border-left:3px solid ${colors[typeJour] || 'var(--m-border)'};width:100%;text-align:left;border-radius:18px;border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);background:var(--m-card);margin-bottom:10px;color:inherit;font-family:inherit;display:block">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
               <span style="font-weight:600;font-size:.92rem">${M.escHtml(sal.nom || sal.id)}</span>
               <span style="font-size:.78rem;color:${colors[typeJour] || 'var(--m-text-muted)'};font-weight:600">${labels[typeJour] || typeJour}</span>
             </div>
-          </div>`;
+          </button>`;
         });
         html += `</div>`;
       }
@@ -978,6 +979,10 @@
           M.state.planningJour = parseInt(btn.dataset.jour);
           M.go('planning');
         });
+      });
+      // Tap salarie -> ouvre sa fiche
+      container.querySelectorAll('.m-planning-sal').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.salId));
       });
     }
   });
@@ -2455,13 +2460,14 @@
       html += `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Par salarié</h3></div>`;
       stats.forEach(({ sal, nbLiv, kmTotal, totalHeures }) => {
         const initiales = ((sal.nom || '').charAt(0) + (sal.prenom || '').charAt(0)).toUpperCase() || '?';
-        html += `<div class="m-card" style="padding:14px;display:flex;align-items:center;gap:12px">
+        html += `<button type="button" class="m-card m-card-pressable m-heures-sal" data-sal-id="${M.escHtml(sal.id)}" style="padding:14px;display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
           <div style="width:38px;height:38px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0">${M.escHtml(initiales)}</div>
           <div style="flex:1 1 auto;min-width:0">
             <div style="font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div>
             <div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${nbLiv} liv. · ${M.formatNum(kmTotal.toFixed(0))} km · ${totalHeures.toFixed(0)} h</div>
           </div>
-        </div>`;
+          <span style="color:var(--m-text-muted);font-size:1.1rem">›</span>
+        </button>`;
       });
       html += `</div>`;
       return html;
@@ -2469,6 +2475,10 @@
     afterRender(container) {
       const sel = container.querySelector('#m-heures-mois');
       if (sel) sel.addEventListener('change', e => { M.state.heuresMois = e.target.value; M.go('heures'); });
+      // Tap salarie -> ouvre sa fiche
+      container.querySelectorAll('.m-heures-sal').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.salId));
+      });
     }
   });
 
