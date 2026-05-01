@@ -11,7 +11,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
-  <link rel="stylesheet" href="/style-mobile.css?v=23" />
+  <link rel="stylesheet" href="/style-mobile.css?v=24" />
 </head>
 <body class="m-app m-theme-dark">
   <!-- Header compact : back btn + titre. Pas de kebab (vire — aucune route ne s'en sert). -->
@@ -115,14 +115,14 @@
   <!-- Couche données (partagée avec desktop : memes Supabase tables, meme localStorage) -->
   <!-- Supabase SDK : permet le sync temps reel des saisies mobile vers la base -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/supabase-config.js?v=23"></script>
-  <script src="/supabase-client.js?v=23"></script>
+  <script src="/supabase-config.js?v=24"></script>
+  <script src="/supabase-client.js?v=24"></script>
   <!-- supabase-storage-sync hook localStorage.setItem au niveau du prototype.
        Toute ecriture (M.sauvegarder dans script-mobile) declenche un push
        vers Supabase. Doit etre charge AVANT script-mobile. -->
-  <script src="/supabase-storage-sync.js?v=23"></script>
-  <script src="/repo.js?v=23"></script>
+  <script src="/supabase-storage-sync.js?v=24"></script>
+  <script src="/repo.js?v=24"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=23"></script>
+  <script src="/script-mobile.js?v=24"></script>
 </body>
 </html>

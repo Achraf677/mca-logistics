@@ -44,6 +44,66 @@
     } catch (_) { return false; }
   };
 
+  // ============================================================
+  // Migration silencieuse au boot : harmonise les schemas mobile <-> PC
+  // PC utilise vehId/chaufId, mobile a historiquement utilise vehiculeId/salarieId.
+  // On copie les valeurs dans les deux sens pour que les anciennes saisies mobile
+  // remontent cote PC (et inverse). Idempotente, pas de risque a re-executer.
+  // ============================================================
+  M.migrerSchemas = function() {
+    const migrer = (key, mappings) => {
+      const arr = M.charger(key);
+      let changed = false;
+      arr.forEach(item => {
+        mappings.forEach(([a, b]) => {
+          if (item[a] && !item[b]) { item[b] = item[a]; changed = true; }
+          else if (item[b] && !item[a]) { item[a] = item[b]; changed = true; }
+        });
+      });
+      if (changed) M.sauvegarder(key, arr);
+    };
+    // livraisons : vehiculeId<->vehId, salarieId<->chaufId
+    migrer('livraisons', [['vehiculeId', 'vehId'], ['salarieId', 'chaufId']]);
+    // carburant + entretiens + inspections : vehiculeId<->vehId
+    migrer('carburant',   [['vehiculeId', 'vehId']]);
+    migrer('entretiens',  [['vehiculeId', 'vehId']]);
+    migrer('inspections', [['vehiculeId', 'vehId']]);
+    // incidents : salId<->chaufId
+    migrer('incidents',   [['salId', 'chaufId']]);
+    // heures : salarieId<->salId (already dual mais on garantit)
+    migrer('heures',      [['salarieId', 'salId'], ['vehiculeId', 'vehId']]);
+    // charges : montantHt<->montantHT (casse), tauxTva<->tauxTVA (casse)
+    const fixCasseCharges = M.charger('charges');
+    let chCh = false;
+    fixCasseCharges.forEach(c => {
+      if (c.montantHt && !c.montantHT) { c.montantHT = c.montantHt; chCh = true; }
+      else if (c.montantHT && !c.montantHt) { c.montantHt = c.montantHT; chCh = true; }
+      if (c.tauxTva != null && c.tauxTVA == null) { c.tauxTVA = c.tauxTva; chCh = true; }
+      else if (c.tauxTVA != null && c.tauxTva == null) { c.tauxTva = c.tauxTVA; chCh = true; }
+    });
+    if (chCh) M.sauvegarder('charges', fixCasseCharges);
+    // livraisons : tauxTva<->tauxTVA, prix<->prixHT
+    const fixCasseLiv = M.charger('livraisons');
+    let chLv = false;
+    fixCasseLiv.forEach(l => {
+      if (l.tauxTva != null && l.tauxTVA == null) { l.tauxTVA = l.tauxTva; chLv = true; }
+      else if (l.tauxTVA != null && l.tauxTva == null) { l.tauxTva = l.tauxTVA; chLv = true; }
+      if (l.prixHT && !l.prix) { l.prix = l.prixHT; chLv = true; }
+      else if (l.prix && !l.prixHT) { l.prixHT = l.prix; chLv = true; }
+    });
+    if (chLv) M.sauvegarder('livraisons', fixCasseLiv);
+    // entretiens : cout<->coutHt
+    const fixEnt = M.charger('entretiens');
+    let chEn = false;
+    fixEnt.forEach(e => {
+      if (e.coutHt != null && e.cout == null) { e.cout = e.coutHt; chEn = true; }
+      else if (e.cout != null && e.coutHt == null) { e.coutHt = e.cout; chEn = true; }
+      if (e.tauxTva != null && e.tauxTVA == null) { e.tauxTVA = e.tauxTva; chEn = true; }
+      else if (e.tauxTVA != null && e.tauxTva == null) { e.tauxTva = e.tauxTVA; chEn = true; }
+    });
+    if (chEn) M.sauvegarder('entretiens', fixEnt);
+  };
+
   // Generation d'ID stable (UUID si dispo, fallback timestamp+random).
   // Le prefixe 'm-' permet de tracer les entrees creees depuis mobile (debug).
   M.genId = function() {
@@ -315,17 +375,22 @@
           return false;
         }
         const arr = M.charger('livraisons');
+        // Dual-write : ecrit les conventions PC ET mobile pour rendre la donnee
+        // visible des 2 cotes (vehId+vehiculeId, chaufId+salarieId, casses TVA).
         const data = {
           date: form.date,
           client: form.client.trim(),
-          prix: prixHT,
-          prixHT,
+          prix: prixHT,        // PC lit prix
+          prixHT,              // mobile lit prixHT
           prixTTC,
-          tauxTva: taux,
+          tauxTva: taux,       // mobile
+          tauxTVA: taux,       // PC (casse !)
           tva: tvaMontant,
           distance: parseFloat(form.distance) || 0,
-          vehiculeId: form.vehiculeId || null,
-          salarieId: form.salarieId || null,
+          vehiculeId: form.vehiculeId || null,  // mobile
+          vehId: form.vehiculeId || null,        // PC
+          salarieId: form.salarieId || null,    // mobile
+          chaufId: form.salarieId || null,       // PC
           statut: form.statut || 'livre',
           numLiv: form.numLiv?.trim() || ''
         };
@@ -437,8 +502,10 @@
           return false;
         }
         const arr = M.charger('carburant');
+        // Dual-write vehiculeId/vehId pour compat PC
         const data = {
           vehiculeId: form.vehiculeId,
+          vehId: form.vehiculeId,
           typeCarburant: form.typeCarburant || '',
           date: form.date,
           litres,
@@ -572,13 +639,16 @@
           date: form.date,
           libelle: form.libelle.trim(),
           fournisseur: form.fournisseur?.trim() || '',
-          montantHT: +ht.toFixed(2),
+          montantHT: +ht.toFixed(2),  // PC + mobile
+          montantHt: +ht.toFixed(2),  // alias mobile (compat ancien)
           montantTtc: ttc,
           montant: ttc,
-          tauxTva: taux,
+          tauxTva: taux,    // mobile
+          tauxTVA: taux,    // PC (casse !)
           tva: +tvaMontant.toFixed(2),
           categorie: form.categorie || '',
-          statut: form.statut || 'a_payer'
+          statut: form.statut || 'a_payer',
+          statutPaiement: form.statut || 'a_payer'  // PC utilise statutPaiement
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === c.id);
@@ -745,8 +815,10 @@
           kmInitial: parseFloat(f.kmInitial) || 0,
           modeAcquisition: f.modeAcquisition || '',
           typeCarburant: f.typeCarburant || '',
+          carburant: f.typeCarburant || '',  // alias PC pour filtres
           entretienIntervalKm: parseFloat(f.entretienIntervalKm) || 0,
           salId: f.salId || null,
+          chaufId: f.salId || null,           // dual-write PC
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : ''
         };
         if (enEdition) {
@@ -1042,8 +1114,10 @@
         const data = {
           date: f.date || today,
           vehiculeId: f.vehiculeId,
+          vehId: f.vehiculeId,           // dual-write PC
           vehImmat: veh?.immat || '',
           salId: f.salId || null,
+          chaufId: f.salId || null,      // dual-write PC
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
           km: parseFloat(f.km) || 0,
           photos: [...photos],
@@ -1120,6 +1194,7 @@
           date: f.date || today,
           client: f.client?.trim() || '',
           salId: f.salId || null,
+          chaufId: f.salId || null,    // dual-write PC
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
           chaufNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
           numLiv: f.numLiv?.trim() || '',
@@ -1238,15 +1313,18 @@
         const data = {
           date: f.date || today,
           vehiculeId: f.vehiculeId,
+          vehId: f.vehiculeId,        // dual-write PC
           type: f.type || 'autre',
           description: f.description?.trim() || '',
           km: parseFloat(f.km) || 0,
           prochainKm: parseFloat(f.prochainKm) || 0,
           coutHt: +ht.toFixed(2),
+          coutHT: +ht.toFixed(2),     // dual casse
           tauxTva: taux,
+          tauxTVA: taux,              // dual casse PC
           tva: +tvaMontant.toFixed(2),
           coutTtc: ttc,
-          cout: ttc // compat desktop : .cout = TTC
+          cout: ttc                   // compat desktop : .cout = TTC
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === e.id);
@@ -1310,9 +1388,11 @@
         const arr = M.charger('heures');
         const data = {
           salId: f.salId,
-          salarieId: f.salId, // compat desktop (script.js utilise les 2 cles)
+          salarieId: f.salId,           // compat desktop
+          chaufId: f.salId,             // compat PC (livraisons)
           date: f.date,
           vehiculeId: f.vehiculeId || null,
+          vehId: f.vehiculeId || null,  // dual-write PC
           heures,
           km,
           notes: f.notes?.trim() || ''
@@ -4185,6 +4265,8 @@
   function init() {
     if (!M.verifierAuth()) return;
     M.applyTheme();
+    // Migration silencieuse : harmonise les schemas mobile/PC avant le 1er render
+    M.migrerSchemas();
     M.updateAlertesBadge();
 
     // Bottom tabs
