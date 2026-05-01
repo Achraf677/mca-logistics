@@ -2191,12 +2191,441 @@
       ` : ''}
     `;
   };
-  M.register('heures',      makeStub('Heures & Km', '⏱️', 'Heures sup, indemnites, km parcourus.'));
-  M.register('incidents',   makeStub('Incidents',   '🚨', 'Incidents de route, sinistres.'));
-  M.register('tva',         makeStub('TVA',         '🧾', 'Recap TVA collectee/deductible/a reverser.'));
-  M.register('statistiques',makeStub('Statistiques','📈', 'Evolutions, comparatifs, exports.'));
-  M.register('calendrier',  makeStub('Calendrier',  '🗓️', 'Vue calendrier mois/semaine/jour.'));
-  M.register('parametres',  makeStub('Paramètres',  '⚙️', 'Entreprise, tarifs, utilisateurs, donnees.'));
+  // ---------- Heures & Km (v2.9 : recap par salarie sur mois courant) ----------
+  M.state.heuresMois = new Date().toISOString().slice(0, 7);
+  M.register('heures', {
+    title: 'Heures & Km',
+    render() {
+      const moisSel = M.state.heuresMois;
+      const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+      const livraisons = M.charger('livraisons').filter(l => (l.date || '').startsWith(moisSel));
+      const heuresEntries = M.charger('heures').filter(h => (h.date || '').startsWith(moisSel));
+
+      // Selecteur 12 derniers mois
+      const moisOptions = [];
+      const now = new Date();
+      for (let k = 0; k < 12; k++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+        const cle = d.toISOString().slice(0, 7);
+        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
+      }
+
+      // Aggrege par salarie
+      const stats = salaries.map(s => {
+        const livSal = livraisons.filter(l => l.salarieId === s.id);
+        const kmLiv = livSal.reduce((sum, l) => sum + (Number(l.distance) || 0), 0);
+        const heuresSal = heuresEntries.filter(h => h.salId === s.id || h.salarieId === s.id);
+        const totalHeures = heuresSal.reduce((sum, h) => sum + (Number(h.heures) || 0), 0);
+        const kmHeures = heuresSal.reduce((sum, h) => sum + (Number(h.km) || 0), 0);
+        return { sal: s, nbLiv: livSal.length, kmLiv, totalHeures, kmHeures, kmTotal: kmLiv + kmHeures };
+      }).sort((a, b) => b.kmTotal - a.kmTotal);
+
+      const grandTotalKm = stats.reduce((s, x) => s + x.kmTotal, 0);
+      const grandTotalH  = stats.reduce((s, x) => s + x.totalHeures, 0);
+      const grandTotalLiv = stats.reduce((s, x) => s + x.nbLiv, 0);
+
+      let html = `
+        <div style="margin-bottom:14px"><select id="m-heures-mois">${moisOptions.join('')}</select></div>
+        <div class="m-card-row">
+          <div class="m-card m-card-blue"><div class="m-card-title">Total km</div><div class="m-card-value">${M.formatNum(grandTotalKm.toFixed(0))}</div><div class="m-card-sub">${grandTotalLiv} livraison${grandTotalLiv>1?'s':''}</div></div>
+          <div class="m-card m-card-purple"><div class="m-card-title">Heures</div><div class="m-card-value">${M.formatNum(grandTotalH.toFixed(0))} h</div><div class="m-card-sub">${stats.filter(x=>x.totalHeures>0).length} salarié${stats.filter(x=>x.totalHeures>0).length>1?'s':''}</div></div>
+        </div>
+      `;
+
+      if (!salaries.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">⏱️</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Ajoute ton équipe pour voir les heures et km par chauffeur.</p></div>`;
+        return html;
+      }
+
+      html += `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Par salarié</h3></div>`;
+      stats.forEach(({ sal, nbLiv, kmTotal, totalHeures }) => {
+        const initiales = ((sal.nom || '').charAt(0) + (sal.prenom || '').charAt(0)).toUpperCase() || '?';
+        html += `<div class="m-card" style="padding:14px;display:flex;align-items:center;gap:12px">
+          <div style="width:38px;height:38px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.85rem;flex-shrink:0">${M.escHtml(initiales)}</div>
+          <div style="flex:1 1 auto;min-width:0">
+            <div style="font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div>
+            <div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${nbLiv} liv. · ${M.formatNum(kmTotal.toFixed(0))} km · ${totalHeures.toFixed(0)} h</div>
+          </div>
+        </div>`;
+      });
+      html += `</div>`;
+      return html;
+    },
+    afterRender(container) {
+      const sel = container.querySelector('#m-heures-mois');
+      if (sel) sel.addEventListener('change', e => { M.state.heuresMois = e.target.value; M.go('heures'); });
+    }
+  });
+
+  // ---------- Incidents (v2.9 : list + filtre statut + detail) ----------
+  M.state.incidentsStatut = 'tous';
+  M.state.detail.incidents = null;
+  M.register('incidents', {
+    title: 'Incidents',
+    render() {
+      const detailId = M.state.detail.incidents;
+      if (detailId) return M.renderIncidentDetail(detailId);
+
+      const incidents = M.charger('incidents').sort((a,b) => new Date(b.creeLe||b.date||0) - new Date(a.creeLe||a.date||0));
+      const statut = M.state.incidentsStatut;
+      const ouverts = incidents.filter(i => i.statut !== 'traite' && i.statut !== 'resolu' && i.statut !== 'clos');
+
+      let filtered = incidents;
+      if (statut === 'ouverts')  filtered = ouverts;
+      if (statut === 'traites')  filtered = incidents.filter(i => i.statut === 'traite' || i.statut === 'resolu' || i.statut === 'clos');
+
+      let html = `
+        <div class="m-card-row">
+          <div class="m-card m-card-red"><div class="m-card-title">Ouverts</div><div class="m-card-value">${ouverts.length}</div><div class="m-card-sub">à traiter</div></div>
+          <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${incidents.length}</div><div class="m-card-sub">enregistrés</div></div>
+        </div>
+        <div style="display:flex;gap:6px;margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">📋 Tous</button>
+          <button class="m-alertes-chip ${statut==='ouverts'?'active':''}" data-statut="ouverts">🔴 Ouverts${ouverts.length?` (${ouverts.length})`:''}</button>
+          <button class="m-alertes-chip ${statut==='traites'?'active':''}" data-statut="traites">✅ Traités</button>
+        </div>
+      `;
+
+      if (!filtered.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🚨</div><h3 class="m-empty-title">${incidents.length ? 'Aucun incident dans ce filtre' : 'Aucun incident'}</h3><p class="m-empty-text">${incidents.length ? 'Change de filtre pour voir les autres.' : 'Les réclamations clients apparaitront ici.'}</p></div>`;
+        return html;
+      }
+
+      const graviteIcon = { faible: '🟢', moyen: '🟠', grave: '🔴' };
+      const statutIcon = { ouvert: '🔴', encours: '🟡', traite: '✅', resolu: '✅', clos: '✅' };
+      filtered.forEach(i => {
+        const grav = i.gravite || 'moyen';
+        const stat = i.statut || 'ouvert';
+        const borderColor = grav === 'grave' ? 'var(--m-red)' : grav === 'moyen' ? 'var(--m-accent)' : 'var(--m-green)';
+        html += `<button type="button" class="m-card m-card-pressable m-incident-row" data-id="${M.escHtml(i.id)}" style="display:block;width:100%;text-align:left;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-left:4px solid ${borderColor};border-radius:14px;margin-bottom:10px;color:inherit">
+          <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:600;font-size:.92rem">${M.escHtml(i.client || i.salNom || 'Incident')}</div>
+              <div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.formatDate(i.creeLe || i.date)}${i.numLiv ? ' · ' + M.escHtml(i.numLiv) : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:3px;align-items:flex-end;font-size:.7rem;font-weight:600">
+              <span>${graviteIcon[grav] || ''} ${grav}</span>
+              <span style="color:var(--m-text-muted)">${statutIcon[stat] || ''} ${stat}</span>
+            </div>
+          </div>
+          ${i.description ? `<div style="font-size:.82rem;margin-top:8px;color:var(--m-text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${M.escHtml(i.description)}</div>` : ''}
+        </button>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      container.querySelectorAll('.m-alertes-chip').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.incidentsStatut = btn.dataset.statut; M.go('incidents'); });
+      });
+      container.querySelectorAll('.m-incident-row').forEach(btn => {
+        btn.addEventListener('click', () => M.openDetail('incidents', btn.dataset.id));
+      });
+    }
+  });
+
+  M.renderIncidentDetail = function(id) {
+    const i = M.charger('incidents').find(x => x.id === id);
+    if (!i) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Incident introuvable</h3></div>`;
+
+    const grav = i.gravite || 'moyen';
+    const stat = i.statut || 'ouvert';
+    const graviteColor = grav === 'grave' ? 'var(--m-red)' : grav === 'moyen' ? 'var(--m-accent)' : 'var(--m-green)';
+    const statutColor = (stat === 'ouvert') ? 'var(--m-red)' : (stat === 'encours') ? 'var(--m-accent)' : 'var(--m-green)';
+
+    return `
+      <div style="text-align:center;padding:8px 0 18px">
+        <div style="width:64px;height:64px;border-radius:50%;background:${graviteColor}22;color:${graviteColor};display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 10px">🚨</div>
+        <h2 style="margin:0;font-size:1.2rem;font-weight:700">${M.escHtml(i.client || i.salNom || 'Incident')}</h2>
+        <p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.formatDate(i.creeLe || i.date)}</p>
+      </div>
+
+      <div class="m-card-row">
+        <div class="m-card" style="border-left:4px solid ${graviteColor}">
+          <div class="m-card-title">Gravité</div>
+          <div class="m-card-value" style="font-size:1.1rem;color:${graviteColor};text-transform:capitalize">${grav}</div>
+        </div>
+        <div class="m-card" style="border-left:4px solid ${statutColor}">
+          <div class="m-card-title">Statut</div>
+          <div class="m-card-value" style="font-size:1.1rem;color:${statutColor};text-transform:capitalize">${stat}</div>
+        </div>
+      </div>
+
+      <div class="m-card" style="padding:0">
+        ${i.client ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:500">${M.escHtml(i.client)}</span></div>` : ''}
+        ${i.salNom ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:500">${M.escHtml(i.salNom)}</span></div>` : ''}
+        ${i.chaufNom ?    `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:500">${M.escHtml(i.chaufNom)}</span></div>` : ''}
+        ${i.numLiv ?      `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° livraison</span><span style="font-weight:500">${M.escHtml(i.numLiv)}</span></div>` : ''}
+      </div>
+
+      ${i.description ? `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📝 Description</h3></div><div class="m-card" style="padding:14px;font-size:.88rem;line-height:1.5">${M.escHtml(i.description)}</div></div>` : ''}
+    `;
+  };
+
+  // ---------- TVA (v2.9 : recap mensuel collectee/deductible/a reverser) ----------
+  M.state.tvaMois = new Date().toISOString().slice(0, 7);
+  M.register('tva', {
+    title: 'TVA',
+    render() {
+      const moisSel = M.state.tvaMois;
+      const livraisons = M.charger('livraisons').filter(l => (l.date || '').startsWith(moisSel));
+      const charges = M.charger('charges').filter(c => (c.date || '').startsWith(moisSel));
+
+      // TVA collectee = somme des (TTC - HT) des livraisons
+      const caHT = livraisons.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+      const caTTC = livraisons.reduce((s, l) => s + (Number(l.prixTTC) || (Number(l.prix) || 0) * 1.2), 0);
+      const tvaCollectee = Math.max(0, caTTC - caHT);
+
+      // TVA deductible = somme des TVA des charges
+      const tvaDeductible = charges.reduce((s, c) => s + (Number(c.tva) || 0), 0);
+
+      // A reverser = collectee - deductible
+      const aReverser = tvaCollectee - tvaDeductible;
+      const enCredit = aReverser < 0;
+
+      const moisOptions = [];
+      const now = new Date();
+      for (let k = 0; k < 12; k++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+        const cle = d.toISOString().slice(0, 7);
+        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
+      }
+
+      return `
+        <div style="margin-bottom:14px"><select id="m-tva-mois">${moisOptions.join('')}</select></div>
+
+        <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
+          <div class="m-card-title">${enCredit ? '💚 Crédit TVA' : '💸 TVA à reverser'}</div>
+          <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
+          <div class="m-card-sub">${enCredit ? 'Tu peux te faire rembourser' : 'À déclarer ce mois'}</div>
+        </div>
+
+        <div class="m-card-row">
+          <div class="m-card m-card-green"><div class="m-card-title">Collectée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaCollectee)}</div><div class="m-card-sub">sur livraisons</div></div>
+          <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">sur charges</div></div>
+        </div>
+
+        <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
+          Récap simplifié. La déclaration officielle (CA3, justificatifs) se fait sur la version PC.
+        </p>
+      `;
+    },
+    afterRender(container) {
+      const sel = container.querySelector('#m-tva-mois');
+      if (sel) sel.addEventListener('change', e => { M.state.tvaMois = e.target.value; M.go('tva'); });
+    }
+  });
+
+  // ---------- Statistiques (v2.9 : KPI clés du mois + comparatif) ----------
+  M.state.statsMois = new Date().toISOString().slice(0, 7);
+  M.register('statistiques', {
+    title: 'Statistiques',
+    render() {
+      const moisSel = M.state.statsMois;
+      const [y, m] = moisSel.split('-');
+      const moisPrec = new Date(parseInt(y), parseInt(m) - 2, 1).toISOString().slice(0, 7);
+
+      const livraisons = M.charger('livraisons');
+      const carburant  = M.charger('carburant');
+      const charges    = M.charger('charges');
+      const salaries   = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+      const vehicules  = M.charger('vehicules').filter(v => v && !v.archive);
+
+      const livMois = livraisons.filter(l => (l.date || '').startsWith(moisSel));
+      const livPrec = livraisons.filter(l => (l.date || '').startsWith(moisPrec));
+      const carbMois = carburant.filter(p => (p.date || '').startsWith(moisSel));
+      const chargesMois = charges.filter(c => (c.date || '').startsWith(moisSel));
+
+      const ca = livMois.reduce((s, l) => s + (Number(l.prix) || 0), 0);
+      const caPrec = livPrec.reduce((s, l) => s + (Number(l.prix) || 0), 0);
+      const evolCa = caPrec > 0 ? ((ca - caPrec) / caPrec * 100) : (ca > 0 ? 100 : 0);
+      const km = livMois.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+      const kmPrec = livPrec.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+      const evolKm = kmPrec > 0 ? ((km - kmPrec) / kmPrec * 100) : (km > 0 ? 100 : 0);
+
+      const moisOptions = [];
+      const now = new Date();
+      for (let k = 0; k < 12; k++) {
+        const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+        const cle = d.toISOString().slice(0, 7);
+        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
+      }
+
+      const evolBadge = (val) => {
+        const color = val > 0 ? 'var(--m-green)' : val < 0 ? 'var(--m-red)' : 'var(--m-text-muted)';
+        const arrow = val > 0 ? '↑' : val < 0 ? '↓' : '→';
+        return `<span style="color:${color};font-weight:700;font-size:.78rem">${arrow} ${Math.abs(val).toFixed(0)}%</span>`;
+      };
+
+      return `
+        <div style="margin-bottom:14px"><select id="m-stats-mois">${moisOptions.join('')}</select></div>
+
+        <div class="m-card-row">
+          <div class="m-card m-card-green"><div class="m-card-title">CA du mois</div><div class="m-card-value">${M.format$(ca)}</div><div class="m-card-sub">${evolBadge(evolCa)} vs précédent</div></div>
+          <div class="m-card m-card-blue"><div class="m-card-title">Livraisons</div><div class="m-card-value">${livMois.length}</div><div class="m-card-sub">${evolBadge(livMois.length - livPrec.length)} vs précédent</div></div>
+        </div>
+        <div class="m-card-row">
+          <div class="m-card m-card-purple"><div class="m-card-title">Km parcourus</div><div class="m-card-value">${M.formatNum(km.toFixed(0))}</div><div class="m-card-sub">${evolBadge(evolKm)} vs précédent</div></div>
+          <div class="m-card m-card-accent"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(carbMois.reduce((s,p)=>s+(Number(p.total)||0),0))}</div></div>
+        </div>
+
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📊 Vue d'ensemble</h3></div>
+          <div class="m-card" style="padding:0">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>👥 Équipe active</span><span style="font-weight:600">${salaries.length}</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>🚐 Véhicules</span><span style="font-weight:600">${vehicules.length}</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>📦 Livraisons total</span><span style="font-weight:600">${livraisons.length}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>💸 Charges du mois</span><span style="font-weight:600">${M.format$(chargesMois.reduce((s,c)=>s+(Number(c.montantTtc)||Number(c.montant)||0),0))}</span></div>
+          </div>
+        </div>
+
+        <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
+          Pour les graphiques d'évolution annuelle, exports et comparatifs avancés, ouvre la version PC.
+        </p>
+      `;
+    },
+    afterRender(container) {
+      const sel = container.querySelector('#m-stats-mois');
+      if (sel) sel.addEventListener('change', e => { M.state.statsMois = e.target.value; M.go('statistiques'); });
+    }
+  });
+
+  // ---------- Calendrier (v2.9 : vue jour avec evenements + nav prev/next) ----------
+  M.state.calendrierDate = new Date().toISOString().slice(0, 10);
+  M.register('calendrier', {
+    title: 'Calendrier',
+    render() {
+      const dateSel = M.state.calendrierDate;
+      const livraisons = M.charger('livraisons').filter(l => l.date === dateSel);
+      const carburant = M.charger('carburant').filter(p => p.date === dateSel);
+      const entretiens = M.charger('entretiens').filter(e => e.date === dateSel);
+      const incidents = M.charger('incidents').filter(i => (i.date || (i.creeLe||'').slice(0,10)) === dateSel);
+
+      const d = new Date(dateSel);
+      const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+      const estAujourd = dateSel === new Date().toISOString().slice(0, 10);
+
+      // Nav prev/next
+      const prev = new Date(d); prev.setDate(prev.getDate() - 1);
+      const next = new Date(d); next.setDate(next.getDate() + 1);
+
+      const totalEvenements = livraisons.length + carburant.length + entretiens.length + incidents.length;
+
+      let html = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+          <button class="m-cal-nav" data-date="${prev.toISOString().slice(0,10)}" style="flex:0 0 44px;height:44px;border-radius:50%;background:var(--m-bg-elevated);border:1px solid var(--m-border);color:var(--m-text);font-size:1.2rem">‹</button>
+          <div style="flex:1 1 auto;text-align:center">
+            <div style="font-weight:700;font-size:1rem">${dateLabel}</div>
+            ${estAujourd ? `<div style="font-size:.72rem;color:var(--m-accent);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Aujourd'hui</div>` : ''}
+          </div>
+          <button class="m-cal-nav" data-date="${next.toISOString().slice(0,10)}" style="flex:0 0 44px;height:44px;border-radius:50%;background:var(--m-bg-elevated);border:1px solid var(--m-border);color:var(--m-text);font-size:1.2rem">›</button>
+        </div>
+        <div style="text-align:center;margin-bottom:14px">
+          <input type="date" id="m-cal-picker" value="${dateSel}" style="max-width:200px;display:inline-block" />
+          ${!estAujourd ? `<button class="m-cal-today" style="margin-left:8px;padding:0 14px;height:48px;border-radius:10px;background:var(--m-accent);color:#1a1208;border:none;font-weight:600">Aujourd'hui</button>` : ''}
+        </div>
+      `;
+
+      if (!totalEvenements) {
+        html += `<div class="m-empty"><div class="m-empty-icon">📅</div><h3 class="m-empty-title">Rien à signaler</h3><p class="m-empty-text">Aucune livraison, plein, entretien ou incident pour cette journée.</p></div>`;
+        return html;
+      }
+
+      const renderEvents = (title, items, color, renderItem) => {
+        if (!items.length) return '';
+        return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title" style="color:${color}">${title}</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${items.length}</span></div>${items.map(renderItem).join('')}</div>`;
+      };
+
+      html += renderEvents('📦 Livraisons', livraisons, 'var(--m-blue)', l => `
+        <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-blue);display:flex;justify-content:space-between;gap:10px">
+          <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml(l.client || '—')}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${l.numLiv ? M.escHtml(l.numLiv) + ' · ' : ''}${l.distance ? M.formatNum(l.distance) + ' km' : ''}</div></div>
+          <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prix || 0)}</div>
+        </div>`);
+      html += renderEvents('⛽ Pleins', carburant, 'var(--m-red)', p => `
+        <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-red);display:flex;justify-content:space-between;gap:10px">
+          <div style="flex:1 1 auto;min-width:0"><div style="font-weight:500;font-size:.88rem">${M.formatNum((p.litres||0).toFixed(0))} L · ${p.kmCompteur ? M.formatNum(p.kmCompteur)+' km' : ''}</div></div>
+          <div style="font-weight:700;color:var(--m-red);white-space:nowrap">${M.format$(p.total || 0)}</div>
+        </div>`);
+      html += renderEvents('🔧 Entretiens', entretiens, 'var(--m-blue)', e => `
+        <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-blue);display:flex;justify-content:space-between;gap:10px">
+          <div style="flex:1 1 auto;min-width:0"><div style="font-weight:500;font-size:.88rem">${M.escHtml(e.type || 'Entretien')}</div>${e.description ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(e.description)}</div>` : ''}</div>
+          <div style="font-weight:700;color:var(--m-blue);white-space:nowrap">${M.format$(e.cout || 0)}</div>
+        </div>`);
+      html += renderEvents('🚨 Incidents', incidents, 'var(--m-red)', i => `
+        <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-red)">
+          <div style="font-weight:500;font-size:.88rem">${M.escHtml(i.client || i.salNom || 'Incident')}</div>
+          ${i.description ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px;line-height:1.4">${M.escHtml(i.description.slice(0, 120))}${i.description.length > 120 ? '…' : ''}</div>` : ''}
+        </div>`);
+
+      return html;
+    },
+    afterRender(container) {
+      container.querySelectorAll('.m-cal-nav').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.calendrierDate = btn.dataset.date; M.go('calendrier'); });
+      });
+      const picker = container.querySelector('#m-cal-picker');
+      if (picker) picker.addEventListener('change', e => { M.state.calendrierDate = e.target.value; M.go('calendrier'); });
+      const today = container.querySelector('.m-cal-today');
+      if (today) today.addEventListener('click', () => { M.state.calendrierDate = new Date().toISOString().slice(0, 10); M.go('calendrier'); });
+    }
+  });
+
+  // ---------- Parametres (v2.9 : info entreprise + actions) ----------
+  M.register('parametres', {
+    title: 'Paramètres',
+    render() {
+      const config = M.chargerObj('config') || {};
+      const entreprise = config.entreprise || M.chargerObj('entreprise') || {};
+      const adminNom = sessionStorage.getItem('admin_nom') || 'Admin';
+      const adminLogin = sessionStorage.getItem('admin_login') || '';
+
+      return `
+        <div style="text-align:center;padding:8px 0 18px">
+          <div style="width:64px;height:64px;border-radius:14px;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px">⚙️</div>
+          <h2 style="margin:0;font-size:1.2rem;font-weight:700">Paramètres</h2>
+        </div>
+
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">👤 Compte</h3></div>
+          <div class="m-card" style="padding:0">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Nom</span><span style="font-weight:500">${M.escHtml(adminNom)}</span></div>
+            ${adminLogin ? `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Identifiant</span><span style="font-weight:500">${M.escHtml(adminLogin)}</span></div>` : ''}
+          </div>
+        </div>
+
+        ${entreprise.nom || entreprise.siret ? `
+          <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🏢 Entreprise</h3></div>
+            <div class="m-card" style="padding:0">
+              ${entreprise.nom ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Raison sociale</span><span style="font-weight:500">${M.escHtml(entreprise.nom)}</span></div>` : ''}
+              ${entreprise.siret ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIRET</span><span style="font-weight:500">${M.escHtml(entreprise.siret)}</span></div>` : ''}
+              ${entreprise.tva ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(entreprise.tva)}</span></div>` : ''}
+              ${entreprise.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(entreprise.adresse)}</span></div>` : ''}
+            </div>
+          </div>
+        ` : ''}
+
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🎨 Affichage</h3></div>
+          <button class="m-card m-card-pressable" id="m-param-theme" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit">
+            <span style="font-size:.95rem;font-weight:500">🌓 Mode clair / sombre</span>
+            <span style="color:var(--m-text-muted);font-size:.85rem">${M.state.theme === 'light' ? 'Clair' : 'Sombre'}</span>
+          </button>
+        </div>
+
+        <div class="m-section">
+          <button class="m-btn m-btn-danger" id="m-param-logout">⏏ Déconnexion</button>
+        </div>
+
+        <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
+          Modification de l'entreprise, gestion des utilisateurs, sauvegarde et options avancées sont sur la version PC.
+        </p>
+      `;
+    },
+    afterRender(container) {
+      container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
+      container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
+    }
+  });
 
   // ============================================================
   // Logout
