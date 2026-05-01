@@ -884,6 +884,350 @@
   };
 
   // ============================================================
+  // Forms Inspections / Incidents / Entretiens (v3.8)
+  // ============================================================
+
+  // Helper : redimensionne une image en base64 (max 800px) pour eviter de saturer localStorage
+  M.resizeImageToBase64 = function(file, maxDim = 800, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const ratio = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const w = Math.round(img.width * ratio);
+          const h = Math.round(img.height * ratio);
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = () => reject(new Error('Image illisible'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Lecture fichier echouee'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // ---- INSPECTION ----
+  M.formNouvelleInspection = function(existing) {
+    const enEdition = !!existing;
+    const insp = existing || { photos: [] };
+    const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+    const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+    const today = new Date().toISOString().slice(0, 10);
+    const photos = Array.isArray(insp.photos) ? [...insp.photos] : [];
+
+    const renderPhotosGrid = () => {
+      if (!photos.length) return '<p class="m-form-hint">Aucune photo ajoutée</p>';
+      return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px">
+        ${photos.map((p, idx) => {
+          const url = typeof p === 'string' ? p : (p.url || p.dataUrl || '');
+          return `<div style="position:relative;aspect-ratio:1;border-radius:10px;overflow:hidden;background:var(--m-bg-elevated);border:1px solid var(--m-border)">
+            <img src="${M.escHtml(url)}" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" />
+            <button type="button" class="m-photo-remove" data-idx="${idx}" style="position:absolute;top:4px;right:4px;width:24px;height:24px;border-radius:50%;background:rgba(231,76,60,0.85);color:#fff;border:none;font-size:.85rem;font-weight:700;cursor:pointer">✕</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    };
+
+    const body = `
+      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Choisir véhicule', value: insp.vehiculeId || '', required: true }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: insp.date || today, required: true }), { required: true })}
+        ${M.formField('Km compteur', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: insp.km || '' }))}
+      </div>
+      ${M.formField('Salarié (effectue par)', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: insp.salId || '' }))}
+      <div class="m-form-field">
+        <label class="m-form-label">📸 Photos</label>
+        <div id="m-photos-container">${renderPhotosGrid()}</div>
+        <label for="m-photos-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;cursor:pointer">
+          <span>📷</span><span>Ajouter une photo</span>
+        </label>
+        <input type="file" id="m-photos-input" accept="image/*" capture="environment" multiple style="display:none" />
+      </div>
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette inspection</button>` : ''}
+    `;
+
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier inspection' : '🚗 Nouvelle inspection',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        const input = b.querySelector('#m-photos-input');
+        const container = b.querySelector('#m-photos-container');
+        const refresh = () => { container.innerHTML = renderPhotosGrid(); attachRemove(); };
+        const attachRemove = () => {
+          container.querySelectorAll('.m-photo-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const idx = parseInt(btn.dataset.idx);
+              photos.splice(idx, 1);
+              refresh();
+            });
+          });
+        };
+        attachRemove();
+        input.addEventListener('change', async (e) => {
+          const files = Array.from(e.target.files || []);
+          for (const f of files) {
+            try {
+              const dataUrl = await M.resizeImageToBase64(f, 800, 0.78);
+              photos.push(dataUrl);
+            } catch (err) {
+              M.toast('⚠️ Photo non ajoutée');
+            }
+          }
+          input.value = ''; // reset pour re-add la meme photo si besoin
+          refresh();
+        });
+        if (enEdition) {
+          b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+            if (!await M.confirm(`Supprimer définitivement cette inspection (${insp.vehImmat || ''}) ?`, { titre: 'Supprimer inspection' })) return;
+            M.sauvegarder('inspections', M.charger('inspections').filter(x => x.id !== insp.id));
+            M.toast('🗑️ Inspection supprimée');
+            M.state.detail.inspections = null;
+            M.closeSheet();
+            M.go('inspections');
+          });
+        }
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.vehiculeId) { M.toast('⚠️ Véhicule obligatoire'); return false; }
+        const veh = vehicules.find(v => v.id === f.vehiculeId);
+        const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
+        const arr = M.charger('inspections');
+        const data = {
+          date: f.date || today,
+          vehiculeId: f.vehiculeId,
+          vehImmat: veh?.immat || '',
+          salId: f.salId || null,
+          salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
+          km: parseFloat(f.km) || 0,
+          photos: [...photos],
+          source: 'mobile'
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === insp.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('inspections', arr);
+          M.toast('✅ Inspection modifiée');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('inspections', arr);
+          M.toast('✅ Inspection enregistrée');
+        }
+        M.go('inspections');
+        return true;
+      }
+    });
+  };
+  M.editerInspection = function(id) {
+    const insp = M.charger('inspections').find(x => x.id === id);
+    if (!insp) return M.toast('Inspection introuvable');
+    M.formNouvelleInspection(insp);
+  };
+
+  // ---- INCIDENT ----
+  M.formNouvelIncident = function(existing) {
+    const enEdition = !!existing;
+    const inc = existing || {};
+    const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+    const today = new Date().toISOString().slice(0, 10);
+    const body = `
+      ${M.formField('Date', M.formInput('date', { type: 'date', value: (inc.date || (inc.creeLe || '').slice(0, 10) || today), required: true }), { required: true })}
+      ${M.formField('Client', M.formInput('client', { value: inc.client || '', placeholder: 'Nom du client (libre)' }))}
+      ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: inc.salId || '' }))}
+      ${M.formField('N° livraison', M.formInput('numLiv', { value: inc.numLiv || '', placeholder: 'Si lié à une livraison' }))}
+      <div class="m-form-row">
+        ${M.formField('Gravité', M.formSelect('gravite', [
+          { value: 'faible', label: '🟢 Faible' },
+          { value: 'moyen',  label: '🟠 Moyen' },
+          { value: 'grave',  label: '🔴 Grave' }
+        ], { value: inc.gravite || 'moyen' }))}
+        ${M.formField('Statut', M.formSelect('statut', [
+          { value: 'ouvert',   label: '🔴 Ouvert' },
+          { value: 'encours',  label: '🟡 En cours' },
+          { value: 'traite',   label: '✅ Traité' }
+        ], { value: inc.statut || 'ouvert' }))}
+      </div>
+      ${M.formField('Description', M.formTextarea('description', { value: inc.description || '', rows: 4, placeholder: 'Décris l\'incident en détails...' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet incident</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier incident' : '🚨 Nouvel incident',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm('Supprimer définitivement cet incident ?', { titre: 'Supprimer incident' })) return;
+          M.sauvegarder('incidents', M.charger('incidents').filter(x => x.id !== inc.id));
+          M.toast('🗑️ Incident supprimé');
+          M.state.detail.incidents = null;
+          M.closeSheet();
+          M.go('incidents');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.description?.trim()) { M.toast('⚠️ Description obligatoire'); return false; }
+        const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
+        const arr = M.charger('incidents');
+        const data = {
+          date: f.date || today,
+          client: f.client?.trim() || '',
+          salId: f.salId || null,
+          salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
+          chaufNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : '',
+          numLiv: f.numLiv?.trim() || '',
+          gravite: f.gravite || 'moyen',
+          statut: f.statut || 'ouvert',
+          description: f.description.trim()
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === inc.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('incidents', arr);
+          M.toast('✅ Incident modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('incidents', arr);
+          M.toast('✅ Incident enregistré');
+        }
+        M.go('incidents');
+        return true;
+      }
+    });
+  };
+  M.editerIncident = function(id) {
+    const inc = M.charger('incidents').find(x => x.id === id);
+    if (!inc) return M.toast('Incident introuvable');
+    M.formNouvelIncident(inc);
+  };
+
+  // ---- ENTRETIEN ----
+  M.formNouvelEntretien = function(existing) {
+    const enEdition = !!existing;
+    const e = existing || {};
+    const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
+    const today = new Date().toISOString().slice(0, 10);
+    const body = `
+      ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Choisir véhicule', value: e.vehiculeId || '', required: true }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: e.date || today, required: true }), { required: true })}
+        ${M.formField('Type', M.formSelect('type', [
+          { value: 'vidange',     label: '🛢️ Vidange' },
+          { value: 'freinage',    label: '🛑 Freinage' },
+          { value: 'pneus',       label: '🛞 Pneus' },
+          { value: 'revision',    label: '🔧 Révision' },
+          { value: 'reparation',  label: '⚙️ Réparation' },
+          { value: 'controle',    label: '✅ Contrôle technique' },
+          { value: 'autre',       label: '📌 Autre' }
+        ], { value: e.type || 'revision' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Km actuel', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: e.km || '' }))}
+        ${M.formField('Prochain km', M.formInputWithSuffix('prochainKm', 'km', { type: 'number', step: '500', min: '0', placeholder: 'Rappel', value: e.prochainKm || '' }), { hint: 'Pour rappel automatique' })}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Coût HT', M.formInputWithSuffix('coutHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.coutHt || '' }))}
+        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
+          { value: '0',    label: '0%' },
+          { value: '5.5',  label: '5,5%' },
+          { value: '10',   label: '10%' },
+          { value: '20',   label: '20%' }
+        ], { value: String(e.tauxTva ?? 20) }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.tva || '' }), { hint: 'Calcul auto' })}
+        ${M.formField('Coût TTC', M.formInputWithSuffix('cout', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.cout || e.coutTtc || '', required: true }), { required: true, hint: 'Calcul auto' })}
+      </div>
+      ${M.formField('Description', M.formTextarea('description', { value: e.description || '', rows: 2, placeholder: 'Détails (pièces, garage, observations...)' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet entretien</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier entretien' : '🔧 Nouvel entretien',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        // Auto-calcul HT <-> TTC
+        const ht  = b.querySelector('input[name=coutHt]');
+        const sel = b.querySelector('select[name=tauxTva]');
+        const tva = b.querySelector('input[name=tva]');
+        const ttc = b.querySelector('input[name=cout]');
+        let dernierEdit = 'ttc';
+        const recalc = () => {
+          const taux = parseFloat(sel.value) / 100 || 0;
+          if (dernierEdit === 'ht' && ht.value) {
+            const hh = parseFloat(ht.value);
+            const tv = hh * taux;
+            tva.value = tv.toFixed(2);
+            ttc.value = (hh + tv).toFixed(2);
+          } else if (ttc.value) {
+            const tt = parseFloat(ttc.value);
+            const hh = taux > 0 ? tt / (1 + taux) : tt;
+            ht.value = hh.toFixed(2);
+            tva.value = (tt - hh).toFixed(2);
+          }
+        };
+        ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
+        ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
+        sel.addEventListener('change', recalc);
+        if (enEdition) {
+          b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+            if (!await M.confirm('Supprimer définitivement cet entretien ?', { titre: 'Supprimer entretien' })) return;
+            M.sauvegarder('entretiens', M.charger('entretiens').filter(x => x.id !== e.id));
+            M.toast('🗑️ Entretien supprimé');
+            M.closeSheet();
+            M.go('entretiens');
+          });
+        }
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        const ttc = parseFloat(f.cout) || 0;
+        const taux = parseFloat(f.tauxTva) || 0;
+        const ht = parseFloat(f.coutHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
+        const tvaMontant = parseFloat(f.tva) || (ttc - ht);
+        if (!f.vehiculeId || !(ttc > 0)) { M.toast('⚠️ Véhicule et coût TTC obligatoires'); return false; }
+        const arr = M.charger('entretiens');
+        const data = {
+          date: f.date || today,
+          vehiculeId: f.vehiculeId,
+          type: f.type || 'autre',
+          description: f.description?.trim() || '',
+          km: parseFloat(f.km) || 0,
+          prochainKm: parseFloat(f.prochainKm) || 0,
+          coutHt: +ht.toFixed(2),
+          tauxTva: taux,
+          tva: +tvaMontant.toFixed(2),
+          coutTtc: ttc,
+          cout: ttc // compat desktop : .cout = TTC
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === e.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('entretiens', arr);
+          M.toast('✅ Entretien modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('entretiens', arr);
+          M.toast('✅ Entretien enregistré');
+        }
+        M.go('entretiens');
+        return true;
+      }
+    });
+  };
+  M.editerEntretien = function(id) {
+    const e = M.charger('entretiens').find(x => x.id === id);
+    if (!e) return M.toast('Entretien introuvable');
+    M.formNouvelEntretien(e);
+  };
+
+  // ============================================================
   // Drawer (Plus)
   // ============================================================
   M.openDrawer = function() {
@@ -2582,7 +2926,8 @@
       const totalMois = courants.reduce((s, e) => s + (Number(e.cout) || 0), 0);
       const totalAll = filtered.reduce((s, e) => s + (Number(e.cout) || 0), 0);
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouvelEntretien()" aria-label="Nouvel entretien">+</button>`;
+      html += `
         <div class="m-card-row">
           <div class="m-card m-card-blue"><div class="m-card-title">Mois en cours</div><div class="m-card-value">${M.format$(totalMois)}</div><div class="m-card-sub">${courants.length} entretien${courants.length>1?'s':''}</div></div>
           <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${M.format$(totalAll)}</div><div class="m-card-sub">${filtered.length} entretien${filtered.length>1?'s':''}</div></div>
@@ -2634,14 +2979,14 @@
               const veh = e.vehiculeId ? vehIdx[e.vehiculeId] : null;
               const immat = veh?.immat || (e.immat || '—');
               const typeLabel = (e.type || 'autre').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-              return `<div class="m-card" style="padding:14px;display:flex;justify-content:space-between;align-items:start;gap:10px">
+              return `<button type="button" class="m-card m-card-pressable m-entretien-edit" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.92rem">${M.escHtml(typeLabel)}</div>
                   <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
                   ${e.description ? `<div style="font-size:.82rem;margin-top:6px;color:var(--m-text);line-height:1.4">${M.escHtml(e.description)}</div>` : ''}
                 </div>
                 <div style="font-weight:700;color:var(--m-blue);white-space:nowrap;flex-shrink:0">${M.format$(e.cout || 0)}</div>
-              </div>`;
+              </button>`;
             }).join('')}
           </div>
         `;
@@ -2657,6 +3002,9 @@
           M.go('entretiens');
         });
       }
+      container.querySelectorAll('.m-entretien-edit').forEach(btn => {
+        btn.addEventListener('click', () => M.editerEntretien(btn.dataset.id));
+      });
     }
   });
   // ---------- Inspections (v2.8 : list + detail avec photos) ----------
@@ -2679,7 +3027,8 @@
       }
       filtered = [...filtered].sort((a,b) => (b.date||b.creeLe||'').localeCompare(a.date||a.creeLe||''));
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouvelleInspection()" aria-label="Nouvelle inspection">+</button>`;
+      html += `
         <div style="margin-bottom:14px">
           <input type="search" id="m-insp-search" placeholder="🔍 Rechercher (immat, salarié)" value="${M.escHtml(M.state.inspectionsRecherche)}" autocomplete="off" />
         </div>
@@ -2746,6 +3095,7 @@
         ${i.salNom ? (salInsp
           ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(salInsp.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(i.salNom)} ›</button>`
           : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(i.salNom)}</p>`) : ''}
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerInspection('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       <div class="m-card" style="padding:0">
@@ -2995,7 +3345,8 @@
       if (statut === 'ouverts')  filtered = ouverts;
       if (statut === 'traites')  filtered = incidents.filter(i => i.statut === 'traite' || i.statut === 'resolu' || i.statut === 'clos');
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouvelIncident()" aria-label="Nouvel incident">+</button>`;
+      html += `
         <div class="m-card-row">
           <div class="m-card m-card-red"><div class="m-card-title">Ouverts</div><div class="m-card-value">${ouverts.length}</div><div class="m-card-sub">à traiter</div></div>
           <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${incidents.length}</div><div class="m-card-sub">enregistrés</div></div>
@@ -3059,6 +3410,7 @@
         <div style="width:64px;height:64px;border-radius:50%;background:${graviteColor}22;color:${graviteColor};display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 10px">🚨</div>
         <h2 style="margin:0;font-size:1.2rem;font-weight:700">${M.escHtml(i.client || i.salNom || 'Incident')}</h2>
         <p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.formatDate(i.creeLe || i.date)}</p>
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerIncident('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       <div class="m-card-row">
