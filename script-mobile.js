@@ -192,6 +192,13 @@
     </select>`;
   };
 
+  M.formTextarea = function(name, opts = {}) {
+    const value = opts.value != null ? String(opts.value) : '';
+    const rows = opts.rows || 3;
+    const ph = opts.placeholder || '';
+    return `<textarea name="${M.escHtml(name)}" rows="${rows}" placeholder="${M.escHtml(ph)}" style="resize:vertical;min-height:${rows * 24 + 24}px">${M.escHtml(value)}</textarea>`;
+  };
+
   // Utilitaire : extrait les valeurs d'un formulaire dans le sheet body
   M.lireFormSheet = function() {
     const body = $('#m-sheet-body');
@@ -571,6 +578,309 @@
     const c = M.charger('charges').find(x => x.id === id);
     if (!c) return M.toast('Charge introuvable');
     M.formNouvelleCharge(c);
+  };
+
+  // ============================================================
+  // Forms entites tiers/equipe/flotte (creation + edition + suppression)
+  // ============================================================
+
+  // ---- CLIENT ----
+  M.formNouveauClient = function(existing) {
+    const enEdition = !!existing;
+    const c = existing || {};
+    const body = `
+      ${M.formField('Nom du client', M.formInput('nom', { value: c.nom || '', placeholder: 'Société ou particulier', required: true }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: c.tel || '', placeholder: '06 12 34 56 78', autocomplete: 'tel' }))}
+        ${M.formField('Email', M.formInput('email', { type: 'email', value: c.email || '', placeholder: 'contact@...', autocomplete: 'email' }))}
+      </div>
+      ${M.formField('Adresse', M.formInput('adresse', { value: c.adresse || '', placeholder: 'Rue + numéro' }))}
+      <div class="m-form-row">
+        ${M.formField('Code postal', M.formInput('cp', { value: c.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
+        ${M.formField('Ville', M.formInput('ville', { value: c.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
+      </div>
+      ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || '', placeholder: 'FR12345678901' }))}
+      ${M.formField('Notes', M.formTextarea('notes', { value: c.notes || '', rows: 3, placeholder: 'Infos contact, accords commerciaux...' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce client</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier client' : '➕ Nouveau client',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm(`Supprimer définitivement le client ${c.nom} ?`, { titre: 'Supprimer client' })) return;
+          M.sauvegarder('clients', M.charger('clients').filter(x => x.id !== c.id));
+          M.toast('🗑️ Client supprimé');
+          M.state.detail.clients = null;
+          M.closeSheet();
+          M.go('clients');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
+        const arr = M.charger('clients');
+        const data = {
+          nom: f.nom.trim(),
+          tel: f.tel?.trim() || '',
+          email: f.email?.trim() || '',
+          adresse: f.adresse?.trim() || '',
+          cp: f.cp?.trim() || '',
+          ville: f.ville?.trim() || '',
+          tva: f.tva?.trim() || '',
+          notes: f.notes?.trim() || ''
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === c.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('clients', arr);
+          M.toast('✅ Client modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('clients', arr);
+          M.toast('✅ Client enregistré');
+        }
+        M.go('clients');
+        return true;
+      }
+    });
+  };
+  M.editerClient = function(id) {
+    const c = M.charger('clients').find(x => x.id === id);
+    if (!c) return M.toast('Client introuvable');
+    M.formNouveauClient(c);
+  };
+
+  // ---- VEHICULE ----
+  M.formNouveauVehicule = function(existing) {
+    const enEdition = !!existing;
+    const v = existing || {};
+    const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+    const body = `
+      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
+      ${M.formField('Modèle / Marque', M.formInput('modele', { value: v.modele || '', placeholder: 'Renault Master, Peugeot Boxer...' }))}
+      <div class="m-form-row">
+        ${M.formField('Date CT', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
+        ${M.formField('Date acquisition', M.formInput('dateAcquisition', { type: 'date', value: v.dateAcquisition || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Km actuel', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.km || '' }))}
+        ${M.formField('Km initial', M.formInputWithSuffix('kmInitial', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.kmInitial || '' }))}
+      </div>
+      ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
+        { value: 'achat',    label: '💰 Achat neuf' },
+        { value: 'occasion', label: '🚗 Occasion' },
+        { value: 'lld',      label: '📋 Location longue durée (LLD)' },
+        { value: 'loa',      label: "📝 Location avec option d'achat (LOA)" },
+        { value: 'credit',   label: '🏦 Crédit' },
+        { value: 'location', label: '📅 Location simple' }
+      ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
+      ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce véhicule</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier véhicule' : '➕ Nouveau véhicule',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm(`Supprimer définitivement le véhicule ${v.immat} ?`, { titre: 'Supprimer véhicule' })) return;
+          M.sauvegarder('vehicules', M.charger('vehicules').filter(x => x.id !== v.id));
+          M.toast('🗑️ Véhicule supprimé');
+          M.state.detail.vehicules = null;
+          M.closeSheet();
+          M.go('vehicules');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.immat?.trim()) { M.toast('⚠️ Immatriculation obligatoire'); return false; }
+        const arr = M.charger('vehicules');
+        // Resolve salNom depuis salId pour coherence avec desktop (lookup vise)
+        const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
+        const data = {
+          immat: f.immat.trim().toUpperCase(),
+          modele: f.modele?.trim() || '',
+          dateCT: f.dateCT || '',
+          dateAcquisition: f.dateAcquisition || '',
+          km: parseFloat(f.km) || 0,
+          kmInitial: parseFloat(f.kmInitial) || 0,
+          modeAcquisition: f.modeAcquisition || '',
+          entretienIntervalKm: parseFloat(f.entretienIntervalKm) || 0,
+          salId: f.salId || null,
+          salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : ''
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === v.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('vehicules', arr);
+          M.toast('✅ Véhicule modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('vehicules', arr);
+          M.toast('✅ Véhicule enregistré');
+        }
+        M.go('vehicules');
+        return true;
+      }
+    });
+  };
+  M.editerVehicule = function(id) {
+    const v = M.charger('vehicules').find(x => x.id === id);
+    if (!v) return M.toast('Véhicule introuvable');
+    M.formNouveauVehicule(v);
+  };
+
+  // ---- SALARIE ----
+  M.formNouveauSalarie = function(existing) {
+    const enEdition = !!existing;
+    const s = existing || {};
+    const body = `
+      <div class="m-form-row">
+        ${M.formField('Prénom', M.formInput('prenom', { value: s.prenom || '', placeholder: 'Jean', autocomplete: 'given-name' }))}
+        ${M.formField('Nom', M.formInput('nom', { value: s.nom || '', placeholder: 'Dupont', required: true, autocomplete: 'family-name' }), { required: true })}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: s.tel || '', placeholder: '06 12 34 56 78', autocomplete: 'tel' }))}
+        ${M.formField('Email', M.formInput('email', { type: 'email', value: s.email || '', placeholder: 'jean@...', autocomplete: 'email' }))}
+      </div>
+      ${M.formField('Adresse', M.formInput('adresse', { value: s.adresse || '', placeholder: 'Rue, ville' }))}
+      <div class="m-form-row">
+        ${M.formField('N° matricule', M.formInput('numero', { value: s.numero || '', placeholder: 'ex: 001' }))}
+        ${M.formField('Poste', M.formInput('poste', { value: s.poste || '', placeholder: 'Chauffeur, manutentionnaire...' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date permis', M.formInput('datePermis', { type: 'date', value: s.datePermis || '' }))}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: s.dateAssurance || '' }))}
+      </div>
+      ${M.formField('Visite médicale', M.formInput('visiteMedicale', { type: 'date', value: s.visiteMedicale || '' }))}
+      ${M.formField('Statut', M.formSelect('statut', [
+        { value: 'actif',    label: '✅ Actif' },
+        { value: 'inactif',  label: '⏸️ Inactif' }
+      ], { value: s.statut || (s.actif === false ? 'inactif' : 'actif') }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce salarié</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier salarié' : '➕ Nouveau salarié',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm(`Supprimer définitivement ${s.prenom || ''} ${s.nom || ''} ?`, { titre: 'Supprimer salarié' })) return;
+          M.sauvegarder('salaries', M.charger('salaries').filter(x => x.id !== s.id));
+          M.toast('🗑️ Salarié supprimé');
+          M.state.detail.salaries = null;
+          M.closeSheet();
+          M.go('salaries');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
+        const arr = M.charger('salaries');
+        const data = {
+          prenom: f.prenom?.trim() || '',
+          nom: f.nom.trim(),
+          tel: f.tel?.trim() || '',
+          email: f.email?.trim() || '',
+          adresse: f.adresse?.trim() || '',
+          numero: f.numero?.trim() || '',
+          poste: f.poste?.trim() || '',
+          datePermis: f.datePermis || '',
+          dateAssurance: f.dateAssurance || '',
+          visiteMedicale: f.visiteMedicale || '',
+          statut: f.statut || 'actif',
+          actif: (f.statut || 'actif') === 'actif'
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === s.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('salaries', arr);
+          M.toast('✅ Salarié modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('salaries', arr);
+          M.toast('✅ Salarié enregistré');
+        }
+        M.go('salaries');
+        return true;
+      }
+    });
+  };
+  M.editerSalarie = function(id) {
+    const s = M.charger('salaries').find(x => x.id === id);
+    if (!s) return M.toast('Salarié introuvable');
+    M.formNouveauSalarie(s);
+  };
+
+  // ---- FOURNISSEUR ----
+  M.formNouveauFournisseur = function(existing) {
+    const enEdition = !!existing;
+    const f = existing || {};
+    const body = `
+      ${M.formField('Nom du fournisseur', M.formInput('nom', { value: f.nom || '', placeholder: 'Société', required: true }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: f.tel || '', placeholder: '06 12 34 56 78', autocomplete: 'tel' }))}
+        ${M.formField('Email', M.formInput('email', { type: 'email', value: f.email || '', placeholder: 'contact@...', autocomplete: 'email' }))}
+      </div>
+      ${M.formField('Adresse', M.formInput('adresse', { value: f.adresse || '', placeholder: 'Rue + numéro' }))}
+      <div class="m-form-row">
+        ${M.formField('Code postal', M.formInput('cp', { value: f.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
+        ${M.formField('Ville', M.formInput('ville', { value: f.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
+      </div>
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce fournisseur</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier fournisseur' : '➕ Nouveau fournisseur',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm(`Supprimer définitivement le fournisseur ${f.nom} ?`, { titre: 'Supprimer fournisseur' })) return;
+          M.sauvegarder('fournisseurs', M.charger('fournisseurs').filter(x => x.id !== f.id));
+          M.toast('🗑️ Fournisseur supprimé');
+          M.state.detail.fournisseurs = null;
+          M.closeSheet();
+          M.go('fournisseurs');
+        });
+      },
+      onSubmit() {
+        const v = M.lireFormSheet();
+        if (!v.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
+        const arr = M.charger('fournisseurs');
+        const data = {
+          nom: v.nom.trim(),
+          tel: v.tel?.trim() || '',
+          email: v.email?.trim() || '',
+          adresse: v.adresse?.trim() || '',
+          cp: v.cp?.trim() || '',
+          ville: v.ville?.trim() || ''
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === f.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('fournisseurs', arr);
+          M.toast('✅ Fournisseur modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('fournisseurs', arr);
+          M.toast('✅ Fournisseur enregistré');
+        }
+        M.go('fournisseurs');
+        return true;
+      }
+    });
+  };
+  M.editerFournisseur = function(id) {
+    const f = M.charger('fournisseurs').find(x => x.id === id);
+    if (!f) return M.toast('Fournisseur introuvable');
+    M.formNouveauFournisseur(f);
   };
 
   // ============================================================
@@ -1775,7 +2085,8 @@
       }
       filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouveauClient()" aria-label="Nouveau client">+</button>`;
+      html += `
         <div style="margin-bottom:14px">
           <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
         </div>
@@ -1849,6 +2160,7 @@
         <div style="width:64px;height:64px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 10px">${M.escHtml((c.nom || '?').charAt(0).toUpperCase())}</div>
         <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(c.nom || '—')}</h2>
         ${c.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(c.ville)}</p>` : ''}
+        <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="margin-top:12px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid ${'rgba(245,166,35,0.3)'};border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button>
       </div>
 
       ${c.tel || c.email || adresseFull ? `
@@ -1904,7 +2216,8 @@
       }
       filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouveauFournisseur()" aria-label="Nouveau fournisseur">+</button>`;
+      html += `
         <div style="margin-bottom:14px">
           <input type="search" id="m-four-search" placeholder="🔍 Rechercher" value="${M.escHtml(M.state.fournisseursRecherche)}" autocomplete="off" />
         </div>
@@ -1969,6 +2282,7 @@
         <div style="width:64px;height:64px;border-radius:14px;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 10px">🏭</div>
         <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(f.nom || '—')}</h2>
         ${f.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(f.ville)}</p>` : ''}
+        <button type="button" onclick="MCAm.editerFournisseur('${M.escHtml(f.id)}')" style="margin-top:12px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button>
       </div>
 
       ${f.tel || f.email ? `
@@ -2025,7 +2339,8 @@
       }
       filtered = [...filtered].sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouveauVehicule()" aria-label="Nouveau véhicule">+</button>`;
+      html += `
         <div style="margin-bottom:14px">
           <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, modèle)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
         </div>
@@ -2095,6 +2410,7 @@
             ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(v.salNom)} ›</button>`
             : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>`;
         })() : ''}
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       <!-- CT highlight (le plus important) -->
@@ -2373,7 +2689,8 @@
         return (a.nom||'').localeCompare(b.nom||'');
       });
 
-      let html = `
+      let html = `<button class="m-fab" onclick="MCAm.formNouveauSalarie()" aria-label="Nouveau salarié">+</button>`;
+      html += `
         <div style="margin-bottom:14px">
           <input type="search" id="m-sal-search" placeholder="🔍 Rechercher (nom, tel, poste)" value="${M.escHtml(M.state.salariesRecherche)}" autocomplete="off" />
         </div>
@@ -2443,6 +2760,7 @@
         <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml((s.prenom ? s.prenom + ' ' : '') + (s.nom || '—'))}</h2>
         ${s.poste ? `<p style="color:var(--m-text-muted);font-size:.88rem;margin:4px 0 0">${M.escHtml(s.poste)}</p>` : ''}
         ${!estActif ? `<p style="display:inline-block;background:rgba(231,76,60,0.12);color:var(--m-red);padding:3px 10px;border-radius:12px;font-size:.72rem;font-weight:600;margin-top:8px">⏸️ Inactif</p>` : ''}
+        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerSalarie('${M.escHtml(s.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
       ${s.tel || s.email ? `
