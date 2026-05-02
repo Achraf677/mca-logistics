@@ -4392,16 +4392,51 @@
   // pour push automatique des saisies mobile. Echoue silencieusement si pas de
   // session Supabase (dans ce cas, les saisies restent locales et seront sync
   // au prochain ouverture desktop).
-  function initRemoteSync() {
-    if (!window.DelivProRemoteStorage || typeof window.DelivProRemoteStorage.init !== 'function') return Promise.resolve();
-    return window.DelivProRemoteStorage.init().then(result => {
+  // Tente de creer une session Supabase pour permettre le sync.
+  // Le login mobile (login.html connecterAdminLocal) ne cree qu'une session
+  // sessionStorage locale, pas une vraie JWT Supabase. Sans JWT, le
+  // storage-sync bootstrap() return tot et rien n'est pousse vers Supabase.
+  // -> on tente signInAnonymously() qui cree une vraie session JWT
+  // (necessite que "Anonymous Sign-Ins" soit active dans Supabase Auth settings).
+  // Si ca echoue (anon desactive), on log + fallback (la sync reste cassee
+  // mais l'app fonctionne en local).
+  async function ensureSupabaseSession() {
+    const ds = window.DelivProSupabase;
+    if (!ds || typeof ds.getClient !== 'function') return false;
+    const client = ds.getClient();
+    if (!client?.auth) return false;
+    try {
+      const { data: { session } } = await client.auth.getSession();
+      if (session) return true; // deja une session, tout va bien
+      // Pas de session -> tentative anonyme
+      const { data, error } = await client.auth.signInAnonymously();
+      if (error) {
+        console.warn('[mobile] signInAnonymously failed:', error.message,
+          '— Active "Anonymous Sign-Ins" dans Supabase Auth Settings pour activer la sync mobile.');
+        return false;
+      }
+      console.log('[mobile] Session anonyme creee', data?.session?.user?.id);
+      return true;
+    } catch (e) {
+      console.warn('[mobile] ensureSupabaseSession error', e);
+      return false;
+    }
+  }
+
+  async function initRemoteSync() {
+    // 1. S'assurer qu'on a une session Supabase (sinon storage-sync.bootstrap return tot)
+    await ensureSupabaseSession();
+    // 2. Lancer le sync proprement dit
+    if (!window.DelivProRemoteStorage || typeof window.DelivProRemoteStorage.init !== 'function') return;
+    try {
+      const result = await window.DelivProRemoteStorage.init();
       // Refresh la page courante avec les donnees fraiches Supabase
       if (M.state.currentPage) M.go(M.state.currentPage);
       M.updateAlertesBadge();
       return result;
-    }).catch(err => {
+    } catch (err) {
       console.warn('[mobile] DelivProRemoteStorage init', err);
-    });
+    }
   }
 
   function init() {
