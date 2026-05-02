@@ -317,11 +317,23 @@
       ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0', value: v.distance || '' }))}
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(x => ({ value: x.id, label: x.immat || x.immatriculation || x.id })), { placeholder: 'Choisir un véhicule', value: v.vehiculeId || '' }))}
       ${M.formField('Chauffeur', M.formSelect('salarieId', salaries.map(s => ({ value: s.id, label: s.nom || s.id })), { placeholder: 'Choisir un chauffeur', value: v.salarieId || '' }))}
-      ${M.formField('Statut', M.formSelect('statut', [
-        { value: 'en-attente', label: 'En attente' },
-        { value: 'en-cours',   label: 'En cours' },
-        { value: 'livre',      label: 'Livré' }
-      ], { value: v.statut || 'livre' }))}
+      <div class="m-form-row">
+        ${M.formField('Statut', M.formSelect('statut', [
+          { value: 'en-attente', label: 'En attente' },
+          { value: 'en-cours',   label: 'En cours' },
+          { value: 'livre',      label: 'Livré' }
+        ], { value: v.statut || 'livre' }))}
+        ${M.formField('Mode paiement', M.formSelect('modePaiement', [
+          { value: '',         label: '—' },
+          { value: 'virement', label: 'Virement' },
+          { value: 'especes',  label: 'Espèces' },
+          { value: 'cheque',   label: 'Chèque' },
+          { value: 'cb',       label: 'Carte bancaire' }
+        ], { value: v.modePaiement || v.mode_paiement || '' }))}
+      </div>
+      ${M.formField('Heure de début', M.formInput('heureDebut', { type: 'time', value: v.heureDebut || v.heure_debut || '' }))}
+      ${M.formField('Zone / tournée', M.formInput('zone', { value: v.zone || '', placeholder: 'Ex: Île-de-France' }))}
+      ${M.formField('Notes internes', M.formTextarea('notes', { value: v.notes || '', rows: 2, placeholder: 'Remarques sur la livraison' }))}
       ${enEdition && (v.vehiculeId || v.salarieId) ? `
         <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
           ${v.vehiculeId ? `<button type="button" class="m-btn" data-goto-veh="${M.escHtml(v.vehiculeId)}" style="flex:1 1 140px">🚐 Fiche véhicule</button>` : ''}
@@ -407,6 +419,12 @@
           salarieId: form.salarieId || null,    // mobile
           chaufId: form.salarieId || null,       // PC
           statut: form.statut || 'livre',
+          modePaiement: form.modePaiement || '',
+          mode_paiement: form.modePaiement || '',  // alias PC
+          heureDebut: form.heureDebut || '',
+          heure_debut: form.heureDebut || '',      // alias PC
+          zone: form.zone?.trim() || '',
+          notes: form.notes?.trim() || '',
           numLiv: form.numLiv?.trim() || ''
         };
         if (enEdition) {
@@ -696,21 +714,46 @@
     const enEdition = !!existing;
     const c = existing || {};
     const body = `
-      ${M.formField('Nom du client', M.formInput('nom', { value: c.nom || '', placeholder: 'Société ou particulier', required: true }), { required: true })}
+      ${M.formField('Nom / Raison sociale', M.formInput('nom', { value: c.nom || '', placeholder: 'Société ou particulier', required: true }), { required: true })}
+      ${M.formField('Secteur d\'activité', M.formSelect('secteur', [
+        { value: 'transport',  label: '🚚 Transport / logistique' },
+        { value: 'industrie',  label: '🏭 Industrie / usine' },
+        { value: 'btp',        label: '🏗️ BTP / chantier' },
+        { value: 'commerce',   label: '🏪 Commerce / retail' },
+        { value: 'ecommerce',  label: '🛒 E-commerce' },
+        { value: 'agro',       label: '🌾 Agro-alimentaire' },
+        { value: 'sante',      label: '⚕️ Santé / pharma' },
+        { value: 'public',     label: '🏛️ Public / collectivité' },
+        { value: 'evenement',  label: '🎪 Événementiel' },
+        { value: 'autre',      label: '📝 Autre' }
+      ], { placeholder: '— Choisir —', value: c.secteur || '' }))}
+      ${M.formField('Contact (prénom)', M.formInput('prenom', { value: c.prenom || '', placeholder: 'Prénom de la personne', autocomplete: 'given-name' }))}
       <div class="m-form-row">
         ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: c.tel || '', placeholder: '06 12 34 56 78', autocomplete: 'tel' }))}
         ${M.formField('Email', M.formInput('email', { type: 'email', value: c.email || '', placeholder: 'contact@...', autocomplete: 'email' }))}
       </div>
+      ${M.formField('Email facturation', M.formInput('emailFact', { type: 'email', value: c.emailFact || '', placeholder: 'compta@...' }), { hint: 'Si différent du contact principal' })}
       ${M.formField('Adresse', M.formInput('adresse', { value: c.adresse || '', placeholder: 'Rue + numéro' }))}
       <div class="m-form-row">
         ${M.formField('Code postal', M.formInput('cp', { value: c.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
         ${M.formField('Ville', M.formInput('ville', { value: c.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '123 456 789' }))}
-        ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || '', placeholder: 'FR12345678901' }))}
+        ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '9 chiffres' }))}
+        ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || c.tvaIntra || '', placeholder: 'FR + 11 chiffres' }))}
       </div>
-      ${M.formField('Notes', M.formTextarea('notes', { value: c.notes || '', rows: 3, placeholder: 'Infos contact, accords commerciaux...' }))}
+      <div class="m-form-row">
+        ${M.formField('Délai paiement', M.formInputWithSuffix('delaiPaiement', 'j', { type: 'number', step: '1', min: '0', max: '180', value: c.delaiPaiement || '30', placeholder: '30' }))}
+        ${M.formField('Mode paiement préféré', M.formSelect('modePaiement', [
+          { value: 'virement',    label: 'Virement' },
+          { value: 'prelevement', label: 'Prélèvement SEPA' },
+          { value: 'cb',          label: 'Carte bancaire' },
+          { value: 'cheque',      label: 'Chèque' },
+          { value: 'especes',     label: 'Espèces' }
+        ], { value: c.modePaiement || 'virement' }))}
+      </div>
+      ${M.formField('IBAN', M.formInput('iban', { value: c.iban || '', placeholder: 'FR76 …' }))}
+      ${M.formField('Notes internes', M.formTextarea('notes', { value: c.notes || '', rows: 3, placeholder: 'Remarques, préférences, historique...' }))}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce client</button>` : ''}
     `;
     M.openSheet({
@@ -734,13 +777,20 @@
         const arr = M.charger('clients');
         const data = {
           nom: f.nom.trim(),
+          secteur: f.secteur || '',
+          prenom: f.prenom?.trim() || '',
           tel: f.tel?.trim() || '',
           email: f.email?.trim() || '',
+          emailFact: f.emailFact?.trim() || '',
           adresse: f.adresse?.trim() || '',
           cp: f.cp?.trim() || '',
           ville: f.ville?.trim() || '',
           siren: f.siren?.trim() || '',
           tva: f.tva?.trim() || '',
+          tvaIntra: f.tva?.trim() || '',  // alias PC
+          delaiPaiement: M.parseNum(f.delaiPaiement) || 30,
+          modePaiement: f.modePaiement || 'virement',
+          iban: f.iban?.trim() || '',
           notes: f.notes?.trim() || ''
         };
         if (enEdition) {
@@ -876,10 +926,23 @@
         ${M.formField('Poste', M.formInput('poste', { value: s.poste || '', placeholder: 'Chauffeur, manutentionnaire...' }))}
       </div>
       <div class="m-form-row">
+        ${M.formField('Catégorie permis', M.formSelect('catPermis', [
+          { value: '',      label: '—' },
+          { value: 'B',     label: 'B (VL ≤ 3,5 t)' },
+          { value: 'autre', label: 'Autre (étranger / équivalent)' }
+        ], { value: s.catPermis || '' }))}
         ${M.formField('Date permis', M.formInput('datePermis', { type: 'date', value: s.datePermis || '' }))}
-        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: s.dateAssurance || '' }))}
       </div>
-      ${M.formField('Visite médicale', M.formInput('visiteMedicale', { type: 'date', value: s.visiteMedicale || '' }))}
+      ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: s.dateAssurance || '' }))}
+      <div class="m-form-row">
+        ${M.formField('Date visite médicale', M.formInput('visiteMedicale', { type: 'date', value: s.visiteMedicale || '' }))}
+        ${M.formField('Aptitude', M.formSelect('aptitude', [
+          { value: '',                 label: '—' },
+          { value: 'apte',             label: 'Apte' },
+          { value: 'apte_restrictions', label: 'Apte avec restrictions' },
+          { value: 'inapte',           label: 'Inapte' }
+        ], { value: s.aptitude || '' }))}
+      </div>
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'actif',    label: '✅ Actif' },
         { value: 'inactif',  label: '⏸️ Inactif' }
@@ -938,9 +1001,11 @@
           adresse: f.adresse?.trim() || '',
           numero: f.numero?.trim() || '',
           poste: f.poste?.trim() || '',
+          catPermis: f.catPermis || '',
           datePermis: f.datePermis || '',
           dateAssurance: f.dateAssurance || '',
           visiteMedicale: f.visiteMedicale || '',
+          aptitude: f.aptitude || '',
           statut: f.statut || 'actif',
           actif: (f.statut || 'actif') === 'actif'
         };
@@ -1000,6 +1065,16 @@
         ${M.formField('SIRET', M.formInput('siret', { value: f.siret || '', placeholder: '123 456 789 00012' }))}
         ${M.formField('N° TVA', M.formInput('tva', { value: f.tva || '', placeholder: 'FR12345678901' }))}
       </div>
+      ${M.formField('IBAN', M.formInput('iban', { value: f.iban || '', placeholder: 'FR76 …' }))}
+      ${M.formField('Mode paiement préféré', M.formSelect('modePaiement', [
+        { value: '',            label: '—' },
+        { value: 'virement',    label: 'Virement' },
+        { value: 'prelevement', label: 'Prélèvement SEPA' },
+        { value: 'cb',          label: 'Carte bancaire' },
+        { value: 'cheque',      label: 'Chèque' },
+        { value: 'especes',     label: 'Espèces' }
+      ], { value: f.modePaiement || '' }))}
+      ${M.formField('Notes', M.formTextarea('notes', { value: f.notes || '', rows: 2, placeholder: 'Conditions, contact, etc.' }))}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce fournisseur</button>` : ''}
     `;
     M.openSheet({
@@ -1029,7 +1104,10 @@
           cp: v.cp?.trim() || '',
           ville: v.ville?.trim() || '',
           siret: v.siret?.trim() || '',
-          tva: v.tva?.trim() || ''
+          tva: v.tva?.trim() || '',
+          iban: v.iban?.trim() || '',
+          modePaiement: v.modePaiement || '',
+          notes: v.notes?.trim() || ''
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === f.id);
