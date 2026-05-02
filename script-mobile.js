@@ -188,7 +188,11 @@
       $('#m-sheet').setAttribute('aria-hidden', 'false');
     });
     if (typeof opts.afterMount === 'function') {
-      opts.afterMount($('#m-sheet-body'));
+      try { opts.afterMount($('#m-sheet-body')); }
+      catch (err) {
+        console.error('[mobile] afterMount error:', err);
+        M.toast('⚠️ Erreur affichage form : ' + (err?.message || 'voir console'), { duration: 5000 });
+      }
     }
     // Focus sur le premier input pour saisie immediate
     setTimeout(() => {
@@ -212,8 +216,13 @@
   M.submitSheet = async function() {
     if (!M._sheetCtx) return;
     if (typeof M._sheetCtx.onSubmit !== 'function') { M.closeSheet(); return; }
-    const ok = await Promise.resolve(M._sheetCtx.onSubmit($('#m-sheet-body')));
-    if (ok !== false) M.closeSheet();
+    try {
+      const ok = await Promise.resolve(M._sheetCtx.onSubmit($('#m-sheet-body')));
+      if (ok !== false) M.closeSheet();
+    } catch (err) {
+      console.error('[mobile] onSubmit error:', err);
+      M.toast('⚠️ Erreur enregistrement : ' + (err?.message || 'voir console'), { duration: 5000 });
+    }
   };
 
   // ============================================================
