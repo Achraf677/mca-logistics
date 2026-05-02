@@ -1961,6 +1961,7 @@
   // ---------- Livraisons (v2.1 : liste lecture seule, groupee par mois) ----------
   M.state.livraisonsRecherche = '';
   M.state.livraisonsMoisOuverts = {}; // mois -> bool (open/closed)
+  M.state.livraisonsVue = 'liste'; // 'liste' | 'kanban'
 
   M.register('livraisons', {
     title: 'Livraisons',
@@ -1990,12 +1991,54 @@
       // FAB toujours present (position:fixed -> place dans le HTML peu importe)
       let html = `<button class="m-fab" onclick="MCAm.formNouvelleLivraison()" aria-label="Nouvelle livraison">+</button>`;
 
-      // Recherche bar
+      const vue = M.state.livraisonsVue;
+      // Toggle vue Liste / Kanban (alignement PC)
       html += `
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <button class="m-alertes-chip ${vue==='liste'?'active':''}" data-vue="liste" style="flex:1 1 0">📋 Liste</button>
+          <button class="m-alertes-chip ${vue==='kanban'?'active':''}" data-vue="kanban" style="flex:1 1 0">📊 Kanban</button>
+        </div>
         <div style="margin-bottom:16px">
           <input type="search" id="m-liv-search" placeholder="🔍 Rechercher (client, n°, adresse...)" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
         </div>
       `;
+
+      // Vue Kanban : 3 colonnes scrollables horizontalement par statut
+      if (vue === 'kanban') {
+        const cols = [
+          { key: 'en-attente', label: '⏳ En attente', color: 'var(--m-text-muted)' },
+          { key: 'en-cours',   label: '🟡 En cours',   color: 'var(--m-accent)' },
+          { key: 'livre',      label: '✅ Livré',      color: 'var(--m-green)' }
+        ];
+        // Limite a livraisons des 3 derniers mois pour perf (sinon Kanban infini)
+        const cutoffMois = new Date(); cutoffMois.setMonth(cutoffMois.getMonth() - 3);
+        const cutoffStr = cutoffMois.toISOString().slice(0, 10);
+        const livKanban = filtered.filter(l => (l.date || '') >= cutoffStr);
+        if (!livKanban.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">📊</div><h3 class="m-empty-title">Aucune livraison récente</h3><p class="m-empty-text">Le Kanban affiche les 3 derniers mois.</p></div>`;
+          return html;
+        }
+        html += `<div style="display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:14px;margin:0 -16px;padding-left:16px;padding-right:16px">`;
+        cols.forEach(col => {
+          const items = livKanban.filter(l => (l.statut || 'en-attente') === col.key)
+            .sort((a,b) => (b.date||'').localeCompare(a.date||''));
+          const total = items.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+          html += `<div style="flex:0 0 280px;background:var(--m-bg-elevated);border:1px solid var(--m-border);border-top:3px solid ${col.color};border-radius:12px;padding:12px;max-height:600px;overflow-y:auto">
+            <div style="font-weight:700;font-size:.92rem;margin-bottom:4px">${col.label} (${items.length})</div>
+            <div style="font-size:.78rem;color:var(--m-text-muted);margin-bottom:10px">${M.format$(total)}</div>
+            ${items.length ? items.map(l => `
+              <button type="button" class="m-card m-card-pressable m-liv-edit" data-id="${M.escHtml(l.id)}" style="display:block;width:100%;text-align:left;padding:10px;background:var(--m-card);border:1px solid var(--m-border);border-radius:10px;margin-bottom:8px;color:inherit;font-family:inherit">
+                <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
+                <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.formatDate(l.date)}${l.numLiv?' · '+M.escHtml(l.numLiv):''}</div>
+                <div style="margin-top:4px;font-weight:700;color:var(--m-green);font-size:.85rem">${M.format$(l.prix || l.prixHT || 0)}</div>
+              </button>
+            `).join('') : `<div style="color:var(--m-text-muted);font-size:.78rem;text-align:center;padding:20px 0">Aucune</div>`}
+          </div>`;
+        });
+        html += `</div>`;
+        html += `<p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:8px">💡 Glisse latéralement entre les colonnes. Tap = édition.</p>`;
+        return html;
+      }
 
       if (!livraisons.length) {
         html += `<div class="m-empty"><div class="m-empty-icon">📦</div><h3 class="m-empty-title">Aucune livraison</h3><p class="m-empty-text">Tape sur le bouton ➕ pour ajouter ta première livraison.</p></div>`;
@@ -2055,6 +2098,10 @@
       return html;
     },
     afterRender(container) {
+      // Toggle vue Liste / Kanban
+      container.querySelectorAll('.m-alertes-chip[data-vue]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.livraisonsVue = btn.dataset.vue; M.go('livraisons'); });
+      });
       // Wire recherche (debounce 200ms pour fluidite)
       const searchInput = container.querySelector('#m-liv-search');
       if (searchInput) {
