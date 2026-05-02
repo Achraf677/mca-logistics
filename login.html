@@ -764,6 +764,20 @@
       sessionStorage.setItem('admin_nom', compte.nom || identifiant);
       sessionStorage.removeItem('salarie_id');
       sessionStorage.removeItem('salarie_numero');
+
+      // Tente de creer aussi une session Supabase Auth pour permettre la sync
+      // entre PC et mobile (memes credentials -> meme user_id Supabase ->
+      // meme acces aux donnees via RLS).
+      // Si l'admin n'a pas de compte Supabase Auth, on fait fallback sur
+      // signInAnonymously cote mobile (cf. ensureSupabaseSession).
+      try {
+        if (window.DelivProAuth && typeof window.DelivProAuth.signIn === 'function') {
+          const supaResult = await window.DelivProAuth.signIn('admin', identifiant, mdp);
+          if (supaResult && supaResult.ok) {
+            sessionStorage.setItem('auth_mode', 'supabase');
+          }
+        }
+      } catch (_) { /* silencieux : login local reussit deja */ }
       memoriserFastBoot('admin');
       localStorage.setItem('last_admin_identifiant', identifiant);
       afficherStatutConnexion('Connexion réussie. Redirection…');
