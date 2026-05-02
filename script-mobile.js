@@ -256,7 +256,7 @@
   M.parseNum = function(v) {
     if (v == null || v === '') return 0;
     const s = String(v).replace(/\s/g, '').replace(',', '.');
-    const n = M.parseNum(s);
+    const n = Number.parseFloat(s);  // Number.parseFloat (immune au sed parseFloat -> M.parseNum)
     return isNaN(n) ? 0 : n;
   };
 
