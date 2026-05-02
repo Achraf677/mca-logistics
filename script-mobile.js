@@ -334,6 +334,58 @@
       ${M.formField('Heure de début', M.formInput('heureDebut', { type: 'time', value: v.heureDebut || v.heure_debut || '' }))}
       ${M.formField('Zone / tournée', M.formInput('zone', { value: v.zone || '', placeholder: 'Ex: Île-de-France' }))}
       ${M.formField('Notes internes', M.formTextarea('notes', { value: v.notes || '', rows: 2, placeholder: 'Remarques sur la livraison' }))}
+
+      <!-- LETTRE DE VOITURE (LDV) - section collapsible -->
+      <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${(v.expNom || v.destNom || v.marchNature) ? 'open' : ''}>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">🧾 Lettre de voiture (LDV)</summary>
+        <div style="padding:14px">
+          <div style="font-size:.78rem;color:var(--m-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Expéditeur</div>
+          ${M.formField('Nom / Raison sociale', M.formInput('expNom', { value: v.expNom || '', placeholder: 'Société expéditeur' }))}
+          ${M.formField('Contact', M.formInput('expContact', { value: v.expContact || '', placeholder: 'Nom + tél' }))}
+          ${M.formField('Adresse', M.formInput('expAdresse', { value: v.expAdresse || '', placeholder: 'Rue + numéro' }))}
+          <div class="m-form-row">
+            ${M.formField('CP', M.formInput('expCp', { value: v.expCp || '', placeholder: '75001' }))}
+            ${M.formField('Ville', M.formInput('expVille', { value: v.expVille || '', placeholder: 'Paris' }))}
+            ${M.formField('Pays', M.formInput('expPays', { value: v.expPays || 'FR', placeholder: 'FR' }))}
+          </div>
+
+          <div style="font-size:.78rem;color:var(--m-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">Destinataire</div>
+          ${M.formField('Nom / Raison sociale', M.formInput('destNom', { value: v.destNom || '', placeholder: 'Société destinataire' }))}
+          ${M.formField('Contact', M.formInput('destContact', { value: v.destContact || '', placeholder: 'Nom + tél' }))}
+          ${M.formField('Adresse', M.formInput('destAdresse', { value: v.destAdresse || '', placeholder: 'Rue + numéro' }))}
+          <div class="m-form-row">
+            ${M.formField('CP', M.formInput('destCp', { value: v.destCp || '', placeholder: '69003' }))}
+            ${M.formField('Ville', M.formInput('destVille', { value: v.destVille || '', placeholder: 'Lyon' }))}
+            ${M.formField('Pays', M.formInput('destPays', { value: v.destPays || 'FR', placeholder: 'FR' }))}
+          </div>
+
+          <div style="font-size:.78rem;color:var(--m-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">Marchandise</div>
+          ${M.formField('Nature', M.formInput('marchNature', { value: v.marchNature || '', placeholder: 'Palettes alimentaires...' }))}
+          <div class="m-form-row">
+            ${M.formField('Poids', M.formInputWithSuffix('marchPoids', 'kg', { type: 'number', step: '0.1', min: '0', placeholder: '1500', value: v.marchPoids || '' }))}
+            ${M.formField('Volume', M.formInputWithSuffix('marchVolume', 'm³', { type: 'number', step: '0.01', min: '0', placeholder: '12.5', value: v.marchVolume || '' }))}
+            ${M.formField('Colis', M.formInputWithSuffix('marchColis', 'u', { type: 'number', step: '1', min: '0', placeholder: '8', value: v.marchColis || '' }))}
+          </div>
+
+          <div style="font-size:.78rem;color:var(--m-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">Matières dangereuses (ADR)</div>
+          <label style="display:flex;align-items:center;gap:8px;padding:10px 0;cursor:pointer">
+            <input type="checkbox" name="adrEst" id="m-adr-est" ${v.adrEst ? 'checked' : ''} style="width:auto;min-height:auto" />
+            <span>Transport ADR (matières dangereuses)</span>
+          </label>
+          <div id="m-adr-details" style="display:${v.adrEst ? 'block' : 'none'}">
+            <div class="m-form-row">
+              ${M.formField('Code ONU', M.formInput('adrOnu', { value: v.adrOnu || '', placeholder: 'UN1202' }))}
+              ${M.formField('Classe', M.formInput('adrClasse', { value: v.adrClasse || '', placeholder: '3' }))}
+            </div>
+            ${M.formField('Groupe emballage', M.formSelect('adrGroupe', [
+              { value: '',    label: '—' },
+              { value: 'I',   label: 'I' },
+              { value: 'II',  label: 'II' },
+              { value: 'III', label: 'III' }
+            ], { value: v.adrGroupe || '' }))}
+          </div>
+        </div>
+      </details>
       ${enEdition && (v.vehiculeId || v.salarieId) ? `
         <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
           ${v.vehiculeId ? `<button type="button" class="m-btn" data-goto-veh="${M.escHtml(v.vehiculeId)}" style="flex:1 1 140px">🚐 Fiche véhicule</button>` : ''}
@@ -372,6 +424,14 @@
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
+        // Toggle section ADR (matieres dangereuses) selon checkbox
+        const adrCheck = body.querySelector('#m-adr-est');
+        const adrDetails = body.querySelector('#m-adr-details');
+        if (adrCheck && adrDetails) {
+          adrCheck.addEventListener('change', () => {
+            adrDetails.style.display = adrCheck.checked ? 'block' : 'none';
+          });
+        }
         // Bouton supprimer + liens vers entites liees (mode edition)
         if (enEdition) {
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
@@ -425,7 +485,28 @@
           heure_debut: form.heureDebut || '',      // alias PC
           zone: form.zone?.trim() || '',
           notes: form.notes?.trim() || '',
-          numLiv: form.numLiv?.trim() || ''
+          numLiv: form.numLiv?.trim() || '',
+          // Lettre de voiture (LDV)
+          expNom: form.expNom?.trim() || '',
+          expContact: form.expContact?.trim() || '',
+          expAdresse: form.expAdresse?.trim() || '',
+          expCp: form.expCp?.trim() || '',
+          expVille: form.expVille?.trim() || '',
+          expPays: form.expPays?.trim() || 'FR',
+          destNom: form.destNom?.trim() || '',
+          destContact: form.destContact?.trim() || '',
+          destAdresse: form.destAdresse?.trim() || '',
+          destCp: form.destCp?.trim() || '',
+          destVille: form.destVille?.trim() || '',
+          destPays: form.destPays?.trim() || 'FR',
+          marchNature: form.marchNature?.trim() || '',
+          marchPoids: M.parseNum(form.marchPoids) || 0,
+          marchVolume: M.parseNum(form.marchVolume) || 0,
+          marchColis: M.parseNum(form.marchColis) || 0,
+          adrEst: !!document.querySelector('#m-sheet-body #m-adr-est:checked'),
+          adrOnu: form.adrOnu?.trim() || '',
+          adrClasse: form.adrClasse?.trim() || '',
+          adrGroupe: form.adrGroupe || ''
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === v.id);
