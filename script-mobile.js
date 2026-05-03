@@ -998,13 +998,21 @@
         };
         litres.addEventListener('input', recalc);
         prixL.addEventListener('input', recalc);
-        // Auto-remplit le type carburant depuis le vehicule selectionne (si non deja choisi par user)
-        if (vehSelect && carbSelect) {
-          vehSelect.addEventListener('change', () => {
-            if (carbSelect.value) return; // ne pas ecraser un choix manuel
-            const v = vehicules.find(x => x.id === vehSelect.value);
-            if (v?.typeCarburant) carbSelect.value = v.typeCarburant;
-          });
+        // Auto-remplit le type carburant + km compteur depuis le vehicule selectionne
+        const kmCompteurInput = body.querySelector('input[name=kmCompteur]');
+        if (vehSelect) {
+          const onVehChange = () => {
+            const id = vehSelect.value;
+            const v = vehicules.find(x => x.id === id);
+            if (v?.typeCarburant && carbSelect && !carbSelect.value) carbSelect.value = v.typeCarburant;
+            // Auto-fill km compteur si vide (logique partagée M.dernierKmConnu)
+            if (kmCompteurInput && !kmCompteurInput.value && id) {
+              const km = M.dernierKmConnu(id);
+              if (km > 0) kmCompteurInput.value = km;
+            }
+          };
+          vehSelect.addEventListener('change', onVehChange);
+          if (!enEdition) setTimeout(onVehChange, 100);
         }
         if (enEdition) {
           body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
@@ -2401,6 +2409,23 @@
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
+        // Auto-fill km : quand un véhicule est sélectionné, propose le dernier
+        // compteur connu (max entre vehicule.km, dernier plein, dernier entretien,
+        // dernière saisie heures). Logique partagée pour toutes les saisies km.
+        const vehSel = b.querySelector('select[name=vehiculeId]');
+        const kmInput = b.querySelector('input[name=km]');
+        if (vehSel && kmInput) {
+          const autofillKm = () => {
+            if (kmInput.value) return; // ne pas écraser une saisie manuelle
+            const id = vehSel.value;
+            if (!id) return;
+            const kmDispo = M.dernierKmConnu(id);
+            if (kmDispo > 0) kmInput.value = kmDispo;
+          };
+          vehSel.addEventListener('change', autofillKm);
+          // Au mount : si véhicule déjà sélectionné (mode édition), pré-remplit
+          if (!enEdition) setTimeout(autofillKm, 100);
+        }
         if (enEdition) {
           b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm('Supprimer définitivement cet entretien ?', { titre: 'Supprimer entretien' })) return;
@@ -3926,6 +3951,34 @@
     return idx;
   };
 
+  // Dernier kilométrage connu pour un véhicule, agrégé depuis :
+  // - vehicule.km (compteur affiché)
+  // - dernier carburant.kmCompteur
+  // - dernier entretien.km
+  // - dernière saisie heures.km cumulé
+  // Le max gagne. Utilisé pour auto-fill km dans les forms entretien/plein/heures.
+  M.dernierKmConnu = function(vehId) {
+    if (!vehId) return 0;
+    const veh = M.charger('vehicules').find(v => v.id === vehId);
+    let max = M.parseNum(veh?.km) || 0;
+    const matchVeh = (x) => x && (x.vehiculeId === vehId || x.vehId === vehId);
+    M.charger('carburant').filter(matchVeh).forEach(p => {
+      const k = M.parseNum(p.kmCompteur) || M.parseNum(p.km) || 0;
+      if (k > max) max = k;
+    });
+    M.charger('entretiens').filter(matchVeh).forEach(e => {
+      const k = M.parseNum(e.km) || 0;
+      if (k > max) max = k;
+    });
+    // Heures : somme cumulative des km par véhicule
+    let cumKmHeures = 0;
+    M.charger('heures').filter(matchVeh).forEach(h => {
+      cumKmHeures += M.parseNum(h.km) || 0;
+    });
+    if (cumKmHeures > max) max = cumKmHeures;
+    return max;
+  };
+
   // ---------- Helper : index nom par salId (utilise sur Planning) ----------
   M.indexSalaries = function() {
     const arr = M.charger('salaries');
@@ -5352,14 +5405,69 @@
         </div>
       ` : ''}
 
-      ${livraisons.length ? `
-        <div class="m-section">
-          <div class="m-section-header">
-            <h3 class="m-section-title">📦 Activité</h3>
-            <span style="font-size:.85rem;color:var(--m-text-muted)">${livraisons.length} livraison${livraisons.length>1?'s':''}</span>
+      ${(() => {
+        if (!livraisons.length) return '';
+        const totalCa = livraisons.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        const totalKm = livraisons.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+        // Historique conducteurs : agrège par chauffeur (salarieId / chaufId)
+        const salaries = M.charger('salaries');
+        const byChauf = {};
+        livraisons.forEach(l => {
+          const sid = l.salarieId || l.chaufId;
+          if (!sid) return;
+          if (!byChauf[sid]) byChauf[sid] = { id: sid, nb: 0, ca: 0, km: 0, derniere: '' };
+          byChauf[sid].nb++;
+          byChauf[sid].ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+          byChauf[sid].km += M.parseNum(l.distance) || 0;
+          if ((l.date || '') > byChauf[sid].derniere) byChauf[sid].derniere = l.date || '';
+        });
+        const topChauf = Object.values(byChauf).sort((a, b) => b.nb - a.nb).slice(0, 5);
+        const dernieres = [...livraisons].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
+
+        return `
+          <div class="m-section">
+            <div class="m-section-header">
+              <h3 class="m-section-title">📦 Activité totale</h3>
+              <span style="font-size:.85rem;color:var(--m-text-muted)">${livraisons.length} liv · ${M.format$(totalCa)} · ${M.formatNum(totalKm.toFixed(0))} km</span>
+            </div>
           </div>
-        </div>
-      ` : ''}
+
+          ${topChauf.length ? `
+            <div class="m-section">
+              <div class="m-section-header"><h3 class="m-section-title">👤 Historique conducteurs</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${topChauf.length}</span></div>
+              <div class="m-card" style="padding:0">
+                ${topChauf.map((c, i) => {
+                  const sal = salaries.find(s => s.id === c.id);
+                  const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : 'Inconnu';
+                  const isLast = i === topChauf.length - 1;
+                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer">
+                    <div style="flex:1 1 auto;min-width:0">
+                      <div style="font-weight:600;font-size:.9rem">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${M.escHtml(nom)}</div>
+                      <div style="color:var(--m-text-muted);font-size:.74rem;margin-top:2px">${c.nb} liv · ${M.formatNum(c.km.toFixed(0))} km · dernière ${M.formatDate(c.derniere)}</div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                      <div style="font-weight:700;color:var(--m-green);font-size:.85rem">${M.format$(c.ca)}</div>
+                    </div>
+                  </button>`;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <div class="m-section">
+            <div class="m-section-header"><h3 class="m-section-title">📋 Dernières livraisons</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${dernieres.length} affichées</span></div>
+            ${dernieres.map(l => `
+              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-green);font-size:.88rem">${M.format$(l.prix || l.prixHT || 0)}</div>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      })()}
     `;
   };
   // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------
@@ -5701,14 +5809,63 @@
         ${s.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(s.adresse)}</span></div>` : ''}
       </div>
 
-      ${livSal.length ? `
-        <div class="m-section">
-          <div class="m-section-header">
-            <h3 class="m-section-title">📦 Livraisons effectuées</h3>
-            <span style="font-size:.85rem;color:var(--m-text-muted)">${livSal.length} · ${M.format$(totalCa)}</span>
+      ${(() => {
+        if (!livSal.length) return '';
+        // Stats du mois courant
+        const moisCle = new Date().toISOString().slice(0, 7);
+        const livMois = livSal.filter(l => (l.date || '').startsWith(moisCle));
+        const caMois = livMois.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        const kmMois = livMois.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+        const heuresEntries = M.charger('heures').filter(h =>
+          (h.salId === s.id || h.salarieId === s.id) && (h.date || '').startsWith(moisCle));
+        const totalHeures = heuresEntries.reduce((sum, h) => sum + (M.parseNum(h.heures) || 0), 0);
+        // Top : compare aux autres salariés actifs sur le même mois
+        const allSal = M.charger('salaries').filter(x => x && !x.archive && x.statut !== 'inactif');
+        const allLiv = M.charger('livraisons');
+        const ranks = allSal.map(x => {
+          const livX = allLiv.filter(l => (l.salarieId === x.id || l.chaufId === x.id) && (l.date || '').startsWith(moisCle));
+          const ca = livX.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+          const km = livX.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+          return { id: x.id, ca, km, nb: livX.length };
+        });
+        const rankCa = [...ranks].sort((a, b) => b.ca - a.ca).findIndex(r => r.id === s.id) + 1;
+        const rankKm = [...ranks].sort((a, b) => b.km - a.km).findIndex(r => r.id === s.id) + 1;
+        const dernieres = [...livSal].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
+        const podiumIcon = (r) => r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : `#${r}`;
+
+        return `
+          <div class="m-section">
+            <div class="m-section-header">
+              <h3 class="m-section-title">🏆 Performances du mois</h3>
+              <span style="font-size:.78rem;color:var(--m-text-muted)">${new Date().toLocaleDateString('fr-FR', { month: 'long' })}</span>
+            </div>
+            <div class="m-card-row">
+              <div class="m-card m-card-green"><div class="m-card-title">CA généré</div><div class="m-card-value">${M.format$(caMois)}</div><div class="m-card-sub">${podiumIcon(rankCa)} sur ${ranks.length}</div></div>
+              <div class="m-card m-card-blue"><div class="m-card-title">Km parcourus</div><div class="m-card-value">${M.formatNum(kmMois.toFixed(0))}</div><div class="m-card-sub">${podiumIcon(rankKm)} sur ${ranks.length}</div></div>
+            </div>
+            <div class="m-card-row">
+              <div class="m-card m-card-accent"><div class="m-card-title">Livraisons</div><div class="m-card-value">${livMois.length}</div><div class="m-card-sub">ce mois</div></div>
+              <div class="m-card m-card-purple"><div class="m-card-title">Heures</div><div class="m-card-value">${M.formatNum(totalHeures.toFixed(0))} h</div><div class="m-card-sub">saisies</div></div>
+            </div>
           </div>
-        </div>
-      ` : ''}
+
+          <div class="m-section">
+            <div class="m-section-header">
+              <h3 class="m-section-title">📦 Total cumulé</h3>
+              <span style="font-size:.85rem;color:var(--m-text-muted)">${livSal.length} liv · ${M.format$(totalCa)}</span>
+            </div>
+            ${dernieres.map(l => `
+              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-green);font-size:.88rem">${M.format$(l.prix || l.prixHT || 0)}</div>
+              </button>
+            `).join('')}
+          </div>
+        `;
+      })()}
     `;
   };
   // ---------- Heures & Km (v2.9 : recap par salarie sur mois courant) ----------
