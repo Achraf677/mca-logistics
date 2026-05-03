@@ -991,6 +991,7 @@
         { value: 'tva',        label: '🧾 TVA' },
         { value: 'autre',      label: '📝 Autre' }
       ], { placeholder: 'Choisir une catégorie', value: c.categorie || '' }))}
+      ${M.formField('Véhicule concerné (optionnel, sync auto)', M.formSelect('vehiculeId', M.charger('vehicules').filter(v => v && !v.archive).map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Aucun', value: c.vehiculeId || c.vehId || '' }), { hint: 'Si catégorie = ⛽ Carburant ou 🔧 Entretien, un plein/entretien sera créé/maj automatiquement.' })}
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'a_payer', label: '⏳ À payer' },
         { value: 'paye',    label: '✅ Payée' },
@@ -1116,6 +1117,8 @@
           date: form.date,
           libelle: form.libelle.trim(),
           fournisseur: form.fournisseur?.trim() || '',
+          vehiculeId: form.vehiculeId || null,
+          vehId: form.vehiculeId || null,  // dual-write PC
           montantHT: +ht.toFixed(2),  // PC + mobile
           montantHt: +ht.toFixed(2),  // alias mobile (compat ancien)
           montantTtc: ttc,
@@ -1127,20 +1130,121 @@
           statut: form.statut || 'a_payer',
           statutPaiement: form.statut || 'a_payer'  // PC utilise statutPaiement
         };
+        let chargeId;
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === c.id);
-          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          if (idx >= 0) {
+            arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+            chargeId = arr[idx].id;
+          }
           M.sauvegarder('charges', arr);
           M.toast('✅ Charge modifiée');
         } else {
-          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          chargeId = M.genId();
+          arr.push({ id: chargeId, creeLe: new Date().toISOString(), ...data });
           M.sauvegarder('charges', arr);
           M.toast('✅ Charge enregistrée');
         }
+        // Sync cross-entity : si catégorie carburant -> crée/maj plein.
+        // Si catégorie entretien -> crée/maj entretien. Lié via chargeId
+        // pour éviter doublons sur futurs updates.
+        try {
+          const charge = M.charger('charges').find(x => x.id === chargeId);
+          if (charge) M.synchroChargeVersAutreEntite(charge);
+        } catch (e) { console.warn('[mobile] sync cross-entity', e); }
         M.go('charges');
         return true;
       }
     });
+  };
+
+  // Synchronise une charge vers Carburant (si categorie=carburant) ou Entretien
+  // (si categorie=entretien). Mirror des fonctions PC synchroChargeVersCarburant
+  // et synchroChargeVersEntretien (script-charges.js + script-entretiens.js).
+  // Crée si nouvelle, met à jour si charge.carburantId / charge.entretienId existe.
+  M.synchroChargeVersAutreEntite = function(charge) {
+    if (!charge) return;
+    if (charge.categorie === 'carburant') M.synchroChargeVersCarburant(charge);
+    if (charge.categorie === 'entretien') M.synchroChargeVersEntretien(charge);
+  };
+
+  M.synchroChargeVersCarburant = function(charge) {
+    const pleins = M.charger('carburant');
+    const total = M.parseNum(charge.montantTtc) || M.parseNum(charge.montant) || 0;
+    const taux = M.parseNum(charge.tauxTVA) || M.parseNum(charge.tauxTva) || 20;
+    const data = {
+      vehiculeId: charge.vehiculeId || charge.vehId || null,
+      vehId: charge.vehiculeId || charge.vehId || null,
+      date: charge.date,
+      total,
+      tauxTVA: taux,
+      tauxTva: taux,
+      tva: M.parseNum(charge.tva) || +(total - total / (1 + taux/100)).toFixed(2),
+      source: 'charge',
+      chargeId: charge.id,
+      modifieLe: new Date().toISOString()
+    };
+    if (charge.carburantId) {
+      const idx = pleins.findIndex(p => p.id === charge.carburantId);
+      if (idx >= 0) {
+        pleins[idx] = { ...pleins[idx], ...data };
+        M.sauvegarder('carburant', pleins);
+        return;
+      }
+    }
+    // Création
+    const newId = M.genId();
+    pleins.push({ id: newId, creeLe: new Date().toISOString(), ...data });
+    M.sauvegarder('carburant', pleins);
+    // Pose carburantId sur la charge
+    const charges = M.charger('charges');
+    const idxC = charges.findIndex(x => x.id === charge.id);
+    if (idxC >= 0) {
+      charges[idxC].carburantId = newId;
+      M.sauvegarder('charges', charges);
+    }
+  };
+
+  M.synchroChargeVersEntretien = function(charge) {
+    const entretiens = M.charger('entretiens');
+    const ttc = M.parseNum(charge.montantTtc) || M.parseNum(charge.montant) || 0;
+    const ht = M.parseNum(charge.montantHT) || M.parseNum(charge.montantHt) || ttc;
+    const taux = M.parseNum(charge.tauxTVA) || M.parseNum(charge.tauxTva) || 20;
+    const tva = M.parseNum(charge.tva) || +(ttc - ht).toFixed(2);
+    const data = {
+      vehiculeId: charge.vehiculeId || charge.vehId || null,
+      vehId: charge.vehiculeId || charge.vehId || null,
+      date: charge.date,
+      type: 'autre',
+      description: charge.libelle || 'Entretien (depuis charge)',
+      coutHt: ht,
+      coutHT: ht,
+      tauxTva: taux,
+      tauxTVA: taux,
+      tva,
+      coutTtc: ttc,
+      cout: ttc,
+      source: 'charge',
+      chargeId: charge.id,
+      modifieLe: new Date().toISOString()
+    };
+    if (charge.entretienId) {
+      const idx = entretiens.findIndex(e => e.id === charge.entretienId);
+      if (idx >= 0) {
+        entretiens[idx] = { ...entretiens[idx], ...data };
+        M.sauvegarder('entretiens', entretiens);
+        return;
+      }
+    }
+    const newId = M.genId();
+    entretiens.push({ id: newId, creeLe: new Date().toISOString(), ...data });
+    M.sauvegarder('entretiens', entretiens);
+    const charges = M.charger('charges');
+    const idxC = charges.findIndex(x => x.id === charge.id);
+    if (idxC >= 0) {
+      charges[idxC].entretienId = newId;
+      M.sauvegarder('charges', charges);
+    }
   };
 
   M.editerCharge = function(id) {
