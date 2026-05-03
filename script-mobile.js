@@ -2781,6 +2781,7 @@
   // ---------- Charges (v3.0 : groupees par mois + filtre statut) ----------
   M.state.chargesStatut = 'tous'; // tous | a_payer | paye
   M.state.chargesCategorie = ''; // '' = toutes
+  M.state.chargesFournisseur = ''; // '' = tous
   M.state.chargesMoisOuverts = {};
   M.register('charges', {
     title: 'Charges',
@@ -2794,8 +2795,10 @@
 
       const statut = M.state.chargesStatut;
       const cat = M.state.chargesCategorie;
+      const fourFilter = M.state.chargesFournisseur || '';
       let filtered = charges;
       if (cat) filtered = filtered.filter(c => (c.categorie || '') === cat);
+      if (fourFilter) filtered = filtered.filter(c => (c.fournisseurId === fourFilter) || ((c.fournisseur || '').toLowerCase() === fourFilter.toLowerCase()));
       if (statut === 'a_payer') filtered = filtered.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
       if (statut === 'paye')    filtered = filtered.filter(c => c.statut === 'paye' || c.statut === 'payee');
 
@@ -2832,6 +2835,14 @@
           <button class="m-alertes-chip m-charges-cat ${cat==='autre'?'active':''}" data-cat="autre">📝 Autre</button>
         </div>
       `;
+      // Filtre fournisseur (alignement PC)
+      const fournisseurs = M.charger('fournisseurs');
+      if (fournisseurs.length) {
+        html += `<div style="margin-bottom:14px"><select id="m-charges-four">
+          <option value="">🏭 Tous fournisseurs</option>
+          ${fournisseurs.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'')).map(f => `<option value="${M.escHtml(f.id)}" ${fourFilter===f.id?'selected':''}>${M.escHtml(f.nom||f.id)}</option>`).join('')}
+        </select></div>`;
+      }
 
       if (!sorted.length) {
         html += `<div class="m-empty"><div class="m-empty-icon">💸</div><h3 class="m-empty-title">Aucune charge</h3><p class="m-empty-text">${statut === 'a_payer' ? 'Tu es à jour, aucune charge en attente.' : 'Tape sur ➕ pour saisir ta première charge.'}</p></div>`;
@@ -2917,6 +2928,11 @@
           M.state.chargesCategorie = btn.dataset.cat;
           M.go('charges');
         });
+      });
+      // Select fournisseur
+      container.querySelector('#m-charges-four')?.addEventListener('change', e => {
+        M.state.chargesFournisseur = e.target.value;
+        M.go('charges');
       });
       // Tap card charge -> ouvre le form en mode edition
       container.querySelectorAll('.m-charge-edit').forEach(btn => {
@@ -3161,7 +3177,12 @@
 
       // ---- DEVIS : calculateur de rentabilite avant proposition ----
       if (tab === 'devis') {
-        const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm : (kmTotal > 0 ? (carbTotal + entrTotal + autresTotal) / kmTotal : 0.50);
+        // Persistance : si l'user a explicitement saisi un cout km dans le devis, on le stocke
+        // dans localStorage pour le re-utiliser entre sessions et entre PC/mobile.
+        const coutStocked = M.parseNum(localStorage.getItem('rent_cout_km_ref'));
+        const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm
+          : (coutStocked > 0 ? coutStocked
+          : (kmTotal > 0 ? (carbTotal + entrTotal + autresTotal) / kmTotal : 0.50));
         const prix = M.parseNum(M.state.devisPrix) || 0;
         const km = M.parseNum(M.state.devisKm) || 0;
         const depEstim = km * coutKmStocke;
@@ -3238,7 +3259,15 @@
         let t = null;
         el.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state[key] = M.parseNum(e.target.value) || 0; M.go('rentabilite'); }, 350);
+          t = setTimeout(() => {
+            const val = M.parseNum(e.target.value) || 0;
+            M.state[key] = val;
+            // Persiste le cout km de reference pour re-usage entre sessions
+            if (key === 'devisCoutKm' && val > 0) {
+              try { localStorage.setItem('rent_cout_km_ref', String(val)); } catch (_) {}
+            }
+            M.go('rentabilite');
+          }, 350);
         });
       };
       wireDevis('#m-devis-prix', 'devisPrix');
