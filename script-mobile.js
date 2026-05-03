@@ -2388,7 +2388,9 @@
         ${M.formField('Statut', M.formSelect('statut', [
           { value: 'ouvert',   label: '🔴 Ouvert' },
           { value: 'encours',  label: '🟡 En cours' },
-          { value: 'traite',   label: '✅ Traité' }
+          { value: 'traite',   label: '✅ Traité' },
+          { value: 'resolu',   label: '✅ Résolu' },
+          { value: 'clos',     label: '🔒 Clos' }
         ], { value: inc.statut || 'ouvert' }))}
       </div>
       ${M.formField('Description', M.formTextarea('description', { value: inc.description || '', rows: 4, placeholder: 'Décris l\'incident en détails...' }))}
@@ -2853,20 +2855,20 @@
       const moisCle = now.toISOString().slice(0, 7); // YYYY-MM
 
       const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(moisCle));
-      const caMoisHt = livraisonsMois.reduce((acc, l) => acc + (Number(l.prix) || Number(l.prixHT) || Number(l.prix_ht) || 0), 0);
-      const caMoisTtc = livraisonsMois.reduce((acc, l) => acc + (Number(l.prixTTC) || Number(l.prix_ttc) || (Number(l.prix) || 0) * 1.2), 0);
+      const caMoisHt = livraisonsMois.reduce((acc, l) => acc + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || M.parseNum(l.prix_ht) || 0), 0);
+      const caMoisTtc = livraisonsMois.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix_ttc) || (M.parseNum(l.prix) || 0) * 1.2), 0);
 
       // Depenses du mois pour le benefice estime (HT, hors carburant qui est TTC)
-      const carbMois = carburant.filter(p => (p.date || '').startsWith(moisCle)).reduce((s, p) => s + (Number(p.total) || 0), 0);
-      const entrMois = entretiens.filter(e => (e.date || '').startsWith(moisCle)).reduce((s, e) => s + (Number(e.coutHt) || Number(e.cout) || 0), 0);
+      const carbMois = carburant.filter(p => (p.date || '').startsWith(moisCle)).reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+      const entrMois = entretiens.filter(e => (e.date || '').startsWith(moisCle)).reduce((s, e) => s + (M.parseNum(e.coutHt) || M.parseNum(e.cout) || 0), 0);
       const chargesMois = charges.filter(c => (c.date || '').startsWith(moisCle) && c.categorie !== 'entretien')
-        .reduce((s, c) => s + (Number(c.montantHT) || Number(c.montant) || 0), 0);
+        .reduce((s, c) => s + (M.parseNum(c.montantHT) || M.parseNum(c.montant) || 0), 0);
       const depMois = carbMois + entrMois + chargesMois;
       const beneficeEstime = caMoisHt - depMois;
       const benefColor = beneficeEstime >= 0 ? 'var(--m-green)' : 'var(--m-red)';
 
       const chargesAPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
-      const totalImpayes  = chargesAPayer.reduce((acc, c) => acc + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+      const totalImpayes  = chargesAPayer.reduce((acc, c) => acc + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
 
       const alertesActives = alertes.filter(a => !a.traitee && !a.ignoree && !(a.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > now));
       const alertesCritiques = alertesActives.filter(a => ['ct_expire','permis_expire','assurance_expire','charge_retard_paiement','carburant_anomalie'].includes(a.type)).length;
@@ -3033,7 +3035,7 @@
       const bulkOn = M.state.livBulkMode;
       const selSet = M.state.livBulkSel;
       const selCount = filtered.filter(l => selSet.has(l.id)).length;
-      const selTotal = filtered.filter(l => selSet.has(l.id)).reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+      const selTotal = filtered.filter(l => selSet.has(l.id)).reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
 
       // FAB : sélection multiple si pas en mode bulk, sinon caché
       let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelleLivraison()" aria-label="Nouvelle livraison">+</button>
@@ -3086,7 +3088,7 @@
         cols.forEach(col => {
           const items = livKanban.filter(l => (l.statut || 'en-attente') === col.key)
             .sort((a,b) => (b.date||'').localeCompare(a.date||''));
-          const total = items.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+          const total = items.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
           html += `<div style="flex:0 0 280px;background:var(--m-bg-elevated);border:1px solid var(--m-border);border-top:3px solid ${col.color};border-radius:12px;padding:12px;max-height:600px;overflow-y:auto">
             <div style="font-weight:700;font-size:.92rem;margin-bottom:4px">${col.label} (${items.length})</div>
             <div style="font-size:.78rem;color:var(--m-text-muted);margin-bottom:10px">${M.format$(total)}</div>
@@ -3115,7 +3117,7 @@
 
       monthsSorted.forEach(month => {
         const items = byMonth[month];
-        const totalCa = items.reduce((acc, l) => acc + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+        const totalCa = items.reduce((acc, l) => acc + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const dateLabel = (() => {
           if (month === '0000-00') return 'Sans date';
           const [y, m] = month.split('-');
@@ -4145,8 +4147,8 @@
       // KPI mois courant
       const moisCourant = new Date().toISOString().slice(0, 7);
       const pleinsCourants = pleins.filter(p => (p.date || '').startsWith(moisCourant));
-      const totalMois = pleinsCourants.reduce((s, p) => s + (Number(p.total) || 0), 0);
-      const litresMois = pleinsCourants.reduce((s, p) => s + (Number(p.litres) || 0), 0);
+      const totalMois = pleinsCourants.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+      const litresMois = pleinsCourants.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
       const prixMoyen = litresMois > 0 ? totalMois / litresMois : 0;
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauPlein()" aria-label="Nouveau plein">+</button>`;
@@ -4190,7 +4192,7 @@
 
       monthsSorted.forEach(month => {
         const items = byMonth[month];
-        const total = items.reduce((s, p) => s + (Number(p.total) || 0), 0);
+        const total = items.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
         const dateLabel = month === '0000-00' ? 'Sans date' : (() => {
           const [y, m] = month.split('-');
           return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
@@ -4220,7 +4222,7 @@
                   </div>
                   <div style="text-align:right;flex-shrink:0">
                     <div style="font-weight:700;color:var(--m-red);white-space:nowrap;font-size:.95rem">${M.format$(p.total)}</div>
-                    <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(Number(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + Number(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
+                    <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(M.parseNum(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + M.parseNum(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
                   </div>
                 </button>`;
               }).join('')}
@@ -4558,9 +4560,9 @@
       const charges = M.charger('charges');
       const moisCourant = new Date().toISOString().slice(0, 7);
       const courantes = charges.filter(c => (c.date || '').startsWith(moisCourant));
-      const totalMois = courantes.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+      const totalMois = courantes.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
       const aPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
-      const totalImpayes = aPayer.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+      const totalImpayes = aPayer.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
 
       const statut = M.state.chargesStatut;
       const cat = M.state.chargesCategorie;
@@ -4629,9 +4631,9 @@
 
       monthsSorted.forEach(month => {
         const items = byMonth[month];
-        const totalMonth = items.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+        const totalMonth = items.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
         const aPayerMonth = items.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
-        const totalAPayerMonth = aPayerMonth.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+        const totalAPayerMonth = aPayerMonth.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
         const dateLabel = month === '0000-00' ? 'Sans date' : (() => {
           const [y, m] = month.split('-');
           return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
@@ -4652,7 +4654,7 @@
             </button>
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
               ${items.map(c => {
-                const montant = Number(c.montantTtc) || Number(c.montant) || 0;
+                const montant = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
                 const estPayee = c.statut === 'paye' || c.statut === 'payee';
                 const estPartielle = c.statut === 'partiel';
                 const enRetard = !estPayee && c.date && (new Date(c.date) < new Date(Date.now() - 7*86400000));
@@ -4768,11 +4770,11 @@
       const chargesMois = charges.filter(c => inMois(c.date) && c.categorie !== 'entretien');
 
       // KPI globaux du mois (utilises pour le coverage et le cout/km de reference)
-      const caTotal = livMois.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
-      const kmTotal = livMois.reduce((s, l) => s + (Number(l.distance) || 0), 0);
-      const carbTotal    = carbMois.reduce((s, p) => s + (Number(p.total) || 0), 0);
-      const entrTotal    = entrMois.reduce((s, e) => s + (Number(e.cout) || 0), 0);
-      const autresTotal  = chargesMois.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+      const caTotal = livMois.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+      const kmTotal = livMois.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+      const carbTotal    = carbMois.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+      const entrTotal    = entrMois.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+      const autresTotal  = chargesMois.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
       const depTotal     = carbTotal + entrTotal + autresTotal;
       const profitTotal  = caTotal - depTotal;
       const margeTotal   = caTotal > 0 ? (profitTotal / caTotal * 100) : 0;
@@ -4881,11 +4883,11 @@
           const carbV  = carbMois.filter(matchVeh);
           const entrV  = entrMois.filter(matchVeh);
           const chrgV  = chargesMois.filter(matchVeh);
-          const ca   = livV.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
-          const carb = carbV.reduce((s, p) => s + (Number(p.total) || 0), 0);
-          const entr = entrV.reduce((s, e) => s + (Number(e.cout) || 0), 0);
-          const chrg = chrgV.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
-          const km   = livV.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+          const ca   = livV.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+          const carb = carbV.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+          const entr = entrV.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+          const chrg = chrgV.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+          const km   = livV.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
           return { v, ca, dep: carb + entr + chrg, km, nbLiv: livV.length };
         }).filter(x => x.ca > 0 || x.dep > 0)
           .sort((a, b) => b.ca - a.ca);
@@ -4906,8 +4908,8 @@
         livMois.forEach(l => {
           const key = (l.client || '—').trim();
           if (!byClient[key]) byClient[key] = { nom: key, ca: 0, km: 0, nbLiv: 0 };
-          byClient[key].ca += Number(l.prix) || Number(l.prixHT) || 0;
-          byClient[key].km += Number(l.distance) || 0;
+          byClient[key].ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+          byClient[key].km += M.parseNum(l.distance) || 0;
           byClient[key].nbLiv++;
         });
         const stats = Object.values(byClient).sort((a, b) => b.ca - a.ca);
@@ -4928,11 +4930,11 @@
       if (tab === 'chauffeur') {
         const stats = salaries.map(s => {
           const livS = livMois.filter(l => l.salarieId === s.id || l.chaufId === s.id);
-          const ca = livS.reduce((sum, l) => sum + (Number(l.prix) || Number(l.prixHT) || 0), 0);
-          const km = livS.reduce((sum, l) => sum + (Number(l.distance) || 0), 0);
+          const ca = livS.reduce((sum, l) => sum + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+          const km = livS.reduce((sum, l) => sum + (M.parseNum(l.distance) || 0), 0);
           // Carburant rattachable si le chauffeur a un vehicule attribue (via veh.salId)
           const vehAttribues = vehicules.filter(v => v.salId === s.id).map(v => v.id);
-          const carbS = carbMois.filter(p => vehAttribues.includes(p.vehiculeId)).reduce((sum, p) => sum + (Number(p.total) || 0), 0);
+          const carbS = carbMois.filter(p => vehAttribues.includes(p.vehiculeId)).reduce((sum, p) => sum + (M.parseNum(p.total) || 0), 0);
           // Estimation : marge = CA - carburant chauffeur - (km × cout autres flotte)
           const depEstim = carbS + (km * (coutKmRef - (kmTotal > 0 ? carbTotal / kmTotal : 0)));
           return { s, ca, dep: depEstim, km, nbLiv: livS.length };
@@ -5118,7 +5120,7 @@
       livrAll.forEach(l => {
         const k = (l.client || '').toLowerCase();
         if (!k) return;
-        caByClient[k] = (caByClient[k] || 0) + (Number(l.prix) || Number(l.prixHT) || 0);
+        caByClient[k] = (caByClient[k] || 0) + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0);
       });
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauClient()" aria-label="Nouveau client">+</button>`;
@@ -5189,7 +5191,7 @@
     // Telephone : nettoie pour href:tel + format affichage
     const telClean = (c.tel || '').replace(/[^\d+]/g, '');
     const livClient = M.charger('livraisons').filter(l => (l.client || '').toLowerCase() === (c.nom || '').toLowerCase());
-    const totalCa = livClient.reduce((s, l) => s + (Number(l.prix) || 0), 0);
+    const totalCa = livClient.reduce((s, l) => s + (M.parseNum(l.prix) || 0), 0);
     const adresseFull = [c.adresse, c.cp, c.ville].filter(Boolean).join(' ');
     const adresseEnc = encodeURIComponent(adresseFull);
 
@@ -5274,7 +5276,7 @@
       filtered.forEach(f => {
         // Compteur charges associees pour mini-stat
         const chargesF = M.charger('charges').filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
-        const totalCharges = chargesF.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+        const totalCharges = chargesF.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
         html += `<button type="button" class="m-card m-card-pressable m-four-row" data-id="${M.escHtml(f.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
           <div style="flex:1 1 auto;min-width:0">
             <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(f.nom || '—')}</div>
@@ -5312,9 +5314,9 @@
 
     const telClean = (f.tel || '').replace(/[^\d+]/g, '');
     const chargesF = M.charger('charges').filter(c => c.fournisseurId === id || c.fournisseur === f.nom);
-    const totalCharges = chargesF.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+    const totalCharges = chargesF.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
     const aPayer = chargesF.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
-    const totalAPayer = aPayer.reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+    const totalAPayer = aPayer.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
 
     return `
       <div style="text-align:center;padding:8px 0 18px">
@@ -5460,8 +5462,8 @@
     const ct = M.statutDate(v.dateCT);
     // Pleins du vehicule pour mini KPI
     const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id || p.vehId === v.id);
-    const totalCarb = pleins.reduce((s, p) => s + (Number(p.total) || 0), 0);
-    const totalLitres = pleins.reduce((s, p) => s + (Number(p.litres) || 0), 0);
+    const totalCarb = pleins.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+    const totalLitres = pleins.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
     const dernierPlein = pleins.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
     const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id || l.vehId === v.id);
 
@@ -5604,8 +5606,8 @@
       // KPI mois courant
       const moisCourant = new Date().toISOString().slice(0, 7);
       const courants = filtered.filter(e => (e.date || '').startsWith(moisCourant));
-      const totalMois = courants.reduce((s, e) => s + (Number(e.cout) || 0), 0);
-      const totalAll = filtered.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+      const totalMois = courants.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+      const totalAll = filtered.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
 
       let html = `<button class="m-fab" onclick="MCAm.formNouvelEntretien()" aria-label="Nouvel entretien">+</button>`;
       html += `
@@ -5647,7 +5649,7 @@
 
       monthsSorted.forEach(month => {
         const items = byMonth[month];
-        const total = items.reduce((s, e) => s + (Number(e.cout) || 0), 0);
+        const total = items.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
         const dateLabel = month === '0000-00' ? 'Sans date' : (() => {
           const [y, m] = month.split('-');
           return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
@@ -5889,7 +5891,7 @@
     const assurance = M.statutDate(s.dateAssurance);
     const visite = M.statutDate(s.visiteMedicale);
     const livSal = M.charger('livraisons').filter(l => l.salarieId === s.id || l.chaufId === s.id);
-    const totalCa = livSal.reduce((sum, l) => sum + (Number(l.prix) || 0), 0);
+    const totalCa = livSal.reduce((sum, l) => sum + (M.parseNum(l.prix) || 0), 0);
 
     return `
       <div style="text-align:center;padding:8px 0 18px">
@@ -6009,10 +6011,10 @@
       // Aggrege par salarie
       const stats = salaries.map(s => {
         const livSal = livraisons.filter(l => l.salarieId === s.id || l.chaufId === s.id);
-        const kmLiv = livSal.reduce((sum, l) => sum + (Number(l.distance) || 0), 0);
+        const kmLiv = livSal.reduce((sum, l) => sum + (M.parseNum(l.distance) || 0), 0);
         const heuresSal = heuresEntries.filter(h => h.salId === s.id || h.salarieId === s.id);
-        const totalHeures = heuresSal.reduce((sum, h) => sum + (Number(h.heures) || 0), 0);
-        const kmHeures = heuresSal.reduce((sum, h) => sum + (Number(h.km) || 0), 0);
+        const totalHeures = heuresSal.reduce((sum, h) => sum + (M.parseNum(h.heures) || 0), 0);
+        const kmHeures = heuresSal.reduce((sum, h) => sum + (M.parseNum(h.km) || 0), 0);
         return { sal: s, nbLiv: livSal.length, kmLiv, totalHeures, kmHeures, kmTotal: kmLiv + kmHeures };
       }).sort((a, b) => b.kmTotal - a.kmTotal);
 
@@ -6241,21 +6243,21 @@
 
       // TVA collectee : par livraison, base = HT, montant = TVA explicite ou (TTC - HT)
       const livAvecTva = livraisons.map(l => {
-        const ht = Number(l.prix) || Number(l.prixHT) || 0;
-        const ttc = Number(l.prixTTC) || ht * (1 + (Number(l.tauxTva) || 0) / 100) || ht * 1.2;
-        const tva = Number(l.tva) || (ttc - ht);
-        const taux = Number(l.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
+        const ht = M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+        const ttc = M.parseNum(l.prixTTC) || ht * (1 + (M.parseNum(l.tauxTva) || 0) / 100) || ht * 1.2;
+        const tva = M.parseNum(l.tva) || (ttc - ht);
+        const taux = M.parseNum(l.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
         return { ...l, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
       });
       const tvaCollectee = livAvecTva.reduce((s, l) => s + l._tva, 0);
       const baseCollectee = livAvecTva.reduce((s, l) => s + l._ht, 0);
 
       // TVA deductible : charges + carburant (TVA carburant deductible souvent partielle, on laisse au user)
-      const chargesAvecTva = charges.filter(c => (Number(c.tva) || 0) > 0).map(c => {
-        const ttc = Number(c.montantTtc) || Number(c.montant) || 0;
-        const tva = Number(c.tva) || 0;
-        const ht = Number(c.montantHT) || (ttc - tva);
-        const taux = Number(c.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
+      const chargesAvecTva = charges.filter(c => (M.parseNum(c.tva) || 0) > 0).map(c => {
+        const ttc = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
+        const tva = M.parseNum(c.tva) || 0;
+        const ht = M.parseNum(c.montantHT) || (ttc - tva);
+        const taux = M.parseNum(c.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
         return { ...c, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
       });
       const tvaDeductibleCharges = chargesAvecTva.reduce((s, c) => s + c._tva, 0);
@@ -6404,11 +6406,11 @@
       const carbMois = carburant.filter(p => (p.date || '').startsWith(moisSel));
       const chargesMois = charges.filter(c => (c.date || '').startsWith(moisSel));
 
-      const ca = livMois.reduce((s, l) => s + (Number(l.prix) || 0), 0);
-      const caPrec = livPrec.reduce((s, l) => s + (Number(l.prix) || 0), 0);
+      const ca = livMois.reduce((s, l) => s + (M.parseNum(l.prix) || 0), 0);
+      const caPrec = livPrec.reduce((s, l) => s + (M.parseNum(l.prix) || 0), 0);
       const evolCa = caPrec > 0 ? ((ca - caPrec) / caPrec * 100) : (ca > 0 ? 100 : 0);
-      const km = livMois.reduce((s, l) => s + (Number(l.distance) || 0), 0);
-      const kmPrec = livPrec.reduce((s, l) => s + (Number(l.distance) || 0), 0);
+      const km = livMois.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+      const kmPrec = livPrec.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
       const evolKm = kmPrec > 0 ? ((km - kmPrec) / kmPrec * 100) : (km > 0 ? 100 : 0);
 
       const moisOptions = [];
@@ -6438,7 +6440,7 @@
           <div class="m-card m-card-purple"><div class="m-card-title">Km parcourus</div><div class="m-card-value">${M.formatNum(km.toFixed(0))}</div><div class="m-card-sub">${evolBadge(evolKm)} vs précédent</div></div>
         </div>
         <div class="m-card-row">
-          <div class="m-card m-card-red"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(carbMois.reduce((s,p)=>s+(Number(p.total)||0),0))}</div></div>
+          <div class="m-card m-card-red"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(carbMois.reduce((s,p)=>s+(M.parseNum(p.total)||0),0))}</div></div>
           <div class="m-card"><div class="m-card-title">€/km</div><div class="m-card-value" style="font-size:1.3rem">${M.format$(km > 0 ? ca / km : 0)}</div><div class="m-card-sub">prix moyen</div></div>
         </div>
 
@@ -6450,7 +6452,7 @@
             const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
             const cle = d.toISOString().slice(0, 7);
             const caM = livraisons.filter(l => (l.date || '').startsWith(cle))
-              .reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+              .reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
             const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
             mois12.push({ cle, label: labelM, ca: caM });
           }
@@ -6490,9 +6492,9 @@
             const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
             const cle = d.toISOString().slice(0, 7);
             const totalCharges = charges.filter(c => (c.date || '').startsWith(cle))
-              .reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+              .reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
             const totalCarb = carburant.filter(p => (p.date || '').startsWith(cle))
-              .reduce((s, p) => s + (Number(p.total) || 0), 0);
+              .reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
             const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
             mois12.push({ cle, label: labelM, total: totalCharges + totalCarb });
           }
@@ -6534,7 +6536,7 @@
               const k = keyFn(l);
               if (!k) return;
               const cur = map.get(k) || { ca: 0, n: 0 };
-              cur.ca += Number(l.prix) || Number(l.prixHT) || 0;
+              cur.ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
               cur.n += 1;
               map.set(k, cur);
             });
@@ -6581,7 +6583,7 @@
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>👥 Équipe active</span><span style="font-weight:600">${salaries.length}</span></div>
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>🚐 Véhicules</span><span style="font-weight:600">${vehicules.length}</span></div>
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>📦 Livraisons total</span><span style="font-weight:600">${livraisons.length}</span></div>
-            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>💸 Charges du mois</span><span style="font-weight:600">${M.format$(chargesMois.reduce((s,c)=>s+(Number(c.montantTtc)||Number(c.montant)||0),0))}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>💸 Charges du mois</span><span style="font-weight:600">${M.format$(chargesMois.reduce((s,c)=>s+(M.parseNum(c.montantTtc)||M.parseNum(c.montant)||0),0))}</span></div>
           </div>
         </div>
 
@@ -6940,14 +6942,14 @@
     const initialPage = (location.hash || '').replace('#', '') || 'dashboard';
     M.go(initialPage in M.routes ? initialPage : 'dashboard');
 
-    // Auto-refresh badge alertes toutes les 30s (au cas ou desktop sync nouvelles alertes)
-    setInterval(M.updateAlertesBadge, 30000);
-
-    // Vérif documents salariés + véhicules au boot (1s après) puis toutes les heures.
-    // Génère alertes permis_expire / ct_proche / etc. (mirror PC verifierDocumentsSalaries).
-    // Idempotent : cooldown bloqueRegen empêche le spam.
-    setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
-    setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
+    // Auto-refresh badge alertes toutes les 30s + vérif docs/véhicules toutes les heures.
+    // Garde une référence pour éviter la duplication si init() est rappelé (HMR/reload).
+    if (M._intBadge) clearInterval(M._intBadge);
+    if (M._intDocs)  clearInterval(M._intDocs);
+    if (M._toDocs)   clearTimeout(M._toDocs);
+    M._intBadge = setInterval(M.updateAlertesBadge, 30000);
+    M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
+    M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis
