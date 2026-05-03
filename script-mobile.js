@@ -286,9 +286,14 @@
   // Utilitaire : extrait les valeurs d'un formulaire dans le sheet body
   M.lireFormSheet = function() {
     const body = $('#m-sheet-body');
+    if (!body) return {};
     const out = {};
     body.querySelectorAll('input, select, textarea').forEach(el => {
       if (!el.name) return;
+      // Checkboxes : on lit el.checked (boolean), pas el.value (qui est "on" par defaut)
+      if (el.type === 'checkbox') { out[el.name] = !!el.checked; return; }
+      // Radios : on ne garde que celle qui est cochee
+      if (el.type === 'radio') { if (el.checked) out[el.name] = el.value; return; }
       out[el.name] = el.value;
     });
     return out;
@@ -466,10 +471,10 @@
         const taux = M.parseNum(form.tauxTva) || 0;
         const tvaMontant = M.parseNum(form.tva) || (prixHT * taux / 100);
         const prixTTC = M.parseNum(form.prixTTC) || (prixHT + tvaMontant);
-        if (!form.client?.trim() || !form.date || !(prixHT > 0)) {
-          M.toast('⚠️ Client, date et prix HT obligatoires');
-          return false;
-        }
+        // Validation precise : indique exactement le champ manquant
+        if (!form.client?.trim()) { M.toast('⚠️ Client requis'); return false; }
+        if (!form.date) { M.toast('⚠️ Date requise'); return false; }
+        if (!(prixHT > 0)) { M.toast('⚠️ Prix HT > 0 requis'); return false; }
         const arr = M.charger('livraisons');
         // Dual-write : ecrit les conventions PC ET mobile pour rendre la donnee
         // visible des 2 cotes (vehId+vehiculeId, chaufId+salarieId, casses TVA).
@@ -512,7 +517,7 @@
           marchPoids: M.parseNum(form.marchPoids) || 0,
           marchVolume: M.parseNum(form.marchVolume) || 0,
           marchColis: M.parseNum(form.marchColis) || 0,
-          adrEst: !!document.querySelector('#m-sheet-body #m-adr-est:checked'),
+          adrEst: !!form.adrEst,
           adrOnu: form.adrOnu?.trim() || '',
           adrClasse: form.adrClasse?.trim() || '',
           adrGroupe: form.adrGroupe || ''
@@ -620,10 +625,10 @@
         const prixL = M.parseNum(form.prixLitre) || 0;
         let total = M.parseNum(form.total) || 0;
         if (!total && litres && prixL) total = +(litres * prixL).toFixed(2);
-        if (!form.vehiculeId || !form.date || !(litres > 0) || !(total > 0)) {
-          M.toast('⚠️ Véhicule, date, litres et total obligatoires');
-          return false;
-        }
+        if (!form.vehiculeId) { M.toast('⚠️ Véhicule requis'); return false; }
+        if (!form.date) { M.toast('⚠️ Date requise'); return false; }
+        if (!(litres > 0)) { M.toast('⚠️ Litres > 0 requis'); return false; }
+        if (!(total > 0)) { M.toast('⚠️ Total > 0 requis (ou laissé vide pour calcul auto)'); return false; }
         const arr = M.charger('carburant');
         // Dual-write vehiculeId/vehId pour compat PC
         const data = {
@@ -753,10 +758,9 @@
         const taux = M.parseNum(form.tauxTva) || 0;
         const ht = M.parseNum(form.montantHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
         const tvaMontant = M.parseNum(form.tva) || (ttc - ht);
-        if (!form.libelle?.trim() || !form.date || !(ttc > 0)) {
-          M.toast('⚠️ Libellé, date et montant TTC obligatoires');
-          return false;
-        }
+        if (!form.libelle?.trim()) { M.toast('⚠️ Libellé requis'); return false; }
+        if (!form.date) { M.toast('⚠️ Date requise'); return false; }
+        if (!(ttc > 0)) { M.toast('⚠️ Montant TTC > 0 requis'); return false; }
         const arr = M.charger('charges');
         const data = {
           date: form.date,
