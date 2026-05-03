@@ -1001,6 +1001,107 @@
     M.formNouveauVehicule(v);
   };
 
+  // ---- DOCS SALARIE (port PC : upload Supabase Storage bucket salaries-docs) ----
+  // 5 types : permis / cni / iban / vitale / medecine
+  M.DOC_TYPES_SALARIE = [
+    { type: 'permis',   label: 'Permis B',           icon: '🪪' },
+    { type: 'cni',      label: 'CNI / Passeport',    icon: '🪪' },
+    { type: 'iban',     label: 'RIB / IBAN',         icon: '🏦' },
+    { type: 'vitale',   label: 'Carte vitale',       icon: '⚕️' },
+    { type: 'medecine', label: 'Médecine du travail', icon: '🏥' }
+  ];
+
+  // Upload immediat vers Supabase Storage (mode edition).
+  // Stocke storage_path dans salarie.docs[type]. Trace dans salaries_documents.
+  M.uploaderDocSalarie = async function(file, type, salId) {
+    if (!file) return false;
+    if (!/^application\/pdf$|^image\//i.test(file.type)) {
+      M.toast('⚠️ Format non supporté (PDF ou image attendu)'); return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      M.toast('⚠️ Fichier trop lourd (5 Mo max)'); return false;
+    }
+    if (!window.DelivProStorage) {
+      M.toast('⚠️ Storage Supabase indisponible'); return false;
+    }
+    const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
+    const path = `${salId}/${type}/${Date.now()}_${cleanName}`;
+    const up = await window.DelivProStorage.uploadBlob('salaries-docs', path, file, { contentType: file.type });
+    if (!up.ok) {
+      M.toast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'));
+      return false;
+    }
+    const arr = M.charger('salaries');
+    const idx = arr.findIndex(x => x.id === salId);
+    if (idx < 0) return false;
+    const previous = arr[idx].docs?.[type];
+    arr[idx].docs = arr[idx].docs || {};
+    arr[idx].docs[type] = {
+      storage_path: path,
+      bucket: 'salaries-docs',
+      type: file.type,
+      nom: file.name,
+      taille: file.size,
+      uploaded_at: new Date().toISOString()
+    };
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('salaries', arr);
+    // Trace dans salaries_documents (audit/historique, comme PC)
+    try {
+      const client = window.DelivProSupabase?.getClient();
+      if (client) {
+        await client.from('salaries_documents').insert({
+          salarie_id: salId, type,
+          storage_path: path, mime_type: file.type,
+          taille_octets: file.size, nom_fichier: file.name
+        });
+      }
+    } catch (_) { /* non bloquant */ }
+    // Supprime ancien fichier si remplacement
+    if (previous?.storage_path && previous.storage_path !== path) {
+      window.DelivProStorage.remove('salaries-docs', previous.storage_path).catch(()=>{});
+    }
+    return true;
+  };
+
+  // Visualisation : download blob + objectURL ouvert dans nouvel onglet.
+  M.visualiserDocSalarie = async function(salId, type) {
+    const sal = M.charger('salaries').find(s => s.id === salId);
+    const doc = sal?.docs?.[type];
+    if (!doc) { M.toast('Aucun document de ce type'); return; }
+    // Cas legacy base64 (anciens uploads PC)
+    if (doc.data && String(doc.data).indexOf('data:') === 0) {
+      const w = window.open(); if (w) w.document.write(`<iframe src="${doc.data}" style="border:0;width:100vw;height:100vh"></iframe>`);
+      return;
+    }
+    if (!doc.storage_path || !window.DelivProStorage) {
+      M.toast('Document indisponible'); return;
+    }
+    M.toast('⏳ Chargement...');
+    const dl = await window.DelivProStorage.download(doc.bucket || 'salaries-docs', doc.storage_path);
+    if (!dl.ok) { M.toast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur')); return; }
+    const objectUrl = URL.createObjectURL(dl.blob);
+    const w = window.open(objectUrl);
+    if (!w) M.toast('⚠️ Bloqué : autorise les popups');
+    setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (_) {} }, 300000);
+  };
+
+  // Suppression : remove du bucket + clear de salarie.docs[type]
+  M.supprimerDocSalarie = async function(salId, type) {
+    const arr = M.charger('salaries');
+    const idx = arr.findIndex(s => s.id === salId);
+    if (idx < 0) return false;
+    const doc = arr[idx].docs?.[type];
+    if (!doc) return false;
+    if (doc.storage_path && window.DelivProStorage) {
+      await window.DelivProStorage.remove(doc.bucket || 'salaries-docs', doc.storage_path).catch(()=>{});
+    }
+    delete arr[idx].docs[type];
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('salaries', arr);
+    return true;
+  };
+
   // ---- SALARIE ----
   M.formNouveauSalarie = function(existing) {
     const enEdition = !!existing;
@@ -1052,6 +1153,35 @@
         <p class="m-form-hint">${s.mdpHash ? 'Le mot de passe actuel est conservé si tu laisses vide.' : 'Génère ou tape un mot de passe. Hashé via PBKDF2 avant stockage.'}</p>
       </div>
 
+      ${enEdition ? `
+      <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${s.docs && Object.keys(s.docs).length ? 'open' : ''}>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Permis, CNI, RIB, Vitale, Médecine)</summary>
+        <div style="padding:14px" id="m-sal-docs-list" data-sal-id="${M.escHtml(s.id)}">
+          ${M.DOC_TYPES_SALARIE.map(({ type, label, icon }) => {
+            const doc = s.docs?.[type];
+            return `<div class="m-card" data-doc-type="${type}" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+              <div style="font-size:1.2rem;flex:0 0 auto">${icon}</div>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.88rem">${label}</div>
+                <div class="m-doc-status" style="font-size:.74rem;color:${doc ? 'var(--m-green)' : 'var(--m-text-muted)'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  ${doc ? '✅ ' + M.escHtml(doc.nom || 'Document enregistré') : 'Aucun fichier'}
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex:0 0 auto">
+                ${doc ? `<button type="button" class="m-btn m-doc-view" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">👁</button>
+                       <button type="button" class="m-btn m-btn-danger m-doc-del" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">🗑</button>` : ''}
+                <label class="m-btn m-doc-upload-label" style="width:auto;padding:0 10px;height:38px;font-size:.78rem;display:inline-flex;align-items:center;cursor:pointer;margin:0">
+                  ${doc ? '↻' : '📎'}
+                  <input type="file" class="m-doc-input" data-type="${type}" accept="image/*,application/pdf" style="display:none" />
+                </label>
+              </div>
+            </div>`;
+          }).join('')}
+          <p class="m-form-hint" style="margin-top:6px">PDF ou image, 5 Mo max. Stocké chiffré sur Supabase Storage.</p>
+        </div>
+      </details>
+      ` : '<p class="m-form-hint" style="margin-top:14px">💡 Les documents (permis, CNI, RIB...) seront uploadables après la première sauvegarde.</p>'}
+
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce salarié</button>` : ''}
     `;
     M.openSheet({
@@ -1082,6 +1212,65 @@
           M.closeSheet();
           M.go('salaries');
         });
+        // Docs salarie : upload / view / delete (mode edition uniquement)
+        const refreshDocCard = (type) => {
+          const sal = M.charger('salaries').find(x => x.id === s.id);
+          const doc = sal?.docs?.[type];
+          const card = b.querySelector(`.m-card[data-doc-type="${type}"]`);
+          if (!card) return;
+          const status = card.querySelector('.m-doc-status');
+          if (status) {
+            status.textContent = doc ? '✅ ' + (doc.nom || 'Document enregistré') : 'Aucun fichier';
+            status.style.color = doc ? 'var(--m-green)' : 'var(--m-text-muted)';
+          }
+          // Reconstruit la zone boutons (view/del/upload)
+          const actions = card.lastElementChild;
+          const meta = M.DOC_TYPES_SALARIE.find(x => x.type === type);
+          actions.innerHTML = `
+            ${doc ? `<button type="button" class="m-btn m-doc-view" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">👁</button>
+                   <button type="button" class="m-btn m-btn-danger m-doc-del" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">🗑</button>` : ''}
+            <label class="m-btn m-doc-upload-label" style="width:auto;padding:0 10px;height:38px;font-size:.78rem;display:inline-flex;align-items:center;cursor:pointer;margin:0">
+              ${doc ? '↻' : '📎'}
+              <input type="file" class="m-doc-input" data-type="${type}" accept="image/*,application/pdf" style="display:none" />
+            </label>`;
+          wireDocActions();
+        };
+        const wireDocActions = () => {
+          b.querySelectorAll('.m-doc-input').forEach(inp => {
+            inp.onchange = async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const type = e.target.dataset.type;
+              const card = b.querySelector(`.m-card[data-doc-type="${type}"]`);
+              const status = card?.querySelector('.m-doc-status');
+              if (status) { status.textContent = '⏳ Envoi...'; status.style.color = 'var(--m-accent)'; }
+              const ok = await M.uploaderDocSalarie(file, type, s.id);
+              if (ok) {
+                refreshDocCard(type);
+                M.toast('✅ Document enregistré');
+              } else {
+                refreshDocCard(type);
+              }
+              e.target.value = '';
+            };
+          });
+          b.querySelectorAll('.m-doc-view').forEach(btn => {
+            btn.onclick = () => M.visualiserDocSalarie(s.id, btn.dataset.type);
+          });
+          b.querySelectorAll('.m-doc-del').forEach(btn => {
+            btn.onclick = async () => {
+              const type = btn.dataset.type;
+              const meta = M.DOC_TYPES_SALARIE.find(x => x.type === type);
+              if (!await M.confirm(`Supprimer le document "${meta?.label || type}" ?`, { titre: 'Supprimer document' })) return;
+              const ok = await M.supprimerDocSalarie(s.id, type);
+              if (ok) {
+                refreshDocCard(type);
+                M.toast('🗑️ Document supprimé');
+              }
+            };
+          });
+        };
+        wireDocActions();
       },
       async onSubmit() {
         const f = M.lireFormSheet();
