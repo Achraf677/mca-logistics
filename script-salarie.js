@@ -1281,7 +1281,11 @@ async function enregistrerPlein() {
   chargerHistoriqueCarburant();
   afficherAccueil();
   if (window.__syncRefresh) window.__syncRefresh();
-  toast('✅ Plein enregistré' + (photoRecu ? ' avec reçu' : ''));
+  let toastMsg = '✅ Plein enregistré';
+  if (photoRecuPath && !navigator.onLine) toastMsg += ' (reçu envoyé au retour réseau)';
+  else if (photoRecu) toastMsg += ' (reçu sauvegardé localement)';
+  else if (photoRecuPath) toastMsg += ' avec reçu';
+  toast(toastMsg);
 }
 
 function supprimerPleinSal(id) {
@@ -1617,6 +1621,38 @@ async function uploaderPhotosInspection(date) {
 
   if (!salarieStorageId) throw new Error('missing_remote_salarie_id');
 
+  // Helper : tente upload immediat, sinon enqueue (offline). En offline,
+  // on retourne le path "vise" + flag queued -> la photo sera uploadee au
+  // retour reseau, mais l'inspection peut deja etre creee localement.
+  async function uploadOuEnqueueInspection(targetPath, blob, kind) {
+    if (window.DelivProOfflineQueue && (!navigator.onLine || !storageHelper)) {
+      try {
+        await window.DelivProOfflineQueue.enqueueUpload({
+          bucket: 'inspections-photos', path: targetPath, blob: blob,
+          contentType: 'image/jpeg',
+          meta: { kind: 'inspection-photo', salId: salarieCourant.id, photoKind: kind }
+        });
+        return { ok: true, path: targetPath, queued: true };
+      } catch (qErr) {
+        // Si queue impossible (fallback localStorage sans blob), on retombe sur upload direct
+      }
+    }
+    const r = await storageHelper.uploadInspectionPhoto(targetPath, blob);
+    if (r && r.ok && r.path) return { ok: true, path: r.path, queued: false };
+    // Erreur reseau -> tenter queue (si dispo)
+    if (window.DelivProOfflineQueue) {
+      try {
+        await window.DelivProOfflineQueue.enqueueUpload({
+          bucket: 'inspections-photos', path: targetPath, blob: blob,
+          contentType: 'image/jpeg',
+          meta: { kind: 'inspection-photo', salId: salarieCourant.id, photoKind: kind }
+        });
+        return { ok: true, path: targetPath, queued: true };
+      } catch (_) {}
+    }
+    throw (r && r.error) || new Error('upload_failed');
+  }
+
   try {
     for (let i = 0; i < _inspPhotos.length; i++) {
       const photo = _inspPhotos[i];
@@ -1624,25 +1660,20 @@ async function uploaderPhotosInspection(date) {
       const fullPath = basePath + '_full.jpg';
       const thumbPath = basePath + '_thumb.jpg';
 
-      const fullResult = await storageHelper.uploadInspectionPhoto(fullPath, photo.blob);
-      if (!fullResult || !fullResult.ok || !fullResult.path) {
-        throw (fullResult && fullResult.error) || new Error('upload_failed');
-      }
-      uploadedPaths.push(fullResult.path || fullPath);
+      const fullResult = await uploadOuEnqueueInspection(fullPath, photo.blob, 'full');
+      uploadedPaths.push(fullResult.path);
 
-      const thumbResult = await storageHelper.uploadInspectionPhoto(thumbPath, photo.thumbBlob || photo.blob);
-      if (!thumbResult || !thumbResult.ok || !thumbResult.path) {
-        throw (thumbResult && thumbResult.error) || new Error('upload_failed');
-      }
-      uploadedPaths.push(thumbResult.path || thumbPath);
+      const thumbResult = await uploadOuEnqueueInspection(thumbPath, photo.thumbBlob || photo.blob, 'thumb');
+      uploadedPaths.push(thumbResult.path);
 
       // Bucket inspections-photos prive depuis migration 027 :
       // on ne stocke QUE les paths. Les URLs signees sont generees a l'affichage.
       uploadedPhotos.push({
-        path: fullResult.path || fullPath,
-        thumbPath: thumbResult.path || thumbPath,
+        path: fullResult.path,
+        thumbPath: thumbResult.path,
         taille: photo.taille || 0,
-        thumbTaille: photo.thumbTaille || 0
+        thumbTaille: photo.thumbTaille || 0,
+        queued: !!(fullResult.queued || thumbResult.queued)
       });
     }
   } catch (error) {
@@ -1960,7 +1991,10 @@ async function envoyerInspection() {
   if (bouton) bouton.disabled = false;
 
   chargerHistoriqueInspections();
-  toast('✅ Inspection envoyée à l\'administrateur !');
+  const aQueued = (photoAssets || []).some(p => p && p.queued);
+  toast(aQueued
+    ? '✅ Inspection enregistree — photos envoyees au retour reseau'
+    : '✅ Inspection envoyée à l\'administrateur !');
 }
 
 function chargerHistoriqueInspections() {
@@ -2442,15 +2476,63 @@ function majBadgesBottomNav() {
 
 function initOfflineDetection() {
   const banner = document.getElementById('offline-banner');
-  if (!banner) return;
-  const maj = () => {
-    const appActive = document.getElementById('ecran-salarie')?.classList.contains('actif');
-    if (!appActive) { banner.classList.remove('visible'); return; }
-    banner.classList.toggle('visible', !navigator.onLine);
+  const queueBadge = document.getElementById('offline-queue-badge');
+  const dot = document.getElementById('online-dot');
+  let pendingCount = 0;
+
+  const renderBanner = () => {
+    if (banner) {
+      const offline = !navigator.onLine;
+      let msg = '';
+      if (offline && pendingCount > 0) msg = `📵 Hors ligne — ${pendingCount} saisie(s) en attente de sync`;
+      else if (offline) msg = '📵 Hors ligne — synchronisation au retour réseau';
+      else if (pendingCount > 0) msg = `🔄 ${pendingCount} saisie(s) en cours de synchronisation...`;
+      banner.textContent = msg;
+      banner.classList.toggle('visible', offline || pendingCount > 0);
+      document.body.classList.toggle('online-with-queue', !offline && pendingCount > 0);
+    }
+    if (queueBadge) {
+      queueBadge.textContent = pendingCount > 0 ? String(pendingCount) : '';
+      queueBadge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+    }
+    if (dot) {
+      dot.style.background = navigator.onLine ? 'var(--green, #2ecc71)' : 'var(--red, #e74c3c)';
+      dot.title = navigator.onLine
+        ? (pendingCount > 0 ? `En ligne — ${pendingCount} en sync` : 'En ligne')
+        : 'Hors ligne';
+    }
   };
-  window.addEventListener('online', maj);
-  window.addEventListener('offline', maj);
-  setTimeout(maj, 1000);
+
+  window.addEventListener('online', renderBanner);
+  window.addEventListener('offline', renderBanner);
+
+  if (window.DelivProOfflineQueue) {
+    window.DelivProOfflineQueue.onChange(function (n) {
+      pendingCount = n;
+      renderBanner();
+    });
+    window.DelivProOfflineQueue.count().then(function (n) {
+      pendingCount = n;
+      renderBanner();
+    });
+    // Toast au retour reseau si qqch en queue
+    window.addEventListener('online', function () {
+      if (pendingCount > 0) {
+        toast(`🔄 Sync en cours (${pendingCount} saisies)...`, 'success');
+      }
+    });
+    // Toast quand entry flushed
+    window.addEventListener('delivpro:offline-queue:flushed', function () {
+      window.DelivProOfflineQueue.count().then(function (n) {
+        if (n === 0 && pendingCount > 0) {
+          toast('✅ Synchronisation terminée');
+        }
+        pendingCount = n;
+        renderBanner();
+      });
+    });
+  }
+  setTimeout(renderBanner, 800);
 }
 
 /* PWA */

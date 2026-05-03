@@ -527,9 +527,10 @@ html, body {
   position: fixed; top: 56px; left: 0; right: 0;
   background: var(--red); color: #fff; padding: 8px 16px;
   font-size: .8rem; font-weight: 700; text-align: center; z-index: 50;
-  transform: translateY(-100%); transition: transform .3s;
+  transform: translateY(-100%); transition: transform .3s, background .3s;
 }
 #offline-banner.visible { transform: translateY(0); }
+body.online-with-queue #offline-banner { background: var(--orange, #f5a623); color: #000; }
 
 /* ===== EMPTY STATE ===== */
 .empty { text-align: center; color: var(--muted); padding: 32px 20px; font-size: .88rem; }
@@ -796,6 +797,8 @@ html, body {
       </div>
     </div>
     <div class="topbar-right">
+      <span id="online-dot" title="État réseau" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green,#2ecc71);margin-right:6px"></span>
+      <span id="offline-queue-badge" style="display:none;align-items:center;justify-content:center;background:var(--orange,#f5a623);color:#000;border-radius:20px;font-size:.7rem;font-weight:800;padding:2px 7px;margin-right:6px;min-width:18px;height:18px" title="Saisies en attente de synchronisation"></span>
       <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil">
         👤
         <span class="notif-dot" id="notif-dot"></span>
@@ -1290,6 +1293,10 @@ html, body {
 <script src="security-utils.js"></script>
 <script src="supabase-storage-sync.js"></script>
 <script src="storage-uploader.js?v=20260430-12"></script>
+<!-- Offline queue : enfile uploads/mutations quand reseau coupe, retry au retour
+     Doit etre chargee AVANT script-salarie.js pour que les fonctions de saisie
+     l'utilisent immediatement. -->
+<script src="offline-queue.js?v=20260503-1"></script>
 <!-- Messages adapter : sync localStorage messages_<salId> <-> public.messages
      Indispensable cote chauffeur pour que ses envois remontent en DB et que
      les messages admin descendent en realtime. -->

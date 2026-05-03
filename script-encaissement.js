@@ -110,11 +110,21 @@
     if (!filtered.length) {
       html += '<div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:10px">' + (state.statut === 'encaisse' ? '💵' : state.statut === 'retard' ? '🎉' : '📋') + '</div><div>' + (state.statut === 'retard' ? 'Aucune facture en retard' : 'Aucune facture trouvée') + '</div></div>';
     } else {
+      // Pagination cote affichage : on slice apres filtre/sort.
+      // Les KPI restent calcules sur 'all' (totaux globaux).
+      var totalFilteredCount = filtered.length;
+      var pageSize = Math.max(1, parseInt(state.pageSize, 10) || 50);
+      var totalPages = Math.max(1, Math.ceil(totalFilteredCount / pageSize));
+      if (state.page > totalPages) state.page = totalPages;
+      if (state.page < 1) state.page = 1;
+      var startIdx = (state.page - 1) * pageSize;
+      var pageSlice = filtered.slice(startIdx, startIdx + pageSize);
+
       html += '<table class="enc-table">'
         + '<thead><tr>'
         +   '<th>Date facture</th><th>Client</th><th>N°</th><th style="text-align:right">Montant TTC</th><th>Statut</th><th>Date paiement</th><th></th>'
         + '</tr></thead><tbody>';
-      filtered.forEach(a => {
+      pageSlice.forEach(a => {
         var statutLabel = a.paye ? '<span class="enc-status-paye">✅ Encaissé</span>'
           : a.litige ? '<span class="enc-status-litige">⚠️ Litige</span>'
           : a.retard ? '<span class="enc-status-retard">🔴 En retard</span>'
@@ -139,6 +149,26 @@
         + '<td colspan="3"></td>'
         + '</tr>';
       html += '</tbody></table>';
+
+      // Barre de pagination
+      var endIdx = Math.min(startIdx + pageSize, totalFilteredCount);
+      var pageOpts = [25, 50, 100, 250].map(function (n) {
+        return '<option value="' + n + '"' + (n === pageSize ? ' selected' : '') + '>' + n + ' / page</option>';
+      }).join('');
+      html += '<div class="enc-pagination" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;padding:10px 14px;background:var(--card);border-radius:10px;flex-wrap:wrap">'
+        + '<div style="font-size:.84rem;color:var(--text-muted)">'
+        +   'Affichage <strong>' + (startIdx + 1) + '–' + endIdx + '</strong> sur <strong>' + totalFilteredCount + '</strong>'
+        +   ' · Page <strong>' + state.page + '</strong> / ' + totalPages
+        + '</div>'
+        + '<div style="display:flex;gap:8px;align-items:center">'
+        +   '<button type="button" class="enc-page-btn" data-go="first"' + (state.page <= 1 ? ' disabled' : '') + ' style="padding:6px 10px;border-radius:6px;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);cursor:pointer">«</button>'
+        +   '<button type="button" class="enc-page-btn" data-go="prev"' + (state.page <= 1 ? ' disabled' : '') + ' style="padding:6px 10px;border-radius:6px;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);cursor:pointer">‹</button>'
+        +   '<span style="font-size:.85rem;color:var(--text);padding:0 6px">' + state.page + ' / ' + totalPages + '</span>'
+        +   '<button type="button" class="enc-page-btn" data-go="next"' + (state.page >= totalPages ? ' disabled' : '') + ' style="padding:6px 10px;border-radius:6px;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);cursor:pointer">›</button>'
+        +   '<button type="button" class="enc-page-btn" data-go="last"' + (state.page >= totalPages ? ' disabled' : '') + ' style="padding:6px 10px;border-radius:6px;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);cursor:pointer">»</button>'
+        +   '<select id="enc-page-size" style="padding:6px 8px;border-radius:6px;background:var(--bg-dark);border:1px solid var(--border);color:var(--text);margin-left:6px">' + pageOpts + '</select>'
+        + '</div>'
+        + '</div>';
     }
 
     container.innerHTML = html;
@@ -147,16 +177,16 @@
 
   function wireEvents(container) {
     container.querySelectorAll('.enc-chip').forEach(b => {
-      b.addEventListener('click', () => { state.statut = b.dataset.s; render(); });
+      b.addEventListener('click', () => { state.statut = b.dataset.s; state.page = 1; render(); });
     });
     var clientSel = container.querySelector('#enc-client');
-    if (clientSel) clientSel.addEventListener('change', e => { state.client = e.target.value; render(); });
+    if (clientSel) clientSel.addEventListener('change', e => { state.client = e.target.value; state.page = 1; render(); });
     var rech = container.querySelector('#enc-recherche');
     if (rech) {
       var t;
       rech.addEventListener('input', e => {
         clearTimeout(t);
-        t = setTimeout(() => { state.recherche = e.target.value; render(); }, 300);
+        t = setTimeout(() => { state.recherche = e.target.value; state.page = 1; render(); }, 300);
       });
       // Garde focus
       if (state.recherche) {
@@ -164,6 +194,43 @@
         rech.setSelectionRange(rech.value.length, rech.value.length);
       }
     }
+    // Pagination
+    container.querySelectorAll('.enc-page-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        var act = btn.dataset.go;
+        var allCount = (function () {
+          // recompute total filtered to derive last-page index
+          var arr = getLivraisons().map(annoter);
+          var f = arr;
+          if (state.statut === 'a_encaisser') f = f.filter(a => !a.paye && !a.litige);
+          else if (state.statut === 'encaisse') f = f.filter(a => a.paye);
+          else if (state.statut === 'retard') f = f.filter(a => a.retard);
+          else if (state.statut === 'litige') f = f.filter(a => a.litige);
+          if (state.client) f = f.filter(a => (a.liv.client || '') === state.client);
+          if (state.recherche) {
+            var q = state.recherche.toLowerCase();
+            f = f.filter(a => {
+              var hay = ((a.liv.client || '') + ' ' + (a.liv.numLiv || '') + ' ' + (a.liv.zone || '')).toLowerCase();
+              return hay.indexOf(q) >= 0;
+            });
+          }
+          return f.length;
+        })();
+        var totalPages = Math.max(1, Math.ceil(allCount / state.pageSize));
+        if (act === 'first') state.page = 1;
+        else if (act === 'prev') state.page = Math.max(1, state.page - 1);
+        else if (act === 'next') state.page = Math.min(totalPages, state.page + 1);
+        else if (act === 'last') state.page = totalPages;
+        render();
+      });
+    });
+    var sizeSel = container.querySelector('#enc-page-size');
+    if (sizeSel) sizeSel.addEventListener('change', function (e) {
+      state.pageSize = parseInt(e.target.value, 10) || 50;
+      state.page = 1;
+      render();
+    });
     container.querySelectorAll('.enc-mark-pay').forEach(b => {
       b.addEventListener('click', e => {
         e.stopPropagation();
