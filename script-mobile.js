@@ -4237,6 +4237,8 @@
 
   // ---------- Carburant (v2.3 : liste lecture seule, grouped par mois) ----------
   M.state.carbMoisOuverts = {};
+  M.state.carbBulkMode = false;
+  M.state.carbBulkSel = new Set();
   M.register('carburant', {
     title: 'Carburant',
     render() {
@@ -4253,7 +4255,21 @@
       const litresMois = pleinsCourants.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
       const prixMoyen = litresMois > 0 ? totalMois / litresMois : 0;
 
-      let html = `<button class="m-fab" onclick="MCAm.formNouveauPlein()" aria-label="Nouveau plein">+</button>`;
+      const bulkOn = M.state.carbBulkMode;
+      const selSet = M.state.carbBulkSel;
+      const selCount = selSet.size;
+
+      let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouveauPlein()" aria-label="Nouveau plein">+</button>
+        <button class="m-fab m-fab-secondary" id="m-carb-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>`;
+      if (bulkOn) {
+        html += `<div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:10px 12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:${selCount>0?'10px':'0'}">
+            <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionné${selCount>1?'s':''}</div>
+            <button type="button" id="m-carb-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
+          </div>
+          ${selCount > 0 ? `<button type="button" id="m-carb-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">🗑️ Supprimer la sélection (cascade charge liée)</button>` : ''}
+        </div>`;
+      }
       html += `
         <div class="m-card-row">
           <div class="m-card m-card-red">
@@ -4317,7 +4333,12 @@
               ${items.map(p => {
                 const veh = p.vehiculeId ? vehIdx[p.vehiculeId] : null;
                 const immat = veh?.immat || veh?.immatriculation || (p.immat || '—');
-                return `<button type="button" class="m-card m-card-pressable m-carb-edit" data-id="${M.escHtml(p.id)}" style="padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;display:flex;justify-content:space-between;align-items:start;gap:10px">
+                const isSel = selSet.has(p.id);
+                const cls = bulkOn ? 'm-carb-toggle' : 'm-carb-edit';
+                const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
+                const cb = bulkOn ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
+                return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(p.id)}" style="padding:14px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;display:flex;align-items:start;gap:10px;cursor:pointer">
+                  ${cb}
                   <div style="flex:1 1 auto;min-width:0">
                     <div style="font-weight:600;font-size:.95rem">${M.escHtml(immat)}</div>
                     <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px">${M.formatDate(p.date)}${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}</div>
@@ -4326,7 +4347,7 @@
                     <div style="font-weight:700;color:var(--m-red);white-space:nowrap;font-size:.95rem">${M.format$(p.total)}</div>
                     <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(M.parseNum(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + M.parseNum(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
                   </div>
-                </button>`;
+                </div>`;
               }).join('')}
             </div>
           </div>
@@ -4339,6 +4360,31 @@
       container.querySelector('#m-carb-veh')?.addEventListener('change', e => { M.state.carburantVehFilter = e.target.value; M.go('carburant'); });
       container.querySelectorAll('.m-carb-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerPlein(btn.dataset.id));
+        btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerPlein(btn.dataset.id); } });
+      });
+      container.querySelectorAll('.m-carb-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.carbBulkSel.has(id)) M.state.carbBulkSel.delete(id);
+          else M.state.carbBulkSel.add(id);
+          M.go('carburant');
+        });
+      });
+      container.querySelector('#m-carb-bulk-on')?.addEventListener('click', () => { M.state.carbBulkMode = true; M.state.carbBulkSel.clear(); M.go('carburant'); });
+      container.querySelector('#m-carb-bulk-exit')?.addEventListener('click', () => { M.state.carbBulkMode = false; M.state.carbBulkSel.clear(); M.go('carburant'); });
+      container.querySelector('#m-carb-bulk-delete')?.addEventListener('click', async () => {
+        const ids = [...M.state.carbBulkSel];
+        if (!ids.length) return;
+        if (!await M.confirm(`Supprimer ${ids.length} plein${ids.length>1?'s':''} ? Les charges liées seront aussi supprimées.`, { titre: 'Suppression en lot' })) return;
+        const pleins = M.charger('carburant');
+        const aSuppr = pleins.filter(p => ids.includes(p.id));
+        const chargeIds = aSuppr.map(p => p.chargeId).filter(Boolean);
+        M.sauvegarder('carburant', pleins.filter(p => !ids.includes(p.id)));
+        if (chargeIds.length) M.sauvegarder('charges', M.charger('charges').filter(c => !chargeIds.includes(c.id) && !ids.includes(c.carburantId)));
+        else M.sauvegarder('charges', M.charger('charges').filter(c => !ids.includes(c.carburantId)));
+        M.toast(`🗑️ ${ids.length} plein${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
+        M.state.carbBulkSel.clear(); M.state.carbBulkMode = false;
+        M.go('carburant');
       });
       container.querySelectorAll('button.m-carb-mois').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -5893,6 +5939,8 @@
   };
   // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------
   M.state.entretiensVehFilter = '';
+  M.state.entrBulkMode = false;
+  M.state.entrBulkSel = new Set();
   M.register('entretiens', {
     title: 'Entretiens',
     render() {
@@ -5910,7 +5958,20 @@
       const totalMois = courants.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
       const totalAll = filtered.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
 
-      let html = `<button class="m-fab" onclick="MCAm.formNouvelEntretien()" aria-label="Nouvel entretien">+</button>`;
+      const bulkOn = M.state.entrBulkMode;
+      const selSet = M.state.entrBulkSel;
+      const selCount = selSet.size;
+      let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelEntretien()" aria-label="Nouvel entretien">+</button>
+        <button class="m-fab m-fab-secondary" id="m-entr-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>`;
+      if (bulkOn) {
+        html += `<div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:10px 12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:${selCount>0?'10px':'0'}">
+            <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionné${selCount>1?'s':''}</div>
+            <button type="button" id="m-entr-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
+          </div>
+          ${selCount > 0 ? `<button type="button" id="m-entr-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">🗑️ Supprimer la sélection (cascade charge liée)</button>` : ''}
+        </div>`;
+      }
       html += `
         <div class="m-card-row">
           <div class="m-card m-card-blue"><div class="m-card-title">Mois en cours</div><div class="m-card-value">${M.format$(totalMois)}</div><div class="m-card-sub">${courants.length} entretien${courants.length>1?'s':''}</div></div>
@@ -5963,14 +6024,19 @@
               const veh = e.vehiculeId ? vehIdx[e.vehiculeId] : null;
               const immat = veh?.immat || (e.immat || '—');
               const typeLabel = (e.type || 'autre').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
-              return `<button type="button" class="m-card m-card-pressable m-entretien-edit" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
+              const isSel = selSet.has(e.id);
+              const cls = bulkOn ? 'm-entr-toggle' : 'm-entretien-edit';
+              const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
+              const cb = bulkOn ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
+              return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;align-items:start;gap:10px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;cursor:pointer">
+                ${cb}
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.92rem">${M.escHtml(typeLabel)}</div>
                   <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
                   ${e.description ? `<div style="font-size:.82rem;margin-top:6px;color:var(--m-text);line-height:1.4">${M.escHtml(e.description)}</div>` : ''}
                 </div>
                 <div style="font-weight:700;color:var(--m-blue);white-space:nowrap;flex-shrink:0">${M.format$(e.cout || 0)}</div>
-              </button>`;
+              </div>`;
             }).join('')}
           </div>
         `;
@@ -5988,12 +6054,38 @@
       }
       container.querySelectorAll('.m-entretien-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerEntretien(btn.dataset.id));
+        btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerEntretien(btn.dataset.id); } });
+      });
+      container.querySelectorAll('.m-entr-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.entrBulkSel.has(id)) M.state.entrBulkSel.delete(id);
+          else M.state.entrBulkSel.add(id);
+          M.go('entretiens');
+        });
+      });
+      container.querySelector('#m-entr-bulk-on')?.addEventListener('click', () => { M.state.entrBulkMode = true; M.state.entrBulkSel.clear(); M.go('entretiens'); });
+      container.querySelector('#m-entr-bulk-exit')?.addEventListener('click', () => { M.state.entrBulkMode = false; M.state.entrBulkSel.clear(); M.go('entretiens'); });
+      container.querySelector('#m-entr-bulk-delete')?.addEventListener('click', async () => {
+        const ids = [...M.state.entrBulkSel];
+        if (!ids.length) return;
+        if (!await M.confirm(`Supprimer ${ids.length} entretien${ids.length>1?'s':''} ? Les charges liées seront aussi supprimées.`, { titre: 'Suppression en lot' })) return;
+        const entrs = M.charger('entretiens');
+        const aSuppr = entrs.filter(e => ids.includes(e.id));
+        const chargeIds = aSuppr.map(e => e.chargeId).filter(Boolean);
+        M.sauvegarder('entretiens', entrs.filter(e => !ids.includes(e.id)));
+        M.sauvegarder('charges', M.charger('charges').filter(c => !chargeIds.includes(c.id) && !ids.includes(c.entretienId)));
+        M.toast(`🗑️ ${ids.length} entretien${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
+        M.state.entrBulkSel.clear(); M.state.entrBulkMode = false;
+        M.go('entretiens');
       });
     }
   });
   // ---------- Inspections (v2.8 : list + detail avec photos) ----------
   M.state.detail.inspections = null;
   M.state.inspectionsRecherche = '';
+  M.state.inspBulkMode = false;
+  M.state.inspBulkSel = new Set();
   M.register('inspections', {
     title: 'Inspections',
     render() {
@@ -6011,7 +6103,20 @@
       }
       filtered = [...filtered].sort((a,b) => (b.date||b.creeLe||'').localeCompare(a.date||a.creeLe||''));
 
-      let html = `<button class="m-fab" onclick="MCAm.formNouvelleInspection()" aria-label="Nouvelle inspection">+</button>`;
+      const bulkOn = M.state.inspBulkMode;
+      const selSet = M.state.inspBulkSel;
+      const selCount = selSet.size;
+      let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelleInspection()" aria-label="Nouvelle inspection">+</button>
+        <button class="m-fab m-fab-secondary" id="m-insp-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>`;
+      if (bulkOn) {
+        html += `<div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:10px 12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:${selCount>0?'10px':'0'}">
+            <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}</div>
+            <button type="button" id="m-insp-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
+          </div>
+          ${selCount > 0 ? `<button type="button" id="m-insp-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">🗑️ Supprimer la sélection</button>` : ''}
+        </div>`;
+      }
       html += `
         <div style="margin-bottom:14px">
           <input type="search" id="m-insp-search" placeholder="🔍 Rechercher (immat, salarié)" value="${M.escHtml(M.state.inspectionsRecherche)}" autocomplete="off" />
@@ -6029,14 +6134,19 @@
 
       filtered.forEach(i => {
         const nbPhotos = Array.isArray(i.photos) ? i.photos.length : 0;
-        html += `<button type="button" class="m-card m-card-pressable m-insp-row" data-id="${M.escHtml(i.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+        const isSel = selSet.has(i.id);
+        const cls = bulkOn ? 'm-insp-toggle' : 'm-insp-row';
+        const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
+        const cb = bulkOn ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
+        html += `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(i.id)}" style="display:flex;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;cursor:pointer">
+          ${cb}
           <div style="flex:1 1 auto;min-width:0">
             <div style="font-weight:600;font-size:.95rem">${M.escHtml(i.vehImmat || '—')}</div>
             <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.formatDate(i.date)}${i.salNom ? ' · 👤 ' + M.escHtml(i.salNom) : ''}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
             ${nbPhotos ? `<div style="margin-top:4px;font-size:.75rem;color:var(--m-blue);font-weight:600">📸 ${nbPhotos} photo${nbPhotos>1?'s':''}</div>` : ''}
           </div>
-          <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
-        </button>`;
+          ${bulkOn ? '' : '<span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>'}
+        </div>`;
       });
 
       return html;
@@ -6056,6 +6166,25 @@
       }
       container.querySelectorAll('.m-insp-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('inspections', btn.dataset.id));
+        btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.openDetail('inspections', btn.dataset.id); } });
+      });
+      container.querySelectorAll('.m-insp-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.inspBulkSel.has(id)) M.state.inspBulkSel.delete(id);
+          else M.state.inspBulkSel.add(id);
+          M.go('inspections');
+        });
+      });
+      container.querySelector('#m-insp-bulk-on')?.addEventListener('click', () => { M.state.inspBulkMode = true; M.state.inspBulkSel.clear(); M.go('inspections'); });
+      container.querySelector('#m-insp-bulk-exit')?.addEventListener('click', () => { M.state.inspBulkMode = false; M.state.inspBulkSel.clear(); M.go('inspections'); });
+      container.querySelector('#m-insp-bulk-delete')?.addEventListener('click', async () => {
+        const ids = [...M.state.inspBulkSel];
+        if (!ids.length) return;
+        if (!await M.confirm(`Supprimer définitivement ${ids.length} inspection${ids.length>1?'s':''} ?`, { titre: 'Suppression en lot' })) return;
+        M.sauvegarder('inspections', M.charger('inspections').filter(x => !ids.includes(x.id)));
+        M.toast(`🗑️ ${ids.length} inspection${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
+        M.state.inspBulkSel.clear(); M.state.inspBulkMode = false; M.go('inspections');
       });
     }
   });
@@ -6365,6 +6494,8 @@
   // ---------- Incidents (v2.9 : list + filtre statut + detail) ----------
   M.state.incidentsStatut = 'tous';
   M.state.detail.incidents = null;
+  M.state.incBulkMode = false;
+  M.state.incBulkSel = new Set();
   M.register('incidents', {
     title: 'Incidents',
     render() {
@@ -6382,7 +6513,23 @@
       if (statut === 'encours') filtered = enCours;
       if (statut === 'traites') filtered = traites;
 
-      let html = `<button class="m-fab" onclick="MCAm.formNouvelIncident()" aria-label="Nouvel incident">+</button>`;
+      const bulkOn = M.state.incBulkMode;
+      const selSet = M.state.incBulkSel;
+      const selCount = selSet.size;
+      let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelIncident()" aria-label="Nouvel incident">+</button>
+        <button class="m-fab m-fab-secondary" id="m-inc-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>`;
+      if (bulkOn) {
+        html += `<div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:10px 12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:${selCount>0?'10px':'0'}">
+            <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionné${selCount>1?'s':''}</div>
+            <button type="button" id="m-inc-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
+          </div>
+          ${selCount > 0 ? `<div style="display:flex;gap:6px">
+            <button type="button" id="m-inc-bulk-resolu" class="m-btn" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">✅ Marquer résolu</button>
+            <button type="button" id="m-inc-bulk-delete" class="m-btn m-btn-danger" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">🗑️ Supprimer</button>
+          </div>` : ''}
+        </div>`;
+      }
       html += `
         <div class="m-card-row">
           <div class="m-card m-card-red"><div class="m-card-title">Ouverts</div><div class="m-card-value">${ouverts.length}</div><div class="m-card-sub">à traiter</div></div>
@@ -6407,7 +6554,12 @@
         const grav = i.gravite || 'moyen';
         const stat = i.statut || 'ouvert';
         const borderColor = grav === 'grave' ? 'var(--m-red)' : grav === 'moyen' ? 'var(--m-accent)' : 'var(--m-green)';
-        html += `<button type="button" class="m-card m-card-pressable m-incident-row" data-id="${M.escHtml(i.id)}" style="display:block;width:100%;text-align:left;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-left:4px solid ${borderColor};border-radius:14px;margin-bottom:10px;color:inherit">
+        const isSel = selSet.has(i.id);
+        const cls = bulkOn ? 'm-inc-toggle' : 'm-incident-row';
+        const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
+        const cb = bulkOn ? `<div style="position:absolute;top:14px;left:14px;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
+        html += `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(i.id)}" style="position:relative;display:block;width:100%;text-align:left;padding:14px${bulkOn ? ' 14px 14px 50px' : ''};${bg};border-left:4px solid ${borderColor};border-radius:14px;margin-bottom:10px;color:inherit;cursor:pointer">
+          ${cb}
           <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:600;font-size:.92rem">${M.escHtml(i.client || i.salNom || 'Incident')}</div>
@@ -6419,7 +6571,7 @@
             </div>
           </div>
           ${i.description ? `<div style="font-size:.82rem;margin-top:8px;color:var(--m-text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${M.escHtml(i.description)}</div>` : ''}
-        </button>`;
+        </div>`;
       });
 
       return html;
@@ -6430,6 +6582,39 @@
       });
       container.querySelectorAll('.m-incident-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('incidents', btn.dataset.id));
+        btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.openDetail('incidents', btn.dataset.id); } });
+      });
+      container.querySelectorAll('.m-inc-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.incBulkSel.has(id)) M.state.incBulkSel.delete(id);
+          else M.state.incBulkSel.add(id);
+          M.go('incidents');
+        });
+      });
+      container.querySelector('#m-inc-bulk-on')?.addEventListener('click', () => { M.state.incBulkMode = true; M.state.incBulkSel.clear(); M.go('incidents'); });
+      container.querySelector('#m-inc-bulk-exit')?.addEventListener('click', () => { M.state.incBulkMode = false; M.state.incBulkSel.clear(); M.go('incidents'); });
+      container.querySelector('#m-inc-bulk-resolu')?.addEventListener('click', async () => {
+        const ids = [...M.state.incBulkSel];
+        if (!ids.length) return;
+        if (!await M.confirm(`Marquer ${ids.length} incident${ids.length>1?'s':''} comme résolu ?`, { titre: 'Marquer résolu' })) return;
+        const arr = M.charger('incidents');
+        const now = new Date().toISOString();
+        ids.forEach(id => {
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx >= 0) { arr[idx].statut = 'resolu'; arr[idx].modifieLe = now; }
+        });
+        M.sauvegarder('incidents', arr);
+        M.toast(`✅ ${ids.length} incident${ids.length>1?'s':''} marqué${ids.length>1?'s':''} résolu${ids.length>1?'s':''}`);
+        M.state.incBulkSel.clear(); M.state.incBulkMode = false; M.go('incidents');
+      });
+      container.querySelector('#m-inc-bulk-delete')?.addEventListener('click', async () => {
+        const ids = [...M.state.incBulkSel];
+        if (!ids.length) return;
+        if (!await M.confirm(`Supprimer définitivement ${ids.length} incident${ids.length>1?'s':''} ?`, { titre: 'Suppression en lot' })) return;
+        M.sauvegarder('incidents', M.charger('incidents').filter(x => !ids.includes(x.id)));
+        M.toast(`🗑️ ${ids.length} incident${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
+        M.state.incBulkSel.clear(); M.state.incBulkMode = false; M.go('incidents');
       });
     }
   });
