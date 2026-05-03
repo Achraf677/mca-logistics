@@ -449,16 +449,25 @@ function envoyerPhotoSal(input) {
       let photoBase64 = null;
 
       // Upload vers Supabase Storage si dispo (WebP si supporte, sinon JPEG)
+      // Offline -> queue via DelivProOfflineQueue (retry au retour reseau)
       if (window.DelivProStorage) {
         const out = await window.DelivProStorage.canvasToOptimalBlob(c, 0.78);
         if (out && out.blob) {
           const path = `${msgId}/${Date.now()}_photo.${out.ext}`;
-          const up = await window.DelivProStorage.uploadBlob('messages-photos', path, out.blob, { contentType: out.mime });
-          if (up.ok) photoPath = path;
+          if (window.DelivProOfflineQueue) {
+            const r = await window.DelivProOfflineQueue.uploadOrEnqueue({
+              bucket: 'messages-photos', path, blob: out.blob, contentType: out.mime,
+              meta: { kind: 'message-photo', salId: salarieCourant.id, msgId }
+            });
+            if (r.ok) photoPath = path;
+          } else {
+            const up = await window.DelivProStorage.uploadBlob('messages-photos', path, out.blob, { contentType: out.mime });
+            if (up.ok) photoPath = path;
+          }
         }
       }
       if (!photoPath) {
-        // Fallback : base64 local (compat offline)
+        // Fallback : base64 local (compat offline sans queue)
         photoBase64 = c.toDataURL('image/jpeg',0.72);
       }
 
@@ -1203,21 +1212,30 @@ async function enregistrerPlein() {
   const libelle = libelleCarburant();
   const pleinId = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
-  // Upload photo vers Supabase Storage si dispo, sinon fallback base64 local
+  // Upload photo vers Supabase Storage si dispo, sinon offline-queue, sinon base64 local
   let photoRecuPath = null;
   let photoRecu = null;
   if (photoBlob) {
     if (window.DelivProStorage) {
       const path = `${pleinId}/${Date.now()}_recu.${photoExt}`;
-      const up = await window.DelivProStorage.uploadBlob('carburant-recus', path, photoBlob, { contentType: photoMime });
-      if (up.ok) {
-        photoRecuPath = path;
+      if (window.DelivProOfflineQueue) {
+        const r = await window.DelivProOfflineQueue.uploadOrEnqueue({
+          bucket: 'carburant-recus', path, blob: photoBlob, contentType: photoMime,
+          meta: { kind: 'carburant-recu', salId: salarieCourant.id, pleinId }
+        });
+        if (r.ok) photoRecuPath = path;
+        else console.warn('[carburant] upload+queue echoue, fallback base64:', r.error?.message);
       } else {
-        console.warn('[carburant] upload photo Storage echoue, fallback base64:', up.error?.message);
+        const up = await window.DelivProStorage.uploadBlob('carburant-recus', path, photoBlob, { contentType: photoMime });
+        if (up.ok) {
+          photoRecuPath = path;
+        } else {
+          console.warn('[carburant] upload photo Storage echoue, fallback base64:', up.error?.message);
+        }
       }
     }
     if (!photoRecuPath) {
-      // Fallback : base64 local (compat offline)
+      // Fallback : base64 local (compat offline sans queue)
       photoRecu = await new Promise(res => {
         const r = new FileReader();
         r.onload = e => res(e.target.result);

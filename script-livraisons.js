@@ -869,3 +869,228 @@ function reinitialiserLivPeriode() {
   navLivPeriode(0);
 }
 
+/* =========================================================================
+   PAGINATION SERVEUR (Supabase) — opt-in via flag
+   ----------------------------------------------------------------------
+   Active : localStorage.setItem('mca_pagination_mode', 'server')
+   Reset  : localStorage.removeItem('mca_pagination_mode')
+   API console : MCAServerListLivraisons.toggle()  / .render()
+   Quand actif, la liste livraisons charge UNIQUEMENT la page courante
+   depuis Supabase (~50 lignes au lieu de TOUT). Le cache localStorage
+   reste a jour (realtime + pulls), donc rentabilite/recherche/exports
+   continuent a fonctionner sans modification.
+   ========================================================================= */
+(function () {
+  'use strict';
+
+  function getMode() {
+    try { return localStorage.getItem('mca_pagination_mode') || 'client'; } catch (_) { return 'client'; }
+  }
+  function setMode(mode) {
+    try {
+      if (mode === 'server') localStorage.setItem('mca_pagination_mode', 'server');
+      else localStorage.removeItem('mca_pagination_mode');
+    } catch (_) {}
+  }
+
+  function buildLivraisonsServerFilters() {
+    var filters = [];
+    var fStatut = document.getElementById('filtre-statut');
+    var fDateDeb = document.getElementById('filtre-date-debut');
+    var fDateFin = document.getElementById('filtre-date-fin');
+    var fPaiement = document.getElementById('filtre-paiement');
+    var fChauffeur = document.getElementById('filtre-chauffeur');
+
+    if (fStatut && fStatut.value) filters.push({ column: 'statut', operator: 'eq', value: fStatut.value });
+    if (fDateDeb && fDateDeb.value) filters.push({ column: 'date_livraison', operator: 'gte', value: fDateDeb.value });
+    if (fDateFin && fDateFin.value) filters.push({ column: 'date_livraison', operator: 'lte', value: fDateFin.value });
+    if (fPaiement && fPaiement.value) filters.push({ column: 'statut_paiement', operator: 'eq', value: fPaiement.value });
+    if (fChauffeur && fChauffeur.value) filters.push({ column: 'salarie_id', operator: 'eq', value: fChauffeur.value });
+    // Recherche full-text : non geree cote serveur (necessiterait ilike multi-colonnes
+    // ou une RPC). On fallback sur client-side quand une recherche est active.
+    return filters;
+  }
+
+  function hasActiveTextSearch() {
+    var fRech = document.getElementById('filtre-recherche-liv');
+    return !!(fRech && fRech.value && fRech.value.trim());
+  }
+
+  async function renderServer() {
+    var tb = document.getElementById('tb-livraisons');
+    if (!tb) return;
+    if (!window.MCAServerPagination) return;
+    if (!window.PAGINATION) return;
+
+    // Si recherche texte active : on retombe sur le mode client (cache complet)
+    // pour ne pas rater les matches multi-colonnes (numLiv, depart, arrivee...).
+    if (hasActiveTextSearch()) {
+      var origRender = window.__mcaOrigRenderLivraisons;
+      if (typeof origRender === 'function') return origRender();
+      if (typeof window.renderLivraisonsAdminFinal === 'function') return window.renderLivraisonsAdminFinal();
+      return;
+    }
+
+    var st = window.PAGINATION.getPageState('livraisons');
+    var sortState = (window.SORT && window.SORT.getSortState) ? window.SORT.getSortState('livraisons') : { col: null, dir: null };
+
+    // Map du tri JS → colonnes DB
+    var sortMap = {
+      date: 'date_livraison',
+      client: 'client_nom',
+      numLiv: 'num_liv',
+      prix: 'prix_ttc',
+      prixHT: 'prix_ht',
+      distance: 'distance_km',
+      statut: 'statut',
+      statutPaiement: 'statut_paiement',
+      datePaiement: 'date_paiement'
+    };
+    var sort = sortState && sortState.col && sortMap[sortState.col]
+      ? { column: sortMap[sortState.col], ascending: sortState.dir === 'asc' }
+      : { column: 'created_at', ascending: false };
+
+    tb.innerHTML = '<tr><td colspan="13" class="empty-row" style="opacity:.6">⏳ Chargement page ' + st.page + '…</td></tr>';
+
+    var res = await window.MCAServerPagination.loadPage('livraisons', {
+      page: st.page,
+      pageSize: st.perPage,
+      sort: sort,
+      filters: buildLivraisonsServerFilters()
+    });
+
+    // Erreur ou fallback : delegation au render client classique
+    if (res.error && res.error !== 'fallback-local') {
+      console.warn('[server-pagination] livraisons fallback client cause:', res.error);
+      var orig = window.__mcaOrigRenderLivraisons;
+      if (typeof orig === 'function') return orig();
+      if (typeof window.renderLivraisonsAdminFinal === 'function') return window.renderLivraisonsAdminFinal();
+      return;
+    }
+
+    if (!res.rows.length) {
+      tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+      window.PAGINATION.rendrerPagination('livraisons', 0, 1, st.perPage, 1, 0);
+      if (typeof majBulkActions === 'function') majBulkActions();
+      return;
+    }
+
+    // Re-utilise le markup du render existant
+    var escapeAttr = window.escapeAttr || function (s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); };
+    var escapeHtml = window.escapeHtml || function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' })[c]; }); };
+
+    var formatClientLabel = function (v) {
+      var raw = String(v || '').trim();
+      if (!raw) return '—';
+      return /^\d+$/.test(raw) ? ('Client #' + raw) : raw;
+    };
+    var formatArchivedDriverHtml = function (v) {
+      var raw = String(v || '').trim();
+      if (!raw) return '<span class="livraison-cell-text livraison-driver-text">Non assigné</span>';
+      var archived = /\s*\(archivé\)\s*$/i.test(raw);
+      var clean = raw.replace(/\s*\(archivé\)\s*$/i, '').trim();
+      var safeClean = escapeHtml(clean || raw);
+      if (!archived) return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '</span>';
+      return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '<span class="livraison-archived-badge">archivé</span></span>';
+    };
+
+    tb.innerHTML = res.rows.map(function (l) {
+      var ht = (typeof getMontantHTLivraison === 'function') ? getMontantHTLivraison(l) : (parseFloat(l.prixHT) || 0);
+      var ttc = parseFloat(l.prix) || 0;
+      var tva = ttc - ht;
+      var statutPaiement = l.statutPaiement || 'en-attente';
+      var selectStatut = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+      var selectPaiement = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+      var client = formatClientLabel(l.client || '—');
+      var depart = l.depart || '';
+      var arrivee = l.arrivee || '';
+      var zoneGeo = depart && arrivee && depart !== arrivee ? depart + ' → ' + arrivee : (arrivee || depart || '—');
+      var chauffeur = l.chaufNom || 'Non assigné';
+      var dpaie = l.datePaiement ? formatDateExport(String(l.datePaiement).slice(0, 10)) : '—';
+      var actions = (typeof buildInlineActionsDropdown === 'function') ? buildInlineActionsDropdown('Actions', [
+        { icon: '✏️', label: 'Modifier', action: "ouvrirEditLivraison('" + l.id + "')" },
+        { icon: '📋', label: 'Lettre de voiture', action: "genererLettreDeVoiture('" + l.id + "')" },
+        { icon: '📋', label: 'Dupliquer', action: "dupliquerLivraison('" + l.id + "')" },
+        { icon: '🔁', label: 'Récurrence', action: "ouvrirRecurrence('" + l.id + "')" },
+        { icon: '🗑️', label: 'Supprimer', action: "supprimerLivraison('" + l.id + "')", danger: true }
+      ]) : '';
+      return '<tr data-liv-id="' + escapeAttr(l.id) + '">'
+        + '<td class="bulk-col"><input type="checkbox" class="bulk-liv-check" data-liv-id="' + escapeAttr(l.id) + '" onchange="majBulkActions()" aria-label="Sélectionner" /></td>'
+        + '<td class="livraison-ref-cell">' + escapeHtml(l.numLiv || '—') + '</td>'
+        + '<td><strong class="livraison-cell-text livraison-client-text" title="' + escapeAttr(client) + '">' + escapeHtml(client) + '</strong></td>'
+        + '<td><span class="livraison-cell-text livraison-zone-text" title="' + escapeAttr(zoneGeo) + '">' + escapeHtml(zoneGeo) + '</span></td>'
+        + '<td class="livraison-number-cell">' + (l.distance ? (typeof formatKm === 'function' ? formatKm(l.distance) : l.distance + ' km') : '—') + '</td>'
+        + '<td class="livraison-number-cell">' + euros(ht) + '</td>'
+        + '<td class="livraison-number-cell livraison-muted-cell">' + euros(tva) + '</td>'
+        + '<td class="livraison-number-cell livraison-total-cell">' + euros(ttc) + '</td>'
+        + '<td>' + formatArchivedDriverHtml(chauffeur) + '</td>'
+        + '<td><div class="livraison-select-cell">' + selectStatut + '</div></td>'
+        + '<td><div class="livraison-select-cell">' + selectPaiement + '</div></td>'
+        + '<td class="livraison-number-cell">' + dpaie + '</td>'
+        + '<td class="actions-cell">' + actions + '</td>'
+        + '</tr>';
+    }).join('');
+
+    var start = (res.page - 1) * res.pageSize;
+    window.PAGINATION.rendrerPagination('livraisons', res.total, res.page, res.pageSize, res.totalPages, start);
+    if (typeof majBulkActions === 'function') majBulkActions();
+    if (window.SORT && window.SORT.majIndicateurs) {
+      window.SORT.majIndicateurs(document.querySelector('table.livraisons-table'), 'livraisons');
+    }
+  }
+
+  // Hook : remplace renderLivraisonsAdminFinal SEULEMENT si mode=server.
+  function installHook() {
+    var prev = window.renderLivraisonsAdminFinal;
+    if (typeof prev !== 'function' || prev.__serverWrapped) return;
+    window.__mcaOrigRenderLivraisons = prev;
+    var wrapped = function () {
+      if (getMode() === 'server') {
+        renderServer().catch(function (e) {
+          console.error('[server-pagination] livraisons render error', e);
+          if (typeof prev === 'function') prev();
+        });
+        return;
+      }
+      return prev.apply(this, arguments);
+    };
+    wrapped.__serverWrapped = true;
+    wrapped.__paginated = !!prev.__paginated;
+    wrapped.__sorted = !!prev.__sorted;
+    window.renderLivraisonsAdminFinal = wrapped;
+    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = wrapped;
+  }
+
+  // Re-tente d'installer le hook plusieurs fois car renderLivraisonsAdminFinal
+  // est lui-meme wrappe par les Sprints 7/8 de script.js (chargement defer).
+  function tryInstall(attempt) {
+    attempt = attempt || 0;
+    if (typeof window.renderLivraisonsAdminFinal === 'function' && !window.renderLivraisonsAdminFinal.__serverWrapped) {
+      installHook();
+    }
+    if (attempt < 20) setTimeout(function () { tryInstall(attempt + 1); }, 250);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { tryInstall(0); });
+  } else {
+    tryInstall(0);
+  }
+
+  // API publique (console + futurs boutons UI)
+  window.MCAServerListLivraisons = {
+    render: renderServer,
+    getMode: getMode,
+    setMode: function (mode) {
+      setMode(mode);
+      if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+    },
+    toggle: function () {
+      var next = getMode() === 'server' ? 'client' : 'server';
+      setMode(next);
+      if (typeof afficherToast === 'function') afficherToast('🔀 Pagination livraisons : ' + next);
+      if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
+      return next;
+    }
+  };
+})();
+

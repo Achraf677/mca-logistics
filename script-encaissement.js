@@ -21,8 +21,18 @@
   }
   function escH(s) { return (typeof escHtml === 'function') ? escHtml(s) : String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
 
-  // State filtre
-  var state = { statut: 'a_encaisser', client: '', recherche: '' };
+  // State filtre + pagination
+  var state = {
+    statut: 'a_encaisser',
+    client: '',
+    recherche: '',
+    page: 1,
+    pageSize: 50
+  };
+
+  function getServerMode() {
+    try { return localStorage.getItem('mca_pagination_mode') === 'server'; } catch (_) { return false; }
+  }
 
   function getLivraisons() {
     try { return JSON.parse(localStorage.getItem('livraisons') || '[]'); } catch (_) { return []; }

@@ -388,6 +388,9 @@
   window.DelivProStorage = {
     uploadDataUrl: uploadDataUrl,
     uploadBlob: uploadBlob,
+    compressImage: compressImage,
+    compressAndUpload: compressAndUpload,
+    makeThumbnail: makeThumbnail,
     getSignedUrl: getSignedUrl,
     invalidateSignedUrl: invalidateSignedUrl,
     download: download,
@@ -396,6 +399,8 @@
     isStoragePath: isStoragePath,
     sanitizeFilename: sanitizeFilename,
     supportsWebP: supportsWebP,
-    canvasToOptimalBlob: canvasToOptimalBlob
+    canvasToOptimalBlob: canvasToOptimalBlob,
+    // Expose la liste pour debug / tests.
+    _autoCompressBuckets: AUTO_COMPRESS_BUCKETS
   };
 })();
