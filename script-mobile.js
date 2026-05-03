@@ -4469,6 +4469,46 @@
           <div class="m-card"><div class="m-card-title">€/km</div><div class="m-card-value" style="font-size:1.3rem">${M.format$(km > 0 ? ca / km : 0)}</div><div class="m-card-sub">prix moyen</div></div>
         </div>
 
+        ${(() => {
+          // Comparatif annuel : barres CA des 12 derniers mois (SVG simple, pas Chart.js)
+          const now = new Date();
+          const mois12 = [];
+          for (let k = 11; k >= 0; k--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+            const cle = d.toISOString().slice(0, 7);
+            const caM = livraisons.filter(l => (l.date || '').startsWith(cle))
+              .reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+            const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
+            mois12.push({ cle, label: labelM, ca: caM });
+          }
+          const maxCa = Math.max(...mois12.map(x => x.ca), 1);
+          const totalAn = mois12.reduce((s, x) => s + x.ca, 0);
+          const moyenneAn = totalAn / 12;
+
+          return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📈 CA des 12 derniers mois</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${M.format$(totalAn)}</span></div>
+            <div class="m-card" style="padding:14px">
+              <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:4px">
+                ${mois12.map(x => {
+                  const h = maxCa > 0 ? (x.ca / maxCa * 100) : 0;
+                  const isCurrent = x.cle === moisSel;
+                  const color = isCurrent ? 'var(--m-accent)' : x.ca > 0 ? 'var(--m-green)' : 'var(--m-border)';
+                  return `<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%">
+                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${x.ca > 0 ? Math.round(x.ca / 1000) + 'k' : ''}</div>
+                    <div style="flex:1 1 auto;display:flex;align-items:flex-end;width:100%">
+                      <div style="width:100%;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-height:${x.ca > 0 ? '2px' : '0'}"></div>
+                    </div>
+                    <div style="font-size:.65rem;color:${isCurrent?'var(--m-accent)':'var(--m-text-muted)'};font-weight:${isCurrent?700:500}">${x.label}</div>
+                  </div>`;
+                }).join('')}
+              </div>
+              <div style="border-top:1px solid var(--m-border);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;font-size:.78rem">
+                <span style="color:var(--m-text-muted)">Moyenne mensuelle</span>
+                <span style="font-weight:600">${M.format$(moyenneAn)}</span>
+              </div>
+            </div>
+          </div>`;
+        })()}
+
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📊 Vue d'ensemble</h3></div>
           <div class="m-card" style="padding:0">
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>👥 Équipe active</span><span style="font-weight:600">${salaries.length}</span></div>
