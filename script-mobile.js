@@ -452,8 +452,8 @@
         ], { value: String(v.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.tva || '' }), { hint: 'Calcul auto' })}
-        ${M.formField('Prix TTC', M.formInputWithSuffix('prixTTC', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.prixTTC || '' }), { hint: 'Calcul auto' })}
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.tva || '' }))}
+        ${M.formField('Prix TTC', M.formInputWithSuffix('prixTTC', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.prixTTC || '' }))}
       </div>
       ${M.formField('Distance', M.formInputWithSuffix('distance', 'km', { type: 'number', step: '0.1', min: '0', placeholder: '0', value: v.distance || '' }))}
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(x => ({ value: x.id, label: x.immat || x.immatriculation || x.id })), { placeholder: 'Choisir un véhicule', value: v.vehiculeId || '' }))}
@@ -553,7 +553,8 @@
         const sel = body.querySelector('select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
-        let dernierEdit = 'ht';
+        // Init : si TTC déjà saisi (mode édition), partir de TTC pour ne pas l'écraser
+        let dernierEdit = enEdition && (v.prixTTC || v.prix) ? 'ttc' : 'ht';
         const recalc = () => {
           const taux = M.parseNum(sel.value) / 100 || 0;
           if (dernierEdit === 'ttc' && ttc.value) {
@@ -758,9 +759,9 @@
     const config = M.chargerObj('config') || {};
     const ent = config.entreprise || M.chargerObj('entreprise') || {};
     const ttc = M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0;
-    const ht = M.parseNum(liv.prixHT) || (M.parseNum(liv.tauxTva) > 0 ? ttc / (1 + M.parseNum(liv.tauxTva)/100) : ttc);
+    const ht = M.parseNum(liv.prixHT) || (M.parseNum(liv.tauxTva || liv.tauxTVA) > 0 ? ttc / (1 + M.parseNum(liv.tauxTva || liv.tauxTVA)/100) : ttc);
     const tva = +(ttc - ht).toFixed(2);
-    const tauxTva = M.parseNum(liv.tauxTva) || 20;
+    const tauxTva = M.parseNum(liv.tauxTva || liv.tauxTVA) || 20;
     const fmt$ = (n) => (Number(n) || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
     const fmtD = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
     const esc = (s) => M.escHtml(s == null ? '' : s);
@@ -1155,7 +1156,7 @@
         { value: 'tva',        label: '🧾 TVA' },
         { value: 'autre',      label: '📝 Autre' }
       ], { placeholder: 'Choisir une catégorie', value: c.categorie || '' }))}
-      ${M.formField('Véhicule concerné (optionnel, sync auto)', M.formSelect('vehiculeId', M.charger('vehicules').filter(v => v && !v.archive).map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Aucun', value: c.vehiculeId || c.vehId || '' }), { hint: 'Si catégorie = ⛽ Carburant ou 🔧 Entretien, un plein/entretien sera créé/maj automatiquement.' })}
+      ${M.formField('Véhicule (optionnel)', M.formSelect('vehiculeId', M.charger('vehicules').filter(v => v && !v.archive).map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Aucun', value: c.vehiculeId || c.vehId || '' }), { hint: 'Catégorie carburant/entretien : crée auto le plein/entretien.' })}
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'a_payer', label: '⏳ À payer' },
         { value: 'paye',    label: '✅ Payée' },
@@ -2323,7 +2324,7 @@
         ${M.formField('Date', M.formInput('date', { type: 'date', value: insp.date || today, required: true }), { required: true })}
         ${M.formField('Km compteur', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: insp.km || '' }))}
       </div>
-      ${M.formField('Salarié (effectue par)', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: insp.salId || '' }))}
+      ${M.formField('Effectuée par', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Choisir un salarié', value: insp.salId || '' }))}
       <div class="m-form-field">
         <label class="m-form-label">📸 Photos</label>
         <div id="m-photos-container">${renderPhotosGrid()}</div>
@@ -2534,7 +2535,7 @@
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.tva || '' }), { hint: 'Calcul auto' })}
-        ${M.formField('Coût TTC', M.formInputWithSuffix('cout', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.cout || e.coutTtc || '', required: true }), { required: true, hint: 'Calcul auto' })}
+        ${M.formField('Coût TTC', M.formInputWithSuffix('cout', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.cout || e.coutTtc || '', required: true }), { required: true })}
       </div>
       ${M.formField('Description', M.formTextarea('description', { value: e.description || '', rows: 2, placeholder: 'Détails (pièces, garage, observations...)' }))}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet entretien</button>` : ''}
@@ -4312,15 +4313,102 @@
 
   // ---------- Encaissement (v3.35 : miroir Charges cote revenus) ----------
   // Source : livraisons + leur statutPaiement. Marque les revenus a encaisser.
+  // + entité 'encaissements_manuels' pour les revenus non liés à une livraison
+  // (acompte, virement libre, indemnité, etc.).
   M.state.encStatut = 'a_encaisser'; // a_encaisser | encaisse | retard | tous
   M.state.encClient = ''; // filtre client
   M.state.encMoisOuverts = {};
   M.state.encBulkMode = false;
   M.state.encBulkSel = new Set(); // ids de livraisons selectionnees
+
+  // Form encaissement manuel : crée une entrée 'encaissements_manuels'.
+  // Champs : date, montant TTC, source/libellé, client (optionnel), notes.
+  // Affichée dans la liste à côté des livraisons facturées (mêmes filtres).
+  M.formNouvelEncaissement = function(existing) {
+    const enEdition = !!existing;
+    const e = existing || {};
+    const today = new Date().toISOString().slice(0, 10);
+    const clients = M.charger('clients').sort((a,b) => (a.nom || '').localeCompare(b.nom || ''));
+    const body = `
+      ${M.formField('Libellé / Source', M.formInput('libelle', { value: e.libelle || '', placeholder: 'Ex: Acompte client X, virement libre...', required: true }), { required: true })}
+      <div class="m-form-row">
+        ${M.formField('Date', M.formInput('date', { type: 'date', value: e.date || today, required: true }), { required: true })}
+        ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.montantTtc || '', required: true }), { required: true })}
+      </div>
+      ${M.formField('Client (optionnel)', M.formSelect('clientId', clients.map(c => ({ value: c.id, label: ((c.prenom ? c.prenom + ' ' : '') + (c.nom || '')).trim() })), { placeholder: 'Aucun', value: e.clientId || '' }))}
+      ${M.formField('Mode de paiement', M.formSelect('modePaiement', [
+        { value: '',         label: '—' },
+        { value: 'virement', label: 'Virement' },
+        { value: 'cb',       label: 'Carte bancaire' },
+        { value: 'cheque',   label: 'Chèque' },
+        { value: 'especes',  label: 'Espèces' },
+        { value: 'autre',    label: 'Autre' }
+      ], { value: e.modePaiement || 'virement' }))}
+      ${M.formField('Notes', M.formTextarea('notes', { value: e.notes || '', rows: 2, placeholder: 'Remarques (référence, motif...)' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet encaissement</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier encaissement' : '💵 Nouvel encaissement',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm('Supprimer définitivement cet encaissement ?', { titre: 'Supprimer encaissement' })) return;
+          M.sauvegarder('encaissements_manuels', M.charger('encaissements_manuels').filter(x => x.id !== e.id));
+          M.ajouterAudit?.('Suppression encaissement manuel', e.libelle || '');
+          M.toast('🗑️ Encaissement supprimé');
+          M.closeSheet();
+          M.go('encaissement');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.libelle?.trim()) { M.toast('⚠️ Libellé requis'); return false; }
+        if (!f.date) { M.toast('⚠️ Date requise'); return false; }
+        const montant = M.parseNum(f.montantTtc) || 0;
+        if (montant <= 0) { M.toast('⚠️ Montant > 0 requis'); return false; }
+        const cli = f.clientId ? clients.find(c => c.id === f.clientId) : null;
+        const arr = M.charger('encaissements_manuels');
+        const data = {
+          libelle: f.libelle.trim(),
+          date: f.date,
+          montantTtc: montant,
+          clientId: f.clientId || '',
+          clientNom: cli ? ((cli.prenom ? cli.prenom + ' ' : '') + (cli.nom || '')).trim() : '',
+          modePaiement: f.modePaiement || 'virement',
+          notes: f.notes?.trim() || '',
+          // statut systématiquement encaissé (raison d'être de cette entité)
+          statutPaiement: 'payé',
+          datePaiement: f.date
+        };
+        if (enEdition) {
+          const idx = arr.findIndex(x => x.id === e.id);
+          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          M.sauvegarder('encaissements_manuels', arr);
+          M.toast('✅ Encaissement modifié');
+        } else {
+          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          M.sauvegarder('encaissements_manuels', arr);
+          M.ajouterAudit?.('Nouvel encaissement manuel', data.libelle + ' · ' + M.format$(montant));
+          M.toast('✅ Encaissement enregistré');
+        }
+        M.go('encaissement');
+        return true;
+      }
+    });
+  };
+  M.editerEncaissement = function(id) {
+    const e = M.charger('encaissements_manuels').find(x => x.id === id);
+    if (!e) return M.toast('Encaissement introuvable');
+    M.formNouvelEncaissement(e);
+  };
+
   M.register('encaissement', {
     title: 'Encaissement',
     render() {
       const livraisons = M.charger('livraisons');
+      const encaissementsManuels = M.charger('encaissements_manuels');
       const filtreStatut = M.state.encStatut;
       const filtreClient = M.state.encClient;
 
@@ -4335,24 +4423,44 @@
         const refDate = l.dateFacture || l.date;
         const enRetard = !estPaye && !estLitige && refDate &&
           (new Date(refDate) < new Date(Date.now() - 30*86400000));
-        return { ...l, _ttc: ttc, _ht: ht, _statut: statut, _paye: estPaye, _litige: estLitige, _retard: enRetard };
+        return { ...l, _ttc: ttc, _ht: ht, _statut: statut, _paye: estPaye, _litige: estLitige, _retard: enRetard, _isManual: false };
       });
+
+      // Annote les encaissements manuels (toujours payés, jamais en retard ni litige)
+      const encManAnnotes = encaissementsManuels.map(e => ({
+        ...e,
+        client: e.clientNom || e.libelle,
+        _ttc: M.parseNum(e.montantTtc) || 0,
+        _ht: M.parseNum(e.montantTtc) || 0,
+        _statut: 'payé',
+        _paye: true,
+        _litige: false,
+        _retard: false,
+        _isManual: true
+      }));
+
+      // Combine : pour le filtre, les encaissements manuels apparaissent
+      // SEULEMENT dans 'encaisse' et 'tous'. Pas dans 'a_encaisser'/'retard'/'litige'.
+      const livAnnoteesAll = livAnnotees.concat(encManAnnotes);
 
       // KPI globaux (mois en cours pour "encaisse")
       const moisCle = new Date().toISOString().slice(0, 7);
       const totalAEncaisser = livAnnotees.filter(l => !l._paye && !l._litige).reduce((s, l) => s + l._ttc, 0);
-      const totalEncaisseMois = livAnnotees.filter(l => l._paye && (l.datePaiement || '').startsWith(moisCle)).reduce((s, l) => s + l._ttc, 0);
+      const totalEncaisseMois = livAnnoteesAll.filter(l => l._paye && (l.datePaiement || '').startsWith(moisCle)).reduce((s, l) => s + l._ttc, 0);
       const totalRetard = livAnnotees.filter(l => l._retard).reduce((s, l) => s + l._ttc, 0);
       const totalLitige = livAnnotees.filter(l => l._litige).reduce((s, l) => s + l._ttc, 0);
       const nbAEncaisser = livAnnotees.filter(l => !l._paye && !l._litige).length;
       const nbRetard = livAnnotees.filter(l => l._retard).length;
 
-      // Liste filtree
-      let filtered = livAnnotees;
-      if (filtreStatut === 'a_encaisser') filtered = filtered.filter(l => !l._paye && !l._litige);
-      else if (filtreStatut === 'encaisse') filtered = filtered.filter(l => l._paye);
-      else if (filtreStatut === 'retard') filtered = filtered.filter(l => l._retard);
-      else if (filtreStatut === 'litige') filtered = filtered.filter(l => l._litige);
+      // Liste filtree : encaissements manuels apparaissent uniquement dans
+      // 'encaisse' et 'tous' (jamais dans à encaisser/retard/litige).
+      let filtered;
+      if (filtreStatut === 'encaisse') filtered = livAnnoteesAll.filter(l => l._paye);
+      else if (filtreStatut === 'tous') filtered = livAnnoteesAll;
+      else if (filtreStatut === 'a_encaisser') filtered = livAnnotees.filter(l => !l._paye && !l._litige);
+      else if (filtreStatut === 'retard') filtered = livAnnotees.filter(l => l._retard);
+      else if (filtreStatut === 'litige') filtered = livAnnotees.filter(l => l._litige);
+      else filtered = livAnnotees;
       if (filtreClient) filtered = filtered.filter(l => (l.client || '') === filtreClient);
 
       // Group par mois (date facturation, ou date paiement si paye)
@@ -4374,7 +4482,8 @@
       const selCount = filtered.filter(l => selSet.has(l.id)).length;
 
       let html = `
-        ${!bulkOn ? `<button class="m-fab" id="m-enc-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>` : `
+        ${!bulkOn ? `<button class="m-fab" onclick="MCAm.formNouvelEncaissement()" aria-label="Nouvel encaissement">+</button>
+          <button class="m-fab m-fab-secondary" id="m-enc-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>` : `
           <div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,.15)">
             <div style="flex:1 1 auto;font-size:.92rem">
               <strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}
@@ -4448,18 +4557,27 @@
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
               ${items.map(l => {
                 const couleur = l._paye ? 'var(--m-green)' : l._litige ? 'var(--m-red)' : l._retard ? 'var(--m-red)' : 'var(--m-accent)';
-                const statutLabel = l._paye ? '✅ Payé' : l._litige ? '⚠️ Litige' : l._retard ? '🔴 Retard' : '⏳ À encaisser';
+                const statutLabel = l._isManual ? '💵 Manuel' : l._paye ? '✅ Payé' : l._litige ? '⚠️ Litige' : l._retard ? '🔴 Retard' : '⏳ À encaisser';
                 const datePaiementAff = l.datePaiement ? M.formatDate(l.datePaiement) : '';
-                const actionBtn = !l._paye
-                  ? `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">💵 Marquer encaissé</button>`
-                  : `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>
+                // Encaissement manuel : pas de bouton annuler (toujours payé), pas de bouton marquer
+                let actionBtn;
+                if (l._isManual) {
+                  actionBtn = `<div style="font-size:.7rem;color:var(--m-green);font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>`;
+                } else if (!l._paye) {
+                  actionBtn = `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">💵 Marquer encaissé</button>`;
+                } else {
+                  actionBtn = `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>
                      <button type="button" class="m-enc-revert" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(231,76,60,0.10);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);border-radius:6px;padding:4px 10px;font-size:.7rem;font-weight:600;font-family:inherit;cursor:pointer">↶ Annuler</button>`;
+                }
                 const isSel = selSet.has(l.id);
-                const checkbox = bulkOn && !l._paye
+                // Encaissement manuel : pas de checkbox bulk (toujours payé) + classe spécifique
+                const checkbox = bulkOn && !l._paye && !l._isManual
                   ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
                   : '';
-                const cardClass = bulkOn && !l._paye ? 'm-enc-toggle' : 'm-enc-edit';
-                const cardStyle = bulkOn && !l._paye && isSel
+                const cardClass = l._isManual
+                  ? 'm-enc-edit-manual'
+                  : (bulkOn && !l._paye ? 'm-enc-toggle' : 'm-enc-edit');
+                const cardStyle = bulkOn && !l._paye && isSel && !l._isManual
                   ? `background:var(--m-accent-soft);border-color:var(--m-accent)`
                   : `background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border)`;
                 return `<div style="position:relative;margin-bottom:10px">
@@ -4506,6 +4624,13 @@
         btn.addEventListener('click', () => M.editerLivraison(btn.dataset.id));
         btn.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerLivraison(btn.dataset.id); }
+        });
+      });
+      // Tap card encaissement manuel -> ouvre form encaissement
+      container.querySelectorAll('.m-enc-edit-manual').forEach(btn => {
+        btn.addEventListener('click', () => M.editerEncaissement(btn.dataset.id));
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerEncaissement(btn.dataset.id); }
         });
       });
       // Tap card en mode bulk -> toggle selection
@@ -6301,9 +6426,9 @@
       // TVA collectee : par livraison, base = HT, montant = TVA explicite ou (TTC - HT)
       const livAvecTva = livraisons.map(l => {
         const ht = M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
-        const ttc = M.parseNum(l.prixTTC) || ht * (1 + (M.parseNum(l.tauxTva) || 0) / 100) || ht * 1.2;
+        const ttc = M.parseNum(l.prixTTC) || ht * (1 + (M.parseNum(l.tauxTva || l.tauxTVA) || 0) / 100) || ht * 1.2;
         const tva = M.parseNum(l.tva) || (ttc - ht);
-        const taux = M.parseNum(l.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
+        const taux = M.parseNum(l.tauxTva || l.tauxTVA) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
         return { ...l, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
       });
       const tvaCollectee = livAvecTva.reduce((s, l) => s + l._tva, 0);
@@ -6445,6 +6570,14 @@
 
   // ---------- Statistiques (v2.9 : KPI clés du mois + comparatif) ----------
   M.state.statsMois = new Date().toISOString().slice(0, 7);
+  M.state.statsUnit = M.state.statsUnit || 'k'; // 'k' = milliers (compact) | 'eur' = précis
+  // Format barre : compact (10k) ou précis (10 234€) selon toggle
+  M.fmtBar = function(n) {
+    const v = Number(n) || 0;
+    if (v <= 0) return '';
+    if (M.state.statsUnit === 'eur') return Math.round(v).toLocaleString('fr-FR') + '€';
+    return Math.round(v / 1000) + 'k';
+  };
   M.register('statistiques', {
     title: 'Statistiques',
     render() {
@@ -6517,7 +6650,12 @@
           const totalAn = mois12.reduce((s, x) => s + x.ca, 0);
           const moyenneAn = totalAn / 12;
 
-          return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📈 CA des 12 derniers mois</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${M.format$(totalAn)}</span></div>
+          return `<div class="m-section"><div class="m-section-header" style="gap:6px;flex-wrap:wrap"><h3 class="m-section-title">📈 CA des 12 derniers mois</h3>
+            <div style="display:flex;gap:4px;margin-left:auto">
+              <button class="m-alertes-chip ${M.state.statsUnit==='k'?'active':''}" data-unit="k" style="font-size:.68rem;padding:2px 8px;min-height:0;height:24px">k€</button>
+              <button class="m-alertes-chip ${M.state.statsUnit==='eur'?'active':''}" data-unit="eur" style="font-size:.68rem;padding:2px 8px;min-height:0;height:24px">précis</button>
+            </div>
+            <span style="font-size:.78rem;color:var(--m-text-muted);width:100%;text-align:right">${M.format$(totalAn)}</span></div>
             <div class="m-card" style="padding:14px">
               <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:4px">
                 ${mois12.map(x => {
@@ -6525,7 +6663,7 @@
                   const isCurrent = x.cle === moisSel;
                   const color = isCurrent ? 'var(--m-accent)' : x.ca > 0 ? 'var(--m-green)' : 'var(--m-border)';
                   return `<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%">
-                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${x.ca > 0 ? Math.round(x.ca / 1000) + 'k' : ''}</div>
+                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${M.fmtBar(x.ca)}</div>
                     <div style="flex:1 1 auto;display:flex;align-items:flex-end;width:100%">
                       <div style="width:100%;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-height:${x.ca > 0 ? '2px' : '0'}"></div>
                     </div>
@@ -6568,7 +6706,7 @@
                   const isCurrent = x.cle === moisSel;
                   const color = isCurrent ? 'var(--m-accent)' : x.total > 0 ? 'var(--m-red)' : 'var(--m-border)';
                   return `<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%">
-                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${x.total > 0 ? Math.round(x.total / 1000) + 'k' : ''}</div>
+                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${M.fmtBar(x.total)}</div>
                     <div style="flex:1 1 auto;display:flex;align-items:flex-end;width:100%">
                       <div style="width:100%;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-height:${x.total > 0 ? '2px' : '0'}"></div>
                     </div>
@@ -6652,6 +6790,10 @@
     afterRender(container) {
       const sel = container.querySelector('#m-stats-mois');
       if (sel) sel.addEventListener('change', e => { M.state.statsMois = e.target.value; M.go('statistiques'); });
+      // Toggle K€ / précis sur les graphiques
+      container.querySelectorAll('button[data-unit]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.statsUnit = btn.dataset.unit; M.go('statistiques'); });
+      });
     }
   });
 

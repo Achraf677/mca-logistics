@@ -10,7 +10,11 @@
 
 // L3343 (script.js d'origine)
 function alerteRentabilite() {
-  const prix = parseFloat(document.getElementById('liv-prix').value)||0;
+  // Lit en priorité prix HT (cohérent avec coût/km en HT). Sinon dérive depuis TTC.
+  const ht = parseFloat(document.getElementById('liv-prix-ht')?.value) || 0;
+  const ttc = parseFloat(document.getElementById('liv-prix')?.value) || 0;
+  const taux = parseFloat(document.getElementById('liv-taux-tva')?.value) || 20;
+  const prix = ht > 0 ? ht : (ttc > 0 ? ttc / (1 + taux/100) : 0);
   const dist = parseFloat(document.getElementById('liv-distance').value)||0;
   const profit = prix - dist * config.coutKmEstime;
   const ar = document.getElementById('alerte-rent'), pr = document.getElementById('profit-recap');

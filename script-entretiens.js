@@ -199,7 +199,8 @@ function autoFillKmEntretien() {
   const kmActuel = (typeof calculerKilometrageVehiculeActuel === 'function')
     ? calculerKilometrageVehiculeActuel(veh)
     : (parseFloat(veh.km) || 0);
-  if (kmActuel) kmInput.value = kmActuel;
+  // Ne pas écraser une saisie utilisateur en cours
+  if (kmActuel && !kmInput.value) kmInput.value = kmActuel;
 }
 
 // L10264 (script.js d'origine)
