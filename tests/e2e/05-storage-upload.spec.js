@@ -31,7 +31,8 @@ test.describe('Storage Supabase', () => {
       const blob = new Blob([arr], { type: 'image/png' });
 
       const path = 'test-e2e/' + Date.now() + '_pixel.png';
-      // Upload dans inspections-photos (public, on a le droit de lire)
+      // Upload dans inspections-photos (bucket prive depuis migration 027,
+      // on lit via signed URL).
       const up = await window.DelivProStorage.uploadBlob('inspections-photos', path, blob, { contentType: 'image/png' });
       if (!up.ok) return { ok: false, step: 'upload', error: up.error?.message };
 

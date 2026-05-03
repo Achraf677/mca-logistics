@@ -76,6 +76,13 @@
     if (key === 'paiements') return false;
     if (key === 'incidents') return false;
     if (key === 'fournisseurs') return false;
+    // Phase 5 : entites legacy sync via legacy-entity-adapters.js,
+    // plannings-supabase-adapter.js, messages-supabase-adapter.js
+    if (key === 'inspections') return false;
+    if (key === 'alertes_admin') return false;
+    if (key === 'absences_periodes') return false;
+    if (key === 'plannings') return false;
+    if (key.indexOf('messages_') === 0) return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     return true;
   }

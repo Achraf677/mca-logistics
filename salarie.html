@@ -1290,6 +1290,10 @@ html, body {
 <script src="security-utils.js"></script>
 <script src="supabase-storage-sync.js"></script>
 <script src="storage-uploader.js?v=20260430-12"></script>
+<!-- Messages adapter : sync localStorage messages_<salId> <-> public.messages
+     Indispensable cote chauffeur pour que ses envois remontent en DB et que
+     les messages admin descendent en realtime. -->
+<script src="messages-supabase-adapter.js?v=20260503-13"></script>
 <script src="repo.js?v=20260430-12"></script>
 <script src="watchdog.js?v=20260430-12"></script>
 <script src="script-salarie.js?v=20260430-12"></script>

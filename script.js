@@ -10959,6 +10959,7 @@ genererRentabilitePDF = function() {
     if (content) content.innerHTML = renderFicheVehicule(veh);
     document.getElementById('s20-drawer').classList.add('open');
     document.getElementById('s20-drawer-overlay').classList.add('open');
+    if (window.resolveStorageImages && content) window.resolveStorageImages(content);
   };
 
   function renderFicheVehicule(veh) {
@@ -11138,13 +11139,29 @@ genererRentabilitePDF = function() {
     const sorted = [...inspections].sort((a, b) => new Date(b.creeLe || b.date || 0) - new Date(a.creeLe || a.date || 0)).slice(0, 8);
     return sorted.map(i => {
       const photos = (typeof window.getInspectionPhotoList === 'function') ? window.getInspectionPhotoList(i) : (i.photos || []);
-      const thumbSrc = (p) => (typeof window.getInspectionPhotoThumb === 'function') ? window.getInspectionPhotoThumb(p) : (typeof p === 'string' ? p : (p.thumbUrl || p.url || ''));
+      // Bucket inspections-photos prive : utiliser data-photo-path puis resolveStorageImages.
+      const thumbDescriptor = (p) => {
+        if (typeof window.getInspectionPhotoThumbDescriptorAdmin === 'function') {
+          return window.getInspectionPhotoThumbDescriptorAdmin(p);
+        }
+        // Fallback minimal
+        if (!p) return { src: '', path: '' };
+        if (typeof p === 'string') return /^data:image\//.test(p) ? { src: p, path: '' } : { src: '', path: '' };
+        if (p.thumbPath) return { src: '', path: p.thumbPath };
+        if (p.path) return { src: '', path: p.path };
+        return { src: '', path: '' };
+      };
       return `<div class="s21-link-card" style="flex-direction:column;align-items:stretch">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
           <strong>${esc(i.salNom || '—')}</strong>
           <span style="font-size:.78rem;color:var(--text-muted)">${esc(i.date || '')}${i.km ? ' · ' + parseInt(i.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
         </div>
-        ${photos.length ? `<div class="s21-photo-grid">${photos.slice(0, 6).map((p, idx) => `<img src="${esc(thumbSrc(p))}" onclick="window.voirPhotoAdmin && window.voirPhotoAdmin('${esc(i.id)}',${idx})" />`).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.82rem">Aucune photo</div>'}
+        ${photos.length ? `<div class="s21-photo-grid">${photos.slice(0, 6).map((p, idx) => {
+          const d = thumbDescriptor(p);
+          const srcAttr = d.src ? `src="${esc(d.src)}"` : 'src="" alt="📷 chargement..."';
+          const dataAttrs = d.path ? `data-photo-path="${esc(d.path)}" data-photo-bucket="inspections-photos"` : '';
+          return `<img ${srcAttr} ${dataAttrs} style="background:rgba(0,0,0,0.05)" onclick="window.voirPhotoAdmin && window.voirPhotoAdmin('${esc(i.id)}',${idx})" />`;
+        }).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.82rem">Aucune photo</div>'}
       </div>`;
     }).join('');
   }
