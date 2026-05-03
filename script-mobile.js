@@ -1086,8 +1086,7 @@
       bodyHtml = `
         <div style="background:#1a1a1a;border-radius:14px;padding:28px 22px;max-width:340px;width:100%;text-align:center;color:#fff">
           <div style="font-size:3.5rem;line-height:1;margin-bottom:14px">📄</div>
-          <div style="font-weight:600;font-size:1.05rem;margin-bottom:6px;word-break:break-word">${M.escHtml(titre || 'Document PDF')}</div>
-          <div style="color:#9ca3af;font-size:.84rem;margin-bottom:22px">Safari iOS ne permet pas l'aperçu PDF intégré.</div>
+          <div style="font-weight:600;font-size:1.05rem;margin-bottom:22px;word-break:break-word">${M.escHtml(titre || 'Document PDF')}</div>
           <a href="${url}" target="_blank" rel="noopener" style="display:block;background:var(--m-accent);color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">🔍 Ouvrir le PDF</a>
           <a href="${url}" download="${M.escHtml(fname)}" style="display:block;background:#374151;color:#fff;text-decoration:none;font-weight:600;padding:14px;border-radius:12px;font-size:.95rem">⬇ Télécharger</a>
         </div>
@@ -1169,7 +1168,7 @@
       </div>
       ${M.formField('Adresse', M.formInput('adresse', { value: s.adresse || '', placeholder: 'Rue, ville' }))}
       <div class="m-form-row">
-        ${M.formField('N° matricule', M.formInput('numero', { value: s.numero || '', placeholder: 'ex: 001' }))}
+        ${M.formField('N° matricule', M.formInput('numero', { value: s.numero || '', placeholder: 'Auto si vide (MCA001, MCA002...)' }))}
         ${M.formField('Poste', M.formInput('poste', { value: s.poste || '', placeholder: 'Chauffeur, manutentionnaire...' }))}
       </div>
       <div class="m-form-row">
@@ -1328,13 +1327,25 @@
         const f = M.lireFormSheet();
         if (!f.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
         const arr = M.charger('salaries');
+        // Auto-genere un numero si vide : sinon adapter Supabase rejette
+        // (jsToDb returns null si pas de numero) -> le salarie disparait au refresh.
+        let numero = f.numero?.trim().toUpperCase() || '';
+        if (!numero) {
+          // Cherche le prochain numero libre format MCA001
+          const existants = new Set(arr.map(x => (x.numero || '').toUpperCase()));
+          let n = 1;
+          while (existants.has('MCA' + String(n).padStart(3, '0'))) n++;
+          numero = 'MCA' + String(n).padStart(3, '0');
+        } else if (!enEdition && arr.find(x => (x.numero || '').toUpperCase() === numero)) {
+          M.toast('⚠️ Ce numéro existe déjà'); return false;
+        }
         const data = {
           prenom: f.prenom?.trim() || '',
           nom: f.nom.trim(),
           tel: f.tel?.trim() || '',
           email: f.email?.trim() || '',
           adresse: f.adresse?.trim() || '',
-          numero: f.numero?.trim() || '',
+          numero,
           poste: f.poste?.trim() || '',
           catPermis: f.catPermis || '',
           datePermis: f.datePermis || '',
