@@ -53,18 +53,42 @@
     throw lastErr || new Error('Aucun CDN disponible pour Tesseract');
   }
 
+  // Logger verbose : permet d'afficher chaque étape du chargement OCR dans
+  // l'UI mobile (le user n'a pas accès à la console iOS Safari).
+  // Brancher via window.MCAocr._onLog = (msg) => domEl.textContent = msg;
+  function ocrLog(msg) {
+    try {
+      if (window.MCAocr && typeof window.MCAocr._onLog === 'function') {
+        window.MCAocr._onLog(msg);
+      } else {
+        console.log('[OCR]', msg);
+      }
+    } catch (_) {}
+  }
+
   async function ensureLoaded() {
     if (_loaded) return;
     if (_loadingPromise) return _loadingPromise;
     _loadingPromise = (async () => {
-      await loadAnyCDN(TESSERACT_CDNS);
-      if (typeof Tesseract === 'undefined') throw new Error('Tesseract non disponible après chargement');
-      _worker = await Tesseract.createWorker('fra', 1, {
-        // Force jsdelivr pour les fichiers worker/wasm/lang aussi (pareil pas d'unpkg)
-        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
-        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0',
-        langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
-      });
+      ocrLog('1/4 chargement script CDN...');
+      try { await loadAnyCDN(TESSERACT_CDNS); }
+      catch (e) { throw new Error('CDN bloqué : ' + (e?.message || 'load failed')); }
+      ocrLog('2/4 script chargé (Tesseract=' + (typeof Tesseract) + ')');
+      if (typeof Tesseract === 'undefined') throw new Error('Tesseract.min.js non disponible (script chargé mais window.Tesseract absent)');
+      ocrLog('3/4 createWorker fra...');
+      try {
+        _worker = await Tesseract.createWorker('fra', 1, {
+          workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+          corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0',
+          langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
+          logger: m => ocrLog((m.status || 'progress') + ' ' + Math.round((m.progress || 0) * 100) + '%'),
+          errorHandler: e => ocrLog('ERR worker : ' + (e?.message || e?.name || 'inconnu')),
+        });
+      } catch (e) {
+        const detail = e?.message || e?.name || (typeof e === 'object' ? JSON.stringify(e) : String(e));
+        throw new Error('createWorker a échoué : ' + (detail || 'erreur silencieuse iOS (CSP worker-src ?)'));
+      }
+      ocrLog('4/4 worker prêt ✅');
       _loaded = true;
     })();
     try {

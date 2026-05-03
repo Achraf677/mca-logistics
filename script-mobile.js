@@ -903,9 +903,13 @@
             const file = e.target.files?.[0];
             if (!file) return;
             if (!window.MCAocr) { M.toast('⚠️ OCR indisponible'); return; }
+            facStatus.style.color = 'var(--m-text-muted)';
             facStatus.textContent = '⏳ Chargement de l\'OCR (1ère fois ~5s)...';
+            // Logger verbose sur le DOM pour debug en prod
+            window.MCAocr._onLog = (msg) => { facStatus.textContent = '⏳ ' + msg; };
             try {
               await MCAocr.ensureLoaded();
+              window.MCAocr._onLog = null;
               facStatus.textContent = '⏳ Lecture de la facture...';
               const { text } = await MCAocr.recognize(file);
               const parsed = MCAocr.parseFacture(text);
@@ -1177,9 +1181,13 @@
             const file = e.target.files?.[0];
             if (!file) return;
             if (!window.MCAocr) { M.toast('⚠️ OCR indisponible'); return; }
+            cgStatus.style.color = 'var(--m-text-muted)';
             cgStatus.textContent = '⏳ Chargement de l\'OCR (1ère fois ~5s)...';
+            // Branche logger verbose sur le DOM pour debug en prod (iOS sans console)
+            window.MCAocr._onLog = (msg) => { cgStatus.textContent = '⏳ ' + msg; };
             try {
               await MCAocr.ensureLoaded();
+              window.MCAocr._onLog = null; // détache après load
               cgStatus.textContent = '⏳ Lecture de la carte grise...';
               const { text, confidence } = await MCAocr.recognize(file);
               const parsed = MCAocr.parseCarteGrise(text);

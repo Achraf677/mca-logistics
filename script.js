@@ -4195,6 +4195,8 @@ window.__adminFinalLock = function() {
         <td class="livraison-number-cell">${datePaiement}</td>
         <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
+          { icon:'📄', label:'Bon de livraison', action:"genererBonLivraison('" + l.id + "')" },
+          { icon:'🧾', label:'Facture', action:"genererFactureLivraison('" + l.id + "')" },
           { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
           { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
           { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
