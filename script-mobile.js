@@ -1752,7 +1752,26 @@
           <p class="m-form-hint" style="margin-top:6px">PDF ou image, 5 Mo max. Stocké chiffré sur Supabase Storage.</p>
         </div>
       </details>
-      ` : '<p class="m-form-hint" style="margin-top:14px">💡 Les documents (carte grise, assurance, CT...) seront uploadables après la première sauvegarde.</p>'}
+      ` : `
+      <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden">
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Carte grise, Assurance, CT...)</summary>
+        <div style="padding:14px" id="m-veh-docs-temp-list">
+          ${M.DOC_TYPES_VEHICULE.map(({ type, label, icon }) => `
+            <div class="m-card" data-veh-doc-type="${type}" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+              <div style="font-size:1.2rem;flex:0 0 auto">${icon}</div>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.88rem">${label}</div>
+                <div class="m-veh-doc-status" style="font-size:.74rem;color:var(--m-text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Aucun fichier</div>
+              </div>
+              <label class="m-btn" style="width:auto;padding:0 10px;height:38px;font-size:.78rem;display:inline-flex;align-items:center;cursor:pointer;margin:0">📎
+                <input type="file" class="m-veh-doc-temp-input" data-type="${type}" accept="image/*,application/pdf" style="display:none" />
+              </label>
+            </div>
+          `).join('')}
+          <p class="m-form-hint" style="margin-top:6px">PDF ou image, 5 Mo max. Uploadés à Supabase Storage après l'enregistrement du véhicule.</p>
+        </div>
+      </details>
+      `}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce véhicule</button>` : ''}
     `;
     M.openSheet({
@@ -1798,6 +1817,25 @@
             e.target.value = '';
           });
         }
+        // Mode CRÉATION : capture les fichiers en mémoire (pas encore de vehId).
+        // L'upload réel sera fait dans onSubmit après genId.
+        b.querySelectorAll('.m-veh-doc-temp-input').forEach(inp => {
+          inp.addEventListener('change', e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const type = e.target.dataset.type;
+            if (file.size > 5 * 1024 * 1024) { M.toast('⚠️ Fichier trop lourd (5 Mo max)'); return; }
+            window.__vehDocsTempMobile = window.__vehDocsTempMobile || {};
+            const reader = new FileReader();
+            reader.onload = ev => {
+              window.__vehDocsTempMobile[type] = { data: ev.target.result, type: file.type, nom: file.name };
+              const card = b.querySelector(`.m-card[data-veh-doc-type="${type}"]`);
+              const status = card?.querySelector('.m-veh-doc-status');
+              if (status) { status.textContent = '✅ ' + file.name + ' (uploadé après save)'; status.style.color = 'var(--m-green)'; }
+            };
+            reader.readAsDataURL(file);
+          });
+        });
         if (!enEdition) return;
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le véhicule ${v.immat} ?`, { titre: 'Supprimer véhicule' })) return;
@@ -1885,15 +1923,34 @@
           chaufId: f.salId || null,           // dual-write PC
           salNom: sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : ''
         };
+        let vehId;
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === v.id);
           if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
           M.sauvegarder('vehicules', arr);
+          vehId = v.id;
           M.toast('✅ Véhicule modifié');
         } else {
-          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          vehId = M.genId();
+          arr.push({ id: vehId, creeLe: new Date().toISOString(), ...data });
           M.sauvegarder('vehicules', arr);
           M.toast('✅ Véhicule enregistré');
+        }
+        // Upload des documents temp (mode création) après que le vehId existe
+        if (!enEdition && window.__vehDocsTempMobile && Object.keys(window.__vehDocsTempMobile).length) {
+          const temp = Object.assign({}, window.__vehDocsTempMobile);
+          window.__vehDocsTempMobile = {};
+          (async () => {
+            for (const [type, d] of Object.entries(temp)) {
+              if (!d?.data) continue;
+              try {
+                const blob = window.DelivProStorage?.dataUrlToBlob ? window.DelivProStorage.dataUrlToBlob(d.data) : null;
+                const file = blob ? new File([blob], d.nom || type, { type: d.type }) : null;
+                if (file) await M.uploaderDocVehicule(file, type, vehId);
+              } catch (err) { console.warn('[mobile] upload veh doc temp', type, err); }
+            }
+            M.toast('✅ Documents véhicule uploadés');
+          })();
         }
         M.go('vehicules');
         return true;
