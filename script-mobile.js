@@ -781,6 +781,13 @@
     const c = existing || {};
 
     const body = `
+      <div class="m-form-field" style="margin-bottom:14px">
+        <label for="m-charge-fac-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
+          <span>📷</span><span>Scanner la facture (auto-remplir)</span>
+        </label>
+        <input type="file" id="m-charge-fac-input" accept="image/*" capture="environment" style="display:none" />
+        <p class="m-form-hint" id="m-charge-fac-status" style="text-align:center"></p>
+      </div>
       ${M.formField('Libellé', M.formInput('libelle', { value: c.libelle || '', placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
       ${M.formField('Fournisseur', M.formInput('fournisseur', { value: c.fournisseur || '', placeholder: 'Nom fournisseur' }))}
       ${M.formField('Date', M.formInput('date', { type: 'date', value: c.date || today, required: true }), { required: true })}
@@ -851,6 +858,44 @@
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
+        // OCR facture (mode nouveau et edition)
+        const facInput = body.querySelector('#m-charge-fac-input');
+        const facStatus = body.querySelector('#m-charge-fac-status');
+        if (facInput) {
+          facInput.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (!window.MCAocr) { M.toast('⚠️ OCR indisponible'); return; }
+            facStatus.textContent = '⏳ Chargement de l\'OCR (1ère fois ~5s)...';
+            try {
+              await MCAocr.ensureLoaded();
+              facStatus.textContent = '⏳ Lecture de la facture...';
+              const { text } = await MCAocr.recognize(file);
+              const parsed = MCAocr.parseFacture(text);
+              let n = 0;
+              const setVal = (name, val) => {
+                if (val == null || val === '' || val === 0) return;
+                const el = body.querySelector(`[name="${name}"]`);
+                if (el && !el.value) { el.value = val; n++; }
+              };
+              setVal('fournisseur', parsed.fournisseur);
+              setVal('libelle', parsed.numFacture ? `Facture ${parsed.numFacture}` : '');
+              setVal('date', parsed.date);
+              setVal('montantHt', parsed.ht ? parsed.ht.toFixed(2) : '');
+              setVal('tva', parsed.tva ? parsed.tva.toFixed(2) : '');
+              setVal('montantTtc', parsed.ttc ? parsed.ttc.toFixed(2) : '');
+              if (parsed.tauxTva && sel) sel.value = String(parsed.tauxTva);
+              dernierEdit = 'ttc'; recalc();
+              facStatus.textContent = n > 0 ? `✅ ${n} champ${n>1?'s':''} rempli${n>1?'s':''} (vérifie + complète)` : `⚠️ Aucun champ détecté (qualité photo ?)`;
+              facStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
+            } catch (err) {
+              console.error('[OCR] erreur:', err);
+              facStatus.textContent = '⚠️ Erreur OCR : ' + (err.message || 'inconnue');
+              facStatus.style.color = 'var(--m-red)';
+            }
+            e.target.value = '';
+          });
+        }
         if (enEdition) {
           body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
             const ok = await M.creerRecurrence('charges', c.id, {
@@ -1038,6 +1083,13 @@
     const v = existing || {};
     const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
     const body = `
+      <div class="m-form-field" style="margin-bottom:14px">
+        <label for="m-veh-cg-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
+          <span>📷</span><span>Scanner la carte grise (auto-remplir)</span>
+        </label>
+        <input type="file" id="m-veh-cg-input" accept="image/*" capture="environment" style="display:none" />
+        <p class="m-form-hint" id="m-veh-cg-status" style="text-align:center"></p>
+      </div>
       ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
       <div class="m-form-row">
         ${M.formField('Marque', M.formInput('marque', { value: v.marque || '', placeholder: 'Renault, Peugeot...' }))}
@@ -1080,6 +1132,40 @@
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
+        // OCR carte grise (mode nouveau ET edition)
+        const cgInput = b.querySelector('#m-veh-cg-input');
+        const cgStatus = b.querySelector('#m-veh-cg-status');
+        if (cgInput) {
+          cgInput.addEventListener('change', async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (!window.MCAocr) { M.toast('⚠️ OCR indisponible'); return; }
+            cgStatus.textContent = '⏳ Chargement de l\'OCR (1ère fois ~5s)...';
+            try {
+              await MCAocr.ensureLoaded();
+              cgStatus.textContent = '⏳ Lecture de la carte grise...';
+              const { text, confidence } = await MCAocr.recognize(file);
+              const parsed = MCAocr.parseCarteGrise(text);
+              let n = 0;
+              const setVal = (name, val) => {
+                if (!val) return;
+                const el = b.querySelector(`[name="${name}"]`);
+                if (el && !el.value) { el.value = val; n++; }
+              };
+              setVal('immat', parsed.immat);
+              setVal('marque', parsed.marque);
+              setVal('modele', parsed.modele);
+              setVal('dateMiseEnCirculation', parsed.dateMEC);
+              cgStatus.textContent = n > 0 ? `✅ ${n} champ${n>1?'s':''} rempli${n>1?'s':''} (vérifie + complète)` : `⚠️ Aucun champ détecté (qualité photo ?)`;
+              cgStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
+            } catch (err) {
+              console.error('[OCR] erreur:', err);
+              cgStatus.textContent = '⚠️ Erreur OCR : ' + (err.message || 'inconnue');
+              cgStatus.style.color = 'var(--m-red)';
+            }
+            e.target.value = '';
+          });
+        }
         if (!enEdition) return;
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le véhicule ${v.immat} ?`, { titre: 'Supprimer véhicule' })) return;

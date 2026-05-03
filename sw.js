@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-03-mobile-v3_37-bulk-encaissement-76';
+const CACHE_VERSION = 'mca-v2026-05-03-mobile-v3_38-ocr-tesseract-77';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -47,6 +47,7 @@ const CORE_ASSETS = [
   '/script-vehicules.js',
   '/script-livraisons.js',
   '/script-encaissement.js',
+  '/ocr-helper.js',
   '/clients-supabase-adapter.js',
   '/entity-supabase-adapter.js',
   '/vehicules-supabase-adapter.js',
@@ -104,7 +105,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
 
   // Supabase / API externes / Google Fonts : passthrough, pas de cache
-  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com') || url.hostname.includes('gstatic.com') || url.hostname.includes('cdn.jsdelivr.net')) {
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com') || url.hostname.includes('gstatic.com') || url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('unpkg.com') || url.hostname.includes('tessdata.projectnaptha')) {
     return;
   }
 
