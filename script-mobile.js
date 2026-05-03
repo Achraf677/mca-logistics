@@ -1065,24 +1065,47 @@
   };
 
   // Viewer media inline (modal plein ecran, pas de popup Safari).
-  // Affiche image ou PDF, avec bouton close + bouton telecharger.
+  // Affiche image inline ; PDF -> carte avec boutons Ouvrir/Telecharger
+  // (iOS Safari refuse de rendre les PDF en iframe ou embed).
   M.afficherDocInline = function(url, mime, titre) {
-    // Cleanup ancien viewer si existe
     document.querySelector('.m-doc-viewer')?.remove();
     const isPdf = (mime || '').includes('pdf');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const fname = (titre || 'document').replace(/[^a-zA-Z0-9._-]/g, '_') + (isPdf ? '.pdf' : '');
+
     const overlay = document.createElement('div');
     overlay.className = 'm-doc-viewer';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column';
+
+    let bodyHtml = '';
+    if (!isPdf) {
+      bodyHtml = `<img src="${url}" alt="${M.escHtml(titre || 'doc')}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px" />`;
+    } else if (isIOS) {
+      // iOS : iframe PDF marche pas. Carte avec boutons d'action en lien direct
+      // (les <a target=_blank> ne sont PAS bloqués par Safari, contrairement à window.open).
+      bodyHtml = `
+        <div style="background:#1a1a1a;border-radius:14px;padding:28px 22px;max-width:340px;width:100%;text-align:center;color:#fff">
+          <div style="font-size:3.5rem;line-height:1;margin-bottom:14px">📄</div>
+          <div style="font-weight:600;font-size:1.05rem;margin-bottom:6px;word-break:break-word">${M.escHtml(titre || 'Document PDF')}</div>
+          <div style="color:#9ca3af;font-size:.84rem;margin-bottom:22px">Safari iOS ne permet pas l'aperçu PDF intégré.</div>
+          <a href="${url}" target="_blank" rel="noopener" style="display:block;background:var(--m-accent);color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">🔍 Ouvrir le PDF</a>
+          <a href="${url}" download="${M.escHtml(fname)}" style="display:block;background:#374151;color:#fff;text-decoration:none;font-weight:600;padding:14px;border-radius:12px;font-size:.95rem">⬇ Télécharger</a>
+        </div>
+      `;
+    } else {
+      // Android / desktop : iframe marche
+      bodyHtml = `<iframe src="${url}" style="width:100%;height:100%;border:0;background:#fff"></iframe>`;
+    }
+
+    const isCard = isPdf && isIOS;
     overlay.innerHTML = `
       <header style="flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(0,0,0,.4);color:#fff">
         <div style="flex:1 1 auto;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre || 'Document')}</div>
-        <a href="${url}" download="${M.escHtml(titre || 'document')}" class="m-doc-viewer-dl" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;text-decoration:none;font-size:1rem">⬇</a>
+        ${!isCard ? `<a href="${url}" download="${M.escHtml(fname)}" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;text-decoration:none;font-size:1rem">⬇</a>` : ''}
         <button type="button" class="m-doc-viewer-close" aria-label="Fermer" style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:1.1rem">✕</button>
       </header>
-      <div style="flex:1 1 auto;overflow:auto;display:flex;align-items:${isPdf ? 'stretch' : 'center'};justify-content:center;padding:${isPdf ? '0' : '10px'}">
-        ${isPdf
-          ? `<iframe src="${url}" style="width:100%;height:100%;border:0;background:#fff"></iframe>`
-          : `<img src="${url}" alt="${M.escHtml(titre || 'doc')}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px" />`}
+      <div style="flex:1 1 auto;overflow:auto;display:flex;align-items:${isCard ? 'center' : (isPdf ? 'stretch' : 'center')};justify-content:center;padding:${isPdf && !isCard ? '0' : '14px'}">
+        ${bodyHtml}
       </div>
     `;
     const close = () => { overlay.remove(); document.body.style.overflow = ''; };
