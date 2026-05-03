@@ -915,10 +915,17 @@
     const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
     const body = `
       ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
-      ${M.formField('Modèle / Marque', M.formInput('modele', { value: v.modele || '', placeholder: 'Renault Master, Peugeot Boxer...' }))}
+      <div class="m-form-row">
+        ${M.formField('Marque', M.formInput('marque', { value: v.marque || '', placeholder: 'Renault, Peugeot...' }))}
+        ${M.formField('Modèle', M.formInput('modele', { value: v.modele || '', placeholder: 'Master, Boxer...' }))}
+      </div>
       <div class="m-form-row">
         ${M.formField('Date CT', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }))}
+      </div>
+      <div class="m-form-row">
         ${M.formField('Date acquisition', M.formInput('dateAcquisition', { type: 'date', value: v.dateAcquisition || '' }))}
+        ${M.formField('Mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Km actuel', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.km || '' }))}
@@ -967,9 +974,12 @@
         const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
         const data = {
           immat: f.immat.trim().toUpperCase(),
+          marque: f.marque?.trim() || '',
           modele: f.modele?.trim() || '',
           dateCT: f.dateCT || '',
+          dateAssurance: f.dateAssurance || '',
           dateAcquisition: f.dateAcquisition || '',
+          dateMiseEnCirculation: f.dateMiseEnCirculation || '',
           km: M.parseNum(f.km) || 0,
           kmInitial: M.parseNum(f.kmInitial) || 0,
           modeAcquisition: f.modeAcquisition || '',
@@ -3358,10 +3368,12 @@
       // ---------- Tab PAR VEHICULE ----------
       if (tab === 'vehicule') {
         const stats = vehicules.map(v => {
-          const livV   = livMois.filter(l => l.vehiculeId === v.id);
-          const carbV  = carbMois.filter(p => p.vehiculeId === v.id);
-          const entrV  = entrMois.filter(e => e.vehiculeId === v.id);
-          const chrgV  = chargesMois.filter(c => c.vehiculeId === v.id);
+          // dual-read vehiculeId/vehId (livraisons PC peuvent n'avoir que vehId)
+          const matchVeh = (x) => (x.vehiculeId === v.id) || (x.vehId === v.id);
+          const livV   = livMois.filter(matchVeh);
+          const carbV  = carbMois.filter(matchVeh);
+          const entrV  = entrMois.filter(matchVeh);
+          const chrgV  = chargesMois.filter(matchVeh);
           const ca   = livV.reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
           const carb = carbV.reduce((s, p) => s + (Number(p.total) || 0), 0);
           const entr = entrV.reduce((s, e) => s + (Number(e.cout) || 0), 0);
@@ -3408,7 +3420,7 @@
       // ---------- Tab PAR CHAUFFEUR ----------
       if (tab === 'chauffeur') {
         const stats = salaries.map(s => {
-          const livS = livMois.filter(l => l.salarieId === s.id);
+          const livS = livMois.filter(l => l.salarieId === s.id || l.chaufId === s.id);
           const ca = livS.reduce((sum, l) => sum + (Number(l.prix) || Number(l.prixHT) || 0), 0);
           const km = livS.reduce((sum, l) => sum + (Number(l.distance) || 0), 0);
           // Carburant rattachable si le chauffeur a un vehicule attribue (via veh.salId)
@@ -3908,11 +3920,11 @@
 
     const ct = M.statutDate(v.dateCT);
     // Pleins du vehicule pour mini KPI
-    const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id);
+    const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id || p.vehId === v.id);
     const totalCarb = pleins.reduce((s, p) => s + (Number(p.total) || 0), 0);
     const totalLitres = pleins.reduce((s, p) => s + (Number(p.litres) || 0), 0);
     const dernierPlein = pleins.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
-    const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id);
+    const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id || l.vehId === v.id);
 
     return `
       <div style="text-align:center;padding:8px 0 18px">
@@ -4282,7 +4294,7 @@
     const permis = M.statutDate(s.datePermis);
     const assurance = M.statutDate(s.dateAssurance);
     const visite = M.statutDate(s.visiteMedicale);
-    const livSal = M.charger('livraisons').filter(l => l.salarieId === s.id);
+    const livSal = M.charger('livraisons').filter(l => l.salarieId === s.id || l.chaufId === s.id);
     const totalCa = livSal.reduce((sum, l) => sum + (Number(l.prix) || 0), 0);
 
     return `
@@ -4353,7 +4365,7 @@
 
       // Aggrege par salarie
       const stats = salaries.map(s => {
-        const livSal = livraisons.filter(l => l.salarieId === s.id);
+        const livSal = livraisons.filter(l => l.salarieId === s.id || l.chaufId === s.id);
         const kmLiv = livSal.reduce((sum, l) => sum + (Number(l.distance) || 0), 0);
         const heuresSal = heuresEntries.filter(h => h.salId === s.id || h.salarieId === s.id);
         const totalHeures = heuresSal.reduce((sum, h) => sum + (Number(h.heures) || 0), 0);
@@ -5100,8 +5112,9 @@
   // ============================================================
   // Logout
   // ============================================================
-  M.logout = function() {
-    if (!confirm('Se déconnecter ?')) return;
+  M.logout = async function() {
+    // M.confirm est async et marche en PWA standalone iOS (window.confirm peut etre bloque).
+    if (!await M.confirm('Se déconnecter ?', { titre: 'Déconnexion' })) return;
     sessionStorage.clear();
     window.location.replace('login.html');
   };
@@ -5188,12 +5201,14 @@
     $('#m-sheet-close')?.addEventListener('click', M.closeSheet);
     $('#m-sheet-cancel')?.addEventListener('click', M.closeSheet);
     $('#m-sheet-submit')?.addEventListener('click', M.submitSheet);
-    // Submit avec Enter dans un input (sauf textarea)
+    // Submit avec Enter UNIQUEMENT depuis input single-line (pas textarea/select/button).
+    // Avant : Enter declenchait submit dans n'importe quel target (select, button, etc.).
     $('#m-sheet-body')?.addEventListener('keydown', e => {
-      if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        M.submitSheet();
-      }
+      if (e.key !== 'Enter') return;
+      const t = e.target;
+      if (!t.matches?.('input:not([type=checkbox]):not([type=radio]):not([type=file])')) return;
+      e.preventDefault();
+      M.submitSheet();
     });
 
     // Back button (vues detail clients/vehicules/salaries) : retour a la liste
@@ -5229,10 +5244,18 @@
     setTimeout(initRemoteSync, 200);
 
     // Realtime : ecoute les events de sync emis par supabase-storage-sync.
+    // Helper : true si une bottom-sheet est ouverte (saisie en cours).
+    // On ne doit PAS re-render dans ce cas, sinon innerHTML wipe -> form perdu.
+    const sheetOuvert = () => {
+      const sheet = document.getElementById('m-sheet');
+      return sheet && !sheet.hidden && sheet.getAttribute('aria-hidden') !== 'true';
+    };
+
     // Quand le PC modifie des donnees, l'event 'delivpro:remote-update' est
     // dispatche apres applyRemoteSnapshot -> on re-render la page courante
     // pour afficher les nouvelles donnees sans avoir besoin de tirer manuellement.
     window.addEventListener('delivpro:remote-update', () => {
+      if (sheetOuvert()) { M.updateAlertesBadge(); return; } // skip re-render si saisie en cours
       if (M.state.currentPage) M.go(M.state.currentPage);
       M.updateAlertesBadge();
     });
@@ -5242,8 +5265,11 @@
     // que la page affiche les dernieres donnees recues.
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden && M.state.currentPage) {
-        // Petit delay pour laisser le pull se faire avant le re-render
-        setTimeout(() => { M.go(M.state.currentPage); M.updateAlertesBadge(); }, 600);
+        setTimeout(() => {
+          if (sheetOuvert()) { M.updateAlertesBadge(); return; }
+          M.go(M.state.currentPage);
+          M.updateAlertesBadge();
+        }, 600);
       }
     });
   }
