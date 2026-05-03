@@ -172,6 +172,37 @@
     });
   };
 
+  // Dialog liste de choix (radio) : ouvre overlay avec liste d'options.
+  // Resoud la valeur sélectionnée ou null si annulé.
+  M.dialogChoix = function(opts = {}) {
+    return new Promise(resolve => {
+      document.querySelector('.m-choix-dialog')?.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'm-choix-dialog';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+      overlay.innerHTML = `
+        <div style="background:var(--m-card);border-radius:18px;padding:18px;max-width:380px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">${M.escHtml(opts.titre || 'Choisir')}</div>
+          ${opts.sousTitre ? `<div style="font-size:.84rem;color:var(--m-text-muted);margin-bottom:14px">${M.escHtml(opts.sousTitre)}</div>` : '<div style="margin-bottom:10px"></div>'}
+          <div style="display:flex;flex-direction:column;gap:6px">
+            ${(opts.options || []).map(o => `
+              <button type="button" class="m-choix-opt" data-val="${M.escHtml(o.value)}" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid ${o.value === opts.defaut ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:10px;background:${o.value === opts.defaut ? 'var(--m-accent-soft)' : 'transparent'};color:inherit;cursor:pointer;text-align:left;font-family:inherit;font-size:.92rem">
+                <span style="font-size:1.1rem">${o.value === opts.defaut ? '●' : '○'}</span>
+                <span style="flex:1 1 auto">${M.escHtml(o.label)}</span>
+              </button>
+            `).join('')}
+          </div>
+          <button type="button" class="m-btn" id="m-choix-cancel" style="margin-top:14px;width:100%">Annuler</button>
+        </div>
+      `;
+      const close = (val) => { overlay.remove(); resolve(val); };
+      overlay.querySelectorAll('.m-choix-opt').forEach(b => b.addEventListener('click', () => close(b.dataset.val)));
+      overlay.querySelector('#m-choix-cancel').addEventListener('click', () => close(null));
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      document.body.appendChild(overlay);
+    });
+  };
+
   // Dialog "Choisir une date" : ouvre un overlay avec un input date.
   // Resoud { date: 'YYYY-MM-DD' } ou null si annule.
   M.dialogChoisirDate = function(opts = {}) {
@@ -6798,12 +6829,22 @@
         </div>
       `;
 
+      // Franchise en base : pas de TVA collectée ni récupérable (CGI art. 293 B).
+      // On masque l'analyse classique et affiche un état dédié.
+      if (!profile.isVatEnabled) {
+        return html + `<div class="m-empty" style="padding:32px 16px">
+          <div class="m-empty-icon">📭</div>
+          <h3 class="m-empty-title">Franchise en base</h3>
+          <p class="m-empty-text">Ton entreprise n'est pas assujettie à la TVA (article 293 B du CGI).<br>Aucune TVA n'est collectée ni récupérable. Aucune déclaration CA3 à faire.</p>
+          <p class="m-empty-text" style="margin-top:14px;font-size:.78rem">Pour activer la TVA, va dans Paramètres → 🧾 TVA → Régime TVA.</p>
+        </div>`;
+      }
+
       if (tab === 'recap') {
         // Mode TVA actif (encaissements vs debits) -> info pour comprendre l'exigibilite
-        const modeLabel = !profile.isVatEnabled ? 'Franchise en base'
-          : (profile.activiteType === 'goods' ? 'Biens (exigible à la livraison)'
+        const modeLabel = profile.activiteType === 'goods' ? 'Biens (exigible à la livraison)'
           : profile.exigibiliteServices === 'debits' ? 'Services (exigible à la facture)'
-          : 'Services (exigible à l\'encaissement)');
+          : 'Services (exigible à l\'encaissement)';
         html += `
           <div class="m-card" style="padding:10px 14px;margin-bottom:10px;background:var(--m-accent-soft);font-size:.78rem;display:flex;align-items:center;gap:8px">
             <span>⚙️</span>
@@ -6829,7 +6870,7 @@
             <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base déductible HT</span><span style="font-weight:600">${M.format$(baseDeductibleCharges + baseDeductibleCarburant)}</span></div>
           </div>
           <p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
-            Récap simplifié. La TVA sur carburant doit être saisie comme charge pour être prise en compte. Déclaration officielle (CA3) sur version PC.
+            Récap simplifié. La déclaration officielle CA3 doit être saisie sur impots.gouv.fr (pas générée par l'app).
           </p>
         `;
       }
@@ -7552,6 +7593,20 @@
       const entreprise = config.entreprise || M.chargerObj('entreprise') || {};
       const adminNom = sessionStorage.getItem('admin_nom') || 'Admin';
       const adminLogin = sessionStorage.getItem('admin_login') || '';
+      const tvaProfile = M.getTVAConfig();
+      const regimeLabel = ({
+        franchise_base: 'Franchise en base',
+        reel_simplifie: 'Réel simplifié',
+        reel_normal: 'Réel normal'
+      })[tvaProfile.regime] || tvaProfile.regime;
+      const periodLabel = ({
+        mensuelle: 'Mensuelle',
+        trimestrielle: 'Trimestrielle',
+        annuelle: 'Annuelle'
+      })[tvaProfile.periodicite] || tvaProfile.periodicite;
+      const exigLabel = tvaProfile.activiteType === 'goods'
+        ? 'Livraison (biens)'
+        : (tvaProfile.exigibiliteServices === 'debits' ? 'Facturation (débits)' : 'Encaissement');
 
       return `
         <div style="text-align:center;padding:8px 0 18px">
@@ -7577,6 +7632,24 @@
           </div>
         ` : ''}
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🧾 TVA</h3></div>
+          <div class="m-card" style="padding:0">
+            <button type="button" id="m-param-tva-regime" class="m-card-pressable" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;border:none;background:transparent;border-bottom:1px solid var(--m-border);color:inherit;text-align:left;font-family:inherit;cursor:pointer">
+              <span style="font-size:.85rem">Régime TVA</span>
+              <span style="font-weight:600;font-size:.85rem">${M.escHtml(regimeLabel)} ›</span>
+            </button>
+            <button type="button" id="m-param-tva-exig" class="m-card-pressable" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;border:none;background:transparent;border-bottom:1px solid var(--m-border);color:inherit;text-align:left;font-family:inherit;cursor:pointer;${tvaProfile.regime === 'franchise_base' ? 'opacity:.4;pointer-events:none' : ''}">
+              <span style="font-size:.85rem">Exigibilité</span>
+              <span style="font-weight:600;font-size:.85rem">${M.escHtml(exigLabel)} ›</span>
+            </button>
+            <button type="button" id="m-param-tva-period" class="m-card-pressable" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;border:none;background:transparent;color:inherit;text-align:left;font-family:inherit;cursor:pointer;${tvaProfile.regime === 'franchise_base' ? 'opacity:.4;pointer-events:none' : ''}">
+              <span style="font-size:.85rem">Périodicité déclaration</span>
+              <span style="font-weight:600;font-size:.85rem">${M.escHtml(periodLabel)} ›</span>
+            </button>
+          </div>
+          <p class="m-form-hint" style="margin-top:8px">Encaissement = TVA exigible au paiement (défaut transport). Débits = à la facturation.</p>
+        </div>
+
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🎨 Affichage</h3></div>
           <button class="m-card m-card-pressable" id="m-param-theme" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit">
             <span style="font-size:.95rem;font-weight:500">🌓 Mode clair / sombre</span>
@@ -7594,6 +7667,51 @@
       `;
     },
     afterRender(container) {
+      // Helper : sauvegarde tva_config et refresh
+      const saveTvaConfig = (patch) => {
+        const cur = M.chargerObj('tva_config') || {};
+        const next = Object.assign({}, cur, patch);
+        M.sauvegarder('tva_config', next);
+        M.toast('✅ Config TVA mise à jour');
+        M.go('parametres');
+      };
+      // Dialog choix régime
+      container.querySelector('#m-param-tva-regime')?.addEventListener('click', async () => {
+        const choice = await M.dialogChoix({
+          titre: '🧾 Régime TVA',
+          options: [
+            { value: 'franchise_base', label: 'Franchise en base (pas de TVA)' },
+            { value: 'reel_simplifie', label: 'Réel simplifié' },
+            { value: 'reel_normal',    label: 'Réel normal' }
+          ],
+          defaut: M.getTVAConfig().regime
+        });
+        if (choice) saveTvaConfig({ regime: choice });
+      });
+      container.querySelector('#m-param-tva-exig')?.addEventListener('click', async () => {
+        const choice = await M.dialogChoix({
+          titre: 'Exigibilité services',
+          sousTitre: 'Quand la TVA devient-elle exigible ?',
+          options: [
+            { value: 'encaissements', label: 'Encaissement (défaut transport)' },
+            { value: 'debits',        label: 'Débits (à la facturation)' }
+          ],
+          defaut: M.getTVAConfig().exigibiliteServices
+        });
+        if (choice) saveTvaConfig({ exigibiliteServices: choice });
+      });
+      container.querySelector('#m-param-tva-period')?.addEventListener('click', async () => {
+        const choice = await M.dialogChoix({
+          titre: 'Périodicité déclaration',
+          options: [
+            { value: 'mensuelle',     label: 'Mensuelle' },
+            { value: 'trimestrielle', label: 'Trimestrielle' },
+            { value: 'annuelle',      label: 'Annuelle' }
+          ],
+          defaut: M.getTVAConfig().periodicite
+        });
+        if (choice) saveTvaConfig({ periodicite: choice });
+      });
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
     }
