@@ -1,9 +1,12 @@
 name: Daily Supabase Backup
 
 on:
-  schedule:
-    # 03:00 UTC every day
-    - cron: '0 3 * * *'
+  # Cron desactive : l'utilisateur n'a pas encore configure les secrets
+  # (clef GPG, bucket R2, credentials Cloudflare). Pour activer le backup
+  # quotidien, decommenter la ligne 'cron' ci-dessous + voir
+  # infra/backup/README.md pour le setup.
+  # schedule:
+  #   - cron: '0 3 * * *'   # 03:00 UTC chaque jour
   workflow_dispatch: {}
 
 concurrency:
