@@ -1285,14 +1285,14 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
 
 <div class="toast" id="toast-sal"></div>
 
-<script src="monitoring.js?v=20260430-12"></script>
+<script src="monitoring.js?v=20260503-13"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="supabase-client.js"></script>
 <script src="supabase-auth.js"></script>
 <script src="security-utils.js"></script>
 <script src="supabase-storage-sync.js"></script>
-<script src="storage-uploader.js?v=20260430-12"></script>
+<script src="storage-uploader.js?v=20260503-13"></script>
 <!-- Offline queue : enfile uploads/mutations quand reseau coupe, retry au retour
      Doit etre chargee AVANT script-salarie.js pour que les fonctions de saisie
      l'utilisent immediatement. -->
@@ -1301,9 +1301,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
      Indispensable cote chauffeur pour que ses envois remontent en DB et que
      les messages admin descendent en realtime. -->
 <script src="messages-supabase-adapter.js?v=20260503-13"></script>
-<script src="repo.js?v=20260430-12"></script>
-<script src="watchdog.js?v=20260430-12"></script>
-<script src="script-salarie.js?v=20260430-12"></script>
+<script src="repo.js?v=20260503-13"></script>
+<script src="watchdog.js?v=20260503-13"></script>
+<script src="script-salarie.js?v=20260503-13"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => {
