@@ -1997,7 +1997,7 @@
     $('#m-drawer-overlay').classList.remove('open');
     $('#m-drawer').classList.remove('open');
     $('#m-drawer').setAttribute('aria-hidden', 'true');
-    setTimeout(() => { $('#m-drawer-overlay').hidden = true; }, 220);
+    setTimeout(() => { $('#m-drawer-overlay').hidden = true; }, 350);
   };
 
   // ============================================================
@@ -2390,7 +2390,7 @@
           timer = setTimeout(() => {
             M.state.livraisonsRecherche = e.target.value;
             M.go('livraisons');
-          }, 220);
+          }, 350);
         });
         // Garde focus au re-render
         if (M.state.livraisonsRecherche) {
@@ -2636,28 +2636,43 @@
     },
   };
 
-  // ---------- Alertes (v2.2 : port refonte PR #19 sur mobile) ----------
-  // Memes categories / severites que desktop pour coherence visuelle.
+  // ---------- Alertes (v3.33 : groupage par module/onglet metier) ----------
+  // Chaque categorie est rattachee au module concerne (vehicules, salaries, ...).
+  // Affichage final : sections groupees par module, severite portee par la couleur de chaque ligne.
   const M_ALERTES_CATEGORIES = [
-    // critique = action immediate (securite, conformite, cash)
-    { type: 'ct_expire',              severity: 'critique', label: 'CT expirés',                       icon: '⚠️' },
-    { type: 'permis_expire',          severity: 'critique', label: 'Permis expirés',                   icon: '🪪' },
-    { type: 'assurance_expire',       severity: 'critique', label: 'Assurances expirées',              icon: '🛡️' },
-    { type: 'charge_retard_paiement', severity: 'critique', label: 'Charges en retard',                icon: '💸' },
-    { type: 'carburant_anomalie',     severity: 'critique', label: 'Anomalies carburant',              icon: '⛽' },
-    // alerte = a traiter cette semaine
-    { type: 'ct_proche',              severity: 'alerte',   label: 'CT à renouveler',                  icon: '🔔' },
-    { type: 'permis_proche',          severity: 'alerte',   label: 'Permis bientôt expirés',           icon: '🪪' },
-    { type: 'assurance_proche',       severity: 'alerte',   label: 'Assurances bientôt expirées',      icon: '🛡️' },
-    { type: 'vidange',                severity: 'alerte',   label: 'Vidanges',                         icon: '🔧' },
-    { type: 'prix_manquant',          severity: 'alerte',   label: 'Prix manquants',                   icon: '💶' },
-    { type: 'planning_manquant',      severity: 'alerte',   label: 'Salariés sans planning',           icon: '📅' },
-    { type: 'inspection_manquante',   severity: 'alerte',   label: 'Véhicules sans inspection',        icon: '🚗' },
-    // info = trace de modif
-    { type: 'livraison_modif',        severity: 'info',     label: 'Livraisons modifiées',             icon: '✏️' },
-    { type: 'carburant_modif',        severity: 'info',     label: 'Modifs carburant',                 icon: '✏️' },
-    { type: 'km_modif',               severity: 'info',     label: 'Modifs km',                        icon: '✏️' },
-    { type: 'inspection',             severity: 'info',     label: 'Inspections reçues',               icon: '🚗' },
+    // Vehicules (CT, vidange, inspection, assurance liee veh)
+    { type: 'ct_expire',              severity: 'critique', module: 'vehicules', label: 'CT expirés',                  icon: '⚠️' },
+    { type: 'ct_proche',              severity: 'alerte',   module: 'vehicules', label: 'CT à renouveler',             icon: '🔔' },
+    { type: 'assurance_expire',       severity: 'critique', module: 'vehicules', label: 'Assurances expirées',         icon: '🛡️' },
+    { type: 'assurance_proche',       severity: 'alerte',   module: 'vehicules', label: 'Assurances bientôt expirées', icon: '🛡️' },
+    { type: 'vidange',                severity: 'alerte',   module: 'vehicules', label: 'Vidanges',                    icon: '🔧' },
+    { type: 'inspection_manquante',   severity: 'alerte',   module: 'vehicules', label: 'Véhicules sans inspection',   icon: '🚗' },
+    { type: 'inspection',             severity: 'info',     module: 'inspections', label: 'Inspections reçues',        icon: '🚗' },
+    // Salaries (permis = lie au salarie)
+    { type: 'permis_expire',          severity: 'critique', module: 'salaries', label: 'Permis expirés',               icon: '🪪' },
+    { type: 'permis_proche',          severity: 'alerte',   module: 'salaries', label: 'Permis bientôt expirés',       icon: '🪪' },
+    // Finances
+    { type: 'charge_retard_paiement', severity: 'critique', module: 'charges',  label: 'Charges en retard',            icon: '💸' },
+    { type: 'carburant_anomalie',     severity: 'critique', module: 'carburant', label: 'Anomalies carburant',         icon: '⛽' },
+    { type: 'carburant_modif',        severity: 'info',     module: 'carburant', label: 'Modifs carburant',            icon: '✏️' },
+    // Livraisons
+    { type: 'prix_manquant',          severity: 'alerte',   module: 'livraisons', label: 'Prix manquants',             icon: '💶' },
+    { type: 'livraison_modif',        severity: 'info',     module: 'livraisons', label: 'Livraisons modifiées',       icon: '✏️' },
+    // Planning / equipe
+    { type: 'planning_manquant',      severity: 'alerte',   module: 'planning', label: 'Salariés sans planning',       icon: '📅' },
+    { type: 'km_modif',               severity: 'info',     module: 'heures',   label: 'Modifs km',                    icon: '✏️' },
+  ];
+
+  // Modules dans l'ordre d'affichage (avec page cible pour le bouton "Voir l'onglet")
+  const M_ALERTES_MODULES = [
+    { key: 'vehicules',   label: '🚐 Véhicules',   page: 'vehicules' },
+    { key: 'salaries',    label: '👥 Salariés',    page: 'salaries' },
+    { key: 'charges',     label: '💸 Charges',     page: 'charges' },
+    { key: 'carburant',   label: '⛽ Carburant',   page: 'carburant' },
+    { key: 'livraisons',  label: '📦 Livraisons',  page: 'livraisons' },
+    { key: 'inspections', label: '🚗 Inspections', page: 'inspections' },
+    { key: 'planning',    label: '📅 Planning',    page: 'planning' },
+    { key: 'heures',      label: '⏱️ Heures & Km',  page: 'heures' },
   ];
   const M_SEVERITES = {
     critique: { label: 'Critique', color: 'var(--m-red)',    order: 1 },
@@ -2739,22 +2754,29 @@
         return html;
       }
 
-      // Render group par severite -> categorie
+      // Render group par MODULE -> categorie (suite demande user : classer par onglet)
       const enModeReportees = statut === 'reportees';
       const enModeTraitees = statut === 'traitees';
-      ['critique', 'alerte', 'info'].forEach(sev => {
-        const itemsSev = filtered.filter(a => {
+      M_ALERTES_MODULES.forEach(mod => {
+        const itemsMod = filtered.filter(a => {
           const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
-          return cat?.severity === sev;
+          return cat?.module === mod.key;
         });
-        if (!itemsSev.length) return;
-        const cfg = M_SEVERITES[sev];
-        html += `<div style="font-size:.7rem;font-weight:700;color:${cfg.color};text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px;border-bottom:1px solid ${cfg.color}33;padding-bottom:6px">${cfg.label} — ${itemsSev.length}</div>`;
+        if (!itemsMod.length) return;
+        // Severite max dans le module (pour la couleur du header)
+        const sevs = itemsMod.map(a => M_ALERTES_CATEGORIES.find(c => c.type === a.type)?.severity || 'info');
+        const sevMax = sevs.includes('critique') ? 'critique' : sevs.includes('alerte') ? 'alerte' : 'info';
+        const cfgSev = M_SEVERITES[sevMax];
+        html += `<div style="display:flex;align-items:center;justify-content:space-between;margin:18px 4px 8px;border-bottom:1px solid ${cfgSev.color}33;padding-bottom:6px">
+          <span style="font-size:.78rem;font-weight:700;color:${cfgSev.color};text-transform:uppercase;letter-spacing:.04em">${mod.label} — ${itemsMod.length}</span>
+          <button type="button" onclick="MCAm.go('${mod.page}')" style="background:transparent;border:0;color:var(--m-accent);font-size:.72rem;font-weight:600;padding:0;cursor:pointer">Ouvrir →</button>
+        </div>`;
 
-        // Group par categorie au sein de la severite
-        const cats = M_ALERTES_CATEGORIES.filter(c => c.severity === sev);
+        // Group par categorie au sein du module (preserve le tri severite descendant)
+        const cats = M_ALERTES_CATEGORIES.filter(c => c.module === mod.key)
+          .sort((a, b) => (M_SEVERITES[a.severity].order - M_SEVERITES[b.severity].order));
         cats.forEach(cat => {
-          const items = itemsSev.filter(a => a.type === cat.type);
+          const items = itemsMod.filter(a => a.type === cat.type);
           if (!items.length) return;
 
           // Card categorie
@@ -2822,7 +2844,7 @@
         let t = null;
         searchInput.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state.alertesRecherche = e.target.value; M.go('alertes'); }, 220);
+          t = setTimeout(() => { M.state.alertesRecherche = e.target.value; M.go('alertes'); }, 350);
         });
         if (M.state.alertesRecherche) {
           searchInput.focus();
@@ -3161,7 +3183,7 @@
                   ? `<div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>`
                   : `<button type="button" class="m-charge-pay" data-id="${M.escHtml(c.id)}" style="margin-top:4px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:3px 8px;font-size:.7rem;font-weight:700;font-family:inherit;cursor:pointer">✅ Marquer payée</button>`;
                 return `<div style="position:relative;margin-bottom:10px">
-                  <button type="button" class="m-card m-card-pressable m-charge-edit" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit">
+                  <div role="button" tabindex="0" class="m-card m-card-pressable m-charge-edit" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit;cursor:pointer">
                     <div style="flex:1 1 auto;min-width:0">
                       <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
                       <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
@@ -3170,7 +3192,7 @@
                       <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
                       ${statutBadge}
                     </div>
-                  </button>
+                  </div>
                 </div>`;
               }).join('')}
             </div>
@@ -3200,9 +3222,13 @@
         M.state.chargesFournisseur = e.target.value;
         M.go('charges');
       });
-      // Tap card charge -> ouvre le form en mode edition
+      // Tap card charge -> ouvre le form en mode edition. Card est <div role=button>
+      // (pas <button>) pour permettre le bouton "Marquer payee" imbrique.
       container.querySelectorAll('.m-charge-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerCharge(btn.dataset.id));
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerCharge(btn.dataset.id); }
+        });
       });
       // Bouton "Marquer payée" rapide (stopPropagation pour ne pas declencher l'edit)
       container.querySelectorAll('.m-charge-pay').forEach(btn => {
@@ -3630,7 +3656,7 @@
         let t = null;
         searchInput.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state.clientsRecherche = e.target.value; M.go('clients'); }, 220);
+          t = setTimeout(() => { M.state.clientsRecherche = e.target.value; M.go('clients'); }, 350);
         });
         if (M.state.clientsRecherche) {
           searchInput.focus();
@@ -3754,7 +3780,7 @@
         let t = null;
         searchInput.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state.fournisseursRecherche = e.target.value; M.go('fournisseurs'); }, 220);
+          t = setTimeout(() => { M.state.fournisseursRecherche = e.target.value; M.go('fournisseurs'); }, 350);
         });
         if (M.state.fournisseursRecherche) {
           searchInput.focus();
@@ -3898,7 +3924,7 @@
         let t = null;
         searchInput.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state.vehiculesRecherche = e.target.value; M.go('vehicules'); }, 220);
+          t = setTimeout(() => { M.state.vehiculesRecherche = e.target.value; M.go('vehicules'); }, 350);
         });
         if (M.state.vehiculesRecherche) {
           searchInput.focus();
@@ -4150,7 +4176,7 @@
         let t = null;
         searchInput.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state.inspectionsRecherche = e.target.value; M.go('inspections'); }, 220);
+          t = setTimeout(() => { M.state.inspectionsRecherche = e.target.value; M.go('inspections'); }, 350);
         });
         if (M.state.inspectionsRecherche) {
           searchInput.focus();
@@ -4271,7 +4297,7 @@
         let t = null;
         searchInput.addEventListener('input', e => {
           clearTimeout(t);
-          t = setTimeout(() => { M.state.salariesRecherche = e.target.value; M.go('salaries'); }, 220);
+          t = setTimeout(() => { M.state.salariesRecherche = e.target.value; M.go('salaries'); }, 350);
         });
         if (M.state.salariesRecherche) {
           searchInput.focus();
@@ -4537,15 +4563,62 @@
     `;
   };
 
-  // ---------- TVA (v3.9 : recap mensuel + tableaux details collectee/deductible) ----------
+  // ---------- TVA (v3.33 : exigibilite alignee PC, fini le decalage 1 mois) ----------
   M.state.tvaMois = new Date().toISOString().slice(0, 7);
   M.state.tvaTab = 'recap'; // recap | collectee | deductible
+
+  // Config TVA partagee avec PC (cle localStorage 'tva_config').
+  // Defaults : reel_normal, services, encaissements (defaut transport FR).
+  M.getTVAConfig = function() {
+    const cfg = M.chargerObj('tva_config') || {};
+    const regime = cfg.regime || 'reel_normal';
+    return {
+      regime,
+      activiteType: cfg.activiteType || 'service',
+      exigibiliteServices: cfg.exigibiliteServices || 'encaissements',
+      periodicite: cfg.periodicite || 'mensuelle',
+      defaultRate: M.parseNum(cfg.defaultRate ?? localStorage.getItem('taux_tva')) || 20,
+      isVatEnabled: regime !== 'franchise_base'
+    };
+  };
+
+  // Date a laquelle la TVA d'une livraison devient exigible.
+  // - Vente de biens : a la livraison.
+  // - Services exigibilite "debits" : a la facturation.
+  // - Services exigibilite "encaissements" (defaut transport) : au paiement.
+  // Retourne '' si non encore exigible (livraison service non payee en encaissements).
+  M.getLivraisonTVAExigibiliteDate = function(l, profile) {
+    if (!profile?.isVatEnabled) return '';
+    const referenceDate = (l.dateFacture || l.date || '').slice(0, 10);
+    if (profile.activiteType === 'goods') return referenceDate;
+    if (profile.exigibiliteServices === 'debits') return referenceDate;
+    // encaissements : exige paiement
+    if ((l.statutPaiement || '') !== 'payé' && l.statutPaiement !== 'paye' && l.statutPaiement !== 'payee') return '';
+    return (l.datePaiement || '').slice(0, 10);
+  };
+
   M.register('tva', {
     title: 'TVA',
     render() {
       const moisSel = M.state.tvaMois;
       const tab = M.state.tvaTab;
-      const livraisons = M.charger('livraisons').filter(l => (l.date || '').startsWith(moisSel));
+      const profile = M.getTVAConfig();
+
+      // TVA collectee : filter par EXIGIBILITE date (pas date facturation),
+      // sinon decalage de 1 mois vs PC quand exigibilite=encaissements.
+      const allLivraisons = M.charger('livraisons');
+      const livEligibles = [];
+      const livEnAttente = [];
+      allLivraisons.forEach(l => {
+        const exDate = M.getLivraisonTVAExigibiliteDate(l, profile);
+        if (exDate && exDate.startsWith(moisSel)) {
+          livEligibles.push({ ...l, _exigibiliteDate: exDate });
+        } else if (!exDate && (l.date || '').startsWith(moisSel)) {
+          // Facturee ce mois mais pas encore payee -> in pending
+          livEnAttente.push(l);
+        }
+      });
+      const livraisons = livEligibles;
       const charges = M.charger('charges').filter(c => (c.date || '').startsWith(moisSel));
       const carburant = M.charger('carburant').filter(p => (p.date || '').startsWith(moisSel));
 
@@ -4598,12 +4671,27 @@
       `;
 
       if (tab === 'recap') {
+        // Mode TVA actif (encaissements vs debits) -> info pour comprendre l'exigibilite
+        const modeLabel = !profile.isVatEnabled ? 'Franchise en base'
+          : (profile.activiteType === 'goods' ? 'Biens (exigible à la livraison)'
+          : profile.exigibiliteServices === 'debits' ? 'Services (exigible à la facture)'
+          : 'Services (exigible à l\'encaissement)');
         html += `
+          <div class="m-card" style="padding:10px 14px;margin-bottom:10px;background:var(--m-accent-soft);font-size:.78rem;display:flex;align-items:center;gap:8px">
+            <span>⚙️</span>
+            <span style="flex:1 1 auto"><strong>Mode TVA :</strong> ${M.escHtml(modeLabel)}</span>
+          </div>
           <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
             <div class="m-card-title">${enCredit ? '💚 Crédit TVA' : '💸 TVA à reverser'}</div>
             <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
             <div class="m-card-sub">${enCredit ? 'Tu peux te faire rembourser' : 'À déclarer ce mois'}</div>
           </div>
+          ${livEnAttente.length ? `
+            <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)">
+              <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">📅 Facturé mais non exigible</div>
+              <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} ce mois, en attente de paiement avant exigibilité TVA.</div>
+            </div>
+          ` : ''}
           <div class="m-card-row">
             <div class="m-card m-card-green"><div class="m-card-title">Collectée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaCollectee)}</div><div class="m-card-sub">${livAvecTva.length} livraison${livAvecTva.length>1?'s':''}</div></div>
             <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">${chargesAvecTva.length} charge${chargesAvecTva.length>1?'s':''}</div></div>
