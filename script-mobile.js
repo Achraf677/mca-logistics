@@ -3039,7 +3039,7 @@
 
       // FAB : sélection multiple si pas en mode bulk, sinon caché
       let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelleLivraison()" aria-label="Nouvelle livraison">+</button>
-        <button class="m-fab" id="m-liv-bulk-on" aria-label="Sélection multiple" style="bottom:90px;background:var(--m-accent);font-size:1.1rem">☑</button>`;
+        <button class="m-fab m-fab-secondary" id="m-liv-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>`;
 
       const vue = M.state.livraisonsVue;
 
@@ -4317,7 +4317,7 @@
       const selCount = filtered.filter(l => selSet.has(l.id)).length;
 
       let html = `
-        ${!bulkOn ? `<button class="m-fab" id="m-enc-bulk-on" aria-label="Sélection multiple" style="background:var(--m-accent);font-size:1.1rem">☑</button>` : `
+        ${!bulkOn ? `<button class="m-fab" id="m-enc-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>` : `
           <div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,.15)">
             <div style="flex:1 1 auto;font-size:.92rem">
               <strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}

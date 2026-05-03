@@ -477,6 +477,11 @@ a { color: var(--m-accent); text-decoration: none; }
 }
 .m-fab:active { transform: scale(0.92); }
 
+/* FAB secondaire : empilé au-dessus du FAB principal (sélection multiple, etc.) */
+.m-fab-secondary {
+  bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px + 64px + 8px) !important;
+}
+
 /* ============================ BOTTOM SHEET (saisie rapide) ============================ */
 .m-sheet-overlay {
   position: fixed;
