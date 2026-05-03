@@ -1536,7 +1536,8 @@
         const taux = M.parseNum(f.tauxTva) || 0;
         const ht = M.parseNum(f.coutHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
         const tvaMontant = M.parseNum(f.tva) || (ttc - ht);
-        if (!f.vehiculeId || !(ttc > 0)) { M.toast('⚠️ Véhicule et coût TTC obligatoires'); return false; }
+        if (!f.vehiculeId) { M.toast('⚠️ Véhicule requis'); return false; }
+        if (!(ttc > 0)) { M.toast('⚠️ Coût TTC > 0 requis'); return false; }
         const arr = M.charger('entretiens');
         const data = {
           date: f.date || today,
@@ -1609,7 +1610,8 @@
       },
       onSubmit() {
         const f = M.lireFormSheet();
-        if (!f.salId || !f.date) { M.toast('⚠️ Salarié et date obligatoires'); return false; }
+        if (!f.salId) { M.toast('⚠️ Salarié requis'); return false; }
+        if (!f.date) { M.toast('⚠️ Date requise'); return false; }
         const heures = M.parseNum(f.heures) || 0;
         const km = M.parseNum(f.km) || 0;
         if (!(heures > 0) && !(km > 0)) { M.toast('⚠️ Au moins heures ou km > 0'); return false; }
@@ -4507,6 +4509,100 @@
               </div>
             </div>
           </div>`;
+        })()}
+
+        ${(() => {
+          // Comparatif annuel charges + carburant : barres rouges 12 mois
+          const now = new Date();
+          const mois12 = [];
+          for (let k = 11; k >= 0; k--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+            const cle = d.toISOString().slice(0, 7);
+            const totalCharges = charges.filter(c => (c.date || '').startsWith(cle))
+              .reduce((s, c) => s + (Number(c.montantTtc) || Number(c.montant) || 0), 0);
+            const totalCarb = carburant.filter(p => (p.date || '').startsWith(cle))
+              .reduce((s, p) => s + (Number(p.total) || 0), 0);
+            const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
+            mois12.push({ cle, label: labelM, total: totalCharges + totalCarb });
+          }
+          const maxDep = Math.max(...mois12.map(x => x.total), 1);
+          const totalAnDep = mois12.reduce((s, x) => s + x.total, 0);
+          const moyenneAnDep = totalAnDep / 12;
+          if (totalAnDep === 0) return '';
+
+          return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">💸 Dépenses des 12 derniers mois</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${M.format$(totalAnDep)}</span></div>
+            <div class="m-card" style="padding:14px">
+              <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:4px">
+                ${mois12.map(x => {
+                  const h = maxDep > 0 ? (x.total / maxDep * 100) : 0;
+                  const isCurrent = x.cle === moisSel;
+                  const color = isCurrent ? 'var(--m-accent)' : x.total > 0 ? 'var(--m-red)' : 'var(--m-border)';
+                  return `<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%">
+                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${x.total > 0 ? Math.round(x.total / 1000) + 'k' : ''}</div>
+                    <div style="flex:1 1 auto;display:flex;align-items:flex-end;width:100%">
+                      <div style="width:100%;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-height:${x.total > 0 ? '2px' : '0'}"></div>
+                    </div>
+                    <div style="font-size:.65rem;color:${isCurrent?'var(--m-accent)':'var(--m-text-muted)'};font-weight:${isCurrent?700:500}">${x.label}</div>
+                  </div>`;
+                }).join('')}
+              </div>
+              <div style="border-top:1px solid var(--m-border);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;font-size:.78rem">
+                <span style="color:var(--m-text-muted)">Moyenne mensuelle</span>
+                <span style="font-weight:600">${M.format$(moyenneAnDep)}</span>
+              </div>
+            </div>
+          </div>`;
+        })()}
+
+        ${(() => {
+          // Top 5 du mois : clients, chauffeurs, vehicules par CA
+          if (livMois.length === 0) return '';
+          const aggreg = (keyFn, labelFn) => {
+            const map = new Map();
+            livMois.forEach(l => {
+              const k = keyFn(l);
+              if (!k) return;
+              const cur = map.get(k) || { ca: 0, n: 0 };
+              cur.ca += Number(l.prix) || Number(l.prixHT) || 0;
+              cur.n += 1;
+              map.set(k, cur);
+            });
+            return [...map.entries()]
+              .map(([k, v]) => ({ label: labelFn(k), ca: v.ca, n: v.n }))
+              .sort((a, b) => b.ca - a.ca)
+              .slice(0, 5);
+          };
+          const topClients = aggreg(l => (l.client || '').trim().toLowerCase(), k => k.replace(/^./, c => c.toUpperCase()));
+          const topChauf = aggreg(l => l.salarieId || l.chaufId || l.chauffeur, k => {
+            const s = salaries.find(x => x.id === k);
+            return s ? ((s.prenom ? s.prenom + ' ' : '') + (s.nom || '')).trim() : k;
+          });
+          const topVeh = aggreg(l => l.vehiculeId || l.vehId, k => {
+            const v = M.charger('vehicules').find(x => x.id === k);
+            return v ? (v.immat || v.modele || k) : k;
+          });
+          const renderTop = (titre, icon, list) => {
+            if (!list.length) return '';
+            const max = Math.max(...list.map(x => x.ca), 1);
+            return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">${icon} Top ${titre} du mois</h3></div>
+              <div class="m-card" style="padding:0">
+                ${list.map((x, i) => {
+                  const pct = max > 0 ? (x.ca / max * 100) : 0;
+                  return `<div style="padding:12px 14px;${i < list.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                      <span style="font-weight:600;font-size:.92rem">${i + 1}. ${M.escHtml(x.label || '—')}</span>
+                      <span style="font-weight:700;color:var(--m-green);font-size:.92rem">${M.format$(x.ca)}</span>
+                    </div>
+                    <div style="height:4px;background:var(--m-border);border-radius:2px;overflow:hidden;margin-bottom:4px">
+                      <div style="height:100%;width:${pct}%;background:var(--m-accent)"></div>
+                    </div>
+                    <div style="font-size:.72rem;color:var(--m-text-muted)">${x.n} livraison${x.n > 1 ? 's' : ''}</div>
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>`;
+          };
+          return renderTop('clients', '🏆', topClients) + renderTop('chauffeurs', '🥇', topChauf) + renderTop('véhicules', '🚐', topVeh);
         })()}
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📊 Vue d'ensemble</h3></div>
