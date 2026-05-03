@@ -2049,9 +2049,32 @@
         });
         if (!enEdition) return;
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
-          if (!await M.confirm(`Supprimer définitivement ${s.prenom || ''} ${s.nom || ''} ?`, { titre: 'Supprimer salarié' })) return;
+          if (!await M.confirm(`Supprimer définitivement ${s.prenom || ''} ${s.nom || ''} ?\n\nCela retirera aussi : références chauffeur dans les livraisons, dans les véhicules, plannings, heures saisies.`, { titre: 'Supprimer salarié' })) return;
+          // Cascade : supprime salarié + chauffeur + références
           M.sauvegarder('salaries', M.charger('salaries').filter(x => x.id !== s.id));
-          M.toast('🗑️ Salarié supprimé');
+          M.sauvegarder('chauffeurs', M.charger('chauffeurs').filter(c => c.id !== s.id));
+          // Détache des livraisons (garde la livraison mais nettoie chaufId/salarieId)
+          const livs = M.charger('livraisons').map(l => {
+            if (l.chaufId === s.id || l.salarieId === s.id) {
+              return { ...l, chaufId: null, salarieId: null, chaufNom: '', salNom: '' };
+            }
+            return l;
+          });
+          M.sauvegarder('livraisons', livs);
+          // Détache des véhicules
+          const vehs = M.charger('vehicules').map(v => {
+            if (v.salId === s.id || v.chaufId === s.id) {
+              return { ...v, salId: null, chaufId: null, salNom: '' };
+            }
+            return v;
+          });
+          M.sauvegarder('vehicules', vehs);
+          // Supprime planning du salarié
+          M.sauvegarder('plannings', M.charger('plannings').filter(p => p.salId !== s.id));
+          // Supprime ses saisies heures
+          M.sauvegarder('heures', M.charger('heures').filter(h => h.salId !== s.id && h.salarieId !== s.id));
+          M.ajouterAudit?.('Suppression salarié', ((s.prenom || '') + ' ' + (s.nom || '')).trim());
+          M.toast('🗑️ Salarié supprimé (cascade complète)');
           M.state.detail.salaries = null;
           M.closeSheet();
           M.go('salaries');
@@ -2132,9 +2155,15 @@
         } else if (!enEdition && arr.find(x => (x.numero || '').toUpperCase() === numero)) {
           M.toast('⚠️ Ce numéro existe déjà'); return false;
         }
+        // Schéma aligné PC (script-salaries.js:535-538) : nom = "Prénom Nom"
+        // (nomComplet), nomFamille = nom seul, prenom à part. Multi-device OK.
+        const prenomT = f.prenom?.trim() || '';
+        const nomFam = f.nom.trim();
+        const nomComplet = (prenomT ? prenomT + ' ' : '') + nomFam;
         const data = {
-          prenom: f.prenom?.trim() || '',
-          nom: f.nom.trim(),
+          prenom: prenomT,
+          nom: nomComplet,
+          nomFamille: nomFam,
           tel: f.tel?.trim() || '',
           email: f.email?.trim() || '',
           adresse: f.adresse?.trim() || '',
@@ -2164,16 +2193,31 @@
             return false;
           }
         }
+        let salId;
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === s.id);
-          if (idx >= 0) arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+          if (idx >= 0) {
+            arr[idx] = { ...arr[idx], ...data, modifieLe: new Date().toISOString() };
+            salId = arr[idx].id;
+          }
           M.sauvegarder('salaries', arr);
           M.toast('✅ Salarié modifié');
         } else {
-          arr.push({ id: M.genId(), creeLe: new Date().toISOString(), ...data });
+          salId = M.genId();
+          arr.push({ id: salId, creeLe: new Date().toISOString(), ...data });
           M.sauvegarder('salaries', arr);
           M.toast('✅ Salarié enregistré');
         }
+        // Sync chauffeurs[] (mirror PC creerSalarie:590-594) : pour que le
+        // salarié apparaisse dans les selects livraisons côté PC.
+        try {
+          const chauffeurs = M.charger('chauffeurs');
+          const idxC = chauffeurs.findIndex(c => c.id === salId);
+          const chData = { id: salId, nom: nomComplet, nomFamille: nomFam, prenom: prenomT, tel: data.tel };
+          if (idxC >= 0) chauffeurs[idxC] = { ...chauffeurs[idxC], ...chData };
+          else chauffeurs.push(chData);
+          M.sauvegarder('chauffeurs', chauffeurs);
+        } catch (_) { /* non bloquant */ }
         M.go('salaries');
         return true;
       }
@@ -6434,22 +6478,45 @@
       const tvaCollectee = livAvecTva.reduce((s, l) => s + l._tva, 0);
       const baseCollectee = livAvecTva.reduce((s, l) => s + l._ht, 0);
 
-      // TVA deductible : charges + carburant (TVA carburant deductible souvent partielle, on laisse au user)
-      const chargesAvecTva = charges.filter(c => (M.parseNum(c.tva) || 0) > 0).map(c => {
-        const ttc = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
-        const tva = M.parseNum(c.tva) || 0;
-        const ht = M.parseNum(c.montantHT) || (ttc - tva);
-        const taux = M.parseNum(c.tauxTva) || (ht > 0 ? Math.round((tva / ht) * 1000) / 10 : 0);
-        return { ...c, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
-      });
+      // TVA deductible (BUG #1 fixé) : recalcul depuis HT × tauxTVA pour
+      // capter les charges PC qui n'ont pas de champ 'tva' stocké.
+      // Exclut catégorie 'tva' (= règlements TVA) et charges déjà liées à
+      // un plein/entretien (évite double comptage, BUG #2).
+      const chargesAvecTva = charges
+        .filter(c => c.categorie !== 'tva' && !c.carburantId && !c.entretienId)
+        .map(c => {
+          const taux = M.parseNum(c.tauxTVA || c.tauxTva) || 0;
+          const ttc = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
+          const ht = M.parseNum(c.montantHT || c.montantHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
+          const tva = taux > 0 ? +(ht * taux / 100).toFixed(2) : 0;
+          return { ...c, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
+        })
+        .filter(c => c._tva > 0);
       const tvaDeductibleCharges = chargesAvecTva.reduce((s, c) => s + c._tva, 0);
       const baseDeductibleCharges = chargesAvecTva.reduce((s, c) => s + c._ht, 0);
 
-      // Carburant : TVA souvent indiquee sur ticket, ici on n'a pas le champ mais on peut estimer 20% sur HT
-      // Pour simplicite : la TVA carburant n'est PAS comptee automatiquement (a saisir comme charges).
-      // On affiche juste la liste pleins.
+      // Carburant : TVA déductible avec taux véhicule (PC : tvaCarbDeductible
+      // ou défaut 80% gasoil / 100% essence / 100% électrique).
+      const vehs = M.charger('vehicules');
+      const carbAvecTva = carburant.map(p => {
+        const taux = M.parseNum(p.tauxTVA || p.tauxTva) || 20;
+        const ttc = M.parseNum(p.total) || 0;
+        if (ttc <= 0) return null;
+        const ht = taux > 0 ? +(ttc / (1 + taux/100)).toFixed(2) : ttc;
+        const tvaBrute = +(ttc - ht).toFixed(2);
+        const veh = vehs.find(v => v.id === (p.vehiculeId || p.vehId));
+        // Taux déductible : config véhicule en priorité, sinon défaut selon carburant
+        const carbType = (p.typeCarburant || veh?.typeCarburant || 'gasoil').toLowerCase();
+        const tauxDed = M.parseNum(veh?.tvaCarbDeductible) ||
+          (carbType === 'essence' ? 100 : (carbType === 'electrique' || carbType === 'hydrogene' ? 100 : 80));
+        const tva = +(tvaBrute * tauxDed / 100).toFixed(2);
+        return { ...p, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux, _tauxDed: tauxDed,
+                 _libelle: (veh?.immat || 'Plein') + ' (' + tauxDed + '%)' };
+      }).filter(p => p && p._tva > 0);
+      const tvaDeductibleCarburant = carbAvecTva.reduce((s, p) => s + p._tva, 0);
+      const baseDeductibleCarburant = carbAvecTva.reduce((s, p) => s + p._ht, 0);
 
-      const tvaDeductible = tvaDeductibleCharges;
+      const tvaDeductible = tvaDeductibleCharges + tvaDeductibleCarburant;
       const aReverser = tvaCollectee - tvaDeductible;
       const enCredit = aReverser < 0;
 
@@ -6467,7 +6534,7 @@
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap">📊 Récap</button>
           <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee">📥 Collectée (${livAvecTva.length})</button>
-          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible">📤 Déductible (${chargesAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible">📤 Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
         </div>
       `;
 
@@ -6499,7 +6566,7 @@
           </div>
           <div class="m-card" style="padding:0">
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base collectée HT</span><span style="font-weight:600">${M.format$(baseCollectee)}</span></div>
-            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base déductible HT</span><span style="font-weight:600">${M.format$(baseDeductibleCharges)}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base déductible HT</span><span style="font-weight:600">${M.format$(baseDeductibleCharges + baseDeductibleCarburant)}</span></div>
           </div>
           <p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
             Récap simplifié. La TVA sur carburant doit être saisie comme charge pour être prise en compte. Déclaration officielle (CA3) sur version PC.
@@ -6533,22 +6600,28 @@
       }
 
       if (tab === 'deductible') {
-        if (!chargesAvecTva.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">📤</div><h3 class="m-empty-title">Aucune charge avec TVA ce mois</h3><p class="m-empty-text">Les charges sans TVA explicite ne sont pas comptees comme deductibles.</p></div>`;
+        const allDed = [...chargesAvecTva.map(c => ({ ...c, _src: 'charge' })),
+                        ...carbAvecTva.map(c => ({ ...c, _src: 'carb' }))];
+        if (!allDed.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">📤</div><h3 class="m-empty-title">Aucune TVA déductible ce mois</h3><p class="m-empty-text">Charges et carburant avec TVA apparaissent ici.</p></div>`;
         } else {
           html += `<div class="m-card" style="padding:0">
-            ${chargesAvecTva.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(c => `
-              <div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:start;gap:10px">
+            ${allDed.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(c => {
+              const lbl = c._src === 'carb'
+                ? '⛽ ' + M.escHtml(c._libelle || 'Carburant')
+                : M.escHtml(c.libelle || c.fournisseur || '—');
+              const cat = c._src === 'carb' ? 'carburant' : (c.categorie || '');
+              return `<div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:start;gap:10px">
                 <div style="flex:1 1 auto;min-width:0">
-                  <div style="font-weight:500;font-size:.9rem">${M.escHtml(c.libelle || c.fournisseur || '—')}</div>
-                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(c.date)} · HT ${M.format$(c._ht)} · ${c._taux.toFixed(1)}%${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
+                  <div style="font-weight:500;font-size:.9rem">${lbl}</div>
+                  <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(c.date)} · HT ${M.format$(c._ht)} · ${c._taux.toFixed(1)}%${cat ? ' · ' + M.escHtml(cat) : ''}</div>
                 </div>
                 <div style="text-align:right;flex-shrink:0">
                   <div style="font-weight:700;color:var(--m-blue);white-space:nowrap">${M.format$(c._tva)}</div>
                   <div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">TTC ${M.format$(c._ttc)}</div>
                 </div>
-              </div>
-            `).join('')}
+              </div>`;
+            }).join('')}
           </div>
           <div class="m-card" style="margin-top:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;background:var(--m-accent-soft)">
             <span style="font-weight:600">Total TVA déductible</span>
