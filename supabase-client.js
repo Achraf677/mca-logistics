@@ -31,11 +31,31 @@
     }
 
     function buildPublicUrl(path) {
+      // Conserve pour buckets publics (ex : company-assets). Ne pas utiliser
+      // pour inspections-photos depuis migration 027 (bucket prive).
       var bucketClient = getBucketClient();
       var normalizedPath = normalizePath(path);
       if (!bucketClient || !normalizedPath) return '';
       var result = bucketClient.getPublicUrl(normalizedPath);
       return result && result.data ? result.data.publicUrl || '' : '';
+    }
+
+    async function createSignedUrl(path, expiresIn) {
+      var bucketClient = getBucketClient();
+      var normalizedPath = normalizePath(path);
+      if (!bucketClient || !normalizedPath) {
+        return { ok: false, reason: 'invalid_payload', error: { message: 'Chemin invalide' } };
+      }
+      var ttl = (typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : 300;
+      var result = await bucketClient.createSignedUrl(normalizedPath, ttl);
+      if (result.error) {
+        return { ok: false, reason: 'signed_url_error', error: result.error };
+      }
+      return {
+        ok: true,
+        signedUrl: result.data && result.data.signedUrl ? result.data.signedUrl : '',
+        expiresIn: ttl
+      };
     }
 
     async function uploadInspectionPhoto(path, fileBody, options) {
@@ -55,10 +75,11 @@
         return { ok: false, reason: 'upload_error', error: uploadResult.error };
       }
 
+      // Bucket prive depuis migration 027 : on ne renvoie que le path.
+      // L'URL signee est generee a la demande au moment de l'affichage.
       return {
         ok: true,
-        path: normalizedPath,
-        url: buildPublicUrl(normalizedPath)
+        path: normalizedPath
       };
     }
 
@@ -97,6 +118,7 @@
     return {
       bucket: bucketName,
       buildPublicUrl: buildPublicUrl,
+      createSignedUrl: createSignedUrl,
       extractPathFromPublicUrl: extractPathFromPublicUrl,
       uploadInspectionPhoto: uploadInspectionPhoto,
       removeInspectionPhotos: removeInspectionPhotos

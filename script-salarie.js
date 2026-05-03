@@ -1533,16 +1533,57 @@ async function preparerPhotoInspection(file) {
   };
 }
 
+// Retourne { src, path } pour l'affichage d'une miniature inspection.
+// - photo string base64 (legacy local) -> { src: <data:...>, path: '' }
+// - photo string URL publique (legacy) -> extrait le path -> { src: '', path }
+// - photo objet { path, thumbPath } (nouveau format prive) -> { src: '', path: thumbPath }
+// - photo objet { url, thumbUrl } (legacy) -> extrait le path
+// Quand path est non vide, l'URL signee est resolue async via resolveStorageImages.
+function getInspectionPhotoThumbDescriptor(photo) {
+  if (!photo) return { src: '', path: '' };
+  if (typeof photo === 'string') {
+    if (/^data:image\//.test(photo)) return { src: photo, path: '' };
+    // URL publique legacy -> extraire le path
+    const helper = getInspectionStorageHelper();
+    const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(photo) : '';
+    return { src: '', path: path };
+  }
+  if (photo.thumbPath) return { src: '', path: photo.thumbPath };
+  if (photo.path) return { src: '', path: photo.path };
+  // Legacy : objet avec url publique
+  const helper = getInspectionStorageHelper();
+  const fallback = photo.thumbUrl || photo.url || '';
+  if (/^data:image\//.test(fallback)) return { src: fallback, path: '' };
+  const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(fallback) : '';
+  return { src: '', path: path };
+}
+
+function getInspectionPhotoFullDescriptor(photo) {
+  if (!photo) return { src: '', path: '' };
+  if (typeof photo === 'string') {
+    if (/^data:image\//.test(photo)) return { src: photo, path: '' };
+    const helper = getInspectionStorageHelper();
+    const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(photo) : '';
+    return { src: '', path: path };
+  }
+  if (photo.path) return { src: '', path: photo.path };
+  if (photo.thumbPath) return { src: '', path: photo.thumbPath };
+  const helper = getInspectionStorageHelper();
+  const fallback = photo.url || photo.thumbUrl || '';
+  if (/^data:image\//.test(fallback)) return { src: fallback, path: '' };
+  const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(fallback) : '';
+  return { src: '', path: path };
+}
+
+// Conserves pour compat avec les appels existants (script.js renderInspections fallback).
+// Retournent une chaine vide si la photo est privee (path uniquement) -
+// le caller doit utiliser data-photo-path + resolveStorageImages.
 function getInspectionPhotoThumbSrc(photo) {
-  if (!photo) return '';
-  if (typeof photo === 'string') return photo;
-  return photo.thumbUrl || photo.url || '';
+  return getInspectionPhotoThumbDescriptor(photo).src;
 }
 
 function getInspectionPhotoFullSrc(photo) {
-  if (!photo) return '';
-  if (typeof photo === 'string') return photo;
-  return photo.url || photo.thumbUrl || '';
+  return getInspectionPhotoFullDescriptor(photo).src;
 }
 
 async function uploaderPhotosInspection(date) {
@@ -1566,20 +1607,20 @@ async function uploaderPhotosInspection(date) {
       const thumbPath = basePath + '_thumb.jpg';
 
       const fullResult = await storageHelper.uploadInspectionPhoto(fullPath, photo.blob);
-      if (!fullResult || !fullResult.ok || !fullResult.url) {
+      if (!fullResult || !fullResult.ok || !fullResult.path) {
         throw (fullResult && fullResult.error) || new Error('upload_failed');
       }
       uploadedPaths.push(fullResult.path || fullPath);
 
       const thumbResult = await storageHelper.uploadInspectionPhoto(thumbPath, photo.thumbBlob || photo.blob);
-      if (!thumbResult || !thumbResult.ok || !thumbResult.url) {
+      if (!thumbResult || !thumbResult.ok || !thumbResult.path) {
         throw (thumbResult && thumbResult.error) || new Error('upload_failed');
       }
       uploadedPaths.push(thumbResult.path || thumbPath);
 
+      // Bucket inspections-photos prive depuis migration 027 :
+      // on ne stocke QUE les paths. Les URLs signees sont generees a l'affichage.
       uploadedPhotos.push({
-        url: fullResult.url,
-        thumbUrl: thumbResult.url,
         path: fullResult.path || fullPath,
         thumbPath: thumbResult.path || thumbPath,
         taille: photo.taille || 0,
@@ -1860,12 +1901,10 @@ async function envoyerInspection() {
     localStorage.setItem('inspections', JSON.stringify(toutes));
   } catch(e) {
     const storageHelper = getInspectionStorageHelper();
-    const photoPaths = storageHelper && storageHelper.extractPathFromPublicUrl
-      ? photoAssets.flatMap(function(photo) {
-          const urls = typeof photo === 'string' ? [photo] : [photo.url, photo.thumbUrl];
-          return urls.map(url => storageHelper.extractPathFromPublicUrl(url)).filter(Boolean);
-        })
-      : [];
+    const photoPaths = photoAssets.flatMap(function(photo) {
+      if (!photo || typeof photo === 'string') return [];
+      return [photo.path, photo.thumbPath].filter(Boolean);
+    });
     if (photoPaths.length && storageHelper && storageHelper.removeInspectionPhotos) {
       try { await storageHelper.removeInspectionPhotos(photoPaths); } catch (_) {}
     }
@@ -1915,18 +1954,45 @@ function chargerHistoriqueInspections() {
   const cont = document.getElementById('historique-inspections');
   if (!toutes.length) { cont.innerHTML = '<div class="empty">Aucune inspection enregistrée</div>'; return; }
 
-  cont.innerHTML = toutes.map(insp => `
+  cont.innerHTML = toutes.map(insp => {
+    const photos = insp.photos || [];
+    return `
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <strong style="font-size:.9rem">🗓️ ${insp.date}</strong>
         <span style="font-size:.78rem;color:var(--muted)">${insp.vehImmat}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
       </div>
       ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">💬 ${insp.commentaire}</p>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min((insp.photos || []).length,4), 1)},1fr);gap:6px">
-        ${(insp.photos || []).map(p => `<img src="${getInspectionPhotoThumbSrc(p)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer" onclick="voirPhotoPleinEcran('${getInspectionPhotoFullSrc(p)}')" />`).join('')}
+      <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min(photos.length,4), 1)},1fr);gap:6px">
+        ${photos.map(p => {
+          const thumb = getInspectionPhotoThumbDescriptor(p);
+          const full = getInspectionPhotoFullDescriptor(p);
+          // Si on a un path -> resolveStorageImages remplira src plus tard via signed URL.
+          // Sinon (legacy base64 pur) -> src direct.
+          const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="📷 chargement..."';
+          const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
+          const onClick = full.src
+            ? `voirPhotoPleinEcran('${full.src}')`
+            : `ouvrirPhotoInspectionSal('${full.path}')`;
+          return `<img ${srcAttr} ${dataAttrs} style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer;background:rgba(0,0,0,0.05)" onclick="${onClick}" />`;
+        }).join('')}
       </div>
-      ${!(insp.photos || []).length && (insp.note_quota || insp.note_cleanup_storage) ? `<p style="font-size:.78rem;color:var(--orange);margin-top:8px">${insp.note_quota || insp.note_cleanup_storage}</p>` : ''}
-    </div>`).join('');
+      ${!photos.length && (insp.note_quota || insp.note_cleanup_storage) ? `<p style="font-size:.78rem;color:var(--orange);margin-top:8px">${insp.note_quota || insp.note_cleanup_storage}</p>` : ''}
+    </div>`;
+  }).join('');
+
+  // Resoudre les signed URLs pour les photos en bucket prive
+  if (window.resolveStorageImages) {
+    window.resolveStorageImages(cont);
+  }
+}
+
+// Ouvre une photo inspection salarie en plein ecran via signed URL fraiche
+async function ouvrirPhotoInspectionSal(path) {
+  if (!path) return;
+  if (!window.DelivProStorage) return;
+  const signed = await window.DelivProStorage.getSignedUrl('inspections-photos', path, 300);
+  if (signed.ok && signed.signedUrl) voirPhotoPleinEcran(signed.signedUrl);
 }
 
 function voirPhotoPleinEcran(src) {
