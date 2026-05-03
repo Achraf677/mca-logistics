@@ -5503,7 +5503,7 @@
           <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">🚐 Véhicule</button>
           <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">🧑‍💼 Client</button>
           <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">👤 Chauffeur</button>
-          <button class="m-alertes-chip ${tab==='devis'?'active':''}" data-tab="devis">🧮 Devis</button>
+          <button class="m-alertes-chip ${tab==='simulateur'?'active':''}" data-tab="simulateur">🧮 Simulateur</button>
         </div>
       `;
 
@@ -5656,76 +5656,238 @@
         });
       }
 
-      // ---- DEVIS : calculateur de rentabilite avant proposition ----
-      if (tab === 'devis') {
-        // Persistance : si l'user a explicitement saisi un cout km dans le devis, on le stocke
-        // dans localStorage pour le re-utiliser entre sessions et entre PC/mobile.
-        const coutStocked = M.parseNum(localStorage.getItem('rent_cout_km_ref'));
-        const coutKmStocke = M.state.devisCoutKm != null ? M.state.devisCoutKm
-          : (coutStocked > 0 ? coutStocked
-          : (kmTotal > 0 ? (carbTotal + entrTotal + autresTotal) / kmTotal : 0.50));
-        const prix = M.parseNum(M.state.devisPrix) || 0;
-        const km = M.parseNum(M.state.devisKm) || 0;
-        const depEstim = km * coutKmStocke;
-        const marge = prix - depEstim;
-        const margePct = prix > 0 ? (marge / prix * 100) : 0;
-        const couleur = margePct >= 25 ? 'var(--m-green)' : margePct >= 15 ? 'var(--m-accent)' : margePct >= 5 ? 'var(--m-red)' : 'var(--m-red)';
-        const verdict = margePct >= 25 ? '🟢 Excellente' : margePct >= 15 ? '🟡 Acceptable' : margePct >= 5 ? '🟠 Limite' : margePct >= 0 ? '🔴 À renégocier' : '🔴 PERTE';
+      // ---- SIMULATEUR : parite complete avec PC (script-rentabilite.js).
+      // Persistance partagee avec PC sur la cle 'rentabilite_calculateur_v2'
+      // -> meme config sur les deux plateformes.
+      if (tab === 'simulateur') {
+        const SIM_KEY = 'rentabilite_calculateur_v2';
+        const raw = M.chargerObj(SIM_KEY) || {};
+        const cfg = {
+          modeCalcul: raw.modeCalcul === 'livraison' ? 'livraison' : 'manuel',
+          livraisonId: raw.livraisonId || '',
+          repartitionCharges: raw.repartitionCharges === 'prorata' ? 'prorata' : 'mensuel',
+          kmJour: M.parseNum(raw.kmJour) || 0,
+          prixKm: M.parseNum(raw.prixKm) || 0,
+          joursTravailles: M.parseNum(raw.joursTravailles) || 0,
+          conso: M.parseNum(raw.conso) || 0,
+          prixCarburant: M.parseNum(raw.prixCarburant) || 0,
+          lldCredit: M.parseNum(raw.lldCredit) || 0,
+          assurance: M.parseNum(raw.assurance) || 0,
+          salaireCharge: M.parseNum(raw.salaireCharge) || 0,
+          tva: M.parseNum(raw.tva) || 20,
+          autresCharges: Array.isArray(raw.autresCharges) ? raw.autresCharges.map(i => ({
+            id: i.id || M.genId(),
+            label: i.label || '',
+            montant: M.parseNum(i.montant) || 0
+          })) : []
+        };
+
+        // Calcul HT systematique (cf. PC) — pas de melange HT/TTC
+        const livAll = M.charger('livraisons');
+        const livSel = (cfg.modeCalcul === 'livraison' && cfg.livraisonId)
+          ? livAll.find(l => l.id === cfg.livraisonId) : null;
+        const isLivMode = cfg.modeCalcul === 'livraison';
+        const getMontantHT = (l) => {
+          if (!l) return 0;
+          if (l.prixHT != null && l.prixHT !== '') return M.parseNum(l.prixHT) || 0;
+          const t = M.parseNum(l.tauxTVA) || 20;
+          return (M.parseNum(l.prix) || 0) / (1 + t / 100);
+        };
+        const kmJour = isLivMode ? (M.parseNum(livSel?.distance) || 0) : cfg.kmJour;
+        let joursTravailles = Math.max(0, cfg.joursTravailles || 0);
+        if (isLivMode && !livSel) joursTravailles = 0;
+        const kmTotalSim = kmJour * joursTravailles;
+        const caJournalierHT = isLivMode ? (livSel ? getMontantHT(livSel) : 0) : (kmJour * cfg.prixKm);
+        const prixKmEff = kmJour > 0 ? caJournalierHT / kmJour : 0;
+        const caHT = caJournalierHT * joursTravailles;
+        const caTTC = caHT * (1 + cfg.tva / 100);
+        const litresMois = kmTotalSim * cfg.conso / 100;
+        const coutCarburant = litresMois * cfg.prixCarburant;
+        const autresT = cfg.autresCharges.reduce((s, i) => s + (M.parseNum(i.montant) || 0), 0);
+        const chargesFixesMensuelles = cfg.lldCredit + cfg.assurance + cfg.salaireCharge + autresT;
+        const prorataBlocked = cfg.repartitionCharges === 'prorata' && joursTravailles <= 0;
+        const chargesFixes = (cfg.repartitionCharges === 'prorata' && !prorataBlocked)
+          ? (chargesFixesMensuelles / 30) * cfg.joursTravailles
+          : chargesFixesMensuelles;
+        const coutTotalSim = chargesFixes + coutCarburant;
+        const beneficeNet = caHT - coutTotalSim;
+        const coutParKm = kmTotalSim > 0 ? coutTotalSim / kmTotalSim : 0;
+        const margeParKm = kmTotalSim > 0 ? beneficeNet / kmTotalSim : 0;
+        const revenuJ = caJournalierHT;
+        const coutVarJ = (kmJour * cfg.conso / 100) * cfg.prixCarburant;
+        const margeJ = revenuJ - coutVarJ;
+        const seuilJours = margeJ > 0 ? chargesFixes / margeJ : null;
+        const pointMortCA = seuilJours != null ? seuilJours * revenuJ : null;
+        const lldDoublon = cfg.autresCharges.some(i =>
+          /(lld|leasing|credit|crédit)/i.test(i.label || '') && (M.parseNum(i.montant) || 0) > 0
+        );
+        const pristine = !isLivMode && kmJour <= 0 && cfg.prixKm <= 0 && joursTravailles <= 0
+          && cfg.conso <= 0 && cfg.prixCarburant <= 0;
+        const margeC = beneficeNet >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+        const fmtJ = v => (v == null || !isFinite(v)) ? 'Non atteignable' : v.toFixed(2).replace('.', ',') + ' j';
+
+        const livSorted = livAll.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
         html += `
-          <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 14px;line-height:1.4">💡 Estime la rentabilité d'une nouvelle livraison avant de proposer un prix au client.</p>
-          <div class="m-card" style="padding:18px;margin-bottom:14px">
-            <div class="m-form-row" style="margin-bottom:0">
+          <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 14px;line-height:1.4">💡 Simulateur de rentabilité (parité PC). Configure tes hypothèses ou pars d'une livraison existante. Tout est en HT.</p>
+
+          <div class="m-card" style="padding:14px;margin-bottom:12px">
+            <div class="m-form-field" style="margin-bottom:10px">
+              <label class="m-form-label">Mode de calcul</label>
+              <select id="m-sim-mode">
+                <option value="manuel" ${cfg.modeCalcul === 'manuel' ? 'selected' : ''}>Manuel (hypothèses)</option>
+                <option value="livraison" ${cfg.modeCalcul === 'livraison' ? 'selected' : ''}>Depuis une livraison</option>
+              </select>
+              <p class="m-form-hint">${isLivMode ? 'Projection mensuelle si tu répètes ce type de livraison.' : 'Simule l\'activité à partir de tes hypothèses.'}</p>
+            </div>
+            ${isLivMode ? `
               <div class="m-form-field" style="margin-bottom:0">
-                <label class="m-form-label">Prix proposé HT</label>
-                <div class="m-form-input-suffix">
-                  <input type="number" id="m-devis-prix" step="0.01" min="0" placeholder="0.00" value="${prix > 0 ? prix : ''}" />
-                  <span class="m-form-input-suffix-text">€</span>
-                </div>
+                <label class="m-form-label">Livraison de référence</label>
+                <select id="m-sim-livraison">
+                  <option value="">${livSorted.length ? '— Choisir —' : 'Aucune livraison disponible'}</option>
+                  ${livSorted.map(l => `<option value="${l.id}" ${l.id === cfg.livraisonId ? 'selected' : ''}>${M.escHtml((l.numLiv || 'Liv') + ' · ' + (l.client || '—') + ' · ' + (l.date || ''))}</option>`).join('')}
+                </select>
               </div>
-              <div class="m-form-field" style="margin-bottom:0">
-                <label class="m-form-label">Distance</label>
-                <div class="m-form-input-suffix">
-                  <input type="number" id="m-devis-km" step="0.1" min="0" placeholder="0" value="${km > 0 ? km : ''}" />
-                  <span class="m-form-input-suffix-text">km</span>
-                </div>
+            ` : ''}
+          </div>
+
+          <div class="m-card" style="padding:14px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:10px">📈 Activité</div>
+            <div class="m-form-row">
+              <div class="m-form-field">
+                <label class="m-form-label">${isLivMode ? 'Distance livraison' : 'Km / jour'}</label>
+                <div class="m-form-input-suffix"><input type="number" id="m-sim-km-jour" step="0.1" min="0" value="${kmJour > 0 ? kmJour : ''}" ${isLivMode ? 'readonly' : ''} placeholder="0" /><span class="m-form-input-suffix-text">km</span></div>
+              </div>
+              <div class="m-form-field">
+                <label class="m-form-label">Prix au km HT</label>
+                <div class="m-form-input-suffix"><input type="number" id="m-sim-prix-km" step="0.01" min="0" value="${prixKmEff > 0 ? prixKmEff.toFixed(2) : ''}" ${isLivMode ? 'readonly' : ''} placeholder="0.00" /><span class="m-form-input-suffix-text">€/km</span></div>
               </div>
             </div>
-            <div class="m-form-field" style="margin-bottom:0;margin-top:14px">
-              <label class="m-form-label">Coût km de référence</label>
-              <div class="m-form-input-suffix">
-                <input type="number" id="m-devis-coutkm" step="0.01" min="0" placeholder="0.50" value="${coutKmStocke.toFixed(2)}" />
-                <span class="m-form-input-suffix-text">€/km</span>
-              </div>
-              <p class="m-form-hint">Calculé auto depuis tes dépenses (${M.format$((carbTotal + entrTotal + autresTotal))} / ${M.formatNum(kmTotal.toFixed(0))} km). Ajustable.</p>
+            <div class="m-form-field" style="margin-top:8px;margin-bottom:0">
+              <label class="m-form-label">${isLivMode ? 'Fréquence mensuelle' : 'Jours travaillés / mois'}</label>
+              <input type="number" id="m-sim-jours" step="1" min="0" value="${cfg.joursTravailles > 0 ? cfg.joursTravailles : ''}" placeholder="0" />
+              <p class="m-form-hint">${isLivMode ? 'Combien de fois ce type de livraison par mois ?' : 'Nombre de jours réellement travaillés sur la période.'}</p>
             </div>
           </div>
 
-          ${prix > 0 && km > 0 ? `
-            <div id="m-devis-result">
-              <div class="m-card" style="border-left:4px solid ${couleur};padding:18px;margin-bottom:12px">
-                <div class="m-card-title">${verdict}</div>
-                <div class="m-card-value" style="color:${couleur};font-size:1.8rem">${margePct.toFixed(1)}%</div>
-                <div class="m-card-sub">Marge estimée ${M.format$(marge)}</div>
-              </div>
-
-              <div class="m-card" style="padding:0">
-                <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Prix HT proposé</span><span style="font-weight:600">${M.format$(prix)}</span></div>
-                <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Coût estimé (${km} km × ${coutKmStocke.toFixed(2)}€)</span><span style="font-weight:600;color:var(--m-red)">−${M.format$(depEstim)}</span></div>
-                <div style="padding:14px 16px;display:flex;justify-content:space-between;background:var(--m-accent-soft)"><span style="font-weight:600">Marge nette estimée</span><span style="font-weight:700;color:${couleur}">${M.format$(marge)}</span></div>
-              </div>
-
-              ${margePct < 15 ? `
-                <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:12px;line-height:1.5">
-                  💡 Pour atteindre 20% de marge, vise un prix d'au moins <strong>${M.format$(depEstim / 0.8)}</strong>
-                </p>
-              ` : ''}
+          <div class="m-card" style="padding:14px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+              <span>⛽ Carburant</span>
+              <button type="button" id="m-sim-fuel-real" class="m-btn" style="font-size:.72rem;padding:6px 10px">Prix moyen réel</button>
             </div>
-          ` : `
-            <div id="m-devis-result">
-              <div class="m-empty" style="padding:32px 16px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Saisis un prix et une distance pour calculer la marge estimée.</p></div>
+            <div class="m-form-row">
+              <div class="m-form-field">
+                <label class="m-form-label">Consommation</label>
+                <div class="m-form-input-suffix"><input type="number" id="m-sim-conso" step="0.1" min="0" value="${cfg.conso > 0 ? cfg.conso : ''}" placeholder="0" /><span class="m-form-input-suffix-text">L/100</span></div>
+              </div>
+              <div class="m-form-field">
+                <label class="m-form-label">Prix carburant</label>
+                <div class="m-form-input-suffix"><input type="number" id="m-sim-prix-carb" step="0.01" min="0" value="${cfg.prixCarburant > 0 ? cfg.prixCarburant : ''}" placeholder="0.00" /><span class="m-form-input-suffix-text">€/L</span></div>
+              </div>
             </div>
-          `}
+          </div>
+
+          <div class="m-card" style="padding:14px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
+              <span>💸 Charges fixes mensuelles HT</span>
+              <div style="display:flex;gap:6px">
+                <button type="button" id="m-sim-charges-real" class="m-btn" style="font-size:.7rem;padding:6px 8px">Charges réelles</button>
+                <button type="button" id="m-sim-load-veh" class="m-btn" style="font-size:.7rem;padding:6px 8px">Depuis véhicule</button>
+              </div>
+            </div>
+            <div class="m-form-field">
+              <label class="m-form-label">LLD / Crédit / Amortissement</label>
+              <div class="m-form-input-suffix"><input type="number" id="m-sim-lld" step="0.01" min="0" value="${cfg.lldCredit > 0 ? cfg.lldCredit.toFixed(2) : ''}" placeholder="0.00" /><span class="m-form-input-suffix-text">€/mois</span></div>
+            </div>
+            <div class="m-form-field">
+              <label class="m-form-label">Assurance</label>
+              <div class="m-form-input-suffix"><input type="number" id="m-sim-assurance" step="0.01" min="0" value="${cfg.assurance > 0 ? cfg.assurance.toFixed(2) : ''}" placeholder="0.00" /><span class="m-form-input-suffix-text">€/mois</span></div>
+            </div>
+            <div class="m-form-field">
+              <label class="m-form-label">Salaire chargé</label>
+              <div class="m-form-input-suffix"><input type="number" id="m-sim-salaire" step="0.01" min="0" value="${cfg.salaireCharge > 0 ? cfg.salaireCharge.toFixed(2) : ''}" placeholder="0.00" /><span class="m-form-input-suffix-text">€/mois</span></div>
+            </div>
+            <div class="m-form-field">
+              <label class="m-form-label">Répartition</label>
+              <select id="m-sim-repartition">
+                <option value="mensuel" ${cfg.repartitionCharges === 'mensuel' ? 'selected' : ''}>Mensuel (charges pleines)</option>
+                <option value="prorata" ${cfg.repartitionCharges === 'prorata' ? 'selected' : ''}>Prorata jours travaillés</option>
+              </select>
+            </div>
+            <div class="m-form-field" style="margin-bottom:0">
+              <label class="m-form-label">TVA appliquée</label>
+              <div class="m-form-input-suffix"><input type="number" id="m-sim-tva" step="0.5" min="0" value="${cfg.tva}" /><span class="m-form-input-suffix-text">%</span></div>
+            </div>
+          </div>
+
+          <div class="m-card" style="padding:14px;margin-bottom:12px">
+            <div style="font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+              <span>📝 Autres charges mensuelles</span>
+              <button type="button" id="m-sim-add-charge" class="m-btn m-btn-primary" style="font-size:.72rem;padding:6px 10px">+ Ajouter</button>
+            </div>
+            <div id="m-sim-autres-list">
+              ${cfg.autresCharges.length === 0
+                ? '<p style="font-size:.8rem;color:var(--m-text-muted);margin:0">Aucune charge supplémentaire.</p>'
+                : cfg.autresCharges.map(i => `
+                  <div class="m-sim-autre-row" data-id="${i.id}" style="display:flex;gap:6px;margin-bottom:8px;align-items:center">
+                    <input type="text" class="m-sim-autre-label" data-id="${i.id}" placeholder="Libellé" value="${M.escHtml(i.label || '')}" style="flex:1;min-width:0" />
+                    <input type="number" class="m-sim-autre-montant" data-id="${i.id}" step="0.01" min="0" value="${i.montant > 0 ? i.montant : ''}" placeholder="€" style="width:90px" />
+                    <button type="button" class="m-btn m-sim-autre-del" data-id="${i.id}" style="padding:6px 10px;font-size:.85rem;color:var(--m-red)">×</button>
+                  </div>
+                `).join('')}
+            </div>
+          </div>
+
+          <div id="m-sim-results">
+            ${pristine ? `
+              <div class="m-empty" style="padding:24px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Renseigne tes hypothèses ou charge une livraison pour lancer l'analyse.</p></div>
+            ` : `
+              <div class="m-card" style="border-left:4px solid ${margeC};padding:18px;margin-bottom:12px">
+                <div class="m-card-title">Bénéfice net mensuel</div>
+                <div class="m-card-value" style="color:${margeC};font-size:1.7rem">${M.format$(beneficeNet)}</div>
+                <div class="m-card-sub">${beneficeNet >= 0 ? 'Activité rentable avec ces paramètres' : 'Activité déficitaire'}</div>
+              </div>
+              <div class="m-card-row">
+                <div class="m-card m-card-green"><div class="m-card-title">CA HT</div><div class="m-card-value">${M.format$(caHT)}</div><div class="m-card-sub">${M.format$(caTTC)} TTC</div></div>
+                <div class="m-card"><div class="m-card-title">Coût total</div><div class="m-card-value" style="color:var(--m-red)">${M.format$(coutTotalSim)}</div><div class="m-card-sub">${M.format$(coutParKm)}/km</div></div>
+              </div>
+              <div class="m-card" style="padding:0;margin-bottom:12px">
+                <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>⛽ Carburant</span><span style="font-weight:600">${M.format$(coutCarburant)} <span style="color:var(--m-text-muted);font-weight:400;font-size:.78rem">(${litresMois.toFixed(1).replace('.', ',')} L)</span></span></div>
+                <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>📦 Charges fixes</span><span style="font-weight:600">${M.format$(chargesFixes)}${cfg.repartitionCharges === 'prorata' && !prorataBlocked ? ' <span style="color:var(--m-text-muted);font-weight:400;font-size:.72rem">prorata</span>' : ''}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:14px 16px"><span>📏 Marge / km</span><span style="font-weight:600;color:${margeParKm >= 0 ? 'var(--m-green)' : 'var(--m-red)'}">${M.format$(margeParKm)}</span></div>
+              </div>
+              <div class="m-card" style="padding:14px;margin-bottom:12px">
+                <div style="font-weight:600;margin-bottom:10px">📊 Analyse journalière</div>
+                <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px"><span style="color:var(--m-text-muted)">Revenu / jour</span><span>${M.format$(revenuJ)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px"><span style="color:var(--m-text-muted)">Coût variable / jour</span><span style="color:var(--m-red)">−${M.format$(coutVarJ)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.88rem"><span style="color:var(--m-text-muted)">Marge / jour</span><span style="color:${margeJ >= 0 ? 'var(--m-green)' : 'var(--m-red)'};font-weight:600">${M.format$(margeJ)}</span></div>
+              </div>
+              <div class="m-card" style="padding:14px;margin-bottom:12px">
+                <div style="font-weight:600;margin-bottom:10px">🎯 Seuil de rentabilité</div>
+                <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px"><span style="color:var(--m-text-muted)">Jours nécessaires</span><span style="font-weight:600">${fmtJ(seuilJours)}</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:.88rem"><span style="color:var(--m-text-muted)">Point mort CA</span><span style="font-weight:600">${pointMortCA != null ? M.format$(pointMortCA) : 'Non atteignable'}</span></div>
+              </div>
+            `}
+          </div>
+
+          <div id="m-sim-alerts" style="margin-bottom:18px">
+            ${(() => {
+              const alerts = [];
+              if (pristine) alerts.push({ t: 'info', m: 'Renseigne tes hypothèses pour lancer l\'analyse.' });
+              else {
+                if (joursTravailles <= 0) alerts.push({ t: 'warn', m: isLivMode ? 'Fréquence à 0 : la projection mensuelle reste nulle.' : 'Renseigne au moins 1 jour travaillé.' });
+                if (beneficeNet < 0) alerts.push({ t: 'danger', m: 'Bénéfice négatif : tes coûts dépassent ton CA HT.' });
+                if (seuilJours != null && seuilJours > cfg.joursTravailles) alerts.push({ t: 'warn', m: 'Seuil de rentabilité supérieur aux jours travaillés.' });
+                if (seuilJours == null) alerts.push({ t: 'danger', m: 'Marge journalière insuffisante pour atteindre la rentabilité.' });
+                if (prorataBlocked) alerts.push({ t: 'danger', m: 'Prorata bloqué : renseigne des jours travaillés d\'abord.' });
+                else if (cfg.repartitionCharges === 'prorata') alerts.push({ t: 'warn', m: 'Charges fixes proratisées selon les jours travaillés.' });
+                if (lldDoublon && cfg.lldCredit > 0) alerts.push({ t: 'warn', m: 'Doublon possible : une autre charge ressemble à LLD/leasing/crédit.' });
+                if (!alerts.length) alerts.push({ t: 'success', m: '✅ Structure saine : ton activité couvre ses coûts.' });
+              }
+              const colors = { info: 'var(--m-text-muted)', warn: 'var(--m-accent)', danger: 'var(--m-red)', success: 'var(--m-green)' };
+              return alerts.map(a => `<div class="m-card" style="border-left:4px solid ${colors[a.t]};padding:12px 14px;margin-bottom:8px;font-size:.85rem">${a.m}</div>`).join('');
+            })()}
+          </div>
         `;
       }
 
@@ -5741,54 +5903,143 @@
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
       });
-      // Calculateur devis : input listeners (debounce léger)
-      // Devis : binding inputs SANS re-render (le re-render wipe innerHTML
-      // -> focus perdu -> clavier disparait sur iOS Safari).
-      // On met a jour uniquement les blocs derives (badge marge, ligne calcul)
-      // en JS direct. Persistance localStorage au blur seulement.
-      const elPrix    = container.querySelector('#m-devis-prix');
-      const elKm      = container.querySelector('#m-devis-km');
-      const elCoutKm  = container.querySelector('#m-devis-coutkm');
-      const refreshDevisResult = () => {
-        const prix = M.parseNum(elPrix?.value) || 0;
-        const km = M.parseNum(elKm?.value) || 0;
-        const coutKm = M.parseNum(elCoutKm?.value) || 0;
-        M.state.devisPrix = prix;
-        M.state.devisKm = km;
-        M.state.devisCoutKm = coutKm;
-        const dep = km * coutKm;
-        const marge = prix - dep;
-        const margePct = prix > 0 ? (marge / prix * 100) : 0;
-        const couleur = margePct >= 25 ? 'var(--m-green)' : margePct >= 15 ? 'var(--m-accent)' : margePct >= 5 ? 'var(--m-red)' : 'var(--m-red)';
-        const verdict = margePct >= 25 ? '🟢 Excellente' : margePct >= 15 ? '🟡 Acceptable' : margePct >= 5 ? '🟠 Limite' : margePct >= 0 ? '🔴 À renégocier' : '🔴 PERTE';
-        const wrap = container.querySelector('#m-devis-result');
-        if (!wrap) return;
-        if (!(prix > 0 && km > 0)) {
-          wrap.innerHTML = `<div class="m-empty" style="padding:32px 16px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Saisis un prix et une distance pour calculer la marge estimée.</p></div>`;
-          return;
-        }
-        wrap.innerHTML = `
-          <div class="m-card" style="border-left:4px solid ${couleur};padding:18px;margin-bottom:12px">
-            <div class="m-card-title">${verdict}</div>
-            <div class="m-card-value" style="color:${couleur};font-size:1.8rem">${margePct.toFixed(1)}%</div>
-            <div class="m-card-sub">Marge estimée ${M.format$(marge)}</div>
-          </div>
-          <div class="m-card" style="padding:0">
-            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Prix HT proposé</span><span style="font-weight:600">${M.format$(prix)}</span></div>
-            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Coût estimé (${km} km × ${coutKm.toFixed(2)}€)</span><span style="font-weight:600;color:var(--m-red)">−${M.format$(dep)}</span></div>
-            <div style="padding:14px 16px;display:flex;justify-content:space-between;background:var(--m-accent-soft)"><span style="font-weight:600">Marge nette estimée</span><span style="font-weight:700;color:${couleur}">${M.format$(marge)}</span></div>
-          </div>
-          ${margePct < 15 ? `<p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:12px;line-height:1.5">💡 Pour atteindre 20% de marge, vise un prix d'au moins <strong>${M.format$(dep / 0.8)}</strong></p>` : ''}
-        `;
-      };
-      [elPrix, elKm, elCoutKm].forEach(el => {
+      // ---- Simulateur : binding inputs (persist au blur + reload).
+      // Re-render apres chaque modif (les blocs Resultats/Alertes dependent de
+      // tous les inputs). Persistance partagee avec PC (cle 'rentabilite_calculateur_v2').
+      const SIM_KEY = 'rentabilite_calculateur_v2';
+      const simLoad = () => M.chargerObj(SIM_KEY) || {};
+      const simSave = (patch) => M.sauvegarder(SIM_KEY, Object.assign({}, simLoad(), patch));
+      const simReload = () => M.go('rentabilite');
+
+      const modeSel = container.querySelector('#m-sim-mode');
+      if (modeSel) modeSel.addEventListener('change', e => { simSave({ modeCalcul: e.target.value }); simReload(); });
+
+      const livSel = container.querySelector('#m-sim-livraison');
+      if (livSel) livSel.addEventListener('change', e => { simSave({ livraisonId: e.target.value }); simReload(); });
+
+      const repSel = container.querySelector('#m-sim-repartition');
+      if (repSel) repSel.addEventListener('change', e => { simSave({ repartitionCharges: e.target.value }); simReload(); });
+
+      // Inputs numeriques : persist + reload sur blur (preserve focus iOS pendant la saisie)
+      const numFields = [
+        ['m-sim-km-jour', 'kmJour'], ['m-sim-prix-km', 'prixKm'], ['m-sim-jours', 'joursTravailles'],
+        ['m-sim-conso', 'conso'], ['m-sim-prix-carb', 'prixCarburant'],
+        ['m-sim-lld', 'lldCredit'], ['m-sim-assurance', 'assurance'], ['m-sim-salaire', 'salaireCharge'],
+        ['m-sim-tva', 'tva']
+      ];
+      numFields.forEach(([id, key]) => {
+        const el = container.querySelector('#' + id);
         if (!el) return;
-        el.addEventListener('input', refreshDevisResult);
+        el.addEventListener('blur', () => { simSave({ [key]: M.parseNum(el.value) || 0 }); simReload(); });
+      });
+
+      // Autres charges : edit inline + delete + add
+      container.querySelectorAll('.m-sim-autre-label').forEach(el => {
         el.addEventListener('blur', () => {
-          // Persist le cout km uniquement quand l'user quitte le champ (pas a chaque keystroke)
-          const v = M.parseNum(elCoutKm?.value) || 0;
-          if (v > 0) { try { localStorage.setItem('rent_cout_km_ref', String(v)); } catch (_) {} }
+          const id = el.dataset.id;
+          const cur = simLoad();
+          const arr = (cur.autresCharges || []).map(i => i.id === id ? Object.assign({}, i, { label: el.value }) : i);
+          simSave({ autresCharges: arr });
         });
+      });
+      container.querySelectorAll('.m-sim-autre-montant').forEach(el => {
+        el.addEventListener('blur', () => {
+          const id = el.dataset.id;
+          const cur = simLoad();
+          const arr = (cur.autresCharges || []).map(i => i.id === id ? Object.assign({}, i, { montant: M.parseNum(el.value) || 0 }) : i);
+          simSave({ autresCharges: arr });
+          simReload();
+        });
+      });
+      container.querySelectorAll('.m-sim-autre-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          const cur = simLoad();
+          simSave({ autresCharges: (cur.autresCharges || []).filter(i => i.id !== id) });
+          simReload();
+        });
+      });
+      const addBtn = container.querySelector('#m-sim-add-charge');
+      if (addBtn) addBtn.addEventListener('click', () => {
+        const cur = simLoad();
+        const arr = [...(cur.autresCharges || []), { id: M.genId(), label: 'Nouvelle charge', montant: 0 }];
+        simSave({ autresCharges: arr });
+        simReload();
+      });
+
+      // Helpers : prix carburant moyen reel
+      const fuelBtn = container.querySelector('#m-sim-fuel-real');
+      if (fuelBtn) fuelBtn.addEventListener('click', () => {
+        const cur = simLoad();
+        const liv = cur.livraisonId ? M.charger('livraisons').find(l => l.id === cur.livraisonId) : null;
+        const pleins = M.charger('carburant');
+        let arr = pleins.filter(p => M.parseNum(p.prixLitre) > 0);
+        if (liv?.vehId) {
+          const sub = pleins.filter(p => (p.vehId === liv.vehId || p.vehiculeId === liv.vehId) && M.parseNum(p.prixLitre) > 0);
+          if (sub.length) arr = sub;
+        }
+        if (!arr.length) { M.toast('Aucune donnée carburant exploitable'); return; }
+        const moy = arr.reduce((s, p) => s + (M.parseNum(p.prixLitre) || 0), 0) / arr.length;
+        simSave({ prixCarburant: parseFloat(moy.toFixed(2)) });
+        M.toast('Prix carburant moyen appliqué');
+        simReload();
+      });
+
+      // Helpers : import charges reelles du mois
+      const chargesBtn = container.querySelector('#m-sim-charges-real');
+      if (chargesBtn) chargesBtn.addEventListener('click', () => {
+        const cur = simLoad();
+        const liv = cur.livraisonId ? M.charger('livraisons').find(l => l.id === cur.livraisonId) : null;
+        const mois = (liv?.date && /^\d{4}-\d{2}/.test(liv.date)) ? liv.date.slice(0, 7) : new Date().toISOString().slice(0, 7);
+        const charges = M.charger('charges').filter(c => (c.date || '').slice(0, 7) === mois);
+        let lld = 0, ass = 0, sal = 0;
+        const autres = {};
+        charges.forEach(c => {
+          const cat = c.categorie || 'autre';
+          if (cat === 'tva') return;
+          const m = M.parseNum(c.montantHT || c.montant) || 0;
+          if (cat === 'lld_credit' || cat === 'lld-credit') lld += m;
+          else if (cat === 'assurance') ass += m;
+          else if (cat === 'salaires') sal += m;
+          else autres[cat] = (autres[cat] || 0) + m;
+        });
+        const labelMap = { carburant: 'Carburant réel', peage: 'Péages', entretien: 'Entretiens', autre: 'Autres charges' };
+        const autresArr = Object.entries(autres).filter(([_, v]) => v > 0).map(([k, v]) => ({
+          id: M.genId(), label: labelMap[k] || k, montant: v
+        }));
+        simSave({ lldCredit: lld, assurance: ass, salaireCharge: sal, autresCharges: autresArr });
+        M.toast(`Charges ${mois.split('-').reverse().join('/')} chargées`);
+        simReload();
+      });
+
+      // Helpers : preremplir depuis le vehicule de la livraison (ou unique)
+      const vehBtn = container.querySelector('#m-sim-load-veh');
+      if (vehBtn) vehBtn.addEventListener('click', () => {
+        const cur = simLoad();
+        const liv = cur.livraisonId ? M.charger('livraisons').find(l => l.id === cur.livraisonId) : null;
+        const vehs = M.charger('vehicules');
+        let veh = liv?.vehId ? vehs.find(v => v.id === liv.vehId) : null;
+        if (!veh && vehs.length === 1) veh = vehs[0];
+        if (!veh) { M.toast('Aucun véhicule exploitable'); return; }
+        let mens = 0;
+        switch (veh.modeAcquisition) {
+          case 'lld': case 'location': case 'loa':
+            mens = M.parseNum(veh.loyerMensuelHT) || 0; break;
+          case 'credit':
+            mens = M.parseNum(veh.creditMensualiteHT) || 0; break;
+          case 'achat': case 'occasion': {
+            const px = M.parseNum(veh.prixAchatHT) || 0;
+            const dur = M.parseNum(veh.dureeAmortissement) || 0;
+            mens = (px > 0 && dur > 0) ? px / (dur * 12) : 0;
+            break;
+          }
+        }
+        const patch = {};
+        if (mens > 0) patch.lldCredit = mens;
+        if ((!cur.conso || cur.conso <= 0) && M.parseNum(veh.conso) > 0) patch.conso = M.parseNum(veh.conso);
+        simSave(patch);
+        M.toast('Coûts du véhicule chargés');
+        simReload();
       });
       // Tap sur une ligne -> navigue vers la fiche detail correspondante
       container.querySelectorAll('.m-rent-row[data-action]').forEach(btn => {
