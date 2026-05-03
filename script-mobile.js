@@ -5349,6 +5349,7 @@
   });
   // ---------- Rentabilite v3.7 : 4 sous-onglets (Global / Vehicule / Client / Chauffeur) ----------
   M.state.rentMois = new Date().toISOString().slice(0, 7);
+  M.state.rentMoisManuel = false;
   M.state.rentTab = 'global';
 
   M.register('rentabilite', {
@@ -5361,6 +5362,8 @@
       const vehicules  = M.charger('vehicules').filter(v => v && !v.archive);
       const salaries   = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
+      // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
+      if (!M.state.rentMoisManuel) M.state.rentMois = new Date().toISOString().slice(0, 7);
       const moisSel = M.state.rentMois;
       const tab     = M.state.rentTab;
       const inMois  = (date) => (date || '').startsWith(moisSel);
@@ -5630,7 +5633,11 @@
     },
     afterRender(container) {
       const sel = container.querySelector('#m-rent-mois');
-      if (sel) sel.addEventListener('change', e => { M.state.rentMois = e.target.value; M.go('rentabilite'); });
+      if (sel) sel.addEventListener('change', e => {
+        M.state.rentMois = e.target.value;
+        M.state.rentMoisManuel = true;
+        M.go('rentabilite');
+      });
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
       });
@@ -6683,10 +6690,20 @@
     `;
   };
   // ---------- Heures & Km (v2.9 : recap par salarie sur mois courant) ----------
+  // Bug v3.57 : avant, M.state.heuresMois était figé à la valeur de l'IIFE load.
+  // Si la PWA restait ouverte plusieurs jours (frontière avril/mai), le filtre
+  // restait sur avril alors que les saisies étaient datées mai. -> compteur
+  // ne se mettait jamais à jour. Fix : recalcul en render() sauf si l'user
+  // a explicitement choisi un mois via le dropdown.
   M.state.heuresMois = new Date().toISOString().slice(0, 7);
+  M.state.heuresMoisManuel = false;
   M.register('heures', {
     title: 'Heures & Km',
     render() {
+      // Recalcul auto du mois courant au render, sauf si user a choisi
+      if (!M.state.heuresMoisManuel) {
+        M.state.heuresMois = new Date().toISOString().slice(0, 7);
+      }
       const moisSel = M.state.heuresMois;
       const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
       const livraisons = M.charger('livraisons').filter(l => (l.date || '').startsWith(moisSel));
@@ -6747,7 +6764,11 @@
     },
     afterRender(container) {
       const sel = container.querySelector('#m-heures-mois');
-      if (sel) sel.addEventListener('change', e => { M.state.heuresMois = e.target.value; M.go('heures'); });
+      if (sel) sel.addEventListener('change', e => {
+        M.state.heuresMois = e.target.value;
+        M.state.heuresMoisManuel = true; // user a choisi -> on ne reset plus auto
+        M.go('heures');
+      });
       // Tap salarie -> ouvre sa fiche
       container.querySelectorAll('.m-heures-sal').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.salId));
@@ -6934,6 +6955,7 @@
 
   // ---------- TVA (v3.33 : exigibilite alignee PC, fini le decalage 1 mois) ----------
   M.state.tvaMois = new Date().toISOString().slice(0, 7);
+  M.state.tvaMoisManuel = false;
   M.state.tvaTab = 'recap'; // recap | collectee | deductible
 
   // Config TVA partagee avec PC (cle localStorage 'tva_config').
@@ -6969,6 +6991,8 @@
   M.register('tva', {
     title: 'TVA',
     render() {
+      // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
+      if (!M.state.tvaMoisManuel) M.state.tvaMois = new Date().toISOString().slice(0, 7);
       const moisSel = M.state.tvaMois;
       const tab = M.state.tvaTab;
       const profile = M.getTVAConfig();
@@ -7168,7 +7192,11 @@
     },
     afterRender(container) {
       const sel = container.querySelector('#m-tva-mois');
-      if (sel) sel.addEventListener('change', e => { M.state.tvaMois = e.target.value; M.go('tva'); });
+      if (sel) sel.addEventListener('change', e => {
+        M.state.tvaMois = e.target.value;
+        M.state.tvaMoisManuel = true;
+        M.go('tva');
+      });
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.tvaTab = btn.dataset.tab; M.go('tva'); });
       });
@@ -7177,6 +7205,7 @@
 
   // ---------- Statistiques (v2.9 : KPI clés du mois + comparatif) ----------
   M.state.statsMois = new Date().toISOString().slice(0, 7);
+  M.state.statsMoisManuel = false;
   M.state.statsUnit = M.state.statsUnit || 'k'; // 'k' = milliers (compact) | 'eur' = précis
   // Format barre : compact (10k) ou précis (10 234€) selon toggle
   M.fmtBar = function(n) {
@@ -7188,6 +7217,8 @@
   M.register('statistiques', {
     title: 'Statistiques',
     render() {
+      // Auto-refresh mois courant (cf. fix v3.57)
+      if (!M.state.statsMoisManuel) M.state.statsMois = new Date().toISOString().slice(0, 7);
       const moisSel = M.state.statsMois;
       const [y, m] = moisSel.split('-');
       const moisPrec = new Date(parseInt(y), parseInt(m) - 2, 1).toISOString().slice(0, 7);
@@ -7396,7 +7427,11 @@
     },
     afterRender(container) {
       const sel = container.querySelector('#m-stats-mois');
-      if (sel) sel.addEventListener('change', e => { M.state.statsMois = e.target.value; M.go('statistiques'); });
+      if (sel) sel.addEventListener('change', e => {
+        M.state.statsMois = e.target.value;
+        M.state.statsMoisManuel = true;
+        M.go('statistiques');
+      });
       // Toggle K€ / précis sur les graphiques
       container.querySelectorAll('button[data-unit]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.statsUnit = btn.dataset.unit; M.go('statistiques'); });
