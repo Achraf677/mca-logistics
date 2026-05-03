@@ -1668,6 +1668,7 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.description?.trim()) { M.toast('⚠️ Description obligatoire'); return false; }
+        if (!f.date) { M.toast('⚠️ Date requise'); return false; }
         const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
         const arr = M.charger('incidents');
         const data = {
@@ -1789,6 +1790,7 @@
         const ht = M.parseNum(f.coutHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
         const tvaMontant = M.parseNum(f.tva) || (ttc - ht);
         if (!f.vehiculeId) { M.toast('⚠️ Véhicule requis'); return false; }
+        if (!f.date) { M.toast('⚠️ Date requise'); return false; }
         if (!(ttc > 0)) { M.toast('⚠️ Coût TTC > 0 requis'); return false; }
         const arr = M.charger('entretiens');
         const data = {
