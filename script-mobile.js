@@ -3195,6 +3195,8 @@
   M.state.encStatut = 'a_encaisser'; // a_encaisser | encaisse | retard | tous
   M.state.encClient = ''; // filtre client
   M.state.encMoisOuverts = {};
+  M.state.encBulkMode = false;
+  M.state.encBulkSel = new Set(); // ids de livraisons selectionnees
   M.register('encaissement', {
     title: 'Encaissement',
     render() {
@@ -3246,8 +3248,22 @@
       // Liste clients pour filtre
       const clients = [...new Set(livAnnotees.map(l => l.client).filter(Boolean))].sort();
 
+      const bulkOn = M.state.encBulkMode;
+      const selSet = M.state.encBulkSel;
+      const selTotal = filtered.filter(l => selSet.has(l.id)).reduce((s, l) => s + l._ttc, 0);
+      const selCount = filtered.filter(l => selSet.has(l.id)).length;
+
       let html = `
-        <button class="m-fab" onclick="MCAm.go('livraisons')" aria-label="Voir livraisons" style="background:var(--m-accent)">📦</button>
+        ${!bulkOn ? `<button class="m-fab" id="m-enc-bulk-on" aria-label="Sélection multiple" style="background:var(--m-accent);font-size:1.1rem">☑</button>` : `
+          <div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:12px 14px;margin-bottom:14px;display:flex;gap:8px;align-items:center;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+            <div style="flex:1 1 auto;font-size:.92rem">
+              <strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}
+              ${selCount > 0 ? `<span style="color:var(--m-text-muted);font-size:.78rem;margin-left:6px">${M.format$(selTotal)}</span>` : ''}
+            </div>
+            ${selCount > 0 ? `<button type="button" id="m-enc-bulk-pay" class="m-btn m-btn-primary" style="width:auto;padding:0 12px;height:38px;font-size:.78rem">💵 Tout encaisser</button>` : ''}
+            <button type="button" id="m-enc-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:38px;font-size:.78rem">✕</button>
+          </div>
+        `}
 
         <div class="m-card-row">
           <div class="m-card m-card-accent">
@@ -3317,15 +3333,24 @@
                 const actionBtn = !l._paye
                   ? `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">💵 Marquer encaissé</button>`
                   : `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>`;
+                const isSel = selSet.has(l.id);
+                const checkbox = bulkOn && !l._paye
+                  ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
+                  : '';
+                const cardClass = bulkOn && !l._paye ? 'm-enc-toggle' : 'm-enc-edit';
+                const cardStyle = bulkOn && !l._paye && isSel
+                  ? `background:var(--m-accent-soft);border-color:var(--m-accent)`
+                  : `background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border)`;
                 return `<div style="position:relative;margin-bottom:10px">
-                  <div role="button" tabindex="0" class="m-card m-card-pressable m-enc-edit" data-id="${M.escHtml(l.id)}" style="padding:14px;border-left:4px solid ${couleur};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;cursor:pointer">
+                  <div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(l.id)}" style="padding:14px;border-left:4px solid ${couleur};display:flex;align-items:start;gap:10px;width:100%;${cardStyle};border-radius:18px;cursor:pointer">
+                    ${checkbox}
                     <div style="flex:1 1 auto;min-width:0">
                       <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(l.client || '—')}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
                       <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(l.dateFacture || l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
                     </div>
                     <div style="text-align:right;flex-shrink:0">
                       <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(l._ttc)}</div>
-                      ${actionBtn}
+                      ${bulkOn ? '' : actionBtn}
                     </div>
                   </div>
                 </div>`;
@@ -3355,14 +3380,58 @@
           M.go('encaissement');
         });
       });
-      // Tap card livraison -> ouvre form edition livraison
+      // Tap card livraison -> ouvre form edition livraison (mode normal)
       container.querySelectorAll('.m-enc-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerLivraison(btn.dataset.id));
         btn.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerLivraison(btn.dataset.id); }
         });
       });
-      // Bouton "Marquer encaissé" rapide
+      // Tap card en mode bulk -> toggle selection
+      container.querySelectorAll('.m-enc-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.encBulkSel.has(id)) M.state.encBulkSel.delete(id);
+          else M.state.encBulkSel.add(id);
+          M.go('encaissement');
+        });
+      });
+      // Activer mode bulk
+      container.querySelector('#m-enc-bulk-on')?.addEventListener('click', () => {
+        M.state.encBulkMode = true;
+        M.state.encBulkSel.clear();
+        M.go('encaissement');
+      });
+      // Quitter mode bulk
+      container.querySelector('#m-enc-bulk-exit')?.addEventListener('click', () => {
+        M.state.encBulkMode = false;
+        M.state.encBulkSel.clear();
+        M.go('encaissement');
+      });
+      // Bulk action : tout encaisser
+      container.querySelector('#m-enc-bulk-pay')?.addEventListener('click', async () => {
+        const ids = [...M.state.encBulkSel];
+        if (!ids.length) return;
+        if (!await M.confirm(`Marquer ${ids.length} facture${ids.length>1?'s':''} comme encaissée${ids.length>1?'s':''} ?`, { titre: 'Encaisser en lot' })) return;
+        const arr = M.charger('livraisons');
+        const today = new Date().toISOString().slice(0, 10);
+        const now = new Date().toISOString();
+        let n = 0;
+        ids.forEach(id => {
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx < 0) return;
+          arr[idx].statutPaiement = 'payé';
+          arr[idx].datePaiement = today;
+          arr[idx].modifieLe = now;
+          n++;
+        });
+        M.sauvegarder('livraisons', arr);
+        M.state.encBulkSel.clear();
+        M.state.encBulkMode = false;
+        M.toast(`💵 ${n} encaissement${n>1?'s':''} enregistré${n>1?'s':''}`);
+        M.go('encaissement');
+      });
+      // Bouton "Marquer encaissé" rapide (mode normal)
       container.querySelectorAll('.m-enc-pay').forEach(btn => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
