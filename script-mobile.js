@@ -607,8 +607,26 @@
             if (ok) { M.closeSheet(); M.go('livraisons'); }
           });
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
-            if (!await M.confirm(`Supprimer définitivement cette livraison (${v.client || ''}) ?`, { titre: 'Supprimer livraison' })) return;
+            const aFacture = !!(v.factureId || v.factureNumero);
+            const msg = aFacture
+              ? `Supprimer cette livraison (${v.client || ''}) ?\n\nLa facture archivée ${v.factureNumero || ''} sera aussi annulée.`
+              : `Supprimer définitivement cette livraison (${v.client || ''}) ?`;
+            if (!await M.confirm(msg, { titre: 'Supprimer livraison' })) return;
+            // Annule l'archive de facture (mirror PC annulerArchiveFactureLivraison)
+            if (aFacture) {
+              try {
+                const factures = M.charger('factures_emises');
+                const idx = factures.findIndex(f => f.livId === v.id || f.id === v.factureId);
+                if (idx >= 0) {
+                  factures[idx].statut = 'annulée';
+                  factures[idx].annuleeLe = new Date().toISOString();
+                  factures[idx].annulationMotif = 'Livraison supprimée';
+                  M.sauvegarder('factures_emises', factures);
+                }
+              } catch (err) { console.warn('[mobile] annule facture', err); }
+            }
             M.sauvegarder('livraisons', M.charger('livraisons').filter(x => x.id !== v.id));
+            M.ajouterAudit?.('Suppression livraison', (v.client || '') + ' · ' + (v.numLiv || '') + (aFacture ? ' + facture annulée' : ''));
             M.toast('🗑️ Livraison supprimée');
             M.closeSheet();
             M.go('livraisons');
@@ -1023,8 +1041,17 @@
             if (ok) { M.closeSheet(); M.go('carburant'); }
           });
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
-            if (!await M.confirm('Supprimer définitivement ce plein ?', { titre: 'Supprimer plein' })) return;
+            const aLien = !!p.chargeId;
+            const msg = aLien
+              ? 'Supprimer ce plein ?\n\nLa charge liée dans Charges sera aussi supprimée.'
+              : 'Supprimer définitivement ce plein ?';
+            if (!await M.confirm(msg, { titre: 'Supprimer plein' })) return;
             M.sauvegarder('carburant', M.charger('carburant').filter(x => x.id !== p.id));
+            // Cascade charge liée (par carburantId OU chargeId)
+            M.sauvegarder('charges', M.charger('charges').filter(c =>
+              c.carburantId !== p.id && (!p.chargeId || c.id !== p.chargeId)
+            ));
+            M.ajouterAudit?.('Suppression plein', (p.litres ? p.litres + ' L' : '') + (aLien ? ' + cascade charge' : ''));
             M.toast('🗑️ Plein supprimé');
             M.closeSheet();
             M.go('carburant');
@@ -1228,8 +1255,24 @@
             if (ok) { M.closeSheet(); M.go('charges'); }
           });
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
-            if (!await M.confirm(`Supprimer définitivement cette charge (${c.libelle || ''}) ?`, { titre: 'Supprimer charge' })) return;
+            // Cascade : si la charge est liée à un plein/entretien, prévient avant
+            const liens = [];
+            if (c.carburantId) liens.push('le plein carburant lié');
+            if (c.entretienId) liens.push("l'entretien lié");
+            const msg = liens.length
+              ? `Supprimer cette charge ?\n\nCela supprimera aussi ${liens.join(' et ')} dans l'autre onglet.`
+              : `Supprimer définitivement cette charge (${c.libelle || ''}) ?`;
+            if (!await M.confirm(msg, { titre: 'Supprimer charge' })) return;
             M.sauvegarder('charges', M.charger('charges').filter(x => x.id !== c.id));
+            // Cascade plein lié
+            if (c.carburantId) {
+              M.sauvegarder('carburant', M.charger('carburant').filter(p => p.id !== c.carburantId));
+            }
+            // Cascade entretien lié
+            if (c.entretienId) {
+              M.sauvegarder('entretiens', M.charger('entretiens').filter(e => e.id !== c.entretienId));
+            }
+            M.ajouterAudit?.('Suppression charge', (c.libelle || '') + (liens.length ? ' + cascade : ' + liens.join(', ') : ''));
             M.toast('🗑️ Charge supprimée');
             M.closeSheet();
             M.go('charges');
@@ -1400,7 +1443,11 @@
     const tva = +(total - ht).toFixed(2);
     const veh = (plein.vehiculeId || plein.vehId)
       ? M.charger('vehicules').find(v => v.id === (plein.vehiculeId || plein.vehId)) : null;
-    const data = {
+    // Statut paiement : 'paye' SEULEMENT à la création (plein = payé pompe).
+    // Si la charge existait déjà, on respecte le choix utilisateur (peut-être
+    // marquée 'a_payer' manuellement après ajustement). Sinon on écrasait à
+    // chaque resync.
+    const dataBase = {
       date: plein.date,
       libelle: 'Carburant ' + (veh?.immat ? veh.immat : '') + (plein.litres ? ' (' + plein.litres + ' L)' : ''),
       categorie: 'carburant',
@@ -1410,9 +1457,6 @@
       montantTtc: total, montant: total,
       tauxTva: taux, tauxTVA: taux,
       tva,
-      statut: 'paye',  // plein = déjà payé à la pompe
-      statutPaiement: 'paye',
-      datePaiement: plein.date,
       source: 'plein',
       carburantId: plein.id,
       modifieLe: new Date().toISOString()
@@ -1420,11 +1464,14 @@
     if (plein.chargeId) {
       const idx = charges.findIndex(c => c.id === plein.chargeId);
       if (idx >= 0) {
-        charges[idx] = { ...charges[idx], ...data };
+        // Update : préserve statut/datePaiement existants (sauf si vides)
+        charges[idx] = { ...charges[idx], ...dataBase };
         M.sauvegarder('charges', charges);
         return;
       }
     }
+    // Création : pose statut paye + datePaiement = date plein
+    const data = { ...dataBase, statut: 'paye', statutPaiement: 'paye', datePaiement: plein.date };
     const newId = M.genId();
     charges.push({ id: newId, creeLe: new Date().toISOString(), ...data });
     M.sauvegarder('charges', charges);
@@ -1447,7 +1494,9 @@
     const tva = M.parseNum(entretien.tva) || +(ttc - ht).toFixed(2);
     const veh = (entretien.vehiculeId || entretien.vehId)
       ? M.charger('vehicules').find(v => v.id === (entretien.vehiculeId || entretien.vehId)) : null;
-    const data = {
+    // Statut paiement : 'a_payer' à la création seulement. Sur update, on
+    // préserve le statut existant (l'utilisateur a peut-être marqué payé).
+    const dataBase = {
       date: entretien.date,
       libelle: 'Entretien ' + (entretien.type || '') + ' ' + (veh?.immat || ''),
       categorie: 'entretien',
@@ -1457,8 +1506,6 @@
       montantTtc: ttc, montant: ttc,
       tauxTva: taux, tauxTVA: taux,
       tva,
-      statut: 'a_payer',  // entretien : statut paiement à définir
-      statutPaiement: 'a_payer',
       source: 'entretien',
       entretienId: entretien.id,
       modifieLe: new Date().toISOString()
@@ -1466,11 +1513,12 @@
     if (entretien.chargeId) {
       const idx = charges.findIndex(c => c.id === entretien.chargeId);
       if (idx >= 0) {
-        charges[idx] = { ...charges[idx], ...data };
+        charges[idx] = { ...charges[idx], ...dataBase };
         M.sauvegarder('charges', charges);
         return;
       }
     }
+    const data = { ...dataBase, statut: 'a_payer', statutPaiement: 'a_payer' };
     const newId = M.genId();
     charges.push({ id: newId, creeLe: new Date().toISOString(), ...data });
     M.sauvegarder('charges', charges);
@@ -2538,8 +2586,17 @@
         }
         if (enEdition) {
           b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
-            if (!await M.confirm('Supprimer définitivement cet entretien ?', { titre: 'Supprimer entretien' })) return;
+            const aLien = !!e.chargeId;
+            const msg = aLien
+              ? 'Supprimer cet entretien ?\n\nLa charge liée dans Charges sera aussi supprimée.'
+              : 'Supprimer définitivement cet entretien ?';
+            if (!await M.confirm(msg, { titre: 'Supprimer entretien' })) return;
             M.sauvegarder('entretiens', M.charger('entretiens').filter(x => x.id !== e.id));
+            // Cascade charge liée (par entretienId OU chargeId)
+            M.sauvegarder('charges', M.charger('charges').filter(c =>
+              c.entretienId !== e.id && (!e.chargeId || c.id !== e.chargeId)
+            ));
+            M.ajouterAudit?.('Suppression entretien', (e.type || '') + (aLien ? ' + cascade charge' : ''));
             M.toast('🗑️ Entretien supprimé');
             M.closeSheet();
             M.go('entretiens');
@@ -6758,6 +6815,257 @@
       if (picker) picker.addEventListener('change', e => { M.state.calendrierDate = e.target.value; M.go('calendrier'); });
       const today = container.querySelector('.m-cal-today');
       if (today) today.addEventListener('click', () => { M.state.calendrierDate = new Date().toISOString().slice(0, 10); M.go('calendrier'); });
+    }
+  });
+
+  // ---------- Audit log (v3.49 : lecture journal mobile + écriture pour saisies mobile) ----------
+  // Mirror du PC ajouterEntreeAudit (script-core-audit.js). Stockage 'audit_log',
+  // partagé via Supabase storage-sync donc les actions PC remontent ici aussi.
+  // Actor label = admin_nom mobile ou 'Admin (mobile)' par défaut.
+  M.ajouterAudit = function(action, detail, meta) {
+    try {
+      const logs = M.charger('audit_log');
+      logs.push({
+        id: M.genId(),
+        date: new Date().toISOString(),
+        admin: (sessionStorage.getItem('admin_nom') || 'Admin') + ' (mobile)',
+        action: action || 'Action',
+        detail: detail || '—',
+        meta: meta || {}
+      });
+      while (logs.length > 400) logs.shift();
+      M.sauvegarder('audit_log', logs);
+    } catch (_) { /* non bloquant */ }
+  };
+
+  M.register('audit', {
+    title: 'Journal d\'audit',
+    render() {
+      const logs = M.charger('audit_log').slice()
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 100);
+      if (!logs.length) {
+        return `<div class="m-empty"><div class="m-empty-icon">📜</div><h3 class="m-empty-title">Journal vide</h3><p class="m-empty-text">Les actions admin (création, modification, suppression) apparaitront ici. Le journal est partagé entre PC et mobile.</p></div>`;
+      }
+      let html = `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px">${logs.length} dernière${logs.length>1?'s':''} action${logs.length>1?'s':''} (max 400 stockées)</p>`;
+      // Group par jour
+      const byDay = {};
+      logs.forEach(l => {
+        const d = (l.date || '').slice(0, 10);
+        if (!byDay[d]) byDay[d] = [];
+        byDay[d].push(l);
+      });
+      Object.keys(byDay).forEach(jour => {
+        const dateLabel = jour ? new Date(jour).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }).replace(/^./, c => c.toUpperCase()) : 'Sans date';
+        html += `<div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title" style="font-size:.92rem">${dateLabel}</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${byDay[jour].length}</span></div>
+          ${byDay[jour].map(l => {
+            const heure = l.date ? new Date(l.date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+            return `<div class="m-card" style="padding:10px 12px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;align-items:start;gap:10px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.86rem">${M.escHtml(l.action || 'Action')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.74rem;margin-top:2px;line-height:1.4">${M.escHtml(l.detail || '—').slice(0, 200)}</div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;font-size:.7rem;color:var(--m-text-muted);white-space:nowrap">
+                  <div>${heure}</div>
+                  <div style="font-weight:500">${M.escHtml(l.admin || 'Admin').slice(0, 16)}</div>
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+      });
+      return html;
+    }
+  });
+
+  // ---------- Recherche globale (v3.49 : toutes entités confondues) ----------
+  // Recherche full-text sur livraisons + clients + fournisseurs + véhicules +
+  // salariés + charges + entretiens + carburant + incidents + inspections.
+  // Match sur tous les champs textuels significatifs. Tap sur un résultat
+  // ouvre la fiche/édition correspondante.
+  M.state.rechercheGlobaleQ = '';
+  M.register('recherche', {
+    title: 'Recherche',
+    render() {
+      const q = (M.state.rechercheGlobaleQ || '').trim().toLowerCase();
+      let html = `
+        <div style="margin-bottom:14px">
+          <input type="search" id="m-rg-input" placeholder="🔍 Tape ce que tu cherches (client, immat, n°, montant...)" value="${M.escHtml(M.state.rechercheGlobaleQ)}" autocomplete="off" autofocus />
+        </div>
+      `;
+      if (!q || q.length < 2) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Recherche dans tout le site</h3><p class="m-empty-text">Tape au moins 2 caractères pour chercher dans toutes les entités : livraisons, clients, fournisseurs, véhicules, salariés, charges, entretiens, carburant, incidents.</p></div>`;
+        return html;
+      }
+
+      const matches = (txt) => txt && String(txt).toLowerCase().includes(q);
+
+      const sections = [
+        {
+          key: 'livraisons', icon: '📦', label: 'Livraisons', open: 'editerLivraison',
+          items: M.charger('livraisons').filter(l =>
+            matches(l.client) || matches(l.numLiv) || matches(l.depart) || matches(l.arrivee)
+            || matches(l.zone) || matches(l.notes) || matches(l.expNom) || matches(l.destNom)
+            || matches((Number(l.prix) || Number(l.prixHT) || '').toString())
+          ).map(l => ({
+            id: l.id,
+            titre: l.client || '—',
+            sous: `${M.formatDate(l.date)}${l.numLiv ? ' · ' + l.numLiv : ''}${l.distance ? ' · ' + l.distance + ' km' : ''}`,
+            valeur: M.format$(l.prix || l.prixHT || 0)
+          }))
+        },
+        {
+          key: 'clients', icon: '🧑‍💼', label: 'Clients', open: 'openDetail',
+          openArg: 'clients',
+          items: M.charger('clients').filter(c =>
+            matches(c.nom) || matches(c.prenom) || matches(c.email) || matches(c.tel) || matches(c.ville) || matches(c.siren) || matches(c.tva)
+          ).map(c => ({
+            id: c.id,
+            titre: ((c.prenom ? c.prenom + ' ' : '') + (c.nom || '')).trim() || '—',
+            sous: [c.ville, c.tel].filter(Boolean).join(' · ') || '',
+            valeur: ''
+          }))
+        },
+        {
+          key: 'fournisseurs', icon: '🏭', label: 'Fournisseurs', open: 'openDetail',
+          openArg: 'fournisseurs',
+          items: M.charger('fournisseurs').filter(f =>
+            matches(f.nom) || matches(f.email) || matches(f.tel) || matches(f.ville) || matches(f.siret) || matches(f.iban)
+          ).map(f => ({
+            id: f.id,
+            titre: f.nom || '—',
+            sous: [f.ville, f.tel].filter(Boolean).join(' · ') || '',
+            valeur: ''
+          }))
+        },
+        {
+          key: 'vehicules', icon: '🚐', label: 'Véhicules', open: 'openDetail',
+          openArg: 'vehicules',
+          items: M.charger('vehicules').filter(v =>
+            matches(v.immat) || matches(v.modele) || matches(v.marque) || matches(v.salNom) || matches(v.typeCarburant)
+          ).map(v => ({
+            id: v.id,
+            titre: v.immat || '—',
+            sous: [v.marque, v.modele].filter(Boolean).join(' ') || (v.typeCarburant || ''),
+            valeur: v.km ? M.formatNum(v.km) + ' km' : ''
+          }))
+        },
+        {
+          key: 'salaries', icon: '👥', label: 'Salariés', open: 'openDetail',
+          openArg: 'salaries',
+          items: M.charger('salaries').filter(s => !s.archive && (
+            matches(s.nom) || matches(s.prenom) || matches(s.email) || matches(s.tel) || matches(s.numero) || matches(s.poste)
+          )).map(s => ({
+            id: s.id,
+            titre: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || '')).trim() || '—',
+            sous: [s.poste, s.numero].filter(Boolean).join(' · ') || '',
+            valeur: ''
+          }))
+        },
+        {
+          key: 'charges', icon: '💸', label: 'Charges', open: 'editerCharge',
+          items: M.charger('charges').filter(c =>
+            matches(c.libelle) || matches(c.fournisseur) || matches(c.categorie)
+            || matches((Number(c.montantTtc) || Number(c.montant) || '').toString())
+          ).map(c => ({
+            id: c.id,
+            titre: c.libelle || c.fournisseur || 'Charge',
+            sous: `${M.formatDate(c.date)}${c.categorie ? ' · ' + c.categorie : ''}`,
+            valeur: M.format$(c.montantTtc || c.montant || 0)
+          }))
+        },
+        {
+          key: 'carburant', icon: '⛽', label: 'Carburant', open: 'editerPlein',
+          items: M.charger('carburant').filter(p => {
+            const veh = M.indexVehicules()[p.vehiculeId || p.vehId];
+            return matches(veh?.immat) || matches((Number(p.total) || '').toString()) || matches((Number(p.litres) || '').toString());
+          }).map(p => {
+            const veh = M.indexVehicules()[p.vehiculeId || p.vehId];
+            return {
+              id: p.id,
+              titre: (veh?.immat || 'Plein') + ' · ' + (p.litres ? p.litres + ' L' : ''),
+              sous: M.formatDate(p.date),
+              valeur: M.format$(p.total || 0)
+            };
+          })
+        },
+        {
+          key: 'entretiens', icon: '🔧', label: 'Entretiens', open: 'editerEntretien',
+          items: M.charger('entretiens').filter(e => {
+            const veh = M.indexVehicules()[e.vehiculeId || e.vehId];
+            return matches(veh?.immat) || matches(e.type) || matches(e.description);
+          }).map(e => {
+            const veh = M.indexVehicules()[e.vehiculeId || e.vehId];
+            return {
+              id: e.id,
+              titre: (veh?.immat || '—') + ' · ' + (e.type || 'Entretien'),
+              sous: `${M.formatDate(e.date)}${e.description ? ' · ' + e.description.slice(0, 40) : ''}`,
+              valeur: M.format$(e.cout || e.coutTtc || 0)
+            };
+          })
+        },
+        {
+          key: 'incidents', icon: '🚨', label: 'Incidents', open: 'editerIncident',
+          items: M.charger('incidents').filter(i =>
+            matches(i.description) || matches(i.client) || matches(i.salNom) || matches(i.gravite) || matches(i.statut)
+          ).map(i => ({
+            id: i.id,
+            titre: (i.client || i.salNom || 'Incident'),
+            sous: `${M.formatDate(i.date || i.creeLe)}${i.gravite ? ' · ' + i.gravite : ''}`,
+            valeur: i.statut || ''
+          }))
+        },
+      ];
+
+      const totalCount = sections.reduce((s, sec) => s + sec.items.length, 0);
+      if (totalCount === 0) {
+        html += `<div class="m-empty"><div class="m-empty-icon">🤷</div><h3 class="m-empty-title">Aucun résultat pour "${M.escHtml(q)}"</h3><p class="m-empty-text">Essaie un autre mot-clé.</p></div>`;
+        return html;
+      }
+
+      html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px">${totalCount} résultat${totalCount>1?'s':''} pour "<strong>${M.escHtml(q)}</strong>"</p>`;
+
+      sections.forEach(sec => {
+        if (!sec.items.length) return;
+        html += `<div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">${sec.icon} ${sec.label}</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${sec.items.length}</span></div>
+          ${sec.items.slice(0, 10).map(it => {
+            const onClick = sec.openArg
+              ? `MCAm.${sec.open}('${sec.openArg}','${M.escHtml(it.id)}')`
+              : `MCAm.${sec.open}('${M.escHtml(it.id)}')`;
+            return `<button type="button" class="m-card m-card-pressable" onclick="${onClick}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(it.titre)}</div>
+                ${it.sous ? `<div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.escHtml(it.sous)}</div>` : ''}
+              </div>
+              ${it.valeur ? `<div style="font-weight:700;font-size:.85rem;white-space:nowrap;flex-shrink:0">${M.escHtml(it.valeur)}</div>` : ''}
+            </button>`;
+          }).join('')}
+          ${sec.items.length > 10 ? `<p style="font-size:.74rem;color:var(--m-text-muted);text-align:center;margin:4px 0 0">… et ${sec.items.length - 10} autre${sec.items.length-10>1?'s':''}</p>` : ''}
+        </div>`;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      const inp = container.querySelector('#m-rg-input');
+      if (inp) {
+        let timer;
+        inp.addEventListener('input', e => {
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            M.state.rechercheGlobaleQ = e.target.value;
+            M.go('recherche');
+          }, 350);
+        });
+        // Préserve focus + caret
+        if (M.state.rechercheGlobaleQ) {
+          inp.focus();
+          inp.setSelectionRange(inp.value.length, inp.value.length);
+        }
+      }
     }
   });
 

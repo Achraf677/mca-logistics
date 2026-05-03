@@ -364,10 +364,15 @@ async function supprimerEntretien(id) {
   // Trouver l'entretien pour supprimer la charge liée
   const entretien = charger('entretiens').find(e=>e.id===id);
   sauvegarder('entretiens', charger('entretiens').filter(e=>e.id!==id));
-  // Supprimer la charge correspondante si elle existe
-  if (entretien && entretien.cout > 0) {
+  // Supprimer la charge correspondante si elle existe.
+  // Cherche par chargeId/entretienId même si cout=0 (sinon laisse une charge orpheline
+  // créée historiquement), heuristique date+montant uniquement si cout>0.
+  if (entretien) {
     const charges = charger('charges');
-    const idxCharge = charges.findIndex(c => c.id === entretien.chargeId || c.entretienId === entretien.id || (c.categorie==='entretien' && c.vehId===entretien.vehId && c.date===entretien.date && Math.abs((c.montant||0)-entretien.cout) < 0.01));
+    const idxCharge = charges.findIndex(c =>
+      c.id === entretien.chargeId || c.entretienId === entretien.id ||
+      (entretien.cout > 0 && c.categorie==='entretien' && c.vehId===entretien.vehId && c.date===entretien.date && Math.abs((c.montant||0)-entretien.cout) < 0.01)
+    );
     if (idxCharge > -1) { charges.splice(idxCharge, 1); sauvegarder('charges', charges); }
   }
   afficherEntretiens();
