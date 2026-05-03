@@ -7046,8 +7046,70 @@
   // restait sur avril alors que les saisies étaient datées mai. -> compteur
   // ne se mettait jamais à jour. Fix : recalcul en render() sauf si l'user
   // a explicitement choisi un mois via le dropdown.
+  // Bug v3.63 : le compteur d'heures mobile ne lisait QUE les saisies manuelles
+  // 'heures' et ignorait totalement les horaires définis dans l'onglet Planning
+  // (plannings[].semaine[].heureDebut/heureFin). Désormais, on agrège les heures
+  // planifiees (sur le mois sélectionné) en plus des heures saisies manuellement,
+  // alignement avec la logique desktop (script-heures.js l.198-202) :
+  //   total affiche = heuresReelles > 0 ? heuresReelles : planifiees
+  // Les jours tombant dans une période d'absence longue (planning.absences[])
+  // de type conge/absence/maladie sont exclus du calcul planifie.
   M.state.heuresMois = new Date().toISOString().slice(0, 7);
   M.state.heuresMoisManuel = false;
+
+  // Calcule les heures planifiees pour un salarie sur un mois donne (YYYY-MM).
+  // Parcourt chaque jour du mois, lit le planning hebdo puis applique les
+  // overrides d'absences longues (planning.absences[] type conge/absence/maladie
+  // -> 0h, type travail -> heureDebut/Fin de la periode).
+  // joursExclus (optional) : Set/array de dates 'YYYY-MM-DD' deja couvertes par
+  // une saisie reelle -> on ignore le planning pour ces jours, evite le double
+  // comptage. Sans cet argument, comportement historique (mois entier).
+  M.calculerHeuresPlanifieesMois = function(planning, moisCle, joursExclus) {
+    if (!planning || !Array.isArray(planning.semaine) || !moisCle) return 0;
+    const [yy, mm] = moisCle.split('-').map(Number);
+    if (!yy || !mm) return 0;
+    const nbJours = new Date(yy, mm, 0).getDate(); // dernier jour du mois
+    const absences = Array.isArray(planning.absences) ? planning.absences : [];
+    const skip = joursExclus instanceof Set ? joursExclus
+      : (Array.isArray(joursExclus) ? new Set(joursExclus) : null);
+    let total = 0;
+    for (let day = 1; day <= nbJours; day++) {
+      const dateObj = new Date(yy, mm - 1, day);
+      const dateStr = `${yy}-${String(mm).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      if (skip && skip.has(dateStr)) continue; // saisie reelle pour ce jour
+      // Override : periode d'absence longue
+      const periode = absences.find(a => a.dateDebut && a.dateDebut <= dateStr && (!a.dateFin || a.dateFin >= dateStr));
+      if (periode) {
+        if (periode.type === 'travail') {
+          const dur = M.calculerDureeJour(periode.heureDebut || '', periode.heureFin || '');
+          if (dur > 0) total += dur;
+        }
+        // conge/absence/maladie -> 0h pour ce jour
+        continue;
+      }
+      // Planning hebdo recurrent
+      const jourNom = M_JOURS_FR[(dateObj.getDay() + 6) % 7];
+      const j = planning.semaine.find(x => x.jour === jourNom);
+      if (!j) continue;
+      const typeJour = j.typeJour || (j.travaille ? 'travail' : 'repos');
+      if (typeJour !== 'travail') continue;
+      if (!j.travaille && !j.heureDebut) continue;
+      const dur = M.calculerDureeJour(j.heureDebut || '', j.heureFin || '');
+      if (dur > 0) total += dur;
+    }
+    return total;
+  };
+
+  // Helper duree en heures decimales (HH:MM -> HH:MM)
+  M.calculerDureeJour = function(hd, hf) {
+    if (!hd || !hf) return 0;
+    const [h1, m1] = String(hd).split(':').map(Number);
+    const [h2, m2] = String(hf).split(':').map(Number);
+    if ([h1, m1, h2, m2].some(x => Number.isNaN(x))) return 0;
+    const min = (h2 * 60 + m2) - (h1 * 60 + m1);
+    return min > 0 ? min / 60 : 0;
+  };
+
   M.register('heures', {
     title: 'Heures & Km',
     render() {
@@ -7056,9 +7118,30 @@
         M.state.heuresMois = new Date().toISOString().slice(0, 7);
       }
       const moisSel = M.state.heuresMois;
+
+      // BUGFIX v3.63 : pull explicit plannings + livraisons + heures pour
+      // s'assurer que le compteur reflete les dernieres saisies (notamment
+      // celles faites depuis l'onglet Planning qui poussent dans
+      // plannings_hebdo via plannings-supabase-adapter).
+      if (!M.state._heuresPullDone || M.state._heuresPullMois !== moisSel) {
+        M.state._heuresPullDone = true;
+        M.state._heuresPullMois = moisSel;
+        const adapters = window.DelivProEntityAdapters || {};
+        const before = M.charger('plannings').length + M.charger('heures').length + M.charger('livraisons').length;
+        Promise.allSettled([
+          adapters.plannings?.pullAll?.(),
+          adapters.livraisons?.pullAll?.(),
+          adapters.heures?.pullAll?.()
+        ]).then(() => {
+          const after = M.charger('plannings').length + M.charger('heures').length + M.charger('livraisons').length;
+          if (after !== before && M.state.currentPage === 'heures') M.go('heures');
+        }).catch(() => {});
+      }
+
       const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
       const livraisons = M.charger('livraisons').filter(l => (l.date || '').startsWith(moisSel));
       const heuresEntries = M.charger('heures').filter(h => (h.date || '').startsWith(moisSel));
+      const plannings = M.charger('plannings');
 
       // Selecteur 12 derniers mois
       const moisOptions = [];
@@ -7075,9 +7158,24 @@
         const livSal = livraisons.filter(l => l.salarieId === s.id || l.chaufId === s.id);
         const kmLiv = livSal.reduce((sum, l) => sum + (M.parseNum(l.distance) || 0), 0);
         const heuresSal = heuresEntries.filter(h => h.salId === s.id || h.salarieId === s.id);
-        const totalHeures = heuresSal.reduce((sum, h) => sum + (M.parseNum(h.heures) || 0), 0);
+        const heuresReelles = heuresSal.reduce((sum, h) => sum + (M.parseNum(h.heures) || 0), 0);
         const kmHeures = heuresSal.reduce((sum, h) => sum + (M.parseNum(h.km) || 0), 0);
-        return { sal: s, nbLiv: livSal.length, kmLiv, totalHeures, kmHeures, kmTotal: kmLiv + kmHeures };
+        // BUGFIX v3.63 : avant, "1 saisie reelle dans le mois" eclipsait TOUT le
+        // planning ("totalHeures = heuresReelles > 0 ? heuresReelles : planifiees").
+        // Cas concret : 1 saisie 8h -> 8 > 0 -> ignore les 22 jours plannifies a 9h
+        // (= 198h perdues a l'affichage). Maintenant on additionne par jour :
+        // pour chaque jour avec saisie reelle, on prend la saisie ; pour les
+        // autres jours, on prend le planning.
+        const joursAvecSaisie = new Set(heuresSal.map(h => (h.date || '').slice(0, 10)).filter(Boolean));
+        const planning = plannings.find(p => p.salId === s.id);
+        const heuresPlanifiees = M.calculerHeuresPlanifieesMois(planning, moisSel);
+        const heuresPlanifieesAjustees = M.calculerHeuresPlanifieesMois(planning, moisSel, joursAvecSaisie);
+        const totalHeures = heuresReelles + heuresPlanifieesAjustees;
+        return {
+          sal: s, nbLiv: livSal.length, kmLiv,
+          totalHeures, heuresReelles, heuresPlanifiees,
+          kmHeures, kmTotal: kmLiv + kmHeures
+        };
       }).sort((a, b) => b.kmTotal - a.kmTotal);
 
       const grandTotalKm = stats.reduce((s, x) => s + x.kmTotal, 0);
@@ -7348,6 +7446,26 @@
       const tab = M.state.tvaTab;
       const profile = M.getTVAConfig();
 
+      // BUGFIX v3.63 : pull explicit charges + livraisons + carburant au render.
+      // Cas concret : charges de mars 2026 (INPI/QONTO/REGIE PRO) presentes en
+      // table public.charges mais absentes du localStorage mobile a la 1re
+      // ouverture de l'app -> TVA deductible vide. Le pull ramene les donnees
+      // fraiches et re-rend si nouveau contenu detecte.
+      if (!M.state._tvaPullDone || M.state._tvaPullMois !== moisSel) {
+        M.state._tvaPullDone = true;
+        M.state._tvaPullMois = moisSel;
+        const adapters = window.DelivProEntityAdapters || {};
+        const before = (M.charger('charges').length) + (M.charger('livraisons').length) + (M.charger('carburant').length);
+        Promise.allSettled([
+          adapters.charges?.pullAll?.(),
+          adapters.livraisons?.pullAll?.(),
+          adapters.carburant?.pullAll?.()
+        ]).then(() => {
+          const after = (M.charger('charges').length) + (M.charger('livraisons').length) + (M.charger('carburant').length);
+          if (after > before && M.state.currentPage === 'tva') M.go('tva');
+        }).catch(() => {});
+      }
+
       // TVA collectee : filter par EXIGIBILITE date (pas date facturation),
       // sinon decalage de 1 mois vs PC quand exigibilite=encaissements.
       const allLivraisons = M.charger('livraisons');
@@ -7453,10 +7571,18 @@
         const modeLabel = profile.activiteType === 'goods' ? 'Biens (exigible à la livraison)'
           : profile.exigibiliteServices === 'debits' ? 'Services (exigible à la facture)'
           : 'Services (exigible à l\'encaissement)';
+        // Phrase explicative pour eviter que l'utilisateur soit surpris du decalage
+        // (ex : facture mars payee en avril -> apparait en avril, pas mars)
+        const modeExplain = profile.activiteType !== 'goods' && profile.exigibiliteServices !== 'debits'
+          ? 'Une livraison apparaît dans le mois de son <strong>paiement</strong> (pas de sa facturation). C\'est la règle officielle du transport routier.'
+          : 'Une livraison apparaît dans le mois de sa facturation.';
         html += `
-          <div class="m-card" style="padding:10px 14px;margin-bottom:10px;background:var(--m-accent-soft);font-size:.78rem;display:flex;align-items:center;gap:8px">
-            <span>⚙️</span>
-            <span style="flex:1 1 auto"><strong>Mode TVA :</strong> ${M.escHtml(modeLabel)}</span>
+          <div class="m-card" style="padding:12px 14px;margin-bottom:10px;background:var(--m-accent-soft);font-size:.78rem">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span>⚙️</span>
+              <strong>Mode TVA : ${M.escHtml(modeLabel)}</strong>
+            </div>
+            <div style="color:var(--m-text-muted);line-height:1.45">${modeExplain}</div>
           </div>
           <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
             <div class="m-card-title">${enCredit ? '💚 Crédit TVA' : '💸 TVA à reverser'}</div>
