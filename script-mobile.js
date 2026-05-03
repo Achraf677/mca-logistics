@@ -174,6 +174,92 @@
 
   // Dialog liste de choix (radio) : ouvre overlay avec liste d'options.
   // Resoud la valeur sélectionnée ou null si annulé.
+  // ============================================================
+  // FACTORY PÉRIODES (jour / semaine / mois / année + nav)
+  // M.state.periodes[scope] = { mode: 'mois', offset: 0 }
+  // ============================================================
+  M.state.periodes = M.state.periodes || {};
+
+  // Calcule { debut, fin, label, datesLabel } pour un (mode, offset).
+  // mode='jour'|'semaine'|'mois'|'annee', offset=0 (courant), -1, +1, etc.
+  M.computePeriodeRange = function(mode, offset) {
+    const now = new Date();
+    const off = offset || 0;
+    const fmtDate = d => d.toISOString().slice(0, 10);
+    const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+    if (mode === 'jour') {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
+      const iso = fmtDate(d);
+      const lbl = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+      return { mode, debut: iso, fin: iso, label: cap(lbl), datesLabel: '' };
+    }
+    if (mode === 'semaine') {
+      // Lundi = jour 1 (FR ISO). Date.getDay() : 0=dim, 1=lun, ..., 6=sam.
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off * 7);
+      const dayOfWeek = (today.getDay() + 6) % 7; // 0=lun, 6=dim
+      const debut = new Date(today); debut.setDate(today.getDate() - dayOfWeek);
+      const fin = new Date(debut); fin.setDate(debut.getDate() + 6);
+      const debutISO = fmtDate(debut), finISO = fmtDate(fin);
+      // ISO 8601 : numéro de semaine (jeudi de la semaine courante)
+      const jeudi = new Date(debut); jeudi.setDate(debut.getDate() + 3);
+      const an1Janvier = new Date(jeudi.getFullYear(), 0, 1);
+      const numSem = Math.ceil((((jeudi - an1Janvier) / 86400000) + 1) / 7);
+      return { mode, debut: debutISO, fin: finISO,
+        label: 'Sem. ' + numSem + ' · ' + jeudi.getFullYear(),
+        datesLabel: debut.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' → ' + fin.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) };
+    }
+    if (mode === 'annee') {
+      const an = now.getFullYear() + off;
+      return { mode, debut: an + '-01-01', fin: an + '-12-31', label: String(an), datesLabel: '' };
+    }
+    // mois (default)
+    const d = new Date(now.getFullYear(), now.getMonth() + off, 1);
+    const fin = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+    const lbl = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    return { mode: 'mois', debut: fmtDate(d), fin: fmtDate(fin), label: cap(lbl), datesLabel: '' };
+  };
+
+  // Resoud le range courant pour un scope. Crée le state si absent.
+  M.periodeRange = function(scope, defMode) {
+    const st = M.state.periodes[scope] || (M.state.periodes[scope] = { mode: defMode || 'mois', offset: 0 });
+    return M.computePeriodeRange(st.mode, st.offset);
+  };
+
+  // Render barre période : chips Jour/Sem/Mois/An + nav prev/today/next + label.
+  M.renderPeriodeBar = function(scope, defMode) {
+    const st = M.state.periodes[scope] || (M.state.periodes[scope] = { mode: defMode || 'mois', offset: 0 });
+    const r = M.computePeriodeRange(st.mode, st.offset);
+    const modes = [['jour','Jour'],['semaine','Sem.'],['mois','Mois'],['annee','An']];
+    return `
+      <div class="m-periode-bar" style="margin-bottom:14px">
+        <div style="display:flex;gap:4px;margin-bottom:8px">
+          ${modes.map(([m,l]) => `<button class="m-alertes-chip ${st.mode===m?'active':''}" data-pmode="${m}" data-pscope="${scope}" style="flex:1 1 0;font-size:.75rem;padding:6px 4px;min-height:0;height:30px">${l}</button>`).join('')}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="m-btn" data-pnav="-1" data-pscope="${scope}" style="width:36px;height:34px;padding:0;font-size:.85rem">‹</button>
+          <div style="flex:1 1 auto;text-align:center;line-height:1.2">
+            <div style="font-weight:600;font-size:.85rem">${M.escHtml(r.label)}</div>
+            ${r.datesLabel ? `<div style="font-size:.7rem;color:var(--m-text-muted)">${M.escHtml(r.datesLabel)}</div>` : ''}
+          </div>
+          ${st.offset !== 0 ? `<button class="m-btn" data-preset="1" data-pscope="${scope}" style="padding:0 8px;height:34px;font-size:.7rem">Auj.</button>` : ''}
+          <button class="m-btn" data-pnav="1" data-pscope="${scope}" style="width:36px;height:34px;padding:0;font-size:.85rem">›</button>
+        </div>
+      </div>`;
+  };
+
+  // Wire les events de la barre (chips + nav). refreshFn est le callback
+  // de re-render (typiquement () => M.go('page')).
+  M.wirePeriodeBar = function(container, scope, refreshFn) {
+    const st = M.state.periodes[scope];
+    if (!st) return;
+    container.querySelectorAll(`[data-pscope="${scope}"][data-pmode]`).forEach(b =>
+      b.addEventListener('click', () => { st.mode = b.dataset.pmode; st.offset = 0; refreshFn(); }));
+    container.querySelectorAll(`[data-pscope="${scope}"][data-pnav]`).forEach(b =>
+      b.addEventListener('click', () => { st.offset += parseInt(b.dataset.pnav, 10); refreshFn(); }));
+    container.querySelector(`[data-pscope="${scope}"][data-preset]`)
+      ?.addEventListener('click', () => { st.offset = 0; refreshFn(); });
+  };
+
   M.dialogChoix = function(opts = {}) {
     return new Promise(resolve => {
       document.querySelector('.m-choix-dialog')?.remove();
@@ -1041,13 +1127,27 @@
         const total  = body.querySelector('input[name=total]');
         const vehSelect = body.querySelector('select[name=vehiculeId]');
         const carbSelect = body.querySelector('select[name=typeCarburant]');
+        // Calcul tri-directionnel : 2 valeurs sur 3 → calcule la 3e.
+        // dernierEdit suit le dernier champ touché par l'user pour ne pas l'écraser.
+        let dernierEdit = total.value ? 'total' : (litres.value ? 'litres' : 'prixL');
         const recalc = () => {
-          if (!total.value && litres.value && prixL.value) {
-            total.value = (M.parseNum(litres.value) * M.parseNum(prixL.value)).toFixed(2);
+          const L = M.parseNum(litres.value);
+          const P = M.parseNum(prixL.value);
+          const T = M.parseNum(total.value);
+          if (dernierEdit === 'total' && L > 0 && T > 0) {
+            // total + litres → prixL (sauf si user vient d'éditer prixL)
+            prixL.value = (T / L).toFixed(3);
+          } else if (dernierEdit === 'total' && P > 0 && T > 0) {
+            // total + prixL → litres
+            litres.value = (T / P).toFixed(2);
+          } else if ((dernierEdit === 'litres' || dernierEdit === 'prixL') && L > 0 && P > 0) {
+            // litres + prixL → total
+            total.value = (L * P).toFixed(2);
           }
         };
-        litres.addEventListener('input', recalc);
-        prixL.addEventListener('input', recalc);
+        litres.addEventListener('input', () => { dernierEdit = 'litres'; recalc(); });
+        prixL.addEventListener('input', () => { dernierEdit = 'prixL'; recalc(); });
+        total.addEventListener('input', () => { dernierEdit = 'total'; recalc(); });
         // Auto-remplit le type carburant + km compteur depuis le vehicule selectionne
         const kmCompteurInput = body.querySelector('input[name=kmCompteur]');
         if (vehSelect) {
