@@ -4777,6 +4777,8 @@
 
   // ---------- Charges (v3.0 : groupees par mois + filtre statut) ----------
   M.state.chargesStatut = 'tous'; // tous | a_payer | paye
+  M.state.chargesBulkMode = false;
+  M.state.chargesBulkSel = new Set();
   M.state.chargesCategorie = ''; // '' = toutes
   M.state.chargesFournisseur = ''; // '' = tous
   M.state.chargesMoisOuverts = {};
@@ -4801,7 +4803,27 @@
 
       const sorted = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
-      let html = `<button class="m-fab" onclick="MCAm.formNouvelleCharge()" aria-label="Nouvelle charge">+</button>`;
+      const bulkOn = M.state.chargesBulkMode;
+      const selSet = M.state.chargesBulkSel;
+      const selItems = sorted.filter(c => selSet.has(c.id));
+      const selCount = selItems.length;
+      const selTotal = selItems.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+
+      let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelleCharge()" aria-label="Nouvelle charge">+</button>
+        <button class="m-fab m-fab-secondary" id="m-charges-bulk-on" aria-label="Sélection multiple" style="background:var(--m-blue);color:#fff;font-size:1.1rem">☑</button>`;
+
+      if (bulkOn) {
+        html += `<div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:10px 12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:${selCount>0?'10px':'0'}">
+            <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}${selCount > 0 ? ` · ${M.format$(selTotal)}` : ''}</div>
+            <button type="button" id="m-charges-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
+          </div>
+          ${selCount > 0 ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button type="button" class="m-charges-bulk-action m-btn" data-action="paye" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">✅ Marquer payée</button>
+            <button type="button" class="m-charges-bulk-action m-btn m-btn-danger" data-action="delete" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">🗑️ Supprimer</button>
+          </div>` : ''}
+        </div>`;
+      }
       html += `
         <div class="m-card-row">
           <div class="m-card m-card-red">
@@ -4891,15 +4913,21 @@
                 const statutBadge = estPayee
                   ? `<div style="font-size:.7rem;color:${statutColor};font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}</div>`
                   : `<button type="button" class="m-charge-pay" data-id="${M.escHtml(c.id)}" style="margin-top:4px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:3px 8px;font-size:.7rem;font-weight:700;font-family:inherit;cursor:pointer">✅ Marquer payée</button>`;
+                const isSel = selSet.has(c.id);
+                const cardClass = bulkOn ? 'm-charges-toggle' : 'm-charge-edit';
+                const cardBg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)'
+                  : 'background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border)';
+                const checkbox = bulkOn ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
                 return `<div style="position:relative;margin-bottom:10px">
-                  <div role="button" tabindex="0" class="m-card m-card-pressable m-charge-edit" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit;cursor:pointer">
+                  <div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(c.id)}" style="padding:14px;border-left:4px solid ${borderColor};display:flex;align-items:start;gap:10px;width:100%;text-align:left;${cardBg};border-radius:18px;color:inherit;font-family:inherit;cursor:pointer">
+                    ${checkbox}
                     <div style="flex:1 1 auto;min-width:0">
                       <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(c.libelle || c.fournisseur || 'Charge')}</div>
                       <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(c.date)}${c.fournisseur && c.libelle ? ' · ' + M.escHtml(c.fournisseur) : ''}${c.categorie ? ' · ' + M.escHtml(c.categorie) : ''}</div>
                     </div>
                     <div style="text-align:right;flex-shrink:0">
                       <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(montant)}</div>
-                      ${statutBadge}
+                      ${bulkOn ? '' : statutBadge}
                     </div>
                   </div>
                 </div>`;
@@ -4937,6 +4965,53 @@
         btn.addEventListener('click', () => M.editerCharge(btn.dataset.id));
         btn.addEventListener('keydown', (e) => {
           if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerCharge(btn.dataset.id); }
+        });
+      });
+      // Bulk mode : toggle / enter / exit / actions
+      container.querySelectorAll('.m-charges-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.chargesBulkSel.has(id)) M.state.chargesBulkSel.delete(id);
+          else M.state.chargesBulkSel.add(id);
+          M.go('charges');
+        });
+      });
+      container.querySelector('#m-charges-bulk-on')?.addEventListener('click', () => {
+        M.state.chargesBulkMode = true; M.state.chargesBulkSel.clear(); M.go('charges');
+      });
+      container.querySelector('#m-charges-bulk-exit')?.addEventListener('click', () => {
+        M.state.chargesBulkMode = false; M.state.chargesBulkSel.clear(); M.go('charges');
+      });
+      container.querySelectorAll('.m-charges-bulk-action').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const action = btn.dataset.action;
+          const ids = [...M.state.chargesBulkSel];
+          if (!ids.length) return;
+          if (action === 'delete') {
+            if (!await M.confirm(`Supprimer ${ids.length} charge${ids.length>1?'s':''} ? (cascade plein/entretien lié si applicable)`, { titre: 'Suppression en lot' })) return;
+            const arr = M.charger('charges');
+            const aSuppr = arr.filter(c => ids.includes(c.id));
+            // Cascade : supprime aussi les pleins/entretiens liés
+            const pleinIds = aSuppr.map(c => c.carburantId).filter(Boolean);
+            const entIds = aSuppr.map(c => c.entretienId).filter(Boolean);
+            M.sauvegarder('charges', arr.filter(c => !ids.includes(c.id)));
+            if (pleinIds.length) M.sauvegarder('carburant', M.charger('carburant').filter(p => !pleinIds.includes(p.id)));
+            if (entIds.length) M.sauvegarder('entretiens', M.charger('entretiens').filter(e => !entIds.includes(e.id)));
+            M.toast(`🗑️ ${ids.length} charge${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
+          } else if (action === 'paye') {
+            const res = await M.dialogChoisirDate({ titre: `✅ Marquer ${ids.length} charge${ids.length>1?'s':''} payée${ids.length>1?'s':''}`, labelDate: 'Date de paiement', btnOk: '✅ Confirmer' });
+            if (!res) return;
+            const arr = M.charger('charges');
+            ids.forEach(id => {
+              const idx = arr.findIndex(x => x.id === id);
+              if (idx >= 0) { arr[idx].statut = 'paye'; arr[idx].statutPaiement = 'paye'; arr[idx].datePaiement = res.date; arr[idx].modifieLe = new Date().toISOString(); }
+            });
+            M.sauvegarder('charges', arr);
+            M.toast(`✅ ${ids.length} charge${ids.length>1?'s':''} marquée${ids.length>1?'s':''} payée${ids.length>1?'s':''}`);
+          }
+          M.state.chargesBulkSel.clear();
+          M.state.chargesBulkMode = false;
+          M.go('charges');
         });
       });
       // Bouton "Marquer payée" rapide (stopPropagation pour ne pas declencher l'edit)
