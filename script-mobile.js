@@ -3066,6 +3066,200 @@
     }
   });
 
+  // ---------- Encaissement (v3.35 : miroir Charges cote revenus) ----------
+  // Source : livraisons + leur statutPaiement. Marque les revenus a encaisser.
+  M.state.encStatut = 'a_encaisser'; // a_encaisser | encaisse | retard | tous
+  M.state.encClient = ''; // filtre client
+  M.state.encMoisOuverts = {};
+  M.register('encaissement', {
+    title: 'Encaissement',
+    render() {
+      const livraisons = M.charger('livraisons');
+      const filtreStatut = M.state.encStatut;
+      const filtreClient = M.state.encClient;
+
+      // Annote chaque livraison avec son statut effectif
+      const livAnnotees = livraisons.map(l => {
+        const ttc = M.parseNum(l.prixTTC) || M.parseNum(l.prix) || 0;
+        const ht = M.parseNum(l.prixHT) || M.parseNum(l.prix) || 0;
+        const statut = l.statutPaiement || 'en-attente';
+        const estPaye = statut === 'payé' || statut === 'paye' || statut === 'payee';
+        const estLitige = statut === 'litige';
+        // Retard : facturee depuis > 30j et non payee
+        const refDate = l.dateFacture || l.date;
+        const enRetard = !estPaye && !estLitige && refDate &&
+          (new Date(refDate) < new Date(Date.now() - 30*86400000));
+        return { ...l, _ttc: ttc, _ht: ht, _statut: statut, _paye: estPaye, _litige: estLitige, _retard: enRetard };
+      });
+
+      // KPI globaux (mois en cours pour "encaisse")
+      const moisCle = new Date().toISOString().slice(0, 7);
+      const totalAEncaisser = livAnnotees.filter(l => !l._paye && !l._litige).reduce((s, l) => s + l._ttc, 0);
+      const totalEncaisseMois = livAnnotees.filter(l => l._paye && (l.datePaiement || '').startsWith(moisCle)).reduce((s, l) => s + l._ttc, 0);
+      const totalRetard = livAnnotees.filter(l => l._retard).reduce((s, l) => s + l._ttc, 0);
+      const totalLitige = livAnnotees.filter(l => l._litige).reduce((s, l) => s + l._ttc, 0);
+      const nbAEncaisser = livAnnotees.filter(l => !l._paye && !l._litige).length;
+      const nbRetard = livAnnotees.filter(l => l._retard).length;
+
+      // Liste filtree
+      let filtered = livAnnotees;
+      if (filtreStatut === 'a_encaisser') filtered = filtered.filter(l => !l._paye && !l._litige);
+      else if (filtreStatut === 'encaisse') filtered = filtered.filter(l => l._paye);
+      else if (filtreStatut === 'retard') filtered = filtered.filter(l => l._retard);
+      else if (filtreStatut === 'litige') filtered = filtered.filter(l => l._litige);
+      if (filtreClient) filtered = filtered.filter(l => (l.client || '') === filtreClient);
+
+      // Group par mois (date facturation, ou date paiement si paye)
+      const groupes = {};
+      filtered.sort((a, b) => (b.dateFacture || b.date || '').localeCompare(a.dateFacture || a.date || ''))
+        .forEach(l => {
+          const refDate = l.dateFacture || l.date || l.datePaiement || '';
+          const mois = (refDate || '').slice(0, 7);
+          if (!groupes[mois]) groupes[mois] = [];
+          groupes[mois].push(l);
+        });
+
+      // Liste clients pour filtre
+      const clients = [...new Set(livAnnotees.map(l => l.client).filter(Boolean))].sort();
+
+      let html = `
+        <button class="m-fab" onclick="MCAm.go('livraisons')" aria-label="Voir livraisons" style="background:var(--m-accent)">📦</button>
+
+        <div class="m-card-row">
+          <div class="m-card m-card-accent">
+            <div class="m-card-title">À encaisser</div>
+            <div class="m-card-value">${M.format$(totalAEncaisser)}</div>
+            <div class="m-card-sub">${nbAEncaisser} livraison${nbAEncaisser>1?'s':''}</div>
+          </div>
+          <div class="m-card m-card-green">
+            <div class="m-card-title">Encaissé ce mois</div>
+            <div class="m-card-value">${M.format$(totalEncaisseMois)}</div>
+            <div class="m-card-sub">paiements reçus</div>
+          </div>
+        </div>
+
+        ${totalRetard > 0 ? `<div class="m-card m-card-red m-card-pressable" onclick="MCAm.setEncStatut('retard')" style="margin-bottom:14px;border-left:4px solid var(--m-red)">
+          <div class="m-card-title">🔴 En retard (>30j)</div>
+          <div class="m-card-value" style="color:var(--m-red)">${M.format$(totalRetard)}</div>
+          <div class="m-card-sub">${nbRetard} facture${nbRetard>1?'s':''} — Tap pour voir</div>
+        </div>` : ''}
+
+        <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${filtreStatut==='a_encaisser'?'active':''}" data-statut="a_encaisser">⏳ À encaisser (${nbAEncaisser})</button>
+          <button class="m-alertes-chip ${filtreStatut==='retard'?'active':''}" data-statut="retard">🔴 Retard (${nbRetard})</button>
+          <button class="m-alertes-chip ${filtreStatut==='encaisse'?'active':''}" data-statut="encaisse">✅ Encaissé</button>
+          <button class="m-alertes-chip ${filtreStatut==='litige'?'active':''}" data-statut="litige">⚠️ Litige${totalLitige > 0 ? ` (${M.format$(totalLitige)})` : ''}</button>
+          <button class="m-alertes-chip ${filtreStatut==='tous'?'active':''}" data-statut="tous">Tous</button>
+        </div>
+
+        ${clients.length > 1 ? `
+          <div style="margin-bottom:14px">
+            <select id="m-enc-client" style="width:100%">
+              <option value="">— Tous les clients —</option>
+              ${clients.map(c => `<option value="${M.escHtml(c)}" ${c === filtreClient ? 'selected' : ''}>${M.escHtml(c)}</option>`).join('')}
+            </select>
+          </div>
+        ` : ''}
+      `;
+
+      const moisCles = Object.keys(groupes).sort().reverse();
+      if (!moisCles.length) {
+        html += `<div class="m-empty"><div class="m-empty-icon">💵</div><h3 class="m-empty-title">Aucune facture</h3><p class="m-empty-text">${filtreStatut === 'encaisse' ? 'Aucun encaissement enregistré.' : filtreStatut === 'retard' ? 'Aucune facture en retard 🎉' : 'Aucune livraison à encaisser.'}</p></div>`;
+        return html;
+      }
+
+      moisCles.forEach(month => {
+        const items = groupes[month];
+        const totalMois = items.reduce((s, l) => s + l._ttc, 0);
+        const isOpen = M.state.encMoisOuverts[month] !== false; // ouvert par defaut
+        const dateAffichee = month
+          ? new Date(month + '-01').toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase())
+          : 'Sans date';
+
+        html += `
+          <div class="m-section" style="margin-top:14px">
+            <button type="button" class="m-card m-card-pressable" data-mois="${M.escHtml(month)}" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;text-align:left;color:inherit;font-family:inherit">
+              <span style="font-weight:600">${dateAffichee} <span style="color:var(--m-text-muted);font-weight:400;font-size:.78rem">(${items.length})</span></span>
+              <span style="display:flex;gap:10px;align-items:center">
+                <span style="font-weight:700;color:var(--m-green)">${M.format$(totalMois)}</span>
+                <span style="color:var(--m-text-muted);font-size:1.1rem">${isOpen ? '▾' : '▸'}</span>
+              </span>
+            </button>
+            <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
+              ${items.map(l => {
+                const couleur = l._paye ? 'var(--m-green)' : l._litige ? 'var(--m-red)' : l._retard ? 'var(--m-red)' : 'var(--m-accent)';
+                const statutLabel = l._paye ? '✅ Payé' : l._litige ? '⚠️ Litige' : l._retard ? '🔴 Retard' : '⏳ À encaisser';
+                const datePaiementAff = l.datePaiement ? M.formatDate(l.datePaiement) : '';
+                const actionBtn = !l._paye
+                  ? `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">💵 Marquer encaissé</button>`
+                  : `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>`;
+                return `<div style="position:relative;margin-bottom:10px">
+                  <div role="button" tabindex="0" class="m-card m-card-pressable m-enc-edit" data-id="${M.escHtml(l.id)}" style="padding:14px;border-left:4px solid ${couleur};display:flex;justify-content:space-between;align-items:start;gap:10px;width:100%;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;cursor:pointer">
+                    <div style="flex:1 1 auto;min-width:0">
+                      <div style="font-weight:600;font-size:.95rem;margin-bottom:3px">${M.escHtml(l.client || '—')}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
+                      <div style="color:var(--m-text-muted);font-size:.8rem">${M.formatDate(l.dateFacture || l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0">
+                      <div style="font-weight:700;white-space:nowrap;font-size:.95rem">${M.format$(l._ttc)}</div>
+                      ${actionBtn}
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      });
+
+      return html;
+    },
+    afterRender(container) {
+      // Filtres statut
+      container.querySelectorAll('button[data-statut]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.encStatut = btn.dataset.statut; M.go('encaissement'); });
+      });
+      // Filtre client
+      container.querySelector('#m-enc-client')?.addEventListener('change', e => {
+        M.state.encClient = e.target.value;
+        M.go('encaissement');
+      });
+      // Toggle mois
+      container.querySelectorAll('button[data-mois]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const mois = btn.dataset.mois;
+          M.state.encMoisOuverts[mois] = !(M.state.encMoisOuverts[mois] !== false);
+          M.go('encaissement');
+        });
+      });
+      // Tap card livraison -> ouvre form edition livraison
+      container.querySelectorAll('.m-enc-edit').forEach(btn => {
+        btn.addEventListener('click', () => M.editerLivraison(btn.dataset.id));
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerLivraison(btn.dataset.id); }
+        });
+      });
+      // Bouton "Marquer encaissé" rapide
+      container.querySelectorAll('.m-enc-pay').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const id = btn.dataset.id;
+          const arr = M.charger('livraisons');
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx < 0) return;
+          arr[idx].statutPaiement = 'payé';
+          arr[idx].datePaiement = new Date().toISOString().slice(0, 10);
+          arr[idx].modifieLe = new Date().toISOString();
+          M.sauvegarder('livraisons', arr);
+          M.toast('💵 Encaissement enregistré');
+          M.go('encaissement');
+        });
+      });
+    }
+  });
+  // Helper exposé pour le tap sur la card "En retard"
+  M.setEncStatut = function(s) { M.state.encStatut = s; M.go('encaissement'); };
+
   // ---------- Charges (v3.0 : groupees par mois + filtre statut) ----------
   M.state.chargesStatut = 'tous'; // tous | a_payer | paye
   M.state.chargesCategorie = ''; // '' = toutes

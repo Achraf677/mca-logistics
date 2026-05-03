@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-03-mobile-v3_34-fix-clavier-devis-73';
+const CACHE_VERSION = 'mca-v2026-05-03-mobile-v3_35-encaissement-74';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -46,6 +46,7 @@ const CORE_ASSETS = [
   '/script-salaries.js',
   '/script-vehicules.js',
   '/script-livraisons.js',
+  '/script-encaissement.js',
   '/clients-supabase-adapter.js',
   '/entity-supabase-adapter.js',
   '/vehicules-supabase-adapter.js',

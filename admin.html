@@ -123,6 +123,7 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
+          <a href="#" class="nav-item" data-page="encaissement"><span class="nav-icon">💵</span><span class="nav-label">Encaissement</span></a>
           <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
           <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
           <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
@@ -1348,6 +1349,13 @@
         </div>
 
       </div>
+    </section>
+
+    <!-- ENCAISSEMENT (miroir Charges côté revenus) -->
+    <section class="page" id="page-encaissement">
+      <h2 style="display:flex;align-items:center;gap:10px;margin-bottom:18px">💵 Encaissement</h2>
+      <p style="color:var(--text-muted);margin:0 0 18px;font-size:.9rem">Liste des livraisons facturées et leur statut d'encaissement.</p>
+      <div id="encaissement-content"></div>
     </section>
 
     <!-- CHARGES -->
@@ -3243,6 +3251,7 @@
   <script defer src="script-fournisseurs.js?v=20260503-29"></script>
   <script defer src="script-clients.js?v=20260503-29"></script>
   <script defer src="script-charges.js?v=20260503-29"></script>
+  <script defer src="script-encaissement.js?v=20260503-30"></script>
   <script defer src="script-salaries.js?v=20260503-29"></script>
   <script defer src="script-vehicules.js?v=20260503-29"></script>
   <script defer src="script-livraisons.js?v=20260503-29"></script>
