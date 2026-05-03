@@ -3515,25 +3515,29 @@
           </div>
 
           ${prix > 0 && km > 0 ? `
-            <div class="m-card" style="border-left:4px solid ${couleur};padding:18px;margin-bottom:12px">
-              <div class="m-card-title">${verdict}</div>
-              <div class="m-card-value" style="color:${couleur};font-size:1.8rem">${margePct.toFixed(1)}%</div>
-              <div class="m-card-sub">Marge estimée ${M.format$(marge)}</div>
-            </div>
+            <div id="m-devis-result">
+              <div class="m-card" style="border-left:4px solid ${couleur};padding:18px;margin-bottom:12px">
+                <div class="m-card-title">${verdict}</div>
+                <div class="m-card-value" style="color:${couleur};font-size:1.8rem">${margePct.toFixed(1)}%</div>
+                <div class="m-card-sub">Marge estimée ${M.format$(marge)}</div>
+              </div>
 
-            <div class="m-card" style="padding:0">
-              <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Prix HT proposé</span><span style="font-weight:600">${M.format$(prix)}</span></div>
-              <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Coût estimé (${km} km × ${coutKmStocke.toFixed(2)}€)</span><span style="font-weight:600;color:var(--m-red)">−${M.format$(depEstim)}</span></div>
-              <div style="padding:14px 16px;display:flex;justify-content:space-between;background:var(--m-accent-soft)"><span style="font-weight:600">Marge nette estimée</span><span style="font-weight:700;color:${couleur}">${M.format$(marge)}</span></div>
-            </div>
+              <div class="m-card" style="padding:0">
+                <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Prix HT proposé</span><span style="font-weight:600">${M.format$(prix)}</span></div>
+                <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Coût estimé (${km} km × ${coutKmStocke.toFixed(2)}€)</span><span style="font-weight:600;color:var(--m-red)">−${M.format$(depEstim)}</span></div>
+                <div style="padding:14px 16px;display:flex;justify-content:space-between;background:var(--m-accent-soft)"><span style="font-weight:600">Marge nette estimée</span><span style="font-weight:700;color:${couleur}">${M.format$(marge)}</span></div>
+              </div>
 
-            ${margePct < 15 ? `
-              <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:12px;line-height:1.5">
-                💡 Pour atteindre 20% de marge, vise un prix d'au moins <strong>${M.format$(depEstim / 0.8)}</strong>
-              </p>
-            ` : ''}
+              ${margePct < 15 ? `
+                <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:12px;line-height:1.5">
+                  💡 Pour atteindre 20% de marge, vise un prix d'au moins <strong>${M.format$(depEstim / 0.8)}</strong>
+                </p>
+              ` : ''}
+            </div>
           ` : `
-            <div class="m-empty" style="padding:32px 16px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Saisis un prix et une distance pour calculer la marge estimée.</p></div>
+            <div id="m-devis-result">
+              <div class="m-empty" style="padding:32px 16px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Saisis un prix et une distance pour calculer la marge estimée.</p></div>
+            </div>
           `}
         `;
       }
@@ -3547,26 +3551,54 @@
         btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
       });
       // Calculateur devis : input listeners (debounce léger)
-      const wireDevis = (id, key) => {
-        const el = container.querySelector(id);
-        if (!el) return;
-        let t = null;
-        el.addEventListener('input', e => {
-          clearTimeout(t);
-          t = setTimeout(() => {
-            const val = M.parseNum(e.target.value) || 0;
-            M.state[key] = val;
-            // Persiste le cout km de reference pour re-usage entre sessions
-            if (key === 'devisCoutKm' && val > 0) {
-              try { localStorage.setItem('rent_cout_km_ref', String(val)); } catch (_) {}
-            }
-            M.go('rentabilite');
-          }, 350);
-        });
+      // Devis : binding inputs SANS re-render (le re-render wipe innerHTML
+      // -> focus perdu -> clavier disparait sur iOS Safari).
+      // On met a jour uniquement les blocs derives (badge marge, ligne calcul)
+      // en JS direct. Persistance localStorage au blur seulement.
+      const elPrix    = container.querySelector('#m-devis-prix');
+      const elKm      = container.querySelector('#m-devis-km');
+      const elCoutKm  = container.querySelector('#m-devis-coutkm');
+      const refreshDevisResult = () => {
+        const prix = M.parseNum(elPrix?.value) || 0;
+        const km = M.parseNum(elKm?.value) || 0;
+        const coutKm = M.parseNum(elCoutKm?.value) || 0;
+        M.state.devisPrix = prix;
+        M.state.devisKm = km;
+        M.state.devisCoutKm = coutKm;
+        const dep = km * coutKm;
+        const marge = prix - dep;
+        const margePct = prix > 0 ? (marge / prix * 100) : 0;
+        const couleur = margePct >= 25 ? 'var(--m-green)' : margePct >= 15 ? 'var(--m-accent)' : margePct >= 5 ? 'var(--m-red)' : 'var(--m-red)';
+        const verdict = margePct >= 25 ? '🟢 Excellente' : margePct >= 15 ? '🟡 Acceptable' : margePct >= 5 ? '🟠 Limite' : margePct >= 0 ? '🔴 À renégocier' : '🔴 PERTE';
+        const wrap = container.querySelector('#m-devis-result');
+        if (!wrap) return;
+        if (!(prix > 0 && km > 0)) {
+          wrap.innerHTML = `<div class="m-empty" style="padding:32px 16px"><div class="m-empty-icon">🧮</div><p class="m-empty-text">Saisis un prix et une distance pour calculer la marge estimée.</p></div>`;
+          return;
+        }
+        wrap.innerHTML = `
+          <div class="m-card" style="border-left:4px solid ${couleur};padding:18px;margin-bottom:12px">
+            <div class="m-card-title">${verdict}</div>
+            <div class="m-card-value" style="color:${couleur};font-size:1.8rem">${margePct.toFixed(1)}%</div>
+            <div class="m-card-sub">Marge estimée ${M.format$(marge)}</div>
+          </div>
+          <div class="m-card" style="padding:0">
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Prix HT proposé</span><span style="font-weight:600">${M.format$(prix)}</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Coût estimé (${km} km × ${coutKm.toFixed(2)}€)</span><span style="font-weight:600;color:var(--m-red)">−${M.format$(dep)}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between;background:var(--m-accent-soft)"><span style="font-weight:600">Marge nette estimée</span><span style="font-weight:700;color:${couleur}">${M.format$(marge)}</span></div>
+          </div>
+          ${margePct < 15 ? `<p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:12px;line-height:1.5">💡 Pour atteindre 20% de marge, vise un prix d'au moins <strong>${M.format$(dep / 0.8)}</strong></p>` : ''}
+        `;
       };
-      wireDevis('#m-devis-prix', 'devisPrix');
-      wireDevis('#m-devis-km', 'devisKm');
-      wireDevis('#m-devis-coutkm', 'devisCoutKm');
+      [elPrix, elKm, elCoutKm].forEach(el => {
+        if (!el) return;
+        el.addEventListener('input', refreshDevisResult);
+        el.addEventListener('blur', () => {
+          // Persist le cout km uniquement quand l'user quitte le champ (pas a chaque keystroke)
+          const v = M.parseNum(elCoutKm?.value) || 0;
+          if (v > 0) { try { localStorage.setItem('rent_cout_km_ref', String(v)); } catch (_) {} }
+        });
+      });
       // Tap sur une ligne -> navigue vers la fiche detail correspondante
       container.querySelectorAll('.m-rent-row[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
