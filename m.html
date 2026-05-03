@@ -11,7 +11,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
-  <link rel="stylesheet" href="/style-mobile.css?v=46" />
+  <link rel="stylesheet" href="/style-mobile.css?v=47" />
 </head>
 <body class="m-app m-theme-dark">
   <!-- Header compact : back btn + titre. Pas de kebab (vire — aucune route ne s'en sert). -->
@@ -116,26 +116,26 @@
   <!-- Couche données (partagée avec desktop : memes Supabase tables, meme localStorage) -->
   <!-- Supabase SDK : permet le sync temps reel des saisies mobile vers la base -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/supabase-config.js?v=46"></script>
-  <script src="/supabase-client.js?v=46"></script>
+  <script src="/supabase-config.js?v=47"></script>
+  <script src="/supabase-client.js?v=47"></script>
   <!-- supabase-storage-sync hook localStorage.setItem au niveau du prototype.
        Toute ecriture (M.sauvegarder dans script-mobile) declenche un push
        vers Supabase. Doit etre charge AVANT script-mobile. -->
-  <script src="/supabase-storage-sync.js?v=46"></script>
-  <script src="/repo.js?v=46"></script>
+  <script src="/supabase-storage-sync.js?v=47"></script>
+  <script src="/repo.js?v=47"></script>
   <!-- security-utils : hashPassword PBKDF2 partage avec desktop -->
-  <script src="/security-utils.js?v=46"></script>
+  <script src="/security-utils.js?v=47"></script>
   <!-- storage-uploader : helpers Supabase Storage (upload/download docs salaries) -->
-  <script src="/storage-uploader.js?v=46"></script>
+  <script src="/storage-uploader.js?v=47"></script>
   <!-- Entity adapters Supabase : sync automatique localStorage <-> tables natives
        Supabase pour les entites metier (livraisons, charges, vehicules, etc.).
        Sans ces adapters, les saisies mobile resterait en localStorage local. -->
-  <script src="/entity-supabase-adapter.js?v=46"></script>
-  <script src="/all-entity-adapters.js?v=46"></script>
-  <script src="/clients-supabase-adapter.js?v=46"></script>
-  <script src="/salaries-supabase-adapter.js?v=46"></script>
-  <script src="/vehicules-supabase-adapter.js?v=46"></script>
+  <script src="/entity-supabase-adapter.js?v=47"></script>
+  <script src="/all-entity-adapters.js?v=47"></script>
+  <script src="/clients-supabase-adapter.js?v=47"></script>
+  <script src="/salaries-supabase-adapter.js?v=47"></script>
+  <script src="/vehicules-supabase-adapter.js?v=47"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=46"></script>
+  <script src="/script-mobile.js?v=47"></script>
 </body>
 </html>

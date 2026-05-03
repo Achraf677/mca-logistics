@@ -117,6 +117,96 @@
     return Promise.resolve(window.confirm(titre + message));
   };
 
+  // Dialog recurrence : ouvre un overlay au-dessus de la sheet courante.
+  // Demande "Tous les X jours, pendant Y occurrences". Resoud { interval, count }
+  // ou null si annule.
+  M.dialogRecurrence = function(opts = {}) {
+    return new Promise(resolve => {
+      document.querySelector('.m-rec-dialog')?.remove();
+      const overlay = document.createElement('div');
+      overlay.className = 'm-rec-dialog';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+      overlay.innerHTML = `
+        <div style="background:var(--m-card);border-radius:18px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">🔁 Créer une récurrence</div>
+          <div style="font-size:.84rem;color:var(--m-text-muted);margin-bottom:18px">${M.escHtml(opts.sousTitre || 'Duplique cet élément à intervalle régulier.')}</div>
+          <div class="m-form-row" style="margin-bottom:14px">
+            <div class="m-form-field" style="margin-bottom:0">
+              <label class="m-form-label">Tous les</label>
+              <select id="m-rec-interval">
+                <option value="1">1 jour (quotidien)</option>
+                <option value="7" selected>7 jours (hebdo)</option>
+                <option value="14">14 jours (quinzaine)</option>
+                <option value="30">30 jours (mensuel)</option>
+                <option value="90">90 jours (trimestre)</option>
+              </select>
+            </div>
+            <div class="m-form-field" style="margin-bottom:0">
+              <label class="m-form-label">Pendant</label>
+              <select id="m-rec-count">
+                <option value="2">2 occurrences</option>
+                <option value="4" selected>4 occurrences</option>
+                <option value="6">6 occurrences</option>
+                <option value="8">8 occurrences</option>
+                <option value="12">12 occurrences</option>
+                <option value="24">24 occurrences</option>
+                <option value="52">52 occurrences</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="m-btn" id="m-rec-cancel" style="flex:1">Annuler</button>
+            <button type="button" class="m-btn m-btn-primary" id="m-rec-ok" style="flex:1">Créer</button>
+          </div>
+        </div>
+      `;
+      const close = (val) => { overlay.remove(); resolve(val); };
+      overlay.querySelector('#m-rec-cancel').addEventListener('click', () => close(null));
+      overlay.querySelector('#m-rec-ok').addEventListener('click', () => {
+        const interval = parseInt(overlay.querySelector('#m-rec-interval').value, 10) || 7;
+        const count = parseInt(overlay.querySelector('#m-rec-count').value, 10) || 4;
+        close({ interval, count });
+      });
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      document.body.appendChild(overlay);
+    });
+  };
+
+  // Cree N copies de l'item source en decalant la date de intervalDays.
+  // entityKey : 'livraisons' | 'charges' | 'carburant' | etc.
+  // dateField : nom du champ date (def 'date')
+  // transform(copy, i) : optionnel, mutation custom de chaque copie (regen numLiv, reset statut...)
+  M.creerRecurrence = async function(entityKey, sourceId, opts = {}) {
+    const arr = M.charger(entityKey);
+    const source = arr.find(x => x.id === sourceId);
+    if (!source) { M.toast('⚠️ Élément source introuvable'); return false; }
+    const params = await M.dialogRecurrence({ sousTitre: opts.sousTitre });
+    if (!params) return false;
+    const { interval, count } = params;
+    const dateField = opts.dateField || 'date';
+    const baseDateStr = source[dateField] || new Date().toISOString().slice(0, 10);
+    const baseDate = new Date(baseDateStr);
+    const ajoutees = [];
+    for (let i = 1; i <= count; i++) {
+      const d = new Date(baseDate);
+      d.setDate(d.getDate() + i * interval);
+      const copy = {
+        ...source,
+        id: M.genId(),
+        creeLe: new Date().toISOString(),
+        modifieLe: undefined,
+        [dateField]: d.toISOString().slice(0, 10),
+      };
+      delete copy.modifieLe;
+      if (typeof opts.transform === 'function') opts.transform(copy, i);
+      arr.push(copy);
+      ajoutees.push(copy);
+    }
+    M.sauvegarder(entityKey, arr);
+    M.toast(`🔁 ${count} occurrence${count>1?'s':''} créée${count>1?'s':''}`);
+    return ajoutees;
+  };
+
   // Formatters
   M.format$ = (n) => (Number(n) || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2 });
   M.formatNum = (n) => (Number(n) || 0).toLocaleString('fr-FR');
@@ -407,7 +497,8 @@
         </div>
       ` : ''}
       ${enEdition ? `
-        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:14px">🗑️ Supprimer cette livraison</button>
+        <button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">🔁 Créer une récurrence</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer cette livraison</button>
       ` : ''}
     `;
 
@@ -446,8 +537,21 @@
             adrDetails.style.display = adrCheck.checked ? 'block' : 'none';
           });
         }
-        // Bouton supprimer + liens vers entites liees (mode edition)
+        // Bouton supprimer + recurrence + liens vers entites liees (mode edition)
         if (enEdition) {
+          body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
+            const ok = await M.creerRecurrence('livraisons', v.id, {
+              sousTitre: `${v.client || 'Livraison'} sera dupliquée à intervalle régulier.`,
+              transform: (copy) => {
+                copy.numLiv = ''; // re-genere a la sauvegarde
+                copy.statut = 'en-attente';
+                copy.statutPaiement = 'en-attente';
+                delete copy.datePaiement;
+                delete copy.dateFacture;
+              }
+            });
+            if (ok) { M.closeSheet(); M.go('livraisons'); }
+          });
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm(`Supprimer définitivement cette livraison (${v.client || ''}) ?`, { titre: 'Supprimer livraison' })) return;
             M.sauvegarder('livraisons', M.charger('livraisons').filter(x => x.id !== v.id));
@@ -577,7 +681,8 @@
       ${enEdition && p.vehiculeId ? `
         <button type="button" class="m-btn" data-goto-veh="${M.escHtml(p.vehiculeId)}" style="margin-top:18px">🚐 Voir fiche véhicule</button>
       ` : ''}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:14px">🗑️ Supprimer ce plein</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">🔁 Créer une récurrence</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer ce plein</button>` : ''}
     `;
 
     M.openSheet({
@@ -606,6 +711,13 @@
           });
         }
         if (enEdition) {
+          body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
+            const ok = await M.creerRecurrence('carburant', p.id, {
+              sousTitre: 'Ce plein sera dupliqué à intervalle régulier (montant identique).',
+              transform: (copy) => { copy.kmCompteur = 0; }
+            });
+            if (ok) { M.closeSheet(); M.go('carburant'); }
+          });
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm('Supprimer définitivement ce plein ?', { titre: 'Supprimer plein' })) return;
             M.sauvegarder('carburant', M.charger('carburant').filter(x => x.id !== p.id));
@@ -708,7 +820,8 @@
           ? `<button type="button" class="m-btn" data-goto-four="${M.escHtml(four.id)}" style="margin-top:18px">🏭 Voir fiche fournisseur</button>`
           : '';
       })() : ''}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:14px">🗑️ Supprimer cette charge</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">🔁 Créer une récurrence</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer cette charge</button>` : ''}
     `;
 
     M.openSheet({
@@ -739,6 +852,17 @@
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         sel.addEventListener('change', recalc);
         if (enEdition) {
+          body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
+            const ok = await M.creerRecurrence('charges', c.id, {
+              sousTitre: `${c.libelle || 'Charge'} sera dupliquée à intervalle régulier.`,
+              transform: (copy) => {
+                copy.statut = 'a_payer';
+                copy.statutPaiement = 'a_payer';
+                delete copy.datePaiement;
+              }
+            });
+            if (ok) { M.closeSheet(); M.go('charges'); }
+          });
           body.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm(`Supprimer définitivement cette charge (${c.libelle || ''}) ?`, { titre: 'Supprimer charge' })) return;
             M.sauvegarder('charges', M.charger('charges').filter(x => x.id !== c.id));
