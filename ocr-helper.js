@@ -22,7 +22,12 @@
 
   if (window.MCAocr) return;
 
-  const TESSERACT_CDN = 'https://unpkg.com/tesseract.js@5/dist/tesseract.min.js';
+  // Fallback CDN list : jsdelivr en 1er (plus fiable, déjà autorisé en CSP/SW),
+  // unpkg en backup. Le 1er qui charge gagne.
+  const TESSERACT_CDNS = [
+    'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js',
+    'https://unpkg.com/tesseract.js@5.1.1/dist/tesseract.min.js'
+  ];
   let _loaded = false;
   let _loadingPromise = null;
   let _worker = null;
@@ -39,14 +44,26 @@
     });
   }
 
+  async function loadAnyCDN(urls) {
+    let lastErr = null;
+    for (const url of urls) {
+      try { await loadScript(url); return; }
+      catch (e) { lastErr = e; }
+    }
+    throw lastErr || new Error('Aucun CDN disponible pour Tesseract');
+  }
+
   async function ensureLoaded() {
     if (_loaded) return;
     if (_loadingPromise) return _loadingPromise;
     _loadingPromise = (async () => {
-      await loadScript(TESSERACT_CDN);
-      if (typeof Tesseract === 'undefined') throw new Error('Tesseract non disponible');
+      await loadAnyCDN(TESSERACT_CDNS);
+      if (typeof Tesseract === 'undefined') throw new Error('Tesseract non disponible après chargement');
       _worker = await Tesseract.createWorker('fra', 1, {
-        // logger optionnel, peut etre branche pour afficher progress
+        // Force jsdelivr pour les fichiers worker/wasm/lang aussi (pareil pas d'unpkg)
+        workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js',
+        corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.0.0',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0_fast',
       });
       _loaded = true;
     })();
@@ -58,13 +75,61 @@
   }
 
   async function recognize(input, opts = {}) {
-    await ensureLoaded();
-    if (opts.onProgress && _worker) {
-      // Le worker recree avec un logger custom n'est pas trivial dans v5.
-      // Pour l'instant on fait juste l'appel basique, le user voit "..." pendant.
+    // Support PDF : extrait texte natif si PDF bureautique, sinon render
+    // page 1 en canvas + OCR.
+    if (input instanceof File && input.type === 'application/pdf') {
+      return await recognizePDF(input, opts);
     }
+    await ensureLoaded();
     const { data } = await _worker.recognize(input);
     return { text: data.text || '', confidence: data.confidence || 0 };
+  }
+
+  // PDF.js lazy-loader (gratuit, offline une fois chargé)
+  const PDFJS_CDN = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.min.mjs';
+  let _pdfjsLoaded = false;
+  async function ensurePdfJs() {
+    if (_pdfjsLoaded) return;
+    if (window.pdfjsLib) { _pdfjsLoaded = true; return; }
+    // pdfjs-dist v4 est en module ESM, on l'importe dynamiquement
+    const mod = await import(PDFJS_CDN);
+    mod.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.mjs';
+    window.pdfjsLib = mod;
+    _pdfjsLoaded = true;
+  }
+
+  async function recognizePDF(file, opts = {}) {
+    await ensurePdfJs();
+    const arrayBuf = await file.arrayBuffer();
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuf }).promise;
+    const nbPages = Math.min(pdf.numPages, opts.maxPages || 5); // limite 5 pages
+    let allText = '';
+    let needsOcr = false;
+    // Étape 1 : tente extraction texte natif (PDF bureautique)
+    for (let i = 1; i <= nbPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(it => it.str).join(' ');
+      allText += pageText + '\n';
+    }
+    // Si on a moins de 50 chars de texte, c'est probablement un PDF scanné -> OCR
+    if (allText.trim().length < 50) {
+      needsOcr = true;
+      allText = '';
+      await ensureLoaded(); // charge Tesseract
+      for (let i = 1; i <= nbPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 2.0 }); // x2 pour bonne qualité OCR
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        const { data } = await _worker.recognize(canvas);
+        allText += (data.text || '') + '\n';
+      }
+    }
+    return { text: allText, confidence: needsOcr ? 70 : 100, source: needsOcr ? 'ocr' : 'native' };
   }
 
   // --------- Parsers spécialisés ---------

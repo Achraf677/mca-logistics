@@ -172,6 +172,43 @@
     });
   };
 
+  // Dialog "Choisir une date" : ouvre un overlay avec un input date.
+  // Resoud { date: 'YYYY-MM-DD' } ou null si annule.
+  M.dialogChoisirDate = function(opts = {}) {
+    return new Promise(resolve => {
+      document.querySelector('.m-date-dialog')?.remove();
+      const today = new Date().toISOString().slice(0, 10);
+      const valDef = opts.defaut || today;
+      const overlay = document.createElement('div');
+      overlay.className = 'm-date-dialog';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+      overlay.innerHTML = `
+        <div style="background:var(--m-card);border-radius:18px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
+          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">${M.escHtml(opts.titre || '📅 Choisir une date')}</div>
+          ${opts.sousTitre ? `<div style="font-size:.84rem;color:var(--m-text-muted);margin-bottom:16px">${M.escHtml(opts.sousTitre)}</div>` : '<div style="margin-bottom:14px"></div>'}
+          <div class="m-form-field" style="margin-bottom:18px">
+            <label class="m-form-label">${M.escHtml(opts.labelDate || 'Date')}</label>
+            <input type="date" id="m-date-dialog-input" value="${valDef}" />
+          </div>
+          <div style="display:flex;gap:10px">
+            <button type="button" class="m-btn" id="m-date-dialog-cancel" style="flex:1">Annuler</button>
+            <button type="button" class="m-btn m-btn-primary" id="m-date-dialog-ok" style="flex:1">${M.escHtml(opts.btnOk || 'Valider')}</button>
+          </div>
+        </div>
+      `;
+      const close = (val) => { overlay.remove(); resolve(val); };
+      overlay.querySelector('#m-date-dialog-cancel').addEventListener('click', () => close(null));
+      overlay.querySelector('#m-date-dialog-ok').addEventListener('click', () => {
+        const d = overlay.querySelector('#m-date-dialog-input').value || today;
+        close({ date: d });
+      });
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      document.body.appendChild(overlay);
+      // Auto-focus le picker
+      setTimeout(() => overlay.querySelector('#m-date-dialog-input')?.focus(), 50);
+    });
+  };
+
   // Cree N copies de l'item source en decalant la date de intervalDays.
   // entityKey : 'livraisons' | 'charges' | 'carburant' | etc.
   // dateField : nom du champ date (def 'date')
@@ -785,7 +822,7 @@
         <label for="m-charge-fac-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
           <span>📷</span><span>Scanner la facture (auto-remplir)</span>
         </label>
-        <input type="file" id="m-charge-fac-input" accept="image/*" capture="environment" style="display:none" />
+        <input type="file" id="m-charge-fac-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-charge-fac-status" style="text-align:center"></p>
       </div>
       ${M.formField('Libellé', M.formInput('libelle', { value: c.libelle || '', placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
@@ -1087,7 +1124,7 @@
         <label for="m-veh-cg-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
           <span>📷</span><span>Scanner la carte grise (auto-remplir)</span>
         </label>
-        <input type="file" id="m-veh-cg-input" accept="image/*" capture="environment" style="display:none" />
+        <input type="file" id="m-veh-cg-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-veh-cg-status" style="text-align:center"></p>
       </div>
       ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
@@ -3418,7 +3455,8 @@
                 const datePaiementAff = l.datePaiement ? M.formatDate(l.datePaiement) : '';
                 const actionBtn = !l._paye
                   ? `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">💵 Marquer encaissé</button>`
-                  : `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>`;
+                  : `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>
+                     <button type="button" class="m-enc-revert" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(231,76,60,0.10);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);border-radius:6px;padding:4px 10px;font-size:.7rem;font-weight:600;font-family:inherit;cursor:pointer">↶ Annuler</button>`;
                 const isSel = selSet.has(l.id);
                 const checkbox = bulkOn && !l._paye
                   ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
@@ -3494,43 +3532,75 @@
         M.state.encBulkSel.clear();
         M.go('encaissement');
       });
-      // Bulk action : tout encaisser
+      // Bulk action : tout encaisser (avec date picker)
       container.querySelector('#m-enc-bulk-pay')?.addEventListener('click', async () => {
         const ids = [...M.state.encBulkSel];
         if (!ids.length) return;
-        if (!await M.confirm(`Marquer ${ids.length} facture${ids.length>1?'s':''} comme encaissée${ids.length>1?'s':''} ?`, { titre: 'Encaisser en lot' })) return;
+        const res = await M.dialogChoisirDate({
+          titre: `💵 Encaisser ${ids.length} facture${ids.length>1?'s':''}`,
+          sousTitre: `Total ${M.format$(filtered.filter(l => M.state.encBulkSel.has(l.id)).reduce((s, l) => s + l._ttc, 0))}. Choisis la date de paiement réelle.`,
+          labelDate: 'Date de paiement',
+          btnOk: '💵 Confirmer encaissement'
+        });
+        if (!res) return;
         const arr = M.charger('livraisons');
-        const today = new Date().toISOString().slice(0, 10);
         const now = new Date().toISOString();
         let n = 0;
         ids.forEach(id => {
           const idx = arr.findIndex(x => x.id === id);
           if (idx < 0) return;
           arr[idx].statutPaiement = 'payé';
-          arr[idx].datePaiement = today;
+          arr[idx].datePaiement = res.date;
           arr[idx].modifieLe = now;
           n++;
         });
         M.sauvegarder('livraisons', arr);
         M.state.encBulkSel.clear();
         M.state.encBulkMode = false;
-        M.toast(`💵 ${n} encaissement${n>1?'s':''} enregistré${n>1?'s':''}`);
+        M.toast(`💵 ${n} encaissement${n>1?'s':''} au ${M.formatDate(res.date)}`);
         M.go('encaissement');
       });
-      // Bouton "Marquer encaissé" rapide (mode normal)
+      // Bouton "Marquer encaissé" rapide (mode normal) -> ouvre date picker
       container.querySelectorAll('.m-enc-pay').forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           e.stopPropagation();
           e.preventDefault();
           const id = btn.dataset.id;
           const arr = M.charger('livraisons');
           const idx = arr.findIndex(x => x.id === id);
           if (idx < 0) return;
+          const liv = arr[idx];
+          const res = await M.dialogChoisirDate({
+            titre: '💵 Marquer encaissée',
+            sousTitre: `${liv.client || 'Livraison'} · ${M.format$(M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0)}`,
+            labelDate: 'Date de paiement',
+            btnOk: '💵 Confirmer'
+          });
+          if (!res) return;
           arr[idx].statutPaiement = 'payé';
-          arr[idx].datePaiement = new Date().toISOString().slice(0, 10);
+          arr[idx].datePaiement = res.date;
           arr[idx].modifieLe = new Date().toISOString();
           M.sauvegarder('livraisons', arr);
-          M.toast('💵 Encaissement enregistré');
+          M.toast(`💵 Encaissement au ${M.formatDate(res.date)}`);
+          M.go('encaissement');
+        });
+      });
+      // Bouton "Annuler encaissement" (sur livraison déjà payée)
+      container.querySelectorAll('.m-enc-revert').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const id = btn.dataset.id;
+          const arr = M.charger('livraisons');
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx < 0) return;
+          const liv = arr[idx];
+          if (!await M.confirm(`Annuler l'encaissement de ${liv.client || 'cette facture'} ? Elle repassera en "À encaisser".`, { titre: 'Annuler encaissement' })) return;
+          arr[idx].statutPaiement = 'en-attente';
+          delete arr[idx].datePaiement;
+          arr[idx].modifieLe = new Date().toISOString();
+          M.sauvegarder('livraisons', arr);
+          M.toast('↶ Encaissement annulé');
           M.go('encaissement');
         });
       });
