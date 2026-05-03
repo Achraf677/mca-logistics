@@ -534,7 +534,11 @@
         </div>
       ` : ''}
       ${enEdition ? `
-        <button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">🔁 Créer une récurrence</button>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button type="button" class="m-btn" id="m-form-bon" style="flex:1">📄 Bon de livraison</button>
+          <button type="button" class="m-btn" id="m-form-facture" style="flex:1">🧾 Facture</button>
+        </div>
+        <button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:8px">🔁 Créer une récurrence</button>
         <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer cette livraison</button>
       ` : ''}
     `;
@@ -576,6 +580,14 @@
         }
         // Bouton supprimer + recurrence + liens vers entites liees (mode edition)
         if (enEdition) {
+          body.querySelector('#m-form-bon')?.addEventListener('click', () => {
+            M.closeSheet();
+            setTimeout(() => M.genererBonLivraison(v.id), 100);
+          });
+          body.querySelector('#m-form-facture')?.addEventListener('click', () => {
+            M.closeSheet();
+            setTimeout(() => M.genererFactureLivraison(v.id), 100);
+          });
           body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
             const ok = await M.creerRecurrence('livraisons', v.id, {
               sousTitre: `${v.client || 'Livraison'} sera dupliquée à intervalle régulier.`,
@@ -684,6 +696,134 @@
     const liv = M.charger('livraisons').find(x => x.id === id);
     if (!liv) return M.toast('Livraison introuvable');
     M.formNouvelleLivraison(liv);
+  };
+
+  // ---- BONS / FACTURES (mobile) ----
+  // Affiche un HTML pleine page dans une modal viewer. Bouton "🖨 Imprimer/PDF"
+  // qui call iframe.contentWindow.print() -> sheet iOS natif (Save to PDF,
+  // AirDrop, Mail, WhatsApp...).
+  M.afficherDocHTML = function(html, titre) {
+    document.querySelector('.m-doc-html-viewer')?.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'm-doc-html-viewer';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column';
+    overlay.innerHTML = `
+      <header style="flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(0,0,0,.4);color:#fff">
+        <div style="flex:1 1 auto;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre || 'Document')}</div>
+        <button type="button" class="m-doc-html-print" aria-label="Imprimer" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:40px;border-radius:20px;background:var(--m-accent);color:#1a1208;border:none;font-size:.85rem;font-weight:700">🖨 Imprimer / PDF</button>
+        <button type="button" class="m-doc-html-close" aria-label="Fermer" style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:1.1rem">✕</button>
+      </header>
+      <div style="flex:1 1 auto;overflow:auto;background:#fff">
+        <iframe srcdoc="${M.escHtml(html)}" style="width:100%;height:100%;border:0;background:#fff" id="m-doc-html-iframe"></iframe>
+      </div>
+    `;
+    const close = () => { overlay.remove(); document.body.style.overflow = ''; };
+    overlay.querySelector('.m-doc-html-close').addEventListener('click', close);
+    overlay.querySelector('.m-doc-html-print').addEventListener('click', () => {
+      const iframe = overlay.querySelector('#m-doc-html-iframe');
+      try { iframe.contentWindow.focus(); iframe.contentWindow.print(); }
+      catch (e) { M.toast('⚠️ Impression bloquée : ' + (e.message || 'inconnu')); }
+    });
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Genere le HTML d'un bon de livraison ou d'une facture (template mobile-friendly).
+  M.genererHtmlBonOuFacture = function(liv, options = {}) {
+    const isFact = !!options.facture;
+    const config = M.chargerObj('config') || {};
+    const ent = config.entreprise || M.chargerObj('entreprise') || {};
+    const ttc = M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0;
+    const ht = M.parseNum(liv.prixHT) || (M.parseNum(liv.tauxTva) > 0 ? ttc / (1 + M.parseNum(liv.tauxTva)/100) : ttc);
+    const tva = +(ttc - ht).toFixed(2);
+    const tauxTva = M.parseNum(liv.tauxTva) || 20;
+    const fmt$ = (n) => (Number(n) || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' });
+    const fmtD = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+    const esc = (s) => M.escHtml(s == null ? '' : s);
+    const numero = isFact
+      ? (liv.factureNumero || ('F-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000)))
+      : (liv.numLiv || ('BL-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000)));
+    const titre = isFact ? 'FACTURE' : 'BON DE LIVRAISON';
+    const blocLignes = isFact ? `
+      <table style="width:100%;border-collapse:collapse;margin:18px 0">
+        <thead><tr style="background:#f8fafc"><th style="padding:10px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">Désignation</th><th style="padding:10px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">HT</th><th style="padding:10px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">TVA ${tauxTva}%</th><th style="padding:10px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">TTC</th></tr></thead>
+        <tbody><tr>
+          <td style="padding:14px 10px">Prestation transport / livraison${liv.numLiv ? ' (BL ' + esc(liv.numLiv) + ')' : ''}${liv.notes ? '<div style="font-size:.78rem;color:#6b7280;margin-top:4px">' + esc(liv.notes) + '</div>' : ''}</td>
+          <td style="padding:14px 10px;text-align:right;font-weight:700">${fmt$(ht)}</td>
+          <td style="padding:14px 10px;text-align:right">${fmt$(tva)}</td>
+          <td style="padding:14px 10px;text-align:right;font-weight:800">${fmt$(ttc)}</td>
+        </tr></tbody>
+      </table>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:18px"><div style="min-width:280px;border:1px solid #e5e7eb;border-radius:10px;padding:14px;background:#fafafa">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>Total HT</span><strong>${fmt$(ht)}</strong></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px"><span>TVA ${tauxTva}%</span><strong>${fmt$(tva)}</strong></div>
+        <div style="display:flex;justify-content:space-between;font-size:1.05rem;border-top:1px solid #d1d5db;padding-top:8px"><span>Total TTC</span><strong style="color:#f59e0b">${fmt$(ttc)}</strong></div>
+      </div></div>
+    ` : `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0">
+        ${liv.depart ? `<div style="background:#f9fafb;padding:14px;border-radius:10px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">Départ</div><div style="font-size:.95rem">${esc(liv.depart)}</div></div>` : ''}
+        ${liv.arrivee ? `<div style="background:#f9fafb;padding:14px;border-radius:10px"><div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">Arrivée</div><div style="font-size:.95rem">${esc(liv.arrivee)}</div></div>` : ''}
+      </div>
+      ${liv.marchNature || liv.marchPoids || liv.marchVolume || liv.marchColis ? `
+        <div style="background:#fef3c7;border-left:3px solid #f59e0b;padding:14px;border-radius:6px;margin:18px 0">
+          <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#92400e;margin-bottom:8px">Marchandise</div>
+          ${liv.marchNature ? `<div><strong>Nature :</strong> ${esc(liv.marchNature)}</div>` : ''}
+          <div style="display:flex;gap:14px;margin-top:6px;font-size:.88rem">
+            ${liv.marchPoids ? `<span>📦 ${esc(liv.marchPoids)} kg</span>` : ''}
+            ${liv.marchVolume ? `<span>📐 ${esc(liv.marchVolume)} m³</span>` : ''}
+            ${liv.marchColis ? `<span>🔢 ${esc(liv.marchColis)} colis</span>` : ''}
+          </div>
+        </div>
+      ` : ''}
+      <div style="text-align:right;font-size:1.4rem;font-weight:800;color:#f59e0b;margin:18px 0">Total : ${fmt$(ttc)}</div>
+    `;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${titre} ${esc(numero)}</title>
+      <style>
+        body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; padding: 24px; max-width: 720px; margin: 0 auto; color: #111827; background: #fff; }
+        @media print { body { padding: 12mm; } @page { margin: 12mm; } }
+      </style></head><body>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #f5a623">
+        <div>
+          <div style="font-size:1.5rem;font-weight:900;color:#f5a623">${esc(ent.nom || 'MCA Logistics')}</div>
+          ${ent.adresse ? `<div style="font-size:.82rem;color:#6b7280;margin-top:4px">${esc(ent.adresse)}</div>` : ''}
+          ${ent.tel ? `<div style="font-size:.82rem;color:#6b7280">📞 ${esc(ent.tel)}</div>` : ''}
+          ${ent.email ? `<div style="font-size:.82rem;color:#6b7280">✉ ${esc(ent.email)}</div>` : ''}
+          ${ent.siret ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:4px">SIRET ${esc(ent.siret)}</div>` : ''}
+          ${ent.tva ? `<div style="font-size:.78rem;color:#9ca3af">TVA ${esc(ent.tva)}</div>` : ''}
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.78rem;text-transform:uppercase;color:#6b7280;letter-spacing:.06em">${titre}</div>
+          <div style="font-size:1.3rem;font-weight:800;color:#f5a623;margin-top:4px">${esc(numero)}</div>
+          <div style="font-size:.82rem;color:#6b7280;margin-top:6px">Date : <strong>${fmtD(liv.date)}</strong></div>
+          ${isFact && liv.datePaiement ? `<div style="font-size:.82rem;color:#6b7280">Paiement : <strong>${fmtD(liv.datePaiement)}</strong></div>` : ''}
+        </div>
+      </div>
+      <div style="background:#f9fafb;padding:16px;border-radius:10px;margin-bottom:18px">
+        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">${isFact ? 'Facturé à' : 'Client'}</div>
+        <div style="font-size:1.1rem;font-weight:700">${esc(liv.client || '—')}</div>
+        ${liv.expAdresse || liv.destAdresse ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">${esc(liv.destAdresse || liv.expAdresse || '')}${liv.destCp ? ', ' + esc(liv.destCp) : ''}${liv.destVille ? ' ' + esc(liv.destVille) : ''}</div>` : ''}
+      </div>
+      ${blocLignes}
+      <div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-top:24px;font-size:.78rem;color:#9ca3af;text-align:center">
+        ${isFact ? 'Mode paiement : ' + esc(liv.modePaiement || 'À définir') + ' · Statut : ' + esc((liv.statutPaiement || 'En attente').replace('en-attente', 'En attente')) + ' · ' : ''}
+        Document généré le ${new Date().toLocaleString('fr-FR')}
+      </div>
+      </body></html>`;
+  };
+
+  M.genererBonLivraison = function(id) {
+    const liv = M.charger('livraisons').find(x => x.id === id);
+    if (!liv) { M.toast('Livraison introuvable'); return; }
+    const html = M.genererHtmlBonOuFacture(liv, { facture: false });
+    M.afficherDocHTML(html, `Bon de livraison ${liv.numLiv || ''}`);
+  };
+
+  M.genererFactureLivraison = function(id) {
+    const liv = M.charger('livraisons').find(x => x.id === id);
+    if (!liv) { M.toast('Livraison introuvable'); return; }
+    const html = M.genererHtmlBonOuFacture(liv, { facture: true });
+    M.afficherDocHTML(html, `Facture ${liv.factureNumero || ''}`);
   };
 
   M.formNouveauPlein = function(existing) {
@@ -3079,6 +3219,107 @@
       M.toast(`🗑️ ${cibles.length} alerte${cibles.length>1?'s':''} ignorée${cibles.length>1?'s':''}`);
       return true;
     },
+    // Crée une alerte si aucune active du même (type, scope) n'existe + pas en cooldown.
+    // Mirror de ajouterAlerteSiAbsente côté PC (script-alertes.js).
+    ajouterSiAbsente(type, message, meta) {
+      const arr = M.charger('alertes_admin');
+      const scopeMatch = (a) => {
+        if (!meta) return true;
+        if (meta.salId) return a.meta?.salId === meta.salId;
+        if (meta.vehId) return a.meta?.vehId === meta.vehId;
+        if (meta.livId) return a.meta?.livId === meta.livId;
+        return true;
+      };
+      const existe = arr.find(a => a.type === type && scopeMatch(a) && M.alertes.bloqueRegen(a));
+      if (existe) return false;
+      arr.push({
+        id: M.genId(),
+        type, message,
+        meta: meta || {},
+        lu: false, traitee: false,
+        creeLe: new Date().toISOString()
+      });
+      M.sauvegarder('alertes_admin', arr);
+      return true;
+    },
+  };
+
+  // Vérifie permis + assurance + visite médicale de chaque salarié.
+  // Mirror de verifierDocumentsSalaries (script-salaries.js).
+  // Génère alertes permis_expire / permis_proche / assurance_expire / etc.
+  // Auto-purge anciennes alertes traitées via M.alertes.purger en amont.
+  M.verifierDocumentsSalaries = function() {
+    const salaries = M.charger('salaries');
+    const auj = new Date(); auj.setHours(0,0,0,0);
+    const checkDate = (s, dateStr, prefix, lblExp, lblProche, seuilJours) => {
+      if (!dateStr) return;
+      const d = new Date(dateStr); d.setHours(0,0,0,0);
+      if (isNaN(d)) return;
+      const diff = Math.ceil((d - auj) / (1000*60*60*24));
+      const nom = ((s.prenom ? s.prenom + ' ' : '') + (s.nom || '')).trim();
+      if (diff < 0) {
+        M.alertes.ajouterSiAbsente(prefix + '_expire',
+          `⚠️ ${lblExp} — ${nom} (depuis ${Math.abs(diff)} j)`,
+          { salId: s.id, salNom: nom });
+      } else if (diff === 0) {
+        M.alertes.ajouterSiAbsente(prefix + '_expire',
+          `⚠️ ${lblExp} AUJOURD'HUI — ${nom}`,
+          { salId: s.id, salNom: nom });
+      } else if (diff <= seuilJours) {
+        M.alertes.ajouterSiAbsente(prefix + '_proche',
+          `🔔 ${lblProche} dans ${diff} j — ${nom}`,
+          { salId: s.id, salNom: nom });
+      }
+    };
+    salaries.forEach(s => {
+      if (!s || s.archive || s.statut === 'inactif') return;
+      checkDate(s, s.datePermis, 'permis', 'Permis expiré', 'Permis expire', 60);
+      checkDate(s, s.dateAssurance, 'assurance', 'Assurance expirée', 'Assurance expire', 30);
+      // Visite médicale (R.4624-10)
+      const vm = s.visiteMedicale;
+      if (vm && typeof vm === 'object' && vm.dateExpiration) {
+        checkDate(s, vm.dateExpiration, 'visite', 'Visite médicale expirée', 'Visite médicale expire', 60);
+      }
+    });
+  };
+
+  // Vérifie CT + assurance véhicule (mirror PC).
+  M.verifierDocumentsVehicules = function() {
+    const vehicules = M.charger('vehicules');
+    const auj = new Date(); auj.setHours(0,0,0,0);
+    const checkDate = (v, dateStr, prefix, lblExp, lblProche, seuilJours) => {
+      if (!dateStr) return;
+      const d = new Date(dateStr); d.setHours(0,0,0,0);
+      if (isNaN(d)) return;
+      const diff = Math.ceil((d - auj) / (1000*60*60*24));
+      const immat = v.immat || v.id;
+      if (diff < 0) {
+        M.alertes.ajouterSiAbsente(prefix + '_expire',
+          `⚠️ ${lblExp} — ${immat} (depuis ${Math.abs(diff)} j)`,
+          { vehId: v.id, immat });
+      } else if (diff === 0) {
+        M.alertes.ajouterSiAbsente(prefix + '_expire',
+          `⚠️ ${lblExp} AUJOURD'HUI — ${immat}`,
+          { vehId: v.id, immat });
+      } else if (diff <= seuilJours) {
+        M.alertes.ajouterSiAbsente(prefix + '_proche',
+          `🔔 ${lblProche} dans ${diff} j — ${immat}`,
+          { vehId: v.id, immat });
+      }
+    };
+    vehicules.forEach(v => {
+      if (!v || v.archive) return;
+      checkDate(v, v.dateCT, 'ct', 'CT expiré', 'CT à renouveler', 60);
+      checkDate(v, v.dateAssurance, 'assurance', 'Assurance expirée', 'Assurance expire', 30);
+    });
+  };
+
+  // Lance la vérif complète (salariés + véhicules) au boot et toutes les heures.
+  // Idempotent (cooldown bloqueRegen empêche la regen en boucle).
+  M.lancerVerifDocs = function() {
+    try { M.alertes.purger(); } catch (_) {}
+    try { M.verifierDocumentsSalaries(); } catch (_) {}
+    try { M.verifierDocumentsVehicules(); } catch (_) {}
   };
 
   // ---------- Alertes (v3.33 : groupage par module/onglet metier) ----------
@@ -6098,6 +6339,12 @@
 
     // Auto-refresh badge alertes toutes les 30s (au cas ou desktop sync nouvelles alertes)
     setInterval(M.updateAlertesBadge, 30000);
+
+    // Vérif documents salariés + véhicules au boot (1s après) puis toutes les heures.
+    // Génère alertes permis_expire / ct_proche / etc. (mirror PC verifierDocumentsSalaries).
+    // Idempotent : cooldown bloqueRegen empêche le spam.
+    setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
+    setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis
