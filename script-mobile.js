@@ -535,8 +535,9 @@
       ` : ''}
       ${enEdition ? `
         <div style="display:flex;gap:8px;margin-top:14px">
-          <button type="button" class="m-btn" id="m-form-bon" style="flex:1">📄 Bon de livraison</button>
+          <button type="button" class="m-btn" id="m-form-bon" style="flex:1">📄 Bon</button>
           <button type="button" class="m-btn" id="m-form-facture" style="flex:1">🧾 Facture</button>
+          <button type="button" class="m-btn" id="m-form-ldv" style="flex:1">📋 LDV</button>
         </div>
         <button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:8px">🔁 Créer une récurrence</button>
         <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer cette livraison</button>
@@ -587,6 +588,10 @@
           body.querySelector('#m-form-facture')?.addEventListener('click', () => {
             M.closeSheet();
             setTimeout(() => M.genererFactureLivraison(v.id), 100);
+          });
+          body.querySelector('#m-form-ldv')?.addEventListener('click', () => {
+            M.closeSheet();
+            setTimeout(() => M.genererLDV(v.id), 100);
           });
           body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
             const ok = await M.creerRecurrence('livraisons', v.id, {
@@ -824,6 +829,120 @@
     if (!liv) { M.toast('Livraison introuvable'); return; }
     const html = M.genererHtmlBonOuFacture(liv, { facture: true });
     M.afficherDocHTML(html, `Facture ${liv.factureNumero || ''}`);
+  };
+
+  // Lettre de voiture (LDV) - Document légal transport (arrêté 09/11/1999).
+  // Champs lus depuis liv.expNom/expAdresse/destNom/destAdresse/marchNature/etc
+  // (saisis dans la section LDV repliable du form livraison).
+  M.genererLDV = function(id) {
+    const liv = M.charger('livraisons').find(x => x.id === id);
+    if (!liv) { M.toast('Livraison introuvable'); return; }
+    const config = M.chargerObj('config') || {};
+    const ent = config.entreprise || M.chargerObj('entreprise') || {};
+    const esc = (s) => M.escHtml(s == null ? '' : s);
+    const fmtD = (d) => d ? new Date(d).toLocaleDateString('fr-FR') : '—';
+    const numLDV = liv.numLiv ? 'LDV-' + String(liv.numLiv).replace(/^LIV-/, '') : 'LDV-' + (liv.id || '').slice(0, 8);
+
+    // Détection champs manquants (alerte conformité légale)
+    const manques = [];
+    if (!liv.expNom) manques.push('expéditeur');
+    if (!liv.expAdresse || !liv.expVille) manques.push('adresse chargement');
+    if (!liv.destNom) manques.push('destinataire');
+    if (!liv.destAdresse || !liv.destVille) manques.push('adresse déchargement');
+    if (!liv.marchNature) manques.push('nature marchandise');
+    if (!liv.marchPoids) manques.push('poids');
+    if (!liv.marchColis) manques.push('nombre de colis');
+
+    const bandeau = manques.length
+      ? `<div style="background:#fef3c7;border:1px solid #f59e0b;color:#92400e;padding:10px 14px;border-radius:8px;margin-bottom:16px;font-size:.84rem"><strong>⚠️ LDV incomplète.</strong> Champs manquants : ${esc(manques.join(', '))}. Complète-les sur la fiche livraison pour un document légalement conforme.</div>`
+      : '';
+
+    const adresseBlock = (nom, adr, cp, ville, pays, contact) => `
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;padding:14px;border-radius:10px">
+        <div style="font-weight:700;font-size:.95rem;margin-bottom:6px">${esc(nom || '—')}</div>
+        ${contact ? `<div style="font-size:.82rem;color:#6b7280">${esc(contact)}</div>` : ''}
+        <div style="font-size:.86rem;line-height:1.5;margin-top:6px">
+          ${adr ? esc(adr) + '<br>' : ''}
+          ${cp ? esc(cp) + ' ' : ''}${ville ? esc(ville) : ''}
+          ${pays && pays !== 'FR' ? '<br>' + esc(pays) : ''}
+        </div>
+      </div>`;
+
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>LDV ${esc(numLDV)}</title>
+      <style>
+        body { font-family: 'Segoe UI', -apple-system, Arial, sans-serif; padding: 24px; max-width: 720px; margin: 0 auto; color: #111827; background: #fff; }
+        @media print { body { padding: 12mm } @page { margin: 12mm } }
+      </style></head><body>
+      ${bandeau}
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #111827">
+        <div>
+          <div style="font-size:1.3rem;font-weight:900">LETTRE DE VOITURE</div>
+          <div style="font-size:.78rem;color:#6b7280;margin-top:4px">N° ${esc(numLDV)} · ${fmtD(liv.date)}</div>
+          <div style="font-size:.7rem;color:#9ca3af;margin-top:2px">Document obligatoire — arrêté 09/11/1999</div>
+        </div>
+        <div style="text-align:right;font-size:.82rem">
+          <div style="font-weight:700">${esc(ent.nom || 'MCA Logistics')}</div>
+          ${ent.siret ? `<div style="color:#6b7280;font-size:.74rem">SIRET ${esc(ent.siret)}</div>` : ''}
+          ${ent.tel ? `<div style="color:#6b7280;font-size:.74rem">Tél. ${esc(ent.tel)}</div>` : ''}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+        <div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">📤 Expéditeur (chargement)</div>
+          ${adresseBlock(liv.expNom, liv.expAdresse, liv.expCp, liv.expVille, liv.expPays, liv.expContact)}
+        </div>
+        <div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">📥 Destinataire (déchargement)</div>
+          ${adresseBlock(liv.destNom, liv.destAdresse, liv.destCp, liv.destVille, liv.destPays, liv.destContact)}
+        </div>
+      </div>
+
+      <div style="margin-bottom:18px">
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">📦 Marchandise</div>
+        <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+          <thead><tr style="background:#f8fafc">
+            <th style="padding:10px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">Nature</th>
+            <th style="padding:10px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">Poids</th>
+            <th style="padding:10px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">Volume</th>
+            <th style="padding:10px;text-align:right;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">Colis</th>
+          </tr></thead>
+          <tbody><tr>
+            <td style="padding:14px 10px">${esc(liv.marchNature || '—')}</td>
+            <td style="padding:14px 10px;text-align:right">${liv.marchPoids ? esc(liv.marchPoids) + ' kg' : '—'}</td>
+            <td style="padding:14px 10px;text-align:right">${liv.marchVolume ? esc(liv.marchVolume) + ' m³' : '—'}</td>
+            <td style="padding:14px 10px;text-align:right">${liv.marchColis ? esc(liv.marchColis) : '—'}</td>
+          </tr></tbody>
+        </table>
+      </div>
+
+      ${liv.adrEstADR ? `
+        <div style="margin-bottom:18px;padding:14px;border:2px solid #dc2626;background:#fef2f2;border-radius:8px">
+          <div style="font-weight:800;color:#dc2626;font-size:.95rem;margin-bottom:8px">⚠️ TRANSPORT ADR — MATIÈRES DANGEREUSES</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:.85rem">
+            <div><strong>Code ONU :</strong> ${esc(liv.adrCodeONU || '—')}</div>
+            <div><strong>Classe :</strong> ${esc(liv.adrClasse || '—')}</div>
+            <div><strong>Groupe emballage :</strong> ${esc(liv.adrGroupeEmballage || '—')}</div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:36px;font-size:.78rem">
+        <div>
+          <div style="border-top:1px solid #6b7280;padding-top:6px">Signature expéditeur</div>
+          <div style="height:60px"></div>
+        </div>
+        <div>
+          <div style="border-top:1px solid #6b7280;padding-top:6px">Signature destinataire</div>
+          <div style="height:60px"></div>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #e5e7eb;padding-top:10px;margin-top:24px;font-size:.72rem;color:#9ca3af;text-align:center">
+        Document généré le ${new Date().toLocaleString('fr-FR')} · ${esc(ent.nom || 'MCA Logistics')}
+      </div>
+      </body></html>`;
+    M.afficherDocHTML(html, `LDV ${numLDV}`);
   };
 
   M.formNouveauPlein = function(existing) {
@@ -2740,6 +2859,8 @@
   M.state.livraisonsRecherche = '';
   M.state.livraisonsMoisOuverts = {}; // mois -> bool (open/closed)
   M.state.livraisonsVue = 'liste'; // 'liste' | 'kanban'
+  M.state.livBulkMode = false;
+  M.state.livBulkSel = new Set(); // ids selectionnees
 
   M.register('livraisons', {
     title: 'Livraisons',
@@ -2766,10 +2887,32 @@
       const monthsSorted = Object.keys(byMonth).sort().reverse();
       const moisCourant = new Date().toISOString().slice(0, 7);
 
-      // FAB toujours present (position:fixed -> place dans le HTML peu importe)
-      let html = `<button class="m-fab" onclick="MCAm.formNouvelleLivraison()" aria-label="Nouvelle livraison">+</button>`;
+      const bulkOn = M.state.livBulkMode;
+      const selSet = M.state.livBulkSel;
+      const selCount = filtered.filter(l => selSet.has(l.id)).length;
+      const selTotal = filtered.filter(l => selSet.has(l.id)).reduce((s, l) => s + (Number(l.prix) || Number(l.prixHT) || 0), 0);
+
+      // FAB : sélection multiple si pas en mode bulk, sinon caché
+      let html = bulkOn ? '' : `<button class="m-fab" onclick="MCAm.formNouvelleLivraison()" aria-label="Nouvelle livraison">+</button>
+        <button class="m-fab" id="m-liv-bulk-on" aria-label="Sélection multiple" style="bottom:90px;background:var(--m-accent);font-size:1.1rem">☑</button>`;
 
       const vue = M.state.livraisonsVue;
+
+      // Bandeau bulk en haut si actif
+      if (bulkOn) {
+        html += `<div style="position:sticky;top:0;z-index:5;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;padding:10px 12px;margin-bottom:12px;box-shadow:0 4px 14px rgba(0,0,0,.15)">
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:${selCount > 0 ? '10px' : '0'}">
+            <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}${selCount > 0 ? ` · ${M.format$(selTotal)}` : ''}</div>
+            <button type="button" id="m-liv-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
+          </div>
+          ${selCount > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:6px">
+            <button type="button" class="m-liv-bulk-action m-btn" data-action="livre" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">✅ Marquer livré</button>
+            <button type="button" class="m-liv-bulk-action m-btn" data-action="paye" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">💵 Encaisser</button>
+            <button type="button" class="m-liv-bulk-action m-btn m-btn-danger" data-action="delete" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">🗑️ Supprimer</button>
+          </div>` : ''}
+        </div>`;
+      }
+
       // Toggle vue Liste / Kanban (alignement PC)
       html += `
         <div style="display:flex;gap:6px;margin-bottom:14px">
@@ -2852,8 +2995,17 @@
               </span>
             </button>
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
-              ${items.map(l => `
-                <button type="button" class="m-card m-card-pressable m-liv-edit" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+              ${items.map(l => {
+                const isSel = selSet.has(l.id);
+                const cardClass = bulkOn ? 'm-liv-toggle' : 'm-liv-edit';
+                const cardStyle = bulkOn && isSel
+                  ? 'background:var(--m-accent-soft);border:1px solid var(--m-accent)'
+                  : 'background:var(--m-card);border:1px solid var(--m-border)';
+                const checkbox = bulkOn
+                  ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
+                  : '';
+                return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;${cardStyle};border-radius:18px;margin-bottom:10px;color:inherit;cursor:pointer">
+                  ${checkbox}
                   <div style="flex:1 1 auto;min-width:0">
                     <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
                     <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
@@ -2866,8 +3018,8 @@
                     <div style="font-weight:700;color:var(--m-green);white-space:nowrap;font-size:.95rem">${M.format$(l.prix || l.prixHT || 0)}</div>
                     ${l.statut ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(l.statut)}</div>` : ''}
                   </div>
-                </button>
-              `).join('')}
+                </div>`;
+              }).join('')}
             </div>
           </div>
         `;
@@ -2910,9 +3062,81 @@
           if (chevron) chevron.style.transform = `rotate(${willOpen ? '90' : '0'}deg)`;
         });
       });
-      // Tap card livraison -> ouvre le form en mode edition
+      // Tap card livraison -> ouvre le form en mode edition (mode normal)
       container.querySelectorAll('.m-liv-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerLivraison(btn.dataset.id));
+        btn.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerLivraison(btn.dataset.id); }
+        });
+      });
+      // Tap card en mode bulk -> toggle selection
+      container.querySelectorAll('.m-liv-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.dataset.id;
+          if (M.state.livBulkSel.has(id)) M.state.livBulkSel.delete(id);
+          else M.state.livBulkSel.add(id);
+          M.go('livraisons');
+        });
+      });
+      // Active mode bulk
+      container.querySelector('#m-liv-bulk-on')?.addEventListener('click', () => {
+        M.state.livBulkMode = true;
+        M.state.livBulkSel.clear();
+        M.go('livraisons');
+      });
+      // Quitte mode bulk
+      container.querySelector('#m-liv-bulk-exit')?.addEventListener('click', () => {
+        M.state.livBulkMode = false;
+        M.state.livBulkSel.clear();
+        M.go('livraisons');
+      });
+      // Bulk actions : marquer livré / encaisser / supprimer
+      container.querySelectorAll('.m-liv-bulk-action').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const action = btn.dataset.action;
+          const ids = [...M.state.livBulkSel];
+          if (!ids.length) return;
+          if (action === 'delete') {
+            if (!await M.confirm(`Supprimer définitivement ${ids.length} livraison${ids.length>1?'s':''} ?`, { titre: 'Suppression en lot' })) return;
+            const arr = M.charger('livraisons').filter(l => !ids.includes(l.id));
+            M.sauvegarder('livraisons', arr);
+            M.toast(`🗑️ ${ids.length} livraison${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
+          } else if (action === 'livre') {
+            const arr = M.charger('livraisons');
+            const now = new Date().toISOString();
+            let n = 0;
+            ids.forEach(id => {
+              const idx = arr.findIndex(x => x.id === id);
+              if (idx >= 0) { arr[idx].statut = 'livre'; arr[idx].modifieLe = now; n++; }
+            });
+            M.sauvegarder('livraisons', arr);
+            M.toast(`✅ ${n} livraison${n>1?'s':''} marquée${n>1?'s':''} livrée${n>1?'s':''}`);
+          } else if (action === 'paye') {
+            const res = await M.dialogChoisirDate({
+              titre: `💵 Encaisser ${ids.length} livraison${ids.length>1?'s':''}`,
+              labelDate: 'Date de paiement',
+              btnOk: '💵 Confirmer'
+            });
+            if (!res) return;
+            const arr = M.charger('livraisons');
+            const now = new Date().toISOString();
+            let n = 0;
+            ids.forEach(id => {
+              const idx = arr.findIndex(x => x.id === id);
+              if (idx >= 0) {
+                arr[idx].statutPaiement = 'payé';
+                arr[idx].datePaiement = res.date;
+                arr[idx].modifieLe = now;
+                n++;
+              }
+            });
+            M.sauvegarder('livraisons', arr);
+            M.toast(`💵 ${n} encaissement${n>1?'s':''} au ${M.formatDate(res.date)}`);
+          }
+          M.state.livBulkSel.clear();
+          M.state.livBulkMode = false;
+          M.go('livraisons');
+        });
       });
     }
   });
