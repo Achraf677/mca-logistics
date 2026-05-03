@@ -4625,8 +4625,48 @@
     }
   });
 
-  // ---------- Calendrier (v2.9 : vue jour avec evenements + nav prev/next) ----------
+  // ---------- Calendrier (v3.26 : vue jour + plannings + jours feries + echeances) ----------
   M.state.calendrierDate = new Date().toISOString().slice(0, 10);
+
+  // Jours feries FR (port de script.js : feriesDeLAnnee + paquesDate)
+  M._feriesCache = {};
+  M.paquesDate = function(year) {
+    const a = year % 19, b = Math.floor(year/100), c = year % 100;
+    const d = Math.floor(b/4), e = b % 4;
+    const f = Math.floor((b+8)/25), g = Math.floor((b-f+1)/3);
+    const h = (19*a + b - d - g + 15) % 30;
+    const i = Math.floor(c/4), k = c % 4;
+    const L = (32 + 2*e + 2*i - h - k) % 7;
+    const m = Math.floor((a + 11*h + 22*L)/451);
+    const month = Math.floor((h + L - 7*m + 114) / 31);
+    const day = ((h + L - 7*m + 114) % 31) + 1;
+    return new Date(year, month-1, day);
+  };
+  M.feriesDeLAnnee = function(year) {
+    if (M._feriesCache[year]) return M._feriesCache[year];
+    const paques = M.paquesDate(year);
+    const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate()+n); return x; };
+    const list = [
+      { date: new Date(year, 0, 1),   nom: "Jour de l'An" },
+      { date: addDays(paques, 1),     nom: 'Lundi de Pâques' },
+      { date: new Date(year, 4, 1),   nom: 'Fête du Travail' },
+      { date: new Date(year, 4, 8),   nom: 'Victoire 1945' },
+      { date: addDays(paques, 39),    nom: 'Ascension' },
+      { date: addDays(paques, 50),    nom: 'Lundi de Pentecôte' },
+      { date: new Date(year, 6, 14),  nom: 'Fête Nationale' },
+      { date: new Date(year, 7, 15),  nom: 'Assomption' },
+      { date: new Date(year, 10, 1),  nom: 'Toussaint' },
+      { date: new Date(year, 10, 11), nom: 'Armistice 1918' },
+      { date: new Date(year, 11, 25), nom: 'Noël' }
+    ];
+    M._feriesCache[year] = list;
+    return list;
+  };
+  M.feriePourDate = function(iso) {
+    const d = new Date(iso);
+    return M.feriesDeLAnnee(d.getFullYear()).find(f => f.date.toISOString().slice(0,10) === iso) || null;
+  };
+
   M.register('calendrier', {
     title: 'Calendrier',
     render() {
@@ -4636,7 +4676,32 @@
       const entretiens = M.charger('entretiens').filter(e => e.date === dateSel);
       const incidents = M.charger('incidents').filter(i => (i.date || (i.creeLe||'').slice(0,10)) === dateSel);
 
+      // Echeances charges impayees : date_echeance ou date + delaiPaiement
+      const charges = M.charger('charges').filter(c => {
+        if (c.statut === 'paye' || c.statut === 'payee') return false;
+        const ech = c.dateEcheance || c.date_echeance;
+        if (ech === dateSel) return true;
+        return false;
+      });
+
+      // Plannings du jour : qui travaille / conge / repos
       const d = new Date(dateSel);
+      const jourIdx = (d.getDay() + 6) % 7; // 0 = lundi
+      const jourCle = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][jourIdx];
+      const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
+      const plannings = M.charger('plannings');
+      const auTravail = [];
+      const enConge = [];
+      salaries.forEach(sal => {
+        const planning = plannings.find(p => p.salId === sal.id);
+        const jourData = planning?.semaine?.find(j => j.jour === jourCle);
+        if (!jourData) return;
+        const t = jourData.typeJour || (jourData.travaille ? 'travail' : 'repos');
+        if (t === 'travail') auTravail.push({ sal, jourData });
+        else if (t === 'conge' || t === 'absence' || t === 'maladie') enConge.push({ sal, jourData, type: t });
+      });
+
+      const ferie = M.feriePourDate(dateSel);
       const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
       const estAujourd = dateSel === new Date().toISOString().slice(0, 10);
 
@@ -4644,7 +4709,7 @@
       const prev = new Date(d); prev.setDate(prev.getDate() - 1);
       const next = new Date(d); next.setDate(next.getDate() + 1);
 
-      const totalEvenements = livraisons.length + carburant.length + entretiens.length + incidents.length;
+      const totalEvenements = livraisons.length + carburant.length + entretiens.length + incidents.length + charges.length + auTravail.length + enConge.length;
 
       let html = `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
@@ -4659,10 +4724,11 @@
           <input type="date" id="m-cal-picker" value="${dateSel}" style="max-width:200px;display:inline-block" />
           ${!estAujourd ? `<button class="m-cal-today" style="margin-left:8px;padding:0 14px;height:48px;border-radius:10px;background:var(--m-accent);color:#1a1208;border:none;font-weight:600">Aujourd'hui</button>` : ''}
         </div>
+        ${ferie ? `<div class="m-card" style="background:#fee2e2;color:#991b1b;border-left:3px solid #dc2626;padding:12px 14px;margin-bottom:12px;font-weight:600">🎉 ${M.escHtml(ferie.nom)} (jour férié)</div>` : ''}
       `;
 
       if (!totalEvenements) {
-        html += `<div class="m-empty"><div class="m-empty-icon">📅</div><h3 class="m-empty-title">Rien à signaler</h3><p class="m-empty-text">Aucune livraison, plein, entretien ou incident pour cette journée.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">📅</div><h3 class="m-empty-title">Rien à signaler</h3><p class="m-empty-text">Aucune livraison, plein, entretien, incident ou planning pour cette journée.</p></div>`;
         return html;
       }
 
@@ -4691,6 +4757,23 @@
           <div style="font-weight:500;font-size:.88rem">${M.escHtml(i.client || i.salNom || 'Incident')}</div>
           ${i.description ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px;line-height:1.4">${M.escHtml(i.description.slice(0, 120))}${i.description.length > 120 ? '…' : ''}</div>` : ''}
         </div>`);
+      html += renderEvents('⏰ Échéances charges', charges, 'var(--m-accent)', c => `
+        <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-accent);display:flex;justify-content:space-between;gap:10px">
+          <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml(c.libelle || c.fournisseur || '—')}</div>${c.fournisseur && c.libelle ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(c.fournisseur)}</div>` : ''}</div>
+          <div style="font-weight:700;color:var(--m-accent);white-space:nowrap">${M.format$(c.montantTtc || c.montant || 0)}</div>
+        </div>`);
+      html += renderEvents('👥 Au travail', auTravail, 'var(--m-green)', ({ sal, jourData }) => {
+        const horaires = jourData?.heureDebut && jourData?.heureFin ? `${jourData.heureDebut}–${jourData.heureFin}` : 'Présent';
+        return `<div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-green);display:flex;justify-content:space-between;gap:10px">
+          <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${horaires}${jourData?.zone ? ' · ' + M.escHtml(jourData.zone) : ''}</div></div>
+        </div>`;
+      });
+      html += renderEvents('🏖️ Absences', enConge, 'var(--m-text-muted)', ({ sal, type }) => {
+        const labels = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie' };
+        return `<div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-border);display:flex;justify-content:space-between;gap:10px;opacity:.85">
+          <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${labels[type] || type}</div></div>
+        </div>`;
+      });
 
       return html;
     },
