@@ -2686,6 +2686,22 @@
     render() {
       const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
       const plannings = M.charger('plannings');
+      const vue = M.state.planningVue || 'jour';
+
+      // Header : toggle vue + bouton periodes absences
+      let html = `
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0">📅 Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0">🗓️ Semaine</button>
+          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.78rem">🏖️ Absence longue</button>
+        </div>
+      `;
+
+      if (vue === 'semaine') {
+        return html + M.renderPlanningSemaine(salaries, plannings);
+      }
+
+      // Vue Jour (existante)
       const jourIdx = M.state.planningJour;
       const jourCle = M_JOURS_FR[jourIdx];
       const estAujourd = jourIdx === jourIndexAuj();
@@ -2704,8 +2720,8 @@
       const enAbsence = lignes.filter(l => l.typeJour === 'absence' || l.typeJour === 'maladie');
       const enRepos   = lignes.filter(l => l.typeJour === 'repos');
 
-      // Header : selecteur jour de la semaine
-      let html = `
+      // Selecteur jour de la semaine
+      html += `
         <div style="display:flex;gap:6px;margin-bottom:18px">
           ${M_JOURS_COURT.map((j, i) => `
             <button class="m-planning-jour ${i === jourIdx ? 'active' : ''}" data-jour="${i}" style="flex:1 1 0;min-height:44px;border-radius:10px;font-weight:600;font-size:.85rem;background:${i === jourIdx ? 'var(--m-accent)' : 'var(--m-bg-elevated)'};color:${i === jourIdx ? '#1a1208' : 'var(--m-text)'};border:1px solid ${i === jourIdx ? 'var(--m-accent)' : 'var(--m-border)'};padding:0;${i === jourIndexAuj() && i !== jourIdx ? 'box-shadow:inset 0 0 0 2px var(--m-accent-soft)' : ''}">${j}</button>
@@ -2774,20 +2790,194 @@
       return html;
     },
     afterRender(container) {
+      container.querySelectorAll('button[data-vue]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.planningVue = btn.dataset.vue; M.go('planning'); });
+      });
+      container.querySelector('#m-planning-abs-add')?.addEventListener('click', () => M.formAbsenceLongue());
       container.querySelectorAll('.m-planning-jour').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.planningJour = parseInt(btn.dataset.jour);
           M.go('planning');
         });
       });
-      // Tap salarie -> ouvre sa fiche
-      // Tap card salarie -> ouvre form planning pour CE jour selectionne
-      // (plus pertinent dans le contexte Planning que d'aller a la fiche salarie)
+      // Tap salarie -> ouvre form planning pour CE jour selectionne
       container.querySelectorAll('.m-planning-sal').forEach(btn => {
         btn.addEventListener('click', () => M.formPlanningJour(btn.dataset.salId));
       });
+      // Vue semaine : tap cell -> form planning pour ce salarie/jour
+      container.querySelectorAll('.m-planning-cell').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.planningJour = parseInt(btn.dataset.jourIdx);
+          M.formPlanningJour(btn.dataset.salId);
+        });
+      });
+      // Vue absences : tap card -> editer / supprimer
+      container.querySelectorAll('.m-abs-card').forEach(btn => {
+        btn.addEventListener('click', () => M.formAbsenceLongue(btn.dataset.absId, btn.dataset.salId));
+      });
     }
   });
+
+  // Vue semaine : grille condensee 7 colonnes x N salaries
+  M.renderPlanningSemaine = function(salaries, plannings) {
+    if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
+    const labels = { travail: '✅', conge: '🏖️', absence: '⚠️', maladie: '🤒', repos: '😴' };
+    const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'rgba(155,155,155,.3)' };
+    const todayIdx = jourIndexAuj();
+
+    let html = `<div class="m-card" style="padding:0;overflow:hidden">
+      <div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.7rem">
+        <div style="padding:8px 6px;background:var(--m-bg-elevated);font-weight:700;border-bottom:1px solid var(--m-border)"></div>
+        ${M_JOURS_COURT.map((j, i) => `<div style="padding:8px 4px;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${i === todayIdx ? 'color:var(--m-accent)' : ''}">${j}</div>`).join('')}
+      </div>`;
+
+    salaries.forEach((sal, sIdx) => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      const semaine = planning && Array.isArray(planning.semaine) ? planning.semaine : [];
+      const isLast = sIdx === salaries.length - 1;
+      html += `<div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.72rem">
+        <div style="padding:10px 6px;font-weight:600;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id).slice(0, 8))}</div>`;
+      M_JOURS_FR.forEach((jourCle, jIdx) => {
+        const jourData = semaine.find(j => j.jour === jourCle);
+        const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
+        const lbl = labels[typeJour] || '·';
+        const bg = colors[typeJour] || 'transparent';
+        const isToday = jIdx === todayIdx;
+        const horaireShort = jourData?.heureDebut && jourData?.heureFin ? jourData.heureDebut.slice(0, 5) : '';
+        html += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="padding:8px 2px;text-align:center;background:${bg};color:${typeJour === 'travail' || typeJour === 'conge' || typeJour === 'absence' || typeJour === 'maladie' ? '#fff' : 'var(--m-text)'};border:0;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}${isToday ? 'box-shadow:inset 0 0 0 2px var(--m-accent)' : ''};font-family:inherit;cursor:pointer;font-size:.78rem;font-weight:600;line-height:1.1">
+          <div>${lbl}</div>
+          ${horaireShort ? `<div style="font-size:.62rem;opacity:.85;margin-top:1px">${horaireShort}</div>` : ''}
+        </button>`;
+      });
+      html += `</div>`;
+    });
+
+    html += `</div>`;
+
+    // Section "Périodes d'absence" (longues durées)
+    const absences = [];
+    plannings.forEach(p => {
+      if (Array.isArray(p.absences)) {
+        p.absences.forEach(a => absences.push({ ...a, salId: p.salId }));
+      }
+    });
+    if (absences.length) {
+      const today = new Date().toISOString().slice(0, 10);
+      const enCours = absences.filter(a => a.dateDebut <= today && (!a.dateFin || a.dateFin >= today));
+      const aVenir = absences.filter(a => a.dateDebut > today);
+      const passees = absences.filter(a => a.dateFin && a.dateFin < today);
+
+      const renderAbs = (list, titre, icon) => {
+        if (!list.length) return '';
+        const lblType = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie' };
+        return `<div class="m-section" style="margin-top:18px"><div class="m-section-header"><h3 class="m-section-title">${icon} ${titre}</h3><span style="font-size:.82rem;color:var(--m-text-muted)">${list.length}</span></div>
+          ${list.map(a => {
+            const sal = salaries.find(s => s.id === a.salId);
+            const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : (a.salId || '?');
+            return `<div role="button" tabindex="0" class="m-card m-card-pressable m-abs-card" data-abs-id="${M.escHtml(a.id)}" data-sal-id="${M.escHtml(a.salId)}" style="padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--m-blue);cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:start;gap:8px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.92rem">${M.escHtml(nom)}</div>
+                  <div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${lblType[a.type] || a.type} · ${M.formatDate(a.dateDebut)}${a.dateFin ? ' → ' + M.formatDate(a.dateFin) : ' (sans fin)'}</div>
+                  ${a.motif ? `<div style="font-size:.74rem;color:var(--m-text-muted);margin-top:4px;font-style:italic">${M.escHtml(a.motif)}</div>` : ''}
+                </div>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+      };
+      html += renderAbs(enCours, 'En cours', '🟢') + renderAbs(aVenir, 'À venir', '⏰') + renderAbs(passees.slice(0, 5), 'Passées (5 dernières)', '📋');
+    } else {
+      html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
+    }
+    return html;
+  };
+
+  // Form période d'absence longue : du DATE au DATE, type, motif. Stockée
+  // dans planning.absences[]. Le rendu vue jour/semaine n'écrase PAS les
+  // entrées planning.semaine[] mais override l'affichage si la date tombe
+  // dans une période active (l'utilisateur peut continuer à éditer le
+  // planning hebdo en parallèle).
+  M.formAbsenceLongue = function(absId, salIdInit) {
+    const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
+    const plannings = M.charger('plannings');
+    const today = new Date().toISOString().slice(0, 10);
+    let abs = null, salPlanning = null;
+    if (absId) {
+      for (const p of plannings) {
+        if (Array.isArray(p.absences)) {
+          const found = p.absences.find(a => a.id === absId);
+          if (found) { abs = found; salPlanning = p; break; }
+        }
+      }
+    }
+    const enEdition = !!abs;
+    const a = abs || {};
+    const salIdDef = a.salId || salIdInit || (salaries[0]?.id || '');
+
+    const body = `
+      ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { value: salIdDef, required: true }), { required: true })}
+      ${M.formField('Type', M.formSelect('type', [
+        { value: 'conge',    label: '🏖️ Congé' },
+        { value: 'absence',  label: '⚠️ Absence' },
+        { value: 'maladie',  label: '🤒 Maladie / arrêt' }
+      ], { value: a.type || 'conge' }))}
+      <div class="m-form-row">
+        ${M.formField('Date début', M.formInput('dateDebut', { type: 'date', value: a.dateDebut || today, required: true }), { required: true })}
+        ${M.formField('Date fin', M.formInput('dateFin', { type: 'date', value: a.dateFin || '' }), { hint: 'Vide = sans fin' })}
+      </div>
+      ${M.formField('Motif (optionnel)', M.formTextarea('motif', { value: a.motif || '', rows: 2, placeholder: 'Raison interne...' }))}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-abs-delete" style="margin-top:14px">🗑️ Supprimer cette période</button>` : ''}
+    `;
+    M.openSheet({
+      title: enEdition ? '✏️ Modifier période d\'absence' : '🏖️ Nouvelle absence longue',
+      body,
+      submitLabel: 'Enregistrer',
+      afterMount(b) {
+        if (!enEdition) return;
+        b.querySelector('#m-abs-delete')?.addEventListener('click', async () => {
+          if (!await M.confirm('Supprimer cette période d\'absence ?', { titre: 'Supprimer absence' })) return;
+          if (salPlanning) {
+            salPlanning.absences = salPlanning.absences.filter(x => x.id !== abs.id);
+            const allP = M.charger('plannings');
+            const idx = allP.findIndex(p => p.salId === salPlanning.salId);
+            if (idx >= 0) allP[idx] = salPlanning;
+            M.sauvegarder('plannings', allP);
+          }
+          M.toast('🗑️ Période supprimée');
+          M.closeSheet();
+          M.go('planning');
+        });
+      },
+      onSubmit() {
+        const f = M.lireFormSheet();
+        if (!f.salId) { M.toast('⚠️ Salarié requis'); return false; }
+        if (!f.dateDebut) { M.toast('⚠️ Date début requise'); return false; }
+        if (f.dateFin && f.dateFin < f.dateDebut) { M.toast('⚠️ Date fin avant date début'); return false; }
+        const allP = M.charger('plannings');
+        let p = allP.find(x => x.salId === f.salId);
+        if (!p) { p = { salId: f.salId, semaine: [], absences: [] }; allP.push(p); }
+        p.absences = p.absences || [];
+        if (enEdition) {
+          const idx = p.absences.findIndex(x => x.id === abs.id);
+          if (idx >= 0) p.absences[idx] = { ...abs, ...f, modifieLe: new Date().toISOString() };
+        } else {
+          p.absences.push({
+            id: M.genId(),
+            type: f.type || 'conge',
+            dateDebut: f.dateDebut,
+            dateFin: f.dateFin || '',
+            motif: f.motif?.trim() || '',
+            creeLe: new Date().toISOString()
+          });
+        }
+        M.sauvegarder('plannings', allP);
+        M.toast(enEdition ? '✅ Période modifiée' : '✅ Période enregistrée');
+        M.go('planning');
+        return true;
+      }
+    });
+  };
   // ============================================================
   // ALERTES — namespace data (mirror script-alertes.js cote desktop)
   // ============================================================
