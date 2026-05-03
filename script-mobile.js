@@ -1725,6 +1725,34 @@
       ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
       ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
+      ${enEdition ? `
+      <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Carte grise, Assurance, CT...)</summary>
+        <div style="padding:14px" id="m-veh-docs-list" data-veh-id="${M.escHtml(v.id)}">
+          ${M.DOC_TYPES_VEHICULE.map(({ type, label, icon }) => {
+            const doc = v.docs?.[type];
+            return `<div class="m-card" data-veh-doc-type="${type}" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+              <div style="font-size:1.2rem;flex:0 0 auto">${icon}</div>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.88rem">${label}</div>
+                <div class="m-veh-doc-status" style="font-size:.74rem;color:${doc ? 'var(--m-green)' : 'var(--m-text-muted)'};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  ${doc ? '✅ ' + M.escHtml(doc.nom || 'Document enregistré') : 'Aucun fichier'}
+                </div>
+              </div>
+              <div style="display:flex;gap:6px;flex:0 0 auto">
+                ${doc ? `<button type="button" class="m-btn m-veh-doc-view" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">👁</button>
+                       <button type="button" class="m-btn m-btn-danger m-veh-doc-del" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">🗑</button>` : ''}
+                <label class="m-btn" style="width:auto;padding:0 10px;height:38px;font-size:.78rem;display:inline-flex;align-items:center;cursor:pointer;margin:0">
+                  ${doc ? '↻' : '📎'}
+                  <input type="file" class="m-veh-doc-input" data-type="${type}" accept="image/*,application/pdf" style="display:none" />
+                </label>
+              </div>
+            </div>`;
+          }).join('')}
+          <p class="m-form-hint" style="margin-top:6px">PDF ou image, 5 Mo max. Stocké chiffré sur Supabase Storage.</p>
+        </div>
+      </details>
+      ` : '<p class="m-form-hint" style="margin-top:14px">💡 Les documents (carte grise, assurance, CT...) seront uploadables après la première sauvegarde.</p>'}
       ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce véhicule</button>` : ''}
     `;
     M.openSheet({
@@ -1779,6 +1807,59 @@
           M.closeSheet();
           M.go('vehicules');
         });
+        // Docs véhicule (mode édition uniquement) : upload / view / delete
+        const refreshVehDocCard = (type) => {
+          const veh = M.charger('vehicules').find(x => x.id === v.id);
+          const doc = veh?.docs?.[type];
+          const card = b.querySelector(`.m-card[data-veh-doc-type="${type}"]`);
+          if (!card) return;
+          const status = card.querySelector('.m-veh-doc-status');
+          if (status) {
+            status.textContent = doc ? '✅ ' + (doc.nom || 'Document enregistré') : 'Aucun fichier';
+            status.style.color = doc ? 'var(--m-green)' : 'var(--m-text-muted)';
+          }
+          const actions = card.lastElementChild;
+          actions.innerHTML = `
+            ${doc ? `<button type="button" class="m-btn m-veh-doc-view" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">👁</button>
+                   <button type="button" class="m-btn m-btn-danger m-veh-doc-del" data-type="${type}" style="width:auto;padding:0 10px;height:38px;font-size:.78rem">🗑</button>` : ''}
+            <label class="m-btn" style="width:auto;padding:0 10px;height:38px;font-size:.78rem;display:inline-flex;align-items:center;cursor:pointer;margin:0">
+              ${doc ? '↻' : '📎'}
+              <input type="file" class="m-veh-doc-input" data-type="${type}" accept="image/*,application/pdf" style="display:none" />
+            </label>`;
+          wireVehDocActions();
+        };
+        const wireVehDocActions = () => {
+          b.querySelectorAll('.m-veh-doc-input').forEach(inp => {
+            inp.onchange = async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const type = e.target.dataset.type;
+              const card = b.querySelector(`.m-card[data-veh-doc-type="${type}"]`);
+              const status = card?.querySelector('.m-veh-doc-status');
+              if (status) { status.textContent = '⏳ Envoi...'; status.style.color = 'var(--m-accent)'; }
+              const ok = await M.uploaderDocVehicule(file, type, v.id);
+              if (ok) M.toast('✅ Document enregistré');
+              refreshVehDocCard(type);
+              e.target.value = '';
+            };
+          });
+          b.querySelectorAll('.m-veh-doc-view').forEach(btn => {
+            btn.onclick = () => M.visualiserDocVehicule(v.id, btn.dataset.type);
+          });
+          b.querySelectorAll('.m-veh-doc-del').forEach(btn => {
+            btn.onclick = async () => {
+              const type = btn.dataset.type;
+              const meta = M.DOC_TYPES_VEHICULE.find(x => x.type === type);
+              if (!await M.confirm(`Supprimer le document "${meta?.label || type}" ?`, { titre: 'Supprimer document' })) return;
+              const ok = await M.supprimerDocVehicule(v.id, type);
+              if (ok) {
+                refreshVehDocCard(type);
+                M.toast('🗑️ Document supprimé');
+              }
+            };
+          });
+        };
+        wireVehDocActions();
       },
       onSubmit() {
         const f = M.lireFormSheet();
@@ -1823,6 +1904,91 @@
     const v = M.charger('vehicules').find(x => x.id === id);
     if (!v) return M.toast('Véhicule introuvable');
     M.formNouveauVehicule(v);
+  };
+
+  // ---- DOCS VEHICULE (pattern miroir docs salarié, bucket vehicules-docs) ----
+  // 5 types : carte_grise / assurance / ct / photos / autre.
+  // Bucket Supabase 'vehicules-docs' (à créer s'il n'existe pas dans Supabase).
+  M.DOC_TYPES_VEHICULE = [
+    { type: 'carte_grise', label: 'Carte grise',       icon: '🪪' },
+    { type: 'assurance',   label: 'Attestation assurance', icon: '🛡️' },
+    { type: 'ct',          label: 'Contrôle technique', icon: '🔧' },
+    { type: 'photos',      label: 'Photos véhicule',    icon: '📷' },
+    { type: 'autre',       label: 'Autre document',     icon: '📎' }
+  ];
+
+  M.uploaderDocVehicule = async function(file, type, vehId) {
+    if (!file) return false;
+    if (!/^application\/pdf$|^image\//i.test(file.type)) {
+      M.toast('⚠️ Format non supporté (PDF ou image attendu)'); return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      M.toast('⚠️ Fichier trop lourd (5 Mo max)'); return false;
+    }
+    if (!window.DelivProStorage) {
+      M.toast('⚠️ Storage Supabase indisponible'); return false;
+    }
+    const cleanName = window.DelivProStorage.sanitizeFilename(file.name);
+    const path = `${vehId}/${type}/${Date.now()}_${cleanName}`;
+    const up = await window.DelivProStorage.uploadBlob('vehicules-docs', path, file, { contentType: file.type });
+    if (!up.ok) {
+      M.toast('⚠️ Upload échoué : ' + (up.error?.message || 'erreur'));
+      return false;
+    }
+    const arr = M.charger('vehicules');
+    const idx = arr.findIndex(x => x.id === vehId);
+    if (idx < 0) return false;
+    const previous = arr[idx].docs?.[type];
+    arr[idx].docs = arr[idx].docs || {};
+    arr[idx].docs[type] = {
+      storage_path: path,
+      bucket: 'vehicules-docs',
+      type: file.type,
+      nom: file.name,
+      taille: file.size,
+      uploaded_at: new Date().toISOString()
+    };
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('vehicules', arr);
+    if (previous?.storage_path && previous.storage_path !== path) {
+      window.DelivProStorage.remove('vehicules-docs', previous.storage_path).catch(()=>{});
+    }
+    return true;
+  };
+
+  M.visualiserDocVehicule = async function(vehId, type) {
+    const veh = M.charger('vehicules').find(v => v.id === vehId);
+    const doc = veh?.docs?.[type];
+    if (!doc) { M.toast('Aucun document de ce type'); return; }
+    const meta = M.DOC_TYPES_VEHICULE.find(x => x.type === type);
+    const titre = (veh.immat || 'Véhicule') + ' — ' + (meta?.label || type);
+    if (doc.data && String(doc.data).indexOf('data:') === 0) {
+      M.afficherDocInline(doc.data, doc.type || (doc.data.includes('pdf') ? 'application/pdf' : 'image/*'), titre);
+      return;
+    }
+    if (!doc.storage_path || !window.DelivProStorage) {
+      M.toast('Document indisponible'); return;
+    }
+    M.toast('⏳ Chargement...');
+    const dl = await window.DelivProStorage.download(doc.bucket || 'vehicules-docs', doc.storage_path);
+    if (!dl.ok) { M.toast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur')); return; }
+    const objectUrl = URL.createObjectURL(dl.blob);
+    M.afficherDocInline(objectUrl, doc.type || dl.blob.type, titre);
+  };
+
+  M.supprimerDocVehicule = async function(vehId, type) {
+    const arr = M.charger('vehicules');
+    const idx = arr.findIndex(v => v.id === vehId);
+    if (idx < 0) return false;
+    const doc = arr[idx].docs?.[type];
+    if (!doc) return false;
+    if (doc.storage_path && window.DelivProStorage) {
+      await window.DelivProStorage.remove(doc.bucket || 'vehicules-docs', doc.storage_path).catch(()=>{});
+    }
+    delete arr[idx].docs[type];
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('vehicules', arr);
+    return true;
   };
 
   // ---- DOCS SALARIE (port PC : upload Supabase Storage bucket salaries-docs) ----
@@ -5921,8 +6087,18 @@
         });
         const topChauf = Object.values(byChauf).sort((a, b) => b.nb - a.nb).slice(0, 5);
         const dernieres = [...livraisons].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
+        const docsPresents = M.DOC_TYPES_VEHICULE.filter(t => v.docs?.[t.type]);
 
         return `
+          ${docsPresents.length ? `
+            <div class="m-section">
+              <div class="m-section-header"><h3 class="m-section-title">📎 Documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsPresents.length}</span></div>
+              <div class="m-card" style="padding:0">
+                ${docsPresents.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsPresents.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+
           <div class="m-section">
             <div class="m-section-header">
               <h3 class="m-section-title">📦 Activité totale</h3>
