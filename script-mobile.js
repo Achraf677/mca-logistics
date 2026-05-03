@@ -1064,14 +1064,44 @@
     return true;
   };
 
-  // Visualisation : download blob + objectURL ouvert dans nouvel onglet.
+  // Viewer media inline (modal plein ecran, pas de popup Safari).
+  // Affiche image ou PDF, avec bouton close + bouton telecharger.
+  M.afficherDocInline = function(url, mime, titre) {
+    // Cleanup ancien viewer si existe
+    document.querySelector('.m-doc-viewer')?.remove();
+    const isPdf = (mime || '').includes('pdf');
+    const overlay = document.createElement('div');
+    overlay.className = 'm-doc-viewer';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column';
+    overlay.innerHTML = `
+      <header style="flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(0,0,0,.4);color:#fff">
+        <div style="flex:1 1 auto;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre || 'Document')}</div>
+        <a href="${url}" download="${M.escHtml(titre || 'document')}" class="m-doc-viewer-dl" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;text-decoration:none;font-size:1rem">⬇</a>
+        <button type="button" class="m-doc-viewer-close" aria-label="Fermer" style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:1.1rem">✕</button>
+      </header>
+      <div style="flex:1 1 auto;overflow:auto;display:flex;align-items:${isPdf ? 'stretch' : 'center'};justify-content:center;padding:${isPdf ? '0' : '10px'}">
+        ${isPdf
+          ? `<iframe src="${url}" style="width:100%;height:100%;border:0;background:#fff"></iframe>`
+          : `<img src="${url}" alt="${M.escHtml(titre || 'doc')}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px" />`}
+      </div>
+    `;
+    const close = () => { overlay.remove(); document.body.style.overflow = ''; };
+    overlay.querySelector('.m-doc-viewer-close').addEventListener('click', close);
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+  };
+
+  // Visualisation : download blob + objectURL affiche dans viewer inline.
   M.visualiserDocSalarie = async function(salId, type) {
     const sal = M.charger('salaries').find(s => s.id === salId);
     const doc = sal?.docs?.[type];
     if (!doc) { M.toast('Aucun document de ce type'); return; }
+    const meta = M.DOC_TYPES_SALARIE.find(x => x.type === type);
+    const titre = (sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '') + ' — ' + (meta?.label || type);
     // Cas legacy base64 (anciens uploads PC)
     if (doc.data && String(doc.data).indexOf('data:') === 0) {
-      const w = window.open(); if (w) w.document.write(`<iframe src="${doc.data}" style="border:0;width:100vw;height:100vh"></iframe>`);
+      M.afficherDocInline(doc.data, doc.type || (doc.data.includes('pdf') ? 'application/pdf' : 'image/*'), titre);
       return;
     }
     if (!doc.storage_path || !window.DelivProStorage) {
@@ -1081,9 +1111,8 @@
     const dl = await window.DelivProStorage.download(doc.bucket || 'salaries-docs', doc.storage_path);
     if (!dl.ok) { M.toast('⚠️ Lien indisponible : ' + (dl.error?.message || 'erreur')); return; }
     const objectUrl = URL.createObjectURL(dl.blob);
-    const w = window.open(objectUrl);
-    if (!w) M.toast('⚠️ Bloqué : autorise les popups');
-    setTimeout(() => { try { URL.revokeObjectURL(objectUrl); } catch (_) {} }, 300000);
+    M.afficherDocInline(objectUrl, doc.type || dl.blob.type, titre);
+    // Le revoke se fait quand le user ferme (pas critique : navigateur libère au unload)
   };
 
   // Suppression : remove du bucket + clear de salarie.docs[type]
