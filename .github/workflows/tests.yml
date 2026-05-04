@@ -3,14 +3,20 @@ name: E2E Tests (Playwright)
 # Tests Playwright — parcours critiques admin et mobile.
 #
 # Declencheurs :
-#   - Pull Requests vers main : verification systematique avant merge
-#   - Workflow dispatch : declenchement manuel depuis l'UI GitHub
+#   - Workflow dispatch UNIQUEMENT (declenchement manuel depuis l'UI GitHub).
+#
+# Le trigger 'pull_request' a ete desactive le 2026-05-04 : les tests
+# necessitent des credentials test (PLAYWRIGHT_ADMIN_EMAIL/PASSWORD) qui
+# n'ont pas encore ete configures dans GitHub Secrets, donc echouent
+# systematiquement et envoient un email a chaque push. A reactiver une
+# fois les credentials presents (decommenter les 2 lignes 'pull_request'
+# ci-dessous).
 #
 # Pas de cron : on n'a pas besoin de bruit quotidien.
 
 on:
-  pull_request:
-    branches: [main]
+  # pull_request:
+  #   branches: [main]
   workflow_dispatch:
     inputs:
       base_url:
