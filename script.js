@@ -1673,16 +1673,16 @@ function rafraichirDashboard() {
 
     let etat, couleur, detail, etatClass;
     if (beneficeVal > 0 && alertesVal === 0 && impayes === 0) {
-      etat = '🟢 Excellente santé'; couleur = 'rgba(39,174,96,0.35)'; etatClass = 'etat-bon';
+      etat = 'Excellente santé'; couleur = 'rgba(39,174,96,0.35)'; etatClass = 'etat-bon';
       detail = `Marge positive · Aucune alerte · Aucun impayé`;
     } else if (beneficeVal > 0 && (alertesVal > 0 || impayes > 0)) {
-      etat = '🟢 Santé correcte'; couleur = 'rgba(46,204,113,0.15)'; etatClass = 'etat-bon';
+      etat = 'Santé correcte'; couleur = 'rgba(46,204,113,0.15)'; etatClass = 'etat-bon';
       detail = `Bénéfice positif${alertesVal > 0 ? ` · ${alertesVal} alerte(s) à traiter` : ''}${impayes > 0 ? ` · ${euros(impayes)} impayés` : ''}`;
     } else if (beneficeVal <= 0 && caMoisVal > 0) {
-      etat = '🔴 Attention requise'; couleur = 'rgba(231,76,60,0.2)'; etatClass = 'etat-mauvais';
+      etat = 'Attention requise'; couleur = 'rgba(231,76,60,0.2)'; etatClass = 'etat-mauvais';
       detail = `Bénéfice négatif ce mois · Vérifiez vos charges`;
     } else {
-      etat = '⚪ En attente de données'; couleur = 'rgba(255,255,255,0.05)'; etatClass = 'etat-vide';
+      etat = 'En attente de données'; couleur = 'rgba(255,255,255,0.05)'; etatClass = 'etat-vide';
       detail = `Saisissez vos premières livraisons pour activer l'analyse`;
     }
 
@@ -1948,7 +1948,7 @@ function genererGrilleJours() {
           </label>
           <select class="planning-type-select" id="plan-type-${jour}" onchange="toggleTypeJour('${jour}')" style="width:110px">
             <option value="travail" ${typeJour==='travail'?'selected':''}>🟢 Travail</option>
-            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>⚪ Repos</option>
+            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>Repos</option>
             <option value="conge"   ${typeJour==='conge'  ?'selected':''}>🔵 Congé</option>
             <option value="absence" ${typeJour==='absence'?'selected':''}>🔴 Absence</option>
             <option value="maladie" ${typeJour==='maladie'?'selected':''}>🟣 Maladie</option>
@@ -4077,7 +4077,7 @@ afficherPlanningSemaine = function() {
           var lb = jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence';
           return renderCell('is-' + jour.typeJour, (typeIcons[jour.typeJour] || '⚪') + ' ' + lb, '', '');
         }
-        return renderCell('is-rest', '⚪ Repos', '', '');
+        return renderCell('is-rest', 'Repos', '', '');
       }
 
       return renderCell('is-work', '🟢 Travail', (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : ''), jour.zone || '');

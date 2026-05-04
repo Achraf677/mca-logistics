@@ -1111,11 +1111,11 @@
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: p.vehiculeId || '', required: true }), { required: true })}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
         { value: 'diesel',     label: '⛽ Diesel/Gazole' },
-        { value: 'essence',    label: '⛽ Essence' },
-        { value: 'gnv',        label: '🌿 GNV/BioGNV' },
-        { value: 'electrique', label: '⚡ Électrique' },
-        { value: 'hybride',    label: '🔋 Hybride' },
-        { value: 'hydrogene',  label: '💧 Hydrogène' }
+        { value: 'essence',    label: 'Essence' },
+        { value: 'gnv',        label: 'GNV/BioGNV' },
+        { value: 'electrique', label: 'Électrique' },
+        { value: 'hybride',    label: 'Hybride' },
+        { value: 'hydrogene',  label: 'Hydrogène' }
       ], { placeholder: 'Choisir', value: typeCarbDefaut }))}
       <div class="m-form-row">
         ${M.formField('Date', M.formInput('date', { type: 'date', value: p.date || today, required: true }), { required: true })}
@@ -1294,14 +1294,14 @@
         ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantTtc || c.montant || '', required: true }), { required: true, hint: 'Calcul auto' })}
       </div>
       ${M.formField('Catégorie', M.formSelect('categorie', [
-        { value: 'carburant',  label: '⛽ Carburant' },
-        { value: 'peage',      label: '🛣️ Péage' },
-        { value: 'entretien',  label: '🔧 Entretien' },
-        { value: 'assurance',  label: '🛡️ Assurance' },
-        { value: 'salaires',   label: '👥 Salaires' },
-        { value: 'lld_credit', label: '🚐 LLD / Crédit' },
-        { value: 'tva',        label: '🧾 TVA' },
-        { value: 'autre',      label: '📝 Autre' }
+        { value: 'carburant',  label: 'Carburant' },
+        { value: 'peage',      label: 'Péage' },
+        { value: 'entretien',  label: 'Entretien' },
+        { value: 'assurance',  label: 'Assurance' },
+        { value: 'salaires',   label: 'Salaires' },
+        { value: 'lld_credit', label: 'LLD / Crédit' },
+        { value: 'tva',        label: 'TVA' },
+        { value: 'autre',      label: 'Autre' }
       ], { placeholder: 'Choisir une catégorie', value: c.categorie || '' }))}
       ${M.formField('Véhicule (optionnel)', M.formSelect('vehiculeId', M.charger('vehicules').filter(v => v && !v.archive).map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Aucun', value: c.vehiculeId || c.vehId || '' }), { hint: 'Catégorie carburant/entretien : crée auto le plein/entretien.' })}
       ${M.formField('Statut', M.formSelect('statut', [
@@ -1833,11 +1833,11 @@
       ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
         { value: 'diesel',     label: '⛽ Diesel/Gazole' },
-        { value: 'essence',    label: '⛽ Essence' },
-        { value: 'gnv',        label: '🌿 GNV/BioGNV' },
-        { value: 'electrique', label: '⚡ Électrique' },
-        { value: 'hybride',    label: '🔋 Hybride' },
-        { value: 'hydrogene',  label: '💧 Hydrogène' }
+        { value: 'essence',    label: 'Essence' },
+        { value: 'gnv',        label: 'GNV/BioGNV' },
+        { value: 'electrique', label: 'Électrique' },
+        { value: 'hybride',    label: 'Hybride' },
+        { value: 'hydrogene',  label: 'Hydrogène' }
       ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
       ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
@@ -2844,13 +2844,13 @@
       ${M.formField('N° livraison', M.formInput('numLiv', { value: inc.numLiv || '', placeholder: 'Si lié à une livraison' }))}
       <div class="m-form-row">
         ${M.formField('Gravité', M.formSelect('gravite', [
-          { value: 'faible', label: '🟢 Faible' },
-          { value: 'moyen',  label: '🟠 Moyen' },
+          { value: 'faible', label: 'Faible' },
+          { value: 'moyen',  label: 'Moyen' },
           { value: 'grave',  label: '🔴 Grave' }
         ], { value: inc.gravite || 'moyen' }))}
         ${M.formField('Statut', M.formSelect('statut', [
           { value: 'ouvert',   label: '🔴 Ouvert' },
-          { value: 'encours',  label: '🟡 En cours' },
+          { value: 'encours',  label: 'En cours' },
           { value: 'traite',   label: '✅ Traité' },
           { value: 'resolu',   label: '✅ Résolu' },
           { value: 'clos',     label: '🔒 Clos' }
@@ -3167,10 +3167,10 @@
       </div>
       ${M.formField('Type de jour', M.formSelect('typeJour', [
         { value: 'travail', label: '✅ Travail' },
-        { value: 'repos',   label: '😴 Repos' },
-        { value: 'conge',   label: '🏖️ Congé' },
+        { value: 'repos',   label: 'Repos' },
+        { value: 'conge',   label: 'Congé' },
         { value: 'absence', label: '⚠️ Absence' },
-        { value: 'maladie', label: '🤒 Maladie' }
+        { value: 'maladie', label: 'Maladie' }
       ], { value: typeJour }))}
       <div class="m-form-row" id="m-plan-horaires" style="display:${typeJour === 'travail' ? 'grid' : 'none'}">
         ${M.formField('Début', M.formInput('heureDebut', { type: 'time', value: data.heureDebut || '08:00' }))}
@@ -3368,7 +3368,7 @@
             <div class="m-card-sub">TTC ${M.format$(caMoisTtc)}</div>
           </div>
           <div class="m-card m-card-pressable" style="border-left:4px solid ${benefColor}" onclick="MCAm.go('rentabilite')">
-            <div class="m-card-title">📈 Bénéfice estimé</div>
+            <div class="m-card-title">Bénéfice estimé</div>
             <div class="m-card-value" style="color:${benefColor}">${M.format$(beneficeEstime)}</div>
             <div class="m-card-sub">CA HT − dépenses</div>
           </div>
@@ -3376,12 +3376,12 @@
 
         <div class="m-card-row">
           <div class="m-card m-card-blue m-card-pressable" onclick="MCAm.go('livraisons')">
-            <div class="m-card-title">📦 Livraisons</div>
+            <div class="m-card-title">Livraisons</div>
             <div class="m-card-value">${M.formatNum(livraisonsMois.length)}</div>
             <div class="m-card-sub">ce mois</div>
           </div>
           <div class="m-card m-card-purple m-card-pressable" onclick="MCAm.go('planning')">
-            <div class="m-card-title">👤 Au travail</div>
+            <div class="m-card-title">Au travail</div>
             <div class="m-card-value">${auTravail.length}</div>
             <div class="m-card-sub">aujourd'hui</div>
           </div>
@@ -3389,12 +3389,12 @@
 
         <div class="m-card-row">
           <div class="m-card m-card-red m-card-pressable" onclick="MCAm.go('alertes')">
-            <div class="m-card-title">🔔 Alertes</div>
+            <div class="m-card-title">Alertes</div>
             <div class="m-card-value">${M.formatNum(alertesActives.length)}</div>
             <div class="m-card-sub">${alertesCritiques > 0 ? `🔴 ${alertesCritiques} critique${alertesCritiques>1?'s':''}` : 'à traiter'}</div>
           </div>
           <div class="m-card m-card-accent m-card-pressable" onclick="MCAm.go('charges')">
-            <div class="m-card-title">💸 Impayés</div>
+            <div class="m-card-title">Impayés</div>
             <div class="m-card-value">${M.format$(totalImpayes)}</div>
             <div class="m-card-sub">${M.formatNum(chargesAPayer.length)} charge${chargesAPayer.length>1?'s':''}</div>
           </div>
@@ -3422,7 +3422,7 @@
         ` : ''}
 
         <div class="m-card m-card-purple m-card-pressable" onclick="MCAm.go('salaries')">
-          <div class="m-card-title">👥 Équipe active</div>
+          <div class="m-card-title">Équipe active</div>
           <div class="m-card-value">${M.formatNum(salariesActifs)}</div>
           <div class="m-card-sub">salarié${salariesActifs>1?'s':''} actif${salariesActifs>1?'s':''}</div>
         </div>
@@ -3856,7 +3856,7 @@
       if (horsTravail.length) {
         html += `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">⏸️ Hors travail</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${horsTravail.length}</span></div>`;
         horsTravail.forEach(({ sal, typeJour }) => {
-          const labels = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie', repos: '😴 Repos' };
+          const labels = { conge: 'Congé', absence: 'Absence', maladie: 'Maladie', repos: 'Repos' };
           const colors = { conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'var(--m-text-muted)' };
           html += `<button type="button" class="m-card m-card-pressable m-planning-sal" data-sal-id="${M.escHtml(sal.id)}" style="padding:12px 14px;border-left:3px solid ${colors[typeJour] || 'var(--m-border)'};width:100%;text-align:left;border-radius:18px;border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);background:var(--m-card);margin-bottom:10px;color:inherit;font-family:inherit;display:block">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
@@ -3954,7 +3954,7 @@
 
       const renderAbs = (list, titre, icon) => {
         if (!list.length) return '';
-        const lblType = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie' };
+        const lblType = { conge: 'Congé', absence: 'Absence', maladie: 'Maladie' };
         return `<div class="m-section" style="margin-top:18px"><div class="m-section-header"><h3 class="m-section-title">${icon} ${titre}</h3><span style="font-size:.82rem;color:var(--m-text-muted)">${list.length}</span></div>
           ${list.map(a => {
             const sal = salaries.find(s => s.id === a.salId);
@@ -4003,9 +4003,9 @@
     const body = `
       ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { value: salIdDef, required: true }), { required: true })}
       ${M.formField('Type', M.formSelect('type', [
-        { value: 'conge',    label: '🏖️ Congé' },
+        { value: 'conge',    label: 'Congé' },
         { value: 'absence',  label: '⚠️ Absence' },
-        { value: 'maladie',  label: '🤒 Maladie / arrêt' }
+        { value: 'maladie',  label: 'Maladie / arrêt' }
       ], { value: a.type || 'conge' }))}
       <div class="m-form-row">
         ${M.formField('Date début', M.formInput('dateDebut', { type: 'date', value: a.dateDebut || today, required: true }), { required: true })}
@@ -5243,7 +5243,7 @@
       html += `
         <div class="m-card-row">
           <div class="m-card m-card-red">
-            <div class="m-card-title">💸 Impayés</div>
+            <div class="m-card-title">Impayés</div>
             <div class="m-card-value">${M.format$(totalImpayes)}</div>
             <div class="m-card-sub">${M.formatNum(aPayer.length)} charge${aPayer.length>1?'s':''}</div>
           </div>
@@ -8076,7 +8076,7 @@
         </div>`;
       });
       html += renderEvents('🏖️ Absences', enConge, 'var(--m-text-muted)', ({ sal, type }) => {
-        const labels = { conge: '🏖️ Congé', absence: '⚠️ Absence', maladie: '🤒 Maladie' };
+        const labels = { conge: 'Congé', absence: 'Absence', maladie: 'Maladie' };
         return `<div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-border);display:flex;justify-content:space-between;gap:10px;opacity:.85">
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${labels[type] || type}</div></div>
         </div>`;
