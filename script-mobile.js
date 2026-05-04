@@ -44,6 +44,22 @@
     } catch (_) { return false; }
   };
 
+  // BUGFIX v3.64 : YYYY-MM en heure LOCALE.
+  // toISOString() convertit en UTC -> new Date(2026,4,1) (= 1 mai local) devient
+  // "2026-04-30T22:00:00Z" en France (UTC+2 ete) -> slice(0,7) = "2026-04".
+  // Resultat : dropdowns mois affichaient "Mai 2026" avec value="2026-04",
+  // donc selectionner "Mai" filtrait sur avril. Bug TVA reproductible :
+  // mai charges (GOOGLE+PENNYLANE = 19,85 EUR) disparaissaient au profit de
+  // la charge HOSTINGER d'avril (4,40 EUR) apres un changement de mois.
+  // moisKey() sur les Date "midnight local" et sur new Date() courant donne
+  // toujours le bon mois local, independamment du fuseau.
+  M.moisKey = function(d) {
+    var dt = (d instanceof Date) ? d : new Date();
+    var y = dt.getFullYear();
+    var m = dt.getMonth() + 1;
+    return y + '-' + (m < 10 ? '0' + m : '' + m);
+  };
+
   // ============================================================
   // Migration silencieuse au boot : harmonise les schemas mobile <-> PC
   // PC utilise vehId/chaufId, mobile a historiquement utilise vehiculeId/salarieId.
@@ -3308,7 +3324,7 @@
 
       // Mois courant
       const now = new Date();
-      const moisCle = now.toISOString().slice(0, 7); // YYYY-MM
+      const moisCle = M.moisKey(now); // YYYY-MM (local TZ)
 
       const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(moisCle));
       const caMoisHt = livraisonsMois.reduce((acc, l) => acc + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || M.parseNum(l.prix_ht) || 0), 0);
@@ -3486,7 +3502,7 @@
         byMonth[m].push(l);
       });
       const monthsSorted = Object.keys(byMonth).sort().reverse();
-      const moisCourant = new Date().toISOString().slice(0, 7);
+      const moisCourant = M.moisKey();
 
       const bulkOn = M.state.livBulkMode;
       const selSet = M.state.livBulkSel;
@@ -4603,7 +4619,7 @@
       const pleins = filterVeh ? allPleins.filter(p => (p.vehiculeId || p.vehId) === filterVeh) : allPleins;
 
       // KPI mois courant
-      const moisCourant = new Date().toISOString().slice(0, 7);
+      const moisCourant = M.moisKey();
       const pleinsCourants = pleins.filter(p => (p.date || '').startsWith(moisCourant));
       const totalMois = pleinsCourants.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
       const litresMois = pleinsCourants.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
@@ -4888,7 +4904,7 @@
       const livAnnoteesAll = livAnnotees.concat(encManAnnotes);
 
       // KPI globaux (mois en cours pour "encaisse")
-      const moisCle = new Date().toISOString().slice(0, 7);
+      const moisCle = M.moisKey();
       const totalAEncaisser = livAnnotees.filter(l => !l._paye && !l._litige).reduce((s, l) => s + l._ttc, 0);
       const totalEncaisseMois = livAnnoteesAll.filter(l => l._paye && (l.datePaiement || '').startsWith(moisCle)).reduce((s, l) => s + l._ttc, 0);
       const totalRetard = livAnnotees.filter(l => l._retard).reduce((s, l) => s + l._ttc, 0);
@@ -5186,7 +5202,7 @@
     title: 'Charges',
     render() {
       const charges = M.charger('charges');
-      const moisCourant = new Date().toISOString().slice(0, 7);
+      const moisCourant = M.moisKey();
       const courantes = charges.filter(c => (c.date || '').startsWith(moisCourant));
       const totalMois = courantes.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
       const aPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
@@ -5448,7 +5464,7 @@
     }
   });
   // ---------- Rentabilite v3.7 : 4 sous-onglets (Global / Vehicule / Client / Chauffeur) ----------
-  M.state.rentMois = new Date().toISOString().slice(0, 7);
+  M.state.rentMois = M.moisKey();
   M.state.rentMoisManuel = false;
   M.state.rentTab = 'global';
 
@@ -5463,7 +5479,7 @@
       const salaries   = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
       // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
-      if (!M.state.rentMoisManuel) M.state.rentMois = new Date().toISOString().slice(0, 7);
+      if (!M.state.rentMoisManuel) M.state.rentMois = M.moisKey();
       const moisSel = M.state.rentMois;
       const tab     = M.state.rentTab;
       const inMois  = (date) => (date || '').startsWith(moisSel);
@@ -5489,7 +5505,7 @@
       const now = new Date();
       for (let i = 0; i < 12; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const cle = d.toISOString().slice(0, 7);
+        const cle = M.moisKey(d);
         const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
         moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
       }
@@ -5990,7 +6006,7 @@
       if (chargesBtn) chargesBtn.addEventListener('click', () => {
         const cur = simLoad();
         const liv = cur.livraisonId ? M.charger('livraisons').find(l => l.id === cur.livraisonId) : null;
-        const mois = (liv?.date && /^\d{4}-\d{2}/.test(liv.date)) ? liv.date.slice(0, 7) : new Date().toISOString().slice(0, 7);
+        const mois = (liv?.date && /^\d{4}-\d{2}/.test(liv.date)) ? liv.date.slice(0, 7) : M.moisKey();
         const charges = M.charger('charges').filter(c => (c.date || '').slice(0, 7) === mois);
         let lld = 0, ass = 0, sal = 0;
         const autres = {};
@@ -6575,7 +6591,7 @@
       const filtered = filterId ? sorted.filter(e => e.vehiculeId === filterId) : sorted;
 
       // KPI mois courant
-      const moisCourant = new Date().toISOString().slice(0, 7);
+      const moisCourant = M.moisKey();
       const courants = filtered.filter(e => (e.date || '').startsWith(moisCourant));
       const totalMois = courants.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
       const totalAll = filtered.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
@@ -6984,7 +7000,7 @@
       ${(() => {
         if (!livSal.length) return '';
         // Stats du mois courant
-        const moisCle = new Date().toISOString().slice(0, 7);
+        const moisCle = M.moisKey();
         const livMois = livSal.filter(l => (l.date || '').startsWith(moisCle));
         const caMois = livMois.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const kmMois = livMois.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
@@ -7054,7 +7070,7 @@
   //   total affiche = heuresReelles > 0 ? heuresReelles : planifiees
   // Les jours tombant dans une période d'absence longue (planning.absences[])
   // de type conge/absence/maladie sont exclus du calcul planifie.
-  M.state.heuresMois = new Date().toISOString().slice(0, 7);
+  M.state.heuresMois = M.moisKey();
   M.state.heuresMoisManuel = false;
 
   // Calcule les heures planifiees pour un salarie sur un mois donne (YYYY-MM).
@@ -7115,7 +7131,7 @@
     render() {
       // Recalcul auto du mois courant au render, sauf si user a choisi
       if (!M.state.heuresMoisManuel) {
-        M.state.heuresMois = new Date().toISOString().slice(0, 7);
+        M.state.heuresMois = M.moisKey();
       }
       const moisSel = M.state.heuresMois;
 
@@ -7148,7 +7164,7 @@
       const now = new Date();
       for (let k = 0; k < 12; k++) {
         const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-        const cle = d.toISOString().slice(0, 7);
+        const cle = M.moisKey(d);
         const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
         moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
       }
@@ -7403,7 +7419,7 @@
   };
 
   // ---------- TVA (v3.33 : exigibilite alignee PC, fini le decalage 1 mois) ----------
-  M.state.tvaMois = new Date().toISOString().slice(0, 7);
+  M.state.tvaMois = M.moisKey();
   M.state.tvaMoisManuel = false;
   M.state.tvaTab = 'recap'; // recap | collectee | deductible
 
@@ -7441,7 +7457,7 @@
     title: 'TVA',
     render() {
       // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
-      if (!M.state.tvaMoisManuel) M.state.tvaMois = new Date().toISOString().slice(0, 7);
+      if (!M.state.tvaMoisManuel) M.state.tvaMois = M.moisKey();
       const moisSel = M.state.tvaMois;
       const tab = M.state.tvaTab;
       const profile = M.getTVAConfig();
@@ -7541,7 +7557,7 @@
       const now = new Date();
       for (let k = 0; k < 12; k++) {
         const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-        const cle = d.toISOString().slice(0, 7);
+        const cle = M.moisKey(d);
         const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
         moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
       }
@@ -7681,7 +7697,7 @@
   });
 
   // ---------- Statistiques (v2.9 : KPI clés du mois + comparatif) ----------
-  M.state.statsMois = new Date().toISOString().slice(0, 7);
+  M.state.statsMois = M.moisKey();
   M.state.statsMoisManuel = false;
   M.state.statsUnit = M.state.statsUnit || 'k'; // 'k' = milliers (compact) | 'eur' = précis
   // Format barre : compact (10k) ou précis (10 234€) selon toggle
@@ -7695,10 +7711,10 @@
     title: 'Statistiques',
     render() {
       // Auto-refresh mois courant (cf. fix v3.57)
-      if (!M.state.statsMoisManuel) M.state.statsMois = new Date().toISOString().slice(0, 7);
+      if (!M.state.statsMoisManuel) M.state.statsMois = M.moisKey();
       const moisSel = M.state.statsMois;
       const [y, m] = moisSel.split('-');
-      const moisPrec = new Date(parseInt(y), parseInt(m) - 2, 1).toISOString().slice(0, 7);
+      const moisPrec = M.moisKey(new Date(parseInt(y), parseInt(m) - 2, 1));
 
       const livraisons = M.charger('livraisons');
       const carburant  = M.charger('carburant');
@@ -7722,7 +7738,7 @@
       const now = new Date();
       for (let k = 0; k < 12; k++) {
         const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-        const cle = d.toISOString().slice(0, 7);
+        const cle = M.moisKey(d);
         const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
         moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
       }
@@ -7755,7 +7771,7 @@
           const mois12 = [];
           for (let k = 11; k >= 0; k--) {
             const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-            const cle = d.toISOString().slice(0, 7);
+            const cle = M.moisKey(d);
             const caM = livraisons.filter(l => (l.date || '').startsWith(cle))
               .reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
             const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
@@ -7800,7 +7816,7 @@
           const mois12 = [];
           for (let k = 11; k >= 0; k--) {
             const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-            const cle = d.toISOString().slice(0, 7);
+            const cle = M.moisKey(d);
             const totalCharges = charges.filter(c => (c.date || '').startsWith(cle))
               .reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
             const totalCarb = carburant.filter(p => (p.date || '').startsWith(cle))
