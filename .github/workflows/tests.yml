@@ -32,7 +32,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # 'cache: npm' desactive : exige un package-lock.json qui n'existe pas
+          # encore dans ce repo. A reactiver une fois `npm install` lance localement
+          # et package-lock.json commite.
 
       - name: Install dependencies
         run: |
