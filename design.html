@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1524">
+  <title>MCA Logistics — Choisis ton design</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1524; color: #e8eaf0;
+      min-height: 100vh; padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 16px);
+      line-height: 1.5;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 24px 0; }
+    h1 { font-size: 1.6rem; margin-bottom: 8px; font-weight: 800; }
+    .lead { color: #9aa3b8; margin-bottom: 28px; font-size: .95rem; }
+    .opt {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px; padding: 20px; margin-bottom: 16px;
+    }
+    .opt h2 { font-size: 1.15rem; margin-bottom: 6px; font-weight: 700; }
+    .opt h2 .num { display: inline-block; background: var(--c, #f5a623); color: #000;
+      width: 28px; height: 28px; border-radius: 50%; text-align: center; line-height: 28px;
+      font-weight: 800; margin-right: 10px; vertical-align: middle; }
+    .opt p { color: #9aa3b8; font-size: .88rem; margin-bottom: 14px; }
+    .swatches { display: flex; gap: 6px; margin-bottom: 14px; }
+    .swatch { width: 32px; height: 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+    .btn {
+      display: block; width: 100%; padding: 14px;
+      background: var(--c, #f5a623); color: #000;
+      border-radius: 10px; text-align: center; text-decoration: none;
+      font-weight: 700; font-size: .98rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { opacity: .8; }
+    .footer {
+      margin-top: 28px; padding: 20px; background: rgba(255,255,255,0.03);
+      border-radius: 12px; font-size: .85rem; color: #9aa3b8;
+    }
+    .footer strong { color: #e8eaf0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🎨 Choisis le design</h1>
+    <p class="lead">3 propositions cohérentes avec ton logo MCA. Touche un bouton pour voir la version complète. Reviens ici pour comparer.</p>
+
+    <div class="opt" style="--c:#c8202a">
+      <h2><span class="num">1</span>Charcoal &amp; Crimson</h2>
+      <div class="swatches">
+        <div class="swatch" style="background:#0e0e10"></div>
+        <div class="swatch" style="background:#1a1a1d"></div>
+        <div class="swatch" style="background:#c8202a"></div>
+        <div class="swatch" style="background:#d6336c"></div>
+        <div class="swatch" style="background:#e8eaf0"></div>
+      </div>
+      <p>Noir charbon + rouge brique sobre. Esprit cockpit pro mature. Migration la plus simple depuis le design actuel.</p>
+      <a class="btn" href="/infra/design/option-1-charcoal-crimson.html">Voir l'option 1 →</a>
+    </div>
+
+    <div class="opt" style="--c:#e63946">
+      <h2><span class="num">2</span>Asphalt &amp; Speed Red</h2>
+      <div class="swatches">
+        <div class="swatch" style="background:#1a1d22"></div>
+        <div class="swatch" style="background:#2a2f3a"></div>
+        <div class="swatch" style="background:#e63946"></div>
+        <div class="swatch" style="background:#f77f00"></div>
+        <div class="swatch" style="background:#e8eaf0"></div>
+      </div>
+      <p>Gris asphalte + rouge vif racing. Vibe Ferrari/F1, le plus aligné avec ton logo Sprinter sportif.</p>
+      <a class="btn" href="/infra/design/option-2-asphalt-speedred.html">Voir l'option 2 →</a>
+    </div>
+
+    <div class="opt" style="--c:#d62828">
+      <h2><span class="num">3</span>Light Premium</h2>
+      <div class="swatches">
+        <div class="swatch" style="background:#fafafa;border-color:#ccc"></div>
+        <div class="swatch" style="background:#f0f0f2;border-color:#ccc"></div>
+        <div class="swatch" style="background:#d62828"></div>
+        <div class="swatch" style="background:#9d174d"></div>
+        <div class="swatch" style="background:#0e0e10"></div>
+      </div>
+      <p>Blanc + rouge logo exact. Style Linear/Vercel premium. Lisible plein soleil. Différenciant — tous les concurrents transport sont sombres. <strong>Reco principale.</strong></p>
+      <a class="btn" href="/infra/design/option-3-light-premium.html">Voir l'option 3 →</a>
+    </div>
+
+    <div class="footer">
+      <p>👉 Ton choix ? Réponds <strong>« j'aime la 1 »</strong>, <strong>« la 2 »</strong> ou <strong>« la 3 »</strong> et je l'applique pour de vrai sur toute l'app.</p>
+      <p style="margin-top:10px;font-size:.78rem">⚠️ Tu peux aussi me dire des ajustements (« la 2 mais en moins vif », « la 3 mais en mode sombre »). Tout est possible.</p>
+    </div>
+  </div>
+</body>
+</html>
