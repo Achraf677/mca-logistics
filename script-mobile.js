@@ -7585,9 +7585,9 @@
             <div style="color:var(--m-text-muted);line-height:1.45">${modeExplain}</div>
           </div>
           <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
-            <div class="m-card-title">${enCredit ? '💚 Crédit TVA' : '💸 TVA à reverser'}</div>
+            <div class="m-card-title">${enCredit ? 'Crédit TVA' : 'TVA à reverser'}</div>
             <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
-            <div class="m-card-sub">${enCredit ? 'Tu peux te faire rembourser' : 'À déclarer ce mois'}</div>
+            <div class="m-card-sub">${enCredit ? 'Récupérable auprès du Trésor' : 'À déclarer ce mois'}</div>
           </div>
           ${livEnAttente.length ? `
             <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)">
