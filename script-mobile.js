@@ -8411,15 +8411,23 @@
           <p class="m-form-hint" style="margin-top:8px">Encaissement = TVA exigible au paiement (défaut transport). Débits = à la facturation.</p>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🎨 Affichage</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Sécurité</h3></div>
+          <button class="m-card m-card-pressable" id="m-param-mdp" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit;border:1px solid var(--m-border)">
+            <span style="font-size:.95rem;font-weight:500">Modifier mon mot de passe</span>
+            <span style="color:var(--m-text-muted);font-size:1rem">›</span>
+          </button>
+          <p class="m-form-hint" style="margin-top:8px">Synchronisé avec Supabase Auth. Utiliser un mot de passe fort (12+ caractères, mélange).</p>
+        </div>
+
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Affichage</h3></div>
           <button class="m-card m-card-pressable" id="m-param-theme" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit">
-            <span style="font-size:.95rem;font-weight:500">🌓 Mode clair / sombre</span>
+            <span style="font-size:.95rem;font-weight:500">Mode clair / sombre</span>
             <span style="color:var(--m-text-muted);font-size:.85rem">${M.state.theme === 'light' ? 'Clair' : 'Sombre'}</span>
           </button>
         </div>
 
         <div class="m-section">
-          <button class="m-btn m-btn-danger" id="m-param-logout">⏏ Déconnexion</button>
+          <button class="m-btn m-btn-danger" id="m-param-logout">Déconnexion</button>
         </div>
 
         <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
@@ -8473,10 +8481,111 @@
         });
         if (choice) saveTvaConfig({ periodicite: choice });
       });
+      container.querySelector('#m-param-mdp')?.addEventListener('click', () => M.formChangerMdpAdmin());
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
     }
   });
+
+  // ============================================================
+  // Modification mot de passe administrateur (mobile)
+  // Pattern : sheet 3 champs (actuel / nouveau / confirmer).
+  // 1) Validation locale (champs remplis, qualite, correspondance)
+  // 2) Verification mdp actuel via signInWithPassword Supabase
+  // 3) Update via client.auth.updateUser({password})
+  // 4) Sync localStorage admin_accounts (hash bcrypt-like) pour login offline
+  // ============================================================
+  M.formChangerMdpAdmin = function() {
+    const body = `
+      ${M.formField('Mot de passe actuel',
+        `<input type="password" name="actuel" autocomplete="current-password" required style="width:100%" />`,
+        { required: true })}
+      ${M.formField('Nouveau mot de passe',
+        `<input type="password" name="nouveau" autocomplete="new-password" required minlength="8" style="width:100%" />`,
+        { required: true, hint: 'Minimum 8 caractères, majuscules + chiffres + caractère spécial recommandés.' })}
+      ${M.formField('Confirmer le nouveau mot de passe',
+        `<input type="password" name="confirmer" autocomplete="new-password" required minlength="8" style="width:100%" />`,
+        { required: true })}
+    `;
+
+    M.openSheet({
+      title: 'Modifier mot de passe',
+      body: body,
+      submitLabel: 'Mettre à jour',
+      onSubmit: async (sheetBody) => {
+        const actuel    = sheetBody.querySelector('[name="actuel"]')?.value || '';
+        const nouveau   = sheetBody.querySelector('[name="nouveau"]')?.value || '';
+        const confirmer = sheetBody.querySelector('[name="confirmer"]')?.value || '';
+
+        if (!actuel || !nouveau || !confirmer) {
+          M.toast('Remplis tous les champs', { duration: 4000 });
+          return false;
+        }
+        if (nouveau.length < 8) {
+          M.toast('Le nouveau mot de passe doit faire au moins 8 caractères', { duration: 4000 });
+          return false;
+        }
+        if (nouveau !== confirmer) {
+          M.toast('La confirmation ne correspond pas', { duration: 4000 });
+          return false;
+        }
+        if (nouveau === actuel) {
+          M.toast('Le nouveau mot de passe est identique à l\'actuel', { duration: 4000 });
+          return false;
+        }
+
+        const ds = window.DelivProSupabase;
+        const client = (ds && typeof ds.getClient === 'function') ? ds.getClient() : null;
+        if (!client) {
+          M.toast('Supabase indisponible — réessaie plus tard', { duration: 5000 });
+          return false;
+        }
+
+        // 1. Recuperer l'email de la session actuelle
+        let email = '';
+        try {
+          const { data: { user } } = await client.auth.getUser();
+          email = user?.email || '';
+        } catch (_) {}
+        if (!email) {
+          M.toast('Session admin introuvable, reconnecte-toi', { duration: 5000 });
+          return false;
+        }
+
+        // 2. Verifier le mdp actuel via signInWithPassword
+        const verif = await client.auth.signInWithPassword({ email: email, password: actuel });
+        if (verif.error) {
+          M.toast('Mot de passe actuel incorrect', { duration: 4000 });
+          return false;
+        }
+
+        // 3. Update le mdp via Supabase Auth
+        const upd = await client.auth.updateUser({ password: nouveau });
+        if (upd.error) {
+          M.toast('Erreur Supabase : ' + upd.error.message, { duration: 6000 });
+          return false;
+        }
+
+        // 4. Mettre a jour le hash local (admin_accounts) pour le login offline
+        try {
+          const accounts = JSON.parse(localStorage.getItem('admin_accounts') || '[]');
+          const sessionLogin = sessionStorage.getItem('admin_login') || '';
+          const idx = accounts.findIndex(a => a && a.identifiant === sessionLogin);
+          if (idx >= 0 && window.SecurityUtils?.hashPassword) {
+            accounts[idx].motDePasseHash = await window.SecurityUtils.hashPassword(nouveau);
+            delete accounts[idx].motDePasse;
+            localStorage.setItem('admin_accounts', JSON.stringify(accounts));
+          }
+        } catch (e) {
+          console.warn('[mdp] hash local non mis a jour :', e?.message);
+          // Pas bloquant : Supabase a deja le nouveau mdp.
+        }
+
+        M.toast('Mot de passe mis à jour', { duration: 4000 });
+        return true;
+      }
+    });
+  };
 
   // ============================================================
   // Logout
