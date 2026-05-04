@@ -3,37 +3,39 @@
    ===================================================== */
 
 :root {
+  /* Palette v3.64 : "Asphalt & Speed Red" (cf. infra/design/option-2-asphalt-speedred.html).
+     Couleurs uniquement — typo/spacing/radius inchanges. */
   /* Couleurs primaires */
-  --bg: #0a0d14;
-  --bg-elevated: #0f1420;
-  --bg-card: #131a26;
-  --bg-card-hover: #182234;
-  --border: #1e2a3d;
-  --border-strong: #2a3a55;
+  --bg: #1a1d22;
+  --bg-elevated: #22262d;
+  --bg-card: #2a2f37;
+  --bg-card-hover: #323843;
+  --border: #3a4150;
+  --border-strong: #4a5263;
 
-  /* Accent */
-  --accent: #f5a623;
-  --accent-hover: #ff8c00;
-  --accent-soft: rgba(245,166,35,0.1);
-  --accent-soft-hover: rgba(245,166,35,0.15);
+  /* Accent (rouge brand cohérent logo MCA) */
+  --accent: #e63946;
+  --accent-hover: #ff4d5c;
+  --accent-soft: rgba(230,57,70,0.14);
+  --accent-soft-hover: rgba(230,57,70,0.20);
 
   /* Sémantique */
-  --green: #22c55e;
-  --green-soft: rgba(34,197,94,0.1);
-  --red: #ef4444;
-  --red-soft: rgba(239,68,68,0.1);
-  --blue: #3b82f6;
-  --blue-soft: rgba(59,130,246,0.1);
+  --green: #06d6a0;
+  --green-soft: rgba(6,214,160,0.12);
+  --red: #ff6b35;
+  --red-soft: rgba(255,107,53,0.12);
+  --blue: #4cc9f0;
+  --blue-soft: rgba(76,201,240,0.12);
   --purple: #a855f7;
-  --purple-soft: rgba(168,85,247,0.1);
-  --yellow: #eab308;
-  --yellow-soft: rgba(234,179,8,0.1);
+  --purple-soft: rgba(168,85,247,0.12);
+  --yellow: #ffd60a;
+  --yellow-soft: rgba(255,214,10,0.12);
 
   /* Texte */
-  --text: #e8f0ff;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-disabled: #475569;
+  --text: #f1f3f5;
+  --text-secondary: #adb5bd;
+  --text-muted: #adb5bd;
+  --text-disabled: #6c757d;
 
   /* Ombres */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
@@ -66,16 +68,16 @@
   --t-base: 250ms ease;
   --t-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Typographie */
+  /* Typographie (inchangee) */
   --font-display: 'Syne', system-ui, sans-serif;
   --font-body: 'DM Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Alias rétro-compatibilité (legacy) */
+  /* Alias rétro-compatibilité (legacy) — reroutes sur la nouvelle palette */
   --bg-dark: var(--bg);
   --bg-sidebar: var(--bg-elevated);
   --text-primary: var(--text);
-  --orange: #e67e22;
+  --orange: var(--accent);
   --font: var(--font-body);
   --radius: var(--radius-md);
   --shadow: var(--shadow-md);

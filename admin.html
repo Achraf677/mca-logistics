@@ -17,7 +17,7 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="robots" content="noindex, nofollow" />
-  <meta name="theme-color" content="#1a1d27" />
+  <meta name="theme-color" content="#1a1d22" />
   <title>MCA Logistics — Gestion Livraison</title>
   <link rel="manifest" href="/manifest.json" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,14 +26,14 @@
   <link rel="preconnect" href="https://browser.sentry-cdn.com" crossorigin>
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
-  <link rel="preload" as="style" href="style.css?v=20260503-38">
-  <link rel="preload" as="script" href="script.js?v=20260503-38">
+  <link rel="preload" as="style" href="style.css?v=20260503-39">
+  <link rel="preload" as="script" href="script.js?v=20260503-39">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
     /* Critical CSS inline — anti-FOUC (masque tout le body pendant le boot JS) */
-    html { background: #0d1524; }
-    body.app-shell { background: #0d1524; color: #e5e7eb; margin: 0; }
+    html { background: #1a1d22; }
+    body.app-shell { background: #1a1d22; color: #e5e7eb; margin: 0; }
     section.page { display: none; }
     section.page.active { display: block; }
     /* Masquage dur : aucune section .page n'est visible tant que le boot n'a pas terminé */
@@ -55,7 +55,7 @@
     .nav-item[data-page="rentabilite"],
     .nav-item[data-page="statistiques"] { display: none; }
   </style>
-  <link rel="stylesheet" href="style.css?v=20260503-38" />
+  <link rel="stylesheet" href="style.css?v=20260503-39" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
@@ -159,7 +159,7 @@
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre">🌙</button>
       <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
         <span style="width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;animation:pulse-green 2s infinite;display:inline-block"></span>
-        <span style="font-size:.78rem;font-weight:600;color:#f5a623">Agent IA</span>
+        <span style="font-size:.78rem;font-weight:600;color:#e63946">Agent IA</span>
         <span id="ai-decisions-badge" style="display:none;background:#e74c3c;color:#fff;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center">0</span>
       </div>
       <div class="topbar-user-menu" id="topbar-user-menu">
@@ -1201,7 +1201,7 @@
                 <div style="font-size:.78rem;color:var(--text-muted)">Couleur des boutons et accents</div>
               </div>
               <div style="display:flex;align-items:center;gap:10px">
-                <input type="color" id="param-accent-color" value="#f5a623" style="width:40px;height:36px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px" />
+                <input type="color" id="param-accent-color" value="#e63946" style="width:40px;height:36px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px" />
                 <button class="btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:.82rem">Appliquer</button>
               </div>
             </div>
@@ -3192,7 +3192,7 @@
   <div id="panneau-agent" style="position:fixed;top:0;right:-420px;width:400px;height:100vh;background:#1a1d27;border-left:1px solid #2a2d3d;z-index:1000;transition:right 0.3s ease;overflow-y:auto;padding:24px 20px;box-shadow:-8px 0 32px rgba(0,0,0,0.4)">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
       <div>
-        <div style="font-size:1.1rem;font-weight:800;color:#f5a623">🤖 MCA Agent</div>
+        <div style="font-size:1.1rem;font-weight:800;color:#e63946">🤖 MCA Agent</div>
         <div style="font-size:.75rem;color:#7c8299" id="agent-last-check">En attente d'activation...</div>
       </div>
       <button onclick="togglePanneauAgent()" style="background:rgba(255,255,255,0.06);border:1px solid #2a2d3d;color:#e8eaf0;border-radius:8px;padding:6px 12px;cursor:pointer">✕</button>
@@ -3208,59 +3208,59 @@
 
   <div id="panneau-agent-overlay" onclick="togglePanneauAgent()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;backdrop-filter:blur(2px)"></div>
 
-  <script defer src="monitoring.js?v=20260503-38"></script>
+  <script defer src="monitoring.js?v=20260503-39"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="supabase-client.js"></script>
   <script defer src="supabase-auth.js"></script>
-  <script defer src="security-utils.js?v=20260503-38"></script>
+  <script defer src="security-utils.js?v=20260503-39"></script>
   <script defer src="supabase-admin.js"></script>
   <script defer src="supabase-storage-sync.js"></script>
-  <script defer src="script-core-utils.js?v=20260503-38"></script>
-  <script defer src="script-core-storage.js?v=20260503-38"></script>
-  <script defer src="script-core-ui.js?v=20260503-38"></script>
-  <script defer src="script-core-auth.js?v=20260503-38"></script>
-  <script defer src="script-core-periodes.js?v=20260503-38"></script>
-  <script defer src="script-core-navigation.js?v=20260503-38"></script>
-  <script defer src="script-core-edit-locks.js?v=20260503-38"></script>
-  <script defer src="script-core-branding.js?v=20260503-38"></script>
-  <script defer src="script-core-audit.js?v=20260503-38"></script>
-  <script defer src="script-core-recherche.js?v=20260503-38"></script>
-  <script defer src="storage-uploader.js?v=20260503-38"></script>
-  <script defer src="entity-supabase-adapter.js?v=20260503-38"></script>
-  <script defer src="clients-supabase-adapter.js?v=20260503-38"></script>
-  <script defer src="vehicules-supabase-adapter.js?v=20260503-38"></script>
-  <script defer src="salaries-supabase-adapter.js?v=20260503-38"></script>
-  <script defer src="all-entity-adapters.js?v=20260503-38"></script>
-  <script defer src="legacy-entity-adapters.js?v=20260503-38"></script>
-  <script defer src="plannings-supabase-adapter.js?v=20260503-38"></script>
-  <script defer src="messages-supabase-adapter.js?v=20260503-38"></script>
-  <script defer src="repo.js?v=20260503-38"></script>
-  <script defer src="lazy-loader.js?v=20260503-38"></script>
-  <script defer src="lazy-stubs.js?v=20260503-38"></script>
-  <script defer src="script-inspections.js?v=20260503-38"></script>
-  <script defer src="script-incidents.js?v=20260503-38"></script>
-  <script defer src="script-rentabilite.js?v=20260503-38"></script>
-  <script defer src="script-rentabilite-multi.js?v=20260503-38"></script>
-  <script defer src="script-carburant.js?v=20260503-38"></script>
-  <script defer src="script-carburant-anomalies.js?v=20260503-38"></script>
-  <script defer src="script-entretiens.js?v=20260503-38"></script>
-  <script defer src="script-alertes.js?v=20260503-38"></script>
-  <script defer src="script-stats.js?v=20260503-38"></script>
-  <script defer src="script-tva.js?v=20260503-38"></script>
-  <script defer src="script-paiements.js?v=20260503-38"></script>
-  <script defer src="script-heures.js?v=20260503-38"></script>
-  <script defer src="script-planning.js?v=20260503-38"></script>
-  <script defer src="script-fournisseurs.js?v=20260503-38"></script>
-  <script defer src="script-clients.js?v=20260503-38"></script>
-  <script defer src="script-charges.js?v=20260503-38"></script>
-  <script defer src="script-encaissement.js?v=20260503-38"></script>
-  <script defer src="script-salaries.js?v=20260503-38"></script>
-  <script defer src="script-vehicules.js?v=20260503-38"></script>
-  <script defer src="script-livraisons.js?v=20260503-38"></script>
-  <script defer src="script.js?v=20260503-38"></script>
-  <script defer src="health-check.js?v=20260503-38"></script>
-  <script defer src="watchdog.js?v=20260503-38"></script>
+  <script defer src="script-core-utils.js?v=20260503-39"></script>
+  <script defer src="script-core-storage.js?v=20260503-39"></script>
+  <script defer src="script-core-ui.js?v=20260503-39"></script>
+  <script defer src="script-core-auth.js?v=20260503-39"></script>
+  <script defer src="script-core-periodes.js?v=20260503-39"></script>
+  <script defer src="script-core-navigation.js?v=20260503-39"></script>
+  <script defer src="script-core-edit-locks.js?v=20260503-39"></script>
+  <script defer src="script-core-branding.js?v=20260503-39"></script>
+  <script defer src="script-core-audit.js?v=20260503-39"></script>
+  <script defer src="script-core-recherche.js?v=20260503-39"></script>
+  <script defer src="storage-uploader.js?v=20260503-39"></script>
+  <script defer src="entity-supabase-adapter.js?v=20260503-39"></script>
+  <script defer src="clients-supabase-adapter.js?v=20260503-39"></script>
+  <script defer src="vehicules-supabase-adapter.js?v=20260503-39"></script>
+  <script defer src="salaries-supabase-adapter.js?v=20260503-39"></script>
+  <script defer src="all-entity-adapters.js?v=20260503-39"></script>
+  <script defer src="legacy-entity-adapters.js?v=20260503-39"></script>
+  <script defer src="plannings-supabase-adapter.js?v=20260503-39"></script>
+  <script defer src="messages-supabase-adapter.js?v=20260503-39"></script>
+  <script defer src="repo.js?v=20260503-39"></script>
+  <script defer src="lazy-loader.js?v=20260503-39"></script>
+  <script defer src="lazy-stubs.js?v=20260503-39"></script>
+  <script defer src="script-inspections.js?v=20260503-39"></script>
+  <script defer src="script-incidents.js?v=20260503-39"></script>
+  <script defer src="script-rentabilite.js?v=20260503-39"></script>
+  <script defer src="script-rentabilite-multi.js?v=20260503-39"></script>
+  <script defer src="script-carburant.js?v=20260503-39"></script>
+  <script defer src="script-carburant-anomalies.js?v=20260503-39"></script>
+  <script defer src="script-entretiens.js?v=20260503-39"></script>
+  <script defer src="script-alertes.js?v=20260503-39"></script>
+  <script defer src="script-stats.js?v=20260503-39"></script>
+  <script defer src="script-tva.js?v=20260503-39"></script>
+  <script defer src="script-paiements.js?v=20260503-39"></script>
+  <script defer src="script-heures.js?v=20260503-39"></script>
+  <script defer src="script-planning.js?v=20260503-39"></script>
+  <script defer src="script-fournisseurs.js?v=20260503-39"></script>
+  <script defer src="script-clients.js?v=20260503-39"></script>
+  <script defer src="script-charges.js?v=20260503-39"></script>
+  <script defer src="script-encaissement.js?v=20260503-39"></script>
+  <script defer src="script-salaries.js?v=20260503-39"></script>
+  <script defer src="script-vehicules.js?v=20260503-39"></script>
+  <script defer src="script-livraisons.js?v=20260503-39"></script>
+  <script defer src="script.js?v=20260503-39"></script>
+  <script defer src="health-check.js?v=20260503-39"></script>
+  <script defer src="watchdog.js?v=20260503-39"></script>
   <script>
     // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
     // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
