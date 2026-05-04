@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>MCA Logistics — Option 2 Asphalt &amp; Speed Red</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1a1d22; --bg-elevated:#22262d; --bg-card:#2a2f37; --bg-card-hover:#323843;
+  --border:#3a4150; --border-strong:#4a5263;
+  --brand:#e63946; --brand-hover:#ff4d5c; --brand-soft:rgba(230,57,70,0.14);
+  --danger:#ff6b35; --success:#06d6a0; --warning:#ffd60a; --info:#4cc9f0;
+  --text:#f1f3f5; --text-muted:#adb5bd; --text-disabled:#6c757d;
+  --font-display:'Syne',system-ui,sans-serif;
+  --font-body:'DM Sans',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;min-height:100vh;font-feature-settings:"tnum"}
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+
+/* Asphalt diagonal pattern subtle */
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(135deg,transparent 0 60px,rgba(255,255,255,0.012) 60px 61px);pointer-events:none;z-index:0}
+.app{position:relative;z-index:1}
+
+/* Sidebar */
+.sidebar{background:var(--bg-elevated);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.brand{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:relative}
+.brand::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 100%)}
+.logo{width:48px;height:32px;flex-shrink:0}
+.brand-text{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.02em;line-height:1}
+.brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:12px;display:block;margin-top:2px;letter-spacing:0.06em}
+.nav{flex:1;padding:14px 10px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;font-weight:500;margin-bottom:2px;transition:all 0.15s}
+.nav-item:hover{background:var(--bg-card-hover);color:var(--text)}
+.nav-item.active{background:var(--brand-soft);color:var(--brand);position:relative}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--brand);border-radius:0 3px 3px 0}
+.nav-icon{width:18px;height:18px;display:inline-block;opacity:0.85}
+
+/* Topbar */
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;width:240px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--brand)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+
+/* Content */
+.content{padding:26px;flex:1;overflow:auto}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.section-head h2{font-family:var(--font-display);font-size:18px;font-weight:800;letter-spacing:-0.01em}
+.section-head .sub{color:var(--text-muted);font-size:13px;margin-top:2px}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;position:relative;overflow:hidden;transition:transform 0.15s}
+.kpi:hover{transform:translateY(-2px);border-color:var(--border-strong)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--brand) 0%,#ff4d5c 50%,transparent 100%)}
+.kpi-label{color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px}
+.kpi-value{font-family:var(--font-display);font-size:32px;font-weight:800;letter-spacing:-0.03em;font-feature-settings:"tnum"}
+.kpi-value.italic{font-style:italic}
+.kpi-sub{color:var(--text-muted);font-size:12px;margin-top:6px}
+.kpi-sub .up{color:var(--success);font-weight:600}
+.kpi-sub .down{color:var(--danger);font-weight:600}
+
+/* Table card */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-header h3{font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:-0.01em}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 20px;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15)}
+td{padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-card-hover)}
+.badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em}
+.badge.ok{background:rgba(6,214,160,0.16);color:var(--success);border:1px solid rgba(6,214,160,0.3)}
+.badge.pending{background:rgba(255,214,10,0.16);color:var(--warning);border:1px solid rgba(255,214,10,0.3)}
+.badge.late{background:rgba(255,107,53,0.16);color:var(--danger);border:1px solid rgba(255,107,53,0.3)}
+
+/* Buttons */
+.btn{padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:40px;letter-spacing:0.02em;transition:all 0.15s}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:0 4px 14px rgba(230,57,70,0.3)}
+.btn-primary:hover{background:var(--brand-hover);box-shadow:0 6px 20px rgba(230,57,70,0.4);transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong)}
+.btn-secondary:hover{background:var(--bg-card-hover)}
+.btn-danger{background:var(--danger);color:#fff}
+
+/* Mobile */
+@media (max-width:880px){
+  .app{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .search{width:140px}
+  .btn{min-height:48px;padding:13px 18px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 88 60" xmlns="http://www.w3.org/2000/svg" aria-label="MCA Logistics logo">
+        <!-- Speed lines -->
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <!-- Sprinter silhouette -->
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <rect x="22" y="18" width="14" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <rect x="38" y="18" width="36" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-item active"><span class="nav-icon">[]</span> Dashboard</div>
+      <div class="nav-item"><span class="nav-icon">[]</span> Livraisons</div>
+      <div class="nav-item"><span class="nav-icon">[]</span> Charges</div>
+      <div class="nav-item"><span class="nav-icon">[]</span> Rentabilite</div>
+      <div class="nav-item"><span class="nav-icon">[]</span> Vehicules</div>
+      <div class="nav-item"><span class="nav-icon">[]</span> Equipe</div>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div style="font-size:12px;color:var(--text-muted)">Mai 2026</div>
+      </div>
+      <div class="topbar-right">
+        <input class="search" type="search" placeholder="Rechercher livraison, client...">
+        <div class="avatar">AC</div>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="section-head">
+        <div>
+          <h2>Vue d'ensemble</h2>
+          <div class="sub">Performance operationnelle du mois en cours</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary">Exporter</button>
+          <button class="btn btn-primary">+ Nouvelle livraison</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi-label">Livraisons</div>
+          <div class="kpi-value italic">142</div>
+          <div class="kpi-sub"><span class="up">+12%</span> vs avril</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">CA HT</div>
+          <div class="kpi-value italic">38 420 EUR</div>
+          <div class="kpi-sub"><span class="up">+8%</span> vs avril</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Marge nette</div>
+          <div class="kpi-value italic">11 280 EUR</div>
+          <div class="kpi-sub">29.4% du CA</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-label">Retards</div>
+          <div class="kpi-value italic">3</div>
+          <div class="kpi-sub"><span class="down">+1</span> vs avril</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Dernieres livraisons</h3>
+          <button class="btn btn-secondary" style="padding:6px 12px;min-height:34px">Voir tout</button>
+        </div>
+        <table>
+          <thead>
+            <tr><th>N deg</th><th>Client</th><th>Vehicule</th><th>Trajet</th><th>Statut</th><th>Montant</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>L-2604</td><td>Auchan Nord</td><td>Sprinter 314</td><td>Lille - Roubaix</td><td><span class="badge ok">Livree</span></td><td>320 EUR</td></tr>
+            <tr><td>L-2603</td><td>Decathlon</td><td>Sprinter 316</td><td>Villeneuve - Lens</td><td><span class="badge pending">En cours</span></td><td>410 EUR</td></tr>
+            <tr><td>L-2602</td><td>Boulanger</td><td>Master 130</td><td>Lille - Arras</td><td><span class="badge late">Retard</span></td><td>280 EUR</td></tr>
+            <tr><td>L-2601</td><td>Carrefour</td><td>Sprinter 314</td><td>Roubaix - Tourcoing</td><td><span class="badge ok">Livree</span></td><td>180 EUR</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:18px;display:flex;gap:8px">
+        <button class="btn btn-primary">Confirmer livraison</button>
+        <button class="btn btn-secondary">Reporter</button>
+        <button class="btn btn-danger">Signaler retard</button>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
