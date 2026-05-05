@@ -7545,7 +7545,9 @@
           const taux = M.parseNum(c.tauxTVA || c.tauxTva) || 0;
           const ttc = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
           const ht = M.parseNum(c.montantHT || c.montantHt) || (taux > 0 ? ttc / (1 + taux/100) : ttc);
-          const tva = taux > 0 ? +(ht * taux / 100).toFixed(2) : 0;
+          // Priorité : montant TVA saisi manuellement (cas TVA mixte). Fallback : recalcul HT × taux.
+          const tvaSaisie = M.parseNum(c.tva);
+          const tva = tvaSaisie > 0 ? tvaSaisie : (taux > 0 ? +(ht * taux / 100).toFixed(2) : 0);
           return { ...c, _ht: ht, _ttc: ttc, _tva: tva, _taux: taux };
         })
         .filter(c => c._tva > 0);

@@ -223,6 +223,7 @@ function ouvrirEditCharge(id) {
     'charge-fournisseur': fournisseurNomAffiche,
     'charge-montant-ht': charge.montantHT || '',
     'charge-taux-tva': charge.tauxTVA || 20,
+    'charge-tva': charge.tva || '',
     'charge-montant': charge.montant || '',
     'charge-veh': charge.vehId || '',
     'charge-statut-paiement': charge.statutPaiement || 'a_payer',
@@ -254,6 +255,9 @@ function ouvrirEditCharge(id) {
   }
   ajusterCategorieCharge();
   toggleChargeStatutPaiement();
+  // Si la charge avait un montant TVA saisi manuellement (cas TVA mixte),
+  // marque le flag pour que les calculs HT↔TTC ne ré-écrasent pas le champ.
+  if (typeof setChargeTvaManuelle === 'function') setChargeTvaManuelle(!!charge.tva);
   var modal = document.getElementById('modal-charge');
   if (modal) {
     var title = modal.querySelector('.modal-header h3');
@@ -535,6 +539,8 @@ async function ajouterCharge() {
   const montantHT = parseFloat(document.getElementById('charge-montant-ht')?.value) || 0;
   const tauxTVA   = categorie === 'tva' ? 0 : parseTauxTVAValue(document.getElementById('charge-taux-tva')?.value, 20);
   const montant   = parseFloat(document.getElementById('charge-montant')?.value) || (montantHT * (1 + tauxTVA/100));
+  // Montant TVA saisi (cas TVA mixte). Si non saisi, l'onglet TVA recalculera HT × taux.
+  const montantTVA = categorie === 'tva' ? 0 : (parseFloat(document.getElementById('charge-tva')?.value) || 0);
   const vehId     = document.getElementById('charge-veh')?.value || '';
   const profile   = getTVAConfig();
   const tvaPeriodeKey = categorie === 'tva'
@@ -603,6 +609,7 @@ async function ajouterCharge() {
     montant,
     montantHT: montantHT || (tauxTVA > 0 ? montant/(1+tauxTVA/100) : montant),
     tauxTVA,
+    tva: montantTVA || undefined,
     vehId,
     vehNom:vehicule?.immat||'',
     fournisseurId: fournisseurId || null,
