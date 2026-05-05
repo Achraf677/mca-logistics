@@ -120,6 +120,38 @@ function initSwipeSidebar() {
   }, { passive: true });
 }
 
+// BUGFIX v3.68 : auto-refresh PC quand la date change pendant que la PWA est
+// restee ouverte (ex: passage avril -> mai a minuit). Sans ca, les ecrans avec
+// selecteur de mois (Charges/TVA/Rentabilite/Stats/Heures) gardent les chiffres
+// du mois precedent jusqu'au prochain clic.
+//
+// Strategie : checkDateChange() compare la date courante a celle du dernier
+// render. Triggers : visibilitychange (user revient sur l'onglet),
+// focus (clic sur la fenetre), setInterval 5 min (cas user continu sans
+// trigger UI).
+(function setupDateChangeWatcher() {
+  if (typeof document === 'undefined') return;
+  var lastRenderDate = new Date().toLocaleDateString('fr-FR');
+  function checkDateChange() {
+    try {
+      var today = new Date().toLocaleDateString('fr-FR');
+      if (today !== lastRenderDate) {
+        lastRenderDate = today;
+        var currentPage = window.__delivproCurrentPage;
+        if (currentPage && typeof naviguerVers === 'function') {
+          naviguerVers(currentPage);
+        }
+      }
+    } catch (_) { /* fail silent */ }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) checkDateChange();
+  });
+  window.addEventListener('focus', checkDateChange);
+  // Fallback : check toutes les 5 min meme sans trigger UI (cas user actif sans focus/blur)
+  setInterval(checkDateChange, 5 * 60 * 1000);
+})();
+
 // L4173 (script.js d'origine)
 function naviguerSemaine(delta) {
   if (delta === 0) _planningSemaineOffset = 0;

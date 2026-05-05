@@ -1290,7 +1290,7 @@
         ], { value: String(c.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
-        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.tva || '' }), { hint: 'Calcul auto' })}
+        ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.tva || '' }), { hint: 'Auto, ou saisi manuellement (ex: facture mixte)' })}
         ${M.formField('Montant TTC', M.formInputWithSuffix('montantTtc', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantTtc || c.montant || '', required: true }), { required: true, hint: 'Calcul auto' })}
       </div>
       ${M.formField('Catégorie', M.formSelect('categorie', [
@@ -1331,8 +1331,31 @@
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
         let dernierEdit = 'ttc';
+        // BUGFIX v3.68 : si l'user saisit manuellement le champ TVA (cas facture
+        // mixte type 150€ TTC dont 30€ seulement soumis a TVA 20% = 6€ TVA), on
+        // arrete le recalcul automatique de la TVA et on respecte sa saisie.
+        // Le mode manuel reste actif jusqu'a ce que l'user change le taux TVA
+        // dans le select (= signal explicite "je veux revenir en auto").
+        let tvaManuelle = false;
+        // Detection au boot : si la TVA saisie ne correspond pas au taux, on
+        // considere qu'elle a ete saisie manuellement (ex: charge mixte deja editee).
+        if (c.tva && c.montantHT && c.tauxTva) {
+          const tvaAttendu = M.parseNum(c.montantHT) * M.parseNum(c.tauxTva) / 100;
+          if (Math.abs(M.parseNum(c.tva) - tvaAttendu) > 0.05) tvaManuelle = true;
+        }
         const recalc = () => {
           const taux = M.parseNum(sel.value) / 100 || 0;
+          if (tvaManuelle) {
+            // Mode TVA manuelle : on respecte le champ TVA, on deduit l'autre
+            // (HT ou TTC selon le dernier edite par l'user).
+            const tv = M.parseNum(tva.value) || 0;
+            if (dernierEdit === 'ht' && ht.value) {
+              ttc.value = (M.parseNum(ht.value) + tv).toFixed(2);
+            } else if (dernierEdit === 'ttc' && ttc.value) {
+              ht.value = (M.parseNum(ttc.value) - tv).toFixed(2);
+            }
+            return;
+          }
           if (dernierEdit === 'ht' && ht.value) {
             const hh = M.parseNum(ht.value);
             const tv = hh * taux;
@@ -1347,7 +1370,8 @@
         };
         ht.addEventListener('input', () => { dernierEdit = 'ht'; recalc(); });
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
-        sel.addEventListener('change', recalc);
+        tva.addEventListener('input', () => { tvaManuelle = true; recalc(); });
+        sel.addEventListener('change', () => { tvaManuelle = false; recalc(); });
         // OCR facture (mode nouveau et edition)
         const facInput = body.querySelector('#m-charge-fac-input');
         const facStatus = body.querySelector('#m-charge-fac-status');

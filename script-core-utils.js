@@ -99,16 +99,28 @@ function calculerDureeJour(heureDebut, heureFin) {
   return duree > 0 ? duree / 60 : 0;
 }
 
+// Flag global "TVA saisie manuellement" (cas facture mixte type 150€ TTC dont
+// 30€ HT seulement soumis a TVA 20% = 6€ TVA, taux non standard). Quand actif,
+// les fonctions calculer* respectent le champ TVA et n'auto-calculent que la
+// 3e valeur (HT ou TTC selon le dernier edite). Reset au changement de taux.
+var _chargeTvaManuelle = false;
+function setChargeTvaManuelle(val) { _chargeTvaManuelle = !!val; }
+
 // L1257 (script.js d'origine)
 function calculerTTCDepuisHT(prefix) {
+  // Reset du mode manuel quand l'user change le taux explicitement
+  if (prefix === 'charge') _chargeTvaManuelle = false;
   const ht   = parseFloat(document.getElementById(prefix+'-prix-ht')?.value || document.getElementById(prefix+'-montant-ht')?.value || document.getElementById(prefix+'-cout-ht')?.value) || 0;
   const taux = parseFloat(document.getElementById(prefix+'-taux-tva')?.value) || 0;
   const ttc  = ht * (1 + taux / 100);
   const tvaM = ttc - ht;
   const elTTC = document.getElementById(prefix+'-prix') || document.getElementById(prefix+'-montant') || document.getElementById(prefix+'-cout');
   if (elTTC) elTTC.value = ttc.toFixed(2);
-  const elTVA = document.getElementById(prefix+'-montant-tva');
-  if (elTVA) elTVA.textContent = ht > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
+  // Charge : nouveau champ input editable (#charge-tva). Autres : ancien div.
+  const elTVAInput = document.getElementById(prefix+'-tva');
+  if (elTVAInput) elTVAInput.value = ht > 0 ? tvaM.toFixed(2) : '';
+  const elTVADiv = document.getElementById(prefix+'-montant-tva');
+  if (elTVADiv) elTVADiv.textContent = ht > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
   if (prefix === 'liv') alerteRentabilite();
 }
 
@@ -116,13 +128,40 @@ function calculerTTCDepuisHT(prefix) {
 function calculerHTDepuisTTC(prefix) {
   const ttc  = parseFloat(document.getElementById(prefix+'-prix')?.value || document.getElementById(prefix+'-montant')?.value || document.getElementById(prefix+'-cout')?.value) || 0;
   const taux = parseFloat(document.getElementById(prefix+'-taux-tva')?.value) || 0;
-  const ht   = ttc / (1 + taux / 100);
-  const tvaM = ttc - ht;
+  // Mode TVA manuelle (charge uniquement) : on respecte le champ TVA, on en
+  // deduit HT = TTC - TVA. Sinon comportement historique (TVA = TTC × taux).
+  const elTVAInput = document.getElementById(prefix+'-tva');
+  let ht, tvaM;
+  if (prefix === 'charge' && _chargeTvaManuelle && elTVAInput && elTVAInput.value) {
+    tvaM = parseFloat(elTVAInput.value) || 0;
+    ht = ttc - tvaM;
+  } else {
+    ht = ttc / (1 + taux / 100);
+    tvaM = ttc - ht;
+  }
   const elHT = document.getElementById(prefix+'-prix-ht') || document.getElementById(prefix+'-montant-ht') || document.getElementById(prefix+'-cout-ht');
   if (elHT) elHT.value = ht.toFixed(2);
-  const elTVA = document.getElementById(prefix+'-montant-tva');
-  if (elTVA) elTVA.textContent = ttc > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
+  if (elTVAInput && !_chargeTvaManuelle) elTVAInput.value = ttc > 0 ? tvaM.toFixed(2) : '';
+  const elTVADiv = document.getElementById(prefix+'-montant-tva');
+  if (elTVADiv) elTVADiv.textContent = ttc > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
   if (prefix === 'liv') alerteRentabilite();
+}
+
+// L1268bis : appele quand l'user edite directement le champ TVA (#charge-tva).
+// Recalcule TTC = HT + TVA (si HT renseigne) ou HT = TTC - TVA (si TTC).
+function calculerTTCDepuisTVA(prefix) {
+  const tvaM = parseFloat(document.getElementById(prefix+'-tva')?.value) || 0;
+  const ht   = parseFloat(document.getElementById(prefix+'-montant-ht')?.value) || 0;
+  const ttcEl = document.getElementById(prefix+'-montant');
+  const ttcCurrent = parseFloat(ttcEl?.value) || 0;
+  if (ht > 0) {
+    if (ttcEl) ttcEl.value = (ht + tvaM).toFixed(2);
+  } else if (ttcCurrent > 0) {
+    const elHT = document.getElementById(prefix+'-montant-ht');
+    if (elHT) elHT.value = (ttcCurrent - tvaM).toFixed(2);
+  }
+  const elTVADiv = document.getElementById(prefix+'-montant-tva');
+  if (elTVADiv) elTVADiv.textContent = tvaM > 0 ? 'Montant TVA : ' + tvaM.toFixed(2) + ' €' : '';
 }
 
 // L2798 (script.js d'origine)
