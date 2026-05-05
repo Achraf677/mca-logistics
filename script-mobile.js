@@ -8452,6 +8452,12 @@
           </button>
         </div>
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
+          <div class="m-card" id="m-changelog-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55;max-height:360px;overflow:auto">
+            <div style="color:var(--m-text-muted)">Chargement…</div>
+          </div>
+        </div>
+
         <div class="m-section">
           <button class="m-btn m-btn-danger" id="m-param-logout">Déconnexion</button>
         </div>
@@ -8510,8 +8516,39 @@
       container.querySelector('#m-param-mdp')?.addEventListener('click', () => M.formChangerMdpAdmin());
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
+      // Historique des versions : fetch CHANGELOG.md et rendu markdown minimal
+      const changelogEl = container.querySelector('#m-changelog-content');
+      if (changelogEl) {
+        fetch('/CHANGELOG.md', { cache: 'no-cache' })
+          .then(r => r.ok ? r.text() : Promise.reject(r.status))
+          .then(md => { changelogEl.innerHTML = M.renderChangelogMd(md); })
+          .catch(err => { changelogEl.innerHTML = '<div style="color:var(--m-text-muted)">Historique indisponible (' + err + ')</div>'; });
+      }
     }
   });
+
+  // Markdown minimal pour CHANGELOG (## versions, ### sections, listes, **gras**)
+  M.renderChangelogMd = function(md) {
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const inline = s => s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code>$1</code>');
+    const lines = md.split('\n');
+    const out = [];
+    let inList = false, inIntro = true;
+    const closeList = () => { if (inList) { out.push('</ul>'); inList = false; } };
+    for (const raw of lines) {
+      const line = raw.trimEnd();
+      if (line.startsWith('# ')) continue;
+      if (line.startsWith('## ')) { closeList(); inIntro = false; out.push('<h4 style="margin:14px 0 4px;color:var(--m-accent);font-size:.9rem;font-weight:700">' + esc(line.slice(3)) + '</h4>'); continue; }
+      if (line.startsWith('### ')) { closeList(); out.push('<div style="margin:8px 0 2px;font-size:.74rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em">' + esc(line.slice(4)) + '</div>'); continue; }
+      if (line.startsWith('- ')) { if (!inList) { out.push('<ul style="margin:2px 0 6px 16px;padding:0">'); inList = true; } out.push('<li style="margin-bottom:3px">' + inline(esc(line.slice(2))) + '</li>'); continue; }
+      if (line === '---') { closeList(); out.push('<hr style="border:none;border-top:1px solid var(--m-border);margin:10px 0" />'); continue; }
+      closeList();
+      if (line === '' || inIntro) continue;
+      out.push('<p style="margin:4px 0">' + inline(esc(line)) + '</p>');
+    }
+    closeList();
+    return out.join('');
+  };
 
   // ============================================================
   // Modification mot de passe administrateur (mobile)
