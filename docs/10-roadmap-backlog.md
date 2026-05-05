@@ -13,17 +13,29 @@
 
 ## Sprint en cours (mai 2026)
 
-| Priorité | Tâche | Effort estimé |
+| Priorité | Tâche | Statut |
 |---|---|---|
-| P0 | Sentry — capture erreurs JS prod (DSN à créer par Achraf) | 30 min |
-| P0 | 2FA admin Supabase + nouveaux mails admin | 30 min |
-| P0 | Backup Supabase mensuel automatisé (`pg_dump` → Cloudflare R2) | 1 h |
-| P1 | `CHANGELOG.md` + onglet "Historique versions" dans Paramètres | 2 h |
-| P1 | Tests unitaires calculs critiques (TVA, rentabilité, heures) | 3 h |
-| P1 | Watchdog Playwright quotidien 6h + ping santé horaire | 2 h |
-| P1 | Bundle splitting `script.js` (cf. archive/2026-05-03-bundle-splitting.md) | 4-6 h |
-| P1 | Compression photos + PDF à l'upload (Canvas resize 1600px, JPEG q=0.8) | 1 h |
-| P2 | Logs audit : purge auto > 12 mois + archive JSON Cloudflare R2 | 1 h |
+| P0 | Sentry — capture erreurs JS prod | ✅ Actif (DSN configuré dans `monitoring.js`, release `v3.69-20260505`) |
+| P0 | Mails admin mis à jour (`achraf-chikri@mcalogistics.fr` / `mohammed-chikri@mcalogistics.fr`) | ✅ Fait (auth + profiles + identities) |
+| P0 | 2FA admin Supabase | ⏳ À activer via dashboard Supabase (cf. instructions ci-dessous) |
+| P0 | Backup Supabase automatisé | ✅ `backup-simple.yml` créé (hebdo, dimanche 03h UTC, artifact GitHub 90j) — action user : ajouter secret `SUPABASE_DB_URL` |
+| P1 | `CHANGELOG.md` + onglet "Historique versions" Paramètres | ✅ Fait |
+| P1 | Tests unitaires calculs critiques | ✅ 26 tests dont 4 nouveaux pour bug TVA mixte v3.69 |
+| P1 | Watchdog Playwright quotidien | ✅ Cron 06:00 UTC ajouté à `tests.yml` |
+| P1 | Compression photos upload | ✅ Déjà implémenté dans `storage-uploader.js` (resize 1600px, JPEG q=0.82, WebP) |
+| P1 | Bundle splitting `script.js` (cf. archive/2026-05-03-bundle-splitting.md) | À faire (4-6 h) |
+| P2 | Logs audit : purge auto > 12 mois + archive JSON | À faire (1 h) |
+
+### Actions manuelles côté Achraf
+
+1. **Ajouter le secret `SUPABASE_DB_URL`** pour activer le backup hebdomadaire :
+   - Dashboard Supabase → Project Settings → Database → Connection string → URI
+   - GitHub → repo → Settings → Secrets and variables → Actions → New secret
+   - Nom : `SUPABASE_DB_URL`, Valeur : la connection string complète
+2. **Activer la 2FA** :
+   - Aller sur https://supabase.com/dashboard/account/security
+   - "Enable Two-Factor Authentication" → suivre l'assistant (TOTP via Google Authenticator / 1Password / etc.)
+3. **(Optionnel)** Tester un backup manuel : Actions → "Weekly Supabase Backup (simple)" → Run workflow
 
 ## Prochains sprints
 

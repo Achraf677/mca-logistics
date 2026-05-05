@@ -4,13 +4,15 @@ name: E2E Tests (Playwright)
 #
 # Declencheurs :
 #   - Pull Requests vers main : verification systematique avant merge
-#   - Workflow dispatch : declenchement manuel depuis l'UI GitHub
-#
-# Pas de cron : on n'a pas besoin de bruit quotidien.
+#   - Cron quotidien 06:00 UTC : watchdog production — si un parcours
+#     critique casse en prod, on est notifie le matin (avant les chauffeurs).
+#   - Workflow dispatch : declenchement manuel depuis l'UI GitHub.
 
 on:
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC = 08:00 CEST (avant ouverture)
   workflow_dispatch:
     inputs:
       base_url:
