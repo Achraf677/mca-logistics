@@ -3889,6 +3889,19 @@
         btn.addEventListener('click', () => { M.state.planningVue = btn.dataset.vue; M.go('planning'); });
       });
       container.querySelector('#m-planning-abs-add')?.addEventListener('click', () => M.formAbsenceLongue());
+      // Nav semaine (vue semaine uniquement)
+      container.querySelector('#m-planning-sem-prev')?.addEventListener('click', () => {
+        M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) - 1;
+        M.go('planning');
+      });
+      container.querySelector('#m-planning-sem-next')?.addEventListener('click', () => {
+        M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) + 1;
+        M.go('planning');
+      });
+      container.querySelector('#m-planning-sem-today')?.addEventListener('click', () => {
+        M.state.planningSemaineOffset = 0;
+        M.go('planning');
+      });
       container.querySelectorAll('.m-planning-jour').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.planningJour = parseInt(btn.dataset.jour);
@@ -3914,16 +3927,57 @@
   });
 
   // Vue semaine : grille condensee 7 colonnes x N salaries
+  // Calcule le lundi de la semaine cible (offset 0 = semaine courante,
+  // -1 = précédente, +1 = suivante, etc.).
+  M.lundiSemaineOffset = function(offset) {
+    const today = new Date();
+    const jour = today.getDay(); // 0=dim, 1=lun, ... 6=sam
+    const decalLundi = jour === 0 ? -6 : 1 - jour;
+    const lundi = new Date(today.getFullYear(), today.getMonth(), today.getDate() + decalLundi + (offset || 0) * 7);
+    return lundi;
+  };
+
   M.renderPlanningSemaine = function(salaries, plannings) {
     if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
     const labels = { travail: '✅', conge: '🏖️', absence: '⚠️', maladie: '🤒', repos: '😴' };
     const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'rgba(155,155,155,.3)' };
     const todayIdx = jourIndexAuj();
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const fmt = d => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+    const numSemaine = (function(d) {
+      // ISO 8601 week number
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - dayNum + 3);
+      const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+      return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+    })(lundi);
 
-    let html = `<div class="m-card" style="padding:0;overflow:hidden">
+    // Barre de navigation semaine : Précédente · Label semaine X (du -- au --) · Suivante. + reset si offset.
+    let html = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.82rem">‹</button>
+        <div style="flex:1 1 auto;text-align:center;font-size:.85rem;font-weight:600">
+          Semaine ${numSemaine}
+          <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:400">${fmt(lundi)} – ${fmt(dimanche)}${offset === 0 ? ' (cette semaine)' : ''}</div>
+        </div>
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.82rem">›</button>
+        ${offset !== 0 ? '<button id="m-planning-sem-today" class="m-btn" style="flex:0 0 auto;padding:0 10px;height:40px;font-size:.74rem">Auj.</button>' : ''}
+      </div>
+    `;
+
+    // Dates par jour pour l'header (lun 5, mar 6, ...)
+    const jourDates = M_JOURS_FR.map((_, i) => {
+      const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
+      return d.getDate();
+    });
+
+    html += `<div class="m-card" style="padding:0;overflow:hidden">
       <div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.7rem">
         <div style="padding:8px 6px;background:var(--m-bg-elevated);font-weight:700;border-bottom:1px solid var(--m-border)"></div>
-        ${M_JOURS_COURT.map((j, i) => `<div style="padding:8px 4px;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${i === todayIdx ? 'color:var(--m-accent)' : ''}">${j}</div>`).join('')}
+        ${M_JOURS_COURT.map((j, i) => `<div style="padding:8px 4px;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${offset === 0 && i === todayIdx ? 'color:var(--m-accent)' : ''}">${j}<div style="font-size:.6rem;font-weight:400;opacity:.7">${jourDates[i]}</div></div>`).join('')}
       </div>`;
 
     salaries.forEach((sal, sIdx) => {
@@ -3937,7 +3991,7 @@
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
         const lbl = labels[typeJour] || '·';
         const bg = colors[typeJour] || 'transparent';
-        const isToday = jIdx === todayIdx;
+        const isToday = offset === 0 && jIdx === todayIdx;
         const horaireShort = jourData?.heureDebut && jourData?.heureFin ? jourData.heureDebut.slice(0, 5) : '';
         html += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="padding:8px 2px;text-align:center;background:${bg};color:${typeJour === 'travail' || typeJour === 'conge' || typeJour === 'absence' || typeJour === 'maladie' ? '#fff' : 'var(--m-text)'};border:0;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}${isToday ? 'box-shadow:inset 0 0 0 2px var(--m-accent)' : ''};font-family:inherit;cursor:pointer;font-size:.78rem;font-weight:600;line-height:1.1">
           <div>${lbl}</div>
