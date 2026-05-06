@@ -3978,8 +3978,12 @@
 
   M.renderPlanningSemaine = function(salaries, plannings) {
     if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
-    const labels = { travail: '✅', conge: '🏖️', absence: '⚠️', maladie: '🤒', repos: '😴' };
-    const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'rgba(155,155,155,.3)' };
+    // Vue Semaine refondue (sprint-95pct) : 1 carte par jour empilée verticalement,
+    // salariés affichés en chips groupées par statut. Avantage : aucune pression
+    // horizontale (la grille 8 colonnes débordait sur iPhone), scale propre de
+    // 320px (SE) à 430px (Pro Max), chaque chip reste tappable pour ouvrir le form.
+    const labelsType = { travail: 'Travail', conge: 'Congé', absence: 'Absence', maladie: 'Maladie', repos: 'Repos' };
+    const iconsType  = { travail: '✅', conge: '🏖️', absence: '⚠️', maladie: '🤒', repos: '😴' };
     const todayIdx = jourIndexAuj();
     const offset = M.state.planningSemaineOffset || 0;
     const lundi = M.lundiSemaineOffset(offset);
@@ -3999,54 +4003,76 @@
 
     // Barre nav semaine — compacte : ‹  Sem N · dates  ›  (Auj si offset != 0)
     let html = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
         <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 36px;padding:0;height:36px;font-size:1rem;line-height:1">‹</button>
-        <div style="flex:1 1 auto;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
-          Sem ${numSemaine} · ${labelDates}${offset === 0 ? '' : ''}
+        <div style="flex:1 1 0;min-width:0;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
+          Sem ${numSemaine} · ${labelDates}
         </div>
         <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 36px;padding:0;height:36px;font-size:1rem;line-height:1">›</button>
         ${offset !== 0 ? '<button id="m-planning-sem-today" class="m-btn" style="flex:0 0 auto;padding:0 10px;height:36px;font-size:.72rem">Auj.</button>' : ''}
       </div>
     `;
 
-    // Dates par jour pour l'header (4, 5, 6, ...)
-    const jourDates = M_JOURS_FR.map((_, i) => {
-      const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
-      return d.getDate();
-    });
+    // Petit nom : initiale prénom + nom complet (fallback id), trim
+    const nomCourt = (sal) => {
+      const base = (sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id || '');
+      return base.trim();
+    };
 
-    // Grille : col gauche reduite a 64px (initiale + 5 chars max), 7 jours en 1fr.
-    // overflow-x:auto en filet de securite si ecran < 320px.
-    html += `<div class="m-card" style="padding:0;overflow:hidden;width:100%;box-sizing:border-box">
-      <div style="display:grid;grid-template-columns:64px repeat(7, minmax(0, 1fr));gap:0;font-size:.7rem;width:100%">
-        <div style="padding:6px 4px;background:var(--m-bg-elevated);font-weight:700;border-bottom:1px solid var(--m-border)"></div>
-        ${M_JOURS_COURT.map((j, i) => `<div style="padding:6px 0;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${offset === 0 && i === todayIdx ? 'color:var(--m-accent)' : ''}"><div style="font-size:.72rem">${j}</div><div style="font-size:.62rem;font-weight:400;opacity:.7">${jourDates[i]}</div></div>`).join('')}
-      </div>`;
+    // 1 carte par jour. Chaque carte = header (jour + date) + chips groupées par statut.
+    // Tap chip = form planning pour ce salarié/jour.
+    M_JOURS_FR.forEach((jourCle, jIdx) => {
+      const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + jIdx);
+      const isToday = offset === 0 && jIdx === todayIdx;
+      const jourLong = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
+      const dateStr = `${d.getDate()} ${moisCourtFR[d.getMonth()]}`;
 
-    salaries.forEach((sal, sIdx) => {
-      const planning = plannings.find(p => p.salId === sal.id);
-      const semaine = planning && Array.isArray(planning.semaine) ? planning.semaine : [];
-      const isLast = sIdx === salaries.length - 1;
-      // Initiale prenom + 5 premiers chars du nom (tient dans 64px sur tous mobiles)
-      const labelSal = (sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id).slice(0, 5);
-      html += `<div style="display:grid;grid-template-columns:64px repeat(7, minmax(0, 1fr));gap:0;font-size:.72rem;width:100%">
-        <div style="padding:8px 4px;font-weight:600;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.7rem">${M.escHtml(labelSal)}</div>`;
-      M_JOURS_FR.forEach((jourCle, jIdx) => {
+      // Calcule statut de chaque salarié pour ce jour
+      const groupes = { travail: [], conge: [], absence: [], maladie: [], repos: [] };
+      salaries.forEach(sal => {
+        const planning = plannings.find(p => p.salId === sal.id);
+        const semaine = planning && Array.isArray(planning.semaine) ? planning.semaine : [];
         const jourData = semaine.find(j => j.jour === jourCle);
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
-        const lbl = labels[typeJour] || '·';
-        const bg = colors[typeJour] || 'transparent';
-        const isToday = offset === 0 && jIdx === todayIdx;
-        const horaireShort = jourData?.heureDebut && jourData?.heureFin ? jourData.heureDebut.slice(0, 5) : '';
-        html += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="padding:6px 1px;text-align:center;background:${bg};color:${typeJour === 'travail' || typeJour === 'conge' || typeJour === 'absence' || typeJour === 'maladie' ? '#fff' : 'var(--m-text)'};border:0;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}${isToday ? 'box-shadow:inset 0 0 0 2px var(--m-accent)' : ''};font-family:inherit;cursor:pointer;font-size:.74rem;font-weight:600;line-height:1.1;min-width:0;overflow:hidden">
-          <div>${lbl}</div>
-          ${horaireShort ? `<div style="font-size:.58rem;opacity:.85;margin-top:1px">${horaireShort}</div>` : ''}
-        </button>`;
+        const horaire = jourData?.heureDebut && jourData?.heureFin
+          ? `${jourData.heureDebut.slice(0, 5)}–${jourData.heureFin.slice(0, 5)}` : '';
+        (groupes[typeJour] || groupes.repos).push({ sal, horaire });
       });
+
+      const nbTravail = groupes.travail.length;
+      const nbHors = salaries.length - nbTravail;
+
+      html += `<div class="m-card" style="padding:12px 14px;margin-bottom:10px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;${isToday ? 'border-left:4px solid var(--m-accent);' : ''}">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="font-weight:700;font-size:.95rem;min-width:0;overflow:hidden;text-overflow:ellipsis">
+            ${jourLong} <span style="color:var(--m-text-muted);font-weight:500;font-size:.82rem">${dateStr}</span>
+            ${isToday ? '<span style="color:var(--m-accent);font-size:.72rem;font-weight:700;margin-left:6px">• AUJ.</span>' : ''}
+          </div>
+          <div style="font-size:.72rem;color:var(--m-text-muted);white-space:nowrap">
+            ${nbTravail} travail${nbHors ? ` · ${nbHors} hors` : ''}
+          </div>
+        </div>`;
+
+      // Rend chips d'un groupe (seulement si non vide). Chips = flex-wrap, donc
+      // jamais d'overflow horizontal : elles passent à la ligne automatiquement.
+      const renderGroupe = (typeJour, items, bgVar, txtColor) => {
+        if (!items.length) return '';
+        return `<div style="margin-top:8px;max-width:100%">
+          <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">${iconsType[typeJour]} ${labelsType[typeJour]} · ${items.length}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;max-width:100%">
+            ${items.map(({ sal, horaire }) => `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="background:${bgVar};color:${txtColor};border:0;border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;min-height:32px">${M.escHtml(nomCourt(sal))}${horaire ? ` · ${horaire}` : ''}</button>`).join('')}
+          </div>
+        </div>`;
+      };
+
+      html += renderGroupe('travail', groupes.travail, 'var(--m-green)',         '#06231b');
+      html += renderGroupe('conge',   groupes.conge,   'var(--m-blue)',          '#06141b');
+      html += renderGroupe('absence', groupes.absence, 'var(--m-red)',           '#fff');
+      html += renderGroupe('maladie', groupes.maladie, 'var(--m-red)',           '#fff');
+      html += renderGroupe('repos',   groupes.repos,   'rgba(120,120,120,.55)',  '#fff');
+
       html += `</div>`;
     });
-
-    html += `</div>`;
 
     // Section "Périodes d'absence" (longues durées)
     const absences = [];
