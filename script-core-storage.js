@@ -173,6 +173,79 @@ function chargerParametres() {
   majResumeSauvegardeAdmin();
   afficherJournalAudit();
   if (typeof afficherChangelog === 'function') afficherChangelog();
+  if (typeof afficherStatutRibEntreprise === 'function') afficherStatutRibEntreprise();
+}
+
+// Affiche le statut du RIB entreprise dans la card Informations entreprise.
+function afficherStatutRibEntreprise() {
+  const params = chargerObj('params_entreprise', {}) || {};
+  const statusEl = document.getElementById('param-rib-status');
+  const viewBtn = document.getElementById('param-rib-view-btn');
+  if (!statusEl) return;
+  if (params.ribPath) {
+    statusEl.textContent = '✅ RIB chargé';
+    statusEl.style.color = 'var(--success, #2ecc71)';
+    if (viewBtn) viewBtn.style.display = '';
+  } else {
+    statusEl.textContent = 'Aucun document chargé';
+    statusEl.style.color = 'var(--text-muted)';
+    if (viewBtn) viewBtn.style.display = 'none';
+  }
+}
+
+// Upload RIB entreprise -> bucket prive 'company-docs'. Stocke le path
+// dans params_entreprise.ribPath. Supprime l'ancien fichier si remplace.
+async function uploaderRibEntreprise(input) {
+  const file = input?.files?.[0];
+  if (!file) return;
+  if (!window.DelivProStorage) {
+    afficherToast('⚠️ Storage Supabase indisponible', 'error');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    afficherToast('⚠️ RIB trop lourd (5 Mo max)', 'error');
+    input.value = '';
+    return;
+  }
+  const ext = (file.name.split('.').pop() || 'pdf').toLowerCase();
+  const safeExt = ['pdf', 'jpg', 'jpeg', 'png', 'webp'].includes(ext) ? ext : 'pdf';
+  const newPath = 'rib/rib-' + Date.now() + '.' + safeExt;
+  const statusEl = document.getElementById('param-rib-status');
+  if (statusEl) { statusEl.textContent = 'Upload en cours…'; statusEl.style.color = 'var(--text-muted)'; }
+  const res = await window.DelivProStorage.compressAndUpload('company-docs', newPath, file, {
+    skipCompression: file.type === 'application/pdf',
+    contentType: file.type
+  });
+  if (!res.ok) {
+    afficherToast('⚠️ Upload RIB échoué : ' + (res.error?.message || 'inconnue'), 'error');
+    if (statusEl) statusEl.textContent = 'Échec upload';
+    input.value = '';
+    return;
+  }
+  const params = chargerObj('params_entreprise', {}) || {};
+  const ancienPath = params.ribPath;
+  params.ribPath = res.path;
+  sauvegarder('params_entreprise', params);
+  // Cleanup ancien fichier
+  if (ancienPath && ancienPath !== res.path) {
+    try { await window.DelivProStorage.remove('company-docs', ancienPath); } catch (_) {}
+  }
+  afficherToast('✅ RIB chargé');
+  afficherStatutRibEntreprise();
+  input.value = '';
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Upload RIB entreprise', file.name);
+}
+
+// Ouvre le RIB dans un nouvel onglet via signed URL (10 min TTL).
+async function voirRibEntreprise() {
+  const params = chargerObj('params_entreprise', {}) || {};
+  if (!params.ribPath || !window.DelivProStorage) {
+    afficherToast('⚠️ RIB introuvable', 'error');
+    return;
+  }
+  const res = await window.DelivProStorage.getSignedUrl('company-docs', params.ribPath, 600);
+  if (res.ok && res.signedUrl) window.open(res.signedUrl, '_blank');
+  else afficherToast('⚠️ Erreur ouverture : ' + (res.error?.message || 'inconnue'), 'error');
 }
 
 // Charge CHANGELOG.md et le rend en HTML simple dans la carte "Historique des versions".
