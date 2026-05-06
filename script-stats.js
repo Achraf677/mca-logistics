@@ -182,8 +182,6 @@ function exporterStatsPDF() {
   afficherToast('📄 Rapport statistiques généré');
 }
 
-// L11343 (script.js d'origine)
-function buildSimplePeriodeState(defaultMode) {
-  return { mode: defaultMode || 'mois', offset: 0 };
-}
+// buildSimplePeriodeState a été déplacée dans script-core-stats-helpers.js
+// (boot) car elle est appelée au boot par script.js + script-charges.js etc.
 

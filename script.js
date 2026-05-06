@@ -2790,7 +2790,10 @@ function genererFicheTournee(salId, date) {
 
 /* ===== GOOGLE MAPS — DISTANCE AUTO ===== */
 /* ===== VUE COMPACTE / ÉTENDUE ===== */
-let _tableauCompact = false;
+// var au lieu de let : evite les TDZ erratique observees dans Sentry (1 event,
+// probable race condition navigateur sur let top-level + initDensiteTableau
+// appelee en DOMContentLoaded). var est hoisté avec valeur undefined → safe.
+var _tableauCompact = false;
 function initDensiteTableau() {
   _tableauCompact = localStorage.getItem('tableau_compact') === '1';
   if (_tableauCompact) document.querySelectorAll('.data-table').forEach(t => t.classList.add('compact'));

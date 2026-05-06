@@ -3,12 +3,20 @@
  *
  * Helpers extraits de script-stats.js pour rester chargés au boot, car
  * utilisés depuis d'autres modules (notamment script-salaries.js → fiche
- * salarié). Le reste de script-stats.js (afficherStatistiques, exporter,
- * navigation, etc.) est lazy-loadé via lazy-stubs.js (Sprint C bundle
- * splitting, 2026-05-06).
+ * salarié, et script.js → init des _xxxPeriode au boot). Le reste de
+ * script-stats.js (afficherStatistiques, exporter, navigation, etc.) est
+ * lazy-loadé via lazy-stubs.js (Sprint C bundle splitting, 2026-05-06).
  *
- * À charger AU BOOT dans admin.html, AVANT script-salaries.js.
+ * À charger AU BOOT dans admin.html, AVANT script.js et script-charges.js
+ * (qui appellent buildSimplePeriodeState au moment de la déclaration de
+ * leurs états _statsPeriode / _chargesPeriode / _carbPeriode / etc.).
  */
+
+// Factory : crée un état période standard (utilisée par stats, charges,
+// carburant, entretiens, planning, TVA pour init leur état au boot).
+function buildSimplePeriodeState(defaultMode) {
+  return { mode: defaultMode || 'mois', offset: 0 };
+}
 
 // Stats mensuelles d'un salarié (livraisons, CA, heures réelles ou planifiées).
 // Utilisé par : script-salaries.js (carte fiche salarié), script-stats.js
