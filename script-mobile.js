@@ -4001,15 +4001,17 @@
       return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
     })(lundi);
 
-    // Barre nav semaine — compacte : ‹  Sem N · dates  ›  (Auj si offset != 0)
+    // Barre nav semaine compacte : ‹  Sem N · dates  ›
+    // Tap sur le label central (si offset != 0) = retour semaine courante.
+    // Pas de bouton "Auj." separe (cause overflow sur petits ecrans).
+    const isCurrent = offset === 0;
     let html = `
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
-        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 36px;padding:0;height:36px;font-size:1rem;line-height:1">‹</button>
-        <div style="flex:1 1 0;min-width:0;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
-          Sem ${numSemaine} · ${labelDates}
-        </div>
-        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 36px;padding:0;height:36px;font-size:1rem;line-height:1">›</button>
-        ${offset !== 0 ? '<button id="m-planning-sem-today" class="m-btn" style="flex:0 0 auto;padding:0 10px;height:36px;font-size:.72rem">Auj.</button>' : ''}
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
+        <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''} title="${isCurrent ? '' : 'Tap pour revenir à cette semaine'}">
+          ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
+        </button>
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine suivante">›</button>
       </div>
     `;
 
