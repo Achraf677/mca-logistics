@@ -497,14 +497,32 @@ async function changerMdpAdmin() {
   const sessionAdmin = getAdminSession();
   const comptes = getAdminAccounts();
   const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
-  if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
-  const motDePasseStocke = comptes[idx].motDePasseHash || comptes[idx].motDePasse || '';
-  if (!await verifierMotDePasseLocal(actuel, motDePasseStocke)) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
+  const client = getSupabaseClientSafe();
+  const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
+
+  // Vérification du mot de passe actuel :
+  //  - Mode Supabase : on re-tente un signInWithPassword. Source de vérité = Supabase.
+  //  - Mode local seul : fallback sur l'ancien hash PBKDF2 localStorage.
+  if (supabaseReady && sessionAdmin.authMode === 'supabase' && client) {
+    const email = sessionStorage.getItem('admin_email') || '';
+    if (!email) {
+      afficherToast('⚠️ Email admin introuvable en session. Reconnectez-vous.', 'error');
+      return;
+    }
+    const verifResult = await client.auth.signInWithPassword({ email, password: actuel });
+    if (verifResult.error) {
+      afficherToast('⚠️ Mot de passe actuel incorrect', 'error');
+      return;
+    }
+  } else {
+    if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
+    const motDePasseStocke = comptes[idx].motDePasseHash || comptes[idx].motDePasse || '';
+    if (!await verifierMotDePasseLocal(actuel, motDePasseStocke)) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
+  }
+
   const qualiteMdp = evaluerQualiteMotDePasseFort(nouveau);
   if (!qualiteMdp.ok) { afficherToast('⚠️ ' + qualiteMdp.message, 'error'); return; }
   if (nouveau !== confirmer) { afficherToast('⚠️ Les mots de passe ne correspondent pas', 'error'); return; }
-  const client = getSupabaseClientSafe();
-  const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
   if (supabaseReady) {
     if (sessionAdmin.authMode !== 'supabase' || !client) {
       afficherToast('⚠️ Connectez-vous via Supabase pour changer un mot de passe admin synchronisé.', 'error');
