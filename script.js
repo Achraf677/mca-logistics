@@ -4671,20 +4671,36 @@ window.__planningRewriteFinal = function() {
   sauvegarderPlanning = function() {
     var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
     if (!salarie) return afficherToast('Choisis un salarié', 'error');
-    var planning = { salId: salarie.id, salNom: salarie.nom || '', semaine: JOURS.map(function(jour) {
+    // Cote PC, ce form edite le PATTERN recurrent (planning hebdo type).
+    // On ecrit dans planning.pattern (v2) + planning.semaine (legacy backward compat).
+    var nouvelleSemaine = JOURS.map(function(jour) {
       var typeJour = document.getElementById('plan-type-' + jour)?.value || 'repos';
       return { jour: jour, travaille: typeJour === 'travail', typeJour: typeJour, heureDebut: typeJour === 'travail' ? (document.getElementById('plan-debut-' + jour)?.value || '') : '', heureFin: typeJour === 'travail' ? (document.getElementById('plan-fin-' + jour)?.value || '') : '', zone: typeJour === 'travail' ? (document.getElementById('plan-zone-' + jour)?.value || '') : '', note: typeJour === 'travail' ? (document.getElementById('plan-note-' + jour)?.value || '') : '' };
-    }), mis_a_jour: new Date().toISOString() };
-    if (planning.semaine.some(function(j) { return j.typeJour === 'travail' && j.heureDebut && j.heureFin && calculerDureeJour(j.heureDebut, j.heureFin) <= 0; })) return afficherToast('Certaines heures sont invalides', 'error');
+    });
+    if (nouvelleSemaine.some(function(j) { return j.typeJour === 'travail' && j.heureDebut && j.heureFin && calculerDureeJour(j.heureDebut, j.heureFin) <= 0; })) return afficherToast('Certaines heures sont invalides', 'error');
     var plannings = charger('plannings');
     var index = plannings.findIndex(function(p) { return p.salId === salarie.id; });
+    var existant = index > -1 ? plannings[index] : { salId: salarie.id };
+    // Migration v2 (idempotente)
+    if (typeof migrerPlanningV2 === 'function') migrerPlanningV2(existant);
+    var planning = Object.assign({}, existant, {
+      salId: salarie.id,
+      salNom: salarie.nom || '',
+      semaine: nouvelleSemaine, // legacy backward compat
+      pattern: {
+        actif: true,
+        semaine: nouvelleSemaine
+      },
+      semaines: existant.semaines || {},
+      mis_a_jour: new Date().toISOString()
+    });
     if (index > -1) plannings[index] = planning; else plannings.push(planning);
     sauvegarder('plannings', plannings);
     closeModal('modal-planning');
     afficherPlanning();
     afficherPlanningSemaine();
     afficherCompteurHeures();
-    afficherToast('Planning enregistré');
+    afficherToast('Planning enregistré (récurrent toutes semaines)');
   };
 
   supprimerPlanning = async function(salId) {
@@ -4983,28 +4999,35 @@ ouvrirEditPlanning = function(salId) {
 sauvegarderPlanning = function() {
   var salarie = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
   if (!salarie) return afficherToast('Choisis un salarié', 'error');
-  var planning = {
-    salId: salarie.id,
-    salNom: salarie.nom || '',
-    semaine: JOURS.map(function(jour) {
-      var typeJour = document.getElementById('plan-type-' + jour)?.value || 'repos';
-      return {
-        jour: jour,
-        travaille: typeJour === 'travail',
-        typeJour: typeJour,
-        heureDebut: typeJour === 'travail' ? (document.getElementById('plan-debut-' + jour)?.value || '') : '',
-        heureFin: typeJour === 'travail' ? (document.getElementById('plan-fin-' + jour)?.value || '') : '',
-        zone: typeJour === 'travail' ? (document.getElementById('plan-zone-' + jour)?.value || '') : '',
-        note: typeJour === 'travail' ? (document.getElementById('plan-note-' + jour)?.value || '') : ''
-      };
-    }),
-    mis_a_jour: new Date().toISOString()
-  };
-  if (planning.semaine.some(function(j) { return j.typeJour === 'travail' && j.heureDebut && j.heureFin && calculerDureeJour(j.heureDebut, j.heureFin) <= 0; })) {
+  // Cote PC, ce form edite le PATTERN recurrent (planning hebdo type).
+  // Ecriture dans planning.pattern (v2) + planning.semaine (legacy backward compat).
+  var nouvelleSemaine = JOURS.map(function(jour) {
+    var typeJour = document.getElementById('plan-type-' + jour)?.value || 'repos';
+    return {
+      jour: jour,
+      travaille: typeJour === 'travail',
+      typeJour: typeJour,
+      heureDebut: typeJour === 'travail' ? (document.getElementById('plan-debut-' + jour)?.value || '') : '',
+      heureFin: typeJour === 'travail' ? (document.getElementById('plan-fin-' + jour)?.value || '') : '',
+      zone: typeJour === 'travail' ? (document.getElementById('plan-zone-' + jour)?.value || '') : '',
+      note: typeJour === 'travail' ? (document.getElementById('plan-note-' + jour)?.value || '') : ''
+    };
+  });
+  if (nouvelleSemaine.some(function(j) { return j.typeJour === 'travail' && j.heureDebut && j.heureFin && calculerDureeJour(j.heureDebut, j.heureFin) <= 0; })) {
     return afficherToast('Certaines heures sont invalides', 'error');
   }
   var plannings = charger('plannings');
   var index = plannings.findIndex(function(p) { return p.salId === salarie.id; });
+  var existant = index > -1 ? plannings[index] : { salId: salarie.id };
+  if (typeof migrerPlanningV2 === 'function') migrerPlanningV2(existant);
+  var planning = Object.assign({}, existant, {
+    salId: salarie.id,
+    salNom: salarie.nom || '',
+    semaine: nouvelleSemaine,
+    pattern: { actif: true, semaine: nouvelleSemaine },
+    semaines: existant.semaines || {},
+    mis_a_jour: new Date().toISOString()
+  });
   if (index > -1) plannings[index] = planning;
   else plannings.push(planning);
   sauvegarder('plannings', plannings);
@@ -5012,7 +5035,7 @@ sauvegarderPlanning = function() {
   afficherPlanning();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  afficherToast('Planning enregistré');
+  afficherToast('Planning enregistré (récurrent toutes semaines)');
 };
 
 supprimerPlanning = async function(salId) {

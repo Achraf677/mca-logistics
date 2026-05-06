@@ -3197,27 +3197,54 @@
   };
 
   // ---- PLANNING (saisie horaires d'un salarie pour le jour selectionne) ----
-  M.formPlanningJour = function(salId) {
+  M.formPlanningJour = function(salId, options) {
+    options = options || {};
     const salaries = M.charger('salaries');
     const sal = salaries.find(s => s.id === salId);
     if (!sal) return M.toast('Salarié introuvable');
     const plannings = M.charger('plannings');
-    const planning = plannings.find(p => p.salId === salId) || { salId, semaine: [] };
+    let planning = plannings.find(p => p.salId === salId);
+    if (!planning) planning = { salId };
+    M.migrerPlanningV2(planning);
     const jourIdx = M.state.planningJour;
     const jourCle = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][jourIdx];
     const jourLabel = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
-    // Lecture v2 : helper qui combine semaines (override par date) + pattern récurrent + legacy.
-    const lundiCourant = (typeof M.lundiSemaineOffset === 'function') ? M.lundiSemaineOffset(0) : null;
-    const data = lundiCourant
-      ? (M.getSemaineDataForDate(planning, lundiCourant)[jourIdx] || {})
-      : ((planning.semaine || []).find(j => j.jour === jourCle) || {});
+    // lundiISO de la semaine cible. Default = semaine courante.
+    const lundiCible = options.lundiISO
+      ? new Date(options.lundiISO + 'T00:00:00')
+      : M.lundiSemaineOffset(0);
+    const lundiISO = M.toLocalISODate(lundiCible);
+    const dateJourCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + jourIdx);
+    const dateJourISO = M.toLocalISODate(dateJourCible);
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const dateLabel = `${dateJourCible.getDate()} ${moisCourtFR[dateJourCible.getMonth()]}`;
+
+    // Source : helper v2. Note si l'entrée vient d'un override semaine ou du pattern.
+    const semaineData = M.getSemaineDataForDate(planning, lundiCible);
+    const data = semaineData[jourIdx] || {};
+    const overrideExiste = !!(planning.semaines && planning.semaines[lundiISO]);
     const typeJour = data.typeJour || (data.travaille ? 'travail' : 'repos');
     const fullName = ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || sal.id)).trim();
+    // Default scope : "semaine" si override deja saisi, sinon "pattern" (compat avec ancien comportement).
+    const scopeDefaut = overrideExiste ? 'semaine' : 'pattern';
 
     const body = `
       <div style="background:var(--m-accent-soft);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:.88rem">
-        <strong>${jourLabel}</strong> · ${M.escHtml(fullName)}
+        <strong>${jourLabel} ${dateLabel}</strong> · ${M.escHtml(fullName)}
       </div>
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">Appliquer à</div>
+      <div role="radiogroup" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+        <label class="m-scope-opt" data-scope="semaine" style="display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid var(--m-border);border-radius:10px;cursor:pointer;font-size:.82rem;line-height:1.2">
+          <input type="radio" name="scope" value="semaine" ${scopeDefaut === 'semaine' ? 'checked' : ''} style="margin:0" />
+          <span>📅<br/>Cette semaine</span>
+        </label>
+        <label class="m-scope-opt" data-scope="pattern" style="display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid var(--m-border);border-radius:10px;cursor:pointer;font-size:.82rem;line-height:1.2">
+          <input type="radio" name="scope" value="pattern" ${scopeDefaut === 'pattern' ? 'checked' : ''} style="margin:0" />
+          <span>🔁<br/>Toutes (récurrent)</span>
+        </label>
+      </div>
+
       ${M.formField('Type de jour', M.formSelect('typeJour', [
         { value: 'travail', label: '✅ Travail' },
         { value: 'repos',   label: 'Repos' },
@@ -3250,20 +3277,46 @@
       },
       onSubmit() {
         const f = M.lireFormSheet();
+        const scope = f.scope || scopeDefaut;
         const arr = M.charger('plannings');
         let p = arr.find(x => x.salId === salId);
-        if (!p) { p = { salId, semaine: [] }; arr.push(p); }
-        p.semaine = p.semaine || [];
-        let jourEntry = p.semaine.find(j => j.jour === jourCle);
-        if (!jourEntry) { jourEntry = { jour: jourCle }; p.semaine.push(jourEntry); }
-        jourEntry.typeJour = f.typeJour;
-        jourEntry.travaille = f.typeJour === 'travail';
-        jourEntry.heureDebut = f.heureDebut || '';
-        jourEntry.heureFin = f.heureFin || '';
-        jourEntry.zone = f.zone?.trim() || '';
-        jourEntry.note = f.note?.trim() || '';
+        if (!p) { p = { salId }; arr.push(p); }
+        M.migrerPlanningV2(p);
+
+        const entry = {
+          jour: jourCle,
+          date: dateJourISO,
+          typeJour: f.typeJour,
+          travaille: f.typeJour === 'travail',
+          heureDebut: f.heureDebut || '',
+          heureFin: f.heureFin || '',
+          zone: (f.zone || '').trim(),
+          note: (f.note || '').trim()
+        };
+
+        if (scope === 'pattern') {
+          // Ecrit dans le pattern recurrent (s'applique a toutes les semaines sans override).
+          p.pattern.actif = true;
+          if (!Array.isArray(p.pattern.semaine)) p.pattern.semaine = [];
+          let idx = p.pattern.semaine.findIndex(j => j && j.jour === jourCle);
+          // Pattern : pas de date specifique
+          const patternEntry = { ...entry };
+          delete patternEntry.date;
+          if (idx === -1) p.pattern.semaine.push(patternEntry);
+          else p.pattern.semaine[idx] = { ...p.pattern.semaine[idx], ...patternEntry };
+          // Conserve aussi p.semaine legacy en sync (backward compat lecture)
+          p.semaine = p.pattern.semaine.slice();
+          M.toast('✅ Récurrent : ' + jourLabel + ' (toutes semaines)');
+        } else {
+          // Ecrit dans semaines[lundiISO] (override de cette semaine uniquement).
+          if (!p.semaines || typeof p.semaines !== 'object') p.semaines = {};
+          if (!Array.isArray(p.semaines[lundiISO])) p.semaines[lundiISO] = [];
+          let idx = p.semaines[lundiISO].findIndex(j => j && (j.jour === jourCle || j.date === dateJourISO));
+          if (idx === -1) p.semaines[lundiISO].push(entry);
+          else p.semaines[lundiISO][idx] = { ...p.semaines[lundiISO][idx], ...entry };
+          M.toast('✅ Semaine du ' + dateLabel.replace(jourLabel, '').trim() + ' uniquement');
+        }
         M.sauvegarder('plannings', arr);
-        M.toast('✅ Planning mis à jour');
         M.go('planning');
         return true;
       }
@@ -3954,15 +4007,17 @@
           M.go('planning');
         });
       });
-      // Tap salarie -> ouvre form planning pour CE jour selectionne
+      // Tap salarie -> ouvre form planning pour CE jour selectionne (semaine courante)
       container.querySelectorAll('.m-planning-sal').forEach(btn => {
         btn.addEventListener('click', () => M.formPlanningJour(btn.dataset.salId));
       });
-      // Vue semaine : tap cell -> form planning pour ce salarie/jour
+      // Vue semaine : tap cell -> form planning pour ce salarie/jour de LA semaine affichee
       container.querySelectorAll('.m-planning-cell').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.planningJour = parseInt(btn.dataset.jourIdx);
-          M.formPlanningJour(btn.dataset.salId);
+          const offset = M.state.planningSemaineOffset || 0;
+          const lundiCible = M.lundiSemaineOffset(offset);
+          M.formPlanningJour(btn.dataset.salId, { lundiISO: M.toLocalISODate(lundiCible) });
         });
       });
       // Vue absences : tap card -> editer / supprimer
