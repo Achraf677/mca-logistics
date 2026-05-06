@@ -16,7 +16,7 @@ Dernière mise à jour : 2026-05-06
 | **GitHub** (`Achraf677/mca-logistics`) | ✅ Actif | MCP server officiel | depuis avril 2026 | repo + PR + issues + actions | GitHub Settings → Applications → Authorized OAuth Apps → "Claude Code" → Revoke |
 | **Sentry** (`mca-logistics.sentry.io`) | ⚠️ Token temporaire | Personal Token | 2026-05-06 | event:read · org:read · project:read | Sentry → Settings → Account → API → Personal Tokens → "Claude MCA LOGISTICS" → Revoke |
 | **Cloudflare Pages** | ❌ Pas connecté | — | — | — | — |
-| **Pennylane** (compta) | ❌ Pas connecté (futur) | — | bloqué par abo Premium | — | — |
+| **Pennylane** (compta) | ✅ Actif | Personal Token | 2026-05-06 | 15 scopes lecture seule (factures, clients, fournisseurs, FEC, transactions, journaux, écritures…) | https://app.pennylane.com/companies/23200904/settings/connectivity?subtab=developers → "Claude MCA LOGISTICS" → Supprimer |
 | **Qonto** (banque) | ❌ Pas connecté (futur) | — | bloqué par plan API | — | — |
 | **Teleroute** (sous-traitance fret) | ❌ Pas connecté (futur) | — | pas encore d'accès | — | — |
 | **Google Maps API** | ⚠️ Côté code uniquement | Clé API publique dans `script.js` | — | Distance Matrix | Console GCP → API & Services → Credentials → Restrict / Delete |
@@ -53,12 +53,34 @@ Dernière mise à jour : 2026-05-06
   - Scopes minimum : `Pages:Edit` sur le projet `mca-logistics` uniquement
   - Révocation : même page → Roll / Delete
 
-### Pennylane (compta)
-- **Bloqué par abo Premium** (export FEC).
-- **Si activé un jour** :
-  - Pennylane → Paramètres → Intégrations → API → Generate token
-  - Scopes : lecture factures, paiements (pas d'écriture sauf besoin)
-  - Révocation : même page → Revoke
+### Pennylane (compta) — Token actif depuis 2026-05-06
+- **Token** : `7EtoPBIfeSi8MdWFCP-DhgOSC4MFub40LLJosC3ysUk`
+- **Company ID** : `23200904`
+- **API base URL** : `https://app.pennylane.com/api/external/v2/`
+- **Auth header** : `Authorization: Bearer <token>`
+- **Période de validité** : illimitée (à rotate manuellement, voir TODO)
+- **Scopes accordés (15, lecture seule)** :
+  - Établissements bancaires, Exercices fiscaux
+  - **Export FEC** (Fichier des Écritures Comptables — déclencheur principal de l'intégration)
+  - Catégories, Clients, Comptes bancaires, Comptes comptables
+  - Devis, Écritures comptables, Factures client, Factures fournisseurs
+  - Fournisseurs, Journaux, Produits, Transactions
+- **Pas accordé (volontairement)** : balance générale, grand livre, modèles factures, abonnements, demandes achat, documents commerciaux, fichiers, mandats clients, enregistrement PA, API V1 Obsolète.
+- **Test** :
+  ```
+  curl -H "Authorization: Bearer 7EtoPBIfeSi8MdWFCP-DhgOSC4MFub40LLJosC3ysUk" \
+    "https://app.pennylane.com/api/external/v2/customers?per_page=1"
+  ```
+- **Usage prévu MCA** :
+  - Import FEC mensuel → mise à jour auto charges/paiements/clients dans MCA
+  - Synchro statuts paiement factures (Pennylane source de vérité)
+  - JAMAIS d'écriture vers Pennylane (token est read-only)
+- **Révocation** : https://app.pennylane.com/companies/23200904/settings/connectivity?subtab=developers → trouver le token "Claude MCA LOGISTICS" → Supprimer.
+- **⚠️ Sécurité** : le token est dans ce fichier qui est commité sur GitHub. Si le repo devient public ou que tu suspectes une fuite, **rotate immédiatement** :
+  1. Supprime le token actuel sur la page Pennylane (lien ci-dessus)
+  2. Crée un nouveau token avec les mêmes scopes
+  3. Mets à jour ce fichier avec le nouveau token
+  4. Mets à jour aussi GitHub Secrets (futur, quand on aura un workflow d'import FEC)
 
 ### Qonto (banque)
 - **Bloqué par plan API** (Solo Smart / Business uniquement, pas Solo Basic).
@@ -112,5 +134,8 @@ Dernière mise à jour : 2026-05-06
 
 - [ ] **Révoquer le token Sentry temporaire** une fois la session de debug actuelle finie.
 - [ ] Recréer un MCP Sentry propre quand Achraf est sur son PC perso (`claude mcp add --transport http sentry https://mcp.sentry.dev/mcp`).
-- [ ] Auditer les restrictions de la clé Google Maps (referrer + scopes).
-- [ ] Quand Qonto / Pennylane / Teleroute seront activés, créer leurs tokens **lecture seule** dédiés et les ajouter ici.
+- [ ] **Auditer les restrictions de la clé Google Maps** (referrer + scopes) — Achraf doit envoyer le screen Console GCP → Credentials.
+- [ ] **Configurer Qonto API** — vérifier si plan Qonto donne accès API (Solo Smart / Business).
+- [ ] Configurer Teleroute quand l'accès sera obtenu.
+- [ ] **Rotation Pennylane** : token actuel illimité, à rotate tous les 6 mois ou si suspicion fuite.
+- [ ] **Workflow GitHub Actions import FEC mensuel** : exploiter le token Pennylane pour importer FEC → MCA charges/paiements automatique. À coder dans une PR dédiée.
