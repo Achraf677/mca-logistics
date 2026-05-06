@@ -110,6 +110,62 @@ function copierSemainePlanningPC(lundiSourceISO, nbSemaines) {
   afficherToast('✅ ' + nbAffectes + ' planning' + (nbAffectes > 1 ? 's' : '') + ' copié' + (nbAffectes > 1 ? 's' : '') + ' sur ' + nbSemaines + ' semaine' + (nbSemaines > 1 ? 's' : ''));
 }
 
+// Sprint 6 — Copies jour PC. Demande la cible via prompt simple (1 lundi -> 7 dimanche).
+function ouvrirMenuCopiesJourPlanning(jourIdxSource) {
+  var JOURS_LOCAL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var nomSrc = JOURS_LOCAL[jourIdxSource];
+  var lundi = (typeof getLundiDeSemaine === 'function')
+    ? getLundiDeSemaine(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0)
+    : lundiSemaineFromOffset(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0);
+  var lundiISO = toLocalISODate(lundi);
+  var msg = 'Copier les saisies de ' + nomSrc + ' (semaine du ' + lundi.toLocaleDateString('fr-FR') + ') vers quel jour ?\n\n'
+    + JOURS_LOCAL.map(function(j, i) { return (i === jourIdxSource ? '·' : (i+1)) + ' ' + j + (i === jourIdxSource ? ' (source)' : ''); }).join('\n')
+    + '\n\nTape un chiffre 1-7 :';
+  var choix = window.prompt(msg, '');
+  if (!choix) return;
+  var cibleIdx = parseInt(choix, 10) - 1;
+  if (isNaN(cibleIdx) || cibleIdx < 0 || cibleIdx > 6 || cibleIdx === jourIdxSource) {
+    afficherToast('Choix invalide', 'error');
+    return;
+  }
+  copierJourPlanningPC(jourIdxSource, cibleIdx, lundiISO);
+}
+
+function copierJourPlanningPC(jourIdxSource, jourIdxCible, lundiISO) {
+  var JOURS_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  var jourCibleCle = JOURS_LOCAL[jourIdxCible];
+  var lundiDate = new Date(lundiISO + 'T00:00:00');
+  var dateCible = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + jourIdxCible);
+  var dateCibleISO = toLocalISODate(dateCible);
+  var plannings = charger('plannings');
+  var nbCopies = 0;
+  plannings.forEach(function(p) {
+    migrerPlanningV2(p);
+    var semaineData = getSemaineDataForDate(p, lundiDate);
+    var source = semaineData[jourIdxSource];
+    if (!source || !source.typeJour) return;
+    if (!p.semaines[lundiISO]) p.semaines[lundiISO] = [];
+    var cibleEntry = {
+      jour: jourCibleCle,
+      date: dateCibleISO,
+      typeJour: source.typeJour,
+      travaille: source.typeJour === 'travail',
+      heureDebut: source.heureDebut || '',
+      heureFin: source.heureFin || '',
+      zone: source.zone || '',
+      note: source.note || ''
+    };
+    var existIdx = p.semaines[lundiISO].findIndex(function(j) { return j && (j.jour === jourCibleCle || j.date === dateCibleISO); });
+    if (existIdx === -1) p.semaines[lundiISO].push(cibleEntry);
+    else p.semaines[lundiISO][existIdx] = Object.assign({}, p.semaines[lundiISO][existIdx], cibleEntry);
+    nbCopies++;
+  });
+  sauvegarder('plannings', plannings);
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Copie planning jour', nbCopies + ' salarié(s) ' + JOURS_LOCAL[jourIdxSource] + ' → ' + jourCibleCle);
+  afficherToast('✅ ' + nbCopies + ' planning' + (nbCopies > 1 ? 's' : '') + ' copié' + (nbCopies > 1 ? 's' : '') + ' ' + JOURS_LOCAL[jourIdxSource] + ' → ' + jourCibleCle);
+}
+
 function viderOverridesSemainePC(lundiISO) {
   var plannings = charger('plannings');
   var nbVides = 0;
@@ -799,7 +855,7 @@ function afficherPlanningSemaine() {
   if (elLabel) elLabel.textContent = labelSemaine;
   if (elDates) elDates.textContent = labelDates;
 
-  // Thead avec dates
+  // Thead avec dates + bouton ⋯ par colonne jour (sprint 6 : copies inter-jours)
   var thead = document.getElementById('thead-planning-semaine');
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
@@ -807,7 +863,10 @@ function afficherPlanningSemaine() {
       const _m = String(d.getMonth()+1).padStart(2,'0');
       const _d = String(d.getDate()).padStart(2,'0');
       var isAuj = (_y+'-'+_m+'-'+_d) === aujourdhui();
-      return '<th style="text-align:center;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
+      return '<th style="text-align:center;position:relative;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">'
+        + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0')
+        + ' <button type="button" onclick="ouvrirMenuCopiesJourPlanning(' + i + ')" title="Copier ce jour" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;font-size:.85rem">⋯</button>'
+        + '</th>';
     }).join('') + '</tr>';
   }
 
