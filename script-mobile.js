@@ -3827,7 +3827,7 @@
         <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
           <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">📅 Jour</button>
           <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">🗓️ Sem.</button>
-          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 auto;padding:0 12px;height:40px;font-size:.78rem;white-space:nowrap" title="Période d'absence longue">🏖️ Absence</button>
+          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 44px;padding:0;height:40px;font-size:1.1rem;line-height:1" title="Ajouter une période d'absence longue">🏖️</button>
         </div>
       `;
 
