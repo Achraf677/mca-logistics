@@ -1,14 +1,14 @@
 (function () {
-  var LOGIN_TARGET_CACHE_KEY = 'delivpro_login_target_cache_v1';
+  var LOGIN_TARGET_CACHE_KEY = 'delivpro_login_target_cache_v2';
   var LOGIN_TARGET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
   function getKnownAdminName(identifierOrEmail) {
     var value = String(identifierOrEmail || '').trim().toLowerCase();
     if (!value) return '';
-    if (value === 'achraf.chikri' || value === 'admin.achraf@mca-logistics.fr' || value === 'admin.achraf') {
+    if (value === 'achraf.chikri' || value === 'achraf-chikri@mcalogistics.fr' || value === 'admin.achraf@mca-logistics.fr' || value === 'admin.achraf') {
       return 'Achraf Chikri';
     }
-    if (value === 'mohammed.chikri' || value === 'admin.mohammed@mca-logistics.fr' || value === 'admin.mohammed') {
+    if (value === 'mohammed.chikri' || value === 'mohammed-chikri@mcalogistics.fr' || value === 'admin.mohammed@mca-logistics.fr' || value === 'admin.mohammed') {
       return 'Mohammed Chikri';
     }
     return '';

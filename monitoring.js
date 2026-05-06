@@ -32,7 +32,7 @@
   var SENTRY_ENV = (typeof location !== 'undefined' && location.hostname === 'localhost')
     ? 'development'
     : 'production';
-  var SENTRY_RELEASE = '20260429-15'; // bump avec le cache version
+  var SENTRY_RELEASE = 'v3.69-20260505'; // bump avec le cache version
 
   // ============================================================
   // Mode debug (logs categorises togglables sans deploy)

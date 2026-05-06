@@ -76,6 +76,13 @@
     if (key === 'paiements') return false;
     if (key === 'incidents') return false;
     if (key === 'fournisseurs') return false;
+    // Phase 5 : entites legacy sync via legacy-entity-adapters.js,
+    // plannings-supabase-adapter.js, messages-supabase-adapter.js
+    if (key === 'inspections') return false;
+    if (key === 'alertes_admin') return false;
+    if (key === 'absences_periodes') return false;
+    if (key === 'plannings') return false;
+    if (key.indexOf('messages_') === 0) return false;
     if (key.indexOf('login_attempts_') === 0) return false;
     return true;
   }
@@ -306,6 +313,32 @@
     }
   }
 
+  // app_state est restreint aux admins (migration 024). Les chauffeurs
+  // (salarie.html) chargent ce script mais ne doivent pas tenter de sync —
+  // sinon la console se remplit d'erreurs RLS et le polling echoue.
+  // On cache le resultat (1 verif par session, le role ne change pas).
+  var isAdminCached = null;
+  async function isAdminUser() {
+    if (isAdminCached !== null) return isAdminCached;
+    var client = getClient();
+    if (!client) return false;
+    try {
+      var userId = await getCurrentUserId();
+      if (!userId) { isAdminCached = false; return false; }
+      var result = await client
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
+      if (result.error) { isAdminCached = false; return false; }
+      isAdminCached = !!(result.data && result.data.role === 'admin');
+      return isAdminCached;
+    } catch (_) {
+      isAdminCached = false;
+      return false;
+    }
+  }
+
   async function getCurrentUserId() {
     if (currentUserId) return currentUserId;
     var client = getClient();
@@ -322,6 +355,8 @@
   async function fetchRemoteState() {
     var client = getClient();
     if (!client) return null;
+    // Skip silencieux pour les non-admins (RLS app_state restreinte aux admins)
+    if (!(await isAdminUser())) return null;
     var result = await client
       .from('app_state')
       .select('scope, payload, updated_at, updated_by')
@@ -360,6 +395,8 @@
   async function pushChanges(changes, removedKeys) {
     var client = getClient();
     if (!client) return { ok: false, skipped: true };
+    // Skip silencieux pour les non-admins (RPC app_state_apply restreinte aux admins)
+    if (!(await isAdminUser())) return { ok: true, skipped: true };
 
     var payload = changes && typeof changes === 'object' ? changes : {};
     var removals = Array.isArray(removedKeys) ? removedKeys : [];
@@ -438,6 +475,16 @@
   function subscribeRealtime() {
     var client = getClient();
     if (!client || realtimeChannel) return;
+    // Skip silencieux pour les non-admins (RLS app_state restreinte aux admins,
+    // un realtime non admin recevrait 0 update et spammerait des warnings).
+    isAdminUser().then(function (isAdmin) {
+      if (!isAdmin) return;
+      doSubscribeRealtime(client);
+    }).catch(function () {});
+  }
+
+  function doSubscribeRealtime(client) {
+    if (realtimeChannel) return;
 
     realtimeChannel = client
       .channel('delivpro-app-state-sync')

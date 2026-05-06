@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#1a1d22" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>MCA Logistics</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
+  <link rel="stylesheet" href="/style-mobile.css?v=79" />
+</head>
+<body class="m-app m-theme-dark">
+  <!-- Header compact : back btn + titre. Pas de kebab (vire — aucune route ne s'en sert). -->
+  <header class="m-header">
+    <button class="m-header-action m-header-back" id="m-back-btn" aria-label="Retour" hidden>‹</button>
+    <h1 class="m-header-title" id="m-title">Dashboard</h1>
+  </header>
+
+  <!-- Page content (un seul container, on swap dedans) -->
+  <main class="m-content" id="m-content">
+    <div class="m-loading">
+      <div class="m-spinner"></div>
+      <p>Chargement…</p>
+    </div>
+  </main>
+
+  <!-- Bottom tab nav (5 onglets : 4 raccourcis + Plus) -->
+  <nav class="m-bottom-nav" aria-label="Navigation principale">
+    <button class="m-tab" data-page="dashboard">
+      <span class="m-tab-icon" aria-hidden="true">📊</span>
+      <span class="m-tab-label">Accueil</span>
+    </button>
+    <button class="m-tab" data-page="livraisons">
+      <span class="m-tab-icon" aria-hidden="true">📦</span>
+      <span class="m-tab-label">Livraisons</span>
+    </button>
+    <button class="m-tab" data-page="planning">
+      <span class="m-tab-icon" aria-hidden="true">📅</span>
+      <span class="m-tab-label">Planning</span>
+    </button>
+    <button class="m-tab" data-page="alertes">
+      <span class="m-tab-icon" aria-hidden="true">🔔</span>
+      <span class="m-tab-label">Alertes</span>
+      <span class="m-tab-badge" id="m-tab-badge-alertes" hidden></span>
+    </button>
+    <button class="m-tab" data-page="more">
+      <span class="m-tab-icon" aria-hidden="true">⋯</span>
+      <span class="m-tab-label">Plus</span>
+    </button>
+  </nav>
+
+  <!-- Drawer "Plus" (slide depuis la droite) -->
+  <div class="m-drawer-overlay" id="m-drawer-overlay" hidden></div>
+  <aside class="m-drawer" id="m-drawer" aria-hidden="true">
+    <header class="m-drawer-header">
+      <h2 class="m-drawer-title">Tous les modules</h2>
+      <button class="m-header-action" id="m-drawer-close" aria-label="Fermer">✕</button>
+    </header>
+    <nav class="m-drawer-nav">
+      <button class="m-drawer-link" data-page="recherche" style="font-weight:600"><span>🔍</span><span>Recherche globale</span></button>
+
+      <div class="m-drawer-section-label">Finances (priorité)</div>
+      <button class="m-drawer-link" data-page="rentabilite"><span>💰</span><span>Rentabilité</span></button>
+      <button class="m-drawer-link" data-page="encaissement"><span>💵</span><span>Encaissement</span></button>
+      <button class="m-drawer-link" data-page="charges"><span>💸</span><span>Charges</span></button>
+      <button class="m-drawer-link" data-page="carburant"><span>⛽</span><span>Carburant</span></button>
+
+      <div class="m-drawer-section-label">Tiers</div>
+      <button class="m-drawer-link" data-page="clients"><span>🧑‍💼</span><span>Clients</span></button>
+      <button class="m-drawer-link" data-page="fournisseurs"><span>🏭</span><span>Fournisseurs</span></button>
+
+      <div class="m-drawer-section-label">Flotte</div>
+      <button class="m-drawer-link" data-page="vehicules"><span>🚐</span><span>Véhicules</span></button>
+      <button class="m-drawer-link" data-page="entretiens"><span>🔧</span><span>Entretiens</span></button>
+      <button class="m-drawer-link" data-page="inspections"><span>🚗</span><span>Inspections</span></button>
+
+      <div class="m-drawer-section-label">Équipe</div>
+      <button class="m-drawer-link" data-page="salaries"><span>👥</span><span>Salariés</span></button>
+      <button class="m-drawer-link" data-page="heures"><span>⏱️</span><span>Heures &amp; Km</span></button>
+      <button class="m-drawer-link" data-page="incidents"><span>🚨</span><span>Incidents</span></button>
+
+      <div class="m-drawer-section-label">Finances détaillées</div>
+      <button class="m-drawer-link" data-page="tva"><span>🧾</span><span>TVA</span></button>
+      <button class="m-drawer-link" data-page="statistiques"><span>📈</span><span>Statistiques</span></button>
+
+      <div class="m-drawer-section-label">Autres</div>
+      <button class="m-drawer-link" data-page="calendrier"><span>🗓️</span><span>Calendrier</span></button>
+      <button class="m-drawer-link" data-page="parametres"><span>⚙️</span><span>Paramètres</span></button>
+
+      <hr class="m-drawer-sep" />
+      <button class="m-drawer-link" id="m-toggle-theme"><span>🌙</span><span>Mode clair / sombre</span></button>
+      <button class="m-drawer-link m-drawer-link-danger" id="m-logout"><span>⏏</span><span>Déconnexion</span></button>
+    </nav>
+  </aside>
+
+  <!-- Bottom sheet (saisie rapide depuis FAB) -->
+  <div class="m-sheet-overlay" id="m-sheet-overlay" hidden></div>
+  <aside class="m-sheet" id="m-sheet" aria-hidden="true">
+    <div class="m-sheet-handle" aria-hidden="true"></div>
+    <header class="m-sheet-header">
+      <h2 class="m-sheet-title" id="m-sheet-title">—</h2>
+      <button class="m-header-action" id="m-sheet-close" aria-label="Fermer">✕</button>
+    </header>
+    <div class="m-sheet-body" id="m-sheet-body"></div>
+    <footer class="m-sheet-footer">
+      <button class="m-btn" id="m-sheet-cancel">Annuler</button>
+      <button class="m-btn m-btn-primary" id="m-sheet-submit">Enregistrer</button>
+    </footer>
+  </aside>
+
+  <!-- Toast (notifications éphémères) -->
+  <div class="m-toast" id="m-toast" hidden></div>
+
+  <!-- Couche données (partagée avec desktop : memes Supabase tables, meme localStorage) -->
+  <!-- Supabase SDK : permet le sync temps reel des saisies mobile vers la base -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/supabase-config.js?v=79"></script>
+  <script src="/supabase-client.js?v=79"></script>
+  <!-- supabase-storage-sync hook localStorage.setItem au niveau du prototype.
+       Toute ecriture (M.sauvegarder dans script-mobile) declenche un push
+       vers Supabase. Doit etre charge AVANT script-mobile. -->
+  <script src="/supabase-storage-sync.js?v=79"></script>
+  <script src="/repo.js?v=79"></script>
+  <!-- security-utils : hashPassword PBKDF2 partage avec desktop -->
+  <script src="/security-utils.js?v=79"></script>
+  <!-- storage-uploader : helpers Supabase Storage (upload/download docs salaries) -->
+  <script src="/storage-uploader.js?v=79"></script>
+  <!-- ocr-helper : Tesseract.js wrapper (lazy, gratuit, offline) pour scan carte grise/facture/RIB/permis -->
+  <script src="/ocr-helper.js?v=79"></script>
+  <!-- Entity adapters Supabase : sync automatique localStorage <-> tables natives
+       Supabase pour les entites metier (livraisons, charges, vehicules, etc.).
+       Sans ces adapters, les saisies mobile resterait en localStorage local. -->
+  <script src="/entity-supabase-adapter.js?v=79"></script>
+  <script src="/all-entity-adapters.js?v=79"></script>
+  <script src="/legacy-entity-adapters.js?v=79"></script>
+  <script src="/plannings-supabase-adapter.js?v=79"></script>
+  <script src="/messages-supabase-adapter.js?v=79"></script>
+  <script src="/clients-supabase-adapter.js?v=79"></script>
+  <script src="/salaries-supabase-adapter.js?v=79"></script>
+  <script src="/vehicules-supabase-adapter.js?v=79"></script>
+  <!-- App mobile -->
+  <script src="/script-mobile.js?v=79"></script>
+</body>
+</html>

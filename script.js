@@ -1673,16 +1673,16 @@ function rafraichirDashboard() {
 
     let etat, couleur, detail, etatClass;
     if (beneficeVal > 0 && alertesVal === 0 && impayes === 0) {
-      etat = '🟢 Excellente santé'; couleur = 'rgba(39,174,96,0.35)'; etatClass = 'etat-bon';
+      etat = 'Excellente santé'; couleur = 'rgba(39,174,96,0.35)'; etatClass = 'etat-bon';
       detail = `Marge positive · Aucune alerte · Aucun impayé`;
     } else if (beneficeVal > 0 && (alertesVal > 0 || impayes > 0)) {
-      etat = '🟢 Santé correcte'; couleur = 'rgba(46,204,113,0.15)'; etatClass = 'etat-bon';
+      etat = 'Santé correcte'; couleur = 'rgba(46,204,113,0.15)'; etatClass = 'etat-bon';
       detail = `Bénéfice positif${alertesVal > 0 ? ` · ${alertesVal} alerte(s) à traiter` : ''}${impayes > 0 ? ` · ${euros(impayes)} impayés` : ''}`;
     } else if (beneficeVal <= 0 && caMoisVal > 0) {
-      etat = '🔴 Attention requise'; couleur = 'rgba(231,76,60,0.2)'; etatClass = 'etat-mauvais';
+      etat = 'Attention requise'; couleur = 'rgba(231,76,60,0.2)'; etatClass = 'etat-mauvais';
       detail = `Bénéfice négatif ce mois · Vérifiez vos charges`;
     } else {
-      etat = '⚪ En attente de données'; couleur = 'rgba(255,255,255,0.05)'; etatClass = 'etat-vide';
+      etat = 'En attente de données'; couleur = 'rgba(255,255,255,0.05)'; etatClass = 'etat-vide';
       detail = `Saisissez vos premières livraisons pour activer l'analyse`;
     }
 
@@ -1948,7 +1948,7 @@ function genererGrilleJours() {
           </label>
           <select class="planning-type-select" id="plan-type-${jour}" onchange="toggleTypeJour('${jour}')" style="width:110px">
             <option value="travail" ${typeJour==='travail'?'selected':''}>🟢 Travail</option>
-            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>⚪ Repos</option>
+            <option value="repos"   ${typeJour==='repos'  ?'selected':''}>Repos</option>
             <option value="conge"   ${typeJour==='conge'  ?'selected':''}>🔵 Congé</option>
             <option value="absence" ${typeJour==='absence'?'selected':''}>🔴 Absence</option>
             <option value="maladie" ${typeJour==='maladie'?'selected':''}>🟣 Maladie</option>
@@ -2581,13 +2581,46 @@ function ouvrirNoteInterne(salId, salNom) {
 
 // Helper : affiche un document (PDF ou image) dans une nouvelle fenetre
 function afficherDocumentDansFenetre(url, isPdf, titre) {
-  const w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { afficherToast('Popup bloquée', 'error'); return; }
-  const contenu = isPdf
-    ? '<embed src="' + url + '" type="application/pdf" style="width:100%;height:100vh;border:none" />'
-    : '<img src="' + url + '" style="max-width:100%;height:auto;display:block;margin:0 auto" />';
-  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>body{margin:0;font-family:sans-serif;background:#1a1d27}h1{color:#f5a623;padding:14px 20px;margin:0;font-size:1.05rem}</style></head><body><h1>📄 ' + titre + '</h1>' + contenu + '</body></html>');
-  w.document.close();
+  // Modal inline plein ecran (remplace l'ancien window.open qui etait bloque par le popup-blocker).
+  // PDF : on tente <iframe>, fallback carte avec boutons Ouvrir/Telecharger si Safari.
+  // Image : <img> centree dans le modal.
+  document.querySelector('.doc-viewer-modal')?.remove();
+  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const fname = String(titre || 'document').replace(/[^a-zA-Z0-9._-]/g, '_') + (isPdf ? '.pdf' : '');
+  const overlay = document.createElement('div');
+  overlay.className = 'doc-viewer-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:10000;display:flex;flex-direction:column;font-family:"Segoe UI",Arial,sans-serif';
+
+  let bodyHtml;
+  if (!isPdf) {
+    bodyHtml = '<img src="' + url + '" alt="" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:6px" />';
+  } else if (isSafari) {
+    bodyHtml = '<div style="background:#1a1d27;border-radius:14px;padding:32px 26px;max-width:380px;width:100%;text-align:center;color:#fff">'
+      + '<div style="font-size:3.5rem;line-height:1;margin-bottom:14px">📄</div>'
+      + '<div style="font-weight:600;font-size:1.05rem;margin-bottom:22px;word-break:break-word">' + escHtml(titre || 'Document PDF') + '</div>'
+      + '<a href="' + url + '" target="_blank" rel="noopener" style="display:block;background:#f5a623;color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">🔍 Ouvrir le PDF</a>'
+      + '<a href="' + url + '" download="' + escHtml(fname) + '" style="display:block;background:#374151;color:#fff;text-decoration:none;font-weight:600;padding:14px;border-radius:12px;font-size:.95rem">⬇ Télécharger</a>'
+      + '</div>';
+  } else {
+    bodyHtml = '<iframe src="' + url + '" style="width:100%;height:100%;border:0;background:#fff"></iframe>';
+  }
+  const isCard = isPdf && isSafari;
+  overlay.innerHTML = ''
+    + '<header style="flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:12px 16px;background:rgba(0,0,0,.4);color:#fff">'
+    +   '<div style="flex:1 1 auto;font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">📄 ' + escHtml(titre || 'Document') + '</div>'
+    +   (!isCard ? '<a href="' + url + '" download="' + escHtml(fname) + '" title="Télécharger" style="flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;text-decoration:none;font-size:1rem">⬇</a>' : '')
+    +   '<button type="button" class="doc-viewer-close" aria-label="Fermer" style="flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:1.05rem;cursor:pointer">✕</button>'
+    + '</header>'
+    + '<div style="flex:1 1 auto;overflow:auto;display:flex;align-items:' + (isCard ? 'center' : (isPdf ? 'stretch' : 'center')) + ';justify-content:center;padding:' + (isPdf && !isCard ? '0' : '20px') + '">'
+    +   bodyHtml
+    + '</div>';
+  const close = function () { overlay.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', onKey); };
+  const onKey = function (e) { if (e.key === 'Escape') close(); };
+  overlay.querySelector('.doc-viewer-close').addEventListener('click', close);
+  overlay.addEventListener('click', function (e) { if (e.target === overlay) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
 }
 
 /* ===== FLOTTE — HISTORIQUE CONDUCTEURS ===== */
@@ -4044,7 +4077,7 @@ afficherPlanningSemaine = function() {
           var lb = jour.typeJour === 'conge' ? 'Congé' : jour.typeJour === 'maladie' ? 'Maladie' : 'Absence';
           return renderCell('is-' + jour.typeJour, (typeIcons[jour.typeJour] || '⚪') + ' ' + lb, '', '');
         }
-        return renderCell('is-rest', '⚪ Repos', '', '');
+        return renderCell('is-rest', 'Repos', '', '');
       }
 
       return renderCell('is-work', '🟢 Travail', (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : ''), jour.zone || '');
@@ -4162,6 +4195,8 @@ window.__adminFinalLock = function() {
         <td class="livraison-number-cell">${datePaiement}</td>
         <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
           { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
+          { icon:'📄', label:'Bon de livraison', action:"genererBonLivraison('" + l.id + "')" },
+          { icon:'🧾', label:'Facture', action:"genererFactureLivraison('" + l.id + "')" },
           { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
           { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
           { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
@@ -10924,6 +10959,7 @@ genererRentabilitePDF = function() {
     if (content) content.innerHTML = renderFicheVehicule(veh);
     document.getElementById('s20-drawer').classList.add('open');
     document.getElementById('s20-drawer-overlay').classList.add('open');
+    if (window.resolveStorageImages && content) window.resolveStorageImages(content);
   };
 
   function renderFicheVehicule(veh) {
@@ -11103,13 +11139,29 @@ genererRentabilitePDF = function() {
     const sorted = [...inspections].sort((a, b) => new Date(b.creeLe || b.date || 0) - new Date(a.creeLe || a.date || 0)).slice(0, 8);
     return sorted.map(i => {
       const photos = (typeof window.getInspectionPhotoList === 'function') ? window.getInspectionPhotoList(i) : (i.photos || []);
-      const thumbSrc = (p) => (typeof window.getInspectionPhotoThumb === 'function') ? window.getInspectionPhotoThumb(p) : (typeof p === 'string' ? p : (p.thumbUrl || p.url || ''));
+      // Bucket inspections-photos prive : utiliser data-photo-path puis resolveStorageImages.
+      const thumbDescriptor = (p) => {
+        if (typeof window.getInspectionPhotoThumbDescriptorAdmin === 'function') {
+          return window.getInspectionPhotoThumbDescriptorAdmin(p);
+        }
+        // Fallback minimal
+        if (!p) return { src: '', path: '' };
+        if (typeof p === 'string') return /^data:image\//.test(p) ? { src: p, path: '' } : { src: '', path: '' };
+        if (p.thumbPath) return { src: '', path: p.thumbPath };
+        if (p.path) return { src: '', path: p.path };
+        return { src: '', path: '' };
+      };
       return `<div class="s21-link-card" style="flex-direction:column;align-items:stretch">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
           <strong>${esc(i.salNom || '—')}</strong>
           <span style="font-size:.78rem;color:var(--text-muted)">${esc(i.date || '')}${i.km ? ' · ' + parseInt(i.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
         </div>
-        ${photos.length ? `<div class="s21-photo-grid">${photos.slice(0, 6).map((p, idx) => `<img src="${esc(thumbSrc(p))}" onclick="window.voirPhotoAdmin && window.voirPhotoAdmin('${esc(i.id)}',${idx})" />`).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.82rem">Aucune photo</div>'}
+        ${photos.length ? `<div class="s21-photo-grid">${photos.slice(0, 6).map((p, idx) => {
+          const d = thumbDescriptor(p);
+          const srcAttr = d.src ? `src="${esc(d.src)}"` : 'src="" alt="📷 chargement..."';
+          const dataAttrs = d.path ? `data-photo-path="${esc(d.path)}" data-photo-bucket="inspections-photos"` : '';
+          return `<img ${srcAttr} ${dataAttrs} style="background:rgba(0,0,0,0.05)" onclick="window.voirPhotoAdmin && window.voirPhotoAdmin('${esc(i.id)}',${idx})" />`;
+        }).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.82rem">Aucune photo</div>'}
       </div>`;
     }).join('');
   }

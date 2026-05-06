@@ -63,6 +63,10 @@ function parseTauxTVAValue(value, fallback) {
 // L778 (script.js d'origine)
 function getChargeMontantTVA(charge) {
   if ((charge?.categorie || '') === 'tva') return 0;
+  // Priorité : montant TVA saisi manuellement (cas TVA mixte ex. 150€ TTC dont 6€ de TVA réelle).
+  // Fallback : recalcul HT × taux pour les charges sans champ tva.
+  var tvaSaisie = parseFloat(charge?.tva);
+  if (Number.isFinite(tvaSaisie) && tvaSaisie > 0) return tvaSaisie;
   return calculerMontantTVAFromHT(getChargeMontantHT(charge), parseTauxTVAValue(charge?.tauxTVA, 0));
 }
 

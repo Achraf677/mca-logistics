@@ -30,6 +30,19 @@ function getDeductibleVatAmount({ montantHT, tauxTVA, categorie, tauxDeductible 
   return round2(brute);
 }
 
+// Réplique la logique de getChargeMontantTVA (script-tva.js) fixée en v3.69 :
+// si la charge a un montant TVA saisi manuellement (cas TVA mixte ex 150€ TTC
+// dont 6€ de TVA réelle), on le préfère au recalcul HT × taux.
+function getChargeVatAmount(charge) {
+  if (!charge || charge.categorie === 'tva') return 0;
+  const tvaSaisie = parseFloat(charge.tva);
+  if (Number.isFinite(tvaSaisie) && tvaSaisie > 0) return tvaSaisie;
+  const ht = parseFloat(charge.montantHT);
+  const taux = parseFloat(charge.tauxTVA) || 0;
+  if (!Number.isFinite(ht) || taux <= 0) return 0;
+  return round2(ht * taux / 100);
+}
+
 function getServiceVatExigibilityDate({ modeExigibilite, paymentDate, invoiceDate }) {
   return modeExigibilite === 'debits' ? invoiceDate : paymentDate;
 }
@@ -91,4 +104,27 @@ test('VAT payment reduces remaining VAT due without changing collected or deduct
 test('negative VAT balance becomes VAT credit', () => {
   const balance = getVatBalance({ collectee: 100, deductible: 260, alreadyPaid: 0 });
   assert.deepEqual(balance, { brute: -160, remaining: 0, credit: 160 });
+});
+
+// Régression v3.69 : facture TVA mixte (150€ TTC dont seulement 6€ de TVA
+// réelle car partie du montant n'est pas soumise à TVA). Le montant saisi
+// manuellement doit primer sur le recalcul HT × taux.
+test('mixed-VAT charge : manually entered VAT amount takes precedence', () => {
+  const charge = { montantHT: 144, montant: 150, tauxTVA: 20, tva: 6 };
+  assert.equal(getChargeVatAmount(charge), 6);
+});
+
+test('charge without manual VAT : falls back to HT × rate', () => {
+  const charge = { montantHT: 100, tauxTVA: 20 };
+  assert.equal(getChargeVatAmount(charge), 20);
+});
+
+test('charge with VAT field at 0 or undefined : falls back to recalc (avoid confusing 0 with "saved")', () => {
+  assert.equal(getChargeVatAmount({ montantHT: 100, tauxTVA: 20, tva: 0 }), 20);
+  assert.equal(getChargeVatAmount({ montantHT: 100, tauxTVA: 20, tva: '' }), 20);
+  assert.equal(getChargeVatAmount({ montantHT: 100, tauxTVA: 20 }), 20);
+});
+
+test('VAT settlement charge (categorie=tva) : always returns 0', () => {
+  assert.equal(getChargeVatAmount({ categorie: 'tva', montantHT: 500, tauxTVA: 20, tva: 100 }), 0);
 });

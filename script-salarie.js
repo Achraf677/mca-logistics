@@ -449,16 +449,25 @@ function envoyerPhotoSal(input) {
       let photoBase64 = null;
 
       // Upload vers Supabase Storage si dispo (WebP si supporte, sinon JPEG)
+      // Offline -> queue via DelivProOfflineQueue (retry au retour reseau)
       if (window.DelivProStorage) {
         const out = await window.DelivProStorage.canvasToOptimalBlob(c, 0.78);
         if (out && out.blob) {
           const path = `${msgId}/${Date.now()}_photo.${out.ext}`;
-          const up = await window.DelivProStorage.uploadBlob('messages-photos', path, out.blob, { contentType: out.mime });
-          if (up.ok) photoPath = path;
+          if (window.DelivProOfflineQueue) {
+            const r = await window.DelivProOfflineQueue.uploadOrEnqueue({
+              bucket: 'messages-photos', path, blob: out.blob, contentType: out.mime,
+              meta: { kind: 'message-photo', salId: salarieCourant.id, msgId }
+            });
+            if (r.ok) photoPath = path;
+          } else {
+            const up = await window.DelivProStorage.uploadBlob('messages-photos', path, out.blob, { contentType: out.mime });
+            if (up.ok) photoPath = path;
+          }
         }
       }
       if (!photoPath) {
-        // Fallback : base64 local (compat offline)
+        // Fallback : base64 local (compat offline sans queue)
         photoBase64 = c.toDataURL('image/jpeg',0.72);
       }
 
@@ -1203,21 +1212,30 @@ async function enregistrerPlein() {
   const libelle = libelleCarburant();
   const pleinId = Date.now().toString(36) + Math.random().toString(36).slice(2,7);
 
-  // Upload photo vers Supabase Storage si dispo, sinon fallback base64 local
+  // Upload photo vers Supabase Storage si dispo, sinon offline-queue, sinon base64 local
   let photoRecuPath = null;
   let photoRecu = null;
   if (photoBlob) {
     if (window.DelivProStorage) {
       const path = `${pleinId}/${Date.now()}_recu.${photoExt}`;
-      const up = await window.DelivProStorage.uploadBlob('carburant-recus', path, photoBlob, { contentType: photoMime });
-      if (up.ok) {
-        photoRecuPath = path;
+      if (window.DelivProOfflineQueue) {
+        const r = await window.DelivProOfflineQueue.uploadOrEnqueue({
+          bucket: 'carburant-recus', path, blob: photoBlob, contentType: photoMime,
+          meta: { kind: 'carburant-recu', salId: salarieCourant.id, pleinId }
+        });
+        if (r.ok) photoRecuPath = path;
+        else console.warn('[carburant] upload+queue echoue, fallback base64:', r.error?.message);
       } else {
-        console.warn('[carburant] upload photo Storage echoue, fallback base64:', up.error?.message);
+        const up = await window.DelivProStorage.uploadBlob('carburant-recus', path, photoBlob, { contentType: photoMime });
+        if (up.ok) {
+          photoRecuPath = path;
+        } else {
+          console.warn('[carburant] upload photo Storage echoue, fallback base64:', up.error?.message);
+        }
       }
     }
     if (!photoRecuPath) {
-      // Fallback : base64 local (compat offline)
+      // Fallback : base64 local (compat offline sans queue)
       photoRecu = await new Promise(res => {
         const r = new FileReader();
         r.onload = e => res(e.target.result);
@@ -1263,7 +1281,11 @@ async function enregistrerPlein() {
   chargerHistoriqueCarburant();
   afficherAccueil();
   if (window.__syncRefresh) window.__syncRefresh();
-  toast('✅ Plein enregistré' + (photoRecu ? ' avec reçu' : ''));
+  let toastMsg = '✅ Plein enregistré';
+  if (photoRecuPath && !navigator.onLine) toastMsg += ' (reçu envoyé au retour réseau)';
+  else if (photoRecu) toastMsg += ' (reçu sauvegardé localement)';
+  else if (photoRecuPath) toastMsg += ' avec reçu';
+  toast(toastMsg);
 }
 
 function supprimerPleinSal(id) {
@@ -1533,16 +1555,57 @@ async function preparerPhotoInspection(file) {
   };
 }
 
+// Retourne { src, path } pour l'affichage d'une miniature inspection.
+// - photo string base64 (legacy local) -> { src: <data:...>, path: '' }
+// - photo string URL publique (legacy) -> extrait le path -> { src: '', path }
+// - photo objet { path, thumbPath } (nouveau format prive) -> { src: '', path: thumbPath }
+// - photo objet { url, thumbUrl } (legacy) -> extrait le path
+// Quand path est non vide, l'URL signee est resolue async via resolveStorageImages.
+function getInspectionPhotoThumbDescriptor(photo) {
+  if (!photo) return { src: '', path: '' };
+  if (typeof photo === 'string') {
+    if (/^data:image\//.test(photo)) return { src: photo, path: '' };
+    // URL publique legacy -> extraire le path
+    const helper = getInspectionStorageHelper();
+    const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(photo) : '';
+    return { src: '', path: path };
+  }
+  if (photo.thumbPath) return { src: '', path: photo.thumbPath };
+  if (photo.path) return { src: '', path: photo.path };
+  // Legacy : objet avec url publique
+  const helper = getInspectionStorageHelper();
+  const fallback = photo.thumbUrl || photo.url || '';
+  if (/^data:image\//.test(fallback)) return { src: fallback, path: '' };
+  const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(fallback) : '';
+  return { src: '', path: path };
+}
+
+function getInspectionPhotoFullDescriptor(photo) {
+  if (!photo) return { src: '', path: '' };
+  if (typeof photo === 'string') {
+    if (/^data:image\//.test(photo)) return { src: photo, path: '' };
+    const helper = getInspectionStorageHelper();
+    const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(photo) : '';
+    return { src: '', path: path };
+  }
+  if (photo.path) return { src: '', path: photo.path };
+  if (photo.thumbPath) return { src: '', path: photo.thumbPath };
+  const helper = getInspectionStorageHelper();
+  const fallback = photo.url || photo.thumbUrl || '';
+  if (/^data:image\//.test(fallback)) return { src: fallback, path: '' };
+  const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(fallback) : '';
+  return { src: '', path: path };
+}
+
+// Conserves pour compat avec les appels existants (script.js renderInspections fallback).
+// Retournent une chaine vide si la photo est privee (path uniquement) -
+// le caller doit utiliser data-photo-path + resolveStorageImages.
 function getInspectionPhotoThumbSrc(photo) {
-  if (!photo) return '';
-  if (typeof photo === 'string') return photo;
-  return photo.thumbUrl || photo.url || '';
+  return getInspectionPhotoThumbDescriptor(photo).src;
 }
 
 function getInspectionPhotoFullSrc(photo) {
-  if (!photo) return '';
-  if (typeof photo === 'string') return photo;
-  return photo.url || photo.thumbUrl || '';
+  return getInspectionPhotoFullDescriptor(photo).src;
 }
 
 async function uploaderPhotosInspection(date) {
@@ -1558,6 +1621,38 @@ async function uploaderPhotosInspection(date) {
 
   if (!salarieStorageId) throw new Error('missing_remote_salarie_id');
 
+  // Helper : tente upload immediat, sinon enqueue (offline). En offline,
+  // on retourne le path "vise" + flag queued -> la photo sera uploadee au
+  // retour reseau, mais l'inspection peut deja etre creee localement.
+  async function uploadOuEnqueueInspection(targetPath, blob, kind) {
+    if (window.DelivProOfflineQueue && (!navigator.onLine || !storageHelper)) {
+      try {
+        await window.DelivProOfflineQueue.enqueueUpload({
+          bucket: 'inspections-photos', path: targetPath, blob: blob,
+          contentType: 'image/jpeg',
+          meta: { kind: 'inspection-photo', salId: salarieCourant.id, photoKind: kind }
+        });
+        return { ok: true, path: targetPath, queued: true };
+      } catch (qErr) {
+        // Si queue impossible (fallback localStorage sans blob), on retombe sur upload direct
+      }
+    }
+    const r = await storageHelper.uploadInspectionPhoto(targetPath, blob);
+    if (r && r.ok && r.path) return { ok: true, path: r.path, queued: false };
+    // Erreur reseau -> tenter queue (si dispo)
+    if (window.DelivProOfflineQueue) {
+      try {
+        await window.DelivProOfflineQueue.enqueueUpload({
+          bucket: 'inspections-photos', path: targetPath, blob: blob,
+          contentType: 'image/jpeg',
+          meta: { kind: 'inspection-photo', salId: salarieCourant.id, photoKind: kind }
+        });
+        return { ok: true, path: targetPath, queued: true };
+      } catch (_) {}
+    }
+    throw (r && r.error) || new Error('upload_failed');
+  }
+
   try {
     for (let i = 0; i < _inspPhotos.length; i++) {
       const photo = _inspPhotos[i];
@@ -1565,25 +1660,20 @@ async function uploaderPhotosInspection(date) {
       const fullPath = basePath + '_full.jpg';
       const thumbPath = basePath + '_thumb.jpg';
 
-      const fullResult = await storageHelper.uploadInspectionPhoto(fullPath, photo.blob);
-      if (!fullResult || !fullResult.ok || !fullResult.url) {
-        throw (fullResult && fullResult.error) || new Error('upload_failed');
-      }
-      uploadedPaths.push(fullResult.path || fullPath);
+      const fullResult = await uploadOuEnqueueInspection(fullPath, photo.blob, 'full');
+      uploadedPaths.push(fullResult.path);
 
-      const thumbResult = await storageHelper.uploadInspectionPhoto(thumbPath, photo.thumbBlob || photo.blob);
-      if (!thumbResult || !thumbResult.ok || !thumbResult.url) {
-        throw (thumbResult && thumbResult.error) || new Error('upload_failed');
-      }
-      uploadedPaths.push(thumbResult.path || thumbPath);
+      const thumbResult = await uploadOuEnqueueInspection(thumbPath, photo.thumbBlob || photo.blob, 'thumb');
+      uploadedPaths.push(thumbResult.path);
 
+      // Bucket inspections-photos prive depuis migration 027 :
+      // on ne stocke QUE les paths. Les URLs signees sont generees a l'affichage.
       uploadedPhotos.push({
-        url: fullResult.url,
-        thumbUrl: thumbResult.url,
-        path: fullResult.path || fullPath,
-        thumbPath: thumbResult.path || thumbPath,
+        path: fullResult.path,
+        thumbPath: thumbResult.path,
         taille: photo.taille || 0,
-        thumbTaille: photo.thumbTaille || 0
+        thumbTaille: photo.thumbTaille || 0,
+        queued: !!(fullResult.queued || thumbResult.queued)
       });
     }
   } catch (error) {
@@ -1860,12 +1950,10 @@ async function envoyerInspection() {
     localStorage.setItem('inspections', JSON.stringify(toutes));
   } catch(e) {
     const storageHelper = getInspectionStorageHelper();
-    const photoPaths = storageHelper && storageHelper.extractPathFromPublicUrl
-      ? photoAssets.flatMap(function(photo) {
-          const urls = typeof photo === 'string' ? [photo] : [photo.url, photo.thumbUrl];
-          return urls.map(url => storageHelper.extractPathFromPublicUrl(url)).filter(Boolean);
-        })
-      : [];
+    const photoPaths = photoAssets.flatMap(function(photo) {
+      if (!photo || typeof photo === 'string') return [];
+      return [photo.path, photo.thumbPath].filter(Boolean);
+    });
     if (photoPaths.length && storageHelper && storageHelper.removeInspectionPhotos) {
       try { await storageHelper.removeInspectionPhotos(photoPaths); } catch (_) {}
     }
@@ -1903,7 +1991,10 @@ async function envoyerInspection() {
   if (bouton) bouton.disabled = false;
 
   chargerHistoriqueInspections();
-  toast('✅ Inspection envoyée à l\'administrateur !');
+  const aQueued = (photoAssets || []).some(p => p && p.queued);
+  toast(aQueued
+    ? '✅ Inspection enregistree — photos envoyees au retour reseau'
+    : '✅ Inspection envoyée à l\'administrateur !');
 }
 
 function chargerHistoriqueInspections() {
@@ -1915,18 +2006,45 @@ function chargerHistoriqueInspections() {
   const cont = document.getElementById('historique-inspections');
   if (!toutes.length) { cont.innerHTML = '<div class="empty">Aucune inspection enregistrée</div>'; return; }
 
-  cont.innerHTML = toutes.map(insp => `
+  cont.innerHTML = toutes.map(insp => {
+    const photos = insp.photos || [];
+    return `
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <strong style="font-size:.9rem">🗓️ ${insp.date}</strong>
         <span style="font-size:.78rem;color:var(--muted)">${insp.vehImmat}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
       </div>
       ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">💬 ${insp.commentaire}</p>` : ''}
-      <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min((insp.photos || []).length,4), 1)},1fr);gap:6px">
-        ${(insp.photos || []).map(p => `<img src="${getInspectionPhotoThumbSrc(p)}" style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer" onclick="voirPhotoPleinEcran('${getInspectionPhotoFullSrc(p)}')" />`).join('')}
+      <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min(photos.length,4), 1)},1fr);gap:6px">
+        ${photos.map(p => {
+          const thumb = getInspectionPhotoThumbDescriptor(p);
+          const full = getInspectionPhotoFullDescriptor(p);
+          // Si on a un path -> resolveStorageImages remplira src plus tard via signed URL.
+          // Sinon (legacy base64 pur) -> src direct.
+          const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="📷 chargement..."';
+          const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
+          const onClick = full.src
+            ? `voirPhotoPleinEcran('${full.src}')`
+            : `ouvrirPhotoInspectionSal('${full.path}')`;
+          return `<img ${srcAttr} ${dataAttrs} style="width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:6px;cursor:pointer;background:rgba(0,0,0,0.05)" onclick="${onClick}" />`;
+        }).join('')}
       </div>
-      ${!(insp.photos || []).length && (insp.note_quota || insp.note_cleanup_storage) ? `<p style="font-size:.78rem;color:var(--orange);margin-top:8px">${insp.note_quota || insp.note_cleanup_storage}</p>` : ''}
-    </div>`).join('');
+      ${!photos.length && (insp.note_quota || insp.note_cleanup_storage) ? `<p style="font-size:.78rem;color:var(--orange);margin-top:8px">${insp.note_quota || insp.note_cleanup_storage}</p>` : ''}
+    </div>`;
+  }).join('');
+
+  // Resoudre les signed URLs pour les photos en bucket prive
+  if (window.resolveStorageImages) {
+    window.resolveStorageImages(cont);
+  }
+}
+
+// Ouvre une photo inspection salarie en plein ecran via signed URL fraiche
+async function ouvrirPhotoInspectionSal(path) {
+  if (!path) return;
+  if (!window.DelivProStorage) return;
+  const signed = await window.DelivProStorage.getSignedUrl('inspections-photos', path, 300);
+  if (signed.ok && signed.signedUrl) voirPhotoPleinEcran(signed.signedUrl);
 }
 
 function voirPhotoPleinEcran(src) {
@@ -2358,15 +2476,63 @@ function majBadgesBottomNav() {
 
 function initOfflineDetection() {
   const banner = document.getElementById('offline-banner');
-  if (!banner) return;
-  const maj = () => {
-    const appActive = document.getElementById('ecran-salarie')?.classList.contains('actif');
-    if (!appActive) { banner.classList.remove('visible'); return; }
-    banner.classList.toggle('visible', !navigator.onLine);
+  const queueBadge = document.getElementById('offline-queue-badge');
+  const dot = document.getElementById('online-dot');
+  let pendingCount = 0;
+
+  const renderBanner = () => {
+    if (banner) {
+      const offline = !navigator.onLine;
+      let msg = '';
+      if (offline && pendingCount > 0) msg = `📵 Hors ligne — ${pendingCount} saisie(s) en attente de sync`;
+      else if (offline) msg = '📵 Hors ligne — synchronisation au retour réseau';
+      else if (pendingCount > 0) msg = `🔄 ${pendingCount} saisie(s) en cours de synchronisation...`;
+      banner.textContent = msg;
+      banner.classList.toggle('visible', offline || pendingCount > 0);
+      document.body.classList.toggle('online-with-queue', !offline && pendingCount > 0);
+    }
+    if (queueBadge) {
+      queueBadge.textContent = pendingCount > 0 ? String(pendingCount) : '';
+      queueBadge.style.display = pendingCount > 0 ? 'inline-flex' : 'none';
+    }
+    if (dot) {
+      dot.style.background = navigator.onLine ? 'var(--green, #2ecc71)' : 'var(--red, #e74c3c)';
+      dot.title = navigator.onLine
+        ? (pendingCount > 0 ? `En ligne — ${pendingCount} en sync` : 'En ligne')
+        : 'Hors ligne';
+    }
   };
-  window.addEventListener('online', maj);
-  window.addEventListener('offline', maj);
-  setTimeout(maj, 1000);
+
+  window.addEventListener('online', renderBanner);
+  window.addEventListener('offline', renderBanner);
+
+  if (window.DelivProOfflineQueue) {
+    window.DelivProOfflineQueue.onChange(function (n) {
+      pendingCount = n;
+      renderBanner();
+    });
+    window.DelivProOfflineQueue.count().then(function (n) {
+      pendingCount = n;
+      renderBanner();
+    });
+    // Toast au retour reseau si qqch en queue
+    window.addEventListener('online', function () {
+      if (pendingCount > 0) {
+        toast(`🔄 Sync en cours (${pendingCount} saisies)...`, 'success');
+      }
+    });
+    // Toast quand entry flushed
+    window.addEventListener('delivpro:offline-queue:flushed', function () {
+      window.DelivProOfflineQueue.count().then(function (n) {
+        if (n === 0 && pendingCount > 0) {
+          toast('✅ Synchronisation terminée');
+        }
+        pendingCount = n;
+        renderBanner();
+      });
+    });
+  }
+  setTimeout(renderBanner, 800);
 }
 
 /* PWA */

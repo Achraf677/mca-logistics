@@ -413,4 +413,62 @@
   });
 
   console.info('[all-entity-adapters] 7 adapters initialises (livraisons, charges, carburant, entretiens, paiements, incidents, fournisseurs)');
+
+  // ============================================================
+  // PAGINATION SERVEUR — API publique unifiee
+  // ============================================================
+  // Permet aux ecrans (script-livraisons.js, script-encaissement.js, etc.)
+  // d'appeler une seule API pour charger une page depuis Supabase au lieu
+  // de tout downloader en localStorage via charger().
+  //
+  // Usage :
+  //   const res = await window.MCAServerPagination.loadPage('livraisons', {
+  //     page: 1, pageSize: 50,
+  //     sort: { column: 'date_livraison', ascending: false },
+  //     filters: [{ column: 'statut', operator: 'eq', value: 'livre' }]
+  //   });
+  //   res.rows  -> items mappes (dbToJs)
+  //   res.total -> total cote DB (count: 'exact')
+  //   res.page, res.pageSize, res.totalPages
+  //
+  // Tombe en fallback localStorage si l'adapter n'est pas pret (offline,
+  // session non auth, etc.) → garantit que la liste s'affiche meme sans reseau.
+  function fallbackLocalPaginate(storageKey, opts) {
+    opts = opts || {};
+    var page = Math.max(1, parseInt(opts.page, 10) || 1);
+    var pageSize = Math.min(1000, Math.max(1, parseInt(opts.pageSize, 10) || 50));
+    var arr = [];
+    try { arr = JSON.parse(window.localStorage.getItem(storageKey) || '[]'); } catch (_) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    // Tri local minimal sur creeLe desc par defaut
+    arr.sort(function (a, b) {
+      var da = a && a.creeLe ? new Date(a.creeLe).getTime() : 0;
+      var db = b && b.creeLe ? new Date(b.creeLe).getTime() : 0;
+      return db - da;
+    });
+    var total = arr.length;
+    var totalPages = Math.max(1, Math.ceil(total / pageSize));
+    var start = (page - 1) * pageSize;
+    var rows = arr.slice(start, start + pageSize);
+    return { rows: rows, total: total, page: page, pageSize: pageSize, totalPages: totalPages, error: 'fallback-local' };
+  }
+
+  async function loadPage(entity, opts) {
+    var adapter = window.DelivProEntityAdapters && window.DelivProEntityAdapters[entity];
+    if (!adapter || typeof adapter.loadPage !== 'function') {
+      return fallbackLocalPaginate(entity, opts);
+    }
+    if (typeof adapter.isInitialized === 'function' && !adapter.isInitialized()) {
+      // Adapter pas encore pret : tente quand meme (le client peut etre dispo)
+      var res = await adapter.loadPage(opts);
+      if (res && res.error === 'no-client') return fallbackLocalPaginate(entity, opts);
+      return res;
+    }
+    return adapter.loadPage(opts);
+  }
+
+  window.MCAServerPagination = {
+    loadPage: loadPage,
+    fallbackLocalPaginate: fallbackLocalPaginate
+  };
 })();

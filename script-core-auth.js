@@ -428,7 +428,22 @@ async function confirmerResetMdp() {
 }
 
 // L2680 (script.js d'origine)
-function voirPhotoAdmin(inspId, idx) {
+async function _resolveAdminInspectionPhotoSrc(photo, kind) {
+  // kind: 'full' ou 'thumb'
+  const desc = kind === 'thumb'
+    ? (typeof getInspectionPhotoThumbDescriptorAdmin === 'function'
+        ? getInspectionPhotoThumbDescriptorAdmin(photo)
+        : { src: getInspectionPhotoThumb(photo), path: '' })
+    : (typeof getInspectionPhotoFullDescriptorAdmin === 'function'
+        ? getInspectionPhotoFullDescriptorAdmin(photo)
+        : { src: getInspectionPhotoFull(photo), path: '' });
+  if (desc.src) return desc.src;
+  if (!desc.path || !window.DelivProStorage) return '';
+  const signed = await window.DelivProStorage.getSignedUrl('inspections-photos', desc.path, 300);
+  return (signed && signed.ok && signed.signedUrl) ? signed.signedUrl : '';
+}
+
+async function voirPhotoAdmin(inspId, idx) {
   const inspections = loadSafe('inspections', []);
   const insp = inspections.find(i => i.id === inspId);
   if (!insp) return;
@@ -436,19 +451,35 @@ function voirPhotoAdmin(inspId, idx) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
   overlay.innerHTML = `
-    <img src="${getInspectionPhotoFull(_adminPhotos[idx])}" id="photo-plein-ecran" style="max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain" />
-    <div style="display:flex;gap:10px">
-      ${_adminPhotos.map((_, i) => `<div onclick="changerPhotoAdmin(${i})" style="width:48px;height:48px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid ${i===idx?'var(--accent)':'transparent'}"><img src="${getInspectionPhotoThumb(_adminPhotos[i])}" style="width:100%;height:100%;object-fit:cover"/></div>`).join('')}
+    <img src="" id="photo-plein-ecran" alt="📷 chargement..." style="max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.05)" />
+    <div style="display:flex;gap:10px" id="photo-thumbs-row">
+      ${_adminPhotos.map((_, i) => `<div onclick="changerPhotoAdmin(${i})" style="width:48px;height:48px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid ${i===idx?'var(--accent)':'transparent'};background:rgba(255,255,255,0.05)"><img data-thumb-idx="${i}" src="" style="width:100%;height:100%;object-fit:cover"/></div>`).join('')}
     </div>
     <button onclick="this.closest('div[style]').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:.9rem">✕ Fermer</button>`;
   overlay.onclick = e => { if (e.target === overlay) overlay.remove(); };
   document.body.appendChild(overlay);
+
+  // Resoudre les signed URLs (image principale + thumbs)
+  const mainImg = overlay.querySelector('#photo-plein-ecran');
+  if (mainImg) {
+    _resolveAdminInspectionPhotoSrc(_adminPhotos[idx], 'full').then(src => {
+      if (src && mainImg.isConnected) mainImg.src = src;
+    });
+  }
+  overlay.querySelectorAll('[data-thumb-idx]').forEach(thumbImg => {
+    const i = parseInt(thumbImg.getAttribute('data-thumb-idx'), 10);
+    _resolveAdminInspectionPhotoSrc(_adminPhotos[i], 'thumb').then(src => {
+      if (src && thumbImg.isConnected) thumbImg.src = src;
+    });
+  });
 }
 
 // L2696 (script.js d'origine)
-function changerPhotoAdmin(idx) {
+async function changerPhotoAdmin(idx) {
   const img = document.getElementById('photo-plein-ecran');
-  if (img && _adminPhotos[idx]) img.src = getInspectionPhotoFull(_adminPhotos[idx]);
+  if (!img || !_adminPhotos[idx]) return;
+  const src = await _resolveAdminInspectionPhotoSrc(_adminPhotos[idx], 'full');
+  if (src && img.isConnected) img.src = src;
 }
 
 // L3888 (script.js d'origine)
@@ -466,14 +497,32 @@ async function changerMdpAdmin() {
   const sessionAdmin = getAdminSession();
   const comptes = getAdminAccounts();
   const idx = comptes.findIndex(c => c.identifiant === sessionAdmin.identifiant);
-  if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
-  const motDePasseStocke = comptes[idx].motDePasseHash || comptes[idx].motDePasse || '';
-  if (!await verifierMotDePasseLocal(actuel, motDePasseStocke)) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
+  const client = getSupabaseClientSafe();
+  const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
+
+  // Vérification du mot de passe actuel :
+  //  - Mode Supabase : on re-tente un signInWithPassword. Source de vérité = Supabase.
+  //  - Mode local seul : fallback sur l'ancien hash PBKDF2 localStorage.
+  if (supabaseReady && sessionAdmin.authMode === 'supabase' && client) {
+    const email = sessionStorage.getItem('admin_email') || '';
+    if (!email) {
+      afficherToast('⚠️ Email admin introuvable en session. Reconnectez-vous.', 'error');
+      return;
+    }
+    const verifResult = await client.auth.signInWithPassword({ email, password: actuel });
+    if (verifResult.error) {
+      afficherToast('⚠️ Mot de passe actuel incorrect', 'error');
+      return;
+    }
+  } else {
+    if (idx === -1) { afficherToast('⚠️ Session administrateur introuvable', 'error'); return; }
+    const motDePasseStocke = comptes[idx].motDePasseHash || comptes[idx].motDePasse || '';
+    if (!await verifierMotDePasseLocal(actuel, motDePasseStocke)) { afficherToast('⚠️ Mot de passe actuel incorrect', 'error'); return; }
+  }
+
   const qualiteMdp = evaluerQualiteMotDePasseFort(nouveau);
   if (!qualiteMdp.ok) { afficherToast('⚠️ ' + qualiteMdp.message, 'error'); return; }
   if (nouveau !== confirmer) { afficherToast('⚠️ Les mots de passe ne correspondent pas', 'error'); return; }
-  const client = getSupabaseClientSafe();
-  const supabaseReady = !!(window.DelivProSupabase && window.DelivProSupabase.isReady && window.DelivProSupabase.isReady());
   if (supabaseReady) {
     if (sessionAdmin.authMode !== 'supabase' || !client) {
       afficherToast('⚠️ Connectez-vous via Supabase pour changer un mot de passe admin synchronisé.', 'error');

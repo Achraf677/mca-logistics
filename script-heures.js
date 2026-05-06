@@ -191,9 +191,16 @@ function afficherCompteurHeures() {
   }
 
   var totalEquipe = 0;
+  // Heures réelles saisies via mobile (collection 'heures' partagée).
+  // Si saisies sur la période -> les utiliser en priorité (réel vs planifié).
+  const heuresSaisiesAll = charger('heures');
   cont.innerHTML = salFiltrees.map(s => {
     const { planifiees, details } = calculerHeuresSalarieSemaine(s.id, contexteHeures);
-    totalEquipe += planifiees;
+    const heuresReelles = heuresSaisiesAll
+      .filter(h => (h.salId === s.id || h.salarieId === s.id) && h.date >= range.debut && h.date <= range.fin)
+      .reduce((sum, h) => sum + (parseFloat(String(h.heures||'').replace(',', '.')) || 0), 0);
+    const heuresAffich = heuresReelles > 0 ? heuresReelles : planifiees;
+    totalEquipe += heuresAffich;
     const plan = contexteHeures.planningsParSalarie.get(s.id);
     const absencesPeriodes = contexteHeures.absencesPeriodes;
     const livraisons = charger('livraisons');
@@ -217,7 +224,7 @@ function afficherCompteurHeures() {
     return `<tr>
       <td><strong>${s.nom}</strong></td>
       <td style="font-size:.78rem;color:var(--text-muted)">${s.poste||'—'}</td>
-      <td><strong>${planifiees.toFixed(1)} h</strong></td>
+      <td><strong>${heuresAffich.toFixed(1)} h</strong>${heuresReelles > 0 ? `<div style="font-size:.7rem;color:var(--green);font-weight:500">réel · ${heuresReelles.toFixed(1)}h</div><div style="font-size:.66rem;color:var(--text-muted)">planifié ${planifiees.toFixed(1)}h</div>` : ''}</td>
       <td style="font-size:.78rem;color:var(--text-muted)">${detailStr}</td>
       <td>${absPeriodeStr || absStr}</td>
       <td><button class="btn-icon" onclick="ouvrirEditPlanning('${s.id}')" title="Planifier">📅</button></td>

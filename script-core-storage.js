@@ -172,6 +172,62 @@ function chargerParametres() {
   if (nouveauPosteInput) nouveauPosteInput.value = '';
   majResumeSauvegardeAdmin();
   afficherJournalAudit();
+  if (typeof afficherChangelog === 'function') afficherChangelog();
+}
+
+// Charge CHANGELOG.md et le rend en HTML simple dans la carte "Historique des versions".
+// Markdown minimal supporté : ## titres (versions), ### sous-sections, listes -, **gras**, code inline.
+function afficherChangelog() {
+  const container = document.getElementById('changelog-content');
+  if (!container) return;
+  fetch('/CHANGELOG.md', { cache: 'no-cache' })
+    .then(r => r.ok ? r.text() : Promise.reject(r.status))
+    .then(md => { container.innerHTML = renderChangelogMarkdown(md); })
+    .catch(err => {
+      container.innerHTML = '<div style="color:var(--text-muted)">Historique indisponible (' + err + ')</div>';
+    });
+}
+
+function renderChangelogMarkdown(md) {
+  // Échappe HTML d'abord pour la sécurité (XSS)
+  const escape = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const lines = md.split('\n');
+  const out = [];
+  let inList = false;
+  let inIntro = true;
+  const closeList = () => { if (inList) { out.push('</ul>'); inList = false; } };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (line.startsWith('# ')) { /* titre principal — on saute */ continue; }
+    if (line.startsWith('## ')) {
+      closeList();
+      inIntro = false;
+      out.push('<h3 style="margin:18px 0 6px;color:var(--accent);font-size:1rem">' + escape(line.slice(3)) + '</h3>');
+      continue;
+    }
+    if (line.startsWith('### ')) {
+      closeList();
+      out.push('<h4 style="margin:10px 0 4px;font-size:.88rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px">' + escape(line.slice(4)) + '</h4>');
+      continue;
+    }
+    if (line.startsWith('- ')) {
+      if (!inList) { out.push('<ul style="margin:4px 0 8px 18px;padding:0">'); inList = true; }
+      out.push('<li style="margin-bottom:4px">' + inlineFormat(escape(line.slice(2))) + '</li>');
+      continue;
+    }
+    if (line === '---') { closeList(); out.push('<hr style="border:none;border-top:1px solid var(--border);margin:16px 0" />'); continue; }
+    closeList();
+    if (line === '' || inIntro) continue;
+    out.push('<p style="margin:6px 0">' + inlineFormat(escape(line)) + '</p>');
+  }
+  closeList();
+  return out.join('');
+}
+
+function inlineFormat(s) {
+  return s
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--bg-dark);padding:1px 5px;border-radius:3px;font-size:.82em">$1</code>');
 }
 
 // L4087 (script.js d'origine)

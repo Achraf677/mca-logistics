@@ -19,11 +19,21 @@ function getSalarieStatsMois(salId) {
     return item.chaufId === salId && item.date >= debut && item.date <= fin;
   });
   var contexte = construireContexteHeures({ mode: 'mois', debut: debut, fin: fin, label: '', datesLabel: '' });
-  var heures = calculerHeuresSalarieSemaine(salId, contexte).planifiees || 0;
+  var heuresPlanifiees = calculerHeuresSalarieSemaine(salId, contexte).planifiees || 0;
+  // Cumul heures réelles saisies via mobile (collection 'heures' partagée).
+  // Si saisies présentes -> on les utilise (priorité réel). Sinon planning.
+  var heuresReelles = 0;
+  try {
+    heuresReelles = charger('heures')
+      .filter(function(h) { return (h.salId === salId || h.salarieId === salId) && h.date >= debut && h.date <= fin; })
+      .reduce(function(sum, h) { return sum + (parseFloat(String(h.heures||'').replace(',', '.')) || 0); }, 0);
+  } catch (_) { /* fallback silencieux */ }
   return {
     livraisons: livraisons.length,
     ca: livraisons.reduce(function(sum, item) { return sum + (parseFloat(item.prix || item.prixTTC) || 0); }, 0),
-    heures: heures
+    heures: heuresReelles > 0 ? heuresReelles : heuresPlanifiees,
+    heuresReelles: heuresReelles,
+    heuresPlanifiees: heuresPlanifiees
   };
 }
 

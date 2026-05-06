@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-04-30-mobile-shell-phase1-28';
+const CACHE_VERSION = 'mca-v2026-05-05-v3_69-tva-onglet-utilise-montant-saisi-109';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -14,6 +14,9 @@ const CORE_ASSETS = [
   '/admin.html',
   '/salarie.html',
   '/login.html',
+  '/m.html',
+  '/style-mobile.css',
+  '/script-mobile.js',
   '/style.css',
   '/script.js',
   '/chart.min.js',
@@ -43,6 +46,8 @@ const CORE_ASSETS = [
   '/script-salaries.js',
   '/script-vehicules.js',
   '/script-livraisons.js',
+  '/script-encaissement.js',
+  '/ocr-helper.js',
   '/clients-supabase-adapter.js',
   '/entity-supabase-adapter.js',
   '/vehicules-supabase-adapter.js',
@@ -62,11 +67,16 @@ const CORE_ASSETS = [
   '/lazy-loader.js',
   '/lazy-stubs.js',
   '/script-salarie.js',
+  '/offline-queue.js',
   '/health-check.js',
   '/watchdog.js',
   '/manifest.json',
   '/monitoring.js',
 ];
+
+// Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne
+// (network-first avec timeout court : si le reseau ne repond pas en 3s, fallback cache)
+const HTML_NET_TIMEOUT_MS = 3000;
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -100,7 +110,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
 
   // Supabase / API externes / Google Fonts : passthrough, pas de cache
-  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com') || url.hostname.includes('gstatic.com') || url.hostname.includes('cdn.jsdelivr.net')) {
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com') || url.hostname.includes('gstatic.com') || url.hostname.includes('cdn.jsdelivr.net') || url.hostname.includes('unpkg.com') || url.hostname.includes('tessdata.projectnaptha')) {
     return;
   }
 
@@ -111,18 +121,29 @@ self.addEventListener('fetch', (event) => {
   const isHTMLNav = req.mode === 'navigate' || accept.includes('text/html');
 
   if (isHTMLNav) {
-    // Network-first pour les pages HTML — récupère les nouveaux déploiements
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
+    // Network-first avec timeout court — recupere les nouveaux deploiements
+    // mais bascule rapidement sur le cache si le reseau est lent/coupe (chauffeur en zone blanche).
+    event.respondWith((async () => {
+      const cachedFallback = caches.match(req).then((r) => r || caches.match('/salarie.html') || caches.match('/admin.html'));
+      try {
+        const networkPromise = fetch(req).then((res) => {
           if (res && res.status === 200 && res.type === 'basic') {
             const copy = res.clone();
             caches.open(RUNTIME_CACHE).then((cache) => cache.put(req, copy));
           }
           return res;
-        })
-        .catch(() => caches.match(req).then((r) => r || caches.match('/admin.html')))
-    );
+        });
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('html_timeout')), HTML_NET_TIMEOUT_MS)
+        );
+        return await Promise.race([networkPromise, timeoutPromise]);
+      } catch (_) {
+        const fb = await cachedFallback;
+        if (fb) return fb;
+        // Dernier recours : reponse texte minimaliste
+        return new Response('<h1>Hors ligne</h1><p>Reconnexion necessaire</p>', { headers: { 'Content-Type': 'text/html' } });
+      }
+    })());
     return;
   }
 

@@ -430,9 +430,85 @@
       tryBootstrapLoop();
     }
 
+    /**
+     * Pagination cote serveur (offset-based via .range()).
+     *
+     * Telecharge UNIQUEMENT le slice demande (typiquement 25 a 250 lignes) au
+     * lieu de pullAll() qui peut ramener des milliers de lignes a chaque
+     * navigation. Le cache localStorage reste alimente par le realtime + les
+     * pulls explicites pour les usages qui ont besoin de tout (rentabilite,
+     * recherche full-text, agregats annuels).
+     *
+     * opts:
+     *   - page (number, defaut 1, base 1)
+     *   - pageSize (number, defaut 50, max 1000)
+     *   - sort     ({ column, ascending }) defaut { column: orderBy, ascending: false }
+     *   - filters  (array de { column, operator, value }) - operator au sens Supabase ('eq','gte','lte','ilike','in',...)
+     *   - select   (string, defaut '*')
+     *   - applyDbToJs (bool, defaut true) - si true, mappe via dbToJs
+     *
+     * Retour : { rows, total, page, pageSize, totalPages, error }
+     */
+    async function loadPage(opts) {
+      opts = opts || {};
+      var client = getSupabaseClient();
+      if (!client) {
+        return { rows: [], total: 0, page: 1, pageSize: 0, totalPages: 1, error: 'no-client' };
+      }
+      var page = Math.max(1, parseInt(opts.page, 10) || 1);
+      var pageSize = Math.min(1000, Math.max(1, parseInt(opts.pageSize, 10) || 50));
+      var sort = opts.sort || { column: orderBy || 'created_at', ascending: false };
+      var filters = Array.isArray(opts.filters) ? opts.filters : [];
+      var select = typeof opts.select === 'string' ? opts.select : '*';
+      var applyDbToJs = opts.applyDbToJs !== false;
+
+      var start = (page - 1) * pageSize;
+      var end = start + pageSize - 1;
+
+      var q = client.from(table).select(select, { count: 'exact' });
+      filters.forEach(function (f) {
+        if (!f || !f.column || !f.operator) return;
+        try {
+          if (f.operator === 'in' && Array.isArray(f.value)) {
+            q = q.in(f.column, f.value);
+          } else if (f.operator === 'is') {
+            q = q.is(f.column, f.value);
+          } else {
+            q = q.filter(f.column, f.operator, f.value);
+          }
+        } catch (_) { /* ignore filter erronne */ }
+      });
+      if (sort && sort.column) {
+        q = q.order(sort.column, { ascending: !!sort.ascending });
+      }
+      q = q.range(start, end);
+
+      try {
+        var res = await q;
+        if (res.error) {
+          console.warn('[' + table + '-adapter] loadPage error:', res.error.message);
+          return { rows: [], total: 0, page: page, pageSize: pageSize, totalPages: 1, error: res.error.message };
+        }
+        var localItems = applyDbToJs ? readLocal() : [];
+        var rows = (res.data || []).map(function (row) {
+          if (!applyDbToJs) return row;
+          var item = dbToJs(row);
+          if (!item) return null;
+          return mergeWithLocal(item, localItems);
+        }).filter(Boolean);
+        var total = (typeof res.count === 'number') ? res.count : rows.length;
+        var totalPages = Math.max(1, Math.ceil(total / pageSize));
+        return { rows: rows, total: total, page: page, pageSize: pageSize, totalPages: totalPages, error: null };
+      } catch (e) {
+        console.error('[' + table + '-adapter] loadPage exception:', e);
+        return { rows: [], total: 0, page: page, pageSize: pageSize, totalPages: 1, error: String(e && e.message || e) };
+      }
+    }
+
     var publicApi = {
       bootstrap: bootstrap,
       pullAll: pullAll,
+      loadPage: loadPage,
       flushDiff: flushDiff,
       isInitialized: function () { return initialized; },
       debugStatus: function () {

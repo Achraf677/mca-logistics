@@ -30,16 +30,33 @@ function ajouterEntreeAudit(action, detail, meta) {
   if (typeof afficherJournalAudit === 'function' && window.__delivproCurrentPage === 'parametres') afficherJournalAudit();
 }
 
+// State pagination journal d'audit (memoire process)
+// Note : le journal d'audit est stocke en localStorage (cle 'audit_log'),
+// capacite limitee a 400 entrees (cf ajouterEntreeAudit). La pagination
+// reste donc strictement client-side mais permet de naviguer la totalite
+// au lieu d'etre coupee a 40 lignes comme avant.
+window.__auditLogPageState = window.__auditLogPageState || { page: 1, pageSize: 50 };
+
 // L322 (script.js d'origine)
 function afficherJournalAudit() {
   const tb = document.getElementById('tb-audit-log');
   if (!tb) return;
-  const logs = charger('audit_log').slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); }).slice(0, 40);
-  if (!logs.length) {
+  const allLogs = charger('audit_log').slice().sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+  if (!allLogs.length) {
     tb.innerHTML = '<tr><td colspan="4" class="empty-row">Aucune action journalisée</td></tr>';
+    const navEl0 = document.getElementById('audit-log-pagination');
+    if (navEl0) navEl0.innerHTML = '';
     return;
   }
-  tb.innerHTML = logs.map(function(log) {
+  const st = window.__auditLogPageState;
+  const pageSize = Math.max(1, parseInt(st.pageSize, 10) || 50);
+  const totalPages = Math.max(1, Math.ceil(allLogs.length / pageSize));
+  if (st.page > totalPages) st.page = totalPages;
+  if (st.page < 1) st.page = 1;
+  const start = (st.page - 1) * pageSize;
+  const slice = allLogs.slice(start, start + pageSize);
+
+  tb.innerHTML = slice.map(function(log) {
     return '<tr>'
       + '<td style="white-space:nowrap">' + formatDateHeureExport(log.date) + '</td>'
       + '<td>' + (log.admin || 'Admin') + '</td>'
@@ -47,6 +64,56 @@ function afficherJournalAudit() {
       + '<td style="font-size:.84rem;color:var(--text-muted)">' + (log.detail || '—') + '</td>'
       + '</tr>';
   }).join('');
+
+  // Barre de pagination (cree si absente, reutilise si presente)
+  let navEl = document.getElementById('audit-log-pagination');
+  if (!navEl) {
+    const tbl = tb.closest('table');
+    const wrap = (tbl && tbl.parentElement) || tb.parentElement;
+    if (wrap) {
+      navEl = document.createElement('div');
+      navEl.id = 'audit-log-pagination';
+      navEl.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;padding:8px 12px;background:var(--card,#1c1f2b);border-radius:8px;flex-wrap:wrap';
+      wrap.appendChild(navEl);
+    }
+  }
+  if (navEl) {
+    const end = Math.min(start + pageSize, allLogs.length);
+    const sizeOpts = [25, 50, 100, 250].map(n =>
+      '<option value="' + n + '"' + (n === pageSize ? ' selected' : '') + '>' + n + ' / page</option>'
+    ).join('');
+    navEl.innerHTML =
+      '<div style="font-size:.82rem;color:var(--text-muted)">Affichage <strong>' + (start + 1) + '–' + end + '</strong> sur <strong>' + allLogs.length + '</strong> · Page <strong>' + st.page + '</strong> / ' + totalPages + '</div>'
+      + '<div style="display:flex;gap:6px;align-items:center">'
+        + '<button type="button" data-audit-go="first" ' + (st.page <= 1 ? 'disabled' : '') + ' style="padding:5px 9px;border-radius:6px;background:var(--bg-dark,#14161f);border:1px solid var(--border,#2a2d3d);color:var(--text,#e8eaf0);cursor:pointer">«</button>'
+        + '<button type="button" data-audit-go="prev"  ' + (st.page <= 1 ? 'disabled' : '') + ' style="padding:5px 9px;border-radius:6px;background:var(--bg-dark,#14161f);border:1px solid var(--border,#2a2d3d);color:var(--text,#e8eaf0);cursor:pointer">‹</button>'
+        + '<button type="button" data-audit-go="next"  ' + (st.page >= totalPages ? 'disabled' : '') + ' style="padding:5px 9px;border-radius:6px;background:var(--bg-dark,#14161f);border:1px solid var(--border,#2a2d3d);color:var(--text,#e8eaf0);cursor:pointer">›</button>'
+        + '<button type="button" data-audit-go="last"  ' + (st.page >= totalPages ? 'disabled' : '') + ' style="padding:5px 9px;border-radius:6px;background:var(--bg-dark,#14161f);border:1px solid var(--border,#2a2d3d);color:var(--text,#e8eaf0);cursor:pointer">»</button>'
+        + '<select id="audit-page-size" style="padding:5px 7px;border-radius:6px;background:var(--bg-dark,#14161f);border:1px solid var(--border,#2a2d3d);color:var(--text,#e8eaf0);margin-left:6px">' + sizeOpts + '</select>'
+      + '</div>';
+    if (!navEl.dataset.bound) {
+      navEl.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-audit-go]');
+        if (!btn || btn.disabled) return;
+        const act = btn.getAttribute('data-audit-go');
+        const cur = window.__auditLogPageState;
+        const total = Math.max(1, Math.ceil(charger('audit_log').length / Math.max(1, cur.pageSize)));
+        if (act === 'first') cur.page = 1;
+        else if (act === 'prev') cur.page = Math.max(1, cur.page - 1);
+        else if (act === 'next') cur.page = Math.min(total, cur.page + 1);
+        else if (act === 'last') cur.page = total;
+        afficherJournalAudit();
+      });
+      navEl.addEventListener('change', function (e) {
+        const sel = e.target.closest('#audit-page-size');
+        if (!sel) return;
+        window.__auditLogPageState.pageSize = parseInt(sel.value, 10) || 50;
+        window.__auditLogPageState.page = 1;
+        afficherJournalAudit();
+      });
+      navEl.dataset.bound = '1';
+    }
+  }
 }
 
 // L340 (script.js d'origine)

@@ -1,0 +1,92 @@
+name: Weekly Supabase Backup (simple)
+
+# Backup hebdomadaire simple : dump SQL Supabase -> artifact GitHub prive.
+#
+# Pourquoi cette version "simple" en plus de backup.yml ?
+#   - backup.yml fait du chiffrement GPG + upload Cloudflare R2 (production-grade)
+#     mais necessite 7 secrets dont une cle GPG.
+#   - Cette version necessite 1 seul secret (SUPABASE_DB_URL) et stocke le dump
+#     en artifact GitHub prive (90 jours de retention).
+#   - Suffit largement pour un site mono-utilisateur.
+#
+# Setup :
+#   1. Recuperer la connection string Supabase :
+#        Dashboard Supabase > Project Settings > Database > Connection string > URI
+#        (format : postgresql://postgres.[ref]:[password]@[host]:5432/postgres)
+#   2. GitHub repo > Settings > Secrets and variables > Actions > New secret
+#        Nom : SUPABASE_DB_URL
+#        Valeur : la connection string complete
+#   3. C'est tout. Le cron tourne tous les dimanches a 03:00 UTC.
+#
+# Restauration :
+#   1. Telecharger l'artifact depuis GitHub > Actions > ce workflow > run
+#   2. unzip -> obtenir un fichier .sql
+#   3. Restaurer : psql "$RESTORE_TARGET_URL" < dump.sql
+#      (faire d'abord un test sur un projet Supabase vierge avant prod)
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'   # Dimanche 03:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: mca-backup-simple
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: pg_dump -> GitHub artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install postgresql-client-16
+        run: |
+          set -e
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client-16
+          pg_dump --version
+
+      - name: Run pg_dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -e
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error::SUPABASE_DB_URL secret manquant. Voir entete du workflow pour le setup."
+            exit 1
+          fi
+          mkdir -p _backup
+          STAMP=$(date -u +%Y-%m-%d-%H%M)
+          DUMP_FILE="_backup/mca-logistics-${STAMP}.sql"
+          echo "Dumping to $DUMP_FILE..."
+          pg_dump "$SUPABASE_DB_URL" \
+            --no-owner \
+            --no-privileges \
+            --clean \
+            --if-exists \
+            --quote-all-identifiers \
+            --schema=public \
+            --schema=auth \
+            --schema=storage \
+            > "$DUMP_FILE"
+          ls -lh "$DUMP_FILE"
+          gzip "$DUMP_FILE"
+          ls -lh "${DUMP_FILE}.gz"
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ github.run_id }}
+          path: _backup/
+          retention-days: 90
+          if-no-files-found: error

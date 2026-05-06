@@ -21,17 +21,49 @@ function getInspectionPhotoList(insp) {
 }
 
 // L6026 (script.js d'origine)
+// Retourne soit un src direct (base64 legacy), soit un path Storage prive a resoudre.
+// Forme: { src, path } - utiliser src si present, sinon resoudre path en signed URL.
+function getInspectionPhotoThumbDescriptorAdmin(photo) {
+  if (!photo) return { src: '', path: '' };
+  if (typeof photo === 'string') {
+    if (/^data:image\//.test(photo)) return { src: photo, path: '' };
+    const helper = getInspectionStorageAdminHelper();
+    const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(photo) : '';
+    return { src: '', path: path };
+  }
+  if (photo.thumbPath) return { src: '', path: photo.thumbPath };
+  if (photo.path) return { src: '', path: photo.path };
+  const helper = getInspectionStorageAdminHelper();
+  const fallback = photo.thumbUrl || photo.url || '';
+  if (/^data:image\//.test(fallback)) return { src: fallback, path: '' };
+  const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(fallback) : '';
+  return { src: '', path: path };
+}
+
+function getInspectionPhotoFullDescriptorAdmin(photo) {
+  if (!photo) return { src: '', path: '' };
+  if (typeof photo === 'string') {
+    if (/^data:image\//.test(photo)) return { src: photo, path: '' };
+    const helper = getInspectionStorageAdminHelper();
+    const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(photo) : '';
+    return { src: '', path: path };
+  }
+  if (photo.path) return { src: '', path: photo.path };
+  if (photo.thumbPath) return { src: '', path: photo.thumbPath };
+  const helper = getInspectionStorageAdminHelper();
+  const fallback = photo.url || photo.thumbUrl || '';
+  if (/^data:image\//.test(fallback)) return { src: fallback, path: '' };
+  const path = helper && helper.extractPathFromPublicUrl ? helper.extractPathFromPublicUrl(fallback) : '';
+  return { src: '', path: path };
+}
+
 function getInspectionPhotoThumb(photo) {
-  if (!photo) return '';
-  if (typeof photo === 'string') return photo;
-  return photo.thumbUrl || photo.url || '';
+  return getInspectionPhotoThumbDescriptorAdmin(photo).src;
 }
 
 // L6032 (script.js d'origine)
 function getInspectionPhotoFull(photo) {
-  if (!photo) return '';
-  if (typeof photo === 'string') return photo;
-  return photo.url || photo.thumbUrl || '';
+  return getInspectionPhotoFullDescriptorAdmin(photo).src;
 }
 
 // L6038 (script.js d'origine)
@@ -42,13 +74,33 @@ function isInspectionPhotoBase64(value) {
 }
 
 // L6044 (script.js d'origine)
+// Extrait tous les paths Storage d'une inspection (nouveau format prive + legacy URL publique).
 function getInspectionRemotePhotoPaths(insp) {
   const storageHelper = getInspectionStorageAdminHelper();
-  if (!storageHelper || typeof storageHelper.extractPathFromPublicUrl !== 'function') return [];
   return getInspectionPhotoList(insp)
     .filter(photo => !isInspectionPhotoBase64(photo))
-    .flatMap(photo => typeof photo === 'string' ? [photo] : [photo.url, photo.thumbUrl].filter(Boolean))
-    .map(photoUrl => storageHelper.extractPathFromPublicUrl(photoUrl))
+    .flatMap(function(photo) {
+      if (typeof photo === 'string') {
+        // Legacy: URL publique pure
+        if (storageHelper && storageHelper.extractPathFromPublicUrl) {
+          const p = storageHelper.extractPathFromPublicUrl(photo);
+          return p ? [p] : [];
+        }
+        return [];
+      }
+      // Nouveau format prive : { path, thumbPath }
+      const paths = [];
+      if (photo.path) paths.push(photo.path);
+      if (photo.thumbPath) paths.push(photo.thumbPath);
+      // Legacy : objet avec url/thumbUrl publiques
+      if (!paths.length && storageHelper && storageHelper.extractPathFromPublicUrl) {
+        [photo.url, photo.thumbUrl].filter(Boolean).forEach(function(u) {
+          const p = storageHelper.extractPathFromPublicUrl(u);
+          if (p) paths.push(p);
+        });
+      }
+      return paths;
+    })
     .filter(Boolean);
 }
 
@@ -105,11 +157,22 @@ async function nettoyerPhotosInspectionsAnciennes(forceRun) {
     if (!remotePhotos.length) return;
 
     remotePhotos.forEach(function(photo) {
-      const photoUrls = typeof photo === 'string' ? [photo] : [photo.url, photo.thumbUrl].filter(Boolean);
-      photoUrls.forEach(function(url) {
-        const path = storageHelper.extractPathFromPublicUrl(url);
+      if (typeof photo === 'string') {
+        // Legacy URL publique
+        const path = storageHelper.extractPathFromPublicUrl(photo);
         if (path) pathsToDelete.push(path);
-      });
+        return;
+      }
+      // Nouveau format prive
+      if (photo.path) pathsToDelete.push(photo.path);
+      if (photo.thumbPath) pathsToDelete.push(photo.thumbPath);
+      // Legacy : url/thumbUrl publiques
+      if (!photo.path && !photo.thumbPath) {
+        [photo.url, photo.thumbUrl].filter(Boolean).forEach(function(url) {
+          const path = storageHelper.extractPathFromPublicUrl(url);
+          if (path) pathsToDelete.push(path);
+        });
+      }
     });
 
     insp.photos = photos.filter(isInspectionPhotoBase64);
@@ -170,14 +233,24 @@ function afficherInspections() {
         </div>
       </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-          ${getInspectionPhotoList(insp).map((p, i) => `
-            <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3;cursor:pointer" onclick="voirPhotoAdmin('${insp.id}',${i})">
-              <img src="${getInspectionPhotoThumb(p)}" style="width:100%;height:100%;object-fit:cover" />
-            </div>`).join('')}
+          ${getInspectionPhotoList(insp).map((p, i) => {
+            const thumb = getInspectionPhotoThumbDescriptorAdmin(p);
+            const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="📷 chargement..."';
+            const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
+            return `
+            <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;background:rgba(0,0,0,0.05)" onclick="voirPhotoAdmin('${insp.id}',${i})">
+              <img ${srcAttr} ${dataAttrs} style="width:100%;height:100%;object-fit:cover" />
+            </div>`;
+          }).join('')}
         </div>
         ${insp.note_cleanup_storage ? `<div style="margin-top:10px;font-size:.78rem;color:var(--text-muted)">${insp.note_cleanup_storage}</div>` : ''}
       </div>
     </div>`).join('');
+
+  // Resoudre les signed URLs pour les photos en bucket prive
+  if (window.resolveStorageImages) {
+    window.resolveStorageImages(container);
+  }
 }
 
 // L6178 (script.js d'origine)
