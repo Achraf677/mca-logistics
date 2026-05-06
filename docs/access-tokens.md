@@ -17,9 +17,9 @@ Dernière mise à jour : 2026-05-06
 | **Sentry** (`mca-logistics.sentry.io`) | ⚠️ Token temporaire | Personal Token | 2026-05-06 | event:read · org:read · project:read | Sentry → Settings → Account → API → Personal Tokens → "Claude MCA LOGISTICS" → Revoke |
 | **Cloudflare Pages** | ❌ Pas connecté | — | — | — | — |
 | **Pennylane** (compta) | ✅ Actif | Personal Token | 2026-05-06 | 15 scopes lecture seule (factures, clients, fournisseurs, FEC, transactions, journaux, écritures…) | https://app.pennylane.com/companies/23200904/settings/connectivity?subtab=developers → "Claude MCA LOGISTICS" → Supprimer |
-| **Qonto** (banque) | ⏳ Token reçu, login manquant | Internal API secret key | 2026-05-06 | Lecture transactions + memberships (si login fourni) | https://app.qonto.com → Settings → Integrations → Revoke |
+| **Qonto** (banque) | ✅ Actif | Internal API (login + secret key) | 2026-05-06 | Read-only org + transactions + memberships + attachments | https://app.qonto.com/organizations/mca-logistics-3134/settings/integrations → Clé API → Re-générer |
 | **Teleroute** (sous-traitance fret) | ❌ Pas connecté (futur) | — | pas encore d'accès | — | — |
-| **Google Maps API** | ❌ Pas utilisée | — | Aucune clé active dans le code (commentaire `/* GOOGLE MAPS — DISTANCE AUTO */` ligne 2791 script.js = placeholder, jamais branché) | — |
+| **Google Maps API** | 📋 Planifié (pas encore branché) | À créer dans Google Cloud Console | — | Distance Matrix API (calcul auto km livraison) | Console GCP → API & Services → Credentials → Restrict / Delete |
 
 ---
 
@@ -82,28 +82,54 @@ Dernière mise à jour : 2026-05-06
   3. Mets à jour ce fichier avec le nouveau token
   4. Mets à jour aussi GitHub Secrets (futur, quand on aura un workflow d'import FEC)
 
-### Qonto (banque) — Token reçu 2026-05-06, login manquant
+### Qonto (banque) — Token actif depuis 2026-05-06
+- **Login (organization slug)** : `mca-logistics-3134`
 - **Secret key** : `1c658865d11896fee3deb0fab0ec2ac41e2127924077252db21157f7fc5601b7`
-- **Login (organization slug)** : ⏳ **À RÉCUPÉRER** sur la page Qonto Settings → Integrations → API
 - **Format Auth Qonto** : `Authorization: <login>:<secret_key>` (pas Bearer, Internal API)
 - **API base URL** : `https://thirdparty.qonto.com/v2/`
-- **Test status actuel** : ❌ HTTP 401 sans login (vérifié par curl)
-- **Scopes par défaut** (à vérifier) : lecture transactions, memberships, attachments
-- **⚠️ NE JAMAIS** donner un token avec scope `payments:write` (= initier des virements)
+- **Test** :
+  ```
+  curl -H "Authorization: mca-logistics-3134:1c658865..." \
+    "https://thirdparty.qonto.com/v2/organization"
+  ```
+  → HTTP 200, retourne org "MCA Logistics", slug `mca-logistics-3134`, 1 compte bancaire actif (testé 2026-05-06).
+- **Scopes Internal API** (read-only par design — pas d'écriture possible avec ce type de clé) :
+  - `GET /v2/organization` (org + comptes bancaires + soldes)
+  - `GET /v2/transactions` (liste transactions)
+  - `GET /v2/memberships` (membres team)
+  - `GET /v2/attachments` (justificatifs liés aux transactions)
 - **Usage prévu MCA** :
-  - Auto-cocher "payé" sur charges/livraisons quand le virement arrive sur Qonto
-  - Webhook sur nouvelles transactions
-- **Révocation** : https://app.qonto.com → Settings → Integrations → Revoke
+  - Synchro transactions → auto-cocher "payé" sur charges/livraisons quand le virement arrive
+  - Détection auto fournisseurs/clients via libellé virement
+  - Rapprochement bancaire mensuel (combiné avec FEC Pennylane)
+- **⚠️ Sécurité** : l'Internal API Qonto est **lecture seule par design**, pas de risque d'initier des virements. OK de garder en illimité.
+- **Révocation / rotation** : https://app.qonto.com/organizations/mca-logistics-3134/settings/integrations → "Clé API" → bouton "Re-générer" (génère nouvelle clé, ancienne devient invalide).
 
 ### Teleroute (sous-traitance fret)
 - **Pas encore d'accès Achraf**. À recreuser quand l'accès sera obtenu.
 - **Si activé** : créer un user technique dédié (pas le user Achraf perso) avec scopes lecture offres uniquement.
 
-### Google Maps API
-- **Pas un accès Claude**, mais une **clé API publique embarquée dans le code** (`script.js`).
-- **Risque** : la clé est visible dans le navigateur de tous les utilisateurs.
-- **Mitigation actuelle** : restriction par referrer (`*.mca-logistics.pages.dev`, `*.mca-logistics.fr`) à vérifier dans Console GCP.
-- **À auditer** : Console GCP → API & Services → Credentials → vérifier les restrictions de la clé.
+### Google Maps API — Planifié (pas encore branché)
+- **Statut** : décision prise 2026-05-06 d'intégrer Google Maps Distance Matrix dans MCA pour le calcul auto des km entre adresses livraison (départ → arrivée). À coder plus tard.
+- **Setup à faire (quand on y arrive)** :
+  1. Aller sur https://console.cloud.google.com → créer projet "MCA Logistics" (ou réutiliser projet existant)
+  2. Activer l'API **Distance Matrix API** (et **Geocoding API** si besoin)
+  3. Créer une clé API → Credentials
+  4. **Restrictions OBLIGATOIRES** (sinon n'importe qui peut utiliser la clé = facturé sur ton compte) :
+     - Application restrictions → **HTTP referrers** :
+       - `https://*.mca-logistics.pages.dev/*`
+       - `https://*.mca-logistics.fr/*` (si domaine prod)
+       - `http://localhost:*/*` (dev)
+     - API restrictions → **Restrict key** → cocher **Distance Matrix API**, **Geocoding API**
+  5. Quota / budget : poser un cap mensuel à 5-10 € pour éviter explosion facture si la clé fuite
+  6. Coller la clé dans `script.js` (place-holder déjà présent ligne 2791 : `/* GOOGLE MAPS — DISTANCE AUTO */`)
+  7. Mettre à jour ce MD avec la clé + restrictions
+- **Code MCA à écrire** :
+  - Fonction `calculerDistanceAuto(depart, arrivee)` qui appelle Distance Matrix API
+  - Trigger : à la création/modif d'une livraison, pré-remplit le champ "distance" avec le résultat
+  - Cache localStorage : éviter de re-query la même adresse 50x
+- **Coût** : ~5 € / 1000 requêtes (Distance Matrix). Pour un usage MCA normal (50 livraisons/mois), gratuit (premiers $200/mois offerts par Google).
+- **Révocation** : Console GCP → API & Services → Credentials → la clé → Disable / Delete.
 
 ---
 
@@ -139,8 +165,7 @@ Dernière mise à jour : 2026-05-06
 
 - [ ] **Révoquer le token Sentry temporaire** une fois la session de debug actuelle finie.
 - [ ] Recréer un MCP Sentry propre quand Achraf est sur son PC perso (`claude mcp add --transport http sentry https://mcp.sentry.dev/mcp`).
-- [ ] **Auditer les restrictions de la clé Google Maps** (referrer + scopes) — Achraf doit envoyer le screen Console GCP → Credentials.
-- [ ] **Configurer Qonto API** — vérifier si plan Qonto donne accès API (Solo Smart / Business).
+- [ ] **Implémenter Google Maps Distance Auto** — créer projet GCP + clé API restreinte + coder `calculerDistanceAuto()` dans MCA + brancher sur formulaire livraison (PR dédiée, voir détails section "Google Maps API" ci-dessus).
 - [ ] Configurer Teleroute quand l'accès sera obtenu.
 - [ ] **Rotation Pennylane** : token actuel illimité, à rotate tous les 6 mois ou si suspicion fuite.
 - [ ] **Workflow GitHub Actions import FEC mensuel** : exploiter le token Pennylane pour importer FEC → MCA charges/paiements automatique. À coder dans une PR dédiée.
