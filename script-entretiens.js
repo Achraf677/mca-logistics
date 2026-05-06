@@ -392,11 +392,9 @@ function exporterEntretiensPDF() {
   const dateExp = formatDateHeureExport();
   const typeIcons = {revision:'🔩',vidange:'🛢️',pneus:'🔘',plaquettes:'⚙️',courroie:'⛓️',autre:'🔧'};
 
+  const metaEntretiens = `${entretiens.length} entretien(s) · Total ${euros(total)}`;
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Carnet d'entretien</div><div style="font-size:1rem;font-weight:700">${range.label}</div><div style="font-size:.78rem;color:#9ca3af">${range.datesLabel}</div></div>
-    </div>
+    ${construireEnteteExport(params, "Carnet d'entretien", `${range.label} · ${range.datesLabel}`, dateExp, metaEntretiens)}
     ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
       <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Véhicule</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Type</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Description</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Coût</th></tr></thead>
@@ -405,10 +403,7 @@ function exporterEntretiensPDF() {
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong>Total : ${euros(total)}</strong></div>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Entretiens — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
-  win.document.close();
+  ouvrirFenetreImpression(`Entretiens — ${nom}`, html, 'width=800,height=700');
   afficherToast('📄 Rapport entretiens généré');
 }
 

@@ -117,19 +117,10 @@ function genererRapportMensuel() {
     statsChauff[l.chaufNom].ca += l.prix||0;
   });
 
+  const metaRapport = `${livraisons.length} livraison(s) · ${livrees} livrée(s)`;
   const html = `
   <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-
-    <!-- EN-TÊTE -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:3px solid #f5a623;margin-bottom:28px">
-      <div>
-        <div style="font-size:1.5rem;font-weight:800;color:#f5a623">${nom}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Rapport d'activité</div>
-        <div style="font-size:1.2rem;font-weight:800;text-transform:capitalize">${moisLabel}</div>
-      </div>
-    </div>
+    ${construireEnteteExport(params, "Rapport d'activité", moisLabel, dateExp, metaRapport)}
     ${renderBlocInfosEntreprise(params)}
 
     <!-- KPIs -->
@@ -190,22 +181,10 @@ function genererRapportMensuel() {
       </table>
     </div>` : ''}
 
-    <!-- PIED DE PAGE -->
-    <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-      <span>${nom} — Page 1/1</span>
-      <span>${dateExp}</span>
-      <span>${params.tel || params.email || params.siret || ''}</span>
-    </div>
+    ${renderFooterEntreprise(params, dateExp)}
   </div>`;
 
-  const win = ouvrirPopupSecure('', '_blank', 'width=850,height=950');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Rapport ${moisLabel} — ${nom}</title>
-    <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm} @media print{body{padding:0}}</style>
-    </head><body>${html}
-    <script>setTimeout(()=>{window.print();},400)<\/script>
-    </body></html>`);
-  win.document.close();
+  ouvrirFenetreImpression(`Rapport ${moisLabel} — ${nom}`, html, 'width=850,height=950');
   afficherToast('📄 Rapport mensuel généré');
 }
 
@@ -509,17 +488,16 @@ function exporterSauvegardeAdmin() {
 // L9515 (script.js d'origine)
 function exporterChargesPDF() {
   const charges = charger('charges').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const params = chargerObj('params_entreprise', {});
-  const nom = params.nom || 'MCA Logistics';
-  const dateExp = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const params = getEntrepriseExportParams();
+  const nom = params.nom;
+  const dateExp = formatDateHeureExport();
   const total = charges.reduce((s,c)=>s+(c.montant||0),0);
   const catIcons = {carburant:'⛽',peage:'🛣️',entretien:'🔧',assurance:'🛡️',autre:'📝'};
 
+  const metaCharges = `${charges.length} charge(s) · Total ${euros(total)}`;
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif des charges</div><div style="font-size:1rem;font-weight:700">Total : ${euros(total)}</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
-    </div>
+    ${construireEnteteExport(params, 'Récapitulatif des charges', '', dateExp, metaCharges)}
+    ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
       <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left">Date</th><th style="padding:8px 12px;text-align:left">Catégorie</th><th style="padding:8px 12px;text-align:left">Description</th><th style="padding:8px 12px;text-align:left">Véhicule</th><th style="padding:8px 12px;text-align:right">Montant</th></tr></thead>
       <tbody>${charges.map((c,i)=>`<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
@@ -531,12 +509,9 @@ function exporterChargesPDF() {
       </tr>`).join('')}</tbody>
     </table>
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong style="font-size:1rem">Total : ${euros(total)}</strong></div>
-    <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Généré par MCA Logistics — ${nom}</span><span>${dateExp}</span></div>
+    ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Charges — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
-  win.document.close();
+  ouvrirFenetreImpression(`Charges — ${nom}`, html, 'width=800,height=700');
   afficherToast('📄 PDF charges généré');
 }
 
