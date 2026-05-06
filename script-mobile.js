@@ -8456,7 +8456,10 @@
     title: 'Paramètres',
     render() {
       const config = M.chargerObj('config') || {};
-      const entreprise = config.entreprise || M.chargerObj('entreprise') || {};
+      // Source unique de verite : params_entreprise (meme cle que PC, sync Supabase).
+      // Fallback legacy sur config.entreprise / entreprise (anciens stockages).
+      const params = M.chargerObj('params_entreprise') || {};
+      const entreprise = (Object.keys(params).length ? params : (config.entreprise || M.chargerObj('entreprise') || {}));
       const adminNom = sessionStorage.getItem('admin_nom') || 'Admin';
       const adminLogin = sessionStorage.getItem('admin_login') || '';
       const tvaProfile = M.getTVAConfig();
@@ -8487,16 +8490,20 @@
           </div>
         </div>
 
-        ${entreprise.nom || entreprise.siret ? `
-          <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🏢 Entreprise</h3></div>
-            <div class="m-card" style="padding:0">
-              ${entreprise.nom ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Raison sociale</span><span style="font-weight:500">${M.escHtml(entreprise.nom)}</span></div>` : ''}
-              ${entreprise.siret ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIRET</span><span style="font-weight:500">${M.escHtml(entreprise.siret)}</span></div>` : ''}
-              ${entreprise.tva ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(entreprise.tva)}</span></div>` : ''}
-              ${entreprise.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(entreprise.adresse)}</span></div>` : ''}
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🏢 Entreprise</h3></div>
+          <button type="button" id="m-param-entreprise" class="m-card m-card-pressable" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;width:100%;padding:14px 16px;text-align:left;color:inherit;font-family:inherit;border:1px solid var(--m-border)">
+            <div style="flex:1 1 auto;min-width:0">
+              ${entreprise.nom ? `<div style="font-weight:600;margin-bottom:4px">${M.escHtml(entreprise.nom)}</div>` : '<div style="color:var(--m-text-muted);margin-bottom:4px">Aucune information</div>'}
+              <div style="color:var(--m-text-muted);font-size:.78rem">
+                ${entreprise.siret ? `SIRET ${M.escHtml(entreprise.siret)}` : 'Tape pour configurer'}
+                ${entreprise.tvaIntracom || entreprise.tva ? ` · TVA ${M.escHtml(entreprise.tvaIntracom || entreprise.tva)}` : ''}
+              </div>
+              ${entreprise.adresse ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(entreprise.adresse)}${entreprise.codePostal || entreprise.ville ? ', ' + M.escHtml((entreprise.codePostal || '') + ' ' + (entreprise.ville || '')).trim() : ''}</div>` : ''}
             </div>
-          </div>
-        ` : ''}
+            <span style="color:var(--m-text-muted);font-size:1rem;flex:0 0 auto">›</span>
+          </button>
+          <p class="m-form-hint" style="margin-top:8px">Tape pour modifier raison sociale, SIRET, adresse, IBAN…</p>
+        </div>
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🧾 TVA</h3></div>
           <div class="m-card" style="padding:0">
@@ -8592,6 +8599,7 @@
         });
         if (choice) saveTvaConfig({ periodicite: choice });
       });
+      container.querySelector('#m-param-entreprise')?.addEventListener('click', () => M.formEditEntreprise());
       container.querySelector('#m-param-mdp')?.addEventListener('click', () => M.formChangerMdpAdmin());
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
@@ -8724,6 +8732,77 @@
         }
 
         M.toast('Mot de passe mis à jour', { duration: 4000 });
+        return true;
+      }
+    });
+  };
+
+  // ============================================================
+  // Edition infos entreprise (mobile, parite PC)
+  // Sauve dans 'params_entreprise' (meme cle PC, sync Supabase auto).
+  // ============================================================
+  M.formEditEntreprise = function() {
+    const e = M.chargerObj('params_entreprise') || M.chargerObj('entreprise') || {};
+    const body = `
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">📇 Identification</div>
+      ${M.formField('Raison sociale', M.formInput('nom', { value: e.nom || '', placeholder: 'MCA LOGISTICS' }))}
+      <div class="m-form-row">
+        ${M.formField('SIRET', M.formInput('siret', { value: e.siret || '', placeholder: '14 chiffres' }))}
+        ${M.formField('Code APE', M.formInput('codeAPE', { value: e.codeAPE || '', placeholder: '5229B' }))}
+      </div>
+      ${M.formField('N° TVA intracom.', M.formInput('tvaIntracom', { value: e.tvaIntracom || e.tva || '', placeholder: 'FR + 11 chiffres' }))}
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">📍 Adresse</div>
+      ${M.formField('Adresse', M.formInput('adresse', { value: e.adresse || '', placeholder: '17 rue de la Chapelle' }))}
+      <div class="m-form-row">
+        ${M.formField('Code postal', M.formInput('codePostal', { value: e.codePostal || '', placeholder: '67540' }))}
+        ${M.formField('Ville', M.formInput('ville', { value: e.ville || '', placeholder: 'Ostwald' }))}
+      </div>
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">📞 Contact</div>
+      <div class="m-form-row">
+        ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: e.tel || '', placeholder: '03 88 …' }))}
+        ${M.formField('Email', M.formInput('email', { type: 'email', value: e.email || '', placeholder: 'contact@…' }))}
+      </div>
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">💳 Banque</div>
+      <div class="m-form-row">
+        ${M.formField('IBAN', M.formInput('iban', { value: e.iban || '', placeholder: 'FR76 …' }))}
+        ${M.formField('BIC', M.formInput('bic', { value: e.bic || '', placeholder: 'QNTOFRP1XXX' }))}
+      </div>
+      ${M.formField('Banque', M.formInput('banque', { value: e.banque || '', placeholder: 'Qonto' }))}
+    `;
+
+    M.openSheet({
+      title: 'Modifier entreprise',
+      body: body,
+      submitLabel: 'Enregistrer',
+      onSubmit: async (sheetBody) => {
+        const get = name => (sheetBody.querySelector(`[name="${name}"]`)?.value || '').trim();
+        const siretRaw = get('siret').replace(/\s+/g, '');
+        if (siretRaw && !/^\d{14}$/.test(siretRaw)) {
+          M.toast('SIRET invalide (14 chiffres requis)', { duration: 4000 });
+          return false;
+        }
+        const tvaRaw = get('tvaIntracom').replace(/\s+/g, '').toUpperCase();
+
+        const existant = M.chargerObj('params_entreprise') || {};
+        const next = Object.assign({}, existant, {
+          nom: get('nom') || existant.nom || '',
+          siret: siretRaw,
+          codeAPE: get('codeAPE').toUpperCase(),
+          tvaIntracom: tvaRaw,
+          adresse: get('adresse'),
+          codePostal: get('codePostal'),
+          ville: get('ville'),
+          tel: get('tel'),
+          email: get('email'),
+          iban: get('iban').toUpperCase(),
+          bic: get('bic').toUpperCase(),
+          banque: get('banque')
+        });
+        M.sauvegarder('params_entreprise', next);
+        M.toast('✅ Infos entreprise mises à jour', { duration: 3000 });
         return true;
       }
     });
