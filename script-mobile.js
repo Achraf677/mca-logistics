@@ -3783,12 +3783,12 @@
       const plannings = M.charger('plannings');
       const vue = M.state.planningVue || 'jour';
 
-      // Header : toggle vue + bouton periodes absences
+      // Header : toggle vue + bouton periodes absences (compact pour eviter overflow)
       let html = `
-        <div style="display:flex;gap:6px;margin-bottom:14px">
-          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0">📅 Jour</button>
-          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0">🗓️ Semaine</button>
-          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.78rem">🏖️ Absence longue</button>
+        <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">📅 Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">🗓️ Sem.</button>
+          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 auto;padding:0 12px;height:40px;font-size:.78rem;white-space:nowrap" title="Période d'absence longue">🏖️ Absence</button>
         </div>
       `;
 
@@ -3945,9 +3945,12 @@
     const offset = M.state.planningSemaineOffset || 0;
     const lundi = M.lundiSemaineOffset(offset);
     const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
-    const fmt = d => d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const sameMonth = lundi.getMonth() === dimanche.getMonth();
+    const labelDates = sameMonth
+      ? `${lundi.getDate()}–${dimanche.getDate()} ${moisCourtFR[lundi.getMonth()]}`
+      : `${lundi.getDate()} ${moisCourtFR[lundi.getMonth()]} – ${dimanche.getDate()} ${moisCourtFR[dimanche.getMonth()]}`;
     const numSemaine = (function(d) {
-      // ISO 8601 week number
       const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
       const dayNum = (t.getUTCDay() + 6) % 7;
       t.setUTCDate(t.getUTCDate() - dayNum + 3);
@@ -3955,37 +3958,40 @@
       return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
     })(lundi);
 
-    // Barre de navigation semaine : Précédente · Label semaine X (du -- au --) · Suivante. + reset si offset.
+    // Barre nav semaine — compacte : ‹  Sem N · dates  ›  (Auj si offset != 0)
     let html = `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.82rem">‹</button>
-        <div style="flex:1 1 auto;text-align:center;font-size:.85rem;font-weight:600">
-          Semaine ${numSemaine}
-          <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:400">${fmt(lundi)} – ${fmt(dimanche)}${offset === 0 ? ' (cette semaine)' : ''}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%">
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 36px;padding:0;height:36px;font-size:1rem;line-height:1">‹</button>
+        <div style="flex:1 1 auto;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">
+          Sem ${numSemaine} · ${labelDates}${offset === 0 ? '' : ''}
         </div>
-        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.82rem">›</button>
-        ${offset !== 0 ? '<button id="m-planning-sem-today" class="m-btn" style="flex:0 0 auto;padding:0 10px;height:40px;font-size:.74rem">Auj.</button>' : ''}
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 36px;padding:0;height:36px;font-size:1rem;line-height:1">›</button>
+        ${offset !== 0 ? '<button id="m-planning-sem-today" class="m-btn" style="flex:0 0 auto;padding:0 10px;height:36px;font-size:.72rem">Auj.</button>' : ''}
       </div>
     `;
 
-    // Dates par jour pour l'header (lun 5, mar 6, ...)
+    // Dates par jour pour l'header (4, 5, 6, ...)
     const jourDates = M_JOURS_FR.map((_, i) => {
       const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
       return d.getDate();
     });
 
-    html += `<div class="m-card" style="padding:0;overflow:hidden">
-      <div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.7rem">
-        <div style="padding:8px 6px;background:var(--m-bg-elevated);font-weight:700;border-bottom:1px solid var(--m-border)"></div>
-        ${M_JOURS_COURT.map((j, i) => `<div style="padding:8px 4px;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${offset === 0 && i === todayIdx ? 'color:var(--m-accent)' : ''}">${j}<div style="font-size:.6rem;font-weight:400;opacity:.7">${jourDates[i]}</div></div>`).join('')}
+    // Grille : col gauche reduite a 64px (initiale + 5 chars max), 7 jours en 1fr.
+    // overflow-x:auto en filet de securite si ecran < 320px.
+    html += `<div class="m-card" style="padding:0;overflow:hidden;width:100%;box-sizing:border-box">
+      <div style="display:grid;grid-template-columns:64px repeat(7, minmax(0, 1fr));gap:0;font-size:.7rem;width:100%">
+        <div style="padding:6px 4px;background:var(--m-bg-elevated);font-weight:700;border-bottom:1px solid var(--m-border)"></div>
+        ${M_JOURS_COURT.map((j, i) => `<div style="padding:6px 0;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${offset === 0 && i === todayIdx ? 'color:var(--m-accent)' : ''}"><div style="font-size:.72rem">${j}</div><div style="font-size:.62rem;font-weight:400;opacity:.7">${jourDates[i]}</div></div>`).join('')}
       </div>`;
 
     salaries.forEach((sal, sIdx) => {
       const planning = plannings.find(p => p.salId === sal.id);
       const semaine = planning && Array.isArray(planning.semaine) ? planning.semaine : [];
       const isLast = sIdx === salaries.length - 1;
-      html += `<div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.72rem">
-        <div style="padding:10px 6px;font-weight:600;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id).slice(0, 8))}</div>`;
+      // Initiale prenom + 5 premiers chars du nom (tient dans 64px sur tous mobiles)
+      const labelSal = (sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id).slice(0, 5);
+      html += `<div style="display:grid;grid-template-columns:64px repeat(7, minmax(0, 1fr));gap:0;font-size:.72rem;width:100%">
+        <div style="padding:8px 4px;font-weight:600;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.7rem">${M.escHtml(labelSal)}</div>`;
       M_JOURS_FR.forEach((jourCle, jIdx) => {
         const jourData = semaine.find(j => j.jour === jourCle);
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
@@ -3993,9 +3999,9 @@
         const bg = colors[typeJour] || 'transparent';
         const isToday = offset === 0 && jIdx === todayIdx;
         const horaireShort = jourData?.heureDebut && jourData?.heureFin ? jourData.heureDebut.slice(0, 5) : '';
-        html += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="padding:8px 2px;text-align:center;background:${bg};color:${typeJour === 'travail' || typeJour === 'conge' || typeJour === 'absence' || typeJour === 'maladie' ? '#fff' : 'var(--m-text)'};border:0;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}${isToday ? 'box-shadow:inset 0 0 0 2px var(--m-accent)' : ''};font-family:inherit;cursor:pointer;font-size:.78rem;font-weight:600;line-height:1.1">
+        html += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="padding:6px 1px;text-align:center;background:${bg};color:${typeJour === 'travail' || typeJour === 'conge' || typeJour === 'absence' || typeJour === 'maladie' ? '#fff' : 'var(--m-text)'};border:0;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}${isToday ? 'box-shadow:inset 0 0 0 2px var(--m-accent)' : ''};font-family:inherit;cursor:pointer;font-size:.74rem;font-weight:600;line-height:1.1;min-width:0;overflow:hidden">
           <div>${lbl}</div>
-          ${horaireShort ? `<div style="font-size:.62rem;opacity:.85;margin-top:1px">${horaireShort}</div>` : ''}
+          ${horaireShort ? `<div style="font-size:.58rem;opacity:.85;margin-top:1px">${horaireShort}</div>` : ''}
         </button>`;
       });
       html += `</div>`;
