@@ -388,6 +388,45 @@
   };
   M.escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  // Doughnut SVG inline (sans Chart.js, ~0 KB ajout). segments: [{label, value, color}]
+  // opts: { centerLabel, centerValue, size }
+  M.renderDoughnut = function(segments, opts) {
+    opts = opts || {};
+    const total = segments.reduce((s, x) => s + (Number(x.value) || 0), 0);
+    if (total <= 0) return '';
+    const size = opts.size || 180;
+    const cx = size / 2, cy = size / 2;
+    const r = size * 0.4;        // rayon arc
+    const stroke = size * 0.2;   // épaisseur du donut (-> hole 60%)
+    const circumference = 2 * Math.PI * r;
+    let offset = 0;
+    const arcs = segments.map(seg => {
+      const v = Number(seg.value) || 0;
+      if (v <= 0) return '';
+      const frac = v / total;
+      const dash = circumference * frac;
+      const gap = circumference - dash;
+      const arc = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" />`;
+      offset += dash;
+      return arc;
+    }).join('');
+    const center = (opts.centerLabel || opts.centerValue) ? `
+      ${opts.centerLabel ? `<text x="${cx}" y="${cy - 8}" text-anchor="middle" style="font-size:.68rem;fill:var(--m-text-muted)">${M.escHtml(opts.centerLabel)}</text>` : ''}
+      ${opts.centerValue ? `<text x="${cx}" y="${cy + 12}" text-anchor="middle" style="font-size:.95rem;font-weight:700;fill:var(--m-text)">${M.escHtml(opts.centerValue)}</text>` : ''}
+    ` : '';
+    const legend = segments.map(seg => {
+      const v = Number(seg.value) || 0;
+      const pct = total > 0 ? Math.round(v / total * 100) : 0;
+      return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem"><span style="width:9px;height:9px;background:${seg.color};border-radius:2px;flex:0 0 auto"></span>${M.escHtml(seg.label)} ${pct}%</span>`;
+    }).join('');
+    return `
+      <div style="display:flex;justify-content:center;margin-top:14px">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">${arcs}${center}</svg>
+      </div>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:10px 14px;margin-top:10px">${legend}</div>
+    `;
+  };
+
   // Toast
   let toastTimer = null;
   M.toast = function(message, opts = {}) {
@@ -5616,18 +5655,12 @@
             <div class="m-card-title">Dépenses du mois</div>
             <div class="m-card-value" style="color:var(--m-red)">${M.format$(depTotal)}</div>
             <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
-            ${depTotal > 0 ? `
-              <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:14px;background:var(--m-border)">
-                <div style="background:rgba(230,126,34,0.85);width:${pctCarb}%"></div>
-                <div style="background:rgba(52,152,219,0.85);width:${pctEntr}%"></div>
-                <div style="background:rgba(155,89,182,0.85);width:${pctAutres}%"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:10px;gap:8px;flex-wrap:wrap;font-size:.78rem">
-                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(230,126,34,0.85);border-radius:2px"></span>Carburant ${pctCarb}%</span>
-                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(52,152,219,0.85);border-radius:2px"></span>Entretien ${pctEntr}%</span>
-                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(155,89,182,0.85);border-radius:2px"></span>Autres ${pctAutres}%</span>
-              </div>
-            ` : ''}
+            ${depTotal > 0 ? M.renderDoughnut([
+              { label: 'Carburant', value: carbTotal, color: 'rgba(230,126,34,0.9)' },
+              { label: 'Entretien', value: entrTotal, color: 'rgba(52,152,219,0.9)' },
+              { label: 'Autres', value: autresTotal, color: 'rgba(155,89,182,0.9)' },
+              { label: 'Profit', value: Math.max(profitTotal, 0), color: 'rgba(46,204,113,0.9)' }
+            ], { centerLabel: 'Total', centerValue: M.format$(caTotal) }) : ''}
           </div>
           <div class="m-card" style="padding:0">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
