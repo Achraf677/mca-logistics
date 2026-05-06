@@ -1,5 +1,5 @@
 (function () {
-  var LOGIN_TARGET_CACHE_KEY = 'delivpro_login_target_cache_v1';
+  var LOGIN_TARGET_CACHE_KEY = 'delivpro_login_target_cache_v2';
   var LOGIN_TARGET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
   function getKnownAdminName(identifierOrEmail) {
