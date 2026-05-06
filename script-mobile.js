@@ -3229,9 +3229,8 @@
     const scopeDefaut = overrideExiste ? 'semaine' : 'pattern';
 
     const body = `
-      <div style="background:var(--m-accent-soft);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:.88rem;display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <span><strong>${jourLabel} ${dateLabel}</strong> · ${M.escHtml(fullName)}</span>
-        <span style="font-size:.65rem;opacity:.6;font-weight:500">v3.73</span>
+      <div style="background:var(--m-accent-soft);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:.88rem">
+        <strong>${jourLabel} ${dateLabel}</strong> · ${M.escHtml(fullName)}
       </div>
 
       <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">Appliquer à</div>
