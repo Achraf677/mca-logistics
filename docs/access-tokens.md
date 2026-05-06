@@ -17,9 +17,9 @@ Dernière mise à jour : 2026-05-06
 | **Sentry** (`mca-logistics.sentry.io`) | ⚠️ Token temporaire | Personal Token | 2026-05-06 | event:read · org:read · project:read | Sentry → Settings → Account → API → Personal Tokens → "Claude MCA LOGISTICS" → Revoke |
 | **Cloudflare Pages** | ❌ Pas connecté | — | — | — | — |
 | **Pennylane** (compta) | ✅ Actif | Personal Token | 2026-05-06 | 15 scopes lecture seule (factures, clients, fournisseurs, FEC, transactions, journaux, écritures…) | https://app.pennylane.com/companies/23200904/settings/connectivity?subtab=developers → "Claude MCA LOGISTICS" → Supprimer |
-| **Qonto** (banque) | ❌ Pas connecté (futur) | — | bloqué par plan API | — | — |
+| **Qonto** (banque) | ⏳ Token reçu, login manquant | Internal API secret key | 2026-05-06 | Lecture transactions + memberships (si login fourni) | https://app.qonto.com → Settings → Integrations → Revoke |
 | **Teleroute** (sous-traitance fret) | ❌ Pas connecté (futur) | — | pas encore d'accès | — | — |
-| **Google Maps API** | ⚠️ Côté code uniquement | Clé API publique dans `script.js` | — | Distance Matrix | Console GCP → API & Services → Credentials → Restrict / Delete |
+| **Google Maps API** | ❌ Pas utilisée | — | Aucune clé active dans le code (commentaire `/* GOOGLE MAPS — DISTANCE AUTO */` ligne 2791 script.js = placeholder, jamais branché) | — |
 
 ---
 
@@ -82,13 +82,18 @@ Dernière mise à jour : 2026-05-06
   3. Mets à jour ce fichier avec le nouveau token
   4. Mets à jour aussi GitHub Secrets (futur, quand on aura un workflow d'import FEC)
 
-### Qonto (banque)
-- **Bloqué par plan API** (Solo Smart / Business uniquement, pas Solo Basic).
-- **Si activé un jour** :
-  - Qonto → Settings → Integrations → API → Generate token
-  - Scopes : lecture transactions uniquement (`payments:read`)
-  - Révocation : même page → Revoke
-- **⚠️ Sécurité** : ne JAMAIS donner un token avec `payments:write` (permet d'initier des virements).
+### Qonto (banque) — Token reçu 2026-05-06, login manquant
+- **Secret key** : `1c658865d11896fee3deb0fab0ec2ac41e2127924077252db21157f7fc5601b7`
+- **Login (organization slug)** : ⏳ **À RÉCUPÉRER** sur la page Qonto Settings → Integrations → API
+- **Format Auth Qonto** : `Authorization: <login>:<secret_key>` (pas Bearer, Internal API)
+- **API base URL** : `https://thirdparty.qonto.com/v2/`
+- **Test status actuel** : ❌ HTTP 401 sans login (vérifié par curl)
+- **Scopes par défaut** (à vérifier) : lecture transactions, memberships, attachments
+- **⚠️ NE JAMAIS** donner un token avec scope `payments:write` (= initier des virements)
+- **Usage prévu MCA** :
+  - Auto-cocher "payé" sur charges/livraisons quand le virement arrive sur Qonto
+  - Webhook sur nouvelles transactions
+- **Révocation** : https://app.qonto.com → Settings → Integrations → Revoke
 
 ### Teleroute (sous-traitance fret)
 - **Pas encore d'accès Achraf**. À recreuser quand l'accès sera obtenu.
