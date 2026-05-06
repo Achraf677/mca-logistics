@@ -3234,17 +3234,15 @@
       </div>
 
       <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">Appliquer à</div>
-      <div role="radiogroup" style="display:flex;gap:8px;margin-bottom:14px;width:100%">
-        <label class="m-scope-opt" data-scope="semaine" style="flex:1 1 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;border:2px solid ${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;font-size:.82rem;line-height:1.2;background:${scopeDefaut === 'semaine' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center">
-          <input type="radio" name="scope" value="semaine" ${scopeDefaut === 'semaine' ? 'checked' : ''} style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" />
-          <span style="font-size:1.2rem;line-height:1">📅</span>
-          <span style="font-weight:600;font-size:.8rem">Cette semaine</span>
-        </label>
-        <label class="m-scope-opt" data-scope="pattern" style="flex:1 1 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;border:2px solid ${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;font-size:.82rem;line-height:1.2;background:${scopeDefaut === 'pattern' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center">
-          <input type="radio" name="scope" value="pattern" ${scopeDefaut === 'pattern' ? 'checked' : ''} style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" />
-          <span style="font-size:1.2rem;line-height:1">🔁</span>
-          <span style="font-weight:600;font-size:.8rem">Récurrent</span>
-        </label>
+      <div role="radiogroup" id="m-scope-group" data-scope="${scopeDefaut}" style="display:flex;gap:8px;margin-bottom:14px;width:100%">
+        <button type="button" class="m-scope-opt" data-scope="semaine" aria-pressed="${scopeDefaut === 'semaine'}" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border:2px solid ${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;line-height:1.2;background:${scopeDefaut === 'semaine' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center;font-family:inherit;-webkit-appearance:none;appearance:none;box-sizing:border-box;width:auto;min-height:0;font-size:.78rem">
+          <span style="font-size:1.05rem;line-height:1" aria-hidden="true">📅</span>
+          <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">Cette semaine</span>
+        </button>
+        <button type="button" class="m-scope-opt" data-scope="pattern" aria-pressed="${scopeDefaut === 'pattern'}" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border:2px solid ${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;line-height:1.2;background:${scopeDefaut === 'pattern' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center;font-family:inherit;-webkit-appearance:none;appearance:none;box-sizing:border-box;width:auto;min-height:0;font-size:.78rem">
+          <span style="font-size:1.05rem;line-height:1" aria-hidden="true">🔁</span>
+          <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">Récurrent</span>
+        </button>
       </div>
 
       ${M.formField('Type de jour', M.formSelect('typeJour', [
@@ -3276,23 +3274,33 @@
           horaires.style.display = isTrav ? 'grid' : 'none';
           extras.style.display = isTrav ? 'block' : 'none';
         });
-        // Toggle visuel scope picker (le radio est invisible, c'est le label qui porte le visuel)
-        b.querySelectorAll('.m-scope-opt').forEach(opt => {
-          opt.addEventListener('click', () => {
-            b.querySelectorAll('.m-scope-opt').forEach(o => {
-              const sel = o === opt;
-              o.style.borderColor = sel ? 'var(--m-accent)' : 'var(--m-border)';
-              o.style.background = sel ? 'var(--m-accent-soft)' : 'transparent';
-              o.style.color = sel ? 'var(--m-accent)' : 'var(--m-text)';
-              const radio = o.querySelector('input[type=radio]');
-              if (radio) radio.checked = sel;
+        // Scope picker : 2 boutons HTML purs (pas de radio natif iOS qui s'affiche
+        // comme un cercle/bouton geant a cause de la regle CSS globale input{...}).
+        // La valeur selectionnee est stockee sur #m-scope-group[data-scope]
+        // et lue par onSubmit via group.dataset.scope.
+        const scopeGroup = b.querySelector('#m-scope-group');
+        if (scopeGroup) {
+          scopeGroup.querySelectorAll('.m-scope-opt').forEach(opt => {
+            opt.addEventListener('click', () => {
+              const v = opt.dataset.scope;
+              scopeGroup.dataset.scope = v;
+              scopeGroup.querySelectorAll('.m-scope-opt').forEach(o => {
+                const sel = o === opt;
+                o.setAttribute('aria-pressed', sel ? 'true' : 'false');
+                o.style.borderColor = sel ? 'var(--m-accent)' : 'var(--m-border)';
+                o.style.background = sel ? 'var(--m-accent-soft)' : 'transparent';
+                o.style.color = sel ? 'var(--m-accent)' : 'var(--m-text)';
+              });
             });
           });
-        });
+        }
       },
       onSubmit() {
         const f = M.lireFormSheet();
-        const scope = f.scope || scopeDefaut;
+        // Le scope picker n'est plus un radio HTML (cf. afterMount) : on lit
+        // la valeur sur le data-attr du conteneur.
+        const scopeGroup = document.querySelector('#m-sheet-body #m-scope-group');
+        const scope = (scopeGroup && scopeGroup.dataset.scope) || scopeDefaut;
         const arr = M.charger('plannings');
         let p = arr.find(x => x.salId === salId);
         if (!p) { p = { salId }; arr.push(p); }
