@@ -5,10 +5,10 @@
   function getKnownAdminName(identifierOrEmail) {
     var value = String(identifierOrEmail || '').trim().toLowerCase();
     if (!value) return '';
-    if (value === 'achraf.chikri' || value === 'admin.achraf@mca-logistics.fr' || value === 'admin.achraf') {
+    if (value === 'achraf.chikri' || value === 'achraf-chikri@mcalogistics.fr' || value === 'admin.achraf@mca-logistics.fr' || value === 'admin.achraf') {
       return 'Achraf Chikri';
     }
-    if (value === 'mohammed.chikri' || value === 'admin.mohammed@mca-logistics.fr' || value === 'admin.mohammed') {
+    if (value === 'mohammed.chikri' || value === 'mohammed-chikri@mcalogistics.fr' || value === 'admin.mohammed@mca-logistics.fr' || value === 'admin.mohammed') {
       return 'Mohammed Chikri';
     }
     return '';
