@@ -509,7 +509,8 @@
     const isNum = type === 'number';
     const realType = isNum ? 'text' : type;
     const inputmode = isNum ? 'inputmode="decimal" pattern="[0-9.,]*"' : '';
-    return `<input type="${realType}" ${inputmode} name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
+    const list = opts.list ? `list="${M.escHtml(opts.list)}"` : '';
+    return `<input type="${realType}" ${inputmode} ${list} name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
   };
 
   // Parse un nombre en acceptant virgule OU point (clavier FR / EN)
@@ -577,12 +578,7 @@
       </div>
       <div class="m-form-row">
         ${M.formField('Prix HT', M.formInputWithSuffix('prixHT', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.prixHT || v.prix || '', required: true }), { required: true })}
-        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
-          { value: '0',    label: '0% (exonéré)' },
-          { value: '5.5',  label: '5,5%' },
-          { value: '10',   label: '10%' },
-          { value: '20',   label: '20%' }
-        ], { value: String(v.tauxTva ?? 20) }))}
+        ${M.formField('Taux TVA', M.formInputWithSuffix('tauxTva', '%', { type: 'number', step: '0.1', min: '0', max: '100', list: 'taux-tva-suggestions', placeholder: '20', value: String(v.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.tva || '' }))}
@@ -1282,12 +1278,7 @@
       ${M.formField('Date', M.formInput('date', { type: 'date', value: c.date || today, required: true }), { required: true })}
       <div class="m-form-row">
         ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantHT || '' }))}
-        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
-          { value: '0',    label: '0%' },
-          { value: '5.5',  label: '5,5%' },
-          { value: '10',   label: '10%' },
-          { value: '20',   label: '20%' }
-        ], { value: String(c.tauxTva ?? 20) }))}
+        ${M.formField('Taux TVA', M.formInputWithSuffix('tauxTva', '%', { type: 'number', step: '0.1', min: '0', max: '100', list: 'taux-tva-suggestions', placeholder: '20', value: String(c.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.tva || '' }), { hint: 'Auto, ou saisi manuellement (ex: facture mixte)' })}
@@ -2964,12 +2955,7 @@
       </div>
       <div class="m-form-row">
         ${M.formField('Coût HT', M.formInputWithSuffix('coutHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.coutHt || '' }))}
-        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
-          { value: '0',    label: '0%' },
-          { value: '5.5',  label: '5,5%' },
-          { value: '10',   label: '10%' },
-          { value: '20',   label: '20%' }
-        ], { value: String(e.tauxTva ?? 20) }))}
+        ${M.formField('Taux TVA', M.formInputWithSuffix('tauxTva', '%', { type: 'number', step: '0.1', min: '0', max: '100', list: 'taux-tva-suggestions', placeholder: '20', value: String(e.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.tva || '' }), { hint: 'Calcul auto' })}

@@ -6,6 +6,17 @@ Versionnage : `vMAJEUR.MINEUR` — minor à chaque sprint, major à chaque refon
 
 ---
 
+## [3.70] — 2026-05-06
+
+### Ajouté
+- **Taux TVA libre** (PC + mobile) : les selects figés (0 / 5,5 / 10 / 20) deviennent des inputs numériques avec datalist de suggestions. Permet de saisir n'importe quel taux (utile pour TVA spécifique import / DOM-TOM / cas particuliers). Appliqué sur 6 formulaires PC (charge, livraison, carburant, entretien + leurs versions édition) et 3 mobiles.
+- **Purge auto journal d'audit > 12 mois** : conformité RGPD. Tourne au boot et à chaque nouvelle entrée. Plafond FIFO 400 entrées conservé.
+
+### Documentation
+- `docs/archive/2026-05-06-postmortem-changement-emails-admin.md` : retour d'expérience sur le changement d'emails admin Supabase (causes des 4 ruptures, démarche propre pour la prochaine fois).
+
+---
+
 ## [3.69] — 2026-05-05
 
 ### Corrigé
