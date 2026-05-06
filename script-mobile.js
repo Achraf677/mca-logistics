@@ -8538,6 +8538,14 @@
           </button>
         </div>
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Traçabilité</h3></div>
+          <button class="m-card m-card-pressable" id="m-param-audit" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit">
+            <span style="font-size:.95rem;font-weight:500">📜 Journal d'audit</span>
+            <span style="color:var(--m-text-muted);font-size:.85rem">${(M.charger('audit_log') || []).length} entr. ›</span>
+          </button>
+          <p class="m-form-hint" style="margin-top:8px">Toutes les actions admin (création / modif / suppression). Purge auto > 12 mois (RGPD).</p>
+        </div>
+
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
           <div class="m-card" id="m-changelog-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55;max-height:360px;overflow:auto">
             <div style="color:var(--m-text-muted)">Chargement…</div>
@@ -8602,6 +8610,7 @@
       container.querySelector('#m-param-entreprise')?.addEventListener('click', () => M.formEditEntreprise());
       container.querySelector('#m-param-mdp')?.addEventListener('click', () => M.formChangerMdpAdmin());
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
+      container.querySelector('#m-param-audit')?.addEventListener('click', () => M.go('audit'));
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
       // Historique des versions : fetch CHANGELOG.md et rendu markdown minimal
       const changelogEl = container.querySelector('#m-changelog-content');
