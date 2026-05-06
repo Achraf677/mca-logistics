@@ -8808,12 +8808,47 @@
         ${M.formField('BIC', M.formInput('bic', { value: e.bic || '', placeholder: 'QNTOFRP1XXX' }))}
       </div>
       ${M.formField('Banque', M.formInput('banque', { value: e.banque || '', placeholder: 'Qonto' }))}
+
+      <!-- Upload RIB (PDF ou image, max 5 MB, prive) -->
+      <div style="margin-top:10px">
+        <label style="display:block;font-size:.85rem;font-weight:500;margin-bottom:6px">📎 RIB (PDF ou image)</label>
+        <div id="m-rib-status" style="font-size:.78rem;color:var(--m-text-muted);margin-bottom:8px">
+          ${e.ribPath ? '✅ Document chargé' : 'Aucun document chargé'}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="m-btn" style="flex:1 1 auto;text-align:center;cursor:pointer;font-size:.82rem;padding:0 14px">
+            ${e.ribPath ? 'Remplacer' : 'Importer RIB'}
+            <input type="file" name="ribFile" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" />
+          </label>
+          ${e.ribPath ? `<button type="button" id="m-rib-view" class="m-btn" style="flex:0 0 auto;font-size:.82rem;padding:0 14px">Voir</button>` : ''}
+        </div>
+        <p class="m-form-hint" style="margin-top:6px;font-size:.72rem">PDF / JPG / PNG, 5 Mo max. Stocké chiffré sur Supabase Storage (admin-only).</p>
+      </div>
     `;
 
     M.openSheet({
       title: 'Modifier entreprise',
       body: body,
       submitLabel: 'Enregistrer',
+      afterMount: (sheetBody) => {
+        // Bouton "Voir RIB" : récupère signed URL et ouvre nouvel onglet
+        sheetBody.querySelector('#m-rib-view')?.addEventListener('click', async () => {
+          const ent = M.chargerObj('params_entreprise') || {};
+          if (!ent.ribPath || !window.DelivProStorage) {
+            M.toast('RIB introuvable', { duration: 3000 });
+            return;
+          }
+          const res = await window.DelivProStorage.getSignedUrl('company-docs', ent.ribPath, 600);
+          if (res.ok && res.signedUrl) window.open(res.signedUrl, '_blank');
+          else M.toast('Erreur ouverture : ' + (res.error?.message || 'inconnue'), { duration: 5000 });
+        });
+        // Feedback pendant l'upload (avant submit)
+        sheetBody.querySelector('[name="ribFile"]')?.addEventListener('change', (e) => {
+          const f = e.target.files?.[0];
+          const status = sheetBody.querySelector('#m-rib-status');
+          if (f && status) status.innerHTML = `📎 ${M.escHtml(f.name)} (${(f.size/1024).toFixed(0)} Ko) — sera uploadé à l'enregistrement`;
+        });
+      },
       onSubmit: async (sheetBody) => {
         const get = name => (sheetBody.querySelector(`[name="${name}"]`)?.value || '').trim();
         const siretRaw = get('siret').replace(/\s+/g, '');
@@ -8824,6 +8859,38 @@
         const tvaRaw = get('tvaIntracom').replace(/\s+/g, '').toUpperCase();
 
         const existant = M.chargerObj('params_entreprise') || {};
+        let ribPath = existant.ribPath || '';
+
+        // Upload RIB si nouveau fichier sélectionné
+        const ribFile = sheetBody.querySelector('[name="ribFile"]')?.files?.[0];
+        if (ribFile) {
+          if (!window.DelivProStorage) {
+            M.toast('Storage indisponible — sauvegarde sans RIB', { duration: 4000 });
+          } else {
+            if (ribFile.size > 5 * 1024 * 1024) {
+              M.toast('RIB trop lourd (max 5 Mo)', { duration: 4000 });
+              return false;
+            }
+            M.toast('Upload RIB en cours…', { duration: 2000 });
+            const ext = ribFile.name.split('.').pop().toLowerCase();
+            const safeExt = ['pdf','jpg','jpeg','png','webp'].includes(ext) ? ext : 'pdf';
+            const newPath = 'rib/rib-' + Date.now() + '.' + safeExt;
+            const res = await window.DelivProStorage.compressAndUpload('company-docs', newPath, ribFile, {
+              skipCompression: ribFile.type === 'application/pdf',
+              contentType: ribFile.type
+            });
+            if (!res.ok) {
+              M.toast('Erreur upload RIB : ' + (res.error?.message || 'inconnue'), { duration: 5000 });
+              return false;
+            }
+            // Supprime l'ancien si présent
+            if (existant.ribPath && existant.ribPath !== newPath) {
+              try { await window.DelivProStorage.remove('company-docs', existant.ribPath); } catch (_) {}
+            }
+            ribPath = res.path;
+          }
+        }
+
         const next = Object.assign({}, existant, {
           nom: get('nom') || existant.nom || '',
           siret: siretRaw,
@@ -8836,7 +8903,8 @@
           email: get('email'),
           iban: get('iban').toUpperCase(),
           bic: get('bic').toUpperCase(),
-          banque: get('banque')
+          banque: get('banque'),
+          ribPath: ribPath
         });
         M.sauvegarder('params_entreprise', next);
         M.toast('✅ Infos entreprise mises à jour', { duration: 3000 });
