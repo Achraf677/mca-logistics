@@ -675,62 +675,71 @@
   }
 
   // ===== Export PDF rapport mensuel multi-axes =====
+  // Rapport rentabilité PDF — utilise le template unifié (même entête que
+  // PDF livraison / heures / charges via construireEnteteExport).
   function exporterRapportRentabilitePDF() {
     var range = getRangeAnalyse();
     var v = calculerRentabiliteParVehicule(range);
     var c = calculerRentabiliteParClient(range);
     var ch = calculerRentabiliteParChauffeur(range);
     var tr = calculerRentabiliteParTournee(range);
-    var sumV = sumStats(v), sumC = sumStats(c), sumCh = sumStats(ch), sumT = sumStats(tr);
+    var sumV = sumStats(v);
+
+    var params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : { nom: 'MCA LOGISTICS' };
+    var nom = params.nom || 'MCA LOGISTICS';
+    var dateExp = (typeof formatDateHeureExport === 'function') ? formatDateHeureExport() : new Date().toLocaleString('fr-FR');
+    var periodeLabel = (range.debut && range.fin) ? (range.debut + ' → ' + range.fin) : '';
+
+    var meta = '<div><strong>' + sumV.nb + '</strong> livraison' + (sumV.nb > 1 ? 's' : '') + '</div>'
+      + '<div style="margin-top:2px">CA <strong>' + euros(sumV.ca) + '</strong> · Marge <strong>' + euros(sumV.marge) + '</strong></div>';
 
     var renderRow = function (cells) {
-      return '<tr>' + cells.map(function (c) { return '<td style="padding:6px 10px;border-bottom:1px solid #eee">' + c + '</td>'; }).join('') + '</tr>';
+      return '<tr>' + cells.map(function (cell) { return '<td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;font-size:.82rem">' + cell + '</td>'; }).join('') + '</tr>';
     };
-    var renderTable = function (titre, headers, rows) {
-      return '<h2 style="font-size:14pt;color:#222;margin:18pt 0 6pt">' + titre + '</h2>' +
-        '<table style="width:100%;border-collapse:collapse;font-size:9pt">' +
-        '<thead><tr>' + headers.map(function (h) { return '<th style="padding:6px 10px;background:#f5f5f5;text-align:left;font-weight:700">' + h + '</th>'; }).join('') + '</tr></thead>' +
-        '<tbody>' + rows.join('') + '</tbody></table>';
+    var renderTableSection = function (titre, headers, rows) {
+      if (!rows.length) return '';
+      return '<h3 style="font-size:.95rem;color:#1a1d27;margin:22px 0 8px;padding-bottom:6px;border-bottom:1px solid #e5e7eb">' + titre + '</h3>'
+        + '<table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:6px">'
+        + '<thead><tr style="background:#f3f4f6">' + headers.map(function (h) { return '<th style="padding:8px 12px;text-align:left;color:#6b7280;font-weight:600;font-size:.78rem">' + h + '</th>'; }).join('') + '</tr></thead>'
+        + '<tbody>' + rows.join('') + '</tbody></table>';
     };
 
     var rowsV = v.slice(0, 20).map(function (s) {
-      return renderRow([escapeHtml(s.immat), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), euros(s.marge) + ' (' + s.margePct.toFixed(1) + '%)']);
+      return renderRow([escapeHtml(s.immat), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + s.margePct.toFixed(1) + '%)']);
     });
     var rowsC = c.slice(0, 20).map(function (s) {
-      return renderRow([escapeHtml(s.clientNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), euros(s.marge) + ' (' + s.margePct.toFixed(1) + '%)']);
+      return renderRow([escapeHtml(s.clientNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + s.margePct.toFixed(1) + '%)']);
     });
     var rowsCh = ch.slice(0, 20).map(function (s) {
-      return renderRow([escapeHtml(s.chaufNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), euros(s.marge) + ' (' + s.margePct.toFixed(1) + '%)']);
+      return renderRow([escapeHtml(s.chaufNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + s.margePct.toFixed(1) + '%)']);
     });
     var rowsT = tr.slice(0, 30).map(function (t) {
-      return renderRow([t.date, escapeHtml(t.chaufNom), escapeHtml(t.vehImmat || '—'), t.nbLivraisons, euros(t.ca), euros(t.marge) + ' (' + t.margePct.toFixed(1) + '%)']);
+      return renderRow([t.date, escapeHtml(t.chaufNom), escapeHtml(t.vehImmat || '—'), t.nbLivraisons, euros(t.ca), '<strong>' + euros(t.marge) + '</strong> (' + t.margePct.toFixed(1) + '%)']);
     });
 
-    var html =
-      '<h1 style="font-size:18pt;color:#000;margin:0 0 6pt">📊 Rapport rentabilité — MCA Logistics</h1>' +
-      '<div style="color:#666;font-size:10pt;margin-bottom:12pt">Période : ' + escapeHtml(range.debut || '') + ' → ' + escapeHtml(range.fin || '') + '</div>' +
-      '<div style="display:flex;gap:18pt;font-size:10pt;margin-bottom:12pt">' +
-        '<div><strong>CA total :</strong> ' + euros(sumV.ca) + '</div>' +
-        '<div><strong>Marge :</strong> ' + euros(sumV.marge) + '</div>' +
-        '<div><strong>Livraisons :</strong> ' + sumV.nb + '</div>' +
-      '</div>' +
-      renderTable('🚐 Par véhicule (top 20)',
-        ['Véhicule', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsV) +
-      renderTable('👤 Par client (top 20 par marge)',
-        ['Client', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsC) +
-      renderTable('🧑‍✈️ Par chauffeur (top 20 par marge)',
-        ['Chauffeur', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsCh) +
-      renderTable('🛣️ Tournées (30 plus récentes)',
-        ['Date', 'Chauffeur', 'Véhicule', 'Livraisons', 'CA HT', 'Marge'], rowsT);
+    var html = '<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:780px;margin:0 auto;padding:32px;color:#1a1d27">'
+      + (typeof construireEnteteExport === 'function' ? construireEnteteExport(params, 'Rapport rentabilité', periodeLabel, dateExp, meta) : '')
+      + (typeof renderBlocInfosEntreprise === 'function' ? renderBlocInfosEntreprise(params) : '')
+      + renderTableSection('🚐 Par véhicule (top 20)',
+          ['Véhicule', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsV)
+      + renderTableSection('👤 Par client (top 20 par marge)',
+          ['Client', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsC)
+      + renderTableSection('🧑‍✈️ Par chauffeur (top 20 par marge)',
+          ['Chauffeur', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsCh)
+      + renderTableSection('🛣️ Tournées (30 plus récentes)',
+          ['Date', 'Chauffeur', 'Véhicule', 'Livraisons', 'CA HT', 'Marge'], rowsT)
+      + (typeof renderFooterEntreprise === 'function' ? renderFooterEntreprise(params, dateExp) : '')
+      + '</div>';
 
-    var win = window.open('', '_blank');
-    if (!win) {
-      if (typeof afficherToast === 'function') afficherToast('⚠️ Bloqué par le navigateur (popup)', 'error');
-      return;
+    if (typeof ouvrirFenetreImpression === 'function') {
+      ouvrirFenetreImpression('Rentabilité — ' + nom, html, 'width=820,height=700');
+    } else {
+      // Fallback si helper indisponible
+      var win = window.open('', '_blank');
+      if (!win) { if (typeof afficherToast === 'function') afficherToast('⚠️ Popup bloqué', 'error'); return; }
+      win.document.write('<!DOCTYPE html><html><head><title>Rentabilité ' + escapeHtml(nom) + '</title><style>body{margin:0;background:#fff}@page{margin:12mm}h3{page-break-after:avoid}table{page-break-inside:avoid}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
     }
-    win.document.write('<!DOCTYPE html><html><head><title>Rentabilité ' + escapeHtml(range.debut || '') + '</title>' +
-      '<style>body{margin:0;padding:24px;background:#fff;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#222}@page{margin:12mm}h1,h2{page-break-after:avoid}table{page-break-inside:avoid}</style>' +
-      '</head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
+    if (typeof afficherToast === 'function') afficherToast('📄 Rapport rentabilité généré');
   }
 
   function sumStats(arr) {
