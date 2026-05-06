@@ -4001,6 +4001,17 @@
         M.state.planningSemaineOffset = 0;
         M.go('planning');
       });
+      // Menu actions semaine (sprint 4 : copies)
+      container.querySelector('#m-planning-sem-menu')?.addEventListener('click', () => {
+        M.menuActionsSemainePlanning();
+      });
+      // Menu actions jour (sprint 3 : copies / vider override)
+      container.querySelectorAll('.m-planning-jour-menu').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          M.menuActionsJourPlanning(parseInt(btn.dataset.jourIdx));
+        });
+      });
       container.querySelectorAll('.m-planning-jour').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.planningJour = parseInt(btn.dataset.jour);
@@ -4126,9 +4137,9 @@
       return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
     })(lundi);
 
-    // Barre nav semaine compacte : ‹  Sem N · dates  ›
+    // Barre nav semaine compacte : ‹  Sem N · dates  ›  ⋯
     // Tap sur le label central (si offset != 0) = retour semaine courante.
-    // Pas de bouton "Auj." separe (cause overflow sur petits ecrans).
+    // Bouton ⋯ = menu copies / actions (sprint 4).
     const isCurrent = offset === 0;
     let html = `
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
@@ -4137,6 +4148,7 @@
           ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
         </button>
         <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine suivante">›</button>
+        <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
       </div>
     `;
 
@@ -4171,14 +4183,15 @@
       const nbHors = salaries.length - nbTravail;
 
       html += `<div class="m-card" style="padding:12px 14px;margin-bottom:10px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;${isToday ? 'border-left:4px solid var(--m-accent);' : ''}">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-          <div style="font-weight:700;font-size:.95rem;min-width:0;overflow:hidden;text-overflow:ellipsis">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+          <div style="font-weight:700;font-size:.95rem;min-width:0;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto">
             ${jourLong} <span style="color:var(--m-text-muted);font-weight:500;font-size:.82rem">${dateStr}</span>
             ${isToday ? '<span style="color:var(--m-accent);font-size:.72rem;font-weight:700;margin-left:6px">• AUJ.</span>' : ''}
           </div>
-          <div style="font-size:.72rem;color:var(--m-text-muted);white-space:nowrap">
-            ${nbTravail} travail${nbHors ? ` · ${nbHors} hors` : ''}
+          <div style="font-size:.72rem;color:var(--m-text-muted);white-space:nowrap;flex:0 0 auto">
+            ${nbTravail}T${nbHors ? `·${nbHors}` : ''}
           </div>
+          <button type="button" class="m-planning-jour-menu" data-jour-idx="${jIdx}" aria-label="Actions jour" style="flex:0 0 28px;width:28px;height:28px;border:1px solid var(--m-border);border-radius:8px;background:transparent;color:var(--m-text-muted);font-size:.95rem;line-height:1;cursor:pointer;font-family:inherit">⋯</button>
         </div>`;
 
       // Rend chips d'un groupe (seulement si non vide). Chips = flex-wrap, donc
@@ -4239,6 +4252,195 @@
       html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
     }
     return html;
+  };
+
+  // ============================================================
+  // Sprint 3 — Menu actions jour : copier ce jour vers un autre jour
+  // ============================================================
+  M.menuActionsJourPlanning = function(jourIdxSource) {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const lundiISO = M.toLocalISODate(lundi);
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const jourSourceLabel = M_JOURS_FR_LOCAL[jourIdxSource];
+    const jourSourceCap = jourSourceLabel.charAt(0).toUpperCase() + jourSourceLabel.slice(1);
+
+    // Liste les autres jours de la semaine en boutons
+    const otherDaysHtml = M_JOURS_FR_LOCAL.map((j, i) => {
+      if (i === jourIdxSource) return '';
+      return `<button type="button" class="m-btn" data-target-jour="${i}" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ ${j.charAt(0).toUpperCase() + j.slice(1)}</button>`;
+    }).join('');
+
+    M.openSheet({
+      title: 'Copier ' + jourSourceCap,
+      body: `
+        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
+          Copie les saisies de <strong>${jourSourceCap}</strong> (cette semaine) vers un autre jour de la même semaine, pour tous les salariés ayant un planning saisi.
+        </p>
+        <div>${otherDaysHtml}</div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--m-border)">
+          <button type="button" class="m-btn m-btn-danger" id="m-jour-vider-overrides" style="width:100%">🗑️ Vider tous les overrides de cette semaine</button>
+          <p class="m-form-hint" style="margin-top:6px">Supprime les saisies par semaine et revient au pattern récurrent.</p>
+        </div>
+      `,
+      submitLabel: '',
+      afterMount(b) {
+        b.querySelectorAll('[data-target-jour]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const cibleIdx = parseInt(btn.dataset.targetJour);
+            M.copierJourPlanning(jourIdxSource, cibleIdx, lundiISO);
+            M.closeSheet?.();
+          });
+        });
+        b.querySelector('#m-jour-vider-overrides')?.addEventListener('click', async () => {
+          const ok = await M.confirm?.('Supprimer toutes les saisies par-semaine de la semaine affichée ?') ?? confirm('Supprimer toutes les saisies par-semaine ?');
+          if (!ok) return;
+          M.viderOverridesSemaine(lundiISO);
+          M.closeSheet?.();
+        });
+      },
+      onSubmit() { return true; }
+    });
+    // Cache le bouton submit (pas de submit dans ce menu)
+    setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Copie les saisies du jour source vers le jour cible, pour TOUS les salariés
+  // qui ont une saisie sur le jour source dans cette semaine. Override la semaine
+  // cible (ne touche PAS le pattern).
+  M.copierJourPlanning = function(jourIdxSource, jourIdxCible, lundiISO) {
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const jourSourceCle = M_JOURS_FR_LOCAL[jourIdxSource];
+    const jourCibleCle = M_JOURS_FR_LOCAL[jourIdxCible];
+    const lundiDate = new Date(lundiISO + 'T00:00:00');
+    const dateCible = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + jourIdxCible);
+    const dateCibleISO = M.toLocalISODate(dateCible);
+    const plannings = M.charger('plannings');
+    let nbCopies = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const semaineData = M.getSemaineDataForDate(p, lundiDate);
+      const source = semaineData[jourIdxSource];
+      if (!source || !source.typeJour) return;
+      // Ecrit l'override dans semaines[lundiISO]
+      if (!p.semaines[lundiISO]) p.semaines[lundiISO] = [];
+      const cibleEntry = {
+        jour: jourCibleCle,
+        date: dateCibleISO,
+        typeJour: source.typeJour,
+        travaille: source.typeJour === 'travail',
+        heureDebut: source.heureDebut || '',
+        heureFin: source.heureFin || '',
+        zone: source.zone || '',
+        note: source.note || ''
+      };
+      const existIdx = p.semaines[lundiISO].findIndex(j => j && (j.jour === jourCibleCle || j.date === dateCibleISO));
+      if (existIdx === -1) p.semaines[lundiISO].push(cibleEntry);
+      else p.semaines[lundiISO][existIdx] = { ...p.semaines[lundiISO][existIdx], ...cibleEntry };
+      nbCopies++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbCopies} planning${nbCopies > 1 ? 's' : ''} copié${nbCopies > 1 ? 's' : ''} ${jourSourceCle} → ${jourCibleCle}`);
+    M.go('planning');
+  };
+
+  // Supprime tous les overrides de la semaine affichée (revient au pattern).
+  M.viderOverridesSemaine = function(lundiISO) {
+    const plannings = M.charger('plannings');
+    let nbVides = 0;
+    plannings.forEach(p => {
+      if (p.semaines && p.semaines[lundiISO]) {
+        delete p.semaines[lundiISO];
+        nbVides++;
+      }
+    });
+    if (nbVides === 0) {
+      M.toast('Aucun override à vider sur cette semaine');
+      return;
+    }
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbVides} salarié${nbVides > 1 ? 's' : ''} : retour au pattern récurrent`);
+    M.go('planning');
+  };
+
+  // ============================================================
+  // Sprint 4 — Menu actions semaine : copier cette semaine vers d'autres
+  // ============================================================
+  M.menuActionsSemainePlanning = function() {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const lundiISO = M.toLocalISODate(lundi);
+
+    M.openSheet({
+      title: 'Copier la semaine',
+      body: `
+        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
+          Copie toutes les saisies de cette semaine vers une ou plusieurs semaines suivantes (override : ne touche pas au pattern récurrent).
+        </p>
+        <button type="button" class="m-btn" data-copies="1" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers la semaine suivante</button>
+        <button type="button" class="m-btn" data-copies="4" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 4 prochaines semaines</button>
+        <button type="button" class="m-btn" data-copies="12" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 12 prochaines semaines</button>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--m-border)">
+          <button type="button" class="m-btn m-btn-danger" id="m-sem-vider-overrides" style="width:100%">🗑️ Vider tous les overrides de cette semaine</button>
+          <p class="m-form-hint" style="margin-top:6px">Supprime les saisies par-semaine de tous les salariés (revient au pattern récurrent).</p>
+        </div>
+      `,
+      submitLabel: '',
+      afterMount(b) {
+        b.querySelectorAll('[data-copies]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const n = parseInt(btn.dataset.copies);
+            M.copierSemainePlanning(lundiISO, n);
+            M.closeSheet?.();
+          });
+        });
+        b.querySelector('#m-sem-vider-overrides')?.addEventListener('click', async () => {
+          const ok = confirm('Supprimer toutes les saisies par-semaine de la semaine affichée ?');
+          if (!ok) return;
+          M.viderOverridesSemaine(lundiISO);
+          M.closeSheet?.();
+        });
+      },
+      onSubmit() { return true; }
+    });
+    setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Copie les overrides (ou pattern à défaut) de la semaine source vers les N semaines suivantes.
+  M.copierSemainePlanning = function(lundiSourceISO, nbSemaines) {
+    const lundiSource = new Date(lundiSourceISO + 'T00:00:00');
+    const plannings = M.charger('plannings');
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    let nbAffectes = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const sourceData = M.getSemaineDataForDate(p, lundiSource);
+      // Ne copie que si au moins un jour a un type defini (pas vide complet)
+      const aDuContenu = sourceData.some(j => j && (j.typeJour || j.travaille));
+      if (!aDuContenu) return;
+      for (let s = 1; s <= nbSemaines; s++) {
+        const lundiCible = new Date(lundiSource.getFullYear(), lundiSource.getMonth(), lundiSource.getDate() + s * 7);
+        const lundiCibleISO = M.toLocalISODate(lundiCible);
+        const semaineCible = sourceData.map((src, i) => {
+          const dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+          return {
+            jour: M_JOURS_FR_LOCAL[i],
+            date: M.toLocalISODate(dateCible),
+            typeJour: src.typeJour || 'repos',
+            travaille: !!src.travaille,
+            heureDebut: src.heureDebut || '',
+            heureFin: src.heureFin || '',
+            zone: src.zone || '',
+            note: src.note || ''
+          };
+        });
+        p.semaines[lundiCibleISO] = semaineCible;
+      }
+      nbAffectes++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbAffectes} planning${nbAffectes > 1 ? 's' : ''} copié${nbAffectes > 1 ? 's' : ''} sur ${nbSemaines} semaine${nbSemaines > 1 ? 's' : ''}`);
+    M.go('planning');
   };
 
   // Form période d'absence longue : du DATE au DATE, type, motif. Stockée
