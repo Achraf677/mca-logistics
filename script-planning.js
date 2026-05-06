@@ -45,6 +45,87 @@ function migrerPlanningV2(planning) {
   return planning;
 }
 
+// Sprint 6 — Copies semaine PC. Ouvre un dialog avec choix du nombre de
+// semaines à copier (1, 4, 12) ou vider les overrides. Réutilise la
+// même logique que mobile (M.copierSemainePlanning / M.viderOverridesSemaine)
+// mais avec confirmDialog PC + écriture directe ici.
+function ouvrirMenuCopiesSemainePlanning() {
+  var lundi = (typeof getLundiDeSemaine === 'function')
+    ? getLundiDeSemaine(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0)
+    : lundiSemaineFromOffset(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0);
+  var lundiISO = toLocalISODate(lundi);
+  var labelDate = lundi.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+
+  var msg = 'Que veux-tu faire avec la semaine du ' + labelDate + ' ?\n\n'
+    + '1. Copier vers la semaine suivante\n'
+    + '2. Copier vers les 4 prochaines semaines\n'
+    + '3. Copier vers les 12 prochaines semaines\n'
+    + '4. Vider tous les overrides de cette semaine (revient au pattern récurrent)\n\n'
+    + 'Tape 1, 2, 3 ou 4 :';
+  var choix = window.prompt(msg, '1');
+  if (!choix) return;
+  choix = String(choix).trim();
+  if (choix === '4') {
+    if (!window.confirm('Supprimer toutes les saisies par-semaine de la semaine du ' + labelDate + ' ?\nLes salariés reviendront au pattern récurrent.')) return;
+    viderOverridesSemainePC(lundiISO);
+    return;
+  }
+  var nb = { '1': 1, '2': 4, '3': 12 }[choix];
+  if (!nb) { afficherToast('Choix invalide', 'error'); return; }
+  copierSemainePlanningPC(lundiISO, nb);
+}
+
+function copierSemainePlanningPC(lundiSourceISO, nbSemaines) {
+  var lundiSource = new Date(lundiSourceISO + 'T00:00:00');
+  var plannings = charger('plannings');
+  var JOURS_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  var nbAffectes = 0;
+  plannings.forEach(function(p) {
+    migrerPlanningV2(p);
+    var sourceData = getSemaineDataForDate(p, lundiSource);
+    var aDuContenu = sourceData.some(function(j) { return j && (j.typeJour || j.travaille); });
+    if (!aDuContenu) return;
+    for (var s = 1; s <= nbSemaines; s++) {
+      var lundiCible = new Date(lundiSource.getFullYear(), lundiSource.getMonth(), lundiSource.getDate() + s * 7);
+      var lundiCibleISO = toLocalISODate(lundiCible);
+      p.semaines[lundiCibleISO] = sourceData.map(function(src, i) {
+        var dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+        return {
+          jour: JOURS_LOCAL[i],
+          date: toLocalISODate(dateCible),
+          typeJour: src.typeJour || 'repos',
+          travaille: !!src.travaille,
+          heureDebut: src.heureDebut || '',
+          heureFin: src.heureFin || '',
+          zone: src.zone || '',
+          note: src.note || ''
+        };
+      });
+    }
+    nbAffectes++;
+  });
+  sauvegarder('plannings', plannings);
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Copie planning semaine', nbAffectes + ' salarié(s) sur ' + nbSemaines + ' semaine(s)');
+  afficherToast('✅ ' + nbAffectes + ' planning' + (nbAffectes > 1 ? 's' : '') + ' copié' + (nbAffectes > 1 ? 's' : '') + ' sur ' + nbSemaines + ' semaine' + (nbSemaines > 1 ? 's' : ''));
+}
+
+function viderOverridesSemainePC(lundiISO) {
+  var plannings = charger('plannings');
+  var nbVides = 0;
+  plannings.forEach(function(p) {
+    if (p.semaines && p.semaines[lundiISO]) {
+      delete p.semaines[lundiISO];
+      nbVides++;
+    }
+  });
+  if (nbVides === 0) { afficherToast('Aucun override à vider'); return; }
+  sauvegarder('plannings', plannings);
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Vider overrides semaine planning', nbVides + ' salarié(s)');
+  afficherToast('✅ ' + nbVides + ' salarié' + (nbVides > 1 ? 's' : '') + ' : retour au pattern récurrent');
+}
+
 // Retourne les 7 jours de la semaine commençant à `lundiDate` (objet Date).
 // Source : semaines[lundiISO] si existe, sinon pattern.semaine, sinon legacy semaine[].
 function getSemaineDataForDate(planning, lundiDate) {

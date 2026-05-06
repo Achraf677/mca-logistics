@@ -3234,14 +3234,16 @@
       </div>
 
       <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">Appliquer à</div>
-      <div role="radiogroup" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
-        <label class="m-scope-opt" data-scope="semaine" style="display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid var(--m-border);border-radius:10px;cursor:pointer;font-size:.82rem;line-height:1.2">
-          <input type="radio" name="scope" value="semaine" ${scopeDefaut === 'semaine' ? 'checked' : ''} style="margin:0" />
-          <span>📅<br/>Cette semaine</span>
+      <div role="radiogroup" style="display:flex;gap:8px;margin-bottom:14px;width:100%">
+        <label class="m-scope-opt" data-scope="semaine" style="flex:1 1 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;border:2px solid ${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;font-size:.82rem;line-height:1.2;background:${scopeDefaut === 'semaine' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center">
+          <input type="radio" name="scope" value="semaine" ${scopeDefaut === 'semaine' ? 'checked' : ''} style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" />
+          <span style="font-size:1.2rem;line-height:1">📅</span>
+          <span style="font-weight:600;font-size:.8rem">Cette semaine</span>
         </label>
-        <label class="m-scope-opt" data-scope="pattern" style="display:flex;align-items:center;gap:6px;padding:10px 12px;border:1px solid var(--m-border);border-radius:10px;cursor:pointer;font-size:.82rem;line-height:1.2">
-          <input type="radio" name="scope" value="pattern" ${scopeDefaut === 'pattern' ? 'checked' : ''} style="margin:0" />
-          <span>🔁<br/>Toutes (récurrent)</span>
+        <label class="m-scope-opt" data-scope="pattern" style="flex:1 1 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:12px 8px;border:2px solid ${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;font-size:.82rem;line-height:1.2;background:${scopeDefaut === 'pattern' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center">
+          <input type="radio" name="scope" value="pattern" ${scopeDefaut === 'pattern' ? 'checked' : ''} style="position:absolute;opacity:0;pointer-events:none;width:0;height:0" />
+          <span style="font-size:1.2rem;line-height:1">🔁</span>
+          <span style="font-weight:600;font-size:.8rem">Récurrent</span>
         </label>
       </div>
 
@@ -3273,6 +3275,19 @@
           const isTrav = select.value === 'travail';
           horaires.style.display = isTrav ? 'grid' : 'none';
           extras.style.display = isTrav ? 'block' : 'none';
+        });
+        // Toggle visuel scope picker (le radio est invisible, c'est le label qui porte le visuel)
+        b.querySelectorAll('.m-scope-opt').forEach(opt => {
+          opt.addEventListener('click', () => {
+            b.querySelectorAll('.m-scope-opt').forEach(o => {
+              const sel = o === opt;
+              o.style.borderColor = sel ? 'var(--m-accent)' : 'var(--m-border)';
+              o.style.background = sel ? 'var(--m-accent-soft)' : 'transparent';
+              o.style.color = sel ? 'var(--m-accent)' : 'var(--m-text)';
+              const radio = o.querySelector('input[type=radio]');
+              if (radio) radio.checked = sel;
+            });
+          });
         });
       },
       onSubmit() {
