@@ -158,4 +158,3 @@ Dernière mise à jour : 2026-05-06
 - [ ] **Workflow GitHub Actions import FEC mensuel Pennylane** : exploiter `PENNYLANE_TOKEN` pour importer FEC → MCA charges/paiements automatique.
 - [ ] **Configurer Teleroute** quand l'accès sera obtenu.
 - [ ] **Rotation tokens illimités** (Pennylane, Qonto) tous les 6 mois.
-- [ ] **Supprimer edge function `secrets-healthcheck`** depuis dashboard Supabase (créée pour test, neutralisée mais à supprimer).
