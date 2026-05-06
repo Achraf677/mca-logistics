@@ -8,6 +8,211 @@
  * A charger AVANT script.js dans admin.html.
  */
 
+// ============================================================
+// Helpers v2 (sprint-95pct) : pattern récurrent + saisies par semaine.
+// Cf. mobile (M.migrerPlanningV2 / M.getSemaineDataForDate) — même logique.
+// ============================================================
+
+const _JOURS_FR_ORDRE = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${j}`;
+}
+
+// Lundi de la semaine contenant `dateRef` (ou aujourd'hui), avec offset en semaines.
+function lundiSemaineFromOffset(offset, dateRef) {
+  const ref = dateRef ? new Date(dateRef) : new Date();
+  const jour = ref.getDay();
+  const decalLundi = jour === 0 ? -6 : 1 - jour;
+  return new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + decalLundi + (offset || 0) * 7);
+}
+
+// Migration boot (idempotente) : v1 (semaine[]) -> v2 (pattern + semaines{}).
+function migrerPlanningV2(planning) {
+  if (!planning || typeof planning !== 'object') return planning;
+  if (!planning.pattern) {
+    planning.pattern = {
+      actif: !!(planning.semaine && planning.semaine.length),
+      semaine: Array.isArray(planning.semaine) ? planning.semaine.slice() : []
+    };
+  }
+  if (!planning.semaines || typeof planning.semaines !== 'object') {
+    planning.semaines = {};
+  }
+  return planning;
+}
+
+// Sprint 6 — Copies semaine PC. Ouvre un dialog avec choix du nombre de
+// semaines à copier (1, 4, 12) ou vider les overrides. Réutilise la
+// même logique que mobile (M.copierSemainePlanning / M.viderOverridesSemaine)
+// mais avec confirmDialog PC + écriture directe ici.
+function ouvrirMenuCopiesSemainePlanning() {
+  var lundi = (typeof getLundiDeSemaine === 'function')
+    ? getLundiDeSemaine(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0)
+    : lundiSemaineFromOffset(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0);
+  var lundiISO = toLocalISODate(lundi);
+  var labelDate = lundi.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric' });
+
+  var msg = 'Que veux-tu faire avec la semaine du ' + labelDate + ' ?\n\n'
+    + '1. Copier vers la semaine suivante\n'
+    + '2. Copier vers les 4 prochaines semaines\n'
+    + '3. Copier vers les 12 prochaines semaines\n'
+    + '4. Vider tous les overrides de cette semaine (revient au pattern récurrent)\n\n'
+    + 'Tape 1, 2, 3 ou 4 :';
+  var choix = window.prompt(msg, '1');
+  if (!choix) return;
+  choix = String(choix).trim();
+  if (choix === '4') {
+    if (!window.confirm('Supprimer toutes les saisies par-semaine de la semaine du ' + labelDate + ' ?\nLes salariés reviendront au pattern récurrent.')) return;
+    viderOverridesSemainePC(lundiISO);
+    return;
+  }
+  var nb = { '1': 1, '2': 4, '3': 12 }[choix];
+  if (!nb) { afficherToast('Choix invalide', 'error'); return; }
+  copierSemainePlanningPC(lundiISO, nb);
+}
+
+function copierSemainePlanningPC(lundiSourceISO, nbSemaines) {
+  var lundiSource = new Date(lundiSourceISO + 'T00:00:00');
+  var plannings = charger('plannings');
+  var JOURS_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  var nbAffectes = 0;
+  plannings.forEach(function(p) {
+    migrerPlanningV2(p);
+    var sourceData = getSemaineDataForDate(p, lundiSource);
+    var aDuContenu = sourceData.some(function(j) { return j && (j.typeJour || j.travaille); });
+    if (!aDuContenu) return;
+    for (var s = 1; s <= nbSemaines; s++) {
+      var lundiCible = new Date(lundiSource.getFullYear(), lundiSource.getMonth(), lundiSource.getDate() + s * 7);
+      var lundiCibleISO = toLocalISODate(lundiCible);
+      p.semaines[lundiCibleISO] = sourceData.map(function(src, i) {
+        var dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+        return {
+          jour: JOURS_LOCAL[i],
+          date: toLocalISODate(dateCible),
+          typeJour: src.typeJour || 'repos',
+          travaille: !!src.travaille,
+          heureDebut: src.heureDebut || '',
+          heureFin: src.heureFin || '',
+          zone: src.zone || '',
+          note: src.note || ''
+        };
+      });
+    }
+    nbAffectes++;
+  });
+  sauvegarder('plannings', plannings);
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Copie planning semaine', nbAffectes + ' salarié(s) sur ' + nbSemaines + ' semaine(s)');
+  afficherToast('✅ ' + nbAffectes + ' planning' + (nbAffectes > 1 ? 's' : '') + ' copié' + (nbAffectes > 1 ? 's' : '') + ' sur ' + nbSemaines + ' semaine' + (nbSemaines > 1 ? 's' : ''));
+}
+
+// Sprint 6 — Copies jour PC. Demande la cible via prompt simple (1 lundi -> 7 dimanche).
+function ouvrirMenuCopiesJourPlanning(jourIdxSource) {
+  var JOURS_LOCAL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
+  var nomSrc = JOURS_LOCAL[jourIdxSource];
+  var lundi = (typeof getLundiDeSemaine === 'function')
+    ? getLundiDeSemaine(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0)
+    : lundiSemaineFromOffset(typeof _planningSemaineOffset === 'number' ? _planningSemaineOffset : 0);
+  var lundiISO = toLocalISODate(lundi);
+  var msg = 'Copier les saisies de ' + nomSrc + ' (semaine du ' + lundi.toLocaleDateString('fr-FR') + ') vers quel jour ?\n\n'
+    + JOURS_LOCAL.map(function(j, i) { return (i === jourIdxSource ? '·' : (i+1)) + ' ' + j + (i === jourIdxSource ? ' (source)' : ''); }).join('\n')
+    + '\n\nTape un chiffre 1-7 :';
+  var choix = window.prompt(msg, '');
+  if (!choix) return;
+  var cibleIdx = parseInt(choix, 10) - 1;
+  if (isNaN(cibleIdx) || cibleIdx < 0 || cibleIdx > 6 || cibleIdx === jourIdxSource) {
+    afficherToast('Choix invalide', 'error');
+    return;
+  }
+  copierJourPlanningPC(jourIdxSource, cibleIdx, lundiISO);
+}
+
+function copierJourPlanningPC(jourIdxSource, jourIdxCible, lundiISO) {
+  var JOURS_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+  var jourCibleCle = JOURS_LOCAL[jourIdxCible];
+  var lundiDate = new Date(lundiISO + 'T00:00:00');
+  var dateCible = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + jourIdxCible);
+  var dateCibleISO = toLocalISODate(dateCible);
+  var plannings = charger('plannings');
+  var nbCopies = 0;
+  plannings.forEach(function(p) {
+    migrerPlanningV2(p);
+    var semaineData = getSemaineDataForDate(p, lundiDate);
+    var source = semaineData[jourIdxSource];
+    if (!source || !source.typeJour) return;
+    if (!p.semaines[lundiISO]) p.semaines[lundiISO] = [];
+    var cibleEntry = {
+      jour: jourCibleCle,
+      date: dateCibleISO,
+      typeJour: source.typeJour,
+      travaille: source.typeJour === 'travail',
+      heureDebut: source.heureDebut || '',
+      heureFin: source.heureFin || '',
+      zone: source.zone || '',
+      note: source.note || ''
+    };
+    var existIdx = p.semaines[lundiISO].findIndex(function(j) { return j && (j.jour === jourCibleCle || j.date === dateCibleISO); });
+    if (existIdx === -1) p.semaines[lundiISO].push(cibleEntry);
+    else p.semaines[lundiISO][existIdx] = Object.assign({}, p.semaines[lundiISO][existIdx], cibleEntry);
+    nbCopies++;
+  });
+  sauvegarder('plannings', plannings);
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Copie planning jour', nbCopies + ' salarié(s) ' + JOURS_LOCAL[jourIdxSource] + ' → ' + jourCibleCle);
+  afficherToast('✅ ' + nbCopies + ' planning' + (nbCopies > 1 ? 's' : '') + ' copié' + (nbCopies > 1 ? 's' : '') + ' ' + JOURS_LOCAL[jourIdxSource] + ' → ' + jourCibleCle);
+}
+
+function viderOverridesSemainePC(lundiISO) {
+  var plannings = charger('plannings');
+  var nbVides = 0;
+  plannings.forEach(function(p) {
+    if (p.semaines && p.semaines[lundiISO]) {
+      delete p.semaines[lundiISO];
+      nbVides++;
+    }
+  });
+  if (nbVides === 0) { afficherToast('Aucun override à vider'); return; }
+  sauvegarder('plannings', plannings);
+  if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
+  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Vider overrides semaine planning', nbVides + ' salarié(s)');
+  afficherToast('✅ ' + nbVides + ' salarié' + (nbVides > 1 ? 's' : '') + ' : retour au pattern récurrent');
+}
+
+// Retourne les 7 jours de la semaine commençant à `lundiDate` (objet Date).
+// Source : semaines[lundiISO] si existe, sinon pattern.semaine, sinon legacy semaine[].
+function getSemaineDataForDate(planning, lundiDate) {
+  migrerPlanningV2(planning);
+  const lundiISO = toLocalISODate(lundiDate);
+  const overrideSemaine = planning.semaines && planning.semaines[lundiISO];
+  const result = [];
+  for (let i = 0; i < 7; i++) {
+    const jourDate = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+    const jourCle = _JOURS_FR_ORDRE[i];
+    const dateISO = toLocalISODate(jourDate);
+    let entry = null;
+    if (Array.isArray(overrideSemaine)) {
+      entry = overrideSemaine.find(j => j && (j.date === dateISO || j.jour === jourCle));
+    }
+    if (!entry && planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine)) {
+      const tmpl = planning.pattern.semaine.find(j => j && j.jour === jourCle);
+      if (tmpl) entry = Object.assign({}, tmpl);
+    }
+    if (!entry && Array.isArray(planning.semaine)) {
+      const legacy = planning.semaine.find(j => j && j.jour === jourCle);
+      if (legacy) entry = Object.assign({}, legacy);
+    }
+    if (!entry) entry = { jour: jourCle };
+    entry.date = dateISO;
+    entry.jour = jourCle;
+    result.push(entry);
+  }
+  return result;
+}
+
 // L1197 (script.js d'origine)
 function ouvrirPlanningSalarie(salId) {
   var salarie = charger('salaries').find(function(item) { return item.id === salId; });
@@ -269,8 +474,12 @@ function planningGetIndisponibilitePourDate(salId, dateStr) {
   var planning = charger('plannings').find(function(item) { return item.salId === salId; }) || { semaine: [] };
   var dateObj = new Date(dateStr + 'T00:00:00');
   if (Number.isNaN(dateObj.getTime())) return null;
-  var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-  var jour = (planning.semaine || []).find(function(item) { return item.jour === jourNom; }) || null;
+  var jourIdx = (dateObj.getDay() + 6) % 7;
+  var jourNom = JOURS[jourIdx];
+  // Lecture v2 : helper combine semaines (override) + pattern + legacy.
+  var lundiSemaine = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() - jourIdx);
+  var semaineData = getSemaineDataForDate(planning, lundiSemaine);
+  var jour = semaineData[jourIdx] || null;
   if (jour && ['conge', 'absence', 'maladie'].includes(jour.typeJour)) {
     return {
       type: jour.typeJour,
@@ -337,8 +546,11 @@ function planningCalculerRecapPeriode(salId, debut, fin) {
     var resolved = (function() {
       var periodEntry = getPlanningPeriodForDate(salId, dateStr, periodes);
       if (periodEntry) return { source: 'period', entry: periodEntry };
-      var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-      var recurring = (planning.semaine || []).find(function(item) { return item.jour === jourNom; }) || null;
+      // Lecture v2 : helper combine semaines (override) + pattern + legacy.
+      var jourIdx = (dateObj.getDay() + 6) % 7;
+      var lundiSemaine = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() - jourIdx);
+      var semaineData = getSemaineDataForDate(planning, lundiSemaine);
+      var recurring = semaineData[jourIdx] || null;
       return { source: 'recurring', entry: recurring };
     })();
     var entry = resolved.entry;
@@ -643,7 +855,7 @@ function afficherPlanningSemaine() {
   if (elLabel) elLabel.textContent = labelSemaine;
   if (elDates) elDates.textContent = labelDates;
 
-  // Thead avec dates
+  // Thead avec dates + bouton ⋯ par colonne jour (sprint 6 : copies inter-jours)
   var thead = document.getElementById('thead-planning-semaine');
   if (thead) {
     thead.innerHTML = '<tr><th>Salarié</th>' + datesSemaine.map(function(d,i) {
@@ -651,7 +863,10 @@ function afficherPlanningSemaine() {
       const _m = String(d.getMonth()+1).padStart(2,'0');
       const _d = String(d.getDate()).padStart(2,'0');
       var isAuj = (_y+'-'+_m+'-'+_d) === aujourdhui();
-      return '<th style="text-align:center;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">' + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '</th>';
+      return '<th style="text-align:center;position:relative;' + (isAuj?'color:var(--accent);font-weight:800':'') + '">'
+        + JOURS_COURTS[i] + ' ' + String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0')
+        + ' <button type="button" onclick="ouvrirMenuCopiesJourPlanning(' + i + ')" title="Copier ce jour" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;padding:0 4px;font-size:.85rem">⋯</button>'
+        + '</th>';
     }).join('') + '</tr>';
   }
 

@@ -388,6 +388,45 @@
   };
   M.escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  // Doughnut SVG inline (sans Chart.js, ~0 KB ajout). segments: [{label, value, color}]
+  // opts: { centerLabel, centerValue, size }
+  M.renderDoughnut = function(segments, opts) {
+    opts = opts || {};
+    const total = segments.reduce((s, x) => s + (Number(x.value) || 0), 0);
+    if (total <= 0) return '';
+    const size = opts.size || 180;
+    const cx = size / 2, cy = size / 2;
+    const r = size * 0.4;        // rayon arc
+    const stroke = size * 0.2;   // épaisseur du donut (-> hole 60%)
+    const circumference = 2 * Math.PI * r;
+    let offset = 0;
+    const arcs = segments.map(seg => {
+      const v = Number(seg.value) || 0;
+      if (v <= 0) return '';
+      const frac = v / total;
+      const dash = circumference * frac;
+      const gap = circumference - dash;
+      const arc = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${stroke}" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})" />`;
+      offset += dash;
+      return arc;
+    }).join('');
+    const center = (opts.centerLabel || opts.centerValue) ? `
+      ${opts.centerLabel ? `<text x="${cx}" y="${cy - 8}" text-anchor="middle" style="font-size:.68rem;fill:var(--m-text-muted)">${M.escHtml(opts.centerLabel)}</text>` : ''}
+      ${opts.centerValue ? `<text x="${cx}" y="${cy + 12}" text-anchor="middle" style="font-size:.95rem;font-weight:700;fill:var(--m-text)">${M.escHtml(opts.centerValue)}</text>` : ''}
+    ` : '';
+    const legend = segments.map(seg => {
+      const v = Number(seg.value) || 0;
+      const pct = total > 0 ? Math.round(v / total * 100) : 0;
+      return `<span style="display:inline-flex;align-items:center;gap:5px;font-size:.78rem"><span style="width:9px;height:9px;background:${seg.color};border-radius:2px;flex:0 0 auto"></span>${M.escHtml(seg.label)} ${pct}%</span>`;
+    }).join('');
+    return `
+      <div style="display:flex;justify-content:center;margin-top:14px">
+        <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="display:block">${arcs}${center}</svg>
+      </div>
+      <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:10px 14px;margin-top:10px">${legend}</div>
+    `;
+  };
+
   // Toast
   let toastTimer = null;
   M.toast = function(message, opts = {}) {
@@ -509,7 +548,8 @@
     const isNum = type === 'number';
     const realType = isNum ? 'text' : type;
     const inputmode = isNum ? 'inputmode="decimal" pattern="[0-9.,]*"' : '';
-    return `<input type="${realType}" ${inputmode} name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
+    const list = opts.list ? `list="${M.escHtml(opts.list)}"` : '';
+    return `<input type="${realType}" ${inputmode} ${list} name="${M.escHtml(name)}" placeholder="${M.escHtml(ph)}" value="${M.escHtml(value)}" ${step} ${min} ${opts.required ? 'required' : ''} ${opts.autocomplete ? `autocomplete="${opts.autocomplete}"` : ''} />`;
   };
 
   // Parse un nombre en acceptant virgule OU point (clavier FR / EN)
@@ -577,12 +617,7 @@
       </div>
       <div class="m-form-row">
         ${M.formField('Prix HT', M.formInputWithSuffix('prixHT', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.prixHT || v.prix || '', required: true }), { required: true })}
-        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
-          { value: '0',    label: '0% (exonéré)' },
-          { value: '5.5',  label: '5,5%' },
-          { value: '10',   label: '10%' },
-          { value: '20',   label: '20%' }
-        ], { value: String(v.tauxTva ?? 20) }))}
+        ${M.formField('Taux TVA', M.formInputWithSuffix('tauxTva', '%', { type: 'number', step: '0.1', min: '0', max: '100', list: 'taux-tva-suggestions', placeholder: '20', value: String(v.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: v.tva || '' }))}
@@ -1282,12 +1317,7 @@
       ${M.formField('Date', M.formInput('date', { type: 'date', value: c.date || today, required: true }), { required: true })}
       <div class="m-form-row">
         ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantHT || '' }))}
-        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
-          { value: '0',    label: '0%' },
-          { value: '5.5',  label: '5,5%' },
-          { value: '10',   label: '10%' },
-          { value: '20',   label: '20%' }
-        ], { value: String(c.tauxTva ?? 20) }))}
+        ${M.formField('Taux TVA', M.formInputWithSuffix('tauxTva', '%', { type: 'number', step: '0.1', min: '0', max: '100', list: 'taux-tva-suggestions', placeholder: '20', value: String(c.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.tva || '' }), { hint: 'Auto, ou saisi manuellement (ex: facture mixte)' })}
@@ -2964,12 +2994,7 @@
       </div>
       <div class="m-form-row">
         ${M.formField('Coût HT', M.formInputWithSuffix('coutHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.coutHt || '' }))}
-        ${M.formField('Taux TVA', M.formSelect('tauxTva', [
-          { value: '0',    label: '0%' },
-          { value: '5.5',  label: '5,5%' },
-          { value: '10',   label: '10%' },
-          { value: '20',   label: '20%' }
-        ], { value: String(e.tauxTva ?? 20) }))}
+        ${M.formField('Taux TVA', M.formInputWithSuffix('tauxTva', '%', { type: 'number', step: '0.1', min: '0', max: '100', list: 'taux-tva-suggestions', placeholder: '20', value: String(e.tauxTva ?? 20) }))}
       </div>
       <div class="m-form-row">
         ${M.formField('TVA', M.formInputWithSuffix('tva', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.tva || '' }), { hint: 'Calcul auto' })}
@@ -3172,23 +3197,54 @@
   };
 
   // ---- PLANNING (saisie horaires d'un salarie pour le jour selectionne) ----
-  M.formPlanningJour = function(salId) {
+  M.formPlanningJour = function(salId, options) {
+    options = options || {};
     const salaries = M.charger('salaries');
     const sal = salaries.find(s => s.id === salId);
     if (!sal) return M.toast('Salarié introuvable');
     const plannings = M.charger('plannings');
-    const planning = plannings.find(p => p.salId === salId) || { salId, semaine: [] };
+    let planning = plannings.find(p => p.salId === salId);
+    if (!planning) planning = { salId };
+    M.migrerPlanningV2(planning);
     const jourIdx = M.state.planningJour;
     const jourCle = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][jourIdx];
     const jourLabel = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
-    const data = (planning.semaine || []).find(j => j.jour === jourCle) || {};
+    // lundiISO de la semaine cible. Default = semaine courante.
+    const lundiCible = options.lundiISO
+      ? new Date(options.lundiISO + 'T00:00:00')
+      : M.lundiSemaineOffset(0);
+    const lundiISO = M.toLocalISODate(lundiCible);
+    const dateJourCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + jourIdx);
+    const dateJourISO = M.toLocalISODate(dateJourCible);
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const dateLabel = `${dateJourCible.getDate()} ${moisCourtFR[dateJourCible.getMonth()]}`;
+
+    // Source : helper v2. Note si l'entrée vient d'un override semaine ou du pattern.
+    const semaineData = M.getSemaineDataForDate(planning, lundiCible);
+    const data = semaineData[jourIdx] || {};
+    const overrideExiste = !!(planning.semaines && planning.semaines[lundiISO]);
     const typeJour = data.typeJour || (data.travaille ? 'travail' : 'repos');
     const fullName = ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || sal.id)).trim();
+    // Default scope : "semaine" si override deja saisi, sinon "pattern" (compat avec ancien comportement).
+    const scopeDefaut = overrideExiste ? 'semaine' : 'pattern';
 
     const body = `
       <div style="background:var(--m-accent-soft);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-size:.88rem">
-        <strong>${jourLabel}</strong> · ${M.escHtml(fullName)}
+        <strong>${jourLabel} ${dateLabel}</strong> · ${M.escHtml(fullName)}
       </div>
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">Appliquer à</div>
+      <div role="radiogroup" id="m-scope-group" data-scope="${scopeDefaut}" style="display:flex;gap:8px;margin-bottom:14px;width:100%">
+        <button type="button" class="m-scope-opt" data-scope="semaine" aria-pressed="${scopeDefaut === 'semaine'}" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border:2px solid ${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;line-height:1.2;background:${scopeDefaut === 'semaine' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'semaine' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center;font-family:inherit;-webkit-appearance:none;appearance:none;box-sizing:border-box;width:auto;min-height:0;font-size:.78rem">
+          <span style="font-size:1.05rem;line-height:1" aria-hidden="true">📅</span>
+          <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">Cette semaine</span>
+        </button>
+        <button type="button" class="m-scope-opt" data-scope="pattern" aria-pressed="${scopeDefaut === 'pattern'}" style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 6px;border:2px solid ${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-border)'};border-radius:12px;cursor:pointer;line-height:1.2;background:${scopeDefaut === 'pattern' ? 'var(--m-accent-soft)' : 'transparent'};color:${scopeDefaut === 'pattern' ? 'var(--m-accent)' : 'var(--m-text)'};text-align:center;font-family:inherit;-webkit-appearance:none;appearance:none;box-sizing:border-box;width:auto;min-height:0;font-size:.78rem">
+          <span style="font-size:1.05rem;line-height:1" aria-hidden="true">🔁</span>
+          <span style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">Récurrent</span>
+        </button>
+      </div>
+
       ${M.formField('Type de jour', M.formSelect('typeJour', [
         { value: 'travail', label: '✅ Travail' },
         { value: 'repos',   label: 'Repos' },
@@ -3218,23 +3274,72 @@
           horaires.style.display = isTrav ? 'grid' : 'none';
           extras.style.display = isTrav ? 'block' : 'none';
         });
+        // Scope picker : 2 boutons HTML purs (pas de radio natif iOS qui s'affiche
+        // comme un cercle/bouton geant a cause de la regle CSS globale input{...}).
+        // La valeur selectionnee est stockee sur #m-scope-group[data-scope]
+        // et lue par onSubmit via group.dataset.scope.
+        const scopeGroup = b.querySelector('#m-scope-group');
+        if (scopeGroup) {
+          scopeGroup.querySelectorAll('.m-scope-opt').forEach(opt => {
+            opt.addEventListener('click', () => {
+              const v = opt.dataset.scope;
+              scopeGroup.dataset.scope = v;
+              scopeGroup.querySelectorAll('.m-scope-opt').forEach(o => {
+                const sel = o === opt;
+                o.setAttribute('aria-pressed', sel ? 'true' : 'false');
+                o.style.borderColor = sel ? 'var(--m-accent)' : 'var(--m-border)';
+                o.style.background = sel ? 'var(--m-accent-soft)' : 'transparent';
+                o.style.color = sel ? 'var(--m-accent)' : 'var(--m-text)';
+              });
+            });
+          });
+        }
       },
       onSubmit() {
         const f = M.lireFormSheet();
+        // Le scope picker n'est plus un radio HTML (cf. afterMount) : on lit
+        // la valeur sur le data-attr du conteneur.
+        const scopeGroup = document.querySelector('#m-sheet-body #m-scope-group');
+        const scope = (scopeGroup && scopeGroup.dataset.scope) || scopeDefaut;
         const arr = M.charger('plannings');
         let p = arr.find(x => x.salId === salId);
-        if (!p) { p = { salId, semaine: [] }; arr.push(p); }
-        p.semaine = p.semaine || [];
-        let jourEntry = p.semaine.find(j => j.jour === jourCle);
-        if (!jourEntry) { jourEntry = { jour: jourCle }; p.semaine.push(jourEntry); }
-        jourEntry.typeJour = f.typeJour;
-        jourEntry.travaille = f.typeJour === 'travail';
-        jourEntry.heureDebut = f.heureDebut || '';
-        jourEntry.heureFin = f.heureFin || '';
-        jourEntry.zone = f.zone?.trim() || '';
-        jourEntry.note = f.note?.trim() || '';
+        if (!p) { p = { salId }; arr.push(p); }
+        M.migrerPlanningV2(p);
+
+        const entry = {
+          jour: jourCle,
+          date: dateJourISO,
+          typeJour: f.typeJour,
+          travaille: f.typeJour === 'travail',
+          heureDebut: f.heureDebut || '',
+          heureFin: f.heureFin || '',
+          zone: (f.zone || '').trim(),
+          note: (f.note || '').trim()
+        };
+
+        if (scope === 'pattern') {
+          // Ecrit dans le pattern recurrent (s'applique a toutes les semaines sans override).
+          p.pattern.actif = true;
+          if (!Array.isArray(p.pattern.semaine)) p.pattern.semaine = [];
+          let idx = p.pattern.semaine.findIndex(j => j && j.jour === jourCle);
+          // Pattern : pas de date specifique
+          const patternEntry = { ...entry };
+          delete patternEntry.date;
+          if (idx === -1) p.pattern.semaine.push(patternEntry);
+          else p.pattern.semaine[idx] = { ...p.pattern.semaine[idx], ...patternEntry };
+          // Conserve aussi p.semaine legacy en sync (backward compat lecture)
+          p.semaine = p.pattern.semaine.slice();
+          M.toast('✅ Récurrent : ' + jourLabel + ' (toutes semaines)');
+        } else {
+          // Ecrit dans semaines[lundiISO] (override de cette semaine uniquement).
+          if (!p.semaines || typeof p.semaines !== 'object') p.semaines = {};
+          if (!Array.isArray(p.semaines[lundiISO])) p.semaines[lundiISO] = [];
+          let idx = p.semaines[lundiISO].findIndex(j => j && (j.jour === jourCle || j.date === dateJourISO));
+          if (idx === -1) p.semaines[lundiISO].push(entry);
+          else p.semaines[lundiISO][idx] = { ...p.semaines[lundiISO][idx], ...entry };
+          M.toast('✅ Semaine du ' + dateLabel.replace(jourLabel, '').trim() + ' uniquement');
+        }
         M.sauvegarder('plannings', arr);
-        M.toast('✅ Planning mis à jour');
         M.go('planning');
         return true;
       }
@@ -3797,12 +3902,12 @@
       const plannings = M.charger('plannings');
       const vue = M.state.planningVue || 'jour';
 
-      // Header : toggle vue + bouton periodes absences
+      // Header : toggle vue + bouton periodes absences (compact pour eviter overflow)
       let html = `
-        <div style="display:flex;gap:6px;margin-bottom:14px">
-          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0">📅 Jour</button>
-          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0">🗓️ Semaine</button>
-          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 auto;padding:0 14px;height:40px;font-size:.78rem">🏖️ Absence longue</button>
+        <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">📅 Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">🗓️ Sem.</button>
+          <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 44px;padding:0;height:40px;font-size:1.1rem;line-height:1" title="Ajouter une période d'absence longue">🏖️</button>
         </div>
       `;
 
@@ -3815,11 +3920,14 @@
       const jourCle = M_JOURS_FR[jourIdx];
       const estAujourd = jourIdx === jourIndexAuj();
 
-      // Pour chaque salarie : son etat du jour selectionne
+      // Pour chaque salarie : son etat du jour selectionne (vue Jour = semaine courante).
+      // Utilise le helper v2 (pattern + override par semaine).
+      const lundiCourant = M.lundiSemaineOffset(0);
       const lignes = salaries.map(sal => {
         const planning = plannings.find(p => p.salId === sal.id);
-        const jourData = planning && Array.isArray(planning.semaine)
-          ? planning.semaine.find(j => j.jour === jourCle) : null;
+        if (!planning) return { sal, typeJour: 'repos', jourData: null };
+        const semaineData = M.getSemaineDataForDate(planning, lundiCourant);
+        const jourData = semaineData[jourIdx] || null;
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
         return { sal, typeJour, jourData };
       });
@@ -3903,21 +4011,47 @@
         btn.addEventListener('click', () => { M.state.planningVue = btn.dataset.vue; M.go('planning'); });
       });
       container.querySelector('#m-planning-abs-add')?.addEventListener('click', () => M.formAbsenceLongue());
+      // Nav semaine (vue semaine uniquement)
+      container.querySelector('#m-planning-sem-prev')?.addEventListener('click', () => {
+        M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) - 1;
+        M.go('planning');
+      });
+      container.querySelector('#m-planning-sem-next')?.addEventListener('click', () => {
+        M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) + 1;
+        M.go('planning');
+      });
+      container.querySelector('#m-planning-sem-today')?.addEventListener('click', () => {
+        M.state.planningSemaineOffset = 0;
+        M.go('planning');
+      });
+      // Menu actions semaine (sprint 4 : copies)
+      container.querySelector('#m-planning-sem-menu')?.addEventListener('click', () => {
+        M.menuActionsSemainePlanning();
+      });
+      // Menu actions jour (sprint 3 : copies / vider override)
+      container.querySelectorAll('.m-planning-jour-menu').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          M.menuActionsJourPlanning(parseInt(btn.dataset.jourIdx));
+        });
+      });
       container.querySelectorAll('.m-planning-jour').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.planningJour = parseInt(btn.dataset.jour);
           M.go('planning');
         });
       });
-      // Tap salarie -> ouvre form planning pour CE jour selectionne
+      // Tap salarie -> ouvre form planning pour CE jour selectionne (semaine courante)
       container.querySelectorAll('.m-planning-sal').forEach(btn => {
         btn.addEventListener('click', () => M.formPlanningJour(btn.dataset.salId));
       });
-      // Vue semaine : tap cell -> form planning pour ce salarie/jour
+      // Vue semaine : tap cell -> form planning pour ce salarie/jour de LA semaine affichee
       container.querySelectorAll('.m-planning-cell').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.planningJour = parseInt(btn.dataset.jourIdx);
-          M.formPlanningJour(btn.dataset.salId);
+          const offset = M.state.planningSemaineOffset || 0;
+          const lundiCible = M.lundiSemaineOffset(offset);
+          M.formPlanningJour(btn.dataset.salId, { lundiISO: M.toLocalISODate(lundiCible) });
         });
       });
       // Vue absences : tap card -> editer / supprimer
@@ -3928,40 +4062,181 @@
   });
 
   // Vue semaine : grille condensee 7 colonnes x N salaries
+  // Calcule le lundi de la semaine cible (offset 0 = semaine courante,
+  // -1 = précédente, +1 = suivante, etc.).
+  M.lundiSemaineOffset = function(offset) {
+    const today = new Date();
+    const jour = today.getDay(); // 0=dim, 1=lun, ... 6=sam
+    const decalLundi = jour === 0 ? -6 : 1 - jour;
+    const lundi = new Date(today.getFullYear(), today.getMonth(), today.getDate() + decalLundi + (offset || 0) * 7);
+    return lundi;
+  };
+
+  // Format YYYY-MM-DD local (sans drift timezone). Utilisé comme clé de
+  // semaine (lundi ISO) dans planning.semaines.
+  M.toLocalISODate = function(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const j = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${j}`;
+  };
+
+  // Migration boot (idempotente) : structure planning v1 (semaine[]) -> v2 (pattern + semaines{}).
+  // - p.pattern.semaine[] = ancien p.semaine[] (pattern hebdomadaire récurrent)
+  // - p.semaines = {} (saisies indépendantes par semaine, clé = lundi ISO)
+  // - p.semaine conservé pour backward compat avec code legacy non encore migré.
+  M.migrerPlanningV2 = function(planning) {
+    if (!planning || typeof planning !== 'object') return planning;
+    if (!planning.pattern) {
+      planning.pattern = {
+        actif: !!(planning.semaine && planning.semaine.length),
+        semaine: Array.isArray(planning.semaine) ? planning.semaine.slice() : []
+      };
+    }
+    if (!planning.semaines || typeof planning.semaines !== 'object') {
+      planning.semaines = {};
+    }
+    return planning;
+  };
+
+  // Helper : retourne les 7 jours de la semaine commençant à `lundiDate`,
+  // au format [{ jour, date, typeJour, heureDebut, heureFin, zone, note, ... }, ...].
+  // Source : semaines[lundiISO] si existe, sinon pattern.semaine mappé sur les dates.
+  M.getSemaineDataForDate = function(planning, lundiDate) {
+    M.migrerPlanningV2(planning);
+    const lundiISO = M.toLocalISODate(lundiDate);
+    const overrideSemaine = planning.semaines && planning.semaines[lundiISO];
+    const result = [];
+    for (let i = 0; i < 7; i++) {
+      const jourDate = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+      const jourCle = M_JOURS_FR[i];
+      const dateISO = M.toLocalISODate(jourDate);
+      // 1. Override par date (priorité absolue)
+      let entry = null;
+      if (Array.isArray(overrideSemaine)) {
+        entry = overrideSemaine.find(j => j && (j.date === dateISO || j.jour === jourCle));
+      }
+      // 2. Pattern récurrent (fallback si pas d'override et pattern actif)
+      if (!entry && planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine)) {
+        const tmpl = planning.pattern.semaine.find(j => j && j.jour === jourCle);
+        if (tmpl) entry = Object.assign({}, tmpl); // clone pour ne pas muter le pattern
+      }
+      // 3. Fallback ultime : ancien planning.semaine (backward compat tant que pas migré)
+      if (!entry && Array.isArray(planning.semaine)) {
+        const legacy = planning.semaine.find(j => j && j.jour === jourCle);
+        if (legacy) entry = Object.assign({}, legacy);
+      }
+      if (!entry) entry = { jour: jourCle };
+      // Toujours injecter date + jour pour cohérence
+      entry.date = dateISO;
+      entry.jour = jourCle;
+      result.push(entry);
+    }
+    return result;
+  };
+
   M.renderPlanningSemaine = function(salaries, plannings) {
     if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
-    const labels = { travail: '✅', conge: '🏖️', absence: '⚠️', maladie: '🤒', repos: '😴' };
-    const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', absence: 'var(--m-red)', maladie: 'var(--m-red)', repos: 'rgba(155,155,155,.3)' };
+    // Vue Semaine refondue (sprint-95pct) : 1 carte par jour empilée verticalement,
+    // salariés affichés en chips groupées par statut. Avantage : aucune pression
+    // horizontale (la grille 8 colonnes débordait sur iPhone), scale propre de
+    // 320px (SE) à 430px (Pro Max), chaque chip reste tappable pour ouvrir le form.
+    const labelsType = { travail: 'Travail', conge: 'Congé', absence: 'Absence', maladie: 'Maladie', repos: 'Repos' };
+    const iconsType  = { travail: '✅', conge: '🏖️', absence: '⚠️', maladie: '🤒', repos: '😴' };
     const todayIdx = jourIndexAuj();
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const sameMonth = lundi.getMonth() === dimanche.getMonth();
+    const labelDates = sameMonth
+      ? `${lundi.getDate()}–${dimanche.getDate()} ${moisCourtFR[lundi.getMonth()]}`
+      : `${lundi.getDate()} ${moisCourtFR[lundi.getMonth()]} – ${dimanche.getDate()} ${moisCourtFR[dimanche.getMonth()]}`;
+    const numSemaine = (function(d) {
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - dayNum + 3);
+      const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+      return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+    })(lundi);
 
-    let html = `<div class="m-card" style="padding:0;overflow:hidden">
-      <div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.7rem">
-        <div style="padding:8px 6px;background:var(--m-bg-elevated);font-weight:700;border-bottom:1px solid var(--m-border)"></div>
-        ${M_JOURS_COURT.map((j, i) => `<div style="padding:8px 4px;background:var(--m-bg-elevated);font-weight:700;text-align:center;border-bottom:1px solid var(--m-border);${i === todayIdx ? 'color:var(--m-accent)' : ''}">${j}</div>`).join('')}
-      </div>`;
+    // Barre nav semaine compacte : ‹  Sem N · dates  ›  ⋯
+    // Tap sur le label central (si offset != 0) = retour semaine courante.
+    // Bouton ⋯ = menu copies / actions (sprint 4).
+    const isCurrent = offset === 0;
+    let html = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
+        <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''} title="${isCurrent ? '' : 'Tap pour revenir à cette semaine'}">
+          ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
+        </button>
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine suivante">›</button>
+        <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
+      </div>
+    `;
 
-    salaries.forEach((sal, sIdx) => {
-      const planning = plannings.find(p => p.salId === sal.id);
-      const semaine = planning && Array.isArray(planning.semaine) ? planning.semaine : [];
-      const isLast = sIdx === salaries.length - 1;
-      html += `<div style="display:grid;grid-template-columns:90px repeat(7, 1fr);gap:0;font-size:.72rem">
-        <div style="padding:10px 6px;font-weight:600;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id).slice(0, 8))}</div>`;
-      M_JOURS_FR.forEach((jourCle, jIdx) => {
-        const jourData = semaine.find(j => j.jour === jourCle);
+    // Petit nom : initiale prénom + nom complet (fallback id), trim
+    const nomCourt = (sal) => {
+      const base = (sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id || '');
+      return base.trim();
+    };
+
+    // 1 carte par jour. Chaque carte = header (jour + date) + chips groupées par statut.
+    // Tap chip = form planning pour ce salarié/jour.
+    M_JOURS_FR.forEach((jourCle, jIdx) => {
+      const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + jIdx);
+      const isToday = offset === 0 && jIdx === todayIdx;
+      const jourLong = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
+      const dateStr = `${d.getDate()} ${moisCourtFR[d.getMonth()]}`;
+
+      // Calcule statut de chaque salarié pour ce jour (via helper v2 : pattern + override par semaine)
+      const groupes = { travail: [], conge: [], absence: [], maladie: [], repos: [] };
+      salaries.forEach(sal => {
+        const planning = plannings.find(p => p.salId === sal.id);
+        if (!planning) { groupes.repos.push({ sal, horaire: '' }); return; }
+        const semaineData = M.getSemaineDataForDate(planning, lundi);
+        const jourData = semaineData[jIdx];
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
-        const lbl = labels[typeJour] || '·';
-        const bg = colors[typeJour] || 'transparent';
-        const isToday = jIdx === todayIdx;
-        const horaireShort = jourData?.heureDebut && jourData?.heureFin ? jourData.heureDebut.slice(0, 5) : '';
-        html += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="padding:8px 2px;text-align:center;background:${bg};color:${typeJour === 'travail' || typeJour === 'conge' || typeJour === 'absence' || typeJour === 'maladie' ? '#fff' : 'var(--m-text)'};border:0;${!isLast ? 'border-bottom:1px solid var(--m-border);' : ''}${isToday ? 'box-shadow:inset 0 0 0 2px var(--m-accent)' : ''};font-family:inherit;cursor:pointer;font-size:.78rem;font-weight:600;line-height:1.1">
-          <div>${lbl}</div>
-          ${horaireShort ? `<div style="font-size:.62rem;opacity:.85;margin-top:1px">${horaireShort}</div>` : ''}
-        </button>`;
+        const horaire = jourData?.heureDebut && jourData?.heureFin
+          ? `${jourData.heureDebut.slice(0, 5)}–${jourData.heureFin.slice(0, 5)}` : '';
+        (groupes[typeJour] || groupes.repos).push({ sal, horaire });
       });
+
+      const nbTravail = groupes.travail.length;
+      const nbHors = salaries.length - nbTravail;
+
+      html += `<div class="m-card" style="padding:12px 14px;margin-bottom:10px;width:100%;max-width:100%;box-sizing:border-box;overflow:hidden;${isToday ? 'border-left:4px solid var(--m-accent);' : ''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px">
+          <div style="font-weight:700;font-size:.95rem;min-width:0;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto">
+            ${jourLong} <span style="color:var(--m-text-muted);font-weight:500;font-size:.82rem">${dateStr}</span>
+            ${isToday ? '<span style="color:var(--m-accent);font-size:.72rem;font-weight:700;margin-left:6px">• AUJ.</span>' : ''}
+          </div>
+          <div style="font-size:.72rem;color:var(--m-text-muted);white-space:nowrap;flex:0 0 auto">
+            ${nbTravail}T${nbHors ? `·${nbHors}` : ''}
+          </div>
+          <button type="button" class="m-planning-jour-menu" data-jour-idx="${jIdx}" aria-label="Actions jour" style="flex:0 0 28px;width:28px;height:28px;border:1px solid var(--m-border);border-radius:8px;background:transparent;color:var(--m-text-muted);font-size:.95rem;line-height:1;cursor:pointer;font-family:inherit">⋯</button>
+        </div>`;
+
+      // Rend chips d'un groupe (seulement si non vide). Chips = flex-wrap, donc
+      // jamais d'overflow horizontal : elles passent à la ligne automatiquement.
+      const renderGroupe = (typeJour, items, bgVar, txtColor) => {
+        if (!items.length) return '';
+        return `<div style="margin-top:8px;max-width:100%">
+          <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">${iconsType[typeJour]} ${labelsType[typeJour]} · ${items.length}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;max-width:100%">
+            ${items.map(({ sal, horaire }) => `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${jIdx}" style="background:${bgVar};color:${txtColor};border:0;border-radius:999px;padding:6px 10px;font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;min-height:32px">${M.escHtml(nomCourt(sal))}${horaire ? ` · ${horaire}` : ''}</button>`).join('')}
+          </div>
+        </div>`;
+      };
+
+      html += renderGroupe('travail', groupes.travail, 'var(--m-green)',         '#06231b');
+      html += renderGroupe('conge',   groupes.conge,   'var(--m-blue)',          '#06141b');
+      html += renderGroupe('absence', groupes.absence, 'var(--m-red)',           '#fff');
+      html += renderGroupe('maladie', groupes.maladie, 'var(--m-red)',           '#fff');
+      html += renderGroupe('repos',   groupes.repos,   'rgba(120,120,120,.55)',  '#fff');
+
       html += `</div>`;
     });
-
-    html += `</div>`;
 
     // Section "Périodes d'absence" (longues durées)
     const absences = [];
@@ -4000,6 +4275,195 @@
       html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
     }
     return html;
+  };
+
+  // ============================================================
+  // Sprint 3 — Menu actions jour : copier ce jour vers un autre jour
+  // ============================================================
+  M.menuActionsJourPlanning = function(jourIdxSource) {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const lundiISO = M.toLocalISODate(lundi);
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const jourSourceLabel = M_JOURS_FR_LOCAL[jourIdxSource];
+    const jourSourceCap = jourSourceLabel.charAt(0).toUpperCase() + jourSourceLabel.slice(1);
+
+    // Liste les autres jours de la semaine en boutons
+    const otherDaysHtml = M_JOURS_FR_LOCAL.map((j, i) => {
+      if (i === jourIdxSource) return '';
+      return `<button type="button" class="m-btn" data-target-jour="${i}" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ ${j.charAt(0).toUpperCase() + j.slice(1)}</button>`;
+    }).join('');
+
+    M.openSheet({
+      title: 'Copier ' + jourSourceCap,
+      body: `
+        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
+          Copie les saisies de <strong>${jourSourceCap}</strong> (cette semaine) vers un autre jour de la même semaine, pour tous les salariés ayant un planning saisi.
+        </p>
+        <div>${otherDaysHtml}</div>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--m-border)">
+          <button type="button" class="m-btn m-btn-danger" id="m-jour-vider-overrides" style="width:100%">🗑️ Vider tous les overrides de cette semaine</button>
+          <p class="m-form-hint" style="margin-top:6px">Supprime les saisies par semaine et revient au pattern récurrent.</p>
+        </div>
+      `,
+      submitLabel: '',
+      afterMount(b) {
+        b.querySelectorAll('[data-target-jour]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const cibleIdx = parseInt(btn.dataset.targetJour);
+            M.copierJourPlanning(jourIdxSource, cibleIdx, lundiISO);
+            M.closeSheet?.();
+          });
+        });
+        b.querySelector('#m-jour-vider-overrides')?.addEventListener('click', async () => {
+          const ok = await M.confirm?.('Supprimer toutes les saisies par-semaine de la semaine affichée ?') ?? confirm('Supprimer toutes les saisies par-semaine ?');
+          if (!ok) return;
+          M.viderOverridesSemaine(lundiISO);
+          M.closeSheet?.();
+        });
+      },
+      onSubmit() { return true; }
+    });
+    // Cache le bouton submit (pas de submit dans ce menu)
+    setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Copie les saisies du jour source vers le jour cible, pour TOUS les salariés
+  // qui ont une saisie sur le jour source dans cette semaine. Override la semaine
+  // cible (ne touche PAS le pattern).
+  M.copierJourPlanning = function(jourIdxSource, jourIdxCible, lundiISO) {
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const jourSourceCle = M_JOURS_FR_LOCAL[jourIdxSource];
+    const jourCibleCle = M_JOURS_FR_LOCAL[jourIdxCible];
+    const lundiDate = new Date(lundiISO + 'T00:00:00');
+    const dateCible = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + jourIdxCible);
+    const dateCibleISO = M.toLocalISODate(dateCible);
+    const plannings = M.charger('plannings');
+    let nbCopies = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const semaineData = M.getSemaineDataForDate(p, lundiDate);
+      const source = semaineData[jourIdxSource];
+      if (!source || !source.typeJour) return;
+      // Ecrit l'override dans semaines[lundiISO]
+      if (!p.semaines[lundiISO]) p.semaines[lundiISO] = [];
+      const cibleEntry = {
+        jour: jourCibleCle,
+        date: dateCibleISO,
+        typeJour: source.typeJour,
+        travaille: source.typeJour === 'travail',
+        heureDebut: source.heureDebut || '',
+        heureFin: source.heureFin || '',
+        zone: source.zone || '',
+        note: source.note || ''
+      };
+      const existIdx = p.semaines[lundiISO].findIndex(j => j && (j.jour === jourCibleCle || j.date === dateCibleISO));
+      if (existIdx === -1) p.semaines[lundiISO].push(cibleEntry);
+      else p.semaines[lundiISO][existIdx] = { ...p.semaines[lundiISO][existIdx], ...cibleEntry };
+      nbCopies++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbCopies} planning${nbCopies > 1 ? 's' : ''} copié${nbCopies > 1 ? 's' : ''} ${jourSourceCle} → ${jourCibleCle}`);
+    M.go('planning');
+  };
+
+  // Supprime tous les overrides de la semaine affichée (revient au pattern).
+  M.viderOverridesSemaine = function(lundiISO) {
+    const plannings = M.charger('plannings');
+    let nbVides = 0;
+    plannings.forEach(p => {
+      if (p.semaines && p.semaines[lundiISO]) {
+        delete p.semaines[lundiISO];
+        nbVides++;
+      }
+    });
+    if (nbVides === 0) {
+      M.toast('Aucun override à vider sur cette semaine');
+      return;
+    }
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbVides} salarié${nbVides > 1 ? 's' : ''} : retour au pattern récurrent`);
+    M.go('planning');
+  };
+
+  // ============================================================
+  // Sprint 4 — Menu actions semaine : copier cette semaine vers d'autres
+  // ============================================================
+  M.menuActionsSemainePlanning = function() {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const lundiISO = M.toLocalISODate(lundi);
+
+    M.openSheet({
+      title: 'Copier la semaine',
+      body: `
+        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
+          Copie toutes les saisies de cette semaine vers une ou plusieurs semaines suivantes (override : ne touche pas au pattern récurrent).
+        </p>
+        <button type="button" class="m-btn" data-copies="1" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers la semaine suivante</button>
+        <button type="button" class="m-btn" data-copies="4" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 4 prochaines semaines</button>
+        <button type="button" class="m-btn" data-copies="12" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 12 prochaines semaines</button>
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--m-border)">
+          <button type="button" class="m-btn m-btn-danger" id="m-sem-vider-overrides" style="width:100%">🗑️ Vider tous les overrides de cette semaine</button>
+          <p class="m-form-hint" style="margin-top:6px">Supprime les saisies par-semaine de tous les salariés (revient au pattern récurrent).</p>
+        </div>
+      `,
+      submitLabel: '',
+      afterMount(b) {
+        b.querySelectorAll('[data-copies]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const n = parseInt(btn.dataset.copies);
+            M.copierSemainePlanning(lundiISO, n);
+            M.closeSheet?.();
+          });
+        });
+        b.querySelector('#m-sem-vider-overrides')?.addEventListener('click', async () => {
+          const ok = confirm('Supprimer toutes les saisies par-semaine de la semaine affichée ?');
+          if (!ok) return;
+          M.viderOverridesSemaine(lundiISO);
+          M.closeSheet?.();
+        });
+      },
+      onSubmit() { return true; }
+    });
+    setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Copie les overrides (ou pattern à défaut) de la semaine source vers les N semaines suivantes.
+  M.copierSemainePlanning = function(lundiSourceISO, nbSemaines) {
+    const lundiSource = new Date(lundiSourceISO + 'T00:00:00');
+    const plannings = M.charger('plannings');
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    let nbAffectes = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const sourceData = M.getSemaineDataForDate(p, lundiSource);
+      // Ne copie que si au moins un jour a un type defini (pas vide complet)
+      const aDuContenu = sourceData.some(j => j && (j.typeJour || j.travaille));
+      if (!aDuContenu) return;
+      for (let s = 1; s <= nbSemaines; s++) {
+        const lundiCible = new Date(lundiSource.getFullYear(), lundiSource.getMonth(), lundiSource.getDate() + s * 7);
+        const lundiCibleISO = M.toLocalISODate(lundiCible);
+        const semaineCible = sourceData.map((src, i) => {
+          const dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+          return {
+            jour: M_JOURS_FR_LOCAL[i],
+            date: M.toLocalISODate(dateCible),
+            typeJour: src.typeJour || 'repos',
+            travaille: !!src.travaille,
+            heureDebut: src.heureDebut || '',
+            heureFin: src.heureFin || '',
+            zone: src.zone || '',
+            note: src.note || ''
+          };
+        });
+        p.semaines[lundiCibleISO] = semaineCible;
+      }
+      nbAffectes++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbAffectes} planning${nbAffectes > 1 ? 's' : ''} copié${nbAffectes > 1 ? 's' : ''} sur ${nbSemaines} semaine${nbSemaines > 1 ? 's' : ''}`);
+    M.go('planning');
   };
 
   // Form période d'absence longue : du DATE au DATE, type, motif. Stockée
@@ -5570,18 +6034,12 @@
             <div class="m-card-title">Dépenses du mois</div>
             <div class="m-card-value" style="color:var(--m-red)">${M.format$(depTotal)}</div>
             <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
-            ${depTotal > 0 ? `
-              <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:14px;background:var(--m-border)">
-                <div style="background:rgba(230,126,34,0.85);width:${pctCarb}%"></div>
-                <div style="background:rgba(52,152,219,0.85);width:${pctEntr}%"></div>
-                <div style="background:rgba(155,89,182,0.85);width:${pctAutres}%"></div>
-              </div>
-              <div style="display:flex;justify-content:space-between;margin-top:10px;gap:8px;flex-wrap:wrap;font-size:.78rem">
-                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(230,126,34,0.85);border-radius:2px"></span>Carburant ${pctCarb}%</span>
-                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(52,152,219,0.85);border-radius:2px"></span>Entretien ${pctEntr}%</span>
-                <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:rgba(155,89,182,0.85);border-radius:2px"></span>Autres ${pctAutres}%</span>
-              </div>
-            ` : ''}
+            ${depTotal > 0 ? M.renderDoughnut([
+              { label: 'Carburant', value: carbTotal, color: 'rgba(230,126,34,0.9)' },
+              { label: 'Entretien', value: entrTotal, color: 'rgba(52,152,219,0.9)' },
+              { label: 'Autres', value: autresTotal, color: 'rgba(155,89,182,0.9)' },
+              { label: 'Profit', value: Math.max(profitTotal, 0), color: 'rgba(46,204,113,0.9)' }
+            ], { centerLabel: 'Total', centerValue: M.format$(caTotal) }) : ''}
           </div>
           <div class="m-card" style="padding:0">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
@@ -7105,7 +7563,12 @@
   // une saisie reelle -> on ignore le planning pour ces jours, evite le double
   // comptage. Sans cet argument, comportement historique (mois entier).
   M.calculerHeuresPlanifieesMois = function(planning, moisCle, joursExclus) {
-    if (!planning || !Array.isArray(planning.semaine) || !moisCle) return 0;
+    if (!planning || !moisCle) return 0;
+    M.migrerPlanningV2(planning);
+    const hasPattern = planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine) && planning.pattern.semaine.length;
+    const hasSemaines = planning.semaines && Object.keys(planning.semaines).length;
+    const hasLegacy = Array.isArray(planning.semaine) && planning.semaine.length;
+    if (!hasPattern && !hasSemaines && !hasLegacy) return 0;
     const [yy, mm] = moisCle.split('-').map(Number);
     if (!yy || !mm) return 0;
     const nbJours = new Date(yy, mm, 0).getDate(); // dernier jour du mois
@@ -7124,12 +7587,13 @@
           const dur = M.calculerDureeJour(periode.heureDebut || '', periode.heureFin || '');
           if (dur > 0) total += dur;
         }
-        // conge/absence/maladie -> 0h pour ce jour
         continue;
       }
-      // Planning hebdo recurrent
-      const jourNom = M_JOURS_FR[(dateObj.getDay() + 6) % 7];
-      const j = planning.semaine.find(x => x.jour === jourNom);
+      // Calcul lundi ISO de la semaine contenant ce jour
+      const jourSem = (dateObj.getDay() + 6) % 7; // 0=lundi
+      const lundi = new Date(yy, mm - 1, day - jourSem);
+      const semaineData = M.getSemaineDataForDate(planning, lundi);
+      const j = semaineData[jourSem];
       if (!j) continue;
       const typeJour = j.typeJour || (j.travaille ? 'travail' : 'repos');
       if (typeJour !== 'travail') continue;
@@ -8377,7 +8841,10 @@
     title: 'Paramètres',
     render() {
       const config = M.chargerObj('config') || {};
-      const entreprise = config.entreprise || M.chargerObj('entreprise') || {};
+      // Source unique de verite : params_entreprise (meme cle que PC, sync Supabase).
+      // Fallback legacy sur config.entreprise / entreprise (anciens stockages).
+      const params = M.chargerObj('params_entreprise') || {};
+      const entreprise = (Object.keys(params).length ? params : (config.entreprise || M.chargerObj('entreprise') || {}));
       const adminNom = sessionStorage.getItem('admin_nom') || 'Admin';
       const adminLogin = sessionStorage.getItem('admin_login') || '';
       const tvaProfile = M.getTVAConfig();
@@ -8408,16 +8875,20 @@
           </div>
         </div>
 
-        ${entreprise.nom || entreprise.siret ? `
-          <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🏢 Entreprise</h3></div>
-            <div class="m-card" style="padding:0">
-              ${entreprise.nom ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Raison sociale</span><span style="font-weight:500">${M.escHtml(entreprise.nom)}</span></div>` : ''}
-              ${entreprise.siret ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIRET</span><span style="font-weight:500">${M.escHtml(entreprise.siret)}</span></div>` : ''}
-              ${entreprise.tva ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(entreprise.tva)}</span></div>` : ''}
-              ${entreprise.adresse ? `<div style="padding:14px 16px;display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(entreprise.adresse)}</span></div>` : ''}
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🏢 Entreprise</h3></div>
+          <button type="button" id="m-param-entreprise" class="m-card m-card-pressable" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;width:100%;padding:14px 16px;text-align:left;color:inherit;font-family:inherit;border:1px solid var(--m-border)">
+            <div style="flex:1 1 auto;min-width:0">
+              ${entreprise.nom ? `<div style="font-weight:600;margin-bottom:4px">${M.escHtml(entreprise.nom)}</div>` : '<div style="color:var(--m-text-muted);margin-bottom:4px">Aucune information</div>'}
+              <div style="color:var(--m-text-muted);font-size:.78rem">
+                ${entreprise.siret ? `SIRET ${M.escHtml(entreprise.siret)}` : 'Tape pour configurer'}
+                ${entreprise.tvaIntracom || entreprise.tva ? ` · TVA ${M.escHtml(entreprise.tvaIntracom || entreprise.tva)}` : ''}
+              </div>
+              ${entreprise.adresse ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(entreprise.adresse)}${entreprise.codePostal || entreprise.ville ? ', ' + M.escHtml((entreprise.codePostal || '') + ' ' + (entreprise.ville || '')).trim() : ''}</div>` : ''}
             </div>
-          </div>
-        ` : ''}
+            <span style="color:var(--m-text-muted);font-size:1rem;flex:0 0 auto">›</span>
+          </button>
+          <p class="m-form-hint" style="margin-top:8px">Tape pour modifier raison sociale, SIRET, adresse, IBAN…</p>
+        </div>
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🧾 TVA</h3></div>
           <div class="m-card" style="padding:0">
@@ -8450,6 +8921,14 @@
             <span style="font-size:.95rem;font-weight:500">Mode clair / sombre</span>
             <span style="color:var(--m-text-muted);font-size:.85rem">${M.state.theme === 'light' ? 'Clair' : 'Sombre'}</span>
           </button>
+        </div>
+
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Traçabilité</h3></div>
+          <button class="m-card m-card-pressable" id="m-param-audit" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit">
+            <span style="font-size:.95rem;font-weight:500">📜 Journal d'audit</span>
+            <span style="color:var(--m-text-muted);font-size:.85rem">${(M.charger('audit_log') || []).length} entr. ›</span>
+          </button>
+          <p class="m-form-hint" style="margin-top:8px">Toutes les actions admin (création / modif / suppression). Purge auto > 12 mois (RGPD).</p>
         </div>
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
@@ -8513,8 +8992,10 @@
         });
         if (choice) saveTvaConfig({ periodicite: choice });
       });
+      container.querySelector('#m-param-entreprise')?.addEventListener('click', () => M.formEditEntreprise());
       container.querySelector('#m-param-mdp')?.addEventListener('click', () => M.formChangerMdpAdmin());
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
+      container.querySelector('#m-param-audit')?.addEventListener('click', () => M.go('audit'));
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
       // Historique des versions : fetch CHANGELOG.md et rendu markdown minimal
       const changelogEl = container.querySelector('#m-changelog-content');
@@ -8645,6 +9126,145 @@
         }
 
         M.toast('Mot de passe mis à jour', { duration: 4000 });
+        return true;
+      }
+    });
+  };
+
+  // ============================================================
+  // Edition infos entreprise (mobile, parite PC)
+  // Sauve dans 'params_entreprise' (meme cle PC, sync Supabase auto).
+  // ============================================================
+  M.formEditEntreprise = function() {
+    const e = M.chargerObj('params_entreprise') || M.chargerObj('entreprise') || {};
+    const body = `
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">📇 Identification</div>
+      ${M.formField('Raison sociale', M.formInput('nom', { value: e.nom || '', placeholder: 'MCA LOGISTICS' }))}
+      <div class="m-form-row">
+        ${M.formField('SIRET', M.formInput('siret', { value: e.siret || '', placeholder: '14 chiffres' }))}
+        ${M.formField('Code APE', M.formInput('codeAPE', { value: e.codeAPE || '', placeholder: '5229B' }))}
+      </div>
+      ${M.formField('N° TVA intracom.', M.formInput('tvaIntracom', { value: e.tvaIntracom || e.tva || '', placeholder: 'FR + 11 chiffres' }))}
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">📍 Adresse</div>
+      ${M.formField('Adresse', M.formInput('adresse', { value: e.adresse || '', placeholder: '17 rue de la Chapelle' }))}
+      <div class="m-form-row">
+        ${M.formField('Code postal', M.formInput('codePostal', { value: e.codePostal || '', placeholder: '67540' }))}
+        ${M.formField('Ville', M.formInput('ville', { value: e.ville || '', placeholder: 'Ostwald' }))}
+      </div>
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">📞 Contact</div>
+      <div class="m-form-row">
+        ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: e.tel || '', placeholder: '03 88 …' }))}
+        ${M.formField('Email', M.formInput('email', { type: 'email', value: e.email || '', placeholder: 'contact@…' }))}
+      </div>
+
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">💳 Banque</div>
+      <div class="m-form-row">
+        ${M.formField('IBAN', M.formInput('iban', { value: e.iban || '', placeholder: 'FR76 …' }))}
+        ${M.formField('BIC', M.formInput('bic', { value: e.bic || '', placeholder: 'QNTOFRP1XXX' }))}
+      </div>
+      ${M.formField('Banque', M.formInput('banque', { value: e.banque || '', placeholder: 'Qonto' }))}
+
+      <!-- Upload RIB (PDF ou image, max 5 MB, prive) -->
+      <div style="margin-top:10px">
+        <label style="display:block;font-size:.85rem;font-weight:500;margin-bottom:6px">📎 RIB (PDF ou image)</label>
+        <div id="m-rib-status" style="font-size:.78rem;color:var(--m-text-muted);margin-bottom:8px">
+          ${e.ribPath ? '✅ Document chargé' : 'Aucun document chargé'}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="m-btn" style="flex:1 1 auto;text-align:center;cursor:pointer;font-size:.82rem;padding:0 14px">
+            ${e.ribPath ? 'Remplacer' : 'Importer RIB'}
+            <input type="file" name="ribFile" accept="application/pdf,image/jpeg,image/png,image/webp" style="display:none" />
+          </label>
+          ${e.ribPath ? `<button type="button" id="m-rib-view" class="m-btn" style="flex:0 0 auto;font-size:.82rem;padding:0 14px">Voir</button>` : ''}
+        </div>
+        <p class="m-form-hint" style="margin-top:6px;font-size:.72rem">PDF / JPG / PNG, 5 Mo max. Stocké chiffré sur Supabase Storage (admin-only).</p>
+      </div>
+    `;
+
+    M.openSheet({
+      title: 'Modifier entreprise',
+      body: body,
+      submitLabel: 'Enregistrer',
+      afterMount: (sheetBody) => {
+        // Bouton "Voir RIB" : récupère signed URL et ouvre nouvel onglet
+        sheetBody.querySelector('#m-rib-view')?.addEventListener('click', async () => {
+          const ent = M.chargerObj('params_entreprise') || {};
+          if (!ent.ribPath || !window.DelivProStorage) {
+            M.toast('RIB introuvable', { duration: 3000 });
+            return;
+          }
+          const res = await window.DelivProStorage.getSignedUrl('company-docs', ent.ribPath, 600);
+          if (res.ok && res.signedUrl) window.open(res.signedUrl, '_blank');
+          else M.toast('Erreur ouverture : ' + (res.error?.message || 'inconnue'), { duration: 5000 });
+        });
+        // Feedback pendant l'upload (avant submit)
+        sheetBody.querySelector('[name="ribFile"]')?.addEventListener('change', (e) => {
+          const f = e.target.files?.[0];
+          const status = sheetBody.querySelector('#m-rib-status');
+          if (f && status) status.innerHTML = `📎 ${M.escHtml(f.name)} (${(f.size/1024).toFixed(0)} Ko) — sera uploadé à l'enregistrement`;
+        });
+      },
+      onSubmit: async (sheetBody) => {
+        const get = name => (sheetBody.querySelector(`[name="${name}"]`)?.value || '').trim();
+        const siretRaw = get('siret').replace(/\s+/g, '');
+        if (siretRaw && !/^\d{14}$/.test(siretRaw)) {
+          M.toast('SIRET invalide (14 chiffres requis)', { duration: 4000 });
+          return false;
+        }
+        const tvaRaw = get('tvaIntracom').replace(/\s+/g, '').toUpperCase();
+
+        const existant = M.chargerObj('params_entreprise') || {};
+        let ribPath = existant.ribPath || '';
+
+        // Upload RIB si nouveau fichier sélectionné
+        const ribFile = sheetBody.querySelector('[name="ribFile"]')?.files?.[0];
+        if (ribFile) {
+          if (!window.DelivProStorage) {
+            M.toast('Storage indisponible — sauvegarde sans RIB', { duration: 4000 });
+          } else {
+            if (ribFile.size > 5 * 1024 * 1024) {
+              M.toast('RIB trop lourd (max 5 Mo)', { duration: 4000 });
+              return false;
+            }
+            M.toast('Upload RIB en cours…', { duration: 2000 });
+            const ext = ribFile.name.split('.').pop().toLowerCase();
+            const safeExt = ['pdf','jpg','jpeg','png','webp'].includes(ext) ? ext : 'pdf';
+            const newPath = 'rib/rib-' + Date.now() + '.' + safeExt;
+            const res = await window.DelivProStorage.compressAndUpload('company-docs', newPath, ribFile, {
+              skipCompression: ribFile.type === 'application/pdf',
+              contentType: ribFile.type
+            });
+            if (!res.ok) {
+              M.toast('Erreur upload RIB : ' + (res.error?.message || 'inconnue'), { duration: 5000 });
+              return false;
+            }
+            // Supprime l'ancien si présent
+            if (existant.ribPath && existant.ribPath !== newPath) {
+              try { await window.DelivProStorage.remove('company-docs', existant.ribPath); } catch (_) {}
+            }
+            ribPath = res.path;
+          }
+        }
+
+        const next = Object.assign({}, existant, {
+          nom: get('nom') || existant.nom || '',
+          siret: siretRaw,
+          codeAPE: get('codeAPE').toUpperCase(),
+          tvaIntracom: tvaRaw,
+          adresse: get('adresse'),
+          codePostal: get('codePostal'),
+          ville: get('ville'),
+          tel: get('tel'),
+          email: get('email'),
+          iban: get('iban').toUpperCase(),
+          bic: get('bic').toUpperCase(),
+          banque: get('banque'),
+          ribPath: ribPath
+        });
+        M.sauvegarder('params_entreprise', next);
+        M.toast('✅ Infos entreprise mises à jour', { duration: 3000 });
         return true;
       }
     });

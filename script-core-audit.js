@@ -16,7 +16,8 @@ function getAuditActorLabel() {
 
 // L308 (script.js d'origine)
 function ajouterEntreeAudit(action, detail, meta) {
-  const logs = charger('audit_log');
+  let logs = charger('audit_log');
+  logs = purgerLogsAuditAnciens(logs);
   logs.push({
     id: genId(),
     date: new Date().toISOString(),
@@ -29,6 +30,38 @@ function ajouterEntreeAudit(action, detail, meta) {
   sauvegarder('audit_log', logs);
   if (typeof afficherJournalAudit === 'function' && window.__delivproCurrentPage === 'parametres') afficherJournalAudit();
 }
+
+// Purge RGPD : on retire les entrees plus vieilles que SEUIL_MOIS (12 par
+// defaut). Conformite : conserver indefiniment des logs nominatifs n'est
+// pas justifie hors obligation legale specifique. Pour les logs > 12 mois,
+// considerer un archivage hors-ligne si besoin metier.
+const AUDIT_LOG_RETENTION_MOIS = 12;
+function purgerLogsAuditAnciens(logs) {
+  if (!Array.isArray(logs) || !logs.length) return logs || [];
+  const limite = new Date();
+  limite.setMonth(limite.getMonth() - AUDIT_LOG_RETENTION_MOIS);
+  return logs.filter(function(l) {
+    if (!l || !l.date) return false;
+    const d = new Date(l.date);
+    return !isNaN(d) && d >= limite;
+  });
+}
+
+// Boot : purge une fois au chargement (au cas ou l'app reste fermee
+// longtemps et qu'aucune nouvelle action ne declenche la purge via
+// ajouterEntreeAudit).
+(function purgeAuditAuBoot() {
+  if (typeof window === 'undefined') return;
+  try {
+    const before = (charger('audit_log') || []).length;
+    if (before === 0) return;
+    const apres = purgerLogsAuditAnciens(charger('audit_log'));
+    if (apres.length < before) {
+      sauvegarder('audit_log', apres);
+      console.info('[audit] purge boot : ' + (before - apres.length) + ' entrees > ' + AUDIT_LOG_RETENTION_MOIS + ' mois supprimees');
+    }
+  } catch (_) { /* fail silent : non bloquant */ }
+})();
 
 // State pagination journal d'audit (memoire process)
 // Note : le journal d'audit est stocke en localStorage (cle 'audit_log'),
