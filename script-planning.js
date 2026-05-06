@@ -8,6 +8,74 @@
  * A charger AVANT script.js dans admin.html.
  */
 
+// ============================================================
+// Helpers v2 (sprint-95pct) : pattern récurrent + saisies par semaine.
+// Cf. mobile (M.migrerPlanningV2 / M.getSemaineDataForDate) — même logique.
+// ============================================================
+
+const _JOURS_FR_ORDRE = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${j}`;
+}
+
+// Lundi de la semaine contenant `dateRef` (ou aujourd'hui), avec offset en semaines.
+function lundiSemaineFromOffset(offset, dateRef) {
+  const ref = dateRef ? new Date(dateRef) : new Date();
+  const jour = ref.getDay();
+  const decalLundi = jour === 0 ? -6 : 1 - jour;
+  return new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() + decalLundi + (offset || 0) * 7);
+}
+
+// Migration boot (idempotente) : v1 (semaine[]) -> v2 (pattern + semaines{}).
+function migrerPlanningV2(planning) {
+  if (!planning || typeof planning !== 'object') return planning;
+  if (!planning.pattern) {
+    planning.pattern = {
+      actif: !!(planning.semaine && planning.semaine.length),
+      semaine: Array.isArray(planning.semaine) ? planning.semaine.slice() : []
+    };
+  }
+  if (!planning.semaines || typeof planning.semaines !== 'object') {
+    planning.semaines = {};
+  }
+  return planning;
+}
+
+// Retourne les 7 jours de la semaine commençant à `lundiDate` (objet Date).
+// Source : semaines[lundiISO] si existe, sinon pattern.semaine, sinon legacy semaine[].
+function getSemaineDataForDate(planning, lundiDate) {
+  migrerPlanningV2(planning);
+  const lundiISO = toLocalISODate(lundiDate);
+  const overrideSemaine = planning.semaines && planning.semaines[lundiISO];
+  const result = [];
+  for (let i = 0; i < 7; i++) {
+    const jourDate = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+    const jourCle = _JOURS_FR_ORDRE[i];
+    const dateISO = toLocalISODate(jourDate);
+    let entry = null;
+    if (Array.isArray(overrideSemaine)) {
+      entry = overrideSemaine.find(j => j && (j.date === dateISO || j.jour === jourCle));
+    }
+    if (!entry && planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine)) {
+      const tmpl = planning.pattern.semaine.find(j => j && j.jour === jourCle);
+      if (tmpl) entry = Object.assign({}, tmpl);
+    }
+    if (!entry && Array.isArray(planning.semaine)) {
+      const legacy = planning.semaine.find(j => j && j.jour === jourCle);
+      if (legacy) entry = Object.assign({}, legacy);
+    }
+    if (!entry) entry = { jour: jourCle };
+    entry.date = dateISO;
+    entry.jour = jourCle;
+    result.push(entry);
+  }
+  return result;
+}
+
 // L1197 (script.js d'origine)
 function ouvrirPlanningSalarie(salId) {
   var salarie = charger('salaries').find(function(item) { return item.id === salId; });
@@ -269,8 +337,12 @@ function planningGetIndisponibilitePourDate(salId, dateStr) {
   var planning = charger('plannings').find(function(item) { return item.salId === salId; }) || { semaine: [] };
   var dateObj = new Date(dateStr + 'T00:00:00');
   if (Number.isNaN(dateObj.getTime())) return null;
-  var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-  var jour = (planning.semaine || []).find(function(item) { return item.jour === jourNom; }) || null;
+  var jourIdx = (dateObj.getDay() + 6) % 7;
+  var jourNom = JOURS[jourIdx];
+  // Lecture v2 : helper combine semaines (override) + pattern + legacy.
+  var lundiSemaine = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() - jourIdx);
+  var semaineData = getSemaineDataForDate(planning, lundiSemaine);
+  var jour = semaineData[jourIdx] || null;
   if (jour && ['conge', 'absence', 'maladie'].includes(jour.typeJour)) {
     return {
       type: jour.typeJour,
@@ -337,8 +409,11 @@ function planningCalculerRecapPeriode(salId, debut, fin) {
     var resolved = (function() {
       var periodEntry = getPlanningPeriodForDate(salId, dateStr, periodes);
       if (periodEntry) return { source: 'period', entry: periodEntry };
-      var jourNom = JOURS[(dateObj.getDay() + 6) % 7];
-      var recurring = (planning.semaine || []).find(function(item) { return item.jour === jourNom; }) || null;
+      // Lecture v2 : helper combine semaines (override) + pattern + legacy.
+      var jourIdx = (dateObj.getDay() + 6) % 7;
+      var lundiSemaine = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate() - jourIdx);
+      var semaineData = getSemaineDataForDate(planning, lundiSemaine);
+      var recurring = semaineData[jourIdx] || null;
       return { source: 'recurring', entry: recurring };
     })();
     var entry = resolved.entry;

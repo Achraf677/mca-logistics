@@ -3206,7 +3206,11 @@
     const jourIdx = M.state.planningJour;
     const jourCle = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'][jourIdx];
     const jourLabel = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
-    const data = (planning.semaine || []).find(j => j.jour === jourCle) || {};
+    // Lecture v2 : helper qui combine semaines (override par date) + pattern récurrent + legacy.
+    const lundiCourant = (typeof M.lundiSemaineOffset === 'function') ? M.lundiSemaineOffset(0) : null;
+    const data = lundiCourant
+      ? (M.getSemaineDataForDate(planning, lundiCourant)[jourIdx] || {})
+      : ((planning.semaine || []).find(j => j.jour === jourCle) || {});
     const typeJour = data.typeJour || (data.travaille ? 'travail' : 'repos');
     const fullName = ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || sal.id)).trim();
 
@@ -3840,11 +3844,14 @@
       const jourCle = M_JOURS_FR[jourIdx];
       const estAujourd = jourIdx === jourIndexAuj();
 
-      // Pour chaque salarie : son etat du jour selectionne
+      // Pour chaque salarie : son etat du jour selectionne (vue Jour = semaine courante).
+      // Utilise le helper v2 (pattern + override par semaine).
+      const lundiCourant = M.lundiSemaineOffset(0);
       const lignes = salaries.map(sal => {
         const planning = plannings.find(p => p.salId === sal.id);
-        const jourData = planning && Array.isArray(planning.semaine)
-          ? planning.semaine.find(j => j.jour === jourCle) : null;
+        if (!planning) return { sal, typeJour: 'repos', jourData: null };
+        const semaineData = M.getSemaineDataForDate(planning, lundiCourant);
+        const jourData = semaineData[jourIdx] || null;
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
         return { sal, typeJour, jourData };
       });
@@ -3976,6 +3983,69 @@
     return lundi;
   };
 
+  // Format YYYY-MM-DD local (sans drift timezone). Utilisé comme clé de
+  // semaine (lundi ISO) dans planning.semaines.
+  M.toLocalISODate = function(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const j = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${j}`;
+  };
+
+  // Migration boot (idempotente) : structure planning v1 (semaine[]) -> v2 (pattern + semaines{}).
+  // - p.pattern.semaine[] = ancien p.semaine[] (pattern hebdomadaire récurrent)
+  // - p.semaines = {} (saisies indépendantes par semaine, clé = lundi ISO)
+  // - p.semaine conservé pour backward compat avec code legacy non encore migré.
+  M.migrerPlanningV2 = function(planning) {
+    if (!planning || typeof planning !== 'object') return planning;
+    if (!planning.pattern) {
+      planning.pattern = {
+        actif: !!(planning.semaine && planning.semaine.length),
+        semaine: Array.isArray(planning.semaine) ? planning.semaine.slice() : []
+      };
+    }
+    if (!planning.semaines || typeof planning.semaines !== 'object') {
+      planning.semaines = {};
+    }
+    return planning;
+  };
+
+  // Helper : retourne les 7 jours de la semaine commençant à `lundiDate`,
+  // au format [{ jour, date, typeJour, heureDebut, heureFin, zone, note, ... }, ...].
+  // Source : semaines[lundiISO] si existe, sinon pattern.semaine mappé sur les dates.
+  M.getSemaineDataForDate = function(planning, lundiDate) {
+    M.migrerPlanningV2(planning);
+    const lundiISO = M.toLocalISODate(lundiDate);
+    const overrideSemaine = planning.semaines && planning.semaines[lundiISO];
+    const result = [];
+    for (let i = 0; i < 7; i++) {
+      const jourDate = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+      const jourCle = M_JOURS_FR[i];
+      const dateISO = M.toLocalISODate(jourDate);
+      // 1. Override par date (priorité absolue)
+      let entry = null;
+      if (Array.isArray(overrideSemaine)) {
+        entry = overrideSemaine.find(j => j && (j.date === dateISO || j.jour === jourCle));
+      }
+      // 2. Pattern récurrent (fallback si pas d'override et pattern actif)
+      if (!entry && planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine)) {
+        const tmpl = planning.pattern.semaine.find(j => j && j.jour === jourCle);
+        if (tmpl) entry = Object.assign({}, tmpl); // clone pour ne pas muter le pattern
+      }
+      // 3. Fallback ultime : ancien planning.semaine (backward compat tant que pas migré)
+      if (!entry && Array.isArray(planning.semaine)) {
+        const legacy = planning.semaine.find(j => j && j.jour === jourCle);
+        if (legacy) entry = Object.assign({}, legacy);
+      }
+      if (!entry) entry = { jour: jourCle };
+      // Toujours injecter date + jour pour cohérence
+      entry.date = dateISO;
+      entry.jour = jourCle;
+      result.push(entry);
+    }
+    return result;
+  };
+
   M.renderPlanningSemaine = function(salaries, plannings) {
     if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
     // Vue Semaine refondue (sprint-95pct) : 1 carte par jour empilée verticalement,
@@ -4029,12 +4099,13 @@
       const jourLong = jourCle.charAt(0).toUpperCase() + jourCle.slice(1);
       const dateStr = `${d.getDate()} ${moisCourtFR[d.getMonth()]}`;
 
-      // Calcule statut de chaque salarié pour ce jour
+      // Calcule statut de chaque salarié pour ce jour (via helper v2 : pattern + override par semaine)
       const groupes = { travail: [], conge: [], absence: [], maladie: [], repos: [] };
       salaries.forEach(sal => {
         const planning = plannings.find(p => p.salId === sal.id);
-        const semaine = planning && Array.isArray(planning.semaine) ? planning.semaine : [];
-        const jourData = semaine.find(j => j.jour === jourCle);
+        if (!planning) { groupes.repos.push({ sal, horaire: '' }); return; }
+        const semaineData = M.getSemaineDataForDate(planning, lundi);
+        const jourData = semaineData[jIdx];
         const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
         const horaire = jourData?.heureDebut && jourData?.heureFin
           ? `${jourData.heureDebut.slice(0, 5)}–${jourData.heureFin.slice(0, 5)}` : '';
@@ -7212,7 +7283,12 @@
   // une saisie reelle -> on ignore le planning pour ces jours, evite le double
   // comptage. Sans cet argument, comportement historique (mois entier).
   M.calculerHeuresPlanifieesMois = function(planning, moisCle, joursExclus) {
-    if (!planning || !Array.isArray(planning.semaine) || !moisCle) return 0;
+    if (!planning || !moisCle) return 0;
+    M.migrerPlanningV2(planning);
+    const hasPattern = planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine) && planning.pattern.semaine.length;
+    const hasSemaines = planning.semaines && Object.keys(planning.semaines).length;
+    const hasLegacy = Array.isArray(planning.semaine) && planning.semaine.length;
+    if (!hasPattern && !hasSemaines && !hasLegacy) return 0;
     const [yy, mm] = moisCle.split('-').map(Number);
     if (!yy || !mm) return 0;
     const nbJours = new Date(yy, mm, 0).getDate(); // dernier jour du mois
@@ -7231,12 +7307,13 @@
           const dur = M.calculerDureeJour(periode.heureDebut || '', periode.heureFin || '');
           if (dur > 0) total += dur;
         }
-        // conge/absence/maladie -> 0h pour ce jour
         continue;
       }
-      // Planning hebdo recurrent
-      const jourNom = M_JOURS_FR[(dateObj.getDay() + 6) % 7];
-      const j = planning.semaine.find(x => x.jour === jourNom);
+      // Calcul lundi ISO de la semaine contenant ce jour
+      const jourSem = (dateObj.getDay() + 6) % 7; // 0=lundi
+      const lundi = new Date(yy, mm - 1, day - jourSem);
+      const semaineData = M.getSemaineDataForDate(planning, lundi);
+      const j = semaineData[jourSem];
       if (!j) continue;
       const typeJour = j.typeJour || (j.travaille ? 'travail' : 'repos');
       if (typeJour !== 'travail') continue;

@@ -3,8 +3,21 @@
 ## Contexte business
 - PGI transport/logistique, PWA vanilla JS, hostée Cloudflare Pages
 - Backend Supabase (projet `lkbfvgnhwgbapdtitglu`)
-- Branche dev : `claude/add-supabase-mcp-CuBe2`
+- Branche dev courante : `claude/sprint-95pct` (PR #21)
 - Compta tenue en parallèle sur **Pennylane** (factures, TVA, paiements, charges)
+
+## Règles de dev imposées par Achraf
+
+- **Parité PC ↔ mobile systématique** : toute fonctionnalité ajoutée/modifiée
+  côté mobile doit aussi être livrée côté PC, et inversement. Pas de delta
+  entre les 2 sauf justification explicite. Rappel utilisateur : "Systématiquement
+  tout ce que tu changes sur mobile change le sur pc aussi" (2026-05-06).
+- **Pas de migration framework JS** : garder vanilla JS, structurer en fichiers
+  thématiques < 1500 lignes (cf. `docs/01-overview.md`).
+- **Tests unitaires obligatoires** sur les calculs critiques (TVA, rentabilité,
+  heures, dates timezone).
+- **Postmortem obligatoire** pour tout incident impactant la connexion ou les
+  données utilisateur (cf. exemple `docs/archive/2026-05-06-postmortem-...`).
 
 ## Idées en attente
 
