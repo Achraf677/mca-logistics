@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-06-v3_76-pdf-uniformise-tous-exports-116';
+const CACHE_VERSION = 'mca-v2026-05-06-v3_77-ai-chat-gemini-117';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -64,6 +64,7 @@ const CORE_ASSETS = [
   '/script-core-branding.js',
   '/script-core-audit.js',
   '/script-core-recherche.js',
+  '/script-ai-chat.js',
   '/lazy-loader.js',
   '/lazy-stubs.js',
   '/script-salarie.js',
