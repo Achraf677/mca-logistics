@@ -33,6 +33,7 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     `- Si tu detectes une anomalie ou opportunite (charge anormale, retard paiement long, conso carburant suspecte), signale-la avec une recommandation actionnable.`,
     `- Tu n'as PAS le droit d'ecrire / creer / modifier / supprimer en V1. Si on te demande "cree X" ou "modifie Y", explique que la fonctionnalite ecriture arrive en V2 et propose au lieu un resume des donnees pertinentes.`,
     `- Format reponse : markdown court, listes a puces, tableaux quand pertinent.`,
+    `- **JAMAIS d'UUID dans tes reponses** : les tools renvoient les noms humains (ex: salarie.nom, salarie.prenom, vehicule.immat, vehicule.marque, client_nom). Utilise toujours ces champs lisibles, jamais les colonnes \`*_id\`.`,
     `- Les montants sont en euros (TTC sauf precision).`,
     ``,
     `## Contexte business MCA`,
@@ -250,7 +251,8 @@ type SbClient = ReturnType<typeof createClient>;
 
 async function toolSearchLivraisons(args: any, sb: SbClient) {
   let q = sb.from("livraisons").select(
-    "id, num_liv, client_nom, date_livraison, distance_km, prix_ht, prix_ttc, taux_tva, statut, statut_paiement, depart, arrivee, salarie_id, vehicule_id"
+    "id, num_liv, client_nom, date_livraison, distance_km, prix_ht, prix_ttc, taux_tva, statut, statut_paiement, depart, arrivee, " +
+    "salarie:salaries(nom, prenom), vehicule:vehicules(immat, marque, modele)"
   );
   if (args.date_min) q = q.gte("date_livraison", args.date_min);
   if (args.date_max) q = q.lte("date_livraison", args.date_max);
@@ -265,7 +267,8 @@ async function toolSearchLivraisons(args: any, sb: SbClient) {
 
 async function toolSearchCharges(args: any, sb: SbClient) {
   let q = sb.from("charges").select(
-    "id, categorie, description, date_charge, montant_ht, montant_ttc, taux_tva, fournisseur_nom, vehicule_id, statut_paiement, mode_paiement"
+    "id, categorie, description, date_charge, montant_ht, montant_ttc, taux_tva, fournisseur_nom, statut_paiement, mode_paiement, " +
+    "vehicule:vehicules(immat, marque, modele)"
   );
   if (args.date_min) q = q.gte("date_charge", args.date_min);
   if (args.date_max) q = q.lte("date_charge", args.date_max);
@@ -326,7 +329,8 @@ async function toolSearchSalaries(args: any, sb: SbClient) {
 
 async function toolSearchCarburant(args: any, sb: SbClient) {
   let q = sb.from("carburant").select(
-    "id, vehicule_id, salarie_id, date_plein, litres, prix_ttc, prix_ht, taux_tva, kilometrage, type_carburant"
+    "id, date_plein, litres, prix_ttc, prix_ht, taux_tva, kilometrage, type_carburant, " +
+    "salarie:salaries(nom, prenom), vehicule:vehicules(immat, marque, modele)"
   );
   if (args.date_min) q = q.gte("date_plein", args.date_min);
   if (args.date_max) q = q.lte("date_plein", args.date_max);
@@ -385,7 +389,8 @@ async function toolGetStats(args: any, sb: SbClient) {
 
 async function toolSearchPaiements(args: any, sb: SbClient) {
   let q = sb.from("paiements").select(
-    "id, livraison_id, client_id, date_paiement, montant, mode, reference, frais, notes"
+    "id, date_paiement, montant, mode, reference, frais, notes, " +
+    "client:clients(nom, prenom), livraison:livraisons(num_liv, client_nom, prix_ttc)"
   );
   if (args.date_min) q = q.gte("date_paiement", args.date_min);
   if (args.date_max) q = q.lte("date_paiement", args.date_max);
@@ -400,7 +405,8 @@ async function toolSearchPaiements(args: any, sb: SbClient) {
 
 async function toolSearchInspections(args: any, sb: SbClient) {
   let q = sb.from("inspections").select(
-    "id, salarie_id, vehicule_id, date_inspection, semaine_label, commentaire, statut"
+    "id, date_inspection, semaine_label, commentaire, statut, " +
+    "salarie:salaries(nom, prenom), vehicule:vehicules(immat, marque, modele)"
   );
   if (args.date_min) q = q.gte("date_inspection", args.date_min);
   if (args.date_max) q = q.lte("date_inspection", args.date_max);
@@ -415,7 +421,8 @@ async function toolSearchInspections(args: any, sb: SbClient) {
 
 async function toolSearchEntretiens(args: any, sb: SbClient) {
   let q = sb.from("entretiens").select(
-    "id, vehicule_id, date_entretien, type, description, cout_ttc, cout_ht, taux_tva, kilometrage, prochain_km, prochaine_date"
+    "id, date_entretien, type, description, cout_ttc, cout_ht, taux_tva, kilometrage, prochain_km, prochaine_date, " +
+    "vehicule:vehicules(immat, marque, modele)"
   );
   if (args.date_min) q = q.gte("date_entretien", args.date_min);
   if (args.date_max) q = q.lte("date_entretien", args.date_max);
@@ -429,7 +436,8 @@ async function toolSearchEntretiens(args: any, sb: SbClient) {
 
 async function toolSearchIncidents(args: any, sb: SbClient) {
   let q = sb.from("incidents").select(
-    "id, salarie_id, livraison_id, gravite, description, date_incident, statut"
+    "id, gravite, description, date_incident, statut, " +
+    "salarie:salaries(nom, prenom), livraison:livraisons(num_liv, client_nom)"
   );
   if (args.date_min) q = q.gte("date_incident", args.date_min);
   if (args.date_max) q = q.lte("date_incident", args.date_max);
@@ -479,16 +487,23 @@ async function toolGetPlanningSemaine(args: any, sb: SbClient) {
   const salMap = new Map<string, any>();
   (salRes.data ?? []).forEach((s: any) => salMap.set(s.id, s));
 
-  const enriched = (planRes.data ?? []).map((p: any) => ({
-    ...p,
-    salarie: salMap.get(p.salarie_id) ?? null,
-  }));
+  const enriched = (planRes.data ?? []).map((p: any) => {
+    const sal = salMap.get(p.salarie_id);
+    const { salarie_id, ...rest } = p;
+    return { ...rest, salarie: sal ?? null };
+  });
+
+  const absencesEnriched = (absRes.data ?? []).map((a: any) => {
+    const sal = salMap.get(a.salarie_id);
+    const { salarie_id, ...rest } = a;
+    return { ...rest, salarie: sal ?? null };
+  });
 
   return {
     semaine: { lundi, dimanche: dim },
     nb_creneaux: enriched.length,
     creneaux: enriched,
-    absences: absRes.data ?? [],
+    absences: absencesEnriched,
   };
 }
 
