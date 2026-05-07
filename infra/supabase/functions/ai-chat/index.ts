@@ -28,7 +28,7 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     ``,
     `## Regles`,
     `- Reponds en francais, ton naturel, concis. Pas de blabla.`,
-    `- Quand tu as besoin de donnees, utilise les outils (tu en as 8) au lieu de poser des questions a l'utilisateur.`,
+    `- Quand tu as besoin de donnees, utilise les outils (tu en as 15) au lieu de poser des questions a l'utilisateur.`,
     `- Pour des chiffres (CA, marges, volume), utilise get_stats.`,
     `- Si tu detectes une anomalie ou opportunite (charge anormale, retard paiement long, conso carburant suspecte), signale-la avec une recommandation actionnable.`,
     `- Tu n'as PAS le droit d'ecrire / creer / modifier / supprimer en V1. Si on te demande "cree X" ou "modifie Y", explique que la fonctionnalite ecriture arrive en V2 et propose au lieu un resume des donnees pertinentes.`,
@@ -49,6 +49,12 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     `- vehicules : immat, marque, modele, kilometrage, date_ct, date_assurance, salarie_id.`,
     `- salaries : nom, prenom, poste, permis (categorie + date), assurance.`,
     `- carburant : date_plein, litres, prix_ttc, kilometrage, vehicule_id, salarie_id.`,
+    `- paiements : livraison_id, client_id, date_paiement, montant, mode, frais.`,
+    `- inspections : salarie_id, vehicule_id, date_inspection, semaine_label, statut, commentaire.`,
+    `- entretiens : vehicule_id, date_entretien, type, description, cout_ttc, kilometrage, prochain_km, prochaine_date.`,
+    `- incidents : salarie_id, livraison_id, gravite, description, date_incident, statut.`,
+    `- alertes : type, niveau (info/warning/error/critical), titre, message, lue, resolved.`,
+    `- plannings_hebdo : salarie_id, jour (YYYY-MM-DD), travaille, heure_debut/fin, zone.`,
   ].join("\n");
 }
 
@@ -144,6 +150,94 @@ const TOOLS = [{
         properties: {
           date_min: { type: "string", description: "YYYY-MM-DD (defaut: debut mois courant)" },
           date_max: { type: "string", description: "YYYY-MM-DD (defaut: aujourd'hui)" },
+        },
+      },
+    },
+    {
+      name: "search_paiements",
+      description: "Liste les paiements clients recus. Filtres optionnels (date, mode, livraison, client).",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD" },
+          date_max: { type: "string", description: "YYYY-MM-DD" },
+          mode: { type: "string", description: "virement, cheque, especes, cb..." },
+          livraison_id: { type: "string" },
+          client_id: { type: "string" },
+        },
+      },
+    },
+    {
+      name: "search_inspections",
+      description: "Liste les inspections vehicule hebdomadaires. Filtres : date, salarie, vehicule, statut.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD" },
+          date_max: { type: "string", description: "YYYY-MM-DD" },
+          salarie_id: { type: "string" },
+          vehicule_id: { type: "string" },
+          statut: { type: "string", description: "soumise, validee, refusee" },
+        },
+      },
+    },
+    {
+      name: "search_entretiens",
+      description: "Liste les entretiens vehicule. Filtres : date, vehicule, type d'entretien (vidange, freins, etc).",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string" },
+          date_max: { type: "string" },
+          vehicule_id: { type: "string" },
+          type: { type: "string", description: "Type d'entretien (recherche partielle)" },
+        },
+      },
+    },
+    {
+      name: "search_incidents",
+      description: "Liste les incidents (sinistres, litiges, problemes chauffeur). Filtres optionnels.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string" },
+          date_max: { type: "string" },
+          salarie_id: { type: "string" },
+          gravite: { type: "string", description: "mineur, moyen, grave, critique" },
+          statut: { type: "string", description: "ouvert, en_cours, clos" },
+        },
+      },
+    },
+    {
+      name: "search_alertes",
+      description: "Liste les alertes admin (permis expirant, CT, assurance, anomalies detectees, etc).",
+      parameters: {
+        type: "object",
+        properties: {
+          niveau: { type: "string", enum: ["info", "warning", "error", "critical"] },
+          lue: { type: "boolean", description: "false = non lues uniquement" },
+          resolved: { type: "boolean", description: "false = non resolues uniquement" },
+        },
+      },
+    },
+    {
+      name: "get_planning_semaine",
+      description: "Recupere le planning d'une semaine (qui travaille, quels horaires, qui est en absence/conge). Si date_ref non fournie, utilise la semaine courante.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_ref: { type: "string", description: "Date YYYY-MM-DD dans la semaine cible (defaut: aujourd'hui)" },
+        },
+      },
+    },
+    {
+      name: "get_anomalies_carburant",
+      description: "Detecte les anomalies sur les pleins carburant : conso L/100km hors moyenne vehicule, pleins rapproches anormalement (<24h), litres > capacite reservoir, prix au litre incoherent.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "Defaut: 30 derniers jours" },
+          date_max: { type: "string" },
         },
       },
     },
@@ -289,6 +383,220 @@ async function toolGetStats(args: any, sb: SbClient) {
   };
 }
 
+async function toolSearchPaiements(args: any, sb: SbClient) {
+  let q = sb.from("paiements").select(
+    "id, livraison_id, client_id, date_paiement, montant, mode, reference, frais, notes"
+  );
+  if (args.date_min) q = q.gte("date_paiement", args.date_min);
+  if (args.date_max) q = q.lte("date_paiement", args.date_max);
+  if (args.mode) q = q.eq("mode", args.mode);
+  if (args.livraison_id) q = q.eq("livraison_id", args.livraison_id);
+  if (args.client_id) q = q.eq("client_id", args.client_id);
+  q = q.order("date_paiement", { ascending: false }).limit(RESULT_ROW_CAP);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return { count: data?.length ?? 0, paiements: data ?? [] };
+}
+
+async function toolSearchInspections(args: any, sb: SbClient) {
+  let q = sb.from("inspections").select(
+    "id, salarie_id, vehicule_id, date_inspection, semaine_label, commentaire, statut"
+  );
+  if (args.date_min) q = q.gte("date_inspection", args.date_min);
+  if (args.date_max) q = q.lte("date_inspection", args.date_max);
+  if (args.salarie_id) q = q.eq("salarie_id", args.salarie_id);
+  if (args.vehicule_id) q = q.eq("vehicule_id", args.vehicule_id);
+  if (args.statut) q = q.eq("statut", args.statut);
+  q = q.order("date_inspection", { ascending: false }).limit(RESULT_ROW_CAP);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return { count: data?.length ?? 0, inspections: data ?? [] };
+}
+
+async function toolSearchEntretiens(args: any, sb: SbClient) {
+  let q = sb.from("entretiens").select(
+    "id, vehicule_id, date_entretien, type, description, cout_ttc, cout_ht, taux_tva, kilometrage, prochain_km, prochaine_date"
+  );
+  if (args.date_min) q = q.gte("date_entretien", args.date_min);
+  if (args.date_max) q = q.lte("date_entretien", args.date_max);
+  if (args.vehicule_id) q = q.eq("vehicule_id", args.vehicule_id);
+  if (args.type) q = q.ilike("type", `%${args.type}%`);
+  q = q.order("date_entretien", { ascending: false }).limit(RESULT_ROW_CAP);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return { count: data?.length ?? 0, entretiens: data ?? [] };
+}
+
+async function toolSearchIncidents(args: any, sb: SbClient) {
+  let q = sb.from("incidents").select(
+    "id, salarie_id, livraison_id, gravite, description, date_incident, statut"
+  );
+  if (args.date_min) q = q.gte("date_incident", args.date_min);
+  if (args.date_max) q = q.lte("date_incident", args.date_max);
+  if (args.salarie_id) q = q.eq("salarie_id", args.salarie_id);
+  if (args.gravite) q = q.eq("gravite", args.gravite);
+  if (args.statut) q = q.eq("statut", args.statut);
+  q = q.order("date_incident", { ascending: false }).limit(RESULT_ROW_CAP);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return { count: data?.length ?? 0, incidents: data ?? [] };
+}
+
+async function toolSearchAlertes(args: any, sb: SbClient) {
+  let q = sb.from("alertes_admin").select(
+    "id, type, niveau, titre, message, contexte, lue, resolved, created_at"
+  );
+  if (args.niveau) q = q.eq("niveau", args.niveau);
+  if (typeof args.lue === "boolean") q = q.eq("lue", args.lue);
+  if (typeof args.resolved === "boolean") q = q.eq("resolved", args.resolved);
+  q = q.order("created_at", { ascending: false }).limit(RESULT_ROW_CAP);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return { count: data?.length ?? 0, alertes: data ?? [] };
+}
+
+async function toolGetPlanningSemaine(args: any, sb: SbClient) {
+  // Calcule le lundi et dimanche de la semaine cible (ISO : lundi=jour 1)
+  const ref = args.date_ref ? new Date(args.date_ref) : new Date();
+  const day = ref.getUTCDay() || 7; // dimanche = 7
+  const monday = new Date(ref);
+  monday.setUTCDate(ref.getUTCDate() - day + 1);
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const lundi = monday.toISOString().slice(0, 10);
+  const dim = sunday.toISOString().slice(0, 10);
+
+  const [planRes, absRes, salRes] = await Promise.all([
+    sb.from("plannings_hebdo").select("salarie_id, jour, travaille, type_jour, heure_debut, heure_fin, zone, note").gte("jour", lundi).lte("jour", dim),
+    sb.from("absences_periodes").select("salarie_id, type, date_debut, date_fin, heure_debut, heure_fin").lte("date_debut", dim).gte("date_fin", lundi),
+    sb.from("salaries").select("id, nom, prenom, poste").eq("actif", true),
+  ]);
+  if (planRes.error) return { error: "plannings: " + planRes.error.message };
+  if (absRes.error) return { error: "absences: " + absRes.error.message };
+  if (salRes.error) return { error: "salaries: " + salRes.error.message };
+
+  // Map id -> salarie pour resolution
+  const salMap = new Map<string, any>();
+  (salRes.data ?? []).forEach((s: any) => salMap.set(s.id, s));
+
+  const enriched = (planRes.data ?? []).map((p: any) => ({
+    ...p,
+    salarie: salMap.get(p.salarie_id) ?? null,
+  }));
+
+  return {
+    semaine: { lundi, dimanche: dim },
+    nb_creneaux: enriched.length,
+    creneaux: enriched,
+    absences: absRes.data ?? [],
+  };
+}
+
+async function toolGetAnomaliesCarburant(args: any, sb: SbClient) {
+  const today = todayISO();
+  const dateMax = args.date_max ?? today;
+  // Defaut : 30 derniers jours
+  const d30 = new Date();
+  d30.setUTCDate(d30.getUTCDate() - 30);
+  const dateMin = args.date_min ?? d30.toISOString().slice(0, 10);
+
+  const [carbRes, vehRes] = await Promise.all([
+    sb.from("carburant").select("id, vehicule_id, salarie_id, date_plein, litres, prix_ttc, prix_ht, kilometrage").gte("date_plein", dateMin).lte("date_plein", dateMax).order("date_plein", { ascending: true }),
+    sb.from("vehicules").select("id, immat, conso, capacite_reservoir"),
+  ]);
+  if (carbRes.error) return { error: "carburant: " + carbRes.error.message };
+  if (vehRes.error) return { error: "vehicules: " + vehRes.error.message };
+
+  const vehMap = new Map<string, any>();
+  (vehRes.data ?? []).forEach((v: any) => vehMap.set(v.id, v));
+
+  const pleins = carbRes.data ?? [];
+  const anomalies: any[] = [];
+
+  // Group by vehicule pour calcul conso
+  const byVeh = new Map<string, any[]>();
+  for (const p of pleins) {
+    if (!p.vehicule_id) continue;
+    if (!byVeh.has(p.vehicule_id)) byVeh.set(p.vehicule_id, []);
+    byVeh.get(p.vehicule_id)!.push(p);
+  }
+
+  for (const [vehId, items] of byVeh) {
+    const veh = vehMap.get(vehId);
+    const immat = veh?.immat ?? "?";
+    const consoRef = Number(veh?.conso) || 0;
+    const reservoir = Number(veh?.capacite_reservoir) || 0;
+
+    // Sort by date pour calcul conso
+    items.sort((a, b) => (a.date_plein || "").localeCompare(b.date_plein || ""));
+
+    for (let i = 0; i < items.length; i++) {
+      const p = items[i];
+      const prev = i > 0 ? items[i - 1] : null;
+      const litres = Number(p.litres) || 0;
+      const km = Number(p.kilometrage) || 0;
+      const prixTtc = Number(p.prix_ttc) || 0;
+
+      // 1. Litres > capacite reservoir ?
+      if (reservoir > 0 && litres > reservoir * 1.05) {
+        anomalies.push({
+          id: p.id, vehicule: immat, date: p.date_plein,
+          type: "litres_sup_reservoir",
+          detail: `${litres} L declarés mais capacité reservoir ${reservoir} L`,
+          severite: "moyen",
+        });
+      }
+
+      // 2. Conso L/100km hors moyenne (>20% deviation)
+      if (prev && consoRef > 0 && km > 0 && prev.kilometrage) {
+        const distance = km - Number(prev.kilometrage);
+        if (distance > 0) {
+          const consoCalc = (litres / distance) * 100;
+          const deviation = ((consoCalc - consoRef) / consoRef) * 100;
+          if (Math.abs(deviation) > 20) {
+            anomalies.push({
+              id: p.id, vehicule: immat, date: p.date_plein,
+              type: "conso_anormale",
+              detail: `Conso calculee ${consoCalc.toFixed(1)} L/100 km vs reference ${consoRef} (${deviation > 0 ? "+" : ""}${deviation.toFixed(0)}%)`,
+              severite: Math.abs(deviation) > 40 ? "grave" : "moyen",
+            });
+          }
+        }
+      }
+
+      // 3. Pleins rapproches (<24h)
+      if (prev && p.date_plein === prev.date_plein) {
+        anomalies.push({
+          id: p.id, vehicule: immat, date: p.date_plein,
+          type: "pleins_meme_jour",
+          detail: "2 pleins le meme jour pour ce vehicule",
+          severite: "leger",
+        });
+      }
+
+      // 4. Prix au litre incoherent (<1€ ou >3€)
+      if (litres > 0 && prixTtc > 0) {
+        const prixL = prixTtc / litres;
+        if (prixL < 1 || prixL > 3) {
+          anomalies.push({
+            id: p.id, vehicule: immat, date: p.date_plein,
+            type: "prix_litre_incoherent",
+            detail: `Prix unitaire ${prixL.toFixed(2)} €/L (hors plage 1-3 €)`,
+            severite: "leger",
+          });
+        }
+      }
+    }
+  }
+
+  return {
+    periode: { date_min: dateMin, date_max: dateMax },
+    nb_pleins_analyses: pleins.length,
+    nb_anomalies: anomalies.length,
+    anomalies: anomalies.slice(0, 30),
+  };
+}
+
 const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown>> = {
   search_livraisons: toolSearchLivraisons,
   search_charges: toolSearchCharges,
@@ -298,6 +606,13 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   search_salaries: toolSearchSalaries,
   search_carburant: toolSearchCarburant,
   get_stats: toolGetStats,
+  search_paiements: toolSearchPaiements,
+  search_inspections: toolSearchInspections,
+  search_entretiens: toolSearchEntretiens,
+  search_incidents: toolSearchIncidents,
+  search_alertes: toolSearchAlertes,
+  get_planning_semaine: toolGetPlanningSemaine,
+  get_anomalies_carburant: toolGetAnomaliesCarburant,
 };
 
 // ----- Gemini helper -----
