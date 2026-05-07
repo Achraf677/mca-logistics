@@ -28,7 +28,7 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     ``,
     `## Regles`,
     `- Reponds en francais, ton naturel, concis. Pas de blabla.`,
-    `- Quand tu as besoin de donnees, utilise les outils (tu en as 15) au lieu de poser des questions a l'utilisateur.`,
+    `- Quand tu as besoin de donnees, utilise les outils (tu en as 24, dont 9 connectes a des APIs externes : Qonto banque, Pennylane compta, OpenRouteService cartes/distance, Sentry monitoring) au lieu de poser des questions a l'utilisateur.`,
     `- Pour des chiffres (CA, marges, volume), utilise get_stats.`,
     `- Si tu detectes une anomalie ou opportunite (charge anormale, retard paiement long, conso carburant suspecte), signale-la avec une recommandation actionnable.`,
     `- Tu n'as PAS le droit d'ecrire / creer / modifier / supprimer en V1. Si on te demande "cree X" ou "modifie Y", explique que la fonctionnalite ecriture arrive en V2 et propose au lieu un resume des donnees pertinentes.`,
@@ -56,8 +56,12 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     `- incidents : salarie_id, livraison_id, gravite, description, date_incident, statut.`,
     `- alertes : type, niveau (info/warning/error/critical), titre, message, lue, resolved.`,
     `- plannings_hebdo : salarie_id, jour (YYYY-MM-DD), travaille, heure_debut/fin, zone.`,
-  ].join("\n");
-}
+    ``,
+    `## APIs externes branchees (utilise-les quand pertinent)`,
+    `- **Qonto** (banque) : qonto_organization (soldes), qonto_search_transactions (virements/prelevements). Utile pour rapprochement bancaire ("Carrefour a paye sur Qonto le X mai mais MCA marque impaye").`,
+    `- **Pennylane** (compta) : pennylane_factures_clients/fournisseurs, pennylane_search_clients/fournisseurs. Pennylane est la source legale (TVA CA3, factures officielles). Croise avec MCA pour detecter les divergences.`,
+    `- **OpenRouteService** (cartes) : ors_distance (km + duree entre 2 adresses, profil camion HGV par defaut), ors_optimize_tournee (TSP multi-stops). Pour estimation prix livraison ou planification tournee.`,
+    `- **Sentry** (monitoring) : sentry_recent_issues (bugs JS prod). Utile si l'admin demande "y a eu des bugs ?".`,
 
 const TOOLS = [{
   functionDeclarations: [
@@ -239,6 +243,106 @@ const TOOLS = [{
         properties: {
           date_min: { type: "string", description: "Defaut: 30 derniers jours" },
           date_max: { type: "string" },
+        },
+      },
+    },
+    // ===== Qonto (banque) =====
+    {
+      name: "qonto_organization",
+      description: "Recupere les comptes bancaires Qonto de MCA et leurs soldes courants.",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      name: "qonto_search_transactions",
+      description: "Liste les transactions bancaires Qonto (virements recus/emis, prelevements, cartes). Filtres optionnels (date, sens, montant, libelle).",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD (settled_at_from)" },
+          date_max: { type: "string", description: "YYYY-MM-DD" },
+          side: { type: "string", enum: ["debit", "credit"], description: "debit = sortant, credit = entrant" },
+          label_search: { type: "string", description: "Texte present dans le libelle (recherche partielle)" },
+          min_amount: { type: "number", description: "Montant min en euros" },
+        },
+      },
+    },
+    // ===== Pennylane (compta) =====
+    {
+      name: "pennylane_factures_clients",
+      description: "Liste les factures clients officielles dans Pennylane (la source de verite compta). Permet de croiser avec MCA.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD (date d'emission)" },
+          date_max: { type: "string" },
+          paid_only: { type: "boolean", description: "true = uniquement factures payees" },
+          unpaid_only: { type: "boolean", description: "true = uniquement factures impayees" },
+        },
+      },
+    },
+    {
+      name: "pennylane_factures_fournisseurs",
+      description: "Liste les factures fournisseurs dans Pennylane.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string" },
+          date_max: { type: "string" },
+        },
+      },
+    },
+    {
+      name: "pennylane_search_clients",
+      description: "Liste les clients de Pennylane (utile pour comparer avec les clients MCA et detecter les divergences).",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string", description: "Nom (recherche partielle)" } },
+      },
+    },
+    {
+      name: "pennylane_search_fournisseurs",
+      description: "Liste les fournisseurs de Pennylane.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" } },
+      },
+    },
+    // ===== OpenRouteService (HeiGIT) =====
+    {
+      name: "ors_distance",
+      description: "Calcule la distance routiere et la duree entre 2 adresses (avec geocoding automatique). Profil camion poids-lourd par defaut.",
+      parameters: {
+        type: "object",
+        properties: {
+          depart: { type: "string", description: "Adresse de depart (texte libre)" },
+          arrivee: { type: "string", description: "Adresse d'arrivee (texte libre)" },
+          profile: { type: "string", enum: ["driving-hgv", "driving-car"], description: "driving-hgv = camion (defaut), driving-car = voiture" },
+        },
+        required: ["depart", "arrivee"],
+      },
+    },
+    {
+      name: "ors_optimize_tournee",
+      description: "Optimise une tournee multi-stops (TSP) pour un camion. Donne l'ordre optimal et la distance/duree totale.",
+      parameters: {
+        type: "object",
+        properties: {
+          depart: { type: "string", description: "Adresse de depart de la tournee" },
+          arrets: { type: "array", items: { type: "string" }, description: "Liste d'adresses d'arrets a optimiser" },
+          retour: { type: "string", description: "Adresse de retour (optionnel, defaut = depart)" },
+        },
+        required: ["depart", "arrets"],
+      },
+    },
+    // ===== Sentry (monitoring) =====
+    {
+      name: "sentry_recent_issues",
+      description: "Liste les bugs JS / erreurs recentes en prod sur le site MCA (capturees par Sentry).",
+      parameters: {
+        type: "object",
+        properties: {
+          period: { type: "string", description: "Periode (1h, 24h, 7d, 14d, 30d). Defaut 7d." },
+          unresolved_only: { type: "boolean", description: "Defaut true" },
         },
       },
     },
@@ -612,6 +716,284 @@ async function toolGetAnomaliesCarburant(args: any, sb: SbClient) {
   };
 }
 
+// ===== Helpers HTTP externes =====
+
+async function fetchSafeJson(url: string, init: RequestInit, timeoutMs = 15000): Promise<any> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeoutMs);
+    const r = await fetch(url, { ...init, signal: ctrl.signal });
+    clearTimeout(t);
+    if (!r.ok) {
+      const txt = await r.text().catch(() => "");
+      return { error: `HTTP ${r.status}`, detail: txt.slice(0, 200) };
+    }
+    return await r.json();
+  } catch (e) {
+    return { error: String(e).slice(0, 200) };
+  }
+}
+
+// ===== Qonto =====
+const QONTO_BASE = "https://thirdparty.qonto.com/v2";
+
+function qontoAuth(): string {
+  const login = Deno.env.get("QONTO_LOGIN") ?? "";
+  const secret = Deno.env.get("QONTO_SECRET_KEY") ?? "";
+  return `${login}:${secret}`;
+}
+
+async function toolQontoOrganization(_args: any, _sb: SbClient) {
+  const data = await fetchSafeJson(`${QONTO_BASE}/organization`, {
+    headers: { Authorization: qontoAuth() },
+  });
+  if (data.error) return data;
+  const org = data.organization ?? {};
+  return {
+    name: org.name,
+    slug: org.slug,
+    legal_name: org.legal_name,
+    bank_accounts: (org.bank_accounts ?? []).map((a: any) => ({
+      slug: a.slug,
+      iban: a.iban,
+      currency: a.currency,
+      balance: a.balance,
+      authorized_balance: a.authorized_balance,
+      updated_at: a.updated_at,
+    })),
+  };
+}
+
+async function toolQontoSearchTransactions(args: any, _sb: SbClient) {
+  const params = new URLSearchParams({ per_page: "30", current_page: "1" });
+  if (args.date_min) params.set("settled_at_from", args.date_min + "T00:00:00.000Z");
+  if (args.date_max) params.set("settled_at_to", args.date_max + "T23:59:59.999Z");
+  if (args.side) params.set("side", args.side);
+  const url = `${QONTO_BASE}/transactions?${params}`;
+  const data = await fetchSafeJson(url, { headers: { Authorization: qontoAuth() } });
+  if (data.error) return data;
+  let txs = (data.transactions ?? []).map((t: any) => ({
+    transaction_id: t.transaction_id,
+    label: t.label,
+    counterparty_name: t.counterparty_name,
+    side: t.side,
+    amount: t.amount,
+    currency: t.currency,
+    settled_at: t.settled_at,
+    operation_type: t.operation_type,
+    status: t.status,
+    note: t.note,
+  }));
+  // Filtrage cote app (l'API Qonto ne supporte pas le search libelle)
+  if (args.label_search) {
+    const q = String(args.label_search).toLowerCase();
+    txs = txs.filter((t: any) =>
+      (t.label || "").toLowerCase().includes(q) ||
+      (t.counterparty_name || "").toLowerCase().includes(q)
+    );
+  }
+  if (typeof args.min_amount === "number") {
+    txs = txs.filter((t: any) => Math.abs(Number(t.amount) || 0) >= args.min_amount);
+  }
+  return {
+    count: txs.length,
+    has_more: !!(data.meta?.next_page),
+    transactions: txs.slice(0, 30),
+  };
+}
+
+// ===== Pennylane =====
+const PENNYLANE_BASE = "https://app.pennylane.com/api/external/v2";
+
+function pennylaneHeaders() {
+  const tok = Deno.env.get("PENNYLANE_TOKEN") ?? "";
+  return { Authorization: `Bearer ${tok}`, Accept: "application/json" };
+}
+
+async function toolPennylaneFacturesClients(args: any, _sb: SbClient) {
+  const params = new URLSearchParams({ per_page: "25" });
+  if (args.date_min) params.set("filter[date_gte]", args.date_min);
+  if (args.date_max) params.set("filter[date_lte]", args.date_max);
+  if (args.paid_only) params.set("filter[status]", "paid");
+  if (args.unpaid_only) params.set("filter[status]", "unpaid");
+  const url = `${PENNYLANE_BASE}/customer_invoices?${params}`;
+  const data = await fetchSafeJson(url, { headers: pennylaneHeaders() });
+  if (data.error) return data;
+  const items = (data.items ?? data.data ?? []).map((i: any) => ({
+    id: i.id,
+    invoice_number: i.invoice_number ?? i.attributes?.invoice_number,
+    date: i.date ?? i.attributes?.date,
+    customer_name: i.customer?.name ?? i.attributes?.customer_name,
+    amount: i.amount ?? i.attributes?.amount,
+    currency_amount: i.currency_amount ?? i.attributes?.currency_amount,
+    paid: i.paid ?? i.attributes?.paid,
+    deadline: i.deadline ?? i.attributes?.deadline,
+    status: i.status ?? i.attributes?.status,
+  }));
+  return { count: items.length, has_more: !!data.next_cursor, factures: items };
+}
+
+async function toolPennylaneFacturesFournisseurs(args: any, _sb: SbClient) {
+  const params = new URLSearchParams({ per_page: "25" });
+  if (args.date_min) params.set("filter[date_gte]", args.date_min);
+  if (args.date_max) params.set("filter[date_lte]", args.date_max);
+  const url = `${PENNYLANE_BASE}/supplier_invoices?${params}`;
+  const data = await fetchSafeJson(url, { headers: pennylaneHeaders() });
+  if (data.error) return data;
+  const items = (data.items ?? data.data ?? []).map((i: any) => ({
+    id: i.id,
+    invoice_number: i.invoice_number,
+    date: i.date,
+    supplier_name: i.supplier?.name,
+    amount: i.amount,
+    currency_amount: i.currency_amount,
+    paid: i.paid,
+  }));
+  return { count: items.length, has_more: !!data.next_cursor, factures: items };
+}
+
+async function toolPennylaneSearchClients(args: any, _sb: SbClient) {
+  const params = new URLSearchParams({ per_page: "25" });
+  if (args.query) params.set("filter[name]", args.query);
+  const url = `${PENNYLANE_BASE}/customers?${params}`;
+  const data = await fetchSafeJson(url, { headers: pennylaneHeaders() });
+  if (data.error) return data;
+  const items = (data.items ?? data.data ?? []).map((c: any) => ({
+    id: c.id, name: c.name, email: c.email, vat_number: c.vat_number,
+    siren: c.siren, country_alpha2: c.country_alpha2, address: c.address,
+  }));
+  return { count: items.length, clients: items };
+}
+
+async function toolPennylaneSearchFournisseurs(args: any, _sb: SbClient) {
+  const params = new URLSearchParams({ per_page: "25" });
+  if (args.query) params.set("filter[name]", args.query);
+  const url = `${PENNYLANE_BASE}/suppliers?${params}`;
+  const data = await fetchSafeJson(url, { headers: pennylaneHeaders() });
+  if (data.error) return data;
+  const items = (data.items ?? data.data ?? []).map((c: any) => ({
+    id: c.id, name: c.name, email: c.email, vat_number: c.vat_number,
+    siren: c.siren, country_alpha2: c.country_alpha2,
+  }));
+  return { count: items.length, fournisseurs: items };
+}
+
+// ===== OpenRouteService =====
+const ORS_BASE = "https://api.openrouteservice.org";
+
+function orsHeaders() {
+  const k = Deno.env.get("ORS_API_KEY") ?? "";
+  return { Authorization: k, "Content-Type": "application/json" };
+}
+
+async function orsGeocode(text: string): Promise<{ coords?: [number, number]; label?: string; error?: string }> {
+  const k = Deno.env.get("ORS_API_KEY") ?? "";
+  const url = `${ORS_BASE}/geocode/search?api_key=${encodeURIComponent(k)}&size=1&boundary.country=FR&text=${encodeURIComponent(text)}`;
+  const data = await fetchSafeJson(url, { method: "GET" });
+  if (data.error) return { error: data.error };
+  const f = data.features?.[0];
+  if (!f) return { error: `Adresse introuvable : "${text}"` };
+  return { coords: f.geometry.coordinates as [number, number], label: f.properties?.label };
+}
+
+async function toolOrsDistance(args: any, _sb: SbClient) {
+  if (!args.depart || !args.arrivee) return { error: "depart et arrivee requis" };
+  const profile = args.profile || "driving-hgv";
+  const [g1, g2] = await Promise.all([orsGeocode(args.depart), orsGeocode(args.arrivee)]);
+  if (g1.error) return { error: `geocode depart : ${g1.error}` };
+  if (g2.error) return { error: `geocode arrivee : ${g2.error}` };
+  const url = `${ORS_BASE}/v2/directions/${profile}`;
+  const data = await fetchSafeJson(url, {
+    method: "POST",
+    headers: orsHeaders(),
+    body: JSON.stringify({ coordinates: [g1.coords, g2.coords], units: "km" }),
+  });
+  if (data.error) return data;
+  const route = data.routes?.[0];
+  if (!route) return { error: "Pas de route trouvee" };
+  return {
+    profile,
+    depart_resolu: g1.label,
+    arrivee_resolu: g2.label,
+    distance_km: Number((route.summary.distance).toFixed(1)),
+    duree_minutes: Number((route.summary.duration / 60).toFixed(0)),
+    duree_lisible: formatDuree(route.summary.duration),
+  };
+}
+
+function formatDuree(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.round((seconds % 3600) / 60);
+  return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
+}
+
+async function toolOrsOptimizeTournee(args: any, _sb: SbClient) {
+  if (!args.depart || !Array.isArray(args.arrets) || args.arrets.length === 0) {
+    return { error: "depart + arrets[] requis" };
+  }
+  const retour = args.retour || args.depart;
+  const adresses = [args.depart, ...args.arrets, retour];
+  const geocoded = await Promise.all(adresses.map((a) => orsGeocode(a)));
+  const errs = geocoded.filter((g) => g.error);
+  if (errs.length) return { error: "Geocoding echoue : " + errs.map((e) => e.error).join("; ") };
+
+  const startCoord = geocoded[0].coords!;
+  const endCoord = geocoded[geocoded.length - 1].coords!;
+  const jobs = args.arrets.map((label: string, i: number) => ({
+    id: i + 1,
+    location: geocoded[i + 1].coords,
+    description: label,
+  }));
+
+  const data = await fetchSafeJson(`${ORS_BASE}/optimization`, {
+    method: "POST",
+    headers: orsHeaders(),
+    body: JSON.stringify({
+      jobs,
+      vehicles: [{ id: 1, profile: "driving-hgv", start: startCoord, end: endCoord }],
+    }),
+  });
+  if (data.error) return data;
+  const route = data.routes?.[0];
+  if (!route) return { error: "Pas de tournee optimisee" };
+  const ordered = (route.steps ?? []).filter((s: any) => s.type === "job").map((s: any) => {
+    const j = jobs.find((j: any) => j.id === s.job);
+    return j?.description;
+  });
+  return {
+    distance_km: Number((route.distance / 1000).toFixed(1)),
+    duree_minutes: Math.round(route.duration / 60),
+    duree_lisible: formatDuree(route.duration),
+    ordre_optimal: [args.depart, ...ordered, retour],
+    nb_arrets: jobs.length,
+  };
+}
+
+// ===== Sentry =====
+
+async function toolSentryRecentIssues(args: any, _sb: SbClient) {
+  const tok = Deno.env.get("SENTRY_TOKEN") ?? "";
+  const period = args.period || "7d";
+  const unresolved = args.unresolved_only !== false;
+  const query = unresolved ? "is:unresolved" : "";
+  const url = `https://sentry.io/api/0/organizations/mca-logistics/issues/?statsPeriod=${period}&query=${encodeURIComponent(query)}&limit=20`;
+  const data = await fetchSafeJson(url, { headers: { Authorization: `Bearer ${tok}` } });
+  if (data.error) return data;
+  const issues = (Array.isArray(data) ? data : []).map((i: any) => ({
+    id: i.id,
+    title: i.title,
+    culprit: i.culprit,
+    level: i.level,
+    status: i.status,
+    count: i.count,
+    user_count: i.userCount,
+    last_seen: i.lastSeen,
+    project: i.project?.slug,
+    permalink: i.permalink,
+  }));
+  return { period, count: issues.length, issues };
+}
+
 const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown>> = {
   search_livraisons: toolSearchLivraisons,
   search_charges: toolSearchCharges,
@@ -628,6 +1010,16 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   search_alertes: toolSearchAlertes,
   get_planning_semaine: toolGetPlanningSemaine,
   get_anomalies_carburant: toolGetAnomaliesCarburant,
+  // Externes
+  qonto_organization: toolQontoOrganization,
+  qonto_search_transactions: toolQontoSearchTransactions,
+  pennylane_factures_clients: toolPennylaneFacturesClients,
+  pennylane_factures_fournisseurs: toolPennylaneFacturesFournisseurs,
+  pennylane_search_clients: toolPennylaneSearchClients,
+  pennylane_search_fournisseurs: toolPennylaneSearchFournisseurs,
+  ors_distance: toolOrsDistance,
+  ors_optimize_tournee: toolOrsOptimizeTournee,
+  sentry_recent_issues: toolSentryRecentIssues,
 };
 
 // ----- Gemini helper -----
