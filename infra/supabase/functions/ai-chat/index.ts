@@ -25,7 +25,21 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function buildSystemPrompt(role: "admin" | "salarie"): string {
+function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = []): string {
+  const memorySection = memoryFacts.length
+    ? [
+        ``,
+        `## Memoire long-terme (faits valides, importance 1-5)`,
+        ...memoryFacts.map((f) => `- [${f.category} | importance=${f.importance}] ${f.fact_text}`),
+        ``,
+        `Si tu apprends un fait business important pendant la conversation (preference user, pattern client, anomalie recurrente vehicule, convention interne), propose de l'ajouter avec add_memory_fact en expliquant pourquoi. L'admin peut supprimer via delete_memory_fact(id) ou directement dans le panneau memoire.`,
+      ].join("\n")
+    : [
+        ``,
+        `## Memoire long-terme`,
+        `(Aucun fait memorise pour l'instant. Quand tu apprends une info importante et durable, propose-la avec add_memory_fact.)`,
+      ].join("\n");
+
   return [
     `Tu es l'assistant business de MCA Logistics, PME francaise de transport et logistique.`,
     `Date d'aujourd'hui : ${todayISO()}.`,
@@ -34,7 +48,7 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     ``,
     `## Regles`,
     `- Reponds en francais, ton naturel, concis. Pas de blabla.`,
-    `- Quand tu as besoin de donnees, utilise les outils (tu en as 24, dont 9 connectes a des APIs externes : Qonto banque, Pennylane compta, OpenRouteService cartes/distance, Sentry monitoring) au lieu de poser des questions a l'utilisateur.`,
+    `- Quand tu as besoin de donnees, utilise les outils (tu en as 27, dont 9 connectes a des APIs externes : Qonto banque, Pennylane compta, OpenRouteService cartes/distance, Sentry monitoring ; et 3 dedies a la memoire long-terme) au lieu de poser des questions a l'utilisateur.`,
     `- Pour des chiffres (CA, marges, volume), utilise get_stats.`,
     `- Si tu detectes une anomalie ou opportunite (charge anormale, retard paiement long, conso carburant suspecte), signale-la avec une recommandation actionnable.`,
     `- Tu n'as PAS le droit d'ecrire / creer / modifier / supprimer en V1. Si on te demande "cree X" ou "modifie Y", explique que la fonctionnalite ecriture arrive en V2 et propose au lieu un resume des donnees pertinentes.`,
@@ -68,6 +82,7 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     `- **Pennylane** (compta) : pennylane_factures_clients/fournisseurs, pennylane_search_clients/fournisseurs. Pennylane est la source legale (TVA CA3, factures officielles). Croise avec MCA pour detecter les divergences.`,
     `- **OpenRouteService** (cartes) : ors_distance (km + duree entre 2 adresses, profil camion HGV par defaut), ors_optimize_tournee (TSP multi-stops). Pour estimation prix livraison ou planification tournee.`,
     `- **Sentry** (monitoring) : sentry_recent_issues (bugs JS prod). Utile si l'admin demande "y a eu des bugs ?".`,
+    memorySection,
   ].join("\n");
 }
 
@@ -352,6 +367,40 @@ const TOOLS = [{
           period: { type: "string", description: "Periode (1h, 24h, 7d, 14d, 30d). Defaut 7d." },
           unresolved_only: { type: "boolean", description: "Defaut true" },
         },
+      },
+    },
+    // ===== Memoire long-terme =====
+    {
+      name: "add_memory_fact",
+      description: "Memorise un fait important sur le business pour le retenir dans toutes les conversations futures. Ne l'utilise QUE pour des faits de long terme (pattern client, anomalie recurrente vehicule, convention interne, preference user). PAS pour des notes du jour ou des donnees temporaires (qui sont deja en DB).",
+      parameters: {
+        type: "object",
+        properties: {
+          fact_text: { type: "string", description: "Phrase courte, factuelle, en francais. Max 500 caracteres." },
+          category: {
+            type: "string",
+            enum: ["general", "client", "fournisseur", "salarie", "vehicule", "finance", "compta", "preference_user", "pattern"],
+          },
+          importance: { type: "integer", description: "1=mineur, 5=critique. Defaut 3." },
+        },
+        required: ["fact_text"],
+      },
+    },
+    {
+      name: "delete_memory_fact",
+      description: "Supprime un fait memorise (par son id). Utilise quand l'admin dit qu'un fait n'est plus valide ou est faux.",
+      parameters: {
+        type: "object",
+        properties: { id: { type: "string", description: "UUID du fait a supprimer" } },
+        required: ["id"],
+      },
+    },
+    {
+      name: "list_memory_facts",
+      description: "Liste les faits memorises (filtre optionnel par categorie). Note : les faits sont DEJA injectes automatiquement dans ton contexte. N'appelle ce tool que si l'admin demande explicitement de voir la memoire.",
+      parameters: {
+        type: "object",
+        properties: { category: { type: "string" } },
       },
     },
   ],
@@ -1028,7 +1077,53 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   ors_distance: toolOrsDistance,
   ors_optimize_tournee: toolOrsOptimizeTournee,
   sentry_recent_issues: toolSentryRecentIssues,
+  add_memory_fact: toolAddMemoryFact,
+  delete_memory_fact: toolDeleteMemoryFact,
+  list_memory_facts: toolListMemoryFacts,
 };
+
+// ===== Memoire long-terme =====
+
+async function toolAddMemoryFact(args: any, sb: SbClient) {
+  const text = String(args.fact_text || "").trim().slice(0, 500);
+  if (!text) return { error: "fact_text requis" };
+  const cat = args.category && [
+    "general", "client", "fournisseur", "salarie", "vehicule",
+    "finance", "compta", "preference_user", "pattern",
+  ].includes(args.category) ? args.category : "general";
+  const imp = Math.max(1, Math.min(5, Number(args.importance) || 3));
+  const { data, error } = await sb.from("ai_memory").insert({
+    fact_text: text,
+    category: cat,
+    importance: imp,
+    source: "proposed_by_ai",
+    validated_at: new Date().toISOString(),
+  }).select("id, fact_text, category, importance").single();
+  if (error) return { error: error.message };
+  return {
+    success: true,
+    fact: data,
+    note: "Fait memorise. Sera injecte automatiquement dans toutes les conversations futures.",
+  };
+}
+
+async function toolDeleteMemoryFact(args: any, sb: SbClient) {
+  if (!args.id) return { error: "id requis" };
+  const { data: existing } = await sb.from("ai_memory").select("id, fact_text").eq("id", args.id).maybeSingle();
+  if (!existing) return { error: "Fait introuvable (deja supprime ?)" };
+  const { error } = await sb.from("ai_memory").delete().eq("id", args.id);
+  if (error) return { error: error.message };
+  return { success: true, deleted: existing };
+}
+
+async function toolListMemoryFacts(args: any, sb: SbClient) {
+  let q = sb.from("ai_memory").select("id, fact_text, category, importance, source, created_at");
+  if (args.category) q = q.eq("category", args.category);
+  q = q.order("importance", { ascending: false }).order("created_at", { ascending: false }).limit(50);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return { count: data?.length ?? 0, facts: data ?? [] };
+}
 
 // ----- Gemini helper -----
 
@@ -1213,10 +1308,21 @@ Deno.serve(async (req) => {
     let usePro = quota.requests_pro < PRO_DAILY_QUOTA;
     let model = usePro ? "gemini-2.5-pro" : "gemini-2.5-flash";
 
-    const systemInstruction = buildSystemPrompt(role);
+    // Memoire long-terme : injectee dans le system prompt a chaque conversation.
+    // Tri par importance DESC, limite raisonnable pour ne pas exploser le contexte.
+    const { data: memData } = await sbAdmin
+      .from("ai_memory")
+      .select("id, fact_text, category, importance")
+      .order("importance", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(60);
+    const memoryFacts = memData ?? [];
+
+    const systemInstruction = buildSystemPrompt(role, memoryFacts);
     let working = [...history];
     let finalText = "";
     let toolCallsMade: string[] = [];
+    const memoryOps: any[] = [];
     let lastResp: GeminiResp | null = null;
     let proFellBackToFlash = false;
 
@@ -1295,7 +1401,14 @@ Deno.serve(async (req) => {
           const handler = TOOL_HANDLERS[call.name];
           if (!handler) return { error: `unknown tool: ${call.name}` };
           try {
-            return await handler(call.args ?? {}, sbAdmin);
+            const r = await handler(call.args ?? {}, sbAdmin);
+            // Track memory ops pour les exposer a l'UI (cards delete-able / annonces).
+            if (call.name === "add_memory_fact" && (r as any)?.success && (r as any)?.fact) {
+              memoryOps.push({ type: "added", fact: (r as any).fact });
+            } else if (call.name === "delete_memory_fact" && (r as any)?.success) {
+              memoryOps.push({ type: "deleted", id: call.args?.id, deleted: (r as any)?.deleted });
+            }
+            return r;
           } catch (e) {
             return { error: String(e).slice(0, 200) };
           }
@@ -1330,6 +1443,7 @@ Deno.serve(async (req) => {
         flash_used_today: newQuota.requests_flash,
         tools_called: toolCallsMade,
         pro_fell_back_to_flash: proFellBackToFlash,
+        memory_ops: memoryOps,
       }),
       { headers: { ...CORS, "Content-Type": "application/json" } }
     );

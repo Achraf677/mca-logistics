@@ -432,6 +432,43 @@
       .ai-chat-msg { font-size: .92rem; max-width: 88%; }
     }
 
+    /* ========== Cards memoire ========== */
+    .ai-chat-mem-card {
+      align-self: stretch;
+      background: rgba(76,201,240,0.08);
+      border: 1px solid rgba(76,201,240,0.35);
+      color: var(--aic-text);
+      border-radius: var(--aic-radius);
+      padding: 10px 12px;
+      font-size: .82rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .ai-chat-mem-card.deleted {
+      background: rgba(231,76,60,0.10);
+      border-color: rgba(231,76,60,0.35);
+    }
+    .ai-chat-mem-card .ai-chat-mem-icon { font-size: 1.05rem; flex-shrink: 0; }
+    .ai-chat-mem-card .ai-chat-mem-body { flex: 1; min-width: 0; }
+    .ai-chat-mem-card .ai-chat-mem-meta {
+      font-size: .68rem; color: var(--aic-text-muted); margin-top: 4px;
+    }
+    .ai-chat-mem-card .ai-chat-mem-fact {
+      font-weight: 600;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+    }
+    .ai-chat-mem-card button.ai-chat-mem-del {
+      background: transparent; border: 1px solid var(--aic-border);
+      color: var(--aic-text-muted); border-radius: 8px; cursor: pointer;
+      padding: 4px 8px; font-size: .72rem; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ai-chat-mem-card button.ai-chat-mem-del:hover {
+      border-color: #ff8b80; color: #ff8b80;
+    }
+
     body.ai-chat-open { overflow: hidden; }
   `;
 
@@ -537,6 +574,14 @@
         return;
       }
       container.appendChild(div);
+
+      // Cards memoire (apres le message model qui les a generes)
+      if (m.role === 'model' && Array.isArray(m._memory_ops)) {
+        m._memory_ops.forEach((op) => {
+          const card = renderMemoryCard(op);
+          if (card) container.appendChild(card);
+        });
+      }
     });
 
     if (state.sending) {
@@ -611,6 +656,72 @@
     );
   }
 
+  // ----- Memoire long-terme : cards inline -----
+
+  function renderMemoryCard(op) {
+    if (!op || typeof op !== 'object') return null;
+    const card = document.createElement('div');
+    card.className = 'ai-chat-mem-card';
+    if (op.type === 'added' && op.fact) {
+      card.innerHTML = `
+        <span class="ai-chat-mem-icon" aria-hidden="true">💾</span>
+        <div class="ai-chat-mem-body">
+          <div class="ai-chat-mem-fact"></div>
+          <div class="ai-chat-mem-meta">Memorise · categorie: <span class="ai-chat-mem-cat"></span> · importance: <span class="ai-chat-mem-imp"></span>/5</div>
+        </div>
+        <button class="ai-chat-mem-del" type="button" title="Oublier ce fait">Oublier</button>
+      `;
+      card.querySelector('.ai-chat-mem-fact').textContent = op.fact.fact_text || '';
+      card.querySelector('.ai-chat-mem-cat').textContent = op.fact.category || 'general';
+      card.querySelector('.ai-chat-mem-imp').textContent = String(op.fact.importance ?? 3);
+      const factId = op.fact.id;
+      const btn = card.querySelector('.ai-chat-mem-del');
+      btn.addEventListener('click', async () => {
+        btn.disabled = true;
+        btn.textContent = '...';
+        const ok = await deleteMemoryFactDirect(factId);
+        if (ok) {
+          card.classList.add('deleted');
+          card.querySelector('.ai-chat-mem-icon').textContent = '🗑';
+          card.querySelector('.ai-chat-mem-fact').style.textDecoration = 'line-through';
+          card.querySelector('.ai-chat-mem-meta').textContent = 'Oublie. L\'IA n\'aura plus ce fait dans les conversations futures.';
+          btn.remove();
+        } else {
+          btn.disabled = false;
+          btn.textContent = 'Oublier';
+          alert('Echec de la suppression. Reessaye dans quelques secondes.');
+        }
+      });
+      return card;
+    }
+    if (op.type === 'deleted') {
+      card.classList.add('deleted');
+      const txt = op.deleted?.fact_text || '(fait inconnu)';
+      card.innerHTML = `
+        <span class="ai-chat-mem-icon" aria-hidden="true">🗑</span>
+        <div class="ai-chat-mem-body">
+          <div class="ai-chat-mem-fact" style="text-decoration:line-through"></div>
+          <div class="ai-chat-mem-meta">Fait oublie par l'IA.</div>
+        </div>
+      `;
+      card.querySelector('.ai-chat-mem-fact').textContent = txt;
+      return card;
+    }
+    return null;
+  }
+
+  // Delete direct via Supabase (RLS protege deja : seul admin peut supprimer).
+  async function deleteMemoryFactDirect(id) {
+    try {
+      const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+        ? window.DelivProSupabase.getClient()
+        : null;
+      if (!client || !id) return false;
+      const { error } = await client.from('ai_memory').delete().eq('id', id);
+      return !error;
+    } catch (_) { return false; }
+  }
+
   // ----- Send -----
 
   async function onSubmit(e) {
@@ -636,6 +747,7 @@
         role: 'model',
         parts: [{ text: reply.text }],
         _tools: reply.tools_called,
+        _memory_ops: Array.isArray(reply.memory_ops) ? reply.memory_ops : [],
       });
       state.proRemaining = reply.pro_remaining;
       state.modelLast = reply.model_used;
