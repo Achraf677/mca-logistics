@@ -397,20 +397,50 @@ Deno.serve(async (req) => {
 
     // Quota -> choix modele
     const quota = await getQuota(sbAdmin);
-    const usePro = quota.requests_pro < PRO_DAILY_QUOTA;
-    const model = usePro ? "gemini-2.5-pro" : "gemini-2.5-flash";
+    let usePro = quota.requests_pro < PRO_DAILY_QUOTA;
+    let model = usePro ? "gemini-2.5-pro" : "gemini-2.5-flash";
 
     const systemInstruction = buildSystemPrompt(role);
     let working = [...history];
     let finalText = "";
     let toolCallsMade: string[] = [];
     let lastResp: GeminiResp | null = null;
+    let proFellBackToFlash = false;
 
     for (let iter = 0; iter < MAX_TOOL_ITERATIONS; iter++) {
       lastResp = await callGemini(model, GEMINI_KEY, systemInstruction, working);
 
       if (lastResp.error) {
-        return new Response(JSON.stringify({ error: "gemini: " + lastResp.error.message }), { status: 502, headers: { ...CORS, "Content-Type": "application/json" } });
+        const code = (lastResp.error as { code?: number }).code ?? 0;
+        // Fallback gracieux : si Pro renvoie 429 (quota free tier epuise) ou 403,
+        // on bascule sur Flash et on retente l'iteration courante.
+        if (usePro && (code === 429 || code === 403)) {
+          usePro = false;
+          model = "gemini-2.5-flash";
+          proFellBackToFlash = true;
+          // Marque le quota Pro comme epuise pour la journee (evite de retenter Pro a chaque request).
+          // Pas d'upsert pour preserver requests_flash si la ligne existe deja.
+          const today = todayISO();
+          const { data: existQ } = await sbAdmin.from("ai_quota_daily").select("date").eq("date", today).maybeSingle();
+          if (existQ) {
+            await sbAdmin.from("ai_quota_daily").update({ requests_pro: PRO_DAILY_QUOTA, updated_at: new Date().toISOString() }).eq("date", today);
+          } else {
+            await sbAdmin.from("ai_quota_daily").insert({ date: today, requests_pro: PRO_DAILY_QUOTA, requests_flash: 0 });
+          }
+          continue;
+        }
+        // Sinon : remonte l'erreur Gemini avec le detail au frontend.
+        return new Response(JSON.stringify({
+          error: "gemini",
+          code,
+          message: lastResp.error.message,
+          model,
+          hint: code === 403
+            ? "La cle Gemini est bloquee au niveau du projet/org Google. Recreer une cle depuis un compte Gmail perso (pas org Workspace) sur https://aistudio.google.com."
+            : code === 429
+            ? "Quota Gemini epuise. Reessaye dans quelques minutes."
+            : null,
+        }), { status: 502, headers: { ...CORS, "Content-Type": "application/json" } });
       }
 
       const cand = lastResp.candidates?.[0];
@@ -460,6 +490,7 @@ Deno.serve(async (req) => {
         pro_remaining: proRemaining,
         flash_used_today: newQuota.requests_flash,
         tools_called: toolCallsMade,
+        pro_fell_back_to_flash: proFellBackToFlash,
       }),
       { headers: { ...CORS, "Content-Type": "application/json" } }
     );
