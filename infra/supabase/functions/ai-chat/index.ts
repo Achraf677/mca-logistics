@@ -62,6 +62,8 @@ function buildSystemPrompt(role: "admin" | "salarie"): string {
     `- **Pennylane** (compta) : pennylane_factures_clients/fournisseurs, pennylane_search_clients/fournisseurs. Pennylane est la source legale (TVA CA3, factures officielles). Croise avec MCA pour detecter les divergences.`,
     `- **OpenRouteService** (cartes) : ors_distance (km + duree entre 2 adresses, profil camion HGV par defaut), ors_optimize_tournee (TSP multi-stops). Pour estimation prix livraison ou planification tournee.`,
     `- **Sentry** (monitoring) : sentry_recent_issues (bugs JS prod). Utile si l'admin demande "y a eu des bugs ?".`,
+  ].join("\n");
+}
 
 const TOOLS = [{
   functionDeclarations: [
