@@ -112,6 +112,73 @@ function extractMobileRoutes(content) {
   return out;
 }
 
+// Pour chaque M.register('id', { ... }), extrait le bloc + mesure :
+// - lines : nombre de lignes du bloc
+// - innerFns : nombre de fonctions definies a l'interieur (function X / const X = function / arrow)
+// Utilise un walker de braces pour trouver le bloc fermant.
+function extractMobileRouteBodies(content) {
+  if (!content) return {};
+  const out = {};
+  const re = /M\.register\(\s*['"]([\w-]+)['"]\s*,\s*\{/g;
+  let m;
+  while ((m = re.exec(content))) {
+    const id = m[1];
+    // Position du `{` du second arg
+    let i = m.index + m[0].length - 1; // pointe sur le `{`
+    let depth = 1;
+    let inStr = null; // '"', "'", '`'
+    let escaped = false;
+    let j = i + 1;
+    while (j < content.length && depth > 0) {
+      const ch = content[j];
+      if (inStr) {
+        if (escaped) escaped = false;
+        else if (ch === '\\') escaped = true;
+        else if (ch === inStr) inStr = null;
+      } else {
+        if (ch === '"' || ch === "'" || ch === '`') inStr = ch;
+        else if (ch === '/' && content[j + 1] === '/') {
+          // commentaire ligne
+          while (j < content.length && content[j] !== '\n') j++;
+          continue;
+        } else if (ch === '/' && content[j + 1] === '*') {
+          j += 2;
+          while (j < content.length && !(content[j] === '*' && content[j + 1] === '/')) j++;
+          j += 1; // pointe sur '/', sera incremente en bas
+        } else if (ch === '{') depth++;
+        else if (ch === '}') depth--;
+      }
+      j++;
+    }
+    if (depth === 0) {
+      const block = content.slice(i, j); // de `{` au `}` inclus
+      const lines = block.split(/\r?\n/).length;
+      // Compte les fonctions :
+      // - declaration function NAME(
+      // - anonymes function (
+      // - const/let/var NAME = function
+      // - const/let/var NAME = (args) =>
+      // - method shorthand au debut de ligne (NAME(args) { )
+      const skipKeywords = new Set([
+        'if', 'else', 'while', 'for', 'switch', 'return', 'function',
+        'async', 'await', 'do', 'catch', 'try', 'throw', 'new',
+        'typeof', 'instanceof', 'in', 'of', 'with', 'yield',
+      ]);
+      let fnCount = 0;
+      fnCount += [...block.matchAll(/\bfunction\s+[a-zA-Z_$][\w$]*\s*\(/g)].length;
+      fnCount += [...block.matchAll(/\bfunction\s*\(/g)].length;
+      fnCount += [...block.matchAll(/\b(?:const|let|var)\s+[a-zA-Z_$][\w$]*\s*=\s*function\b/g)].length;
+      fnCount += [...block.matchAll(/\b(?:const|let|var)\s+[a-zA-Z_$][\w$]*\s*=\s*\([^)]*\)\s*=>/g)].length;
+      // Method shorthand : capture le nom et exclut les mots-cles de controle
+      for (const mm of block.matchAll(/(?:^|\n)\s+([a-zA-Z_$][\w$]*)\s*\([^()]*\)\s*\{/g)) {
+        if (!skipKeywords.has(mm[1])) fnCount++;
+      }
+      out[id] = { lines, innerFns: fnCount };
+    }
+  }
+  return out;
+}
+
 function bucketByDomain(fns) {
   const buckets = {};
   for (const fn of fns) {
@@ -153,12 +220,24 @@ function audit() {
   const mobileFns = extractGlobalFns(mobileSrc);
   const mobileByDomain = bucketByDomain(mobileFns);
   const mobileLines = fileLineCount(mobileSrc);
+  const mobileRouteBodies = extractMobileRouteBodies(mobileSrc);
 
   // 3. Inventaire salarie (lecture seule, pour info)
   const salarieSrc = readSafe(SALARIE_FILE);
   const salarieRoutes = extractMobileRoutes(salarieSrc);
   const salarieFns = extractGlobalFns(salarieSrc);
   const salarieLines = fileLineCount(salarieSrc);
+
+  // Lignes par fichier PC, indexees par domaine (heuristique : script-<dom>.js -> dom)
+  const pcLinesByDomain = {};
+  for (const info of pcFilesInfo) {
+    if (!info.exists) continue;
+    const m = /^script-([a-z]+)(?:-[a-z-]+)?\.js$/.exec(info.file);
+    if (m) {
+      const dom = m[1];
+      pcLinesByDomain[dom] = (pcLinesByDomain[dom] || 0) + info.lines;
+    }
+  }
 
   // 4. Cross-reference par domaine
   const rows = [];
@@ -167,8 +246,31 @@ function audit() {
     const pcCount = (pcByDomain[dom] || new Set()).size;
     const mobileCount = (mobileByDomain[dom] || new Set()).size;
     const hasMobileRoute = mobileRoutes.has(expected);
-    const status = pcCount > 0 && hasMobileRoute ? '✅' : pcCount > 0 && !hasMobileRoute ? '⚠️ PC only' : !pcCount && hasMobileRoute ? '⚠️ mobile only' : '⚪ absent';
-    rows.push({ domain: dom, pc_count: pcCount, mobile_count: mobileCount, mobile_route: hasMobileRoute, status });
+    const mobileBody = mobileRouteBodies[expected];
+    const pcLines = pcLinesByDomain[dom] || 0;
+    const mobileLinesDom = mobileBody ? mobileBody.lines : 0;
+    const mobileFnsDom = mobileBody ? mobileBody.innerFns : 0;
+    // Ratio mobile/PC en lignes : si <30 % => signal de sous-implementation mobile
+    let coverage = null;
+    if (pcLines > 0) coverage = Math.round((mobileLinesDom / pcLines) * 100);
+    let status;
+    if (pcCount > 0 && hasMobileRoute) {
+      if (coverage !== null && coverage < 30 && pcLines > 200) status = '⚠️ thin mobile';
+      else status = '✅';
+    } else if (pcCount > 0 && !hasMobileRoute) status = '⚠️ PC only';
+    else if (!pcCount && hasMobileRoute) status = '⚠️ mobile only';
+    else status = '⚪ absent';
+    rows.push({
+      domain: dom,
+      pc_count: pcCount,
+      pc_lines: pcLines,
+      mobile_count: mobileCount,
+      mobile_route: hasMobileRoute,
+      mobile_lines: mobileLinesDom,
+      mobile_inner_fns: mobileFnsDom,
+      coverage_pct: coverage,
+      status,
+    });
   }
 
   // 5. Gaps connus
@@ -181,10 +283,16 @@ function audit() {
   if (mobileLines > 1500) tooBig.push({ file: MOBILE_FILE, lines: mobileLines });
   if (salarieLines > 1500) tooBig.push({ file: SALARIE_FILE, lines: salarieLines });
 
-  // 7. Score parite global
-  const totalDomains = rows.length;
-  const okDomains = rows.filter((r) => r.status === '✅').length;
-  const score = totalDomains ? Math.round((okDomains / totalDomains) * 100) : 0;
+  // 7. Score parite global pondere
+  // - ✅ = 1, ⚠️ thin mobile = 0.6, ⚠️ PC only / mobile only = 0, ⚪ absent = exclu du calcul
+  const scoringRows = rows.filter((r) => r.status !== '⚪ absent');
+  const totalDomains = scoringRows.length;
+  const sum = scoringRows.reduce((acc, r) => {
+    if (r.status === '✅') return acc + 1;
+    if (r.status === '⚠️ thin mobile') return acc + 0.6;
+    return acc;
+  }, 0);
+  const score = totalDomains ? Math.round((sum / totalDomains) * 100) : 0;
 
   return {
     generated_at: new Date().toISOString(),
@@ -218,10 +326,13 @@ function toMarkdown(r) {
 
   lines.push('## Parite par domaine');
   lines.push('');
-  lines.push('| Domaine | Statut | Fns PC | Fns mobile | Route mobile |');
-  lines.push('|---|---|---|---|---|');
+  lines.push('Statut `⚠️ thin mobile` = la route mobile existe mais < 30 % des lignes PC (potentielle sous-implementation).');
+  lines.push('');
+  lines.push('| Domaine | Statut | Fns PC | Lignes PC | Route mobile | Lignes mobile | Fns mobile | Couverture |');
+  lines.push('|---|---|---|---|---|---|---|---|');
   for (const d of r.domains) {
-    lines.push(`| ${d.domain} | ${d.status} | ${d.pc_count} | ${d.mobile_count} | ${d.mobile_route ? 'oui' : 'NON'} |`);
+    const cov = d.coverage_pct === null ? '-' : `${d.coverage_pct} %`;
+    lines.push(`| ${d.domain} | ${d.status} | ${d.pc_count} | ${d.pc_lines || '-'} | ${d.mobile_route ? 'oui' : 'NON'} | ${d.mobile_lines || '-'} | ${d.mobile_inner_fns || '-'} | ${cov} |`);
   }
   lines.push('');
 
