@@ -8,6 +8,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const PRO_DAILY_QUOTA = 50;
 const MAX_TOOL_ITERATIONS = 6;
 const RESULT_ROW_CAP = 25;
+// Plafond approx d'octets serialises pour UN result d'outil renvoye a Gemini.
+// Au-dela on tronque les listes (mais on garde count + meta) pour eviter d'exploser
+// le contexte / le cout / le temps de reponse a chaque iteration.
+const MAX_TOOL_RESULT_BYTES = 12000;
+const GEMINI_TIMEOUT_MS = 45000;
+const GEMINI_MAX_RETRIES = 2; // 1 tentative + 2 retries sur erreur transient
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -1037,6 +1043,32 @@ interface GeminiResp {
   error?: { message: string };
 }
 
+// Tronque un resultat de tool si trop gros pour ne pas exploser le contexte Gemini.
+// Strategie : si serialisation > MAX_TOOL_RESULT_BYTES, garde count/meta et coupe
+// la premiere liste interieure (livraisons, charges, transactions, etc.) jusqu'a tenir.
+function trimToolResult(result: unknown): unknown {
+  try {
+    const json = JSON.stringify(result);
+    if (json.length <= MAX_TOOL_RESULT_BYTES) return result;
+    if (!result || typeof result !== "object") return { truncated: true, preview: json.slice(0, MAX_TOOL_RESULT_BYTES) };
+    const obj = result as Record<string, unknown>;
+    // Trouve la premiere cle dont la valeur est un array (la liste de rows)
+    const listKey = Object.keys(obj).find((k) => Array.isArray(obj[k]));
+    if (!listKey) return { truncated: true, preview: json.slice(0, MAX_TOOL_RESULT_BYTES) };
+    const list = obj[listKey] as unknown[];
+    // Reduit la liste par dichotomie jusqu'a tenir
+    let lo = 0, hi = list.length, best = 0;
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      const trial = { ...obj, [listKey]: list.slice(0, mid), _truncated: true, _original_count: list.length };
+      if (JSON.stringify(trial).length <= MAX_TOOL_RESULT_BYTES) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    return { ...obj, [listKey]: list.slice(0, best), _truncated: true, _original_count: list.length };
+  } catch (_) {
+    return { error: "tool result non serialisable" };
+  }
+}
+
 async function callGemini(model: string, apiKey: string, systemInstruction: string, history: any[]): Promise<GeminiResp> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
   const body = {
@@ -1045,16 +1077,49 @@ async function callGemini(model: string, apiKey: string, systemInstruction: stri
     tools: TOOLS,
     generationConfig: { temperature: 0.3, maxOutputTokens: 1500 },
   };
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), 30000);
-  const r = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal: ctrl.signal,
-  });
-  clearTimeout(t);
-  return await r.json();
+
+  let lastErr: unknown = null;
+  for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt++) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), GEMINI_TIMEOUT_MS);
+    try {
+      const r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: ctrl.signal,
+      });
+      clearTimeout(t);
+      // Si HTTP transient (5xx hors 501), retry. 4xx (400/401/403/429) : on ne retry pas, on parse pour remonter.
+      if (r.status >= 500 && r.status !== 501 && attempt < GEMINI_MAX_RETRIES) {
+        lastErr = { error: { message: `Gemini HTTP ${r.status}`, code: r.status } };
+        await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+        continue;
+      }
+      const json = await r.json().catch(() => null);
+      if (!json) {
+        // Reponse non-JSON (HTML d'erreur, tronquage). Retry si possible.
+        if (attempt < GEMINI_MAX_RETRIES) {
+          lastErr = { error: { message: "Gemini reponse non-JSON", code: r.status } };
+          await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+          continue;
+        }
+        return { error: { message: `Gemini reponse non-JSON (HTTP ${r.status})` } } as GeminiResp;
+      }
+      return json as GeminiResp;
+    } catch (e) {
+      clearTimeout(t);
+      lastErr = e;
+      // Retry sur abort/timeout/network
+      if (attempt < GEMINI_MAX_RETRIES) {
+        await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
+        continue;
+      }
+      const msg = (e as Error)?.name === "AbortError" ? "Timeout Gemini" : String(e).slice(0, 200);
+      return { error: { message: msg } } as GeminiResp;
+    }
+  }
+  return { error: { message: String(lastErr).slice(0, 200) } } as GeminiResp;
 }
 
 // ----- Quota helper -----
@@ -1111,7 +1176,31 @@ Deno.serve(async (req) => {
 
     // Body : { history: [{ role: 'user'|'model', parts: [...] }, ...] }
     const body = await req.json().catch(() => ({}));
-    const history: any[] = Array.isArray(body.history) ? body.history : [];
+    const rawHistory: any[] = Array.isArray(body.history) ? body.history : [];
+
+    // Defense-in-depth : meme sanitize que le frontend, au cas ou un client
+    // malforme/ancien envoie un history avec turns vides ou consecutifs meme
+    // role (Gemini renvoie alors un candidate vide -> UX "doit envoyer
+    // plusieurs fois"). Garde uniquement role user|model + parts texte non-vide,
+    // collapse les turns consecutifs de meme role, et coupe les messages model
+    // de tete (Gemini exige que le 1er message soit role user).
+    const history: any[] = [];
+    for (const m of rawHistory) {
+      if (!m || (m.role !== "user" && m.role !== "model")) continue;
+      const parts = Array.isArray(m.parts)
+        ? m.parts.filter((p: any) => p && typeof p.text === "string" && p.text.length > 0)
+        : [];
+      if (parts.length === 0) continue;
+      const last = history[history.length - 1];
+      if (last && last.role === m.role) {
+        const merged = last.parts.map((p: any) => p.text).concat(parts.map((p: any) => p.text)).join("\n");
+        history[history.length - 1] = { role: m.role, parts: [{ text: merged }] };
+      } else {
+        history.push({ role: m.role, parts: parts.map((p: any) => ({ text: p.text })) });
+      }
+    }
+    while (history.length && history[0].role !== "user") history.shift();
+
     if (history.length === 0) {
       return new Response(JSON.stringify({ error: "history vide" }), { status: 400, headers: { ...CORS, "Content-Type": "application/json" } });
     }
@@ -1171,14 +1260,34 @@ Deno.serve(async (req) => {
       const parts = cand?.content?.parts ?? [];
       const fnCalls = parts.filter((p) => p.functionCall).map((p) => p.functionCall!);
       const texts = parts.filter((p) => p.text).map((p) => p.text!);
+      const finishReason = cand?.finishReason;
 
       if (fnCalls.length === 0) {
         finalText = texts.join("\n");
+        // Si Gemini a ete coupe (SAFETY/MAX_TOKENS/RECITATION/OTHER) sans texte,
+        // remonte un message lisible plutot qu'une chaine vide silencieuse.
+        if (!finalText) {
+          if (finishReason === "SAFETY" || finishReason === "RECITATION") {
+            finalText = "Reponse bloquee par les filtres de securite Gemini. Reformule ta question.";
+          } else if (finishReason === "MAX_TOKENS") {
+            finalText = "Reponse tronquee (limite de tokens). Pose une question plus precise.";
+          } else if (!cand) {
+            // Aucun candidat : Gemini a probablement bloque entierement la requete.
+            finalText = "Gemini n'a renvoye aucune reponse. Reessaye dans quelques secondes ou efface la conversation.";
+          } else {
+            finalText = "Reponse vide de Gemini. Reformule ta question ou efface la conversation.";
+          }
+        }
         break;
       }
 
-      // Push les function calls dans l'history et execute
-      working.push({ role: "model", parts: fnCalls.map((c) => ({ functionCall: c })) });
+      // Push le model turn complet (texte + functionCalls) pour preserver le
+      // chain-of-thought de Gemini. Si on perd le texte, le model peut perdre
+      // le fil sur les longues conversations multi-tools.
+      const modelParts: any[] = [];
+      for (const t of texts) modelParts.push({ text: t });
+      for (const c of fnCalls) modelParts.push({ functionCall: c });
+      working.push({ role: "model", parts: modelParts });
 
       const results = await Promise.all(
         fnCalls.map(async (call) => {
@@ -1193,13 +1302,19 @@ Deno.serve(async (req) => {
         })
       );
 
+      // Gemini v1beta : functionResponse vit dans un message role "user" (pas "function").
+      // Mettre "function" fait silencieusement renvoyer un candidat vide -> finalText vide
+      // -> "boucle d'outils trop longue" cote utilisateur.
       working.push({
-        role: "function",
-        parts: fnCalls.map((c, i) => ({ functionResponse: { name: c.name, response: results[i] } })),
+        role: "user",
+        parts: fnCalls.map((c, i) => ({ functionResponse: { name: c.name, response: trimToolResult(results[i]) } })),
       });
     }
 
-    if (!finalText) finalText = "Je n'ai pas pu produire de reponse (boucle d'outils trop longue).";
+    if (!finalText) {
+      finalText = `Je n'ai pas pu produire de reponse apres ${MAX_TOOL_ITERATIONS} iterations d'outils. ` +
+        `Outils appeles : ${toolCallsMade.join(", ") || "aucun"}. Reformule plus precisement.`;
+    }
 
     // Bump le quota de la requete consommee
     await bumpQuota(sbAdmin, usePro ? "pro" : "flash");

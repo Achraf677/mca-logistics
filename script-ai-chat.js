@@ -12,6 +12,10 @@
 
   const HISTORY_KEY = 'ai_chat_history';
   const MAX_HISTORY = 30;
+  // Nb max de tours user/model envoyes au backend par requete. Plus que ca = trop
+  // de contexte, Gemini ralentit / coute cher / risque de timeout. Le local
+  // garde tout (jusqu'a MAX_HISTORY) pour l'affichage.
+  const MAX_HISTORY_TO_SEND = 16;
   const ENDPOINT = '/functions/v1/ai-chat';
 
   const state = {
@@ -39,6 +43,10 @@
 
   function clearHistory() {
     state.history = [];
+    // Reset egalement les meta du dernier echange pour eviter d'afficher un
+    // badge model / quota perimes.
+    state.proRemaining = null;
+    state.modelLast = null;
     saveHistory();
     renderMessages();
   }
@@ -612,7 +620,8 @@
     const text = input.value.trim();
     if (!text) return;
 
-    state.history.push({ role: 'user', parts: [{ text }] });
+    const userMsg = { role: 'user', parts: [{ text }] };
+    state.history.push(userMsg);
     saveHistory();
     input.value = '';
     input.style.height = 'auto';
@@ -620,6 +629,7 @@
     document.getElementById('ai-chat-send').disabled = true;
     renderMessages();
 
+    let succeeded = false;
     try {
       const reply = await callBackend(state.history);
       state.history.push({
@@ -630,19 +640,49 @@
       state.proRemaining = reply.pro_remaining;
       state.modelLast = reply.model_used;
       saveHistory();
+      succeeded = true;
     } catch (err) {
+      // CRITIQUE : sans rollback, le message user reste orphelin dans l'history.
+      // Au prochain envoi, on enverrait 2 messages user consecutifs a Gemini ->
+      // Gemini renvoie souvent un candidate vide => UX "doit envoyer plusieurs fois".
+      // On retire le message user, l'utilisateur peut retaper et reessayer proprement.
+      const idx = state.history.lastIndexOf(userMsg);
+      if (idx !== -1) state.history.splice(idx, 1);
+      saveHistory();
+      // Restaure le texte dans l'input pour que l'utilisateur puisse reessayer
+      // sans tout retaper.
+      if (!input.value) {
+        input.value = text;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+      }
       const errMsg = String(err.message || err).slice(0, 400);
-      const c = document.getElementById('ai-chat-messages');
-      const div = document.createElement('div');
-      div.className = 'ai-chat-msg-error';
-      div.textContent = '❌ ' + errMsg;
-      c.appendChild(div);
-    } finally {
+      // Affiche l'erreur — sera retiree au prochain renderMessages, donc on l'insere
+      // apres avoir desactive sending.
       state.sending = false;
       document.getElementById('ai-chat-send').disabled = false;
       const loading = document.getElementById('ai-chat-loading');
       if (loading) loading.remove();
       renderMessages();
+      const c = document.getElementById('ai-chat-messages');
+      if (c) {
+        const div = document.createElement('div');
+        div.className = 'ai-chat-msg-error';
+        div.textContent = 'Erreur : ' + errMsg + '\n(Le message a ete retire de l\'historique, tu peux le renvoyer.)';
+        c.appendChild(div);
+        scrollToBottom();
+      }
+      return;
+    } finally {
+      // Sur succes seulement (sur erreur le finally s'execute apres notre return,
+      // mais on a deja remis sending=false). Idempotent.
+      if (succeeded) {
+        state.sending = false;
+        document.getElementById('ai-chat-send').disabled = false;
+        const loading = document.getElementById('ai-chat-loading');
+        if (loading) loading.remove();
+        renderMessages();
+      }
     }
   }
 
@@ -651,9 +691,25 @@
       ? window.DelivProSupabase.getClient()
       : null;
     if (!client) throw new Error('Supabase pas pret');
-    const { data: sessionData } = await client.auth.getSession();
-    const token = sessionData && sessionData.session ? sessionData.session.access_token : null;
-    if (!token) throw new Error('Pas de session admin');
+    // getSession() refresh auto en theorie, mais en pratique on a vu des cas ou
+    // le token expire silencieusement (onglet en arriere-plan plusieurs heures).
+    // On force un refreshSession() si le token expire dans <60s pour eviter le 401.
+    let token = null;
+    try {
+      const { data: sessionData } = await client.auth.getSession();
+      const sess = sessionData && sessionData.session;
+      const expAt = sess && sess.expires_at ? sess.expires_at * 1000 : 0;
+      if (sess && expAt && expAt - Date.now() < 60000) {
+        // Token expire bientot : tente un refresh (silencieux si echec).
+        try {
+          const { data: refreshed } = await client.auth.refreshSession();
+          token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
+        } catch (_) { token = sess.access_token; }
+      } else {
+        token = sess ? sess.access_token : null;
+      }
+    } catch (_) { /* fallback below */ }
+    if (!token) throw new Error('Session expiree, reconnecte-toi (Deconnexion puis relogin).');
 
     const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
       ? window.DelivProSupabase.getConfig()
@@ -661,10 +717,35 @@
     const baseUrl = config && config.url ? config.url : '';
     if (!baseUrl) throw new Error('Supabase URL manquante');
 
-    const cleanHistory = history.map((m) => ({ role: m.role, parts: m.parts }));
+    // Sanitize l'historique envoye :
+    // 1) ne garde que role user|model + parts texte (Gemini v1beta)
+    // 2) drop les turns vides (parts sans texte)
+    // 3) collapse les turns consecutifs de meme role (Gemini exige alternance user/model)
+    // 4) cap a MAX_HISTORY_TO_SEND derniers tours pour limiter le contexte
+    const sanitized = [];
+    for (const m of history) {
+      if (!m || (m.role !== 'user' && m.role !== 'model')) continue;
+      const parts = Array.isArray(m.parts) ? m.parts.filter((p) => p && typeof p.text === 'string' && p.text.length) : [];
+      if (parts.length === 0) continue;
+      const last = sanitized[sanitized.length - 1];
+      if (last && last.role === m.role) {
+        // Merge texte avec le precedent meme role pour preserver l'alternance.
+        const merged = last.parts.map((p) => p.text).concat(parts.map((p) => p.text)).join('\n');
+        sanitized[sanitized.length - 1] = { role: m.role, parts: [{ text: merged }] };
+      } else {
+        sanitized.push({ role: m.role, parts: parts.map((p) => ({ text: p.text })) });
+      }
+    }
+    // Le 1er message envoye doit etre role user (sinon Gemini renvoie 400).
+    while (sanitized.length && sanitized[0].role !== 'user') sanitized.shift();
+    const cleanHistory = sanitized.slice(-MAX_HISTORY_TO_SEND);
+    if (cleanHistory.length === 0) throw new Error('Historique vide apres sanitize');
 
+    // Timeout client : 90s. Le backend a un timeout interne de 45s par appel
+    // Gemini + 6 iterations max donc theoriquement ca peut depasser. On garde
+    // une marge confortable. Le timeout abort produit un message lisible.
     const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 60000);
+    const t = setTimeout(() => ctrl.abort(), 90000);
     let r;
     try {
       r = await fetch(baseUrl + ENDPOINT, {
@@ -676,11 +757,21 @@
         body: JSON.stringify({ history: cleanHistory }),
         signal: ctrl.signal,
       });
+    } catch (e) {
+      // AbortError = timeout local, TypeError = network down (CF / Supabase).
+      if (e && e.name === 'AbortError') {
+        throw new Error('Delai depasse (90s). Reessaye, ou efface la conversation si l\'historique est trop long.');
+      }
+      throw new Error('Reseau indisponible. Verifie ta connexion.');
     } finally { clearTimeout(t); }
     const body = await r.json().catch(() => ({}));
     if (!r.ok) {
+      // 401 specifique : token expire / invalide. L'utilisateur doit se reloger.
+      if (r.status === 401) {
+        throw new Error('Session expiree. Deconnecte-toi puis reconnecte-toi.');
+      }
       const msg = body.message || body.error || 'HTTP ' + r.status;
-      const hint = body.hint ? '\n💡 ' + body.hint : '';
+      const hint = body.hint ? '\n' + body.hint : '';
       throw new Error(msg + hint);
     }
     return body;
