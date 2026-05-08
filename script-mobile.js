@@ -1918,31 +1918,55 @@
         <input type="file" id="m-veh-cg-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-veh-cg-status" style="text-align:center"></p>
       </div>
-      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
+      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true, hint: 'Format FR (AA-123-BB) ou ancienne plaque' })}
       <div class="m-form-row">
         ${M.formField('Marque', M.formInput('marque', { value: v.marque || '', placeholder: 'Renault, Peugeot...' }))}
         ${M.formField('Modèle', M.formInput('modele', { value: v.modele || '', placeholder: 'Master, Boxer...' }))}
       </div>
+      ${M.formField('VIN (n° de série)', M.formInput('vin', { value: v.vin || '', placeholder: '17 caractères', autocomplete: 'off' }), { hint: 'Champ E de la carte grise' })}
       <div class="m-form-row">
-        ${M.formField('Date CT', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
-        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }))}
+        ${M.formField('Genre', M.formSelect('genre', [
+          { value: 'CTTE', label: 'CTTE — Camionnette' },
+          { value: 'VP',   label: 'VP — Voiture particulière' },
+          { value: 'VU',   label: 'VU — Véhicule utilitaire' },
+          { value: 'CAM',  label: 'CAM — Camion' },
+          { value: 'TRR',  label: 'TRR — Tracteur routier' },
+          { value: 'REM',  label: 'REM — Remorque' },
+          { value: 'AUTRE', label: 'Autre' }
+        ], { placeholder: 'Genre', value: v.genre || '' }))}
+        ${M.formField("Crit'Air", M.formSelect('critAir', [
+          { value: '0',      label: "Crit'Air 0 (vert)" },
+          { value: '1',      label: "Crit'Air 1" },
+          { value: '2',      label: "Crit'Air 2" },
+          { value: '3',      label: "Crit'Air 3" },
+          { value: '4',      label: "Crit'Air 4" },
+          { value: '5',      label: "Crit'Air 5" },
+          { value: 'aucune', label: 'Non classé' }
+        ], { placeholder: 'Vignette', value: v.critAir || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date CT (prochain)', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }), { hint: 'Expiration carte verte' })}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date carte grise', M.formInput('dateCarteGrise', { type: 'date', value: v.dateCarteGrise || '' }))}
+        ${M.formField('1ère mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Date acquisition', M.formInput('dateAcquisition', { type: 'date', value: v.dateAcquisition || '' }))}
-        ${M.formField('Mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
+        ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
+          { value: 'achat',    label: '💰 Achat neuf' },
+          { value: 'occasion', label: '🚗 Occasion' },
+          { value: 'lld',      label: '📋 LLD' },
+          { value: 'loa',      label: '📝 LOA' },
+          { value: 'credit',   label: '🏦 Crédit' },
+          { value: 'location', label: '📅 Location' }
+        ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Km actuel', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.km || '' }))}
         ${M.formField('Km initial', M.formInputWithSuffix('kmInitial', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.kmInitial || '' }))}
       </div>
-      ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
-        { value: 'achat',    label: '💰 Achat neuf' },
-        { value: 'occasion', label: '🚗 Occasion' },
-        { value: 'lld',      label: '📋 Location longue durée (LLD)' },
-        { value: 'loa',      label: "📝 Location avec option d'achat (LOA)" },
-        { value: 'credit',   label: '🏦 Crédit' },
-        { value: 'location', label: '📅 Location simple' }
-      ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
         { value: 'diesel',     label: '⛽ Diesel/Gazole' },
         { value: 'essence',    label: 'Essence' },
@@ -1951,7 +1975,18 @@
         { value: 'hybride',    label: 'Hybride' },
         { value: 'hydrogene',  label: 'Hydrogène' }
       ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
-      ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      <div class="m-form-row">
+        ${M.formField('Capacité réservoir', M.formInputWithSuffix('capaciteReservoir', 'L', { type: 'number', step: '1', min: '0', placeholder: '70', value: v.capaciteReservoir || '' }))}
+        ${M.formField('Conso constructeur', M.formInputWithSuffix('conso', 'L/100', { type: 'number', step: '0.1', min: '0', placeholder: '8.5', value: v.conso || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('PTAC', M.formInputWithSuffix('ptac', 'kg', { type: 'number', step: '1', min: '0', placeholder: '3500', value: v.ptac || '' }))}
+        ${M.formField('PTRA', M.formInputWithSuffix('ptra', 'kg', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.ptra || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Nb essieux', M.formInput('essieux', { type: 'number', step: '1', min: '1', placeholder: '2', value: v.essieux || '' }))}
+        ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      </div>
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
@@ -2034,6 +2069,7 @@
               setVal('immat', parsed.immat);
               setVal('marque', parsed.marque);
               setVal('modele', parsed.modele);
+              setVal('vin', parsed.vin);
               setVal('dateMiseEnCirculation', parsed.dateMEC);
               cgStatus.textContent = n > 0 ? `✅ ${n} champ${n>1?'s':''} rempli${n>1?'s':''} (vérifie + complète)` : `⚠️ Aucun champ détecté (qualité photo ?)`;
               cgStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
@@ -2130,22 +2166,45 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.immat?.trim()) { M.toast('⚠️ Immatriculation obligatoire'); return false; }
+        // Validation immat (souple : on accepte FR moderne, FR ancien, ou format libre 6+ caracteres)
+        const immatNorm = f.immat.trim().toUpperCase().replace(/\s+/g, '-');
+        if (immatNorm.length < 5) { M.toast('⚠️ Immatriculation trop courte'); return false; }
+        // Validation cohérence dates : kmInitial <= km
+        const kmAct = M.parseNum(f.km) || 0;
+        const kmIni = M.parseNum(f.kmInitial) || 0;
+        if (kmIni > 0 && kmAct > 0 && kmIni > kmAct) { M.toast('⚠️ Km initial > Km actuel : incohérent'); return false; }
+        // Validation VIN si renseigné (17 caractères alphanumériques sauf I, O, Q)
+        if (f.vin?.trim() && !/^[A-HJ-NPR-Z0-9]{17}$/i.test(f.vin.trim())) {
+          // Tolérant : on accepte mais on prévient
+          if (f.vin.trim().length !== 17) {
+            M.toast('⚠️ VIN doit faire 17 caractères', { duration: 3000 });
+          }
+        }
         const arr = M.charger('vehicules');
         // Resolve salNom depuis salId pour coherence avec desktop (lookup vise)
         const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
         const data = {
-          immat: f.immat.trim().toUpperCase(),
+          immat: immatNorm,
           marque: f.marque?.trim() || '',
           modele: f.modele?.trim() || '',
+          vin: f.vin?.trim().toUpperCase() || '',
+          genre: f.genre || '',
+          critAir: f.critAir || '',
           dateCT: f.dateCT || '',
           dateAssurance: f.dateAssurance || '',
+          dateCarteGrise: f.dateCarteGrise || '',
           dateAcquisition: f.dateAcquisition || '',
           dateMiseEnCirculation: f.dateMiseEnCirculation || '',
-          km: M.parseNum(f.km) || 0,
-          kmInitial: M.parseNum(f.kmInitial) || 0,
+          km: kmAct,
+          kmInitial: kmIni,
           modeAcquisition: f.modeAcquisition || '',
           typeCarburant: f.typeCarburant || '',
           carburant: f.typeCarburant || '',  // alias PC pour filtres
+          capaciteReservoir: M.parseNum(f.capaciteReservoir) || 0,
+          conso: M.parseNum(f.conso) || 0,
+          ptac: M.parseNum(f.ptac) || 0,
+          ptra: M.parseNum(f.ptra) || 0,
+          essieux: M.parseNum(f.essieux) || 0,
           entretienIntervalKm: M.parseNum(f.entretienIntervalKm) || 0,
           salId: f.salId || null,
           chaufId: f.salId || null,           // dual-write PC
@@ -4217,21 +4276,30 @@
   M.register('planning', {
     title: 'Planning',
     render() {
+      // Deep-link : applique le hash AVANT le render (sinon on rend l'ancienne semaine).
+      // Idempotent : si rien à appliquer, ne touche pas à M.state.
+      if (typeof M.applyPlanningHashState === 'function') M.applyPlanningHashState();
       const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
       const plannings = M.charger('plannings');
       const vue = M.state.planningVue || 'jour';
 
-      // Header : toggle vue + bouton periodes absences (compact pour eviter overflow)
+      // Header : toggle vue (jour / semaine / salarié) + bouton periodes absences
+      // (compact pour eviter overflow). Sprint parity-mobile-planning : ajout vue
+      // "Par salarié" (grille 1 ligne par salarié × 7 jours) pour parite PC.
       let html = `
         <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
-          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">📅 Jour</button>
-          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">🗓️ Sem.</button>
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">📅 Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">🗓️ Sem.</button>
+          <button class="m-alertes-chip ${vue==='salarie'?'active':''}" data-vue="salarie" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">👥 Par sal.</button>
           <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 44px;padding:0;height:40px;font-size:1.1rem;line-height:1" title="Ajouter une période d'absence longue">🏖️</button>
         </div>
       `;
 
       if (vue === 'semaine') {
         return html + M.renderPlanningSemaine(salaries, plannings);
+      }
+      if (vue === 'salarie') {
+        return html + M.renderPlanningParSalarie(salaries, plannings);
       }
 
       // Vue Jour (existante)
@@ -4326,21 +4394,39 @@
       return html;
     },
     afterRender(container) {
+      // Note : M.applyPlanningHashState est désormais appelé en début de render()
+      // pour que la date du hash soit prise en compte AU rendu (et non après).
+
+      // Synchronise le hash courant avec l'état (au cas où l'utilisateur a navigué
+      // sans hash explicite — on veut un permalink stable).
+      if (typeof M.updatePlanningHash === 'function') M.updatePlanningHash();
+
       container.querySelectorAll('button[data-vue]').forEach(btn => {
-        btn.addEventListener('click', () => { M.state.planningVue = btn.dataset.vue; M.go('planning'); });
+        btn.addEventListener('click', () => {
+          M.state.planningVue = btn.dataset.vue;
+          // Synchronise la vue dans le hash pour le partage de lien
+          M.updatePlanningHash();
+          M.go('planning');
+        });
       });
       container.querySelector('#m-planning-abs-add')?.addEventListener('click', () => M.formAbsenceLongue());
-      // Nav semaine (vue semaine uniquement)
+      // FAB "Bloquer la semaine" (vue semaine + vue salarie)
+      container.querySelector('#m-planning-fab-bloquer')?.addEventListener('click', () => M.formBloquerSemaine());
+      // Nav semaine (vue semaine uniquement). Met à jour aussi le hash pour
+      // que le lien soit partageable / restaurable au reload (parity-mobile-planning).
       container.querySelector('#m-planning-sem-prev')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) - 1;
+        M.updatePlanningHash();
         M.go('planning');
       });
       container.querySelector('#m-planning-sem-next')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) + 1;
+        M.updatePlanningHash();
         M.go('planning');
       });
       container.querySelector('#m-planning-sem-today')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = 0;
+        M.updatePlanningHash();
         M.go('planning');
       });
       // Menu actions semaine (sprint 4 : copies)
@@ -4379,6 +4465,57 @@
       });
     }
   });
+
+  // ============================================================
+  // Deep-link planning — parsing hash #planning?date=YYYY-MM-DD&vue=semaine
+  // ============================================================
+  M.parsePlanningHash = function() {
+    const raw = String(location.hash || '').replace(/^#/, '');
+    const qIdx = raw.indexOf('?');
+    if (qIdx === -1) return {};
+    const params = new URLSearchParams(raw.slice(qIdx + 1));
+    const out = {};
+    const date = params.get('date');
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) out.date = date;
+    const vue = params.get('vue');
+    if (vue && ['jour','semaine','salarie'].includes(vue)) out.vue = vue;
+    return out;
+  };
+
+  M.applyPlanningHashState = function() {
+    const parsed = M.parsePlanningHash();
+    if (parsed.vue) M.state.planningVue = parsed.vue;
+    if (parsed.date) {
+      // Calcul de l'offset en semaines entre la date demandée et la semaine courante
+      const target = new Date(parsed.date + 'T00:00:00');
+      if (!isNaN(target.getTime())) {
+        const targetJour = target.getDay();
+        const targetDecal = targetJour === 0 ? -6 : 1 - targetJour;
+        const targetLundi = new Date(target.getFullYear(), target.getMonth(), target.getDate() + targetDecal);
+        const today = new Date();
+        const todayJour = today.getDay();
+        const todayDecal = todayJour === 0 ? -6 : 1 - todayJour;
+        const todayLundi = new Date(today.getFullYear(), today.getMonth(), today.getDate() + todayDecal);
+        const diffMs = targetLundi - todayLundi;
+        const offset = Math.round(diffMs / (7 * 24 * 3600 * 1000));
+        M.state.planningSemaineOffset = offset;
+      }
+    }
+  };
+
+  M.updatePlanningHash = function() {
+    if (M.state.currentPage !== 'planning') return;
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dateISO = M.toLocalISODate(lundi);
+    const vue = M.state.planningVue || 'jour';
+    // Replace hash sans déclencher un re-render (history.replaceState pour éviter le hashchange).
+    const newHash = `#planning?date=${dateISO}&vue=${vue}`;
+    if (location.hash !== newHash) {
+      try { history.replaceState(null, '', newHash); }
+      catch (_) { location.hash = newHash; }
+    }
+  };
 
   // Vue semaine : grille condensee 7 colonnes x N salaries
   // Calcule le lundi de la semaine cible (offset 0 = semaine courante,
@@ -4484,7 +4621,7 @@
     // Bouton ⋯ = menu copies / actions (sprint 4).
     const isCurrent = offset === 0;
     let html = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box;position:sticky;top:0;z-index:5;background:var(--m-bg);padding:6px 0">
         <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
         <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''} title="${isCurrent ? '' : 'Tap pour revenir à cette semaine'}">
           ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
@@ -4493,6 +4630,10 @@
         <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
       </div>
     `;
+
+    // Indicateurs semaine (sprint parity-mobile-planning) : total heures + nb absences +
+    // alerte salariés sans planning. Aligné avec PC (planning-kpi-* du desktop).
+    html += M.renderPlanningIndicateurs(salaries, plannings, lundi);
 
     // Petit nom : initiale prénom + nom complet (fallback id), trim
     const nomCourt = (sal) => {
@@ -4593,7 +4734,234 @@
     } else {
       html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
     }
+
+    // FAB : raccourci "Bloquer la semaine pour X" (parity-mobile-planning).
+    // Pré-remplit l'absence longue avec lundi → dimanche de la semaine affichée.
+    html += `<button class="m-fab" id="m-planning-fab-bloquer" aria-label="Bloquer la semaine pour un salarié" title="Bloquer toute la semaine pour un salarié (absence)">🏖️</button>`;
     return html;
+  };
+
+  // ============================================================
+  // Indicateurs semaine — total heures (par sal + global), nb absences,
+  // salariés sans planning. Mirror des planning-kpi-* du desktop.
+  // ============================================================
+  M.computePlanningStats = function(salaries, plannings, lundiDate) {
+    const lundiISO = M.toLocalISODate(lundiDate);
+    const datesSemaine = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+      datesSemaine.push(M.toLocalISODate(d));
+    }
+    let totalHeuresGlobal = 0;
+    let nbAbsencesJours = 0;
+    let nbSansPlanning = 0;
+    let nbPlanifies = 0;
+    const heuresParSal = {};
+
+    salaries.forEach(sal => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      heuresParSal[sal.id] = 0;
+      if (!planning) {
+        nbSansPlanning++;
+        return;
+      }
+      M.migrerPlanningV2(planning);
+      // Heuristique "sans planning" : pas de pattern actif ET pas d'override sur cette semaine
+      const aPattern = !!(planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine) && planning.pattern.semaine.length);
+      const aOverride = !!(planning.semaines && planning.semaines[lundiISO]);
+      if (!aPattern && !aOverride) nbSansPlanning++;
+      const semaineData = M.getSemaineDataForDate(planning, lundiDate);
+      let aTravailleAuMoinsUnJour = false;
+      semaineData.forEach((jourData, idx) => {
+        if (!jourData) return;
+        const tj = jourData.typeJour || (jourData.travaille ? 'travail' : 'repos');
+        if (tj === 'travail' && jourData.heureDebut && jourData.heureFin) {
+          const [h1, m1] = String(jourData.heureDebut).split(':').map(n => parseInt(n) || 0);
+          const [h2, m2] = String(jourData.heureFin).split(':').map(n => parseInt(n) || 0);
+          let dh = (h2 + m2 / 60) - (h1 + m1 / 60);
+          if (dh < 0) dh += 24; // garde-fou (passage minuit)
+          if (dh > 0 && dh < 24) {
+            heuresParSal[sal.id] += dh;
+            totalHeuresGlobal += dh;
+          }
+          aTravailleAuMoinsUnJour = true;
+        } else if (tj === 'absence' || tj === 'maladie' || tj === 'conge') {
+          nbAbsencesJours++;
+        }
+      });
+      if (aTravailleAuMoinsUnJour) nbPlanifies++;
+    });
+
+    return {
+      totalHeuresGlobal,
+      heuresParSal,
+      nbAbsencesJours,
+      nbSansPlanning,
+      nbPlanifies,
+      nbSalariesActifs: salaries.length
+    };
+  };
+
+  M.renderPlanningIndicateurs = function(salaries, plannings, lundiDate) {
+    const stats = M.computePlanningStats(salaries, plannings, lundiDate);
+    const fmtH = (h) => {
+      const heures = Math.floor(h);
+      const mins = Math.round((h - heures) * 60);
+      return mins ? `${heures}h${String(mins).padStart(2,'0')}` : `${heures}h`;
+    };
+    let html = `
+      <div class="m-card-row" style="margin-bottom:14px">
+        <div class="m-card m-card-green">
+          <div class="m-card-title">Heures (sem.)</div>
+          <div class="m-card-value">${fmtH(stats.totalHeuresGlobal)}</div>
+          <div class="m-card-sub">${stats.nbPlanifies}/${stats.nbSalariesActifs} salarié${stats.nbSalariesActifs>1?'s':''} actif${stats.nbSalariesActifs>1?'s':''}</div>
+        </div>
+        <div class="m-card m-card-purple">
+          <div class="m-card-title">Absences</div>
+          <div class="m-card-value">${stats.nbAbsencesJours}</div>
+          <div class="m-card-sub">jour${stats.nbAbsencesJours>1?'s':''} hors travail</div>
+        </div>
+      </div>
+    `;
+    // Alerte visuelle : salariés sans planning défini cette semaine
+    if (stats.nbSansPlanning > 0) {
+      html += `<div class="m-card" style="padding:10px 14px;margin-bottom:14px;background:var(--m-accent-soft);border-left:4px solid var(--m-accent)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:.85rem">
+          <span style="font-size:1.1rem">⚠️</span>
+          <span style="flex:1 1 auto">
+            <strong>${stats.nbSansPlanning}</strong> salarié${stats.nbSansPlanning>1?'s':''} sans planning défini cette semaine
+          </span>
+        </div>
+      </div>`;
+    }
+    return html;
+  };
+
+  // ============================================================
+  // Vue "Par salarié" — grille 1 ligne par salarié × 7 colonnes
+  // (parite avec afficherPlanningSemaine du PC). Tap cellule = ouvre form.
+  // ============================================================
+  M.renderPlanningParSalarie = function(salaries, plannings) {
+    if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
+
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const sameMonth = lundi.getMonth() === dimanche.getMonth();
+    const labelDates = sameMonth
+      ? `${lundi.getDate()}–${dimanche.getDate()} ${moisCourtFR[lundi.getMonth()]}`
+      : `${lundi.getDate()} ${moisCourtFR[lundi.getMonth()]} – ${dimanche.getDate()} ${moisCourtFR[dimanche.getMonth()]}`;
+    const numSemaine = (function(d) {
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - dayNum + 3);
+      const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+      return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+    })(lundi);
+    const todayIdx = jourIndexAuj();
+    const isCurrent = offset === 0;
+    const todayISO = M.toLocalISODate(new Date());
+
+    // Barre nav semaine (identique semaine view)
+    let html = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box;position:sticky;top:0;z-index:5;background:var(--m-bg);padding:6px 0">
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
+        <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''}>
+          ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
+        </button>
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine suivante">›</button>
+        <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
+      </div>
+    `;
+
+    // Indicateurs (mêmes que vue semaine)
+    html += M.renderPlanningIndicateurs(salaries, plannings, lundi);
+
+    const stats = M.computePlanningStats(salaries, plannings, lundi);
+    const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', maladie: 'var(--m-red)', absence: 'var(--m-red)', repos: 'rgba(120,120,120,.45)' };
+    const txtColors = { travail: '#06231b', conge: '#06141b', maladie: '#fff', absence: '#fff', repos: '#fff' };
+    const labelsType = { travail: '🟢', conge: '🔵', maladie: '🟣', absence: '🟡', repos: '⚪' };
+    const JOURS_COURT_LOCAL = ['L','M','M','J','V','S','D'];
+
+    // Header colonnes (jours)
+    html += `<div class="m-card" style="padding:8px 6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div style="display:grid;grid-template-columns:90px repeat(7, minmax(40px,1fr));gap:4px;align-items:center;min-width:380px">
+        <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:600;text-transform:uppercase;padding:4px 6px">Salarié</div>
+        ${JOURS_COURT_LOCAL.map((j, i) => {
+          const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
+          const isToday = M.toLocalISODate(d) === todayISO;
+          return `<div style="text-align:center;font-size:.7rem;font-weight:700;padding:4px 0;color:${isToday ? 'var(--m-accent)' : 'var(--m-text)'}">
+            ${j}<div style="font-size:.62rem;color:var(--m-text-muted);font-weight:500">${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+    // 1 carte par salarié, grille de 7 cellules à droite
+    salaries.forEach(sal => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      const semaineData = planning ? M.getSemaineDataForDate(planning, lundi) : null;
+      const heuresSal = stats.heuresParSal[sal.id] || 0;
+      const fmtH = (h) => {
+        const heures = Math.floor(h);
+        const mins = Math.round((h - heures) * 60);
+        return mins ? `${heures}h${String(mins).padStart(2,'0')}` : `${heures}h`;
+      };
+      const nomComplet = ((sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id || '')).trim();
+
+      let cells = '';
+      for (let i = 0; i < 7; i++) {
+        const jourData = semaineData ? semaineData[i] : null;
+        const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
+        const horaire = jourData?.heureDebut && jourData?.heureFin
+          ? `${jourData.heureDebut.slice(0, 5)}<br>${jourData.heureFin.slice(0, 5)}` : '';
+        const bg = colors[typeJour] || colors.repos;
+        const fg = txtColors[typeJour] || txtColors.repos;
+        const showHoraire = typeJour === 'travail' && horaire;
+        const isVide = !planning || (!jourData?.typeJour && !jourData?.travaille);
+        const dEmpty = isVide;
+        cells += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${i}" style="min-height:48px;border:0;border-radius:8px;font-family:inherit;cursor:pointer;font-size:.62rem;line-height:1.15;font-weight:600;padding:4px 2px;background:${dEmpty ? 'transparent' : bg};color:${dEmpty ? 'var(--m-text-muted)' : fg};border:${dEmpty ? '1px dashed var(--m-border)' : '0'};white-space:normal;overflow:hidden;text-overflow:ellipsis">
+          ${dEmpty ? '+' : (showHoraire ? horaire : labelsType[typeJour] || '')}
+        </button>`;
+      }
+
+      html += `<div class="m-card" style="padding:8px 6px;margin-bottom:6px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="display:grid;grid-template-columns:90px repeat(7, minmax(40px,1fr));gap:4px;align-items:center;min-width:380px">
+          <div style="font-size:.78rem;font-weight:600;padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            <div>${M.escHtml(nomComplet)}</div>
+            <div style="font-size:.65rem;color:var(--m-text-muted);font-weight:500">${heuresSal > 0 ? fmtH(heuresSal) : '—'}</div>
+          </div>
+          ${cells}
+        </div>
+      </div>`;
+    });
+
+    // FAB raccourci bloquer semaine
+    html += `<button class="m-fab" id="m-planning-fab-bloquer" aria-label="Bloquer la semaine pour un salarié" title="Bloquer toute la semaine pour un salarié (absence)">🏖️</button>`;
+    return html;
+  };
+
+  // Pré-remplit le formulaire d'absence longue avec lundi → dimanche de la semaine
+  // affichée. Permet de bloquer rapidement toute la semaine d'un salarié sans
+  // re-saisir les dates.
+  M.formBloquerSemaine = function() {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const lundiISO = M.toLocalISODate(lundi);
+    const dimancheISO = M.toLocalISODate(dimanche);
+    // formAbsenceLongue accepte (absId, salIdInit). On va wrap : ouvrir la sheet et
+    // remplir les inputs date après mount.
+    M.formAbsenceLongue();
+    setTimeout(() => {
+      const dDeb = document.querySelector('#m-sheet-body input[name=dateDebut]');
+      const dFin = document.querySelector('#m-sheet-body input[name=dateFin]');
+      if (dDeb) dDeb.value = lundiISO;
+      if (dFin) dFin.value = dimancheISO;
+      const titleEl = document.getElementById('m-sheet-title');
+      if (titleEl) titleEl.textContent = '🏖️ Bloquer la semaine';
+    }, 50);
   };
 
   // ============================================================
@@ -4714,10 +5082,14 @@
     const lundiISO = M.toLocalISODate(lundi);
 
     M.openSheet({
-      title: 'Copier la semaine',
+      title: 'Actions semaine',
       body: `
-        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
-          Copie toutes les saisies de cette semaine vers une ou plusieurs semaines suivantes (override : ne touche pas au pattern récurrent).
+        <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin:0 0 8px">Importer</div>
+        <button type="button" class="m-btn" id="m-sem-import-prev" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">↩ Copier la semaine précédente vers ici</button>
+
+        <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin:14px 0 8px">Diffuser</div>
+        <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px">
+          Copie toutes les saisies de cette semaine vers les semaines suivantes (override : ne touche pas au pattern récurrent).
         </p>
         <button type="button" class="m-btn" data-copies="1" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers la semaine suivante</button>
         <button type="button" class="m-btn" data-copies="4" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 4 prochaines semaines</button>
@@ -4736,6 +5108,13 @@
             M.closeSheet?.();
           });
         });
+        // Importer la semaine précédente -> ici (override semaine courante)
+        b.querySelector('#m-sem-import-prev')?.addEventListener('click', async () => {
+          const ok = await M.confirm?.('Copier toutes les saisies de la semaine précédente vers cette semaine (écrase les overrides actuels) ?', { titre: 'Importer N-1' }) ?? confirm('Importer la semaine précédente ?');
+          if (!ok) return;
+          M.importerSemainePrecedente(lundiISO);
+          M.closeSheet?.();
+        });
         b.querySelector('#m-sem-vider-overrides')?.addEventListener('click', async () => {
           const ok = confirm('Supprimer toutes les saisies par-semaine de la semaine affichée ?');
           if (!ok) return;
@@ -4746,6 +5125,42 @@
       onSubmit() { return true; }
     });
     setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Importe la semaine N-1 vers la semaine N (override). Inverse de
+  // copierSemainePlanning vers le futur. Très demandé : "j'ai bossé pareil
+  // que la semaine d'avant".
+  M.importerSemainePrecedente = function(lundiCibleISO) {
+    const lundiCible = new Date(lundiCibleISO + 'T00:00:00');
+    const lundiSource = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() - 7);
+    const lundiSourceISO = M.toLocalISODate(lundiSource);
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const plannings = M.charger('plannings');
+    let nbAffectes = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const sourceData = M.getSemaineDataForDate(p, lundiSource);
+      const aDuContenu = sourceData.some(j => j && (j.typeJour || j.travaille));
+      if (!aDuContenu) return;
+      const semaineCible = sourceData.map((src, i) => {
+        const dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+        return {
+          jour: M_JOURS_FR_LOCAL[i],
+          date: M.toLocalISODate(dateCible),
+          typeJour: src.typeJour || 'repos',
+          travaille: !!src.travaille,
+          heureDebut: src.heureDebut || '',
+          heureFin: src.heureFin || '',
+          zone: src.zone || '',
+          note: src.note || ''
+        };
+      });
+      p.semaines[lundiCibleISO] = semaineCible;
+      nbAffectes++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbAffectes} planning${nbAffectes > 1 ? 's' : ''} importé${nbAffectes > 1 ? 's' : ''} depuis la semaine du ${lundiSourceISO.slice(8,10)}/${lundiSourceISO.slice(5,7)}`);
+    M.go('planning');
   };
 
   // Copie les overrides (ou pattern à défaut) de la semaine source vers les N semaines suivantes.
@@ -7548,6 +7963,19 @@
     return { color: 'var(--m-green)', label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }), icon: '✅' };
   };
 
+  // Helper compact pour badge échéance (icone seule + couleur)
+  M.statutDateBadge = function(dateIso, label) {
+    if (!dateIso) return `<span title="${M.escHtml(label)} non renseigné" style="color:var(--m-text-muted);font-size:.85rem">${M.escHtml(label)}—</span>`;
+    const d = new Date(dateIso);
+    if (isNaN(d)) return '';
+    const diff = Math.floor((d - new Date()) / 86400000);
+    let icon = '✅', color = 'var(--m-green)', tip = `${label} valide`;
+    if (diff < 0) { icon = '❌'; color = 'var(--m-red)'; tip = `${label} expiré (${-diff}j)`; }
+    else if (diff < 30) { icon = '🔴'; color = 'var(--m-red)'; tip = `${label} expire dans ${diff}j`; }
+    else if (diff < 60) { icon = '⚠️'; color = 'var(--m-accent)'; tip = `${label} expire dans ${diff}j`; }
+    return `<span title="${M.escHtml(tip)}" style="color:${color};font-size:.78rem;font-weight:600">${icon} ${M.escHtml(label)}</span>`;
+  };
+
   M.register('vehicules', {
     title: 'Véhicules',
     render() {
@@ -7558,25 +7986,34 @@
       const recherche = (M.state.vehiculesRecherche || '').toLowerCase();
       const filtreCarb = M.state.vehiculesCarburant || '';
       const filtreSal  = M.state.vehiculesSalarie || '';
+      const tri        = M.state.vehiculesTri || 'immat';
       let filtered = vehicules;
       if (recherche) {
         filtered = filtered.filter(v => {
-          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''}`.toLowerCase();
+          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''} ${v.vin||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
       if (filtreCarb) filtered = filtered.filter(v => (v.typeCarburant || v.carburant || '') === filtreCarb);
       if (filtreSal)  filtered = filtered.filter(v => (v.salId || v.chaufId) === filtreSal);
-      filtered = [...filtered].sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
+      // Tri : immat / km / ct
+      filtered = [...filtered];
+      if (tri === 'km') filtered.sort((a,b) => (M.parseNum(b.km)||0) - (M.parseNum(a.km)||0));
+      else if (tri === 'ct') filtered.sort((a,b) => {
+        // CT ascendant : les plus proches/expirés d'abord (sans date = en bas)
+        const da = a.dateCT || '9999-12-31', db = b.dateCT || '9999-12-31';
+        return da.localeCompare(db);
+      });
+      else filtered.sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
 
       const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauVehicule()" aria-label="Nouveau véhicule">+</button>`;
       html += `
         <div style="margin-bottom:10px">
-          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, modèle)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, marque, VIN)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
           <select id="m-veh-carb" style="flex:1 1 auto">
             <option value="">⛽ Tous carburants</option>
             <option value="diesel"     ${filtreCarb==='diesel'?'selected':''}>⛽ Diesel/Gazole</option>
@@ -7591,10 +8028,17 @@
             ${salaries.map(s => `<option value="${M.escHtml(s.id)}" ${filtreSal===s.id?'selected':''}>${M.escHtml(((s.prenom?s.prenom+' ':'') + (s.nom||s.id)).trim())}</option>`).join('')}
           </select>
         </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <select id="m-veh-tri" style="flex:1 1 auto">
+            <option value="immat" ${tri==='immat'?'selected':''}>↕ Tri immat (A→Z)</option>
+            <option value="km"    ${tri==='km'?'selected':''}>↕ Tri km (décroissant)</option>
+            <option value="ct"    ${tri==='ct'?'selected':''}>↕ Tri date CT (proche)</option>
+          </select>
+        </div>
       `;
 
       if (!vehicules.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Ajoute ton parc depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Tape sur ⊕ pour ajouter ton premier véhicule.</p></div>`;
         return html;
       }
       if (!filtered.length) {
@@ -7603,12 +8047,17 @@
       }
 
       filtered.forEach(v => {
-        const ct = M.statutDate(v.dateCT);
-        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+        const ct  = M.statutDateBadge(v.dateCT, 'CT');
+        const ass = M.statutDateBadge(v.dateAssurance, 'Assu');
+        const cgUploaded = !!(v.docs?.carte_grise);
+        const cgIcon = cgUploaded ? `<span title="Carte grise uploadée" style="color:var(--m-green);font-size:.78rem;font-weight:600">📄 CG</span>`
+                                  : `<span title="Carte grise manquante" style="color:var(--m-text-muted);font-size:.78rem">📄—</span>`;
+        const kmTxt = v.km ? `${M.formatNum(v.km)} km` : '';
+        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;min-height:48px">
           <div style="flex:1 1 auto;min-width:0">
-            <div style="font-weight:700;font-size:1rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
-            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(v.modele || '')}${v.salNom ? ' · ' + M.escHtml(v.salNom) : ''}</div>
-            <div style="margin-top:6px;font-size:.75rem"><span style="color:${ct.color};font-weight:600">${ct.icon} CT ${ct.label}</span></div>
+            <div style="font-weight:700;font-size:1.05rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((v.marque ? v.marque + ' ' : '') + (v.modele || ''))}${v.salNom ? ' · 👤 ' + M.escHtml(v.salNom) : ''}${kmTxt ? ' · ' + kmTxt : ''}</div>
+            <div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">${ct} ${ass} ${cgIcon}</div>
           </div>
           <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
         </button>`;
@@ -7629,72 +8078,276 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
-      // Filtres carburant + chauffeur
+      // Filtres carburant + chauffeur + tri
       container.querySelector('#m-veh-carb')?.addEventListener('change', e => { M.state.vehiculesCarburant = e.target.value; M.go('vehicules'); });
       container.querySelector('#m-veh-sal')?.addEventListener('change',  e => { M.state.vehiculesSalarie   = e.target.value; M.go('vehicules'); });
+      container.querySelector('#m-veh-tri')?.addEventListener('change',  e => { M.state.vehiculesTri       = e.target.value; M.go('vehicules'); });
       container.querySelectorAll('.m-veh-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('vehicules', btn.dataset.id));
       });
     }
   });
 
+  // Helpers : ouvre forms enfants en pre-selectionnant le vehicule courant.
+  // Strategie : on appelle la fonction de form normale (mode creation), puis on
+  // force le select vehiculeId via setTimeout (apres openSheet+afterMount async).
+  M.formPleinPourVehicule = function(vehId) {
+    M.formNouveauPlein();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+  M.formEntretienPourVehicule = function(vehId) {
+    M.formNouvelEntretien();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+  M.formInspectionPourVehicule = function(vehId) {
+    M.formNouvelleInspection();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+
+  // Action : remplacer / ajouter rapidement la carte grise depuis le drawer
+  // Ouvre un picker direct, upload, refresh la vue.
+  M.replaceCarteGrise = async function(vehId) {
+    return new Promise(resolve => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*,application/pdf';
+      inp.style.display = 'none';
+      document.body.appendChild(inp);
+      inp.addEventListener('change', async () => {
+        const file = inp.files?.[0];
+        document.body.removeChild(inp);
+        if (!file) return resolve(false);
+        M.toast('⏳ Envoi carte grise...');
+        const ok = await M.uploaderDocVehicule(file, 'carte_grise', vehId);
+        if (ok) { M.toast('✅ Carte grise enregistrée'); M.go('vehicules'); }
+        resolve(ok);
+      }, { once: true });
+      inp.click();
+    });
+  };
+
+  // Confirmation toggle archivage
+  M.toggleArchiveVehicule = async function(vehId) {
+    const arr = M.charger('vehicules');
+    const idx = arr.findIndex(x => x.id === vehId);
+    if (idx < 0) return;
+    const archive = !arr[idx].archive;
+    const msg = archive
+      ? `Désactiver le véhicule ${arr[idx].immat} ? Il sera masqué des listes mais conservé pour l'historique.`
+      : `Réactiver le véhicule ${arr[idx].immat} ?`;
+    if (!await M.confirm(msg, { titre: archive ? 'Désactiver véhicule' : 'Réactiver véhicule' })) return;
+    arr[idx].archive = archive;
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('vehicules', arr);
+    M.toast(archive ? '⏸️ Véhicule désactivé' : '▶️ Véhicule réactivé');
+    if (archive) M.state.detail.vehicules = null;
+    M.go('vehicules');
+  };
+
   M.renderVehiculeDetail = function(id) {
     const v = M.charger('vehicules').find(x => x.id === id);
     if (!v) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Véhicule introuvable</h3></div>`;
 
-    const ct = M.statutDate(v.dateCT);
-    // Pleins du vehicule pour mini KPI
+    const ct  = M.statutDate(v.dateCT);
+    const ass = M.statutDate(v.dateAssurance);
+    const cg  = M.statutDate(v.dateCarteGrise);
+
+    // Pleins du vehicule
     const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id || p.vehId === v.id);
     const totalCarb = pleins.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
     const totalLitres = pleins.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
-    const dernierPlein = pleins.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    const pleinsTri = [...pleins].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const dernierPlein = pleinsTri[0];
+    const derniersPleins = pleinsTri.slice(0, 5);
+
+    // Entretiens
+    const entretiens = M.charger('entretiens').filter(e => e.vehiculeId === v.id || e.vehId === v.id);
+    const entretiensTri = [...entretiens].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const derniersEntretiens = entretiensTri.slice(0, 5);
+    const dernierEntretien = entretiensTri[0];
+
+    // Charges rattachées au véhicule
+    const charges = M.charger('charges').filter(c => c.vehiculeId === v.id || c.vehId === v.id);
+    const chargesTri = [...charges].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const dernieresCharges = chargesTri.slice(0, 5);
+    const totalCharges = charges.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+
+    // Inspections
+    const inspections = M.charger('inspections').filter(i => i.vehiculeId === v.id || i.vehId === v.id);
+    const dernieresInspections = [...inspections].sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 3);
+
+    // Livraisons
     const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id || l.vehId === v.id);
 
+    // Doc carte grise (priorité aux docs.carte_grise sur l'ancien carteGriseFichier PC)
+    const docCG = v.docs?.carte_grise;
+
+    // Conso réelle calculée
+    const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
+    const consoCalc = (kmParcourus > 0 && totalLitres > 0) ? (totalLitres / kmParcourus * 100) : null;
+
+    // Type de carburant lisible
+    const carbLabels = {
+      diesel: '⛽ Diesel/Gazole', gazole: '⛽ Diesel/Gazole',
+      essence: '⛽ Essence', gnv: '🌿 GNV/BioGNV', biognv: '🌿 GNV/BioGNV',
+      electrique: '⚡ Électrique', hybride: '🔋 Hybride', hydrogene: '💧 Hydrogène'
+    };
+    const carbAffiche = v.typeCarburant ? (carbLabels[(v.typeCarburant||'').toLowerCase()] || v.typeCarburant) : '—';
+
+    const detailRow = (label, value, opts = {}) => {
+      if (value == null || value === '' || value === 0 && !opts.showZero) return '';
+      const last = opts.last ? '' : 'border-bottom:1px solid var(--m-border);';
+      const valColor = opts.color ? `color:${opts.color};` : '';
+      return `<div style="padding:13px 16px;${last}display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span style="color:var(--m-text-muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.05em">${M.escHtml(label)}</span>
+        <span style="font-weight:600;${valColor};text-align:right;font-size:.88rem">${value}</span>
+      </div>`;
+    };
+
+    const echeanceRow = (label, dateIso, statut) => {
+      const dateStr = dateIso
+        ? new Date(dateIso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Non renseigné';
+      return `<div style="padding:13px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <div style="font-size:.78rem;font-weight:600">${M.escHtml(label)}</div>
+          <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${dateStr}</div>
+        </div>
+        <span style="color:${statut.color};font-weight:700;font-size:.85rem;text-align:right;flex-shrink:0">${statut.icon} ${statut.label}</span>
+      </div>`;
+    };
+
     return `
-      <div style="text-align:center;padding:8px 0 18px">
-        <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
-        ${v.modele ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(v.modele)}</p>` : ''}
+      <!-- Hero : immat + chauffeur + actions rapides -->
+      <div style="text-align:center;padding:8px 0 14px">
+        <div style="display:inline-block;padding:10px 20px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.5rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
+        ${(v.marque || v.modele) ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(((v.marque || '') + ' ' + (v.modele || '')).trim())}</p>` : ''}
         ${v.salNom ? (() => {
           const sal = v.salId ? M.charger('salaries').find(s => s.id === v.salId) : M.findSalarieByName(v.salNom);
           return sal
             ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(v.salNom)} ›</button>`
             : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>`;
         })() : ''}
-        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
-      <!-- CT highlight (le plus important) -->
-      <div class="m-card" style="border-left:4px solid ${ct.color};padding:14px 16px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <div>
-            <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Contrôle technique</div>
-            <div style="font-size:1.05rem;font-weight:700;color:${ct.color};margin-top:4px">${ct.icon} ${ct.label}</div>
+      <!-- Actions rapides : 4 boutons icone + label -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+        <button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-accent);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">✏️</span><span>Modifier</span>
+        </button>
+        <button type="button" onclick="MCAm.formPleinPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">⛽</span><span>+ Plein</span>
+        </button>
+        <button type="button" onclick="MCAm.formEntretienPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">🔧</span><span>+ Entretien</span>
+        </button>
+        <button type="button" onclick="MCAm.formInspectionPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">🚗</span><span>+ Inspection</span>
+        </button>
+      </div>
+
+      <!-- 📅 ECHEANCES (CT, assurance, carte grise) -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">📅 Échéances</h3></div>
+        <div class="m-card" style="padding:0;border-left:4px solid ${ct.color}">
+          ${echeanceRow('🔧 Contrôle technique', v.dateCT, ct)}
+          ${echeanceRow('🛡️ Assurance (carte verte)', v.dateAssurance, ass)}
+          ${echeanceRow('📄 Carte grise', v.dateCarteGrise, cg)}
+          <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-size:.78rem;font-weight:600">📜 1ère mise en circulation</div>
+              <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${v.dateMiseEnCirculation ? new Date(v.dateMiseEnCirculation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Non renseigné'}</div>
+            </div>
+            ${v.dateMiseEnCirculation ? (() => {
+              const ans = Math.floor((Date.now() - new Date(v.dateMiseEnCirculation).getTime()) / (365.25 * 86400000));
+              return `<span style="color:var(--m-text-muted);font-weight:600;font-size:.85rem">${ans} an${ans>1?'s':''}</span>`;
+            })() : ''}
           </div>
-          ${v.dateCT ? `<div style="text-align:right;font-size:.78rem;color:var(--m-text-muted)">${new Date(v.dateCT).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' })}</div>` : ''}
         </div>
       </div>
 
-      <!-- Detail technique -->
-      <div class="m-card" style="padding:0">
-        ${v.typeCarburant ?         `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Carburant</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.typeCarburant)}</span></div>` : ''}
-        ${v.km != null ?            `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Kilométrage</span><span style="font-weight:600">${M.formatNum(v.km)} km</span></div>` : ''}
-        ${(() => {
-          // Conso L/100km = totalLitres / (km - kmInitial) * 100
-          const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
-          if (kmParcourus > 0 && totalLitres > 0) {
-            const conso = totalLitres / kmParcourus * 100;
-            const consoColor = conso > 12 ? 'var(--m-red)' : conso > 8 ? 'var(--m-accent)' : 'var(--m-green)';
-            return `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Conso moyenne</span><span style="font-weight:600;color:${consoColor}">${conso.toFixed(1)} L/100km</span></div>`;
-          }
-          return '';
-        })()}
-        ${v.kmInitial != null ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Km initial</span><span style="font-weight:500">${M.formatNum(v.kmInitial)} km</span></div>` : ''}
-        ${v.modeAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Acquisition</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.modeAcquisition)}</span></div>` : ''}
-        ${v.dateAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Date acquisition</span><span style="font-weight:500">${M.formatDate(v.dateAcquisition)}</span></div>` : ''}
-        ${v.entretienIntervalKm ?   `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Vidange tous les</span><span style="font-weight:500">${M.formatNum(v.entretienIntervalKm)} km</span></div>` : ''}
+      <!-- 📄 CARTE GRISE (aperçu + actions) -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">📄 Carte grise</h3></div>
+        <div class="m-card" style="padding:14px 16px">
+          ${docCG ? `
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+              <span style="font-size:1.6rem;flex-shrink:0">🪪</span>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(docCG.nom || 'Carte grise')}</div>
+                <div style="font-size:.72rem;color:var(--m-green);margin-top:2px">✅ Uploadée${docCG.uploaded_at ? ' · ' + M.formatDate(docCG.uploaded_at.slice(0,10)) : ''}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','carte_grise')" class="m-btn" style="flex:1 1 auto">👁 Voir</button>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="flex:1 1 auto">↻ Remplacer</button>
+            </div>
+          ` : `
+            <div style="text-align:center;padding:8px 0 4px">
+              <div style="font-size:2rem;margin-bottom:6px">📄</div>
+              <p style="color:var(--m-text-muted);font-size:.85rem;margin:0 0 10px">Aucune carte grise enregistrée</p>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">📷 Uploader la carte grise</button>
+            </div>
+          `}
+        </div>
       </div>
 
-      <!-- Carburant resume -->
+      <!-- 🪪 IDENTITE -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">🪪 Identité</h3></div>
+        <div class="m-card" style="padding:0">
+          ${detailRow('Immatriculation', M.escHtml(v.immat || '—'))}
+          ${v.marque ? detailRow('Marque', M.escHtml(v.marque)) : ''}
+          ${v.modele ? detailRow('Modèle', M.escHtml(v.modele)) : ''}
+          ${v.vin ? detailRow('VIN', `<span style="font-family:monospace;font-size:.8rem">${M.escHtml(v.vin)}</span>`) : ''}
+          ${v.genre ? detailRow('Genre', M.escHtml(v.genre)) : ''}
+          ${detailRow('Carburant', M.escHtml(carbAffiche))}
+          ${v.critAir ? detailRow("Crit'Air", `Vignette ${M.escHtml(v.critAir)}`) : ''}
+        </div>
+      </div>
+
+      <!-- 📐 CARACTERISTIQUES -->
+      ${(v.km || v.kmInitial || v.capaciteReservoir || v.conso || consoCalc != null || v.ptac || v.ptra || v.essieux || v.entretienIntervalKm) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">📐 Caractéristiques</h3></div>
+          <div class="m-card" style="padding:0">
+            ${v.km ? detailRow('Kilométrage', `${M.formatNum(v.km)} km`) : ''}
+            ${v.kmInitial ? detailRow('Km initial', `${M.formatNum(v.kmInitial)} km`) : ''}
+            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100km</span>`) : ''}
+            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100km`) : ''}
+            ${v.capaciteReservoir ? detailRow('Capacité réservoir', `${M.formatNum(v.capaciteReservoir)} L`) : ''}
+            ${v.ptac ? detailRow('PTAC', `${M.formatNum(v.ptac)} kg`) : ''}
+            ${v.ptra ? detailRow('PTRA', `${M.formatNum(v.ptra)} kg`) : ''}
+            ${v.essieux ? detailRow('Essieux', `${v.essieux}`) : ''}
+            ${v.entretienIntervalKm ? detailRow('Vidange tous les', `${M.formatNum(v.entretienIntervalKm)} km`, { last: true }) : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 💰 ACQUISITION -->
+      ${(v.modeAcquisition || v.dateAcquisition) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">💰 Acquisition</h3></div>
+          <div class="m-card" style="padding:0">
+            ${v.modeAcquisition ? detailRow('Mode', `<span style="text-transform:uppercase">${M.escHtml(v.modeAcquisition)}</span>`) : ''}
+            ${v.dateAcquisition ? detailRow('Date', M.formatDate(v.dateAcquisition), { last: !v.prixAchatHT && !v.loyerMensuelHT }) : ''}
+            ${v.prixAchatHT ? detailRow('Prix HT', M.format$(v.prixAchatHT)) : ''}
+            ${v.prixAchatTTC ? detailRow('Prix TTC', M.format$(v.prixAchatTTC), { last: !v.loyerMensuelHT }) : ''}
+            ${v.loyerMensuelHT ? detailRow('Loyer mensuel HT', M.format$(v.loyerMensuelHT), { last: true }) : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- ⛽ CARBURANT -->
       ${pleins.length ? `
         <div class="m-section">
           <div class="m-section-header">
@@ -7702,8 +8355,102 @@
             <span style="font-size:.85rem;color:var(--m-text-muted)">${pleins.length} plein${pleins.length>1?'s':''}</span>
           </div>
           <div class="m-card-row">
-            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
-            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total dépensé</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
+            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier plein</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+          </div>
+          ${derniersPleins.length ? `
+            <div class="m-card" style="padding:0;margin-top:10px">
+              ${derniersPleins.map((p, i) => {
+                const isLast = i === derniersPleins.length - 1;
+                const consoLine = (i < derniersPleins.length - 1) ? (() => {
+                  const next = derniersPleins[i+1];
+                  const dKm = (M.parseNum(p.kmCompteur) || 0) - (M.parseNum(next.kmCompteur) || 0);
+                  const litres = M.parseNum(p.litres) || 0;
+                  if (dKm > 0 && litres > 0) {
+                    return ` · ${(litres / dKm * 100).toFixed(1)} L/100`;
+                  }
+                  return '';
+                })() : '';
+                return `<button type="button" onclick="MCAm.formNouveauPlein && MCAm.editerPlein && MCAm.editerPlein('${M.escHtml(p.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                  <div style="flex:1 1 auto;min-width:0">
+                    <div style="font-weight:600;font-size:.85rem">${M.formatDate(p.date)}</div>
+                    <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatNum(M.parseNum(p.litres).toFixed(1))} L${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}${consoLine}</div>
+                  </div>
+                  <div style="font-weight:700;color:var(--m-red);font-size:.85rem">${M.format$(p.total)}</div>
+                </button>`;
+              }).join('')}
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- 🔧 ENTRETIENS -->
+      ${entretiens.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">🔧 Entretiens</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${entretiens.length} · ${derniersEntretiens.length} affichés</span>
+          </div>
+          ${dernierEntretien?.prochainKm ? `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px;padding:0 4px">🔔 Prochain prévu : <strong>${M.formatNum(dernierEntretien.prochainKm)} km</strong></p>` : ''}
+          <div class="m-card" style="padding:0">
+            ${derniersEntretiens.map((e, i) => {
+              const isLast = i === derniersEntretiens.length - 1;
+              return `<button type="button" onclick="MCAm.editerEntretien && MCAm.editerEntretien('${M.escHtml(e.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem;text-transform:capitalize">${M.escHtml(e.type || 'Entretien')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-purple);font-size:.85rem">${M.format$(e.cout || e.coutTtc || 0)}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 💸 CHARGES rattachées -->
+      ${charges.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">💸 Charges rattachées</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${charges.length} · ${M.format$(totalCharges)}</span>
+          </div>
+          <div class="m-card" style="padding:0">
+            ${dernieresCharges.map((c, i) => {
+              const isLast = i === dernieresCharges.length - 1;
+              const montant = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
+              return `<button type="button" onclick="MCAm.editerCharge && MCAm.editerCharge('${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.libelle || c.categorie || 'Charge')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatDate(c.date)}${c.fournisseur ? ' · ' + M.escHtml(c.fournisseur) : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-red);font-size:.85rem">${M.format$(montant)}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 🚗 INSPECTIONS -->
+      ${inspections.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">🚗 Inspections</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${inspections.length} · ${dernieresInspections.length} affichées</span>
+          </div>
+          <div class="m-card" style="padding:0">
+            ${dernieresInspections.map((i, idx) => {
+              const isLast = idx === dernieresInspections.length - 1;
+              const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : null;
+              const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : (i.salNom || '');
+              const nbPhotos = Array.isArray(i.photos) ? i.photos.length : 0;
+              return `<button type="button" onclick="MCAm.openDetail('inspections','${M.escHtml(i.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem">${M.formatDate(i.date)}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${nom ? '👤 ' + M.escHtml(nom) : ''}${nbPhotos ? (nom ? ' · ' : '') + '📸 ' + nbPhotos : ''}</div>
+                </div>
+                <span style="color:var(--m-text-muted)">›</span>
+              </button>`;
+            }).join('')}
           </div>
         </div>
       ` : ''}
@@ -7712,7 +8459,6 @@
         if (!livraisons.length) return '';
         const totalCa = livraisons.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const totalKm = livraisons.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
-        // Historique conducteurs : agrège par chauffeur (salarieId / chaufId)
         const salaries = M.charger('salaries');
         const byChauf = {};
         livraisons.forEach(l => {
@@ -7726,14 +8472,14 @@
         });
         const topChauf = Object.values(byChauf).sort((a, b) => b.nb - a.nb).slice(0, 5);
         const dernieres = [...livraisons].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
-        const docsPresents = M.DOC_TYPES_VEHICULE.filter(t => v.docs?.[t.type]);
+        const docsAutres = M.DOC_TYPES_VEHICULE.filter(t => t.type !== 'carte_grise' && v.docs?.[t.type]);
 
         return `
-          ${docsPresents.length ? `
+          ${docsAutres.length ? `
             <div class="m-section">
-              <div class="m-section-header"><h3 class="m-section-title">📎 Documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsPresents.length}</span></div>
+              <div class="m-section-header"><h3 class="m-section-title">📎 Autres documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsAutres.length}</span></div>
               <div class="m-card" style="padding:0">
-                ${docsPresents.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsPresents.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
+                ${docsAutres.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsAutres.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit;min-height:48px"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
               </div>
             </div>
           ` : ''}
@@ -7753,7 +8499,7 @@
                   const sal = salaries.find(s => s.id === c.id);
                   const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : 'Inconnu';
                   const isLast = i === topChauf.length - 1;
-                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer">
+                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
                     <div style="flex:1 1 auto;min-width:0">
                       <div style="font-weight:600;font-size:.9rem">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${M.escHtml(nom)}</div>
                       <div style="color:var(--m-text-muted);font-size:.74rem;margin-top:2px">${c.nb} liv · ${M.formatNum(c.km.toFixed(0))} km · dernière ${M.formatDate(c.derniere)}</div>
@@ -7770,7 +8516,7 @@
           <div class="m-section">
             <div class="m-section-header"><h3 class="m-section-title">📋 Dernières livraisons</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${dernieres.length} affichées</span></div>
             ${dernieres.map(l => `
-              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit;min-height:48px">
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
                   <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
@@ -7781,6 +8527,13 @@
           </div>
         `;
       })()}
+
+      <!-- ⏸️ Désactiver / Réactiver -->
+      <div class="m-section" style="margin-top:20px">
+        <button type="button" onclick="MCAm.toggleArchiveVehicule('${M.escHtml(v.id)}')" class="m-btn ${v.archive ? '' : 'm-btn-danger'}" style="width:100%">
+          ${v.archive ? '▶️ Réactiver ce véhicule' : '⏸️ Désactiver ce véhicule'}
+        </button>
+      </div>
     `;
   };
   // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------
@@ -10411,9 +11164,32 @@
       M.go(entity);
     };
 
-    // Initial route : dashboard ou page demandee via #
-    const initialPage = (location.hash || '').replace('#', '') || 'dashboard';
+    // Initial route : dashboard ou page demandee via #. Supporte aussi
+    // les query params (#planning?date=YYYY-MM-DD&vue=semaine) — la partie
+    // avant le ? est la route, le reste est parsé par M.parsePlanningHash et
+    // appliqué à M.state au moment du rendu de la page.
+    const rawHash = (location.hash || '').replace(/^#/, '');
+    const initialPage = (rawHash.split('?')[0] || '').trim() || 'dashboard';
     M.go(initialPage in M.routes ? initialPage : 'dashboard');
+
+    // Re-render quand l'utilisateur change le hash (deep-link partagé / back).
+    // Note : on ne re-render pas si la route n'a pas changé pour éviter les
+    // boucles avec history.replaceState dans M.updatePlanningHash.
+    window.addEventListener('hashchange', () => {
+      const h = (location.hash || '').replace(/^#/, '');
+      const page = (h.split('?')[0] || '').trim() || 'dashboard';
+      if (!(page in M.routes)) return;
+      if (M.state.currentPage !== page) {
+        M.go(page);
+      } else if (page === 'planning') {
+        // Hash a changé sur la même page (date/vue) → re-render seulement si
+        // les params réels ont bougé (sinon stop la boucle).
+        const before = JSON.stringify({ o: M.state.planningSemaineOffset || 0, v: M.state.planningVue || 'jour' });
+        M.applyPlanningHashState();
+        const after = JSON.stringify({ o: M.state.planningSemaineOffset || 0, v: M.state.planningVue || 'jour' });
+        if (before !== after) M.go('planning');
+      }
+    });
 
     // Auto-refresh badge alertes toutes les 30s + vérif docs/véhicules toutes les heures.
     // Garde une référence pour éviter la duplication si init() est rappelé (HMR/reload).
