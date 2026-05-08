@@ -23,7 +23,8 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const MODEL = "gemini-2.5-flash";
 const GEMINI_TIMEOUT_MS = 45_000;
-const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB pour images
+const MAX_PDF_BYTES = 20 * 1024 * 1024;   // 20 MB pour PDF (Gemini supporte plus large)
 const MAX_OUTPUT_TOKENS = 1024;
 
 const CORS = {
@@ -34,6 +35,7 @@ const CORS = {
 
 const ALLOWED_MIME = new Set([
   "image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif",
+  "application/pdf", // Gemini multimodal supporte le PDF nativement (jusqu'a 1000 pages)
 ]);
 
 type Mode = "facture" | "ticket_carburant" | "rib";
@@ -334,22 +336,24 @@ Deno.serve(async (req) => {
       mode = String(form.get("mode") ?? "") as Mode;
       if (file instanceof File) {
         const buf = await file.arrayBuffer();
-        if (buf.byteLength > MAX_IMAGE_BYTES) {
+        const fileType = (file.type || "image/jpeg").toLowerCase();
+        const isPdf = fileType === "application/pdf";
+        const cap = isPdf ? MAX_PDF_BYTES : MAX_IMAGE_BYTES;
+        if (buf.byteLength > cap) {
           return new Response(
-            JSON.stringify({ success: false, error: `Image trop lourde (${(buf.byteLength / 1024 / 1024).toFixed(1)} MB > 10 MB)` }),
+            JSON.stringify({ success: false, error: `Fichier trop lourd (${(buf.byteLength / 1024 / 1024).toFixed(1)} MB > ${cap / 1024 / 1024} MB)` }),
             { status: 413, headers: { ...CORS, "Content-Type": "application/json" } },
           );
         }
-        // Encodage base64 manuel (Deno n'a pas Buffer.toString natif).
         imageBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
-        mime = file.type || "image/jpeg";
+        mime = fileType;
       }
     } else {
       const body = await req.json().catch(() => ({}));
       imageBase64 = String(body.image_base64 ?? "").trim();
       mime = String(body.mime ?? "image/jpeg").trim();
       mode = String(body.mode ?? "") as Mode;
-      // Strip prefix data URL si present (frontend peut envoyer data:image/jpeg;base64,XXX)
+      // Strip prefix data URL si present (frontend peut envoyer data:application/pdf;base64,XXX)
       const comma = imageBase64.indexOf(",");
       if (imageBase64.startsWith("data:") && comma > 0) {
         const meta = imageBase64.slice(5, comma);
@@ -357,12 +361,13 @@ Deno.serve(async (req) => {
         if (mimeFromUrl) mime = mimeFromUrl;
         imageBase64 = imageBase64.slice(comma + 1);
       }
-      // Controle taille : 10 MB en raw bytes = ~13.4 MB en base64.
-      // Approx : len base64 * 0.75 = bytes raw.
+      // Controle taille : limite differente selon image (10 MB) vs PDF (20 MB).
+      const isPdf = mime.toLowerCase() === "application/pdf";
+      const cap = isPdf ? MAX_PDF_BYTES : MAX_IMAGE_BYTES;
       const approxBytes = imageBase64.length * 0.75;
-      if (approxBytes > MAX_IMAGE_BYTES) {
+      if (approxBytes > cap) {
         return new Response(
-          JSON.stringify({ success: false, error: `Image trop lourde (~${(approxBytes / 1024 / 1024).toFixed(1)} MB > 10 MB)` }),
+          JSON.stringify({ success: false, error: `Fichier trop lourd (~${(approxBytes / 1024 / 1024).toFixed(1)} MB > ${cap / 1024 / 1024} MB)` }),
           { status: 413, headers: { ...CORS, "Content-Type": "application/json" } },
         );
       }

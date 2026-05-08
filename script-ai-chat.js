@@ -125,7 +125,7 @@
           <div class="ai-chat-ocr-body" id="ai-chat-ocr-body"></div>
         </div>
       </div>
-      <input type="file" id="ai-chat-ocr-file" accept="image/*" capture="environment" style="display:none" />
+      <input type="file" id="ai-chat-ocr-file" accept="image/*,application/pdf" capture="environment" style="display:none" />
     </div>
     <div id="ai-chat-overlay" hidden></div>
   `;
@@ -1577,14 +1577,15 @@
   }
 
   // Compresse l'image via DelivProStorage si dispo, sinon la retourne brute.
-  // Limite : edge fn ai-ocr cap a 10 MB. Apres compression on est largement sous.
+  // Limite : edge fn ai-ocr cap a 10 MB image / 20 MB PDF. Compression image-only ;
+  // les PDF passent tels quels (re-encodage casserait la structure).
   async function compressOcrFile(file) {
+    if (!file || !file.type) return file;
+    if (file.type === 'application/pdf') return file;
     if (!window.DelivProStorage || typeof window.DelivProStorage.compressImage !== 'function') {
       return file;
     }
     try {
-      // Compression : economie de tokens Gemini multimodal. 1600px / quality 0.82
-      // = aligne avec le defaut storage-uploader (cible ~300 Ko apres compression).
       return await window.DelivProStorage.compressImage(file, {
         maxDim: 1600,
         quality: 0.82,
@@ -1612,18 +1613,21 @@
   async function onOcrFileSelected(e) {
     const file = e.target && e.target.files && e.target.files[0];
     if (!file || !ocrState.mode) return;
-    if (!/^image\//.test(file.type || '')) {
-      renderOcrError('Le fichier choisi n\'est pas une image.', 'Selectionne une photo (JPG, PNG, HEIC).');
+    const ftype = file.type || '';
+    const isImage = /^image\//.test(ftype);
+    const isPdf = ftype === 'application/pdf';
+    if (!isImage && !isPdf) {
+      renderOcrError('Format non supporte.', 'Selectionne une photo (JPG, PNG, HEIC) ou un PDF.');
       return;
     }
 
     ocrState.busy = true;
     try {
-      renderOcrStatus('Compression image...');
+      renderOcrStatus(isPdf ? 'Lecture PDF...' : 'Compression image...');
       const compressed = await compressOcrFile(file);
       renderOcrStatus('Encodage...');
       const base64 = await fileToBase64(compressed);
-      const mime = compressed.type || file.type || 'image/jpeg';
+      const mime = compressed.type || file.type || (isPdf ? 'application/pdf' : 'image/jpeg');
       renderOcrStatus('🔍 Analyse en cours...');
       const result = await callOcr({ image_base64: base64, mime, mode: ocrState.mode });
       ocrState.lastResult = result;
