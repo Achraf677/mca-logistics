@@ -6952,10 +6952,32 @@
       });
     }
   });
-  // ---------- Rentabilite v3.7 : 4 sous-onglets (Global / Vehicule / Client / Chauffeur) ----------
-  M.state.rentMois = M.moisKey();
+  // ---------- Rentabilite v3.86 : parite ~95% PC (filtres periode jour/sem/mois/an,
+  // KPI marge, top 5, sous-onglets Global/Vehicule/Client/Chauffeur/Tournee/Simulateur,
+  // drill-down livraisons par axe). Couts en HT cf. PC (script-rentabilite-multi.js).
+  M.state.rentMois = M.moisKey();          // legacy : conserve pour compat retro
   M.state.rentMoisManuel = false;
   M.state.rentTab = 'global';
+
+  // Helpers HT/range partages avec PC (cf. script-rentabilite-multi.js)
+  const rentGetMontantHT = (l) => {
+    if (!l) return 0;
+    if (l.prixHT != null && l.prixHT !== '') return M.parseNum(l.prixHT) || 0;
+    const t = M.parseNum(l.tauxTVA) || 20;
+    return (M.parseNum(l.prix) || 0) / (1 + t / 100);
+  };
+  const rentGetMontantHTCharge = (item) => {
+    const ht = M.parseNum(item.montantHT);
+    if (ht > 0) return ht;
+    const ttc = M.parseNum(item.montantTtc) || M.parseNum(item.montant) || M.parseNum(item.total) || 0;
+    const t = M.parseNum(item.tauxTVA) || 20;
+    return ttc / (1 + t / 100);
+  };
+  const rentInRange = (date, range) => {
+    if (!range) return true;
+    if (!date) return false;
+    return date >= range.debut && date <= range.fin;
+  };
 
   M.register('rentabilite', {
     title: 'Rentabilité',
@@ -6967,106 +6989,138 @@
       const vehicules  = M.charger('vehicules').filter(v => v && !v.archive);
       const salaries   = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
-      // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
-      if (!M.state.rentMoisManuel) M.state.rentMois = M.moisKey();
-      const moisSel = M.state.rentMois;
-      const tab     = M.state.rentTab;
-      const inMois  = (date) => (date || '').startsWith(moisSel);
+      // Range periode via factory M.periodeRange (jour/sem/mois/an + nav)
+      const range = M.periodeRange('rentabilite', 'mois');
+      const tab   = M.state.rentTab;
 
-      const livMois     = livraisons.filter(l => inMois(l.date));
-      const carbMois    = carburant.filter(p => inMois(p.date));
-      const entrMois    = entretiens.filter(e => inMois(e.date));
-      const chargesMois = charges.filter(c => inMois(c.date) && c.categorie !== 'entretien');
+      // Sync legacy rentMois pour le simulateur (qui peut s'appuyer dessus)
+      if (range.mode === 'mois') M.state.rentMois = range.debut.slice(0, 7);
 
-      // KPI globaux du mois (utilises pour le coverage et le cout/km de reference)
-      const caTotal = livMois.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
-      const kmTotal = livMois.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
-      const carbTotal    = carbMois.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
-      const entrTotal    = entrMois.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
-      const autresTotal  = chargesMois.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+      const livFilt     = livraisons.filter(l => rentInRange(l.date, range));
+      const carbFilt    = carburant.filter(p => rentInRange(p.date, range));
+      const entrFilt    = entretiens.filter(e => rentInRange(e.date, range));
+      const chargesFilt = charges.filter(c => rentInRange(c.date, range) && c.categorie !== 'entretien' && c.categorie !== 'tva');
+
+      // KPI globaux periode (HT systematique, cf. PC)
+      const caTotal      = livFilt.reduce((s, l) => s + rentGetMontantHT(l), 0);
+      const kmTotal      = livFilt.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+      const carbTotal    = carbFilt.reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
+      const entrTotal    = entrFilt.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+      const autresTotal  = chargesFilt.reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
       const depTotal     = carbTotal + entrTotal + autresTotal;
       const profitTotal  = caTotal - depTotal;
       const margeTotal   = caTotal > 0 ? (profitTotal / caTotal * 100) : 0;
       const coutKmRef    = kmTotal > 0 ? depTotal / kmTotal : 0;
 
-      // Selecteur mois
-      const moisOptions = [];
-      const now = new Date();
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const cle = M.moisKey(d);
-        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
-        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
-      }
-
       let html = `
-        <div style="margin-bottom:14px">
-          <select id="m-rent-mois">${moisOptions.join('')}</select>
-        </div>
+        ${M.renderPeriodeBar('rentabilite', 'mois')}
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${tab==='global'?'active':''}" data-tab="global">📊 Global</button>
           <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">🚐 Véhicule</button>
           <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">🧑‍💼 Client</button>
           <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">👤 Chauffeur</button>
+          <button class="m-alertes-chip ${tab==='tournee'?'active':''}" data-tab="tournee">🛣️ Tournée</button>
           <button class="m-alertes-chip ${tab==='simulateur'?'active':''}" data-tab="simulateur">🧮 Simulateur</button>
         </div>
       `;
 
       const margeColor = (m) => m >= 20 ? 'var(--m-green)' : m >= 10 ? 'var(--m-accent)' : 'var(--m-red)';
 
-      // ---------- Tab GLOBAL ----------
+      // ---------- Tab GLOBAL : KPI + dépenses + Top 5 véhicules par marge ----------
       if (tab === 'global') {
-        const pct = (v) => depTotal > 0 ? Math.round(v / depTotal * 100) : 0;
-        const pctCarb = pct(carbTotal), pctEntr = pct(entrTotal), pctAutres = pct(autresTotal);
+        // Top 5 véhicules par marge (pour KPI dashboard global)
+        const topVeh = vehicules.map(v => {
+          const matchVeh = (x) => (x.vehiculeId === v.id) || (x.vehId === v.id);
+          const livV  = livFilt.filter(matchVeh);
+          const carbV = carbFilt.filter(matchVeh);
+          const entrV = entrFilt.filter(matchVeh);
+          const chrgV = chargesFilt.filter(matchVeh);
+          const ca   = livV.reduce((s, l) => s + rentGetMontantHT(l), 0);
+          const dep  = carbV.reduce((s, p) => s + rentGetMontantHTCharge(p), 0)
+                    + entrV.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0)
+                    + chrgV.reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
+          return { v, ca, dep, marge: ca - dep, nbLiv: livV.length };
+        }).filter(x => x.ca > 0 || x.dep > 0).sort((a, b) => b.marge - a.marge).slice(0, 5);
+
         html += `
           <div class="m-card-row">
             <div class="m-card m-card-green">
               <div class="m-card-title">Chiffre d'affaires</div>
               <div class="m-card-value">${M.format$(caTotal)}</div>
-              <div class="m-card-sub">${livMois.length} liv. · ${M.formatNum(kmTotal)} km</div>
+              <div class="m-card-sub">${livFilt.length} liv. · ${M.formatNum(kmTotal)} km</div>
             </div>
             <div class="m-card" style="border-left:4px solid ${margeColor(margeTotal)}">
-              <div class="m-card-title">Marge nette</div>
+              <div class="m-card-title">Marge brute</div>
               <div class="m-card-value" style="color:${margeColor(margeTotal)}">${margeTotal.toFixed(1)}%</div>
-              <div class="m-card-sub">Profit ${M.format$(profitTotal)}</div>
+              <div class="m-card-sub">${M.format$(profitTotal)}</div>
+            </div>
+          </div>
+          <div class="m-card-row">
+            <div class="m-card m-card-red">
+              <div class="m-card-title">Charges totales</div>
+              <div class="m-card-value">${M.format$(depTotal)}</div>
+              <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
+            </div>
+            <div class="m-card m-card-blue">
+              <div class="m-card-title">Profit net</div>
+              <div class="m-card-value" style="color:${profitTotal >= 0 ? 'var(--m-green)' : 'var(--m-red)'}">${M.format$(profitTotal)}</div>
+              <div class="m-card-sub">${kmTotal > 0 ? M.format$(profitTotal / kmTotal) + ' / km' : '—'}</div>
             </div>
           </div>
           <div class="m-card">
-            <div class="m-card-title">Dépenses du mois</div>
-            <div class="m-card-value" style="color:var(--m-red)">${M.format$(depTotal)}</div>
-            <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
+            <div class="m-card-title">Répartition dépenses</div>
             ${depTotal > 0 ? M.renderDoughnut([
               { label: 'Carburant', value: carbTotal, color: 'rgba(230,126,34,0.9)' },
               { label: 'Entretien', value: entrTotal, color: 'rgba(52,152,219,0.9)' },
               { label: 'Autres', value: autresTotal, color: 'rgba(155,89,182,0.9)' },
               { label: 'Profit', value: Math.max(profitTotal, 0), color: 'rgba(46,204,113,0.9)' }
-            ], { centerLabel: 'Total', centerValue: M.format$(caTotal) }) : ''}
+            ], { centerLabel: 'Total', centerValue: M.format$(caTotal) })
+            : '<div class="m-card-sub" style="margin-top:8px">Aucune dépense sur la période.</div>'}
           </div>
           <div class="m-card" style="padding:0">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>🔧</span><span>Entretien</span></span><span style="font-weight:600">${M.format$(entrTotal)}</span></div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="display:flex;align-items:center;gap:10px"><span>💸</span><span>Autres charges</span></span><span style="font-weight:600">${M.format$(autresTotal)}</span></div>
           </div>
+          ${topVeh.length ? `
+            <div style="font-weight:600;font-size:.92rem;margin:18px 4px 8px">🏆 Top ${topVeh.length} véhicules par marge</div>
+            ${topVeh.map((x, i) => {
+              const margePct = x.ca > 0 ? (x.marge / x.ca * 100) : 0;
+              const c = x.marge >= 0 ? margeColor(margePct) : 'var(--m-red)';
+              return `<button type="button" class="m-card m-card-pressable m-rent-row" data-action="veh:${x.v.id}" style="padding:12px 14px;border-left:4px solid ${c};margin-bottom:8px;display:flex;width:100%;align-items:center;gap:10px;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:14px;color:inherit;font-family:inherit;text-align:left">
+                <span style="font-weight:700;color:var(--m-text-muted);font-size:.85rem;flex:0 0 auto">${i + 1}.</span>
+                <span style="flex:1 1 auto;min-width:0">
+                  <span style="display:block;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(x.v.immat || x.v.id)}</span>
+                  <span style="color:var(--m-text-muted);font-size:.74rem">${M.escHtml(x.v.modele || '')} · ${x.nbLiv} liv.</span>
+                </span>
+                <span style="text-align:right;flex:0 0 auto">
+                  <span style="display:block;color:${c};font-weight:700">${M.format$(x.marge)}</span>
+                  <span style="display:block;font-size:.72rem;color:var(--m-text-muted)">${margePct.toFixed(0)}%</span>
+                </span>
+              </button>`;
+            }).join('')}
+          ` : ''}
         `;
         return html;
       }
 
       // ---------- Helper card ligne (pour les 3 sous-onglets analytiques) ----------
-      const renderLigne = (titre, sub, ca, dep, marge, km, onClick, icone) => {
+      // Tappable -> ouvre une sheet drill-down (livraisons rattachees) si onClick fourni.
+      const renderLigne = (titre, sub, ca, dep, _, km, onClick, icone) => {
         const profit = ca - dep;
         const margePct = ca > 0 ? (profit / ca * 100) : 0;
         const color = margeColor(margePct);
         const action = onClick ? `data-action="${onClick}"` : '';
         const tag = onClick ? 'button' : 'div';
-        return `<${tag} type="button" class="m-card m-card-pressable m-rent-row" ${action} style="padding:14px;border-left:4px solid ${color};margin-bottom:10px;display:block;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit">
+        return `<${tag} type="button" class="m-card m-card-pressable m-rent-row" ${action} style="padding:14px;border-left:4px solid ${color};margin-bottom:10px;display:block;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit;min-height:44px">
           <div style="display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px">${icone ? `<span>${icone}</span>` : ''}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre)}</span></div>
               ${sub ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(sub)}</div>` : ''}
             </div>
             <div style="text-align:right;flex-shrink:0">
-              <div style="font-weight:700;color:${color};font-size:1.1rem">${margePct.toFixed(0)}%</div>
-              <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.04em">marge</div>
+              <div style="font-weight:700;color:${color};font-size:1.05rem">${M.format$(profit)}</div>
+              <div style="font-size:.72rem;color:var(--m-text-muted)">${margePct.toFixed(0)}% marge</div>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:var(--m-text-muted);padding-top:8px;border-top:1px solid var(--m-border)">
@@ -7077,81 +7131,192 @@
         </${tag}>`;
       };
 
+      const renderTotaux = (label, ca, marge, nbLiv) => {
+        const c = marge >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+        return `<div class="m-card" style="padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--m-bg-elevated)">
+          <div style="font-size:.82rem;font-weight:600">${M.escHtml(label)}</div>
+          <div style="display:flex;gap:14px;font-size:.8rem;flex-wrap:wrap;justify-content:flex-end">
+            <div><span style="color:var(--m-text-muted)">${nbLiv} liv ·</span> <strong>${M.format$(ca)}</strong> CA</div>
+            <div><span style="color:${c};font-weight:700">${M.format$(marge)}</span> marge</div>
+          </div>
+        </div>`;
+      };
+
       // ---------- Tab PAR VEHICULE ----------
+      // Couts directs : carburant, charges, entretiens rattaches au vehicule (HT).
       if (tab === 'vehicule') {
         const stats = vehicules.map(v => {
-          // dual-read vehiculeId/vehId (livraisons PC peuvent n'avoir que vehId)
           const matchVeh = (x) => (x.vehiculeId === v.id) || (x.vehId === v.id);
-          const livV   = livMois.filter(matchVeh);
-          const carbV  = carbMois.filter(matchVeh);
-          const entrV  = entrMois.filter(matchVeh);
-          const chrgV  = chargesMois.filter(matchVeh);
-          const ca   = livV.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
-          const carb = carbV.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+          const livV   = livFilt.filter(matchVeh);
+          const carbV  = carbFilt.filter(matchVeh);
+          const entrV  = entrFilt.filter(matchVeh);
+          const chrgV  = chargesFilt.filter(matchVeh);
+          const ca   = livV.reduce((s, l) => s + rentGetMontantHT(l), 0);
+          const carb = carbV.reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
           const entr = entrV.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
-          const chrg = chrgV.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+          const chrg = chrgV.reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
           const km   = livV.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
           return { v, ca, dep: carb + entr + chrg, km, nbLiv: livV.length };
         }).filter(x => x.ca > 0 || x.dep > 0)
-          .sort((a, b) => b.ca - a.ca);
+          .sort((a, b) => (b.ca - b.dep) - (a.ca - a.dep));
 
         if (!stats.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas d'activité véhicule pour ce mois. Saisis des livraisons rattachées à un véhicule.</p></div>`;
+          html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas d'activité véhicule sur la période. Saisis des livraisons rattachées à un véhicule.</p></div>`;
           return html;
         }
+        const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`Total ${stats.length} véhicule${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
         stats.forEach(({ v, ca, dep, km, nbLiv }) => {
-          html += renderLigne(v.immat || v.id, `${v.modele || ''}${v.salNom ? ' · ' + v.salNom : ''} · ${nbLiv} liv.`, ca, dep, 0, km, `veh:${v.id}`, '🚐');
+          html += renderLigne(v.immat || v.id, `${v.modele || ''}${v.salNom ? ' · ' + v.salNom : ''} · ${nbLiv} liv.`, ca, dep, 0, km, `liv-veh:${v.id}`, '🚐');
         });
       }
 
       // ---------- Tab PAR CLIENT ----------
-      // Pas de coûts directs rattachés -> marge estimée = CA - (km × coût/km flotte)
+      // Pas de couts directs rattaches -> marge estimee = CA - (km × cout/km flotte).
       if (tab === 'client') {
         const byClient = {};
-        livMois.forEach(l => {
+        livFilt.forEach(l => {
           const key = (l.client || '—').trim();
           if (!byClient[key]) byClient[key] = { nom: key, ca: 0, km: 0, nbLiv: 0 };
-          byClient[key].ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+          byClient[key].ca += rentGetMontantHT(l);
           byClient[key].km += M.parseNum(l.distance) || 0;
           byClient[key].nbLiv++;
         });
-        const stats = Object.values(byClient).sort((a, b) => b.ca - a.ca);
+        const stats = Object.values(byClient).map(s => ({ ...s, dep: s.km * coutKmRef }))
+          .sort((a, b) => (b.ca - b.dep) - (a.ca - a.dep));
 
         if (!stats.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons ce mois.</p></div>`;
+          html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons sur la période.</p></div>`;
           return html;
         }
         html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée = CA - (km × coût/km flotte ${M.format$(coutKmRef)}/km)</p>`;
-        stats.forEach(({ nom, ca, km, nbLiv }) => {
-          const depEstim = km * coutKmRef;
-          const cli = M.findClientByName(nom);
-          html += renderLigne(nom, `${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, depEstim, 0, km, cli ? `cli:${cli.id}` : '', '🧑‍💼');
+        const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`Total ${stats.length} client${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
+        stats.forEach(({ nom, ca, dep, km, nbLiv }) => {
+          html += renderLigne(nom, `${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `liv-cli:${encodeURIComponent(nom)}`, '🧑‍💼');
         });
       }
 
       // ---------- Tab PAR CHAUFFEUR ----------
       if (tab === 'chauffeur') {
         const stats = salaries.map(s => {
-          const livS = livMois.filter(l => l.salarieId === s.id || l.chaufId === s.id);
-          const ca = livS.reduce((sum, l) => sum + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+          const livS = livFilt.filter(l => l.salarieId === s.id || l.chaufId === s.id);
+          const ca = livS.reduce((sum, l) => sum + rentGetMontantHT(l), 0);
           const km = livS.reduce((sum, l) => sum + (M.parseNum(l.distance) || 0), 0);
           // Carburant rattachable si le chauffeur a un vehicule attribue (via veh.salId)
           const vehAttribues = vehicules.filter(v => v.salId === s.id).map(v => v.id);
-          const carbS = carbMois.filter(p => vehAttribues.includes(p.vehiculeId)).reduce((sum, p) => sum + (M.parseNum(p.total) || 0), 0);
+          const carbS = carbFilt.filter(p => vehAttribues.includes(p.vehiculeId) || vehAttribues.includes(p.vehId))
+            .reduce((sum, p) => sum + rentGetMontantHTCharge(p), 0);
           // Estimation : marge = CA - carburant chauffeur - (km × cout autres flotte)
           const depEstim = carbS + (km * (coutKmRef - (kmTotal > 0 ? carbTotal / kmTotal : 0)));
           return { s, ca, dep: depEstim, km, nbLiv: livS.length };
         }).filter(x => x.ca > 0)
-          .sort((a, b) => b.ca - a.ca);
+          .sort((a, b) => (b.ca - b.dep) - (a.ca - a.dep));
 
         if (!stats.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">👤</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons rattachées à un chauffeur ce mois.</p></div>`;
+          html += `<div class="m-empty"><div class="m-empty-icon">👤</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons rattachées à un chauffeur sur la période.</p></div>`;
           return html;
         }
         html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée : CA - carburant chauffeur - autres charges (au prorata des km)</p>`;
+        const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`Total ${stats.length} chauffeur${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
         stats.forEach(({ s, ca, dep, km, nbLiv }) => {
           const fullName = `${s.prenom ? s.prenom + ' ' : ''}${s.nom || s.id}`;
-          html += renderLigne(fullName, `${s.poste || 'Chauffeur'} · ${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `sal:${s.id}`, '👤');
+          html += renderLigne(fullName, `${s.poste || 'Chauffeur'} · ${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `liv-sal:${s.id}`, '👤');
+        });
+      }
+
+      // ---------- Tab PAR TOURNEE (parite PC : groupage chauffeur+date) ----------
+      // Une "tournee" = livraisons d'un meme chauffeur sur une meme date.
+      // Couts directs : carburant du vehicule du jour + prorata salaire mensuel.
+      if (tab === 'tournee') {
+        // Index : carburant total HT par (vehicule, jour)
+        const carbParVehJour = {};
+        carbFilt.forEach(p => {
+          const veh = p.vehiculeId || p.vehId;
+          if (!veh) return;
+          const k = veh + '__' + (p.date || '').slice(0, 10);
+          carbParVehJour[k] = (carbParVehJour[k] || 0) + rentGetMontantHTCharge(p);
+        });
+        // Salaire mensuel par chauffeur (charges cat=salaires sur la periode)
+        const salaireParChauf = {};
+        charges.filter(c => rentInRange(c.date, range) && c.categorie === 'salaires' && c.salId)
+          .forEach(c => {
+            salaireParChauf[c.salId] = (salaireParChauf[c.salId] || 0) + rentGetMontantHTCharge(c);
+          });
+        // Total livraisons periode par chauffeur (pour repartition salaire)
+        const livsParChauf = {};
+        livFilt.forEach(l => {
+          const ch = l.chaufId || l.salarieId || 'sans-chauffeur';
+          livsParChauf[ch] = (livsParChauf[ch] || 0) + 1;
+        });
+
+        // Agregation par tournee
+        const tournees = {};
+        livFilt.forEach(l => {
+          const ch   = l.chaufId || l.salarieId || 'sans-chauffeur';
+          const date = (l.date || '').slice(0, 10);
+          if (!date) return;
+          const tId = ch + '__' + date;
+          if (!tournees[tId]) {
+            const sal = salaries.find(x => x.id === ch);
+            const veh = (l.vehiculeId || l.vehId) ? vehicules.find(x => x.id === (l.vehiculeId || l.vehId)) : null;
+            tournees[tId] = {
+              tourneeId: tId, date, chaufId: ch,
+              chaufNom: sal ? `${sal.prenom ? sal.prenom + ' ' : ''}${sal.nom || ''}`.trim() : (l.chaufNom || '— Sans chauffeur —'),
+              vehId: l.vehiculeId || l.vehId || null,
+              vehImmat: veh ? veh.immat : (l.vehNom || ''),
+              ca: 0, nbLiv: 0, km: 0,
+              coutCarburant: 0, coutSalaire: 0,
+              livraisons: []
+            };
+          }
+          const t = tournees[tId];
+          t.ca += rentGetMontantHT(l);
+          t.nbLiv++;
+          t.km += M.parseNum(l.distance) || 0;
+          t.livraisons.push({ id: l.id, client: l.client, prix: rentGetMontantHT(l), distance: l.distance, numLiv: l.numLiv });
+        });
+
+        Object.values(tournees).forEach(t => {
+          const keyCarb = (t.vehId || '') + '__' + t.date;
+          t.coutCarburant = carbParVehJour[keyCarb] || 0;
+          const totalLivsChauf = livsParChauf[t.chaufId] || 0;
+          if (totalLivsChauf > 0) {
+            t.coutSalaire = (salaireParChauf[t.chaufId] || 0) * (t.nbLiv / totalLivsChauf);
+          }
+          t.dep = t.coutCarburant + t.coutSalaire;
+          t.marge = t.ca - t.dep;
+          t.margePct = t.ca > 0 ? (t.marge / t.ca * 100) : 0;
+        });
+
+        const stats = Object.values(tournees).sort((a, b) => {
+          if (a.date !== b.date) return b.date.localeCompare(a.date);
+          return b.marge - a.marge;
+        });
+        // Cache pour le drill-down (sheet detail tournee)
+        M.state.rentTourneesCache = {};
+        stats.forEach(t => { M.state.rentTourneesCache[t.tourneeId] = t; });
+
+        if (!stats.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">🛣️</div><h3 class="m-empty-title">Aucune tournée</h3><p class="m-empty-text">Pas de livraisons sur la période.</p></div>`;
+          return html;
+        }
+        const tot = stats.reduce((a, t) => ({ ca: a.ca + t.ca, marge: a.marge + t.marge, nbLiv: a.nbLiv + t.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`${stats.length} tournée${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
+        stats.forEach(t => {
+          const dateLbl = (() => {
+            try {
+              const d = new Date(t.date);
+              return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\.$/, '');
+            } catch (e) { return t.date; }
+          })();
+          html += renderLigne(
+            `${dateLbl} · ${t.chaufNom}`,
+            `${t.vehImmat ? '🚐 ' + t.vehImmat + ' · ' : ''}${t.nbLiv} liv.`,
+            t.ca, t.dep, 0, t.km,
+            `tournee:${t.tourneeId}`, '🛣️'
+          );
         });
       }
 
@@ -7393,12 +7558,9 @@
       return html;
     },
     afterRender(container) {
-      const sel = container.querySelector('#m-rent-mois');
-      if (sel) sel.addEventListener('change', e => {
-        M.state.rentMois = e.target.value;
-        M.state.rentMoisManuel = true;
-        M.go('rentabilite');
-      });
+      // Barre periode (jour/sem/mois/an + nav prev/today/next)
+      M.wirePeriodeBar(container, 'rentabilite', () => M.go('rentabilite'));
+
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
       });
@@ -7540,19 +7702,187 @@
         M.toast('Coûts du véhicule chargés');
         simReload();
       });
-      // Tap sur une ligne -> navigue vers la fiche detail correspondante
+      // Tap sur une ligne -> navigue vers la fiche detail (veh/cli/sal du Top 5 global)
+      // ou ouvre une sheet drill-down (liv-veh/liv-cli/liv-sal/tournee).
       container.querySelectorAll('.m-rent-row[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
           const action = btn.dataset.action;
           if (!action) return;
-          const [type, id] = action.split(':');
+          const idx = action.indexOf(':');
+          const type = idx >= 0 ? action.slice(0, idx) : action;
+          const id = idx >= 0 ? action.slice(idx + 1) : '';
           if (type === 'veh') M.openDetail('vehicules', id);
           else if (type === 'cli') M.openDetail('clients', id);
           else if (type === 'sal') M.openDetail('salaries', id);
+          else if (type === 'liv-veh') M.openRentSheetVehicule(id);
+          else if (type === 'liv-cli') M.openRentSheetClient(decodeURIComponent(id));
+          else if (type === 'liv-sal') M.openRentSheetChauffeur(id);
+          else if (type === 'tournee') M.openRentSheetTournee(id);
         });
       });
     }
   });
+
+  // ---------- Drill-down sheets : detail livraisons par axe ----------
+  // Reutilise M.periodeRange('rentabilite') pour scoper sur la meme periode.
+  M.openRentSheetVehicule = function(vehId) {
+    const range = M.periodeRange('rentabilite', 'mois');
+    const v = M.charger('vehicules').find(x => x.id === vehId);
+    const livs = M.charger('livraisons')
+      .filter(l => rentInRange(l.date, range) && (l.vehiculeId === vehId || l.vehId === vehId))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const carb = M.charger('carburant')
+      .filter(p => rentInRange(p.date, range) && (p.vehiculeId === vehId || p.vehId === vehId))
+      .reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
+    const ca = livs.reduce((s, l) => s + rentGetMontantHT(l), 0);
+    const km = livs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    const dep = carb;
+    const marge = ca - dep;
+    const margePct = ca > 0 ? (marge / ca * 100) : 0;
+    M.openSheet({
+      title: '🚐 ' + (v?.immat || vehId),
+      body: M.renderRentSheetBody({
+        sub: v?.modele || '',
+        ca, dep, marge, margePct, km, nbLiv: livs.length,
+        livraisons: livs.map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: l.date, prix: rentGetMontantHT(l), distance: l.distance })),
+        depLabel: 'Carburant'
+      }),
+      submitLabel: 'Voir fiche véhicule',
+      onSubmit: () => { M.openDetail('vehicules', vehId); return true; }
+    });
+  };
+
+  M.openRentSheetClient = function(clientNom) {
+    const range = M.periodeRange('rentabilite', 'mois');
+    const livs = M.charger('livraisons')
+      .filter(l => rentInRange(l.date, range) && (l.client || '').trim() === clientNom)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const ca = livs.reduce((s, l) => s + rentGetMontantHT(l), 0);
+    const km = livs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    // Estimation : meme formule que l'onglet Client (km × cout/km flotte)
+    const allLivs = M.charger('livraisons').filter(l => rentInRange(l.date, range));
+    const allKm = allLivs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    const allDep = M.charger('carburant').filter(p => rentInRange(p.date, range)).reduce((s, p) => s + rentGetMontantHTCharge(p), 0)
+      + M.charger('entretiens').filter(e => rentInRange(e.date, range)).reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0)
+      + M.charger('charges').filter(c => rentInRange(c.date, range) && c.categorie !== 'entretien' && c.categorie !== 'tva').reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
+    const coutKmRef = allKm > 0 ? allDep / allKm : 0;
+    const dep = km * coutKmRef;
+    const marge = ca - dep;
+    const margePct = ca > 0 ? (marge / ca * 100) : 0;
+    const cli = M.findClientByName ? M.findClientByName(clientNom) : null;
+    M.openSheet({
+      title: '🧑‍💼 ' + (clientNom || '—'),
+      body: M.renderRentSheetBody({
+        sub: 'Marge estimée (km × ' + M.format$(coutKmRef) + '/km)',
+        ca, dep, marge, margePct, km, nbLiv: livs.length,
+        livraisons: livs.map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: l.date, prix: rentGetMontantHT(l), distance: l.distance })),
+        depLabel: 'Coûts estimés'
+      }),
+      submitLabel: cli ? 'Voir fiche client' : 'Fermer',
+      onSubmit: () => { if (cli) M.openDetail('clients', cli.id); return true; }
+    });
+  };
+
+  M.openRentSheetChauffeur = function(salId) {
+    const range = M.periodeRange('rentabilite', 'mois');
+    const sal = M.charger('salaries').find(x => x.id === salId);
+    const livs = M.charger('livraisons')
+      .filter(l => rentInRange(l.date, range) && (l.salarieId === salId || l.chaufId === salId))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const vehs = M.charger('vehicules');
+    const vehAttribues = vehs.filter(v => v.salId === salId).map(v => v.id);
+    const carb = M.charger('carburant')
+      .filter(p => rentInRange(p.date, range) && (vehAttribues.includes(p.vehiculeId) || vehAttribues.includes(p.vehId)))
+      .reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
+    const ca = livs.reduce((s, l) => s + rentGetMontantHT(l), 0);
+    const km = livs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    const dep = carb;
+    const marge = ca - dep;
+    const margePct = ca > 0 ? (marge / ca * 100) : 0;
+    const fullName = sal ? `${sal.prenom ? sal.prenom + ' ' : ''}${sal.nom || sal.id}` : salId;
+    M.openSheet({
+      title: '👤 ' + fullName,
+      body: M.renderRentSheetBody({
+        sub: sal?.poste || 'Chauffeur',
+        ca, dep, marge, margePct, km, nbLiv: livs.length,
+        livraisons: livs.map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: l.date, prix: rentGetMontantHT(l), distance: l.distance })),
+        depLabel: 'Carburant attribué'
+      }),
+      submitLabel: 'Voir fiche salarié',
+      onSubmit: () => { M.openDetail('salaries', salId); return true; }
+    });
+  };
+
+  M.openRentSheetTournee = function(tourneeId) {
+    const t = (M.state.rentTourneesCache || {})[tourneeId];
+    if (!t) { M.toast('Tournée introuvable'); return; }
+    const dateLbl = (() => {
+      try { return new Date(t.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+      catch (e) { return t.date; }
+    })();
+    M.openSheet({
+      title: '🛣️ ' + t.chaufNom,
+      body: M.renderRentSheetBody({
+        sub: dateLbl + (t.vehImmat ? ' · 🚐 ' + t.vehImmat : ''),
+        ca: t.ca, dep: t.dep, marge: t.marge, margePct: t.margePct, km: t.km, nbLiv: t.nbLiv,
+        livraisons: (t.livraisons || []).map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: t.date, prix: l.prix, distance: l.distance })),
+        depLabel: 'Carburant + salaire imputé',
+        depBreakdown: [
+          { label: 'Carburant', value: t.coutCarburant },
+          { label: 'Salaire imputé', value: t.coutSalaire }
+        ]
+      }),
+      submitLabel: 'Fermer',
+      onSubmit: () => true
+    });
+  };
+
+  // Body partage : KPIs synthese + liste livraisons avec marge par ligne (vs cout/km moyen)
+  M.renderRentSheetBody = function(opts) {
+    const margeC = opts.marge >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+    const livItems = (opts.livraisons || []).map(l => {
+      const dist = M.parseNum(l.distance) || 0;
+      const prix = M.parseNum(l.prix) || 0;
+      // Cout estime ligne = distance × cout/km projet (tournee) ou flotte
+      const coutLigne = opts.km > 0 ? (opts.dep * (dist / opts.km)) : 0;
+      const margeLigne = prix - coutLigne;
+      const cL = margeLigne >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+      const dateStr = l.date ? new Date(l.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
+      return `<div class="m-card" style="padding:10px 12px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+        <div style="flex:1 1 auto;min-width:0">
+          <div style="font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.numLiv || 'Liv')} · ${M.escHtml(l.client || '—')}</div>
+          <div style="color:var(--m-text-muted);font-size:.74rem">${dateStr}${dist > 0 ? ' · ' + M.formatNum(dist) + ' km' : ''}</div>
+        </div>
+        <div style="text-align:right;flex:0 0 auto">
+          <div style="font-weight:600;color:var(--m-green);font-size:.84rem">${M.format$(prix)}</div>
+          <div style="font-size:.7rem;color:${cL}">${M.format$(margeLigne)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `
+      ${opts.sub ? `<div style="font-size:.82rem;color:var(--m-text-muted);margin-bottom:14px">${M.escHtml(opts.sub)}</div>` : ''}
+      <div class="m-card" style="border-left:4px solid ${margeC};padding:14px;margin-bottom:12px">
+        <div class="m-card-title">Marge brute</div>
+        <div class="m-card-value" style="color:${margeC};font-size:1.4rem">${M.format$(opts.marge)}</div>
+        <div class="m-card-sub">${(opts.margePct || 0).toFixed(1)}% · ${opts.nbLiv} livraison${opts.nbLiv > 1 ? 's' : ''}${opts.km > 0 ? ' · ' + M.formatNum(opts.km) + ' km' : ''}</div>
+      </div>
+      <div class="m-card-row">
+        <div class="m-card m-card-green"><div class="m-card-title">CA HT</div><div class="m-card-value">${M.format$(opts.ca)}</div></div>
+        <div class="m-card m-card-red"><div class="m-card-title">${M.escHtml(opts.depLabel || 'Coûts')}</div><div class="m-card-value">${M.format$(opts.dep)}</div></div>
+      </div>
+      ${opts.depBreakdown && opts.depBreakdown.length ? `
+        <div class="m-card" style="padding:0;margin-bottom:12px">
+          ${opts.depBreakdown.map((b, i) => `<div style="display:flex;justify-content:space-between;padding:12px 14px;${i < opts.depBreakdown.length - 1 ? 'border-bottom:1px solid var(--m-border)' : ''};font-size:.86rem">
+            <span style="color:var(--m-text-muted)">${M.escHtml(b.label)}</span>
+            <span style="font-weight:600">${M.format$(b.value)}</span>
+          </div>`).join('')}
+        </div>` : ''}
+      ${(opts.livraisons || []).length ? `
+        <div style="font-weight:600;font-size:.88rem;margin:14px 0 8px">📋 Livraisons (${opts.livraisons.length})</div>
+        ${livItems}
+      ` : '<div class="m-empty" style="padding:20px"><p class="m-empty-text">Aucune livraison sur la période.</p></div>'}
+    `;
+  };
   // ---------- Clients (v2.7 : list + recherche + detail tap-to-call) ----------
   // parity-mobile-alertes-clients : ajout filtre type pro/particulier, tri (nom/CA/derniere),
   // badge type, CA mensuel moyen 6 derniers mois, drawer 360 enrichi.
