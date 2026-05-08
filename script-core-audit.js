@@ -193,26 +193,72 @@ function ajouterDecisionAgent(decision) {
   afficherDecisionsAgent();
 }
 
-// L2007 (script.js d'origine)
+// Badge prioritaire (parite mobile M.priorityBadge)
+function priorityBadgeAgent(p) {
+  if (p === 'haute') return '<span style="background:rgba(231,76,60,0.18);color:#ff8b80;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:700">HAUTE</span>';
+  if (p === 'opportunite') return '<span style="background:rgba(46,204,113,0.18);color:#7ed8a3;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:700">OPPORTUNITÉ</span>';
+  return '<span style="background:rgba(52,152,219,0.18);color:#7ec0ff;padding:2px 8px;border-radius:6px;font-size:.7rem;font-weight:700">INFO</span>';
+}
+
+// L2007 — design aligne avec la sheet mobile (M.openBriefSheet)
 function afficherDecisionsAgent() {
   const decisions = loadSafe('agent_decisions', []);
   const container = document.getElementById('agent-decisions-list');
   if (!container) return;
   if (!decisions.length) {
-    container.innerHTML = '<div style="text-align:center;padding:40px 20px;color:#7c8299"><div style="font-size:2rem;margin-bottom:12px">✅</div><div style="font-size:.88rem">Aucune décision en attente</div></div>';
+    container.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:#7c8299">
+        <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+        <div style="font-size:.95rem;margin-bottom:6px;font-weight:600;color:#e8eaf0">Aucune décision en attente</div>
+        <div style="font-size:.8rem">Le brief Gemini scanne tes données automatiquement à chaque session.</div>
+      </div>`;
     return;
   }
-  const couleurs = { haute: 'rgba(231,76,60,0.4)', opportunite: 'rgba(46,204,113,0.4)', info: 'rgba(52,152,219,0.3)' };
-  container.innerHTML = decisions.map(d => `
-    <div style="background:rgba(255,255,255,0.04);border:1px solid ${couleurs[d.priorite] || '#2a2d3d'};border-radius:12px;padding:16px;margin-bottom:12px;${!d.lu ? 'border-left:3px solid #f5a623' : ''}">
-      <div style="font-size:.82rem;font-weight:700;margin-bottom:6px;color:#e8eaf0">${d.titre}</div>
-      <div style="font-size:.78rem;color:#7c8299;margin-bottom:12px;line-height:1.5">${d.description}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${(d.actions || []).map(a => `<button onclick="executerActionAgent('${d.id}','${a.id}')" style="background:${a.style === 'primary' ? '#f5a623' : 'rgba(255,255,255,0.08)'};color:${a.style === 'primary' ? '#000' : '#e8eaf0'};border:1px solid ${a.style === 'primary' ? '#f5a623' : '#2a2d3d'};border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">${a.label}</button>`).join('')}
-      </div>
-      <div style="font-size:.7rem;color:#7c8299;margin-top:10px">${new Date(d.creeLe).toLocaleString('fr-FR')}</div>
-    </div>
-  `).join('');
+  const couleurs = { haute: 'rgba(231,76,60,0.45)', opportunite: 'rgba(46,204,113,0.4)', info: 'rgba(52,152,219,0.35)' };
+  container.innerHTML = decisions.map(d => {
+    const couleurBord = couleurs[d.priorite] || '#2a2d3d';
+    const lu = d.lu ? '' : 'border-left:3px solid #e63946;';
+    const sourceTag = d.source === 'ai-brief' ? ' · IA' : '';
+    const actions = (d.actions || []).map(a => `<button onclick="executerActionAgent('${d.id}','${a.id}')" style="background:${a.style === 'primary' ? '#f5a623' : 'rgba(255,255,255,0.08)'};color:${a.style === 'primary' ? '#000' : '#e8eaf0'};border:1px solid ${a.style === 'primary' ? '#f5a623' : '#2a2d3d'};border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">${a.label}</button>`).join('');
+    return `
+      <div style="background:#2a2f37;border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="font-size:.88rem;font-weight:700;color:#f1f3f5;flex:1">${d.titre}</div>
+          ${priorityBadgeAgent(d.priorite)}
+        </div>
+        <div style="font-size:.82rem;color:#adb5bd;line-height:1.5;margin-bottom:${actions ? '10px' : '8px'}">${d.description}</div>
+        ${actions ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${actions}</div>` : ''}
+        <div style="font-size:.7rem;color:#7c8299;opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${sourceTag}</div>
+      </div>`;
+  }).join('');
+}
+
+// Marque toutes les decisions comme lues (parite mobile sheet "Tout marquer lu")
+function marquerToutesDecisionsLues() {
+  const decisions = loadSafe('agent_decisions', []);
+  let modif = false;
+  decisions.forEach(d => { if (!d.lu) { d.lu = true; modif = true; } });
+  if (!modif) { afficherToast('Aucune nouvelle decision a marquer lue'); return; }
+  localStorage.setItem('agent_decisions', JSON.stringify(decisions));
+  afficherDecisionsAgent();
+  majBadgeAgent();
+  afficherToast('✓ Toutes les decisions marquees lues');
+}
+
+// Efface toutes les decisions (parite mobile sheet "Tout effacer")
+function effacerToutesDecisions() {
+  const decisions = loadSafe('agent_decisions', []);
+  if (!decisions.length) return;
+  if (!confirm('Effacer toutes les decisions ?')) return;
+  localStorage.setItem('agent_decisions', JSON.stringify([]));
+  afficherDecisionsAgent();
+  majBadgeAgent();
+  afficherToast('🗑 Decisions effacees');
+}
+
+if (typeof window !== 'undefined') {
+  window.marquerToutesDecisionsLues = marquerToutesDecisionsLues;
+  window.effacerToutesDecisions = effacerToutesDecisions;
 }
 
 // L2028 (script.js d'origine)
