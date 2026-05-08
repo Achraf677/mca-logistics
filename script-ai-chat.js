@@ -103,6 +103,13 @@
       --aic-accent-text: #1a1d22;
       --aic-accent-soft: rgba(245,166,35,0.16);
       --aic-blue: #4cc9f0;
+      --aic-blue-soft: rgba(76,201,240,0.08);
+      --aic-blue-border: rgba(76,201,240,0.35);
+      --aic-blue-tint: rgba(76,201,240,0.12);
+      --aic-danger: #ff8b80;
+      --aic-danger-soft: rgba(231,76,60,0.18);
+      --aic-danger-border: rgba(231,76,60,0.35);
+      --aic-danger-tint: rgba(231,76,60,0.10);
       --aic-radius: 12px;
       --aic-radius-lg: 18px;
       --aic-shadow: 0 8px 28px rgba(0,0,0,0.45);
@@ -225,8 +232,8 @@
       text-align: center;
       border-bottom: 1px solid var(--aic-border);
     }
-    .ai-chat-quota.warn { background: rgba(245,166,35,0.12); color: var(--aic-accent); }
-    .ai-chat-quota.flash { background: rgba(76,201,240,0.12); color: var(--aic-blue); }
+    .ai-chat-quota.warn { background: var(--aic-accent-soft); color: var(--aic-accent); }
+    .ai-chat-quota.flash { background: var(--aic-blue-tint); color: var(--aic-blue); }
 
     /* ========== Messages ========== */
     .ai-chat-messages {
@@ -355,13 +362,53 @@
     }
     .ai-chat-msg-error {
       align-self: stretch;
-      background: rgba(231,76,60,0.18);
-      color: #ff8b80;
+      background: var(--aic-danger-soft);
+      color: var(--aic-danger);
       padding: 10px 14px;
       border-radius: var(--aic-radius);
       font-size: .82rem;
-      border: 1px solid rgba(231,76,60,0.35);
+      border: 1px solid var(--aic-danger-border);
       white-space: pre-wrap;
+    }
+
+    /* ========== Actions sur message bot (copy + regenerate) ========== */
+    .ai-chat-msg-bot { position: relative; }
+    .ai-chat-msg-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+      justify-content: flex-end;
+      opacity: .55;
+      transition: opacity .15s ease;
+    }
+    .ai-chat-msg-bot:hover .ai-chat-msg-actions { opacity: 1; }
+    .ai-chat-msg-actionbtn {
+      background: transparent;
+      border: 1px solid var(--aic-border);
+      color: var(--aic-text-muted);
+      cursor: pointer;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      font-size: .9rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: border-color .15s ease, color .15s ease, background .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ai-chat-msg-actionbtn:hover:not(:disabled) {
+      border-color: var(--aic-accent);
+      color: var(--aic-text);
+      background: var(--aic-accent-soft);
+    }
+    .ai-chat-msg-actionbtn:active:not(:disabled) { transform: scale(0.94); }
+    .ai-chat-msg-actionbtn:disabled { opacity: .35; cursor: not-allowed; }
+    .ai-chat-msg-actionbtn.copied {
+      border-color: var(--aic-blue);
+      color: var(--aic-blue);
+      background: var(--aic-blue-tint);
     }
 
     /* ========== Form ========== */
@@ -422,8 +469,21 @@
         --aic-accent-text: #fff;
         --aic-accent-soft: var(--m-accent-soft, rgba(230,57,70,0.16));
         --aic-blue: var(--m-blue, #4cc9f0);
+        --aic-blue-soft: rgba(76,201,240,0.08);
+        --aic-blue-border: rgba(76,201,240,0.35);
+        --aic-blue-tint: rgba(76,201,240,0.12);
+        --aic-danger: var(--m-red, #ff8b80);
+        --aic-danger-soft: var(--m-red-soft, rgba(231,76,60,0.18));
+        --aic-danger-border: var(--m-red-border, rgba(231,76,60,0.35));
+        --aic-danger-tint: rgba(231,76,60,0.10);
         --aic-radius: var(--m-radius, 12px);
         --aic-radius-lg: var(--m-radius-large, 18px);
+      }
+      /* Tap-target 44px sur mobile pour boutons d'action message */
+      .ai-chat-msg-actionbtn {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
       }
       /* FAB : au-dessus de la bottom-nav, respect safe-area iPhone */
       #ai-chat-fab {
@@ -459,8 +519,8 @@
     /* ========== Cards memoire ========== */
     .ai-chat-mem-card {
       align-self: stretch;
-      background: rgba(76,201,240,0.08);
-      border: 1px solid rgba(76,201,240,0.35);
+      background: var(--aic-blue-soft);
+      border: 1px solid var(--aic-blue-border);
       color: var(--aic-text);
       border-radius: var(--aic-radius);
       padding: 10px 12px;
@@ -470,8 +530,8 @@
       gap: 10px;
     }
     .ai-chat-mem-card.deleted {
-      background: rgba(231,76,60,0.10);
-      border-color: rgba(231,76,60,0.35);
+      background: var(--aic-danger-tint);
+      border-color: var(--aic-danger-border);
     }
     .ai-chat-mem-card .ai-chat-mem-icon { font-size: 1.05rem; flex-shrink: 0; }
     .ai-chat-mem-card .ai-chat-mem-body { flex: 1; min-width: 0; }
@@ -490,7 +550,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     .ai-chat-mem-card button.ai-chat-mem-del:hover {
-      border-color: #ff8b80; color: #ff8b80;
+      border-color: var(--aic-danger); color: var(--aic-danger);
     }
 
     body.ai-chat-open { overflow: hidden; }
@@ -581,7 +641,13 @@
     }
 
     container.innerHTML = '';
-    state.history.forEach((m) => {
+    // Repere le dernier index role===model pour n'afficher le bouton regenerate
+    // que sur ce message (cf. UX : on ne veut regenerer que la derniere reponse).
+    let lastBotIdx = -1;
+    for (let i = state.history.length - 1; i >= 0; i--) {
+      if (state.history[i].role === 'model') { lastBotIdx = i; break; }
+    }
+    state.history.forEach((m, idx) => {
       const div = document.createElement('div');
       if (m.role === 'user') {
         div.className = 'ai-chat-msg ai-chat-msg-user';
@@ -595,6 +661,10 @@
           tools.textContent = '🔧 ' + m._tools.join(', ');
           div.appendChild(tools);
         }
+        // Actions : copy (toujours) + regenerate (dernier message bot uniquement,
+        // et seulement si pas en cours d'envoi).
+        const actions = buildBotMsgActions(m, idx === lastBotIdx);
+        div.appendChild(actions);
       } else {
         return;
       }
@@ -678,6 +748,132 @@
     return String(s).replace(/[&<>"']/g, (c) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
     );
+  }
+
+  // ----- Actions sur message bot : copy + regenerate -----
+
+  // Construit la barre d'actions affichee en bas du message bot.
+  // Copy : toujours present. Regenerate : uniquement sur le dernier message bot.
+  function buildBotMsgActions(msg, isLastBot) {
+    const wrap = document.createElement('div');
+    wrap.className = 'ai-chat-msg-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'ai-chat-msg-actionbtn';
+    copyBtn.title = 'Copier le message';
+    copyBtn.setAttribute('aria-label', 'Copier le message');
+    copyBtn.textContent = '📋';
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      copyMessageText(textOf(msg), copyBtn);
+    });
+    wrap.appendChild(copyBtn);
+
+    if (isLastBot) {
+      const regenBtn = document.createElement('button');
+      regenBtn.type = 'button';
+      regenBtn.className = 'ai-chat-msg-actionbtn';
+      regenBtn.title = 'Regenerer la reponse';
+      regenBtn.setAttribute('aria-label', 'Regenerer la reponse');
+      regenBtn.textContent = '🔄';
+      // Disable pendant un envoi en cours pour eviter doubles requetes.
+      if (state.sending) regenBtn.disabled = true;
+      regenBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        regenerateLastBot();
+      });
+      wrap.appendChild(regenBtn);
+    }
+    return wrap;
+  }
+
+  // Copie le texte brut markdown (pas le HTML rendu) dans le presse-papier.
+  // Feedback : le bouton passe a ✓ pendant 1.5s puis revient a 📋.
+  function copyMessageText(text, btn) {
+    const restore = () => {
+      btn.textContent = '📋';
+      btn.classList.remove('copied');
+      btn.title = 'Copier le message';
+    };
+    const success = () => {
+      btn.textContent = '✓';
+      btn.classList.add('copied');
+      btn.title = 'Copie !';
+      setTimeout(restore, 1500);
+    };
+    const fail = () => {
+      btn.textContent = '✗';
+      btn.title = 'Echec copie';
+      setTimeout(restore, 1500);
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(success, () => fallbackCopy(text, success, fail));
+      } else {
+        fallbackCopy(text, success, fail);
+      }
+    } catch (_) {
+      fallbackCopy(text, success, fail);
+    }
+  }
+
+  // Fallback pour navigateurs sans Clipboard API (ou contexte non sécurisé).
+  function fallbackCopy(text, onOk, onErr) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      ok ? onOk() : onErr();
+    } catch (_) { onErr(); }
+  }
+
+  // Regenere la derniere reponse bot : retire le dernier model de l'history,
+  // retrouve le dernier user qui le precedait et re-declenche onSubmit() avec
+  // ce texte. Si aucun message bot a regenerer (ou en cours d'envoi), no-op.
+  async function regenerateLastBot() {
+    if (state.sending) return;
+    if (!state.history.length) return;
+    // Verifie que le dernier message est bien un model (sinon rien a regenerer).
+    const last = state.history[state.history.length - 1];
+    if (!last || last.role !== 'model') return;
+    // Pop le dernier model.
+    state.history.pop();
+    // Trouve le dernier user qui le precede (devrait etre tout en bout maintenant).
+    let lastUserText = '';
+    for (let i = state.history.length - 1; i >= 0; i--) {
+      if (state.history[i].role === 'user') {
+        lastUserText = textOf(state.history[i]);
+        // On retire aussi ce message user, onSubmit() va le re-pusher.
+        state.history.splice(i, 1);
+        break;
+      }
+    }
+    if (!lastUserText) {
+      // Pas de user a re-utiliser : on remet le model qu'on avait pop pour
+      // ne pas perdre l'affichage et on stoppe.
+      state.history.push(last);
+      saveHistory();
+      renderMessages();
+      return;
+    }
+    saveHistory();
+    renderMessages();
+    // Reinjecte le texte dans l'input puis declenche le submit (passe par toute
+    // la logique : sanitize, retry, errors, etc.).
+    const input = document.getElementById('ai-chat-input');
+    if (input) {
+      input.value = lastUserText;
+      const form = document.getElementById('ai-chat-form');
+      if (form) form.requestSubmit();
+    }
   }
 
   // ----- Typing indicator (feedback temps reel pendant l'envoi) -----
