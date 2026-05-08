@@ -138,11 +138,8 @@ réglementaire (ADR / CE 561), rentabilité fine par mission/véhicule.
 ### Automatisations comptables (maintenant débloquées)
 - **Workflow GitHub Actions import FEC mensuel Pennylane** → `PENNYLANE_TOKEN`
   pour importer FEC → MCA charges/paiements automatique.
-- ✅ **PR Qonto sync livré** : edge fn `qonto-sync-daily` + workflow GHA cron
-  quotidien 6 h UTC. Auto-coche `statut_paiement='paye'` sur livraisons (credit)
-  / charges (debit) avec scoring montant±0.50 € + date±15 j + nom similar
-  (seuil ≥ 0.7). Idempotent via `extra->>'qonto_transaction_id'` (migration 037).
-  Mode `dry_run` dispo via `workflow_dispatch`. Voir `docs/access-tokens.md`.
+- **Synchro Qonto** → auto-cocher "payé" sur charges/livraisons quand le
+  virement arrive sur Qonto (`QONTO_*`).
 - **Rapprochement bancaire mensuel** combinant FEC Pennylane + transactions Qonto.
 
 ---

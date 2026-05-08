@@ -11499,66 +11499,6 @@
   });
 
   // ============================================================
-  // Brouillons IA — actions ai_pending_actions en attente de validation.
-  // Parite PC : delegue le rendu a window.AIBrouillons (script-ai-brouillons.js).
-  // ============================================================
-  M.register('brouillons-ia', {
-    title: '📋 Brouillons IA',
-    render() {
-      return `<div id="m-brouillons-ia-list">Chargement…</div>`;
-    },
-    afterRender(container) {
-      const list = container.querySelector('#m-brouillons-ia-list');
-      if (list && window.AIBrouillons && typeof window.AIBrouillons.renderDraftsPage === 'function') {
-        window.AIBrouillons.renderDraftsPage(list);
-      } else if (list) {
-        list.innerHTML = '<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Module non chargé</h3><p class="m-empty-text">script-ai-brouillons.js indisponible.</p></div>';
-      }
-    }
-  });
-
-  M.compterBrouillonsPending = async function () {
-    if (!window.AIBrouillons || typeof window.AIBrouillons.getPendingCount !== 'function') return 0;
-    try { return await window.AIBrouillons.getPendingCount(); } catch (_) { return 0; }
-  };
-
-  M.updateBrouillonsBadge = async function () {
-    const n = await M.compterBrouillonsPending();
-    const badge = document.getElementById('m-drawer-badge-brouillons');
-    if (!badge) return;
-    if (n > 0) {
-      badge.textContent = n > 99 ? '99+' : String(n);
-      badge.hidden = false;
-    } else {
-      badge.hidden = true;
-    }
-  };
-
-  // Auto-refresh badge brouillons toutes les 30s (parite avec updateAlertesBadge)
-  (function startBrouillonsBadgePollMobile() {
-    const tick = () => {
-      try { M.updateBrouillonsBadge(); } catch (_) {}
-    };
-    // Premier check apres que Supabase soit pret
-    const start = Date.now();
-    const wait = () => {
-      const ready = window.DelivProSupabase && window.DelivProSupabase.getClient && window.DelivProSupabase.getClient();
-      if (ready) {
-        tick();
-        setInterval(tick, 30000);
-        return;
-      }
-      if (Date.now() - start > 15000) return;
-      setTimeout(wait, 500);
-    };
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', wait);
-    } else {
-      wait();
-    }
-  })();
-
-  // ============================================================
   // Coût IA — mobile (parité PC, cf. script-cout-ia.js).
   // Source : table Supabase public.ai_quota_daily (RLS admin only).
   // Calcul : (pro * 0.0125 + flash * 0.0008) * 0.92 USD→EUR.

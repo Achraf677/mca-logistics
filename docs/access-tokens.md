@@ -78,15 +78,6 @@ Dernière mise à jour : 2026-05-06
   - Synchro transactions → auto-cocher "payé" sur charges/livraisons
   - Détection auto fournisseurs/clients via libellé virement
   - Rapprochement bancaire mensuel (combiné avec FEC Pennylane)
-- **Synchro auto quotidienne** (✅ livré) :
-  - Edge function `qonto-sync-daily` (verify_jwt: false, header `x-cron-secret`)
-  - Workflow GitHub Actions `.github/workflows/qonto-sync-daily.yml` cron `0 6 * * *` (6 h UTC)
-  - Logique : fetch transactions Qonto J-1 → match livraisons (credit) / charges (debit) sur montant ±0.50 €, date ±15 j, nom similar, score ≥ 0.7 → auto-coche `statut_paiement='paye'` + insert `paiements` (credit) ou `mode_paiement='virement'` (debit)
-  - Idempotent : `paiements.extra->>'qonto_transaction_id'` + `charges.extra->>'qonto_transaction_id'` (index unique partiel migration 037)
-  - Mode `dry_run: true` dispo via `workflow_dispatch` pour tests sans écriture
-  - Secrets GitHub requis : `SUPABASE_PROJECT_REF`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`
-  - Secret Supabase Edge Function requis : `CRON_SECRET` (même valeur que côté GHA)
-  - Stats run uploadées en artifact 30 jours
 
 ### Google AI Studio — Gemini API (Tier 1 payant depuis 2026-05-08)
 - **Origine** : créée via https://aistudio.google.com
