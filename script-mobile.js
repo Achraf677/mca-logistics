@@ -718,7 +718,7 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=prixHT]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
         // Init : si TTC déjà saisi (mode édition), partir de TTC pour ne pas l'écraser
@@ -1357,7 +1357,7 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=montantHt]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
         let dernierEdit = 'ttc';
@@ -9839,6 +9839,26 @@
     M.updateBriefBadge();
     setInterval(M.updateBriefBadge, 30000);
     M.declencherBriefAutoLoginSiNecessaire();
+
+    // Scroll-fade des FAB secondaires (selection multiple) : ils sont
+    // repositionnes en haut a droite pour ne plus chevaucher les FAB metier.
+    // Au scroll vers le bas, on attenue l'opacite pour ne pas masquer le contenu.
+    // Cliquables meme attenues (pointer-events: auto cf. style-mobile.css).
+    let lastScrollY = 0;
+    let scrollFadeTimer = null;
+    const updateFabFade = () => {
+      const scrolled = (M.state?.currentPage && (window.scrollY || document.documentElement.scrollTop) > 80);
+      document.querySelectorAll('.m-fab-secondary').forEach((el) => {
+        el.classList.toggle('m-fab-secondary-faded', scrolled);
+      });
+    };
+    window.addEventListener('scroll', () => {
+      if (scrollFadeTimer) return;
+      scrollFadeTimer = setTimeout(() => {
+        scrollFadeTimer = null;
+        updateFabFade();
+      }, 80);
+    }, { passive: true });
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis

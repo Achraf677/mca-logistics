@@ -485,13 +485,17 @@
         height: 44px;
         font-size: 1rem;
       }
-      /* FAB : au-dessus de la bottom-nav, respect safe-area iPhone */
+      /* FAB : en haut a droite, a cote du bouton agent IA (🤖).
+         Avant : bottom-right, mais conflit visuel avec les FAB metier (☑ + saisie).
+         Top-right libere le coin bas et garde le chat accessible en permanence. */
       #ai-chat-fab {
-        right: calc(16px + var(--m-safe-right, 0px));
-        bottom: calc(var(--m-tabbar-h, 64px) + var(--m-safe-bottom, 0px) + 16px);
-        width: 52px;
-        height: 52px;
-        font-size: 22px;
+        right: calc(60px + var(--m-safe-right, 0px));
+        bottom: auto;
+        top: calc(8px + var(--m-safe-top, 0px));
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.35);
       }
       /* Panel plein ecran */
       #ai-chat-panel {
