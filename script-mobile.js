@@ -3601,36 +3601,94 @@
     };
   }
 
-  // ---------- Livraisons (v2.1 : liste lecture seule, groupee par mois) ----------
+  // ---------- Livraisons (v3.86 : parite PC enrichie - filtres + tri + quick-pay) ----------
   M.state.livraisonsRecherche = '';
   M.state.livraisonsMoisOuverts = {}; // mois -> bool (open/closed)
   M.state.livraisonsVue = 'liste'; // 'liste' | 'kanban'
   M.state.livBulkMode = false;
   M.state.livBulkSel = new Set(); // ids selectionnees
+  M.state.livFiltrePaiement = ''; // '' | 'en-attente' | 'payé' | 'litige'
+  M.state.livFiltrePeriode = ''; // '' | 'mois' | '30j' | '90j'
+  M.state.livFiltreClient = ''; // '' = tous
+  M.state.livTri = 'date-desc'; // date-desc | date-asc | client-asc | montant-desc | montant-asc
+
+  // Helper : normalise statut paiement (mirror PC getLivraisonStatutPaiement)
+  M.livStatutPaiement = function(l) {
+    const s = String(l?.statutPaiement || '').trim().toLowerCase();
+    if (!s || s === 'en attente') return 'en-attente';
+    if (s === 'paye' || s === 'payee' || s === 'payé') return 'payé';
+    return s;
+  };
 
   M.register('livraisons', {
     title: 'Livraisons',
     render() {
       const livraisons = M.charger('livraisons');
       const recherche = (M.state.livraisonsRecherche || '').toLowerCase();
+      const fPaiement = M.state.livFiltrePaiement;
+      const fPeriode = M.state.livFiltrePeriode;
+      const fClient = M.state.livFiltreClient;
+      const tri = M.state.livTri;
+
+      // Compteurs paiement (avant filtrage paiement, pour afficher dans chips)
+      const compteurs = { all: livraisons.length, 'en-attente': 0, 'payé': 0, 'litige': 0 };
+      livraisons.forEach(l => {
+        const sp = M.livStatutPaiement(l);
+        if (compteurs[sp] !== undefined) compteurs[sp]++;
+      });
+
+      // Filtre periode
       let filtered = livraisons;
+      if (fPeriode) {
+        const now = new Date();
+        let cutoff = null;
+        if (fPeriode === 'mois') cutoff = M.moisKey() + '-01';
+        else if (fPeriode === '30j') {
+          const d = new Date(now); d.setDate(d.getDate() - 30);
+          cutoff = d.toISOString().slice(0, 10);
+        } else if (fPeriode === '90j') {
+          const d = new Date(now); d.setDate(d.getDate() - 90);
+          cutoff = d.toISOString().slice(0, 10);
+        }
+        if (cutoff) filtered = filtered.filter(l => (l.date || '') >= cutoff);
+      }
+
+      // Filtre client
+      if (fClient) filtered = filtered.filter(l => (l.client || '') === fClient);
+
+      // Filtre paiement
+      if (fPaiement) filtered = filtered.filter(l => M.livStatutPaiement(l) === fPaiement);
+
+      // Recherche full-text (client, n° liv, dest, exp, zone, notes)
       if (recherche) {
-        filtered = livraisons.filter(l => {
-          const hay = `${l.client||''} ${l.numLiv||''} ${l.date||''} ${l.adresseDepart||''} ${l.adresseArrivee||''}`.toLowerCase();
+        filtered = filtered.filter(l => {
+          const hay = `${l.client||''} ${l.numLiv||''} ${l.date||''} ${l.zone||''} ${l.expVille||''} ${l.destVille||''} ${l.expNom||''} ${l.destNom||''} ${l.notes||''} ${l.adresseDepart||''} ${l.adresseArrivee||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
-      // tri date desc
-      filtered = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
-      // Group par mois (YYYY-MM)
+      // Tri
+      const triFn = {
+        'date-desc':    (a,b) => (b.date||'').localeCompare(a.date||''),
+        'date-asc':     (a,b) => (a.date||'').localeCompare(b.date||''),
+        'client-asc':   (a,b) => (a.client||'').localeCompare(b.client||'', 'fr', { sensitivity: 'base' }),
+        'montant-desc': (a,b) => (M.parseNum(b.prixTTC)||M.parseNum(b.prix)||M.parseNum(b.prixHT)||0) - (M.parseNum(a.prixTTC)||M.parseNum(a.prix)||M.parseNum(a.prixHT)||0),
+        'montant-asc':  (a,b) => (M.parseNum(a.prixTTC)||M.parseNum(a.prix)||M.parseNum(a.prixHT)||0) - (M.parseNum(b.prixTTC)||M.parseNum(b.prix)||M.parseNum(b.prixHT)||0)
+      }[tri] || ((a,b) => (b.date||'').localeCompare(a.date||''));
+      filtered = [...filtered].sort(triFn);
+
+      // Group par mois quand tri date-* (sinon liste plate pour client/montant)
+      const grouperParMois = tri === 'date-desc' || tri === 'date-asc';
       const byMonth = {};
-      filtered.forEach(l => {
-        const m = (l.date || '0000-00').slice(0, 7);
-        if (!byMonth[m]) byMonth[m] = [];
-        byMonth[m].push(l);
-      });
-      const monthsSorted = Object.keys(byMonth).sort().reverse();
+      if (grouperParMois) {
+        filtered.forEach(l => {
+          const m = (l.date || '0000-00').slice(0, 7);
+          if (!byMonth[m]) byMonth[m] = [];
+          byMonth[m].push(l);
+        });
+      }
+      const monthsSorted = Object.keys(byMonth).sort();
+      if (tri === 'date-desc') monthsSorted.reverse();
       const moisCourant = M.moisKey();
 
       const bulkOn = M.state.livBulkMode;
@@ -3665,8 +3723,48 @@
           <button class="m-alertes-chip ${vue==='liste'?'active':''}" data-vue="liste" style="flex:1 1 0">📋 Liste</button>
           <button class="m-alertes-chip ${vue==='kanban'?'active':''}" data-vue="kanban" style="flex:1 1 0">📊 Kanban</button>
         </div>
-        <div style="margin-bottom:16px">
-          <input type="search" id="m-liv-search" placeholder="🔍 Rechercher (client, n°, adresse...)" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
+        <div style="margin-bottom:10px">
+          <input type="search" id="m-liv-search" placeholder="🔍 Client, n°, ville, notes…" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      // Chips filtre paiement (Tout / À encaisser / Payé / Litige) - mirror PC filtre-paiement
+      html += `
+        <div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${fPaiement===''?'active':''}" data-fp="">Tous (${compteurs.all})</button>
+          <button class="m-alertes-chip ${fPaiement==='en-attente'?'active':''}" data-fp="en-attente">⏳ À encaisser (${compteurs['en-attente']})</button>
+          <button class="m-alertes-chip ${fPaiement==='payé'?'active':''}" data-fp="payé">✅ Payé (${compteurs['payé']})</button>
+          <button class="m-alertes-chip ${fPaiement==='litige'?'active':''}" data-fp="litige">⚠️ Litige (${compteurs['litige']})</button>
+        </div>
+      `;
+
+      // Chips filtre période + tri (sur la même rangée si possible)
+      html += `
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${fPeriode===''?'active':''}" data-fperiode="">📅 Tout</button>
+          <button class="m-alertes-chip ${fPeriode==='mois'?'active':''}" data-fperiode="mois">Ce mois</button>
+          <button class="m-alertes-chip ${fPeriode==='30j'?'active':''}" data-fperiode="30j">30j</button>
+          <button class="m-alertes-chip ${fPeriode==='90j'?'active':''}" data-fperiode="90j">90j</button>
+        </div>
+      `;
+
+      // Liste des clients (uniques) pour filtre + select tri
+      const clientsListe = [...new Set(livraisons.map(l => l.client).filter(Boolean))].sort();
+      html += `
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          ${clientsListe.length > 1 ? `
+            <select id="m-liv-client" style="flex:1 1 160px;min-width:140px">
+              <option value="">— Tous les clients —</option>
+              ${clientsListe.map(c => `<option value="${M.escHtml(c)}" ${c === fClient ? 'selected' : ''}>${M.escHtml(c)}</option>`).join('')}
+            </select>
+          ` : ''}
+          <select id="m-liv-tri" style="flex:1 1 160px;min-width:140px" aria-label="Trier les livraisons">
+            <option value="date-desc"    ${tri==='date-desc'?'selected':''}>📅 Date (récent)</option>
+            <option value="date-asc"     ${tri==='date-asc'?'selected':''}>📅 Date (ancien)</option>
+            <option value="client-asc"   ${tri==='client-asc'?'selected':''}>🔤 Client A→Z</option>
+            <option value="montant-desc" ${tri==='montant-desc'?'selected':''}>💶 Montant ↓</option>
+            <option value="montant-asc"  ${tri==='montant-asc'?'selected':''}>💶 Montant ↑</option>
+          </select>
         </div>
       `;
 
@@ -3712,13 +3810,65 @@
         return html;
       }
       if (!filtered.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Ajuste tes filtres ou la recherche.</p></div>`;
+        return html;
+      }
+
+      // Helper : carte livraison (réutilisé en mode liste plate ET grouped par mois)
+      const renderCard = (l) => {
+        const isSel = selSet.has(l.id);
+        const cardClass = bulkOn ? 'm-liv-toggle' : 'm-liv-edit';
+        const cardStyle = bulkOn && isSel
+          ? 'background:var(--m-accent-soft);border:1px solid var(--m-accent)'
+          : 'background:var(--m-card);border:1px solid var(--m-border)';
+        const checkbox = bulkOn
+          ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
+          : '';
+        const sp = M.livStatutPaiement(l);
+        // Pastille statut paiement (couleur)
+        const spLabel = sp === 'payé' ? '✅ Payé' : sp === 'litige' ? '⚠️ Litige' : '⏳ À encaisser';
+        const spColor = sp === 'payé' ? 'var(--m-green)' : sp === 'litige' ? 'var(--m-red)' : 'var(--m-accent)';
+        // Quick-action "Marquer payée" si non payé et pas en mode bulk
+        const quickPay = (!bulkOn && sp !== 'payé')
+          ? `<button type="button" class="m-liv-quick-pay" data-id="${M.escHtml(l.id)}" aria-label="Marquer payée" style="flex:0 0 auto;background:rgba(6,214,160,0.12);color:var(--m-green);border:1px solid rgba(6,214,160,0.3);border-radius:8px;padding:0 10px;height:44px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap">💵</button>`
+          : '';
+        return `<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px">
+          <div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;flex:1 1 auto;text-align:left;${cardStyle};border-radius:18px;color:inherit;cursor:pointer;margin-bottom:0">
+            ${checkbox}
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
+              <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
+                <span>${M.formatDate(l.date)}</span>
+                ${l.numLiv ? `<span>· ${M.escHtml(l.numLiv)}</span>` : ''}
+                ${l.distance ? `<span>· ${M.formatNum(l.distance)} km</span>` : ''}
+              </div>
+              <div style="margin-top:4px;font-size:.7rem;color:${spColor};font-weight:700;text-transform:uppercase;letter-spacing:.04em">${spLabel}${l.datePaiement && sp === 'payé' ? ' · ' + M.formatDate(l.datePaiement) : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-weight:700;color:var(--m-green);white-space:nowrap;font-size:.95rem">${M.format$(l.prixTTC || l.prix || l.prixHT || 0)}</div>
+              ${l.statut ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(l.statut)}</div>` : ''}
+            </div>
+          </div>
+          ${quickPay}
+        </div>`;
+      };
+
+      // Liste plate quand tri client/montant (les groupes par mois n'ont pas de sens)
+      if (!grouperParMois) {
+        const totalCa = filtered.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        html += `<div class="m-section" style="margin-top:8px">
+          <div class="m-section-header" style="padding:0 4px 10px">
+            <span style="font-weight:600;font-size:.92rem">${filtered.length} livraison${filtered.length>1?'s':''}</span>
+            <span style="color:var(--m-green);font-weight:700;font-size:.92rem">${M.format$(totalCa)}</span>
+          </div>
+          ${filtered.map(renderCard).join('')}
+        </div>`;
         return html;
       }
 
       monthsSorted.forEach(month => {
         const items = byMonth[month];
-        const totalCa = items.reduce((acc, l) => acc + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        const totalCa = items.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const dateLabel = (() => {
           if (month === '0000-00') return 'Sans date';
           const [y, m] = month.split('-');
@@ -3741,31 +3891,7 @@
               </span>
             </button>
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
-              ${items.map(l => {
-                const isSel = selSet.has(l.id);
-                const cardClass = bulkOn ? 'm-liv-toggle' : 'm-liv-edit';
-                const cardStyle = bulkOn && isSel
-                  ? 'background:var(--m-accent-soft);border:1px solid var(--m-accent)'
-                  : 'background:var(--m-card);border:1px solid var(--m-border)';
-                const checkbox = bulkOn
-                  ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
-                  : '';
-                return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;${cardStyle};border-radius:18px;margin-bottom:10px;color:inherit;cursor:pointer">
-                  ${checkbox}
-                  <div style="flex:1 1 auto;min-width:0">
-                    <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
-                    <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
-                      <span>${M.formatDate(l.date)}</span>
-                      ${l.numLiv ? `<span>· ${M.escHtml(l.numLiv)}</span>` : ''}
-                      ${l.distance ? `<span>· ${M.formatNum(l.distance)} km</span>` : ''}
-                    </div>
-                  </div>
-                  <div style="text-align:right;flex-shrink:0">
-                    <div style="font-weight:700;color:var(--m-green);white-space:nowrap;font-size:.95rem">${M.format$(l.prix || l.prixHT || 0)}</div>
-                    ${l.statut ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(l.statut)}</div>` : ''}
-                  </div>
-                </div>`;
-              }).join('')}
+              ${items.map(renderCard).join('')}
             </div>
           </div>
         `;
@@ -3778,7 +3904,25 @@
       container.querySelectorAll('.m-alertes-chip[data-vue]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.livraisonsVue = btn.dataset.vue; M.go('livraisons'); });
       });
-      // Wire recherche (debounce 200ms pour fluidite)
+      // Chips filtre paiement (inclut le bouton "Tous" avec data-fp="")
+      container.querySelectorAll('.m-alertes-chip[data-fp]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.livFiltrePaiement = btn.getAttribute('data-fp'); M.go('livraisons'); });
+      });
+      // Chips filtre période
+      container.querySelectorAll('.m-alertes-chip[data-fperiode]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.livFiltrePeriode = btn.dataset.fperiode; M.go('livraisons'); });
+      });
+      // Filtre client
+      container.querySelector('#m-liv-client')?.addEventListener('change', e => {
+        M.state.livFiltreClient = e.target.value;
+        M.go('livraisons');
+      });
+      // Tri
+      container.querySelector('#m-liv-tri')?.addEventListener('change', e => {
+        M.state.livTri = e.target.value;
+        M.go('livraisons');
+      });
+      // Wire recherche (debounce 350ms pour fluidite)
       const searchInput = container.querySelector('#m-liv-search');
       if (searchInput) {
         let timer = null;
@@ -3821,6 +3965,32 @@
           const id = btn.dataset.id;
           if (M.state.livBulkSel.has(id)) M.state.livBulkSel.delete(id);
           else M.state.livBulkSel.add(id);
+          M.go('livraisons');
+        });
+      });
+      // Quick-action "💵 Marquer payée" sur card non-payée (mode normal)
+      container.querySelectorAll('.m-liv-quick-pay').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const id = btn.dataset.id;
+          const arr = M.charger('livraisons');
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx < 0) return;
+          const liv = arr[idx];
+          const res = await M.dialogChoisirDate({
+            titre: '💵 Marquer payée',
+            sousTitre: `${liv.client || 'Livraison'} · ${M.format$(M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0)}`,
+            labelDate: 'Date de paiement',
+            btnOk: '💵 Confirmer'
+          });
+          if (!res) return;
+          arr[idx].statutPaiement = 'payé';
+          arr[idx].datePaiement = res.date;
+          arr[idx].modifieLe = new Date().toISOString();
+          M.sauvegarder('livraisons', arr);
+          M.ajouterAudit?.('Encaissement livraison', (liv.client || '') + ' · ' + (liv.numLiv || '') + ' · ' + M.formatDate(res.date));
+          M.toast(`💵 Encaissée le ${M.formatDate(res.date)}`);
           M.go('livraisons');
         });
       });
