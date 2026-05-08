@@ -3548,14 +3548,24 @@
     }
   };
 
-  // Auto-trigger 1x par session de login admin.
+  // Auto-trigger 1x par chargement de page (gate runtime window flag).
+  // Reset a chaque F5/reload → comportement attendu : un nouveau login
+  // re-declenche le brief automatiquement.
   M.declencherBriefAutoLoginSiNecessaire = function () {
     try {
-      const adminLogin = sessionStorage.getItem('admin_login') || '';
-      if (!adminLogin) return; // chauffeurs : pas concernes
-      if (sessionStorage.getItem(AI_BRIEF_LAST_RUN_KEY_M)) return; // deja fait dans cette session
-      // Differe pour ne pas concurrencer le warmup mobile.
-      setTimeout(() => { M.lancerBriefAuto('on_login'); }, 4500);
+      if (window.__briefAutoTriggeredMobile) return;
+      const start = Date.now();
+      const tick = () => {
+        const adminLogin = sessionStorage.getItem('admin_login') || '';
+        if (adminLogin) {
+          window.__briefAutoTriggeredMobile = true;
+          setTimeout(() => { M.lancerBriefAuto('on_login'); }, 1500);
+          return;
+        }
+        if (Date.now() - start > 10000) return; // timeout
+        setTimeout(tick, 500);
+      };
+      tick();
     } catch (_) { /* fail-soft */ }
   };
 

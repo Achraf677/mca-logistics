@@ -391,16 +391,30 @@ async function lancerBriefAuto(trigger) {
   }
 }
 
-// Auto-trigger au boot admin : 1x par session de login.
+// Auto-trigger au boot admin : 1x par chargement de page.
+// Gate runtime (window flag) pour eviter le double-fire au sein du meme
+// boot. Le flag se reset naturellement a chaque F5 ou reload, ce qui
+// re-declenche le brief — comportement attendu par Achraf.
 function declencherBriefAutoLoginSiNecessaire() {
   try {
     // Reservé admin : le panneau-agent n'existe que sur admin.html.
     if (!document.getElementById('panneau-agent')) return;
-    const role = sessionStorage.getItem('role') || '';
-    if (role !== 'admin') return;
-    if (sessionStorage.getItem(AI_BRIEF_LAST_RUN_KEY)) return; // deja fait dans cette session
-    // Differe l'appel pour ne pas concurrencer le warmup admin (sync Supabase)
-    setTimeout(() => { lancerBriefAuto('on_login'); }, 4000);
+    if (window.__briefAutoTriggered) return; // deja fait dans ce boot
+    // Attend que l'auth soit pretes — peut arriver apres DOMContentLoaded
+    // car la session Supabase est resolue en async. On poll toutes les 500ms
+    // pendant max 10s en attendant role=admin.
+    const start = Date.now();
+    const tick = () => {
+      const role = sessionStorage.getItem('role') || '';
+      if (role === 'admin') {
+        window.__briefAutoTriggered = true;
+        setTimeout(() => { lancerBriefAuto('on_login'); }, 1000);
+        return;
+      }
+      if (Date.now() - start > 10000) return; // timeout : pas admin, on abandonne
+      setTimeout(tick, 500);
+    };
+    tick();
   } catch (_) { /* fail-soft */ }
 }
 
