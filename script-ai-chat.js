@@ -485,17 +485,13 @@
         height: 44px;
         font-size: 1rem;
       }
-      /* FAB : en haut a droite, a cote du bouton agent IA (🤖).
-         Avant : bottom-right, mais conflit visuel avec les FAB metier (☑ + saisie).
-         Top-right libere le coin bas et garde le chat accessible en permanence. */
+      /* FAB : au-dessus de la bottom-nav, respect safe-area iPhone */
       #ai-chat-fab {
-        right: calc(60px + var(--m-safe-right, 0px));
-        bottom: auto;
-        top: calc(8px + var(--m-safe-top, 0px));
-        width: 40px;
-        height: 40px;
-        font-size: 18px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.35);
+        right: calc(16px + var(--m-safe-right, 0px));
+        bottom: calc(var(--m-tabbar-h, 64px) + var(--m-safe-bottom, 0px) + 16px);
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
       }
       /* Panel plein ecran */
       #ai-chat-panel {
@@ -1164,22 +1160,6 @@
     const cleanHistory = sanitized.slice(-MAX_HISTORY_TO_SEND);
     if (cleanHistory.length === 0) throw new Error('Historique vide apres sanitize');
 
-    // Contexte additionnel : top 5 decisions agent non lues (interconnexion
-    // panneau-agent <-> chatbot). Permet au backend d'injecter ces decisions
-    // dans le system prompt pour que l'IA sache de quoi parle Achraf quand il
-    // discute une decision (ex: "Je vois que tu as 3 livraisons impayees Carrefour").
-    let agentDecisions = [];
-    try {
-      const raw = JSON.parse(localStorage.getItem('agent_decisions') || '[]');
-      if (Array.isArray(raw)) {
-        agentDecisions = raw.filter((d) => d && !d.lu).slice(0, 5).map((d) => ({
-          titre: String(d.titre || '').slice(0, 200),
-          description: String(d.description || '').slice(0, 600),
-          priorite: d.priorite || 'info',
-        }));
-      }
-    } catch (_) { /* localStorage corrompu : on ignore */ }
-
     // Timeout client : 90s. Le backend a un timeout interne de 45s par appel
     // Gemini + 6 iterations max donc theoriquement ca peut depasser. On garde
     // une marge confortable. Le timeout abort produit un message lisible.
@@ -1193,7 +1173,7 @@
           'Authorization': 'Bearer ' + token,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ history: cleanHistory, context: { agent_decisions: agentDecisions } }),
+        body: JSON.stringify({ history: cleanHistory }),
         signal: ctrl.signal,
       });
     } catch (e) {
