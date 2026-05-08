@@ -220,17 +220,56 @@ function afficherDecisionsAgent() {
     const lu = d.lu ? '' : 'border-left:3px solid #e63946;';
     const sourceTag = d.source === 'ai-brief' ? ' · IA' : '';
     const actions = (d.actions || []).map(a => `<button onclick="executerActionAgent('${d.id}','${a.id}')" style="background:${a.style === 'primary' ? '#f5a623' : 'rgba(255,255,255,0.08)'};color:${a.style === 'primary' ? '#000' : '#e8eaf0'};border:1px solid ${a.style === 'primary' ? '#f5a623' : '#2a2d3d'};border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">${a.label}</button>`).join('');
+    // Bouton "Discuter avec l'IA" (parite mobile) — ouvre le chatbot avec un
+    // message pre-rempli construit a partir de la decision. Permet a Achraf
+    // de creuser une decision sans retaper le contexte.
+    const btnDiscuter = `<button type="button" onclick="discuterDecisionAvecIA('${d.id}')" style="background:rgba(255,255,255,0.08);color:#e8eaf0;border:1px solid #2a2d3d;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">💬 Discuter</button>`;
     return `
       <div style="background:#2a2f37;border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
           <div style="font-size:.88rem;font-weight:700;color:#f1f3f5;flex:1">${d.titre}</div>
           ${priorityBadgeAgent(d.priorite)}
         </div>
-        <div style="font-size:.82rem;color:#adb5bd;line-height:1.5;margin-bottom:${actions ? '10px' : '8px'}">${d.description}</div>
-        ${actions ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${actions}</div>` : ''}
+        <div style="font-size:.82rem;color:#adb5bd;line-height:1.5;margin-bottom:10px">${d.description}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${actions}${btnDiscuter}</div>
         <div style="font-size:.7rem;color:#7c8299;opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${sourceTag}</div>
       </div>`;
   }).join('');
+}
+
+// Ouvre le chatbot IA (window.AIChat.open) avec un message pre-rempli a partir
+// d'une decision agent, et auto-soumet. Utilise pour le bouton "Discuter avec l'IA"
+// dans le panneau-agent.
+function discuterDecisionAvecIA(decisionId) {
+  try {
+    const decisions = loadSafe('agent_decisions', []);
+    const d = decisions.find(x => x.id === decisionId);
+    if (!d) { afficherToast('⚠️ Décision introuvable'); return; }
+    const message = `[Décision agent : ${d.priorite || 'info'}]\n${d.titre}\n\n${d.description}\n\nQue me conseilles-tu de faire ?`;
+    if (!window.AIChat || typeof window.AIChat.open !== 'function') {
+      afficherToast('⚠️ Chatbot indisponible'); return;
+    }
+    window.AIChat.open();
+    // Ferme le panneau-agent pour focus sur le chat (panneau-agent flotte au-dessus du chat sinon)
+    try { togglePanneauAgent(); } catch (_) { /* ignore */ }
+    // Injecte le message dans la textarea et auto-soumet apres l'animation d'ouverture (~300ms)
+    setTimeout(() => {
+      const input = document.getElementById('ai-chat-input');
+      const form = document.getElementById('ai-chat-form');
+      if (!input || !form) return;
+      input.value = message;
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+      form.requestSubmit();
+    }, 360);
+  } catch (e) {
+    console.warn('[discuterDecisionAvecIA]', e);
+    if (typeof afficherToast === 'function') afficherToast('⚠️ Erreur ouverture chat');
+  }
+}
+
+if (typeof window !== 'undefined') {
+  window.discuterDecisionAvecIA = discuterDecisionAvecIA;
 }
 
 // Marque toutes les decisions comme lues (parite mobile sheet "Tout marquer lu")

@@ -3588,13 +3588,17 @@
             ? 'rgba(231,76,60,0.45)'
             : d.priorite === 'opportunite' ? 'rgba(46,204,113,0.4)' : 'rgba(52,152,219,0.35)';
           const lu = d.lu ? '' : 'border-left:3px solid var(--m-accent,#e63946);';
+          // Bouton "Discuter" (tap-target 44px min, parite PC). Ouvre le chatbot IA
+          // avec le contexte de la decision pre-rempli.
+          const btnDiscuter = `<button type="button" data-discuter-id="${d.id}" class="m-btn" style="min-height:44px;padding:8px 14px;font-size:0.8rem;font-weight:600;background:var(--m-bg-soft,#1f2229);color:var(--m-text,#e8eaf0);border:1px solid var(--m-border,#2a2d3d);border-radius:10px;cursor:pointer">💬 Discuter</button>`;
           return `
             <div style="background:var(--m-card,#2a2f37);border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
                 <div style="font-size:0.88rem;font-weight:700;color:var(--m-text,#f1f3f5);flex:1">${M.escHtml(d.titre)}</div>
                 ${M.priorityBadge(d.priorite)}
               </div>
-              <div style="font-size:0.82rem;color:var(--m-text-muted,#adb5bd);line-height:1.5;margin-bottom:8px">${M.escHtml(d.description)}</div>
+              <div style="font-size:0.82rem;color:var(--m-text-muted,#adb5bd);line-height:1.5;margin-bottom:10px">${M.escHtml(d.description)}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${btnDiscuter}</div>
               <div style="font-size:0.7rem;color:var(--m-text-muted);opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${d.source === 'ai-brief' ? ' · IA' : ''}</div>
             </div>`;
         }).join('');
@@ -3646,8 +3650,45 @@
             M.closeSheet();
           });
         }
+        // Boutons "💬 Discuter" sur chaque card
+        root.querySelectorAll('button[data-discuter-id]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-discuter-id');
+            if (!id) return;
+            e.preventDefault();
+            M.discuterDecisionAvecIA(id);
+          });
+        });
       },
     });
+  };
+
+  // Ouvre le chatbot avec un message pre-rempli construit a partir de la decision.
+  M.discuterDecisionAvecIA = function (decisionId) {
+    try {
+      const decisions = M.charger('agent_decisions') || [];
+      const d = decisions.find((x) => x.id === decisionId);
+      if (!d) { M.toast('⚠️ Décision introuvable'); return; }
+      const message = `[Décision agent : ${d.priorite || 'info'}]\n${d.titre}\n\n${d.description}\n\nQue me conseilles-tu de faire ?`;
+      if (!window.AIChat || typeof window.AIChat.open !== 'function') {
+        M.toast('⚠️ Chatbot indisponible'); return;
+      }
+      // Ferme la sheet pour focus chat
+      try { M.closeSheet(); } catch (_) {}
+      window.AIChat.open();
+      setTimeout(() => {
+        const input = document.getElementById('ai-chat-input');
+        const form = document.getElementById('ai-chat-form');
+        if (!input || !form) return;
+        input.value = message;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+        form.requestSubmit();
+      }, 380);
+    } catch (e) {
+      console.warn('[M.discuterDecisionAvecIA]', e);
+      M.toast('⚠️ Erreur ouverture chat');
+    }
   };
 
   // ============================================================
