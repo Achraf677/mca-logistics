@@ -7,6 +7,7 @@
 # Supabase CLI artifacts (linked-project, cli-latest cache)
 *.log
 .DS_Store
+.claude/worktrees/
 .env
 .env*
 .env.*.local
