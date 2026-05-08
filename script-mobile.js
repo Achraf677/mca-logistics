@@ -718,9 +718,18 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=prixHT]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist (cf. ligne 620),
+        // pas un <select>. Le selector "select[name=tauxTva]" renvoyait null
+        // d'ou crash "null is not an object (evaluating 'sel.addEventListener')".
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
+        // Defense-in-depth : si le formulaire a ete reduit (cas edge), on
+        // arrete sans crasher tout l'afterMount.
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile livraison form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         // Init : si TTC déjà saisi (mode édition), partir de TTC pour ne pas l'écraser
         let dernierEdit = enEdition && (v.prixTTC || v.prix) ? 'ttc' : 'ht';
         const recalc = () => {
@@ -1357,9 +1366,14 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=montantHt]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist, pas un <select>.
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile charge form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         let dernierEdit = 'ttc';
         // BUGFIX v3.68 : si l'user saisit manuellement le champ TVA (cas facture
         // mixte type 150€ TTC dont 30€ seulement soumis a TVA 20% = 6€ TVA), on
@@ -3010,9 +3024,14 @@
       afterMount(b) {
         // Auto-calcul HT <-> TTC
         const ht  = b.querySelector('input[name=coutHt]');
-        const sel = b.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist, pas un <select>.
+        const sel = b.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = b.querySelector('input[name=tva]');
         const ttc = b.querySelector('input[name=cout]');
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile entretien form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         let dernierEdit = 'ttc';
         const recalc = () => {
           const taux = M.parseNum(sel.value) / 100 || 0;
