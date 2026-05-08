@@ -11,7 +11,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
-  <link rel="stylesheet" href="/style-mobile.css?v=94" />
+  <link rel="stylesheet" href="/style-mobile.css?v=95" />
 </head>
 <body class="m-app m-theme-dark">
   <!-- Header compact : back btn + titre + bouton "Agent IA" (parite PC panneau-agent). -->
@@ -67,18 +67,13 @@
     <nav class="m-drawer-nav">
       <button class="m-drawer-link" data-page="recherche" style="font-weight:600"><span>🔍</span><span>Recherche globale</span></button>
 
-      <div class="m-drawer-section-label">Finances (priorité)</div>
-      <button class="m-drawer-link" data-page="rentabilite"><span>💰</span><span>Rentabilité</span></button>
-      <button class="m-drawer-link" data-page="encaissement"><span>💵</span><span>Encaissement</span></button>
-      <button class="m-drawer-link" data-page="charges"><span>💸</span><span>Charges</span></button>
-      <button class="m-drawer-link" data-page="carburant"><span>⛽</span><span>Carburant</span></button>
-
       <div class="m-drawer-section-label">Tiers</div>
       <button class="m-drawer-link" data-page="clients"><span>🧑‍💼</span><span>Clients</span></button>
       <button class="m-drawer-link" data-page="fournisseurs"><span>🏭</span><span>Fournisseurs</span></button>
 
       <div class="m-drawer-section-label">Flotte</div>
       <button class="m-drawer-link" data-page="vehicules"><span>🚐</span><span>Véhicules</span></button>
+      <button class="m-drawer-link" data-page="carburant"><span>⛽</span><span>Carburant</span></button>
       <button class="m-drawer-link" data-page="entretiens"><span>🔧</span><span>Entretiens</span></button>
       <button class="m-drawer-link" data-page="inspections"><span>🚗</span><span>Inspections</span></button>
 
@@ -87,8 +82,11 @@
       <button class="m-drawer-link" data-page="heures"><span>⏱️</span><span>Heures &amp; Km</span></button>
       <button class="m-drawer-link" data-page="incidents"><span>🚨</span><span>Incidents</span></button>
 
-      <div class="m-drawer-section-label">Finances détaillées</div>
+      <div class="m-drawer-section-label">Finances</div>
+      <button class="m-drawer-link" data-page="charges"><span>💸</span><span>Charges</span></button>
+      <button class="m-drawer-link" data-page="encaissement"><span>💵</span><span>Encaissement</span></button>
       <button class="m-drawer-link" data-page="tva"><span>🧾</span><span>TVA</span></button>
+      <button class="m-drawer-link" data-page="rentabilite"><span>💰</span><span>Rentabilité</span></button>
       <button class="m-drawer-link" data-page="statistiques"><span>📈</span><span>Statistiques</span></button>
 
       <div class="m-drawer-section-label">Autres</div>
@@ -132,35 +130,33 @@
   <!-- Couche données (partagée avec desktop : memes Supabase tables, meme localStorage) -->
   <!-- Supabase SDK : permet le sync temps reel des saisies mobile vers la base -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/supabase-config.js?v=94"></script>
-  <script src="/supabase-client.js?v=94"></script>
+  <script src="/supabase-config.js?v=95"></script>
+  <script src="/supabase-client.js?v=95"></script>
   <!-- supabase-storage-sync hook localStorage.setItem au niveau du prototype.
        Toute ecriture (M.sauvegarder dans script-mobile) declenche un push
        vers Supabase. Doit etre charge AVANT script-mobile. -->
-  <script src="/supabase-storage-sync.js?v=94"></script>
-  <script src="/repo.js?v=94"></script>
+  <script src="/supabase-storage-sync.js?v=95"></script>
+  <script src="/repo.js?v=95"></script>
   <!-- security-utils : hashPassword PBKDF2 partage avec desktop -->
-  <script src="/security-utils.js?v=94"></script>
+  <script src="/security-utils.js?v=95"></script>
   <!-- storage-uploader : helpers Supabase Storage (upload/download docs salaries) -->
-  <script src="/storage-uploader.js?v=94"></script>
+  <script src="/storage-uploader.js?v=95"></script>
   <!-- ocr-helper : Tesseract.js wrapper (lazy, gratuit, offline) pour scan carte grise/facture/RIB/permis -->
-  <script src="/ocr-helper.js?v=94"></script>
+  <script src="/ocr-helper.js?v=95"></script>
   <!-- Entity adapters Supabase : sync automatique localStorage <-> tables natives
        Supabase pour les entites metier (livraisons, charges, vehicules, etc.).
        Sans ces adapters, les saisies mobile resterait en localStorage local. -->
-  <script src="/entity-supabase-adapter.js?v=94"></script>
-  <script src="/all-entity-adapters.js?v=94"></script>
-  <script src="/legacy-entity-adapters.js?v=94"></script>
-  <script src="/plannings-supabase-adapter.js?v=94"></script>
-  <script src="/messages-supabase-adapter.js?v=94"></script>
-  <script src="/clients-supabase-adapter.js?v=94"></script>
-  <script src="/salaries-supabase-adapter.js?v=94"></script>
-  <script src="/vehicules-supabase-adapter.js?v=94"></script>
+  <script src="/entity-supabase-adapter.js?v=95"></script>
+  <script src="/all-entity-adapters.js?v=95"></script>
+  <script src="/legacy-entity-adapters.js?v=95"></script>
+  <script src="/plannings-supabase-adapter.js?v=95"></script>
+  <script src="/messages-supabase-adapter.js?v=95"></script>
+  <script src="/clients-supabase-adapter.js?v=95"></script>
+  <script src="/salaries-supabase-adapter.js?v=95"></script>
+  <script src="/vehicules-supabase-adapter.js?v=95"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=94"></script>
+  <script src="/script-mobile.js?v=95"></script>
   <!-- Assistant IA Gemini (V1 admin) - parite PC -->
-  <script src="/script-ai-chat.js?v=94"></script>
-  <!-- Brouillons IA (page admin de validation des actions IA en attente) -->
-  <script src="/script-ai-brouillons.js?v=94"></script>
+  <script src="/script-ai-chat.js?v=95"></script>
 </body>
 </html>
