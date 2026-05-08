@@ -485,9 +485,11 @@
         height: 44px;
         font-size: 1rem;
       }
-      /* FAB : au-dessus de la bottom-nav, respect safe-area iPhone */
+      /* FAB : au-dessus de la bottom-nav, decale a GAUCHE pour ne pas chevaucher
+         le bouton + des pages (livraisons/charges/carburant/etc), respect safe-area iPhone. */
       #ai-chat-fab {
-        right: calc(16px + var(--m-safe-right, 0px));
+        left: calc(16px + var(--m-safe-left, 0px));
+        right: auto;
         bottom: calc(var(--m-tabbar-h, 64px) + var(--m-safe-bottom, 0px) + 16px);
         width: 52px;
         height: 52px;
