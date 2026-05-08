@@ -1760,21 +1760,47 @@
   M.formNouveauClient = function(existing) {
     const enEdition = !!existing;
     const c = existing || {};
+    // Type pro/particulier (parity-mobile-alertes-clients) — radio + champs conditionnels
+    const typeInit = c.type || 'pro';
+    const paysList = ['FR','BE','LU','CH','DE','ES','IT','NL','GB','PT','AT','PL'];
+    const paysDl = `<datalist id="m-cli-pays-list">${paysList.map(p => `<option value="${p}"></option>`).join('')}</datalist>`;
     const body = `
+      <div class="m-form-field" style="margin-bottom:14px">
+        <label class="m-form-label">Type de client</label>
+        <div style="display:flex;gap:8px" id="m-cli-type-radios">
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:1px solid var(--m-border);border-radius:12px;cursor:pointer;background:var(--m-card);min-height:48px">
+            <input type="radio" name="type" value="pro" ${typeInit === 'pro' ? 'checked' : ''} style="accent-color:var(--m-accent)" />
+            <span style="font-weight:600">🏢 Pro</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:1px solid var(--m-border);border-radius:12px;cursor:pointer;background:var(--m-card);min-height:48px">
+            <input type="radio" name="type" value="particulier" ${typeInit === 'particulier' ? 'checked' : ''} style="accent-color:var(--m-accent)" />
+            <span style="font-weight:600">👤 Particulier</span>
+          </label>
+        </div>
+      </div>
       ${M.formField('Nom / Raison sociale', M.formInput('nom', { value: c.nom || '', placeholder: 'Société ou particulier', required: true }), { required: true })}
-      ${M.formField('Secteur d\'activité', M.formSelect('secteur', [
-        { value: 'transport',  label: '🚚 Transport / logistique' },
-        { value: 'industrie',  label: '🏭 Industrie / usine' },
-        { value: 'btp',        label: '🏗️ BTP / chantier' },
-        { value: 'commerce',   label: '🏪 Commerce / retail' },
-        { value: 'ecommerce',  label: '🛒 E-commerce' },
-        { value: 'agro',       label: '🌾 Agro-alimentaire' },
-        { value: 'sante',      label: '⚕️ Santé / pharma' },
-        { value: 'public',     label: '🏛️ Public / collectivité' },
-        { value: 'evenement',  label: '🎪 Événementiel' },
-        { value: 'autre',      label: '📝 Autre' }
-      ], { placeholder: '— Choisir —', value: c.secteur || '' }))}
-      ${M.formField('Contact (prénom)', M.formInput('prenom', { value: c.prenom || '', placeholder: 'Prénom de la personne', autocomplete: 'given-name' }))}
+      <div id="m-cli-particulier-fields" style="${typeInit === 'particulier' ? '' : 'display:none'}">
+        ${M.formField('Prénom', M.formInput('prenom', { value: c.prenom || '', placeholder: 'Prénom', autocomplete: 'given-name' }))}
+      </div>
+      <div id="m-cli-pro-fields" style="${typeInit === 'pro' ? '' : 'display:none'}">
+        ${M.formField('Secteur d\'activité', M.formSelect('secteur', [
+          { value: 'transport',  label: '🚚 Transport / logistique' },
+          { value: 'industrie',  label: '🏭 Industrie / usine' },
+          { value: 'btp',        label: '🏗️ BTP / chantier' },
+          { value: 'commerce',   label: '🏪 Commerce / retail' },
+          { value: 'ecommerce',  label: '🛒 E-commerce' },
+          { value: 'agro',       label: '🌾 Agro-alimentaire' },
+          { value: 'sante',      label: '⚕️ Santé / pharma' },
+          { value: 'public',     label: '🏛️ Public / collectivité' },
+          { value: 'evenement',  label: '🎪 Événementiel' },
+          { value: 'autre',      label: '📝 Autre' }
+        ], { placeholder: '— Choisir —', value: c.secteur || '' }))}
+        ${M.formField('Contact (interlocuteur)', M.formInput('contact', { value: c.contact || c.prenom || '', placeholder: 'Nom du référent' }))}
+        <div class="m-form-row">
+          ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '9 chiffres' }))}
+          ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || c.tvaIntra || '', placeholder: 'FR + 11 chiffres' }))}
+        </div>
+      </div>
       <div class="m-form-row">
         ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: c.tel || '', placeholder: '06 12 34 56 78', autocomplete: 'tel' }))}
         ${M.formField('Email', M.formInput('email', { type: 'email', value: c.email || '', placeholder: 'contact@...', autocomplete: 'email' }))}
@@ -1785,12 +1811,10 @@
         ${M.formField('Code postal', M.formInput('cp', { value: c.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
         ${M.formField('Ville', M.formInput('ville', { value: c.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
       </div>
+      ${M.formField('Pays', M.formInput('pays', { value: c.pays || 'FR', placeholder: 'FR', list: 'm-cli-pays-list', autocomplete: 'country' }))}
+      ${paysDl}
       <div class="m-form-row">
-        ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '9 chiffres' }))}
-        ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || c.tvaIntra || '', placeholder: 'FR + 11 chiffres' }))}
-      </div>
-      <div class="m-form-row">
-        ${M.formField('Délai paiement', M.formInputWithSuffix('delaiPaiement', 'j', { type: 'number', step: '1', min: '0', max: '180', value: c.delaiPaiement || '30', placeholder: '30' }))}
+        ${M.formField('Délai paiement', M.formInputWithSuffix('delaiPaiement', 'j', { type: 'number', step: '1', min: '0', max: '180', value: c.delaiPaiementJours || c.delaiPaiement || '30', placeholder: '30' }))}
         ${M.formField('Mode paiement préféré', M.formSelect('modePaiement', [
           { value: 'virement',    label: 'Virement' },
           { value: 'prelevement', label: 'Prélèvement SEPA' },
@@ -1808,6 +1832,16 @@
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
+        // Toggle pro/particulier conditional fields (parity-mobile-alertes-clients)
+        const proBox = b.querySelector('#m-cli-pro-fields');
+        const partBox = b.querySelector('#m-cli-particulier-fields');
+        b.querySelectorAll('#m-cli-type-radios input[name="type"]').forEach(r => {
+          r.addEventListener('change', () => {
+            const v = r.value;
+            if (proBox) proBox.style.display = v === 'pro' ? '' : 'none';
+            if (partBox) partBox.style.display = v === 'particulier' ? '' : 'none';
+          });
+        });
         if (!enEdition) return;
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le client ${c.nom} ?`, { titre: 'Supprimer client' })) return;
@@ -1821,21 +1855,31 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
+        const type = f.type || 'pro';
+        // SIREN format check (uniquement pro + non vide)
+        const sirenClean = (f.siren || '').replace(/\s+/g, '');
+        if (type === 'pro' && sirenClean && !/^\d{9}$/.test(sirenClean)) {
+          M.toast('⚠️ SIREN invalide (9 chiffres)'); return false;
+        }
         const arr = M.charger('clients');
         const data = {
           nom: f.nom.trim(),
-          secteur: f.secteur || '',
+          type,
+          secteur: type === 'pro' ? (f.secteur || '') : '',
           prenom: f.prenom?.trim() || '',
+          contact: type === 'pro' ? (f.contact?.trim() || f.prenom?.trim() || '') : '',
           tel: f.tel?.trim() || '',
           email: f.email?.trim() || '',
           emailFact: f.emailFact?.trim() || '',
           adresse: f.adresse?.trim() || '',
           cp: f.cp?.trim() || '',
           ville: f.ville?.trim() || '',
-          siren: f.siren?.trim() || '',
-          tva: f.tva?.trim() || '',
-          tvaIntra: f.tva?.trim() || '',  // alias PC
+          pays: (f.pays || 'FR').trim().toUpperCase(),
+          siren: type === 'pro' ? sirenClean : '',
+          tva: type === 'pro' ? (f.tva?.trim().toUpperCase() || '') : '',
+          tvaIntra: type === 'pro' ? (f.tva?.trim().toUpperCase() || '') : '',  // alias PC
           delaiPaiement: M.parseNum(f.delaiPaiement) || 30,
+          delaiPaiementJours: M.parseNum(f.delaiPaiement) || 30, // alias PC
           modePaiement: f.modePaiement || 'virement',
           iban: f.iban?.trim() || '',
           notes: f.notes?.trim() || ''
@@ -5491,6 +5535,13 @@
 
   M.state.alertesStatut = 'actives'; // actives | reportees | traitees
   M.state.alertesRecherche = '';
+  // parity-mobile-alertes-clients : filtre par niveau (severite) + bulk multi-select
+  M.state.alertesSeverite = 'tous';   // tous | critique | alerte | info
+  M.state.alertesBulkMode = false;
+  M.state.alertesBulkSel = new Set();
+
+  // Mapping severite mobile (3 niveaux) → niveau DB (4 niveaux) — utilise pour le drawer
+  const M_SEV_TO_NIVEAU = { critique: 'critical', alerte: 'warning', info: 'info' };
 
   M.register('alertes', {
     title: 'Alertes',
@@ -5500,6 +5551,8 @@
       const toutes = M.charger('alertes_admin').sort((a,b) => new Date(b.creeLe||0) - new Date(a.creeLe||0));
       const recherche = (M.state.alertesRecherche || '').toLowerCase();
       const statut = M.state.alertesStatut;
+      const sevFilter = M.state.alertesSeverite || 'tous';
+      const bulkOn = !!M.state.alertesBulkMode;
 
       // Filtre statut
       let filtered = toutes;
@@ -5507,10 +5560,18 @@
       if (statut === 'reportees') filtered = filtered.filter(a => !a.traitee && !a.ignoree && M.alertes.estReportee(a));
       if (statut === 'traitees')  filtered = filtered.filter(a => a.traitee);
 
-      // Filtre recherche
+      // Filtre severite (parity-mobile-alertes-clients)
+      if (sevFilter !== 'tous') {
+        filtered = filtered.filter(a => {
+          const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
+          return (cat?.severity || 'info') === sevFilter;
+        });
+      }
+
+      // Filtre recherche (titre + message + meta)
       if (recherche) {
         filtered = filtered.filter(a => {
-          const hay = `${a.message||''} ${a.meta?.salNom||''} ${a.meta?.client||''} ${a.meta?.immat||''}`.toLowerCase();
+          const hay = `${a.titre||''} ${a.message||''} ${a.meta?.salNom||''} ${a.meta?.client||''} ${a.meta?.immat||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
@@ -5527,13 +5588,28 @@
       // Header : recherche + chips statut
       let html = `
         <div style="margin-bottom:14px">
-          <input type="search" id="m-alertes-search" placeholder="🔍 Rechercher" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-alertes-search" placeholder="🔍 Rechercher (titre, message, salarié...)" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${statut==='actives'?'active':''}" data-statut="actives">🔴 Actives</button>
           <button class="m-alertes-chip ${statut==='reportees'?'active':''}" data-statut="reportees">⏰ Reportées${allReportees ? ` (${allReportees})` : ''}</button>
           <button class="m-alertes-chip ${statut==='traitees'?'active':''}" data-statut="traitees">✅ Traitées</button>
         </div>
+        <!-- parity-mobile-alertes-clients : filtre par niveau + bulk toggle -->
+        <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+          <button class="m-alertes-chip ${sevFilter==='tous'?'active':''}" data-sev="tous" style="font-size:.74rem;padding:0 10px;height:30px">Tous</button>
+          <button class="m-alertes-chip ${sevFilter==='critique'?'active':''}" data-sev="critique" style="font-size:.74rem;padding:0 10px;height:30px">🚨 Critique</button>
+          <button class="m-alertes-chip ${sevFilter==='alerte'?'active':''}" data-sev="alerte" style="font-size:.74rem;padding:0 10px;height:30px">⚠️ À traiter</button>
+          <button class="m-alertes-chip ${sevFilter==='info'?'active':''}" data-sev="info" style="font-size:.74rem;padding:0 10px;height:30px">ℹ️ Info</button>
+          ${statut === 'actives' && filtered.length > 1 ? `<button type="button" id="m-alertes-bulk-toggle" class="m-alertes-chip ${bulkOn ? 'active' : ''}" style="font-size:.74rem;padding:0 10px;height:30px;margin-left:auto">${bulkOn ? '✕ Annuler' : '☑️ Multi'}</button>` : ''}
+        </div>
+        ${bulkOn && M.state.alertesBulkSel.size > 0 ? `
+          <div style="display:flex;gap:6px;margin-bottom:14px;padding:10px 12px;background:var(--m-accent-soft);border:1px solid rgba(245,166,35,0.3);border-radius:12px;align-items:center">
+            <span style="font-size:.85rem;font-weight:600;color:var(--m-accent);flex:1">${M.state.alertesBulkSel.size} alerte${M.state.alertesBulkSel.size>1?'s':''} sélectionnée${M.state.alertesBulkSel.size>1?'s':''}</span>
+            <button type="button" id="m-alertes-bulk-valider" style="background:rgba(46,204,113,0.2);color:var(--m-green);border:1px solid rgba(46,204,113,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✓ Valider</button>
+            <button type="button" id="m-alertes-bulk-ignorer" style="background:rgba(231,76,60,0.15);color:var(--m-red);border:1px solid rgba(231,76,60,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✕ Ignorer</button>
+          </div>
+        ` : ''}
         ${statut === 'traitees' ? `<button type="button" id="m-alertes-vider" class="m-btn m-btn-danger" style="margin-bottom:14px">🗑️ Vider l'historique traité</button>` : ''}
       `;
 
@@ -5610,32 +5686,54 @@
                 : M.formatDate(a.creeLe);
               const sub = a.meta?.salNom || a.meta?.client || a.meta?.immat || '';
               const estCritiqueExpire = ['ct_expire','permis_expire','assurance_expire'].includes(cat.type);
+              // parity-mobile-alertes-clients : badge "non lu" + extrait tronqué
+              const nonLue = !a.lue && !a.traitee && !a.ignoree;
+              const titreOuMessage = a.titre || a.message || '';
+              const messageBis = a.titre && a.message && a.titre !== a.message ? a.message : '';
+              const isSelected = bulkOn && M.state.alertesBulkSel.has(a.id);
 
               let actions;
-              if (enModeReportees) {
-                actions = `<button class="m-alerte-action" data-action="reprendre" data-id="${M.escHtml(a.id)}" style="color:var(--m-purple)">▶️ Reprendre</button>`;
+              if (bulkOn && !enModeReportees && !enModeTraitees) {
+                // En mode bulk : checkbox uniquement (les actions classiques sont cachées)
+                actions = '';
+              } else if (enModeReportees) {
+                actions = `<button class="m-alerte-action" data-action="reprendre" data-id="${M.escHtml(a.id)}" style="color:var(--m-purple);min-height:36px;padding:6px 10px">▶️ Reprendre</button>`;
               } else if (enModeTraitees) {
                 actions = `<span style="color:var(--m-text-muted);font-size:.78rem">Traité ${M.formatDate(a.traiteLe)}</span>`;
               } else if (estCritiqueExpire) {
-                actions = `<button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green)">✓ Traité</button>`;
+                actions = `<button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green);min-height:36px;padding:6px 10px">✓ Traité</button>`;
               } else {
                 actions = `
-                  <button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green)">✓ Valider</button>
-                  <select class="m-alerte-snooze" data-id="${M.escHtml(a.id)}" style="font-size:.75rem;padding:5px 6px;background:rgba(155,89,182,0.1);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:6px;width:auto;min-width:0">
+                  <button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green);min-height:36px;padding:6px 10px">✓ Valider</button>
+                  <select class="m-alerte-snooze" data-id="${M.escHtml(a.id)}" style="font-size:.75rem;padding:5px 6px;background:rgba(155,89,182,0.1);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:6px;width:auto;min-width:0;min-height:36px">
                     <option value="">⏰</option>
                     <option value="1">+1 j</option>
                     <option value="7">+7 j</option>
                     <option value="30">+30 j</option>
                   </select>
-                  <button class="m-alerte-action" data-action="ignorer" data-id="${M.escHtml(a.id)}" style="color:var(--m-red)">✕</button>
+                  <button class="m-alerte-action" data-action="ignorer" data-id="${M.escHtml(a.id)}" style="color:var(--m-red);min-height:36px;padding:6px 10px">✕</button>
                 `;
               }
 
-              return `<div style="padding:12px 14px${isLast ? '' : ';border-bottom:1px solid var(--m-border)'}">
-                <div style="font-size:.88rem;line-height:1.4;margin-bottom:6px">${M.escHtml(a.message || '')}</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--m-text-muted)">
-                  <span>${sub ? M.escHtml(sub) + ' · ' : ''}${dateLabel}</span>
-                  <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</div>
+              // Tile cliquable (drawer detail) — sauf en mode bulk où le clic toggle la selection
+              const checkbox = bulkOn && !enModeReportees && !enModeTraitees
+                ? `<input type="checkbox" class="m-alerte-bulk-cb" data-id="${M.escHtml(a.id)}" ${isSelected ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--m-accent);flex-shrink:0;margin-right:10px;cursor:pointer" />`
+                : '';
+
+              return `<div class="m-alerte-tile" data-alerte-id="${M.escHtml(a.id)}" style="padding:12px 14px${isLast ? '' : ';border-bottom:1px solid var(--m-border)'};cursor:pointer;${isSelected ? 'background:var(--m-accent-soft)' : ''}">
+                <div style="display:flex;align-items:flex-start;gap:0">
+                  ${checkbox}
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                      ${nonLue ? `<span style="background:var(--m-accent);width:8px;height:8px;border-radius:50%;flex-shrink:0" title="Non lu"></span>` : ''}
+                      <div style="font-size:.88rem;line-height:1.4;font-weight:${nonLue ? '600' : '500'};display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${M.escHtml(titreOuMessage)}</div>
+                    </div>
+                    ${messageBis ? `<div style="font-size:.78rem;color:var(--m-text-muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px">${M.escHtml(messageBis)}</div>` : ''}
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--m-text-muted)">
+                      <span>${sub ? M.escHtml(sub) + ' · ' : ''}${dateLabel}</span>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</div>
+                    </div>
+                  </div>
                 </div>
               </div>`;
             }).join('')}
@@ -5660,11 +5758,76 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
-      // Chips statut
-      container.querySelectorAll('.m-alertes-chip').forEach(btn => {
+      // Chips statut (data-statut) — seulement les boutons qui ont l'attribut, pas les chips niveau
+      container.querySelectorAll('.m-alertes-chip[data-statut]').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.alertesStatut = btn.dataset.statut;
+          // Sortie auto du mode bulk si on change d'onglet
+          M.state.alertesBulkMode = false;
+          M.state.alertesBulkSel = new Set();
           M.go('alertes');
+        });
+      });
+      // Chips niveau (parity-mobile-alertes-clients)
+      container.querySelectorAll('.m-alertes-chip[data-sev]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.alertesSeverite = btn.dataset.sev;
+          M.go('alertes');
+        });
+      });
+      // Toggle bulk mode (parity-mobile-alertes-clients)
+      container.querySelector('#m-alertes-bulk-toggle')?.addEventListener('click', () => {
+        M.state.alertesBulkMode = !M.state.alertesBulkMode;
+        M.state.alertesBulkSel = new Set();
+        M.go('alertes');
+      });
+      // Checkbox individuelle bulk
+      container.querySelectorAll('.m-alerte-bulk-cb').forEach(cb => {
+        cb.addEventListener('click', e => {
+          e.stopPropagation();
+          const id = cb.dataset.id;
+          if (cb.checked) M.state.alertesBulkSel.add(id);
+          else M.state.alertesBulkSel.delete(id);
+          M.go('alertes');
+        });
+      });
+      // Bulk actions multi-select (valider / ignorer en masse les alertes selectionnees)
+      container.querySelector('#m-alertes-bulk-valider')?.addEventListener('click', async () => {
+        const ids = Array.from(M.state.alertesBulkSel);
+        if (!ids.length) return;
+        if (!await M.confirm(`Marquer ${ids.length} alerte${ids.length>1?'s':''} comme traitée${ids.length>1?'s':''} ?`, { titre: 'Validation multiple' })) return;
+        ids.forEach(id => M.alertes.valider(id));
+        M.state.alertesBulkSel = new Set();
+        M.state.alertesBulkMode = false;
+        M.toast(`✅ ${ids.length} alerte${ids.length>1?'s':''} traitée${ids.length>1?'s':''}`);
+        M.updateAlertesBadge();
+        M.go('alertes');
+      });
+      container.querySelector('#m-alertes-bulk-ignorer')?.addEventListener('click', async () => {
+        const ids = Array.from(M.state.alertesBulkSel);
+        if (!ids.length) return;
+        if (!await M.confirm(`Ignorer ${ids.length} alerte${ids.length>1?'s':''} ?`, { titre: 'Ignorer multiple' })) return;
+        ids.forEach(id => M.alertes.ignorer(id));
+        M.state.alertesBulkSel = new Set();
+        M.state.alertesBulkMode = false;
+        M.toast(`✕ ${ids.length} alerte${ids.length>1?'s':''} ignorée${ids.length>1?'s':''}`);
+        M.updateAlertesBadge();
+        M.go('alertes');
+      });
+      // Tap sur la tile → en mode bulk : toggle, sinon → drawer detail (parity-mobile-alertes-clients)
+      container.querySelectorAll('.m-alerte-tile').forEach(tile => {
+        tile.addEventListener('click', e => {
+          // Ignore si on a tape sur un bouton d'action / select / checkbox
+          if (e.target.closest('.m-alerte-action, .m-alerte-snooze, .m-alerte-bulk-cb')) return;
+          const id = tile.dataset.alerteId;
+          if (M.state.alertesBulkMode) {
+            // Toggle selection
+            if (M.state.alertesBulkSel.has(id)) M.state.alertesBulkSel.delete(id);
+            else M.state.alertesBulkSel.add(id);
+            M.go('alertes');
+          } else {
+            M.openAlerteDetail(id);
+          }
         });
       });
       // Bouton "Vider l'historique traite" (uniquement en vue traitees)
@@ -5679,7 +5842,8 @@
       });
       // Actions individuelles
       container.querySelectorAll('.m-alerte-action').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
           const id = btn.dataset.id;
           const action = btn.dataset.action;
           if (action === 'valider')   M.alertes.valider(id);
@@ -5693,14 +5857,16 @@
       container.querySelectorAll('.m-alerte-snooze').forEach(sel => {
         sel.addEventListener('change', e => {
           if (!e.target.value) return;
+          e.stopPropagation();
           M.alertes.reporter(e.target.dataset.id, e.target.value);
           M.updateAlertesBadge();
           M.go('alertes');
         });
       });
-      // Bulk actions
+      // Bulk actions par TYPE (existant — bouton "Tout valider/ignorer" sur card categorie)
       container.querySelectorAll('.m-alertes-bulk').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async e => {
+          e.stopPropagation();
           const action = btn.dataset.action;
           const type = btn.dataset.type;
           const fn = action === 'valider' ? M.alertes.validerParType : M.alertes.ignorerParType;
@@ -5713,6 +5879,133 @@
       });
     }
   });
+
+  // ---------- Drawer 360° alerte (parity-mobile-alertes-clients) ----------
+  // Affiche le détail complet d'une alerte : niveau, type, titre, message,
+  // contexte JSON (key/value), date, actions contextuelles + lien vers l'entité.
+  M.openAlerteDetail = function(id) {
+    const arr = M.charger('alertes_admin');
+    const a = arr.find(x => x.id === id);
+    if (!a) return M.toast('Alerte introuvable');
+
+    // Marque comme lue automatiquement à l'ouverture (semantique du brief)
+    if (!a.lue && !a.traitee && !a.ignoree) {
+      const idx = arr.findIndex(x => x.id === id);
+      if (idx >= 0) {
+        arr[idx].lue = true;
+        arr[idx].lueLe = new Date().toISOString();
+        M.sauvegarder('alertes_admin', arr);
+        M.updateAlertesBadge();
+      }
+    }
+
+    const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
+    const sev = cat?.severity || 'info';
+    const niveau = M_SEV_TO_NIVEAU[sev] || 'info';
+    const cfgSev = M_SEVERITES[sev];
+    const niveauIcons = { critical: '🔴', critique: '🔴', error: '🚨', warning: '⚠️', alerte: '⚠️', info: 'ℹ️' };
+    const icone = niveauIcons[niveau] || cat?.icon || 'ℹ️';
+
+    // Contexte (jsonb DB) ou meta (legacy)
+    const ctx = a.contexte && typeof a.contexte === 'object' ? a.contexte : (a.meta || {});
+    const ctxKeys = Object.keys(ctx || {}).filter(k => ctx[k] !== null && ctx[k] !== undefined && ctx[k] !== '');
+
+    // "Aller vers l'entité" — déduit de meta/contexte
+    let entiteAction = null;
+    if (ctx.salId)        entiteAction = { label: '👥 Voir le salarié',  page: 'salaries',  id: ctx.salId };
+    else if (ctx.vehId || ctx.vehiculeId) entiteAction = { label: '🚐 Voir le véhicule', page: 'vehicules', id: ctx.vehId || ctx.vehiculeId };
+    else if (ctx.clientId) entiteAction = { label: '🧑 Voir le client',  page: 'clients',   id: ctx.clientId };
+    else if (ctx.livId || ctx.livraisonId) entiteAction = { label: '📦 Voir la livraison', page: 'livraisons', id: ctx.livId || ctx.livraisonId };
+    else if (ctx.chargeId) entiteAction = { label: '💸 Voir la charge', page: 'charges',   id: ctx.chargeId };
+    else if (cat?.module)  entiteAction = { label: `→ Onglet ${cat.module}`, page: cat.module };
+
+    const estCritiqueExpire = ['ct_expire','permis_expire','assurance_expire'].includes(a.type);
+    const enReportee = M.alertes.estReportee(a);
+
+    const body = `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:linear-gradient(135deg,${cfgSev.color}1a,${cfgSev.color}0a);border:1px solid ${cfgSev.color}55;border-radius:12px;margin-bottom:14px">
+        <span style="font-size:1.8rem">${icone}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.66rem;color:${cfgSev.color};font-weight:700;text-transform:uppercase;letter-spacing:.05em">${niveau} · ${M.escHtml(a.type || '—')}</div>
+          <div style="font-weight:600;font-size:.95rem;margin-top:2px">${M.escHtml(a.titre || cat?.label || 'Alerte')}</div>
+        </div>
+      </div>
+
+      ${a.message && a.message !== a.titre ? `
+        <div class="m-card" style="padding:14px 16px;margin-bottom:14px">
+          <div style="font-size:.7rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px">Message</div>
+          <div style="font-size:.9rem;line-height:1.5;white-space:pre-wrap">${M.escHtml(a.message)}</div>
+        </div>
+      ` : ''}
+
+      ${ctxKeys.length ? `
+        <div class="m-card" style="padding:0;margin-bottom:14px">
+          <div style="padding:10px 16px;background:var(--m-bg-elevated);font-size:.7rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--m-border)">Contexte</div>
+          ${ctxKeys.map(k => {
+            const val = ctx[k];
+            const valStr = typeof val === 'object' ? JSON.stringify(val) : String(val);
+            return `<div style="padding:10px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px">
+              <span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(k)}</span>
+              <span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-word;max-width:60%">${M.escHtml(valStr)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+
+      <div class="m-card" style="padding:0;margin-bottom:14px">
+        <div style="padding:10px 16px;display:flex;justify-content:space-between;gap:10px">
+          <span style="color:var(--m-text-muted);font-size:.78rem">Créée</span>
+          <span style="font-weight:500;font-size:.85rem">${M.formatDate(a.creeLe)}</span>
+        </div>
+        ${a.lueLe ? `<div style="padding:10px 16px;border-top:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem">Lue</span><span style="font-weight:500;font-size:.85rem">${M.formatDate(a.lueLe)}</span></div>` : ''}
+        ${a.traiteLe ? `<div style="padding:10px 16px;border-top:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem">Traitée</span><span style="font-weight:500;font-size:.85rem;color:var(--m-green)">${M.formatDate(a.traiteLe)}</span></div>` : ''}
+        ${enReportee && a.meta?.repousseJusquA ? `<div style="padding:10px 16px;border-top:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem">Reportée jusqu'à</span><span style="font-weight:500;font-size:.85rem;color:var(--m-purple)">${M.formatDate(a.meta.repousseJusquA)}</span></div>` : ''}
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${entiteAction ? `<button type="button" id="m-alerte-detail-goto" data-page="${M.escHtml(entiteAction.page)}" data-id="${M.escHtml(entiteAction.id || '')}" style="padding:14px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">${M.escHtml(entiteAction.label)} →</button>` : ''}
+        ${!a.traitee && !a.ignoree ? `<button type="button" id="m-alerte-detail-valider" style="padding:14px;background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">✓ Marquer comme traitée</button>` : ''}
+        ${!a.traitee && !a.ignoree && !estCritiqueExpire && !enReportee ? `<button type="button" id="m-alerte-detail-ignorer" style="padding:14px;background:rgba(231,76,60,0.12);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">✕ Ignorer</button>` : ''}
+        ${enReportee ? `<button type="button" id="m-alerte-detail-reprendre" style="padding:14px;background:rgba(155,89,182,0.15);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">▶️ Reprendre</button>` : ''}
+      </div>
+    `;
+
+    M.openSheet({
+      title: 'Détail alerte',
+      body,
+      submitLabel: 'Fermer', // pas de form classique — submit = fermeture
+      afterMount(b) {
+        b.querySelector('#m-alerte-detail-goto')?.addEventListener('click', () => {
+          const page = b.querySelector('#m-alerte-detail-goto').dataset.page;
+          const eid = b.querySelector('#m-alerte-detail-goto').dataset.id;
+          M.closeSheet();
+          if (eid && M.openDetail) M.openDetail(page, eid);
+          else M.go(page);
+        });
+        b.querySelector('#m-alerte-detail-valider')?.addEventListener('click', () => {
+          M.alertes.valider(id);
+          M.toast('✓ Alerte traitée');
+          M.updateAlertesBadge();
+          M.closeSheet();
+          M.go('alertes');
+        });
+        b.querySelector('#m-alerte-detail-ignorer')?.addEventListener('click', () => {
+          M.alertes.ignorer(id);
+          M.toast('Alerte ignorée');
+          M.updateAlertesBadge();
+          M.closeSheet();
+          M.go('alertes');
+        });
+        b.querySelector('#m-alerte-detail-reprendre')?.addEventListener('click', () => {
+          M.alertes.reprendre(id);
+          M.toast('Alerte reprise');
+          M.updateAlertesBadge();
+          M.closeSheet();
+          M.go('alertes');
+        });
+      }
+    });
+  };
   // ---------- Helper : index immat par vehiculeId (utilise sur Carburant) ----------
   M.indexVehicules = function() {
     const arr = M.charger('vehicules');
@@ -7243,7 +7536,53 @@
     }
   });
   // ---------- Clients (v2.7 : list + recherche + detail tap-to-call) ----------
+  // parity-mobile-alertes-clients : ajout filtre type pro/particulier, tri (nom/CA/derniere),
+  // badge type, CA mensuel moyen 6 derniers mois, drawer 360 enrichi.
   M.state.clientsRecherche = '';
+  M.state.clientsTypeFilter = 'tous'; // tous | pro | particulier
+  M.state.clientsTri = 'nom';         // nom | ca | derniere
+
+  // Pre-calcule stats par client (CA total, CA mens 6m, derniere livraison, encaissement)
+  M.calculClientStats = function() {
+    const livrAll = M.charger('livraisons');
+    const stats = {};
+    const now = new Date();
+    const cutoff6m = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().slice(0, 10);
+    livrAll.forEach(l => {
+      const k = (l.client || '').toLowerCase();
+      if (!k) return;
+      if (!stats[k]) stats[k] = { caTotal: 0, ca6m: 0, mois6m: new Set(), derniere: '', nbLiv: 0,
+                                   facture: 0, paye: 0, attente: 0, retard: 0 };
+      const s = stats[k];
+      const prix = M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+      s.caTotal += prix;
+      s.nbLiv++;
+      if (l.date && l.date > s.derniere) s.derniere = l.date;
+      if (l.date && l.date >= cutoff6m) {
+        s.ca6m += prix;
+        s.mois6m.add(l.date.slice(0, 7));
+      }
+      // Encaissement (statutPaiement) — uniquement livraisons "livrees"
+      const statutLiv = (l.statut || '').toLowerCase();
+      if (statutLiv === 'livre' || statutLiv === 'livree' || !l.statut) {
+        const sp = (l.statutPaiement || 'en-attente').toLowerCase();
+        s.facture += prix;
+        if (sp === 'paye') s.paye += prix;
+        else {
+          // En retard si echeance depassee (delaiPaiement client)
+          s.attente += prix;
+          // calcul retard rudimentaire : date livraison + 30j depasse aujourd'hui
+          if (l.date) {
+            const echDate = new Date(l.date + 'T00:00:00');
+            echDate.setDate(echDate.getDate() + 30);
+            if (echDate < now) s.retard += prix;
+          }
+        }
+      }
+    });
+    return stats;
+  };
+
   M.register('clients', {
     title: 'Clients',
     render() {
@@ -7252,63 +7591,79 @@
 
       const clients = M.charger('clients');
       const recherche = (M.state.clientsRecherche || '').toLowerCase();
+      const typeFilter = M.state.clientsTypeFilter || 'tous';
+      const tri = M.state.clientsTri || 'nom';
+      const stats = M.calculClientStats();
+
       let filtered = clients;
+      // Filtre type
+      if (typeFilter === 'pro') filtered = filtered.filter(c => (c.type || 'pro') === 'pro');
+      else if (typeFilter === 'particulier') filtered = filtered.filter(c => c.type === 'particulier');
+      // Recherche : nom, tel, email, ville, SIREN, adresse
       if (recherche) {
-        filtered = clients.filter(c => {
-          const hay = `${c.nom||''} ${c.tel||''} ${c.email||''} ${c.ville||''} ${c.adresse||''}`.toLowerCase();
+        filtered = filtered.filter(c => {
+          const hay = `${c.nom||''} ${c.prenom||''} ${c.tel||''} ${c.email||''} ${c.ville||''} ${c.adresse||''} ${c.siren||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
-      filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
-
-      // Pre-calcule le CA total par client (sur tous les mois) pour affichage en liste
-      const livrAll = M.charger('livraisons');
-      const caByClient = {};
-      livrAll.forEach(l => {
-        const k = (l.client || '').toLowerCase();
-        if (!k) return;
-        caByClient[k] = (caByClient[k] || 0) + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0);
+      // Tri
+      filtered = [...filtered].sort((a, b) => {
+        if (tri === 'ca') {
+          return (stats[(b.nom||'').toLowerCase()]?.caTotal || 0) - (stats[(a.nom||'').toLowerCase()]?.caTotal || 0);
+        }
+        if (tri === 'derniere') {
+          return (stats[(b.nom||'').toLowerCase()]?.derniere || '').localeCompare(stats[(a.nom||'').toLowerCase()]?.derniere || '');
+        }
+        return (a.nom||'').localeCompare(b.nom||'');
       });
+
+      const cntPro = clients.filter(c => (c.type || 'pro') === 'pro').length;
+      const cntPart = clients.filter(c => c.type === 'particulier').length;
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauClient()" aria-label="Nouveau client">+</button>`;
       html += `
-        <div style="margin-bottom:14px">
-          <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
+        <div style="margin-bottom:10px">
+          <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville, SIREN)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${typeFilter==='tous'?'active':''}" data-cli-type="tous">Tous (${clients.length})</button>
+          <button class="m-alertes-chip ${typeFilter==='pro'?'active':''}" data-cli-type="pro">🏢 Pro (${cntPro})</button>
+          <button class="m-alertes-chip ${typeFilter==='particulier'?'active':''}" data-cli-type="particulier">👤 Particulier (${cntPart})</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;font-size:.78rem;color:var(--m-text-muted)">
+          <span>Tri :</span>
+          <button class="m-alertes-chip ${tri==='nom'?'active':''}" data-cli-tri="nom" style="font-size:.74rem;padding:0 10px;height:30px">A→Z</button>
+          <button class="m-alertes-chip ${tri==='ca'?'active':''}" data-cli-tri="ca" style="font-size:.74rem;padding:0 10px;height:30px">CA</button>
+          <button class="m-alertes-chip ${tri==='derniere'?'active':''}" data-cli-tri="derniere" style="font-size:.74rem;padding:0 10px;height:30px">Dernière liv.</button>
         </div>
       `;
 
       if (!clients.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucun client</h3><p class="m-empty-text">Ajoute tes premiers clients depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucun client</h3><p class="m-empty-text">Tape sur + pour ajouter ton premier client.</p></div>`;
         return html;
       }
       if (!filtered.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé ou change de filtre.</p></div>`;
         return html;
       }
 
-      // Group alphabetique
-      const byLetter = {};
-      filtered.forEach(c => {
-        const letter = ((c.nom||'').charAt(0).toUpperCase() || '#').replace(/[^A-Z]/, '#');
-        if (!byLetter[letter]) byLetter[letter] = [];
-        byLetter[letter].push(c);
-      });
-      const letters = Object.keys(byLetter).sort();
-
-      letters.forEach(letter => {
-        html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${letter}</div>`;
-        byLetter[letter].forEach(c => {
-          const caClient = caByClient[(c.nom || '').toLowerCase()] || 0;
-          html += `<button type="button" class="m-card m-card-pressable m-client-row" data-id="${M.escHtml(c.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
-            <div style="flex:1 1 auto;min-width:0">
-              <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.nom || '—')}</div>
-              <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.tel || c.email || c.ville || '—')}</div>
-              ${caClient > 0 ? `<div style="color:var(--m-green);font-size:.78rem;margin-top:3px;font-weight:600">${M.format$(caClient)} HT total</div>` : ''}
-            </div>
-            <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
-          </button>`;
+      // En tri "nom" on garde le grouping alphabétique. Sinon liste plate.
+      if (tri === 'nom') {
+        const byLetter = {};
+        filtered.forEach(c => {
+          const letter = ((c.nom||'').charAt(0).toUpperCase() || '#').replace(/[^A-Z]/, '#');
+          if (!byLetter[letter]) byLetter[letter] = [];
+          byLetter[letter].push(c);
         });
-      });
+        Object.keys(byLetter).sort().forEach(letter => {
+          html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${letter}</div>`;
+          byLetter[letter].forEach(c => { html += M.renderClientTile(c, stats); });
+        });
+      } else {
+        const triLabel = tri === 'ca' ? 'Trié par CA décroissant' : 'Trié par dernière livraison';
+        html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${triLabel}</div>`;
+        filtered.forEach(c => { html += M.renderClientTile(c, stats); });
+      }
 
       return html;
     },
@@ -7325,11 +7680,49 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
+      // Chips type
+      container.querySelectorAll('[data-cli-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.clientsTypeFilter = btn.dataset.cliType;
+          M.go('clients');
+        });
+      });
+      // Chips tri
+      container.querySelectorAll('[data-cli-tri]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.clientsTri = btn.dataset.cliTri;
+          M.go('clients');
+        });
+      });
       container.querySelectorAll('.m-client-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('clients', btn.dataset.id));
       });
     }
   });
+
+  // Rend une tile client (factorise rendu pour modes group / liste plate)
+  M.renderClientTile = function(c, stats) {
+    const s = stats[(c.nom || '').toLowerCase()] || {};
+    const caTotal = s.caTotal || 0;
+    const moisActifs = s.mois6m ? s.mois6m.size : 0;
+    const caMensMoyen = moisActifs > 0 ? Math.round(s.ca6m / moisActifs) : 0;
+    const isPro = (c.type || 'pro') === 'pro';
+    const badgeType = isPro
+      ? `<span style="background:rgba(95,149,255,0.15);color:var(--m-blue);padding:2px 7px;border-radius:8px;font-size:.66rem;font-weight:700;letter-spacing:.04em">PRO</span>`
+      : `<span style="background:rgba(155,89,182,0.15);color:var(--m-purple);padding:2px 7px;border-radius:8px;font-size:.66rem;font-weight:700;letter-spacing:.04em">PART.</span>`;
+    const nomAffiche = c.type === 'particulier' && c.prenom ? `${c.prenom} ${c.nom||''}` : (c.nom || '—');
+    return `<button type="button" class="m-card m-card-pressable m-client-row" data-id="${M.escHtml(c.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;min-height:48px">
+      <div style="flex:1 1 auto;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(nomAffiche)}</span>
+          ${badgeType}
+        </div>
+        <div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.ville || c.tel || c.email || '—')}</div>
+        ${caMensMoyen > 0 ? `<div style="color:var(--m-green);font-size:.76rem;margin-top:3px;font-weight:600">${M.format$(caMensMoyen)} / mois (6m) · ${M.format$(caTotal)} total</div>` : (caTotal > 0 ? `<div style="color:var(--m-green);font-size:.76rem;margin-top:3px;font-weight:600">${M.format$(caTotal)} HT total</div>` : '')}
+      </div>
+      <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+    </button>`;
+  };
 
   M.renderClientDetail = function(id) {
     const c = M.charger('clients').find(x => x.id === id);
@@ -7337,52 +7730,110 @@
 
     // Telephone : nettoie pour href:tel + format affichage
     const telClean = (c.tel || '').replace(/[^\d+]/g, '');
-    const livClient = M.charger('livraisons').filter(l => (l.client || '').toLowerCase() === (c.nom || '').toLowerCase());
-    const totalCa = livClient.reduce((s, l) => s + (M.parseNum(l.prix) || 0), 0);
+    const livClient = M.charger('livraisons').filter(l => (l.client || '').toLowerCase() === (c.nom || '').toLowerCase() || l.clientId === c.id);
     const adresseFull = [c.adresse, c.cp, c.ville].filter(Boolean).join(' ');
     const adresseEnc = encodeURIComponent(adresseFull);
+
+    // Encaissement detail (parity-mobile-alertes-clients) : facturé/payé/attente/retard
+    const stats = M.calculClientStats();
+    const s = stats[(c.nom || '').toLowerCase()] || { caTotal: 0, facture: 0, paye: 0, attente: 0, retard: 0, derniere: '' };
+    const isPro = (c.type || 'pro') === 'pro';
+    const nomAffiche = c.type === 'particulier' && c.prenom ? `${c.prenom} ${c.nom||''}` : (c.nom || '—');
+    const badgeType = isPro
+      ? `<span style="background:rgba(95,149,255,0.15);color:var(--m-blue);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">🏢 PRO</span>`
+      : `<span style="background:rgba(155,89,182,0.15);color:var(--m-purple);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">👤 PARTICULIER</span>`;
 
     return `
       <div style="text-align:center;padding:8px 0 18px">
         <div style="width:64px;height:64px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 10px">${M.escHtml((c.nom || '?').charAt(0).toUpperCase())}</div>
-        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(c.nom || '—')}</h2>
-        ${c.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(c.ville)}</p>` : ''}
-        <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="margin-top:12px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid ${'rgba(245,166,35,0.3)'};border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(nomAffiche)}</h2>
+        <div style="margin-top:6px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;align-items:center">
+          ${badgeType}
+          ${c.ville ? `<span style="color:var(--m-text-muted);font-size:.85rem">${M.escHtml(c.ville)}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+          <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">✏️ Modifier</button>
+          <button type="button" onclick="MCAm.nouvelleLivraisonPourClient('${M.escHtml(c.id)}')" style="background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">+ Livraison</button>
+        </div>
       </div>
 
       ${c.tel || c.email || adresseFull ? `
         <div class="m-card-row" style="grid-template-columns:repeat(${(c.tel?1:0)+(c.email?1:0)+(adresseFull?1:0)},1fr);gap:8px;margin-bottom:12px">
-          ${c.tel ? `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
-          ${c.email ? `<a href="mailto:${M.escHtml(c.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
-          ${adresseFull ? `<a href="https://maps.apple.com/?q=${adresseEnc}" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">🗺️</span><span>Itinéraire</span></a>` : ''}
+          ${c.tel ? `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem;min-height:48px"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
+          ${c.email ? `<a href="mailto:${M.escHtml(c.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem;min-height:48px"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
+          ${adresseFull ? `<a href="https://maps.apple.com/?q=${adresseEnc}" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);text-decoration:none;font-weight:600;font-size:.85rem;min-height:48px"><span style="font-size:1.4rem">🗺️</span><span>Itinéraire</span></a>` : ''}
         </div>
       ` : ''}
 
-      <div class="m-card" style="padding:0">
+      <!-- Encaissement (parity-mobile-alertes-clients) -->
+      ${s.facture > 0 ? `
+        <div class="m-section" style="margin-top:18px">
+          <div class="m-section-header"><h3 class="m-section-title">💰 Encaissement</h3></div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            <div style="background:var(--m-card);border:1px solid var(--m-border);border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Facturé</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px">${M.format$(s.facture)}</div>
+            </div>
+            <div style="background:var(--m-card);border:1px solid rgba(46,204,113,0.3);border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:var(--m-green);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Payé</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-green)">${M.format$(s.paye)}</div>
+            </div>
+            <div style="background:var(--m-card);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">En attente</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-accent)">${M.format$(s.attente - s.retard)}</div>
+            </div>
+            <div style="background:var(--m-card);border:1px solid ${s.retard > 0 ? 'rgba(231,76,60,0.4)' : 'var(--m-border)'};border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:${s.retard > 0 ? 'var(--m-red)' : 'var(--m-text-muted)'};text-transform:uppercase;letter-spacing:.04em;font-weight:700">En retard</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:${s.retard > 0 ? 'var(--m-red)' : 'inherit'}">${M.format$(s.retard)}</div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Identité + contact + adresse + conditions -->
+      <div class="m-card" style="padding:0;margin-top:18px">
+        <div style="padding:10px 16px;background:var(--m-bg-elevated);font-size:.7rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--m-border)">Identité & contact</div>
+        ${c.contact || c.prenom ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Contact</span><span style="font-weight:500">${M.escHtml(c.contact || c.prenom || '')}</span></div>` : ''}
         ${c.tel ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(c.tel)}</span></div>` : ''}
         ${c.email ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(c.email)}</span></div>` : ''}
-        ${adresseFull ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(adresseFull)}</span></div>` : ''}
+        ${c.emailFact && c.emailFact !== c.email ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email fact.</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(c.emailFact)}</span></div>` : ''}
+        ${adresseFull ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(adresseFull)}${c.pays && c.pays !== 'FR' ? ' · ' + M.escHtml(c.pays) : ''}</span></div>` : ''}
+        ${isPro && c.secteur ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Secteur</span><span style="font-weight:500">${M.escHtml(c.secteur)}</span></div>` : ''}
         ${c.siren ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIREN</span><span style="font-weight:500">${M.escHtml(c.siren)}</span></div>` : ''}
-        ${c.tva ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(c.tva)}</span></div>` : ''}
-        ${c.notes ?     `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Notes</span><span style="font-size:.88rem;line-height:1.45">${M.escHtml(c.notes)}</span></div>` : ''}
+        ${c.tva || c.tvaIntra ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(c.tva || c.tvaIntra)}</span></div>` : ''}
+        ${(c.delaiPaiementJours || c.delaiPaiement) ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Délai paiement</span><span style="font-weight:500">${M.escHtml(c.delaiPaiementJours || c.delaiPaiement)} j</span></div>` : ''}
+        ${c.notes ?     `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Notes</span><span style="font-size:.88rem;line-height:1.45;white-space:pre-wrap">${M.escHtml(c.notes)}</span></div>` : ''}
       </div>
 
       <div class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">📦 Livraisons</h3>
-          <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(totalCa)}</span>
+          <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(s.caTotal)}</span>
         </div>
-        ${livClient.length ? livClient.slice(0, 10).sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(l => `
-          <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
+        ${livClient.length ? livClient.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10).map(l => {
+          const sp = (l.statutPaiement || 'en-attente').toLowerCase();
+          const couleurStatut = sp === 'paye' ? 'var(--m-green)' : sp === 'partiel' ? 'var(--m-accent)' : 'var(--m-text-muted)';
+          const labelStatut = sp === 'paye' ? '✓ Payé' : sp === 'partiel' ? '~ Partiel' : '⏳ En attente';
+          return `
+          <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;min-height:48px">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:500;font-size:.88rem">${M.formatDate(l.date)}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
-              <div style="color:var(--m-text-muted);font-size:.78rem">${l.distance ? M.formatNum(l.distance) + ' km' : '—'}</div>
+              <div style="color:${couleurStatut};font-size:.75rem;margin-top:2px;font-weight:600">${labelStatut}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
             </div>
             <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prix || 0)}</div>
           </button>
-        `).join('') : `<p class="m-empty-text" style="text-align:center;padding:20px">Aucune livraison pour ce client.</p>`}
+        `}).join('') : `<p class="m-empty-text" style="text-align:center;padding:20px">Aucune livraison pour ce client.</p>`}
+        ${livClient.length > 10 ? `<button type="button" onclick="MCAm.go('livraisons')" style="width:100%;padding:12px;background:transparent;border:1px solid var(--m-border);border-radius:12px;color:var(--m-accent);font-weight:600;font-size:.85rem;font-family:inherit;cursor:pointer;min-height:44px">Voir toutes les livraisons →</button>` : ''}
       </div>
     `;
+  };
+
+  // Crée une nouvelle livraison pré-remplie pour le client (parity-mobile-alertes-clients)
+  M.nouvelleLivraisonPourClient = function(clientId) {
+    const c = M.charger('clients').find(x => x.id === clientId);
+    if (!c) return M.toast('Client introuvable');
+    const adrComplete = [c.adresse, [c.cp, c.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    M.formNouvelleLivraison({ client: c.nom || '', clientId: c.id, depart: adrComplete, zone: adrComplete, clientSiren: c.siren || '', clientTvaIntracom: c.tva || c.tvaIntra || '' });
   };
   // ---------- Fournisseurs (v2.8 : list + detail) ----------
   M.state.fournisseursRecherche = '';

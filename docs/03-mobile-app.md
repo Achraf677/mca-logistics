@@ -44,13 +44,13 @@ Onglets (barre haute, scrollable horizontalement) :
 |---|---|---|---|---|
 | 1 | `dashboard` | Accueil | 84 % | KPIs perso, activité 7 j, "Qui travaille aujourd'hui" |
 | 2 | `livraisons` | Livraisons | 84 % | Accordéon par mois, FAB +, bulk actions |
-| 3 | `planning` | Planning | 95 % | Nav semaine ISO + 3 vues (jour / semaine / par salarié) + indicateurs heures + FAB bloquer semaine + import semaine N-1 + deep-link `#planning?date=YYYY-MM-DD&vue=...` |
-| 4 | `alertes` | Alertes | 84 % | Filtre statut + recherche |
+| 3 | `planning` | Planning | 69 % | **Pas de nav semaine** (gap parité PC) |
+| 4 | `alertes` | Alertes | 95 % | Filtre statut + niveau, recherche, drawer 360° (titre+message+contexte+lien entité), bulk multi-select (parity-mobile-alertes-clients) |
 | 5 | `encaissement` | Encaissement | 83 % | Liste statut, pas de filtre période |
 | 6 | `charges` | Charges | 82 % | Accordéon mois, pas de nav période |
 | 7 | `carburant` | Carburant | 81 % | Accordéon, pas de nav période |
 | 8 | `rentabilite` | Rentabilité | 75 % | Barre stack uniquement (pas de doughnut Chart.js) |
-| 9 | `clients` | Clients | 87 % | Liste + recherche, fiche détail |
+| 9 | `clients` | Clients | 95 % | Liste + filtres type/tri, badge pro/particulier, CA mensuel 6m, drawer 360° (encaissement facturé/payé/attente/retard, historique livraisons, actions), sheet ajout/modif type pro/particulier (parity-mobile-alertes-clients) |
 | 10 | `fournisseurs` | Fournisseurs | 87 % | Idem clients |
 | 11 | `vehicules` | Véhicules | 95 % | Drawer 360° (échéances CT/assu/CG, identité+VIN+genre+crit'air, caractéristiques PTAC/PTRA/essieux/conso, acquisition, pleins, entretiens, charges rattachées, inspections, livraisons), tile indicateurs CT+assu+CG, tri immat/km/CT, actions +Plein/+Entretien/+Inspection/Carte grise (PR #parity-mobile-vehicules) |
 | 12 | `entretiens` | Entretiens | 83 % | KPI mois courant figé |
