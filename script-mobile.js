@@ -7906,8 +7906,13 @@
     `;
   };
 
-  // ---------- TVA (v3.33 : exigibilite alignee PC, fini le decalage 1 mois) ----------
+  // ---------- TVA (v3.86 : parite PC + trimestre + CSV + versements) ----------
+  M.state.tvaPeriodeMode = M.state.tvaPeriodeMode || 'mois'; // 'mois' | 'trimestre'
   M.state.tvaMois = M.moisKey();
+  M.state.tvaTrimestre = M.state.tvaTrimestre || (() => {
+    const n = new Date();
+    return n.getFullYear() + '-T' + (Math.floor(n.getMonth() / 3) + 1);
+  })();
   M.state.tvaMoisManuel = false;
   M.state.tvaTab = 'recap'; // recap | collectee | deductible
 
@@ -7941,12 +7946,70 @@
     return (l.datePaiement || '').slice(0, 10);
   };
 
+  // Calcule la plage de dates [debut, fin] (ISO YYYY-MM-DD) couverte par la
+  // periode TVA selectionnee (mois ou trimestre). Sert a filtrer livraisons +
+  // charges + carburant + versements pour cette periode.
+  M.getTVAPeriodeRange = function(mode, key) {
+    if (mode === 'trimestre') {
+      const m = /^(\d{4})-T([1-4])$/.exec(key || '');
+      if (!m) return null;
+      const year = parseInt(m[1], 10);
+      const q = parseInt(m[2], 10) - 1;
+      const start = new Date(year, q * 3, 1);
+      const end = new Date(year, q * 3 + 3, 0);
+      const pad = (d) => String(d).padStart(2, '0');
+      return {
+        debut: start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()),
+        fin: end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate())
+      };
+    }
+    // mois (YYYY-MM)
+    const m2 = /^(\d{4})-(\d{2})$/.exec(key || '');
+    if (!m2) return null;
+    const year = parseInt(m2[1], 10);
+    const month = parseInt(m2[2], 10) - 1;
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 0);
+    const pad = (d) => String(d).padStart(2, '0');
+    return {
+      debut: start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()),
+      fin: end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate())
+    };
+  };
+
+  // Helper : booleen "iso est dans [debut, fin]"
+  M.tvaIsoInRange = function(iso, range) {
+    if (!iso || !range) return false;
+    const d = (iso || '').slice(0, 10);
+    return d >= range.debut && d <= range.fin;
+  };
+
+  // Helper : telechargement CSV cote mobile (pas d'export PC reutilisable
+  // sans deps DOM). UTF-8 BOM + CRLF + quote/escape standard.
+  M.downloadCSV = function(filename, rows) {
+    if (!rows || !rows.length) { M.toast('⚠️ Aucune donnée à exporter'); return; }
+    const escape = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[";\n\r,]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csv = '﻿' + rows.map(r => r.map(escape).join(';')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+    M.toast('📥 Export CSV en cours');
+  };
+
   M.register('tva', {
     title: 'TVA',
     render() {
       // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
       if (!M.state.tvaMoisManuel) M.state.tvaMois = M.moisKey();
-      const moisSel = M.state.tvaMois;
+      const periodeMode = M.state.tvaPeriodeMode || 'mois';
+      const periodeKey = periodeMode === 'trimestre' ? M.state.tvaTrimestre : M.state.tvaMois;
+      const range = M.getTVAPeriodeRange(periodeMode, periodeKey);
       const tab = M.state.tvaTab;
       const profile = M.getTVAConfig();
 
@@ -7955,9 +8018,10 @@
       // table public.charges mais absentes du localStorage mobile a la 1re
       // ouverture de l'app -> TVA deductible vide. Le pull ramene les donnees
       // fraiches et re-rend si nouveau contenu detecte.
-      if (!M.state._tvaPullDone || M.state._tvaPullMois !== moisSel) {
+      const pullKey = periodeMode + ':' + periodeKey;
+      if (!M.state._tvaPullDone || M.state._tvaPullMois !== pullKey) {
         M.state._tvaPullDone = true;
-        M.state._tvaPullMois = moisSel;
+        M.state._tvaPullMois = pullKey;
         const adapters = window.DelivProEntityAdapters || {};
         const before = (M.charger('charges').length) + (M.charger('livraisons').length) + (M.charger('carburant').length);
         Promise.allSettled([
@@ -7977,16 +8041,16 @@
       const livEnAttente = [];
       allLivraisons.forEach(l => {
         const exDate = M.getLivraisonTVAExigibiliteDate(l, profile);
-        if (exDate && exDate.startsWith(moisSel)) {
+        if (exDate && M.tvaIsoInRange(exDate, range)) {
           livEligibles.push({ ...l, _exigibiliteDate: exDate });
-        } else if (!exDate && (l.date || '').startsWith(moisSel)) {
+        } else if (!exDate && M.tvaIsoInRange((l.date || '').slice(0, 10), range)) {
           // Facturee ce mois mais pas encore payee -> in pending
           livEnAttente.push(l);
         }
       });
       const livraisons = livEligibles;
-      const charges = M.charger('charges').filter(c => (c.date || '').startsWith(moisSel));
-      const carburant = M.charger('carburant').filter(p => (p.date || '').startsWith(moisSel));
+      const charges = M.charger('charges').filter(c => M.tvaIsoInRange((c.date || '').slice(0, 10), range));
+      const carburant = M.charger('carburant').filter(p => M.tvaIsoInRange((p.date || '').slice(0, 10), range));
 
       // TVA collectee : par livraison, base = HT, montant = TVA explicite ou (TTC - HT)
       const livAvecTva = livraisons.map(l => {
@@ -8040,24 +8104,65 @@
       const baseDeductibleCarburant = carbAvecTva.reduce((s, p) => s + p._ht, 0);
 
       const tvaDeductible = tvaDeductibleCharges + tvaDeductibleCarburant;
-      const aReverser = tvaCollectee - tvaDeductible;
-      const enCredit = aReverser < 0;
 
-      const moisOptions = [];
+      // Versements TVA (charges categorie='tva') deja regles sur la periode :
+      // permet de voir le solde "Reste a verser" comme cote PC.
+      const versementsTVA = M.charger('charges')
+        .filter(c => c.categorie === 'tva' && M.tvaIsoInRange((c.date || '').slice(0, 10), range))
+        .map(c => ({ ...c, _montant: M.parseNum(c.montant) || 0 }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const totalVersements = versementsTVA.reduce((s, v) => s + v._montant, 0);
+
+      const soldeBrut = tvaCollectee - tvaDeductible;
+      const aReverser = soldeBrut > 0 ? Math.max(0, soldeBrut - totalVersements) : 0;
+      const tvaCredit = soldeBrut < 0 ? Math.abs(soldeBrut) : 0;
+      const enCredit = soldeBrut < 0;
+
+      // Stocker la liste pour l'export CSV (afterRender accede via closure)
+      const exportData = {
+        livraisons: livAvecTva, charges: chargesAvecTva, carburant: carbAvecTva,
+        versements: versementsTVA, periodeKey, periodeMode,
+        totaux: { tvaCollectee, tvaDeductible, totalVersements, aReverser, tvaCredit, soldeBrut }
+      };
+      M.state._tvaLastExport = exportData;
+
+      // Selecteur periode : mois (12 derniers) ou trimestre (8 derniers).
       const now = new Date();
-      for (let k = 0; k < 12; k++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-        const cle = M.moisKey(d);
-        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
-        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
+      let optionsHtml;
+      if (periodeMode === 'trimestre') {
+        const trimOptions = [];
+        for (let k = 0; k < 8; k++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - k * 3, 1);
+          const q = Math.floor(d.getMonth() / 3) + 1;
+          const cle = d.getFullYear() + '-T' + q;
+          const label = 'T' + q + ' ' + d.getFullYear();
+          trimOptions.push(`<option value="${cle}" ${cle === periodeKey ? 'selected' : ''}>${label}</option>`);
+        }
+        optionsHtml = trimOptions.join('');
+      } else {
+        const moisOptions = [];
+        for (let k = 0; k < 12; k++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+          const cle = M.moisKey(d);
+          const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+          moisOptions.push(`<option value="${cle}" ${cle === periodeKey ? 'selected' : ''}>${label}</option>`);
+        }
+        optionsHtml = moisOptions.join('');
       }
 
       let html = `
-        <div style="margin-bottom:14px"><select id="m-tva-mois">${moisOptions.join('')}</select></div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button type="button" class="m-alertes-chip ${periodeMode==='mois'?'active':''}" data-pmode="mois" style="min-height:36px;flex:1 1 auto">📅 Mois</button>
+          <button type="button" class="m-alertes-chip ${periodeMode==='trimestre'?'active':''}" data-pmode="trimestre" style="min-height:36px;flex:1 1 auto">🗓️ Trimestre</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+          <select id="m-tva-periode" style="flex:1 1 auto;min-height:44px">${optionsHtml}</select>
+          <button type="button" class="m-btn" id="m-tva-export-csv" style="width:auto;flex:0 0 auto;min-height:44px;padding:0 14px;font-size:.85rem" title="Exporter CSV">📥 CSV</button>
+        </div>
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap">📊 Récap</button>
-          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee">📥 Collectée (${livAvecTva.length})</button>
-          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible">📤 Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap" style="min-height:36px">📊 Récap</button>
+          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee" style="min-height:36px">📥 Collectée (${livAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible" style="min-height:36px">📤 Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
         </div>
       `;
 
@@ -8082,6 +8187,13 @@
         const modeExplain = profile.activiteType !== 'goods' && profile.exigibiliteServices !== 'debits'
           ? 'Une livraison apparaît dans le mois de son <strong>paiement</strong> (pas de sa facturation). C\'est la règle officielle du transport routier.'
           : 'Une livraison apparaît dans le mois de sa facturation.';
+        // Carte solde principale : reste a reverser (ou credit) APRES versements
+        const soldeColor = enCredit ? 'var(--m-green)' : (aReverser > 0 ? 'var(--m-red)' : 'var(--m-accent)');
+        const soldeLibelle = enCredit ? 'Crédit TVA'
+          : (aReverser > 0 ? 'Reste à verser' : 'TVA déjà soldée');
+        const soldeMontant = enCredit ? tvaCredit : aReverser;
+        const soldeSub = enCredit ? 'Récupérable auprès du Trésor'
+          : (aReverser > 0 ? `Solde brut ${M.format$(soldeBrut)} − versements ${M.format$(totalVersements)}` : 'Tous les versements couvrent le solde brut');
         html += `
           <div class="m-card" style="padding:12px 14px;margin-bottom:10px;background:var(--m-accent-soft);font-size:.78rem">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -8090,27 +8202,47 @@
             </div>
             <div style="color:var(--m-text-muted);line-height:1.45">${modeExplain}</div>
           </div>
-          <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
-            <div class="m-card-title">${enCredit ? 'Crédit TVA' : 'TVA à reverser'}</div>
-            <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
-            <div class="m-card-sub">${enCredit ? 'Récupérable auprès du Trésor' : 'À déclarer ce mois'}</div>
+          <div class="m-card" style="border-left:4px solid ${soldeColor};padding:16px;margin-bottom:12px">
+            <div class="m-card-title">${soldeLibelle}</div>
+            <div class="m-card-value" style="color:${soldeColor};font-size:1.8rem">${M.format$(Math.abs(soldeMontant))}</div>
+            <div class="m-card-sub">${soldeSub}</div>
           </div>
           ${livEnAttente.length ? `
             <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)">
               <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">📅 Facturé mais non exigible</div>
-              <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} ce mois, en attente de paiement avant exigibilité TVA.</div>
+              <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} sur la période, en attente de paiement avant exigibilité TVA.</div>
             </div>
           ` : ''}
           <div class="m-card-row">
             <div class="m-card m-card-green"><div class="m-card-title">Collectée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaCollectee)}</div><div class="m-card-sub">${livAvecTva.length} livraison${livAvecTva.length>1?'s':''}</div></div>
-            <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">${chargesAvecTva.length} charge${chargesAvecTva.length>1?'s':''}</div></div>
+            <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">${chargesAvecTva.length + carbAvecTva.length} charge${(chargesAvecTva.length + carbAvecTva.length)>1?'s':''}</div></div>
+          </div>
+          <div class="m-card-row">
+            <div class="m-card m-card-purple"><div class="m-card-title">Versée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(totalVersements)}</div><div class="m-card-sub">${versementsTVA.length} versement${versementsTVA.length>1?'s':''}</div></div>
+            <div class="m-card ${enCredit?'m-card-green':'m-card-red'}"><div class="m-card-title">Solde</div><div class="m-card-value" style="font-size:1.1rem;color:${soldeColor}">${enCredit ? '−' : ''}${M.format$(Math.abs(soldeMontant))}</div><div class="m-card-sub">${enCredit ? 'Crédit' : (aReverser > 0 ? 'À verser' : 'OK')}</div></div>
           </div>
           <div class="m-card" style="padding:0">
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base collectée HT</span><span style="font-weight:600">${M.format$(baseCollectee)}</span></div>
             <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base déductible HT</span><span style="font-weight:600">${M.format$(baseDeductibleCharges + baseDeductibleCarburant)}</span></div>
           </div>
+          ${versementsTVA.length ? `
+            <div class="m-section" style="margin-top:16px">
+              <div class="m-section-header"><h3 class="m-section-title">💸 Versements TVA</h3></div>
+              <div class="m-card" style="padding:0">
+                ${versementsTVA.map(v => `
+                  <div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px">
+                    <div style="flex:1 1 auto;min-width:0">
+                      <div style="font-weight:500;font-size:.9rem">${M.escHtml(v.description || 'Versement TVA')}</div>
+                      <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(v.date)}</div>
+                    </div>
+                    <div style="font-weight:700;color:var(--m-purple);white-space:nowrap">${M.format$(v._montant)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
           <p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
-            Récap simplifié. La déclaration officielle CA3 doit être saisie sur impots.gouv.fr (pas générée par l'app).
+            Récap simplifié. La déclaration officielle CA3 doit être saisie sur impots.gouv.fr ou via Pennylane (pas générée par l'app).
           </p>
         `;
       }
@@ -8174,14 +8306,93 @@
       return html;
     },
     afterRender(container) {
-      const sel = container.querySelector('#m-tva-mois');
+      const sel = container.querySelector('#m-tva-periode');
       if (sel) sel.addEventListener('change', e => {
-        M.state.tvaMois = e.target.value;
-        M.state.tvaMoisManuel = true;
+        if (M.state.tvaPeriodeMode === 'trimestre') M.state.tvaTrimestre = e.target.value;
+        else { M.state.tvaMois = e.target.value; M.state.tvaMoisManuel = true; }
+        M.state._tvaPullDone = false; // force pull si periode change
         M.go('tva');
+      });
+      container.querySelectorAll('[data-pmode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.tvaPeriodeMode = btn.dataset.pmode;
+          M.state._tvaPullDone = false;
+          M.go('tva');
+        });
       });
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.tvaTab = btn.dataset.tab; M.go('tva'); });
+      });
+      const btnCsv = container.querySelector('#m-tva-export-csv');
+      if (btnCsv) btnCsv.addEventListener('click', () => {
+        const data = M.state._tvaLastExport;
+        if (!data) { M.toast('⚠️ Aucune donnée'); return; }
+        const rows = [];
+        rows.push(['MCA Logistics — Export TVA', '', '', '', '', '']);
+        rows.push(['Période', data.periodeMode === 'trimestre' ? 'Trimestre ' + data.periodeKey : 'Mois ' + data.periodeKey, '', '', '', '']);
+        rows.push([]);
+        rows.push(['=== TVA COLLECTÉE (livraisons) ===']);
+        rows.push(['Date exigibilité', 'N° livraison', 'Client', 'Taux %', 'Base HT', 'TVA', 'TTC']);
+        data.livraisons.forEach(l => {
+          rows.push([
+            l._exigibiliteDate || '',
+            l.numLiv || '',
+            l.client || '',
+            l._taux.toFixed(1).replace('.', ','),
+            l._ht.toFixed(2).replace('.', ','),
+            l._tva.toFixed(2).replace('.', ','),
+            l._ttc.toFixed(2).replace('.', ',')
+          ]);
+        });
+        rows.push(['', '', '', 'TOTAL', '', data.totaux.tvaCollectee.toFixed(2).replace('.', ','), '']);
+        rows.push([]);
+        rows.push(['=== TVA DÉDUCTIBLE (charges + carburant) ===']);
+        rows.push(['Date', 'Source', 'Libellé', 'Taux %', 'Base HT', 'TVA', 'TTC']);
+        data.charges.forEach(c => {
+          rows.push([
+            (c.date || '').slice(0, 10),
+            c.categorie || 'charge',
+            c.libelle || c.fournisseur || '',
+            c._taux.toFixed(1).replace('.', ','),
+            c._ht.toFixed(2).replace('.', ','),
+            c._tva.toFixed(2).replace('.', ','),
+            c._ttc.toFixed(2).replace('.', ',')
+          ]);
+        });
+        data.carburant.forEach(p => {
+          rows.push([
+            (p.date || '').slice(0, 10),
+            'carburant',
+            p._libelle || 'Plein',
+            p._taux.toFixed(1).replace('.', ','),
+            p._ht.toFixed(2).replace('.', ','),
+            p._tva.toFixed(2).replace('.', ','),
+            p._ttc.toFixed(2).replace('.', ',')
+          ]);
+        });
+        rows.push(['', '', '', 'TOTAL', '', data.totaux.tvaDeductible.toFixed(2).replace('.', ','), '']);
+        if (data.versements.length) {
+          rows.push([]);
+          rows.push(['=== VERSEMENTS TVA ===']);
+          rows.push(['Date', 'Description', 'Montant']);
+          data.versements.forEach(v => {
+            rows.push([(v.date || '').slice(0, 10), v.description || 'Versement TVA', v._montant.toFixed(2).replace('.', ',')]);
+          });
+          rows.push(['', 'TOTAL', data.totaux.totalVersements.toFixed(2).replace('.', ',')]);
+        }
+        rows.push([]);
+        rows.push(['=== SOLDE ===']);
+        rows.push(['TVA Collectée', data.totaux.tvaCollectee.toFixed(2).replace('.', ',')]);
+        rows.push(['TVA Déductible', data.totaux.tvaDeductible.toFixed(2).replace('.', ',')]);
+        rows.push(['Solde brut', data.totaux.soldeBrut.toFixed(2).replace('.', ',')]);
+        rows.push(['Versements déjà payés', data.totaux.totalVersements.toFixed(2).replace('.', ',')]);
+        if (data.totaux.tvaCredit > 0) {
+          rows.push(['Crédit TVA', data.totaux.tvaCredit.toFixed(2).replace('.', ',')]);
+        } else {
+          rows.push(['Reste à verser', data.totaux.aReverser.toFixed(2).replace('.', ',')]);
+        }
+        const filename = 'mca-tva-' + data.periodeKey + '.csv';
+        M.downloadCSV(filename, rows);
       });
     }
   });
