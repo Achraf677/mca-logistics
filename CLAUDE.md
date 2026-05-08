@@ -95,6 +95,9 @@ réglementaire (ADR / CE 561), rentabilité fine par mission/véhicule.
   - Coût mensuel attendu : **~€0,55-€0,90/mois** pour 50 questions/jour.
   - **Cap budget Google Cloud : 5 €/mois** (alerte "MCA LOGISTICS"), email à 50 %,
     90 %, 100 %.
+  - **Suivi consommation** : 4 endroits documentés dans `docs/access-tokens.md`
+    section "Google AI Studio — Gemini API". Quand Achraf dit "conso", privilégier
+    AI Studio (vue agrégée) ou Cloud Billing reports (vue €).
   - Procédure de désactivation d'urgence : voir `docs/access-tokens.md` section
     "Procédure de désactivation d'urgence".
   - Secret runtime : `GEMINI_API_KEY`.

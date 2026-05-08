@@ -89,6 +89,11 @@ Dernière mise à jour : 2026-05-06
 - **API base URL** : `https://generativelanguage.googleapis.com/v1beta/`
 - **Auth** : query param `?key=<GEMINI_API_KEY>` ou header `x-goog-api-key`
 - **Budget cap** : alerte budget Google Cloud nommée "MCA LOGISTICS", **5 €/mois**, alertes email à 50 % / 90 % / 100 %. URL : https://console.cloud.google.com/billing/budgets
+- **Suivi consommation (4 endroits)** :
+  1. **AI Studio** (le plus simple, vue agrégée par modèle) : https://aistudio.google.com/app/apikey → ligne de la clé → icône bar-chart 📊
+  2. **Console GCP — facturation €** (rapports quotidiens, projection mensuelle) : https://console.cloud.google.com/billing/reports?project=budget-achraf
+  3. **Quotas API en temps réel** (RPM/RPD/TPM utilisés vs limites Tier 1) : https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=budget-achraf
+  4. **Tracker interne MCA** (compteur Pro/Flash quotidien) : table Supabase `public.ai_quota_daily`, query `SELECT date, requests_pro, requests_flash FROM ai_quota_daily ORDER BY date DESC`
 - **Usage prévu MCA** :
   - OCR factures complexes (ce que Tesseract rate)
   - Auto-fill smart depuis photo (ticket carburant, RIB, justificatif)
