@@ -50,7 +50,7 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = []): 
     ``,
     `## Regles`,
     `- Reponds FR, concis, sans blabla. Markdown court, listes/tableaux quand pertinent.`,
-    `- Utilise les outils (27 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
+    `- Utilise les outils (32 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
     `- Signale anomalies/opportunites avec reco actionnable.`,
     `- V1 : LECTURE SEULE sur les donnees business (livraisons/charges/...). Si on demande "cree" / "modifie", dis que l'ecriture arrive en V2.`,
     `- Tu peux ecrire dans la memoire long-terme via add_memory_fact / delete_memory_fact (faits durables uniquement).`,
@@ -60,7 +60,12 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = []): 
     `- Le mot "retard" est ambigu. Quand l'admin l'utilise sans contexte clair, demande poliment de quel retard il s'agit : retard de paiement (livraison ou charge non payee au-dela du delai contractuel) / retard de livraison (statut: en_cours mais date depassee) / retard d'inspection (semaine sans inspection vehicule) / retard de CT ou assurance (date_ct ou date_assurance depassee). Une exception : si l'admin a deja precise le contexte dans les messages precedents, infere directement.`,
     `- "Impaye" = livraison ou charge avec statut_paiement in (a_payer, en_retard, partiel).`,
     `- "Marge" = ca_ht - charges_ht (sans cout carburant a part car deja dans charges).`,
-    `- "Top N" : si l'admin demande "top 5" ou "meilleurs", aggrege en memoire et trie par le critere demande (CA HT par defaut).`,
+    `- "Top N" : si l'admin demande "top 5" ou "meilleurs" clients, utilise top_clients_ca (deja agrege par CA HT desc).`,
+    `- "Impayes en retard" : utilise livraisons_impayees_retard (calcul deterministe du retard via clients.delai_paiement_jours).`,
+    `- "Echeances vehicule" / "CT/assurance qui expire" : utilise vehicules_echeances_proches.`,
+    `- "Inspections en attente" : utilise inspections_non_validees (statut=soumise).`,
+    `- "Rentabilite par chauffeur/tournee" : utilise rentabilite_tournee (CA - charges - carburant par salarie).`,
+    `- "Rapprochement Pennylane <-> MCA" : utilise IMPERATIVEMENT match_factures_pennylane_mca. NE compose JAMAIS toi-meme la correspondance entre une facture Pennylane et une livraison MCA — c'est un matching deterministe (montant TTC ±0.50€, date ±5j, client similar).`,
     ``,
     `## Contexte`,
     `- MCA = couche operationnelle transport (planning, km, inspections, ADR, rentabilite). PAS la compta.`,
@@ -171,16 +176,68 @@ const TOOLS = [{
       },
     },
     {
-      name: "search_paiements",
-      description: "Liste les paiements clients recus. Filtres optionnels (date, mode, livraison, client).",
+      name: "top_clients_ca",
+      description: "Top N clients par chiffre d'affaires HT sur une periode (agregat des livraisons par client_nom).",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD (defaut: debut mois courant)" },
+          date_max: { type: "string", description: "YYYY-MM-DD (defaut: aujourd'hui)" },
+          limit: { type: "integer", description: "Nb de clients a retourner (1-20, defaut 5)" },
+        },
+      },
+    },
+    {
+      name: "livraisons_impayees_retard",
+      description: "Livraisons dont le delai de paiement client est depasse (calcul deterministe : today - (date_livraison + clients.delai_paiement_jours, defaut 30)). Limite 25.",
+      parameters: {
+        type: "object",
+        properties: {
+          min_jours_retard: { type: "integer", description: "Defaut 1" },
+          client_nom: { type: "string", description: "Filtre client (recherche partielle)" },
+        },
+      },
+    },
+    {
+      name: "vehicules_echeances_proches",
+      description: "Vehicules dont CT, assurance ou date_carte_grise expire dans X jours (inclut les deja expires). Trie par jours_restants ASC.",
+      parameters: {
+        type: "object",
+        properties: {
+          dans_n_jours: { type: "integer", description: "Defaut 30" },
+        },
+      },
+    },
+    {
+      name: "inspections_non_validees",
+      description: "Inspections vehicule en attente de validation admin (statut='soumise'). Limite 25.",
       parameters: {
         type: "object",
         properties: {
           date_min: { type: "string", description: "YYYY-MM-DD" },
-          date_max: { type: "string", description: "YYYY-MM-DD" },
-          mode: { type: "string", description: "virement, cheque, especes, cb..." },
-          livraison_id: { type: "string" },
-          client_id: { type: "string" },
+          salarie_id: { type: "string" },
+        },
+      },
+    },
+    {
+      name: "rentabilite_tournee",
+      description: "Rentabilite par salarie (proxy 'tournee') sur une periode : CA HT, charges (vehicules rattaches) + carburant, marge brute, eur/km. Trie marge desc.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD (defaut: debut mois courant)" },
+          date_max: { type: "string", description: "YYYY-MM-DD (defaut: aujourd'hui)" },
+          salarie_id: { type: "string", description: "Filtre un salarie precis" },
+        },
+      },
+    },
+    {
+      name: "match_factures_pennylane_mca",
+      description: "Matching DETERMINISTE entre factures clients Pennylane et livraisons MCA d'un mois donne. A utiliser pour eviter d'inventer des correspondances. Score 0-1 base sur montant TTC ±0.50€, date ±5j, nom client similar.",
+      parameters: {
+        type: "object",
+        properties: {
+          mois: { type: "string", description: "YYYY-MM (defaut: mois precedent)" },
         },
       },
     },
@@ -537,20 +594,369 @@ async function toolGetStats(args: any, sb: SbClient) {
   };
 }
 
-async function toolSearchPaiements(args: any, sb: SbClient) {
-  let q = sb.from("paiements").select(
-    "id, date_paiement, montant, mode, reference, frais, notes, " +
-    "client:clients(nom, prenom), livraison:livraisons(num_liv, client_nom, prix_ttc)"
+async function toolTopClientsCa(args: any, sb: SbClient) {
+  const today = todayISO();
+  const dateMax = args.date_max ?? today;
+  const dateMin = args.date_min ?? today.slice(0, 7) + "-01";
+  const limit = Math.max(1, Math.min(20, Number(args.limit) || 5));
+
+  const { data, error } = await sb.from("livraisons")
+    .select("client_nom, prix_ht, prix_ttc")
+    .gte("date_livraison", dateMin)
+    .lte("date_livraison", dateMax);
+  if (error) return { error: error.message };
+
+  const agg = new Map<string, { client_nom: string; ca_ht: number; ca_ttc: number; nb_livraisons: number }>();
+  for (const row of data ?? []) {
+    const nom = (row as any).client_nom || "(sans nom)";
+    const cur = agg.get(nom) ?? { client_nom: nom, ca_ht: 0, ca_ttc: 0, nb_livraisons: 0 };
+    cur.ca_ht += Number((row as any).prix_ht) || 0;
+    cur.ca_ttc += Number((row as any).prix_ttc) || 0;
+    cur.nb_livraisons += 1;
+    agg.set(nom, cur);
+  }
+  const top = Array.from(agg.values())
+    .map((c) => ({
+      client_nom: c.client_nom,
+      ca_ht: Number(c.ca_ht.toFixed(2)),
+      ca_ttc: Number(c.ca_ttc.toFixed(2)),
+      nb_livraisons: c.nb_livraisons,
+    }))
+    .sort((a, b) => b.ca_ht - a.ca_ht)
+    .slice(0, limit);
+
+  return {
+    periode: { date_min: dateMin, date_max: dateMax },
+    count: top.length,
+    top,
+  };
+}
+
+async function toolLivraisonsImpayeesRetard(args: any, sb: SbClient) {
+  const minRetard = Number(args.min_jours_retard) || 1;
+  const today = todayISO();
+  const todayMs = Date.parse(today + "T00:00:00Z");
+
+  let q = sb.from("livraisons").select(
+    "num_liv, client_id, client_nom, date_livraison, prix_ttc, statut_paiement"
   );
-  if (args.date_min) q = q.gte("date_paiement", args.date_min);
-  if (args.date_max) q = q.lte("date_paiement", args.date_max);
-  if (args.mode) q = q.eq("mode", args.mode);
-  if (args.livraison_id) q = q.eq("livraison_id", args.livraison_id);
-  if (args.client_id) q = q.eq("client_id", args.client_id);
-  q = q.order("date_paiement", { ascending: false }).limit(RESULT_ROW_CAP);
+  // Non paye/partiel : a_payer ou en_retard
+  q = q.in("statut_paiement", ["a_payer", "en_retard"]);
+  if (args.client_nom) q = q.ilike("client_nom", `%${args.client_nom}%`);
+  q = q.order("date_livraison", { ascending: true }).limit(200);
   const { data, error } = await q;
   if (error) return { error: error.message };
-  return { count: data?.length ?? 0, paiements: data ?? [] };
+  const rows = data ?? [];
+
+  // Recupere les delai_paiement_jours par client_id (si dispo)
+  const ids = Array.from(new Set(rows.map((r: any) => r.client_id).filter(Boolean)));
+  let delaiMap = new Map<string, number>();
+  if (ids.length) {
+    const { data: cls } = await sb.from("clients").select("id, delai_paiement_jours").in("id", ids);
+    for (const c of cls ?? []) {
+      delaiMap.set((c as any).id, Number((c as any).delai_paiement_jours) || 30);
+    }
+  }
+
+  const enriched = rows.map((r: any) => {
+    const delai = (r.client_id && delaiMap.get(r.client_id)) || 30;
+    const dueMs = Date.parse(r.date_livraison + "T00:00:00Z") + delai * 86400000;
+    const joursRetard = Math.floor((todayMs - dueMs) / 86400000);
+    return {
+      num_liv: r.num_liv,
+      client_nom: r.client_nom,
+      date_livraison: r.date_livraison,
+      prix_ttc: Number(r.prix_ttc) || 0,
+      statut_paiement: r.statut_paiement,
+      delai_paiement_jours: delai,
+      jours_retard: joursRetard,
+    };
+  }).filter((r: any) => r.jours_retard >= minRetard);
+
+  enriched.sort((a, b) => b.jours_retard - a.jours_retard);
+
+  return {
+    count: enriched.length,
+    livraisons: enriched.slice(0, 25),
+  };
+}
+
+async function toolVehiculesEcheancesProches(args: any, sb: SbClient) {
+  const dans = Number(args.dans_n_jours) || 30;
+  const today = todayISO();
+  const todayMs = Date.parse(today + "T00:00:00Z");
+  const limitMs = todayMs + dans * 86400000;
+
+  const { data, error } = await sb.from("vehicules")
+    .select("immat, marque, modele, date_ct, date_assurance, date_carte_grise");
+  if (error) return { error: error.message };
+
+  const alertes: any[] = [];
+  for (const v of data ?? []) {
+    const checks: Array<[string, string | null | undefined]> = [
+      ["CT", (v as any).date_ct],
+      ["assurance", (v as any).date_assurance],
+      ["carte_grise", (v as any).date_carte_grise],
+    ];
+    for (const [type, date] of checks) {
+      if (!date) continue;
+      const dMs = Date.parse(date + "T00:00:00Z");
+      if (Number.isNaN(dMs)) continue;
+      if (dMs <= limitMs) {
+        const joursRestants = Math.floor((dMs - todayMs) / 86400000);
+        alertes.push({
+          immat: (v as any).immat,
+          marque: (v as any).marque,
+          modele: (v as any).modele,
+          type_alerte: type,
+          date_echeance: date,
+          jours_restants: joursRestants,
+        });
+      }
+    }
+  }
+  alertes.sort((a, b) => a.jours_restants - b.jours_restants);
+  return {
+    count: alertes.length,
+    alertes: alertes.slice(0, 30),
+  };
+}
+
+async function toolInspectionsNonValidees(args: any, sb: SbClient) {
+  let q = sb.from("inspections").select(
+    "id, date_inspection, semaine_label, commentaire, statut, " +
+    "salarie:salaries(nom, prenom), vehicule:vehicules(immat)"
+  ).eq("statut", "soumise");
+  if (args.date_min) q = q.gte("date_inspection", args.date_min);
+  if (args.salarie_id) q = q.eq("salarie_id", args.salarie_id);
+  q = q.order("date_inspection", { ascending: false }).limit(25);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return {
+    count: data?.length ?? 0,
+    inspections: (data ?? []).map((i: any) => ({
+      salarie: i.salarie,
+      vehicule: i.vehicule,
+      date_inspection: i.date_inspection,
+      semaine_label: i.semaine_label,
+      commentaire: i.commentaire,
+    })),
+  };
+}
+
+async function toolRentabiliteTournee(args: any, sb: SbClient) {
+  const today = todayISO();
+  const dateMax = args.date_max ?? today;
+  const dateMin = args.date_min ?? today.slice(0, 7) + "-01";
+
+  // Step 1: salaries
+  let salQ = sb.from("salaries").select("id, nom, prenom").eq("actif", true);
+  if (args.salarie_id) salQ = salQ.eq("id", args.salarie_id);
+  const { data: sals, error: salErr } = await salQ;
+  if (salErr) return { error: "salaries: " + salErr.message };
+
+  // Step 2: vehicules pour rattachement vehicule -> salarie
+  const { data: vehs, error: vehErr } = await sb.from("vehicules").select("id, salarie_id");
+  if (vehErr) return { error: "vehicules: " + vehErr.message };
+  const vehBySal = new Map<string, string[]>();
+  for (const v of vehs ?? []) {
+    const sid = (v as any).salarie_id;
+    if (!sid) continue;
+    if (!vehBySal.has(sid)) vehBySal.set(sid, []);
+    vehBySal.get(sid)!.push((v as any).id);
+  }
+
+  // Step 3: livraisons + carburant + charges sur la periode
+  let livQ = sb.from("livraisons").select("salarie_id, prix_ht, distance_km")
+    .gte("date_livraison", dateMin).lte("date_livraison", dateMax);
+  if (args.salarie_id) livQ = livQ.eq("salarie_id", args.salarie_id);
+  const { data: liv, error: livErr } = await livQ;
+  if (livErr) return { error: "livraisons: " + livErr.message };
+
+  let carbQ = sb.from("carburant").select("salarie_id, prix_ht, prix_ttc")
+    .gte("date_plein", dateMin).lte("date_plein", dateMax);
+  if (args.salarie_id) carbQ = carbQ.eq("salarie_id", args.salarie_id);
+  const { data: carb, error: carbErr } = await carbQ;
+  if (carbErr) return { error: "carburant: " + carbErr.message };
+
+  const { data: chgs, error: chgErr } = await sb.from("charges")
+    .select("vehicule_id, montant_ht")
+    .gte("date_charge", dateMin).lte("date_charge", dateMax)
+    .not("vehicule_id", "is", null);
+  if (chgErr) return { error: "charges: " + chgErr.message };
+
+  // Step 4: agregat par salarie
+  const result = (sals ?? []).map((s: any) => {
+    const sid = s.id;
+    const sLiv = (liv ?? []).filter((l: any) => l.salarie_id === sid);
+    const ca_ht = sLiv.reduce((acc, l: any) => acc + (Number(l.prix_ht) || 0), 0);
+    const km_total = sLiv.reduce((acc, l: any) => acc + (Number(l.distance_km) || 0), 0);
+
+    const sCarb = (carb ?? []).filter((c: any) => c.salarie_id === sid);
+    const carb_ht = sCarb.reduce((acc, c: any) => acc + (Number(c.prix_ht) || 0), 0);
+
+    const vehIds = new Set(vehBySal.get(sid) ?? []);
+    const sChg = (chgs ?? []).filter((c: any) => c.vehicule_id && vehIds.has(c.vehicule_id));
+    const charges_veh_ht = sChg.reduce((acc, c: any) => acc + (Number(c.montant_ht) || 0), 0);
+
+    const charges_carburant_ht = Number(carb_ht.toFixed(2));
+    const total_charges = charges_carburant_ht + Number(charges_veh_ht.toFixed(2));
+    const marge_brute_ht = ca_ht - total_charges;
+    const eur_par_km = km_total > 0 ? (ca_ht - total_charges) / km_total : 0;
+
+    return {
+      salarie: { nom: s.nom, prenom: s.prenom },
+      ca_ht: Number(ca_ht.toFixed(2)),
+      charges_carburant_ht,
+      charges_vehicule_ht: Number(charges_veh_ht.toFixed(2)),
+      marge_brute_ht: Number(marge_brute_ht.toFixed(2)),
+      nb_livraisons: sLiv.length,
+      km_total: Number(km_total.toFixed(1)),
+      eur_par_km: Number(eur_par_km.toFixed(2)),
+    };
+  }).filter((r: any) => r.nb_livraisons > 0 || r.charges_carburant_ht > 0 || r.charges_vehicule_ht > 0);
+
+  result.sort((a, b) => b.marge_brute_ht - a.marge_brute_ht);
+
+  return {
+    periode: { date_min: dateMin, date_max: dateMax },
+    count: result.length,
+    rentabilite: result.slice(0, 20),
+  };
+}
+
+async function toolMatchFacturesPennylaneMca(args: any, sb: SbClient) {
+  // Periode : par defaut, mois precedent
+  let mois = String(args.mois || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(mois)) {
+    const d = new Date();
+    d.setUTCDate(1);
+    d.setUTCMonth(d.getUTCMonth() - 1);
+    mois = d.toISOString().slice(0, 7);
+  }
+  const dateMin = mois + "-01";
+  // Dernier jour du mois
+  const [yr, mo] = mois.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(yr, mo, 0)).getUTCDate();
+  const dateMax = `${mois}-${String(lastDay).padStart(2, "0")}`;
+
+  // Fenetre elargie cote MCA pour matching ±5j hors periode
+  const win = 5 * 86400000;
+  const mcaMin = new Date(Date.parse(dateMin + "T00:00:00Z") - win).toISOString().slice(0, 10);
+  const mcaMax = new Date(Date.parse(dateMax + "T00:00:00Z") + win).toISOString().slice(0, 10);
+
+  // 1. Pennylane factures clients
+  const params = new URLSearchParams({ per_page: "100" });
+  params.set("filter[date_gte]", dateMin);
+  params.set("filter[date_lte]", dateMax);
+  const url = `${PENNYLANE_BASE}/customer_invoices?${params}`;
+  const pData = await fetchSafeJson(url, { headers: pennylaneHeaders() });
+  if (pData.error) return { error: "pennylane: " + (pData.error as string) };
+  const factures = (pData.items ?? pData.data ?? []).map((i: any) => ({
+    id: i.id,
+    invoice_number: i.invoice_number ?? i.attributes?.invoice_number,
+    date: i.date ?? i.attributes?.date,
+    customer_name: (i.customer?.name ?? i.attributes?.customer_name ?? "").toString(),
+    amount: Number(i.amount ?? i.attributes?.amount) || 0,
+  }));
+
+  // 2. Livraisons MCA sur fenetre elargie
+  const { data: livRaw, error: livErr } = await sb.from("livraisons")
+    .select("num_liv, client_nom, date_livraison, prix_ttc")
+    .gte("date_livraison", mcaMin)
+    .lte("date_livraison", mcaMax);
+  if (livErr) return { error: "livraisons: " + livErr.message };
+  const livraisons = (livRaw ?? []).map((l: any) => ({
+    num_liv: l.num_liv,
+    client_nom: (l.client_nom || "").toString(),
+    date_livraison: l.date_livraison,
+    prix_ttc: Number(l.prix_ttc) || 0,
+  }));
+
+  // 3. Matching deterministe
+  const usedLiv = new Set<string>();
+  const matches: any[] = [];
+
+  for (const f of factures) {
+    let best: { liv: any; score: number; raison: string } | null = null;
+    const fDateMs = f.date ? Date.parse(f.date + "T00:00:00Z") : NaN;
+    const fNameLow = f.customer_name.toLowerCase();
+
+    for (const l of livraisons) {
+      if (usedLiv.has(l.num_liv)) continue;
+      const amountDiff = Math.abs((Number(l.prix_ttc) || 0) - (Number(f.amount) || 0));
+      if (amountDiff > 0.5) continue;
+      const lDateMs = Date.parse(l.date_livraison + "T00:00:00Z");
+      if (Number.isNaN(fDateMs) || Number.isNaN(lDateMs)) continue;
+      const dateDiffJ = Math.abs((fDateMs - lDateMs) / 86400000);
+      if (dateDiffJ > 5) continue;
+      const lNameLow = l.client_nom.toLowerCase();
+      const nameMatch = !!fNameLow && !!lNameLow && (
+        fNameLow.includes(lNameLow) || lNameLow.includes(fNameLow)
+      );
+
+      // Score : amount (0.5) + date (0.3) + name (0.2)
+      const amountScore = 1 - Math.min(1, amountDiff / 0.5);
+      const dateScore = 1 - dateDiffJ / 5;
+      const nameScore = nameMatch ? 1 : 0;
+      const score = 0.5 * amountScore + 0.3 * dateScore + 0.2 * nameScore;
+
+      if (!best || score > best.score) {
+        const raisons: string[] = [];
+        raisons.push(`montant ±${amountDiff.toFixed(2)}€`);
+        raisons.push(`date ±${dateDiffJ.toFixed(0)}j`);
+        if (nameMatch) raisons.push("client similar");
+        else raisons.push("client divergent");
+        best = { liv: l, score: Number(score.toFixed(2)), raison: raisons.join(", ") };
+      }
+    }
+
+    if (best) {
+      usedLiv.add(best.liv.num_liv);
+      matches.push({
+        pennylane_invoice_id: f.id,
+        pennylane_invoice_number: f.invoice_number,
+        mca_livraison_num_liv: best.liv.num_liv,
+        score: best.score,
+        raison: best.raison,
+      });
+    }
+  }
+
+  const matchedFactureIds = new Set(matches.map((m) => m.pennylane_invoice_id));
+  const orphelinesPennylane = factures
+    .filter((f: any) => !matchedFactureIds.has(f.id))
+    .slice(0, 30)
+    .map((f: any) => ({
+      pennylane_invoice_id: f.id,
+      invoice_number: f.invoice_number,
+      date: f.date,
+      customer_name: f.customer_name,
+      amount: f.amount,
+    }));
+
+  const matchedLivNums = new Set(matches.map((m) => m.mca_livraison_num_liv));
+  // Orphelines MCA : livraisons dans la periode stricte non matchees
+  const orphelinesMca = livraisons
+    .filter((l: any) =>
+      l.date_livraison >= dateMin && l.date_livraison <= dateMax && !matchedLivNums.has(l.num_liv)
+    )
+    .slice(0, 30)
+    .map((l: any) => ({
+      num_liv: l.num_liv,
+      client_nom: l.client_nom,
+      date_livraison: l.date_livraison,
+      prix_ttc: l.prix_ttc,
+    }));
+
+  return {
+    periode: { mois, date_min: dateMin, date_max: dateMax },
+    factures_pennylane: factures.length,
+    livraisons_mca: livraisons.filter((l: any) => l.date_livraison >= dateMin && l.date_livraison <= dateMax).length,
+    matches: matches.slice(0, 30),
+    orphelines_pennylane: orphelinesPennylane,
+    orphelines_mca: orphelinesMca,
+  };
 }
 
 async function toolSearchInspections(args: any, sb: SbClient) {
@@ -977,6 +1383,9 @@ async function toolOrsOptimizeTournee(args: any, _sb: SbClient) {
   if (!args.depart || !Array.isArray(args.arrets) || args.arrets.length === 0) {
     return { error: "depart + arrets[] requis" };
   }
+  if (!Array.isArray(args.arrets) || args.arrets.length > 50) {
+    return { error: "arrets[] doit contenir 1-50 adresses (TSP exponentiel au-dela)" };
+  }
   const retour = args.retour || args.depart;
   const adresses = [args.depart, ...args.arrets, retour];
   const geocoded = await Promise.all(adresses.map((a) => orsGeocode(a)));
@@ -1049,7 +1458,12 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   search_salaries: toolSearchSalaries,
   search_carburant: toolSearchCarburant,
   get_stats: toolGetStats,
-  search_paiements: toolSearchPaiements,
+  top_clients_ca: toolTopClientsCa,
+  livraisons_impayees_retard: toolLivraisonsImpayeesRetard,
+  vehicules_echeances_proches: toolVehiculesEcheancesProches,
+  inspections_non_validees: toolInspectionsNonValidees,
+  rentabilite_tournee: toolRentabiliteTournee,
+  match_factures_pennylane_mca: toolMatchFacturesPennylaneMca,
   search_inspections: toolSearchInspections,
   search_entretiens: toolSearchEntretiens,
   search_incidents: toolSearchIncidents,
