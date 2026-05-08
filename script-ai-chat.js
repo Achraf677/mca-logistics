@@ -332,6 +332,27 @@
       font-size: .82rem;
       padding: 4px 6px;
     }
+    /* Typing indicator (3 dots pulsing) — affiche immediatement apres envoi pour
+       feedback temps reel, evite le bug "je dois envoyer plusieurs fois". */
+    .ai-chat-typing {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      padding: 10px 14px;
+    }
+    .ai-chat-typing-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--aic-text-muted);
+      animation: aic-pulse 1.2s infinite ease-in-out;
+    }
+    .ai-chat-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .ai-chat-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes aic-pulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
     .ai-chat-msg-error {
       align-self: stretch;
       background: rgba(231,76,60,0.18);
@@ -521,8 +542,9 @@
     if (state.open) {
       setTimeout(() => {
         const input = document.getElementById('ai-chat-input');
-        const isTouch = matchMedia('(hover: none)').matches;
-        if (!isTouch) input.focus();
+        // Friction UX (SF1) : on focus l'input dans tous les cas, y compris tactile,
+        // pour que le clavier mobile sorte automatiquement quand le panel s'ouvre.
+        input.focus();
         scrollToBottom();
       }, 280);
     }
@@ -587,12 +609,11 @@
       }
     });
 
+    // Note: l'ancien fallback "✨ Je cherche..." a ete remplace par le typing
+    // indicator (3 dots pulsing) ajoute directement par onSubmit() via
+    // showTypingIndicator() — feedback temps reel, pas dependant du re-render.
     if (state.sending) {
-      const loading = document.createElement('div');
-      loading.className = 'ai-chat-msg-loading';
-      loading.textContent = '✨ Je cherche...';
-      loading.id = 'ai-chat-loading';
-      container.appendChild(loading);
+      showTypingIndicator();
     }
     scrollToBottom();
     updateQuotaBanner();
@@ -659,6 +680,29 @@
     );
   }
 
+  // ----- Typing indicator (feedback temps reel pendant l'envoi) -----
+
+  // Ajoute une bulle "3 dots pulsing" immediatement apres l'envoi pour indiquer
+  // a l'utilisateur que le message est en cours de traitement. Sans ca, le delai
+  // entre envoi et re-render etait suffisamment long pour faire douter et pousser
+  // l'user a renvoyer la demande (cf. bug "je dois envoyer plusieurs fois").
+  function showTypingIndicator() {
+    const c = document.getElementById('ai-chat-messages');
+    if (!c) return;
+    if (document.getElementById('ai-chat-typing-indicator')) return; // pas de doublon
+    const div = document.createElement('div');
+    div.id = 'ai-chat-typing-indicator';
+    div.className = 'ai-chat-msg ai-chat-msg-bot ai-chat-typing';
+    div.innerHTML = '<span class="ai-chat-typing-dot"></span><span class="ai-chat-typing-dot"></span><span class="ai-chat-typing-dot"></span>';
+    c.appendChild(div);
+    scrollToBottom();
+  }
+
+  function hideTypingIndicator() {
+    const el = document.getElementById('ai-chat-typing-indicator');
+    if (el) el.remove();
+  }
+
   // ----- Countdown rate limit (UX fluide vs erreur) -----
 
   // Affiche un compte a rebours dans le placeholder de l'input pendant que
@@ -666,6 +710,9 @@
   // ferme/ouvre le panel pendant l'attente, l'attente continue (Promise vit).
   function waitWithCountdown(seconds) {
     return new Promise((resolve) => {
+      // Cache le typing indicator pendant le countdown : on remplace le feedback
+      // "3 dots" par le compte a rebours explicite. Re-shown apres pour le retry.
+      hideTypingIndicator();
       const c = document.getElementById('ai-chat-messages');
       let bubble = null;
       if (c) {
@@ -686,6 +733,9 @@
         if (remaining <= 0) {
           clearInterval(t);
           if (bubble) bubble.remove();
+          // Remet le typing indicator pendant le retry pour que l'utilisateur
+          // voie que ca repart bien (sinon trou visuel jusqu'a la reponse).
+          if (state.sending) showTypingIndicator();
           resolve();
         }
       };
@@ -775,6 +825,12 @@
     input.style.height = 'auto';
     state.sending = true;
     document.getElementById('ai-chat-send').disabled = true;
+    // Affiche le typing indicator IMMEDIATEMENT (avant le re-render qui suit)
+    // pour donner un feedback visuel instantane et eviter que l'utilisateur
+    // renvoie sa demande pensant qu'elle n'a pas ete prise en compte.
+    // renderMessages() le re-injecte aussi (via state.sending), mais en l'ajoutant
+    // ici on garantit le feedback < 16ms meme si le render est lent.
+    showTypingIndicator();
     renderMessages();
 
     let succeeded = false;
@@ -828,6 +884,7 @@
       document.getElementById('ai-chat-send').disabled = false;
       const loading = document.getElementById('ai-chat-loading');
       if (loading) loading.remove();
+      hideTypingIndicator();
       renderMessages();
       const c = document.getElementById('ai-chat-messages');
       if (c) {
@@ -846,6 +903,7 @@
         document.getElementById('ai-chat-send').disabled = false;
         const loading = document.getElementById('ai-chat-loading');
         if (loading) loading.remove();
+        hideTypingIndicator();
         renderMessages();
       }
     }
