@@ -14,10 +14,14 @@
   <link rel="stylesheet" href="/style-mobile.css?v=94" />
 </head>
 <body class="m-app m-theme-dark">
-  <!-- Header compact : back btn + titre. Pas de kebab (vire — aucune route ne s'en sert). -->
+  <!-- Header compact : back btn + titre + bouton "Agent IA" (parite PC panneau-agent). -->
   <header class="m-header">
     <button class="m-header-action m-header-back" id="m-back-btn" aria-label="Retour" hidden>‹</button>
     <h1 class="m-header-title" id="m-title">Dashboard</h1>
+    <button class="m-header-action m-header-agent-ia" id="m-agent-ia-btn" aria-label="Agent IA — décisions à examiner" type="button" style="position:relative">
+      <span aria-hidden="true">🤖</span>
+      <span class="m-header-agent-ia-badge" id="m-agent-ia-badge" hidden style="position:absolute;top:4px;right:4px;background:var(--m-accent,#e63946);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">0</span>
+    </button>
   </header>
 
   <!-- Page content (un seul container, on swap dedans) -->
