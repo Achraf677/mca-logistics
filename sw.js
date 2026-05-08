@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-08-v3_82-ai-chat-optim-123-sprint1-fe';
+const CACHE_VERSION = 'mca-v2026-05-08-v3_82-ai-chat-optim-124-cout-ia';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -65,6 +65,7 @@ const CORE_ASSETS = [
   '/script-core-audit.js',
   '/script-core-recherche.js',
   '/script-ai-chat.js',
+  '/script-cout-ia.js',
   '/lazy-loader.js',
   '/lazy-stubs.js',
   '/script-salarie.js',

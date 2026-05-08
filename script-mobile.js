@@ -8931,6 +8931,13 @@
           <p class="m-form-hint" style="margin-top:8px">Toutes les actions admin (création / modif / suppression). Purge auto > 12 mois (RGPD).</p>
         </div>
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🤖 Coût IA</h3></div>
+          <div class="m-card" id="m-cout-ia-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55">
+            <div style="color:var(--m-text-muted)">Chargement…</div>
+          </div>
+          <p class="m-form-hint" style="margin-top:8px">Consommation chatbot Gemini (estimation €). Source : <code>ai_quota_daily</code>.</p>
+        </div>
+
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
           <div class="m-card" id="m-changelog-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55;max-height:360px;overflow:auto">
             <div style="color:var(--m-text-muted)">Chargement…</div>
@@ -9005,8 +9012,172 @@
           .then(md => { changelogEl.innerHTML = M.renderChangelogMd(md); })
           .catch(err => { changelogEl.innerHTML = '<div style="color:var(--m-text-muted)">Historique indisponible (' + err + ')</div>'; });
       }
+
+      // Coût IA : charge ai_quota_daily (RLS admin only, lecture directe)
+      const coutIaEl = container.querySelector('#m-cout-ia-content');
+      if (coutIaEl) {
+        M.renderCoutIAMobile(coutIaEl);
+      }
     }
   });
+
+  // ============================================================
+  // Coût IA — mobile (parité PC, cf. script-cout-ia.js).
+  // Source : table Supabase public.ai_quota_daily (RLS admin only).
+  // Calcul : (pro * 0.0125 + flash * 0.0008) * 0.92 USD→EUR.
+  // ============================================================
+  M.COUT_IA_PRICE_PRO_USD   = 0.0125;
+  M.COUT_IA_PRICE_FLASH_USD = 0.0008;
+  M.COUT_IA_USD_TO_EUR      = 0.92;
+  M.COUT_IA_BUDGET_CAP_EUR  = 5.00;
+
+  M.calcCoutIA = function(pro, flash) {
+    return ((pro || 0) * M.COUT_IA_PRICE_PRO_USD + (flash || 0) * M.COUT_IA_PRICE_FLASH_USD) * M.COUT_IA_USD_TO_EUR;
+  };
+
+  function _coutIaFmtEur(n) {
+    if (typeof n !== 'number' || !isFinite(n)) return '0,00 €';
+    return n.toFixed(2).replace('.', ',') + ' €';
+  }
+  function _coutIaYmd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function _coutIaDaysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d; }
+
+  M.renderCoutIAMobile = async function(host) {
+    if (!host) return;
+    const ds = window.DelivProSupabase;
+    const client = (ds && typeof ds.getClient === 'function') ? ds.getClient() : null;
+    if (!client) {
+      host.innerHTML = '<div style="color:#f59e0b">Supabase indisponible — réessaie plus tard.</div>';
+      return;
+    }
+
+    const now = new Date();
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const since30 = _coutIaYmd(_coutIaDaysAgo(30));
+    const sinceMonth = _coutIaYmd(startMonth);
+    const since = since30 < sinceMonth ? since30 : sinceMonth;
+
+    let rows = [];
+    try {
+      const resp = await client
+        .from('ai_quota_daily')
+        .select('date, requests_pro, requests_flash')
+        .gte('date', since)
+        .order('date', { ascending: true });
+      if (resp.error) {
+        host.innerHTML = '<div style="color:#f59e0b">Données indisponibles : ' + M.escHtml(resp.error.message || 'Erreur SQL') + '</div>';
+        return;
+      }
+      rows = resp.data || [];
+    } catch (e) {
+      host.innerHTML = '<div style="color:#f59e0b">Erreur réseau : ' + M.escHtml((e && e.message) || 'inconnue') + '</div>';
+      return;
+    }
+
+    // Aggregats mois courant
+    const monthRows = rows.filter(r => r.date >= sinceMonth);
+    let proMonth = 0, flashMonth = 0;
+    monthRows.forEach(r => { proMonth += (+r.requests_pro)||0; flashMonth += (+r.requests_flash)||0; });
+    const costMonth = M.calcCoutIA(proMonth, flashMonth);
+    const totalReq = proMonth + flashMonth;
+
+    // Index par date pour la serie 30j
+    const byDate = {};
+    rows.forEach(r => { byDate[r.date] = r; });
+    const series = [];
+    let maxCost = 0.01;
+    for (let i = 29; i >= 0; i--) {
+      const d = _coutIaDaysAgo(i);
+      const k = _coutIaYmd(d);
+      const r = byDate[k];
+      const pro = r ? ((+r.requests_pro)||0) : 0;
+      const fl  = r ? ((+r.requests_flash)||0) : 0;
+      const c = M.calcCoutIA(pro, fl);
+      if (c > maxCost) maxCost = c;
+      series.push({ date: k, pro, flash: fl, cost: c });
+    }
+
+    const costColor = costMonth >= M.COUT_IA_BUDGET_CAP_EUR ? '#dc3545'
+                    : costMonth >= M.COUT_IA_BUDGET_CAP_EUR * 0.5 ? '#f59e0b'
+                    : '#28a745';
+
+    // Mini-graph SVG (compact mobile)
+    const W = 320, H = 80, pad = 4;
+    const barW = (W - pad*2) / series.length;
+    const bars = series.map((d, i) => {
+      const h = Math.max(1, Math.round(((H - pad*2) * d.cost) / maxCost));
+      const x = pad + i * barW;
+      const y = H - pad - h;
+      const op = d.cost === 0 ? 0.18 : 0.85;
+      return `<rect x="${x.toFixed(2)}" y="${y}" width="${(barW-1).toFixed(2)}" height="${h}" rx="2" fill="var(--m-accent)" opacity="${op}"><title>${M.escHtml(d.date + ' — ' + _coutIaFmtEur(d.cost))}</title></rect>`;
+    }).join('');
+
+    const tile = (label, value, sub, color) =>
+      `<div style="background:var(--m-bg);border:1px solid var(--m-border);border-radius:12px;padding:12px 14px;flex:1 1 calc(50% - 5px);min-width:0">
+        <div style="font-size:.66rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${M.escHtml(label)}</div>
+        <div style="font-size:${color ? '1.15rem' : '.95rem'};font-weight:700;color:${color || 'inherit'};line-height:1.1">${value}</div>
+        ${sub ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">${sub}</div>` : ''}
+      </div>`;
+
+    const linkBtn = (href, icon, label) =>
+      `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:0 14px;min-height:var(--m-tap);border:1px solid var(--m-border);border-radius:10px;color:inherit;text-decoration:none;font-size:.85rem;background:var(--m-bg)">
+        <span aria-hidden="true">${icon}</span><span>${M.escHtml(label)}</span>
+      </a>`;
+
+    host.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${tile('Coût ce mois', _coutIaFmtEur(costMonth), 'Estimation Gemini', costColor)}
+        ${tile('Cap budget', _coutIaFmtEur(M.COUT_IA_BUDGET_CAP_EUR) + ' / mois', 'Google Cloud')}
+      </div>
+      <div style="margin-top:10px">
+        ${tile('Requêtes ce mois', String(totalReq), proMonth + ' Pro · ' + flashMonth + ' Flash')}
+      </div>
+
+      <div style="margin-top:14px;padding:10px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px">
+          <strong>Coût quotidien (30j)</strong>
+          <span style="color:var(--m-text-muted)">Max ${_coutIaFmtEur(maxCost)}/j</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:80px;display:block">${bars}</svg>
+      </div>
+
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        ${linkBtn('https://aistudio.google.com/app/apikey', '📊', 'Détail AI Studio')}
+        ${linkBtn('https://console.cloud.google.com/billing/reports?project=budget-achraf', '€', 'Rapports facturation')}
+        ${linkBtn('https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=budget-achraf', '⚡', 'Quotas API temps réel')}
+        ${linkBtn('https://console.cloud.google.com/billing/budgets', '🔔', 'Configurer alertes budget')}
+      </div>
+
+      <details style="margin-top:14px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
+        <summary style="cursor:pointer;padding:12px 14px;font-weight:600;font-size:.85rem;color:#dc3545;list-style:none;display:flex;align-items:center;gap:8px;min-height:var(--m-tap)">
+          <span aria-hidden="true">🚨</span><span>Désactivation d'urgence</span><span style="margin-left:auto;color:var(--m-text-muted);font-size:.74rem;font-weight:400">▾</span>
+        </summary>
+        <div style="padding:0 14px 14px;font-size:.82rem;line-height:1.5">
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">A — Désactiver l'API Gemini</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Recommandé en premier. Effet immédiat, le reste du site continue.</div>
+            ${linkBtn('https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/overview?project=budget-achraf', '→', 'Console GCP')}
+          </div>
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">B — Désactiver la facturation</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Plus radical, fige tout le projet. Réactivable.</div>
+            ${linkBtn('https://console.cloud.google.com/billing/linkedaccount?project=budget-achraf', '→', 'Console GCP')}
+          </div>
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">C — Révoquer la clé API</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Si suspicion de fuite. Re-crée une clé puis update <code>GEMINI_API_KEY</code>.</div>
+            ${linkBtn('https://aistudio.google.com/app/apikey', '→', 'AI Studio')}
+          </div>
+        </div>
+      </details>
+
+      <div style="font-size:.7rem;color:var(--m-text-muted);margin-top:10px;line-height:1.4">
+        Pro ≈ $${M.COUT_IA_PRICE_PRO_USD}/req. · Flash ≈ $${M.COUT_IA_PRICE_FLASH_USD}/req. · USD→EUR ${M.COUT_IA_USD_TO_EUR}.
+      </div>
+    `;
+  };
 
   // Markdown minimal pour CHANGELOG (## versions, ### sections, listes, **gras**)
   M.renderChangelogMd = function(md) {
