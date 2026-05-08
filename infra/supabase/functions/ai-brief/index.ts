@@ -197,10 +197,13 @@ async function fetchAnomaliesCarburant(sb: SbClient) {
 
 // 4) Alertes admin non-resolues
 async function fetchAlertesAdmin(sb: SbClient) {
+  // BUG fix : la colonne est `created_at` en DB (cf migration 008), pas `cree_le`.
+  // Symptome : Gemini recevait `{error: "column ... does not exist"}` et generait
+  // une decision haute "Erreur recuperation alertes administratives".
   const { data, error } = await sb.from("alertes_admin")
-    .select("id, niveau, type, message, cree_le, lue, resolved")
+    .select("id, niveau, type, titre, message, lue, resolved, created_at")
     .eq("resolved", false)
-    .order("cree_le", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(15);
   if (error) return { error: error.message };
   return { count: (data ?? []).length, alertes: data ?? [] };
