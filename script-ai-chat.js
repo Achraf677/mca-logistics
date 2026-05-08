@@ -485,8 +485,11 @@
         height: 44px;
         font-size: 1rem;
       }
-      /* FAB : au-dessus de la bottom-nav, decale a GAUCHE pour ne pas chevaucher
-         le bouton + des pages (livraisons/charges/carburant/etc), respect safe-area iPhone. */
+      /* Sur l'app mobile (m.html / salarie.html avec body.m-app), le chat est
+         declenche par le bouton ✨ integre dans le header — on masque le FAB
+         flottant pour eviter le doublon. Le FAB reste visible sur les autres
+         contextes mobile (PWA en plein ecran sans header MCA). */
+      body.m-app #ai-chat-fab { display: none !important; }
       #ai-chat-fab {
         left: calc(16px + var(--m-safe-left, 0px));
         right: auto;
@@ -568,6 +571,10 @@
 
   function wireEvents() {
     document.getElementById('ai-chat-fab').addEventListener('click', toggle);
+    // Bouton chat ✨ integre dans le header mobile (m.html / salarie.html) :
+    // declenche le meme toggle que le FAB.
+    const headerChatBtn = document.getElementById('m-chatbot-btn');
+    if (headerChatBtn) headerChatBtn.addEventListener('click', toggle);
     document.getElementById('ai-chat-close').addEventListener('click', toggle);
     document.getElementById('ai-chat-overlay').addEventListener('click', toggle);
     document.getElementById('ai-chat-clear').addEventListener('click', () => {
