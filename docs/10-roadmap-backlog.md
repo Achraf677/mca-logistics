@@ -57,12 +57,6 @@
 - **Action côté Achraf** : vérifier dans Pennylane → Paramètres → Export → FEC. Si grisé, upgrade Premium.
 - **Côté code** : parser FEC à coder côté MCA (~1-2 jours)
 
-### Qonto API
-- **Bloqué par** : vérifier que ton plan Qonto inclut l'accès API (Solo Smart / Business uniquement)
-- **Impact attendu** : auto-cocher "payé" sur charges + livraisons quand le virement arrive sur Qonto
-- **Action côté Achraf** : vérifier dans Qonto → Paramètres → Intégrations → API
-- **Côté code** : webhook Qonto → endpoint Cloudflare → update Supabase (~2 jours)
-
 ### Teleroute
 - **Bloqué par** : pas encore d'accès Teleroute côté Achraf
 - **Impact attendu** : recherche d'offres de sous-traitance fret directement depuis MCA

@@ -14,10 +14,17 @@
   <link rel="stylesheet" href="/style-mobile.css?v=95" />
 </head>
 <body class="m-app m-theme-dark">
-  <!-- Header compact : back btn + titre. Pas de kebab (vire — aucune route ne s'en sert). -->
+  <!-- Header compact : back btn + titre + chat IA + Agent IA (parite PC panneau-agent). -->
   <header class="m-header">
     <button class="m-header-action m-header-back" id="m-back-btn" aria-label="Retour" hidden>‹</button>
     <h1 class="m-header-title" id="m-title">Dashboard</h1>
+    <button class="m-header-action m-header-chatbot" id="m-chatbot-btn" aria-label="Chatbot Gemini" title="Chatbot Gemini" type="button">
+      <span aria-hidden="true">✨</span>
+    </button>
+    <button class="m-header-action m-header-agent-ia" id="m-agent-ia-btn" aria-label="Agent IA — décisions à examiner" type="button" style="position:relative">
+      <span aria-hidden="true">🤖</span>
+      <span class="m-header-agent-ia-badge" id="m-agent-ia-badge" hidden style="position:absolute;top:4px;right:4px;background:var(--m-accent,#e63946);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">0</span>
+    </button>
   </header>
 
   <!-- Page content (un seul container, on swap dedans) -->
@@ -63,18 +70,13 @@
     <nav class="m-drawer-nav">
       <button class="m-drawer-link" data-page="recherche" style="font-weight:600"><span>🔍</span><span>Recherche globale</span></button>
 
-      <div class="m-drawer-section-label">Finances (priorité)</div>
-      <button class="m-drawer-link" data-page="rentabilite"><span>💰</span><span>Rentabilité</span></button>
-      <button class="m-drawer-link" data-page="encaissement"><span>💵</span><span>Encaissement</span></button>
-      <button class="m-drawer-link" data-page="charges"><span>💸</span><span>Charges</span></button>
-      <button class="m-drawer-link" data-page="carburant"><span>⛽</span><span>Carburant</span></button>
-
       <div class="m-drawer-section-label">Tiers</div>
       <button class="m-drawer-link" data-page="clients"><span>🧑‍💼</span><span>Clients</span></button>
       <button class="m-drawer-link" data-page="fournisseurs"><span>🏭</span><span>Fournisseurs</span></button>
 
       <div class="m-drawer-section-label">Flotte</div>
       <button class="m-drawer-link" data-page="vehicules"><span>🚐</span><span>Véhicules</span></button>
+      <button class="m-drawer-link" data-page="carburant"><span>⛽</span><span>Carburant</span></button>
       <button class="m-drawer-link" data-page="entretiens"><span>🔧</span><span>Entretiens</span></button>
       <button class="m-drawer-link" data-page="inspections"><span>🚗</span><span>Inspections</span></button>
 
@@ -83,12 +85,16 @@
       <button class="m-drawer-link" data-page="heures"><span>⏱️</span><span>Heures &amp; Km</span></button>
       <button class="m-drawer-link" data-page="incidents"><span>🚨</span><span>Incidents</span></button>
 
-      <div class="m-drawer-section-label">Finances détaillées</div>
+      <div class="m-drawer-section-label">Finances</div>
+      <button class="m-drawer-link" data-page="charges"><span>💸</span><span>Charges</span></button>
+      <button class="m-drawer-link" data-page="encaissement"><span>💵</span><span>Encaissement</span></button>
       <button class="m-drawer-link" data-page="tva"><span>🧾</span><span>TVA</span></button>
+      <button class="m-drawer-link" data-page="rentabilite"><span>💰</span><span>Rentabilité</span></button>
       <button class="m-drawer-link" data-page="statistiques"><span>📈</span><span>Statistiques</span></button>
 
       <div class="m-drawer-section-label">Autres</div>
       <button class="m-drawer-link" data-page="calendrier"><span>🗓️</span><span>Calendrier</span></button>
+      <button class="m-drawer-link" data-page="brouillons-ia" type="button"><span>📋</span><span>Brouillons IA <span class="m-drawer-badge" id="m-drawer-badge-brouillons" hidden>0</span></span></button>
       <button class="m-drawer-link" data-page="parametres"><span>⚙️</span><span>Paramètres</span></button>
 
       <hr class="m-drawer-sep" />
