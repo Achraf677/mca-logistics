@@ -9761,11 +9761,8 @@
       if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
 
-    // Entree "Agent IA" du drawer "Plus" : ouvre la sheet decisions / brief IA.
-    $('#m-agent-ia-link')?.addEventListener('click', () => {
-      M.closeDrawer && M.closeDrawer();
-      M.openBriefSheet();
-    });
+    // Bouton "Agent IA" header (parite PC panneau-agent). Ouvre la sheet decisions.
+    $('#m-agent-ia-btn')?.addEventListener('click', () => { M.openBriefSheet(); });
 
     // Helper pour ouvrir un detail
     M.openDetail = function(entity, id) {
