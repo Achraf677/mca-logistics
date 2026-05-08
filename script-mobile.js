@@ -3435,6 +3435,212 @@
     }
   };
 
+  // =============================================================
+  // PR C — Brief automatique IA mobile (parite PC panneau-agent)
+  // Lit/ecrit dans agent_decisions (localStorage partage avec PC),
+  // appelle l'edge function ai-brief, expose une cloche dans le header.
+  // =============================================================
+  const AI_BRIEF_LAST_RUN_KEY_M = 'ai_brief_last_run';
+
+  M.compterBriefNonLus = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    return decisions.filter((d) => !d.lu).length;
+  };
+
+  M.updateBriefBadge = function () {
+    const n = M.compterBriefNonLus();
+    const badge = $('#m-brief-badge');
+    if (!badge) return;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  };
+
+  M.lancerBriefAuto = async function (trigger) {
+    if (window.__delivproAiBriefPendingMobile) return { skipped: 'pending' };
+    window.__delivproAiBriefPendingMobile = true;
+    try {
+      if (trigger === 'manual') M.toast('🔄 Brief IA en cours…');
+      const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+        ? window.DelivProSupabase.getClient()
+        : null;
+      const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
+        ? window.DelivProSupabase.getConfig()
+        : null;
+      if (!client || !config?.url) return { error: 'supabase_not_ready' };
+      let token = null;
+      try {
+        const { data: sessionData } = await client.auth.getSession();
+        const sess = sessionData && sessionData.session;
+        const expAt = sess && sess.expires_at ? sess.expires_at * 1000 : 0;
+        if (sess && expAt && expAt - Date.now() < 60000) {
+          try {
+            const { data: refreshed } = await client.auth.refreshSession();
+            token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
+          } catch (_) { token = sess.access_token; }
+        } else {
+          token = sess ? sess.access_token : null;
+        }
+      } catch (_) { /* fail-soft */ }
+      if (!token) return { error: 'no_token' };
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 60000);
+      let r;
+      try {
+        r = await fetch(config.url + '/functions/v1/ai-brief', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: trigger || 'manual' }),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : réseau indisponible');
+        return { error: 'network' };
+      } finally { clearTimeout(t); }
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : ' + (body.message || body.error || ('HTTP ' + r.status)));
+        return { error: 'http', status: r.status };
+      }
+      const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+      const existantes = M.charger('agent_decisions') || [];
+      let added = 0;
+      for (const d of decisions) {
+        if (!d || !d.titre || !d.description) continue;
+        // Dedup avec celles deja en place et non actionnees
+        const dejaPresente = existantes.find(
+          (e) => e.titre === d.titre && e.description === d.description && !e.actionPrise
+        );
+        if (dejaPresente) continue;
+        existantes.unshift({
+          id: 'brief-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          creeLe: new Date().toISOString(),
+          lu: false,
+          titre: d.titre,
+          description: d.description,
+          priorite: d.priorite || 'info',
+          actions: Array.isArray(d.actions) ? d.actions : [],
+          source: 'ai-brief',
+          run_id: body.run_id || null,
+        });
+        added++;
+      }
+      M.sauvegarder('agent_decisions', existantes);
+      try {
+        const today = new Date().toISOString().slice(0, 10);
+        localStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, today);
+      } catch (_) {}
+      M.updateBriefBadge();
+      if (trigger === 'manual') {
+        M.toast(added > 0 ? `✅ ${added} nouvelle(s) décision(s)` : '✅ Rien de nouveau');
+      }
+      return { ok: true, added, total: decisions.length };
+    } catch (e) {
+      if (trigger === 'manual') M.toast('⚠️ Brief IA : erreur (voir console)');
+      console.warn('[ai-brief mobile] erreur', e);
+      return { error: 'exception' };
+    } finally {
+      window.__delivproAiBriefPendingMobile = false;
+    }
+  };
+
+  // Auto-trigger 1x/jour au boot mobile admin.
+  M.declencherBriefAutoLoginSiNecessaire = function () {
+    try {
+      const adminLogin = sessionStorage.getItem('admin_login') || '';
+      if (!adminLogin) return; // chauffeurs : pas concernes
+      const today = new Date().toISOString().slice(0, 10);
+      const last = localStorage.getItem(AI_BRIEF_LAST_RUN_KEY_M) || '';
+      if (last === today) return;
+      // Differe pour ne pas concurrencer le warmup mobile.
+      setTimeout(() => { M.lancerBriefAuto('on_login'); }, 4500);
+    } catch (_) { /* fail-soft */ }
+  };
+
+  M.priorityBadge = function (p) {
+    if (p === 'haute') return '<span style="background:rgba(231,76,60,0.18);color:#ff8b80;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">HAUTE</span>';
+    if (p === 'opportunite') return '<span style="background:rgba(46,204,113,0.18);color:#7ed8a3;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">OPPORTUNITÉ</span>';
+    return '<span style="background:rgba(52,152,219,0.18);color:#7ec0ff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">INFO</span>';
+  };
+
+  M.openBriefSheet = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    const html = decisions.length === 0
+      ? `<div style="text-align:center;padding:32px 16px;color:var(--m-text-muted)">
+           <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+           <div style="font-size:0.95rem;margin-bottom:6px;font-weight:600;color:var(--m-text)">Aucune décision en attente</div>
+           <div style="font-size:0.8rem">Le brief Gemini scanne tes données automatiquement chaque jour.</div>
+         </div>`
+      : decisions.map((d) => {
+          const couleurBord = d.priorite === 'haute'
+            ? 'rgba(231,76,60,0.45)'
+            : d.priorite === 'opportunite' ? 'rgba(46,204,113,0.4)' : 'rgba(52,152,219,0.35)';
+          const lu = d.lu ? '' : 'border-left:3px solid var(--m-accent,#e63946);';
+          return `
+            <div style="background:var(--m-card,#2a2f37);border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="font-size:0.88rem;font-weight:700;color:var(--m-text,#f1f3f5);flex:1">${M.escHtml(d.titre)}</div>
+                ${M.priorityBadge(d.priorite)}
+              </div>
+              <div style="font-size:0.82rem;color:var(--m-text-muted,#adb5bd);line-height:1.5;margin-bottom:8px">${M.escHtml(d.description)}</div>
+              <div style="font-size:0.7rem;color:var(--m-text-muted);opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${d.source === 'ai-brief' ? ' · IA' : ''}</div>
+            </div>`;
+        }).join('');
+
+    M.openSheet({
+      title: '🔔 Brief IA',
+      body: `
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button id="m-brief-refresh" class="m-btn" type="button" style="flex:1;min-height:44px">🔄 Rafraîchir</button>
+          ${decisions.length ? '<button id="m-brief-clear" class="m-btn" type="button" style="flex:1;min-height:44px">🗑 Tout effacer</button>' : ''}
+        </div>
+        ${html}
+      `,
+      submitLabel: '✓ Tout marquer lu',
+      onSubmit() {
+        const list = M.charger('agent_decisions') || [];
+        list.forEach((d) => { d.lu = true; });
+        M.sauvegarder('agent_decisions', list);
+        M.updateBriefBadge();
+        M.toast('✓ Toutes les décisions marquées lues');
+        return true; // close
+      },
+      afterMount(root) {
+        // Marque tout comme lu en arriere-plan a l'ouverture (effet bell click = "j'ai vu")
+        const list = M.charger('agent_decisions') || [];
+        let modif = false;
+        list.forEach((d) => { if (!d.lu) { d.lu = true; modif = true; } });
+        if (modif) { M.sauvegarder('agent_decisions', list); M.updateBriefBadge(); }
+        // Refresh button
+        const btnRefresh = root.querySelector('#m-brief-refresh');
+        if (btnRefresh) {
+          btnRefresh.addEventListener('click', async () => {
+            btnRefresh.disabled = true;
+            btnRefresh.textContent = '⏳ Analyse en cours…';
+            const r = await M.lancerBriefAuto('manual');
+            M.closeSheet();
+            // Reopen pour montrer les nouvelles decisions
+            setTimeout(() => M.openBriefSheet(), 350);
+          });
+        }
+        // Clear button
+        const btnClear = root.querySelector('#m-brief-clear');
+        if (btnClear) {
+          btnClear.addEventListener('click', () => {
+            if (!confirm('Effacer toutes les décisions ?')) return;
+            M.sauvegarder('agent_decisions', []);
+            M.updateBriefBadge();
+            M.toast('🗑 Décisions effacées');
+            M.closeSheet();
+          });
+        }
+      },
+    });
+  };
+
   // ============================================================
   // PAGES
   // ============================================================
@@ -9556,6 +9762,9 @@
       if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
 
+    // Cloche brief IA (parite PC panneau-agent). Ouvre la sheet decisions.
+    $('#m-brief-btn')?.addEventListener('click', () => { M.openBriefSheet(); });
+
     // Helper pour ouvrir un detail
     M.openDetail = function(entity, id) {
       if (!M.state.detail) M.state.detail = {};
@@ -9575,6 +9784,11 @@
     M._intBadge = setInterval(M.updateAlertesBadge, 30000);
     M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
     M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
+
+    // Initialise + auto-trigger du brief IA cote mobile (parite PC).
+    M.updateBriefBadge();
+    setInterval(M.updateBriefBadge, 30000);
+    M.declencherBriefAutoLoginSiNecessaire();
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis
