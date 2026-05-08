@@ -44,7 +44,7 @@ Onglets (barre haute, scrollable horizontalement) :
 |---|---|---|---|---|
 | 1 | `dashboard` | Accueil | 84 % | KPIs perso, activité 7 j, "Qui travaille aujourd'hui" |
 | 2 | `livraisons` | Livraisons | 84 % | Accordéon par mois, FAB +, bulk actions |
-| 3 | `planning` | Planning | 69 % | **Pas de nav semaine** (gap parité PC) |
+| 3 | `planning` | Planning | 95 % | Nav semaine ISO + 3 vues (jour / semaine / par salarié) + indicateurs heures + FAB bloquer semaine + import semaine N-1 + deep-link `#planning?date=YYYY-MM-DD&vue=...` |
 | 4 | `alertes` | Alertes | 84 % | Filtre statut + recherche |
 | 5 | `encaissement` | Encaissement | 83 % | Liste statut, pas de filtre période |
 | 6 | `charges` | Charges | 82 % | Accordéon mois, pas de nav période |
