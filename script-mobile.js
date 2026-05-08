@@ -718,9 +718,18 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=prixHT]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist (cf. ligne 620),
+        // pas un <select>. Le selector "select[name=tauxTva]" renvoyait null
+        // d'ou crash "null is not an object (evaluating 'sel.addEventListener')".
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
+        // Defense-in-depth : si le formulaire a ete reduit (cas edge), on
+        // arrete sans crasher tout l'afterMount.
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile livraison form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         // Init : si TTC déjà saisi (mode édition), partir de TTC pour ne pas l'écraser
         let dernierEdit = enEdition && (v.prixTTC || v.prix) ? 'ttc' : 'ht';
         const recalc = () => {
@@ -1357,9 +1366,14 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=montantHt]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist, pas un <select>.
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile charge form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         let dernierEdit = 'ttc';
         // BUGFIX v3.68 : si l'user saisit manuellement le champ TVA (cas facture
         // mixte type 150€ TTC dont 30€ seulement soumis a TVA 20% = 6€ TVA), on
@@ -1746,21 +1760,47 @@
   M.formNouveauClient = function(existing) {
     const enEdition = !!existing;
     const c = existing || {};
+    // Type pro/particulier (parity-mobile-alertes-clients) — radio + champs conditionnels
+    const typeInit = c.type || 'pro';
+    const paysList = ['FR','BE','LU','CH','DE','ES','IT','NL','GB','PT','AT','PL'];
+    const paysDl = `<datalist id="m-cli-pays-list">${paysList.map(p => `<option value="${p}"></option>`).join('')}</datalist>`;
     const body = `
+      <div class="m-form-field" style="margin-bottom:14px">
+        <label class="m-form-label">Type de client</label>
+        <div style="display:flex;gap:8px" id="m-cli-type-radios">
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:1px solid var(--m-border);border-radius:12px;cursor:pointer;background:var(--m-card);min-height:48px">
+            <input type="radio" name="type" value="pro" ${typeInit === 'pro' ? 'checked' : ''} style="accent-color:var(--m-accent)" />
+            <span style="font-weight:600">🏢 Pro</span>
+          </label>
+          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:1px solid var(--m-border);border-radius:12px;cursor:pointer;background:var(--m-card);min-height:48px">
+            <input type="radio" name="type" value="particulier" ${typeInit === 'particulier' ? 'checked' : ''} style="accent-color:var(--m-accent)" />
+            <span style="font-weight:600">👤 Particulier</span>
+          </label>
+        </div>
+      </div>
       ${M.formField('Nom / Raison sociale', M.formInput('nom', { value: c.nom || '', placeholder: 'Société ou particulier', required: true }), { required: true })}
-      ${M.formField('Secteur d\'activité', M.formSelect('secteur', [
-        { value: 'transport',  label: '🚚 Transport / logistique' },
-        { value: 'industrie',  label: '🏭 Industrie / usine' },
-        { value: 'btp',        label: '🏗️ BTP / chantier' },
-        { value: 'commerce',   label: '🏪 Commerce / retail' },
-        { value: 'ecommerce',  label: '🛒 E-commerce' },
-        { value: 'agro',       label: '🌾 Agro-alimentaire' },
-        { value: 'sante',      label: '⚕️ Santé / pharma' },
-        { value: 'public',     label: '🏛️ Public / collectivité' },
-        { value: 'evenement',  label: '🎪 Événementiel' },
-        { value: 'autre',      label: '📝 Autre' }
-      ], { placeholder: '— Choisir —', value: c.secteur || '' }))}
-      ${M.formField('Contact (prénom)', M.formInput('prenom', { value: c.prenom || '', placeholder: 'Prénom de la personne', autocomplete: 'given-name' }))}
+      <div id="m-cli-particulier-fields" style="${typeInit === 'particulier' ? '' : 'display:none'}">
+        ${M.formField('Prénom', M.formInput('prenom', { value: c.prenom || '', placeholder: 'Prénom', autocomplete: 'given-name' }))}
+      </div>
+      <div id="m-cli-pro-fields" style="${typeInit === 'pro' ? '' : 'display:none'}">
+        ${M.formField('Secteur d\'activité', M.formSelect('secteur', [
+          { value: 'transport',  label: '🚚 Transport / logistique' },
+          { value: 'industrie',  label: '🏭 Industrie / usine' },
+          { value: 'btp',        label: '🏗️ BTP / chantier' },
+          { value: 'commerce',   label: '🏪 Commerce / retail' },
+          { value: 'ecommerce',  label: '🛒 E-commerce' },
+          { value: 'agro',       label: '🌾 Agro-alimentaire' },
+          { value: 'sante',      label: '⚕️ Santé / pharma' },
+          { value: 'public',     label: '🏛️ Public / collectivité' },
+          { value: 'evenement',  label: '🎪 Événementiel' },
+          { value: 'autre',      label: '📝 Autre' }
+        ], { placeholder: '— Choisir —', value: c.secteur || '' }))}
+        ${M.formField('Contact (interlocuteur)', M.formInput('contact', { value: c.contact || c.prenom || '', placeholder: 'Nom du référent' }))}
+        <div class="m-form-row">
+          ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '9 chiffres' }))}
+          ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || c.tvaIntra || '', placeholder: 'FR + 11 chiffres' }))}
+        </div>
+      </div>
       <div class="m-form-row">
         ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: c.tel || '', placeholder: '06 12 34 56 78', autocomplete: 'tel' }))}
         ${M.formField('Email', M.formInput('email', { type: 'email', value: c.email || '', placeholder: 'contact@...', autocomplete: 'email' }))}
@@ -1771,12 +1811,10 @@
         ${M.formField('Code postal', M.formInput('cp', { value: c.cp || '', placeholder: '75000', autocomplete: 'postal-code' }))}
         ${M.formField('Ville', M.formInput('ville', { value: c.ville || '', placeholder: 'Paris', autocomplete: 'address-level2' }))}
       </div>
+      ${M.formField('Pays', M.formInput('pays', { value: c.pays || 'FR', placeholder: 'FR', list: 'm-cli-pays-list', autocomplete: 'country' }))}
+      ${paysDl}
       <div class="m-form-row">
-        ${M.formField('SIREN', M.formInput('siren', { value: c.siren || '', placeholder: '9 chiffres' }))}
-        ${M.formField('N° TVA intracom.', M.formInput('tva', { value: c.tva || c.tvaIntra || '', placeholder: 'FR + 11 chiffres' }))}
-      </div>
-      <div class="m-form-row">
-        ${M.formField('Délai paiement', M.formInputWithSuffix('delaiPaiement', 'j', { type: 'number', step: '1', min: '0', max: '180', value: c.delaiPaiement || '30', placeholder: '30' }))}
+        ${M.formField('Délai paiement', M.formInputWithSuffix('delaiPaiement', 'j', { type: 'number', step: '1', min: '0', max: '180', value: c.delaiPaiementJours || c.delaiPaiement || '30', placeholder: '30' }))}
         ${M.formField('Mode paiement préféré', M.formSelect('modePaiement', [
           { value: 'virement',    label: 'Virement' },
           { value: 'prelevement', label: 'Prélèvement SEPA' },
@@ -1794,6 +1832,16 @@
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
+        // Toggle pro/particulier conditional fields (parity-mobile-alertes-clients)
+        const proBox = b.querySelector('#m-cli-pro-fields');
+        const partBox = b.querySelector('#m-cli-particulier-fields');
+        b.querySelectorAll('#m-cli-type-radios input[name="type"]').forEach(r => {
+          r.addEventListener('change', () => {
+            const v = r.value;
+            if (proBox) proBox.style.display = v === 'pro' ? '' : 'none';
+            if (partBox) partBox.style.display = v === 'particulier' ? '' : 'none';
+          });
+        });
         if (!enEdition) return;
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le client ${c.nom} ?`, { titre: 'Supprimer client' })) return;
@@ -1807,21 +1855,31 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.nom?.trim()) { M.toast('⚠️ Nom obligatoire'); return false; }
+        const type = f.type || 'pro';
+        // SIREN format check (uniquement pro + non vide)
+        const sirenClean = (f.siren || '').replace(/\s+/g, '');
+        if (type === 'pro' && sirenClean && !/^\d{9}$/.test(sirenClean)) {
+          M.toast('⚠️ SIREN invalide (9 chiffres)'); return false;
+        }
         const arr = M.charger('clients');
         const data = {
           nom: f.nom.trim(),
-          secteur: f.secteur || '',
+          type,
+          secteur: type === 'pro' ? (f.secteur || '') : '',
           prenom: f.prenom?.trim() || '',
+          contact: type === 'pro' ? (f.contact?.trim() || f.prenom?.trim() || '') : '',
           tel: f.tel?.trim() || '',
           email: f.email?.trim() || '',
           emailFact: f.emailFact?.trim() || '',
           adresse: f.adresse?.trim() || '',
           cp: f.cp?.trim() || '',
           ville: f.ville?.trim() || '',
-          siren: f.siren?.trim() || '',
-          tva: f.tva?.trim() || '',
-          tvaIntra: f.tva?.trim() || '',  // alias PC
+          pays: (f.pays || 'FR').trim().toUpperCase(),
+          siren: type === 'pro' ? sirenClean : '',
+          tva: type === 'pro' ? (f.tva?.trim().toUpperCase() || '') : '',
+          tvaIntra: type === 'pro' ? (f.tva?.trim().toUpperCase() || '') : '',  // alias PC
           delaiPaiement: M.parseNum(f.delaiPaiement) || 30,
+          delaiPaiementJours: M.parseNum(f.delaiPaiement) || 30, // alias PC
           modePaiement: f.modePaiement || 'virement',
           iban: f.iban?.trim() || '',
           notes: f.notes?.trim() || ''
@@ -1860,31 +1918,55 @@
         <input type="file" id="m-veh-cg-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-veh-cg-status" style="text-align:center"></p>
       </div>
-      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
+      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true, hint: 'Format FR (AA-123-BB) ou ancienne plaque' })}
       <div class="m-form-row">
         ${M.formField('Marque', M.formInput('marque', { value: v.marque || '', placeholder: 'Renault, Peugeot...' }))}
         ${M.formField('Modèle', M.formInput('modele', { value: v.modele || '', placeholder: 'Master, Boxer...' }))}
       </div>
+      ${M.formField('VIN (n° de série)', M.formInput('vin', { value: v.vin || '', placeholder: '17 caractères', autocomplete: 'off' }), { hint: 'Champ E de la carte grise' })}
       <div class="m-form-row">
-        ${M.formField('Date CT', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
-        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }))}
+        ${M.formField('Genre', M.formSelect('genre', [
+          { value: 'CTTE', label: 'CTTE — Camionnette' },
+          { value: 'VP',   label: 'VP — Voiture particulière' },
+          { value: 'VU',   label: 'VU — Véhicule utilitaire' },
+          { value: 'CAM',  label: 'CAM — Camion' },
+          { value: 'TRR',  label: 'TRR — Tracteur routier' },
+          { value: 'REM',  label: 'REM — Remorque' },
+          { value: 'AUTRE', label: 'Autre' }
+        ], { placeholder: 'Genre', value: v.genre || '' }))}
+        ${M.formField("Crit'Air", M.formSelect('critAir', [
+          { value: '0',      label: "Crit'Air 0 (vert)" },
+          { value: '1',      label: "Crit'Air 1" },
+          { value: '2',      label: "Crit'Air 2" },
+          { value: '3',      label: "Crit'Air 3" },
+          { value: '4',      label: "Crit'Air 4" },
+          { value: '5',      label: "Crit'Air 5" },
+          { value: 'aucune', label: 'Non classé' }
+        ], { placeholder: 'Vignette', value: v.critAir || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date CT (prochain)', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }), { hint: 'Expiration carte verte' })}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date carte grise', M.formInput('dateCarteGrise', { type: 'date', value: v.dateCarteGrise || '' }))}
+        ${M.formField('1ère mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Date acquisition', M.formInput('dateAcquisition', { type: 'date', value: v.dateAcquisition || '' }))}
-        ${M.formField('Mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
+        ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
+          { value: 'achat',    label: '💰 Achat neuf' },
+          { value: 'occasion', label: '🚗 Occasion' },
+          { value: 'lld',      label: '📋 LLD' },
+          { value: 'loa',      label: '📝 LOA' },
+          { value: 'credit',   label: '🏦 Crédit' },
+          { value: 'location', label: '📅 Location' }
+        ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Km actuel', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.km || '' }))}
         ${M.formField('Km initial', M.formInputWithSuffix('kmInitial', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.kmInitial || '' }))}
       </div>
-      ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
-        { value: 'achat',    label: '💰 Achat neuf' },
-        { value: 'occasion', label: '🚗 Occasion' },
-        { value: 'lld',      label: '📋 Location longue durée (LLD)' },
-        { value: 'loa',      label: "📝 Location avec option d'achat (LOA)" },
-        { value: 'credit',   label: '🏦 Crédit' },
-        { value: 'location', label: '📅 Location simple' }
-      ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
         { value: 'diesel',     label: '⛽ Diesel/Gazole' },
         { value: 'essence',    label: 'Essence' },
@@ -1893,7 +1975,18 @@
         { value: 'hybride',    label: 'Hybride' },
         { value: 'hydrogene',  label: 'Hydrogène' }
       ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
-      ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      <div class="m-form-row">
+        ${M.formField('Capacité réservoir', M.formInputWithSuffix('capaciteReservoir', 'L', { type: 'number', step: '1', min: '0', placeholder: '70', value: v.capaciteReservoir || '' }))}
+        ${M.formField('Conso constructeur', M.formInputWithSuffix('conso', 'L/100', { type: 'number', step: '0.1', min: '0', placeholder: '8.5', value: v.conso || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('PTAC', M.formInputWithSuffix('ptac', 'kg', { type: 'number', step: '1', min: '0', placeholder: '3500', value: v.ptac || '' }))}
+        ${M.formField('PTRA', M.formInputWithSuffix('ptra', 'kg', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.ptra || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Nb essieux', M.formInput('essieux', { type: 'number', step: '1', min: '1', placeholder: '2', value: v.essieux || '' }))}
+        ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      </div>
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
@@ -1976,6 +2069,7 @@
               setVal('immat', parsed.immat);
               setVal('marque', parsed.marque);
               setVal('modele', parsed.modele);
+              setVal('vin', parsed.vin);
               setVal('dateMiseEnCirculation', parsed.dateMEC);
               cgStatus.textContent = n > 0 ? `✅ ${n} champ${n>1?'s':''} rempli${n>1?'s':''} (vérifie + complète)` : `⚠️ Aucun champ détecté (qualité photo ?)`;
               cgStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
@@ -2072,22 +2166,45 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.immat?.trim()) { M.toast('⚠️ Immatriculation obligatoire'); return false; }
+        // Validation immat (souple : on accepte FR moderne, FR ancien, ou format libre 6+ caracteres)
+        const immatNorm = f.immat.trim().toUpperCase().replace(/\s+/g, '-');
+        if (immatNorm.length < 5) { M.toast('⚠️ Immatriculation trop courte'); return false; }
+        // Validation cohérence dates : kmInitial <= km
+        const kmAct = M.parseNum(f.km) || 0;
+        const kmIni = M.parseNum(f.kmInitial) || 0;
+        if (kmIni > 0 && kmAct > 0 && kmIni > kmAct) { M.toast('⚠️ Km initial > Km actuel : incohérent'); return false; }
+        // Validation VIN si renseigné (17 caractères alphanumériques sauf I, O, Q)
+        if (f.vin?.trim() && !/^[A-HJ-NPR-Z0-9]{17}$/i.test(f.vin.trim())) {
+          // Tolérant : on accepte mais on prévient
+          if (f.vin.trim().length !== 17) {
+            M.toast('⚠️ VIN doit faire 17 caractères', { duration: 3000 });
+          }
+        }
         const arr = M.charger('vehicules');
         // Resolve salNom depuis salId pour coherence avec desktop (lookup vise)
         const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
         const data = {
-          immat: f.immat.trim().toUpperCase(),
+          immat: immatNorm,
           marque: f.marque?.trim() || '',
           modele: f.modele?.trim() || '',
+          vin: f.vin?.trim().toUpperCase() || '',
+          genre: f.genre || '',
+          critAir: f.critAir || '',
           dateCT: f.dateCT || '',
           dateAssurance: f.dateAssurance || '',
+          dateCarteGrise: f.dateCarteGrise || '',
           dateAcquisition: f.dateAcquisition || '',
           dateMiseEnCirculation: f.dateMiseEnCirculation || '',
-          km: M.parseNum(f.km) || 0,
-          kmInitial: M.parseNum(f.kmInitial) || 0,
+          km: kmAct,
+          kmInitial: kmIni,
           modeAcquisition: f.modeAcquisition || '',
           typeCarburant: f.typeCarburant || '',
           carburant: f.typeCarburant || '',  // alias PC pour filtres
+          capaciteReservoir: M.parseNum(f.capaciteReservoir) || 0,
+          conso: M.parseNum(f.conso) || 0,
+          ptac: M.parseNum(f.ptac) || 0,
+          ptra: M.parseNum(f.ptra) || 0,
+          essieux: M.parseNum(f.essieux) || 0,
           entretienIntervalKm: M.parseNum(f.entretienIntervalKm) || 0,
           salId: f.salId || null,
           chaufId: f.salId || null,           // dual-write PC
@@ -2969,7 +3086,8 @@
 
   // ---- ENTRETIEN ----
   M.formNouvelEntretien = function(existing) {
-    const enEdition = !!existing;
+    // Edition vraie = existing avec id. Sinon = pre-fill (ex: depuis bandeau echeances).
+    const enEdition = !!(existing && existing.id);
     const e = existing || {};
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
     const today = new Date().toISOString().slice(0, 10);
@@ -3010,9 +3128,14 @@
       afterMount(b) {
         // Auto-calcul HT <-> TTC
         const ht  = b.querySelector('input[name=coutHt]');
-        const sel = b.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist, pas un <select>.
+        const sel = b.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = b.querySelector('input[name=tva]');
         const ttc = b.querySelector('input[name=cout]');
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile entretien form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         let dernierEdit = 'ttc';
         const recalc = () => {
           const taux = M.parseNum(sel.value) / 100 || 0;
@@ -3034,17 +3157,34 @@
         // Auto-fill km : quand un véhicule est sélectionné, propose le dernier
         // compteur connu (max entre vehicule.km, dernier plein, dernier entretien,
         // dernière saisie heures). Logique partagée pour toutes les saisies km.
+        // Auto-fill prochainKm : si vehicule.entretienIntervalKm renseigne,
+        // pre-remplit prochainKm = km + intervalKm (parite PC : calcul auto periodicite).
         const vehSel = b.querySelector('select[name=vehiculeId]');
         const kmInput = b.querySelector('input[name=km]');
+        const prochainKmInput = b.querySelector('input[name=prochainKm]');
+        const autoFillProchainKm = () => {
+          if (!prochainKmInput || prochainKmInput.value) return; // ne pas ecraser
+          const id = vehSel?.value;
+          if (!id) return;
+          const veh = M.charger('vehicules').find(v => v.id === id);
+          const intervalKm = M.parseNum(veh?.entretienIntervalKm) || 0;
+          const km = M.parseNum(kmInput?.value) || 0;
+          if (intervalKm && km) prochainKmInput.value = km + intervalKm;
+        };
         if (vehSel && kmInput) {
           const autofillKm = () => {
-            if (kmInput.value) return; // ne pas écraser une saisie manuelle
-            const id = vehSel.value;
-            if (!id) return;
-            const kmDispo = M.dernierKmConnu(id);
-            if (kmDispo > 0) kmInput.value = kmDispo;
+            if (!kmInput.value) {
+              const id = vehSel.value;
+              if (id) {
+                const kmDispo = M.dernierKmConnu(id);
+                if (kmDispo > 0) kmInput.value = kmDispo;
+              }
+            }
+            autoFillProchainKm();
           };
           vehSel.addEventListener('change', autofillKm);
+          kmInput.addEventListener('change', autoFillProchainKm);
+          kmInput.addEventListener('blur', autoFillProchainKm);
           // Au mount : si véhicule déjà sélectionné (mode édition), pré-remplit
           if (!enEdition) setTimeout(autofillKm, 100);
         }
@@ -3435,6 +3575,262 @@
     }
   };
 
+  // =============================================================
+  // PR C — Brief automatique IA mobile (parite PC panneau-agent)
+  // Lit/ecrit dans agent_decisions (localStorage partage avec PC),
+  // appelle l'edge function ai-brief, expose une cloche dans le header.
+  // =============================================================
+  const AI_BRIEF_LAST_RUN_KEY_M = 'ai_brief_last_run';
+
+  M.compterBriefNonLus = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    return decisions.filter((d) => !d.lu).length;
+  };
+
+  M.updateBriefBadge = function () {
+    const n = M.compterBriefNonLus();
+    const badge = $('#m-agent-ia-badge');
+    if (!badge) return;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  };
+
+  M.lancerBriefAuto = async function (trigger) {
+    if (window.__delivproAiBriefPendingMobile) return { skipped: 'pending' };
+    window.__delivproAiBriefPendingMobile = true;
+    try {
+      if (trigger === 'manual') M.toast('🔄 Brief IA en cours…');
+      const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+        ? window.DelivProSupabase.getClient()
+        : null;
+      const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
+        ? window.DelivProSupabase.getConfig()
+        : null;
+      if (!client || !config?.url) return { error: 'supabase_not_ready' };
+      let token = null;
+      try {
+        const { data: sessionData } = await client.auth.getSession();
+        const sess = sessionData && sessionData.session;
+        const expAt = sess && sess.expires_at ? sess.expires_at * 1000 : 0;
+        if (sess && expAt && expAt - Date.now() < 60000) {
+          try {
+            const { data: refreshed } = await client.auth.refreshSession();
+            token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
+          } catch (_) { token = sess.access_token; }
+        } else {
+          token = sess ? sess.access_token : null;
+        }
+      } catch (_) { /* fail-soft */ }
+      if (!token) return { error: 'no_token' };
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 60000);
+      let r;
+      try {
+        r = await fetch(config.url + '/functions/v1/ai-brief', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: trigger || 'manual' }),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : réseau indisponible');
+        return { error: 'network' };
+      } finally { clearTimeout(t); }
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : ' + (body.message || body.error || ('HTTP ' + r.status)));
+        return { error: 'http', status: r.status };
+      }
+      const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+      const existantes = M.charger('agent_decisions') || [];
+      let added = 0;
+      for (const d of decisions) {
+        if (!d || !d.titre || !d.description) continue;
+        // Dedup avec celles deja en place et non actionnees
+        const dejaPresente = existantes.find(
+          (e) => e.titre === d.titre && e.description === d.description && !e.actionPrise
+        );
+        if (dejaPresente) continue;
+        existantes.unshift({
+          id: 'brief-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          creeLe: new Date().toISOString(),
+          lu: false,
+          titre: d.titre,
+          description: d.description,
+          priorite: d.priorite || 'info',
+          actions: Array.isArray(d.actions) ? d.actions : [],
+          source: 'ai-brief',
+          run_id: body.run_id || null,
+        });
+        added++;
+      }
+      M.sauvegarder('agent_decisions', existantes);
+      try {
+        // Gate session : 1x par session de login (et non 1x par jour calendaire,
+        // sinon un re-login le meme jour ne re-declenche jamais le brief).
+        sessionStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, '1');
+      } catch (_) {}
+      M.updateBriefBadge();
+      if (trigger === 'manual') {
+        M.toast(added > 0 ? `✅ ${added} nouvelle(s) décision(s)` : '✅ Rien de nouveau');
+      }
+      return { ok: true, added, total: decisions.length };
+    } catch (e) {
+      if (trigger === 'manual') M.toast('⚠️ Brief IA : erreur (voir console)');
+      console.warn('[ai-brief mobile] erreur', e);
+      return { error: 'exception' };
+    } finally {
+      window.__delivproAiBriefPendingMobile = false;
+    }
+  };
+
+  // Auto-trigger 1x par chargement de page (gate runtime window flag).
+  // Reset a chaque F5/reload → comportement attendu : un nouveau login
+  // re-declenche le brief automatiquement.
+  M.declencherBriefAutoLoginSiNecessaire = function () {
+    try {
+      if (window.__briefAutoTriggeredMobile) return;
+      const start = Date.now();
+      const tick = () => {
+        const adminLogin = sessionStorage.getItem('admin_login') || '';
+        if (adminLogin) {
+          window.__briefAutoTriggeredMobile = true;
+          setTimeout(() => { M.lancerBriefAuto('on_login'); }, 1500);
+          return;
+        }
+        if (Date.now() - start > 10000) return; // timeout
+        setTimeout(tick, 500);
+      };
+      tick();
+    } catch (_) { /* fail-soft */ }
+  };
+
+  M.priorityBadge = function (p) {
+    if (p === 'haute') return '<span style="background:rgba(231,76,60,0.18);color:#ff8b80;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">HAUTE</span>';
+    if (p === 'opportunite') return '<span style="background:rgba(46,204,113,0.18);color:#7ed8a3;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">OPPORTUNITÉ</span>';
+    return '<span style="background:rgba(52,152,219,0.18);color:#7ec0ff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">INFO</span>';
+  };
+
+  M.openBriefSheet = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    const html = decisions.length === 0
+      ? `<div style="text-align:center;padding:32px 16px;color:var(--m-text-muted)">
+           <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+           <div style="font-size:0.95rem;margin-bottom:6px;font-weight:600;color:var(--m-text)">Aucune décision en attente</div>
+           <div style="font-size:0.8rem">Le brief Gemini scanne tes données automatiquement chaque jour.</div>
+         </div>`
+      : decisions.map((d) => {
+          const couleurBord = d.priorite === 'haute'
+            ? 'rgba(231,76,60,0.45)'
+            : d.priorite === 'opportunite' ? 'rgba(46,204,113,0.4)' : 'rgba(52,152,219,0.35)';
+          const lu = d.lu ? '' : 'border-left:3px solid var(--m-accent,#e63946);';
+          // Bouton "Discuter" (tap-target 44px min, parite PC). Ouvre le chatbot IA
+          // avec le contexte de la decision pre-rempli.
+          const btnDiscuter = `<button type="button" data-discuter-id="${d.id}" class="m-btn" style="min-height:44px;padding:8px 14px;font-size:0.8rem;font-weight:600;background:var(--m-bg-soft,#1f2229);color:var(--m-text,#e8eaf0);border:1px solid var(--m-border,#2a2d3d);border-radius:10px;cursor:pointer">💬 Discuter</button>`;
+          return `
+            <div style="background:var(--m-card,#2a2f37);border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="font-size:0.88rem;font-weight:700;color:var(--m-text,#f1f3f5);flex:1">${M.escHtml(d.titre)}</div>
+                ${M.priorityBadge(d.priorite)}
+              </div>
+              <div style="font-size:0.82rem;color:var(--m-text-muted,#adb5bd);line-height:1.5;margin-bottom:10px">${M.escHtml(d.description)}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${btnDiscuter}</div>
+              <div style="font-size:0.7rem;color:var(--m-text-muted);opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${d.source === 'ai-brief' ? ' · IA' : ''}</div>
+            </div>`;
+        }).join('');
+
+    M.openSheet({
+      title: '🔔 Brief IA',
+      body: `
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button id="m-brief-refresh" class="m-btn" type="button" style="flex:1;min-height:44px">🔄 Rafraîchir</button>
+          ${decisions.length ? '<button id="m-brief-clear" class="m-btn" type="button" style="flex:1;min-height:44px">🗑 Tout effacer</button>' : ''}
+        </div>
+        ${html}
+      `,
+      submitLabel: '✓ Tout marquer lu',
+      onSubmit() {
+        const list = M.charger('agent_decisions') || [];
+        list.forEach((d) => { d.lu = true; });
+        M.sauvegarder('agent_decisions', list);
+        M.updateBriefBadge();
+        M.toast('✓ Toutes les décisions marquées lues');
+        return true; // close
+      },
+      afterMount(root) {
+        // Marque tout comme lu en arriere-plan a l'ouverture (effet bell click = "j'ai vu")
+        const list = M.charger('agent_decisions') || [];
+        let modif = false;
+        list.forEach((d) => { if (!d.lu) { d.lu = true; modif = true; } });
+        if (modif) { M.sauvegarder('agent_decisions', list); M.updateBriefBadge(); }
+        // Refresh button
+        const btnRefresh = root.querySelector('#m-brief-refresh');
+        if (btnRefresh) {
+          btnRefresh.addEventListener('click', async () => {
+            btnRefresh.disabled = true;
+            btnRefresh.textContent = '⏳ Analyse en cours…';
+            const r = await M.lancerBriefAuto('manual');
+            M.closeSheet();
+            // Reopen pour montrer les nouvelles decisions
+            setTimeout(() => M.openBriefSheet(), 350);
+          });
+        }
+        // Clear button
+        const btnClear = root.querySelector('#m-brief-clear');
+        if (btnClear) {
+          btnClear.addEventListener('click', () => {
+            if (!confirm('Effacer toutes les décisions ?')) return;
+            M.sauvegarder('agent_decisions', []);
+            M.updateBriefBadge();
+            M.toast('🗑 Décisions effacées');
+            M.closeSheet();
+          });
+        }
+        // Boutons "💬 Discuter" sur chaque card
+        root.querySelectorAll('button[data-discuter-id]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-discuter-id');
+            if (!id) return;
+            e.preventDefault();
+            M.discuterDecisionAvecIA(id);
+          });
+        });
+      },
+    });
+  };
+
+  // Ouvre le chatbot avec un message pre-rempli construit a partir de la decision.
+  M.discuterDecisionAvecIA = function (decisionId) {
+    try {
+      const decisions = M.charger('agent_decisions') || [];
+      const d = decisions.find((x) => x.id === decisionId);
+      if (!d) { M.toast('⚠️ Décision introuvable'); return; }
+      const message = `[Décision agent : ${d.priorite || 'info'}]\n${d.titre}\n\n${d.description}\n\nQue me conseilles-tu de faire ?`;
+      if (!window.AIChat || typeof window.AIChat.open !== 'function') {
+        M.toast('⚠️ Chatbot indisponible'); return;
+      }
+      // Ferme la sheet pour focus chat
+      try { M.closeSheet(); } catch (_) {}
+      window.AIChat.open();
+      setTimeout(() => {
+        const input = document.getElementById('ai-chat-input');
+        const form = document.getElementById('ai-chat-form');
+        if (!input || !form) return;
+        input.value = message;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+        form.requestSubmit();
+      }, 380);
+    } catch (e) {
+      console.warn('[M.discuterDecisionAvecIA]', e);
+      M.toast('⚠️ Erreur ouverture chat');
+    }
+  };
+
   // ============================================================
   // PAGES
   // ============================================================
@@ -3601,36 +3997,94 @@
     };
   }
 
-  // ---------- Livraisons (v2.1 : liste lecture seule, groupee par mois) ----------
+  // ---------- Livraisons (v3.86 : parite PC enrichie - filtres + tri + quick-pay) ----------
   M.state.livraisonsRecherche = '';
   M.state.livraisonsMoisOuverts = {}; // mois -> bool (open/closed)
   M.state.livraisonsVue = 'liste'; // 'liste' | 'kanban'
   M.state.livBulkMode = false;
   M.state.livBulkSel = new Set(); // ids selectionnees
+  M.state.livFiltrePaiement = ''; // '' | 'en-attente' | 'payé' | 'litige'
+  M.state.livFiltrePeriode = ''; // '' | 'mois' | '30j' | '90j'
+  M.state.livFiltreClient = ''; // '' = tous
+  M.state.livTri = 'date-desc'; // date-desc | date-asc | client-asc | montant-desc | montant-asc
+
+  // Helper : normalise statut paiement (mirror PC getLivraisonStatutPaiement)
+  M.livStatutPaiement = function(l) {
+    const s = String(l?.statutPaiement || '').trim().toLowerCase();
+    if (!s || s === 'en attente') return 'en-attente';
+    if (s === 'paye' || s === 'payee' || s === 'payé') return 'payé';
+    return s;
+  };
 
   M.register('livraisons', {
     title: 'Livraisons',
     render() {
       const livraisons = M.charger('livraisons');
       const recherche = (M.state.livraisonsRecherche || '').toLowerCase();
+      const fPaiement = M.state.livFiltrePaiement;
+      const fPeriode = M.state.livFiltrePeriode;
+      const fClient = M.state.livFiltreClient;
+      const tri = M.state.livTri;
+
+      // Compteurs paiement (avant filtrage paiement, pour afficher dans chips)
+      const compteurs = { all: livraisons.length, 'en-attente': 0, 'payé': 0, 'litige': 0 };
+      livraisons.forEach(l => {
+        const sp = M.livStatutPaiement(l);
+        if (compteurs[sp] !== undefined) compteurs[sp]++;
+      });
+
+      // Filtre periode
       let filtered = livraisons;
+      if (fPeriode) {
+        const now = new Date();
+        let cutoff = null;
+        if (fPeriode === 'mois') cutoff = M.moisKey() + '-01';
+        else if (fPeriode === '30j') {
+          const d = new Date(now); d.setDate(d.getDate() - 30);
+          cutoff = d.toISOString().slice(0, 10);
+        } else if (fPeriode === '90j') {
+          const d = new Date(now); d.setDate(d.getDate() - 90);
+          cutoff = d.toISOString().slice(0, 10);
+        }
+        if (cutoff) filtered = filtered.filter(l => (l.date || '') >= cutoff);
+      }
+
+      // Filtre client
+      if (fClient) filtered = filtered.filter(l => (l.client || '') === fClient);
+
+      // Filtre paiement
+      if (fPaiement) filtered = filtered.filter(l => M.livStatutPaiement(l) === fPaiement);
+
+      // Recherche full-text (client, n° liv, dest, exp, zone, notes)
       if (recherche) {
-        filtered = livraisons.filter(l => {
-          const hay = `${l.client||''} ${l.numLiv||''} ${l.date||''} ${l.adresseDepart||''} ${l.adresseArrivee||''}`.toLowerCase();
+        filtered = filtered.filter(l => {
+          const hay = `${l.client||''} ${l.numLiv||''} ${l.date||''} ${l.zone||''} ${l.expVille||''} ${l.destVille||''} ${l.expNom||''} ${l.destNom||''} ${l.notes||''} ${l.adresseDepart||''} ${l.adresseArrivee||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
-      // tri date desc
-      filtered = [...filtered].sort((a,b) => (b.date||'').localeCompare(a.date||''));
 
-      // Group par mois (YYYY-MM)
+      // Tri
+      const triFn = {
+        'date-desc':    (a,b) => (b.date||'').localeCompare(a.date||''),
+        'date-asc':     (a,b) => (a.date||'').localeCompare(b.date||''),
+        'client-asc':   (a,b) => (a.client||'').localeCompare(b.client||'', 'fr', { sensitivity: 'base' }),
+        'montant-desc': (a,b) => (M.parseNum(b.prixTTC)||M.parseNum(b.prix)||M.parseNum(b.prixHT)||0) - (M.parseNum(a.prixTTC)||M.parseNum(a.prix)||M.parseNum(a.prixHT)||0),
+        'montant-asc':  (a,b) => (M.parseNum(a.prixTTC)||M.parseNum(a.prix)||M.parseNum(a.prixHT)||0) - (M.parseNum(b.prixTTC)||M.parseNum(b.prix)||M.parseNum(b.prixHT)||0)
+      }[tri] || ((a,b) => (b.date||'').localeCompare(a.date||''));
+      filtered = [...filtered].sort(triFn);
+
+      // Group par mois quand tri date-* (sinon liste plate pour client/montant)
+      const grouperParMois = tri === 'date-desc' || tri === 'date-asc';
       const byMonth = {};
-      filtered.forEach(l => {
-        const m = (l.date || '0000-00').slice(0, 7);
-        if (!byMonth[m]) byMonth[m] = [];
-        byMonth[m].push(l);
-      });
-      const monthsSorted = Object.keys(byMonth).sort().reverse();
+      if (grouperParMois) {
+        filtered.forEach(l => {
+          const m = (l.date || '0000-00').slice(0, 7);
+          if (!byMonth[m]) byMonth[m] = [];
+          byMonth[m].push(l);
+        });
+      }
+      const monthsSorted = Object.keys(byMonth).sort();
+      if (tri === 'date-desc') monthsSorted.reverse();
       const moisCourant = M.moisKey();
 
       const bulkOn = M.state.livBulkMode;
@@ -3665,8 +4119,48 @@
           <button class="m-alertes-chip ${vue==='liste'?'active':''}" data-vue="liste" style="flex:1 1 0">📋 Liste</button>
           <button class="m-alertes-chip ${vue==='kanban'?'active':''}" data-vue="kanban" style="flex:1 1 0">📊 Kanban</button>
         </div>
-        <div style="margin-bottom:16px">
-          <input type="search" id="m-liv-search" placeholder="🔍 Rechercher (client, n°, adresse...)" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
+        <div style="margin-bottom:10px">
+          <input type="search" id="m-liv-search" placeholder="🔍 Client, n°, ville, notes…" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
+        </div>
+      `;
+
+      // Chips filtre paiement (Tout / À encaisser / Payé / Litige) - mirror PC filtre-paiement
+      html += `
+        <div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${fPaiement===''?'active':''}" data-fp="">Tous (${compteurs.all})</button>
+          <button class="m-alertes-chip ${fPaiement==='en-attente'?'active':''}" data-fp="en-attente">⏳ À encaisser (${compteurs['en-attente']})</button>
+          <button class="m-alertes-chip ${fPaiement==='payé'?'active':''}" data-fp="payé">✅ Payé (${compteurs['payé']})</button>
+          <button class="m-alertes-chip ${fPaiement==='litige'?'active':''}" data-fp="litige">⚠️ Litige (${compteurs['litige']})</button>
+        </div>
+      `;
+
+      // Chips filtre période + tri (sur la même rangée si possible)
+      html += `
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${fPeriode===''?'active':''}" data-fperiode="">📅 Tout</button>
+          <button class="m-alertes-chip ${fPeriode==='mois'?'active':''}" data-fperiode="mois">Ce mois</button>
+          <button class="m-alertes-chip ${fPeriode==='30j'?'active':''}" data-fperiode="30j">30j</button>
+          <button class="m-alertes-chip ${fPeriode==='90j'?'active':''}" data-fperiode="90j">90j</button>
+        </div>
+      `;
+
+      // Liste des clients (uniques) pour filtre + select tri
+      const clientsListe = [...new Set(livraisons.map(l => l.client).filter(Boolean))].sort();
+      html += `
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          ${clientsListe.length > 1 ? `
+            <select id="m-liv-client" style="flex:1 1 160px;min-width:140px">
+              <option value="">— Tous les clients —</option>
+              ${clientsListe.map(c => `<option value="${M.escHtml(c)}" ${c === fClient ? 'selected' : ''}>${M.escHtml(c)}</option>`).join('')}
+            </select>
+          ` : ''}
+          <select id="m-liv-tri" style="flex:1 1 160px;min-width:140px" aria-label="Trier les livraisons">
+            <option value="date-desc"    ${tri==='date-desc'?'selected':''}>📅 Date (récent)</option>
+            <option value="date-asc"     ${tri==='date-asc'?'selected':''}>📅 Date (ancien)</option>
+            <option value="client-asc"   ${tri==='client-asc'?'selected':''}>🔤 Client A→Z</option>
+            <option value="montant-desc" ${tri==='montant-desc'?'selected':''}>💶 Montant ↓</option>
+            <option value="montant-asc"  ${tri==='montant-asc'?'selected':''}>💶 Montant ↑</option>
+          </select>
         </div>
       `;
 
@@ -3712,13 +4206,65 @@
         return html;
       }
       if (!filtered.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Ajuste tes filtres ou la recherche.</p></div>`;
+        return html;
+      }
+
+      // Helper : carte livraison (réutilisé en mode liste plate ET grouped par mois)
+      const renderCard = (l) => {
+        const isSel = selSet.has(l.id);
+        const cardClass = bulkOn ? 'm-liv-toggle' : 'm-liv-edit';
+        const cardStyle = bulkOn && isSel
+          ? 'background:var(--m-accent-soft);border:1px solid var(--m-accent)'
+          : 'background:var(--m-card);border:1px solid var(--m-border)';
+        const checkbox = bulkOn
+          ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
+          : '';
+        const sp = M.livStatutPaiement(l);
+        // Pastille statut paiement (couleur)
+        const spLabel = sp === 'payé' ? '✅ Payé' : sp === 'litige' ? '⚠️ Litige' : '⏳ À encaisser';
+        const spColor = sp === 'payé' ? 'var(--m-green)' : sp === 'litige' ? 'var(--m-red)' : 'var(--m-accent)';
+        // Quick-action "Marquer payée" si non payé et pas en mode bulk
+        const quickPay = (!bulkOn && sp !== 'payé')
+          ? `<button type="button" class="m-liv-quick-pay" data-id="${M.escHtml(l.id)}" aria-label="Marquer payée" style="flex:0 0 auto;background:rgba(6,214,160,0.12);color:var(--m-green);border:1px solid rgba(6,214,160,0.3);border-radius:8px;padding:0 10px;height:44px;font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap">💵</button>`
+          : '';
+        return `<div style="display:flex;gap:8px;align-items:stretch;margin-bottom:10px">
+          <div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;flex:1 1 auto;text-align:left;${cardStyle};border-radius:18px;color:inherit;cursor:pointer;margin-bottom:0">
+            ${checkbox}
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
+              <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
+                <span>${M.formatDate(l.date)}</span>
+                ${l.numLiv ? `<span>· ${M.escHtml(l.numLiv)}</span>` : ''}
+                ${l.distance ? `<span>· ${M.formatNum(l.distance)} km</span>` : ''}
+              </div>
+              <div style="margin-top:4px;font-size:.7rem;color:${spColor};font-weight:700;text-transform:uppercase;letter-spacing:.04em">${spLabel}${l.datePaiement && sp === 'payé' ? ' · ' + M.formatDate(l.datePaiement) : ''}</div>
+            </div>
+            <div style="text-align:right;flex-shrink:0">
+              <div style="font-weight:700;color:var(--m-green);white-space:nowrap;font-size:.95rem">${M.format$(l.prixTTC || l.prix || l.prixHT || 0)}</div>
+              ${l.statut ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(l.statut)}</div>` : ''}
+            </div>
+          </div>
+          ${quickPay}
+        </div>`;
+      };
+
+      // Liste plate quand tri client/montant (les groupes par mois n'ont pas de sens)
+      if (!grouperParMois) {
+        const totalCa = filtered.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        html += `<div class="m-section" style="margin-top:8px">
+          <div class="m-section-header" style="padding:0 4px 10px">
+            <span style="font-weight:600;font-size:.92rem">${filtered.length} livraison${filtered.length>1?'s':''}</span>
+            <span style="color:var(--m-green);font-weight:700;font-size:.92rem">${M.format$(totalCa)}</span>
+          </div>
+          ${filtered.map(renderCard).join('')}
+        </div>`;
         return html;
       }
 
       monthsSorted.forEach(month => {
         const items = byMonth[month];
-        const totalCa = items.reduce((acc, l) => acc + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        const totalCa = items.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const dateLabel = (() => {
           if (month === '0000-00') return 'Sans date';
           const [y, m] = month.split('-');
@@ -3741,31 +4287,7 @@
               </span>
             </button>
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
-              ${items.map(l => {
-                const isSel = selSet.has(l.id);
-                const cardClass = bulkOn ? 'm-liv-toggle' : 'm-liv-edit';
-                const cardStyle = bulkOn && isSel
-                  ? 'background:var(--m-accent-soft);border:1px solid var(--m-accent)'
-                  : 'background:var(--m-card);border:1px solid var(--m-border)';
-                const checkbox = bulkOn
-                  ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>`
-                  : '';
-                return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cardClass}" data-id="${M.escHtml(l.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;${cardStyle};border-radius:18px;margin-bottom:10px;color:inherit;cursor:pointer">
-                  ${checkbox}
-                  <div style="flex:1 1 auto;min-width:0">
-                    <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
-                    <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">
-                      <span>${M.formatDate(l.date)}</span>
-                      ${l.numLiv ? `<span>· ${M.escHtml(l.numLiv)}</span>` : ''}
-                      ${l.distance ? `<span>· ${M.formatNum(l.distance)} km</span>` : ''}
-                    </div>
-                  </div>
-                  <div style="text-align:right;flex-shrink:0">
-                    <div style="font-weight:700;color:var(--m-green);white-space:nowrap;font-size:.95rem">${M.format$(l.prix || l.prixHT || 0)}</div>
-                    ${l.statut ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(l.statut)}</div>` : ''}
-                  </div>
-                </div>`;
-              }).join('')}
+              ${items.map(renderCard).join('')}
             </div>
           </div>
         `;
@@ -3778,7 +4300,25 @@
       container.querySelectorAll('.m-alertes-chip[data-vue]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.livraisonsVue = btn.dataset.vue; M.go('livraisons'); });
       });
-      // Wire recherche (debounce 200ms pour fluidite)
+      // Chips filtre paiement (inclut le bouton "Tous" avec data-fp="")
+      container.querySelectorAll('.m-alertes-chip[data-fp]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.livFiltrePaiement = btn.getAttribute('data-fp'); M.go('livraisons'); });
+      });
+      // Chips filtre période
+      container.querySelectorAll('.m-alertes-chip[data-fperiode]').forEach(btn => {
+        btn.addEventListener('click', () => { M.state.livFiltrePeriode = btn.dataset.fperiode; M.go('livraisons'); });
+      });
+      // Filtre client
+      container.querySelector('#m-liv-client')?.addEventListener('change', e => {
+        M.state.livFiltreClient = e.target.value;
+        M.go('livraisons');
+      });
+      // Tri
+      container.querySelector('#m-liv-tri')?.addEventListener('change', e => {
+        M.state.livTri = e.target.value;
+        M.go('livraisons');
+      });
+      // Wire recherche (debounce 350ms pour fluidite)
       const searchInput = container.querySelector('#m-liv-search');
       if (searchInput) {
         let timer = null;
@@ -3821,6 +4361,32 @@
           const id = btn.dataset.id;
           if (M.state.livBulkSel.has(id)) M.state.livBulkSel.delete(id);
           else M.state.livBulkSel.add(id);
+          M.go('livraisons');
+        });
+      });
+      // Quick-action "💵 Marquer payée" sur card non-payée (mode normal)
+      container.querySelectorAll('.m-liv-quick-pay').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const id = btn.dataset.id;
+          const arr = M.charger('livraisons');
+          const idx = arr.findIndex(x => x.id === id);
+          if (idx < 0) return;
+          const liv = arr[idx];
+          const res = await M.dialogChoisirDate({
+            titre: '💵 Marquer payée',
+            sousTitre: `${liv.client || 'Livraison'} · ${M.format$(M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0)}`,
+            labelDate: 'Date de paiement',
+            btnOk: '💵 Confirmer'
+          });
+          if (!res) return;
+          arr[idx].statutPaiement = 'payé';
+          arr[idx].datePaiement = res.date;
+          arr[idx].modifieLe = new Date().toISOString();
+          M.sauvegarder('livraisons', arr);
+          M.ajouterAudit?.('Encaissement livraison', (liv.client || '') + ' · ' + (liv.numLiv || '') + ' · ' + M.formatDate(res.date));
+          M.toast(`💵 Encaissée le ${M.formatDate(res.date)}`);
           M.go('livraisons');
         });
       });
@@ -3898,21 +4464,30 @@
   M.register('planning', {
     title: 'Planning',
     render() {
+      // Deep-link : applique le hash AVANT le render (sinon on rend l'ancienne semaine).
+      // Idempotent : si rien à appliquer, ne touche pas à M.state.
+      if (typeof M.applyPlanningHashState === 'function') M.applyPlanningHashState();
       const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
       const plannings = M.charger('plannings');
       const vue = M.state.planningVue || 'jour';
 
-      // Header : toggle vue + bouton periodes absences (compact pour eviter overflow)
+      // Header : toggle vue (jour / semaine / salarié) + bouton periodes absences
+      // (compact pour eviter overflow). Sprint parity-mobile-planning : ajout vue
+      // "Par salarié" (grille 1 ligne par salarié × 7 jours) pour parite PC.
       let html = `
         <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
-          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">📅 Jour</button>
-          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">🗓️ Sem.</button>
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">📅 Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">🗓️ Sem.</button>
+          <button class="m-alertes-chip ${vue==='salarie'?'active':''}" data-vue="salarie" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">👥 Par sal.</button>
           <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 44px;padding:0;height:40px;font-size:1.1rem;line-height:1" title="Ajouter une période d'absence longue">🏖️</button>
         </div>
       `;
 
       if (vue === 'semaine') {
         return html + M.renderPlanningSemaine(salaries, plannings);
+      }
+      if (vue === 'salarie') {
+        return html + M.renderPlanningParSalarie(salaries, plannings);
       }
 
       // Vue Jour (existante)
@@ -4007,21 +4582,39 @@
       return html;
     },
     afterRender(container) {
+      // Note : M.applyPlanningHashState est désormais appelé en début de render()
+      // pour que la date du hash soit prise en compte AU rendu (et non après).
+
+      // Synchronise le hash courant avec l'état (au cas où l'utilisateur a navigué
+      // sans hash explicite — on veut un permalink stable).
+      if (typeof M.updatePlanningHash === 'function') M.updatePlanningHash();
+
       container.querySelectorAll('button[data-vue]').forEach(btn => {
-        btn.addEventListener('click', () => { M.state.planningVue = btn.dataset.vue; M.go('planning'); });
+        btn.addEventListener('click', () => {
+          M.state.planningVue = btn.dataset.vue;
+          // Synchronise la vue dans le hash pour le partage de lien
+          M.updatePlanningHash();
+          M.go('planning');
+        });
       });
       container.querySelector('#m-planning-abs-add')?.addEventListener('click', () => M.formAbsenceLongue());
-      // Nav semaine (vue semaine uniquement)
+      // FAB "Bloquer la semaine" (vue semaine + vue salarie)
+      container.querySelector('#m-planning-fab-bloquer')?.addEventListener('click', () => M.formBloquerSemaine());
+      // Nav semaine (vue semaine uniquement). Met à jour aussi le hash pour
+      // que le lien soit partageable / restaurable au reload (parity-mobile-planning).
       container.querySelector('#m-planning-sem-prev')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) - 1;
+        M.updatePlanningHash();
         M.go('planning');
       });
       container.querySelector('#m-planning-sem-next')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) + 1;
+        M.updatePlanningHash();
         M.go('planning');
       });
       container.querySelector('#m-planning-sem-today')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = 0;
+        M.updatePlanningHash();
         M.go('planning');
       });
       // Menu actions semaine (sprint 4 : copies)
@@ -4060,6 +4653,57 @@
       });
     }
   });
+
+  // ============================================================
+  // Deep-link planning — parsing hash #planning?date=YYYY-MM-DD&vue=semaine
+  // ============================================================
+  M.parsePlanningHash = function() {
+    const raw = String(location.hash || '').replace(/^#/, '');
+    const qIdx = raw.indexOf('?');
+    if (qIdx === -1) return {};
+    const params = new URLSearchParams(raw.slice(qIdx + 1));
+    const out = {};
+    const date = params.get('date');
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) out.date = date;
+    const vue = params.get('vue');
+    if (vue && ['jour','semaine','salarie'].includes(vue)) out.vue = vue;
+    return out;
+  };
+
+  M.applyPlanningHashState = function() {
+    const parsed = M.parsePlanningHash();
+    if (parsed.vue) M.state.planningVue = parsed.vue;
+    if (parsed.date) {
+      // Calcul de l'offset en semaines entre la date demandée et la semaine courante
+      const target = new Date(parsed.date + 'T00:00:00');
+      if (!isNaN(target.getTime())) {
+        const targetJour = target.getDay();
+        const targetDecal = targetJour === 0 ? -6 : 1 - targetJour;
+        const targetLundi = new Date(target.getFullYear(), target.getMonth(), target.getDate() + targetDecal);
+        const today = new Date();
+        const todayJour = today.getDay();
+        const todayDecal = todayJour === 0 ? -6 : 1 - todayJour;
+        const todayLundi = new Date(today.getFullYear(), today.getMonth(), today.getDate() + todayDecal);
+        const diffMs = targetLundi - todayLundi;
+        const offset = Math.round(diffMs / (7 * 24 * 3600 * 1000));
+        M.state.planningSemaineOffset = offset;
+      }
+    }
+  };
+
+  M.updatePlanningHash = function() {
+    if (M.state.currentPage !== 'planning') return;
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dateISO = M.toLocalISODate(lundi);
+    const vue = M.state.planningVue || 'jour';
+    // Replace hash sans déclencher un re-render (history.replaceState pour éviter le hashchange).
+    const newHash = `#planning?date=${dateISO}&vue=${vue}`;
+    if (location.hash !== newHash) {
+      try { history.replaceState(null, '', newHash); }
+      catch (_) { location.hash = newHash; }
+    }
+  };
 
   // Vue semaine : grille condensee 7 colonnes x N salaries
   // Calcule le lundi de la semaine cible (offset 0 = semaine courante,
@@ -4165,7 +4809,7 @@
     // Bouton ⋯ = menu copies / actions (sprint 4).
     const isCurrent = offset === 0;
     let html = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box;position:sticky;top:0;z-index:5;background:var(--m-bg);padding:6px 0">
         <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
         <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''} title="${isCurrent ? '' : 'Tap pour revenir à cette semaine'}">
           ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
@@ -4174,6 +4818,10 @@
         <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
       </div>
     `;
+
+    // Indicateurs semaine (sprint parity-mobile-planning) : total heures + nb absences +
+    // alerte salariés sans planning. Aligné avec PC (planning-kpi-* du desktop).
+    html += M.renderPlanningIndicateurs(salaries, plannings, lundi);
 
     // Petit nom : initiale prénom + nom complet (fallback id), trim
     const nomCourt = (sal) => {
@@ -4274,7 +4922,234 @@
     } else {
       html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
     }
+
+    // FAB : raccourci "Bloquer la semaine pour X" (parity-mobile-planning).
+    // Pré-remplit l'absence longue avec lundi → dimanche de la semaine affichée.
+    html += `<button class="m-fab" id="m-planning-fab-bloquer" aria-label="Bloquer la semaine pour un salarié" title="Bloquer toute la semaine pour un salarié (absence)">🏖️</button>`;
     return html;
+  };
+
+  // ============================================================
+  // Indicateurs semaine — total heures (par sal + global), nb absences,
+  // salariés sans planning. Mirror des planning-kpi-* du desktop.
+  // ============================================================
+  M.computePlanningStats = function(salaries, plannings, lundiDate) {
+    const lundiISO = M.toLocalISODate(lundiDate);
+    const datesSemaine = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+      datesSemaine.push(M.toLocalISODate(d));
+    }
+    let totalHeuresGlobal = 0;
+    let nbAbsencesJours = 0;
+    let nbSansPlanning = 0;
+    let nbPlanifies = 0;
+    const heuresParSal = {};
+
+    salaries.forEach(sal => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      heuresParSal[sal.id] = 0;
+      if (!planning) {
+        nbSansPlanning++;
+        return;
+      }
+      M.migrerPlanningV2(planning);
+      // Heuristique "sans planning" : pas de pattern actif ET pas d'override sur cette semaine
+      const aPattern = !!(planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine) && planning.pattern.semaine.length);
+      const aOverride = !!(planning.semaines && planning.semaines[lundiISO]);
+      if (!aPattern && !aOverride) nbSansPlanning++;
+      const semaineData = M.getSemaineDataForDate(planning, lundiDate);
+      let aTravailleAuMoinsUnJour = false;
+      semaineData.forEach((jourData, idx) => {
+        if (!jourData) return;
+        const tj = jourData.typeJour || (jourData.travaille ? 'travail' : 'repos');
+        if (tj === 'travail' && jourData.heureDebut && jourData.heureFin) {
+          const [h1, m1] = String(jourData.heureDebut).split(':').map(n => parseInt(n) || 0);
+          const [h2, m2] = String(jourData.heureFin).split(':').map(n => parseInt(n) || 0);
+          let dh = (h2 + m2 / 60) - (h1 + m1 / 60);
+          if (dh < 0) dh += 24; // garde-fou (passage minuit)
+          if (dh > 0 && dh < 24) {
+            heuresParSal[sal.id] += dh;
+            totalHeuresGlobal += dh;
+          }
+          aTravailleAuMoinsUnJour = true;
+        } else if (tj === 'absence' || tj === 'maladie' || tj === 'conge') {
+          nbAbsencesJours++;
+        }
+      });
+      if (aTravailleAuMoinsUnJour) nbPlanifies++;
+    });
+
+    return {
+      totalHeuresGlobal,
+      heuresParSal,
+      nbAbsencesJours,
+      nbSansPlanning,
+      nbPlanifies,
+      nbSalariesActifs: salaries.length
+    };
+  };
+
+  M.renderPlanningIndicateurs = function(salaries, plannings, lundiDate) {
+    const stats = M.computePlanningStats(salaries, plannings, lundiDate);
+    const fmtH = (h) => {
+      const heures = Math.floor(h);
+      const mins = Math.round((h - heures) * 60);
+      return mins ? `${heures}h${String(mins).padStart(2,'0')}` : `${heures}h`;
+    };
+    let html = `
+      <div class="m-card-row" style="margin-bottom:14px">
+        <div class="m-card m-card-green">
+          <div class="m-card-title">Heures (sem.)</div>
+          <div class="m-card-value">${fmtH(stats.totalHeuresGlobal)}</div>
+          <div class="m-card-sub">${stats.nbPlanifies}/${stats.nbSalariesActifs} salarié${stats.nbSalariesActifs>1?'s':''} actif${stats.nbSalariesActifs>1?'s':''}</div>
+        </div>
+        <div class="m-card m-card-purple">
+          <div class="m-card-title">Absences</div>
+          <div class="m-card-value">${stats.nbAbsencesJours}</div>
+          <div class="m-card-sub">jour${stats.nbAbsencesJours>1?'s':''} hors travail</div>
+        </div>
+      </div>
+    `;
+    // Alerte visuelle : salariés sans planning défini cette semaine
+    if (stats.nbSansPlanning > 0) {
+      html += `<div class="m-card" style="padding:10px 14px;margin-bottom:14px;background:var(--m-accent-soft);border-left:4px solid var(--m-accent)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:.85rem">
+          <span style="font-size:1.1rem">⚠️</span>
+          <span style="flex:1 1 auto">
+            <strong>${stats.nbSansPlanning}</strong> salarié${stats.nbSansPlanning>1?'s':''} sans planning défini cette semaine
+          </span>
+        </div>
+      </div>`;
+    }
+    return html;
+  };
+
+  // ============================================================
+  // Vue "Par salarié" — grille 1 ligne par salarié × 7 colonnes
+  // (parite avec afficherPlanningSemaine du PC). Tap cellule = ouvre form.
+  // ============================================================
+  M.renderPlanningParSalarie = function(salaries, plannings) {
+    if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
+
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const sameMonth = lundi.getMonth() === dimanche.getMonth();
+    const labelDates = sameMonth
+      ? `${lundi.getDate()}–${dimanche.getDate()} ${moisCourtFR[lundi.getMonth()]}`
+      : `${lundi.getDate()} ${moisCourtFR[lundi.getMonth()]} – ${dimanche.getDate()} ${moisCourtFR[dimanche.getMonth()]}`;
+    const numSemaine = (function(d) {
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - dayNum + 3);
+      const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+      return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+    })(lundi);
+    const todayIdx = jourIndexAuj();
+    const isCurrent = offset === 0;
+    const todayISO = M.toLocalISODate(new Date());
+
+    // Barre nav semaine (identique semaine view)
+    let html = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box;position:sticky;top:0;z-index:5;background:var(--m-bg);padding:6px 0">
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
+        <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''}>
+          ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
+        </button>
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine suivante">›</button>
+        <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
+      </div>
+    `;
+
+    // Indicateurs (mêmes que vue semaine)
+    html += M.renderPlanningIndicateurs(salaries, plannings, lundi);
+
+    const stats = M.computePlanningStats(salaries, plannings, lundi);
+    const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', maladie: 'var(--m-red)', absence: 'var(--m-red)', repos: 'rgba(120,120,120,.45)' };
+    const txtColors = { travail: '#06231b', conge: '#06141b', maladie: '#fff', absence: '#fff', repos: '#fff' };
+    const labelsType = { travail: '🟢', conge: '🔵', maladie: '🟣', absence: '🟡', repos: '⚪' };
+    const JOURS_COURT_LOCAL = ['L','M','M','J','V','S','D'];
+
+    // Header colonnes (jours)
+    html += `<div class="m-card" style="padding:8px 6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div style="display:grid;grid-template-columns:90px repeat(7, minmax(40px,1fr));gap:4px;align-items:center;min-width:380px">
+        <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:600;text-transform:uppercase;padding:4px 6px">Salarié</div>
+        ${JOURS_COURT_LOCAL.map((j, i) => {
+          const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
+          const isToday = M.toLocalISODate(d) === todayISO;
+          return `<div style="text-align:center;font-size:.7rem;font-weight:700;padding:4px 0;color:${isToday ? 'var(--m-accent)' : 'var(--m-text)'}">
+            ${j}<div style="font-size:.62rem;color:var(--m-text-muted);font-weight:500">${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+    // 1 carte par salarié, grille de 7 cellules à droite
+    salaries.forEach(sal => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      const semaineData = planning ? M.getSemaineDataForDate(planning, lundi) : null;
+      const heuresSal = stats.heuresParSal[sal.id] || 0;
+      const fmtH = (h) => {
+        const heures = Math.floor(h);
+        const mins = Math.round((h - heures) * 60);
+        return mins ? `${heures}h${String(mins).padStart(2,'0')}` : `${heures}h`;
+      };
+      const nomComplet = ((sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id || '')).trim();
+
+      let cells = '';
+      for (let i = 0; i < 7; i++) {
+        const jourData = semaineData ? semaineData[i] : null;
+        const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
+        const horaire = jourData?.heureDebut && jourData?.heureFin
+          ? `${jourData.heureDebut.slice(0, 5)}<br>${jourData.heureFin.slice(0, 5)}` : '';
+        const bg = colors[typeJour] || colors.repos;
+        const fg = txtColors[typeJour] || txtColors.repos;
+        const showHoraire = typeJour === 'travail' && horaire;
+        const isVide = !planning || (!jourData?.typeJour && !jourData?.travaille);
+        const dEmpty = isVide;
+        cells += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${i}" style="min-height:48px;border:0;border-radius:8px;font-family:inherit;cursor:pointer;font-size:.62rem;line-height:1.15;font-weight:600;padding:4px 2px;background:${dEmpty ? 'transparent' : bg};color:${dEmpty ? 'var(--m-text-muted)' : fg};border:${dEmpty ? '1px dashed var(--m-border)' : '0'};white-space:normal;overflow:hidden;text-overflow:ellipsis">
+          ${dEmpty ? '+' : (showHoraire ? horaire : labelsType[typeJour] || '')}
+        </button>`;
+      }
+
+      html += `<div class="m-card" style="padding:8px 6px;margin-bottom:6px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="display:grid;grid-template-columns:90px repeat(7, minmax(40px,1fr));gap:4px;align-items:center;min-width:380px">
+          <div style="font-size:.78rem;font-weight:600;padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            <div>${M.escHtml(nomComplet)}</div>
+            <div style="font-size:.65rem;color:var(--m-text-muted);font-weight:500">${heuresSal > 0 ? fmtH(heuresSal) : '—'}</div>
+          </div>
+          ${cells}
+        </div>
+      </div>`;
+    });
+
+    // FAB raccourci bloquer semaine
+    html += `<button class="m-fab" id="m-planning-fab-bloquer" aria-label="Bloquer la semaine pour un salarié" title="Bloquer toute la semaine pour un salarié (absence)">🏖️</button>`;
+    return html;
+  };
+
+  // Pré-remplit le formulaire d'absence longue avec lundi → dimanche de la semaine
+  // affichée. Permet de bloquer rapidement toute la semaine d'un salarié sans
+  // re-saisir les dates.
+  M.formBloquerSemaine = function() {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const lundiISO = M.toLocalISODate(lundi);
+    const dimancheISO = M.toLocalISODate(dimanche);
+    // formAbsenceLongue accepte (absId, salIdInit). On va wrap : ouvrir la sheet et
+    // remplir les inputs date après mount.
+    M.formAbsenceLongue();
+    setTimeout(() => {
+      const dDeb = document.querySelector('#m-sheet-body input[name=dateDebut]');
+      const dFin = document.querySelector('#m-sheet-body input[name=dateFin]');
+      if (dDeb) dDeb.value = lundiISO;
+      if (dFin) dFin.value = dimancheISO;
+      const titleEl = document.getElementById('m-sheet-title');
+      if (titleEl) titleEl.textContent = '🏖️ Bloquer la semaine';
+    }, 50);
   };
 
   // ============================================================
@@ -4395,10 +5270,14 @@
     const lundiISO = M.toLocalISODate(lundi);
 
     M.openSheet({
-      title: 'Copier la semaine',
+      title: 'Actions semaine',
       body: `
-        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
-          Copie toutes les saisies de cette semaine vers une ou plusieurs semaines suivantes (override : ne touche pas au pattern récurrent).
+        <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin:0 0 8px">Importer</div>
+        <button type="button" class="m-btn" id="m-sem-import-prev" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">↩ Copier la semaine précédente vers ici</button>
+
+        <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin:14px 0 8px">Diffuser</div>
+        <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px">
+          Copie toutes les saisies de cette semaine vers les semaines suivantes (override : ne touche pas au pattern récurrent).
         </p>
         <button type="button" class="m-btn" data-copies="1" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers la semaine suivante</button>
         <button type="button" class="m-btn" data-copies="4" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 4 prochaines semaines</button>
@@ -4417,6 +5296,13 @@
             M.closeSheet?.();
           });
         });
+        // Importer la semaine précédente -> ici (override semaine courante)
+        b.querySelector('#m-sem-import-prev')?.addEventListener('click', async () => {
+          const ok = await M.confirm?.('Copier toutes les saisies de la semaine précédente vers cette semaine (écrase les overrides actuels) ?', { titre: 'Importer N-1' }) ?? confirm('Importer la semaine précédente ?');
+          if (!ok) return;
+          M.importerSemainePrecedente(lundiISO);
+          M.closeSheet?.();
+        });
         b.querySelector('#m-sem-vider-overrides')?.addEventListener('click', async () => {
           const ok = confirm('Supprimer toutes les saisies par-semaine de la semaine affichée ?');
           if (!ok) return;
@@ -4427,6 +5313,42 @@
       onSubmit() { return true; }
     });
     setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Importe la semaine N-1 vers la semaine N (override). Inverse de
+  // copierSemainePlanning vers le futur. Très demandé : "j'ai bossé pareil
+  // que la semaine d'avant".
+  M.importerSemainePrecedente = function(lundiCibleISO) {
+    const lundiCible = new Date(lundiCibleISO + 'T00:00:00');
+    const lundiSource = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() - 7);
+    const lundiSourceISO = M.toLocalISODate(lundiSource);
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const plannings = M.charger('plannings');
+    let nbAffectes = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const sourceData = M.getSemaineDataForDate(p, lundiSource);
+      const aDuContenu = sourceData.some(j => j && (j.typeJour || j.travaille));
+      if (!aDuContenu) return;
+      const semaineCible = sourceData.map((src, i) => {
+        const dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+        return {
+          jour: M_JOURS_FR_LOCAL[i],
+          date: M.toLocalISODate(dateCible),
+          typeJour: src.typeJour || 'repos',
+          travaille: !!src.travaille,
+          heureDebut: src.heureDebut || '',
+          heureFin: src.heureFin || '',
+          zone: src.zone || '',
+          note: src.note || ''
+        };
+      });
+      p.semaines[lundiCibleISO] = semaineCible;
+      nbAffectes++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbAffectes} planning${nbAffectes > 1 ? 's' : ''} importé${nbAffectes > 1 ? 's' : ''} depuis la semaine du ${lundiSourceISO.slice(8,10)}/${lundiSourceISO.slice(5,7)}`);
+    M.go('planning');
   };
 
   // Copie les overrides (ou pattern à défaut) de la semaine source vers les N semaines suivantes.
@@ -4801,6 +5723,13 @@
 
   M.state.alertesStatut = 'actives'; // actives | reportees | traitees
   M.state.alertesRecherche = '';
+  // parity-mobile-alertes-clients : filtre par niveau (severite) + bulk multi-select
+  M.state.alertesSeverite = 'tous';   // tous | critique | alerte | info
+  M.state.alertesBulkMode = false;
+  M.state.alertesBulkSel = new Set();
+
+  // Mapping severite mobile (3 niveaux) → niveau DB (4 niveaux) — utilise pour le drawer
+  const M_SEV_TO_NIVEAU = { critique: 'critical', alerte: 'warning', info: 'info' };
 
   M.register('alertes', {
     title: 'Alertes',
@@ -4810,6 +5739,8 @@
       const toutes = M.charger('alertes_admin').sort((a,b) => new Date(b.creeLe||0) - new Date(a.creeLe||0));
       const recherche = (M.state.alertesRecherche || '').toLowerCase();
       const statut = M.state.alertesStatut;
+      const sevFilter = M.state.alertesSeverite || 'tous';
+      const bulkOn = !!M.state.alertesBulkMode;
 
       // Filtre statut
       let filtered = toutes;
@@ -4817,10 +5748,18 @@
       if (statut === 'reportees') filtered = filtered.filter(a => !a.traitee && !a.ignoree && M.alertes.estReportee(a));
       if (statut === 'traitees')  filtered = filtered.filter(a => a.traitee);
 
-      // Filtre recherche
+      // Filtre severite (parity-mobile-alertes-clients)
+      if (sevFilter !== 'tous') {
+        filtered = filtered.filter(a => {
+          const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
+          return (cat?.severity || 'info') === sevFilter;
+        });
+      }
+
+      // Filtre recherche (titre + message + meta)
       if (recherche) {
         filtered = filtered.filter(a => {
-          const hay = `${a.message||''} ${a.meta?.salNom||''} ${a.meta?.client||''} ${a.meta?.immat||''}`.toLowerCase();
+          const hay = `${a.titre||''} ${a.message||''} ${a.meta?.salNom||''} ${a.meta?.client||''} ${a.meta?.immat||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
@@ -4837,13 +5776,28 @@
       // Header : recherche + chips statut
       let html = `
         <div style="margin-bottom:14px">
-          <input type="search" id="m-alertes-search" placeholder="🔍 Rechercher" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-alertes-search" placeholder="🔍 Rechercher (titre, message, salarié...)" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${statut==='actives'?'active':''}" data-statut="actives">🔴 Actives</button>
           <button class="m-alertes-chip ${statut==='reportees'?'active':''}" data-statut="reportees">⏰ Reportées${allReportees ? ` (${allReportees})` : ''}</button>
           <button class="m-alertes-chip ${statut==='traitees'?'active':''}" data-statut="traitees">✅ Traitées</button>
         </div>
+        <!-- parity-mobile-alertes-clients : filtre par niveau + bulk toggle -->
+        <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+          <button class="m-alertes-chip ${sevFilter==='tous'?'active':''}" data-sev="tous" style="font-size:.74rem;padding:0 10px;height:30px">Tous</button>
+          <button class="m-alertes-chip ${sevFilter==='critique'?'active':''}" data-sev="critique" style="font-size:.74rem;padding:0 10px;height:30px">🚨 Critique</button>
+          <button class="m-alertes-chip ${sevFilter==='alerte'?'active':''}" data-sev="alerte" style="font-size:.74rem;padding:0 10px;height:30px">⚠️ À traiter</button>
+          <button class="m-alertes-chip ${sevFilter==='info'?'active':''}" data-sev="info" style="font-size:.74rem;padding:0 10px;height:30px">ℹ️ Info</button>
+          ${statut === 'actives' && filtered.length > 1 ? `<button type="button" id="m-alertes-bulk-toggle" class="m-alertes-chip ${bulkOn ? 'active' : ''}" style="font-size:.74rem;padding:0 10px;height:30px;margin-left:auto">${bulkOn ? '✕ Annuler' : '☑️ Multi'}</button>` : ''}
+        </div>
+        ${bulkOn && M.state.alertesBulkSel.size > 0 ? `
+          <div style="display:flex;gap:6px;margin-bottom:14px;padding:10px 12px;background:var(--m-accent-soft);border:1px solid rgba(245,166,35,0.3);border-radius:12px;align-items:center">
+            <span style="font-size:.85rem;font-weight:600;color:var(--m-accent);flex:1">${M.state.alertesBulkSel.size} alerte${M.state.alertesBulkSel.size>1?'s':''} sélectionnée${M.state.alertesBulkSel.size>1?'s':''}</span>
+            <button type="button" id="m-alertes-bulk-valider" style="background:rgba(46,204,113,0.2);color:var(--m-green);border:1px solid rgba(46,204,113,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✓ Valider</button>
+            <button type="button" id="m-alertes-bulk-ignorer" style="background:rgba(231,76,60,0.15);color:var(--m-red);border:1px solid rgba(231,76,60,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✕ Ignorer</button>
+          </div>
+        ` : ''}
         ${statut === 'traitees' ? `<button type="button" id="m-alertes-vider" class="m-btn m-btn-danger" style="margin-bottom:14px">🗑️ Vider l'historique traité</button>` : ''}
       `;
 
@@ -4920,32 +5874,54 @@
                 : M.formatDate(a.creeLe);
               const sub = a.meta?.salNom || a.meta?.client || a.meta?.immat || '';
               const estCritiqueExpire = ['ct_expire','permis_expire','assurance_expire'].includes(cat.type);
+              // parity-mobile-alertes-clients : badge "non lu" + extrait tronqué
+              const nonLue = !a.lue && !a.traitee && !a.ignoree;
+              const titreOuMessage = a.titre || a.message || '';
+              const messageBis = a.titre && a.message && a.titre !== a.message ? a.message : '';
+              const isSelected = bulkOn && M.state.alertesBulkSel.has(a.id);
 
               let actions;
-              if (enModeReportees) {
-                actions = `<button class="m-alerte-action" data-action="reprendre" data-id="${M.escHtml(a.id)}" style="color:var(--m-purple)">▶️ Reprendre</button>`;
+              if (bulkOn && !enModeReportees && !enModeTraitees) {
+                // En mode bulk : checkbox uniquement (les actions classiques sont cachées)
+                actions = '';
+              } else if (enModeReportees) {
+                actions = `<button class="m-alerte-action" data-action="reprendre" data-id="${M.escHtml(a.id)}" style="color:var(--m-purple);min-height:36px;padding:6px 10px">▶️ Reprendre</button>`;
               } else if (enModeTraitees) {
                 actions = `<span style="color:var(--m-text-muted);font-size:.78rem">Traité ${M.formatDate(a.traiteLe)}</span>`;
               } else if (estCritiqueExpire) {
-                actions = `<button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green)">✓ Traité</button>`;
+                actions = `<button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green);min-height:36px;padding:6px 10px">✓ Traité</button>`;
               } else {
                 actions = `
-                  <button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green)">✓ Valider</button>
-                  <select class="m-alerte-snooze" data-id="${M.escHtml(a.id)}" style="font-size:.75rem;padding:5px 6px;background:rgba(155,89,182,0.1);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:6px;width:auto;min-width:0">
+                  <button class="m-alerte-action" data-action="valider" data-id="${M.escHtml(a.id)}" style="color:var(--m-green);min-height:36px;padding:6px 10px">✓ Valider</button>
+                  <select class="m-alerte-snooze" data-id="${M.escHtml(a.id)}" style="font-size:.75rem;padding:5px 6px;background:rgba(155,89,182,0.1);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:6px;width:auto;min-width:0;min-height:36px">
                     <option value="">⏰</option>
                     <option value="1">+1 j</option>
                     <option value="7">+7 j</option>
                     <option value="30">+30 j</option>
                   </select>
-                  <button class="m-alerte-action" data-action="ignorer" data-id="${M.escHtml(a.id)}" style="color:var(--m-red)">✕</button>
+                  <button class="m-alerte-action" data-action="ignorer" data-id="${M.escHtml(a.id)}" style="color:var(--m-red);min-height:36px;padding:6px 10px">✕</button>
                 `;
               }
 
-              return `<div style="padding:12px 14px${isLast ? '' : ';border-bottom:1px solid var(--m-border)'}">
-                <div style="font-size:.88rem;line-height:1.4;margin-bottom:6px">${M.escHtml(a.message || '')}</div>
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--m-text-muted)">
-                  <span>${sub ? M.escHtml(sub) + ' · ' : ''}${dateLabel}</span>
-                  <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</div>
+              // Tile cliquable (drawer detail) — sauf en mode bulk où le clic toggle la selection
+              const checkbox = bulkOn && !enModeReportees && !enModeTraitees
+                ? `<input type="checkbox" class="m-alerte-bulk-cb" data-id="${M.escHtml(a.id)}" ${isSelected ? 'checked' : ''} style="width:22px;height:22px;accent-color:var(--m-accent);flex-shrink:0;margin-right:10px;cursor:pointer" />`
+                : '';
+
+              return `<div class="m-alerte-tile" data-alerte-id="${M.escHtml(a.id)}" style="padding:12px 14px${isLast ? '' : ';border-bottom:1px solid var(--m-border)'};cursor:pointer;${isSelected ? 'background:var(--m-accent-soft)' : ''}">
+                <div style="display:flex;align-items:flex-start;gap:0">
+                  ${checkbox}
+                  <div style="flex:1;min-width:0">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+                      ${nonLue ? `<span style="background:var(--m-accent);width:8px;height:8px;border-radius:50%;flex-shrink:0" title="Non lu"></span>` : ''}
+                      <div style="font-size:.88rem;line-height:1.4;font-weight:${nonLue ? '600' : '500'};display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${M.escHtml(titreOuMessage)}</div>
+                    </div>
+                    ${messageBis ? `<div style="font-size:.78rem;color:var(--m-text-muted);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px">${M.escHtml(messageBis)}</div>` : ''}
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:.75rem;color:var(--m-text-muted)">
+                      <span>${sub ? M.escHtml(sub) + ' · ' : ''}${dateLabel}</span>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">${actions}</div>
+                    </div>
+                  </div>
                 </div>
               </div>`;
             }).join('')}
@@ -4970,11 +5946,76 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
-      // Chips statut
-      container.querySelectorAll('.m-alertes-chip').forEach(btn => {
+      // Chips statut (data-statut) — seulement les boutons qui ont l'attribut, pas les chips niveau
+      container.querySelectorAll('.m-alertes-chip[data-statut]').forEach(btn => {
         btn.addEventListener('click', () => {
           M.state.alertesStatut = btn.dataset.statut;
+          // Sortie auto du mode bulk si on change d'onglet
+          M.state.alertesBulkMode = false;
+          M.state.alertesBulkSel = new Set();
           M.go('alertes');
+        });
+      });
+      // Chips niveau (parity-mobile-alertes-clients)
+      container.querySelectorAll('.m-alertes-chip[data-sev]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.alertesSeverite = btn.dataset.sev;
+          M.go('alertes');
+        });
+      });
+      // Toggle bulk mode (parity-mobile-alertes-clients)
+      container.querySelector('#m-alertes-bulk-toggle')?.addEventListener('click', () => {
+        M.state.alertesBulkMode = !M.state.alertesBulkMode;
+        M.state.alertesBulkSel = new Set();
+        M.go('alertes');
+      });
+      // Checkbox individuelle bulk
+      container.querySelectorAll('.m-alerte-bulk-cb').forEach(cb => {
+        cb.addEventListener('click', e => {
+          e.stopPropagation();
+          const id = cb.dataset.id;
+          if (cb.checked) M.state.alertesBulkSel.add(id);
+          else M.state.alertesBulkSel.delete(id);
+          M.go('alertes');
+        });
+      });
+      // Bulk actions multi-select (valider / ignorer en masse les alertes selectionnees)
+      container.querySelector('#m-alertes-bulk-valider')?.addEventListener('click', async () => {
+        const ids = Array.from(M.state.alertesBulkSel);
+        if (!ids.length) return;
+        if (!await M.confirm(`Marquer ${ids.length} alerte${ids.length>1?'s':''} comme traitée${ids.length>1?'s':''} ?`, { titre: 'Validation multiple' })) return;
+        ids.forEach(id => M.alertes.valider(id));
+        M.state.alertesBulkSel = new Set();
+        M.state.alertesBulkMode = false;
+        M.toast(`✅ ${ids.length} alerte${ids.length>1?'s':''} traitée${ids.length>1?'s':''}`);
+        M.updateAlertesBadge();
+        M.go('alertes');
+      });
+      container.querySelector('#m-alertes-bulk-ignorer')?.addEventListener('click', async () => {
+        const ids = Array.from(M.state.alertesBulkSel);
+        if (!ids.length) return;
+        if (!await M.confirm(`Ignorer ${ids.length} alerte${ids.length>1?'s':''} ?`, { titre: 'Ignorer multiple' })) return;
+        ids.forEach(id => M.alertes.ignorer(id));
+        M.state.alertesBulkSel = new Set();
+        M.state.alertesBulkMode = false;
+        M.toast(`✕ ${ids.length} alerte${ids.length>1?'s':''} ignorée${ids.length>1?'s':''}`);
+        M.updateAlertesBadge();
+        M.go('alertes');
+      });
+      // Tap sur la tile → en mode bulk : toggle, sinon → drawer detail (parity-mobile-alertes-clients)
+      container.querySelectorAll('.m-alerte-tile').forEach(tile => {
+        tile.addEventListener('click', e => {
+          // Ignore si on a tape sur un bouton d'action / select / checkbox
+          if (e.target.closest('.m-alerte-action, .m-alerte-snooze, .m-alerte-bulk-cb')) return;
+          const id = tile.dataset.alerteId;
+          if (M.state.alertesBulkMode) {
+            // Toggle selection
+            if (M.state.alertesBulkSel.has(id)) M.state.alertesBulkSel.delete(id);
+            else M.state.alertesBulkSel.add(id);
+            M.go('alertes');
+          } else {
+            M.openAlerteDetail(id);
+          }
         });
       });
       // Bouton "Vider l'historique traite" (uniquement en vue traitees)
@@ -4989,7 +6030,8 @@
       });
       // Actions individuelles
       container.querySelectorAll('.m-alerte-action').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
           const id = btn.dataset.id;
           const action = btn.dataset.action;
           if (action === 'valider')   M.alertes.valider(id);
@@ -5003,14 +6045,16 @@
       container.querySelectorAll('.m-alerte-snooze').forEach(sel => {
         sel.addEventListener('change', e => {
           if (!e.target.value) return;
+          e.stopPropagation();
           M.alertes.reporter(e.target.dataset.id, e.target.value);
           M.updateAlertesBadge();
           M.go('alertes');
         });
       });
-      // Bulk actions
+      // Bulk actions par TYPE (existant — bouton "Tout valider/ignorer" sur card categorie)
       container.querySelectorAll('.m-alertes-bulk').forEach(btn => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async e => {
+          e.stopPropagation();
           const action = btn.dataset.action;
           const type = btn.dataset.type;
           const fn = action === 'valider' ? M.alertes.validerParType : M.alertes.ignorerParType;
@@ -5023,6 +6067,133 @@
       });
     }
   });
+
+  // ---------- Drawer 360° alerte (parity-mobile-alertes-clients) ----------
+  // Affiche le détail complet d'une alerte : niveau, type, titre, message,
+  // contexte JSON (key/value), date, actions contextuelles + lien vers l'entité.
+  M.openAlerteDetail = function(id) {
+    const arr = M.charger('alertes_admin');
+    const a = arr.find(x => x.id === id);
+    if (!a) return M.toast('Alerte introuvable');
+
+    // Marque comme lue automatiquement à l'ouverture (semantique du brief)
+    if (!a.lue && !a.traitee && !a.ignoree) {
+      const idx = arr.findIndex(x => x.id === id);
+      if (idx >= 0) {
+        arr[idx].lue = true;
+        arr[idx].lueLe = new Date().toISOString();
+        M.sauvegarder('alertes_admin', arr);
+        M.updateAlertesBadge();
+      }
+    }
+
+    const cat = M_ALERTES_CATEGORIES.find(c => c.type === a.type);
+    const sev = cat?.severity || 'info';
+    const niveau = M_SEV_TO_NIVEAU[sev] || 'info';
+    const cfgSev = M_SEVERITES[sev];
+    const niveauIcons = { critical: '🔴', critique: '🔴', error: '🚨', warning: '⚠️', alerte: '⚠️', info: 'ℹ️' };
+    const icone = niveauIcons[niveau] || cat?.icon || 'ℹ️';
+
+    // Contexte (jsonb DB) ou meta (legacy)
+    const ctx = a.contexte && typeof a.contexte === 'object' ? a.contexte : (a.meta || {});
+    const ctxKeys = Object.keys(ctx || {}).filter(k => ctx[k] !== null && ctx[k] !== undefined && ctx[k] !== '');
+
+    // "Aller vers l'entité" — déduit de meta/contexte
+    let entiteAction = null;
+    if (ctx.salId)        entiteAction = { label: '👥 Voir le salarié',  page: 'salaries',  id: ctx.salId };
+    else if (ctx.vehId || ctx.vehiculeId) entiteAction = { label: '🚐 Voir le véhicule', page: 'vehicules', id: ctx.vehId || ctx.vehiculeId };
+    else if (ctx.clientId) entiteAction = { label: '🧑 Voir le client',  page: 'clients',   id: ctx.clientId };
+    else if (ctx.livId || ctx.livraisonId) entiteAction = { label: '📦 Voir la livraison', page: 'livraisons', id: ctx.livId || ctx.livraisonId };
+    else if (ctx.chargeId) entiteAction = { label: '💸 Voir la charge', page: 'charges',   id: ctx.chargeId };
+    else if (cat?.module)  entiteAction = { label: `→ Onglet ${cat.module}`, page: cat.module };
+
+    const estCritiqueExpire = ['ct_expire','permis_expire','assurance_expire'].includes(a.type);
+    const enReportee = M.alertes.estReportee(a);
+
+    const body = `
+      <div style="display:flex;align-items:center;gap:10px;padding:12px;background:linear-gradient(135deg,${cfgSev.color}1a,${cfgSev.color}0a);border:1px solid ${cfgSev.color}55;border-radius:12px;margin-bottom:14px">
+        <span style="font-size:1.8rem">${icone}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.66rem;color:${cfgSev.color};font-weight:700;text-transform:uppercase;letter-spacing:.05em">${niveau} · ${M.escHtml(a.type || '—')}</div>
+          <div style="font-weight:600;font-size:.95rem;margin-top:2px">${M.escHtml(a.titre || cat?.label || 'Alerte')}</div>
+        </div>
+      </div>
+
+      ${a.message && a.message !== a.titre ? `
+        <div class="m-card" style="padding:14px 16px;margin-bottom:14px">
+          <div style="font-size:.7rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:700;margin-bottom:6px">Message</div>
+          <div style="font-size:.9rem;line-height:1.5;white-space:pre-wrap">${M.escHtml(a.message)}</div>
+        </div>
+      ` : ''}
+
+      ${ctxKeys.length ? `
+        <div class="m-card" style="padding:0;margin-bottom:14px">
+          <div style="padding:10px 16px;background:var(--m-bg-elevated);font-size:.7rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--m-border)">Contexte</div>
+          ${ctxKeys.map(k => {
+            const val = ctx[k];
+            const valStr = typeof val === 'object' ? JSON.stringify(val) : String(val);
+            return `<div style="padding:10px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px">
+              <span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.04em">${M.escHtml(k)}</span>
+              <span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-word;max-width:60%">${M.escHtml(valStr)}</span>
+            </div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+
+      <div class="m-card" style="padding:0;margin-bottom:14px">
+        <div style="padding:10px 16px;display:flex;justify-content:space-between;gap:10px">
+          <span style="color:var(--m-text-muted);font-size:.78rem">Créée</span>
+          <span style="font-weight:500;font-size:.85rem">${M.formatDate(a.creeLe)}</span>
+        </div>
+        ${a.lueLe ? `<div style="padding:10px 16px;border-top:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem">Lue</span><span style="font-weight:500;font-size:.85rem">${M.formatDate(a.lueLe)}</span></div>` : ''}
+        ${a.traiteLe ? `<div style="padding:10px 16px;border-top:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem">Traitée</span><span style="font-weight:500;font-size:.85rem;color:var(--m-green)">${M.formatDate(a.traiteLe)}</span></div>` : ''}
+        ${enReportee && a.meta?.repousseJusquA ? `<div style="padding:10px 16px;border-top:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem">Reportée jusqu'à</span><span style="font-weight:500;font-size:.85rem;color:var(--m-purple)">${M.formatDate(a.meta.repousseJusquA)}</span></div>` : ''}
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${entiteAction ? `<button type="button" id="m-alerte-detail-goto" data-page="${M.escHtml(entiteAction.page)}" data-id="${M.escHtml(entiteAction.id || '')}" style="padding:14px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">${M.escHtml(entiteAction.label)} →</button>` : ''}
+        ${!a.traitee && !a.ignoree ? `<button type="button" id="m-alerte-detail-valider" style="padding:14px;background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">✓ Marquer comme traitée</button>` : ''}
+        ${!a.traitee && !a.ignoree && !estCritiqueExpire && !enReportee ? `<button type="button" id="m-alerte-detail-ignorer" style="padding:14px;background:rgba(231,76,60,0.12);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">✕ Ignorer</button>` : ''}
+        ${enReportee ? `<button type="button" id="m-alerte-detail-reprendre" style="padding:14px;background:rgba(155,89,182,0.15);color:var(--m-purple);border:1px solid rgba(155,89,182,0.3);border-radius:12px;font-weight:600;font-size:.9rem;cursor:pointer;font-family:inherit;min-height:48px">▶️ Reprendre</button>` : ''}
+      </div>
+    `;
+
+    M.openSheet({
+      title: 'Détail alerte',
+      body,
+      submitLabel: 'Fermer', // pas de form classique — submit = fermeture
+      afterMount(b) {
+        b.querySelector('#m-alerte-detail-goto')?.addEventListener('click', () => {
+          const page = b.querySelector('#m-alerte-detail-goto').dataset.page;
+          const eid = b.querySelector('#m-alerte-detail-goto').dataset.id;
+          M.closeSheet();
+          if (eid && M.openDetail) M.openDetail(page, eid);
+          else M.go(page);
+        });
+        b.querySelector('#m-alerte-detail-valider')?.addEventListener('click', () => {
+          M.alertes.valider(id);
+          M.toast('✓ Alerte traitée');
+          M.updateAlertesBadge();
+          M.closeSheet();
+          M.go('alertes');
+        });
+        b.querySelector('#m-alerte-detail-ignorer')?.addEventListener('click', () => {
+          M.alertes.ignorer(id);
+          M.toast('Alerte ignorée');
+          M.updateAlertesBadge();
+          M.closeSheet();
+          M.go('alertes');
+        });
+        b.querySelector('#m-alerte-detail-reprendre')?.addEventListener('click', () => {
+          M.alertes.reprendre(id);
+          M.toast('Alerte reprise');
+          M.updateAlertesBadge();
+          M.closeSheet();
+          M.go('alertes');
+        });
+      }
+    });
+  };
   // ---------- Helper : index immat par vehiculeId (utilise sur Carburant) ----------
   M.indexVehicules = function() {
     const arr = M.charger('vehicules');
@@ -5951,10 +7122,32 @@
       });
     }
   });
-  // ---------- Rentabilite v3.7 : 4 sous-onglets (Global / Vehicule / Client / Chauffeur) ----------
-  M.state.rentMois = M.moisKey();
+  // ---------- Rentabilite v3.86 : parite ~95% PC (filtres periode jour/sem/mois/an,
+  // KPI marge, top 5, sous-onglets Global/Vehicule/Client/Chauffeur/Tournee/Simulateur,
+  // drill-down livraisons par axe). Couts en HT cf. PC (script-rentabilite-multi.js).
+  M.state.rentMois = M.moisKey();          // legacy : conserve pour compat retro
   M.state.rentMoisManuel = false;
   M.state.rentTab = 'global';
+
+  // Helpers HT/range partages avec PC (cf. script-rentabilite-multi.js)
+  const rentGetMontantHT = (l) => {
+    if (!l) return 0;
+    if (l.prixHT != null && l.prixHT !== '') return M.parseNum(l.prixHT) || 0;
+    const t = M.parseNum(l.tauxTVA) || 20;
+    return (M.parseNum(l.prix) || 0) / (1 + t / 100);
+  };
+  const rentGetMontantHTCharge = (item) => {
+    const ht = M.parseNum(item.montantHT);
+    if (ht > 0) return ht;
+    const ttc = M.parseNum(item.montantTtc) || M.parseNum(item.montant) || M.parseNum(item.total) || 0;
+    const t = M.parseNum(item.tauxTVA) || 20;
+    return ttc / (1 + t / 100);
+  };
+  const rentInRange = (date, range) => {
+    if (!range) return true;
+    if (!date) return false;
+    return date >= range.debut && date <= range.fin;
+  };
 
   M.register('rentabilite', {
     title: 'Rentabilité',
@@ -5966,106 +7159,138 @@
       const vehicules  = M.charger('vehicules').filter(v => v && !v.archive);
       const salaries   = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
-      // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
-      if (!M.state.rentMoisManuel) M.state.rentMois = M.moisKey();
-      const moisSel = M.state.rentMois;
-      const tab     = M.state.rentTab;
-      const inMois  = (date) => (date || '').startsWith(moisSel);
+      // Range periode via factory M.periodeRange (jour/sem/mois/an + nav)
+      const range = M.periodeRange('rentabilite', 'mois');
+      const tab   = M.state.rentTab;
 
-      const livMois     = livraisons.filter(l => inMois(l.date));
-      const carbMois    = carburant.filter(p => inMois(p.date));
-      const entrMois    = entretiens.filter(e => inMois(e.date));
-      const chargesMois = charges.filter(c => inMois(c.date) && c.categorie !== 'entretien');
+      // Sync legacy rentMois pour le simulateur (qui peut s'appuyer dessus)
+      if (range.mode === 'mois') M.state.rentMois = range.debut.slice(0, 7);
 
-      // KPI globaux du mois (utilises pour le coverage et le cout/km de reference)
-      const caTotal = livMois.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
-      const kmTotal = livMois.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
-      const carbTotal    = carbMois.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
-      const entrTotal    = entrMois.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
-      const autresTotal  = chargesMois.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+      const livFilt     = livraisons.filter(l => rentInRange(l.date, range));
+      const carbFilt    = carburant.filter(p => rentInRange(p.date, range));
+      const entrFilt    = entretiens.filter(e => rentInRange(e.date, range));
+      const chargesFilt = charges.filter(c => rentInRange(c.date, range) && c.categorie !== 'entretien' && c.categorie !== 'tva');
+
+      // KPI globaux periode (HT systematique, cf. PC)
+      const caTotal      = livFilt.reduce((s, l) => s + rentGetMontantHT(l), 0);
+      const kmTotal      = livFilt.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+      const carbTotal    = carbFilt.reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
+      const entrTotal    = entrFilt.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+      const autresTotal  = chargesFilt.reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
       const depTotal     = carbTotal + entrTotal + autresTotal;
       const profitTotal  = caTotal - depTotal;
       const margeTotal   = caTotal > 0 ? (profitTotal / caTotal * 100) : 0;
       const coutKmRef    = kmTotal > 0 ? depTotal / kmTotal : 0;
 
-      // Selecteur mois
-      const moisOptions = [];
-      const now = new Date();
-      for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const cle = M.moisKey(d);
-        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
-        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
-      }
-
       let html = `
-        <div style="margin-bottom:14px">
-          <select id="m-rent-mois">${moisOptions.join('')}</select>
-        </div>
+        ${M.renderPeriodeBar('rentabilite', 'mois')}
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${tab==='global'?'active':''}" data-tab="global">📊 Global</button>
           <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">🚐 Véhicule</button>
           <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">🧑‍💼 Client</button>
           <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">👤 Chauffeur</button>
+          <button class="m-alertes-chip ${tab==='tournee'?'active':''}" data-tab="tournee">🛣️ Tournée</button>
           <button class="m-alertes-chip ${tab==='simulateur'?'active':''}" data-tab="simulateur">🧮 Simulateur</button>
         </div>
       `;
 
       const margeColor = (m) => m >= 20 ? 'var(--m-green)' : m >= 10 ? 'var(--m-accent)' : 'var(--m-red)';
 
-      // ---------- Tab GLOBAL ----------
+      // ---------- Tab GLOBAL : KPI + dépenses + Top 5 véhicules par marge ----------
       if (tab === 'global') {
-        const pct = (v) => depTotal > 0 ? Math.round(v / depTotal * 100) : 0;
-        const pctCarb = pct(carbTotal), pctEntr = pct(entrTotal), pctAutres = pct(autresTotal);
+        // Top 5 véhicules par marge (pour KPI dashboard global)
+        const topVeh = vehicules.map(v => {
+          const matchVeh = (x) => (x.vehiculeId === v.id) || (x.vehId === v.id);
+          const livV  = livFilt.filter(matchVeh);
+          const carbV = carbFilt.filter(matchVeh);
+          const entrV = entrFilt.filter(matchVeh);
+          const chrgV = chargesFilt.filter(matchVeh);
+          const ca   = livV.reduce((s, l) => s + rentGetMontantHT(l), 0);
+          const dep  = carbV.reduce((s, p) => s + rentGetMontantHTCharge(p), 0)
+                    + entrV.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0)
+                    + chrgV.reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
+          return { v, ca, dep, marge: ca - dep, nbLiv: livV.length };
+        }).filter(x => x.ca > 0 || x.dep > 0).sort((a, b) => b.marge - a.marge).slice(0, 5);
+
         html += `
           <div class="m-card-row">
             <div class="m-card m-card-green">
               <div class="m-card-title">Chiffre d'affaires</div>
               <div class="m-card-value">${M.format$(caTotal)}</div>
-              <div class="m-card-sub">${livMois.length} liv. · ${M.formatNum(kmTotal)} km</div>
+              <div class="m-card-sub">${livFilt.length} liv. · ${M.formatNum(kmTotal)} km</div>
             </div>
             <div class="m-card" style="border-left:4px solid ${margeColor(margeTotal)}">
-              <div class="m-card-title">Marge nette</div>
+              <div class="m-card-title">Marge brute</div>
               <div class="m-card-value" style="color:${margeColor(margeTotal)}">${margeTotal.toFixed(1)}%</div>
-              <div class="m-card-sub">Profit ${M.format$(profitTotal)}</div>
+              <div class="m-card-sub">${M.format$(profitTotal)}</div>
+            </div>
+          </div>
+          <div class="m-card-row">
+            <div class="m-card m-card-red">
+              <div class="m-card-title">Charges totales</div>
+              <div class="m-card-value">${M.format$(depTotal)}</div>
+              <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
+            </div>
+            <div class="m-card m-card-blue">
+              <div class="m-card-title">Profit net</div>
+              <div class="m-card-value" style="color:${profitTotal >= 0 ? 'var(--m-green)' : 'var(--m-red)'}">${M.format$(profitTotal)}</div>
+              <div class="m-card-sub">${kmTotal > 0 ? M.format$(profitTotal / kmTotal) + ' / km' : '—'}</div>
             </div>
           </div>
           <div class="m-card">
-            <div class="m-card-title">Dépenses du mois</div>
-            <div class="m-card-value" style="color:var(--m-red)">${M.format$(depTotal)}</div>
-            <div class="m-card-sub">${M.format$(coutKmRef)} / km</div>
+            <div class="m-card-title">Répartition dépenses</div>
             ${depTotal > 0 ? M.renderDoughnut([
               { label: 'Carburant', value: carbTotal, color: 'rgba(230,126,34,0.9)' },
               { label: 'Entretien', value: entrTotal, color: 'rgba(52,152,219,0.9)' },
               { label: 'Autres', value: autresTotal, color: 'rgba(155,89,182,0.9)' },
               { label: 'Profit', value: Math.max(profitTotal, 0), color: 'rgba(46,204,113,0.9)' }
-            ], { centerLabel: 'Total', centerValue: M.format$(caTotal) }) : ''}
+            ], { centerLabel: 'Total', centerValue: M.format$(caTotal) })
+            : '<div class="m-card-sub" style="margin-top:8px">Aucune dépense sur la période.</div>'}
           </div>
           <div class="m-card" style="padding:0">
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>🔧</span><span>Entretien</span></span><span style="font-weight:600">${M.format$(entrTotal)}</span></div>
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="display:flex;align-items:center;gap:10px"><span>💸</span><span>Autres charges</span></span><span style="font-weight:600">${M.format$(autresTotal)}</span></div>
           </div>
+          ${topVeh.length ? `
+            <div style="font-weight:600;font-size:.92rem;margin:18px 4px 8px">🏆 Top ${topVeh.length} véhicules par marge</div>
+            ${topVeh.map((x, i) => {
+              const margePct = x.ca > 0 ? (x.marge / x.ca * 100) : 0;
+              const c = x.marge >= 0 ? margeColor(margePct) : 'var(--m-red)';
+              return `<button type="button" class="m-card m-card-pressable m-rent-row" data-action="veh:${x.v.id}" style="padding:12px 14px;border-left:4px solid ${c};margin-bottom:8px;display:flex;width:100%;align-items:center;gap:10px;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:14px;color:inherit;font-family:inherit;text-align:left">
+                <span style="font-weight:700;color:var(--m-text-muted);font-size:.85rem;flex:0 0 auto">${i + 1}.</span>
+                <span style="flex:1 1 auto;min-width:0">
+                  <span style="display:block;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(x.v.immat || x.v.id)}</span>
+                  <span style="color:var(--m-text-muted);font-size:.74rem">${M.escHtml(x.v.modele || '')} · ${x.nbLiv} liv.</span>
+                </span>
+                <span style="text-align:right;flex:0 0 auto">
+                  <span style="display:block;color:${c};font-weight:700">${M.format$(x.marge)}</span>
+                  <span style="display:block;font-size:.72rem;color:var(--m-text-muted)">${margePct.toFixed(0)}%</span>
+                </span>
+              </button>`;
+            }).join('')}
+          ` : ''}
         `;
         return html;
       }
 
       // ---------- Helper card ligne (pour les 3 sous-onglets analytiques) ----------
-      const renderLigne = (titre, sub, ca, dep, marge, km, onClick, icone) => {
+      // Tappable -> ouvre une sheet drill-down (livraisons rattachees) si onClick fourni.
+      const renderLigne = (titre, sub, ca, dep, _, km, onClick, icone) => {
         const profit = ca - dep;
         const margePct = ca > 0 ? (profit / ca * 100) : 0;
         const color = margeColor(margePct);
         const action = onClick ? `data-action="${onClick}"` : '';
         const tag = onClick ? 'button' : 'div';
-        return `<${tag} type="button" class="m-card m-card-pressable m-rent-row" ${action} style="padding:14px;border-left:4px solid ${color};margin-bottom:10px;display:block;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit">
+        return `<${tag} type="button" class="m-card m-card-pressable m-rent-row" ${action} style="padding:14px;border-left:4px solid ${color};margin-bottom:10px;display:block;width:100%;text-align:left;background:var(--m-card);border-top:1px solid var(--m-border);border-right:1px solid var(--m-border);border-bottom:1px solid var(--m-border);border-radius:18px;color:inherit;font-family:inherit;min-height:44px">
           <div style="display:flex;justify-content:space-between;align-items:start;gap:10px;margin-bottom:8px">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:6px">${icone ? `<span>${icone}</span>` : ''}<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre)}</span></div>
               ${sub ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(sub)}</div>` : ''}
             </div>
             <div style="text-align:right;flex-shrink:0">
-              <div style="font-weight:700;color:${color};font-size:1.1rem">${margePct.toFixed(0)}%</div>
-              <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.04em">marge</div>
+              <div style="font-weight:700;color:${color};font-size:1.05rem">${M.format$(profit)}</div>
+              <div style="font-size:.72rem;color:var(--m-text-muted)">${margePct.toFixed(0)}% marge</div>
             </div>
           </div>
           <div style="display:flex;justify-content:space-between;gap:8px;font-size:.78rem;color:var(--m-text-muted);padding-top:8px;border-top:1px solid var(--m-border)">
@@ -6076,81 +7301,192 @@
         </${tag}>`;
       };
 
+      const renderTotaux = (label, ca, marge, nbLiv) => {
+        const c = marge >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+        return `<div class="m-card" style="padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--m-bg-elevated)">
+          <div style="font-size:.82rem;font-weight:600">${M.escHtml(label)}</div>
+          <div style="display:flex;gap:14px;font-size:.8rem;flex-wrap:wrap;justify-content:flex-end">
+            <div><span style="color:var(--m-text-muted)">${nbLiv} liv ·</span> <strong>${M.format$(ca)}</strong> CA</div>
+            <div><span style="color:${c};font-weight:700">${M.format$(marge)}</span> marge</div>
+          </div>
+        </div>`;
+      };
+
       // ---------- Tab PAR VEHICULE ----------
+      // Couts directs : carburant, charges, entretiens rattaches au vehicule (HT).
       if (tab === 'vehicule') {
         const stats = vehicules.map(v => {
-          // dual-read vehiculeId/vehId (livraisons PC peuvent n'avoir que vehId)
           const matchVeh = (x) => (x.vehiculeId === v.id) || (x.vehId === v.id);
-          const livV   = livMois.filter(matchVeh);
-          const carbV  = carbMois.filter(matchVeh);
-          const entrV  = entrMois.filter(matchVeh);
-          const chrgV  = chargesMois.filter(matchVeh);
-          const ca   = livV.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
-          const carb = carbV.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+          const livV   = livFilt.filter(matchVeh);
+          const carbV  = carbFilt.filter(matchVeh);
+          const entrV  = entrFilt.filter(matchVeh);
+          const chrgV  = chargesFilt.filter(matchVeh);
+          const ca   = livV.reduce((s, l) => s + rentGetMontantHT(l), 0);
+          const carb = carbV.reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
           const entr = entrV.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
-          const chrg = chrgV.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+          const chrg = chrgV.reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
           const km   = livV.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
           return { v, ca, dep: carb + entr + chrg, km, nbLiv: livV.length };
         }).filter(x => x.ca > 0 || x.dep > 0)
-          .sort((a, b) => b.ca - a.ca);
+          .sort((a, b) => (b.ca - b.dep) - (a.ca - a.dep));
 
         if (!stats.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas d'activité véhicule pour ce mois. Saisis des livraisons rattachées à un véhicule.</p></div>`;
+          html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas d'activité véhicule sur la période. Saisis des livraisons rattachées à un véhicule.</p></div>`;
           return html;
         }
+        const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`Total ${stats.length} véhicule${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
         stats.forEach(({ v, ca, dep, km, nbLiv }) => {
-          html += renderLigne(v.immat || v.id, `${v.modele || ''}${v.salNom ? ' · ' + v.salNom : ''} · ${nbLiv} liv.`, ca, dep, 0, km, `veh:${v.id}`, '🚐');
+          html += renderLigne(v.immat || v.id, `${v.modele || ''}${v.salNom ? ' · ' + v.salNom : ''} · ${nbLiv} liv.`, ca, dep, 0, km, `liv-veh:${v.id}`, '🚐');
         });
       }
 
       // ---------- Tab PAR CLIENT ----------
-      // Pas de coûts directs rattachés -> marge estimée = CA - (km × coût/km flotte)
+      // Pas de couts directs rattaches -> marge estimee = CA - (km × cout/km flotte).
       if (tab === 'client') {
         const byClient = {};
-        livMois.forEach(l => {
+        livFilt.forEach(l => {
           const key = (l.client || '—').trim();
           if (!byClient[key]) byClient[key] = { nom: key, ca: 0, km: 0, nbLiv: 0 };
-          byClient[key].ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+          byClient[key].ca += rentGetMontantHT(l);
           byClient[key].km += M.parseNum(l.distance) || 0;
           byClient[key].nbLiv++;
         });
-        const stats = Object.values(byClient).sort((a, b) => b.ca - a.ca);
+        const stats = Object.values(byClient).map(s => ({ ...s, dep: s.km * coutKmRef }))
+          .sort((a, b) => (b.ca - b.dep) - (a.ca - a.dep));
 
         if (!stats.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons ce mois.</p></div>`;
+          html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons sur la période.</p></div>`;
           return html;
         }
         html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée = CA - (km × coût/km flotte ${M.format$(coutKmRef)}/km)</p>`;
-        stats.forEach(({ nom, ca, km, nbLiv }) => {
-          const depEstim = km * coutKmRef;
-          const cli = M.findClientByName(nom);
-          html += renderLigne(nom, `${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, depEstim, 0, km, cli ? `cli:${cli.id}` : '', '🧑‍💼');
+        const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`Total ${stats.length} client${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
+        stats.forEach(({ nom, ca, dep, km, nbLiv }) => {
+          html += renderLigne(nom, `${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `liv-cli:${encodeURIComponent(nom)}`, '🧑‍💼');
         });
       }
 
       // ---------- Tab PAR CHAUFFEUR ----------
       if (tab === 'chauffeur') {
         const stats = salaries.map(s => {
-          const livS = livMois.filter(l => l.salarieId === s.id || l.chaufId === s.id);
-          const ca = livS.reduce((sum, l) => sum + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+          const livS = livFilt.filter(l => l.salarieId === s.id || l.chaufId === s.id);
+          const ca = livS.reduce((sum, l) => sum + rentGetMontantHT(l), 0);
           const km = livS.reduce((sum, l) => sum + (M.parseNum(l.distance) || 0), 0);
           // Carburant rattachable si le chauffeur a un vehicule attribue (via veh.salId)
           const vehAttribues = vehicules.filter(v => v.salId === s.id).map(v => v.id);
-          const carbS = carbMois.filter(p => vehAttribues.includes(p.vehiculeId)).reduce((sum, p) => sum + (M.parseNum(p.total) || 0), 0);
+          const carbS = carbFilt.filter(p => vehAttribues.includes(p.vehiculeId) || vehAttribues.includes(p.vehId))
+            .reduce((sum, p) => sum + rentGetMontantHTCharge(p), 0);
           // Estimation : marge = CA - carburant chauffeur - (km × cout autres flotte)
           const depEstim = carbS + (km * (coutKmRef - (kmTotal > 0 ? carbTotal / kmTotal : 0)));
           return { s, ca, dep: depEstim, km, nbLiv: livS.length };
         }).filter(x => x.ca > 0)
-          .sort((a, b) => b.ca - a.ca);
+          .sort((a, b) => (b.ca - b.dep) - (a.ca - a.dep));
 
         if (!stats.length) {
-          html += `<div class="m-empty"><div class="m-empty-icon">👤</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons rattachées à un chauffeur ce mois.</p></div>`;
+          html += `<div class="m-empty"><div class="m-empty-icon">👤</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons rattachées à un chauffeur sur la période.</p></div>`;
           return html;
         }
         html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée : CA - carburant chauffeur - autres charges (au prorata des km)</p>`;
+        const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`Total ${stats.length} chauffeur${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
         stats.forEach(({ s, ca, dep, km, nbLiv }) => {
           const fullName = `${s.prenom ? s.prenom + ' ' : ''}${s.nom || s.id}`;
-          html += renderLigne(fullName, `${s.poste || 'Chauffeur'} · ${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `sal:${s.id}`, '👤');
+          html += renderLigne(fullName, `${s.poste || 'Chauffeur'} · ${nbLiv} livraison${nbLiv > 1 ? 's' : ''}`, ca, dep, 0, km, `liv-sal:${s.id}`, '👤');
+        });
+      }
+
+      // ---------- Tab PAR TOURNEE (parite PC : groupage chauffeur+date) ----------
+      // Une "tournee" = livraisons d'un meme chauffeur sur une meme date.
+      // Couts directs : carburant du vehicule du jour + prorata salaire mensuel.
+      if (tab === 'tournee') {
+        // Index : carburant total HT par (vehicule, jour)
+        const carbParVehJour = {};
+        carbFilt.forEach(p => {
+          const veh = p.vehiculeId || p.vehId;
+          if (!veh) return;
+          const k = veh + '__' + (p.date || '').slice(0, 10);
+          carbParVehJour[k] = (carbParVehJour[k] || 0) + rentGetMontantHTCharge(p);
+        });
+        // Salaire mensuel par chauffeur (charges cat=salaires sur la periode)
+        const salaireParChauf = {};
+        charges.filter(c => rentInRange(c.date, range) && c.categorie === 'salaires' && c.salId)
+          .forEach(c => {
+            salaireParChauf[c.salId] = (salaireParChauf[c.salId] || 0) + rentGetMontantHTCharge(c);
+          });
+        // Total livraisons periode par chauffeur (pour repartition salaire)
+        const livsParChauf = {};
+        livFilt.forEach(l => {
+          const ch = l.chaufId || l.salarieId || 'sans-chauffeur';
+          livsParChauf[ch] = (livsParChauf[ch] || 0) + 1;
+        });
+
+        // Agregation par tournee
+        const tournees = {};
+        livFilt.forEach(l => {
+          const ch   = l.chaufId || l.salarieId || 'sans-chauffeur';
+          const date = (l.date || '').slice(0, 10);
+          if (!date) return;
+          const tId = ch + '__' + date;
+          if (!tournees[tId]) {
+            const sal = salaries.find(x => x.id === ch);
+            const veh = (l.vehiculeId || l.vehId) ? vehicules.find(x => x.id === (l.vehiculeId || l.vehId)) : null;
+            tournees[tId] = {
+              tourneeId: tId, date, chaufId: ch,
+              chaufNom: sal ? `${sal.prenom ? sal.prenom + ' ' : ''}${sal.nom || ''}`.trim() : (l.chaufNom || '— Sans chauffeur —'),
+              vehId: l.vehiculeId || l.vehId || null,
+              vehImmat: veh ? veh.immat : (l.vehNom || ''),
+              ca: 0, nbLiv: 0, km: 0,
+              coutCarburant: 0, coutSalaire: 0,
+              livraisons: []
+            };
+          }
+          const t = tournees[tId];
+          t.ca += rentGetMontantHT(l);
+          t.nbLiv++;
+          t.km += M.parseNum(l.distance) || 0;
+          t.livraisons.push({ id: l.id, client: l.client, prix: rentGetMontantHT(l), distance: l.distance, numLiv: l.numLiv });
+        });
+
+        Object.values(tournees).forEach(t => {
+          const keyCarb = (t.vehId || '') + '__' + t.date;
+          t.coutCarburant = carbParVehJour[keyCarb] || 0;
+          const totalLivsChauf = livsParChauf[t.chaufId] || 0;
+          if (totalLivsChauf > 0) {
+            t.coutSalaire = (salaireParChauf[t.chaufId] || 0) * (t.nbLiv / totalLivsChauf);
+          }
+          t.dep = t.coutCarburant + t.coutSalaire;
+          t.marge = t.ca - t.dep;
+          t.margePct = t.ca > 0 ? (t.marge / t.ca * 100) : 0;
+        });
+
+        const stats = Object.values(tournees).sort((a, b) => {
+          if (a.date !== b.date) return b.date.localeCompare(a.date);
+          return b.marge - a.marge;
+        });
+        // Cache pour le drill-down (sheet detail tournee)
+        M.state.rentTourneesCache = {};
+        stats.forEach(t => { M.state.rentTourneesCache[t.tourneeId] = t; });
+
+        if (!stats.length) {
+          html += `<div class="m-empty"><div class="m-empty-icon">🛣️</div><h3 class="m-empty-title">Aucune tournée</h3><p class="m-empty-text">Pas de livraisons sur la période.</p></div>`;
+          return html;
+        }
+        const tot = stats.reduce((a, t) => ({ ca: a.ca + t.ca, marge: a.marge + t.marge, nbLiv: a.nbLiv + t.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
+        html += renderTotaux(`${stats.length} tournée${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
+        stats.forEach(t => {
+          const dateLbl = (() => {
+            try {
+              const d = new Date(t.date);
+              return d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).replace(/\.$/, '');
+            } catch (e) { return t.date; }
+          })();
+          html += renderLigne(
+            `${dateLbl} · ${t.chaufNom}`,
+            `${t.vehImmat ? '🚐 ' + t.vehImmat + ' · ' : ''}${t.nbLiv} liv.`,
+            t.ca, t.dep, 0, t.km,
+            `tournee:${t.tourneeId}`, '🛣️'
+          );
         });
       }
 
@@ -6392,12 +7728,9 @@
       return html;
     },
     afterRender(container) {
-      const sel = container.querySelector('#m-rent-mois');
-      if (sel) sel.addEventListener('change', e => {
-        M.state.rentMois = e.target.value;
-        M.state.rentMoisManuel = true;
-        M.go('rentabilite');
-      });
+      // Barre periode (jour/sem/mois/an + nav prev/today/next)
+      M.wirePeriodeBar(container, 'rentabilite', () => M.go('rentabilite'));
+
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.rentTab = btn.dataset.tab; M.go('rentabilite'); });
       });
@@ -6539,21 +7872,235 @@
         M.toast('Coûts du véhicule chargés');
         simReload();
       });
-      // Tap sur une ligne -> navigue vers la fiche detail correspondante
+      // Tap sur une ligne -> navigue vers la fiche detail (veh/cli/sal du Top 5 global)
+      // ou ouvre une sheet drill-down (liv-veh/liv-cli/liv-sal/tournee).
       container.querySelectorAll('.m-rent-row[data-action]').forEach(btn => {
         btn.addEventListener('click', () => {
           const action = btn.dataset.action;
           if (!action) return;
-          const [type, id] = action.split(':');
+          const idx = action.indexOf(':');
+          const type = idx >= 0 ? action.slice(0, idx) : action;
+          const id = idx >= 0 ? action.slice(idx + 1) : '';
           if (type === 'veh') M.openDetail('vehicules', id);
           else if (type === 'cli') M.openDetail('clients', id);
           else if (type === 'sal') M.openDetail('salaries', id);
+          else if (type === 'liv-veh') M.openRentSheetVehicule(id);
+          else if (type === 'liv-cli') M.openRentSheetClient(decodeURIComponent(id));
+          else if (type === 'liv-sal') M.openRentSheetChauffeur(id);
+          else if (type === 'tournee') M.openRentSheetTournee(id);
         });
       });
     }
   });
+
+  // ---------- Drill-down sheets : detail livraisons par axe ----------
+  // Reutilise M.periodeRange('rentabilite') pour scoper sur la meme periode.
+  M.openRentSheetVehicule = function(vehId) {
+    const range = M.periodeRange('rentabilite', 'mois');
+    const v = M.charger('vehicules').find(x => x.id === vehId);
+    const livs = M.charger('livraisons')
+      .filter(l => rentInRange(l.date, range) && (l.vehiculeId === vehId || l.vehId === vehId))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const carb = M.charger('carburant')
+      .filter(p => rentInRange(p.date, range) && (p.vehiculeId === vehId || p.vehId === vehId))
+      .reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
+    const ca = livs.reduce((s, l) => s + rentGetMontantHT(l), 0);
+    const km = livs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    const dep = carb;
+    const marge = ca - dep;
+    const margePct = ca > 0 ? (marge / ca * 100) : 0;
+    M.openSheet({
+      title: '🚐 ' + (v?.immat || vehId),
+      body: M.renderRentSheetBody({
+        sub: v?.modele || '',
+        ca, dep, marge, margePct, km, nbLiv: livs.length,
+        livraisons: livs.map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: l.date, prix: rentGetMontantHT(l), distance: l.distance })),
+        depLabel: 'Carburant'
+      }),
+      submitLabel: 'Voir fiche véhicule',
+      onSubmit: () => { M.openDetail('vehicules', vehId); return true; }
+    });
+  };
+
+  M.openRentSheetClient = function(clientNom) {
+    const range = M.periodeRange('rentabilite', 'mois');
+    const livs = M.charger('livraisons')
+      .filter(l => rentInRange(l.date, range) && (l.client || '').trim() === clientNom)
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const ca = livs.reduce((s, l) => s + rentGetMontantHT(l), 0);
+    const km = livs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    // Estimation : meme formule que l'onglet Client (km × cout/km flotte)
+    const allLivs = M.charger('livraisons').filter(l => rentInRange(l.date, range));
+    const allKm = allLivs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    const allDep = M.charger('carburant').filter(p => rentInRange(p.date, range)).reduce((s, p) => s + rentGetMontantHTCharge(p), 0)
+      + M.charger('entretiens').filter(e => rentInRange(e.date, range)).reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0)
+      + M.charger('charges').filter(c => rentInRange(c.date, range) && c.categorie !== 'entretien' && c.categorie !== 'tva').reduce((s, c) => s + rentGetMontantHTCharge(c), 0);
+    const coutKmRef = allKm > 0 ? allDep / allKm : 0;
+    const dep = km * coutKmRef;
+    const marge = ca - dep;
+    const margePct = ca > 0 ? (marge / ca * 100) : 0;
+    const cli = M.findClientByName ? M.findClientByName(clientNom) : null;
+    M.openSheet({
+      title: '🧑‍💼 ' + (clientNom || '—'),
+      body: M.renderRentSheetBody({
+        sub: 'Marge estimée (km × ' + M.format$(coutKmRef) + '/km)',
+        ca, dep, marge, margePct, km, nbLiv: livs.length,
+        livraisons: livs.map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: l.date, prix: rentGetMontantHT(l), distance: l.distance })),
+        depLabel: 'Coûts estimés'
+      }),
+      submitLabel: cli ? 'Voir fiche client' : 'Fermer',
+      onSubmit: () => { if (cli) M.openDetail('clients', cli.id); return true; }
+    });
+  };
+
+  M.openRentSheetChauffeur = function(salId) {
+    const range = M.periodeRange('rentabilite', 'mois');
+    const sal = M.charger('salaries').find(x => x.id === salId);
+    const livs = M.charger('livraisons')
+      .filter(l => rentInRange(l.date, range) && (l.salarieId === salId || l.chaufId === salId))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const vehs = M.charger('vehicules');
+    const vehAttribues = vehs.filter(v => v.salId === salId).map(v => v.id);
+    const carb = M.charger('carburant')
+      .filter(p => rentInRange(p.date, range) && (vehAttribues.includes(p.vehiculeId) || vehAttribues.includes(p.vehId)))
+      .reduce((s, p) => s + rentGetMontantHTCharge(p), 0);
+    const ca = livs.reduce((s, l) => s + rentGetMontantHT(l), 0);
+    const km = livs.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
+    const dep = carb;
+    const marge = ca - dep;
+    const margePct = ca > 0 ? (marge / ca * 100) : 0;
+    const fullName = sal ? `${sal.prenom ? sal.prenom + ' ' : ''}${sal.nom || sal.id}` : salId;
+    M.openSheet({
+      title: '👤 ' + fullName,
+      body: M.renderRentSheetBody({
+        sub: sal?.poste || 'Chauffeur',
+        ca, dep, marge, margePct, km, nbLiv: livs.length,
+        livraisons: livs.map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: l.date, prix: rentGetMontantHT(l), distance: l.distance })),
+        depLabel: 'Carburant attribué'
+      }),
+      submitLabel: 'Voir fiche salarié',
+      onSubmit: () => { M.openDetail('salaries', salId); return true; }
+    });
+  };
+
+  M.openRentSheetTournee = function(tourneeId) {
+    const t = (M.state.rentTourneesCache || {})[tourneeId];
+    if (!t) { M.toast('Tournée introuvable'); return; }
+    const dateLbl = (() => {
+      try { return new Date(t.date).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }); }
+      catch (e) { return t.date; }
+    })();
+    M.openSheet({
+      title: '🛣️ ' + t.chaufNom,
+      body: M.renderRentSheetBody({
+        sub: dateLbl + (t.vehImmat ? ' · 🚐 ' + t.vehImmat : ''),
+        ca: t.ca, dep: t.dep, marge: t.marge, margePct: t.margePct, km: t.km, nbLiv: t.nbLiv,
+        livraisons: (t.livraisons || []).map(l => ({ id: l.id, numLiv: l.numLiv, client: l.client, date: t.date, prix: l.prix, distance: l.distance })),
+        depLabel: 'Carburant + salaire imputé',
+        depBreakdown: [
+          { label: 'Carburant', value: t.coutCarburant },
+          { label: 'Salaire imputé', value: t.coutSalaire }
+        ]
+      }),
+      submitLabel: 'Fermer',
+      onSubmit: () => true
+    });
+  };
+
+  // Body partage : KPIs synthese + liste livraisons avec marge par ligne (vs cout/km moyen)
+  M.renderRentSheetBody = function(opts) {
+    const margeC = opts.marge >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+    const livItems = (opts.livraisons || []).map(l => {
+      const dist = M.parseNum(l.distance) || 0;
+      const prix = M.parseNum(l.prix) || 0;
+      // Cout estime ligne = distance × cout/km projet (tournee) ou flotte
+      const coutLigne = opts.km > 0 ? (opts.dep * (dist / opts.km)) : 0;
+      const margeLigne = prix - coutLigne;
+      const cL = margeLigne >= 0 ? 'var(--m-green)' : 'var(--m-red)';
+      const dateStr = l.date ? new Date(l.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : '';
+      return `<div class="m-card" style="padding:10px 12px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+        <div style="flex:1 1 auto;min-width:0">
+          <div style="font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.numLiv || 'Liv')} · ${M.escHtml(l.client || '—')}</div>
+          <div style="color:var(--m-text-muted);font-size:.74rem">${dateStr}${dist > 0 ? ' · ' + M.formatNum(dist) + ' km' : ''}</div>
+        </div>
+        <div style="text-align:right;flex:0 0 auto">
+          <div style="font-weight:600;color:var(--m-green);font-size:.84rem">${M.format$(prix)}</div>
+          <div style="font-size:.7rem;color:${cL}">${M.format$(margeLigne)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    return `
+      ${opts.sub ? `<div style="font-size:.82rem;color:var(--m-text-muted);margin-bottom:14px">${M.escHtml(opts.sub)}</div>` : ''}
+      <div class="m-card" style="border-left:4px solid ${margeC};padding:14px;margin-bottom:12px">
+        <div class="m-card-title">Marge brute</div>
+        <div class="m-card-value" style="color:${margeC};font-size:1.4rem">${M.format$(opts.marge)}</div>
+        <div class="m-card-sub">${(opts.margePct || 0).toFixed(1)}% · ${opts.nbLiv} livraison${opts.nbLiv > 1 ? 's' : ''}${opts.km > 0 ? ' · ' + M.formatNum(opts.km) + ' km' : ''}</div>
+      </div>
+      <div class="m-card-row">
+        <div class="m-card m-card-green"><div class="m-card-title">CA HT</div><div class="m-card-value">${M.format$(opts.ca)}</div></div>
+        <div class="m-card m-card-red"><div class="m-card-title">${M.escHtml(opts.depLabel || 'Coûts')}</div><div class="m-card-value">${M.format$(opts.dep)}</div></div>
+      </div>
+      ${opts.depBreakdown && opts.depBreakdown.length ? `
+        <div class="m-card" style="padding:0;margin-bottom:12px">
+          ${opts.depBreakdown.map((b, i) => `<div style="display:flex;justify-content:space-between;padding:12px 14px;${i < opts.depBreakdown.length - 1 ? 'border-bottom:1px solid var(--m-border)' : ''};font-size:.86rem">
+            <span style="color:var(--m-text-muted)">${M.escHtml(b.label)}</span>
+            <span style="font-weight:600">${M.format$(b.value)}</span>
+          </div>`).join('')}
+        </div>` : ''}
+      ${(opts.livraisons || []).length ? `
+        <div style="font-weight:600;font-size:.88rem;margin:14px 0 8px">📋 Livraisons (${opts.livraisons.length})</div>
+        ${livItems}
+      ` : '<div class="m-empty" style="padding:20px"><p class="m-empty-text">Aucune livraison sur la période.</p></div>'}
+    `;
+  };
   // ---------- Clients (v2.7 : list + recherche + detail tap-to-call) ----------
+  // parity-mobile-alertes-clients : ajout filtre type pro/particulier, tri (nom/CA/derniere),
+  // badge type, CA mensuel moyen 6 derniers mois, drawer 360 enrichi.
   M.state.clientsRecherche = '';
+  M.state.clientsTypeFilter = 'tous'; // tous | pro | particulier
+  M.state.clientsTri = 'nom';         // nom | ca | derniere
+
+  // Pre-calcule stats par client (CA total, CA mens 6m, derniere livraison, encaissement)
+  M.calculClientStats = function() {
+    const livrAll = M.charger('livraisons');
+    const stats = {};
+    const now = new Date();
+    const cutoff6m = new Date(now.getFullYear(), now.getMonth() - 5, 1).toISOString().slice(0, 10);
+    livrAll.forEach(l => {
+      const k = (l.client || '').toLowerCase();
+      if (!k) return;
+      if (!stats[k]) stats[k] = { caTotal: 0, ca6m: 0, mois6m: new Set(), derniere: '', nbLiv: 0,
+                                   facture: 0, paye: 0, attente: 0, retard: 0 };
+      const s = stats[k];
+      const prix = M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+      s.caTotal += prix;
+      s.nbLiv++;
+      if (l.date && l.date > s.derniere) s.derniere = l.date;
+      if (l.date && l.date >= cutoff6m) {
+        s.ca6m += prix;
+        s.mois6m.add(l.date.slice(0, 7));
+      }
+      // Encaissement (statutPaiement) — uniquement livraisons "livrees"
+      const statutLiv = (l.statut || '').toLowerCase();
+      if (statutLiv === 'livre' || statutLiv === 'livree' || !l.statut) {
+        const sp = (l.statutPaiement || 'en-attente').toLowerCase();
+        s.facture += prix;
+        if (sp === 'paye') s.paye += prix;
+        else {
+          // En retard si echeance depassee (delaiPaiement client)
+          s.attente += prix;
+          // calcul retard rudimentaire : date livraison + 30j depasse aujourd'hui
+          if (l.date) {
+            const echDate = new Date(l.date + 'T00:00:00');
+            echDate.setDate(echDate.getDate() + 30);
+            if (echDate < now) s.retard += prix;
+          }
+        }
+      }
+    });
+    return stats;
+  };
+
   M.register('clients', {
     title: 'Clients',
     render() {
@@ -6562,63 +8109,79 @@
 
       const clients = M.charger('clients');
       const recherche = (M.state.clientsRecherche || '').toLowerCase();
+      const typeFilter = M.state.clientsTypeFilter || 'tous';
+      const tri = M.state.clientsTri || 'nom';
+      const stats = M.calculClientStats();
+
       let filtered = clients;
+      // Filtre type
+      if (typeFilter === 'pro') filtered = filtered.filter(c => (c.type || 'pro') === 'pro');
+      else if (typeFilter === 'particulier') filtered = filtered.filter(c => c.type === 'particulier');
+      // Recherche : nom, tel, email, ville, SIREN, adresse
       if (recherche) {
-        filtered = clients.filter(c => {
-          const hay = `${c.nom||''} ${c.tel||''} ${c.email||''} ${c.ville||''} ${c.adresse||''}`.toLowerCase();
+        filtered = filtered.filter(c => {
+          const hay = `${c.nom||''} ${c.prenom||''} ${c.tel||''} ${c.email||''} ${c.ville||''} ${c.adresse||''} ${c.siren||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
-      filtered = [...filtered].sort((a,b) => (a.nom||'').localeCompare(b.nom||''));
-
-      // Pre-calcule le CA total par client (sur tous les mois) pour affichage en liste
-      const livrAll = M.charger('livraisons');
-      const caByClient = {};
-      livrAll.forEach(l => {
-        const k = (l.client || '').toLowerCase();
-        if (!k) return;
-        caByClient[k] = (caByClient[k] || 0) + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0);
+      // Tri
+      filtered = [...filtered].sort((a, b) => {
+        if (tri === 'ca') {
+          return (stats[(b.nom||'').toLowerCase()]?.caTotal || 0) - (stats[(a.nom||'').toLowerCase()]?.caTotal || 0);
+        }
+        if (tri === 'derniere') {
+          return (stats[(b.nom||'').toLowerCase()]?.derniere || '').localeCompare(stats[(a.nom||'').toLowerCase()]?.derniere || '');
+        }
+        return (a.nom||'').localeCompare(b.nom||'');
       });
+
+      const cntPro = clients.filter(c => (c.type || 'pro') === 'pro').length;
+      const cntPart = clients.filter(c => c.type === 'particulier').length;
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauClient()" aria-label="Nouveau client">+</button>`;
       html += `
-        <div style="margin-bottom:14px">
-          <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
+        <div style="margin-bottom:10px">
+          <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville, SIREN)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip ${typeFilter==='tous'?'active':''}" data-cli-type="tous">Tous (${clients.length})</button>
+          <button class="m-alertes-chip ${typeFilter==='pro'?'active':''}" data-cli-type="pro">🏢 Pro (${cntPro})</button>
+          <button class="m-alertes-chip ${typeFilter==='particulier'?'active':''}" data-cli-type="particulier">👤 Particulier (${cntPart})</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;font-size:.78rem;color:var(--m-text-muted)">
+          <span>Tri :</span>
+          <button class="m-alertes-chip ${tri==='nom'?'active':''}" data-cli-tri="nom" style="font-size:.74rem;padding:0 10px;height:30px">A→Z</button>
+          <button class="m-alertes-chip ${tri==='ca'?'active':''}" data-cli-tri="ca" style="font-size:.74rem;padding:0 10px;height:30px">CA</button>
+          <button class="m-alertes-chip ${tri==='derniere'?'active':''}" data-cli-tri="derniere" style="font-size:.74rem;padding:0 10px;height:30px">Dernière liv.</button>
         </div>
       `;
 
       if (!clients.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucun client</h3><p class="m-empty-text">Ajoute tes premiers clients depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucun client</h3><p class="m-empty-text">Tape sur + pour ajouter ton premier client.</p></div>`;
         return html;
       }
       if (!filtered.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun résultat</h3><p class="m-empty-text">Essaie un autre mot-clé ou change de filtre.</p></div>`;
         return html;
       }
 
-      // Group alphabetique
-      const byLetter = {};
-      filtered.forEach(c => {
-        const letter = ((c.nom||'').charAt(0).toUpperCase() || '#').replace(/[^A-Z]/, '#');
-        if (!byLetter[letter]) byLetter[letter] = [];
-        byLetter[letter].push(c);
-      });
-      const letters = Object.keys(byLetter).sort();
-
-      letters.forEach(letter => {
-        html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${letter}</div>`;
-        byLetter[letter].forEach(c => {
-          const caClient = caByClient[(c.nom || '').toLowerCase()] || 0;
-          html += `<button type="button" class="m-card m-card-pressable m-client-row" data-id="${M.escHtml(c.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
-            <div style="flex:1 1 auto;min-width:0">
-              <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.nom || '—')}</div>
-              <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.tel || c.email || c.ville || '—')}</div>
-              ${caClient > 0 ? `<div style="color:var(--m-green);font-size:.78rem;margin-top:3px;font-weight:600">${M.format$(caClient)} HT total</div>` : ''}
-            </div>
-            <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
-          </button>`;
+      // En tri "nom" on garde le grouping alphabétique. Sinon liste plate.
+      if (tri === 'nom') {
+        const byLetter = {};
+        filtered.forEach(c => {
+          const letter = ((c.nom||'').charAt(0).toUpperCase() || '#').replace(/[^A-Z]/, '#');
+          if (!byLetter[letter]) byLetter[letter] = [];
+          byLetter[letter].push(c);
         });
-      });
+        Object.keys(byLetter).sort().forEach(letter => {
+          html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${letter}</div>`;
+          byLetter[letter].forEach(c => { html += M.renderClientTile(c, stats); });
+        });
+      } else {
+        const triLabel = tri === 'ca' ? 'Trié par CA décroissant' : 'Trié par dernière livraison';
+        html += `<div style="font-size:.78rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 4px 8px">${triLabel}</div>`;
+        filtered.forEach(c => { html += M.renderClientTile(c, stats); });
+      }
 
       return html;
     },
@@ -6635,11 +8198,49 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
+      // Chips type
+      container.querySelectorAll('[data-cli-type]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.clientsTypeFilter = btn.dataset.cliType;
+          M.go('clients');
+        });
+      });
+      // Chips tri
+      container.querySelectorAll('[data-cli-tri]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.clientsTri = btn.dataset.cliTri;
+          M.go('clients');
+        });
+      });
       container.querySelectorAll('.m-client-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('clients', btn.dataset.id));
       });
     }
   });
+
+  // Rend une tile client (factorise rendu pour modes group / liste plate)
+  M.renderClientTile = function(c, stats) {
+    const s = stats[(c.nom || '').toLowerCase()] || {};
+    const caTotal = s.caTotal || 0;
+    const moisActifs = s.mois6m ? s.mois6m.size : 0;
+    const caMensMoyen = moisActifs > 0 ? Math.round(s.ca6m / moisActifs) : 0;
+    const isPro = (c.type || 'pro') === 'pro';
+    const badgeType = isPro
+      ? `<span style="background:rgba(95,149,255,0.15);color:var(--m-blue);padding:2px 7px;border-radius:8px;font-size:.66rem;font-weight:700;letter-spacing:.04em">PRO</span>`
+      : `<span style="background:rgba(155,89,182,0.15);color:var(--m-purple);padding:2px 7px;border-radius:8px;font-size:.66rem;font-weight:700;letter-spacing:.04em">PART.</span>`;
+    const nomAffiche = c.type === 'particulier' && c.prenom ? `${c.prenom} ${c.nom||''}` : (c.nom || '—');
+    return `<button type="button" class="m-card m-card-pressable m-client-row" data-id="${M.escHtml(c.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;min-height:48px">
+      <div style="flex:1 1 auto;min-width:0">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+          <span style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(nomAffiche)}</span>
+          ${badgeType}
+        </div>
+        <div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.ville || c.tel || c.email || '—')}</div>
+        ${caMensMoyen > 0 ? `<div style="color:var(--m-green);font-size:.76rem;margin-top:3px;font-weight:600">${M.format$(caMensMoyen)} / mois (6m) · ${M.format$(caTotal)} total</div>` : (caTotal > 0 ? `<div style="color:var(--m-green);font-size:.76rem;margin-top:3px;font-weight:600">${M.format$(caTotal)} HT total</div>` : '')}
+      </div>
+      <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
+    </button>`;
+  };
 
   M.renderClientDetail = function(id) {
     const c = M.charger('clients').find(x => x.id === id);
@@ -6647,52 +8248,110 @@
 
     // Telephone : nettoie pour href:tel + format affichage
     const telClean = (c.tel || '').replace(/[^\d+]/g, '');
-    const livClient = M.charger('livraisons').filter(l => (l.client || '').toLowerCase() === (c.nom || '').toLowerCase());
-    const totalCa = livClient.reduce((s, l) => s + (M.parseNum(l.prix) || 0), 0);
+    const livClient = M.charger('livraisons').filter(l => (l.client || '').toLowerCase() === (c.nom || '').toLowerCase() || l.clientId === c.id);
     const adresseFull = [c.adresse, c.cp, c.ville].filter(Boolean).join(' ');
     const adresseEnc = encodeURIComponent(adresseFull);
+
+    // Encaissement detail (parity-mobile-alertes-clients) : facturé/payé/attente/retard
+    const stats = M.calculClientStats();
+    const s = stats[(c.nom || '').toLowerCase()] || { caTotal: 0, facture: 0, paye: 0, attente: 0, retard: 0, derniere: '' };
+    const isPro = (c.type || 'pro') === 'pro';
+    const nomAffiche = c.type === 'particulier' && c.prenom ? `${c.prenom} ${c.nom||''}` : (c.nom || '—');
+    const badgeType = isPro
+      ? `<span style="background:rgba(95,149,255,0.15);color:var(--m-blue);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">🏢 PRO</span>`
+      : `<span style="background:rgba(155,89,182,0.15);color:var(--m-purple);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">👤 PARTICULIER</span>`;
 
     return `
       <div style="text-align:center;padding:8px 0 18px">
         <div style="width:64px;height:64px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;margin:0 auto 10px">${M.escHtml((c.nom || '?').charAt(0).toUpperCase())}</div>
-        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(c.nom || '—')}</h2>
-        ${c.ville ? `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(c.ville)}</p>` : ''}
-        <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="margin-top:12px;background:var(--m-accent-soft);color:var(--m-accent);border:1px solid ${'rgba(245,166,35,0.3)'};border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button>
+        <h2 style="margin:0;font-size:1.3rem;font-weight:700;letter-spacing:-0.02em">${M.escHtml(nomAffiche)}</h2>
+        <div style="margin-top:6px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;align-items:center">
+          ${badgeType}
+          ${c.ville ? `<span style="color:var(--m-text-muted);font-size:.85rem">${M.escHtml(c.ville)}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+          <button type="button" onclick="MCAm.editerClient('${M.escHtml(c.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">✏️ Modifier</button>
+          <button type="button" onclick="MCAm.nouvelleLivraisonPourClient('${M.escHtml(c.id)}')" style="background:rgba(46,204,113,0.15);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit;min-height:44px">+ Livraison</button>
+        </div>
       </div>
 
       ${c.tel || c.email || adresseFull ? `
         <div class="m-card-row" style="grid-template-columns:repeat(${(c.tel?1:0)+(c.email?1:0)+(adresseFull?1:0)},1fr);gap:8px;margin-bottom:12px">
-          ${c.tel ? `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
-          ${c.email ? `<a href="mailto:${M.escHtml(c.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
-          ${adresseFull ? `<a href="https://maps.apple.com/?q=${adresseEnc}" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);text-decoration:none;font-weight:600;font-size:.85rem"><span style="font-size:1.4rem">🗺️</span><span>Itinéraire</span></a>` : ''}
+          ${c.tel ? `<a href="tel:${M.escHtml(telClean)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);text-decoration:none;font-weight:600;font-size:.85rem;min-height:48px"><span style="font-size:1.4rem">📞</span><span>Appeler</span></a>` : ''}
+          ${c.email ? `<a href="mailto:${M.escHtml(c.email)}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);text-decoration:none;font-weight:600;font-size:.85rem;min-height:48px"><span style="font-size:1.4rem">✉️</span><span>Email</span></a>` : ''}
+          ${adresseFull ? `<a href="https://maps.apple.com/?q=${adresseEnc}" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);text-decoration:none;font-weight:600;font-size:.85rem;min-height:48px"><span style="font-size:1.4rem">🗺️</span><span>Itinéraire</span></a>` : ''}
         </div>
       ` : ''}
 
-      <div class="m-card" style="padding:0">
+      <!-- Encaissement (parity-mobile-alertes-clients) -->
+      ${s.facture > 0 ? `
+        <div class="m-section" style="margin-top:18px">
+          <div class="m-section-header"><h3 class="m-section-title">💰 Encaissement</h3></div>
+          <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+            <div style="background:var(--m-card);border:1px solid var(--m-border);border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Facturé</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px">${M.format$(s.facture)}</div>
+            </div>
+            <div style="background:var(--m-card);border:1px solid rgba(46,204,113,0.3);border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:var(--m-green);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Payé</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-green)">${M.format$(s.paye)}</div>
+            </div>
+            <div style="background:var(--m-card);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">En attente</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-accent)">${M.format$(s.attente - s.retard)}</div>
+            </div>
+            <div style="background:var(--m-card);border:1px solid ${s.retard > 0 ? 'rgba(231,76,60,0.4)' : 'var(--m-border)'};border-radius:12px;padding:12px;text-align:center">
+              <div style="font-size:.66rem;color:${s.retard > 0 ? 'var(--m-red)' : 'var(--m-text-muted)'};text-transform:uppercase;letter-spacing:.04em;font-weight:700">En retard</div>
+              <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:${s.retard > 0 ? 'var(--m-red)' : 'inherit'}">${M.format$(s.retard)}</div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Identité + contact + adresse + conditions -->
+      <div class="m-card" style="padding:0;margin-top:18px">
+        <div style="padding:10px 16px;background:var(--m-bg-elevated);font-size:.7rem;font-weight:700;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--m-border)">Identité & contact</div>
+        ${c.contact || c.prenom ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Contact</span><span style="font-weight:500">${M.escHtml(c.contact || c.prenom || '')}</span></div>` : ''}
         ${c.tel ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Téléphone</span><span style="font-weight:500">${M.escHtml(c.tel)}</span></div>` : ''}
         ${c.email ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(c.email)}</span></div>` : ''}
-        ${adresseFull ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(adresseFull)}</span></div>` : ''}
+        ${c.emailFact && c.emailFact !== c.email ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Email fact.</span><span style="font-weight:500;font-size:.85rem;text-align:right;word-break:break-all">${M.escHtml(c.emailFact)}</span></div>` : ''}
+        ${adresseFull ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Adresse</span><span style="font-weight:500;font-size:.85rem;text-align:right">${M.escHtml(adresseFull)}${c.pays && c.pays !== 'FR' ? ' · ' + M.escHtml(c.pays) : ''}</span></div>` : ''}
+        ${isPro && c.secteur ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Secteur</span><span style="font-weight:500">${M.escHtml(c.secteur)}</span></div>` : ''}
         ${c.siren ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">SIREN</span><span style="font-weight:500">${M.escHtml(c.siren)}</span></div>` : ''}
-        ${c.tva ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(c.tva)}</span></div>` : ''}
-        ${c.notes ?     `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Notes</span><span style="font-size:.88rem;line-height:1.45">${M.escHtml(c.notes)}</span></div>` : ''}
+        ${c.tva || c.tvaIntra ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° TVA</span><span style="font-weight:500">${M.escHtml(c.tva || c.tvaIntra)}</span></div>` : ''}
+        ${(c.delaiPaiementJours || c.delaiPaiement) ? `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;gap:10px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Délai paiement</span><span style="font-weight:500">${M.escHtml(c.delaiPaiementJours || c.delaiPaiement)} j</span></div>` : ''}
+        ${c.notes ?     `<div style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Notes</span><span style="font-size:.88rem;line-height:1.45;white-space:pre-wrap">${M.escHtml(c.notes)}</span></div>` : ''}
       </div>
 
       <div class="m-section">
         <div class="m-section-header">
           <h3 class="m-section-title">📦 Livraisons</h3>
-          <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(totalCa)}</span>
+          <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(s.caTotal)}</span>
         </div>
-        ${livClient.length ? livClient.slice(0, 10).sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(l => `
-          <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit">
+        ${livClient.length ? livClient.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10).map(l => {
+          const sp = (l.statutPaiement || 'en-attente').toLowerCase();
+          const couleurStatut = sp === 'paye' ? 'var(--m-green)' : sp === 'partiel' ? 'var(--m-accent)' : 'var(--m-text-muted)';
+          const labelStatut = sp === 'paye' ? '✓ Payé' : sp === 'partiel' ? '~ Partiel' : '⏳ En attente';
+          return `
+          <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;min-height:48px">
             <div style="flex:1 1 auto;min-width:0">
               <div style="font-weight:500;font-size:.88rem">${M.formatDate(l.date)}${l.numLiv ? ' · ' + M.escHtml(l.numLiv) : ''}</div>
-              <div style="color:var(--m-text-muted);font-size:.78rem">${l.distance ? M.formatNum(l.distance) + ' km' : '—'}</div>
+              <div style="color:${couleurStatut};font-size:.75rem;margin-top:2px;font-weight:600">${labelStatut}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
             </div>
             <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prix || 0)}</div>
           </button>
-        `).join('') : `<p class="m-empty-text" style="text-align:center;padding:20px">Aucune livraison pour ce client.</p>`}
+        `}).join('') : `<p class="m-empty-text" style="text-align:center;padding:20px">Aucune livraison pour ce client.</p>`}
+        ${livClient.length > 10 ? `<button type="button" onclick="MCAm.go('livraisons')" style="width:100%;padding:12px;background:transparent;border:1px solid var(--m-border);border-radius:12px;color:var(--m-accent);font-weight:600;font-size:.85rem;font-family:inherit;cursor:pointer;min-height:44px">Voir toutes les livraisons →</button>` : ''}
       </div>
     `;
+  };
+
+  // Crée une nouvelle livraison pré-remplie pour le client (parity-mobile-alertes-clients)
+  M.nouvelleLivraisonPourClient = function(clientId) {
+    const c = M.charger('clients').find(x => x.id === clientId);
+    if (!c) return M.toast('Client introuvable');
+    const adrComplete = [c.adresse, [c.cp, c.ville].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    M.formNouvelleLivraison({ client: c.nom || '', clientId: c.id, depart: adrComplete, zone: adrComplete, clientSiren: c.siren || '', clientTvaIntracom: c.tva || c.tvaIntra || '' });
   };
   // ---------- Fournisseurs (v2.8 : list + detail) ----------
   M.state.fournisseursRecherche = '';
@@ -6822,6 +8481,19 @@
     return { color: 'var(--m-green)', label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }), icon: '✅' };
   };
 
+  // Helper compact pour badge échéance (icone seule + couleur)
+  M.statutDateBadge = function(dateIso, label) {
+    if (!dateIso) return `<span title="${M.escHtml(label)} non renseigné" style="color:var(--m-text-muted);font-size:.85rem">${M.escHtml(label)}—</span>`;
+    const d = new Date(dateIso);
+    if (isNaN(d)) return '';
+    const diff = Math.floor((d - new Date()) / 86400000);
+    let icon = '✅', color = 'var(--m-green)', tip = `${label} valide`;
+    if (diff < 0) { icon = '❌'; color = 'var(--m-red)'; tip = `${label} expiré (${-diff}j)`; }
+    else if (diff < 30) { icon = '🔴'; color = 'var(--m-red)'; tip = `${label} expire dans ${diff}j`; }
+    else if (diff < 60) { icon = '⚠️'; color = 'var(--m-accent)'; tip = `${label} expire dans ${diff}j`; }
+    return `<span title="${M.escHtml(tip)}" style="color:${color};font-size:.78rem;font-weight:600">${icon} ${M.escHtml(label)}</span>`;
+  };
+
   M.register('vehicules', {
     title: 'Véhicules',
     render() {
@@ -6832,25 +8504,34 @@
       const recherche = (M.state.vehiculesRecherche || '').toLowerCase();
       const filtreCarb = M.state.vehiculesCarburant || '';
       const filtreSal  = M.state.vehiculesSalarie || '';
+      const tri        = M.state.vehiculesTri || 'immat';
       let filtered = vehicules;
       if (recherche) {
         filtered = filtered.filter(v => {
-          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''}`.toLowerCase();
+          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''} ${v.vin||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
       if (filtreCarb) filtered = filtered.filter(v => (v.typeCarburant || v.carburant || '') === filtreCarb);
       if (filtreSal)  filtered = filtered.filter(v => (v.salId || v.chaufId) === filtreSal);
-      filtered = [...filtered].sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
+      // Tri : immat / km / ct
+      filtered = [...filtered];
+      if (tri === 'km') filtered.sort((a,b) => (M.parseNum(b.km)||0) - (M.parseNum(a.km)||0));
+      else if (tri === 'ct') filtered.sort((a,b) => {
+        // CT ascendant : les plus proches/expirés d'abord (sans date = en bas)
+        const da = a.dateCT || '9999-12-31', db = b.dateCT || '9999-12-31';
+        return da.localeCompare(db);
+      });
+      else filtered.sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
 
       const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauVehicule()" aria-label="Nouveau véhicule">+</button>`;
       html += `
         <div style="margin-bottom:10px">
-          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, modèle)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, marque, VIN)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
           <select id="m-veh-carb" style="flex:1 1 auto">
             <option value="">⛽ Tous carburants</option>
             <option value="diesel"     ${filtreCarb==='diesel'?'selected':''}>⛽ Diesel/Gazole</option>
@@ -6865,10 +8546,17 @@
             ${salaries.map(s => `<option value="${M.escHtml(s.id)}" ${filtreSal===s.id?'selected':''}>${M.escHtml(((s.prenom?s.prenom+' ':'') + (s.nom||s.id)).trim())}</option>`).join('')}
           </select>
         </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <select id="m-veh-tri" style="flex:1 1 auto">
+            <option value="immat" ${tri==='immat'?'selected':''}>↕ Tri immat (A→Z)</option>
+            <option value="km"    ${tri==='km'?'selected':''}>↕ Tri km (décroissant)</option>
+            <option value="ct"    ${tri==='ct'?'selected':''}>↕ Tri date CT (proche)</option>
+          </select>
+        </div>
       `;
 
       if (!vehicules.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Ajoute ton parc depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Tape sur ⊕ pour ajouter ton premier véhicule.</p></div>`;
         return html;
       }
       if (!filtered.length) {
@@ -6877,12 +8565,17 @@
       }
 
       filtered.forEach(v => {
-        const ct = M.statutDate(v.dateCT);
-        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+        const ct  = M.statutDateBadge(v.dateCT, 'CT');
+        const ass = M.statutDateBadge(v.dateAssurance, 'Assu');
+        const cgUploaded = !!(v.docs?.carte_grise);
+        const cgIcon = cgUploaded ? `<span title="Carte grise uploadée" style="color:var(--m-green);font-size:.78rem;font-weight:600">📄 CG</span>`
+                                  : `<span title="Carte grise manquante" style="color:var(--m-text-muted);font-size:.78rem">📄—</span>`;
+        const kmTxt = v.km ? `${M.formatNum(v.km)} km` : '';
+        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;min-height:48px">
           <div style="flex:1 1 auto;min-width:0">
-            <div style="font-weight:700;font-size:1rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
-            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(v.modele || '')}${v.salNom ? ' · ' + M.escHtml(v.salNom) : ''}</div>
-            <div style="margin-top:6px;font-size:.75rem"><span style="color:${ct.color};font-weight:600">${ct.icon} CT ${ct.label}</span></div>
+            <div style="font-weight:700;font-size:1.05rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((v.marque ? v.marque + ' ' : '') + (v.modele || ''))}${v.salNom ? ' · 👤 ' + M.escHtml(v.salNom) : ''}${kmTxt ? ' · ' + kmTxt : ''}</div>
+            <div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">${ct} ${ass} ${cgIcon}</div>
           </div>
           <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
         </button>`;
@@ -6903,72 +8596,276 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
-      // Filtres carburant + chauffeur
+      // Filtres carburant + chauffeur + tri
       container.querySelector('#m-veh-carb')?.addEventListener('change', e => { M.state.vehiculesCarburant = e.target.value; M.go('vehicules'); });
       container.querySelector('#m-veh-sal')?.addEventListener('change',  e => { M.state.vehiculesSalarie   = e.target.value; M.go('vehicules'); });
+      container.querySelector('#m-veh-tri')?.addEventListener('change',  e => { M.state.vehiculesTri       = e.target.value; M.go('vehicules'); });
       container.querySelectorAll('.m-veh-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('vehicules', btn.dataset.id));
       });
     }
   });
 
+  // Helpers : ouvre forms enfants en pre-selectionnant le vehicule courant.
+  // Strategie : on appelle la fonction de form normale (mode creation), puis on
+  // force le select vehiculeId via setTimeout (apres openSheet+afterMount async).
+  M.formPleinPourVehicule = function(vehId) {
+    M.formNouveauPlein();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+  M.formEntretienPourVehicule = function(vehId) {
+    M.formNouvelEntretien();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+  M.formInspectionPourVehicule = function(vehId) {
+    M.formNouvelleInspection();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+
+  // Action : remplacer / ajouter rapidement la carte grise depuis le drawer
+  // Ouvre un picker direct, upload, refresh la vue.
+  M.replaceCarteGrise = async function(vehId) {
+    return new Promise(resolve => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*,application/pdf';
+      inp.style.display = 'none';
+      document.body.appendChild(inp);
+      inp.addEventListener('change', async () => {
+        const file = inp.files?.[0];
+        document.body.removeChild(inp);
+        if (!file) return resolve(false);
+        M.toast('⏳ Envoi carte grise...');
+        const ok = await M.uploaderDocVehicule(file, 'carte_grise', vehId);
+        if (ok) { M.toast('✅ Carte grise enregistrée'); M.go('vehicules'); }
+        resolve(ok);
+      }, { once: true });
+      inp.click();
+    });
+  };
+
+  // Confirmation toggle archivage
+  M.toggleArchiveVehicule = async function(vehId) {
+    const arr = M.charger('vehicules');
+    const idx = arr.findIndex(x => x.id === vehId);
+    if (idx < 0) return;
+    const archive = !arr[idx].archive;
+    const msg = archive
+      ? `Désactiver le véhicule ${arr[idx].immat} ? Il sera masqué des listes mais conservé pour l'historique.`
+      : `Réactiver le véhicule ${arr[idx].immat} ?`;
+    if (!await M.confirm(msg, { titre: archive ? 'Désactiver véhicule' : 'Réactiver véhicule' })) return;
+    arr[idx].archive = archive;
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('vehicules', arr);
+    M.toast(archive ? '⏸️ Véhicule désactivé' : '▶️ Véhicule réactivé');
+    if (archive) M.state.detail.vehicules = null;
+    M.go('vehicules');
+  };
+
   M.renderVehiculeDetail = function(id) {
     const v = M.charger('vehicules').find(x => x.id === id);
     if (!v) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Véhicule introuvable</h3></div>`;
 
-    const ct = M.statutDate(v.dateCT);
-    // Pleins du vehicule pour mini KPI
+    const ct  = M.statutDate(v.dateCT);
+    const ass = M.statutDate(v.dateAssurance);
+    const cg  = M.statutDate(v.dateCarteGrise);
+
+    // Pleins du vehicule
     const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id || p.vehId === v.id);
     const totalCarb = pleins.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
     const totalLitres = pleins.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
-    const dernierPlein = pleins.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    const pleinsTri = [...pleins].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const dernierPlein = pleinsTri[0];
+    const derniersPleins = pleinsTri.slice(0, 5);
+
+    // Entretiens
+    const entretiens = M.charger('entretiens').filter(e => e.vehiculeId === v.id || e.vehId === v.id);
+    const entretiensTri = [...entretiens].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const derniersEntretiens = entretiensTri.slice(0, 5);
+    const dernierEntretien = entretiensTri[0];
+
+    // Charges rattachées au véhicule
+    const charges = M.charger('charges').filter(c => c.vehiculeId === v.id || c.vehId === v.id);
+    const chargesTri = [...charges].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const dernieresCharges = chargesTri.slice(0, 5);
+    const totalCharges = charges.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+
+    // Inspections
+    const inspections = M.charger('inspections').filter(i => i.vehiculeId === v.id || i.vehId === v.id);
+    const dernieresInspections = [...inspections].sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 3);
+
+    // Livraisons
     const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id || l.vehId === v.id);
 
+    // Doc carte grise (priorité aux docs.carte_grise sur l'ancien carteGriseFichier PC)
+    const docCG = v.docs?.carte_grise;
+
+    // Conso réelle calculée
+    const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
+    const consoCalc = (kmParcourus > 0 && totalLitres > 0) ? (totalLitres / kmParcourus * 100) : null;
+
+    // Type de carburant lisible
+    const carbLabels = {
+      diesel: '⛽ Diesel/Gazole', gazole: '⛽ Diesel/Gazole',
+      essence: '⛽ Essence', gnv: '🌿 GNV/BioGNV', biognv: '🌿 GNV/BioGNV',
+      electrique: '⚡ Électrique', hybride: '🔋 Hybride', hydrogene: '💧 Hydrogène'
+    };
+    const carbAffiche = v.typeCarburant ? (carbLabels[(v.typeCarburant||'').toLowerCase()] || v.typeCarburant) : '—';
+
+    const detailRow = (label, value, opts = {}) => {
+      if (value == null || value === '' || value === 0 && !opts.showZero) return '';
+      const last = opts.last ? '' : 'border-bottom:1px solid var(--m-border);';
+      const valColor = opts.color ? `color:${opts.color};` : '';
+      return `<div style="padding:13px 16px;${last}display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span style="color:var(--m-text-muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.05em">${M.escHtml(label)}</span>
+        <span style="font-weight:600;${valColor};text-align:right;font-size:.88rem">${value}</span>
+      </div>`;
+    };
+
+    const echeanceRow = (label, dateIso, statut) => {
+      const dateStr = dateIso
+        ? new Date(dateIso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Non renseigné';
+      return `<div style="padding:13px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <div style="font-size:.78rem;font-weight:600">${M.escHtml(label)}</div>
+          <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${dateStr}</div>
+        </div>
+        <span style="color:${statut.color};font-weight:700;font-size:.85rem;text-align:right;flex-shrink:0">${statut.icon} ${statut.label}</span>
+      </div>`;
+    };
+
     return `
-      <div style="text-align:center;padding:8px 0 18px">
-        <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
-        ${v.modele ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(v.modele)}</p>` : ''}
+      <!-- Hero : immat + chauffeur + actions rapides -->
+      <div style="text-align:center;padding:8px 0 14px">
+        <div style="display:inline-block;padding:10px 20px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.5rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
+        ${(v.marque || v.modele) ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(((v.marque || '') + ' ' + (v.modele || '')).trim())}</p>` : ''}
         ${v.salNom ? (() => {
           const sal = v.salId ? M.charger('salaries').find(s => s.id === v.salId) : M.findSalarieByName(v.salNom);
           return sal
             ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(v.salNom)} ›</button>`
             : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>`;
         })() : ''}
-        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
-      <!-- CT highlight (le plus important) -->
-      <div class="m-card" style="border-left:4px solid ${ct.color};padding:14px 16px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <div>
-            <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Contrôle technique</div>
-            <div style="font-size:1.05rem;font-weight:700;color:${ct.color};margin-top:4px">${ct.icon} ${ct.label}</div>
+      <!-- Actions rapides : 4 boutons icone + label -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+        <button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-accent);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">✏️</span><span>Modifier</span>
+        </button>
+        <button type="button" onclick="MCAm.formPleinPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">⛽</span><span>+ Plein</span>
+        </button>
+        <button type="button" onclick="MCAm.formEntretienPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">🔧</span><span>+ Entretien</span>
+        </button>
+        <button type="button" onclick="MCAm.formInspectionPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">🚗</span><span>+ Inspection</span>
+        </button>
+      </div>
+
+      <!-- 📅 ECHEANCES (CT, assurance, carte grise) -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">📅 Échéances</h3></div>
+        <div class="m-card" style="padding:0;border-left:4px solid ${ct.color}">
+          ${echeanceRow('🔧 Contrôle technique', v.dateCT, ct)}
+          ${echeanceRow('🛡️ Assurance (carte verte)', v.dateAssurance, ass)}
+          ${echeanceRow('📄 Carte grise', v.dateCarteGrise, cg)}
+          <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-size:.78rem;font-weight:600">📜 1ère mise en circulation</div>
+              <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${v.dateMiseEnCirculation ? new Date(v.dateMiseEnCirculation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Non renseigné'}</div>
+            </div>
+            ${v.dateMiseEnCirculation ? (() => {
+              const ans = Math.floor((Date.now() - new Date(v.dateMiseEnCirculation).getTime()) / (365.25 * 86400000));
+              return `<span style="color:var(--m-text-muted);font-weight:600;font-size:.85rem">${ans} an${ans>1?'s':''}</span>`;
+            })() : ''}
           </div>
-          ${v.dateCT ? `<div style="text-align:right;font-size:.78rem;color:var(--m-text-muted)">${new Date(v.dateCT).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' })}</div>` : ''}
         </div>
       </div>
 
-      <!-- Detail technique -->
-      <div class="m-card" style="padding:0">
-        ${v.typeCarburant ?         `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Carburant</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.typeCarburant)}</span></div>` : ''}
-        ${v.km != null ?            `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Kilométrage</span><span style="font-weight:600">${M.formatNum(v.km)} km</span></div>` : ''}
-        ${(() => {
-          // Conso L/100km = totalLitres / (km - kmInitial) * 100
-          const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
-          if (kmParcourus > 0 && totalLitres > 0) {
-            const conso = totalLitres / kmParcourus * 100;
-            const consoColor = conso > 12 ? 'var(--m-red)' : conso > 8 ? 'var(--m-accent)' : 'var(--m-green)';
-            return `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Conso moyenne</span><span style="font-weight:600;color:${consoColor}">${conso.toFixed(1)} L/100km</span></div>`;
-          }
-          return '';
-        })()}
-        ${v.kmInitial != null ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Km initial</span><span style="font-weight:500">${M.formatNum(v.kmInitial)} km</span></div>` : ''}
-        ${v.modeAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Acquisition</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.modeAcquisition)}</span></div>` : ''}
-        ${v.dateAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Date acquisition</span><span style="font-weight:500">${M.formatDate(v.dateAcquisition)}</span></div>` : ''}
-        ${v.entretienIntervalKm ?   `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Vidange tous les</span><span style="font-weight:500">${M.formatNum(v.entretienIntervalKm)} km</span></div>` : ''}
+      <!-- 📄 CARTE GRISE (aperçu + actions) -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">📄 Carte grise</h3></div>
+        <div class="m-card" style="padding:14px 16px">
+          ${docCG ? `
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+              <span style="font-size:1.6rem;flex-shrink:0">🪪</span>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(docCG.nom || 'Carte grise')}</div>
+                <div style="font-size:.72rem;color:var(--m-green);margin-top:2px">✅ Uploadée${docCG.uploaded_at ? ' · ' + M.formatDate(docCG.uploaded_at.slice(0,10)) : ''}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','carte_grise')" class="m-btn" style="flex:1 1 auto">👁 Voir</button>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="flex:1 1 auto">↻ Remplacer</button>
+            </div>
+          ` : `
+            <div style="text-align:center;padding:8px 0 4px">
+              <div style="font-size:2rem;margin-bottom:6px">📄</div>
+              <p style="color:var(--m-text-muted);font-size:.85rem;margin:0 0 10px">Aucune carte grise enregistrée</p>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">📷 Uploader la carte grise</button>
+            </div>
+          `}
+        </div>
       </div>
 
-      <!-- Carburant resume -->
+      <!-- 🪪 IDENTITE -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">🪪 Identité</h3></div>
+        <div class="m-card" style="padding:0">
+          ${detailRow('Immatriculation', M.escHtml(v.immat || '—'))}
+          ${v.marque ? detailRow('Marque', M.escHtml(v.marque)) : ''}
+          ${v.modele ? detailRow('Modèle', M.escHtml(v.modele)) : ''}
+          ${v.vin ? detailRow('VIN', `<span style="font-family:monospace;font-size:.8rem">${M.escHtml(v.vin)}</span>`) : ''}
+          ${v.genre ? detailRow('Genre', M.escHtml(v.genre)) : ''}
+          ${detailRow('Carburant', M.escHtml(carbAffiche))}
+          ${v.critAir ? detailRow("Crit'Air", `Vignette ${M.escHtml(v.critAir)}`) : ''}
+        </div>
+      </div>
+
+      <!-- 📐 CARACTERISTIQUES -->
+      ${(v.km || v.kmInitial || v.capaciteReservoir || v.conso || consoCalc != null || v.ptac || v.ptra || v.essieux || v.entretienIntervalKm) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">📐 Caractéristiques</h3></div>
+          <div class="m-card" style="padding:0">
+            ${v.km ? detailRow('Kilométrage', `${M.formatNum(v.km)} km`) : ''}
+            ${v.kmInitial ? detailRow('Km initial', `${M.formatNum(v.kmInitial)} km`) : ''}
+            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100km</span>`) : ''}
+            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100km`) : ''}
+            ${v.capaciteReservoir ? detailRow('Capacité réservoir', `${M.formatNum(v.capaciteReservoir)} L`) : ''}
+            ${v.ptac ? detailRow('PTAC', `${M.formatNum(v.ptac)} kg`) : ''}
+            ${v.ptra ? detailRow('PTRA', `${M.formatNum(v.ptra)} kg`) : ''}
+            ${v.essieux ? detailRow('Essieux', `${v.essieux}`) : ''}
+            ${v.entretienIntervalKm ? detailRow('Vidange tous les', `${M.formatNum(v.entretienIntervalKm)} km`, { last: true }) : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 💰 ACQUISITION -->
+      ${(v.modeAcquisition || v.dateAcquisition) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">💰 Acquisition</h3></div>
+          <div class="m-card" style="padding:0">
+            ${v.modeAcquisition ? detailRow('Mode', `<span style="text-transform:uppercase">${M.escHtml(v.modeAcquisition)}</span>`) : ''}
+            ${v.dateAcquisition ? detailRow('Date', M.formatDate(v.dateAcquisition), { last: !v.prixAchatHT && !v.loyerMensuelHT }) : ''}
+            ${v.prixAchatHT ? detailRow('Prix HT', M.format$(v.prixAchatHT)) : ''}
+            ${v.prixAchatTTC ? detailRow('Prix TTC', M.format$(v.prixAchatTTC), { last: !v.loyerMensuelHT }) : ''}
+            ${v.loyerMensuelHT ? detailRow('Loyer mensuel HT', M.format$(v.loyerMensuelHT), { last: true }) : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- ⛽ CARBURANT -->
       ${pleins.length ? `
         <div class="m-section">
           <div class="m-section-header">
@@ -6976,8 +8873,102 @@
             <span style="font-size:.85rem;color:var(--m-text-muted)">${pleins.length} plein${pleins.length>1?'s':''}</span>
           </div>
           <div class="m-card-row">
-            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
-            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total dépensé</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
+            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier plein</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+          </div>
+          ${derniersPleins.length ? `
+            <div class="m-card" style="padding:0;margin-top:10px">
+              ${derniersPleins.map((p, i) => {
+                const isLast = i === derniersPleins.length - 1;
+                const consoLine = (i < derniersPleins.length - 1) ? (() => {
+                  const next = derniersPleins[i+1];
+                  const dKm = (M.parseNum(p.kmCompteur) || 0) - (M.parseNum(next.kmCompteur) || 0);
+                  const litres = M.parseNum(p.litres) || 0;
+                  if (dKm > 0 && litres > 0) {
+                    return ` · ${(litres / dKm * 100).toFixed(1)} L/100`;
+                  }
+                  return '';
+                })() : '';
+                return `<button type="button" onclick="MCAm.formNouveauPlein && MCAm.editerPlein && MCAm.editerPlein('${M.escHtml(p.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                  <div style="flex:1 1 auto;min-width:0">
+                    <div style="font-weight:600;font-size:.85rem">${M.formatDate(p.date)}</div>
+                    <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatNum(M.parseNum(p.litres).toFixed(1))} L${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}${consoLine}</div>
+                  </div>
+                  <div style="font-weight:700;color:var(--m-red);font-size:.85rem">${M.format$(p.total)}</div>
+                </button>`;
+              }).join('')}
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- 🔧 ENTRETIENS -->
+      ${entretiens.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">🔧 Entretiens</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${entretiens.length} · ${derniersEntretiens.length} affichés</span>
+          </div>
+          ${dernierEntretien?.prochainKm ? `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px;padding:0 4px">🔔 Prochain prévu : <strong>${M.formatNum(dernierEntretien.prochainKm)} km</strong></p>` : ''}
+          <div class="m-card" style="padding:0">
+            ${derniersEntretiens.map((e, i) => {
+              const isLast = i === derniersEntretiens.length - 1;
+              return `<button type="button" onclick="MCAm.editerEntretien && MCAm.editerEntretien('${M.escHtml(e.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem;text-transform:capitalize">${M.escHtml(e.type || 'Entretien')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-purple);font-size:.85rem">${M.format$(e.cout || e.coutTtc || 0)}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 💸 CHARGES rattachées -->
+      ${charges.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">💸 Charges rattachées</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${charges.length} · ${M.format$(totalCharges)}</span>
+          </div>
+          <div class="m-card" style="padding:0">
+            ${dernieresCharges.map((c, i) => {
+              const isLast = i === dernieresCharges.length - 1;
+              const montant = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
+              return `<button type="button" onclick="MCAm.editerCharge && MCAm.editerCharge('${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.libelle || c.categorie || 'Charge')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatDate(c.date)}${c.fournisseur ? ' · ' + M.escHtml(c.fournisseur) : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-red);font-size:.85rem">${M.format$(montant)}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 🚗 INSPECTIONS -->
+      ${inspections.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">🚗 Inspections</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${inspections.length} · ${dernieresInspections.length} affichées</span>
+          </div>
+          <div class="m-card" style="padding:0">
+            ${dernieresInspections.map((i, idx) => {
+              const isLast = idx === dernieresInspections.length - 1;
+              const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : null;
+              const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : (i.salNom || '');
+              const nbPhotos = Array.isArray(i.photos) ? i.photos.length : 0;
+              return `<button type="button" onclick="MCAm.openDetail('inspections','${M.escHtml(i.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem">${M.formatDate(i.date)}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${nom ? '👤 ' + M.escHtml(nom) : ''}${nbPhotos ? (nom ? ' · ' : '') + '📸 ' + nbPhotos : ''}</div>
+                </div>
+                <span style="color:var(--m-text-muted)">›</span>
+              </button>`;
+            }).join('')}
           </div>
         </div>
       ` : ''}
@@ -6986,7 +8977,6 @@
         if (!livraisons.length) return '';
         const totalCa = livraisons.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const totalKm = livraisons.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
-        // Historique conducteurs : agrège par chauffeur (salarieId / chaufId)
         const salaries = M.charger('salaries');
         const byChauf = {};
         livraisons.forEach(l => {
@@ -7000,14 +8990,14 @@
         });
         const topChauf = Object.values(byChauf).sort((a, b) => b.nb - a.nb).slice(0, 5);
         const dernieres = [...livraisons].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
-        const docsPresents = M.DOC_TYPES_VEHICULE.filter(t => v.docs?.[t.type]);
+        const docsAutres = M.DOC_TYPES_VEHICULE.filter(t => t.type !== 'carte_grise' && v.docs?.[t.type]);
 
         return `
-          ${docsPresents.length ? `
+          ${docsAutres.length ? `
             <div class="m-section">
-              <div class="m-section-header"><h3 class="m-section-title">📎 Documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsPresents.length}</span></div>
+              <div class="m-section-header"><h3 class="m-section-title">📎 Autres documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsAutres.length}</span></div>
               <div class="m-card" style="padding:0">
-                ${docsPresents.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsPresents.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
+                ${docsAutres.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsAutres.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit;min-height:48px"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
               </div>
             </div>
           ` : ''}
@@ -7027,7 +9017,7 @@
                   const sal = salaries.find(s => s.id === c.id);
                   const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : 'Inconnu';
                   const isLast = i === topChauf.length - 1;
-                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer">
+                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
                     <div style="flex:1 1 auto;min-width:0">
                       <div style="font-weight:600;font-size:.9rem">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${M.escHtml(nom)}</div>
                       <div style="color:var(--m-text-muted);font-size:.74rem;margin-top:2px">${c.nb} liv · ${M.formatNum(c.km.toFixed(0))} km · dernière ${M.formatDate(c.derniere)}</div>
@@ -7044,7 +9034,7 @@
           <div class="m-section">
             <div class="m-section-header"><h3 class="m-section-title">📋 Dernières livraisons</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${dernieres.length} affichées</span></div>
             ${dernieres.map(l => `
-              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit;min-height:48px">
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
                   <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
@@ -7055,10 +9045,80 @@
           </div>
         `;
       })()}
+
+      <!-- ⏸️ Désactiver / Réactiver -->
+      <div class="m-section" style="margin-top:20px">
+        <button type="button" onclick="MCAm.toggleArchiveVehicule('${M.escHtml(v.id)}')" class="m-btn ${v.archive ? '' : 'm-btn-danger'}" style="width:100%">
+          ${v.archive ? '▶️ Réactiver ce véhicule' : '⏸️ Désactiver ce véhicule'}
+        </button>
+      </div>
     `;
   };
-  // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------
+  // ---------- Entretiens (v3.86 : parite PC = filtres veh/type/periode + alertes echeances + auto prochainKm) ----------
+  // Labels et icones de type d'entretien — partage avec form/list/alertes.
+  M.ENTRETIEN_TYPES = [
+    { value: 'revision',     label: 'Révision',     icon: '🔩' },
+    { value: 'vidange',      label: 'Vidange',      icon: '🛢️' },
+    { value: 'pneus',        label: 'Pneus',        icon: '🔘' },
+    { value: 'plaquettes',   label: 'Plaquettes',   icon: '⚙️' },
+    { value: 'courroie',     label: 'Courroie',     icon: '⛓️' },
+    { value: 'freins',       label: 'Freins',       icon: '🛑' },
+    { value: 'carrosserie',  label: 'Carrosserie',  icon: '🚘' },
+    { value: 'autre',        label: 'Autre',        icon: '🔧' }
+  ];
+  M.entretienTypeLabel = function(type) {
+    const t = M.ENTRETIEN_TYPES.find(x => x.value === type);
+    return t ? t.label : 'Autre';
+  };
+  M.entretienTypeIcon = function(type) {
+    const t = M.ENTRETIEN_TYPES.find(x => x.value === type);
+    return t ? t.icon : '🔧';
+  };
+
+  // Calcule le pilotage entretien d'un vehicule : km actuel, prochain km, date echeance,
+  // estEnRetard (depasse), estProche (1000 km restants ou 30 jours).
+  // Mirror fonctionnel de getPilotageEntretienVehicule (script-entretiens.js PC).
+  M.calculerPilotageEntretien = function(veh) {
+    if (!veh) return { kmActuel: 0, prochainKm: 0, dateEcheance: '', estEnRetard: false, estProche: false, kmRestants: null };
+    const kmActuel = M.dernierKmConnu(veh.id);
+    const intervalKm = M.parseNum(veh.entretienIntervalKm) || 0;
+    const intervalMois = M.parseNum(veh.entretienIntervalMois) || 0;
+    const ents = M.charger('entretiens')
+      .filter(e => (e.vehiculeId === veh.id || e.vehId === veh.id))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const dernier = ents[0] || null;
+    const dernierKm = M.parseNum(dernier?.km) || 0;
+    let prochainKm = M.parseNum(dernier?.prochainKm) || 0;
+    if (!prochainKm && intervalKm) {
+      const base = dernierKm || kmActuel || (M.parseNum(veh.kmInitial) || 0);
+      prochainKm = base + intervalKm;
+    }
+    let dateEcheance = '';
+    if (intervalMois) {
+      const baseDate = dernier?.date || veh.dateAcquisition || '';
+      if (baseDate) {
+        const d = new Date(baseDate + 'T00:00:00');
+        if (!Number.isNaN(d.getTime())) {
+          d.setMonth(d.getMonth() + intervalMois);
+          dateEcheance = d.toISOString().slice(0, 10);
+        }
+      }
+    }
+    const auj = new Date().toISOString().slice(0, 10);
+    const kmRestants = prochainKm ? (prochainKm - kmActuel) : null;
+    const dans30j = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    return {
+      kmActuel,
+      prochainKm,
+      dateEcheance,
+      estEnRetard: Boolean((prochainKm && kmActuel >= prochainKm) || (dateEcheance && dateEcheance < auj)),
+      estProche: Boolean((prochainKm && kmRestants !== null && kmRestants > 0 && kmRestants <= 1000) || (dateEcheance && dateEcheance >= auj && dateEcheance <= dans30j)),
+      kmRestants
+    };
+  };
+
   M.state.entretiensVehFilter = '';
+  M.state.entretiensTypeFilter = '';
   M.state.entrBulkMode = false;
   M.state.entrBulkSel = new Set();
   M.register('entretiens', {
@@ -7068,15 +9128,33 @@
       const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
       const vehIdx = M.indexVehicules();
       const filterId = M.state.entretiensVehFilter;
+      const filterType = M.state.entretiensTypeFilter;
+
+      // Filtre periode (parite PC : changerVueEntretiens / navEntretiensPeriode)
+      const range = M.periodeRange('entretiens', 'mois');
 
       const sorted = [...entretiens].sort((a,b) => (b.date||'').localeCompare(a.date||''));
-      const filtered = filterId ? sorted.filter(e => e.vehiculeId === filterId) : sorted;
+      let filtered = filterId ? sorted.filter(e => (e.vehiculeId === filterId || e.vehId === filterId)) : sorted;
+      if (filterType) filtered = filtered.filter(e => (e.type || 'autre') === filterType);
+      // Filtre periode : applique sur la liste affichee (KPI total = sur periode)
+      const filteredPeriode = filtered.filter(e => {
+        if (!e.date) return false;
+        return e.date >= range.debut && e.date <= range.fin;
+      });
 
-      // KPI mois courant
-      const moisCourant = M.moisKey();
-      const courants = filtered.filter(e => (e.date || '').startsWith(moisCourant));
-      const totalMois = courants.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+      // KPI : "periode" = total filtre periode, "total" = tout l'historique filtre veh+type
+      const totalPeriode = filteredPeriode.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
       const totalAll = filtered.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+
+      // Calcul echeances : pour chaque vehicule filtre (ou tous), determine alertes
+      const vehiculesAlerte = filterId
+        ? vehicules.filter(v => v.id === filterId)
+        : vehicules;
+      const echeances = vehiculesAlerte
+        .map(v => ({ veh: v, pilotage: M.calculerPilotageEntretien(v) }))
+        .filter(x => x.pilotage.estEnRetard || x.pilotage.estProche);
+      const nbEnRetard = echeances.filter(x => x.pilotage.estEnRetard).length;
+      const nbProches  = echeances.filter(x => !x.pilotage.estEnRetard && x.pilotage.estProche).length;
 
       const bulkOn = M.state.entrBulkMode;
       const selSet = M.state.entrBulkSel;
@@ -7094,15 +9172,50 @@
       }
       html += `
         <div class="m-card-row">
-          <div class="m-card m-card-blue"><div class="m-card-title">Mois en cours</div><div class="m-card-value">${M.format$(totalMois)}</div><div class="m-card-sub">${courants.length} entretien${courants.length>1?'s':''}</div></div>
+          <div class="m-card m-card-blue"><div class="m-card-title">${M.escHtml(range.label)}</div><div class="m-card-value">${M.format$(totalPeriode)}</div><div class="m-card-sub">${filteredPeriode.length} entretien${filteredPeriode.length>1?'s':''}</div></div>
           <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${M.format$(totalAll)}</div><div class="m-card-sub">${filtered.length} entretien${filtered.length>1?'s':''}</div></div>
         </div>
       `;
 
+      // Bandeau alertes echeances (parite PC : pilotage entretien vehicule)
+      if (echeances.length) {
+        html += `
+          <div class="m-card" style="margin-top:12px;padding:12px 14px;border-left:4px solid var(--m-red);background:rgba(255,107,53,.08)">
+            <div style="font-weight:700;font-size:.9rem;margin-bottom:8px;color:var(--m-red)">⚠️ Échéances entretien</div>
+            ${echeances.map(({ veh, pilotage }) => {
+              const tag = pilotage.estEnRetard
+                ? `<span style="background:var(--m-red);color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700">EN RETARD</span>`
+                : `<span style="background:var(--m-blue);color:#1a1208;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700">BIENTÔT</span>`;
+              const detKm = pilotage.prochainKm
+                ? (pilotage.kmRestants !== null && pilotage.kmRestants <= 0
+                    ? `dépassé de ${M.formatNum(Math.abs(pilotage.kmRestants))} km`
+                    : `dans ${M.formatNum(pilotage.kmRestants)} km`)
+                : '';
+              const detDate = pilotage.dateEcheance
+                ? (pilotage.dateEcheance < new Date().toISOString().slice(0, 10)
+                    ? `échéance ${M.formatDate(pilotage.dateEcheance)} dépassée`
+                    : `échéance ${M.formatDate(pilotage.dateEcheance)}`)
+                : '';
+              const det = [detKm, detDate].filter(Boolean).join(' · ');
+              return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--m-border);min-height:44px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.88rem">🚐 ${M.escHtml(veh.immat || veh.id)} ${tag}</div>
+                  <div style="font-size:.78rem;color:var(--m-text-muted);margin-top:2px">${M.escHtml(det || 'Échéance proche')}</div>
+                </div>
+                <button type="button" class="m-btn m-entr-add-for-veh" data-veh="${M.escHtml(veh.id)}" style="width:auto;padding:0 12px;height:36px;font-size:.78rem;flex-shrink:0">+ Saisir</button>
+              </div>`;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // Barre periode (mois/semaine/jour/annee + nav)
+      html += `<div style="margin-top:14px">${M.renderPeriodeBar('entretiens', 'mois')}</div>`;
+
       // Filtre vehicule (si plusieurs)
       if (vehicules.length > 1) {
         html += `
-          <div style="margin:14px 0">
+          <div style="margin:0 0 10px">
             <select id="m-ent-vehfilter">
               <option value="">🚐 Tous les véhicules</option>
               ${vehicules.map(v => `<option value="${M.escHtml(v.id)}" ${v.id === filterId ? 'selected' : ''}>${M.escHtml(v.immat || v.id)}</option>`).join('')}
@@ -7111,18 +9224,27 @@
         `;
       }
 
+      // Filtre type (chips, parite PC : <select> filtre-entr-type)
+      html += `
+        <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip m-entr-type-chip ${filterType===''?'active':''}" data-type="">Tous types</button>
+          ${M.ENTRETIEN_TYPES.map(t => `<button class="m-alertes-chip m-entr-type-chip ${filterType===t.value?'active':''}" data-type="${t.value}">${t.icon} ${t.label}</button>`).join('')}
+        </div>
+      `;
+
       if (!entretiens.length) {
         html += `<div class="m-empty"><div class="m-empty-icon">🔧</div><h3 class="m-empty-title">Aucun entretien</h3><p class="m-empty-text">L'historique des vidanges et reparations apparaitra ici.</p></div>`;
         return html;
       }
-      if (!filtered.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun entretien pour ce véhicule</h3></div>`;
+      if (!filteredPeriode.length) {
+        const filtreLbl = filterType ? `pour le type "${M.entretienTypeLabel(filterType)}"` : (filterId ? 'pour ce véhicule' : 'sur cette période');
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun entretien ${M.escHtml(filtreLbl)}</h3><p class="m-empty-text">Change de période ou réinitialise les filtres.</p></div>`;
         return html;
       }
 
-      // Group par mois
+      // Group par mois (sur la liste filtree-periode)
       const byMonth = {};
-      filtered.forEach(e => {
+      filteredPeriode.forEach(e => {
         const m = (e.date || '0000-00').slice(0, 7);
         if (!byMonth[m]) byMonth[m] = [];
         byMonth[m].push(e);
@@ -7141,18 +9263,26 @@
           <div class="m-section" style="margin-top:16px">
             <div class="m-section-header"><h3 class="m-section-title" style="font-size:.95rem">${dateLabel}</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${items.length} · ${M.format$(total)}</span></div>
             ${items.map(e => {
-              const veh = e.vehiculeId ? vehIdx[e.vehiculeId] : null;
+              const veh = (e.vehiculeId || e.vehId) ? vehIdx[e.vehiculeId || e.vehId] : null;
               const immat = veh?.immat || (e.immat || '—');
-              const typeLabel = (e.type || 'autre').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+              const typeLabel = M.entretienTypeLabel(e.type);
+              const typeIcon = M.entretienTypeIcon(e.type);
               const isSel = selSet.has(e.id);
               const cls = bulkOn ? 'm-entr-toggle' : 'm-entretien-edit';
               const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
               const cb = bulkOn ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
-              return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;align-items:start;gap:10px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;cursor:pointer">
+              // Badge "prochain km" si renseigne et passe vs km actuel veh
+              let echeanceBadge = '';
+              if (e.prochainKm && veh) {
+                const kmAct = M.dernierKmConnu(veh.id);
+                if (kmAct >= e.prochainKm) echeanceBadge = `<span style="background:var(--m-red);color:#fff;padding:2px 7px;border-radius:999px;font-size:.65rem;font-weight:700;margin-left:6px">DÉPASSÉ</span>`;
+                else if ((e.prochainKm - kmAct) <= 1000) echeanceBadge = `<span style="background:var(--m-blue);color:#1a1208;padding:2px 7px;border-radius:999px;font-size:.65rem;font-weight:700;margin-left:6px">BIENTÔT</span>`;
+              }
+              return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;align-items:start;gap:10px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;cursor:pointer;min-height:44px">
                 ${cb}
                 <div style="flex:1 1 auto;min-width:0">
-                  <div style="font-weight:600;font-size:.92rem">${M.escHtml(typeLabel)}</div>
-                  <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
+                  <div style="font-weight:600;font-size:.92rem">${typeIcon} ${M.escHtml(typeLabel)}${echeanceBadge}</div>
+                  <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}${e.prochainKm ? ' · prochain ' + M.formatNum(e.prochainKm) + ' km' : ''}</div>
                   ${e.description ? `<div style="font-size:.82rem;margin-top:6px;color:var(--m-text);line-height:1.4">${M.escHtml(e.description)}</div>` : ''}
                 </div>
                 <div style="font-weight:700;color:var(--m-blue);white-space:nowrap;flex-shrink:0">${M.format$(e.cout || 0)}</div>
@@ -7165,6 +9295,9 @@
       return html;
     },
     afterRender(container) {
+      // Periode bar (mois/semaine/jour/annee + nav prev/today/next)
+      M.wirePeriodeBar(container, 'entretiens', () => M.go('entretiens'));
+
       const sel = container.querySelector('#m-ent-vehfilter');
       if (sel) {
         sel.addEventListener('change', e => {
@@ -7172,6 +9305,20 @@
           M.go('entretiens');
         });
       }
+      // Chips filtre type
+      container.querySelectorAll('.m-entr-type-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          M.state.entretiensTypeFilter = chip.dataset.type || '';
+          M.go('entretiens');
+        });
+      });
+      // Bouton "+ Saisir" depuis bandeau alertes : pre-remplit le vehicule
+      container.querySelectorAll('.m-entr-add-for-veh').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const vehId = btn.dataset.veh;
+          M.formNouvelEntretien({ vehiculeId: vehId, vehId });
+        });
+      });
       container.querySelectorAll('.m-entretien-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerEntretien(btn.dataset.id));
         btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerEntretien(btn.dataset.id); } });
@@ -7353,8 +9500,25 @@
       ` : `<div class="m-empty" style="margin-top:18px"><div class="m-empty-icon">📷</div><p class="m-empty-text">Aucune photo pour cette inspection</p></div>`}
     `;
   };
-  // ---------- Salaries (v2.7 : list + detail avec contact + permis/assurance) ----------
+  // ---------- Salaries (v3.83 : parite drawer 360 PC) ----------
+  // Liste : recherche + filtre actif/inactif/tous + indicateurs conformite
+  // Detail : drawer 360 (identite, permis, visite, docs, heures, incidents, compte)
+  // Postes : gestion via M.gestionPostes (admin only) + datalist dans la sheet
   M.state.salariesRecherche = '';
+  M.state.salariesFiltre = M.state.salariesFiltre || 'actifs';
+
+  // Helper postes (mirror PC getPostes/sauvegarderPostes - script.js:3141, script-core-storage.js)
+  M.getPostes = function() {
+    const arr = M.charger('postes');
+    if (Array.isArray(arr) && arr.length) return arr;
+    // Defaut PC : Livreur + Dispatcher (script.js:3141)
+    return ['Livreur', 'Dispatcher'];
+  };
+  M.sauvegarderPostes = function(postes) {
+    const clean = Array.from(new Set((postes || []).filter(Boolean).map(p => String(p).trim()).filter(p => p.length)));
+    M.sauvegarder('postes', clean);
+  };
+
   M.register('salaries', {
     title: 'Salariés',
     render() {
@@ -7363,30 +9527,48 @@
 
       const salaries = M.charger('salaries').filter(s => s && !s.archive);
       const recherche = (M.state.salariesRecherche || '').toLowerCase();
+      const filtre = M.state.salariesFiltre || 'actifs';
+      const isActif = s => s.actif !== false && s.statut !== 'inactif';
+
       let filtered = salaries;
+      // Filtre actif/inactif/tous
+      if (filtre === 'actifs') filtered = filtered.filter(isActif);
+      else if (filtre === 'inactifs') filtered = filtered.filter(s => !isActif(s));
+      // Recherche texte
       if (recherche) {
-        filtered = salaries.filter(s => {
+        filtered = filtered.filter(s => {
           const hay = `${s.nom||''} ${s.prenom||''} ${s.tel||''} ${s.email||''} ${s.poste||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
-      // Actifs en premier, puis inactifs
+      // Actifs en premier, puis tri alphabetique
       filtered = [...filtered].sort((a,b) => {
-        const aActif = a.actif !== false && a.statut !== 'inactif' ? 0 : 1;
-        const bActif = b.actif !== false && b.statut !== 'inactif' ? 0 : 1;
-        if (aActif !== bActif) return aActif - bActif;
+        const aA = isActif(a) ? 0 : 1;
+        const bA = isActif(b) ? 0 : 1;
+        if (aA !== bA) return aA - bA;
         return (a.nom||'').localeCompare(b.nom||'');
       });
 
+      const cntActifs = salaries.filter(isActif).length;
+      const cntInactifs = salaries.length - cntActifs;
+      const incidentsByeSal = M.charger('incidents');
+      const chip = (val, label, count) => `<button type="button" data-filtre="${val}" class="m-sal-chip${filtre===val?' is-active':''}" style="padding:7px 13px;border-radius:18px;border:1px solid var(--m-border);background:${filtre===val?'var(--m-accent-soft)':'var(--m-card)'};color:${filtre===val?'var(--m-accent)':'var(--m-text)'};font-weight:${filtre===val?'700':'500'};font-size:.78rem;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px">${label}<span style="opacity:.7">${count}</span></button>`;
+
       let html = `<button class="m-fab" onclick="MCAm.formNouveauSalarie()" aria-label="Nouveau salarié">+</button>`;
       html += `
-        <div style="margin-bottom:14px">
+        <div style="margin-bottom:10px">
           <input type="search" id="m-sal-search" placeholder="🔍 Rechercher (nom, tel, poste)" value="${M.escHtml(M.state.salariesRecherche)}" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          ${chip('actifs', '✅ Actifs', cntActifs)}
+          ${chip('inactifs', '⏸️ Inactifs', cntInactifs)}
+          ${chip('tous', '📋 Tous', salaries.length)}
+          <button type="button" id="m-sal-postes" style="margin-left:auto;padding:7px 11px;border-radius:14px;border:1px solid var(--m-border);background:var(--m-card);color:var(--m-text-muted);font-size:.74rem;cursor:pointer;font-family:inherit" aria-label="Gérer les postes">⚙️ Postes</button>
         </div>
       `;
 
       if (!salaries.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Ajoute ton équipe depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Tape ⊕ pour ajouter ton premier salarié.</p></div>`;
         return html;
       }
       if (!filtered.length) {
@@ -7395,15 +9577,29 @@
       }
 
       filtered.forEach(s => {
-        const estActif = s.actif !== false && s.statut !== 'inactif';
+        const estActif = isActif(s);
         const permis = M.statutDate(s.datePermis);
+        const visite = M.statutDate(s.visiteMedicale);
+        const assurance = M.statutDate(s.dateAssurance);
         const initiales = ((s.nom || '').charAt(0) + (s.prenom || '').charAt(0)).toUpperCase() || '?';
+        // Indicateurs conformite : permis / visite / assurance pas OK
+        const flags = [];
+        if (s.datePermis && (permis.statut === 'expire' || permis.statut === 'urgent')) flags.push(`<span style="color:${permis.color}">🪪</span>`);
+        if (s.visiteMedicale && (visite.statut === 'expire' || visite.statut === 'urgent')) flags.push(`<span style="color:${visite.color}">🩺</span>`);
+        if (s.dateAssurance && (assurance.statut === 'expire' || assurance.statut === 'urgent')) flags.push(`<span style="color:${assurance.color}">🛡️</span>`);
+        // Compte chauffeur provisionne
+        const aCompte = !!(s.profileId || s.supabaseId || s.mdpHash);
+        if (aCompte) flags.push(`<span title="Compte chauffeur" style="color:var(--m-blue)">🔑</span>`);
+        // Incidents ouverts liés à ce salarie
+        const nbIncidents = incidentsByeSal.filter(i => i.statut === 'ouvert' && (i.salId === s.id || i.chaufId === s.id)).length;
+        if (nbIncidents) flags.push(`<span style="color:var(--m-red)" title="${nbIncidents} incident(s)">🚨${nbIncidents}</span>`);
+
         html += `<button type="button" class="m-card m-card-pressable m-sal-row" data-id="${M.escHtml(s.id)}" style="display:flex;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;${!estActif ? 'opacity:.55' : ''}">
           <div style="width:42px;height:42px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.92rem;flex-shrink:0">${M.escHtml(initiales)}</div>
           <div style="flex:1 1 auto;min-width:0">
             <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((s.prenom ? s.prenom + ' ' : '') + (s.nom || ''))}</div>
             <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(s.poste || s.tel || '—')}${!estActif ? ' · Inactif' : ''}</div>
-            ${s.datePermis ? `<div style="margin-top:4px;font-size:.72rem"><span style="color:${permis.color};font-weight:600">${permis.icon} Permis ${permis.label}</span></div>` : ''}
+            ${flags.length ? `<div style="margin-top:5px;display:flex;gap:7px;font-size:.78rem;align-items:center">${flags.join('')}</div>` : ''}
           </div>
           <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
         </button>`;
@@ -7424,11 +9620,81 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
+      container.querySelectorAll('.m-sal-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.salariesFiltre = btn.dataset.filtre;
+          M.go('salaries');
+        });
+      });
+      container.querySelector('#m-sal-postes')?.addEventListener('click', () => M.gestionPostes());
       container.querySelectorAll('.m-sal-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.id));
       });
     }
   });
+
+  // ---------- Gestion des postes (admin only - parite PC script.js:3157-3175) ----------
+  M.gestionPostes = function() {
+    const render = () => {
+      const postes = M.getPostes();
+      return `
+        <p class="m-form-hint" style="margin-bottom:12px">Liste des postes utilisés pour catégoriser les salariés. Modifiable côté PC aussi.</p>
+        <div id="m-postes-liste" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+          ${postes.map((p, i) => `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--m-accent-soft);border:1px solid rgba(245,166,35,.25);color:var(--m-accent);padding:6px 12px;border-radius:18px;font-size:.82rem;font-weight:600">
+            ${M.escHtml(p)}
+            <button type="button" class="m-poste-del" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--m-red);font-size:.95rem;padding:0;line-height:1" aria-label="Supprimer ${M.escHtml(p)}">✕</button>
+          </span>`).join('') || '<p class="m-form-hint">Aucun poste défini.</p>'}
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="m-poste-nouveau" placeholder="Nouveau poste (ex: Magasinier)" autocomplete="off" style="flex:1 1 auto" />
+          <button type="button" id="m-poste-add" class="m-btn m-btn-primary" style="flex:0 0 auto;width:auto;padding:0 14px">+</button>
+        </div>
+      `;
+    };
+    M.openSheet({
+      title: '⚙️ Gérer les postes',
+      body: render(),
+      submitLabel: 'Fermer',
+      afterMount(b) {
+        const refresh = () => {
+          // Re-render le contenu in-place sans fermer la sheet
+          const wrap = document.createElement('div');
+          wrap.innerHTML = render();
+          b.innerHTML = wrap.innerHTML;
+          wireActions(b);
+        };
+        const wireActions = (root) => {
+          root.querySelector('#m-poste-add')?.addEventListener('click', () => {
+            const inp = root.querySelector('#m-poste-nouveau');
+            const v = (inp?.value || '').trim();
+            if (!v) { M.toast('⚠️ Nom de poste vide'); return; }
+            const arr = M.getPostes();
+            if (arr.some(x => x.toLowerCase() === v.toLowerCase())) { M.toast('⚠️ Ce poste existe déjà'); return; }
+            arr.push(v);
+            M.sauvegarderPostes(arr);
+            M.toast('✅ Poste ajouté');
+            refresh();
+          });
+          root.querySelector('#m-poste-nouveau')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); root.querySelector('#m-poste-add')?.click(); }
+          });
+          root.querySelectorAll('.m-poste-del').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const idx = parseInt(btn.dataset.idx, 10);
+              const arr = M.getPostes();
+              if (!await M.confirm(`Supprimer le poste "${arr[idx]}" ?`, { titre: 'Supprimer poste' })) return;
+              arr.splice(idx, 1);
+              M.sauvegarderPostes(arr);
+              M.toast('🗑️ Poste supprimé');
+              refresh();
+            });
+          });
+        };
+        wireActions(b);
+      },
+      onSubmit() { return true; }
+    });
+  };
 
   M.renderSalarieDetail = function(id) {
     const s = M.charger('salaries').find(x => x.id === id);
@@ -7906,8 +10172,13 @@
     `;
   };
 
-  // ---------- TVA (v3.33 : exigibilite alignee PC, fini le decalage 1 mois) ----------
+  // ---------- TVA (v3.86 : parite PC + trimestre + CSV + versements) ----------
+  M.state.tvaPeriodeMode = M.state.tvaPeriodeMode || 'mois'; // 'mois' | 'trimestre'
   M.state.tvaMois = M.moisKey();
+  M.state.tvaTrimestre = M.state.tvaTrimestre || (() => {
+    const n = new Date();
+    return n.getFullYear() + '-T' + (Math.floor(n.getMonth() / 3) + 1);
+  })();
   M.state.tvaMoisManuel = false;
   M.state.tvaTab = 'recap'; // recap | collectee | deductible
 
@@ -7941,12 +10212,70 @@
     return (l.datePaiement || '').slice(0, 10);
   };
 
+  // Calcule la plage de dates [debut, fin] (ISO YYYY-MM-DD) couverte par la
+  // periode TVA selectionnee (mois ou trimestre). Sert a filtrer livraisons +
+  // charges + carburant + versements pour cette periode.
+  M.getTVAPeriodeRange = function(mode, key) {
+    if (mode === 'trimestre') {
+      const m = /^(\d{4})-T([1-4])$/.exec(key || '');
+      if (!m) return null;
+      const year = parseInt(m[1], 10);
+      const q = parseInt(m[2], 10) - 1;
+      const start = new Date(year, q * 3, 1);
+      const end = new Date(year, q * 3 + 3, 0);
+      const pad = (d) => String(d).padStart(2, '0');
+      return {
+        debut: start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()),
+        fin: end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate())
+      };
+    }
+    // mois (YYYY-MM)
+    const m2 = /^(\d{4})-(\d{2})$/.exec(key || '');
+    if (!m2) return null;
+    const year = parseInt(m2[1], 10);
+    const month = parseInt(m2[2], 10) - 1;
+    const start = new Date(year, month, 1);
+    const end = new Date(year, month + 1, 0);
+    const pad = (d) => String(d).padStart(2, '0');
+    return {
+      debut: start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate()),
+      fin: end.getFullYear() + '-' + pad(end.getMonth() + 1) + '-' + pad(end.getDate())
+    };
+  };
+
+  // Helper : booleen "iso est dans [debut, fin]"
+  M.tvaIsoInRange = function(iso, range) {
+    if (!iso || !range) return false;
+    const d = (iso || '').slice(0, 10);
+    return d >= range.debut && d <= range.fin;
+  };
+
+  // Helper : telechargement CSV cote mobile (pas d'export PC reutilisable
+  // sans deps DOM). UTF-8 BOM + CRLF + quote/escape standard.
+  M.downloadCSV = function(filename, rows) {
+    if (!rows || !rows.length) { M.toast('⚠️ Aucune donnée à exporter'); return; }
+    const escape = (v) => {
+      const s = v == null ? '' : String(v);
+      return /[";\n\r,]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const csv = '﻿' + rows.map(r => r.map(escape).join(';')).join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
+    M.toast('📥 Export CSV en cours');
+  };
+
   M.register('tva', {
     title: 'TVA',
     render() {
       // Auto-refresh mois courant (cf. fix v3.57 sur Heures)
       if (!M.state.tvaMoisManuel) M.state.tvaMois = M.moisKey();
-      const moisSel = M.state.tvaMois;
+      const periodeMode = M.state.tvaPeriodeMode || 'mois';
+      const periodeKey = periodeMode === 'trimestre' ? M.state.tvaTrimestre : M.state.tvaMois;
+      const range = M.getTVAPeriodeRange(periodeMode, periodeKey);
       const tab = M.state.tvaTab;
       const profile = M.getTVAConfig();
 
@@ -7955,9 +10284,10 @@
       // table public.charges mais absentes du localStorage mobile a la 1re
       // ouverture de l'app -> TVA deductible vide. Le pull ramene les donnees
       // fraiches et re-rend si nouveau contenu detecte.
-      if (!M.state._tvaPullDone || M.state._tvaPullMois !== moisSel) {
+      const pullKey = periodeMode + ':' + periodeKey;
+      if (!M.state._tvaPullDone || M.state._tvaPullMois !== pullKey) {
         M.state._tvaPullDone = true;
-        M.state._tvaPullMois = moisSel;
+        M.state._tvaPullMois = pullKey;
         const adapters = window.DelivProEntityAdapters || {};
         const before = (M.charger('charges').length) + (M.charger('livraisons').length) + (M.charger('carburant').length);
         Promise.allSettled([
@@ -7977,16 +10307,16 @@
       const livEnAttente = [];
       allLivraisons.forEach(l => {
         const exDate = M.getLivraisonTVAExigibiliteDate(l, profile);
-        if (exDate && exDate.startsWith(moisSel)) {
+        if (exDate && M.tvaIsoInRange(exDate, range)) {
           livEligibles.push({ ...l, _exigibiliteDate: exDate });
-        } else if (!exDate && (l.date || '').startsWith(moisSel)) {
+        } else if (!exDate && M.tvaIsoInRange((l.date || '').slice(0, 10), range)) {
           // Facturee ce mois mais pas encore payee -> in pending
           livEnAttente.push(l);
         }
       });
       const livraisons = livEligibles;
-      const charges = M.charger('charges').filter(c => (c.date || '').startsWith(moisSel));
-      const carburant = M.charger('carburant').filter(p => (p.date || '').startsWith(moisSel));
+      const charges = M.charger('charges').filter(c => M.tvaIsoInRange((c.date || '').slice(0, 10), range));
+      const carburant = M.charger('carburant').filter(p => M.tvaIsoInRange((p.date || '').slice(0, 10), range));
 
       // TVA collectee : par livraison, base = HT, montant = TVA explicite ou (TTC - HT)
       const livAvecTva = livraisons.map(l => {
@@ -8040,24 +10370,65 @@
       const baseDeductibleCarburant = carbAvecTva.reduce((s, p) => s + p._ht, 0);
 
       const tvaDeductible = tvaDeductibleCharges + tvaDeductibleCarburant;
-      const aReverser = tvaCollectee - tvaDeductible;
-      const enCredit = aReverser < 0;
 
-      const moisOptions = [];
+      // Versements TVA (charges categorie='tva') deja regles sur la periode :
+      // permet de voir le solde "Reste a verser" comme cote PC.
+      const versementsTVA = M.charger('charges')
+        .filter(c => c.categorie === 'tva' && M.tvaIsoInRange((c.date || '').slice(0, 10), range))
+        .map(c => ({ ...c, _montant: M.parseNum(c.montant) || 0 }))
+        .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+      const totalVersements = versementsTVA.reduce((s, v) => s + v._montant, 0);
+
+      const soldeBrut = tvaCollectee - tvaDeductible;
+      const aReverser = soldeBrut > 0 ? Math.max(0, soldeBrut - totalVersements) : 0;
+      const tvaCredit = soldeBrut < 0 ? Math.abs(soldeBrut) : 0;
+      const enCredit = soldeBrut < 0;
+
+      // Stocker la liste pour l'export CSV (afterRender accede via closure)
+      const exportData = {
+        livraisons: livAvecTva, charges: chargesAvecTva, carburant: carbAvecTva,
+        versements: versementsTVA, periodeKey, periodeMode,
+        totaux: { tvaCollectee, tvaDeductible, totalVersements, aReverser, tvaCredit, soldeBrut }
+      };
+      M.state._tvaLastExport = exportData;
+
+      // Selecteur periode : mois (12 derniers) ou trimestre (8 derniers).
       const now = new Date();
-      for (let k = 0; k < 12; k++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-        const cle = M.moisKey(d);
-        const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
-        moisOptions.push(`<option value="${cle}" ${cle === moisSel ? 'selected' : ''}>${label}</option>`);
+      let optionsHtml;
+      if (periodeMode === 'trimestre') {
+        const trimOptions = [];
+        for (let k = 0; k < 8; k++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - k * 3, 1);
+          const q = Math.floor(d.getMonth() / 3) + 1;
+          const cle = d.getFullYear() + '-T' + q;
+          const label = 'T' + q + ' ' + d.getFullYear();
+          trimOptions.push(`<option value="${cle}" ${cle === periodeKey ? 'selected' : ''}>${label}</option>`);
+        }
+        optionsHtml = trimOptions.join('');
+      } else {
+        const moisOptions = [];
+        for (let k = 0; k < 12; k++) {
+          const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+          const cle = M.moisKey(d);
+          const label = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
+          moisOptions.push(`<option value="${cle}" ${cle === periodeKey ? 'selected' : ''}>${label}</option>`);
+        }
+        optionsHtml = moisOptions.join('');
       }
 
       let html = `
-        <div style="margin-bottom:14px"><select id="m-tva-mois">${moisOptions.join('')}</select></div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button type="button" class="m-alertes-chip ${periodeMode==='mois'?'active':''}" data-pmode="mois" style="min-height:36px;flex:1 1 auto">📅 Mois</button>
+          <button type="button" class="m-alertes-chip ${periodeMode==='trimestre'?'active':''}" data-pmode="trimestre" style="min-height:36px;flex:1 1 auto">🗓️ Trimestre</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+          <select id="m-tva-periode" style="flex:1 1 auto;min-height:44px">${optionsHtml}</select>
+          <button type="button" class="m-btn" id="m-tva-export-csv" style="width:auto;flex:0 0 auto;min-height:44px;padding:0 14px;font-size:.85rem" title="Exporter CSV">📥 CSV</button>
+        </div>
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap">📊 Récap</button>
-          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee">📥 Collectée (${livAvecTva.length})</button>
-          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible">📤 Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap" style="min-height:36px">📊 Récap</button>
+          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee" style="min-height:36px">📥 Collectée (${livAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible" style="min-height:36px">📤 Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
         </div>
       `;
 
@@ -8082,6 +10453,13 @@
         const modeExplain = profile.activiteType !== 'goods' && profile.exigibiliteServices !== 'debits'
           ? 'Une livraison apparaît dans le mois de son <strong>paiement</strong> (pas de sa facturation). C\'est la règle officielle du transport routier.'
           : 'Une livraison apparaît dans le mois de sa facturation.';
+        // Carte solde principale : reste a reverser (ou credit) APRES versements
+        const soldeColor = enCredit ? 'var(--m-green)' : (aReverser > 0 ? 'var(--m-red)' : 'var(--m-accent)');
+        const soldeLibelle = enCredit ? 'Crédit TVA'
+          : (aReverser > 0 ? 'Reste à verser' : 'TVA déjà soldée');
+        const soldeMontant = enCredit ? tvaCredit : aReverser;
+        const soldeSub = enCredit ? 'Récupérable auprès du Trésor'
+          : (aReverser > 0 ? `Solde brut ${M.format$(soldeBrut)} − versements ${M.format$(totalVersements)}` : 'Tous les versements couvrent le solde brut');
         html += `
           <div class="m-card" style="padding:12px 14px;margin-bottom:10px;background:var(--m-accent-soft);font-size:.78rem">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -8090,27 +10468,47 @@
             </div>
             <div style="color:var(--m-text-muted);line-height:1.45">${modeExplain}</div>
           </div>
-          <div class="m-card" style="border-left:4px solid ${enCredit ? 'var(--m-green)' : 'var(--m-red)'};padding:16px;margin-bottom:12px">
-            <div class="m-card-title">${enCredit ? 'Crédit TVA' : 'TVA à reverser'}</div>
-            <div class="m-card-value" style="color:${enCredit ? 'var(--m-green)' : 'var(--m-red)'};font-size:1.8rem">${M.format$(Math.abs(aReverser))}</div>
-            <div class="m-card-sub">${enCredit ? 'Récupérable auprès du Trésor' : 'À déclarer ce mois'}</div>
+          <div class="m-card" style="border-left:4px solid ${soldeColor};padding:16px;margin-bottom:12px">
+            <div class="m-card-title">${soldeLibelle}</div>
+            <div class="m-card-value" style="color:${soldeColor};font-size:1.8rem">${M.format$(Math.abs(soldeMontant))}</div>
+            <div class="m-card-sub">${soldeSub}</div>
           </div>
           ${livEnAttente.length ? `
             <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)">
               <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">📅 Facturé mais non exigible</div>
-              <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} ce mois, en attente de paiement avant exigibilité TVA.</div>
+              <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} sur la période, en attente de paiement avant exigibilité TVA.</div>
             </div>
           ` : ''}
           <div class="m-card-row">
             <div class="m-card m-card-green"><div class="m-card-title">Collectée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaCollectee)}</div><div class="m-card-sub">${livAvecTva.length} livraison${livAvecTva.length>1?'s':''}</div></div>
-            <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">${chargesAvecTva.length} charge${chargesAvecTva.length>1?'s':''}</div></div>
+            <div class="m-card m-card-blue"><div class="m-card-title">Déductible</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(tvaDeductible)}</div><div class="m-card-sub">${chargesAvecTva.length + carbAvecTva.length} charge${(chargesAvecTva.length + carbAvecTva.length)>1?'s':''}</div></div>
+          </div>
+          <div class="m-card-row">
+            <div class="m-card m-card-purple"><div class="m-card-title">Versée</div><div class="m-card-value" style="font-size:1.1rem">${M.format$(totalVersements)}</div><div class="m-card-sub">${versementsTVA.length} versement${versementsTVA.length>1?'s':''}</div></div>
+            <div class="m-card ${enCredit?'m-card-green':'m-card-red'}"><div class="m-card-title">Solde</div><div class="m-card-value" style="font-size:1.1rem;color:${soldeColor}">${enCredit ? '−' : ''}${M.format$(Math.abs(soldeMontant))}</div><div class="m-card-sub">${enCredit ? 'Crédit' : (aReverser > 0 ? 'À verser' : 'OK')}</div></div>
           </div>
           <div class="m-card" style="padding:0">
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base collectée HT</span><span style="font-weight:600">${M.format$(baseCollectee)}</span></div>
             <div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Base déductible HT</span><span style="font-weight:600">${M.format$(baseDeductibleCharges + baseDeductibleCarburant)}</span></div>
           </div>
+          ${versementsTVA.length ? `
+            <div class="m-section" style="margin-top:16px">
+              <div class="m-section-header"><h3 class="m-section-title">💸 Versements TVA</h3></div>
+              <div class="m-card" style="padding:0">
+                ${versementsTVA.map(v => `
+                  <div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px">
+                    <div style="flex:1 1 auto;min-width:0">
+                      <div style="font-weight:500;font-size:.9rem">${M.escHtml(v.description || 'Versement TVA')}</div>
+                      <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(v.date)}</div>
+                    </div>
+                    <div style="font-weight:700;color:var(--m-purple);white-space:nowrap">${M.format$(v._montant)}</div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
           <p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
-            Récap simplifié. La déclaration officielle CA3 doit être saisie sur impots.gouv.fr (pas générée par l'app).
+            Récap simplifié. La déclaration officielle CA3 doit être saisie sur impots.gouv.fr ou via Pennylane (pas générée par l'app).
           </p>
         `;
       }
@@ -8174,14 +10572,93 @@
       return html;
     },
     afterRender(container) {
-      const sel = container.querySelector('#m-tva-mois');
+      const sel = container.querySelector('#m-tva-periode');
       if (sel) sel.addEventListener('change', e => {
-        M.state.tvaMois = e.target.value;
-        M.state.tvaMoisManuel = true;
+        if (M.state.tvaPeriodeMode === 'trimestre') M.state.tvaTrimestre = e.target.value;
+        else { M.state.tvaMois = e.target.value; M.state.tvaMoisManuel = true; }
+        M.state._tvaPullDone = false; // force pull si periode change
         M.go('tva');
+      });
+      container.querySelectorAll('[data-pmode]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.tvaPeriodeMode = btn.dataset.pmode;
+          M.state._tvaPullDone = false;
+          M.go('tva');
+        });
       });
       container.querySelectorAll('.m-alertes-chip[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => { M.state.tvaTab = btn.dataset.tab; M.go('tva'); });
+      });
+      const btnCsv = container.querySelector('#m-tva-export-csv');
+      if (btnCsv) btnCsv.addEventListener('click', () => {
+        const data = M.state._tvaLastExport;
+        if (!data) { M.toast('⚠️ Aucune donnée'); return; }
+        const rows = [];
+        rows.push(['MCA Logistics — Export TVA', '', '', '', '', '']);
+        rows.push(['Période', data.periodeMode === 'trimestre' ? 'Trimestre ' + data.periodeKey : 'Mois ' + data.periodeKey, '', '', '', '']);
+        rows.push([]);
+        rows.push(['=== TVA COLLECTÉE (livraisons) ===']);
+        rows.push(['Date exigibilité', 'N° livraison', 'Client', 'Taux %', 'Base HT', 'TVA', 'TTC']);
+        data.livraisons.forEach(l => {
+          rows.push([
+            l._exigibiliteDate || '',
+            l.numLiv || '',
+            l.client || '',
+            l._taux.toFixed(1).replace('.', ','),
+            l._ht.toFixed(2).replace('.', ','),
+            l._tva.toFixed(2).replace('.', ','),
+            l._ttc.toFixed(2).replace('.', ',')
+          ]);
+        });
+        rows.push(['', '', '', 'TOTAL', '', data.totaux.tvaCollectee.toFixed(2).replace('.', ','), '']);
+        rows.push([]);
+        rows.push(['=== TVA DÉDUCTIBLE (charges + carburant) ===']);
+        rows.push(['Date', 'Source', 'Libellé', 'Taux %', 'Base HT', 'TVA', 'TTC']);
+        data.charges.forEach(c => {
+          rows.push([
+            (c.date || '').slice(0, 10),
+            c.categorie || 'charge',
+            c.libelle || c.fournisseur || '',
+            c._taux.toFixed(1).replace('.', ','),
+            c._ht.toFixed(2).replace('.', ','),
+            c._tva.toFixed(2).replace('.', ','),
+            c._ttc.toFixed(2).replace('.', ',')
+          ]);
+        });
+        data.carburant.forEach(p => {
+          rows.push([
+            (p.date || '').slice(0, 10),
+            'carburant',
+            p._libelle || 'Plein',
+            p._taux.toFixed(1).replace('.', ','),
+            p._ht.toFixed(2).replace('.', ','),
+            p._tva.toFixed(2).replace('.', ','),
+            p._ttc.toFixed(2).replace('.', ',')
+          ]);
+        });
+        rows.push(['', '', '', 'TOTAL', '', data.totaux.tvaDeductible.toFixed(2).replace('.', ','), '']);
+        if (data.versements.length) {
+          rows.push([]);
+          rows.push(['=== VERSEMENTS TVA ===']);
+          rows.push(['Date', 'Description', 'Montant']);
+          data.versements.forEach(v => {
+            rows.push([(v.date || '').slice(0, 10), v.description || 'Versement TVA', v._montant.toFixed(2).replace('.', ',')]);
+          });
+          rows.push(['', 'TOTAL', data.totaux.totalVersements.toFixed(2).replace('.', ',')]);
+        }
+        rows.push([]);
+        rows.push(['=== SOLDE ===']);
+        rows.push(['TVA Collectée', data.totaux.tvaCollectee.toFixed(2).replace('.', ',')]);
+        rows.push(['TVA Déductible', data.totaux.tvaDeductible.toFixed(2).replace('.', ',')]);
+        rows.push(['Solde brut', data.totaux.soldeBrut.toFixed(2).replace('.', ',')]);
+        rows.push(['Versements déjà payés', data.totaux.totalVersements.toFixed(2).replace('.', ',')]);
+        if (data.totaux.tvaCredit > 0) {
+          rows.push(['Crédit TVA', data.totaux.tvaCredit.toFixed(2).replace('.', ',')]);
+        } else {
+          rows.push(['Reste à verser', data.totaux.aReverser.toFixed(2).replace('.', ',')]);
+        }
+        const filename = 'mca-tva-' + data.periodeKey + '.csv';
+        M.downloadCSV(filename, rows);
       });
     }
   });
@@ -8931,6 +11408,13 @@
           <p class="m-form-hint" style="margin-top:8px">Toutes les actions admin (création / modif / suppression). Purge auto > 12 mois (RGPD).</p>
         </div>
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🤖 Coût IA</h3></div>
+          <div class="m-card" id="m-cout-ia-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55">
+            <div style="color:var(--m-text-muted)">Chargement…</div>
+          </div>
+          <p class="m-form-hint" style="margin-top:8px">Consommation chatbot Gemini (estimation €). Source : <code>ai_quota_daily</code>.</p>
+        </div>
+
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
           <div class="m-card" id="m-changelog-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55;max-height:360px;overflow:auto">
             <div style="color:var(--m-text-muted)">Chargement…</div>
@@ -9005,8 +11489,172 @@
           .then(md => { changelogEl.innerHTML = M.renderChangelogMd(md); })
           .catch(err => { changelogEl.innerHTML = '<div style="color:var(--m-text-muted)">Historique indisponible (' + err + ')</div>'; });
       }
+
+      // Coût IA : charge ai_quota_daily (RLS admin only, lecture directe)
+      const coutIaEl = container.querySelector('#m-cout-ia-content');
+      if (coutIaEl) {
+        M.renderCoutIAMobile(coutIaEl);
+      }
     }
   });
+
+  // ============================================================
+  // Coût IA — mobile (parité PC, cf. script-cout-ia.js).
+  // Source : table Supabase public.ai_quota_daily (RLS admin only).
+  // Calcul : (pro * 0.0125 + flash * 0.0008) * 0.92 USD→EUR.
+  // ============================================================
+  M.COUT_IA_PRICE_PRO_USD   = 0.0125;
+  M.COUT_IA_PRICE_FLASH_USD = 0.0008;
+  M.COUT_IA_USD_TO_EUR      = 0.92;
+  M.COUT_IA_BUDGET_CAP_EUR  = 5.00;
+
+  M.calcCoutIA = function(pro, flash) {
+    return ((pro || 0) * M.COUT_IA_PRICE_PRO_USD + (flash || 0) * M.COUT_IA_PRICE_FLASH_USD) * M.COUT_IA_USD_TO_EUR;
+  };
+
+  function _coutIaFmtEur(n) {
+    if (typeof n !== 'number' || !isFinite(n)) return '0,00 €';
+    return n.toFixed(2).replace('.', ',') + ' €';
+  }
+  function _coutIaYmd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function _coutIaDaysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d; }
+
+  M.renderCoutIAMobile = async function(host) {
+    if (!host) return;
+    const ds = window.DelivProSupabase;
+    const client = (ds && typeof ds.getClient === 'function') ? ds.getClient() : null;
+    if (!client) {
+      host.innerHTML = '<div style="color:#f59e0b">Supabase indisponible — réessaie plus tard.</div>';
+      return;
+    }
+
+    const now = new Date();
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const since30 = _coutIaYmd(_coutIaDaysAgo(30));
+    const sinceMonth = _coutIaYmd(startMonth);
+    const since = since30 < sinceMonth ? since30 : sinceMonth;
+
+    let rows = [];
+    try {
+      const resp = await client
+        .from('ai_quota_daily')
+        .select('date, requests_pro, requests_flash')
+        .gte('date', since)
+        .order('date', { ascending: true });
+      if (resp.error) {
+        host.innerHTML = '<div style="color:#f59e0b">Données indisponibles : ' + M.escHtml(resp.error.message || 'Erreur SQL') + '</div>';
+        return;
+      }
+      rows = resp.data || [];
+    } catch (e) {
+      host.innerHTML = '<div style="color:#f59e0b">Erreur réseau : ' + M.escHtml((e && e.message) || 'inconnue') + '</div>';
+      return;
+    }
+
+    // Aggregats mois courant
+    const monthRows = rows.filter(r => r.date >= sinceMonth);
+    let proMonth = 0, flashMonth = 0;
+    monthRows.forEach(r => { proMonth += (+r.requests_pro)||0; flashMonth += (+r.requests_flash)||0; });
+    const costMonth = M.calcCoutIA(proMonth, flashMonth);
+    const totalReq = proMonth + flashMonth;
+
+    // Index par date pour la serie 30j
+    const byDate = {};
+    rows.forEach(r => { byDate[r.date] = r; });
+    const series = [];
+    let maxCost = 0.01;
+    for (let i = 29; i >= 0; i--) {
+      const d = _coutIaDaysAgo(i);
+      const k = _coutIaYmd(d);
+      const r = byDate[k];
+      const pro = r ? ((+r.requests_pro)||0) : 0;
+      const fl  = r ? ((+r.requests_flash)||0) : 0;
+      const c = M.calcCoutIA(pro, fl);
+      if (c > maxCost) maxCost = c;
+      series.push({ date: k, pro, flash: fl, cost: c });
+    }
+
+    const costColor = costMonth >= M.COUT_IA_BUDGET_CAP_EUR ? '#dc3545'
+                    : costMonth >= M.COUT_IA_BUDGET_CAP_EUR * 0.5 ? '#f59e0b'
+                    : '#28a745';
+
+    // Mini-graph SVG (compact mobile)
+    const W = 320, H = 80, pad = 4;
+    const barW = (W - pad*2) / series.length;
+    const bars = series.map((d, i) => {
+      const h = Math.max(1, Math.round(((H - pad*2) * d.cost) / maxCost));
+      const x = pad + i * barW;
+      const y = H - pad - h;
+      const op = d.cost === 0 ? 0.18 : 0.85;
+      return `<rect x="${x.toFixed(2)}" y="${y}" width="${(barW-1).toFixed(2)}" height="${h}" rx="2" fill="var(--m-accent)" opacity="${op}"><title>${M.escHtml(d.date + ' — ' + _coutIaFmtEur(d.cost))}</title></rect>`;
+    }).join('');
+
+    const tile = (label, value, sub, color) =>
+      `<div style="background:var(--m-bg);border:1px solid var(--m-border);border-radius:12px;padding:12px 14px;flex:1 1 calc(50% - 5px);min-width:0">
+        <div style="font-size:.66rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${M.escHtml(label)}</div>
+        <div style="font-size:${color ? '1.15rem' : '.95rem'};font-weight:700;color:${color || 'inherit'};line-height:1.1">${value}</div>
+        ${sub ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">${sub}</div>` : ''}
+      </div>`;
+
+    const linkBtn = (href, icon, label) =>
+      `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:0 14px;min-height:var(--m-tap);border:1px solid var(--m-border);border-radius:10px;color:inherit;text-decoration:none;font-size:.85rem;background:var(--m-bg)">
+        <span aria-hidden="true">${icon}</span><span>${M.escHtml(label)}</span>
+      </a>`;
+
+    host.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${tile('Coût ce mois', _coutIaFmtEur(costMonth), 'Estimation Gemini', costColor)}
+        ${tile('Cap budget', _coutIaFmtEur(M.COUT_IA_BUDGET_CAP_EUR) + ' / mois', 'Google Cloud')}
+      </div>
+      <div style="margin-top:10px">
+        ${tile('Requêtes ce mois', String(totalReq), proMonth + ' Pro · ' + flashMonth + ' Flash')}
+      </div>
+
+      <div style="margin-top:14px;padding:10px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px">
+          <strong>Coût quotidien (30j)</strong>
+          <span style="color:var(--m-text-muted)">Max ${_coutIaFmtEur(maxCost)}/j</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:80px;display:block">${bars}</svg>
+      </div>
+
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        ${linkBtn('https://aistudio.google.com/app/apikey', '📊', 'Détail AI Studio')}
+        ${linkBtn('https://console.cloud.google.com/billing/reports?project=budget-achraf', '€', 'Rapports facturation')}
+        ${linkBtn('https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=budget-achraf', '⚡', 'Quotas API temps réel')}
+        ${linkBtn('https://console.cloud.google.com/billing/budgets', '🔔', 'Configurer alertes budget')}
+      </div>
+
+      <details style="margin-top:14px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
+        <summary style="cursor:pointer;padding:12px 14px;font-weight:600;font-size:.85rem;color:#dc3545;list-style:none;display:flex;align-items:center;gap:8px;min-height:var(--m-tap)">
+          <span aria-hidden="true">🚨</span><span>Désactivation d'urgence</span><span style="margin-left:auto;color:var(--m-text-muted);font-size:.74rem;font-weight:400">▾</span>
+        </summary>
+        <div style="padding:0 14px 14px;font-size:.82rem;line-height:1.5">
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">A — Désactiver l'API Gemini</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Recommandé en premier. Effet immédiat, le reste du site continue.</div>
+            ${linkBtn('https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/overview?project=budget-achraf', '→', 'Console GCP')}
+          </div>
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">B — Désactiver la facturation</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Plus radical, fige tout le projet. Réactivable.</div>
+            ${linkBtn('https://console.cloud.google.com/billing/linkedaccount?project=budget-achraf', '→', 'Console GCP')}
+          </div>
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">C — Révoquer la clé API</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Si suspicion de fuite. Re-crée une clé puis update <code>GEMINI_API_KEY</code>.</div>
+            ${linkBtn('https://aistudio.google.com/app/apikey', '→', 'AI Studio')}
+          </div>
+        </div>
+      </details>
+
+      <div style="font-size:.7rem;color:var(--m-text-muted);margin-top:10px;line-height:1.4">
+        Pro ≈ $${M.COUT_IA_PRICE_PRO_USD}/req. · Flash ≈ $${M.COUT_IA_PRICE_FLASH_USD}/req. · USD→EUR ${M.COUT_IA_USD_TO_EUR}.
+      </div>
+    `;
+  };
 
   // Markdown minimal pour CHANGELOG (## versions, ### sections, listes, **gras**)
   M.renderChangelogMd = function(md) {
@@ -9385,6 +12033,9 @@
       if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
 
+    // Bouton "Agent IA" header (parite PC panneau-agent). Ouvre la sheet decisions.
+    $('#m-agent-ia-btn')?.addEventListener('click', () => { M.openBriefSheet(); });
+
     // Helper pour ouvrir un detail
     M.openDetail = function(entity, id) {
       if (!M.state.detail) M.state.detail = {};
@@ -9392,9 +12043,32 @@
       M.go(entity);
     };
 
-    // Initial route : dashboard ou page demandee via #
-    const initialPage = (location.hash || '').replace('#', '') || 'dashboard';
+    // Initial route : dashboard ou page demandee via #. Supporte aussi
+    // les query params (#planning?date=YYYY-MM-DD&vue=semaine) — la partie
+    // avant le ? est la route, le reste est parsé par M.parsePlanningHash et
+    // appliqué à M.state au moment du rendu de la page.
+    const rawHash = (location.hash || '').replace(/^#/, '');
+    const initialPage = (rawHash.split('?')[0] || '').trim() || 'dashboard';
     M.go(initialPage in M.routes ? initialPage : 'dashboard');
+
+    // Re-render quand l'utilisateur change le hash (deep-link partagé / back).
+    // Note : on ne re-render pas si la route n'a pas changé pour éviter les
+    // boucles avec history.replaceState dans M.updatePlanningHash.
+    window.addEventListener('hashchange', () => {
+      const h = (location.hash || '').replace(/^#/, '');
+      const page = (h.split('?')[0] || '').trim() || 'dashboard';
+      if (!(page in M.routes)) return;
+      if (M.state.currentPage !== page) {
+        M.go(page);
+      } else if (page === 'planning') {
+        // Hash a changé sur la même page (date/vue) → re-render seulement si
+        // les params réels ont bougé (sinon stop la boucle).
+        const before = JSON.stringify({ o: M.state.planningSemaineOffset || 0, v: M.state.planningVue || 'jour' });
+        M.applyPlanningHashState();
+        const after = JSON.stringify({ o: M.state.planningSemaineOffset || 0, v: M.state.planningVue || 'jour' });
+        if (before !== after) M.go('planning');
+      }
+    });
 
     // Auto-refresh badge alertes toutes les 30s + vérif docs/véhicules toutes les heures.
     // Garde une référence pour éviter la duplication si init() est rappelé (HMR/reload).
@@ -9404,6 +12078,31 @@
     M._intBadge = setInterval(M.updateAlertesBadge, 30000);
     M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
     M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
+
+    // Initialise + auto-trigger du brief IA cote mobile (parite PC).
+    M.updateBriefBadge();
+    setInterval(M.updateBriefBadge, 30000);
+    M.declencherBriefAutoLoginSiNecessaire();
+
+    // Scroll-fade des FAB secondaires (selection multiple) : ils sont
+    // repositionnes en haut a droite pour ne plus chevaucher les FAB metier.
+    // Au scroll vers le bas, on attenue l'opacite pour ne pas masquer le contenu.
+    // Cliquables meme attenues (pointer-events: auto cf. style-mobile.css).
+    let lastScrollY = 0;
+    let scrollFadeTimer = null;
+    const updateFabFade = () => {
+      const scrolled = (M.state?.currentPage && (window.scrollY || document.documentElement.scrollTop) > 80);
+      document.querySelectorAll('.m-fab-secondary').forEach((el) => {
+        el.classList.toggle('m-fab-secondary-faded', scrolled);
+      });
+    };
+    window.addEventListener('scroll', () => {
+      if (scrollFadeTimer) return;
+      scrollFadeTimer = setTimeout(() => {
+        scrollFadeTimer = null;
+        updateFabFade();
+      }, 80);
+    }, { passive: true });
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis

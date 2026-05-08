@@ -1,41 +1,15 @@
 /**
- * MCA Logistics — Module Stats
+ * MCA Logistics — Module Stats (lazy-loadé via lazy-stubs.js)
  *
- * Extrait de script.js (decomposition modulaire).
+ * Sprint C bundle splitting (2026-05-06) : ce module est lazy chargé à la
+ * première navigation vers la page Statistiques. La fonction
+ * getSalarieStatsMois (utilisée depuis script-salaries.js) a été déplacée
+ * dans script-core-stats-helpers.js (boot) pour ne pas casser le rendu
+ * Salariés au boot.
+ *
  * Toutes les fonctions restent au scope global (window.*) pour conserver la
- * compatibilite avec les onclick="X()" du HTML.
- *
- * A charger AVANT script.js dans admin.html.
+ * compatibilité avec les onclick="X()" du HTML.
  */
-
-// L1177 (script.js d'origine)
-function getSalarieStatsMois(salId) {
-  var now = new Date();
-  var monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  var monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  var debut = planningDateToLocalISO(monthStart);
-  var fin = planningDateToLocalISO(monthEnd);
-  var livraisons = charger('livraisons').filter(function(item) {
-    return item.chaufId === salId && item.date >= debut && item.date <= fin;
-  });
-  var contexte = construireContexteHeures({ mode: 'mois', debut: debut, fin: fin, label: '', datesLabel: '' });
-  var heuresPlanifiees = calculerHeuresSalarieSemaine(salId, contexte).planifiees || 0;
-  // Cumul heures réelles saisies via mobile (collection 'heures' partagée).
-  // Si saisies présentes -> on les utilise (priorité réel). Sinon planning.
-  var heuresReelles = 0;
-  try {
-    heuresReelles = charger('heures')
-      .filter(function(h) { return (h.salId === salId || h.salarieId === salId) && h.date >= debut && h.date <= fin; })
-      .reduce(function(sum, h) { return sum + (parseFloat(String(h.heures||'').replace(',', '.')) || 0); }, 0);
-  } catch (_) { /* fallback silencieux */ }
-  return {
-    livraisons: livraisons.length,
-    ca: livraisons.reduce(function(sum, item) { return sum + (parseFloat(item.prix || item.prixTTC) || 0); }, 0),
-    heures: heuresReelles > 0 ? heuresReelles : heuresPlanifiees,
-    heuresReelles: heuresReelles,
-    heuresPlanifiees: heuresPlanifiees
-  };
-}
 
 // L4318 (script.js d'origine)
 function getStatsMoisRange() {
@@ -208,8 +182,6 @@ function exporterStatsPDF() {
   afficherToast('📄 Rapport statistiques généré');
 }
 
-// L11343 (script.js d'origine)
-function buildSimplePeriodeState(defaultMode) {
-  return { mode: defaultMode || 'mois', offset: 0 };
-}
+// buildSimplePeriodeState a été déplacée dans script-core-stats-helpers.js
+// (boot) car elle est appelée au boot par script.js + script-charges.js etc.
 
