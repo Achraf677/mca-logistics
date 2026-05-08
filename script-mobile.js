@@ -2969,7 +2969,8 @@
 
   // ---- ENTRETIEN ----
   M.formNouvelEntretien = function(existing) {
-    const enEdition = !!existing;
+    // Edition vraie = existing avec id. Sinon = pre-fill (ex: depuis bandeau echeances).
+    const enEdition = !!(existing && existing.id);
     const e = existing || {};
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
     const today = new Date().toISOString().slice(0, 10);
@@ -3034,17 +3035,34 @@
         // Auto-fill km : quand un véhicule est sélectionné, propose le dernier
         // compteur connu (max entre vehicule.km, dernier plein, dernier entretien,
         // dernière saisie heures). Logique partagée pour toutes les saisies km.
+        // Auto-fill prochainKm : si vehicule.entretienIntervalKm renseigne,
+        // pre-remplit prochainKm = km + intervalKm (parite PC : calcul auto periodicite).
         const vehSel = b.querySelector('select[name=vehiculeId]');
         const kmInput = b.querySelector('input[name=km]');
+        const prochainKmInput = b.querySelector('input[name=prochainKm]');
+        const autoFillProchainKm = () => {
+          if (!prochainKmInput || prochainKmInput.value) return; // ne pas ecraser
+          const id = vehSel?.value;
+          if (!id) return;
+          const veh = M.charger('vehicules').find(v => v.id === id);
+          const intervalKm = M.parseNum(veh?.entretienIntervalKm) || 0;
+          const km = M.parseNum(kmInput?.value) || 0;
+          if (intervalKm && km) prochainKmInput.value = km + intervalKm;
+        };
         if (vehSel && kmInput) {
           const autofillKm = () => {
-            if (kmInput.value) return; // ne pas écraser une saisie manuelle
-            const id = vehSel.value;
-            if (!id) return;
-            const kmDispo = M.dernierKmConnu(id);
-            if (kmDispo > 0) kmInput.value = kmDispo;
+            if (!kmInput.value) {
+              const id = vehSel.value;
+              if (id) {
+                const kmDispo = M.dernierKmConnu(id);
+                if (kmDispo > 0) kmInput.value = kmDispo;
+              }
+            }
+            autoFillProchainKm();
           };
           vehSel.addEventListener('change', autofillKm);
+          kmInput.addEventListener('change', autoFillProchainKm);
+          kmInput.addEventListener('blur', autoFillProchainKm);
           // Au mount : si véhicule déjà sélectionné (mode édition), pré-remplit
           if (!enEdition) setTimeout(autofillKm, 100);
         }
@@ -7057,8 +7075,71 @@
       })()}
     `;
   };
-  // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------
+  // ---------- Entretiens (v3.86 : parite PC = filtres veh/type/periode + alertes echeances + auto prochainKm) ----------
+  // Labels et icones de type d'entretien — partage avec form/list/alertes.
+  M.ENTRETIEN_TYPES = [
+    { value: 'revision',     label: 'Révision',     icon: '🔩' },
+    { value: 'vidange',      label: 'Vidange',      icon: '🛢️' },
+    { value: 'pneus',        label: 'Pneus',        icon: '🔘' },
+    { value: 'plaquettes',   label: 'Plaquettes',   icon: '⚙️' },
+    { value: 'courroie',     label: 'Courroie',     icon: '⛓️' },
+    { value: 'freins',       label: 'Freins',       icon: '🛑' },
+    { value: 'carrosserie',  label: 'Carrosserie',  icon: '🚘' },
+    { value: 'autre',        label: 'Autre',        icon: '🔧' }
+  ];
+  M.entretienTypeLabel = function(type) {
+    const t = M.ENTRETIEN_TYPES.find(x => x.value === type);
+    return t ? t.label : 'Autre';
+  };
+  M.entretienTypeIcon = function(type) {
+    const t = M.ENTRETIEN_TYPES.find(x => x.value === type);
+    return t ? t.icon : '🔧';
+  };
+
+  // Calcule le pilotage entretien d'un vehicule : km actuel, prochain km, date echeance,
+  // estEnRetard (depasse), estProche (1000 km restants ou 30 jours).
+  // Mirror fonctionnel de getPilotageEntretienVehicule (script-entretiens.js PC).
+  M.calculerPilotageEntretien = function(veh) {
+    if (!veh) return { kmActuel: 0, prochainKm: 0, dateEcheance: '', estEnRetard: false, estProche: false, kmRestants: null };
+    const kmActuel = M.dernierKmConnu(veh.id);
+    const intervalKm = M.parseNum(veh.entretienIntervalKm) || 0;
+    const intervalMois = M.parseNum(veh.entretienIntervalMois) || 0;
+    const ents = M.charger('entretiens')
+      .filter(e => (e.vehiculeId === veh.id || e.vehId === veh.id))
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const dernier = ents[0] || null;
+    const dernierKm = M.parseNum(dernier?.km) || 0;
+    let prochainKm = M.parseNum(dernier?.prochainKm) || 0;
+    if (!prochainKm && intervalKm) {
+      const base = dernierKm || kmActuel || (M.parseNum(veh.kmInitial) || 0);
+      prochainKm = base + intervalKm;
+    }
+    let dateEcheance = '';
+    if (intervalMois) {
+      const baseDate = dernier?.date || veh.dateAcquisition || '';
+      if (baseDate) {
+        const d = new Date(baseDate + 'T00:00:00');
+        if (!Number.isNaN(d.getTime())) {
+          d.setMonth(d.getMonth() + intervalMois);
+          dateEcheance = d.toISOString().slice(0, 10);
+        }
+      }
+    }
+    const auj = new Date().toISOString().slice(0, 10);
+    const kmRestants = prochainKm ? (prochainKm - kmActuel) : null;
+    const dans30j = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    return {
+      kmActuel,
+      prochainKm,
+      dateEcheance,
+      estEnRetard: Boolean((prochainKm && kmActuel >= prochainKm) || (dateEcheance && dateEcheance < auj)),
+      estProche: Boolean((prochainKm && kmRestants !== null && kmRestants > 0 && kmRestants <= 1000) || (dateEcheance && dateEcheance >= auj && dateEcheance <= dans30j)),
+      kmRestants
+    };
+  };
+
   M.state.entretiensVehFilter = '';
+  M.state.entretiensTypeFilter = '';
   M.state.entrBulkMode = false;
   M.state.entrBulkSel = new Set();
   M.register('entretiens', {
@@ -7068,15 +7149,33 @@
       const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
       const vehIdx = M.indexVehicules();
       const filterId = M.state.entretiensVehFilter;
+      const filterType = M.state.entretiensTypeFilter;
+
+      // Filtre periode (parite PC : changerVueEntretiens / navEntretiensPeriode)
+      const range = M.periodeRange('entretiens', 'mois');
 
       const sorted = [...entretiens].sort((a,b) => (b.date||'').localeCompare(a.date||''));
-      const filtered = filterId ? sorted.filter(e => e.vehiculeId === filterId) : sorted;
+      let filtered = filterId ? sorted.filter(e => (e.vehiculeId === filterId || e.vehId === filterId)) : sorted;
+      if (filterType) filtered = filtered.filter(e => (e.type || 'autre') === filterType);
+      // Filtre periode : applique sur la liste affichee (KPI total = sur periode)
+      const filteredPeriode = filtered.filter(e => {
+        if (!e.date) return false;
+        return e.date >= range.debut && e.date <= range.fin;
+      });
 
-      // KPI mois courant
-      const moisCourant = M.moisKey();
-      const courants = filtered.filter(e => (e.date || '').startsWith(moisCourant));
-      const totalMois = courants.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+      // KPI : "periode" = total filtre periode, "total" = tout l'historique filtre veh+type
+      const totalPeriode = filteredPeriode.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
       const totalAll = filtered.reduce((s, e) => s + (M.parseNum(e.cout) || 0), 0);
+
+      // Calcul echeances : pour chaque vehicule filtre (ou tous), determine alertes
+      const vehiculesAlerte = filterId
+        ? vehicules.filter(v => v.id === filterId)
+        : vehicules;
+      const echeances = vehiculesAlerte
+        .map(v => ({ veh: v, pilotage: M.calculerPilotageEntretien(v) }))
+        .filter(x => x.pilotage.estEnRetard || x.pilotage.estProche);
+      const nbEnRetard = echeances.filter(x => x.pilotage.estEnRetard).length;
+      const nbProches  = echeances.filter(x => !x.pilotage.estEnRetard && x.pilotage.estProche).length;
 
       const bulkOn = M.state.entrBulkMode;
       const selSet = M.state.entrBulkSel;
@@ -7094,15 +7193,50 @@
       }
       html += `
         <div class="m-card-row">
-          <div class="m-card m-card-blue"><div class="m-card-title">Mois en cours</div><div class="m-card-value">${M.format$(totalMois)}</div><div class="m-card-sub">${courants.length} entretien${courants.length>1?'s':''}</div></div>
+          <div class="m-card m-card-blue"><div class="m-card-title">${M.escHtml(range.label)}</div><div class="m-card-value">${M.format$(totalPeriode)}</div><div class="m-card-sub">${filteredPeriode.length} entretien${filteredPeriode.length>1?'s':''}</div></div>
           <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${M.format$(totalAll)}</div><div class="m-card-sub">${filtered.length} entretien${filtered.length>1?'s':''}</div></div>
         </div>
       `;
 
+      // Bandeau alertes echeances (parite PC : pilotage entretien vehicule)
+      if (echeances.length) {
+        html += `
+          <div class="m-card" style="margin-top:12px;padding:12px 14px;border-left:4px solid var(--m-red);background:rgba(255,107,53,.08)">
+            <div style="font-weight:700;font-size:.9rem;margin-bottom:8px;color:var(--m-red)">⚠️ Échéances entretien</div>
+            ${echeances.map(({ veh, pilotage }) => {
+              const tag = pilotage.estEnRetard
+                ? `<span style="background:var(--m-red);color:#fff;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700">EN RETARD</span>`
+                : `<span style="background:var(--m-blue);color:#1a1208;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700">BIENTÔT</span>`;
+              const detKm = pilotage.prochainKm
+                ? (pilotage.kmRestants !== null && pilotage.kmRestants <= 0
+                    ? `dépassé de ${M.formatNum(Math.abs(pilotage.kmRestants))} km`
+                    : `dans ${M.formatNum(pilotage.kmRestants)} km`)
+                : '';
+              const detDate = pilotage.dateEcheance
+                ? (pilotage.dateEcheance < new Date().toISOString().slice(0, 10)
+                    ? `échéance ${M.formatDate(pilotage.dateEcheance)} dépassée`
+                    : `échéance ${M.formatDate(pilotage.dateEcheance)}`)
+                : '';
+              const det = [detKm, detDate].filter(Boolean).join(' · ');
+              return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--m-border);min-height:44px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.88rem">🚐 ${M.escHtml(veh.immat || veh.id)} ${tag}</div>
+                  <div style="font-size:.78rem;color:var(--m-text-muted);margin-top:2px">${M.escHtml(det || 'Échéance proche')}</div>
+                </div>
+                <button type="button" class="m-btn m-entr-add-for-veh" data-veh="${M.escHtml(veh.id)}" style="width:auto;padding:0 12px;height:36px;font-size:.78rem;flex-shrink:0">+ Saisir</button>
+              </div>`;
+            }).join('')}
+          </div>
+        `;
+      }
+
+      // Barre periode (mois/semaine/jour/annee + nav)
+      html += `<div style="margin-top:14px">${M.renderPeriodeBar('entretiens', 'mois')}</div>`;
+
       // Filtre vehicule (si plusieurs)
       if (vehicules.length > 1) {
         html += `
-          <div style="margin:14px 0">
+          <div style="margin:0 0 10px">
             <select id="m-ent-vehfilter">
               <option value="">🚐 Tous les véhicules</option>
               ${vehicules.map(v => `<option value="${M.escHtml(v.id)}" ${v.id === filterId ? 'selected' : ''}>${M.escHtml(v.immat || v.id)}</option>`).join('')}
@@ -7111,18 +7245,27 @@
         `;
       }
 
+      // Filtre type (chips, parite PC : <select> filtre-entr-type)
+      html += `
+        <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
+          <button class="m-alertes-chip m-entr-type-chip ${filterType===''?'active':''}" data-type="">Tous types</button>
+          ${M.ENTRETIEN_TYPES.map(t => `<button class="m-alertes-chip m-entr-type-chip ${filterType===t.value?'active':''}" data-type="${t.value}">${t.icon} ${t.label}</button>`).join('')}
+        </div>
+      `;
+
       if (!entretiens.length) {
         html += `<div class="m-empty"><div class="m-empty-icon">🔧</div><h3 class="m-empty-title">Aucun entretien</h3><p class="m-empty-text">L'historique des vidanges et reparations apparaitra ici.</p></div>`;
         return html;
       }
-      if (!filtered.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun entretien pour ce véhicule</h3></div>`;
+      if (!filteredPeriode.length) {
+        const filtreLbl = filterType ? `pour le type "${M.entretienTypeLabel(filterType)}"` : (filterId ? 'pour ce véhicule' : 'sur cette période');
+        html += `<div class="m-empty"><div class="m-empty-icon">🔍</div><h3 class="m-empty-title">Aucun entretien ${M.escHtml(filtreLbl)}</h3><p class="m-empty-text">Change de période ou réinitialise les filtres.</p></div>`;
         return html;
       }
 
-      // Group par mois
+      // Group par mois (sur la liste filtree-periode)
       const byMonth = {};
-      filtered.forEach(e => {
+      filteredPeriode.forEach(e => {
         const m = (e.date || '0000-00').slice(0, 7);
         if (!byMonth[m]) byMonth[m] = [];
         byMonth[m].push(e);
@@ -7141,18 +7284,26 @@
           <div class="m-section" style="margin-top:16px">
             <div class="m-section-header"><h3 class="m-section-title" style="font-size:.95rem">${dateLabel}</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${items.length} · ${M.format$(total)}</span></div>
             ${items.map(e => {
-              const veh = e.vehiculeId ? vehIdx[e.vehiculeId] : null;
+              const veh = (e.vehiculeId || e.vehId) ? vehIdx[e.vehiculeId || e.vehId] : null;
               const immat = veh?.immat || (e.immat || '—');
-              const typeLabel = (e.type || 'autre').replace(/_/g, ' ').replace(/^./, c => c.toUpperCase());
+              const typeLabel = M.entretienTypeLabel(e.type);
+              const typeIcon = M.entretienTypeIcon(e.type);
               const isSel = selSet.has(e.id);
               const cls = bulkOn ? 'm-entr-toggle' : 'm-entretien-edit';
               const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
               const cb = bulkOn ? `<div style="flex:0 0 28px;display:flex;align-items:center;justify-content:center;font-size:1.3rem">${isSel ? '☑' : '☐'}</div>` : '';
-              return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;align-items:start;gap:10px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;cursor:pointer">
+              // Badge "prochain km" si renseigne et passe vs km actuel veh
+              let echeanceBadge = '';
+              if (e.prochainKm && veh) {
+                const kmAct = M.dernierKmConnu(veh.id);
+                if (kmAct >= e.prochainKm) echeanceBadge = `<span style="background:var(--m-red);color:#fff;padding:2px 7px;border-radius:999px;font-size:.65rem;font-weight:700;margin-left:6px">DÉPASSÉ</span>`;
+                else if ((e.prochainKm - kmAct) <= 1000) echeanceBadge = `<span style="background:var(--m-blue);color:#1a1208;padding:2px 7px;border-radius:999px;font-size:.65rem;font-weight:700;margin-left:6px">BIENTÔT</span>`;
+              }
+              return `<div role="button" tabindex="0" class="m-card m-card-pressable ${cls}" data-id="${M.escHtml(e.id)}" style="padding:14px;display:flex;align-items:start;gap:10px;width:100%;text-align:left;${bg};border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;cursor:pointer;min-height:44px">
                 ${cb}
                 <div style="flex:1 1 auto;min-width:0">
-                  <div style="font-weight:600;font-size:.92rem">${M.escHtml(typeLabel)}</div>
-                  <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
+                  <div style="font-weight:600;font-size:.92rem">${typeIcon} ${M.escHtml(typeLabel)}${echeanceBadge}</div>
+                  <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(immat)} · ${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}${e.prochainKm ? ' · prochain ' + M.formatNum(e.prochainKm) + ' km' : ''}</div>
                   ${e.description ? `<div style="font-size:.82rem;margin-top:6px;color:var(--m-text);line-height:1.4">${M.escHtml(e.description)}</div>` : ''}
                 </div>
                 <div style="font-weight:700;color:var(--m-blue);white-space:nowrap;flex-shrink:0">${M.format$(e.cout || 0)}</div>
@@ -7165,6 +7316,9 @@
       return html;
     },
     afterRender(container) {
+      // Periode bar (mois/semaine/jour/annee + nav prev/today/next)
+      M.wirePeriodeBar(container, 'entretiens', () => M.go('entretiens'));
+
       const sel = container.querySelector('#m-ent-vehfilter');
       if (sel) {
         sel.addEventListener('change', e => {
@@ -7172,6 +7326,20 @@
           M.go('entretiens');
         });
       }
+      // Chips filtre type
+      container.querySelectorAll('.m-entr-type-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          M.state.entretiensTypeFilter = chip.dataset.type || '';
+          M.go('entretiens');
+        });
+      });
+      // Bouton "+ Saisir" depuis bandeau alertes : pre-remplit le vehicule
+      container.querySelectorAll('.m-entr-add-for-veh').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const vehId = btn.dataset.veh;
+          M.formNouvelEntretien({ vehiculeId: vehId, vehId });
+        });
+      });
       container.querySelectorAll('.m-entretien-edit').forEach(btn => {
         btn.addEventListener('click', () => M.editerEntretien(btn.dataset.id));
         btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); M.editerEntretien(btn.dataset.id); } });
