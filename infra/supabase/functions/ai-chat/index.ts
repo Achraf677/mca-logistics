@@ -30,7 +30,7 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = []): string {
+function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], userName: string | null = null): string {
   const memorySection = memoryFacts.length
     ? [
         ``,
@@ -45,8 +45,16 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = []): 
         `(Aucun fait memorise pour l'instant. Quand tu apprends une info importante et durable, propose-la avec add_memory_fact.)`,
       ].join("\n");
 
+  // Identite admin connecte : MCA a 2 admins (Achraf Chikri + Mohammed Chikri).
+  // Le nom vient de profiles.display_name (auth.uid resolu cote handler).
+  const identitySection = userName
+    ? `## Identite\nTu parles a **${userName}** (admin MCA). N'invente PAS de prenom : utilise UNIQUEMENT "${userName}" pour t'adresser a l'utilisateur. Ne confonds pas avec l'autre admin (MCA a 2 admins : Achraf Chikri et Mohammed Chikri).`
+    : `## Identite\nTu parles a un admin MCA mais le nom n'a pas pu etre resolu. Reste neutre, n'invente PAS de prenom (ex: ne dis ni "Achraf" ni "Mohammed").`;
+
   return [
     `Assistant business MCA Logistics (PME transport FR). Date : ${todayISO()}. Role user : ${role}.`,
+    ``,
+    identitySection,
     ``,
     `## Regles`,
     `- Reponds FR, concis, sans blabla. Markdown court, listes/tableaux quand pertinent.`,
@@ -1590,7 +1598,8 @@ async function callGemini(model: string, apiKey: string, systemInstruction: stri
     systemInstruction: { parts: [{ text: systemInstruction }] },
     contents: history,
     tools: TOOLS,
-    generationConfig: { temperature: 0.3, maxOutputTokens: 1500 },
+    // 3500 (vs 1500 avant) : evite les coupures sur reponses markdown structurees longues.
+    generationConfig: { temperature: 0.3, maxOutputTokens: 3500 },
   };
 
   let lastErr: unknown = null;
@@ -1691,7 +1700,8 @@ Deno.serve(async (req) => {
     if (!userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...CORS, "Content-Type": "application/json" } });
     }
-    const { data: profile } = await sbUser.from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
+    const { data: profile } = await sbUser.from("profiles").select("role, display_name").eq("id", userData.user.id).maybeSingle();
+    const userDisplayName: string | null = (profile?.display_name as string | undefined) ?? null;
     const role = (profile?.role === "admin" ? "admin" : "salarie") as "admin" | "salarie";
 
     // V1 : admin only
@@ -1748,7 +1758,7 @@ Deno.serve(async (req) => {
       .limit(60);
     const memoryFacts = memData ?? [];
 
-    const systemInstruction = buildSystemPrompt(role, memoryFacts);
+    const systemInstruction = buildSystemPrompt(role, memoryFacts, userDisplayName);
     let working = [...history];
     let finalText = "";
     let toolCallsMade: string[] = [];
