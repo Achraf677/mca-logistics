@@ -1874,31 +1874,55 @@
         <input type="file" id="m-veh-cg-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-veh-cg-status" style="text-align:center"></p>
       </div>
-      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true })}
+      ${M.formField('Immatriculation', M.formInput('immat', { value: v.immat || '', placeholder: 'AA-123-BB', required: true, autocomplete: 'off' }), { required: true, hint: 'Format FR (AA-123-BB) ou ancienne plaque' })}
       <div class="m-form-row">
         ${M.formField('Marque', M.formInput('marque', { value: v.marque || '', placeholder: 'Renault, Peugeot...' }))}
         ${M.formField('Modèle', M.formInput('modele', { value: v.modele || '', placeholder: 'Master, Boxer...' }))}
       </div>
+      ${M.formField('VIN (n° de série)', M.formInput('vin', { value: v.vin || '', placeholder: '17 caractères', autocomplete: 'off' }), { hint: 'Champ E de la carte grise' })}
       <div class="m-form-row">
-        ${M.formField('Date CT', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
-        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }))}
+        ${M.formField('Genre', M.formSelect('genre', [
+          { value: 'CTTE', label: 'CTTE — Camionnette' },
+          { value: 'VP',   label: 'VP — Voiture particulière' },
+          { value: 'VU',   label: 'VU — Véhicule utilitaire' },
+          { value: 'CAM',  label: 'CAM — Camion' },
+          { value: 'TRR',  label: 'TRR — Tracteur routier' },
+          { value: 'REM',  label: 'REM — Remorque' },
+          { value: 'AUTRE', label: 'Autre' }
+        ], { placeholder: 'Genre', value: v.genre || '' }))}
+        ${M.formField("Crit'Air", M.formSelect('critAir', [
+          { value: '0',      label: "Crit'Air 0 (vert)" },
+          { value: '1',      label: "Crit'Air 1" },
+          { value: '2',      label: "Crit'Air 2" },
+          { value: '3',      label: "Crit'Air 3" },
+          { value: '4',      label: "Crit'Air 4" },
+          { value: '5',      label: "Crit'Air 5" },
+          { value: 'aucune', label: 'Non classé' }
+        ], { placeholder: 'Vignette', value: v.critAir || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date CT (prochain)', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }), { hint: 'Expiration carte verte' })}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Date carte grise', M.formInput('dateCarteGrise', { type: 'date', value: v.dateCarteGrise || '' }))}
+        ${M.formField('1ère mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Date acquisition', M.formInput('dateAcquisition', { type: 'date', value: v.dateAcquisition || '' }))}
-        ${M.formField('Mise en circulation', M.formInput('dateMiseEnCirculation', { type: 'date', value: v.dateMiseEnCirculation || '' }))}
+        ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
+          { value: 'achat',    label: '💰 Achat neuf' },
+          { value: 'occasion', label: '🚗 Occasion' },
+          { value: 'lld',      label: '📋 LLD' },
+          { value: 'loa',      label: '📝 LOA' },
+          { value: 'credit',   label: '🏦 Crédit' },
+          { value: 'location', label: '📅 Location' }
+        ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Km actuel', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.km || '' }))}
         ${M.formField('Km initial', M.formInputWithSuffix('kmInitial', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.kmInitial || '' }))}
       </div>
-      ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
-        { value: 'achat',    label: '💰 Achat neuf' },
-        { value: 'occasion', label: '🚗 Occasion' },
-        { value: 'lld',      label: '📋 Location longue durée (LLD)' },
-        { value: 'loa',      label: "📝 Location avec option d'achat (LOA)" },
-        { value: 'credit',   label: '🏦 Crédit' },
-        { value: 'location', label: '📅 Location simple' }
-      ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
         { value: 'diesel',     label: '⛽ Diesel/Gazole' },
         { value: 'essence',    label: 'Essence' },
@@ -1907,7 +1931,18 @@
         { value: 'hybride',    label: 'Hybride' },
         { value: 'hydrogene',  label: 'Hydrogène' }
       ], { placeholder: 'Choisir', value: v.typeCarburant || '' }))}
-      ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      <div class="m-form-row">
+        ${M.formField('Capacité réservoir', M.formInputWithSuffix('capaciteReservoir', 'L', { type: 'number', step: '1', min: '0', placeholder: '70', value: v.capaciteReservoir || '' }))}
+        ${M.formField('Conso constructeur', M.formInputWithSuffix('conso', 'L/100', { type: 'number', step: '0.1', min: '0', placeholder: '8.5', value: v.conso || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('PTAC', M.formInputWithSuffix('ptac', 'kg', { type: 'number', step: '1', min: '0', placeholder: '3500', value: v.ptac || '' }))}
+        ${M.formField('PTRA', M.formInputWithSuffix('ptra', 'kg', { type: 'number', step: '1', min: '0', placeholder: '0', value: v.ptra || '' }))}
+      </div>
+      <div class="m-form-row">
+        ${M.formField('Nb essieux', M.formInput('essieux', { type: 'number', step: '1', min: '1', placeholder: '2', value: v.essieux || '' }))}
+        ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
+      </div>
       ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
@@ -1990,6 +2025,7 @@
               setVal('immat', parsed.immat);
               setVal('marque', parsed.marque);
               setVal('modele', parsed.modele);
+              setVal('vin', parsed.vin);
               setVal('dateMiseEnCirculation', parsed.dateMEC);
               cgStatus.textContent = n > 0 ? `✅ ${n} champ${n>1?'s':''} rempli${n>1?'s':''} (vérifie + complète)` : `⚠️ Aucun champ détecté (qualité photo ?)`;
               cgStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
@@ -2086,22 +2122,45 @@
       onSubmit() {
         const f = M.lireFormSheet();
         if (!f.immat?.trim()) { M.toast('⚠️ Immatriculation obligatoire'); return false; }
+        // Validation immat (souple : on accepte FR moderne, FR ancien, ou format libre 6+ caracteres)
+        const immatNorm = f.immat.trim().toUpperCase().replace(/\s+/g, '-');
+        if (immatNorm.length < 5) { M.toast('⚠️ Immatriculation trop courte'); return false; }
+        // Validation cohérence dates : kmInitial <= km
+        const kmAct = M.parseNum(f.km) || 0;
+        const kmIni = M.parseNum(f.kmInitial) || 0;
+        if (kmIni > 0 && kmAct > 0 && kmIni > kmAct) { M.toast('⚠️ Km initial > Km actuel : incohérent'); return false; }
+        // Validation VIN si renseigné (17 caractères alphanumériques sauf I, O, Q)
+        if (f.vin?.trim() && !/^[A-HJ-NPR-Z0-9]{17}$/i.test(f.vin.trim())) {
+          // Tolérant : on accepte mais on prévient
+          if (f.vin.trim().length !== 17) {
+            M.toast('⚠️ VIN doit faire 17 caractères', { duration: 3000 });
+          }
+        }
         const arr = M.charger('vehicules');
         // Resolve salNom depuis salId pour coherence avec desktop (lookup vise)
         const sal = f.salId ? salaries.find(s => s.id === f.salId) : null;
         const data = {
-          immat: f.immat.trim().toUpperCase(),
+          immat: immatNorm,
           marque: f.marque?.trim() || '',
           modele: f.modele?.trim() || '',
+          vin: f.vin?.trim().toUpperCase() || '',
+          genre: f.genre || '',
+          critAir: f.critAir || '',
           dateCT: f.dateCT || '',
           dateAssurance: f.dateAssurance || '',
+          dateCarteGrise: f.dateCarteGrise || '',
           dateAcquisition: f.dateAcquisition || '',
           dateMiseEnCirculation: f.dateMiseEnCirculation || '',
-          km: M.parseNum(f.km) || 0,
-          kmInitial: M.parseNum(f.kmInitial) || 0,
+          km: kmAct,
+          kmInitial: kmIni,
           modeAcquisition: f.modeAcquisition || '',
           typeCarburant: f.typeCarburant || '',
           carburant: f.typeCarburant || '',  // alias PC pour filtres
+          capaciteReservoir: M.parseNum(f.capaciteReservoir) || 0,
+          conso: M.parseNum(f.conso) || 0,
+          ptac: M.parseNum(f.ptac) || 0,
+          ptra: M.parseNum(f.ptra) || 0,
+          essieux: M.parseNum(f.essieux) || 0,
           entretienIntervalKm: M.parseNum(f.entretienIntervalKm) || 0,
           salId: f.salId || null,
           chaufId: f.salId || null,           // dual-write PC
@@ -6841,6 +6900,19 @@
     return { color: 'var(--m-green)', label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }), icon: '✅' };
   };
 
+  // Helper compact pour badge échéance (icone seule + couleur)
+  M.statutDateBadge = function(dateIso, label) {
+    if (!dateIso) return `<span title="${M.escHtml(label)} non renseigné" style="color:var(--m-text-muted);font-size:.85rem">${M.escHtml(label)}—</span>`;
+    const d = new Date(dateIso);
+    if (isNaN(d)) return '';
+    const diff = Math.floor((d - new Date()) / 86400000);
+    let icon = '✅', color = 'var(--m-green)', tip = `${label} valide`;
+    if (diff < 0) { icon = '❌'; color = 'var(--m-red)'; tip = `${label} expiré (${-diff}j)`; }
+    else if (diff < 30) { icon = '🔴'; color = 'var(--m-red)'; tip = `${label} expire dans ${diff}j`; }
+    else if (diff < 60) { icon = '⚠️'; color = 'var(--m-accent)'; tip = `${label} expire dans ${diff}j`; }
+    return `<span title="${M.escHtml(tip)}" style="color:${color};font-size:.78rem;font-weight:600">${icon} ${M.escHtml(label)}</span>`;
+  };
+
   M.register('vehicules', {
     title: 'Véhicules',
     render() {
@@ -6851,25 +6923,34 @@
       const recherche = (M.state.vehiculesRecherche || '').toLowerCase();
       const filtreCarb = M.state.vehiculesCarburant || '';
       const filtreSal  = M.state.vehiculesSalarie || '';
+      const tri        = M.state.vehiculesTri || 'immat';
       let filtered = vehicules;
       if (recherche) {
         filtered = filtered.filter(v => {
-          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''}`.toLowerCase();
+          const hay = `${v.immat||''} ${v.modele||''} ${v.marque||''} ${v.salNom||''} ${v.vin||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
       if (filtreCarb) filtered = filtered.filter(v => (v.typeCarburant || v.carburant || '') === filtreCarb);
       if (filtreSal)  filtered = filtered.filter(v => (v.salId || v.chaufId) === filtreSal);
-      filtered = [...filtered].sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
+      // Tri : immat / km / ct
+      filtered = [...filtered];
+      if (tri === 'km') filtered.sort((a,b) => (M.parseNum(b.km)||0) - (M.parseNum(a.km)||0));
+      else if (tri === 'ct') filtered.sort((a,b) => {
+        // CT ascendant : les plus proches/expirés d'abord (sans date = en bas)
+        const da = a.dateCT || '9999-12-31', db = b.dateCT || '9999-12-31';
+        return da.localeCompare(db);
+      });
+      else filtered.sort((a,b) => (a.immat||'').localeCompare(b.immat||''));
 
       const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
 
       let html = `<button class="m-fab" onclick="MCAm.formNouveauVehicule()" aria-label="Nouveau véhicule">+</button>`;
       html += `
         <div style="margin-bottom:10px">
-          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, modèle)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, marque, VIN)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
         </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px">
+        <div style="display:flex;gap:6px;margin-bottom:8px">
           <select id="m-veh-carb" style="flex:1 1 auto">
             <option value="">⛽ Tous carburants</option>
             <option value="diesel"     ${filtreCarb==='diesel'?'selected':''}>⛽ Diesel/Gazole</option>
@@ -6884,10 +6965,17 @@
             ${salaries.map(s => `<option value="${M.escHtml(s.id)}" ${filtreSal===s.id?'selected':''}>${M.escHtml(((s.prenom?s.prenom+' ':'') + (s.nom||s.id)).trim())}</option>`).join('')}
           </select>
         </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          <select id="m-veh-tri" style="flex:1 1 auto">
+            <option value="immat" ${tri==='immat'?'selected':''}>↕ Tri immat (A→Z)</option>
+            <option value="km"    ${tri==='km'?'selected':''}>↕ Tri km (décroissant)</option>
+            <option value="ct"    ${tri==='ct'?'selected':''}>↕ Tri date CT (proche)</option>
+          </select>
+        </div>
       `;
 
       if (!vehicules.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Ajoute ton parc depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">🚐</div><h3 class="m-empty-title">Aucun véhicule</h3><p class="m-empty-text">Tape sur ⊕ pour ajouter ton premier véhicule.</p></div>`;
         return html;
       }
       if (!filtered.length) {
@@ -6896,12 +6984,17 @@
       }
 
       filtered.forEach(v => {
-        const ct = M.statutDate(v.dateCT);
-        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit">
+        const ct  = M.statutDateBadge(v.dateCT, 'CT');
+        const ass = M.statutDateBadge(v.dateAssurance, 'Assu');
+        const cgUploaded = !!(v.docs?.carte_grise);
+        const cgIcon = cgUploaded ? `<span title="Carte grise uploadée" style="color:var(--m-green);font-size:.78rem;font-weight:600">📄 CG</span>`
+                                  : `<span title="Carte grise manquante" style="color:var(--m-text-muted);font-size:.78rem">📄—</span>`;
+        const kmTxt = v.km ? `${M.formatNum(v.km)} km` : '';
+        html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;min-height:48px">
           <div style="flex:1 1 auto;min-width:0">
-            <div style="font-weight:700;font-size:1rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
-            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(v.modele || '')}${v.salNom ? ' · ' + M.escHtml(v.salNom) : ''}</div>
-            <div style="margin-top:6px;font-size:.75rem"><span style="color:${ct.color};font-weight:600">${ct.icon} CT ${ct.label}</span></div>
+            <div style="font-weight:700;font-size:1.05rem;letter-spacing:.02em">${M.escHtml(v.immat || '—')}</div>
+            <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((v.marque ? v.marque + ' ' : '') + (v.modele || ''))}${v.salNom ? ' · 👤 ' + M.escHtml(v.salNom) : ''}${kmTxt ? ' · ' + kmTxt : ''}</div>
+            <div style="margin-top:6px;display:flex;gap:10px;flex-wrap:wrap">${ct} ${ass} ${cgIcon}</div>
           </div>
           <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
         </button>`;
@@ -6922,72 +7015,276 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
-      // Filtres carburant + chauffeur
+      // Filtres carburant + chauffeur + tri
       container.querySelector('#m-veh-carb')?.addEventListener('change', e => { M.state.vehiculesCarburant = e.target.value; M.go('vehicules'); });
       container.querySelector('#m-veh-sal')?.addEventListener('change',  e => { M.state.vehiculesSalarie   = e.target.value; M.go('vehicules'); });
+      container.querySelector('#m-veh-tri')?.addEventListener('change',  e => { M.state.vehiculesTri       = e.target.value; M.go('vehicules'); });
       container.querySelectorAll('.m-veh-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('vehicules', btn.dataset.id));
       });
     }
   });
 
+  // Helpers : ouvre forms enfants en pre-selectionnant le vehicule courant.
+  // Strategie : on appelle la fonction de form normale (mode creation), puis on
+  // force le select vehiculeId via setTimeout (apres openSheet+afterMount async).
+  M.formPleinPourVehicule = function(vehId) {
+    M.formNouveauPlein();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+  M.formEntretienPourVehicule = function(vehId) {
+    M.formNouvelEntretien();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+  M.formInspectionPourVehicule = function(vehId) {
+    M.formNouvelleInspection();
+    setTimeout(() => {
+      const sel = document.querySelector('#m-sheet-body select[name="vehiculeId"]');
+      if (sel) { sel.value = vehId; sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    }, 60);
+  };
+
+  // Action : remplacer / ajouter rapidement la carte grise depuis le drawer
+  // Ouvre un picker direct, upload, refresh la vue.
+  M.replaceCarteGrise = async function(vehId) {
+    return new Promise(resolve => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*,application/pdf';
+      inp.style.display = 'none';
+      document.body.appendChild(inp);
+      inp.addEventListener('change', async () => {
+        const file = inp.files?.[0];
+        document.body.removeChild(inp);
+        if (!file) return resolve(false);
+        M.toast('⏳ Envoi carte grise...');
+        const ok = await M.uploaderDocVehicule(file, 'carte_grise', vehId);
+        if (ok) { M.toast('✅ Carte grise enregistrée'); M.go('vehicules'); }
+        resolve(ok);
+      }, { once: true });
+      inp.click();
+    });
+  };
+
+  // Confirmation toggle archivage
+  M.toggleArchiveVehicule = async function(vehId) {
+    const arr = M.charger('vehicules');
+    const idx = arr.findIndex(x => x.id === vehId);
+    if (idx < 0) return;
+    const archive = !arr[idx].archive;
+    const msg = archive
+      ? `Désactiver le véhicule ${arr[idx].immat} ? Il sera masqué des listes mais conservé pour l'historique.`
+      : `Réactiver le véhicule ${arr[idx].immat} ?`;
+    if (!await M.confirm(msg, { titre: archive ? 'Désactiver véhicule' : 'Réactiver véhicule' })) return;
+    arr[idx].archive = archive;
+    arr[idx].modifieLe = new Date().toISOString();
+    M.sauvegarder('vehicules', arr);
+    M.toast(archive ? '⏸️ Véhicule désactivé' : '▶️ Véhicule réactivé');
+    if (archive) M.state.detail.vehicules = null;
+    M.go('vehicules');
+  };
+
   M.renderVehiculeDetail = function(id) {
     const v = M.charger('vehicules').find(x => x.id === id);
     if (!v) return `<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Véhicule introuvable</h3></div>`;
 
-    const ct = M.statutDate(v.dateCT);
-    // Pleins du vehicule pour mini KPI
+    const ct  = M.statutDate(v.dateCT);
+    const ass = M.statutDate(v.dateAssurance);
+    const cg  = M.statutDate(v.dateCarteGrise);
+
+    // Pleins du vehicule
     const pleins = M.charger('carburant').filter(p => p.vehiculeId === v.id || p.vehId === v.id);
     const totalCarb = pleins.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
     const totalLitres = pleins.reduce((s, p) => s + (M.parseNum(p.litres) || 0), 0);
-    const dernierPlein = pleins.sort((a,b) => (b.date||'').localeCompare(a.date||''))[0];
+    const pleinsTri = [...pleins].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const dernierPlein = pleinsTri[0];
+    const derniersPleins = pleinsTri.slice(0, 5);
+
+    // Entretiens
+    const entretiens = M.charger('entretiens').filter(e => e.vehiculeId === v.id || e.vehId === v.id);
+    const entretiensTri = [...entretiens].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const derniersEntretiens = entretiensTri.slice(0, 5);
+    const dernierEntretien = entretiensTri[0];
+
+    // Charges rattachées au véhicule
+    const charges = M.charger('charges').filter(c => c.vehiculeId === v.id || c.vehId === v.id);
+    const chargesTri = [...charges].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    const dernieresCharges = chargesTri.slice(0, 5);
+    const totalCharges = charges.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+
+    // Inspections
+    const inspections = M.charger('inspections').filter(i => i.vehiculeId === v.id || i.vehId === v.id);
+    const dernieresInspections = [...inspections].sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 3);
+
+    // Livraisons
     const livraisons = M.charger('livraisons').filter(l => l.vehiculeId === v.id || l.vehId === v.id);
 
+    // Doc carte grise (priorité aux docs.carte_grise sur l'ancien carteGriseFichier PC)
+    const docCG = v.docs?.carte_grise;
+
+    // Conso réelle calculée
+    const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
+    const consoCalc = (kmParcourus > 0 && totalLitres > 0) ? (totalLitres / kmParcourus * 100) : null;
+
+    // Type de carburant lisible
+    const carbLabels = {
+      diesel: '⛽ Diesel/Gazole', gazole: '⛽ Diesel/Gazole',
+      essence: '⛽ Essence', gnv: '🌿 GNV/BioGNV', biognv: '🌿 GNV/BioGNV',
+      electrique: '⚡ Électrique', hybride: '🔋 Hybride', hydrogene: '💧 Hydrogène'
+    };
+    const carbAffiche = v.typeCarburant ? (carbLabels[(v.typeCarburant||'').toLowerCase()] || v.typeCarburant) : '—';
+
+    const detailRow = (label, value, opts = {}) => {
+      if (value == null || value === '' || value === 0 && !opts.showZero) return '';
+      const last = opts.last ? '' : 'border-bottom:1px solid var(--m-border);';
+      const valColor = opts.color ? `color:${opts.color};` : '';
+      return `<div style="padding:13px 16px;${last}display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <span style="color:var(--m-text-muted);font-size:.76rem;text-transform:uppercase;letter-spacing:.05em">${M.escHtml(label)}</span>
+        <span style="font-weight:600;${valColor};text-align:right;font-size:.88rem">${value}</span>
+      </div>`;
+    };
+
+    const echeanceRow = (label, dateIso, statut) => {
+      const dateStr = dateIso
+        ? new Date(dateIso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Non renseigné';
+      return `<div style="padding:13px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <div style="font-size:.78rem;font-weight:600">${M.escHtml(label)}</div>
+          <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${dateStr}</div>
+        </div>
+        <span style="color:${statut.color};font-weight:700;font-size:.85rem;text-align:right;flex-shrink:0">${statut.icon} ${statut.label}</span>
+      </div>`;
+    };
+
     return `
-      <div style="text-align:center;padding:8px 0 18px">
-        <div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
-        ${v.modele ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(v.modele)}</p>` : ''}
+      <!-- Hero : immat + chauffeur + actions rapides -->
+      <div style="text-align:center;padding:8px 0 14px">
+        <div style="display:inline-block;padding:10px 20px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.5rem;font-weight:800;letter-spacing:.05em">${M.escHtml(v.immat || '—')}</div>
+        ${(v.marque || v.modele) ? `<p style="font-size:.95rem;margin:8px 0 0;font-weight:500">${M.escHtml(((v.marque || '') + ' ' + (v.modele || '')).trim())}</p>` : ''}
         ${v.salNom ? (() => {
           const sal = v.salId ? M.charger('salaries').find(s => s.id === v.salId) : M.findSalarieByName(v.salNom);
           return sal
             ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(v.salNom)} ›</button>`
             : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>`;
         })() : ''}
-        <div style="margin-top:12px"><button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
-      <!-- CT highlight (le plus important) -->
-      <div class="m-card" style="border-left:4px solid ${ct.color};padding:14px 16px;margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-          <div>
-            <div style="font-size:.72rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Contrôle technique</div>
-            <div style="font-size:1.05rem;font-weight:700;color:${ct.color};margin-top:4px">${ct.icon} ${ct.label}</div>
+      <!-- Actions rapides : 4 boutons icone + label -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+        <button type="button" onclick="MCAm.editerVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-accent);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">✏️</span><span>Modifier</span>
+        </button>
+        <button type="button" onclick="MCAm.formPleinPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-blue);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">⛽</span><span>+ Plein</span>
+        </button>
+        <button type="button" onclick="MCAm.formEntretienPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-purple);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">🔧</span><span>+ Entretien</span>
+        </button>
+        <button type="button" onclick="MCAm.formInspectionPourVehicule('${M.escHtml(v.id)}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;min-height:62px;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;color:var(--m-green);font-weight:600;font-size:.72rem;cursor:pointer;font-family:inherit">
+          <span style="font-size:1.4rem">🚗</span><span>+ Inspection</span>
+        </button>
+      </div>
+
+      <!-- 📅 ECHEANCES (CT, assurance, carte grise) -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">📅 Échéances</h3></div>
+        <div class="m-card" style="padding:0;border-left:4px solid ${ct.color}">
+          ${echeanceRow('🔧 Contrôle technique', v.dateCT, ct)}
+          ${echeanceRow('🛡️ Assurance (carte verte)', v.dateAssurance, ass)}
+          ${echeanceRow('📄 Carte grise', v.dateCarteGrise, cg)}
+          <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <div>
+              <div style="font-size:.78rem;font-weight:600">📜 1ère mise en circulation</div>
+              <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${v.dateMiseEnCirculation ? new Date(v.dateMiseEnCirculation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Non renseigné'}</div>
+            </div>
+            ${v.dateMiseEnCirculation ? (() => {
+              const ans = Math.floor((Date.now() - new Date(v.dateMiseEnCirculation).getTime()) / (365.25 * 86400000));
+              return `<span style="color:var(--m-text-muted);font-weight:600;font-size:.85rem">${ans} an${ans>1?'s':''}</span>`;
+            })() : ''}
           </div>
-          ${v.dateCT ? `<div style="text-align:right;font-size:.78rem;color:var(--m-text-muted)">${new Date(v.dateCT).toLocaleDateString('fr-FR', { day:'numeric', month:'short', year:'numeric' })}</div>` : ''}
         </div>
       </div>
 
-      <!-- Detail technique -->
-      <div class="m-card" style="padding:0">
-        ${v.typeCarburant ?         `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Carburant</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.typeCarburant)}</span></div>` : ''}
-        ${v.km != null ?            `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Kilométrage</span><span style="font-weight:600">${M.formatNum(v.km)} km</span></div>` : ''}
-        ${(() => {
-          // Conso L/100km = totalLitres / (km - kmInitial) * 100
-          const kmParcourus = (Number(v.km) || 0) - (Number(v.kmInitial) || 0);
-          if (kmParcourus > 0 && totalLitres > 0) {
-            const conso = totalLitres / kmParcourus * 100;
-            const consoColor = conso > 12 ? 'var(--m-red)' : conso > 8 ? 'var(--m-accent)' : 'var(--m-green)';
-            return `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Conso moyenne</span><span style="font-weight:600;color:${consoColor}">${conso.toFixed(1)} L/100km</span></div>`;
-          }
-          return '';
-        })()}
-        ${v.kmInitial != null ?     `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Km initial</span><span style="font-weight:500">${M.formatNum(v.kmInitial)} km</span></div>` : ''}
-        ${v.modeAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Acquisition</span><span style="font-weight:500;text-transform:capitalize">${M.escHtml(v.modeAcquisition)}</span></div>` : ''}
-        ${v.dateAcquisition ?       `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Date acquisition</span><span style="font-weight:500">${M.formatDate(v.dateAcquisition)}</span></div>` : ''}
-        ${v.entretienIntervalKm ?   `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Vidange tous les</span><span style="font-weight:500">${M.formatNum(v.entretienIntervalKm)} km</span></div>` : ''}
+      <!-- 📄 CARTE GRISE (aperçu + actions) -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">📄 Carte grise</h3></div>
+        <div class="m-card" style="padding:14px 16px">
+          ${docCG ? `
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+              <span style="font-size:1.6rem;flex-shrink:0">🪪</span>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(docCG.nom || 'Carte grise')}</div>
+                <div style="font-size:.72rem;color:var(--m-green);margin-top:2px">✅ Uploadée${docCG.uploaded_at ? ' · ' + M.formatDate(docCG.uploaded_at.slice(0,10)) : ''}</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','carte_grise')" class="m-btn" style="flex:1 1 auto">👁 Voir</button>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="flex:1 1 auto">↻ Remplacer</button>
+            </div>
+          ` : `
+            <div style="text-align:center;padding:8px 0 4px">
+              <div style="font-size:2rem;margin-bottom:6px">📄</div>
+              <p style="color:var(--m-text-muted);font-size:.85rem;margin:0 0 10px">Aucune carte grise enregistrée</p>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">📷 Uploader la carte grise</button>
+            </div>
+          `}
+        </div>
       </div>
 
-      <!-- Carburant resume -->
+      <!-- 🪪 IDENTITE -->
+      <div class="m-section">
+        <div class="m-section-header"><h3 class="m-section-title">🪪 Identité</h3></div>
+        <div class="m-card" style="padding:0">
+          ${detailRow('Immatriculation', M.escHtml(v.immat || '—'))}
+          ${v.marque ? detailRow('Marque', M.escHtml(v.marque)) : ''}
+          ${v.modele ? detailRow('Modèle', M.escHtml(v.modele)) : ''}
+          ${v.vin ? detailRow('VIN', `<span style="font-family:monospace;font-size:.8rem">${M.escHtml(v.vin)}</span>`) : ''}
+          ${v.genre ? detailRow('Genre', M.escHtml(v.genre)) : ''}
+          ${detailRow('Carburant', M.escHtml(carbAffiche))}
+          ${v.critAir ? detailRow("Crit'Air", `Vignette ${M.escHtml(v.critAir)}`) : ''}
+        </div>
+      </div>
+
+      <!-- 📐 CARACTERISTIQUES -->
+      ${(v.km || v.kmInitial || v.capaciteReservoir || v.conso || consoCalc != null || v.ptac || v.ptra || v.essieux || v.entretienIntervalKm) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">📐 Caractéristiques</h3></div>
+          <div class="m-card" style="padding:0">
+            ${v.km ? detailRow('Kilométrage', `${M.formatNum(v.km)} km`) : ''}
+            ${v.kmInitial ? detailRow('Km initial', `${M.formatNum(v.kmInitial)} km`) : ''}
+            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100km</span>`) : ''}
+            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100km`) : ''}
+            ${v.capaciteReservoir ? detailRow('Capacité réservoir', `${M.formatNum(v.capaciteReservoir)} L`) : ''}
+            ${v.ptac ? detailRow('PTAC', `${M.formatNum(v.ptac)} kg`) : ''}
+            ${v.ptra ? detailRow('PTRA', `${M.formatNum(v.ptra)} kg`) : ''}
+            ${v.essieux ? detailRow('Essieux', `${v.essieux}`) : ''}
+            ${v.entretienIntervalKm ? detailRow('Vidange tous les', `${M.formatNum(v.entretienIntervalKm)} km`, { last: true }) : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 💰 ACQUISITION -->
+      ${(v.modeAcquisition || v.dateAcquisition) ? `
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">💰 Acquisition</h3></div>
+          <div class="m-card" style="padding:0">
+            ${v.modeAcquisition ? detailRow('Mode', `<span style="text-transform:uppercase">${M.escHtml(v.modeAcquisition)}</span>`) : ''}
+            ${v.dateAcquisition ? detailRow('Date', M.formatDate(v.dateAcquisition), { last: !v.prixAchatHT && !v.loyerMensuelHT }) : ''}
+            ${v.prixAchatHT ? detailRow('Prix HT', M.format$(v.prixAchatHT)) : ''}
+            ${v.prixAchatTTC ? detailRow('Prix TTC', M.format$(v.prixAchatTTC), { last: !v.loyerMensuelHT }) : ''}
+            ${v.loyerMensuelHT ? detailRow('Loyer mensuel HT', M.format$(v.loyerMensuelHT), { last: true }) : ''}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- ⛽ CARBURANT -->
       ${pleins.length ? `
         <div class="m-section">
           <div class="m-section-header">
@@ -6995,8 +7292,102 @@
             <span style="font-size:.85rem;color:var(--m-text-muted)">${pleins.length} plein${pleins.length>1?'s':''}</span>
           </div>
           <div class="m-card-row">
-            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
-            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+            <div class="m-card m-card-red" style="padding:14px"><div class="m-card-title">Total dépensé</div><div class="m-card-value" style="font-size:1.2rem">${M.format$(totalCarb)}</div><div class="m-card-sub">${M.formatNum(totalLitres.toFixed(0))} L</div></div>
+            <div class="m-card m-card-blue" style="padding:14px"><div class="m-card-title">Dernier plein</div><div class="m-card-value" style="font-size:1.2rem">${dernierPlein ? M.format$(dernierPlein.total) : '—'}</div><div class="m-card-sub">${dernierPlein ? M.formatDate(dernierPlein.date) : ''}</div></div>
+          </div>
+          ${derniersPleins.length ? `
+            <div class="m-card" style="padding:0;margin-top:10px">
+              ${derniersPleins.map((p, i) => {
+                const isLast = i === derniersPleins.length - 1;
+                const consoLine = (i < derniersPleins.length - 1) ? (() => {
+                  const next = derniersPleins[i+1];
+                  const dKm = (M.parseNum(p.kmCompteur) || 0) - (M.parseNum(next.kmCompteur) || 0);
+                  const litres = M.parseNum(p.litres) || 0;
+                  if (dKm > 0 && litres > 0) {
+                    return ` · ${(litres / dKm * 100).toFixed(1)} L/100`;
+                  }
+                  return '';
+                })() : '';
+                return `<button type="button" onclick="MCAm.formNouveauPlein && MCAm.editerPlein && MCAm.editerPlein('${M.escHtml(p.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                  <div style="flex:1 1 auto;min-width:0">
+                    <div style="font-weight:600;font-size:.85rem">${M.formatDate(p.date)}</div>
+                    <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatNum(M.parseNum(p.litres).toFixed(1))} L${p.kmCompteur ? ' · ' + M.formatNum(p.kmCompteur) + ' km' : ''}${consoLine}</div>
+                  </div>
+                  <div style="font-weight:700;color:var(--m-red);font-size:.85rem">${M.format$(p.total)}</div>
+                </button>`;
+              }).join('')}
+            </div>
+          ` : ''}
+        </div>
+      ` : ''}
+
+      <!-- 🔧 ENTRETIENS -->
+      ${entretiens.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">🔧 Entretiens</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${entretiens.length} · ${derniersEntretiens.length} affichés</span>
+          </div>
+          ${dernierEntretien?.prochainKm ? `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px;padding:0 4px">🔔 Prochain prévu : <strong>${M.formatNum(dernierEntretien.prochainKm)} km</strong></p>` : ''}
+          <div class="m-card" style="padding:0">
+            ${derniersEntretiens.map((e, i) => {
+              const isLast = i === derniersEntretiens.length - 1;
+              return `<button type="button" onclick="MCAm.editerEntretien && MCAm.editerEntretien('${M.escHtml(e.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem;text-transform:capitalize">${M.escHtml(e.type || 'Entretien')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatDate(e.date)}${e.km ? ' · ' + M.formatNum(e.km) + ' km' : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-purple);font-size:.85rem">${M.format$(e.cout || e.coutTtc || 0)}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 💸 CHARGES rattachées -->
+      ${charges.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">💸 Charges rattachées</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${charges.length} · ${M.format$(totalCharges)}</span>
+          </div>
+          <div class="m-card" style="padding:0">
+            ${dernieresCharges.map((c, i) => {
+              const isLast = i === dernieresCharges.length - 1;
+              const montant = M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0;
+              return `<button type="button" onclick="MCAm.editerCharge && MCAm.editerCharge('${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(c.libelle || c.categorie || 'Charge')}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${M.formatDate(c.date)}${c.fournisseur ? ' · ' + M.escHtml(c.fournisseur) : ''}</div>
+                </div>
+                <div style="font-weight:700;color:var(--m-red);font-size:.85rem">${M.format$(montant)}</div>
+              </button>`;
+            }).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- 🚗 INSPECTIONS -->
+      ${inspections.length ? `
+        <div class="m-section">
+          <div class="m-section-header">
+            <h3 class="m-section-title">🚗 Inspections</h3>
+            <span style="font-size:.85rem;color:var(--m-text-muted)">${inspections.length} · ${dernieresInspections.length} affichées</span>
+          </div>
+          <div class="m-card" style="padding:0">
+            ${dernieresInspections.map((i, idx) => {
+              const isLast = idx === dernieresInspections.length - 1;
+              const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : null;
+              const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : (i.salNom || '');
+              const nbPhotos = Array.isArray(i.photos) ? i.photos.length : 0;
+              return `<button type="button" onclick="MCAm.openDetail('inspections','${M.escHtml(i.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="font-weight:600;font-size:.85rem">${M.formatDate(i.date)}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${nom ? '👤 ' + M.escHtml(nom) : ''}${nbPhotos ? (nom ? ' · ' : '') + '📸 ' + nbPhotos : ''}</div>
+                </div>
+                <span style="color:var(--m-text-muted)">›</span>
+              </button>`;
+            }).join('')}
           </div>
         </div>
       ` : ''}
@@ -7005,7 +7396,6 @@
         if (!livraisons.length) return '';
         const totalCa = livraisons.reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
         const totalKm = livraisons.reduce((s, l) => s + (M.parseNum(l.distance) || 0), 0);
-        // Historique conducteurs : agrège par chauffeur (salarieId / chaufId)
         const salaries = M.charger('salaries');
         const byChauf = {};
         livraisons.forEach(l => {
@@ -7019,14 +7409,14 @@
         });
         const topChauf = Object.values(byChauf).sort((a, b) => b.nb - a.nb).slice(0, 5);
         const dernieres = [...livraisons].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5);
-        const docsPresents = M.DOC_TYPES_VEHICULE.filter(t => v.docs?.[t.type]);
+        const docsAutres = M.DOC_TYPES_VEHICULE.filter(t => t.type !== 'carte_grise' && v.docs?.[t.type]);
 
         return `
-          ${docsPresents.length ? `
+          ${docsAutres.length ? `
             <div class="m-section">
-              <div class="m-section-header"><h3 class="m-section-title">📎 Documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsPresents.length}</span></div>
+              <div class="m-section-header"><h3 class="m-section-title">📎 Autres documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsAutres.length}</span></div>
               <div class="m-card" style="padding:0">
-                ${docsPresents.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsPresents.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
+                ${docsAutres.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsAutres.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit;min-height:48px"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
               </div>
             </div>
           ` : ''}
@@ -7046,7 +7436,7 @@
                   const sal = salaries.find(s => s.id === c.id);
                   const nom = sal ? ((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || '')).trim() : 'Inconnu';
                   const isLast = i === topChauf.length - 1;
-                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer">
+                  return `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(c.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:12px 14px;${isLast ? '' : 'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
                     <div style="flex:1 1 auto;min-width:0">
                       <div style="font-weight:600;font-size:.9rem">${i === 0 ? '🥇 ' : i === 1 ? '🥈 ' : i === 2 ? '🥉 ' : ''}${M.escHtml(nom)}</div>
                       <div style="color:var(--m-text-muted);font-size:.74rem;margin-top:2px">${c.nb} liv · ${M.formatNum(c.km.toFixed(0))} km · dernière ${M.formatDate(c.derniere)}</div>
@@ -7063,7 +7453,7 @@
           <div class="m-section">
             <div class="m-section-header"><h3 class="m-section-title">📋 Dernières livraisons</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${dernieres.length} affichées</span></div>
             ${dernieres.map(l => `
-              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit">
+              <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit;min-height:48px">
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(l.client || '—')}</div>
                   <div style="color:var(--m-text-muted);font-size:.76rem;margin-top:2px">${M.formatDate(l.date)}${l.distance ? ' · ' + M.formatNum(l.distance) + ' km' : ''}</div>
@@ -7074,6 +7464,13 @@
           </div>
         `;
       })()}
+
+      <!-- ⏸️ Désactiver / Réactiver -->
+      <div class="m-section" style="margin-top:20px">
+        <button type="button" onclick="MCAm.toggleArchiveVehicule('${M.escHtml(v.id)}')" class="m-btn ${v.archive ? '' : 'm-btn-danger'}" style="width:100%">
+          ${v.archive ? '▶️ Réactiver ce véhicule' : '⏸️ Désactiver ce véhicule'}
+        </button>
+      </div>
     `;
   };
   // ---------- Entretiens (v2.8 : list groupee par mois + filtre vehicule) ----------

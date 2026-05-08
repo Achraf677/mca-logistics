@@ -52,7 +52,7 @@ Onglets (barre haute, scrollable horizontalement) :
 | 8 | `rentabilite` | Rentabilité | 75 % | Barre stack uniquement (pas de doughnut Chart.js) |
 | 9 | `clients` | Clients | 87 % | Liste + recherche, fiche détail |
 | 10 | `fournisseurs` | Fournisseurs | 87 % | Idem clients |
-| 11 | `vehicules` | Véhicules | 81 % | Carte grise upload, OCR |
+| 11 | `vehicules` | Véhicules | 95 % | Drawer 360° (échéances CT/assu/CG, identité+VIN+genre+crit'air, caractéristiques PTAC/PTRA/essieux/conso, acquisition, pleins, entretiens, charges rattachées, inspections, livraisons), tile indicateurs CT+assu+CG, tri immat/km/CT, actions +Plein/+Entretien/+Inspection/Carte grise (PR #parity-mobile-vehicules) |
 | 12 | `entretiens` | Entretiens | 83 % | KPI mois courant figé |
 | 13 | `inspections` | Inspections | 81 % | Photos visibles, pas de lightbox |
 | 14 | `salaries` | Salariés | 84 % | Liste + détail, drawer 360° absent |
