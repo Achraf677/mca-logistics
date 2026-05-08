@@ -118,10 +118,15 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], u
     `- "Rapprochement Pennylane <-> MCA" : utilise IMPERATIVEMENT match_factures_pennylane_mca. NE compose JAMAIS toi-meme la correspondance entre une facture Pennylane et une livraison MCA — c'est un matching deterministe (montant TTC ±0.50€, date ±5j, client similar).`,
     ``,
     `## V2 ECRITURE (avec confirmation)`,
-    `- Tu peux maintenant PROPOSER des creations/modifications via 4 tools : propose_livraison, propose_charge, propose_paiement, propose_marquer_alerte_resolue.`,
-    `- Quand l'admin demande "cree X" / "ajoute Y" / "marque payee Z" : utilise le tool propose_* approprie.`,
+    `- Tu peux PROPOSER des creations sur 13 entites :`,
+    `  • Operations (livraisons / charges / paiements / alertes) : propose_livraison, propose_charge, propose_paiement, propose_marquer_alerte_resolue`,
+    `  • Tiers : propose_client, propose_fournisseur`,
+    `  • Flotte : propose_vehicule, propose_carburant, propose_entretien, propose_inspection`,
+    `  • Equipe : propose_salarie, propose_planning_creneau, propose_incident`,
+    `- Quand l'admin demande "cree X" / "ajoute Y" / "saisie Z" : utilise le tool propose_* approprie a l'entite.`,
     `- N'execute JAMAIS directement. Ces tools retournent une PROPOSITION que l'admin doit valider via une carte UI cote frontend. Toi tu confirmes juste a l'admin que tu as prepare la proposition.`,
-    `- Reponse type : "J'ai prepare la livraison X / Y / Z. Valide la carte ci-dessous pour creer."`,
+    `- Reponse type : "J'ai prepare la creation de X. Valide la carte ci-dessous pour confirmer."`,
+    `- Si plusieurs creations sont demandees dans le meme message, appelle plusieurs tools propose_* — chacun produit sa carte de confirmation.`,
     ``,
     `## Contexte`,
     `- MCA = couche operationnelle transport (planning, km, inspections, ADR, rentabilite). PAS la compta.`,
@@ -577,6 +582,205 @@ const TOOLS = [{
           alerte_id: { type: "string", description: "UUID de l'alerte a marquer comme resolue" },
         },
         required: ["alerte_id"],
+      },
+    },
+    // ===== V2 ECRITURE Phase 1 — CREATE des 8 entites supplementaires =====
+    {
+      name: "propose_client",
+      description: "PROPOSE la creation d'un client. Retourne une proposition que l'admin doit confirmer via UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          nom: { type: "string", description: "Raison sociale ou nom (obligatoire)" },
+          prenom: { type: "string" },
+          type: { type: "string", enum: ["pro", "particulier"], description: "Defaut: pro" },
+          secteur: { type: "string" },
+          siren: { type: "string", description: "SIREN si client pro" },
+          tva_intracom: { type: "string", description: "Numero TVA intracom" },
+          adresse: { type: "string" },
+          cp: { type: "string", description: "Code postal" },
+          ville: { type: "string" },
+          telephone: { type: "string" },
+          email: { type: "string" },
+          email_fact: { type: "string", description: "Email facturation" },
+          contact: { type: "string", description: "Personne contact" },
+          delai_paiement_jours: { type: "integer", description: "Defaut 30" },
+          notes: { type: "string" },
+        },
+        required: ["nom"],
+      },
+    },
+    {
+      name: "propose_fournisseur",
+      description: "PROPOSE la creation d'un fournisseur. Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          nom: { type: "string", description: "Raison sociale ou nom (obligatoire)" },
+          prenom: { type: "string" },
+          type: { type: "string", enum: ["Pro", "Particulier"], description: "Defaut: Pro" },
+          secteur: { type: "string" },
+          siren: { type: "string" },
+          tva_intracom: { type: "string" },
+          adresse: { type: "string" },
+          cp: { type: "string" },
+          ville: { type: "string" },
+          telephone: { type: "string" },
+          email: { type: "string" },
+          email_fact: { type: "string" },
+          contact: { type: "string" },
+          iban: { type: "string" },
+          bic: { type: "string" },
+          paiement_mode: { type: "string" },
+          delai_paiement_jours: { type: "integer", description: "Defaut 30" },
+          notes: { type: "string" },
+        },
+        required: ["nom"],
+      },
+    },
+    {
+      name: "propose_vehicule",
+      description: "PROPOSE la creation d'un vehicule (par immatriculation). Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          immat: { type: "string", description: "Immatriculation (obligatoire)" },
+          marque: { type: "string" },
+          modele: { type: "string" },
+          salarie_id: { type: "string", description: "UUID chauffeur affecte (optionnel)" },
+          kilometrage: { type: "number" },
+          km_initial: { type: "number" },
+          date_ct: { type: "string", description: "Date prochain CT YYYY-MM-DD" },
+          date_assurance: { type: "string", description: "Date echeance assurance" },
+          date_carte_grise: { type: "string", description: "Date carte grise" },
+          date_vidange: { type: "string", description: "Date prochaine vidange" },
+          carburant: { type: "string", description: "gasoil/essence/electrique/hybride" },
+          conso: { type: "number", description: "Consommation L/100km" },
+          capacite_reservoir: { type: "number", description: "L" },
+          tva_carburant_deductible: { type: "number", description: "% TVA carburant deductible (80 ou 100)" },
+          mode_acquisition: { type: "string", description: "achat/location/credit-bail" },
+          date_acquisition: { type: "string" },
+          entretien_interval_km: { type: "number", description: "Periodicite km entre entretiens" },
+          entretien_interval_mois: { type: "number" },
+          ptac: { type: "integer", description: "PTAC en kg" },
+          ptra: { type: "integer", description: "PTRA en kg" },
+          essieux: { type: "integer" },
+          crit_air: { type: "string" },
+          vin: { type: "string" },
+        },
+        required: ["immat"],
+      },
+    },
+    {
+      name: "propose_salarie",
+      description: "PROPOSE la creation d'un salarie. Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          nom: { type: "string", description: "Nom (obligatoire)" },
+          prenom: { type: "string" },
+          nom_famille: { type: "string", description: "Nom de famille si different du nom d'usage" },
+          numero: { type: "string", description: "Matricule interne" },
+          poste: { type: "string", description: "Chauffeur, manutentionnaire, etc." },
+          permis: { type: "string", description: "Type de permis (B, C, CE, ...)" },
+          categorie_permis: { type: "string" },
+          date_permis: { type: "string", description: "Date validite permis YYYY-MM-DD" },
+          assurance: { type: "string", description: "Reference assurance" },
+          date_assurance: { type: "string" },
+          telephone: { type: "string" },
+          email: { type: "string" },
+          email_personnel: { type: "string" },
+        },
+        required: ["nom"],
+      },
+    },
+    {
+      name: "propose_carburant",
+      description: "PROPOSE la creation d'un plein carburant. Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          vehicule_id: { type: "string", description: "UUID vehicule" },
+          vehicule_immat: { type: "string", description: "Immat (alternatif a vehicule_id, sera resolu)" },
+          salarie_id: { type: "string" },
+          date_plein: { type: "string", description: "Defaut: aujourd'hui" },
+          litres: { type: "number" },
+          prix_ht: { type: "number" },
+          taux_tva: { type: "number", description: "Defaut 20" },
+          prix_ttc: { type: "number" },
+          kilometrage: { type: "number", description: "Km au compteur lors du plein" },
+          type_carburant: { type: "string" },
+        },
+      },
+    },
+    {
+      name: "propose_entretien",
+      description: "PROPOSE la creation d'un entretien vehicule. Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          vehicule_id: { type: "string" },
+          vehicule_immat: { type: "string", description: "Alternatif a vehicule_id" },
+          date_entretien: { type: "string", description: "Defaut: aujourd'hui" },
+          type: { type: "string", description: "vidange / freins / pneus / courroie / etc." },
+          description: { type: "string" },
+          cout_ht: { type: "number" },
+          taux_tva: { type: "number", description: "Defaut 20" },
+          cout_ttc: { type: "number" },
+          kilometrage: { type: "number" },
+          prochain_km: { type: "number", description: "Km prevue pour le prochain entretien" },
+          prochaine_date: { type: "string" },
+        },
+      },
+    },
+    {
+      name: "propose_incident",
+      description: "PROPOSE la creation d'un incident (accrochage, sinistre, litige, etc.). Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          salarie_id: { type: "string" },
+          livraison_id: { type: "string", description: "UUID livraison liee (optionnel)" },
+          gravite: { type: "string", enum: ["mineur", "moyen", "grave", "critique"] },
+          description: { type: "string", description: "Obligatoire" },
+          date_incident: { type: "string", description: "Defaut: aujourd'hui" },
+          statut: { type: "string", enum: ["ouvert", "en_cours", "clos"], description: "Defaut: ouvert" },
+        },
+        required: ["description"],
+      },
+    },
+    {
+      name: "propose_planning_creneau",
+      description: "PROPOSE la creation d'un creneau de planning hebdomadaire pour un salarie. Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          salarie_id: { type: "string", description: "UUID salarie (obligatoire)" },
+          jour: { type: "string", description: "Date YYYY-MM-DD" },
+          travaille: { type: "boolean", description: "Defaut true" },
+          type_jour: { type: "string", description: "travail / repos / conge / maladie / absence" },
+          heure_debut: { type: "string", description: "HH:MM" },
+          heure_fin: { type: "string", description: "HH:MM" },
+          zone: { type: "string" },
+          note: { type: "string" },
+        },
+        required: ["salarie_id", "jour"],
+      },
+    },
+    {
+      name: "propose_inspection",
+      description: "PROPOSE la creation d'une inspection vehicule (controle hebdomadaire). Retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          salarie_id: { type: "string", description: "UUID chauffeur (obligatoire)" },
+          vehicule_id: { type: "string" },
+          date_inspection: { type: "string", description: "Defaut: aujourd'hui" },
+          semaine_label: { type: "string", description: "Ex: 'S20-2026'" },
+          commentaire: { type: "string" },
+          statut: { type: "string", enum: ["soumise", "validee", "refusee"], description: "Defaut: soumise" },
+        },
+        required: ["salarie_id"],
       },
     },
     // ===== Memoire long-terme =====
@@ -2156,6 +2360,114 @@ async function toolProposeMarquerAlerteResolue(args: any, sb: SbClient) {
   };
 }
 
+// ===== Phase 1 — propose_<entity> CREATE des 8 entites =====
+// Une seule helper factorisee : whitelist par entite, resolution best-effort
+// des references FK quand c'est commode (ex: vehicule_immat -> vehicule_id).
+// Le payload retourne est passe tel quel a l'edge fn write-execute.
+
+interface ProposeEntitySpec {
+  action: string;             // ex "create_client"
+  type: string;               // ex "client"
+  title: string;              // ex "Creer un client"
+  required: string[];         // champs obligatoires (sinon erreur)
+  copyFields: string[];       // champs simples a recopier de args -> payload
+}
+
+const PROPOSE_SPECS: Record<string, ProposeEntitySpec> = {
+  propose_client: {
+    action: "create_client", type: "client", title: "Creer un client",
+    required: ["nom"],
+    copyFields: ["nom", "prenom", "type", "secteur", "siren", "tva_intracom",
+                 "adresse", "cp", "ville", "telephone", "email", "email_fact",
+                 "contact", "delai_paiement_jours", "notes"],
+  },
+  propose_fournisseur: {
+    action: "create_fournisseur", type: "fournisseur", title: "Creer un fournisseur",
+    required: ["nom"],
+    copyFields: ["nom", "prenom", "type", "secteur", "siren", "tva_intracom",
+                 "adresse", "cp", "ville", "telephone", "email", "email_fact",
+                 "contact", "iban", "bic", "paiement_mode",
+                 "delai_paiement_jours", "notes"],
+  },
+  propose_vehicule: {
+    action: "create_vehicule", type: "vehicule", title: "Creer un vehicule",
+    required: ["immat"],
+    copyFields: ["immat", "marque", "modele", "salarie_id", "kilometrage",
+                 "km_initial", "date_ct", "date_assurance", "date_carte_grise",
+                 "date_vidange", "carburant", "conso", "capacite_reservoir",
+                 "tva_carburant_deductible", "mode_acquisition", "date_acquisition",
+                 "entretien_interval_km", "entretien_interval_mois", "ptac",
+                 "ptra", "essieux", "crit_air", "vin"],
+  },
+  propose_salarie: {
+    action: "create_salarie", type: "salarie", title: "Creer un salarie",
+    required: ["nom"],
+    copyFields: ["nom", "prenom", "nom_famille", "numero", "poste", "permis",
+                 "categorie_permis", "date_permis", "assurance", "date_assurance",
+                 "telephone", "email", "email_personnel"],
+  },
+  propose_carburant: {
+    action: "create_carburant", type: "carburant", title: "Enregistrer un plein",
+    required: [],
+    copyFields: ["vehicule_id", "salarie_id", "date_plein", "litres",
+                 "prix_ht", "taux_tva", "prix_ttc", "kilometrage", "type_carburant"],
+  },
+  propose_entretien: {
+    action: "create_entretien", type: "entretien", title: "Creer un entretien",
+    required: [],
+    copyFields: ["vehicule_id", "date_entretien", "type", "description",
+                 "cout_ht", "taux_tva", "cout_ttc", "kilometrage",
+                 "prochain_km", "prochaine_date"],
+  },
+  propose_incident: {
+    action: "create_incident", type: "incident", title: "Creer un incident",
+    required: ["description"],
+    copyFields: ["salarie_id", "livraison_id", "gravite", "description",
+                 "date_incident", "statut"],
+  },
+  propose_planning_creneau: {
+    action: "create_planning_creneau", type: "planning_creneau",
+    title: "Creer un creneau de planning",
+    required: ["salarie_id", "jour"],
+    copyFields: ["salarie_id", "jour", "travaille", "type_jour",
+                 "heure_debut", "heure_fin", "zone", "note"],
+  },
+  propose_inspection: {
+    action: "create_inspection", type: "inspection", title: "Creer une inspection",
+    required: ["salarie_id"],
+    copyFields: ["salarie_id", "vehicule_id", "date_inspection",
+                 "semaine_label", "commentaire", "statut"],
+  },
+};
+
+async function toolProposeEntity(toolName: string, args: any, sb: SbClient) {
+  const spec = PROPOSE_SPECS[toolName];
+  if (!spec) return { error: `tool ${toolName} sans spec` };
+
+  for (const r of spec.required) {
+    if (args[r] === undefined || args[r] === null || args[r] === "") {
+      return { error: `${r} manquant` };
+    }
+  }
+
+  const payload: Record<string, unknown> = {};
+  for (const k of spec.copyFields) {
+    if (args[k] !== undefined && args[k] !== null) payload[k] = args[k];
+  }
+
+  // Resolution best-effort des FK si on a un identifiant alternatif
+  if ((toolName === "propose_carburant" || toolName === "propose_entretien")
+      && !payload.vehicule_id && args.vehicule_immat) {
+    const v = await resolveVehiculeByImmat(sb, args.vehicule_immat);
+    if (v) payload.vehicule_id = v.id;
+  }
+
+  return {
+    proposal: { type: spec.type, title: spec.title, summary: { ...args }, payload },
+    write_actions: [{ action: spec.action, payload }],
+  };
+}
+
 const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown>> = {
   search_livraisons: toolSearchLivraisons,
   search_charges: toolSearchCharges,
@@ -2200,6 +2512,16 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   propose_charge: toolProposeCharge,
   propose_paiement: toolProposePaiement,
   propose_marquer_alerte_resolue: toolProposeMarquerAlerteResolue,
+  // Phase 1 — CREATE des 8 entites supplementaires (delegues a toolProposeEntity)
+  propose_client: (a, sb) => toolProposeEntity("propose_client", a, sb),
+  propose_fournisseur: (a, sb) => toolProposeEntity("propose_fournisseur", a, sb),
+  propose_vehicule: (a, sb) => toolProposeEntity("propose_vehicule", a, sb),
+  propose_salarie: (a, sb) => toolProposeEntity("propose_salarie", a, sb),
+  propose_carburant: (a, sb) => toolProposeEntity("propose_carburant", a, sb),
+  propose_entretien: (a, sb) => toolProposeEntity("propose_entretien", a, sb),
+  propose_incident: (a, sb) => toolProposeEntity("propose_incident", a, sb),
+  propose_planning_creneau: (a, sb) => toolProposeEntity("propose_planning_creneau", a, sb),
+  propose_inspection: (a, sb) => toolProposeEntity("propose_inspection", a, sb),
 };
 
 // ===== Memoire long-terme =====

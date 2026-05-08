@@ -1128,6 +1128,16 @@
     create_charge: { icon: '💸', title: 'Action proposee : creer une charge' },
     create_paiement: { icon: '💰', title: 'Action proposee : enregistrer un paiement' },
     resolve_alerte: { icon: '✅', title: 'Action proposee : marquer alerte resolue' },
+    // Phase 1 — CREATE des 8 entites supplementaires
+    create_client: { icon: '🧑‍💼', title: 'Action proposee : creer un client' },
+    create_fournisseur: { icon: '🏭', title: 'Action proposee : creer un fournisseur' },
+    create_vehicule: { icon: '🚐', title: 'Action proposee : creer un vehicule' },
+    create_salarie: { icon: '👤', title: 'Action proposee : creer un salarie' },
+    create_carburant: { icon: '⛽', title: 'Action proposee : enregistrer un plein' },
+    create_entretien: { icon: '🔧', title: 'Action proposee : creer un entretien' },
+    create_incident: { icon: '🚨', title: 'Action proposee : creer un incident' },
+    create_planning_creneau: { icon: '📅', title: 'Action proposee : creer un creneau planning' },
+    create_inspection: { icon: '🚗', title: 'Action proposee : creer une inspection' },
   };
 
   // Formatage d'une valeur pour la table de confirmation : null/undefined -> tiret,
@@ -1309,6 +1319,15 @@
       case 'create_charge': return 'Charge creee';
       case 'create_paiement': return 'Paiement enregistre';
       case 'resolve_alerte': return 'Alerte marquee resolue';
+      case 'create_client': return 'Client cree';
+      case 'create_fournisseur': return 'Fournisseur cree';
+      case 'create_vehicule': return 'Vehicule cree';
+      case 'create_salarie': return 'Salarie cree';
+      case 'create_carburant': return 'Plein enregistre';
+      case 'create_entretien': return 'Entretien cree';
+      case 'create_incident': return 'Incident cree';
+      case 'create_planning_creneau': return 'Creneau planning cree';
+      case 'create_inspection': return 'Inspection creee';
       default: return 'Action confirmee';
     }
   }

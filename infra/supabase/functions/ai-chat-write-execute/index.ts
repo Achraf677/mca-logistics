@@ -207,6 +207,107 @@ async function execResolveAlerte(sb: SbClient, payload: any, actorId: string) {
   return { success: true, alerte_id: id, alerte: data };
 }
 
+// ===== Phase 1 : CREATE generique pour les 8 entites manquantes =====
+// Une seule helper factorisee : whitelist colonnes par entite, insert, audit log.
+
+const CREATE_WHITELISTS: Record<string, string[]> = {
+  clients: [
+    "nom", "prenom", "type", "secteur", "siren", "tva_intracom", "pays",
+    "adresse", "cp", "ville", "telephone", "email", "email_fact", "contact",
+    "delai_paiement_jours", "notes",
+  ],
+  fournisseurs: [
+    "nom", "prenom", "type", "secteur", "siren", "tva_intracom", "pays",
+    "adresse", "cp", "ville", "telephone", "email", "email_fact", "contact",
+    "iban", "bic", "paiement_mode", "delai_paiement_jours", "notes",
+  ],
+  vehicules: [
+    "immat", "marque", "modele", "salarie_id", "kilometrage", "km_initial",
+    "date_ct", "date_assurance", "date_carte_grise", "date_vidange",
+    "carburant", "conso", "capacite_reservoir", "tva_carburant_deductible",
+    "mode_acquisition", "date_acquisition", "entretien_interval_km",
+    "entretien_interval_mois", "genre", "ptac", "ptra", "essieux", "crit_air",
+    "vin", "carte_grise_ref", "date_1_immat",
+  ],
+  salaries: [
+    "nom", "prenom", "nom_famille", "numero", "poste", "permis",
+    "categorie_permis", "date_permis", "assurance", "date_assurance",
+    "telephone", "email", "email_personnel", "actif",
+  ],
+  carburant: [
+    "vehicule_id", "salarie_id", "date_plein", "litres", "prix_ht",
+    "taux_tva", "prix_ttc", "kilometrage", "type_carburant",
+  ],
+  entretiens: [
+    "vehicule_id", "date_entretien", "type", "description", "cout_ht",
+    "taux_tva", "cout_ttc", "kilometrage", "prochain_km", "prochaine_date",
+  ],
+  incidents: [
+    "salarie_id", "livraison_id", "gravite", "description", "date_incident",
+    "statut",
+  ],
+  plannings_hebdo: [
+    "salarie_id", "jour", "travaille", "type_jour", "heure_debut",
+    "heure_fin", "zone", "note",
+  ],
+  inspections: [
+    "salarie_id", "vehicule_id", "date_inspection", "semaine_label",
+    "commentaire", "statut",
+  ],
+};
+
+const ENTITY_DEFAULTS: Record<string, Record<string, unknown>> = {
+  clients: { type: "pro", pays: "FR", delai_paiement_jours: 30 },
+  fournisseurs: { type: "Pro", pays: "FR", delai_paiement_jours: 30 },
+  vehicules: {},
+  salaries: { actif: true },
+  carburant: { taux_tva: 20 },
+  entretiens: { taux_tva: 20 },
+  incidents: { statut: "ouvert", date_incident: undefined /* fillin */ },
+  plannings_hebdo: { travaille: true, type_jour: "travail" },
+  inspections: { statut: "soumise" },
+};
+
+async function execCreateEntity(
+  sb: SbClient,
+  entity: keyof typeof CREATE_WHITELISTS,
+  payload: any,
+  actorId: string,
+) {
+  if (!payload || typeof payload !== "object") {
+    return { success: false, error: "payload manquant" };
+  }
+  const allowed = CREATE_WHITELISTS[entity];
+  if (!allowed) return { success: false, error: `entite inconnue: ${entity}` };
+
+  const insert: Record<string, unknown> = { ...(ENTITY_DEFAULTS[entity] || {}) };
+  for (const k of allowed) {
+    if (payload[k] !== undefined && payload[k] !== null) insert[k] = payload[k];
+  }
+  // Defauts dynamiques (date du jour si absent)
+  if (entity === "incidents" && !insert.date_incident) insert.date_incident = todayISO();
+  if (entity === "carburant" && !insert.date_plein) insert.date_plein = todayISO();
+  if (entity === "entretiens" && !insert.date_entretien) insert.date_entretien = todayISO();
+  if (entity === "inspections" && !insert.date_inspection) insert.date_inspection = todayISO();
+
+  // Validations metier minimales
+  if (entity === "clients" && !insert.nom) return { success: false, error: "clients : nom requis" };
+  if (entity === "fournisseurs" && !insert.nom) return { success: false, error: "fournisseurs : nom requis" };
+  if (entity === "vehicules" && !insert.immat) return { success: false, error: "vehicules : immatriculation requise" };
+  if (entity === "salaries" && !insert.nom) return { success: false, error: "salaries : nom requis" };
+
+  const { data, error } = await sb.from(entity as string).insert(insert).select("id").single();
+  if (error) return { success: false, error: error.message };
+  await logAudit(sb, {
+    table_name: entity as string,
+    operation: "INSERT",
+    row_id: (data as any).id,
+    actor_id: actorId,
+    diff: insert,
+  });
+  return { success: true, created_id: (data as any).id };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: CORS });
@@ -251,8 +352,35 @@ Deno.serve(async (req) => {
         result = await execCreatePaiement(sbAdmin, payload, actorId);
         break;
       case "resolve_alerte":
-        // payload peut etre { alerte_id } directement OU { ...body avec alerte_id en racine }
         result = await execResolveAlerte(sbAdmin, payload?.alerte_id ? payload : (body?.alerte_id ? body : payload), actorId);
+        break;
+      // ===== Phase 1 — CREATE des 8 entites supplementaires =====
+      case "create_client":
+        result = await execCreateEntity(sbAdmin, "clients", payload, actorId);
+        break;
+      case "create_fournisseur":
+        result = await execCreateEntity(sbAdmin, "fournisseurs", payload, actorId);
+        break;
+      case "create_vehicule":
+        result = await execCreateEntity(sbAdmin, "vehicules", payload, actorId);
+        break;
+      case "create_salarie":
+        result = await execCreateEntity(sbAdmin, "salaries", payload, actorId);
+        break;
+      case "create_carburant":
+        result = await execCreateEntity(sbAdmin, "carburant", payload, actorId);
+        break;
+      case "create_entretien":
+        result = await execCreateEntity(sbAdmin, "entretiens", payload, actorId);
+        break;
+      case "create_incident":
+        result = await execCreateEntity(sbAdmin, "incidents", payload, actorId);
+        break;
+      case "create_planning_creneau":
+        result = await execCreateEntity(sbAdmin, "plannings_hebdo", payload, actorId);
+        break;
+      case "create_inspection":
+        result = await execCreateEntity(sbAdmin, "inspections", payload, actorId);
         break;
       default:
         result = { success: false, error: `action inconnue: ${action}` };
