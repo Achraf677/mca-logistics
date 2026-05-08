@@ -33,7 +33,8 @@ function naviguerVers(page) {
     messagerie:'💬 Messagerie interne', parametres:'⚙️ Paramètres',
     charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
     heures:'⏱️ Heures & Km',
-    'espace-salarie':'Espace salarié'
+    'espace-salarie':'Espace salarié',
+    'brouillons-ia':'📋 Brouillons IA'
   };
   const titleEl = document.getElementById('pageTitle');
   if (titleEl) titleEl.textContent = titres[page] || page;
@@ -64,6 +65,13 @@ function naviguerVers(page) {
         case 'entretiens':   navEntrMois(0); break;
         case 'parametres':   chargerParametres(); break;
         case 'espace-salarie': chargerCadreSalarieUnifie(); break;
+        case 'brouillons-ia': {
+          if (window.AIBrouillons && typeof window.AIBrouillons.renderDraftsPage === 'function') {
+            const ct = document.getElementById('brouillons-ia-list');
+            if (ct) window.AIBrouillons.renderDraftsPage(ct);
+          }
+          break;
+        }
       }
     });
   });
