@@ -553,6 +553,108 @@
       border-color: var(--aic-danger); color: var(--aic-danger);
     }
 
+    /* ========== Cards confirmation V2 ECRITURE (propose_*) ========== */
+    .ai-chat-write-card {
+      align-self: stretch;
+      background: var(--aic-accent-soft);
+      border: 1.5px solid var(--aic-accent);
+      color: var(--aic-text);
+      border-radius: var(--aic-radius);
+      padding: 12px 14px;
+      font-size: .85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ai-chat-write-card.confirmed {
+      background: var(--aic-blue-tint);
+      border-color: var(--aic-blue);
+      opacity: .85;
+    }
+    .ai-chat-write-card.cancelled {
+      background: var(--aic-danger-tint);
+      border-color: var(--aic-danger-border);
+      opacity: .7;
+    }
+    .ai-chat-write-card-title {
+      font-weight: 700;
+      font-size: .92rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ai-chat-write-card-title .ai-chat-write-card-icon {
+      font-size: 1.1rem;
+    }
+    .ai-chat-write-card-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: .82rem;
+    }
+    .ai-chat-write-card-table tr {
+      border-bottom: 1px solid var(--aic-border);
+    }
+    .ai-chat-write-card-table tr:last-child { border-bottom: none; }
+    .ai-chat-write-card-table th {
+      text-align: left;
+      padding: 6px 8px 6px 0;
+      color: var(--aic-text-muted);
+      font-weight: 500;
+      width: 38%;
+      vertical-align: top;
+    }
+    .ai-chat-write-card-table td {
+      padding: 6px 0;
+      color: var(--aic-text);
+      word-break: break-word;
+    }
+    .ai-chat-write-card-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .ai-chat-write-card-btn {
+      border: none;
+      border-radius: var(--aic-radius);
+      padding: 10px 16px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      -webkit-tap-highlight-color: transparent;
+      transition: filter .15s ease, transform .15s ease;
+    }
+    .ai-chat-write-card-btn:active:not(:disabled) { transform: scale(0.97); }
+    .ai-chat-write-card-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .ai-chat-write-card-btn-primary {
+      background: var(--aic-accent);
+      color: var(--aic-accent-text);
+    }
+    .ai-chat-write-card-btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .ai-chat-write-card-btn-secondary {
+      background: transparent;
+      color: var(--aic-text-muted);
+      border: 1px solid var(--aic-border);
+    }
+    .ai-chat-write-card-btn-secondary:hover:not(:disabled) {
+      border-color: var(--aic-text-muted);
+      color: var(--aic-text);
+    }
+    .ai-chat-write-card-status {
+      font-size: .78rem;
+      color: var(--aic-text-muted);
+      font-style: italic;
+    }
+    .ai-chat-write-card-status.success { color: var(--aic-blue); }
+    .ai-chat-write-card-status.error { color: var(--aic-danger); }
+
+    @media (max-width: 768px) {
+      .ai-chat-write-card-btn {
+        min-height: 48px;
+        padding: 12px 18px;
+      }
+    }
+
     body.ai-chat-open { overflow: hidden; }
   `;
 
@@ -674,6 +776,18 @@
       if (m.role === 'model' && Array.isArray(m._memory_ops)) {
         m._memory_ops.forEach((op) => {
           const card = renderMemoryCard(op);
+          if (card) container.appendChild(card);
+        });
+      }
+      // Cards de confirmation V2 ECRITURE : un par write_action propose par l'IA.
+      // Si deja confirme/annule (m._write_states[i]), affiche la carte en mode read-only.
+      if (m.role === 'model' && Array.isArray(m._write_actions) && m._write_actions.length) {
+        const proposals = Array.isArray(m._proposals) ? m._proposals : [];
+        const states = Array.isArray(m._write_states) ? m._write_states : [];
+        m._write_actions.forEach((action, i) => {
+          const proposal = proposals[i] || null;
+          const st = states[i] || null;
+          const card = renderWriteCard(action, proposal, st, idx, i);
           if (card) container.appendChild(card);
         });
       }
@@ -1005,6 +1119,265 @@
     } catch (_) { return false; }
   }
 
+  // ----- V2 ECRITURE : cards de confirmation -----
+
+  // Mapping action -> titre + icone affiches dans la carte. Centralise pour
+  // ne pas dupliquer la logique dans renderWriteCard.
+  const WRITE_ACTION_META = {
+    create_livraison: { icon: '🚚', title: 'Action proposee : creer une livraison' },
+    create_charge: { icon: '💸', title: 'Action proposee : creer une charge' },
+    create_paiement: { icon: '💰', title: 'Action proposee : enregistrer un paiement' },
+    resolve_alerte: { icon: '✅', title: 'Action proposee : marquer alerte resolue' },
+  };
+
+  // Formatage d'une valeur pour la table de confirmation : null/undefined -> tiret,
+  // numbers -> 2 decimales si non-entier, dates ISO inchangees, autres -> string.
+  function formatWriteValue(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'number') {
+      if (Number.isInteger(v)) return String(v);
+      return v.toFixed(2);
+    }
+    if (typeof v === 'boolean') return v ? 'oui' : 'non';
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v); } catch (_) { return String(v); }
+    }
+    return String(v);
+  }
+
+  // Construit la liste de paires {label, value} a afficher pour une action.
+  // On prefere proposal.summary (plus humain : libelles resolus) au payload brut.
+  function buildWriteCardRows(action, proposal) {
+    if (proposal && proposal.summary && typeof proposal.summary === 'object') {
+      return Object.entries(proposal.summary).map(([k, v]) => ({ label: k, value: formatWriteValue(v) }));
+    }
+    const payload = (action && action.payload) || (proposal && proposal.payload) || {};
+    return Object.entries(payload).map(([k, v]) => ({ label: k, value: formatWriteValue(v) }));
+  }
+
+  // Rendu d'une carte de confirmation pour une write_action.
+  // Si state existe (deja confirmee/annulee), affiche en read-only avec badge.
+  function renderWriteCard(action, proposal, st, msgIdx, actionIdx) {
+    if (!action || typeof action !== 'object' || !action.action) return null;
+    const meta = WRITE_ACTION_META[action.action] || { icon: '🤖', title: 'Action proposee par l\'IA' };
+    const card = document.createElement('div');
+    card.className = 'ai-chat-write-card';
+    if (st && st.confirmed) card.classList.add('confirmed');
+    if (st && st.cancelled) card.classList.add('cancelled');
+
+    const title = document.createElement('div');
+    title.className = 'ai-chat-write-card-title';
+    title.innerHTML = '<span class="ai-chat-write-card-icon" aria-hidden="true"></span><span class="ai-chat-write-card-titletext"></span>';
+    title.querySelector('.ai-chat-write-card-icon').textContent = meta.icon;
+    title.querySelector('.ai-chat-write-card-titletext').textContent = '🤖 ' + meta.title;
+    card.appendChild(title);
+
+    const rows = buildWriteCardRows(action, proposal);
+    if (rows.length) {
+      const table = document.createElement('table');
+      table.className = 'ai-chat-write-card-table';
+      const tbody = document.createElement('tbody');
+      rows.forEach((r) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = r.label;
+        const td = document.createElement('td');
+        td.textContent = r.value;
+        tr.appendChild(th);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      card.appendChild(table);
+    }
+
+    // Etat final : badge + pas de boutons
+    if (st && (st.confirmed || st.cancelled)) {
+      const status = document.createElement('div');
+      status.className = 'ai-chat-write-card-status' + (st.confirmed ? ' success' : ' error');
+      if (st.confirmed) {
+        const id = st.result?.created_id || st.result?.alerte_id || '';
+        const num = st.result?.num_liv ? ' (' + st.result.num_liv + ')' : '';
+        status.textContent = '✓ Confirmee et executee' + num + (id ? ' · id: ' + id.slice(0, 8) : '');
+      } else {
+        status.textContent = '✗ Annulee';
+      }
+      card.appendChild(status);
+      return card;
+    }
+
+    // Etat actif : boutons Confirmer / Annuler
+    const actions = document.createElement('div');
+    actions.className = 'ai-chat-write-card-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-secondary';
+    cancelBtn.textContent = '❌ Annuler';
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-primary';
+    confirmBtn.textContent = '✅ Confirmer & creer';
+
+    cancelBtn.addEventListener('click', () => {
+      cancelWriteAction(msgIdx, actionIdx);
+    });
+    confirmBtn.addEventListener('click', () => {
+      confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card);
+    });
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(confirmBtn);
+    card.appendChild(actions);
+    return card;
+  }
+
+  // Confirme et execute la write_action via l'edge function ai-chat-write-execute.
+  // Met a jour _write_states[i] en localStorage + ajoute un message bot de feedback.
+  async function confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card) {
+    const msg = state.history[msgIdx];
+    if (!msg || !Array.isArray(msg._write_actions)) return;
+    const action = msg._write_actions[actionIdx];
+    if (!action) return;
+
+    confirmBtn.disabled = true;
+    cancelBtn.disabled = true;
+    confirmBtn.textContent = '⏳ Creation...';
+
+    try {
+      const result = await callWriteExecute(action);
+      if (!result || !result.success) {
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        confirmBtn.textContent = '✅ Confirmer & creer';
+        showToast('Erreur : ' + (result?.error || 'inconnu'), 'error');
+        return;
+      }
+      // Marque comme confirmee dans le state, persiste en localStorage.
+      if (!Array.isArray(msg._write_states)) {
+        msg._write_states = msg._write_actions.map(() => null);
+      }
+      msg._write_states[actionIdx] = { confirmed: true, result };
+      saveHistory();
+
+      // Toast + message bot recap.
+      const nice = niceCreatedLabel(action.action, result);
+      showToast('✅ ' + nice, 'success');
+      state.history.push({
+        role: 'model',
+        parts: [{ text: '✓ ' + nice + ' avec succes.' + (result.created_id ? ' ID: `' + result.created_id + '`' : '') }],
+        _tools: [],
+        _memory_ops: [],
+        _write_actions: [],
+        _proposals: [],
+        _write_states: [],
+      });
+      saveHistory();
+      renderMessages();
+    } catch (e) {
+      confirmBtn.disabled = false;
+      cancelBtn.disabled = false;
+      confirmBtn.textContent = '✅ Confirmer & creer';
+      showToast('Erreur : ' + (e.message || e), 'error');
+    }
+  }
+
+  // Annule une write_action : marque cancelled dans le state, ajoute un message bot.
+  function cancelWriteAction(msgIdx, actionIdx) {
+    const msg = state.history[msgIdx];
+    if (!msg || !Array.isArray(msg._write_actions)) return;
+    if (!Array.isArray(msg._write_states)) {
+      msg._write_states = msg._write_actions.map(() => null);
+    }
+    msg._write_states[actionIdx] = { cancelled: true };
+    saveHistory();
+    state.history.push({
+      role: 'model',
+      parts: [{ text: 'Action annulee.' }],
+      _tools: [],
+      _memory_ops: [],
+      _write_actions: [],
+      _proposals: [],
+      _write_states: [],
+    });
+    saveHistory();
+    renderMessages();
+  }
+
+  function niceCreatedLabel(action, result) {
+    switch (action) {
+      case 'create_livraison': return 'Livraison ' + (result.num_liv || '') + ' creee';
+      case 'create_charge': return 'Charge creee';
+      case 'create_paiement': return 'Paiement enregistre';
+      case 'resolve_alerte': return 'Alerte marquee resolue';
+      default: return 'Action confirmee';
+    }
+  }
+
+  // Toast minimaliste (pas de dependance globale, fallback sur console).
+  // Reutilise window.showToast / window.MToast si dispo (parite PC + mobile).
+  function showToast(text, kind) {
+    try {
+      if (window.MToast && typeof window.MToast.show === 'function') {
+        window.MToast.show(text, { type: kind || 'info' });
+        return;
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast(text, kind || 'info');
+        return;
+      }
+    } catch (_) {}
+    // Fallback : toast inline temporaire dans le panel chat.
+    try {
+      const c = document.getElementById('ai-chat-messages');
+      if (!c) return;
+      const div = document.createElement('div');
+      div.className = 'ai-chat-msg-error';
+      div.style.background = kind === 'error' ? 'var(--aic-danger-soft)' : 'var(--aic-blue-tint)';
+      div.style.color = kind === 'error' ? 'var(--aic-danger)' : 'var(--aic-blue)';
+      div.textContent = text;
+      c.appendChild(div);
+      setTimeout(() => { div.remove(); }, 4000);
+      scrollToBottom();
+    } catch (_) {}
+  }
+
+  // POST /functions/v1/ai-chat-write-execute avec auth admin. Retourne { success, ... }.
+  async function callWriteExecute(action) {
+    const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+      ? window.DelivProSupabase.getClient()
+      : null;
+    if (!client) throw new Error('Supabase pas pret');
+    const { data: sessionData } = await client.auth.getSession();
+    const sess = sessionData && sessionData.session;
+    const token = sess ? sess.access_token : null;
+    if (!token) throw new Error('Session expiree, reconnecte-toi.');
+    const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
+      ? window.DelivProSupabase.getConfig()
+      : null;
+    const baseUrl = config && config.url ? config.url : '';
+    if (!baseUrl) throw new Error('Supabase URL manquante');
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 30000);
+    let r;
+    try {
+      r = await fetch(baseUrl + '/functions/v1/ai-chat-write-execute', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(action),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(t); }
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const e = new Error(body.error || ('HTTP ' + r.status));
+      throw e;
+    }
+    return body;
+  }
+
   // ----- Send -----
 
   async function onSubmit(e) {
@@ -1038,11 +1411,17 @@
       while (true) {
         try {
           const reply = await callBackend(state.history);
+          const writeActions = Array.isArray(reply.write_actions) ? reply.write_actions : [];
+          const proposals = Array.isArray(reply.proposals) ? reply.proposals : [];
           state.history.push({
             role: 'model',
             parts: [{ text: reply.text }],
             _tools: reply.tools_called,
             _memory_ops: Array.isArray(reply.memory_ops) ? reply.memory_ops : [],
+            _write_actions: writeActions,
+            _proposals: proposals,
+            // _write_states[i] : null (en attente) | { confirmed:true, result } | { cancelled:true }
+            _write_states: writeActions.map(() => null),
           });
           state.proRemaining = reply.pro_remaining;
           state.modelLast = reply.model_used;

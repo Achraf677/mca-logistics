@@ -96,9 +96,9 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], u
     ``,
     `## Regles`,
     `- Reponds FR, concis, sans blabla. Markdown court, listes/tableaux quand pertinent.`,
-    `- Utilise les outils (36 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
+    `- Utilise les outils (40 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
     `- Signale anomalies/opportunites avec reco actionnable.`,
-    `- V1 : LECTURE SEULE sur les donnees business (livraisons/charges/...). Si on demande "cree" / "modifie", dis que l'ecriture arrive en V2.`,
+    `- V2 ECRITURE (avec confirmation) : 4 tools propose_* (livraison, charge, paiement, alerte_resolue) — voir section dediee plus bas.`,
     `- Tu peux ecrire dans la memoire long-terme via add_memory_fact / delete_memory_fact (faits durables uniquement).`,
     `- Montants en euros TTC sauf precision.`,
     `- Si l'admin demande "qu'est-ce qui cloche dans mes donnees" / "audite ma base" / "anomalies / incoherences" -> utilise audit_coherence_donnees (full scan priorise).`,
@@ -116,6 +116,12 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], u
     `- "Inspections en attente" : utilise inspections_non_validees (statut=soumise).`,
     `- "Rentabilite par chauffeur/tournee" : utilise rentabilite_tournee (CA - charges - carburant par salarie).`,
     `- "Rapprochement Pennylane <-> MCA" : utilise IMPERATIVEMENT match_factures_pennylane_mca. NE compose JAMAIS toi-meme la correspondance entre une facture Pennylane et une livraison MCA — c'est un matching deterministe (montant TTC ±0.50€, date ±5j, client similar).`,
+    ``,
+    `## V2 ECRITURE (avec confirmation)`,
+    `- Tu peux maintenant PROPOSER des creations/modifications via 4 tools : propose_livraison, propose_charge, propose_paiement, propose_marquer_alerte_resolue.`,
+    `- Quand l'admin demande "cree X" / "ajoute Y" / "marque payee Z" : utilise le tool propose_* approprie.`,
+    `- N'execute JAMAIS directement. Ces tools retournent une PROPOSITION que l'admin doit valider via une carte UI cote frontend. Toi tu confirmes juste a l'admin que tu as prepare la proposition.`,
+    `- Reponse type : "J'ai prepare la livraison X / Y / Z. Valide la carte ci-dessous pour creer."`,
     ``,
     `## Contexte`,
     `- MCA = couche operationnelle transport (planning, km, inspections, ADR, rentabilite). PAS la compta.`,
@@ -506,6 +512,71 @@ const TOOLS = [{
           id: { type: "string", description: "UUID du vehicule" },
           immat: { type: "string", description: "Immatriculation (alternatif a id)" },
         },
+      },
+    },
+    // ===== V2 ECRITURE (propose avec confirmation UI) =====
+    {
+      name: "propose_livraison",
+      description: "PROPOSE la creation d'une livraison (ne cree PAS directement). Retourne une proposition que l'admin doit confirmer via une carte UI. Utilise quand l'admin dit 'cree une livraison', 'ajoute une livraison', etc.",
+      parameters: {
+        type: "object",
+        properties: {
+          client_nom: { type: "string", description: "Nom du client (obligatoire)" },
+          date_livraison: { type: "string", description: "Date YYYY-MM-DD (obligatoire)" },
+          distance_km: { type: "number", description: "Distance en km (optionnel)" },
+          prix_ht: { type: "number", description: "Prix HT en euros (obligatoire)" },
+          taux_tva: { type: "number", description: "Taux TVA en %, defaut 20" },
+          salarie_nom: { type: "string", description: "Nom ou prenom du chauffeur (resolu en UUID)" },
+          vehicule_immat: { type: "string", description: "Immatriculation du vehicule (resolu en UUID)" },
+          depart: { type: "string", description: "Adresse de depart (optionnel)" },
+          arrivee: { type: "string", description: "Adresse d'arrivee (optionnel)" },
+          notes: { type: "string", description: "Notes libres (optionnel)" },
+        },
+        required: ["client_nom", "date_livraison", "prix_ht"],
+      },
+    },
+    {
+      name: "propose_charge",
+      description: "PROPOSE la creation d'une charge/depense. Retourne une proposition que l'admin valide via UI. NE cree PAS directement.",
+      parameters: {
+        type: "object",
+        properties: {
+          categorie: { type: "string", description: "Categorie de la charge (obligatoire)" },
+          description: { type: "string", description: "Description libre (optionnel)" },
+          date_charge: { type: "string", description: "Date YYYY-MM-DD (obligatoire)" },
+          montant_ht: { type: "number", description: "Montant HT en euros (obligatoire)" },
+          taux_tva: { type: "number", description: "Taux TVA en %, defaut 20" },
+          fournisseur_nom: { type: "string", description: "Nom du fournisseur (optionnel)" },
+          vehicule_immat: { type: "string", description: "Immatriculation du vehicule rattache (optionnel, resolu en UUID)" },
+        },
+        required: ["categorie", "date_charge", "montant_ht"],
+      },
+    },
+    {
+      name: "propose_paiement",
+      description: "PROPOSE l'enregistrement d'un paiement client sur une livraison. NE cree PAS directement, retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          livraison_num_liv: { type: "string", description: "Numero de la livraison (ex: L-20260508-001)" },
+          montant: { type: "number", description: "Montant du paiement en euros (obligatoire)" },
+          mode: { type: "string", description: "Mode de paiement (virement/cheque/especes/cb/autre)" },
+          date_paiement: { type: "string", description: "Date YYYY-MM-DD (defaut: aujourd'hui)" },
+          reference: { type: "string", description: "Reference (ex: numero de cheque, virement)" },
+          frais: { type: "number", description: "Frais bancaires associes (optionnel)" },
+        },
+        required: ["livraison_num_liv", "montant"],
+      },
+    },
+    {
+      name: "propose_marquer_alerte_resolue",
+      description: "PROPOSE de marquer une alerte admin comme resolue. NE modifie PAS directement, retourne une proposition pour confirmation UI.",
+      parameters: {
+        type: "object",
+        properties: {
+          alerte_id: { type: "string", description: "UUID de l'alerte a marquer comme resolue" },
+        },
+        required: ["alerte_id"],
       },
     },
     // ===== Memoire long-terme =====
@@ -1826,6 +1897,265 @@ async function toolSentryRecentIssues(args: any, _sb: SbClient) {
   return { period, count: issues.length, issues };
 }
 
+// ===== V2 ECRITURE : tools propose_* (lecture seule cote AI, retournent une proposition) =====
+//
+// Ces tools NE creent / NE modifient JAMAIS de donnees. Ils preparent uniquement un
+// payload + une description que le frontend affiche dans une carte de confirmation.
+// L'admin doit cliquer "Confirmer" pour declencher l'edge function ai-chat-write-execute.
+// La cle "write_actions" dans le retour est repere par l'edge function principale et
+// remontee au frontend dans la reponse JSON finale.
+
+async function resolveSalarieByName(sb: SbClient, name: string): Promise<{ id: string; nom: string; prenom: string } | null> {
+  const q = String(name || "").trim();
+  if (!q) return null;
+  const { data } = await sb.from("salaries")
+    .select("id, nom, prenom")
+    .or(`nom.ilike.%${q}%,prenom.ilike.%${q}%`)
+    .eq("actif", true)
+    .limit(2);
+  if (!data || data.length === 0) return null;
+  // Si plusieurs matchs, on prefere ne pas forcer (ambigu) : retourne null pour
+  // que la proposition reste sans salarie_id (UX : l'admin verra le warning).
+  if (data.length > 1) return null;
+  return data[0] as any;
+}
+
+async function resolveVehiculeByImmat(sb: SbClient, immat: string): Promise<{ id: string; immat: string; marque: string | null; modele: string | null } | null> {
+  const q = String(immat || "").trim();
+  if (!q) return null;
+  const { data } = await sb.from("vehicules")
+    .select("id, immat, marque, modele")
+    .ilike("immat", `%${q}%`)
+    .limit(2);
+  if (!data || data.length === 0) return null;
+  if (data.length > 1) return null;
+  return data[0] as any;
+}
+
+async function toolProposeLivraison(args: any, sb: SbClient) {
+  const errors: string[] = [];
+  const client_nom = String(args.client_nom || "").trim();
+  const date_livraison = String(args.date_livraison || "").trim();
+  const prix_ht = Number(args.prix_ht);
+  if (!client_nom) errors.push("client_nom manquant");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date_livraison)) errors.push("date_livraison doit etre YYYY-MM-DD");
+  if (!Number.isFinite(prix_ht) || prix_ht < 0) errors.push("prix_ht invalide");
+  if (errors.length) return { error: errors.join("; ") };
+
+  const taux_tva = Number.isFinite(Number(args.taux_tva)) ? Number(args.taux_tva) : 20;
+  const distance_km = Number.isFinite(Number(args.distance_km)) ? Number(args.distance_km) : null;
+  const prix_ttc = Number((prix_ht * (1 + taux_tva / 100)).toFixed(2));
+  const tva_montant = Number((prix_ttc - prix_ht).toFixed(2));
+
+  // Resolution salarie/vehicule (best-effort, n'echoue pas si introuvable)
+  let salarie_id: string | null = null;
+  let salarie_label: string | null = null;
+  if (args.salarie_nom) {
+    const s = await resolveSalarieByName(sb, args.salarie_nom);
+    if (s) {
+      salarie_id = s.id;
+      salarie_label = `${s.prenom ?? ""} ${s.nom ?? ""}`.trim();
+    }
+  }
+  let vehicule_id: string | null = null;
+  let vehicule_label: string | null = null;
+  if (args.vehicule_immat) {
+    const v = await resolveVehiculeByImmat(sb, args.vehicule_immat);
+    if (v) {
+      vehicule_id = v.id;
+      vehicule_label = `${v.immat} ${v.marque ?? ""} ${v.modele ?? ""}`.trim();
+    }
+  }
+
+  const payload: Record<string, unknown> = {
+    client_nom,
+    date_livraison,
+    distance_km,
+    prix_ht: Number(prix_ht.toFixed(2)),
+    taux_tva,
+    prix_ttc,
+    tva_montant,
+    statut: "en_attente",
+    statut_paiement: "a_payer",
+  };
+  if (salarie_id) payload.salarie_id = salarie_id;
+  if (vehicule_id) payload.vehicule_id = vehicule_id;
+  if (args.depart) payload.depart = String(args.depart);
+  if (args.arrivee) payload.arrivee = String(args.arrivee);
+  if (args.notes) payload.notes = String(args.notes);
+
+  const summary = {
+    client: client_nom,
+    date: date_livraison,
+    prix_ht: Number(prix_ht.toFixed(2)),
+    prix_ttc,
+    taux_tva,
+    distance_km,
+    salarie: salarie_label,
+    vehicule: vehicule_label,
+    depart: args.depart ?? null,
+    arrivee: args.arrivee ?? null,
+  };
+
+  return {
+    proposal: {
+      type: "livraison",
+      title: "Creer une livraison",
+      summary,
+      payload,
+    },
+    write_actions: [{ action: "create_livraison", payload }],
+    note: salarie_id || vehicule_id ? "Resolution UUID OK" : (
+      args.salarie_nom || args.vehicule_immat
+        ? "Salarie/vehicule non resolu (ambigu ou introuvable). La livraison sera creee sans rattachement."
+        : null
+    ),
+  };
+}
+
+async function toolProposeCharge(args: any, sb: SbClient) {
+  const errors: string[] = [];
+  const categorie = String(args.categorie || "").trim();
+  const date_charge = String(args.date_charge || "").trim();
+  const montant_ht = Number(args.montant_ht);
+  if (!categorie) errors.push("categorie manquante");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date_charge)) errors.push("date_charge doit etre YYYY-MM-DD");
+  if (!Number.isFinite(montant_ht) || montant_ht < 0) errors.push("montant_ht invalide");
+  if (errors.length) return { error: errors.join("; ") };
+
+  const taux_tva = Number.isFinite(Number(args.taux_tva)) ? Number(args.taux_tva) : 20;
+  const montant_ttc = Number((montant_ht * (1 + taux_tva / 100)).toFixed(2));
+
+  let vehicule_id: string | null = null;
+  let vehicule_label: string | null = null;
+  if (args.vehicule_immat) {
+    const v = await resolveVehiculeByImmat(sb, args.vehicule_immat);
+    if (v) {
+      vehicule_id = v.id;
+      vehicule_label = `${v.immat} ${v.marque ?? ""} ${v.modele ?? ""}`.trim();
+    }
+  }
+
+  const payload: Record<string, unknown> = {
+    categorie,
+    date_charge,
+    montant_ht: Number(montant_ht.toFixed(2)),
+    taux_tva,
+    montant_ttc,
+    statut_paiement: "a_payer",
+  };
+  if (args.description) payload.description = String(args.description);
+  if (args.fournisseur_nom) payload.fournisseur_nom = String(args.fournisseur_nom);
+  if (vehicule_id) payload.vehicule_id = vehicule_id;
+
+  const summary = {
+    categorie,
+    description: args.description ?? null,
+    date: date_charge,
+    montant_ht: Number(montant_ht.toFixed(2)),
+    montant_ttc,
+    taux_tva,
+    fournisseur: args.fournisseur_nom ?? null,
+    vehicule: vehicule_label,
+  };
+
+  return {
+    proposal: {
+      type: "charge",
+      title: "Creer une charge",
+      summary,
+      payload,
+    },
+    write_actions: [{ action: "create_charge", payload }],
+  };
+}
+
+async function toolProposePaiement(args: any, sb: SbClient) {
+  const num_liv = String(args.livraison_num_liv || "").trim();
+  const montant = Number(args.montant);
+  if (!num_liv) return { error: "livraison_num_liv manquant" };
+  if (!Number.isFinite(montant) || montant <= 0) return { error: "montant invalide" };
+
+  // Resolution num_liv -> livraison_id + contexte (client, date, prix)
+  const { data: liv, error } = await sb.from("livraisons")
+    .select("id, num_liv, client_id, client_nom, date_livraison, prix_ttc, statut_paiement")
+    .eq("num_liv", num_liv)
+    .maybeSingle();
+  if (error) return { error: "livraison: " + error.message };
+  if (!liv) return { error: `Livraison ${num_liv} introuvable` };
+
+  const date_paiement = args.date_paiement && /^\d{4}-\d{2}-\d{2}$/.test(args.date_paiement)
+    ? args.date_paiement
+    : todayISO();
+  const frais = Number.isFinite(Number(args.frais)) ? Number(args.frais) : 0;
+
+  const payload: Record<string, unknown> = {
+    livraison_id: (liv as any).id,
+    client_id: (liv as any).client_id,
+    date_paiement,
+    montant: Number(montant.toFixed(2)),
+  };
+  if (args.mode) payload.mode = String(args.mode);
+  if (args.reference) payload.reference = String(args.reference);
+  if (frais) payload.frais = Number(frais.toFixed(2));
+
+  const summary = {
+    livraison_num_liv: (liv as any).num_liv,
+    livraison_client: (liv as any).client_nom,
+    livraison_date: (liv as any).date_livraison,
+    livraison_prix_ttc: Number((liv as any).prix_ttc) || 0,
+    livraison_statut_paiement: (liv as any).statut_paiement,
+    montant: Number(montant.toFixed(2)),
+    mode: args.mode ?? null,
+    reference: args.reference ?? null,
+    date_paiement,
+    frais: frais || null,
+  };
+
+  return {
+    proposal: {
+      type: "paiement",
+      title: "Enregistrer un paiement",
+      summary,
+      payload,
+    },
+    write_actions: [{ action: "create_paiement", payload }],
+  };
+}
+
+async function toolProposeMarquerAlerteResolue(args: any, sb: SbClient) {
+  const alerte_id = String(args.alerte_id || "").trim();
+  if (!alerte_id) return { error: "alerte_id manquant" };
+
+  const { data: alerte, error } = await sb.from("alertes_admin")
+    .select("id, type, niveau, titre, message, resolved")
+    .eq("id", alerte_id)
+    .maybeSingle();
+  if (error) return { error: error.message };
+  if (!alerte) return { error: `Alerte ${alerte_id} introuvable` };
+  if ((alerte as any).resolved) {
+    return { error: "Alerte deja marquee comme resolue", alerte };
+  }
+
+  const summary = {
+    id: (alerte as any).id,
+    type: (alerte as any).type,
+    niveau: (alerte as any).niveau,
+    titre: (alerte as any).titre,
+    message: (alerte as any).message,
+  };
+
+  return {
+    proposal: {
+      type: "resolve_alerte",
+      title: "Marquer alerte resolue",
+      summary,
+      payload: { id: alerte_id },
+    },
+    write_actions: [{ action: "resolve_alerte", alerte_id }],
+  };
+}
+
 const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown>> = {
   search_livraisons: toolSearchLivraisons,
   search_charges: toolSearchCharges,
@@ -1865,6 +2195,11 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   add_memory_fact: toolAddMemoryFact,
   delete_memory_fact: toolDeleteMemoryFact,
   list_memory_facts: toolListMemoryFacts,
+  // V2 ECRITURE (lecture seule cote AI : prepare une proposition + write_actions)
+  propose_livraison: toolProposeLivraison,
+  propose_charge: toolProposeCharge,
+  propose_paiement: toolProposePaiement,
+  propose_marquer_alerte_resolue: toolProposeMarquerAlerteResolue,
 };
 
 // ===== Memoire long-terme =====
@@ -2141,6 +2476,11 @@ Deno.serve(async (req) => {
     let finalText = "";
     let toolCallsMade: string[] = [];
     const memoryOps: any[] = [];
+    // V2 ECRITURE : collect propositions + write_actions a renvoyer au frontend.
+    // Le frontend les affiche dans une carte de confirmation. Aucune ecriture
+    // declenchee tant que l'admin n'a pas valide via ai-chat-write-execute.
+    const proposals: any[] = [];
+    const writeActions: any[] = [];
     let lastResp: GeminiResp | null = null;
     let proFellBackToFlash = false;
 
@@ -2246,6 +2586,15 @@ Deno.serve(async (req) => {
             } else if (call.name === "delete_memory_fact" && (r as any)?.success) {
               memoryOps.push({ type: "deleted", id: call.args?.id, deleted: (r as any)?.deleted });
             }
+            // V2 ECRITURE : un tool propose_* a prepare une proposition.
+            // Remonte au frontend pour rendu de la carte de confirmation.
+            if (call.name.startsWith("propose_") && r && typeof r === "object") {
+              const obj = r as any;
+              if (obj.proposal) proposals.push(obj.proposal);
+              if (Array.isArray(obj.write_actions)) {
+                for (const a of obj.write_actions) writeActions.push(a);
+              }
+            }
             if (cacheable) {
               toolCache.set(key, { result: r, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
             }
@@ -2285,6 +2634,8 @@ Deno.serve(async (req) => {
         tools_called: toolCallsMade,
         pro_fell_back_to_flash: proFellBackToFlash,
         memory_ops: memoryOps,
+        proposals,
+        write_actions: writeActions,
       }),
       { headers: { ...CORS, "Content-Type": "application/json" } }
     );
