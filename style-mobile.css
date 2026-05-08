@@ -477,9 +477,26 @@ a { color: var(--m-accent); text-decoration: none; }
 }
 .m-fab:active { transform: scale(0.92); }
 
-/* FAB secondaire : empilé au-dessus du FAB principal (sélection multiple, etc.) */
+/* FAB secondaire (selection multiple) : repositionne en haut a droite, juste sous le header.
+   Devient transparent au scroll pour ne pas masquer le contenu (cf. m-fab-secondary-faded). */
 .m-fab-secondary {
-  bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px + 64px + 8px) !important;
+  bottom: auto !important;
+  top: calc(var(--m-header-h) + var(--m-safe-top) + 8px) !important;
+  right: calc(16px + var(--m-safe-right)) !important;
+  width: 44px !important;
+  height: 44px !important;
+  font-size: 1.05rem !important;
+  background: var(--m-blue, #3498db) !important;
+  box-shadow: 0 4px 14px rgba(52,152,219,0.35) !important;
+  transition: opacity 0.2s ease, transform 0.1s ease !important;
+}
+.m-fab-secondary.m-fab-secondary-faded {
+  opacity: 0.25;
+  pointer-events: auto; /* reste cliquable, juste visuellement attenue */
+}
+.m-fab-secondary.m-fab-secondary-faded:active,
+.m-fab-secondary.m-fab-secondary-faded:hover {
+  opacity: 1;
 }
 
 /* ============================ BOTTOM SHEET (saisie rapide) ============================ */

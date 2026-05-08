@@ -718,9 +718,6 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=prixHT]');
-        // tauxTva est un <input type=number> avec datalist (cf. ligne 620),
-        // pas un <select>. Le selector "select[name=tauxTva]" renvoyait null
-        // d'ou crash "null is not an object (evaluating 'sel.addEventListener')".
         const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
@@ -1366,7 +1363,6 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=montantHt]');
-        // tauxTva est un <input type=number> avec datalist, pas un <select>.
         const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
@@ -3451,6 +3447,262 @@
       badge.hidden = false;
     } else {
       badge.hidden = true;
+    }
+  };
+
+  // =============================================================
+  // PR C — Brief automatique IA mobile (parite PC panneau-agent)
+  // Lit/ecrit dans agent_decisions (localStorage partage avec PC),
+  // appelle l'edge function ai-brief, expose une cloche dans le header.
+  // =============================================================
+  const AI_BRIEF_LAST_RUN_KEY_M = 'ai_brief_last_run';
+
+  M.compterBriefNonLus = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    return decisions.filter((d) => !d.lu).length;
+  };
+
+  M.updateBriefBadge = function () {
+    const n = M.compterBriefNonLus();
+    const badge = $('#m-agent-ia-badge');
+    if (!badge) return;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  };
+
+  M.lancerBriefAuto = async function (trigger) {
+    if (window.__delivproAiBriefPendingMobile) return { skipped: 'pending' };
+    window.__delivproAiBriefPendingMobile = true;
+    try {
+      if (trigger === 'manual') M.toast('🔄 Brief IA en cours…');
+      const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+        ? window.DelivProSupabase.getClient()
+        : null;
+      const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
+        ? window.DelivProSupabase.getConfig()
+        : null;
+      if (!client || !config?.url) return { error: 'supabase_not_ready' };
+      let token = null;
+      try {
+        const { data: sessionData } = await client.auth.getSession();
+        const sess = sessionData && sessionData.session;
+        const expAt = sess && sess.expires_at ? sess.expires_at * 1000 : 0;
+        if (sess && expAt && expAt - Date.now() < 60000) {
+          try {
+            const { data: refreshed } = await client.auth.refreshSession();
+            token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
+          } catch (_) { token = sess.access_token; }
+        } else {
+          token = sess ? sess.access_token : null;
+        }
+      } catch (_) { /* fail-soft */ }
+      if (!token) return { error: 'no_token' };
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 60000);
+      let r;
+      try {
+        r = await fetch(config.url + '/functions/v1/ai-brief', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: trigger || 'manual' }),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : réseau indisponible');
+        return { error: 'network' };
+      } finally { clearTimeout(t); }
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : ' + (body.message || body.error || ('HTTP ' + r.status)));
+        return { error: 'http', status: r.status };
+      }
+      const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+      const existantes = M.charger('agent_decisions') || [];
+      let added = 0;
+      for (const d of decisions) {
+        if (!d || !d.titre || !d.description) continue;
+        // Dedup avec celles deja en place et non actionnees
+        const dejaPresente = existantes.find(
+          (e) => e.titre === d.titre && e.description === d.description && !e.actionPrise
+        );
+        if (dejaPresente) continue;
+        existantes.unshift({
+          id: 'brief-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          creeLe: new Date().toISOString(),
+          lu: false,
+          titre: d.titre,
+          description: d.description,
+          priorite: d.priorite || 'info',
+          actions: Array.isArray(d.actions) ? d.actions : [],
+          source: 'ai-brief',
+          run_id: body.run_id || null,
+        });
+        added++;
+      }
+      M.sauvegarder('agent_decisions', existantes);
+      try {
+        // Gate session : 1x par session de login (et non 1x par jour calendaire,
+        // sinon un re-login le meme jour ne re-declenche jamais le brief).
+        sessionStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, '1');
+      } catch (_) {}
+      M.updateBriefBadge();
+      if (trigger === 'manual') {
+        M.toast(added > 0 ? `✅ ${added} nouvelle(s) décision(s)` : '✅ Rien de nouveau');
+      }
+      return { ok: true, added, total: decisions.length };
+    } catch (e) {
+      if (trigger === 'manual') M.toast('⚠️ Brief IA : erreur (voir console)');
+      console.warn('[ai-brief mobile] erreur', e);
+      return { error: 'exception' };
+    } finally {
+      window.__delivproAiBriefPendingMobile = false;
+    }
+  };
+
+  // Auto-trigger 1x par chargement de page (gate runtime window flag).
+  // Reset a chaque F5/reload → comportement attendu : un nouveau login
+  // re-declenche le brief automatiquement.
+  M.declencherBriefAutoLoginSiNecessaire = function () {
+    try {
+      if (window.__briefAutoTriggeredMobile) return;
+      const start = Date.now();
+      const tick = () => {
+        const adminLogin = sessionStorage.getItem('admin_login') || '';
+        if (adminLogin) {
+          window.__briefAutoTriggeredMobile = true;
+          setTimeout(() => { M.lancerBriefAuto('on_login'); }, 1500);
+          return;
+        }
+        if (Date.now() - start > 10000) return; // timeout
+        setTimeout(tick, 500);
+      };
+      tick();
+    } catch (_) { /* fail-soft */ }
+  };
+
+  M.priorityBadge = function (p) {
+    if (p === 'haute') return '<span style="background:rgba(231,76,60,0.18);color:#ff8b80;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">HAUTE</span>';
+    if (p === 'opportunite') return '<span style="background:rgba(46,204,113,0.18);color:#7ed8a3;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">OPPORTUNITÉ</span>';
+    return '<span style="background:rgba(52,152,219,0.18);color:#7ec0ff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">INFO</span>';
+  };
+
+  M.openBriefSheet = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    const html = decisions.length === 0
+      ? `<div style="text-align:center;padding:32px 16px;color:var(--m-text-muted)">
+           <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+           <div style="font-size:0.95rem;margin-bottom:6px;font-weight:600;color:var(--m-text)">Aucune décision en attente</div>
+           <div style="font-size:0.8rem">Le brief Gemini scanne tes données automatiquement chaque jour.</div>
+         </div>`
+      : decisions.map((d) => {
+          const couleurBord = d.priorite === 'haute'
+            ? 'rgba(231,76,60,0.45)'
+            : d.priorite === 'opportunite' ? 'rgba(46,204,113,0.4)' : 'rgba(52,152,219,0.35)';
+          const lu = d.lu ? '' : 'border-left:3px solid var(--m-accent,#e63946);';
+          // Bouton "Discuter" (tap-target 44px min, parite PC). Ouvre le chatbot IA
+          // avec le contexte de la decision pre-rempli.
+          const btnDiscuter = `<button type="button" data-discuter-id="${d.id}" class="m-btn" style="min-height:44px;padding:8px 14px;font-size:0.8rem;font-weight:600;background:var(--m-bg-soft,#1f2229);color:var(--m-text,#e8eaf0);border:1px solid var(--m-border,#2a2d3d);border-radius:10px;cursor:pointer">💬 Discuter</button>`;
+          return `
+            <div style="background:var(--m-card,#2a2f37);border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="font-size:0.88rem;font-weight:700;color:var(--m-text,#f1f3f5);flex:1">${M.escHtml(d.titre)}</div>
+                ${M.priorityBadge(d.priorite)}
+              </div>
+              <div style="font-size:0.82rem;color:var(--m-text-muted,#adb5bd);line-height:1.5;margin-bottom:10px">${M.escHtml(d.description)}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${btnDiscuter}</div>
+              <div style="font-size:0.7rem;color:var(--m-text-muted);opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${d.source === 'ai-brief' ? ' · IA' : ''}</div>
+            </div>`;
+        }).join('');
+
+    M.openSheet({
+      title: '🔔 Brief IA',
+      body: `
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button id="m-brief-refresh" class="m-btn" type="button" style="flex:1;min-height:44px">🔄 Rafraîchir</button>
+          ${decisions.length ? '<button id="m-brief-clear" class="m-btn" type="button" style="flex:1;min-height:44px">🗑 Tout effacer</button>' : ''}
+        </div>
+        ${html}
+      `,
+      submitLabel: '✓ Tout marquer lu',
+      onSubmit() {
+        const list = M.charger('agent_decisions') || [];
+        list.forEach((d) => { d.lu = true; });
+        M.sauvegarder('agent_decisions', list);
+        M.updateBriefBadge();
+        M.toast('✓ Toutes les décisions marquées lues');
+        return true; // close
+      },
+      afterMount(root) {
+        // Marque tout comme lu en arriere-plan a l'ouverture (effet bell click = "j'ai vu")
+        const list = M.charger('agent_decisions') || [];
+        let modif = false;
+        list.forEach((d) => { if (!d.lu) { d.lu = true; modif = true; } });
+        if (modif) { M.sauvegarder('agent_decisions', list); M.updateBriefBadge(); }
+        // Refresh button
+        const btnRefresh = root.querySelector('#m-brief-refresh');
+        if (btnRefresh) {
+          btnRefresh.addEventListener('click', async () => {
+            btnRefresh.disabled = true;
+            btnRefresh.textContent = '⏳ Analyse en cours…';
+            const r = await M.lancerBriefAuto('manual');
+            M.closeSheet();
+            // Reopen pour montrer les nouvelles decisions
+            setTimeout(() => M.openBriefSheet(), 350);
+          });
+        }
+        // Clear button
+        const btnClear = root.querySelector('#m-brief-clear');
+        if (btnClear) {
+          btnClear.addEventListener('click', () => {
+            if (!confirm('Effacer toutes les décisions ?')) return;
+            M.sauvegarder('agent_decisions', []);
+            M.updateBriefBadge();
+            M.toast('🗑 Décisions effacées');
+            M.closeSheet();
+          });
+        }
+        // Boutons "💬 Discuter" sur chaque card
+        root.querySelectorAll('button[data-discuter-id]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-discuter-id');
+            if (!id) return;
+            e.preventDefault();
+            M.discuterDecisionAvecIA(id);
+          });
+        });
+      },
+    });
+  };
+
+  // Ouvre le chatbot avec un message pre-rempli construit a partir de la decision.
+  M.discuterDecisionAvecIA = function (decisionId) {
+    try {
+      const decisions = M.charger('agent_decisions') || [];
+      const d = decisions.find((x) => x.id === decisionId);
+      if (!d) { M.toast('⚠️ Décision introuvable'); return; }
+      const message = `[Décision agent : ${d.priorite || 'info'}]\n${d.titre}\n\n${d.description}\n\nQue me conseilles-tu de faire ?`;
+      if (!window.AIChat || typeof window.AIChat.open !== 'function') {
+        M.toast('⚠️ Chatbot indisponible'); return;
+      }
+      // Ferme la sheet pour focus chat
+      try { M.closeSheet(); } catch (_) {}
+      window.AIChat.open();
+      setTimeout(() => {
+        const input = document.getElementById('ai-chat-input');
+        const form = document.getElementById('ai-chat-form');
+        if (!input || !form) return;
+        input.value = message;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+        form.requestSubmit();
+      }, 380);
+    } catch (e) {
+      console.warn('[M.discuterDecisionAvecIA]', e);
+      M.toast('⚠️ Erreur ouverture chat');
     }
   };
 
@@ -9694,6 +9946,9 @@
       if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
 
+    // Bouton "Agent IA" header (parite PC panneau-agent). Ouvre la sheet decisions.
+    $('#m-agent-ia-btn')?.addEventListener('click', () => { M.openBriefSheet(); });
+
     // Helper pour ouvrir un detail
     M.openDetail = function(entity, id) {
       if (!M.state.detail) M.state.detail = {};
@@ -9713,6 +9968,31 @@
     M._intBadge = setInterval(M.updateAlertesBadge, 30000);
     M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
     M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
+
+    // Initialise + auto-trigger du brief IA cote mobile (parite PC).
+    M.updateBriefBadge();
+    setInterval(M.updateBriefBadge, 30000);
+    M.declencherBriefAutoLoginSiNecessaire();
+
+    // Scroll-fade des FAB secondaires (selection multiple) : ils sont
+    // repositionnes en haut a droite pour ne plus chevaucher les FAB metier.
+    // Au scroll vers le bas, on attenue l'opacite pour ne pas masquer le contenu.
+    // Cliquables meme attenues (pointer-events: auto cf. style-mobile.css).
+    let lastScrollY = 0;
+    let scrollFadeTimer = null;
+    const updateFabFade = () => {
+      const scrolled = (M.state?.currentPage && (window.scrollY || document.documentElement.scrollTop) > 80);
+      document.querySelectorAll('.m-fab-secondary').forEach((el) => {
+        el.classList.toggle('m-fab-secondary-faded', scrolled);
+      });
+    };
+    window.addEventListener('scroll', () => {
+      if (scrollFadeTimer) return;
+      scrollFadeTimer = setTimeout(() => {
+        scrollFadeTimer = null;
+        updateFabFade();
+      }, 80);
+    }, { passive: true });
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis
