@@ -19,3 +19,4 @@ dist/
 infra/supabase/.temp/
 node_modules/
 supabase/.temp/
+.claude/worktrees/
