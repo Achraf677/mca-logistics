@@ -58,4 +58,54 @@
   });
 
   console.info('[lazy-stubs] ' + EXPORTS_FUNCTIONS.length + ' stubs exports prets');
+
+  // ============================================================
+  // Module : script-rentabilite-multi (analyses rentabilite multi-axes)
+  // ~38 Ko, utilise uniquement quand l'utilisateur navigue vers Rentabilite.
+  // Sprint B bundle splitting (2026-05-06).
+  // ============================================================
+  var RENTABILITE_MULTI_FUNCTIONS = [
+    'afficherRentabiliteParVehicule',
+    'afficherRentabiliteParClient',
+    'afficherRentabiliteParChauffeur',
+    'afficherRentabiliteParTournee',
+    'changerSousOngletRentabilite',
+    'voirDetailTournee',
+    'exporterRapportRentabilitePDF',
+    'calculerRentabiliteParVehicule',
+    'calculerRentabiliteParClient',
+    'calculerRentabiliteParChauffeur',
+    'calculerRentabiliteParTournee',
+    'getConfigRentabilite',
+    'getTourneeIdLivraison'
+  ];
+
+  RENTABILITE_MULTI_FUNCTIONS.forEach(function (fnName) {
+    window[fnName] = window.lazyCreateStub('script-rentabilite-multi', fnName);
+  });
+
+  console.info('[lazy-stubs] ' + RENTABILITE_MULTI_FUNCTIONS.length + ' stubs rentabilite-multi prets');
+
+  // ============================================================
+  // Module : script-stats (page Statistiques)
+  // Lazy-loade au 1er affichage de la page. getSalarieStatsMois reste
+  // chargé au boot via script-core-stats-helpers.js (utilisé par
+  // script-salaries.js).
+  // Sprint C bundle splitting (2026-05-06).
+  // ============================================================
+  var STATS_FUNCTIONS = [
+    'afficherStatistiques',
+    'exporterStatsPDF',
+    'navStatsMois',
+    'navStatsPeriode',
+    'changerVueStats',
+    'reinitialiserStatsPeriode',
+    'getStatsMoisRange'
+  ];
+
+  STATS_FUNCTIONS.forEach(function (fnName) {
+    window[fnName] = window.lazyCreateStub('script-stats', fnName);
+  });
+
+  console.info('[lazy-stubs] ' + STATS_FUNCTIONS.length + ' stubs stats prets');
 })();
