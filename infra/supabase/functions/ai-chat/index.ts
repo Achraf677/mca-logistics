@@ -30,6 +30,44 @@ function todayISO(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+// TTL court (30s) : evite que Gemini rappelle 2x le meme tool dans la meme
+// conversation (vu en analyse cout) sans risquer de servir de la donnee periemee
+// sur des tables live (livraisons / charges / carburant changent en continu).
+const TOOL_CACHE_TTL_MS = 30_000;
+
+// Tools de lecture seuls -> cacheables. Skip pour add/delete/match (effets ou
+// matching deterministe avec donnees en mouvement qu'on veut frais).
+const CACHEABLE_TOOLS = new Set<string>([
+  "search_livraisons", "search_charges", "search_clients", "search_fournisseurs",
+  "search_vehicules", "search_salaries", "search_carburant",
+  "search_inspections", "search_entretiens", "search_incidents", "search_alertes",
+  "get_stats", "top_clients_ca", "livraisons_impayees_retard",
+  "vehicules_echeances_proches", "inspections_non_validees", "rentabilite_tournee",
+  "get_planning_semaine", "get_anomalies_carburant",
+  "qonto_organization", "qonto_search_transactions",
+  "pennylane_factures_clients", "pennylane_factures_fournisseurs",
+  "pennylane_search_clients", "pennylane_search_fournisseurs",
+  "ors_distance", "ors_optimize_tournee",
+  "sentry_recent_issues",
+  "audit_coherence_donnees", "get_audit_log",
+  "get_livraison_detail", "get_vehicule_historique",
+  "list_memory_facts",
+]);
+
+function cacheKey(toolName: string, args: any): string {
+  // Stringify deterministe (cles triees) pour eviter les miss dus a l'ordre.
+  let argsStr = "{}";
+  try {
+    if (args && typeof args === "object") {
+      const keys = Object.keys(args).sort();
+      const obj: Record<string, unknown> = {};
+      for (const k of keys) obj[k] = args[k];
+      argsStr = JSON.stringify(obj);
+    }
+  } catch (_) { argsStr = "{}"; }
+  return `${toolName}:${argsStr}`;
+}
+
 function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], userName: string | null = null): string {
   const memorySection = memoryFacts.length
     ? [
@@ -58,11 +96,15 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], u
     ``,
     `## Regles`,
     `- Reponds FR, concis, sans blabla. Markdown court, listes/tableaux quand pertinent.`,
-    `- Utilise les outils (32 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
+    `- Utilise les outils (36 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
     `- Signale anomalies/opportunites avec reco actionnable.`,
     `- V1 : LECTURE SEULE sur les donnees business (livraisons/charges/...). Si on demande "cree" / "modifie", dis que l'ecriture arrive en V2.`,
     `- Tu peux ecrire dans la memoire long-terme via add_memory_fact / delete_memory_fact (faits durables uniquement).`,
     `- Montants en euros TTC sauf precision.`,
+    `- Si l'admin demande "qu'est-ce qui cloche dans mes donnees" / "audite ma base" / "anomalies / incoherences" -> utilise audit_coherence_donnees (full scan priorise).`,
+    `- Si l'admin demande "qui a modifie X" / "historique des changements de X" / "qui a touche a la livraison Y" -> utilise get_audit_log avec row_id (UUID de l'entite).`,
+    `- Si l'admin demande le detail complet d'une livraison (paiements + incidents + tout) -> utilise get_livraison_detail (par id ou num_liv).`,
+    `- Si l'admin demande l'historique d'un vehicule (entretiens + inspections + carburant + charges + livraisons + totaux 12 mois) -> utilise get_vehicule_historique (par id ou immat).`,
     ``,
     `## Conventions semantiques`,
     `- Le mot "retard" est ambigu. Quand l'admin l'utilise sans contexte clair, demande poliment de quel retard il s'agit : retard de paiement (livraison ou charge non payee au-dela du delai contractuel) / retard de livraison (statut: en_cours mais date depassee) / retard d'inspection (semaine sans inspection vehicule) / retard de CT ou assurance (date_ct ou date_assurance depassee). Une exception : si l'admin a deja precise le contexte dans les messages precedents, infere directement.`,
@@ -420,6 +462,49 @@ const TOOLS = [{
         properties: {
           period: { type: "string", enum: ["1h", "24h", "7d", "14d", "30d"], description: "Defaut 7d." },
           unresolved_only: { type: "boolean", description: "Defaut true" },
+        },
+      },
+    },
+    // ===== Audit / Detective / Detail granulaire =====
+    {
+      name: "audit_coherence_donnees",
+      description: "Mode detective : scanne la DB et retourne un rapport priorise des incoherences (livraisons livrees sans date, charges sans fournisseur, vehicules CT/assurance expires, salaries sans permis, TVA mal calculee, plannings orphelins, etc). Utilise quand l'admin demande 'qu'est-ce qui cloche / audite ma base / anomalies'.",
+      parameters: { type: "object", properties: {} },
+    },
+    {
+      name: "get_audit_log",
+      description: "Lit la table audit_log_entries (qui a fait quoi quand). Filtres optionnels. Utilise pour 'qui a modifie X', 'historique de cette livraison', etc. Renvoie les 25 plus recents (sans le diff complet, juste un summary des cles).",
+      parameters: {
+        type: "object",
+        properties: {
+          table_name: { type: "string", description: "Ex 'livraisons', 'charges', 'salaries' (optionnel)" },
+          operation: { type: "string", enum: ["INSERT", "UPDATE", "DELETE"] },
+          actor_role: { type: "string", enum: ["admin", "salarie"] },
+          row_id: { type: "string", description: "UUID de l'entite specifique a tracer" },
+          date_min: { type: "string", description: "YYYY-MM-DD" },
+          date_max: { type: "string", description: "YYYY-MM-DD" },
+        },
+      },
+    },
+    {
+      name: "get_livraison_detail",
+      description: "Detail complet d'une livraison : tout le record + paiements rattaches + incidents lies + noms resolus (salarie/vehicule). Utilise quand l'admin demande 'detail complet / tout sur la livraison X'.",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "UUID de la livraison" },
+          num_liv: { type: "string", description: "Numero (alternatif a id)" },
+        },
+      },
+    },
+    {
+      name: "get_vehicule_historique",
+      description: "Historique complet d'un vehicule : 10 derniers entretiens + 10 dernieres inspections + 10 derniers pleins carburant + 10 dernieres charges + 5 dernieres livraisons + totaux 12 mois (km, carburant, charges).",
+      parameters: {
+        type: "object",
+        properties: {
+          id: { type: "string", description: "UUID du vehicule" },
+          immat: { type: "string", description: "Immatriculation (alternatif a id)" },
         },
       },
     },
@@ -1176,6 +1261,290 @@ async function toolGetAnomaliesCarburant(args: any, sb: SbClient) {
   };
 }
 
+// ===== Audit / Detective / Detail granulaire =====
+
+async function toolAuditCoherenceDonnees(_args: any, sb: SbClient) {
+  const today = todayISO();
+
+  // Lance toutes les queries en parallele pour minimiser la latence.
+  const [
+    livreesSansDate,
+    chargesSansFourn,
+    inspValidees,
+    vehCtExpire,
+    vehAssExpire,
+    salariesSansPermis,
+    livForTva,
+    planningsOrphelinsRaw,
+    salariesAll,
+  ] = await Promise.all([
+    sb.from("livraisons").select("id, num_liv, client_nom, date_livraison").eq("statut", "livree").is("date_livraison", null).limit(50),
+    sb.from("charges").select("id, categorie, description, date_charge, montant_ttc").is("fournisseur_nom", null).is("fournisseur_id", null).limit(50),
+    sb.from("inspections").select("id, date_inspection, semaine_label, created_at, updated_at").eq("statut", "validee").limit(200),
+    sb.from("vehicules").select("id, immat, marque, modele, date_ct").not("date_ct", "is", null).lt("date_ct", today).limit(50),
+    sb.from("vehicules").select("id, immat, marque, modele, date_assurance").not("date_assurance", "is", null).lt("date_assurance", today).limit(50),
+    sb.from("salaries").select("id, nom, prenom, poste").eq("actif", true).is("categorie_permis", null).limit(50),
+    sb.from("livraisons").select("id, num_liv, prix_ht, prix_ttc, taux_tva, date_livraison").not("prix_ht", "is", null).not("prix_ttc", "is", null).not("taux_tva", "is", null).order("date_livraison", { ascending: false }).limit(500),
+    sb.from("plannings_hebdo").select("id, salarie_id, jour").limit(500),
+    sb.from("salaries").select("id"),
+  ]);
+
+  const items: any[] = [];
+
+  // 1. Livraisons livrees sans date_livraison -> critique
+  if (!livreesSansDate.error) {
+    const rows = livreesSansDate.data ?? [];
+    if (rows.length > 0) {
+      items.push({
+        categorie: "livraisons_livrees_sans_date",
+        severite: "critique",
+        description: "Livraisons avec statut='livree' mais date_livraison NULL",
+        count: rows.length,
+        exemples: rows.slice(0, 3).map((r: any) => ({ id: r.id, label: `${r.num_liv ?? "?"} - ${r.client_nom ?? "?"}` })),
+      });
+    }
+  }
+
+  // 2. Charges sans fournisseur -> moyen
+  if (!chargesSansFourn.error) {
+    const rows = chargesSansFourn.data ?? [];
+    if (rows.length > 0) {
+      items.push({
+        categorie: "charges_sans_fournisseur",
+        severite: "moyen",
+        description: "Charges sans fournisseur_nom ni fournisseur_id (rapprochement compta impossible)",
+        count: rows.length,
+        exemples: rows.slice(0, 3).map((r: any) => ({ id: r.id, label: `${r.categorie ?? "?"} ${r.date_charge ?? ""} ${Number(r.montant_ttc) || 0}€` })),
+      });
+    }
+  }
+
+  // 3. Inspections validees jamais modifiees (updated_at <= created_at) -> moyen
+  if (!inspValidees.error) {
+    const suspect = (inspValidees.data ?? []).filter((i: any) => {
+      if (!i.created_at || !i.updated_at) return true;
+      return Date.parse(i.updated_at) <= Date.parse(i.created_at);
+    });
+    if (suspect.length > 0) {
+      items.push({
+        categorie: "inspections_validees_jamais_modifiees",
+        severite: "moyen",
+        description: "Inspections statut='validee' mais updated_at <= created_at (validation suspecte)",
+        count: suspect.length,
+        exemples: suspect.slice(0, 3).map((i: any) => ({ id: i.id, label: `${i.semaine_label ?? i.date_inspection ?? "?"}` })),
+      });
+    }
+  }
+
+  // 4. Vehicules CT expire -> critique
+  if (!vehCtExpire.error) {
+    const rows = vehCtExpire.data ?? [];
+    if (rows.length > 0) {
+      items.push({
+        categorie: "vehicules_ct_expire",
+        severite: "critique",
+        description: "Vehicules avec date_ct deja depassee (controle technique perime)",
+        count: rows.length,
+        exemples: rows.slice(0, 3).map((v: any) => ({ id: v.id, label: `${v.immat ?? "?"} CT ${v.date_ct}` })),
+      });
+    }
+  }
+
+  // 5. Vehicules assurance expiree -> critique
+  if (!vehAssExpire.error) {
+    const rows = vehAssExpire.data ?? [];
+    if (rows.length > 0) {
+      items.push({
+        categorie: "vehicules_assurance_expiree",
+        severite: "critique",
+        description: "Vehicules avec date_assurance deja depassee",
+        count: rows.length,
+        exemples: rows.slice(0, 3).map((v: any) => ({ id: v.id, label: `${v.immat ?? "?"} assurance ${v.date_assurance}` })),
+      });
+    }
+  }
+
+  // 6. Salaries actifs sans categorie_permis -> moyen
+  if (!salariesSansPermis.error) {
+    const rows = salariesSansPermis.data ?? [];
+    if (rows.length > 0) {
+      items.push({
+        categorie: "salaries_sans_categorie_permis",
+        severite: "moyen",
+        description: "Salaries actifs sans categorie_permis renseignee",
+        count: rows.length,
+        exemples: rows.slice(0, 3).map((s: any) => ({ id: s.id, label: `${s.prenom ?? ""} ${s.nom ?? ""} (${s.poste ?? "?"})`.trim() })),
+      });
+    }
+  }
+
+  // 7. Livraisons : TVA mal calculee
+  if (!livForTva.error) {
+    const suspect = (livForTva.data ?? []).filter((l: any) => {
+      const ht = Number(l.prix_ht) || 0;
+      const ttc = Number(l.prix_ttc) || 0;
+      const tva = Number(l.taux_tva);
+      if (!ht || !ttc || !Number.isFinite(tva)) return false;
+      const expected = ht * (1 + tva / 100);
+      return Math.abs(ttc - expected) > 0.10;
+    });
+    if (suspect.length > 0) {
+      items.push({
+        categorie: "tva_mal_calculee",
+        severite: "moyen",
+        description: "Livraisons ou |prix_ttc - prix_ht * (1 + taux_tva/100)| > 0.10€",
+        count: suspect.length,
+        exemples: suspect.slice(0, 3).map((l: any) => ({
+          id: l.id,
+          label: `${l.num_liv ?? "?"} HT=${Number(l.prix_ht).toFixed(2)} TTC=${Number(l.prix_ttc).toFixed(2)} TVA=${l.taux_tva}%`,
+        })),
+      });
+    }
+  }
+
+  // 8. Plannings orphelins (salarie_id n'existe plus) -> leger
+  if (!planningsOrphelinsRaw.error && !salariesAll.error) {
+    const validIds = new Set((salariesAll.data ?? []).map((s: any) => s.id));
+    const orph = (planningsOrphelinsRaw.data ?? []).filter((p: any) => p.salarie_id && !validIds.has(p.salarie_id));
+    if (orph.length > 0) {
+      items.push({
+        categorie: "plannings_salarie_orphelin",
+        severite: "leger",
+        description: "Plannings dont salarie_id ne correspond plus a aucun salarie en DB",
+        count: orph.length,
+        exemples: orph.slice(0, 3).map((p: any) => ({ id: p.id, label: `jour=${p.jour ?? "?"} salarie_id=${p.salarie_id}` })),
+      });
+    }
+  }
+
+  // Tri par severite : critique > moyen > leger
+  const sevOrder: Record<string, number> = { critique: 0, moyen: 1, leger: 2 };
+  items.sort((a, b) => (sevOrder[a.severite] ?? 9) - (sevOrder[b.severite] ?? 9));
+
+  const par_severite = { critique: 0, moyen: 0, leger: 0 } as Record<string, number>;
+  for (const it of items) {
+    par_severite[it.severite] = (par_severite[it.severite] ?? 0) + (Number(it.count) || 0);
+  }
+
+  return {
+    nb_total: items.reduce((acc, it) => acc + (Number(it.count) || 0), 0),
+    par_severite,
+    items: items.slice(0, 30),
+  };
+}
+
+async function toolGetAuditLog(args: any, sb: SbClient) {
+  let q = sb.from("audit_log_entries").select(
+    "id, table_name, operation, row_id, actor_role, created_at, diff"
+  );
+  if (args.table_name) q = q.eq("table_name", args.table_name);
+  if (args.operation) q = q.eq("operation", args.operation);
+  if (args.actor_role) q = q.eq("actor_role", args.actor_role);
+  if (args.row_id) q = q.eq("row_id", args.row_id);
+  if (args.date_min) q = q.gte("created_at", args.date_min);
+  if (args.date_max) q = q.lte("created_at", args.date_max + "T23:59:59.999Z");
+  q = q.order("created_at", { ascending: false }).limit(25);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  const entries = (data ?? []).map((e: any) => {
+    let summary = "";
+    try {
+      if (e.diff && typeof e.diff === "object") {
+        summary = Object.keys(e.diff).slice(0, 5).join(", ");
+      }
+    } catch (_) { /* ignore */ }
+    return {
+      id: e.id,
+      table_name: e.table_name,
+      operation: e.operation,
+      row_id: e.row_id,
+      actor_role: e.actor_role,
+      created_at: e.created_at,
+      diff_summary: summary || "(empty)",
+    };
+  });
+  return { count: entries.length, entries };
+}
+
+async function toolGetLivraisonDetail(args: any, sb: SbClient) {
+  if (!args.id && !args.num_liv) return { error: "id ou num_liv requis" };
+  let q = sb.from("livraisons").select(
+    "id, num_liv, client_id, client_nom, date_livraison, distance_km, prix_ht, prix_ttc, taux_tva, tva_montant, statut, statut_paiement, depart, arrivee, zone, notes, kilometrage_compteur, date_paiement, created_at, updated_at, " +
+    "salarie:salaries(id, nom, prenom), vehicule:vehicules(id, immat, marque, modele)"
+  );
+  if (args.id) q = q.eq("id", args.id);
+  else q = q.eq("num_liv", args.num_liv);
+  const { data: liv, error } = await q.maybeSingle();
+  if (error) return { error: error.message };
+  if (!liv) return { error: "Livraison introuvable" };
+
+  const livId = (liv as any).id;
+
+  const [paiementsRes, incidentsRes] = await Promise.all([
+    sb.from("paiements").select("id, date_paiement, montant, mode, reference, frais, notes").eq("livraison_id", livId).order("date_paiement", { ascending: false }),
+    sb.from("incidents").select("id, gravite, description, date_incident, statut, salarie:salaries(nom, prenom)").eq("livraison_id", livId).order("date_incident", { ascending: false }),
+  ]);
+
+  return {
+    livraison: liv,
+    paiements: paiementsRes.error ? { error: paiementsRes.error.message } : (paiementsRes.data ?? []),
+    nb_paiements: paiementsRes.data?.length ?? 0,
+    incidents: incidentsRes.error ? { error: incidentsRes.error.message } : (incidentsRes.data ?? []),
+    nb_incidents: incidentsRes.data?.length ?? 0,
+  };
+}
+
+async function toolGetVehiculeHistorique(args: any, sb: SbClient) {
+  if (!args.id && !args.immat) return { error: "id ou immat requis" };
+  let q = sb.from("vehicules").select(
+    "id, immat, marque, modele, kilometrage, date_ct, date_assurance, date_carte_grise, carburant, capacite_reservoir, conso, " +
+    "salarie:salaries(id, nom, prenom)"
+  );
+  if (args.id) q = q.eq("id", args.id);
+  else q = q.eq("immat", args.immat);
+  const { data: veh, error } = await q.maybeSingle();
+  if (error) return { error: error.message };
+  if (!veh) return { error: "Vehicule introuvable" };
+
+  const vehId = (veh as any).id;
+
+  // Fenetre 12 mois pour les totaux
+  const d12 = new Date();
+  d12.setUTCMonth(d12.getUTCMonth() - 12);
+  const dateMin12 = d12.toISOString().slice(0, 10);
+  const today = todayISO();
+
+  const [entRes, inspRes, carbRes, chgRes, livRes, totalsCarbRes, totalsChgRes, totalsLivRes] = await Promise.all([
+    sb.from("entretiens").select("id, date_entretien, type, description, cout_ttc, kilometrage").eq("vehicule_id", vehId).order("date_entretien", { ascending: false }).limit(10),
+    sb.from("inspections").select("id, date_inspection, semaine_label, statut, salarie:salaries(nom, prenom)").eq("vehicule_id", vehId).order("date_inspection", { ascending: false }).limit(10),
+    sb.from("carburant").select("id, date_plein, litres, prix_ttc, kilometrage, salarie:salaries(nom, prenom)").eq("vehicule_id", vehId).order("date_plein", { ascending: false }).limit(10),
+    sb.from("charges").select("id, date_charge, categorie, description, montant_ttc, fournisseur_nom").eq("vehicule_id", vehId).order("date_charge", { ascending: false }).limit(10),
+    sb.from("livraisons").select("id, num_liv, date_livraison, client_nom, distance_km, prix_ttc, statut").eq("vehicule_id", vehId).order("date_livraison", { ascending: false }).limit(5),
+    sb.from("carburant").select("litres, prix_ttc").eq("vehicule_id", vehId).gte("date_plein", dateMin12).lte("date_plein", today),
+    sb.from("charges").select("montant_ttc").eq("vehicule_id", vehId).gte("date_charge", dateMin12).lte("date_charge", today),
+    sb.from("livraisons").select("distance_km").eq("vehicule_id", vehId).gte("date_livraison", dateMin12).lte("date_livraison", today),
+  ]);
+
+  const sum = (arr: any[] | null | undefined, key: string) =>
+    (arr ?? []).reduce((acc, r: any) => acc + (Number(r[key]) || 0), 0);
+
+  return {
+    vehicule: veh,
+    derniers_entretiens: entRes.error ? { error: entRes.error.message } : (entRes.data ?? []),
+    dernieres_inspections: inspRes.error ? { error: inspRes.error.message } : (inspRes.data ?? []),
+    derniers_pleins_carburant: carbRes.error ? { error: carbRes.error.message } : (carbRes.data ?? []),
+    dernieres_charges: chgRes.error ? { error: chgRes.error.message } : (chgRes.data ?? []),
+    dernieres_livraisons: livRes.error ? { error: livRes.error.message } : (livRes.data ?? []),
+    totaux_12_mois: {
+      periode: { date_min: dateMin12, date_max: today },
+      km_total: Number(sum(totalsLivRes.data, "distance_km").toFixed(1)),
+      carburant_litres: Number(sum(totalsCarbRes.data, "litres").toFixed(2)),
+      carburant_ttc: Number(sum(totalsCarbRes.data, "prix_ttc").toFixed(2)),
+      charges_ttc: Number(sum(totalsChgRes.data, "montant_ttc").toFixed(2)),
+    },
+  };
+}
+
 // ===== Helpers HTTP externes =====
 
 async function fetchSafeJson(url: string, init: RequestInit, timeoutMs = 15000): Promise<any> {
@@ -1488,6 +1857,11 @@ const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown
   ors_distance: toolOrsDistance,
   ors_optimize_tournee: toolOrsOptimizeTournee,
   sentry_recent_issues: toolSentryRecentIssues,
+  // Audit / detail granulaire
+  audit_coherence_donnees: toolAuditCoherenceDonnees,
+  get_audit_log: toolGetAuditLog,
+  get_livraison_detail: toolGetLivraisonDetail,
+  get_vehicule_historique: toolGetVehiculeHistorique,
   add_memory_fact: toolAddMemoryFact,
   delete_memory_fact: toolDeleteMemoryFact,
   list_memory_facts: toolListMemoryFacts,
@@ -1743,6 +2117,10 @@ Deno.serve(async (req) => {
     // Service-role client pour les tools (RLS bypass) et le quota
     const sbAdmin = createClient(SUPABASE_URL, SERVICE);
 
+    // Cache in-memory pour cette requete : evite que Gemini rappelle 2x le
+    // meme tool avec memes args dans la meme boucle (TTL 30s court).
+    const toolCache = new Map<string, { result: unknown; expiresAt: number }>();
+
     // Quota -> choix modele
     const quota = await getQuota(sbAdmin);
     let usePro = quota.requests_pro < PRO_DAILY_QUOTA;
@@ -1851,6 +2229,15 @@ Deno.serve(async (req) => {
           toolCallsMade.push(call.name);
           const handler = TOOL_HANDLERS[call.name];
           if (!handler) return { error: `unknown tool: ${call.name}` };
+          // Cache lookup (lecture seule uniquement, TTL 30s).
+          const cacheable = CACHEABLE_TOOLS.has(call.name);
+          const key = cacheable ? cacheKey(call.name, call.args ?? {}) : "";
+          if (cacheable) {
+            const hit = toolCache.get(key);
+            if (hit && hit.expiresAt > Date.now()) {
+              return hit.result;
+            }
+          }
           try {
             const r = await handler(call.args ?? {}, sbAdmin);
             // Track memory ops pour les exposer a l'UI (cards delete-able / annonces).
@@ -1858,6 +2245,9 @@ Deno.serve(async (req) => {
               memoryOps.push({ type: "added", fact: (r as any).fact });
             } else if (call.name === "delete_memory_fact" && (r as any)?.success) {
               memoryOps.push({ type: "deleted", id: call.args?.id, deleted: (r as any)?.deleted });
+            }
+            if (cacheable) {
+              toolCache.set(key, { result: r, expiresAt: Date.now() + TOOL_CACHE_TTL_MS });
             }
             return r;
           } catch (e) {
