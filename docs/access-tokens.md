@@ -79,18 +79,50 @@ Dernière mise à jour : 2026-05-06
   - Détection auto fournisseurs/clients via libellé virement
   - Rapprochement bancaire mensuel (combiné avec FEC Pennylane)
 
-### Google AI Studio — Gemini API
-- **Origine** : créée via https://aistudio.google.com (PAS via Google Cloud Billing)
+### Google AI Studio — Gemini API (Tier 1 payant depuis 2026-05-08)
+- **Origine** : créée via https://aistudio.google.com
 - **Secret runtime** : `GEMINI_API_KEY`
-- **Free tier permanent** : 1500 req/jour Gemini Flash, 15 req/min — **sans CB rattachée → impossible d'être facturé**
+- **Projet GCP** : `Budget Achraf` (ID `budget-achraf`, numéro `875383470177`)
+- **Tier actif** : **Tier 1 payant** (free tier rate-limit 10 RPM/250 RPD était trop restrictif).
+- **Limites Tier 1** : 1000 RPM / 4M TPM / 10 000 RPD — pratiquement illimité pour MCA.
+- **Coût mensuel attendu** : ~€0,55-€0,90/mois pour 50 questions/jour (Flash $0,30/1M out, $0,075/1M in).
 - **API base URL** : `https://generativelanguage.googleapis.com/v1beta/`
 - **Auth** : query param `?key=<GEMINI_API_KEY>` ou header `x-goog-api-key`
+- **Budget cap** : alerte budget Google Cloud nommée "MCA LOGISTICS", **5 €/mois**, alertes email à 50 % / 90 % / 100 %. URL : https://console.cloud.google.com/billing/budgets
 - **Usage prévu MCA** :
   - OCR factures complexes (ce que Tesseract rate)
   - Auto-fill smart depuis photo (ticket carburant, RIB, justificatif)
   - Détection anomalies sur charges
   - Génération texte (descriptions livraison, lettres relance)
   - Chatbot interne MCA (query Supabase + réponse)
+
+#### 🚨 Procédure de désactivation d'urgence (en cas de surfacturation suspecte)
+
+Si tu reçois une alerte budget anormale ou une facture surprise :
+
+**Option A — Désactiver l'API Gemini uniquement (recommandé en premier)**
+1. https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/overview?project=budget-achraf
+2. Bouton **"Désactiver l'API"** en haut → confirme
+3. Effet immédiat : toutes les requêtes Gemini renvoient un 403. Le chatbot MCA tombe en erreur côté frontend (message clair grâce au hint v10) mais le reste du site continue de fonctionner.
+4. Pas de coût supplémentaire à partir de cette seconde.
+
+**Option B — Désactiver la facturation du projet (plus radical)**
+1. https://console.cloud.google.com/billing/linkedaccount?project=budget-achraf
+2. Bouton **"Désactiver le compte de facturation"**
+3. Effet : tout le projet `budget-achraf` ne facture plus rien, mais les services se figent (downgrade en free tier ou suspension).
+4. Réactivable à tout moment en re-liant le compte de facturation.
+
+**Option C — Révoquer la clé API Gemini (si suspicion de fuite)**
+1. https://aistudio.google.com/app/apikey
+2. Trouve la clé du projet `budget-achraf`, clique 🗑 → confirme.
+3. Crée immédiatement une nouvelle clé dans le même projet (sinon le chatbot reste KO).
+4. Mets à jour le secret Supabase `GEMINI_API_KEY` (https://supabase.com/dashboard/project/lkbfvgnhwgbapdtitglu/functions/secrets).
+5. Effet : les anciennes requêtes échouent en 401, les nouvelles fonctionnent.
+
+**Diagnostic avant désactivation** :
+- Liste des consommations détaillées : https://console.cloud.google.com/billing/reports?project=budget-achraf
+- Logs des appels Gemini (RPM, RPD, tokens) : https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=budget-achraf
+- Si l'usage est légitime mais cher : passer le `MAX_TOOL_ITERATIONS` de 4 à 2 dans `infra/supabase/functions/ai-chat/index.ts` et redéployer.
 
 ### OpenRouteService (HeiGIT) — distance / geocoding / routing
 - **Origine** : https://openrouteservice.org (boîte allemande HeiGIT, basée sur OpenStreetMap)

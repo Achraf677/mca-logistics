@@ -87,14 +87,21 @@ réglementaire (ADR / CE 561), rentabilité fine par mission/véhicule.
 
 ## Décisions techniques 2026-05-06
 
-### Stack IA / maps (gratuit, sans CB)
-- **Gemini API via Google AI Studio** (`https://aistudio.google.com`, PAS via
-  Google Cloud Billing) → 1500 req/jour Flash + 50 req/jour Pro gratuites,
-  sans CB → impossible d'être facturé. Secret : `GEMINI_API_KEY`.
+### Stack IA / maps
+- **Gemini API via Google AI Studio** (`https://aistudio.google.com`) → projet GCP
+  `budget-achraf` (n° `875383470177`). **Tier 1 payant activé le 2026-05-08**
+  (free tier rate-limit 10 RPM/250 RPD trop restrictif pour un chatbot
+  interactif). Limites Tier 1 : 1000 RPM / 4M TPM / 10 000 RPD.
+  - Coût mensuel attendu : **~€0,55-€0,90/mois** pour 50 questions/jour.
+  - **Cap budget Google Cloud : 5 €/mois** (alerte "MCA LOGISTICS"), email à 50 %,
+    90 %, 100 %.
+  - Procédure de désactivation d'urgence : voir `docs/access-tokens.md` section
+    "Procédure de désactivation d'urgence".
+  - Secret runtime : `GEMINI_API_KEY`.
 - **OpenRouteService (HeiGIT)** remplace Google Maps → 2000 req/jour gratuit,
   sans CB, profil HGV camion natif, optimisation tournée incluse. Secret :
   `ORS_API_KEY`.
-- **Google Maps API : abandonné** (CB obligatoire = risque facture surprise).
+- **Google Maps API : abandonné** (CB obligatoire + Distance Matrix payant).
 
 ### Intégrations comptables (actives)
 - **Pennylane** : token API actif (15 scopes lecture seule, dont **FEC**) →
