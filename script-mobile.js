@@ -3449,7 +3449,7 @@
 
   M.updateBriefBadge = function () {
     const n = M.compterBriefNonLus();
-    const badge = $('#m-brief-badge');
+    const badge = $('#m-agent-ia-badge');
     if (!badge) return;
     if (n > 0) {
       badge.textContent = n > 99 ? '99+' : String(n);
@@ -3530,8 +3530,9 @@
       }
       M.sauvegarder('agent_decisions', existantes);
       try {
-        const today = new Date().toISOString().slice(0, 10);
-        localStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, today);
+        // Gate session : 1x par session de login (et non 1x par jour calendaire,
+        // sinon un re-login le meme jour ne re-declenche jamais le brief).
+        sessionStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, '1');
       } catch (_) {}
       M.updateBriefBadge();
       if (trigger === 'manual') {
@@ -3547,14 +3548,12 @@
     }
   };
 
-  // Auto-trigger 1x/jour au boot mobile admin.
+  // Auto-trigger 1x par session de login admin.
   M.declencherBriefAutoLoginSiNecessaire = function () {
     try {
       const adminLogin = sessionStorage.getItem('admin_login') || '';
       if (!adminLogin) return; // chauffeurs : pas concernes
-      const today = new Date().toISOString().slice(0, 10);
-      const last = localStorage.getItem(AI_BRIEF_LAST_RUN_KEY_M) || '';
-      if (last === today) return;
+      if (sessionStorage.getItem(AI_BRIEF_LAST_RUN_KEY_M)) return; // deja fait dans cette session
       // Differe pour ne pas concurrencer le warmup mobile.
       setTimeout(() => { M.lancerBriefAuto('on_login'); }, 4500);
     } catch (_) { /* fail-soft */ }
@@ -9762,8 +9761,11 @@
       if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
 
-    // Cloche brief IA (parite PC panneau-agent). Ouvre la sheet decisions.
-    $('#m-brief-btn')?.addEventListener('click', () => { M.openBriefSheet(); });
+    // Entree "Agent IA" du drawer "Plus" : ouvre la sheet decisions / brief IA.
+    $('#m-agent-ia-link')?.addEventListener('click', () => {
+      M.closeDrawer && M.closeDrawer();
+      M.openBriefSheet();
+    });
 
     // Helper pour ouvrir un detail
     M.openDetail = function(entity, id) {

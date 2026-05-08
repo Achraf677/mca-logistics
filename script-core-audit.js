@@ -320,10 +320,11 @@ async function lancerBriefAuto(trigger) {
       });
       added++;
     }
-    // Marqueur de dernier run reussi (date YYYY-MM-DD pour gate on_login).
+    // Gate session : 1x par session de login (sessionStorage). Avant on stockait
+    // la date dans localStorage : un manuel le matin bloquait l'auto-trigger
+    // jusqu'au lendemain meme apres logout/login.
     try {
-      const today = new Date().toISOString().slice(0, 10);
-      localStorage.setItem(AI_BRIEF_LAST_RUN_KEY, today);
+      sessionStorage.setItem(AI_BRIEF_LAST_RUN_KEY, '1');
     } catch (_) {}
     // MAJ libelle "derniere analyse"
     const lastEl = document.getElementById('agent-last-check');
@@ -344,16 +345,14 @@ async function lancerBriefAuto(trigger) {
   }
 }
 
-// Auto-trigger au boot admin : 1x/jour/session si pas deja fait aujourd'hui.
+// Auto-trigger au boot admin : 1x par session de login.
 function declencherBriefAutoLoginSiNecessaire() {
   try {
     // Reservé admin : le panneau-agent n'existe que sur admin.html.
     if (!document.getElementById('panneau-agent')) return;
     const role = sessionStorage.getItem('role') || '';
     if (role !== 'admin') return;
-    const today = new Date().toISOString().slice(0, 10);
-    const last = localStorage.getItem(AI_BRIEF_LAST_RUN_KEY) || '';
-    if (last === today) return; // deja fait aujourd'hui
+    if (sessionStorage.getItem(AI_BRIEF_LAST_RUN_KEY)) return; // deja fait dans cette session
     // Differe l'appel pour ne pas concurrencer le warmup admin (sync Supabase)
     setTimeout(() => { lancerBriefAuto('on_login'); }, 4000);
   } catch (_) { /* fail-soft */ }
