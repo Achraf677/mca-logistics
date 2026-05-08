@@ -6,14 +6,19 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const PRO_DAILY_QUOTA = 50;
-const MAX_TOOL_ITERATIONS = 6;
-const RESULT_ROW_CAP = 25;
-// Plafond approx d'octets serialises pour UN result d'outil renvoye a Gemini.
-// Au-dela on tronque les listes (mais on garde count + meta) pour eviter d'exploser
-// le contexte / le cout / le temps de reponse a chaque iteration.
-const MAX_TOOL_RESULT_BYTES = 12000;
+// 4 iterations couvrent largement les vrais cas d'usage (la plupart finissent en 1-2).
+// Reduit de 6 -> 4 pour limiter la consommation de tokens free tier.
+const MAX_TOOL_ITERATIONS = 4;
+// Limite ramenee a 15 lignes (etait 25) pour reduire le contexte renvoye.
+const RESULT_ROW_CAP = 15;
+// Plafond ramene a 7 KB (etait 12 KB) pour reduire le cout en input tokens
+// par iteration. Si une liste depasse, on tronque mais on garde count + meta.
+const MAX_TOOL_RESULT_BYTES = 7000;
 const GEMINI_TIMEOUT_MS = 45000;
-const GEMINI_MAX_RETRIES = 2; // 1 tentative + 2 retries sur erreur transient
+const GEMINI_MAX_RETRIES = 2;
+// Auto-retry interne uniquement si <= 8s. Au-dela, on remonte au frontend
+// qui affiche un countdown et retry automatiquement (meilleur UX).
+const GEMINI_INTERNAL_RETRY_THRESHOLD_S = 8;
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -41,47 +46,25 @@ function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = []): 
       ].join("\n");
 
   return [
-    `Tu es l'assistant business de MCA Logistics, PME francaise de transport et logistique.`,
-    `Date d'aujourd'hui : ${todayISO()}.`,
-    ``,
-    `Role de ton interlocuteur : ${role}.`,
+    `Assistant business MCA Logistics (PME transport FR). Date : ${todayISO()}. Role user : ${role}.`,
     ``,
     `## Regles`,
-    `- Reponds en francais, ton naturel, concis. Pas de blabla.`,
-    `- Quand tu as besoin de donnees, utilise les outils (tu en as 27, dont 9 connectes a des APIs externes : Qonto banque, Pennylane compta, OpenRouteService cartes/distance, Sentry monitoring ; et 3 dedies a la memoire long-terme) au lieu de poser des questions a l'utilisateur.`,
-    `- Pour des chiffres (CA, marges, volume), utilise get_stats.`,
-    `- Si tu detectes une anomalie ou opportunite (charge anormale, retard paiement long, conso carburant suspecte), signale-la avec une recommandation actionnable.`,
-    `- Tu n'as PAS le droit d'ecrire / creer / modifier / supprimer en V1. Si on te demande "cree X" ou "modifie Y", explique que la fonctionnalite ecriture arrive en V2 et propose au lieu un resume des donnees pertinentes.`,
-    `- Format reponse : markdown court, listes a puces, tableaux quand pertinent.`,
-    `- **JAMAIS d'UUID dans tes reponses** : les tools renvoient les noms humains (ex: salarie.nom, salarie.prenom, vehicule.immat, vehicule.marque, client_nom). Utilise toujours ces champs lisibles, jamais les colonnes \`*_id\`.`,
-    `- Les montants sont en euros (TTC sauf precision).`,
+    `- Reponds FR, concis, sans blabla. Markdown court, listes/tableaux quand pertinent.`,
+    `- Utilise les outils (27 dispo) au lieu de demander a l'user. Pour les chiffres (CA, marges) -> get_stats.`,
+    `- Signale anomalies/opportunites avec reco actionnable.`,
+    `- V1 : LECTURE SEULE sur les donnees business (livraisons/charges/...). Si on demande "cree" / "modifie", dis que l'ecriture arrive en V2.`,
+    `- Tu peux ecrire dans la memoire long-terme via add_memory_fact / delete_memory_fact (faits durables uniquement).`,
+    `- Montants en euros TTC sauf precision.`,
     ``,
-    `## Contexte business MCA`,
-    `- MCA = couche operationnelle transport (planning, tournees, km, inspections, conformite ADR/CE 561, rentabilite par mission/vehicule).`,
-    `- La compta legale (TVA CA3, factures officielles) est dans Pennylane (synchro API en cours).`,
-    `- La banque est sur Qonto (synchro API en cours).`,
-    `- Tu ne dois JAMAIS proposer d'emettre une facture officielle ou de faire de la compta : c'est le role de Pennylane.`,
+    `## Contexte`,
+    `- MCA = couche operationnelle transport (planning, km, inspections, ADR, rentabilite). PAS la compta.`,
+    `- Pennylane = source legale (TVA CA3, factures officielles). Qonto = banque. Ne propose JAMAIS d'emettre facture ou faire compta.`,
     ``,
-    `## Schema DB (read-only via tools)`,
-    `- livraisons : num_liv, client_nom, date_livraison, distance_km, prix_ht/ttc, taux_tva, statut, statut_paiement, depart, arrivee.`,
-    `- charges : categorie, description, date_charge, montant_ht/ttc, fournisseur_nom, vehicule_id, statut_paiement.`,
-    `- clients : nom, prenom, type (pro/particulier), ville, contact, telephone, email, delai_paiement_jours.`,
-    `- fournisseurs : nom, type, ville, contact, telephone, email.`,
-    `- vehicules : immat, marque, modele, kilometrage, date_ct, date_assurance, salarie_id.`,
-    `- salaries : nom, prenom, poste, permis (categorie + date), assurance.`,
-    `- carburant : date_plein, litres, prix_ttc, kilometrage, vehicule_id, salarie_id.`,
-    `- paiements : livraison_id, client_id, date_paiement, montant, mode, frais.`,
-    `- inspections : salarie_id, vehicule_id, date_inspection, semaine_label, statut, commentaire.`,
-    `- entretiens : vehicule_id, date_entretien, type, description, cout_ttc, kilometrage, prochain_km, prochaine_date.`,
-    `- incidents : salarie_id, livraison_id, gravite, description, date_incident, statut.`,
-    `- alertes : type, niveau (info/warning/error/critical), titre, message, lue, resolved.`,
-    `- plannings_hebdo : salarie_id, jour (YYYY-MM-DD), travaille, heure_debut/fin, zone.`,
-    ``,
-    `## APIs externes branchees (utilise-les quand pertinent)`,
-    `- **Qonto** (banque) : qonto_organization (soldes), qonto_search_transactions (virements/prelevements). Utile pour rapprochement bancaire ("Carrefour a paye sur Qonto le X mai mais MCA marque impaye").`,
-    `- **Pennylane** (compta) : pennylane_factures_clients/fournisseurs, pennylane_search_clients/fournisseurs. Pennylane est la source legale (TVA CA3, factures officielles). Croise avec MCA pour detecter les divergences.`,
-    `- **OpenRouteService** (cartes) : ors_distance (km + duree entre 2 adresses, profil camion HGV par defaut), ors_optimize_tournee (TSP multi-stops). Pour estimation prix livraison ou planification tournee.`,
-    `- **Sentry** (monitoring) : sentry_recent_issues (bugs JS prod). Utile si l'admin demande "y a eu des bugs ?".`,
+    `## APIs branchees`,
+    `- **Qonto** : qonto_organization (soldes), qonto_search_transactions. Pour rapprochement bancaire.`,
+    `- **Pennylane** : pennylane_factures_clients/fournisseurs, pennylane_search_clients/fournisseurs. Pour croisement compta vs MCA.`,
+    `- **ORS** : ors_distance (km/duree HGV camion), ors_optimize_tournee. Pour estimation/planif.`,
+    `- **Sentry** : sentry_recent_issues (bugs JS prod).`,
     memorySection,
   ].join("\n");
 }
@@ -1218,15 +1201,14 @@ async function callGemini(model: string, apiKey: string, systemInstruction: stri
         }
         return { error: { message: `Gemini reponse non-JSON (HTTP ${r.status})` } } as GeminiResp;
       }
-      // 429 avec retryDelay court (<30s) : auto-retry transparent (les rate limits
-      // RPM/TPM se reset rapidement). Au-dela, on remonte l'erreur a l'user.
+      // 429 court (<= 8s) : auto-retry transparent. Au-dela : remonte au frontend
+      // qui affiche un countdown et retry sans casser l'UX (vs. erreur).
       if (r.status === 429 && attempt < GEMINI_MAX_RETRIES) {
         const retrySec = parseRetryDelay(json);
-        if (retrySec !== null && retrySec <= 30) {
+        if (retrySec !== null && retrySec <= GEMINI_INTERNAL_RETRY_THRESHOLD_S) {
           await new Promise((res) => setTimeout(res, (retrySec + 0.5) * 1000));
           continue;
         }
-        // Sinon : injecte retry_after dans l'erreur pour que le frontend l'affiche proprement
         if (json.error) json.error.retry_after_seconds = retrySec ?? null;
       }
       return json as GeminiResp;

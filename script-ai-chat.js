@@ -12,11 +12,14 @@
 
   const HISTORY_KEY = 'ai_chat_history';
   const MAX_HISTORY = 30;
-  // Nb max de tours user/model envoyes au backend par requete. Plus que ca = trop
-  // de contexte, Gemini ralentit / coute cher / risque de timeout. Le local
-  // garde tout (jusqu'a MAX_HISTORY) pour l'affichage.
-  const MAX_HISTORY_TO_SEND = 16;
+  // Nb max de tours user/model envoyes au backend par requete. Reduit de 16 -> 10
+  // pour limiter les input tokens free tier Gemini. Le local garde tout (jusqu'a
+  // MAX_HISTORY) pour l'affichage.
+  const MAX_HISTORY_TO_SEND = 10;
   const ENDPOINT = '/functions/v1/ai-chat';
+  // Auto-retry si Gemini renvoie 429 avec retry_after <= ce seuil. UX : on
+  // affiche un compte a rebours au lieu d'un message d'erreur.
+  const MAX_AUTO_RETRY_SECONDS = 90;
 
   const state = {
     open: false,
@@ -656,6 +659,40 @@
     );
   }
 
+  // ----- Countdown rate limit (UX fluide vs erreur) -----
+
+  // Affiche un compte a rebours dans le placeholder de l'input pendant que
+  // l'on attend la fin du rate limit Gemini, puis resout. Si l'utilisateur
+  // ferme/ouvre le panel pendant l'attente, l'attente continue (Promise vit).
+  function waitWithCountdown(seconds) {
+    return new Promise((resolve) => {
+      const c = document.getElementById('ai-chat-messages');
+      let bubble = null;
+      if (c) {
+        bubble = document.createElement('div');
+        bubble.className = 'ai-chat-msg-loading';
+        bubble.textContent = `⏳ Quota Gemini atteint, retry auto dans ${Math.ceil(seconds)}s…`;
+        c.appendChild(bubble);
+        scrollToBottom();
+      }
+      let remaining = Math.ceil(seconds);
+      const tick = () => {
+        remaining -= 1;
+        if (bubble) {
+          bubble.textContent = remaining > 0
+            ? `⏳ Quota Gemini atteint, retry auto dans ${remaining}s…`
+            : `🔄 Reprise…`;
+        }
+        if (remaining <= 0) {
+          clearInterval(t);
+          if (bubble) bubble.remove();
+          resolve();
+        }
+      };
+      const t = setInterval(tick, 1000);
+    });
+  }
+
   // ----- Memoire long-terme : cards inline -----
 
   function renderMemoryCard(op) {
@@ -742,17 +779,33 @@
 
     let succeeded = false;
     try {
-      const reply = await callBackend(state.history);
-      state.history.push({
-        role: 'model',
-        parts: [{ text: reply.text }],
-        _tools: reply.tools_called,
-        _memory_ops: Array.isArray(reply.memory_ops) ? reply.memory_ops : [],
-      });
-      state.proRemaining = reply.pro_remaining;
-      state.modelLast = reply.model_used;
-      saveHistory();
-      succeeded = true;
+      // Boucle de retry transparente sur rate limit Gemini < MAX_AUTO_RETRY_SECONDS.
+      // L'UX affiche un compte a rebours au lieu d'une erreur, puis renvoie
+      // automatiquement quand le quota se libere (RPM/TPM se reset chaque minute).
+      let attempts = 0;
+      while (true) {
+        try {
+          const reply = await callBackend(state.history);
+          state.history.push({
+            role: 'model',
+            parts: [{ text: reply.text }],
+            _tools: reply.tools_called,
+            _memory_ops: Array.isArray(reply.memory_ops) ? reply.memory_ops : [],
+          });
+          state.proRemaining = reply.pro_remaining;
+          state.modelLast = reply.model_used;
+          saveHistory();
+          succeeded = true;
+          break;
+        } catch (e) {
+          if (e && e.rateLimitRetry && attempts < 3) {
+            attempts++;
+            await waitWithCountdown(e.retryAfter);
+            continue; // retry
+          }
+          throw e;
+        }
+      }
     } catch (err) {
       // CRITIQUE : sans rollback, le message user reste orphelin dans l'history.
       // Au prochain envoi, on enverrait 2 messages user consecutifs a Gemini ->
@@ -882,13 +935,18 @@
       if (r.status === 401) {
         throw new Error('Session expiree. Deconnecte-toi puis reconnecte-toi.');
       }
-      // Si le backend a fourni un hint humain (ex: rate limit Gemini avec
-      // retry_after), on l'affiche en priorite (court, lisible). Sinon
-      // fallback sur le message brut Gemini.
+      // 429 / rate limit Gemini avec retry_after raisonnable -> on signale un
+      // RATE_LIMIT_RETRY que onSubmit() va intercepter pour faire un countdown
+      // visible et retry sans afficher d'erreur a l'user.
+      const ra = Number(body.retry_after_seconds);
+      if (body.code === 429 && ra > 0 && ra <= MAX_AUTO_RETRY_SECONDS) {
+        const e = new Error('rate_limit_retry');
+        e.rateLimitRetry = true;
+        e.retryAfter = ra;
+        throw e;
+      }
       const friendly = body.hint
-        ? body.hint + (body.retry_after_seconds && body.retry_after_seconds <= 30
-            ? ` (auto-retry deja tente)`
-            : '')
+        ? body.hint
         : (body.message || body.error || 'HTTP ' + r.status);
       throw new Error(friendly);
     }
