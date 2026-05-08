@@ -1,9 +1,6 @@
-// Edge function ai-chat — chatbot Gemini avec tool use lecture seule (v21).
+// Edge function ai-chat — chatbot Gemini avec tool use lecture seule
 // Hybride Pro/Flash : 50 req Pro/jour partagees entre admins, puis bascule Flash.
 // Quota tracker : table public.ai_quota_daily (cf migration 033).
-//
-// v21 (2026-05-08) : injection des decisions agent actives (top 5) dans le system
-// prompt via body.context.agent_decisions, pour interconnexion panneau-agent <-> chat.
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -71,31 +68,7 @@ function cacheKey(toolName: string, args: any): string {
   return `${toolName}:${argsStr}`;
 }
 
-function buildSystemPrompt(
-  role: "admin" | "salarie",
-  memoryFacts: any[] = [],
-  userName: string | null = null,
-  agentDecisions: any[] = [],
-): string {
-  // Section "Decisions agent actives" : injectee depuis le frontend (localStorage
-  // agent_decisions filtre lu=false, top 5). Permet a l'IA de savoir de quoi parle
-  // l'admin quand il clique "💬 Discuter" sur une card du panneau-agent.
-  const decisionsSection = agentDecisions.length
-    ? [
-        ``,
-        `## Decisions agent actives (top ${agentDecisions.length})`,
-        `Le panneau-agent affiche actuellement ${agentDecisions.length} decision(s) non lue(s) (sur les decisions IA generees par le brief). Ce que l'admin peut vouloir creuser :`,
-        ...agentDecisions.map((d, i) => {
-          const titre = String(d?.titre || "").slice(0, 200);
-          const desc = String(d?.description || "").slice(0, 400);
-          const prio = d?.priorite || "info";
-          return `${i + 1}. [${prio}] ${titre} — ${desc}`;
-        }),
-        ``,
-        `Si l'admin envoie un message qui commence par "[Decision agent : ...]", il a clique sur "💬 Discuter" depuis une card. Reponds en proposant des actions concretes (relance, appel, mail, optim, etc.) et utilise les outils MCA pour creuser le contexte (ex: search_livraisons, top_clients_ca) avant de conclure.`,
-      ].join("\n")
-    : "";
-
+function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] = [], userName: string | null = null): string {
   const memorySection = memoryFacts.length
     ? [
         ``,
@@ -120,7 +93,6 @@ function buildSystemPrompt(
     `Assistant business MCA Logistics (PME transport FR). Date : ${todayISO()}. Role user : ${role}.`,
     ``,
     identitySection,
-    decisionsSection,
     ``,
     `## Regles`,
     `- Reponds FR, concis, sans blabla. Markdown court, listes/tableaux quand pertinent.`,
@@ -2111,22 +2083,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Acces reserve aux admins en V1" }), { status: 403, headers: { ...CORS, "Content-Type": "application/json" } });
     }
 
-    // Body : { history: [...], context?: { agent_decisions?: [...] } }
+    // Body : { history: [{ role: 'user'|'model', parts: [...] }, ...] }
     const body = await req.json().catch(() => ({}));
     const rawHistory: any[] = Array.isArray(body.history) ? body.history : [];
-    // Decisions agent actives passees par le frontend (depuis localStorage,
-    // filtrees lu=false, top 5). Sanitize defensif : on coupe a 5, on plafonne
-    // les chaines, on ignore tout le reste.
-    const rawAgentDecisions: any[] = Array.isArray(body?.context?.agent_decisions)
-      ? body.context.agent_decisions
-      : [];
-    const agentDecisions = rawAgentDecisions.slice(0, 5).map((d: any) => ({
-      titre: String(d?.titre || "").slice(0, 200),
-      description: String(d?.description || "").slice(0, 600),
-      priorite: ["haute", "opportunite", "info"].includes(String(d?.priorite))
-        ? String(d.priorite)
-        : "info",
-    })).filter((d) => d.titre);
 
     // Defense-in-depth : meme sanitize que le frontend, au cas ou un client
     // malforme/ancien envoie un history avec turns vides ou consecutifs meme
@@ -2177,7 +2136,7 @@ Deno.serve(async (req) => {
       .limit(60);
     const memoryFacts = memData ?? [];
 
-    const systemInstruction = buildSystemPrompt(role, memoryFacts, userDisplayName, agentDecisions);
+    const systemInstruction = buildSystemPrompt(role, memoryFacts, userDisplayName);
     let working = [...history];
     let finalText = "";
     let toolCallsMade: string[] = [];
