@@ -1124,20 +1124,36 @@
   // Mapping action -> titre + icone affiches dans la carte. Centralise pour
   // ne pas dupliquer la logique dans renderWriteCard.
   const WRITE_ACTION_META = {
-    create_livraison: { icon: '🚚', title: 'Action proposee : creer une livraison' },
-    create_charge: { icon: '💸', title: 'Action proposee : creer une charge' },
-    create_paiement: { icon: '💰', title: 'Action proposee : enregistrer un paiement' },
-    resolve_alerte: { icon: '✅', title: 'Action proposee : marquer alerte resolue' },
-    // Phase 1 — CREATE des 8 entites supplementaires
-    create_client: { icon: '🧑‍💼', title: 'Action proposee : creer un client' },
-    create_fournisseur: { icon: '🏭', title: 'Action proposee : creer un fournisseur' },
-    create_vehicule: { icon: '🚐', title: 'Action proposee : creer un vehicule' },
-    create_salarie: { icon: '👤', title: 'Action proposee : creer un salarie' },
-    create_carburant: { icon: '⛽', title: 'Action proposee : enregistrer un plein' },
-    create_entretien: { icon: '🔧', title: 'Action proposee : creer un entretien' },
-    create_incident: { icon: '🚨', title: 'Action proposee : creer un incident' },
-    create_planning_creneau: { icon: '📅', title: 'Action proposee : creer un creneau planning' },
-    create_inspection: { icon: '🚗', title: 'Action proposee : creer une inspection' },
+    create_livraison: { icon: '🚚', title: '➕ Creer une livraison', kind: 'create' },
+    create_charge: { icon: '💸', title: '➕ Creer une charge', kind: 'create' },
+    create_paiement: { icon: '💰', title: '➕ Enregistrer un paiement', kind: 'create' },
+    resolve_alerte: { icon: '✅', title: '✓ Marquer alerte resolue', kind: 'create' },
+    create_client: { icon: '🧑‍💼', title: '➕ Creer un client', kind: 'create' },
+    create_fournisseur: { icon: '🏭', title: '➕ Creer un fournisseur', kind: 'create' },
+    create_vehicule: { icon: '🚐', title: '➕ Creer un vehicule', kind: 'create' },
+    create_salarie: { icon: '👤', title: '➕ Creer un salarie', kind: 'create' },
+    create_carburant: { icon: '⛽', title: '➕ Enregistrer un plein', kind: 'create' },
+    create_entretien: { icon: '🔧', title: '➕ Creer un entretien', kind: 'create' },
+    create_incident: { icon: '🚨', title: '➕ Creer un incident', kind: 'create' },
+    create_planning_creneau: { icon: '📅', title: '➕ Creer un creneau planning', kind: 'create' },
+    create_inspection: { icon: '🚗', title: '➕ Creer une inspection', kind: 'create' },
+    // Phase 2 — UPDATE
+    update_livraison: { icon: '✏️', title: '✏️ Modifier une livraison', kind: 'update' },
+    update_charge: { icon: '✏️', title: '✏️ Modifier une charge', kind: 'update' },
+    update_paiement: { icon: '✏️', title: '✏️ Modifier un paiement', kind: 'update' },
+    update_client: { icon: '✏️', title: '✏️ Modifier un client', kind: 'update' },
+    update_fournisseur: { icon: '✏️', title: '✏️ Modifier un fournisseur', kind: 'update' },
+    update_vehicule: { icon: '✏️', title: '✏️ Modifier un vehicule', kind: 'update' },
+    update_salarie: { icon: '✏️', title: '✏️ Modifier un salarie', kind: 'update' },
+    update_carburant: { icon: '✏️', title: '✏️ Modifier un plein', kind: 'update' },
+    update_entretien: { icon: '✏️', title: '✏️ Modifier un entretien', kind: 'update' },
+    update_incident: { icon: '✏️', title: '✏️ Modifier un incident', kind: 'update' },
+    update_planning_creneau: { icon: '✏️', title: '✏️ Modifier un creneau', kind: 'update' },
+    update_inspection: { icon: '✏️', title: '✏️ Modifier une inspection', kind: 'update' },
+    // Phase 3 — DELETE (rouge)
+    delete_entity: { icon: '🗑️', title: '🗑️ SUPPRIMER une entite', kind: 'delete' },
+    // Phase 4 — Brouillon (mode autonome)
+    add_to_drafts: { icon: '📋', title: '📋 Ajouter aux brouillons IA', kind: 'draft' },
   };
 
   // Formatage d'une valeur pour la table de confirmation : null/undefined -> tiret,
@@ -1166,14 +1182,18 @@
   }
 
   // Rendu d'une carte de confirmation pour une write_action.
-  // Si state existe (deja confirmee/annulee), affiche en read-only avec badge.
+  // kind: 'create' (orange par defaut), 'update' (bleu), 'delete' (rouge + confirmation 2x), 'draft' (gris).
   function renderWriteCard(action, proposal, st, msgIdx, actionIdx) {
     if (!action || typeof action !== 'object' || !action.action) return null;
-    const meta = WRITE_ACTION_META[action.action] || { icon: '🤖', title: 'Action proposee par l\'IA' };
+    let actionKey = action.action;
+    if (actionKey && actionKey.startsWith('update_')) actionKey = actionKey;
+    const meta = WRITE_ACTION_META[actionKey] || { icon: '🤖', title: 'Action proposee par l\'IA', kind: 'create' };
+    const kind = meta.kind || 'create';
     const card = document.createElement('div');
-    card.className = 'ai-chat-write-card';
+    card.className = 'ai-chat-write-card ai-chat-write-card-' + kind;
     if (st && st.confirmed) card.classList.add('confirmed');
     if (st && st.cancelled) card.classList.add('cancelled');
+    if (st && st.drafted) card.classList.add('drafted');
 
     const title = document.createElement('div');
     title.className = 'ai-chat-write-card-title';
@@ -1181,6 +1201,23 @@
     title.querySelector('.ai-chat-write-card-icon').textContent = meta.icon;
     title.querySelector('.ai-chat-write-card-titletext').textContent = '🤖 ' + meta.title;
     card.appendChild(title);
+
+    if (kind === 'update' && (action.target_id || (proposal && proposal.target_id))) {
+      const tid = action.target_id || proposal.target_id;
+      const meta2 = document.createElement('div');
+      meta2.className = 'ai-chat-write-card-meta';
+      meta2.style.cssText = 'font-size:12px;color:#6b7280;margin-bottom:6px;';
+      meta2.textContent = 'Target ID : ' + String(tid);
+      card.appendChild(meta2);
+    }
+
+    if (kind === 'delete') {
+      const warn = document.createElement('div');
+      warn.className = 'ai-chat-write-card-warn';
+      warn.style.cssText = 'background:#fef2f2;border-left:3px solid #dc2626;color:#991b1b;padding:8px 10px;margin:6px 0;font-size:13px;font-weight:600;';
+      warn.textContent = '⚠️ Suppression definitive — appuie longuement (1.5s) sur le bouton rouge pour confirmer.';
+      card.appendChild(warn);
+    }
 
     const rows = buildWriteCardRows(action, proposal);
     if (rows.length) {
@@ -1201,14 +1238,20 @@
       card.appendChild(table);
     }
 
-    // Etat final : badge + pas de boutons
-    if (st && (st.confirmed || st.cancelled)) {
+    if (st && (st.confirmed || st.cancelled || st.drafted)) {
       const status = document.createElement('div');
-      status.className = 'ai-chat-write-card-status' + (st.confirmed ? ' success' : ' error');
+      let cls = 'ai-chat-write-card-status';
+      if (st.confirmed) cls += ' success';
+      else if (st.cancelled) cls += ' error';
+      else if (st.drafted) cls += ' info';
+      status.className = cls;
       if (st.confirmed) {
-        const id = st.result?.created_id || st.result?.alerte_id || '';
-        const num = st.result?.num_liv ? ' (' + st.result.num_liv + ')' : '';
-        status.textContent = '✓ Confirmee et executee' + num + (id ? ' · id: ' + id.slice(0, 8) : '');
+        const id = (st.result && (st.result.created_id || st.result.updated_id || st.result.deleted_id || st.result.alerte_id)) || '';
+        const num = st.result && st.result.num_liv ? ' (' + st.result.num_liv + ')' : '';
+        status.textContent = '✓ Confirmee et executee' + num + (id ? ' · id: ' + String(id).slice(0, 8) : '');
+      } else if (st.drafted) {
+        const did = st.result && st.result.draft_id ? String(st.result.draft_id).slice(0, 8) : '';
+        status.textContent = '📋 Mise en brouillon IA' + (did ? ' · id: ' + did : '');
       } else {
         status.textContent = '✗ Annulee';
       }
@@ -1216,29 +1259,110 @@
       return card;
     }
 
-    // Etat actif : boutons Confirmer / Annuler
     const actions = document.createElement('div');
     actions.className = 'ai-chat-write-card-actions';
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-secondary';
-    cancelBtn.textContent = '❌ Annuler';
+    cancelBtn.textContent = '✕ Annuler';
+    cancelBtn.style.minHeight = '44px';
+
+    const draftBtn = document.createElement('button');
+    draftBtn.type = 'button';
+    draftBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-draft';
+    draftBtn.textContent = '📋 Brouillon';
+    draftBtn.style.cssText = 'min-height:44px;background:#e5e7eb;color:#374151;';
+    draftBtn.title = 'Garder en brouillon — a revoir plus tard dans la page Brouillons IA';
+
     const confirmBtn = document.createElement('button');
     confirmBtn.type = 'button';
     confirmBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-primary';
-    confirmBtn.textContent = '✅ Confirmer & creer';
+    confirmBtn.style.minHeight = '44px';
+    if (kind === 'delete') {
+      confirmBtn.classList.add('ai-chat-write-card-btn-danger');
+      confirmBtn.textContent = '🗑️ Supprimer (long-press)';
+      confirmBtn.style.cssText += 'min-height:44px;background:#dc2626;color:white;';
+    } else if (kind === 'update') {
+      confirmBtn.textContent = '✓ Confirmer modification';
+    } else {
+      confirmBtn.textContent = '✓ Confirmer & creer';
+    }
 
-    cancelBtn.addEventListener('click', () => {
-      cancelWriteAction(msgIdx, actionIdx);
-    });
-    confirmBtn.addEventListener('click', () => {
-      confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card);
-    });
+    cancelBtn.addEventListener('click', () => cancelWriteAction(msgIdx, actionIdx));
+    draftBtn.addEventListener('click', () => draftWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, draftBtn, card));
+
+    if (kind === 'delete') {
+      let pressTimer = null;
+      let pressing = false;
+      const startPress = (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (confirmBtn.disabled) return;
+        pressing = true;
+        confirmBtn.textContent = '🗑️ Maintien...';
+        pressTimer = setTimeout(() => {
+          if (pressing) {
+            confirmBtn.textContent = '⏳ Suppression...';
+            confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card);
+          }
+        }, 1500);
+      };
+      const endPress = () => {
+        pressing = false;
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        if (!confirmBtn.disabled) confirmBtn.textContent = '🗑️ Supprimer (long-press)';
+      };
+      confirmBtn.addEventListener('mousedown', startPress);
+      confirmBtn.addEventListener('touchstart', startPress, { passive: false });
+      confirmBtn.addEventListener('mouseup', endPress);
+      confirmBtn.addEventListener('mouseleave', endPress);
+      confirmBtn.addEventListener('touchend', endPress);
+      confirmBtn.addEventListener('touchcancel', endPress);
+    } else {
+      confirmBtn.addEventListener('click', () => {
+        confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card);
+      });
+    }
 
     actions.appendChild(cancelBtn);
+    actions.appendChild(draftBtn);
     actions.appendChild(confirmBtn);
     card.appendChild(actions);
     return card;
+  }
+
+  async function draftWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, draftBtn, _card) {
+    const msg = state.history[msgIdx];
+    if (!msg || !Array.isArray(msg._write_actions)) return;
+    const action = msg._write_actions[actionIdx];
+    if (!action) return;
+    confirmBtn.disabled = true; cancelBtn.disabled = true; draftBtn.disabled = true;
+    draftBtn.textContent = '⏳...';
+    try {
+      const draftAction = {
+        action: 'add_to_drafts',
+        action_type: action.action,
+        payload: action,
+        reasoning: 'Mise en brouillon depuis le chat IA',
+      };
+      const result = await callWriteExecute(draftAction);
+      if (!result || !result.success) {
+        confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
+        draftBtn.textContent = '📋 Brouillon';
+        showToast('Erreur brouillon : ' + (result?.error || 'inconnu'), 'error');
+        return;
+      }
+      if (!Array.isArray(msg._write_states)) {
+        msg._write_states = msg._write_actions.map(() => null);
+      }
+      msg._write_states[actionIdx] = { drafted: true, result };
+      saveHistory();
+      showToast('📋 Action mise en brouillon', 'info');
+      renderMessages();
+    } catch (e) {
+      confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
+      draftBtn.textContent = '📋 Brouillon';
+      showToast('Erreur : ' + (e.message || e), 'error');
+    }
   }
 
   // Confirme et execute la write_action via l'edge function ai-chat-write-execute.
@@ -1328,7 +1452,13 @@
       case 'create_incident': return 'Incident cree';
       case 'create_planning_creneau': return 'Creneau planning cree';
       case 'create_inspection': return 'Inspection creee';
-      default: return 'Action confirmee';
+      case 'delete_entity': return 'Entite supprimee';
+      case 'add_to_drafts': return 'Ajoutee aux brouillons';
+      case 'execute_draft': return 'Brouillon execute';
+      case 'reject_draft': return 'Brouillon rejete';
+      default:
+        if (action && action.startsWith('update_')) return 'Modification enregistree (' + action.slice(7) + ')';
+        return 'Action confirmee';
     }
   }
 

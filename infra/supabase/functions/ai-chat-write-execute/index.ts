@@ -308,6 +308,234 @@ async function execCreateEntity(
   return { success: true, created_id: (data as any).id };
 }
 
+// ===== Phase 2 — UPDATE generique =====
+// Mapping action propose -> table + whitelist + nom logique.
+// Reutilise CREATE_WHITELISTS pour la plupart des cas (mêmes colonnes editables),
+// + livraisons / charges / paiements / alertes_admin qui ont leurs whitelists dediees.
+
+const UPDATE_WHITELISTS: Record<string, { table: string; cols: string[] }> = {
+  livraison: {
+    table: "livraisons",
+    cols: [
+      "client_nom", "client_id", "date_livraison", "distance_km",
+      "prix_ht", "taux_tva", "prix_ttc", "tva_montant", "salarie_id", "vehicule_id",
+      "statut", "statut_paiement", "zone", "depart", "arrivee", "notes", "date_paiement",
+    ],
+  },
+  charge: {
+    table: "charges",
+    cols: [
+      "categorie", "description", "date_charge", "montant_ht", "taux_tva", "montant_ttc",
+      "vehicule_id", "fournisseur_id", "fournisseur_nom", "taux_deductibilite",
+      "statut_paiement", "date_paiement", "mode_paiement",
+    ],
+  },
+  paiement: {
+    table: "paiements",
+    cols: ["livraison_id", "client_id", "date_paiement", "montant", "mode", "reference", "notes", "frais"],
+  },
+  client: { table: "clients", cols: CREATE_WHITELISTS.clients },
+  fournisseur: { table: "fournisseurs", cols: CREATE_WHITELISTS.fournisseurs },
+  vehicule: { table: "vehicules", cols: CREATE_WHITELISTS.vehicules },
+  salarie: { table: "salaries", cols: CREATE_WHITELISTS.salaries },
+  carburant: { table: "carburant", cols: CREATE_WHITELISTS.carburant },
+  entretien: { table: "entretiens", cols: CREATE_WHITELISTS.entretiens },
+  incident: { table: "incidents", cols: CREATE_WHITELISTS.incidents },
+  planning_creneau: { table: "plannings_hebdo", cols: CREATE_WHITELISTS.plannings_hebdo },
+  inspection: { table: "inspections", cols: CREATE_WHITELISTS.inspections },
+};
+
+async function execUpdateEntity(
+  sb: SbClient,
+  entity: string,
+  target_id: string,
+  payload: any,
+  actorId: string,
+) {
+  if (!target_id) return { success: false, error: "target_id manquant" };
+  const spec = UPDATE_WHITELISTS[entity];
+  if (!spec) return { success: false, error: `entite inconnue: ${entity}` };
+  if (!payload || typeof payload !== "object") {
+    return { success: false, error: "payload manquant" };
+  }
+
+  const update: Record<string, unknown> = {};
+  for (const k of spec.cols) {
+    if (payload[k] !== undefined && payload[k] !== null && payload[k] !== "") update[k] = payload[k];
+  }
+  if (Object.keys(update).length === 0) {
+    return { success: false, error: "Aucun champ a mettre a jour" };
+  }
+
+  // Snapshot avant pour le diff audit
+  const { data: before } = await sb.from(spec.table).select("*").eq("id", target_id).maybeSingle();
+  if (!before) return { success: false, error: `${entity}: ligne ${target_id} introuvable` };
+
+  const { data, error } = await sb.from(spec.table).update(update).eq("id", target_id).select("id").single();
+  if (error) return { success: false, error: error.message };
+
+  await logAudit(sb, {
+    table_name: spec.table,
+    operation: "UPDATE",
+    row_id: target_id,
+    actor_id: actorId,
+    diff: { before_snapshot: before, after_changes: update },
+  });
+  return { success: true, updated_id: (data as any).id };
+}
+
+// ===== Phase 3 — DELETE generique =====
+
+const DELETE_ALLOWED = new Set([
+  "clients", "fournisseurs", "vehicules", "salaries", "livraisons",
+  "charges", "paiements", "carburant", "entretiens", "incidents",
+  "plannings_hebdo", "inspections", "alertes_admin",
+]);
+
+async function execDeleteEntity(
+  sb: SbClient,
+  entity: string,
+  id: string,
+  raison: string,
+  actorId: string,
+) {
+  if (!entity) return { success: false, error: "entity manquante" };
+  if (!DELETE_ALLOWED.has(entity)) return { success: false, error: `entity non autorisee: ${entity}` };
+  if (!id) return { success: false, error: "id manquant" };
+  if (!raison || raison.length < 10) return { success: false, error: "raison trop courte (≥10 caracteres requis)" };
+
+  // Snapshot avant suppression pour traçabilite
+  const { data: snapshot } = await sb.from(entity).select("*").eq("id", id).maybeSingle();
+  if (!snapshot) return { success: false, error: `${entity}: ligne ${id} introuvable` };
+
+  const { error } = await sb.from(entity).delete().eq("id", id);
+  if (error) {
+    // Soft-fail RLS / FK : remonter erreur claire au frontend.
+    let hint = "";
+    const msg = String(error.message || "");
+    if (msg.toLowerCase().includes("foreign key") || msg.includes("23503")) {
+      hint = " (cette ligne est referencee par d'autres tables — supprime d'abord les dependances)";
+    } else if (msg.toLowerCase().includes("policy") || msg.includes("42501")) {
+      hint = " (RLS bloque la suppression)";
+    }
+    return { success: false, error: error.message + hint };
+  }
+
+  await logAudit(sb, {
+    table_name: entity,
+    operation: "DELETE",
+    row_id: id,
+    actor_id: actorId,
+    diff: { deleted_row_snapshot: snapshot, raison },
+  });
+  return { success: true, deleted_id: id, entity };
+}
+
+// ===== Phase 4 — Brouillons IA (table ai_pending_actions) =====
+
+async function execAddToDrafts(
+  sb: SbClient,
+  body: any,
+  actorId: string,
+) {
+  // Accept either {action, payload, reasoning} or {action_type, payload, reasoning}
+  const action = String(body?.action_type || body?.action || "").trim();
+  const payload = body?.payload ?? null;
+  const reasoning = String(body?.reasoning || "").trim();
+  const sourceMessageId = body?.source_message_id || null;
+  if (!action) return { success: false, error: "action manquante" };
+  if (!payload || typeof payload !== "object") return { success: false, error: "payload manquant" };
+
+  const { data, error } = await sb.from("ai_pending_actions").insert({
+    action,
+    payload,
+    reasoning: reasoning || null,
+    source_message_id: sourceMessageId,
+    created_by: actorId,
+    status: "pending",
+  }).select("id, action, created_at").single();
+  if (error) return { success: false, error: error.message };
+  return { success: true, draft_id: (data as any).id, action: (data as any).action };
+}
+
+async function dispatchDraftAction(
+  sb: SbClient,
+  action: string,
+  payload: any,
+  actorId: string,
+): Promise<{ success: boolean; error?: string; created_id?: string; updated_id?: string; deleted_id?: string; num_liv?: string; entity?: string }> {
+  switch (action) {
+    case "create_livraison": return await execCreateLivraison(sb, payload, actorId);
+    case "create_charge": return await execCreateCharge(sb, payload, actorId);
+    case "create_paiement": return await execCreatePaiement(sb, payload, actorId);
+    case "resolve_alerte": return await execResolveAlerte(sb, payload, actorId);
+    case "create_client": return await execCreateEntity(sb, "clients", payload, actorId);
+    case "create_fournisseur": return await execCreateEntity(sb, "fournisseurs", payload, actorId);
+    case "create_vehicule": return await execCreateEntity(sb, "vehicules", payload, actorId);
+    case "create_salarie": return await execCreateEntity(sb, "salaries", payload, actorId);
+    case "create_carburant": return await execCreateEntity(sb, "carburant", payload, actorId);
+    case "create_entretien": return await execCreateEntity(sb, "entretiens", payload, actorId);
+    case "create_incident": return await execCreateEntity(sb, "incidents", payload, actorId);
+    case "create_planning_creneau": return await execCreateEntity(sb, "plannings_hebdo", payload, actorId);
+    case "create_inspection": return await execCreateEntity(sb, "inspections", payload, actorId);
+    case "delete_entity": return await execDeleteEntity(sb, payload?.entity, payload?.id, payload?.raison, actorId);
+  }
+  if (action.startsWith("update_")) {
+    const entity = action.slice("update_".length);
+    return await execUpdateEntity(sb, entity, payload?.target_id || payload?.id, payload?.payload || payload, actorId);
+  }
+  return { success: false, error: `action inconnue: ${action}` };
+}
+
+async function execExecuteDraft(
+  sb: SbClient,
+  body: any,
+  actorId: string,
+) {
+  const draftId = String(body?.draft_id || body?.id || "").trim();
+  if (!draftId) return { success: false, error: "draft_id manquant" };
+
+  const { data: draft, error } = await sb.from("ai_pending_actions")
+    .select("id, action, payload, status")
+    .eq("id", draftId)
+    .maybeSingle();
+  if (error) return { success: false, error: error.message };
+  if (!draft) return { success: false, error: "Brouillon introuvable" };
+  if ((draft as any).status !== "pending") {
+    return { success: false, error: `Brouillon deja traite (statut=${(draft as any).status})` };
+  }
+
+  const action = (draft as any).action as string;
+  const payload = (draft as any).payload;
+  const result = await dispatchDraftAction(sb, action, payload, actorId);
+
+  await sb.from("ai_pending_actions").update({
+    status: result.success ? "executed" : "rejected",
+    executed_at: new Date().toISOString(),
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: actorId,
+    executed_result: result,
+  }).eq("id", draftId);
+
+  return { success: result.success, draft_id: draftId, executed: result };
+}
+
+async function execRejectDraft(
+  sb: SbClient,
+  body: any,
+  actorId: string,
+) {
+  const draftId = String(body?.draft_id || body?.id || "").trim();
+  if (!draftId) return { success: false, error: "draft_id manquant" };
+  const { error } = await sb.from("ai_pending_actions").update({
+    status: "rejected",
+    reviewed_at: new Date().toISOString(),
+    reviewed_by: actorId,
+  }).eq("id", draftId).eq("status", "pending");
+  if (error) return { success: false, error: error.message };
+  return { success: true, draft_id: draftId };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers: CORS });
@@ -340,7 +568,7 @@ Deno.serve(async (req) => {
     const sbAdmin = createClient(SUPABASE_URL, SERVICE);
     const actorId = userData.user.id;
 
-    let result: { success: boolean; error?: string; created_id?: string; num_liv?: string; alerte_id?: string };
+    let result: { success: boolean; error?: string; created_id?: string; updated_id?: string; deleted_id?: string; num_liv?: string; alerte_id?: string; entity?: string; draft_id?: string };
     switch (action) {
       case "create_livraison":
         result = await execCreateLivraison(sbAdmin, payload, actorId);
@@ -381,6 +609,43 @@ Deno.serve(async (req) => {
         break;
       case "create_inspection":
         result = await execCreateEntity(sbAdmin, "inspections", payload, actorId);
+        break;
+      // ===== Phase 2 — UPDATE generique sur 12 entites =====
+      case "update_livraison":
+      case "update_charge":
+      case "update_paiement":
+      case "update_client":
+      case "update_fournisseur":
+      case "update_vehicule":
+      case "update_salarie":
+      case "update_carburant":
+      case "update_entretien":
+      case "update_incident":
+      case "update_planning_creneau":
+      case "update_inspection": {
+        const entity = action.slice("update_".length);
+        const target_id = String(body?.target_id || payload?.target_id || payload?.id || "").trim();
+        const updPayload = payload?.payload && typeof payload.payload === "object" ? payload.payload : payload;
+        result = await execUpdateEntity(sbAdmin, entity, target_id, updPayload, actorId);
+        break;
+      }
+      // ===== Phase 3 — DELETE generique =====
+      case "delete_entity": {
+        const entity = String(payload?.entity || body?.entity || "").trim();
+        const id = String(payload?.id || body?.id || "").trim();
+        const raison = String(payload?.raison || body?.raison || "").trim();
+        result = await execDeleteEntity(sbAdmin, entity, id, raison, actorId);
+        break;
+      }
+      // ===== Phase 4 — Brouillons IA =====
+      case "add_to_drafts":
+        result = await execAddToDrafts(sbAdmin, body, actorId);
+        break;
+      case "execute_draft":
+        result = await execExecuteDraft(sbAdmin, body, actorId);
+        break;
+      case "reject_draft":
+        result = await execRejectDraft(sbAdmin, body, actorId);
         break;
       default:
         result = { success: false, error: `action inconnue: ${action}` };
