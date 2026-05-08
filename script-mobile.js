@@ -718,9 +718,15 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=prixHT]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=prixTTC]');
+        // Defense-in-depth : si le formulaire a ete reduit (cas edge), on
+        // arrete sans crasher tout l'afterMount.
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile livraison form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         // Init : si TTC déjà saisi (mode édition), partir de TTC pour ne pas l'écraser
         let dernierEdit = enEdition && (v.prixTTC || v.prix) ? 'ttc' : 'ht';
         const recalc = () => {
@@ -1357,9 +1363,13 @@
       submitLabel: 'Enregistrer',
       afterMount(body) {
         const ht  = body.querySelector('input[name=montantHt]');
-        const sel = body.querySelector('select[name=tauxTva]');
+        const sel = body.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = body.querySelector('input[name=tva]');
         const ttc = body.querySelector('input[name=montantTtc]');
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile charge form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         let dernierEdit = 'ttc';
         // BUGFIX v3.68 : si l'user saisit manuellement le champ TVA (cas facture
         // mixte type 150€ TTC dont 30€ seulement soumis a TVA 20% = 6€ TVA), on
@@ -3010,9 +3020,14 @@
       afterMount(b) {
         // Auto-calcul HT <-> TTC
         const ht  = b.querySelector('input[name=coutHt]');
-        const sel = b.querySelector('select[name=tauxTva]');
+        // tauxTva est un <input type=number> avec datalist, pas un <select>.
+        const sel = b.querySelector('input[name=tauxTva], select[name=tauxTva]');
         const tva = b.querySelector('input[name=tva]');
         const ttc = b.querySelector('input[name=cout]');
+        if (!ht || !sel || !tva || !ttc) {
+          console.warn('[mobile entretien form] champ prix manquant', { ht: !!ht, sel: !!sel, tva: !!tva, ttc: !!ttc });
+          return;
+        }
         let dernierEdit = 'ttc';
         const recalc = () => {
           const taux = M.parseNum(sel.value) / 100 || 0;
@@ -3432,6 +3447,262 @@
       badge.hidden = false;
     } else {
       badge.hidden = true;
+    }
+  };
+
+  // =============================================================
+  // PR C — Brief automatique IA mobile (parite PC panneau-agent)
+  // Lit/ecrit dans agent_decisions (localStorage partage avec PC),
+  // appelle l'edge function ai-brief, expose une cloche dans le header.
+  // =============================================================
+  const AI_BRIEF_LAST_RUN_KEY_M = 'ai_brief_last_run';
+
+  M.compterBriefNonLus = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    return decisions.filter((d) => !d.lu).length;
+  };
+
+  M.updateBriefBadge = function () {
+    const n = M.compterBriefNonLus();
+    const badge = $('#m-agent-ia-badge');
+    if (!badge) return;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.hidden = false;
+    } else {
+      badge.hidden = true;
+    }
+  };
+
+  M.lancerBriefAuto = async function (trigger) {
+    if (window.__delivproAiBriefPendingMobile) return { skipped: 'pending' };
+    window.__delivproAiBriefPendingMobile = true;
+    try {
+      if (trigger === 'manual') M.toast('🔄 Brief IA en cours…');
+      const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+        ? window.DelivProSupabase.getClient()
+        : null;
+      const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
+        ? window.DelivProSupabase.getConfig()
+        : null;
+      if (!client || !config?.url) return { error: 'supabase_not_ready' };
+      let token = null;
+      try {
+        const { data: sessionData } = await client.auth.getSession();
+        const sess = sessionData && sessionData.session;
+        const expAt = sess && sess.expires_at ? sess.expires_at * 1000 : 0;
+        if (sess && expAt && expAt - Date.now() < 60000) {
+          try {
+            const { data: refreshed } = await client.auth.refreshSession();
+            token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
+          } catch (_) { token = sess.access_token; }
+        } else {
+          token = sess ? sess.access_token : null;
+        }
+      } catch (_) { /* fail-soft */ }
+      if (!token) return { error: 'no_token' };
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 60000);
+      let r;
+      try {
+        r = await fetch(config.url + '/functions/v1/ai-brief', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trigger: trigger || 'manual' }),
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : réseau indisponible');
+        return { error: 'network' };
+      } finally { clearTimeout(t); }
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        if (trigger === 'manual') M.toast('⚠️ Brief IA : ' + (body.message || body.error || ('HTTP ' + r.status)));
+        return { error: 'http', status: r.status };
+      }
+      const decisions = Array.isArray(body.decisions) ? body.decisions : [];
+      const existantes = M.charger('agent_decisions') || [];
+      let added = 0;
+      for (const d of decisions) {
+        if (!d || !d.titre || !d.description) continue;
+        // Dedup avec celles deja en place et non actionnees
+        const dejaPresente = existantes.find(
+          (e) => e.titre === d.titre && e.description === d.description && !e.actionPrise
+        );
+        if (dejaPresente) continue;
+        existantes.unshift({
+          id: 'brief-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          creeLe: new Date().toISOString(),
+          lu: false,
+          titre: d.titre,
+          description: d.description,
+          priorite: d.priorite || 'info',
+          actions: Array.isArray(d.actions) ? d.actions : [],
+          source: 'ai-brief',
+          run_id: body.run_id || null,
+        });
+        added++;
+      }
+      M.sauvegarder('agent_decisions', existantes);
+      try {
+        // Gate session : 1x par session de login (et non 1x par jour calendaire,
+        // sinon un re-login le meme jour ne re-declenche jamais le brief).
+        sessionStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, '1');
+      } catch (_) {}
+      M.updateBriefBadge();
+      if (trigger === 'manual') {
+        M.toast(added > 0 ? `✅ ${added} nouvelle(s) décision(s)` : '✅ Rien de nouveau');
+      }
+      return { ok: true, added, total: decisions.length };
+    } catch (e) {
+      if (trigger === 'manual') M.toast('⚠️ Brief IA : erreur (voir console)');
+      console.warn('[ai-brief mobile] erreur', e);
+      return { error: 'exception' };
+    } finally {
+      window.__delivproAiBriefPendingMobile = false;
+    }
+  };
+
+  // Auto-trigger 1x par chargement de page (gate runtime window flag).
+  // Reset a chaque F5/reload → comportement attendu : un nouveau login
+  // re-declenche le brief automatiquement.
+  M.declencherBriefAutoLoginSiNecessaire = function () {
+    try {
+      if (window.__briefAutoTriggeredMobile) return;
+      const start = Date.now();
+      const tick = () => {
+        const adminLogin = sessionStorage.getItem('admin_login') || '';
+        if (adminLogin) {
+          window.__briefAutoTriggeredMobile = true;
+          setTimeout(() => { M.lancerBriefAuto('on_login'); }, 1500);
+          return;
+        }
+        if (Date.now() - start > 10000) return; // timeout
+        setTimeout(tick, 500);
+      };
+      tick();
+    } catch (_) { /* fail-soft */ }
+  };
+
+  M.priorityBadge = function (p) {
+    if (p === 'haute') return '<span style="background:rgba(231,76,60,0.18);color:#ff8b80;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">HAUTE</span>';
+    if (p === 'opportunite') return '<span style="background:rgba(46,204,113,0.18);color:#7ed8a3;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">OPPORTUNITÉ</span>';
+    return '<span style="background:rgba(52,152,219,0.18);color:#7ec0ff;padding:2px 8px;border-radius:6px;font-size:0.7rem;font-weight:700">INFO</span>';
+  };
+
+  M.openBriefSheet = function () {
+    const decisions = M.charger('agent_decisions') || [];
+    const html = decisions.length === 0
+      ? `<div style="text-align:center;padding:32px 16px;color:var(--m-text-muted)">
+           <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+           <div style="font-size:0.95rem;margin-bottom:6px;font-weight:600;color:var(--m-text)">Aucune décision en attente</div>
+           <div style="font-size:0.8rem">Le brief Gemini scanne tes données automatiquement chaque jour.</div>
+         </div>`
+      : decisions.map((d) => {
+          const couleurBord = d.priorite === 'haute'
+            ? 'rgba(231,76,60,0.45)'
+            : d.priorite === 'opportunite' ? 'rgba(46,204,113,0.4)' : 'rgba(52,152,219,0.35)';
+          const lu = d.lu ? '' : 'border-left:3px solid var(--m-accent,#e63946);';
+          // Bouton "Discuter" (tap-target 44px min, parite PC). Ouvre le chatbot IA
+          // avec le contexte de la decision pre-rempli.
+          const btnDiscuter = `<button type="button" data-discuter-id="${d.id}" class="m-btn" style="min-height:44px;padding:8px 14px;font-size:0.8rem;font-weight:600;background:var(--m-bg-soft,#1f2229);color:var(--m-text,#e8eaf0);border:1px solid var(--m-border,#2a2d3d);border-radius:10px;cursor:pointer">💬 Discuter</button>`;
+          return `
+            <div style="background:var(--m-card,#2a2f37);border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="font-size:0.88rem;font-weight:700;color:var(--m-text,#f1f3f5);flex:1">${M.escHtml(d.titre)}</div>
+                ${M.priorityBadge(d.priorite)}
+              </div>
+              <div style="font-size:0.82rem;color:var(--m-text-muted,#adb5bd);line-height:1.5;margin-bottom:10px">${M.escHtml(d.description)}</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">${btnDiscuter}</div>
+              <div style="font-size:0.7rem;color:var(--m-text-muted);opacity:0.7">${new Date(d.creeLe).toLocaleString('fr-FR')}${d.source === 'ai-brief' ? ' · IA' : ''}</div>
+            </div>`;
+        }).join('');
+
+    M.openSheet({
+      title: '🔔 Brief IA',
+      body: `
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+          <button id="m-brief-refresh" class="m-btn" type="button" style="flex:1;min-height:44px">🔄 Rafraîchir</button>
+          ${decisions.length ? '<button id="m-brief-clear" class="m-btn" type="button" style="flex:1;min-height:44px">🗑 Tout effacer</button>' : ''}
+        </div>
+        ${html}
+      `,
+      submitLabel: '✓ Tout marquer lu',
+      onSubmit() {
+        const list = M.charger('agent_decisions') || [];
+        list.forEach((d) => { d.lu = true; });
+        M.sauvegarder('agent_decisions', list);
+        M.updateBriefBadge();
+        M.toast('✓ Toutes les décisions marquées lues');
+        return true; // close
+      },
+      afterMount(root) {
+        // Marque tout comme lu en arriere-plan a l'ouverture (effet bell click = "j'ai vu")
+        const list = M.charger('agent_decisions') || [];
+        let modif = false;
+        list.forEach((d) => { if (!d.lu) { d.lu = true; modif = true; } });
+        if (modif) { M.sauvegarder('agent_decisions', list); M.updateBriefBadge(); }
+        // Refresh button
+        const btnRefresh = root.querySelector('#m-brief-refresh');
+        if (btnRefresh) {
+          btnRefresh.addEventListener('click', async () => {
+            btnRefresh.disabled = true;
+            btnRefresh.textContent = '⏳ Analyse en cours…';
+            const r = await M.lancerBriefAuto('manual');
+            M.closeSheet();
+            // Reopen pour montrer les nouvelles decisions
+            setTimeout(() => M.openBriefSheet(), 350);
+          });
+        }
+        // Clear button
+        const btnClear = root.querySelector('#m-brief-clear');
+        if (btnClear) {
+          btnClear.addEventListener('click', () => {
+            if (!confirm('Effacer toutes les décisions ?')) return;
+            M.sauvegarder('agent_decisions', []);
+            M.updateBriefBadge();
+            M.toast('🗑 Décisions effacées');
+            M.closeSheet();
+          });
+        }
+        // Boutons "💬 Discuter" sur chaque card
+        root.querySelectorAll('button[data-discuter-id]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            const id = btn.getAttribute('data-discuter-id');
+            if (!id) return;
+            e.preventDefault();
+            M.discuterDecisionAvecIA(id);
+          });
+        });
+      },
+    });
+  };
+
+  // Ouvre le chatbot avec un message pre-rempli construit a partir de la decision.
+  M.discuterDecisionAvecIA = function (decisionId) {
+    try {
+      const decisions = M.charger('agent_decisions') || [];
+      const d = decisions.find((x) => x.id === decisionId);
+      if (!d) { M.toast('⚠️ Décision introuvable'); return; }
+      const message = `[Décision agent : ${d.priorite || 'info'}]\n${d.titre}\n\n${d.description}\n\nQue me conseilles-tu de faire ?`;
+      if (!window.AIChat || typeof window.AIChat.open !== 'function') {
+        M.toast('⚠️ Chatbot indisponible'); return;
+      }
+      // Ferme la sheet pour focus chat
+      try { M.closeSheet(); } catch (_) {}
+      window.AIChat.open();
+      setTimeout(() => {
+        const input = document.getElementById('ai-chat-input');
+        const form = document.getElementById('ai-chat-form');
+        if (!input || !form) return;
+        input.value = message;
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+        form.requestSubmit();
+      }, 380);
+    } catch (e) {
+      console.warn('[M.discuterDecisionAvecIA]', e);
+      M.toast('⚠️ Erreur ouverture chat');
     }
   };
 
@@ -7523,8 +7794,25 @@
       ` : `<div class="m-empty" style="margin-top:18px"><div class="m-empty-icon">📷</div><p class="m-empty-text">Aucune photo pour cette inspection</p></div>`}
     `;
   };
-  // ---------- Salaries (v2.7 : list + detail avec contact + permis/assurance) ----------
+  // ---------- Salaries (v3.83 : parite drawer 360 PC) ----------
+  // Liste : recherche + filtre actif/inactif/tous + indicateurs conformite
+  // Detail : drawer 360 (identite, permis, visite, docs, heures, incidents, compte)
+  // Postes : gestion via M.gestionPostes (admin only) + datalist dans la sheet
   M.state.salariesRecherche = '';
+  M.state.salariesFiltre = M.state.salariesFiltre || 'actifs';
+
+  // Helper postes (mirror PC getPostes/sauvegarderPostes - script.js:3141, script-core-storage.js)
+  M.getPostes = function() {
+    const arr = M.charger('postes');
+    if (Array.isArray(arr) && arr.length) return arr;
+    // Defaut PC : Livreur + Dispatcher (script.js:3141)
+    return ['Livreur', 'Dispatcher'];
+  };
+  M.sauvegarderPostes = function(postes) {
+    const clean = Array.from(new Set((postes || []).filter(Boolean).map(p => String(p).trim()).filter(p => p.length)));
+    M.sauvegarder('postes', clean);
+  };
+
   M.register('salaries', {
     title: 'Salariés',
     render() {
@@ -7533,30 +7821,48 @@
 
       const salaries = M.charger('salaries').filter(s => s && !s.archive);
       const recherche = (M.state.salariesRecherche || '').toLowerCase();
+      const filtre = M.state.salariesFiltre || 'actifs';
+      const isActif = s => s.actif !== false && s.statut !== 'inactif';
+
       let filtered = salaries;
+      // Filtre actif/inactif/tous
+      if (filtre === 'actifs') filtered = filtered.filter(isActif);
+      else if (filtre === 'inactifs') filtered = filtered.filter(s => !isActif(s));
+      // Recherche texte
       if (recherche) {
-        filtered = salaries.filter(s => {
+        filtered = filtered.filter(s => {
           const hay = `${s.nom||''} ${s.prenom||''} ${s.tel||''} ${s.email||''} ${s.poste||''}`.toLowerCase();
           return hay.includes(recherche);
         });
       }
-      // Actifs en premier, puis inactifs
+      // Actifs en premier, puis tri alphabetique
       filtered = [...filtered].sort((a,b) => {
-        const aActif = a.actif !== false && a.statut !== 'inactif' ? 0 : 1;
-        const bActif = b.actif !== false && b.statut !== 'inactif' ? 0 : 1;
-        if (aActif !== bActif) return aActif - bActif;
+        const aA = isActif(a) ? 0 : 1;
+        const bA = isActif(b) ? 0 : 1;
+        if (aA !== bA) return aA - bA;
         return (a.nom||'').localeCompare(b.nom||'');
       });
 
+      const cntActifs = salaries.filter(isActif).length;
+      const cntInactifs = salaries.length - cntActifs;
+      const incidentsByeSal = M.charger('incidents');
+      const chip = (val, label, count) => `<button type="button" data-filtre="${val}" class="m-sal-chip${filtre===val?' is-active':''}" style="padding:7px 13px;border-radius:18px;border:1px solid var(--m-border);background:${filtre===val?'var(--m-accent-soft)':'var(--m-card)'};color:${filtre===val?'var(--m-accent)':'var(--m-text)'};font-weight:${filtre===val?'700':'500'};font-size:.78rem;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px">${label}<span style="opacity:.7">${count}</span></button>`;
+
       let html = `<button class="m-fab" onclick="MCAm.formNouveauSalarie()" aria-label="Nouveau salarié">+</button>`;
       html += `
-        <div style="margin-bottom:14px">
+        <div style="margin-bottom:10px">
           <input type="search" id="m-sal-search" placeholder="🔍 Rechercher (nom, tel, poste)" value="${M.escHtml(M.state.salariesRecherche)}" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
+          ${chip('actifs', '✅ Actifs', cntActifs)}
+          ${chip('inactifs', '⏸️ Inactifs', cntInactifs)}
+          ${chip('tous', '📋 Tous', salaries.length)}
+          <button type="button" id="m-sal-postes" style="margin-left:auto;padding:7px 11px;border-radius:14px;border:1px solid var(--m-border);background:var(--m-card);color:var(--m-text-muted);font-size:.74rem;cursor:pointer;font-family:inherit" aria-label="Gérer les postes">⚙️ Postes</button>
         </div>
       `;
 
       if (!salaries.length) {
-        html += `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Ajoute ton équipe depuis la version PC.</p></div>`;
+        html += `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3><p class="m-empty-text">Tape ⊕ pour ajouter ton premier salarié.</p></div>`;
         return html;
       }
       if (!filtered.length) {
@@ -7565,15 +7871,29 @@
       }
 
       filtered.forEach(s => {
-        const estActif = s.actif !== false && s.statut !== 'inactif';
+        const estActif = isActif(s);
         const permis = M.statutDate(s.datePermis);
+        const visite = M.statutDate(s.visiteMedicale);
+        const assurance = M.statutDate(s.dateAssurance);
         const initiales = ((s.nom || '').charAt(0) + (s.prenom || '').charAt(0)).toUpperCase() || '?';
+        // Indicateurs conformite : permis / visite / assurance pas OK
+        const flags = [];
+        if (s.datePermis && (permis.statut === 'expire' || permis.statut === 'urgent')) flags.push(`<span style="color:${permis.color}">🪪</span>`);
+        if (s.visiteMedicale && (visite.statut === 'expire' || visite.statut === 'urgent')) flags.push(`<span style="color:${visite.color}">🩺</span>`);
+        if (s.dateAssurance && (assurance.statut === 'expire' || assurance.statut === 'urgent')) flags.push(`<span style="color:${assurance.color}">🛡️</span>`);
+        // Compte chauffeur provisionne
+        const aCompte = !!(s.profileId || s.supabaseId || s.mdpHash);
+        if (aCompte) flags.push(`<span title="Compte chauffeur" style="color:var(--m-blue)">🔑</span>`);
+        // Incidents ouverts liés à ce salarie
+        const nbIncidents = incidentsByeSal.filter(i => i.statut === 'ouvert' && (i.salId === s.id || i.chaufId === s.id)).length;
+        if (nbIncidents) flags.push(`<span style="color:var(--m-red)" title="${nbIncidents} incident(s)">🚨${nbIncidents}</span>`);
+
         html += `<button type="button" class="m-card m-card-pressable m-sal-row" data-id="${M.escHtml(s.id)}" style="display:flex;align-items:center;gap:12px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;${!estActif ? 'opacity:.55' : ''}">
           <div style="width:42px;height:42px;border-radius:50%;background:var(--m-accent-soft);color:var(--m-accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.92rem;flex-shrink:0">${M.escHtml(initiales)}</div>
           <div style="flex:1 1 auto;min-width:0">
             <div style="font-weight:600;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml((s.prenom ? s.prenom + ' ' : '') + (s.nom || ''))}</div>
             <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.escHtml(s.poste || s.tel || '—')}${!estActif ? ' · Inactif' : ''}</div>
-            ${s.datePermis ? `<div style="margin-top:4px;font-size:.72rem"><span style="color:${permis.color};font-weight:600">${permis.icon} Permis ${permis.label}</span></div>` : ''}
+            ${flags.length ? `<div style="margin-top:5px;display:flex;gap:7px;font-size:.78rem;align-items:center">${flags.join('')}</div>` : ''}
           </div>
           <span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>
         </button>`;
@@ -7594,11 +7914,81 @@
           searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
         }
       }
+      container.querySelectorAll('.m-sal-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.salariesFiltre = btn.dataset.filtre;
+          M.go('salaries');
+        });
+      });
+      container.querySelector('#m-sal-postes')?.addEventListener('click', () => M.gestionPostes());
       container.querySelectorAll('.m-sal-row').forEach(btn => {
         btn.addEventListener('click', () => M.openDetail('salaries', btn.dataset.id));
       });
     }
   });
+
+  // ---------- Gestion des postes (admin only - parite PC script.js:3157-3175) ----------
+  M.gestionPostes = function() {
+    const render = () => {
+      const postes = M.getPostes();
+      return `
+        <p class="m-form-hint" style="margin-bottom:12px">Liste des postes utilisés pour catégoriser les salariés. Modifiable côté PC aussi.</p>
+        <div id="m-postes-liste" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+          ${postes.map((p, i) => `<span style="display:inline-flex;align-items:center;gap:6px;background:var(--m-accent-soft);border:1px solid rgba(245,166,35,.25);color:var(--m-accent);padding:6px 12px;border-radius:18px;font-size:.82rem;font-weight:600">
+            ${M.escHtml(p)}
+            <button type="button" class="m-poste-del" data-idx="${i}" style="background:none;border:none;cursor:pointer;color:var(--m-red);font-size:.95rem;padding:0;line-height:1" aria-label="Supprimer ${M.escHtml(p)}">✕</button>
+          </span>`).join('') || '<p class="m-form-hint">Aucun poste défini.</p>'}
+        </div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="m-poste-nouveau" placeholder="Nouveau poste (ex: Magasinier)" autocomplete="off" style="flex:1 1 auto" />
+          <button type="button" id="m-poste-add" class="m-btn m-btn-primary" style="flex:0 0 auto;width:auto;padding:0 14px">+</button>
+        </div>
+      `;
+    };
+    M.openSheet({
+      title: '⚙️ Gérer les postes',
+      body: render(),
+      submitLabel: 'Fermer',
+      afterMount(b) {
+        const refresh = () => {
+          // Re-render le contenu in-place sans fermer la sheet
+          const wrap = document.createElement('div');
+          wrap.innerHTML = render();
+          b.innerHTML = wrap.innerHTML;
+          wireActions(b);
+        };
+        const wireActions = (root) => {
+          root.querySelector('#m-poste-add')?.addEventListener('click', () => {
+            const inp = root.querySelector('#m-poste-nouveau');
+            const v = (inp?.value || '').trim();
+            if (!v) { M.toast('⚠️ Nom de poste vide'); return; }
+            const arr = M.getPostes();
+            if (arr.some(x => x.toLowerCase() === v.toLowerCase())) { M.toast('⚠️ Ce poste existe déjà'); return; }
+            arr.push(v);
+            M.sauvegarderPostes(arr);
+            M.toast('✅ Poste ajouté');
+            refresh();
+          });
+          root.querySelector('#m-poste-nouveau')?.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); root.querySelector('#m-poste-add')?.click(); }
+          });
+          root.querySelectorAll('.m-poste-del').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const idx = parseInt(btn.dataset.idx, 10);
+              const arr = M.getPostes();
+              if (!await M.confirm(`Supprimer le poste "${arr[idx]}" ?`, { titre: 'Supprimer poste' })) return;
+              arr.splice(idx, 1);
+              M.sauvegarderPostes(arr);
+              M.toast('🗑️ Poste supprimé');
+              refresh();
+            });
+          });
+        };
+        wireActions(b);
+      },
+      onSubmit() { return true; }
+    });
+  };
 
   M.renderSalarieDetail = function(id) {
     const s = M.charger('salaries').find(x => x.id === id);
@@ -9101,6 +9491,13 @@
           <p class="m-form-hint" style="margin-top:8px">Toutes les actions admin (création / modif / suppression). Purge auto > 12 mois (RGPD).</p>
         </div>
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🤖 Coût IA</h3></div>
+          <div class="m-card" id="m-cout-ia-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55">
+            <div style="color:var(--m-text-muted)">Chargement…</div>
+          </div>
+          <p class="m-form-hint" style="margin-top:8px">Consommation chatbot Gemini (estimation €). Source : <code>ai_quota_daily</code>.</p>
+        </div>
+
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
           <div class="m-card" id="m-changelog-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55;max-height:360px;overflow:auto">
             <div style="color:var(--m-text-muted)">Chargement…</div>
@@ -9175,8 +9572,172 @@
           .then(md => { changelogEl.innerHTML = M.renderChangelogMd(md); })
           .catch(err => { changelogEl.innerHTML = '<div style="color:var(--m-text-muted)">Historique indisponible (' + err + ')</div>'; });
       }
+
+      // Coût IA : charge ai_quota_daily (RLS admin only, lecture directe)
+      const coutIaEl = container.querySelector('#m-cout-ia-content');
+      if (coutIaEl) {
+        M.renderCoutIAMobile(coutIaEl);
+      }
     }
   });
+
+  // ============================================================
+  // Coût IA — mobile (parité PC, cf. script-cout-ia.js).
+  // Source : table Supabase public.ai_quota_daily (RLS admin only).
+  // Calcul : (pro * 0.0125 + flash * 0.0008) * 0.92 USD→EUR.
+  // ============================================================
+  M.COUT_IA_PRICE_PRO_USD   = 0.0125;
+  M.COUT_IA_PRICE_FLASH_USD = 0.0008;
+  M.COUT_IA_USD_TO_EUR      = 0.92;
+  M.COUT_IA_BUDGET_CAP_EUR  = 5.00;
+
+  M.calcCoutIA = function(pro, flash) {
+    return ((pro || 0) * M.COUT_IA_PRICE_PRO_USD + (flash || 0) * M.COUT_IA_PRICE_FLASH_USD) * M.COUT_IA_USD_TO_EUR;
+  };
+
+  function _coutIaFmtEur(n) {
+    if (typeof n !== 'number' || !isFinite(n)) return '0,00 €';
+    return n.toFixed(2).replace('.', ',') + ' €';
+  }
+  function _coutIaYmd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  function _coutIaDaysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d; }
+
+  M.renderCoutIAMobile = async function(host) {
+    if (!host) return;
+    const ds = window.DelivProSupabase;
+    const client = (ds && typeof ds.getClient === 'function') ? ds.getClient() : null;
+    if (!client) {
+      host.innerHTML = '<div style="color:#f59e0b">Supabase indisponible — réessaie plus tard.</div>';
+      return;
+    }
+
+    const now = new Date();
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const since30 = _coutIaYmd(_coutIaDaysAgo(30));
+    const sinceMonth = _coutIaYmd(startMonth);
+    const since = since30 < sinceMonth ? since30 : sinceMonth;
+
+    let rows = [];
+    try {
+      const resp = await client
+        .from('ai_quota_daily')
+        .select('date, requests_pro, requests_flash')
+        .gte('date', since)
+        .order('date', { ascending: true });
+      if (resp.error) {
+        host.innerHTML = '<div style="color:#f59e0b">Données indisponibles : ' + M.escHtml(resp.error.message || 'Erreur SQL') + '</div>';
+        return;
+      }
+      rows = resp.data || [];
+    } catch (e) {
+      host.innerHTML = '<div style="color:#f59e0b">Erreur réseau : ' + M.escHtml((e && e.message) || 'inconnue') + '</div>';
+      return;
+    }
+
+    // Aggregats mois courant
+    const monthRows = rows.filter(r => r.date >= sinceMonth);
+    let proMonth = 0, flashMonth = 0;
+    monthRows.forEach(r => { proMonth += (+r.requests_pro)||0; flashMonth += (+r.requests_flash)||0; });
+    const costMonth = M.calcCoutIA(proMonth, flashMonth);
+    const totalReq = proMonth + flashMonth;
+
+    // Index par date pour la serie 30j
+    const byDate = {};
+    rows.forEach(r => { byDate[r.date] = r; });
+    const series = [];
+    let maxCost = 0.01;
+    for (let i = 29; i >= 0; i--) {
+      const d = _coutIaDaysAgo(i);
+      const k = _coutIaYmd(d);
+      const r = byDate[k];
+      const pro = r ? ((+r.requests_pro)||0) : 0;
+      const fl  = r ? ((+r.requests_flash)||0) : 0;
+      const c = M.calcCoutIA(pro, fl);
+      if (c > maxCost) maxCost = c;
+      series.push({ date: k, pro, flash: fl, cost: c });
+    }
+
+    const costColor = costMonth >= M.COUT_IA_BUDGET_CAP_EUR ? '#dc3545'
+                    : costMonth >= M.COUT_IA_BUDGET_CAP_EUR * 0.5 ? '#f59e0b'
+                    : '#28a745';
+
+    // Mini-graph SVG (compact mobile)
+    const W = 320, H = 80, pad = 4;
+    const barW = (W - pad*2) / series.length;
+    const bars = series.map((d, i) => {
+      const h = Math.max(1, Math.round(((H - pad*2) * d.cost) / maxCost));
+      const x = pad + i * barW;
+      const y = H - pad - h;
+      const op = d.cost === 0 ? 0.18 : 0.85;
+      return `<rect x="${x.toFixed(2)}" y="${y}" width="${(barW-1).toFixed(2)}" height="${h}" rx="2" fill="var(--m-accent)" opacity="${op}"><title>${M.escHtml(d.date + ' — ' + _coutIaFmtEur(d.cost))}</title></rect>`;
+    }).join('');
+
+    const tile = (label, value, sub, color) =>
+      `<div style="background:var(--m-bg);border:1px solid var(--m-border);border-radius:12px;padding:12px 14px;flex:1 1 calc(50% - 5px);min-width:0">
+        <div style="font-size:.66rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">${M.escHtml(label)}</div>
+        <div style="font-size:${color ? '1.15rem' : '.95rem'};font-weight:700;color:${color || 'inherit'};line-height:1.1">${value}</div>
+        ${sub ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">${sub}</div>` : ''}
+      </div>`;
+
+    const linkBtn = (href, icon, label) =>
+      `<a href="${href}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:0 14px;min-height:var(--m-tap);border:1px solid var(--m-border);border-radius:10px;color:inherit;text-decoration:none;font-size:.85rem;background:var(--m-bg)">
+        <span aria-hidden="true">${icon}</span><span>${M.escHtml(label)}</span>
+      </a>`;
+
+    host.innerHTML = `
+      <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${tile('Coût ce mois', _coutIaFmtEur(costMonth), 'Estimation Gemini', costColor)}
+        ${tile('Cap budget', _coutIaFmtEur(M.COUT_IA_BUDGET_CAP_EUR) + ' / mois', 'Google Cloud')}
+      </div>
+      <div style="margin-top:10px">
+        ${tile('Requêtes ce mois', String(totalReq), proMonth + ' Pro · ' + flashMonth + ' Flash')}
+      </div>
+
+      <div style="margin-top:14px;padding:10px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-bottom:6px">
+          <strong>Coût quotidien (30j)</strong>
+          <span style="color:var(--m-text-muted)">Max ${_coutIaFmtEur(maxCost)}/j</span>
+        </div>
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="width:100%;height:80px;display:block">${bars}</svg>
+      </div>
+
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+        ${linkBtn('https://aistudio.google.com/app/apikey', '📊', 'Détail AI Studio')}
+        ${linkBtn('https://console.cloud.google.com/billing/reports?project=budget-achraf', '€', 'Rapports facturation')}
+        ${linkBtn('https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=budget-achraf', '⚡', 'Quotas API temps réel')}
+        ${linkBtn('https://console.cloud.google.com/billing/budgets', '🔔', 'Configurer alertes budget')}
+      </div>
+
+      <details style="margin-top:14px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
+        <summary style="cursor:pointer;padding:12px 14px;font-weight:600;font-size:.85rem;color:#dc3545;list-style:none;display:flex;align-items:center;gap:8px;min-height:var(--m-tap)">
+          <span aria-hidden="true">🚨</span><span>Désactivation d'urgence</span><span style="margin-left:auto;color:var(--m-text-muted);font-size:.74rem;font-weight:400">▾</span>
+        </summary>
+        <div style="padding:0 14px 14px;font-size:.82rem;line-height:1.5">
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">A — Désactiver l'API Gemini</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Recommandé en premier. Effet immédiat, le reste du site continue.</div>
+            ${linkBtn('https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/overview?project=budget-achraf', '→', 'Console GCP')}
+          </div>
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">B — Désactiver la facturation</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Plus radical, fige tout le projet. Réactivable.</div>
+            ${linkBtn('https://console.cloud.google.com/billing/linkedaccount?project=budget-achraf', '→', 'Console GCP')}
+          </div>
+          <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
+            <div style="font-weight:600;margin-bottom:4px">C — Révoquer la clé API</div>
+            <div style="color:var(--m-text-muted);margin-bottom:6px">Si suspicion de fuite. Re-crée une clé puis update <code>GEMINI_API_KEY</code>.</div>
+            ${linkBtn('https://aistudio.google.com/app/apikey', '→', 'AI Studio')}
+          </div>
+        </div>
+      </details>
+
+      <div style="font-size:.7rem;color:var(--m-text-muted);margin-top:10px;line-height:1.4">
+        Pro ≈ $${M.COUT_IA_PRICE_PRO_USD}/req. · Flash ≈ $${M.COUT_IA_PRICE_FLASH_USD}/req. · USD→EUR ${M.COUT_IA_USD_TO_EUR}.
+      </div>
+    `;
+  };
 
   // Markdown minimal pour CHANGELOG (## versions, ### sections, listes, **gras**)
   M.renderChangelogMd = function(md) {
@@ -9555,6 +10116,9 @@
       if (M.state.backStack.length) M.go(M.state.backStack.pop());
     });
 
+    // Bouton "Agent IA" header (parite PC panneau-agent). Ouvre la sheet decisions.
+    $('#m-agent-ia-btn')?.addEventListener('click', () => { M.openBriefSheet(); });
+
     // Helper pour ouvrir un detail
     M.openDetail = function(entity, id) {
       if (!M.state.detail) M.state.detail = {};
@@ -9574,6 +10138,31 @@
     M._intBadge = setInterval(M.updateAlertesBadge, 30000);
     M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
     M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
+
+    // Initialise + auto-trigger du brief IA cote mobile (parite PC).
+    M.updateBriefBadge();
+    setInterval(M.updateBriefBadge, 30000);
+    M.declencherBriefAutoLoginSiNecessaire();
+
+    // Scroll-fade des FAB secondaires (selection multiple) : ils sont
+    // repositionnes en haut a droite pour ne plus chevaucher les FAB metier.
+    // Au scroll vers le bas, on attenue l'opacite pour ne pas masquer le contenu.
+    // Cliquables meme attenues (pointer-events: auto cf. style-mobile.css).
+    let lastScrollY = 0;
+    let scrollFadeTimer = null;
+    const updateFabFade = () => {
+      const scrolled = (M.state?.currentPage && (window.scrollY || document.documentElement.scrollTop) > 80);
+      document.querySelectorAll('.m-fab-secondary').forEach((el) => {
+        el.classList.toggle('m-fab-secondary-faded', scrolled);
+      });
+    };
+    window.addEventListener('scroll', () => {
+      if (scrollFadeTimer) return;
+      scrollFadeTimer = setTimeout(() => {
+        scrollFadeTimer = null;
+        updateFabFade();
+      }, 80);
+    }, { passive: true });
 
     // Lance le sync Supabase en arriere-plan (delay 200ms pour laisser le 1er
     // render se faire vite avec les donnees localStorage cachees, puis

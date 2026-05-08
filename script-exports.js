@@ -117,19 +117,10 @@ function genererRapportMensuel() {
     statsChauff[l.chaufNom].ca += l.prix||0;
   });
 
+  const metaRapport = `${livraisons.length} livraison(s) · ${livrees} livrée(s)`;
   const html = `
   <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-
-    <!-- EN-TÊTE -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:20px;border-bottom:3px solid #f5a623;margin-bottom:28px">
-      <div>
-        <div style="font-size:1.5rem;font-weight:800;color:#f5a623">${nom}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase;letter-spacing:1px">Rapport d'activité</div>
-        <div style="font-size:1.2rem;font-weight:800;text-transform:capitalize">${moisLabel}</div>
-      </div>
-    </div>
+    ${construireEnteteExport(params, "Rapport d'activité", moisLabel, dateExp, metaRapport)}
     ${renderBlocInfosEntreprise(params)}
 
     <!-- KPIs -->
@@ -190,22 +181,10 @@ function genererRapportMensuel() {
       </table>
     </div>` : ''}
 
-    <!-- PIED DE PAGE -->
-    <div style="border-top:1px solid #e5e7eb;padding-top:12px;display:flex;justify-content:space-between;font-size:.72rem;color:#9ca3af">
-      <span>${nom} — Page 1/1</span>
-      <span>${dateExp}</span>
-      <span>${params.tel || params.email || params.siret || ''}</span>
-    </div>
+    ${renderFooterEntreprise(params, dateExp)}
   </div>`;
 
-  const win = ouvrirPopupSecure('', '_blank', 'width=850,height=950');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Rapport ${moisLabel} — ${nom}</title>
-    <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm} @media print{body{padding:0}}</style>
-    </head><body>${html}
-    <script>setTimeout(()=>{window.print();},400)<\/script>
-    </body></html>`);
-  win.document.close();
+  ouvrirFenetreImpression(`Rapport ${moisLabel} — ${nom}`, html, 'width=850,height=950');
   afficherToast('📄 Rapport mensuel généré');
 }
 
@@ -509,17 +488,16 @@ function exporterSauvegardeAdmin() {
 // L9515 (script.js d'origine)
 function exporterChargesPDF() {
   const charges = charger('charges').sort((a,b)=>new Date(b.date)-new Date(a.date));
-  const params = chargerObj('params_entreprise', {});
-  const nom = params.nom || 'MCA Logistics';
-  const dateExp = new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const params = getEntrepriseExportParams();
+  const nom = params.nom;
+  const dateExp = formatDateHeureExport();
   const total = charges.reduce((s,c)=>s+(c.montant||0),0);
   const catIcons = {carburant:'⛽',peage:'🛣️',entretien:'🔧',assurance:'🛡️',autre:'📝'};
 
+  const metaCharges = `${charges.length} charge(s) · Total ${euros(total)}`;
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif des charges</div><div style="font-size:1rem;font-weight:700">Total : ${euros(total)}</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
-    </div>
+    ${construireEnteteExport(params, 'Récapitulatif des charges', '', dateExp, metaCharges)}
+    ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.85rem">
       <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left">Date</th><th style="padding:8px 12px;text-align:left">Catégorie</th><th style="padding:8px 12px;text-align:left">Description</th><th style="padding:8px 12px;text-align:left">Véhicule</th><th style="padding:8px 12px;text-align:right">Montant</th></tr></thead>
       <tbody>${charges.map((c,i)=>`<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
@@ -531,12 +509,9 @@ function exporterChargesPDF() {
       </tr>`).join('')}</tbody>
     </table>
     <div style="border-top:2px solid #1a1d27;margin-top:12px;padding-top:8px;display:flex;justify-content:flex-end"><strong style="font-size:1rem">Total : ${euros(total)}</strong></div>
-    <div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>Généré par MCA Logistics — ${nom}</span><span>${dateExp}</span></div>
+    ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>Charges — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
-  win.document.close();
+  ouvrirFenetreImpression(`Charges — ${nom}`, html, 'width=800,height=700');
   afficherToast('📄 PDF charges généré');
 }
 
@@ -609,11 +584,9 @@ function exporterVehiculesPDF() {
   const nom = params.nom;
   const dateExp = formatDateHeureExport();
 
+  const metaFlotte = `${vehicules.length} véhicule(s)`;
   const html = `<div style="font-family:'Segoe UI',Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">
-    <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">
-      <div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">${nom}</div></div>
-      <div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Rapport flotte véhicules</div><div style="font-size:.78rem;color:#9ca3af">${dateExp}</div></div>
-    </div>
+    ${construireEnteteExport(params, 'Rapport flotte véhicules', '', dateExp, metaFlotte)}
     ${renderBlocInfosEntreprise(params)}
     <table style="width:100%;border-collapse:collapse;font-size:.82rem">
       <thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Immatriculation</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Modèle</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Acquisition</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Finances</th><th style="padding:8px 12px;text-align:left;color:#6b7280">CT</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Dernier entretien</th></tr></thead>
@@ -633,10 +606,7 @@ function exporterVehiculesPDF() {
     </table>
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
-  const win = ouvrirPopupSecure('','_blank','width=850,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Véhicules — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(()=>{window.print();},400)<\/script></body></html>');
-  win.document.close();
+  ouvrirFenetreImpression(`Véhicules — ${nom}`, html, 'width=850,height=700');
   afficherToast('📄 Rapport véhicules généré');
 }
 
@@ -689,19 +659,17 @@ function exporterPlanningSemainePDF() {
     return '<tr><td style="padding:8px 12px;font-weight:600">' + s.nom + '</td><td style="padding:8px 12px;font-size:.82rem;color:#6b7280">' + (s.poste||'—') + '</td>' + cells + '</tr>';
   }).join('');
 
-  var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">' +
-      '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">' + nom + '</div></div>' +
-      '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">' + titreSemaine + '</div><div style="font-size:.78rem;color:#9ca3af">' + dateExp + '</div></div></div>' +
+  var html = '<style>@page{size:landscape;margin:10mm}</style>' +
+    '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:900px;margin:0 auto;padding:32px;color:#1a1d27">' +
+    construireEnteteExport(params, 'Planning hebdomadaire', titreSemaine, dateExp) +
+    renderBlocInfosEntreprise(params) +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem">' +
       '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Poste</th>' + thCols + '</tr></thead>' +
       '<tbody>' + rows + '</tbody></table>' +
-    '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>' + nom + '</span><span>' + dateExp + '</span></div></div>';
+    renderFooterEntreprise(params, dateExp) +
+    '</div>';
 
-  var win = ouvrirPopupSecure('','_blank','width=950,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Planning ' + titreSemaine + '</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:10mm;size:landscape}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
+  ouvrirFenetreImpression('Planning ' + titreSemaine, html, 'width=950,height=700');
   afficherToast('📄 Rapport planning semaine généré');
 }
 
@@ -729,18 +697,16 @@ function exporterReleveKmPDF() {
     var dist = e.kmArrivee != null ? Math.round(e.distance||0)+' km' : 'En attente';
     return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:8px 12px;font-weight:600">'+e.salNom+'</td><td style="padding:8px 12px">'+formatDateExport(e.date)+'</td><td style="padding:8px 12px;text-align:right">'+kmDep+'</td><td style="padding:8px 12px;text-align:right">'+kmArr+'</td><td style="padding:8px 12px;text-align:right;font-weight:700">'+dist+'</td></tr>';
   }).join('');
+  var metaKm = 'Total : ' + Math.round(totalKm) + ' km · ' + allKm.length + ' relevé(s)';
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px">'+
-      '<div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div></div>'+
-      '<div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Relevés kilométriques</div><div style="font-size:1rem;font-weight:700">Total : '+Math.round(totalKm)+' km</div><div style="font-size:.78rem;color:#9ca3af">'+range.label+' · '+range.datesLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
+    construireEnteteExport(params, 'Relevés kilométriques', range.label + ' · ' + range.datesLabel, dateExp, metaKm)+
+    renderBlocInfosEntreprise(params)+
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem">'+
       '<thead><tr style="background:#f3f4f6"><th style="padding:8px 12px;text-align:left;color:#6b7280">Salarié</th><th style="padding:8px 12px;text-align:left;color:#6b7280">Date</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km départ</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Km arrivée</th><th style="padding:8px 12px;text-align:right;color:#6b7280">Distance</th></tr></thead>'+
       '<tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
-  var win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Relevés km — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
+    renderFooterEntreprise(params, dateExp)+
+    '</div>';
+  ouvrirFenetreImpression('Relevés km — ' + nom, html, 'width=800,height=700');
   afficherToast('📄 Rapport relevés km généré');
 }
 
@@ -871,9 +837,10 @@ function exporterTvaPDF() {
     return '<tr><td style="padding:6px 12px">' + item.periodLabel + '</td><td style="padding:6px 12px">' + formatDateExport(item.paymentDate) + '</td><td style="padding:6px 12px">' + planningEscapeHtml(item.description) + '</td><td style="padding:6px 12px;text-align:right;font-weight:700;color:#2563eb">' + euros(item.montant) + '</td></tr>';
   }).join('') || '<tr><td colspan="4" style="padding:10px 12px;text-align:center;color:#6b7280">Aucun règlement TVA enregistré</td></tr>';
 
+  var metaTva = getTVARegimeLabel(summary.profile.regime) + ' · ' + getTVAActiviteLabel(summary.profile.activiteType) + ' · ' + getTVAExigibiliteLabel(summary.profile);
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:24px"><div><div style="font-size:1.4rem;font-weight:800;color:#f5a623">'+nom+'</div>'+(params.siret?'<div style="font-size:.78rem;color:#9ca3af">SIRET : '+params.siret+'</div>':'')+'</div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af;text-transform:uppercase">Récapitulatif TVA</div><div style="font-size:1rem;font-weight:700;text-transform:capitalize">'+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>' +
-    '<div style="font-size:.84rem;color:#6b7280;margin-bottom:18px">' + getTVARegimeLabel(summary.profile.regime) + ' · ' + getTVAActiviteLabel(summary.profile.activiteType) + ' · ' + getTVAExigibiliteLabel(summary.profile) + '</div>' +
+    construireEnteteExport(params, 'Récapitulatif TVA', moisLabel, dateExp, metaTva) +
+    renderBlocInfosEntreprise(params) +
     '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">📤 TVA Collectée exigible</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Exigibilité</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+collRows+'<tr style="background:#e8f5e9;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#2ecc71">'+euros(totalCollectee)+'</td><td></td></tr></tbody></table>' +
     (pendingRows ? '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#f5a623">📅 Facturé mais non encore exigible</div><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date facture</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:left">Statut</th></tr></thead><tbody>' + pendingRows + '</tbody></table>' : '') +
@@ -882,12 +849,10 @@ function exporterTvaPDF() {
     '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2563eb">🧾 Règlements TVA rattachés à la période</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Période TVA</th><th style="padding:6px 12px;text-align:left">Date paiement</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Montant</th></tr></thead><tbody>' + settlementRows + '</tbody></table>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0"><div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Collectée</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">'+euros(totalCollectee)+'</div></div><div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Déductible</div><div style="font-size:1.2rem;font-weight:800;color:#e67e22">'+euros(totalDeductible)+'</div></div><div style="padding:14px;background:#eff6ff;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Planifiée / réglée</div><div style="font-size:1.2rem;font-weight:800;color:#2563eb">'+euros(summary.totalTVAPlanifiee)+'</div></div><div style="padding:14px;background:'+(solde>=0?'#ffebee':'#f5edff')+';border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">'+(solde>=0?'Reste non planifié':'Crédit TVA')+'</div><div style="font-size:1.2rem;font-weight:800;color:'+(solde>=0?'#e74c3c':'#8e44ad')+'">'+euros(solde>=0 ? summary.tvaReverser : summary.tvaCredit)+'</div></div></div>' +
-    '<div style="border-top:1px solid #e5e7eb;margin-top:20px;padding-top:10px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
+    renderFooterEntreprise(params, dateExp) +
+    '</div>';
 
-  var win = ouvrirPopupSecure('','_blank','width=800,height=800');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>TVA '+moisLabel+' — '+nom+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
+  ouvrirFenetreImpression('TVA '+moisLabel+' — '+nom, html, 'width=800,height=800');
   afficherToast('📄 Rapport TVA généré');
 }
 
@@ -992,8 +957,10 @@ function genererRapportMensuelPeriode() {
   // En-tête unifié via construireEnteteExport (template référence du site)
   var metaLivraisons = livraisons.length+' livraison(s) · '+nbPaye+' payée(s) · '+nbAttente+' en attente' + (nbLitige?' · '+nbLitige+' litige(s)':'');
   var html =
+    '<style>@page{size:landscape;margin:10mm}@media print{.no-print{display:none}}</style>' +
     '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1100px;margin:0 auto;padding:24px;color:#111827">' +
       construireEnteteExport(params, 'Récapitulatif livraisons', periode, dateExp, metaLivraisons) +
+      renderBlocInfosEntreprise(params) +
       blocResume +
       blocTVA +
       blocClients +
@@ -1025,18 +992,10 @@ function genererRapportMensuelPeriode() {
           '</tr>' +
         '</tfoot>' +
       '</table>' +
-      '<div style="margin-top:20px;font-size:.7rem;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb;padding-top:10px">Document généré par '+nomEntr+' le '+escape(dateExp)+'</div>' +
+      renderFooterEntreprise(params, dateExp) +
     '</div>';
 
-  var win = ouvrirPopupSecure('','_blank','width=1100,height=750');
-  if (!win) { afficherToast('⚠️ Autorise les popups pour exporter en PDF','error'); return; }
-  win.document.write(
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Récap livraisons — '+nomEntr+'</title>' +
-    '<style>body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif}@page{margin:10mm;size:landscape}@media print{.no-print{display:none}}</style>' +
-    '</head><body>' + html +
-    '<script>setTimeout(function(){window.print();},400);<\/script></body></html>'
-  );
-  win.document.close();
+  ouvrirFenetreImpression('Récap livraisons — '+nomEntr, html, 'width=1100,height=750');
 }
 
 // L11676 (script.js d'origine)
@@ -1056,16 +1015,16 @@ function exporterChargesPDFMois() {
     return '<tr style="border-bottom:1px solid #f0f0f0;background:'+(i%2===0?'#fff':'#fafafa')+'"><td style="padding:6px 10px">'+c.date+'</td><td style="padding:6px 10px">'+(catIcons[c.categorie]||'📝')+' '+(c.categorie||'autre')+'</td><td style="padding:6px 10px">'+(c.description||'—')+'</td><td style="padding:6px 10px;text-align:right">'+euros(ht)+'</td><td style="padding:6px 10px;text-align:right;color:#6b7280">'+euros(tvaM)+'</td><td style="padding:6px 10px;text-align:right;font-weight:700">'+euros(c.montant||0)+'</td></tr>';
   }).join('');
 
+  var metaChargesMois = charges.length + ' charge(s) · Total ' + euros(totalTTC);
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">'+
-    '<div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:3px solid #f5a623;margin-bottom:20px"><div><div style="font-size:1.3rem;font-weight:800;color:#f5a623">'+nom+'</div></div><div style="text-align:right"><div style="font-size:.8rem;color:#9ca3af">Charges — '+moisLabel+'</div><div style="font-size:.78rem;color:#9ca3af">'+dateExp+'</div></div></div>'+
+    construireEnteteExport(params, 'Charges', moisLabel, dateExp, metaChargesMois)+
+    renderBlocInfosEntreprise(params)+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total HT</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalHT)+'</div></div><div style="background:#fff3e0;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">TVA</div><div style="font-size:1.1rem;font-weight:800;color:#e67e22">'+euros(totalTVA)+'</div></div><div style="background:#f8f9fc;padding:12px;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Total TTC</div><div style="font-size:1.1rem;font-weight:800">'+euros(totalTTC)+'</div></div></div>'+
     '<table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Catégorie</th><th style="padding:6px 10px;text-align:left">Description</th><th style="padding:6px 10px;text-align:right">HT</th><th style="padding:6px 10px;text-align:right">TVA</th><th style="padding:6px 10px;text-align:right">TTC</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div style="border-top:1px solid #e5e7eb;margin-top:16px;padding-top:8px;font-size:.72rem;color:#9ca3af;display:flex;justify-content:space-between"><span>'+nom+'</span><span>'+dateExp+'</span></div></div>';
+    renderFooterEntreprise(params, dateExp)+
+    '</div>';
 
-  var win = ouvrirPopupSecure('','_blank','width=800,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><title>Charges '+moisLabel+'</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>'+html+'<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
-  win.document.close();
+  ouvrirFenetreImpression('Charges '+moisLabel+' — '+nom, html, 'width=800,height=700');
   afficherToast('📄 Rapport charges généré');
 }
 
