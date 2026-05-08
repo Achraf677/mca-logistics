@@ -17,9 +17,34 @@
   // MAX_HISTORY) pour l'affichage.
   const MAX_HISTORY_TO_SEND = 10;
   const ENDPOINT = '/functions/v1/ai-chat';
+  const OCR_ENDPOINT = '/functions/v1/ai-ocr';
+  // Timeout client OCR (Gemini multimodal sur Flash : 5-15s typique, 30s pire cas).
+  const OCR_TIMEOUT_MS = 60000;
   // Auto-retry si Gemini renvoie 429 avec retry_after <= ce seuil. UX : on
   // affiche un compte a rebours au lieu d'un message d'erreur.
   const MAX_AUTO_RETRY_SECONDS = 90;
+
+  // Modes OCR supportes par l'edge fn ai-ocr. Doit rester aligne avec le backend.
+  const OCR_MODES = [
+    {
+      key: 'facture',
+      icon: '📄',
+      label: 'Facture fournisseur',
+      desc: 'Extrait fournisseur, montant HT/TTC, TVA, lignes',
+    },
+    {
+      key: 'ticket_carburant',
+      icon: '⛽',
+      label: 'Ticket carburant',
+      desc: 'Extrait station, litres, prix/L, type carburant',
+    },
+    {
+      key: 'rib',
+      icon: '🏦',
+      label: 'RIB',
+      desc: 'Extrait IBAN, BIC, banque, titulaire',
+    },
+  ];
 
   const state = {
     open: false,
@@ -84,9 +109,23 @@
       <div id="ai-chat-quota" class="ai-chat-quota" hidden></div>
       <div id="ai-chat-messages" class="ai-chat-messages" aria-live="polite"></div>
       <form id="ai-chat-form" class="ai-chat-form">
+        <button id="ai-chat-attach" type="button" class="ai-chat-attachbtn" title="Scanner une facture / ticket / RIB" aria-label="Scanner un document">📎</button>
         <textarea id="ai-chat-input" placeholder="Demande-moi un truc sur ton activite..." rows="1" aria-label="Ton message"></textarea>
         <button id="ai-chat-send" type="submit" title="Envoyer" aria-label="Envoyer">↑</button>
       </form>
+      <!-- Sheet OCR : selection mode + upload + resultats. Vit dans le panel
+           pour heriter du z-index 200 et eviter les conflits avec m-sheet (110). -->
+      <div id="ai-chat-ocr-sheet" class="ai-chat-ocr-sheet" aria-hidden="true" hidden>
+        <div class="ai-chat-ocr-backdrop"></div>
+        <div class="ai-chat-ocr-card" role="dialog" aria-label="Scanner un document">
+          <header class="ai-chat-ocr-header">
+            <h3 class="ai-chat-ocr-title">📎 Scanner un document</h3>
+            <button class="ai-chat-iconbtn" id="ai-chat-ocr-close" type="button" aria-label="Fermer">✕</button>
+          </header>
+          <div class="ai-chat-ocr-body" id="ai-chat-ocr-body"></div>
+        </div>
+      </div>
+      <input type="file" id="ai-chat-ocr-file" accept="image/*" capture="environment" style="display:none" />
     </div>
     <div id="ai-chat-overlay" hidden></div>
   `;
@@ -457,6 +496,217 @@
     #ai-chat-send:active:not(:disabled) { transform: scale(0.96); }
     #ai-chat-send:disabled { opacity: .4; cursor: not-allowed; }
 
+    /* ========== Bouton 📎 (OCR) ========== */
+    .ai-chat-attachbtn {
+      background: transparent;
+      color: var(--aic-text-muted);
+      border: 1px solid var(--aic-border);
+      border-radius: var(--aic-radius);
+      width: 44px;
+      height: 44px;
+      cursor: pointer;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color .15s ease, color .15s ease, background .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ai-chat-attachbtn:hover:not(:disabled) {
+      border-color: var(--aic-accent);
+      color: var(--aic-text);
+      background: var(--aic-accent-soft);
+    }
+    .ai-chat-attachbtn:active:not(:disabled) { transform: scale(0.96); }
+    .ai-chat-attachbtn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ========== Sheet OCR (modal interne au panel) ========== */
+    .ai-chat-ocr-sheet {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+    }
+    .ai-chat-ocr-sheet[hidden] { display: none; }
+    .ai-chat-ocr-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(2px);
+    }
+    .ai-chat-ocr-card {
+      position: relative;
+      background: var(--aic-bg);
+      border: 1px solid var(--aic-border);
+      border-radius: var(--aic-radius-lg);
+      box-shadow: var(--aic-shadow);
+      width: 100%;
+      max-width: 420px;
+      max-height: 90%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .ai-chat-ocr-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--aic-border);
+      background: var(--aic-card);
+    }
+    .ai-chat-ocr-title {
+      margin: 0;
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--aic-text);
+    }
+    .ai-chat-ocr-body {
+      padding: 14px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ai-chat-ocr-mode {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--aic-border);
+      border-radius: var(--aic-radius);
+      background: var(--aic-card);
+      color: var(--aic-text);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      transition: border-color .15s ease, background .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ai-chat-ocr-mode:hover, .ai-chat-ocr-mode:active {
+      border-color: var(--aic-accent);
+      background: var(--aic-accent-soft);
+    }
+    .ai-chat-ocr-mode-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
+    .ai-chat-ocr-mode-text { flex: 1; min-width: 0; }
+    .ai-chat-ocr-mode-label { font-weight: 700; font-size: .92rem; margin-bottom: 2px; }
+    .ai-chat-ocr-mode-desc { font-size: .76rem; color: var(--aic-text-muted); }
+
+    .ai-chat-ocr-status {
+      padding: 14px;
+      text-align: center;
+      color: var(--aic-text-muted);
+      font-size: .88rem;
+    }
+    .ai-chat-ocr-status .ai-chat-ocr-spinner {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--aic-border);
+      border-top-color: var(--aic-accent);
+      border-radius: 50%;
+      animation: aic-spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes aic-spin { to { transform: rotate(360deg); } }
+
+    .ai-chat-ocr-error {
+      padding: 12px;
+      background: var(--aic-danger-soft);
+      color: var(--aic-danger);
+      border: 1px solid var(--aic-danger-border);
+      border-radius: var(--aic-radius);
+      font-size: .82rem;
+      white-space: pre-wrap;
+    }
+
+    .ai-chat-ocr-result {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ai-chat-ocr-fields {
+      background: var(--aic-card);
+      border: 1px solid var(--aic-border);
+      border-radius: var(--aic-radius);
+      padding: 10px 12px;
+      font-size: .82rem;
+    }
+    .ai-chat-ocr-field {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--aic-border);
+    }
+    .ai-chat-ocr-field:last-child { border-bottom: none; }
+    .ai-chat-ocr-field-key {
+      color: var(--aic-text-muted);
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      flex-shrink: 0;
+    }
+    .ai-chat-ocr-field-val {
+      color: var(--aic-text);
+      font-weight: 600;
+      text-align: right;
+      word-break: break-word;
+    }
+    .ai-chat-ocr-field-val.is-null { color: var(--aic-text-muted); font-weight: 400; font-style: italic; }
+    .ai-chat-ocr-lines {
+      margin: 6px 0 0;
+      padding-left: 16px;
+      font-size: .76rem;
+      color: var(--aic-text-muted);
+    }
+    .ai-chat-ocr-lines li { margin: 2px 0; }
+
+    .ai-chat-ocr-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .ai-chat-ocr-actions button {
+      flex: 1 1 auto;
+      min-width: 120px;
+      padding: 10px 12px;
+      border-radius: var(--aic-radius);
+      border: 1px solid var(--aic-border);
+      cursor: pointer;
+      font-family: inherit;
+      font-size: .85rem;
+      font-weight: 600;
+      transition: filter .15s ease, background .15s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .ai-chat-ocr-btn-primary {
+      background: var(--aic-accent);
+      color: var(--aic-accent-text);
+      border-color: var(--aic-accent);
+    }
+    .ai-chat-ocr-btn-primary:hover { filter: brightness(1.08); }
+    .ai-chat-ocr-btn-secondary {
+      background: transparent;
+      color: var(--aic-text);
+    }
+    .ai-chat-ocr-btn-secondary:hover {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--aic-text-muted);
+    }
+    .ai-chat-ocr-hint {
+      font-size: .72rem;
+      color: var(--aic-text-muted);
+      text-align: center;
+    }
+
     /* ========== MOBILE — heritage du design-system m-* ========== */
     @media (max-width: 768px) {
       #ai-chat-root {
@@ -513,7 +763,23 @@
         width: var(--m-tap, 48px);
         height: var(--m-tap, 48px);
       }
+      .ai-chat-attachbtn {
+        width: var(--m-tap, 48px);
+        height: var(--m-tap, 48px);
+        font-size: 1.2rem;
+      }
       .ai-chat-msg { font-size: .92rem; max-width: 88%; }
+      /* OCR sheet : sur mobile, glisse depuis le bas comme une bottom-sheet */
+      .ai-chat-ocr-sheet {
+        align-items: flex-end;
+        padding: 0;
+      }
+      .ai-chat-ocr-card {
+        max-width: 100%;
+        max-height: 92%;
+        border-radius: var(--aic-radius-lg) var(--aic-radius-lg) 0 0;
+        padding-bottom: var(--m-safe-bottom, 0px);
+      }
     }
 
     /* ========== Cards memoire ========== */
@@ -572,6 +838,11 @@
       if (confirm('Effacer la conversation en cours ?')) clearHistory();
     });
     document.getElementById('ai-chat-form').addEventListener('submit', onSubmit);
+    // 📎 OCR : ouvre la sheet de selection mode.
+    document.getElementById('ai-chat-attach').addEventListener('click', openOcrSheet);
+    document.getElementById('ai-chat-ocr-close').addEventListener('click', closeOcrSheet);
+    document.querySelector('#ai-chat-ocr-sheet .ai-chat-ocr-backdrop').addEventListener('click', closeOcrSheet);
+    document.getElementById('ai-chat-ocr-file').addEventListener('change', onOcrFileSelected);
     const input = document.getElementById('ai-chat-input');
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
