@@ -190,53 +190,82 @@ function qontoAuth(): string {
   return `${login}:${secret}`;
 }
 
+// Qonto API v2 /transactions exige bank_account_id (ou iban). Cache la liste
+// d'IDs au boot — la plupart des PME ont 1 seul compte mais on supporte les multi.
+let qontoBankAccountIdsCache: string[] | null = null;
+
+async function fetchQontoBankAccountIds(): Promise<string[]> {
+  if (qontoBankAccountIdsCache && qontoBankAccountIdsCache.length) {
+    return qontoBankAccountIdsCache;
+  }
+  const url = `${QONTO_BASE}/organization`;
+  const r = await fetch(url, { headers: { Authorization: qontoAuth() } });
+  if (!r.ok) {
+    const text = await r.text().catch(() => "");
+    throw new Error(`qonto organization ${r.status}: ${text.slice(0, 200)}`);
+  }
+  const data = await r.json();
+  const accounts = (data?.organization?.bank_accounts ?? []) as any[];
+  const ids = accounts.map((a) => String(a.id)).filter(Boolean);
+  if (!ids.length) throw new Error("qonto: aucun bank_account trouve dans /organization");
+  qontoBankAccountIdsCache = ids;
+  return ids;
+}
+
 async function fetchQontoTransactions(
   dateFromISO: string,
   dateToISO: string,
 ): Promise<{ transactions: QontoTx[]; pages: number; truncated: boolean }> {
+  const accountIds = await fetchQontoBankAccountIds();
   const all: QontoTx[] = [];
-  let page = 1;
+  let totalPages = 0;
   let truncated = false;
-  while (page <= QONTO_MAX_PAGES) {
-    const params = new URLSearchParams({
-      per_page: String(QONTO_PAGE_SIZE),
-      current_page: String(page),
-      "settled_at_from": `${dateFromISO}T00:00:00.000Z`,
-      "settled_at_to": `${dateToISO}T23:59:59.999Z`,
-      "status[]": "completed",
-    });
-    const url = `${QONTO_BASE}/transactions?${params}`;
-    const r = await fetch(url, { headers: { Authorization: qontoAuth() } });
-    if (!r.ok) {
-      const text = await r.text().catch(() => "");
-      throw new Error(`qonto ${r.status}: ${text.slice(0, 200)}`);
-    }
-    const data = await r.json();
-    const batch = (data.transactions ?? []) as any[];
-    for (const t of batch) {
-      all.push({
-        transaction_id: String(t.transaction_id),
-        label: t.label ?? null,
-        counterparty_name: t.counterparty_name ?? null,
-        side: t.side === "credit" ? "credit" : "debit",
-        amount: Number(t.amount) || 0,
-        amount_cents: Number(t.amount_cents) || 0,
-        currency: t.currency ?? "EUR",
-        settled_at: t.settled_at,
-        emitted_at: t.emitted_at ?? null,
-        operation_type: t.operation_type ?? null,
-        status: t.status ?? null,
-        note: t.note ?? null,
+  for (const accountId of accountIds) {
+    let page = 1;
+    while (page <= QONTO_MAX_PAGES) {
+      const params = new URLSearchParams({
+        bank_account_id: accountId,
+        per_page: String(QONTO_PAGE_SIZE),
+        current_page: String(page),
+        "settled_at_from": `${dateFromISO}T00:00:00.000Z`,
+        "settled_at_to": `${dateToISO}T23:59:59.999Z`,
+        "status[]": "completed",
       });
+      const url = `${QONTO_BASE}/transactions?${params}`;
+      const r = await fetch(url, { headers: { Authorization: qontoAuth() } });
+      if (!r.ok) {
+        const text = await r.text().catch(() => "");
+        throw new Error(`qonto ${r.status}: ${text.slice(0, 200)}`);
+      }
+      const data = await r.json();
+      const batch = (data.transactions ?? []) as any[];
+      for (const t of batch) {
+        all.push({
+          transaction_id: String(t.transaction_id),
+          label: t.label ?? null,
+          counterparty_name: t.counterparty_name ?? null,
+          side: t.side === "credit" ? "credit" : "debit",
+          amount: Number(t.amount) || 0,
+          amount_cents: Number(t.amount_cents) || 0,
+          currency: t.currency ?? "EUR",
+          settled_at: t.settled_at,
+          emitted_at: t.emitted_at ?? null,
+          operation_type: t.operation_type ?? null,
+          status: t.status ?? null,
+          note: t.note ?? null,
+        });
+      }
+      totalPages++;
+      const hasNext = !!data.meta?.next_page && batch.length === QONTO_PAGE_SIZE;
+      if (!hasNext) break;
+      page++;
+      if (page > QONTO_MAX_PAGES) {
+        truncated = true;
+        break;
+      }
     }
-    const hasNext = !!data.meta?.next_page && batch.length === QONTO_PAGE_SIZE;
-    if (!hasNext) {
-      return { transactions: all, pages: page, truncated: false };
-    }
-    page++;
   }
-  truncated = true;
-  return { transactions: all, pages: QONTO_MAX_PAGES, truncated };
+  return { transactions: all, pages: totalPages, truncated };
 }
 
 // =====================================================================
