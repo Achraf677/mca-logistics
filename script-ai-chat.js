@@ -17,34 +17,9 @@
   // MAX_HISTORY) pour l'affichage.
   const MAX_HISTORY_TO_SEND = 10;
   const ENDPOINT = '/functions/v1/ai-chat';
-  const OCR_ENDPOINT = '/functions/v1/ai-ocr';
-  // Timeout client OCR (Gemini multimodal sur Flash : 5-15s typique, 30s pire cas).
-  const OCR_TIMEOUT_MS = 60000;
   // Auto-retry si Gemini renvoie 429 avec retry_after <= ce seuil. UX : on
   // affiche un compte a rebours au lieu d'un message d'erreur.
   const MAX_AUTO_RETRY_SECONDS = 90;
-
-  // Modes OCR supportes par l'edge fn ai-ocr. Doit rester aligne avec le backend.
-  const OCR_MODES = [
-    {
-      key: 'facture',
-      icon: '📄',
-      label: 'Facture fournisseur',
-      desc: 'Extrait fournisseur, montant HT/TTC, TVA, lignes',
-    },
-    {
-      key: 'ticket_carburant',
-      icon: '⛽',
-      label: 'Ticket carburant',
-      desc: 'Extrait station, litres, prix/L, type carburant',
-    },
-    {
-      key: 'rib',
-      icon: '🏦',
-      label: 'RIB',
-      desc: 'Extrait IBAN, BIC, banque, titulaire',
-    },
-  ];
 
   const state = {
     open: false,
@@ -109,23 +84,9 @@
       <div id="ai-chat-quota" class="ai-chat-quota" hidden></div>
       <div id="ai-chat-messages" class="ai-chat-messages" aria-live="polite"></div>
       <form id="ai-chat-form" class="ai-chat-form">
-        <button id="ai-chat-attach" type="button" class="ai-chat-attachbtn" title="Scanner une facture / ticket / RIB" aria-label="Scanner un document">📎</button>
         <textarea id="ai-chat-input" placeholder="Demande-moi un truc sur ton activite..." rows="1" aria-label="Ton message"></textarea>
         <button id="ai-chat-send" type="submit" title="Envoyer" aria-label="Envoyer">↑</button>
       </form>
-      <!-- Sheet OCR : selection mode + upload + resultats. Vit dans le panel
-           pour heriter du z-index 200 et eviter les conflits avec m-sheet (110). -->
-      <div id="ai-chat-ocr-sheet" class="ai-chat-ocr-sheet" aria-hidden="true" hidden>
-        <div class="ai-chat-ocr-backdrop"></div>
-        <div class="ai-chat-ocr-card" role="dialog" aria-label="Scanner un document">
-          <header class="ai-chat-ocr-header">
-            <h3 class="ai-chat-ocr-title">📎 Scanner un document</h3>
-            <button class="ai-chat-iconbtn" id="ai-chat-ocr-close" type="button" aria-label="Fermer">✕</button>
-          </header>
-          <div class="ai-chat-ocr-body" id="ai-chat-ocr-body"></div>
-        </div>
-      </div>
-      <input type="file" id="ai-chat-ocr-file" accept="image/*,application/pdf" capture="environment" style="display:none" />
     </div>
     <div id="ai-chat-overlay" hidden></div>
   `;
@@ -496,217 +457,6 @@
     #ai-chat-send:active:not(:disabled) { transform: scale(0.96); }
     #ai-chat-send:disabled { opacity: .4; cursor: not-allowed; }
 
-    /* ========== Bouton 📎 (OCR) ========== */
-    .ai-chat-attachbtn {
-      background: transparent;
-      color: var(--aic-text-muted);
-      border: 1px solid var(--aic-border);
-      border-radius: var(--aic-radius);
-      width: 44px;
-      height: 44px;
-      cursor: pointer;
-      font-size: 1.15rem;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: border-color .15s ease, color .15s ease, background .15s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .ai-chat-attachbtn:hover:not(:disabled) {
-      border-color: var(--aic-accent);
-      color: var(--aic-text);
-      background: var(--aic-accent-soft);
-    }
-    .ai-chat-attachbtn:active:not(:disabled) { transform: scale(0.96); }
-    .ai-chat-attachbtn:disabled { opacity: .4; cursor: not-allowed; }
-
-    /* ========== Sheet OCR (modal interne au panel) ========== */
-    .ai-chat-ocr-sheet {
-      position: absolute;
-      inset: 0;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 14px;
-    }
-    .ai-chat-ocr-sheet[hidden] { display: none; }
-    .ai-chat-ocr-backdrop {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      backdrop-filter: blur(2px);
-    }
-    .ai-chat-ocr-card {
-      position: relative;
-      background: var(--aic-bg);
-      border: 1px solid var(--aic-border);
-      border-radius: var(--aic-radius-lg);
-      box-shadow: var(--aic-shadow);
-      width: 100%;
-      max-width: 420px;
-      max-height: 90%;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .ai-chat-ocr-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--aic-border);
-      background: var(--aic-card);
-    }
-    .ai-chat-ocr-title {
-      margin: 0;
-      font-size: .95rem;
-      font-weight: 700;
-      color: var(--aic-text);
-    }
-    .ai-chat-ocr-body {
-      padding: 14px;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .ai-chat-ocr-mode {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px 14px;
-      border: 1px solid var(--aic-border);
-      border-radius: var(--aic-radius);
-      background: var(--aic-card);
-      color: var(--aic-text);
-      cursor: pointer;
-      text-align: left;
-      font-family: inherit;
-      transition: border-color .15s ease, background .15s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .ai-chat-ocr-mode:hover, .ai-chat-ocr-mode:active {
-      border-color: var(--aic-accent);
-      background: var(--aic-accent-soft);
-    }
-    .ai-chat-ocr-mode-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
-    .ai-chat-ocr-mode-text { flex: 1; min-width: 0; }
-    .ai-chat-ocr-mode-label { font-weight: 700; font-size: .92rem; margin-bottom: 2px; }
-    .ai-chat-ocr-mode-desc { font-size: .76rem; color: var(--aic-text-muted); }
-
-    .ai-chat-ocr-status {
-      padding: 14px;
-      text-align: center;
-      color: var(--aic-text-muted);
-      font-size: .88rem;
-    }
-    .ai-chat-ocr-status .ai-chat-ocr-spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid var(--aic-border);
-      border-top-color: var(--aic-accent);
-      border-radius: 50%;
-      animation: aic-spin 0.8s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-    @keyframes aic-spin { to { transform: rotate(360deg); } }
-
-    .ai-chat-ocr-error {
-      padding: 12px;
-      background: var(--aic-danger-soft);
-      color: var(--aic-danger);
-      border: 1px solid var(--aic-danger-border);
-      border-radius: var(--aic-radius);
-      font-size: .82rem;
-      white-space: pre-wrap;
-    }
-
-    .ai-chat-ocr-result {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .ai-chat-ocr-fields {
-      background: var(--aic-card);
-      border: 1px solid var(--aic-border);
-      border-radius: var(--aic-radius);
-      padding: 10px 12px;
-      font-size: .82rem;
-    }
-    .ai-chat-ocr-field {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 4px 0;
-      border-bottom: 1px solid var(--aic-border);
-    }
-    .ai-chat-ocr-field:last-child { border-bottom: none; }
-    .ai-chat-ocr-field-key {
-      color: var(--aic-text-muted);
-      font-size: .76rem;
-      text-transform: uppercase;
-      letter-spacing: .03em;
-      flex-shrink: 0;
-    }
-    .ai-chat-ocr-field-val {
-      color: var(--aic-text);
-      font-weight: 600;
-      text-align: right;
-      word-break: break-word;
-    }
-    .ai-chat-ocr-field-val.is-null { color: var(--aic-text-muted); font-weight: 400; font-style: italic; }
-    .ai-chat-ocr-lines {
-      margin: 6px 0 0;
-      padding-left: 16px;
-      font-size: .76rem;
-      color: var(--aic-text-muted);
-    }
-    .ai-chat-ocr-lines li { margin: 2px 0; }
-
-    .ai-chat-ocr-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .ai-chat-ocr-actions button {
-      flex: 1 1 auto;
-      min-width: 120px;
-      padding: 10px 12px;
-      border-radius: var(--aic-radius);
-      border: 1px solid var(--aic-border);
-      cursor: pointer;
-      font-family: inherit;
-      font-size: .85rem;
-      font-weight: 600;
-      transition: filter .15s ease, background .15s ease;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .ai-chat-ocr-btn-primary {
-      background: var(--aic-accent);
-      color: var(--aic-accent-text);
-      border-color: var(--aic-accent);
-    }
-    .ai-chat-ocr-btn-primary:hover { filter: brightness(1.08); }
-    .ai-chat-ocr-btn-secondary {
-      background: transparent;
-      color: var(--aic-text);
-    }
-    .ai-chat-ocr-btn-secondary:hover {
-      background: rgba(255,255,255,0.05);
-      border-color: var(--aic-text-muted);
-    }
-    .ai-chat-ocr-hint {
-      font-size: .72rem;
-      color: var(--aic-text-muted);
-      text-align: center;
-    }
-
     /* ========== MOBILE — heritage du design-system m-* ========== */
     @media (max-width: 768px) {
       #ai-chat-root {
@@ -763,23 +513,7 @@
         width: var(--m-tap, 48px);
         height: var(--m-tap, 48px);
       }
-      .ai-chat-attachbtn {
-        width: var(--m-tap, 48px);
-        height: var(--m-tap, 48px);
-        font-size: 1.2rem;
-      }
       .ai-chat-msg { font-size: .92rem; max-width: 88%; }
-      /* OCR sheet : sur mobile, glisse depuis le bas comme une bottom-sheet */
-      .ai-chat-ocr-sheet {
-        align-items: flex-end;
-        padding: 0;
-      }
-      .ai-chat-ocr-card {
-        max-width: 100%;
-        max-height: 92%;
-        border-radius: var(--aic-radius-lg) var(--aic-radius-lg) 0 0;
-        padding-bottom: var(--m-safe-bottom, 0px);
-      }
     }
 
     /* ========== Cards memoire ========== */
@@ -819,6 +553,108 @@
       border-color: var(--aic-danger); color: var(--aic-danger);
     }
 
+    /* ========== Cards confirmation V2 ECRITURE (propose_*) ========== */
+    .ai-chat-write-card {
+      align-self: stretch;
+      background: var(--aic-accent-soft);
+      border: 1.5px solid var(--aic-accent);
+      color: var(--aic-text);
+      border-radius: var(--aic-radius);
+      padding: 12px 14px;
+      font-size: .85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .ai-chat-write-card.confirmed {
+      background: var(--aic-blue-tint);
+      border-color: var(--aic-blue);
+      opacity: .85;
+    }
+    .ai-chat-write-card.cancelled {
+      background: var(--aic-danger-tint);
+      border-color: var(--aic-danger-border);
+      opacity: .7;
+    }
+    .ai-chat-write-card-title {
+      font-weight: 700;
+      font-size: .92rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ai-chat-write-card-title .ai-chat-write-card-icon {
+      font-size: 1.1rem;
+    }
+    .ai-chat-write-card-table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: .82rem;
+    }
+    .ai-chat-write-card-table tr {
+      border-bottom: 1px solid var(--aic-border);
+    }
+    .ai-chat-write-card-table tr:last-child { border-bottom: none; }
+    .ai-chat-write-card-table th {
+      text-align: left;
+      padding: 6px 8px 6px 0;
+      color: var(--aic-text-muted);
+      font-weight: 500;
+      width: 38%;
+      vertical-align: top;
+    }
+    .ai-chat-write-card-table td {
+      padding: 6px 0;
+      color: var(--aic-text);
+      word-break: break-word;
+    }
+    .ai-chat-write-card-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .ai-chat-write-card-btn {
+      border: none;
+      border-radius: var(--aic-radius);
+      padding: 10px 16px;
+      font-size: .88rem;
+      font-weight: 600;
+      cursor: pointer;
+      min-height: 44px;
+      -webkit-tap-highlight-color: transparent;
+      transition: filter .15s ease, transform .15s ease;
+    }
+    .ai-chat-write-card-btn:active:not(:disabled) { transform: scale(0.97); }
+    .ai-chat-write-card-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .ai-chat-write-card-btn-primary {
+      background: var(--aic-accent);
+      color: var(--aic-accent-text);
+    }
+    .ai-chat-write-card-btn-primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .ai-chat-write-card-btn-secondary {
+      background: transparent;
+      color: var(--aic-text-muted);
+      border: 1px solid var(--aic-border);
+    }
+    .ai-chat-write-card-btn-secondary:hover:not(:disabled) {
+      border-color: var(--aic-text-muted);
+      color: var(--aic-text);
+    }
+    .ai-chat-write-card-status {
+      font-size: .78rem;
+      color: var(--aic-text-muted);
+      font-style: italic;
+    }
+    .ai-chat-write-card-status.success { color: var(--aic-blue); }
+    .ai-chat-write-card-status.error { color: var(--aic-danger); }
+
+    @media (max-width: 768px) {
+      .ai-chat-write-card-btn {
+        min-height: 48px;
+        padding: 12px 18px;
+      }
+    }
+
     body.ai-chat-open { overflow: hidden; }
   `;
 
@@ -838,11 +674,6 @@
       if (confirm('Effacer la conversation en cours ?')) clearHistory();
     });
     document.getElementById('ai-chat-form').addEventListener('submit', onSubmit);
-    // 📎 OCR : ouvre la sheet de selection mode.
-    document.getElementById('ai-chat-attach').addEventListener('click', openOcrSheet);
-    document.getElementById('ai-chat-ocr-close').addEventListener('click', closeOcrSheet);
-    document.querySelector('#ai-chat-ocr-sheet .ai-chat-ocr-backdrop').addEventListener('click', closeOcrSheet);
-    document.getElementById('ai-chat-ocr-file').addEventListener('change', onOcrFileSelected);
     const input = document.getElementById('ai-chat-input');
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
@@ -945,6 +776,18 @@
       if (m.role === 'model' && Array.isArray(m._memory_ops)) {
         m._memory_ops.forEach((op) => {
           const card = renderMemoryCard(op);
+          if (card) container.appendChild(card);
+        });
+      }
+      // Cards de confirmation V2 ECRITURE : un par write_action propose par l'IA.
+      // Si deja confirme/annule (m._write_states[i]), affiche la carte en mode read-only.
+      if (m.role === 'model' && Array.isArray(m._write_actions) && m._write_actions.length) {
+        const proposals = Array.isArray(m._proposals) ? m._proposals : [];
+        const states = Array.isArray(m._write_states) ? m._write_states : [];
+        m._write_actions.forEach((action, i) => {
+          const proposal = proposals[i] || null;
+          const st = states[i] || null;
+          const card = renderWriteCard(action, proposal, st, idx, i);
           if (card) container.appendChild(card);
         });
       }
@@ -1276,6 +1119,414 @@
     } catch (_) { return false; }
   }
 
+  // ----- V2 ECRITURE : cards de confirmation -----
+
+  // Mapping action -> titre + icone affiches dans la carte. Centralise pour
+  // ne pas dupliquer la logique dans renderWriteCard.
+  const WRITE_ACTION_META = {
+    create_livraison: { icon: '🚚', title: '➕ Creer une livraison', kind: 'create' },
+    create_charge: { icon: '💸', title: '➕ Creer une charge', kind: 'create' },
+    create_paiement: { icon: '💰', title: '➕ Enregistrer un paiement', kind: 'create' },
+    resolve_alerte: { icon: '✅', title: '✓ Marquer alerte resolue', kind: 'create' },
+    create_client: { icon: '🧑‍💼', title: '➕ Creer un client', kind: 'create' },
+    create_fournisseur: { icon: '🏭', title: '➕ Creer un fournisseur', kind: 'create' },
+    create_vehicule: { icon: '🚐', title: '➕ Creer un vehicule', kind: 'create' },
+    create_salarie: { icon: '👤', title: '➕ Creer un salarie', kind: 'create' },
+    create_carburant: { icon: '⛽', title: '➕ Enregistrer un plein', kind: 'create' },
+    create_entretien: { icon: '🔧', title: '➕ Creer un entretien', kind: 'create' },
+    create_incident: { icon: '🚨', title: '➕ Creer un incident', kind: 'create' },
+    create_planning_creneau: { icon: '📅', title: '➕ Creer un creneau planning', kind: 'create' },
+    create_inspection: { icon: '🚗', title: '➕ Creer une inspection', kind: 'create' },
+    // Phase 2 — UPDATE
+    update_livraison: { icon: '✏️', title: '✏️ Modifier une livraison', kind: 'update' },
+    update_charge: { icon: '✏️', title: '✏️ Modifier une charge', kind: 'update' },
+    update_paiement: { icon: '✏️', title: '✏️ Modifier un paiement', kind: 'update' },
+    update_client: { icon: '✏️', title: '✏️ Modifier un client', kind: 'update' },
+    update_fournisseur: { icon: '✏️', title: '✏️ Modifier un fournisseur', kind: 'update' },
+    update_vehicule: { icon: '✏️', title: '✏️ Modifier un vehicule', kind: 'update' },
+    update_salarie: { icon: '✏️', title: '✏️ Modifier un salarie', kind: 'update' },
+    update_carburant: { icon: '✏️', title: '✏️ Modifier un plein', kind: 'update' },
+    update_entretien: { icon: '✏️', title: '✏️ Modifier un entretien', kind: 'update' },
+    update_incident: { icon: '✏️', title: '✏️ Modifier un incident', kind: 'update' },
+    update_planning_creneau: { icon: '✏️', title: '✏️ Modifier un creneau', kind: 'update' },
+    update_inspection: { icon: '✏️', title: '✏️ Modifier une inspection', kind: 'update' },
+    // Phase 3 — DELETE (rouge)
+    delete_entity: { icon: '🗑️', title: '🗑️ SUPPRIMER une entite', kind: 'delete' },
+    // Phase 4 — Brouillon (mode autonome)
+    add_to_drafts: { icon: '📋', title: '📋 Ajouter aux brouillons IA', kind: 'draft' },
+  };
+
+  // Formatage d'une valeur pour la table de confirmation : null/undefined -> tiret,
+  // numbers -> 2 decimales si non-entier, dates ISO inchangees, autres -> string.
+  function formatWriteValue(v) {
+    if (v === null || v === undefined || v === '') return '—';
+    if (typeof v === 'number') {
+      if (Number.isInteger(v)) return String(v);
+      return v.toFixed(2);
+    }
+    if (typeof v === 'boolean') return v ? 'oui' : 'non';
+    if (typeof v === 'object') {
+      try { return JSON.stringify(v); } catch (_) { return String(v); }
+    }
+    return String(v);
+  }
+
+  // Construit la liste de paires {label, value} a afficher pour une action.
+  // On prefere proposal.summary (plus humain : libelles resolus) au payload brut.
+  function buildWriteCardRows(action, proposal) {
+    if (proposal && proposal.summary && typeof proposal.summary === 'object') {
+      return Object.entries(proposal.summary).map(([k, v]) => ({ label: k, value: formatWriteValue(v) }));
+    }
+    const payload = (action && action.payload) || (proposal && proposal.payload) || {};
+    return Object.entries(payload).map(([k, v]) => ({ label: k, value: formatWriteValue(v) }));
+  }
+
+  // Rendu d'une carte de confirmation pour une write_action.
+  // kind: 'create' (orange par defaut), 'update' (bleu), 'delete' (rouge + confirmation 2x), 'draft' (gris).
+  function renderWriteCard(action, proposal, st, msgIdx, actionIdx) {
+    if (!action || typeof action !== 'object' || !action.action) return null;
+    let actionKey = action.action;
+    if (actionKey && actionKey.startsWith('update_')) actionKey = actionKey;
+    const meta = WRITE_ACTION_META[actionKey] || { icon: '🤖', title: 'Action proposee par l\'IA', kind: 'create' };
+    const kind = meta.kind || 'create';
+    const card = document.createElement('div');
+    card.className = 'ai-chat-write-card ai-chat-write-card-' + kind;
+    if (st && st.confirmed) card.classList.add('confirmed');
+    if (st && st.cancelled) card.classList.add('cancelled');
+    if (st && st.drafted) card.classList.add('drafted');
+
+    const title = document.createElement('div');
+    title.className = 'ai-chat-write-card-title';
+    title.innerHTML = '<span class="ai-chat-write-card-icon" aria-hidden="true"></span><span class="ai-chat-write-card-titletext"></span>';
+    title.querySelector('.ai-chat-write-card-icon').textContent = meta.icon;
+    title.querySelector('.ai-chat-write-card-titletext').textContent = '🤖 ' + meta.title;
+    card.appendChild(title);
+
+    if (kind === 'update' && (action.target_id || (proposal && proposal.target_id))) {
+      const tid = action.target_id || proposal.target_id;
+      const meta2 = document.createElement('div');
+      meta2.className = 'ai-chat-write-card-meta';
+      meta2.style.cssText = 'font-size:12px;color:#6b7280;margin-bottom:6px;';
+      meta2.textContent = 'Target ID : ' + String(tid);
+      card.appendChild(meta2);
+    }
+
+    if (kind === 'delete') {
+      const warn = document.createElement('div');
+      warn.className = 'ai-chat-write-card-warn';
+      warn.style.cssText = 'background:#fef2f2;border-left:3px solid #dc2626;color:#991b1b;padding:8px 10px;margin:6px 0;font-size:13px;font-weight:600;';
+      warn.textContent = '⚠️ Suppression definitive — appuie longuement (1.5s) sur le bouton rouge pour confirmer.';
+      card.appendChild(warn);
+    }
+
+    const rows = buildWriteCardRows(action, proposal);
+    if (rows.length) {
+      const table = document.createElement('table');
+      table.className = 'ai-chat-write-card-table';
+      const tbody = document.createElement('tbody');
+      rows.forEach((r) => {
+        const tr = document.createElement('tr');
+        const th = document.createElement('th');
+        th.textContent = r.label;
+        const td = document.createElement('td');
+        td.textContent = r.value;
+        tr.appendChild(th);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      card.appendChild(table);
+    }
+
+    if (st && (st.confirmed || st.cancelled || st.drafted)) {
+      const status = document.createElement('div');
+      let cls = 'ai-chat-write-card-status';
+      if (st.confirmed) cls += ' success';
+      else if (st.cancelled) cls += ' error';
+      else if (st.drafted) cls += ' info';
+      status.className = cls;
+      if (st.confirmed) {
+        const id = (st.result && (st.result.created_id || st.result.updated_id || st.result.deleted_id || st.result.alerte_id)) || '';
+        const num = st.result && st.result.num_liv ? ' (' + st.result.num_liv + ')' : '';
+        status.textContent = '✓ Confirmee et executee' + num + (id ? ' · id: ' + String(id).slice(0, 8) : '');
+      } else if (st.drafted) {
+        const did = st.result && st.result.draft_id ? String(st.result.draft_id).slice(0, 8) : '';
+        status.textContent = '📋 Mise en brouillon IA' + (did ? ' · id: ' + did : '');
+      } else {
+        status.textContent = '✗ Annulee';
+      }
+      card.appendChild(status);
+      return card;
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'ai-chat-write-card-actions';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-secondary';
+    cancelBtn.textContent = '✕ Annuler';
+    cancelBtn.style.minHeight = '44px';
+
+    const draftBtn = document.createElement('button');
+    draftBtn.type = 'button';
+    draftBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-draft';
+    draftBtn.textContent = '📋 Brouillon';
+    draftBtn.style.cssText = 'min-height:44px;background:#e5e7eb;color:#374151;';
+    draftBtn.title = 'Garder en brouillon — a revoir plus tard dans la page Brouillons IA';
+
+    const confirmBtn = document.createElement('button');
+    confirmBtn.type = 'button';
+    confirmBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-primary';
+    confirmBtn.style.minHeight = '44px';
+    if (kind === 'delete') {
+      confirmBtn.classList.add('ai-chat-write-card-btn-danger');
+      confirmBtn.textContent = '🗑️ Supprimer (long-press)';
+      confirmBtn.style.cssText += 'min-height:44px;background:#dc2626;color:white;';
+    } else if (kind === 'update') {
+      confirmBtn.textContent = '✓ Confirmer modification';
+    } else {
+      confirmBtn.textContent = '✓ Confirmer & creer';
+    }
+
+    cancelBtn.addEventListener('click', () => cancelWriteAction(msgIdx, actionIdx));
+    draftBtn.addEventListener('click', () => draftWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, draftBtn, card));
+
+    if (kind === 'delete') {
+      let pressTimer = null;
+      let pressing = false;
+      const startPress = (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (confirmBtn.disabled) return;
+        pressing = true;
+        confirmBtn.textContent = '🗑️ Maintien...';
+        pressTimer = setTimeout(() => {
+          if (pressing) {
+            confirmBtn.textContent = '⏳ Suppression...';
+            confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card);
+          }
+        }, 1500);
+      };
+      const endPress = () => {
+        pressing = false;
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        if (!confirmBtn.disabled) confirmBtn.textContent = '🗑️ Supprimer (long-press)';
+      };
+      confirmBtn.addEventListener('mousedown', startPress);
+      confirmBtn.addEventListener('touchstart', startPress, { passive: false });
+      confirmBtn.addEventListener('mouseup', endPress);
+      confirmBtn.addEventListener('mouseleave', endPress);
+      confirmBtn.addEventListener('touchend', endPress);
+      confirmBtn.addEventListener('touchcancel', endPress);
+    } else {
+      confirmBtn.addEventListener('click', () => {
+        confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card);
+      });
+    }
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(draftBtn);
+    actions.appendChild(confirmBtn);
+    card.appendChild(actions);
+    return card;
+  }
+
+  async function draftWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, draftBtn, _card) {
+    const msg = state.history[msgIdx];
+    if (!msg || !Array.isArray(msg._write_actions)) return;
+    const action = msg._write_actions[actionIdx];
+    if (!action) return;
+    confirmBtn.disabled = true; cancelBtn.disabled = true; draftBtn.disabled = true;
+    draftBtn.textContent = '⏳...';
+    try {
+      const draftAction = {
+        action: 'add_to_drafts',
+        action_type: action.action,
+        payload: action,
+        reasoning: 'Mise en brouillon depuis le chat IA',
+      };
+      const result = await callWriteExecute(draftAction);
+      if (!result || !result.success) {
+        confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
+        draftBtn.textContent = '📋 Brouillon';
+        showToast('Erreur brouillon : ' + (result?.error || 'inconnu'), 'error');
+        return;
+      }
+      if (!Array.isArray(msg._write_states)) {
+        msg._write_states = msg._write_actions.map(() => null);
+      }
+      msg._write_states[actionIdx] = { drafted: true, result };
+      saveHistory();
+      showToast('📋 Action mise en brouillon', 'info');
+      renderMessages();
+    } catch (e) {
+      confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
+      draftBtn.textContent = '📋 Brouillon';
+      showToast('Erreur : ' + (e.message || e), 'error');
+    }
+  }
+
+  // Confirme et execute la write_action via l'edge function ai-chat-write-execute.
+  // Met a jour _write_states[i] en localStorage + ajoute un message bot de feedback.
+  async function confirmWriteAction(msgIdx, actionIdx, confirmBtn, cancelBtn, card) {
+    const msg = state.history[msgIdx];
+    if (!msg || !Array.isArray(msg._write_actions)) return;
+    const action = msg._write_actions[actionIdx];
+    if (!action) return;
+
+    confirmBtn.disabled = true;
+    cancelBtn.disabled = true;
+    confirmBtn.textContent = '⏳ Creation...';
+
+    try {
+      const result = await callWriteExecute(action);
+      if (!result || !result.success) {
+        confirmBtn.disabled = false;
+        cancelBtn.disabled = false;
+        confirmBtn.textContent = '✅ Confirmer & creer';
+        showToast('Erreur : ' + (result?.error || 'inconnu'), 'error');
+        return;
+      }
+      // Marque comme confirmee dans le state, persiste en localStorage.
+      if (!Array.isArray(msg._write_states)) {
+        msg._write_states = msg._write_actions.map(() => null);
+      }
+      msg._write_states[actionIdx] = { confirmed: true, result };
+      saveHistory();
+
+      // Toast + message bot recap.
+      const nice = niceCreatedLabel(action.action, result);
+      showToast('✅ ' + nice, 'success');
+      state.history.push({
+        role: 'model',
+        parts: [{ text: '✓ ' + nice + ' avec succes.' + (result.created_id ? ' ID: `' + result.created_id + '`' : '') }],
+        _tools: [],
+        _memory_ops: [],
+        _write_actions: [],
+        _proposals: [],
+        _write_states: [],
+      });
+      saveHistory();
+      renderMessages();
+    } catch (e) {
+      confirmBtn.disabled = false;
+      cancelBtn.disabled = false;
+      confirmBtn.textContent = '✅ Confirmer & creer';
+      showToast('Erreur : ' + (e.message || e), 'error');
+    }
+  }
+
+  // Annule une write_action : marque cancelled dans le state, ajoute un message bot.
+  function cancelWriteAction(msgIdx, actionIdx) {
+    const msg = state.history[msgIdx];
+    if (!msg || !Array.isArray(msg._write_actions)) return;
+    if (!Array.isArray(msg._write_states)) {
+      msg._write_states = msg._write_actions.map(() => null);
+    }
+    msg._write_states[actionIdx] = { cancelled: true };
+    saveHistory();
+    state.history.push({
+      role: 'model',
+      parts: [{ text: 'Action annulee.' }],
+      _tools: [],
+      _memory_ops: [],
+      _write_actions: [],
+      _proposals: [],
+      _write_states: [],
+    });
+    saveHistory();
+    renderMessages();
+  }
+
+  function niceCreatedLabel(action, result) {
+    switch (action) {
+      case 'create_livraison': return 'Livraison ' + (result.num_liv || '') + ' creee';
+      case 'create_charge': return 'Charge creee';
+      case 'create_paiement': return 'Paiement enregistre';
+      case 'resolve_alerte': return 'Alerte marquee resolue';
+      case 'create_client': return 'Client cree';
+      case 'create_fournisseur': return 'Fournisseur cree';
+      case 'create_vehicule': return 'Vehicule cree';
+      case 'create_salarie': return 'Salarie cree';
+      case 'create_carburant': return 'Plein enregistre';
+      case 'create_entretien': return 'Entretien cree';
+      case 'create_incident': return 'Incident cree';
+      case 'create_planning_creneau': return 'Creneau planning cree';
+      case 'create_inspection': return 'Inspection creee';
+      case 'delete_entity': return 'Entite supprimee';
+      case 'add_to_drafts': return 'Ajoutee aux brouillons';
+      case 'execute_draft': return 'Brouillon execute';
+      case 'reject_draft': return 'Brouillon rejete';
+      default:
+        if (action && action.startsWith('update_')) return 'Modification enregistree (' + action.slice(7) + ')';
+        return 'Action confirmee';
+    }
+  }
+
+  // Toast minimaliste (pas de dependance globale, fallback sur console).
+  // Reutilise window.showToast / window.MToast si dispo (parite PC + mobile).
+  function showToast(text, kind) {
+    try {
+      if (window.MToast && typeof window.MToast.show === 'function') {
+        window.MToast.show(text, { type: kind || 'info' });
+        return;
+      }
+      if (typeof window.showToast === 'function') {
+        window.showToast(text, kind || 'info');
+        return;
+      }
+    } catch (_) {}
+    // Fallback : toast inline temporaire dans le panel chat.
+    try {
+      const c = document.getElementById('ai-chat-messages');
+      if (!c) return;
+      const div = document.createElement('div');
+      div.className = 'ai-chat-msg-error';
+      div.style.background = kind === 'error' ? 'var(--aic-danger-soft)' : 'var(--aic-blue-tint)';
+      div.style.color = kind === 'error' ? 'var(--aic-danger)' : 'var(--aic-blue)';
+      div.textContent = text;
+      c.appendChild(div);
+      setTimeout(() => { div.remove(); }, 4000);
+      scrollToBottom();
+    } catch (_) {}
+  }
+
+  // POST /functions/v1/ai-chat-write-execute avec auth admin. Retourne { success, ... }.
+  async function callWriteExecute(action) {
+    const client = window.DelivProSupabase && window.DelivProSupabase.getClient
+      ? window.DelivProSupabase.getClient()
+      : null;
+    if (!client) throw new Error('Supabase pas pret');
+    const { data: sessionData } = await client.auth.getSession();
+    const sess = sessionData && sessionData.session;
+    const token = sess ? sess.access_token : null;
+    if (!token) throw new Error('Session expiree, reconnecte-toi.');
+    const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
+      ? window.DelivProSupabase.getConfig()
+      : null;
+    const baseUrl = config && config.url ? config.url : '';
+    if (!baseUrl) throw new Error('Supabase URL manquante');
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 30000);
+    let r;
+    try {
+      r = await fetch(baseUrl + '/functions/v1/ai-chat-write-execute', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(action),
+        signal: ctrl.signal,
+      });
+    } finally { clearTimeout(t); }
+    const body = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const e = new Error(body.error || ('HTTP ' + r.status));
+      throw e;
+    }
+    return body;
+  }
+
   // ----- Send -----
 
   async function onSubmit(e) {
@@ -1309,11 +1560,17 @@
       while (true) {
         try {
           const reply = await callBackend(state.history);
+          const writeActions = Array.isArray(reply.write_actions) ? reply.write_actions : [];
+          const proposals = Array.isArray(reply.proposals) ? reply.proposals : [];
           state.history.push({
             role: 'model',
             parts: [{ text: reply.text }],
             _tools: reply.tools_called,
             _memory_ops: Array.isArray(reply.memory_ops) ? reply.memory_ops : [],
+            _write_actions: writeActions,
+            _proposals: proposals,
+            // _write_states[i] : null (en attente) | { confirmed:true, result } | { cancelled:true }
+            _write_states: writeActions.map(() => null),
           });
           state.proRemaining = reply.pro_remaining;
           state.modelLast = reply.model_used;
@@ -1476,543 +1733,6 @@
       throw new Error(friendly);
     }
     return body;
-  }
-
-  // ----- OCR (📎 scanner facture / ticket / RIB) -----
-
-  // State local de la session OCR : mode courant + dernier resultat. Le state
-  // n'est pas persiste : un upload OCR est ephemere et concerne un workflow court
-  // (scan -> verifie -> pre-remplit form -> ferme).
-  const ocrState = {
-    mode: null,
-    busy: false,
-    lastResult: null,
-  };
-
-  function openOcrSheet() {
-    if (ocrState.busy) return;
-    const sheet = document.getElementById('ai-chat-ocr-sheet');
-    if (!sheet) return;
-    sheet.hidden = false;
-    sheet.setAttribute('aria-hidden', 'false');
-    renderOcrModeSelection();
-  }
-
-  function closeOcrSheet() {
-    if (ocrState.busy) return; // ne pas fermer pendant l'analyse pour ne pas perdre le resultat
-    const sheet = document.getElementById('ai-chat-ocr-sheet');
-    if (!sheet) return;
-    sheet.hidden = true;
-    sheet.setAttribute('aria-hidden', 'true');
-    ocrState.mode = null;
-    ocrState.lastResult = null;
-    // Reset l'input file (sinon re-selectionner la meme image n'emet pas l'event change)
-    const fileInput = document.getElementById('ai-chat-ocr-file');
-    if (fileInput) fileInput.value = '';
-  }
-
-  function renderOcrModeSelection() {
-    const body = document.getElementById('ai-chat-ocr-body');
-    if (!body) return;
-    body.innerHTML = '';
-    const intro = document.createElement('p');
-    intro.style.margin = '0 0 6px';
-    intro.style.fontSize = '.82rem';
-    intro.style.color = 'var(--aic-text-muted)';
-    intro.textContent = 'Choisis le type de document a scanner :';
-    body.appendChild(intro);
-
-    OCR_MODES.forEach((mode) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ai-chat-ocr-mode';
-      btn.innerHTML = `
-        <span class="ai-chat-ocr-mode-icon" aria-hidden="true"></span>
-        <span class="ai-chat-ocr-mode-text">
-          <div class="ai-chat-ocr-mode-label"></div>
-          <div class="ai-chat-ocr-mode-desc"></div>
-        </span>
-      `;
-      btn.querySelector('.ai-chat-ocr-mode-icon').textContent = mode.icon;
-      btn.querySelector('.ai-chat-ocr-mode-label').textContent = mode.label;
-      btn.querySelector('.ai-chat-ocr-mode-desc').textContent = mode.desc;
-      btn.addEventListener('click', () => {
-        ocrState.mode = mode.key;
-        // Declenche le picker fichier (mobile : sortie appareil photo grace a capture=environment)
-        const fileInput = document.getElementById('ai-chat-ocr-file');
-        if (fileInput) fileInput.click();
-      });
-      body.appendChild(btn);
-    });
-
-    const hint = document.createElement('p');
-    hint.className = 'ai-chat-ocr-hint';
-    hint.textContent = 'Photo nette + horizontale = meilleur resultat. Compression auto avant envoi.';
-    body.appendChild(hint);
-  }
-
-  function renderOcrStatus(text) {
-    const body = document.getElementById('ai-chat-ocr-body');
-    if (!body) return;
-    body.innerHTML = `<div class="ai-chat-ocr-status"><span class="ai-chat-ocr-spinner" aria-hidden="true"></span>${escapeHtml(text)}</div>`;
-  }
-
-  function renderOcrError(msg, hint) {
-    const body = document.getElementById('ai-chat-ocr-body');
-    if (!body) return;
-    body.innerHTML = '';
-    const err = document.createElement('div');
-    err.className = 'ai-chat-ocr-error';
-    err.textContent = (hint ? msg + '\n\n' + hint : msg);
-    body.appendChild(err);
-    const actions = document.createElement('div');
-    actions.className = 'ai-chat-ocr-actions';
-    const retryBtn = document.createElement('button');
-    retryBtn.className = 'ai-chat-ocr-btn-secondary';
-    retryBtn.type = 'button';
-    retryBtn.textContent = '⬅ Choisir un autre mode';
-    retryBtn.addEventListener('click', renderOcrModeSelection);
-    actions.appendChild(retryBtn);
-    body.appendChild(actions);
-  }
-
-  // Compresse l'image via DelivProStorage si dispo, sinon la retourne brute.
-  // Limite : edge fn ai-ocr cap a 10 MB image / 20 MB PDF. Compression image-only ;
-  // les PDF passent tels quels (re-encodage casserait la structure).
-  async function compressOcrFile(file) {
-    if (!file || !file.type) return file;
-    if (file.type === 'application/pdf') return file;
-    if (!window.DelivProStorage || typeof window.DelivProStorage.compressImage !== 'function') {
-      return file;
-    }
-    try {
-      return await window.DelivProStorage.compressImage(file, {
-        maxDim: 1600,
-        quality: 0.82,
-        skipUnderBytes: 1024 * 1024, // ne compresse pas en-dessous de 1 MB
-        mime: 'image/jpeg',
-      });
-    } catch (_) { return file; }
-  }
-
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = String(reader.result || '');
-        // result = "data:image/jpeg;base64,..." -> on ne garde que la partie base64
-        const commaIdx = result.indexOf(',');
-        if (commaIdx < 0) return reject(new Error('Lecture fichier echouee'));
-        resolve(result.slice(commaIdx + 1));
-      };
-      reader.onerror = () => reject(new Error('Lecture fichier echouee'));
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function onOcrFileSelected(e) {
-    const file = e.target && e.target.files && e.target.files[0];
-    if (!file || !ocrState.mode) return;
-    const ftype = file.type || '';
-    const isImage = /^image\//.test(ftype);
-    const isPdf = ftype === 'application/pdf';
-    if (!isImage && !isPdf) {
-      renderOcrError('Format non supporte.', 'Selectionne une photo (JPG, PNG, HEIC) ou un PDF.');
-      return;
-    }
-
-    ocrState.busy = true;
-    try {
-      renderOcrStatus(isPdf ? 'Lecture PDF...' : 'Compression image...');
-      const compressed = await compressOcrFile(file);
-      renderOcrStatus('Encodage...');
-      const base64 = await fileToBase64(compressed);
-      const mime = compressed.type || file.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-      renderOcrStatus('🔍 Analyse en cours...');
-      const result = await callOcr({ image_base64: base64, mime, mode: ocrState.mode });
-      ocrState.lastResult = result;
-      renderOcrResult(result);
-    } catch (err) {
-      const errMsg = err && err.message ? err.message : String(err);
-      const hint = err && err.hint ? err.hint : '';
-      renderOcrError('Echec OCR : ' + errMsg, hint);
-    } finally {
-      ocrState.busy = false;
-      // Reset l'input pour permettre la re-selection du meme fichier
-      e.target.value = '';
-    }
-  }
-
-  async function callOcr(payload) {
-    const client = window.DelivProSupabase && window.DelivProSupabase.getClient
-      ? window.DelivProSupabase.getClient()
-      : null;
-    if (!client) throw new Error('Supabase pas pret');
-    let token = null;
-    try {
-      const { data: sessionData } = await client.auth.getSession();
-      const sess = sessionData && sessionData.session;
-      const expAt = sess && sess.expires_at ? sess.expires_at * 1000 : 0;
-      if (sess && expAt && expAt - Date.now() < 60000) {
-        try {
-          const { data: refreshed } = await client.auth.refreshSession();
-          token = refreshed && refreshed.session ? refreshed.session.access_token : sess.access_token;
-        } catch (_) { token = sess.access_token; }
-      } else {
-        token = sess ? sess.access_token : null;
-      }
-    } catch (_) {}
-    if (!token) throw new Error('Session expiree, reconnecte-toi.');
-
-    const config = window.DelivProSupabase && window.DelivProSupabase.getConfig
-      ? window.DelivProSupabase.getConfig()
-      : null;
-    const baseUrl = config && config.url ? config.url : '';
-    if (!baseUrl) throw new Error('Supabase URL manquante');
-
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), OCR_TIMEOUT_MS);
-    let r;
-    try {
-      r = await fetch(baseUrl + OCR_ENDPOINT, {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        signal: ctrl.signal,
-      });
-    } catch (e) {
-      if (e && e.name === 'AbortError') {
-        throw new Error('Delai depasse (' + Math.round(OCR_TIMEOUT_MS / 1000) + 's). Reessaye avec une image plus petite ou plus nette.');
-      }
-      throw new Error('Reseau indisponible. Verifie ta connexion.');
-    } finally { clearTimeout(t); }
-
-    const body = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const friendly = body.hint || body.error || body.message || 'HTTP ' + r.status;
-      const e = new Error(friendly);
-      if (body.hint) e.hint = body.hint;
-      throw e;
-    }
-    if (body && body.success === false) {
-      const friendly = body.hint || body.error || 'Echec extraction';
-      const e = new Error(friendly);
-      if (body.hint) e.hint = body.hint;
-      throw e;
-    }
-    return body;
-  }
-
-  // Affichage du resultat OCR : carte avec champs extraits + boutons d'action.
-  // Le payload {success, data, raw_response, model_used} (cf. edge fn ai-ocr).
-  function renderOcrResult(result) {
-    const body = document.getElementById('ai-chat-ocr-body');
-    if (!body) return;
-    body.innerHTML = '';
-    const data = (result && result.data) || {};
-    const mode = ocrState.mode;
-    const fields = ocrFieldsFor(mode, data);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'ai-chat-ocr-result';
-
-    const header = document.createElement('div');
-    header.style.fontSize = '.85rem';
-    header.style.color = 'var(--aic-text)';
-    header.innerHTML = '✅ <strong>Donnees extraites</strong> <span style="color:var(--aic-text-muted);font-size:.75rem">— relis avant de pre-remplir</span>';
-    wrap.appendChild(header);
-
-    const fieldsBox = document.createElement('div');
-    fieldsBox.className = 'ai-chat-ocr-fields';
-    fields.forEach((f) => {
-      const row = document.createElement('div');
-      row.className = 'ai-chat-ocr-field';
-      const k = document.createElement('span');
-      k.className = 'ai-chat-ocr-field-key';
-      k.textContent = f.label;
-      const v = document.createElement('span');
-      v.className = 'ai-chat-ocr-field-val' + (f.value == null || f.value === '' ? ' is-null' : '');
-      v.textContent = (f.value == null || f.value === '') ? '—' : String(f.value);
-      row.appendChild(k);
-      row.appendChild(v);
-      fieldsBox.appendChild(row);
-    });
-
-    // Cas facture : afficher les lignes en plus
-    if (mode === 'facture' && Array.isArray(data.lignes) && data.lignes.length) {
-      const linesWrap = document.createElement('div');
-      linesWrap.style.borderTop = '1px solid var(--aic-border)';
-      linesWrap.style.marginTop = '6px';
-      linesWrap.style.paddingTop = '6px';
-      const ttl = document.createElement('div');
-      ttl.style.fontSize = '.76rem';
-      ttl.style.color = 'var(--aic-text-muted)';
-      ttl.style.textTransform = 'uppercase';
-      ttl.style.letterSpacing = '.03em';
-      ttl.textContent = 'Lignes detectees';
-      linesWrap.appendChild(ttl);
-      const ul = document.createElement('ul');
-      ul.className = 'ai-chat-ocr-lines';
-      data.lignes.slice(0, 6).forEach((l) => {
-        const li = document.createElement('li');
-        const desc = l && l.description ? String(l.description) : '?';
-        const qte = l && (l.quantite != null) ? String(l.quantite) : '';
-        const pu = l && (l.prix_unitaire != null) ? String(l.prix_unitaire) + ' €' : '';
-        const parts = [desc];
-        if (qte) parts.push('x' + qte);
-        if (pu) parts.push(pu);
-        li.textContent = parts.join(' · ');
-        ul.appendChild(li);
-      });
-      linesWrap.appendChild(ul);
-      fieldsBox.appendChild(linesWrap);
-    }
-
-    wrap.appendChild(fieldsBox);
-
-    const actions = document.createElement('div');
-    actions.className = 'ai-chat-ocr-actions';
-
-    const fillBtn = document.createElement('button');
-    fillBtn.type = 'button';
-    fillBtn.className = 'ai-chat-ocr-btn-primary';
-    fillBtn.textContent = '✅ Pre-remplir le formulaire';
-    fillBtn.addEventListener('click', () => prefillForm(mode, data));
-    actions.appendChild(fillBtn);
-
-    const cancelBtn = document.createElement('button');
-    cancelBtn.type = 'button';
-    cancelBtn.className = 'ai-chat-ocr-btn-secondary';
-    cancelBtn.textContent = '❌ Annuler';
-    cancelBtn.addEventListener('click', closeOcrSheet);
-    actions.appendChild(cancelBtn);
-
-    wrap.appendChild(actions);
-    body.appendChild(wrap);
-  }
-
-  // Mapping mode -> liste de {label, value} pour l'affichage carte.
-  function ocrFieldsFor(mode, data) {
-    if (mode === 'facture') {
-      return [
-        { label: 'Fournisseur', value: data.fournisseur_nom },
-        { label: 'Date facture', value: data.date_facture },
-        { label: 'N° facture',   value: data.num_facture },
-        { label: 'Montant HT',   value: data.montant_ht != null ? data.montant_ht + ' €' : null },
-        { label: 'Montant TTC',  value: data.montant_ttc != null ? data.montant_ttc + ' €' : null },
-        { label: 'Taux TVA',     value: data.taux_tva != null ? data.taux_tva + ' %' : null },
-      ];
-    }
-    if (mode === 'ticket_carburant') {
-      return [
-        { label: 'Station',      value: data.station },
-        { label: 'Date',         value: data.date },
-        { label: 'Litres',       value: data.litres != null ? data.litres + ' L' : null },
-        { label: 'Prix / L',     value: data.prix_litre != null ? data.prix_litre + ' €' : null },
-        { label: 'Montant TTC',  value: data.montant_ttc != null ? data.montant_ttc + ' €' : null },
-        { label: 'Carburant',    value: data.type_carburant },
-      ];
-    }
-    if (mode === 'rib') {
-      return [
-        { label: 'Titulaire', value: data.titulaire },
-        { label: 'Banque',    value: data.banque },
-        { label: 'IBAN',      value: data.iban },
-        { label: 'BIC',       value: data.bic },
-      ];
-    }
-    return [];
-  }
-
-  // Pre-remplit le formulaire correspondant. Detecte la plateforme :
-  //  - Mobile (m.html, MCAm.openSheet present) : appelle MCAm.formNouvelleCharge / formNouveauPlein / formNouveauFournisseur avec un objet pre-rempli.
-  //  - PC (admin.html) : ouvre la modal correspondante via openModal() et set
-  //    les inputs par id (#charge-*, #carb-*, #frn-*).
-  // Si aucune fonction d'ouverture form n'est dispo (cas degrade), affiche les
-  // donnees en clipboard avec un toast informatif.
-  function prefillForm(mode, data) {
-    const isMobile = !!(window.MCAm && typeof window.MCAm.openSheet === 'function');
-    try {
-      if (mode === 'facture') {
-        const prefill = buildChargePrefill(data);
-        if (isMobile && typeof window.MCAm.formNouvelleCharge === 'function') {
-          closeOcrSheet();
-          if (state.open) toggle(); // ferme le panel chat pour laisser place au sheet form
-          window.MCAm.formNouvelleCharge(prefill);
-          return;
-        }
-        if (typeof window.ouvrirModalCharge === 'function') {
-          closeOcrSheet();
-          if (state.open) toggle();
-          window.ouvrirModalCharge();
-          // Defer : laisse le temps a la modal de monter avant de fixer les inputs
-          setTimeout(() => fillChargePCInputs(prefill), 80);
-          return;
-        }
-        return fallbackClipboard(mode, data);
-      }
-      if (mode === 'ticket_carburant') {
-        const prefill = buildCarburantPrefill(data);
-        if (isMobile && typeof window.MCAm.formNouveauPlein === 'function') {
-          closeOcrSheet();
-          if (state.open) toggle();
-          window.MCAm.formNouveauPlein(prefill);
-          return;
-        }
-        // PC : on ouvre la modal carburant via openModal(id) (helper global)
-        if (typeof window.openModal === 'function' && document.getElementById('modal-carburant')) {
-          closeOcrSheet();
-          if (state.open) toggle();
-          window.openModal('modal-carburant');
-          setTimeout(() => fillCarburantPCInputs(prefill), 80);
-          return;
-        }
-        return fallbackClipboard(mode, data);
-      }
-      if (mode === 'rib') {
-        const prefill = buildFournisseurPrefill(data);
-        if (isMobile && typeof window.MCAm.formNouveauFournisseur === 'function') {
-          closeOcrSheet();
-          if (state.open) toggle();
-          window.MCAm.formNouveauFournisseur(prefill);
-          return;
-        }
-        if (typeof window.openModal === 'function' && document.getElementById('modal-fournisseur')) {
-          closeOcrSheet();
-          if (state.open) toggle();
-          if (typeof window.resetFormulaireFournisseur === 'function') window.resetFormulaireFournisseur();
-          window.openModal('modal-fournisseur');
-          setTimeout(() => fillFournisseurPCInputs(prefill), 80);
-          return;
-        }
-        return fallbackClipboard(mode, data);
-      }
-    } catch (err) {
-      console.warn('[ai-chat OCR] prefillForm error', err);
-      fallbackClipboard(mode, data);
-    }
-  }
-
-  function buildChargePrefill(data) {
-    return {
-      fournisseur: data.fournisseur_nom || '',
-      libelle: data.num_facture ? ('Facture ' + data.num_facture) : '',
-      date: data.date_facture || '',
-      // Compat double clef : mobile attend montantHT / montantTtc, l'edge fn renvoie montant_ht / montant_ttc.
-      montantHT: data.montant_ht != null ? Number(data.montant_ht) : '',
-      montantHt: data.montant_ht != null ? Number(data.montant_ht) : '',
-      montantTtc: data.montant_ttc != null ? Number(data.montant_ttc) : '',
-      tauxTva: data.taux_tva != null ? Number(data.taux_tva) : 20,
-    };
-  }
-
-  function buildCarburantPrefill(data) {
-    return {
-      date: data.date || '',
-      litres: data.litres != null ? Number(data.litres) : '',
-      prixLitre: data.prix_litre != null ? Number(data.prix_litre) : '',
-      total: data.montant_ttc != null ? Number(data.montant_ttc) : '',
-      typeCarburant: normalizeCarburantType(data.type_carburant),
-    };
-  }
-
-  function buildFournisseurPrefill(data) {
-    return {
-      nom: data.titulaire || data.banque || '',
-      iban: data.iban || '',
-      bic: data.bic || '',
-      banque: data.banque || '',
-      titulaire: data.titulaire || '',
-    };
-  }
-
-  // Le ticket peut renvoyer "gazole", "diesel", "sp95", "sp98", etc. On normalise
-  // sur les valeurs supportees par le form mobile/admin (diesel, essence, etc.).
-  function normalizeCarburantType(raw) {
-    if (!raw) return '';
-    const s = String(raw).toLowerCase();
-    if (s.includes('diesel') || s.includes('gazole') || s.includes('gnr') || s.includes('gasoil')) return 'diesel';
-    if (s.includes('sp') || s.includes('essence') || s.includes('e10') || s.includes('e85')) return 'essence';
-    if (s.includes('gnv') || s.includes('biognv') || s.includes('cng')) return 'gnv';
-    if (s.includes('elec')) return 'electrique';
-    if (s.includes('hybride')) return 'hybride';
-    if (s.includes('hydrog')) return 'hydrogene';
-    return '';
-  }
-
-  // ---- Helpers PC : injection valeurs dans les modales par id ----
-  function setVal(id, value) {
-    const el = document.getElementById(id);
-    if (!el) return false;
-    if (value == null || value === '') return false;
-    el.value = value;
-    // Trigger input pour declencher les calculs auto (HT->TTC, etc.)
-    try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) {}
-    try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
-    return true;
-  }
-
-  function fillChargePCInputs(p) {
-    setVal('charge-fournisseur', p.fournisseur);
-    setVal('charge-desc', p.libelle);
-    setVal('charge-date', p.date);
-    setVal('charge-taux-tva', p.tauxTva);
-    // HT en premier : declenche calculerTTCDepuisHT (si dispo)
-    setVal('charge-montant-ht', p.montantHT);
-    // Si on a aussi le TTC, on l'ecrase pour securiser : Gemini renvoie souvent
-    // les deux et le calcul auto peut etre imprecis (TVA mixte 5.5/10/20).
-    setVal('charge-montant', p.montantTtc);
-  }
-
-  function fillCarburantPCInputs(p) {
-    setVal('carb-date', p.date);
-    setVal('carb-litres', p.litres);
-    setVal('carb-prix-litre', p.prixLitre);
-    if (p.typeCarburant) setVal('carb-type', p.typeCarburant);
-  }
-
-  function fillFournisseurPCInputs(p) {
-    setVal('frn-nom', p.nom);
-    setVal('frn-iban', p.iban);
-  }
-
-  // Fallback : copie un resume texte dans le presse-papier + toast informatif.
-  // Utilise quand on ne trouve pas la fonction d'ouverture form (ex: page sans
-  // modal-charge montee, ou cas hybride).
-  function fallbackClipboard(mode, data) {
-    const lines = [];
-    Object.keys(data || {}).forEach((k) => {
-      const v = data[k];
-      if (v == null || v === '' || (Array.isArray(v) && !v.length)) return;
-      if (Array.isArray(v)) {
-        lines.push(k + ': ' + v.length + ' lignes');
-      } else if (typeof v === 'object') {
-        lines.push(k + ': ' + JSON.stringify(v));
-      } else {
-        lines.push(k + ': ' + String(v));
-      }
-    });
-    const txt = '[' + mode + ']\n' + lines.join('\n');
-    const done = (t) => {
-      try {
-        if (window.MCAm && typeof window.MCAm.toast === 'function') {
-          window.MCAm.toast('📋 Donnees copiees dans le presse-papier');
-        } else {
-          alert('Donnees copiees dans le presse-papier:\n\n' + t);
-        }
-      } catch (_) { alert('Donnees:\n\n' + t); }
-      closeOcrSheet();
-    };
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(() => done(txt), () => done(txt));
-      } else {
-        done(txt);
-      }
-    } catch (_) { done(txt); }
   }
 
   // ----- Boot -----
