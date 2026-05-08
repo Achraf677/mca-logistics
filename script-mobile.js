@@ -4232,21 +4232,30 @@
   M.register('planning', {
     title: 'Planning',
     render() {
+      // Deep-link : applique le hash AVANT le render (sinon on rend l'ancienne semaine).
+      // Idempotent : si rien à appliquer, ne touche pas à M.state.
+      if (typeof M.applyPlanningHashState === 'function') M.applyPlanningHashState();
       const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
       const plannings = M.charger('plannings');
       const vue = M.state.planningVue || 'jour';
 
-      // Header : toggle vue + bouton periodes absences (compact pour eviter overflow)
+      // Header : toggle vue (jour / semaine / salarié) + bouton periodes absences
+      // (compact pour eviter overflow). Sprint parity-mobile-planning : ajout vue
+      // "Par salarié" (grille 1 ligne par salarié × 7 jours) pour parite PC.
       let html = `
         <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
-          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">📅 Jour</button>
-          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.82rem;padding:0 8px">🗓️ Sem.</button>
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">📅 Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">🗓️ Sem.</button>
+          <button class="m-alertes-chip ${vue==='salarie'?'active':''}" data-vue="salarie" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">👥 Par sal.</button>
           <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 44px;padding:0;height:40px;font-size:1.1rem;line-height:1" title="Ajouter une période d'absence longue">🏖️</button>
         </div>
       `;
 
       if (vue === 'semaine') {
         return html + M.renderPlanningSemaine(salaries, plannings);
+      }
+      if (vue === 'salarie') {
+        return html + M.renderPlanningParSalarie(salaries, plannings);
       }
 
       // Vue Jour (existante)
@@ -4341,21 +4350,39 @@
       return html;
     },
     afterRender(container) {
+      // Note : M.applyPlanningHashState est désormais appelé en début de render()
+      // pour que la date du hash soit prise en compte AU rendu (et non après).
+
+      // Synchronise le hash courant avec l'état (au cas où l'utilisateur a navigué
+      // sans hash explicite — on veut un permalink stable).
+      if (typeof M.updatePlanningHash === 'function') M.updatePlanningHash();
+
       container.querySelectorAll('button[data-vue]').forEach(btn => {
-        btn.addEventListener('click', () => { M.state.planningVue = btn.dataset.vue; M.go('planning'); });
+        btn.addEventListener('click', () => {
+          M.state.planningVue = btn.dataset.vue;
+          // Synchronise la vue dans le hash pour le partage de lien
+          M.updatePlanningHash();
+          M.go('planning');
+        });
       });
       container.querySelector('#m-planning-abs-add')?.addEventListener('click', () => M.formAbsenceLongue());
-      // Nav semaine (vue semaine uniquement)
+      // FAB "Bloquer la semaine" (vue semaine + vue salarie)
+      container.querySelector('#m-planning-fab-bloquer')?.addEventListener('click', () => M.formBloquerSemaine());
+      // Nav semaine (vue semaine uniquement). Met à jour aussi le hash pour
+      // que le lien soit partageable / restaurable au reload (parity-mobile-planning).
       container.querySelector('#m-planning-sem-prev')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) - 1;
+        M.updatePlanningHash();
         M.go('planning');
       });
       container.querySelector('#m-planning-sem-next')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = (M.state.planningSemaineOffset || 0) + 1;
+        M.updatePlanningHash();
         M.go('planning');
       });
       container.querySelector('#m-planning-sem-today')?.addEventListener('click', () => {
         M.state.planningSemaineOffset = 0;
+        M.updatePlanningHash();
         M.go('planning');
       });
       // Menu actions semaine (sprint 4 : copies)
@@ -4394,6 +4421,57 @@
       });
     }
   });
+
+  // ============================================================
+  // Deep-link planning — parsing hash #planning?date=YYYY-MM-DD&vue=semaine
+  // ============================================================
+  M.parsePlanningHash = function() {
+    const raw = String(location.hash || '').replace(/^#/, '');
+    const qIdx = raw.indexOf('?');
+    if (qIdx === -1) return {};
+    const params = new URLSearchParams(raw.slice(qIdx + 1));
+    const out = {};
+    const date = params.get('date');
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) out.date = date;
+    const vue = params.get('vue');
+    if (vue && ['jour','semaine','salarie'].includes(vue)) out.vue = vue;
+    return out;
+  };
+
+  M.applyPlanningHashState = function() {
+    const parsed = M.parsePlanningHash();
+    if (parsed.vue) M.state.planningVue = parsed.vue;
+    if (parsed.date) {
+      // Calcul de l'offset en semaines entre la date demandée et la semaine courante
+      const target = new Date(parsed.date + 'T00:00:00');
+      if (!isNaN(target.getTime())) {
+        const targetJour = target.getDay();
+        const targetDecal = targetJour === 0 ? -6 : 1 - targetJour;
+        const targetLundi = new Date(target.getFullYear(), target.getMonth(), target.getDate() + targetDecal);
+        const today = new Date();
+        const todayJour = today.getDay();
+        const todayDecal = todayJour === 0 ? -6 : 1 - todayJour;
+        const todayLundi = new Date(today.getFullYear(), today.getMonth(), today.getDate() + todayDecal);
+        const diffMs = targetLundi - todayLundi;
+        const offset = Math.round(diffMs / (7 * 24 * 3600 * 1000));
+        M.state.planningSemaineOffset = offset;
+      }
+    }
+  };
+
+  M.updatePlanningHash = function() {
+    if (M.state.currentPage !== 'planning') return;
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dateISO = M.toLocalISODate(lundi);
+    const vue = M.state.planningVue || 'jour';
+    // Replace hash sans déclencher un re-render (history.replaceState pour éviter le hashchange).
+    const newHash = `#planning?date=${dateISO}&vue=${vue}`;
+    if (location.hash !== newHash) {
+      try { history.replaceState(null, '', newHash); }
+      catch (_) { location.hash = newHash; }
+    }
+  };
 
   // Vue semaine : grille condensee 7 colonnes x N salaries
   // Calcule le lundi de la semaine cible (offset 0 = semaine courante,
@@ -4499,7 +4577,7 @@
     // Bouton ⋯ = menu copies / actions (sprint 4).
     const isCurrent = offset === 0;
     let html = `
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box;position:sticky;top:0;z-index:5;background:var(--m-bg);padding:6px 0">
         <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
         <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''} title="${isCurrent ? '' : 'Tap pour revenir à cette semaine'}">
           ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
@@ -4508,6 +4586,10 @@
         <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
       </div>
     `;
+
+    // Indicateurs semaine (sprint parity-mobile-planning) : total heures + nb absences +
+    // alerte salariés sans planning. Aligné avec PC (planning-kpi-* du desktop).
+    html += M.renderPlanningIndicateurs(salaries, plannings, lundi);
 
     // Petit nom : initiale prénom + nom complet (fallback id), trim
     const nomCourt = (sal) => {
@@ -4608,7 +4690,234 @@
     } else {
       html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
     }
+
+    // FAB : raccourci "Bloquer la semaine pour X" (parity-mobile-planning).
+    // Pré-remplit l'absence longue avec lundi → dimanche de la semaine affichée.
+    html += `<button class="m-fab" id="m-planning-fab-bloquer" aria-label="Bloquer la semaine pour un salarié" title="Bloquer toute la semaine pour un salarié (absence)">🏖️</button>`;
     return html;
+  };
+
+  // ============================================================
+  // Indicateurs semaine — total heures (par sal + global), nb absences,
+  // salariés sans planning. Mirror des planning-kpi-* du desktop.
+  // ============================================================
+  M.computePlanningStats = function(salaries, plannings, lundiDate) {
+    const lundiISO = M.toLocalISODate(lundiDate);
+    const datesSemaine = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(lundiDate.getFullYear(), lundiDate.getMonth(), lundiDate.getDate() + i);
+      datesSemaine.push(M.toLocalISODate(d));
+    }
+    let totalHeuresGlobal = 0;
+    let nbAbsencesJours = 0;
+    let nbSansPlanning = 0;
+    let nbPlanifies = 0;
+    const heuresParSal = {};
+
+    salaries.forEach(sal => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      heuresParSal[sal.id] = 0;
+      if (!planning) {
+        nbSansPlanning++;
+        return;
+      }
+      M.migrerPlanningV2(planning);
+      // Heuristique "sans planning" : pas de pattern actif ET pas d'override sur cette semaine
+      const aPattern = !!(planning.pattern && planning.pattern.actif && Array.isArray(planning.pattern.semaine) && planning.pattern.semaine.length);
+      const aOverride = !!(planning.semaines && planning.semaines[lundiISO]);
+      if (!aPattern && !aOverride) nbSansPlanning++;
+      const semaineData = M.getSemaineDataForDate(planning, lundiDate);
+      let aTravailleAuMoinsUnJour = false;
+      semaineData.forEach((jourData, idx) => {
+        if (!jourData) return;
+        const tj = jourData.typeJour || (jourData.travaille ? 'travail' : 'repos');
+        if (tj === 'travail' && jourData.heureDebut && jourData.heureFin) {
+          const [h1, m1] = String(jourData.heureDebut).split(':').map(n => parseInt(n) || 0);
+          const [h2, m2] = String(jourData.heureFin).split(':').map(n => parseInt(n) || 0);
+          let dh = (h2 + m2 / 60) - (h1 + m1 / 60);
+          if (dh < 0) dh += 24; // garde-fou (passage minuit)
+          if (dh > 0 && dh < 24) {
+            heuresParSal[sal.id] += dh;
+            totalHeuresGlobal += dh;
+          }
+          aTravailleAuMoinsUnJour = true;
+        } else if (tj === 'absence' || tj === 'maladie' || tj === 'conge') {
+          nbAbsencesJours++;
+        }
+      });
+      if (aTravailleAuMoinsUnJour) nbPlanifies++;
+    });
+
+    return {
+      totalHeuresGlobal,
+      heuresParSal,
+      nbAbsencesJours,
+      nbSansPlanning,
+      nbPlanifies,
+      nbSalariesActifs: salaries.length
+    };
+  };
+
+  M.renderPlanningIndicateurs = function(salaries, plannings, lundiDate) {
+    const stats = M.computePlanningStats(salaries, plannings, lundiDate);
+    const fmtH = (h) => {
+      const heures = Math.floor(h);
+      const mins = Math.round((h - heures) * 60);
+      return mins ? `${heures}h${String(mins).padStart(2,'0')}` : `${heures}h`;
+    };
+    let html = `
+      <div class="m-card-row" style="margin-bottom:14px">
+        <div class="m-card m-card-green">
+          <div class="m-card-title">Heures (sem.)</div>
+          <div class="m-card-value">${fmtH(stats.totalHeuresGlobal)}</div>
+          <div class="m-card-sub">${stats.nbPlanifies}/${stats.nbSalariesActifs} salarié${stats.nbSalariesActifs>1?'s':''} actif${stats.nbSalariesActifs>1?'s':''}</div>
+        </div>
+        <div class="m-card m-card-purple">
+          <div class="m-card-title">Absences</div>
+          <div class="m-card-value">${stats.nbAbsencesJours}</div>
+          <div class="m-card-sub">jour${stats.nbAbsencesJours>1?'s':''} hors travail</div>
+        </div>
+      </div>
+    `;
+    // Alerte visuelle : salariés sans planning défini cette semaine
+    if (stats.nbSansPlanning > 0) {
+      html += `<div class="m-card" style="padding:10px 14px;margin-bottom:14px;background:var(--m-accent-soft);border-left:4px solid var(--m-accent)">
+        <div style="display:flex;align-items:center;gap:8px;font-size:.85rem">
+          <span style="font-size:1.1rem">⚠️</span>
+          <span style="flex:1 1 auto">
+            <strong>${stats.nbSansPlanning}</strong> salarié${stats.nbSansPlanning>1?'s':''} sans planning défini cette semaine
+          </span>
+        </div>
+      </div>`;
+    }
+    return html;
+  };
+
+  // ============================================================
+  // Vue "Par salarié" — grille 1 ligne par salarié × 7 colonnes
+  // (parite avec afficherPlanningSemaine du PC). Tap cellule = ouvre form.
+  // ============================================================
+  M.renderPlanningParSalarie = function(salaries, plannings) {
+    if (!salaries.length) return `<div class="m-empty"><div class="m-empty-icon">👥</div><h3 class="m-empty-title">Aucun salarié</h3></div>`;
+
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const moisCourtFR = ['janv','févr','mars','avr','mai','juin','juil','août','sept','oct','nov','déc'];
+    const sameMonth = lundi.getMonth() === dimanche.getMonth();
+    const labelDates = sameMonth
+      ? `${lundi.getDate()}–${dimanche.getDate()} ${moisCourtFR[lundi.getMonth()]}`
+      : `${lundi.getDate()} ${moisCourtFR[lundi.getMonth()]} – ${dimanche.getDate()} ${moisCourtFR[dimanche.getMonth()]}`;
+    const numSemaine = (function(d) {
+      const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      const dayNum = (t.getUTCDay() + 6) % 7;
+      t.setUTCDate(t.getUTCDate() - dayNum + 3);
+      const firstThursday = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+      return 1 + Math.round(((t - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+    })(lundi);
+    const todayIdx = jourIndexAuj();
+    const isCurrent = offset === 0;
+    const todayISO = M.toLocalISODate(new Date());
+
+    // Barre nav semaine (identique semaine view)
+    let html = `
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:12px;width:100%;max-width:100%;box-sizing:border-box;position:sticky;top:0;z-index:5;background:var(--m-bg);padding:6px 0">
+        <button id="m-planning-sem-prev" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine précédente">‹</button>
+        <button id="m-planning-sem-today" type="button" style="flex:1 1 0;min-width:0;height:40px;text-align:center;font-size:.82rem;font-weight:600;line-height:1.2;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;background:${isCurrent ? 'var(--m-bg-elevated)' : 'var(--m-accent-soft)'};color:${isCurrent ? 'var(--m-text)' : 'var(--m-accent)'};border:1px solid var(--m-border);border-radius:10px;cursor:${isCurrent ? 'default' : 'pointer'};font-family:inherit;padding:0 8px" ${isCurrent ? 'disabled' : ''}>
+          ${isCurrent ? '📅 ' : '↩ '}Sem ${numSemaine} · ${labelDates}
+        </button>
+        <button id="m-planning-sem-next" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Semaine suivante">›</button>
+        <button id="m-planning-sem-menu" class="m-btn" style="flex:0 0 40px;padding:0;height:40px;font-size:1.1rem;line-height:1" aria-label="Actions semaine" title="Copier / actions">⋯</button>
+      </div>
+    `;
+
+    // Indicateurs (mêmes que vue semaine)
+    html += M.renderPlanningIndicateurs(salaries, plannings, lundi);
+
+    const stats = M.computePlanningStats(salaries, plannings, lundi);
+    const colors = { travail: 'var(--m-green)', conge: 'var(--m-blue)', maladie: 'var(--m-red)', absence: 'var(--m-red)', repos: 'rgba(120,120,120,.45)' };
+    const txtColors = { travail: '#06231b', conge: '#06141b', maladie: '#fff', absence: '#fff', repos: '#fff' };
+    const labelsType = { travail: '🟢', conge: '🔵', maladie: '🟣', absence: '🟡', repos: '⚪' };
+    const JOURS_COURT_LOCAL = ['L','M','M','J','V','S','D'];
+
+    // Header colonnes (jours)
+    html += `<div class="m-card" style="padding:8px 6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+      <div style="display:grid;grid-template-columns:90px repeat(7, minmax(40px,1fr));gap:4px;align-items:center;min-width:380px">
+        <div style="font-size:.7rem;color:var(--m-text-muted);font-weight:600;text-transform:uppercase;padding:4px 6px">Salarié</div>
+        ${JOURS_COURT_LOCAL.map((j, i) => {
+          const d = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + i);
+          const isToday = M.toLocalISODate(d) === todayISO;
+          return `<div style="text-align:center;font-size:.7rem;font-weight:700;padding:4px 0;color:${isToday ? 'var(--m-accent)' : 'var(--m-text)'}">
+            ${j}<div style="font-size:.62rem;color:var(--m-text-muted);font-weight:500">${d.getDate()}/${String(d.getMonth()+1).padStart(2,'0')}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+    // 1 carte par salarié, grille de 7 cellules à droite
+    salaries.forEach(sal => {
+      const planning = plannings.find(p => p.salId === sal.id);
+      const semaineData = planning ? M.getSemaineDataForDate(planning, lundi) : null;
+      const heuresSal = stats.heuresParSal[sal.id] || 0;
+      const fmtH = (h) => {
+        const heures = Math.floor(h);
+        const mins = Math.round((h - heures) * 60);
+        return mins ? `${heures}h${String(mins).padStart(2,'0')}` : `${heures}h`;
+      };
+      const nomComplet = ((sal.prenom ? sal.prenom.charAt(0) + '. ' : '') + (sal.nom || sal.id || '')).trim();
+
+      let cells = '';
+      for (let i = 0; i < 7; i++) {
+        const jourData = semaineData ? semaineData[i] : null;
+        const typeJour = jourData?.typeJour || (jourData?.travaille ? 'travail' : 'repos');
+        const horaire = jourData?.heureDebut && jourData?.heureFin
+          ? `${jourData.heureDebut.slice(0, 5)}<br>${jourData.heureFin.slice(0, 5)}` : '';
+        const bg = colors[typeJour] || colors.repos;
+        const fg = txtColors[typeJour] || txtColors.repos;
+        const showHoraire = typeJour === 'travail' && horaire;
+        const isVide = !planning || (!jourData?.typeJour && !jourData?.travaille);
+        const dEmpty = isVide;
+        cells += `<button type="button" class="m-planning-cell" data-sal-id="${M.escHtml(sal.id)}" data-jour-idx="${i}" style="min-height:48px;border:0;border-radius:8px;font-family:inherit;cursor:pointer;font-size:.62rem;line-height:1.15;font-weight:600;padding:4px 2px;background:${dEmpty ? 'transparent' : bg};color:${dEmpty ? 'var(--m-text-muted)' : fg};border:${dEmpty ? '1px dashed var(--m-border)' : '0'};white-space:normal;overflow:hidden;text-overflow:ellipsis">
+          ${dEmpty ? '+' : (showHoraire ? horaire : labelsType[typeJour] || '')}
+        </button>`;
+      }
+
+      html += `<div class="m-card" style="padding:8px 6px;margin-bottom:6px;overflow-x:auto;-webkit-overflow-scrolling:touch">
+        <div style="display:grid;grid-template-columns:90px repeat(7, minmax(40px,1fr));gap:4px;align-items:center;min-width:380px">
+          <div style="font-size:.78rem;font-weight:600;padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            <div>${M.escHtml(nomComplet)}</div>
+            <div style="font-size:.65rem;color:var(--m-text-muted);font-weight:500">${heuresSal > 0 ? fmtH(heuresSal) : '—'}</div>
+          </div>
+          ${cells}
+        </div>
+      </div>`;
+    });
+
+    // FAB raccourci bloquer semaine
+    html += `<button class="m-fab" id="m-planning-fab-bloquer" aria-label="Bloquer la semaine pour un salarié" title="Bloquer toute la semaine pour un salarié (absence)">🏖️</button>`;
+    return html;
+  };
+
+  // Pré-remplit le formulaire d'absence longue avec lundi → dimanche de la semaine
+  // affichée. Permet de bloquer rapidement toute la semaine d'un salarié sans
+  // re-saisir les dates.
+  M.formBloquerSemaine = function() {
+    const offset = M.state.planningSemaineOffset || 0;
+    const lundi = M.lundiSemaineOffset(offset);
+    const dimanche = new Date(lundi.getFullYear(), lundi.getMonth(), lundi.getDate() + 6);
+    const lundiISO = M.toLocalISODate(lundi);
+    const dimancheISO = M.toLocalISODate(dimanche);
+    // formAbsenceLongue accepte (absId, salIdInit). On va wrap : ouvrir la sheet et
+    // remplir les inputs date après mount.
+    M.formAbsenceLongue();
+    setTimeout(() => {
+      const dDeb = document.querySelector('#m-sheet-body input[name=dateDebut]');
+      const dFin = document.querySelector('#m-sheet-body input[name=dateFin]');
+      if (dDeb) dDeb.value = lundiISO;
+      if (dFin) dFin.value = dimancheISO;
+      const titleEl = document.getElementById('m-sheet-title');
+      if (titleEl) titleEl.textContent = '🏖️ Bloquer la semaine';
+    }, 50);
   };
 
   // ============================================================
@@ -4729,10 +5038,14 @@
     const lundiISO = M.toLocalISODate(lundi);
 
     M.openSheet({
-      title: 'Copier la semaine',
+      title: 'Actions semaine',
       body: `
-        <p style="font-size:.85rem;color:var(--m-text-muted);margin:0 0 14px">
-          Copie toutes les saisies de cette semaine vers une ou plusieurs semaines suivantes (override : ne touche pas au pattern récurrent).
+        <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin:0 0 8px">Importer</div>
+        <button type="button" class="m-btn" id="m-sem-import-prev" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">↩ Copier la semaine précédente vers ici</button>
+
+        <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.04em;margin:14px 0 8px">Diffuser</div>
+        <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px">
+          Copie toutes les saisies de cette semaine vers les semaines suivantes (override : ne touche pas au pattern récurrent).
         </p>
         <button type="button" class="m-btn" data-copies="1" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers la semaine suivante</button>
         <button type="button" class="m-btn" data-copies="4" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 4 prochaines semaines</button>
@@ -4751,6 +5064,13 @@
             M.closeSheet?.();
           });
         });
+        // Importer la semaine précédente -> ici (override semaine courante)
+        b.querySelector('#m-sem-import-prev')?.addEventListener('click', async () => {
+          const ok = await M.confirm?.('Copier toutes les saisies de la semaine précédente vers cette semaine (écrase les overrides actuels) ?', { titre: 'Importer N-1' }) ?? confirm('Importer la semaine précédente ?');
+          if (!ok) return;
+          M.importerSemainePrecedente(lundiISO);
+          M.closeSheet?.();
+        });
         b.querySelector('#m-sem-vider-overrides')?.addEventListener('click', async () => {
           const ok = confirm('Supprimer toutes les saisies par-semaine de la semaine affichée ?');
           if (!ok) return;
@@ -4761,6 +5081,42 @@
       onSubmit() { return true; }
     });
     setTimeout(() => { const sub = document.getElementById('m-sheet-submit'); if (sub) sub.style.display = 'none'; }, 0);
+  };
+
+  // Importe la semaine N-1 vers la semaine N (override). Inverse de
+  // copierSemainePlanning vers le futur. Très demandé : "j'ai bossé pareil
+  // que la semaine d'avant".
+  M.importerSemainePrecedente = function(lundiCibleISO) {
+    const lundiCible = new Date(lundiCibleISO + 'T00:00:00');
+    const lundiSource = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() - 7);
+    const lundiSourceISO = M.toLocalISODate(lundiSource);
+    const M_JOURS_FR_LOCAL = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+    const plannings = M.charger('plannings');
+    let nbAffectes = 0;
+    plannings.forEach(p => {
+      M.migrerPlanningV2(p);
+      const sourceData = M.getSemaineDataForDate(p, lundiSource);
+      const aDuContenu = sourceData.some(j => j && (j.typeJour || j.travaille));
+      if (!aDuContenu) return;
+      const semaineCible = sourceData.map((src, i) => {
+        const dateCible = new Date(lundiCible.getFullYear(), lundiCible.getMonth(), lundiCible.getDate() + i);
+        return {
+          jour: M_JOURS_FR_LOCAL[i],
+          date: M.toLocalISODate(dateCible),
+          typeJour: src.typeJour || 'repos',
+          travaille: !!src.travaille,
+          heureDebut: src.heureDebut || '',
+          heureFin: src.heureFin || '',
+          zone: src.zone || '',
+          note: src.note || ''
+        };
+      });
+      p.semaines[lundiCibleISO] = semaineCible;
+      nbAffectes++;
+    });
+    M.sauvegarder('plannings', plannings);
+    M.toast(`✅ ${nbAffectes} planning${nbAffectes > 1 ? 's' : ''} importé${nbAffectes > 1 ? 's' : ''} depuis la semaine du ${lundiSourceISO.slice(8,10)}/${lundiSourceISO.slice(5,7)}`);
+    M.go('planning');
   };
 
   // Copie les overrides (ou pattern à défaut) de la semaine source vers les N semaines suivantes.
@@ -10357,9 +10713,32 @@
       M.go(entity);
     };
 
-    // Initial route : dashboard ou page demandee via #
-    const initialPage = (location.hash || '').replace('#', '') || 'dashboard';
+    // Initial route : dashboard ou page demandee via #. Supporte aussi
+    // les query params (#planning?date=YYYY-MM-DD&vue=semaine) — la partie
+    // avant le ? est la route, le reste est parsé par M.parsePlanningHash et
+    // appliqué à M.state au moment du rendu de la page.
+    const rawHash = (location.hash || '').replace(/^#/, '');
+    const initialPage = (rawHash.split('?')[0] || '').trim() || 'dashboard';
     M.go(initialPage in M.routes ? initialPage : 'dashboard');
+
+    // Re-render quand l'utilisateur change le hash (deep-link partagé / back).
+    // Note : on ne re-render pas si la route n'a pas changé pour éviter les
+    // boucles avec history.replaceState dans M.updatePlanningHash.
+    window.addEventListener('hashchange', () => {
+      const h = (location.hash || '').replace(/^#/, '');
+      const page = (h.split('?')[0] || '').trim() || 'dashboard';
+      if (!(page in M.routes)) return;
+      if (M.state.currentPage !== page) {
+        M.go(page);
+      } else if (page === 'planning') {
+        // Hash a changé sur la même page (date/vue) → re-render seulement si
+        // les params réels ont bougé (sinon stop la boucle).
+        const before = JSON.stringify({ o: M.state.planningSemaineOffset || 0, v: M.state.planningVue || 'jour' });
+        M.applyPlanningHashState();
+        const after = JSON.stringify({ o: M.state.planningSemaineOffset || 0, v: M.state.planningVue || 'jour' });
+        if (before !== after) M.go('planning');
+      }
+    });
 
     // Auto-refresh badge alertes toutes les 30s + vérif docs/véhicules toutes les heures.
     // Garde une référence pour éviter la duplication si init() est rappelé (HMR/reload).
