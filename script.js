@@ -11315,9 +11315,10 @@ genererRentabilitePDF = function() {
       icon: '💼',
       label: 'Finances',
       section: 'finances',
-      pages: ['charges', 'tva', 'rentabilite', 'statistiques'],
+      pages: ['charges', 'encaissement', 'tva', 'rentabilite', 'statistiques'],
       labels: {
         charges: '💸 Charges',
+        encaissement: '💵 Encaissement',
         tva: '🧾 TVA',
         rentabilite: '💰 Rentabilité',
         statistiques: '📈 Statistiques',
