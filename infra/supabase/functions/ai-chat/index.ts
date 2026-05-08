@@ -1135,7 +1135,24 @@ interface GeminiResp {
     };
     finishReason?: string;
   }>;
-  error?: { message: string };
+  error?: { message: string; code?: number; status?: string; details?: any[]; retry_after_seconds?: number | null };
+}
+
+// Parse "Please retry in 4.36s" et le bloc google.rpc.RetryInfo des erreurs Gemini.
+function parseRetryDelay(json: any): number | null {
+  try {
+    const details = json?.error?.details ?? [];
+    for (const d of details) {
+      if (d?.["@type"]?.includes("RetryInfo") && d?.retryDelay) {
+        const m = /([\d.]+)s$/.exec(d.retryDelay);
+        if (m) return parseFloat(m[1]);
+      }
+    }
+    const msg = json?.error?.message ?? "";
+    const m2 = /retry in ([\d.]+)/i.exec(msg);
+    if (m2) return parseFloat(m2[1]);
+  } catch (_) {}
+  return null;
 }
 
 // Tronque un resultat de tool si trop gros pour ne pas exploser le contexte Gemini.
@@ -1200,6 +1217,17 @@ async function callGemini(model: string, apiKey: string, systemInstruction: stri
           continue;
         }
         return { error: { message: `Gemini reponse non-JSON (HTTP ${r.status})` } } as GeminiResp;
+      }
+      // 429 avec retryDelay court (<30s) : auto-retry transparent (les rate limits
+      // RPM/TPM se reset rapidement). Au-dela, on remonte l'erreur a l'user.
+      if (r.status === 429 && attempt < GEMINI_MAX_RETRIES) {
+        const retrySec = parseRetryDelay(json);
+        if (retrySec !== null && retrySec <= 30) {
+          await new Promise((res) => setTimeout(res, (retrySec + 0.5) * 1000));
+          continue;
+        }
+        // Sinon : injecte retry_after dans l'erreur pour que le frontend l'affiche proprement
+        if (json.error) json.error.retry_after_seconds = retrySec ?? null;
       }
       return json as GeminiResp;
     } catch (e) {
@@ -1349,16 +1377,27 @@ Deno.serve(async (req) => {
           continue;
         }
         // Sinon : remonte l'erreur Gemini avec le detail au frontend.
+        const retryAfter = (lastResp.error as any)?.retry_after_seconds;
+        let hint: string | null = null;
+        if (code === 403) {
+          hint = "La cle Gemini est bloquee au niveau du projet/org Google. Recreer une cle depuis un compte Gmail perso (pas org Workspace) sur https://aistudio.google.com.";
+        } else if (code === 429) {
+          if (retryAfter !== null && retryAfter !== undefined) {
+            const mins = retryAfter > 60 ? Math.ceil(retryAfter / 60) : null;
+            hint = mins
+              ? `Limite Gemini atteinte. Reessaye dans environ ${mins} minute${mins > 1 ? "s" : ""}.`
+              : `Limite Gemini atteinte. Reessaye dans ${Math.ceil(retryAfter)} secondes.`;
+          } else {
+            hint = "Quota Gemini quotidien atteint. Reessaye demain (reset 00h00 UTC).";
+          }
+        }
         return new Response(JSON.stringify({
           error: "gemini",
           code,
           message: lastResp.error.message,
           model,
-          hint: code === 403
-            ? "La cle Gemini est bloquee au niveau du projet/org Google. Recreer une cle depuis un compte Gmail perso (pas org Workspace) sur https://aistudio.google.com."
-            : code === 429
-            ? "Quota Gemini epuise. Reessaye dans quelques minutes."
-            : null,
+          retry_after_seconds: retryAfter ?? null,
+          hint,
         }), { status: 502, headers: { ...CORS, "Content-Type": "application/json" } });
       }
 

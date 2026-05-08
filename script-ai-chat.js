@@ -882,9 +882,15 @@
       if (r.status === 401) {
         throw new Error('Session expiree. Deconnecte-toi puis reconnecte-toi.');
       }
-      const msg = body.message || body.error || 'HTTP ' + r.status;
-      const hint = body.hint ? '\n' + body.hint : '';
-      throw new Error(msg + hint);
+      // Si le backend a fourni un hint humain (ex: rate limit Gemini avec
+      // retry_after), on l'affiche en priorite (court, lisible). Sinon
+      // fallback sur le message brut Gemini.
+      const friendly = body.hint
+        ? body.hint + (body.retry_after_seconds && body.retry_after_seconds <= 30
+            ? ` (auto-retry deja tente)`
+            : '')
+        : (body.message || body.error || 'HTTP ' + r.status);
+      throw new Error(friendly);
     }
     return body;
   }
