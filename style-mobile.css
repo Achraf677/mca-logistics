@@ -317,6 +317,21 @@ a { color: var(--m-accent); text-decoration: none; }
 .m-drawer-link:active { background: var(--m-border); }
 .m-drawer-link > span:first-child { font-size: 1.2rem; flex: 0 0 28px; }
 .m-drawer-link.m-drawer-link-danger { color: var(--m-red); }
+.m-drawer-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 8px;
+  background: var(--m-accent, #e63946);
+  color: #fff;
+  font-size: 0.66rem;
+  font-weight: 700;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  line-height: 1;
+}
 .m-drawer-sep {
   border: none;
   border-top: 1px solid var(--m-border);
@@ -477,9 +492,36 @@ a { color: var(--m-accent); text-decoration: none; }
 }
 .m-fab:active { transform: scale(0.92); }
 
-/* FAB secondaire : empilé au-dessus du FAB principal (sélection multiple, etc.) */
+/* FAB secondaire (selection multiple) : version compacte/discrete en bas
+   a gauche au-dessus de la bottom-nav. Etait avant en haut a droite mais
+   chevauchait le bouton 🤖 Agent IA / ✨ chatbot du header — repositionne
+   ici pour eviter le conflit. Gris translucide pour rester discret a cote
+   du FAB primaire (+ a droite). */
 .m-fab-secondary {
-  bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 12px + 64px + 8px) !important;
+  top: auto !important;
+  bottom: calc(var(--m-tabbar-h) + var(--m-safe-bottom) + 14px) !important;
+  left: calc(16px + var(--m-safe-left)) !important;
+  right: auto !important;
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 0.95rem !important;
+  background: rgba(120, 130, 145, 0.55) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+  transition: opacity 0.2s ease, transform 0.1s ease, background 0.2s ease !important;
+  opacity: 0.7;
+}
+.m-fab-secondary:hover, .m-fab-secondary:active {
+  opacity: 1;
+  background: var(--m-blue, #3498db) !important;
+}
+.m-fab-secondary.m-fab-secondary-faded {
+  opacity: 0.4;
+  pointer-events: auto;
+}
+.m-fab-secondary.m-fab-secondary-faded:active,
+.m-fab-secondary.m-fab-secondary-faded:hover {
+  opacity: 1;
 }
 
 /* ============================ BOTTOM SHEET (saisie rapide) ============================ */

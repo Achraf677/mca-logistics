@@ -1,0 +1,117 @@
+name: Qonto Sync Daily
+
+# Synchro quotidienne Qonto -> MCA :
+#   - cron 6h UTC chaque jour (= 7h Paris hiver / 8h ete)
+#   - workflow_dispatch pour test manuel avec inputs (date_from, date_to, dry_run)
+#
+# Appelle l'edge function Supabase `qonto-sync-daily` avec le secret cron.
+# Logs + stats uploades en artifact 30 jours.
+
+on:
+  schedule:
+    # 06:00 UTC quotidien. Note : GitHub peut decaler de quelques minutes.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+    inputs:
+      date_from:
+        description: 'Date debut (YYYY-MM-DD). Vide = J-1.'
+        required: false
+        type: string
+        default: ''
+      date_to:
+        description: 'Date fin (YYYY-MM-DD). Vide = J-1.'
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: 'Mode dry_run (n ecrit rien)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: qonto-sync-daily
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Run Qonto sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout (for artifact dir)
+        uses: actions/checkout@v4
+
+      - name: Build payload
+        id: payload
+        env:
+          DATE_FROM: ${{ github.event.inputs.date_from }}
+          DATE_TO:   ${{ github.event.inputs.date_to }}
+          DRY_RUN:   ${{ github.event.inputs.dry_run }}
+        run: |
+          set -e
+          mkdir -p _logs
+          # Construit un body JSON propre via jq (sans clefs vides).
+          payload=$(jq -nc \
+            --arg from "${DATE_FROM:-}" \
+            --arg to   "${DATE_TO:-}" \
+            --arg dry  "${DRY_RUN:-false}" \
+            '
+              ($from | select(length > 0)) as $f
+              | ($to   | select(length > 0)) as $t
+              | { dry_run: ($dry == "true") }
+                + (if $f then { date_from: $f } else {} end)
+                + (if $t then { date_to:   $t } else {} end)
+            ')
+          echo "Payload: $payload"
+          echo "$payload" > _logs/payload.json
+          echo "payload<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$payload"     >> "$GITHUB_OUTPUT"
+          echo "EOF"          >> "$GITHUB_OUTPUT"
+
+      - name: Call edge function qonto-sync-daily
+        id: call
+        env:
+          SUPABASE_PROJECT_REF:      ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET:               ${{ secrets.CRON_SECRET }}
+          PAYLOAD:                   ${{ steps.payload.outputs.payload }}
+        run: |
+          set -e
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Missing required secrets (SUPABASE_PROJECT_REF, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET)"
+            exit 1
+          fi
+          URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/qonto-sync-daily"
+          echo "POST $URL"
+          http_status=$(curl -sS -o _logs/response.json -w '%{http_code}' \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            --data "$PAYLOAD" \
+            --max-time 120)
+          echo "HTTP $http_status"
+          cat _logs/response.json
+          if [ "$http_status" != "200" ]; then
+            echo "::error::qonto-sync-daily returned HTTP $http_status"
+            exit 1
+          fi
+
+      - name: Extract stats
+        if: always()
+        run: |
+          if [ -f _logs/response.json ]; then
+            echo "## Qonto Sync Stats" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            jq '{ok, dry_run, period, stats}' _logs/response.json >> "$GITHUB_STEP_SUMMARY" || cat _logs/response.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload run artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qonto-sync-${{ github.run_id }}
+          path: _logs/
+          retention-days: 30
