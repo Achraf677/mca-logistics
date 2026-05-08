@@ -1,0 +1,150 @@
+name: Pennylane FEC monthly import
+
+# Declenche l'edge function `pennylane-fec-import` qui importe le FEC du
+# mois precedent dans MCA (charges + paiements + fournisseurs + clients).
+# Idempotent : peut etre relance plusieurs fois sur le meme mois sans creer
+# de doublons (cf migration 036_pennylane_idempotency_index.sql).
+#
+# === Secrets GitHub requis ===
+# - SUPABASE_PROJECT_REF        ex: lkbfvgnhwgbapdtitglu
+# - SUPABASE_SERVICE_ROLE_KEY   service_role key (utilisee comme Authorization
+#                               Bearer, l'edge function refuse l'invocation
+#                               sans un JWT Supabase valide ou un anon key
+#                               selon la config verify_jwt).
+# - CRON_SECRET                 secret partage avec Supabase Edge Function
+#                               Secrets, valide par x-cron-secret.
+#
+# === Secret Supabase requis (Edge Function Secrets) ===
+# - PENNYLANE_TOKEN  (deja existant)
+# - CRON_SECRET      (a creer si pas deja)
+
+on:
+  schedule:
+    # 1er du mois a 06:00 UTC (07:00 / 08:00 Paris selon DST).
+    # Cron syntax : minute hour day-of-month month day-of-week
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+    inputs:
+      year:
+        description: 'Annee a importer (ex: 2026)'
+        required: false
+        type: string
+      month:
+        description: 'Mois a importer (1-12)'
+        required: false
+        type: string
+
+concurrency:
+  group: pennylane-fec-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    name: Import FEC mensuel
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Calcule la cible (mois precedent ou inputs)
+        id: target
+        run: |
+          set -e
+          if [ -n "${{ inputs.year }}" ] && [ -n "${{ inputs.month }}" ]; then
+            echo "year=${{ inputs.year }}" >> "$GITHUB_OUTPUT"
+            echo "month=${{ inputs.month }}" >> "$GITHUB_OUTPUT"
+            echo "trigger=manual" >> "$GITHUB_OUTPUT"
+            echo "Target manual : ${{ inputs.year }}-${{ inputs.month }}"
+          else
+            # Mois precedent (calcul UTC)
+            YEAR=$(date -u +%Y)
+            MONTH=$(date -u +%m)
+            # Conversion en int et soustraction
+            YEAR_INT=$((10#$YEAR))
+            MONTH_INT=$((10#$MONTH))
+            MONTH_INT=$((MONTH_INT - 1))
+            if [ "$MONTH_INT" -eq 0 ]; then
+              MONTH_INT=12
+              YEAR_INT=$((YEAR_INT - 1))
+            fi
+            echo "year=$YEAR_INT" >> "$GITHUB_OUTPUT"
+            echo "month=$MONTH_INT" >> "$GITHUB_OUTPUT"
+            echo "trigger=cron" >> "$GITHUB_OUTPUT"
+            echo "Target auto (mois precedent) : $YEAR_INT-$MONTH_INT"
+          fi
+
+      - name: Appelle l'edge function pennylane-fec-import
+        id: invoke
+        env:
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          YEAR: ${{ steps.target.outputs.year }}
+          MONTH: ${{ steps.target.outputs.month }}
+          TRIGGER: ${{ steps.target.outputs.trigger }}
+        run: |
+          set -e
+          mkdir -p _logs
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Secrets manquants : SUPABASE_PROJECT_REF / SUPABASE_SERVICE_ROLE_KEY / CRON_SECRET"
+            exit 1
+          fi
+
+          URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/pennylane-fec-import"
+
+          if [ "$TRIGGER" = "cron" ]; then
+            BODY='{"trigger":"cron"}'
+          else
+            BODY=$(printf '{"year":%s,"month":%s}' "$YEAR" "$MONTH")
+          fi
+
+          echo "POST $URL"
+          echo "Body : $BODY"
+
+          # On capture status + body separement pour echouer proprement.
+          HTTP_STATUS=$(curl -sS -o _logs/response.json -w "%{http_code}" \
+            -X POST "$URL" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d "$BODY" || echo "000")
+
+          echo "HTTP $HTTP_STATUS"
+          echo "--- Response ---"
+          cat _logs/response.json || true
+          echo
+          echo "--- End response ---"
+
+          # Genere un resume markdown lisible
+          {
+            echo "## Pennylane FEC import"
+            echo ""
+            echo "- **Cible** : $YEAR-$MONTH"
+            echo "- **HTTP** : $HTTP_STATUS"
+            echo ""
+            echo '```json'
+            cat _logs/response.json | head -c 8000
+            echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "::error::Edge function a renvoye HTTP $HTTP_STATUS"
+            exit 1
+          fi
+
+          # Optionnel : echec si l'edge function a renvoye ok=false
+          if command -v jq >/dev/null 2>&1; then
+            OK=$(jq -r '.ok // empty' _logs/response.json)
+            if [ "$OK" = "false" ]; then
+              echo "::error::Edge function a renvoye ok=false"
+              exit 1
+            fi
+          fi
+
+      - name: Upload response artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pennylane-fec-import-${{ github.run_id }}
+          path: _logs/
+          retention-days: 90
