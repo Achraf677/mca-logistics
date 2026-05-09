@@ -100,7 +100,7 @@ function afficherEntretiensVehicules() {
   const entretiens = charger('entretiens').sort((a,b)=>new Date(b.date)-new Date(a.date));
   const tb = document.getElementById('tb-entretiens-vehicules');
   if (!tb) return;
-  if (!entretiens.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun entretien</td></tr>'; return; }
+  if (!entretiens.length) { tb.innerHTML = (typeof emptyState === 'function') ? emptyState('🔧', 'Aucun entretien', 'Programmez un entretien pour démarrer le suivi.') : '<tr><td colspan="6" class="empty-row">Aucun entretien</td></tr>'; return; }
   tb.innerHTML = entretiens.slice(0,20).map(e => {
     const veh = vehicules.find(v=>v.id===e.vehId);
     return `<tr>

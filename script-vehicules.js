@@ -507,8 +507,8 @@ function afficherVehicules() {
       <td>${v.modele||'—'}</td>
       <td>${kmActuel ? formatKm(kmActuel) : '—'}</td>
       <td>${acquisitionInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
-      <td>${v.conso ? v.conso+' L/100km' : '—'}${consoReelle
-        ? ` <span style="color:var(--green);font-size:.75rem" title="Calculé entre ${pleinsVeh.length} pleins">(réel: ${consoReelle} L/100km)</span>`
+      <td>${v.conso ? v.conso+' L/100 km' : '—'}${consoReelle
+        ? ` <span style="color:var(--green);font-size:.75rem" title="Calculé entre ${pleinsVeh.length} pleins">(réel: ${consoReelle} L/100 km)</span>`
         : pleinsVeh.length === 1
           ? ` <span style="color:var(--text-muted);font-size:.72rem">(1 plein — besoin de 2+)</span>`
           : ''

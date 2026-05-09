@@ -9052,8 +9052,8 @@
           <div class="m-card" style="padding:0">
             ${v.km ? detailRow('Kilométrage', `${M.formatNum(v.km)} km`) : ''}
             ${v.kmInitial ? detailRow('Km initial', `${M.formatNum(v.kmInitial)} km`) : ''}
-            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100km</span>`) : ''}
-            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100km`) : ''}
+            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100 km</span>`) : ''}
+            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100 km`) : ''}
             ${v.capaciteReservoir ? detailRow('Capacité réservoir', `${M.formatNum(v.capaciteReservoir)} L`) : ''}
             ${v.ptac ? detailRow('PTAC', `${M.formatNum(v.ptac)} kg`) : ''}
             ${v.ptra ? detailRow('PTRA', `${M.formatNum(v.ptra)} kg`) : ''}

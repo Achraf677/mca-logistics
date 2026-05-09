@@ -555,7 +555,7 @@ function afficherTva() {
         + '<td><button type="button" class="btn-icon danger" onclick="supprimerSourceDepuisTVA(\'livraison\', \'' + entry.id + '\')" title="Supprimer">🗑️</button></td>'
         + '</tr>';
     });
-    if (!rows) rows = '<tr><td colspan="7" class="empty-row">Aucune TVA collectée exigible sur cette période</td></tr>';
+    if (!rows) rows = (typeof emptyState === 'function') ? emptyState('💰', 'Aucune TVA collectée exigible', 'Aucune livraison encaissée n\'est exigible TVA sur cette période.') : '<tr><td colspan="7" class="empty-row">Aucune TVA collectée exigible sur cette période</td></tr>';
     else rows += '<tr style="background:rgba(46,204,113,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td></td><td style="color:var(--green)">' + euros(summary.totalCollectee) + '</td><td>' + euros(summary.collectee.reduce(function(sum, item) { return sum + item.ttc; }, 0)) + '</td><td></td></tr>';
     tbColl.innerHTML = rows;
   }
@@ -594,7 +594,7 @@ function afficherTva() {
         + '<td><button type="button" class="btn-icon danger" onclick="' + deleteAction + '" title="Supprimer">🗑️</button></td>'
         + '</tr>';
     });
-    if (!rows2) rows2 = '<tr><td colspan="7" class="empty-row">Aucune TVA déductible sur cette période</td></tr>';
+    if (!rows2) rows2 = (typeof emptyState === 'function') ? emptyState('💸', 'Aucune TVA déductible', 'Aucune charge avec TVA payée sur cette période.') : '<tr><td colspan="7" class="empty-row">Aucune TVA déductible sur cette période</td></tr>';
     else rows2 += '<tr style="background:rgba(245,166,35,.08);font-weight:700"><td>TOTAL</td><td></td><td></td><td></td><td style="color:var(--accent)">' + euros(summary.totalDeductible) + '</td><td></td><td></td></tr>';
     tbDed.innerHTML = rows2;
   }

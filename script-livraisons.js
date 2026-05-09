@@ -1051,7 +1051,9 @@ function reinitialiserLivPeriode() {
     }
 
     if (!res.rows.length) {
-      tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+      tb.innerHTML = (typeof emptyState === 'function')
+        ? emptyState('📦', 'Aucune livraison', 'Ajustez les filtres ou ajoutez une livraison.')
+        : '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
       window.PAGINATION.rendrerPagination('livraisons', 0, 1, st.perPage, 1, 0);
       if (typeof majBulkActions === 'function') majBulkActions();
       return;

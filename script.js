@@ -4040,7 +4040,7 @@ afficherPlanningSemaine = function() {
 
   var tb = document.getElementById('tb-planning-semaine');
   if (!tb) return;
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
+  if (!salaries.length) { tb.innerHTML = emptyState('👤', 'Aucun salarié', 'Ajoutez un salarié pour planifier la semaine.'); return; }
 
   var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
   var salariesFiltres = salaries.filter(function(s) {
@@ -4066,7 +4066,7 @@ afficherPlanningSemaine = function() {
   if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
   if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
   if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
-  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
+  if (!salariesFiltres.length) { tb.innerHTML = emptyState('🔍', 'Aucun résultat', 'Aucun salarié ne correspond à la recherche.'); return; }
 
   var typeIcons = { travail:'🟢', repos:'⚪', conge:'🔵', absence:'🟡', maladie:'🟣' };
   const renderPlanningCell = function(className, title, detail, note) {
@@ -4157,7 +4157,7 @@ window.__adminFinalLock = function() {
 
     if (!tb) return;
     if (!livraisons.length) {
-      tb.innerHTML = '<tr><td colspan="12" class="empty-row">Aucune livraison</td></tr>';
+      tb.innerHTML = emptyState('📦', 'Aucune livraison', 'Ajustez les filtres ou ajoutez une livraison.');
       return;
     }
 
@@ -4368,7 +4368,7 @@ window.renderLivraisonsAdminFinal = function() {
 
   if (!tb) return;
   if (!livraisons.length) {
-    tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+    tb.innerHTML = emptyState('📦', 'Aucune livraison', 'Ajustez les filtres ou ajoutez une livraison.');
     if (typeof majBulkActions === 'function') majBulkActions();
     return;
   }
@@ -6133,7 +6133,7 @@ afficherPlanningSemaine = function() {
 
   var tb = document.getElementById('tb-planning-semaine');
   if (!tb) return;
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
+  if (!salaries.length) { tb.innerHTML = emptyState('👤', 'Aucun salarié', 'Ajoutez un salarié pour planifier la semaine.'); return; }
 
   var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
   var salariesFiltres = salaries.filter(function(s) {
@@ -6163,7 +6163,7 @@ afficherPlanningSemaine = function() {
   if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
   if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
   if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
-  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
+  if (!salariesFiltres.length) { tb.innerHTML = emptyState('🔍', 'Aucun résultat', 'Aucun salarié ne correspond à la recherche.'); return; }
 
   function renderCell(className, title, detail, note) {
     return '<td><div class="planning-week-state ' + className + '"><span>' + title + '</span>' + (detail ? '<span class="planning-week-time">' + detail + '</span>' : '') + (note ? '<span class="planning-week-note">' + note + '</span>' : '') + '</div></td>';
