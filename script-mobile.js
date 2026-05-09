@@ -118,6 +118,82 @@
       else if (e.tauxTVA != null && e.tauxTva == null) { e.tauxTva = e.tauxTVA; chEn = true; }
     });
     if (chEn) M.sauvegarder('entretiens', fixEnt);
+
+    // ========================================================
+    // R3 — LDV : flat <-> nested. Hisse les anciennes saisies
+    // mobile (flat) en nested canonique, et mirror nested -> flat
+    // pour les saisies PC. Idempotent grace au flag _ldv_migrated_v1.
+    // ========================================================
+    try {
+      if (typeof window.normalizeLDV === 'function') {
+        const livForLdv = M.charger('livraisons');
+        let chLdv = false;
+        livForLdv.forEach(l => {
+          if (!l || l._ldv_migrated_v1) return;
+          const before = JSON.stringify(l);
+          window.normalizeLDV(l);
+          const after = JSON.stringify(l);
+          if (before !== after) chLdv = true;
+          l._ldv_migrated_v1 = true;
+          chLdv = true;
+        });
+        if (chLdv) M.sauvegarder('livraisons', livForLdv);
+      }
+    } catch (e) { console.warn('[mobile] migration LDV', e); }
+
+    // ========================================================
+    // R4 — Vehicule.assurance : flat (dateAssurance) <-> nested
+    // (assurance.{compagnie, numeroContrat, dateExpiration}).
+    // Idempotent via _assurance_migrated_v1.
+    // ========================================================
+    try {
+      if (typeof window.normalizeVehicule === 'function') {
+        const vehs = M.charger('vehicules');
+        let chV = false;
+        vehs.forEach(veh => {
+          if (!veh || veh._assurance_migrated_v1) return;
+          const before = JSON.stringify(veh);
+          window.normalizeVehicule(veh);
+          const after = JSON.stringify(veh);
+          if (before !== after) chV = true;
+          veh._assurance_migrated_v1 = true;
+          chV = true;
+        });
+        if (chV) M.sauvegarder('vehicules', vehs);
+      }
+    } catch (e) { console.warn('[mobile] migration assurance', e); }
+
+    // ========================================================
+    // R7 — Charges sans fournisseurId : best-effort matching par
+    // nom. Si aucun match : log dans console (l'admin pourra
+    // creer le fournisseur manuellement). Idempotent via _fk_migrated_v1.
+    // ========================================================
+    try {
+      if (typeof window.findFournisseurByNom === 'function') {
+        const charges = M.charger('charges');
+        const fournisseurs = M.charger('fournisseurs');
+        let chFk = false;
+        const orphelins = [];
+        charges.forEach(c => {
+          if (!c || c._fk_migrated_v1) return;
+          if (!c.fournisseurId && c.fournisseur) {
+            const match = window.findFournisseurByNom(c.fournisseur, fournisseurs);
+            if (match) {
+              c.fournisseurId = match.id;
+              chFk = true;
+            } else {
+              orphelins.push({ id: c.id, nom: c.fournisseur });
+            }
+          }
+          c._fk_migrated_v1 = true;
+          chFk = true;
+        });
+        if (chFk) M.sauvegarder('charges', charges);
+        if (orphelins.length) {
+          console.warn('[mobile] ' + orphelins.length + ' charge(s) sans fournisseurId (nom inconnu) :', orphelins);
+        }
+      }
+    } catch (e) { console.warn('[mobile] migration FK charges', e); }
   };
 
   // Generation d'ID stable (UUID si dispo, fallback timestamp+random).
@@ -608,6 +684,9 @@
     const today = new Date().toISOString().slice(0, 10);
     const enEdition = !!existing;
     const v = existing || {};
+    // Dual-read : si la livraison vient de PC (nested only), hisse les valeurs
+    // en flat pour pre-remplir le form mobile correctement (R3 fix).
+    if (enEdition && typeof window.normalizeLDV === 'function') window.normalizeLDV(v);
 
     const body = `
       ${M.formField('Client', M.formInput('client', { value: v.client || '', placeholder: 'Nom du client', required: true, autocomplete: 'off' }), { required: true })}
@@ -854,7 +933,8 @@
           zone: form.zone?.trim() || '',
           notes: form.notes?.trim() || '',
           numLiv: form.numLiv?.trim() || '',
-          // Lettre de voiture (LDV)
+          // Lettre de voiture (LDV) - dual-write : flat (legacy compat) +
+          // nested (canonique PC, lu par genererLettreDeVoiture). R3 fix.
           expNom: form.expNom?.trim() || '',
           expContact: form.expContact?.trim() || '',
           expAdresse: form.expAdresse?.trim() || '',
@@ -874,7 +954,40 @@
           adrEst: !!form.adrEst,
           adrOnu: form.adrOnu?.trim() || '',
           adrClasse: form.adrClasse?.trim() || '',
-          adrGroupe: form.adrGroupe || ''
+          adrGroupe: form.adrGroupe || '',
+          // Schema canonique nested (PC + sync Supabase)
+          expediteur: {
+            nom: form.expNom?.trim() || '',
+            contact: form.expContact?.trim() || '',
+            adresse: form.expAdresse?.trim() || '',
+            cp: form.expCp?.trim() || '',
+            ville: form.expVille?.trim() || '',
+            pays: form.expPays?.trim() || 'FR'
+          },
+          destinataire: {
+            nom: form.destNom?.trim() || '',
+            contact: form.destContact?.trim() || '',
+            adresse: form.destAdresse?.trim() || '',
+            cp: form.destCp?.trim() || '',
+            ville: form.destVille?.trim() || '',
+            pays: form.destPays?.trim() || 'FR'
+          },
+          marchandise: {
+            nature: form.marchNature?.trim() || '',
+            poidsKg: M.parseNum(form.marchPoids) || 0,
+            volumeM3: M.parseNum(form.marchVolume) || 0,
+            nbColis: M.parseNum(form.marchColis) || 0
+          },
+          adr: {
+            estADR: !!form.adrEst,
+            codeONU: form.adrOnu?.trim() || '',
+            classe: form.adrClasse?.trim() || '',
+            groupeEmballage: form.adrGroupe || ''
+          },
+          adrEstADR: !!form.adrEst,
+          adrCodeONU: form.adrOnu?.trim() || '',
+          adrGroupeEmballage: form.adrGroupe || '',
+          _ldv_migrated_v1: true
         };
         if (enEdition) {
           const idx = arr.findIndex(x => x.id === v.id);
@@ -933,6 +1046,9 @@
   // Genere le HTML d'un bon de livraison ou d'une facture (template mobile-friendly).
   M.genererHtmlBonOuFacture = function(liv, options = {}) {
     const isFact = !!options.facture;
+    // Dual-read : normalise nested -> flat pour que la marchandise saisie
+    // cote PC apparaisse dans le bon de livraison mobile (R3 fix).
+    if (typeof window.normalizeLDV === 'function') window.normalizeLDV(liv);
     const config = M.chargerObj('config') || {};
     const ent = config.entreprise || M.chargerObj('entreprise') || {};
     const ttc = M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0;
@@ -1033,6 +1149,9 @@
   M.genererLDV = function(id) {
     const liv = M.charger('livraisons').find(x => x.id === id);
     if (!liv) { M.toast('Livraison introuvable'); return; }
+    // Dual-read : normalise nested (PC) -> flat pour rendre la LDV mobile
+    // visible meme pour les livraisons saisies cote PC (R3 fix).
+    if (typeof window.normalizeLDV === 'function') window.normalizeLDV(liv);
     const config = M.chargerObj('config') || {};
     const ent = config.entreprise || M.chargerObj('entreprise') || {};
     const esc = (s) => M.escHtml(s == null ? '' : s);
@@ -1312,6 +1431,16 @@
     const today = new Date().toISOString().slice(0, 10);
     const enEdition = !!existing;
     const c = existing || {};
+    // R7 : autocomplete fournisseur via <datalist> mobile-friendly + capture
+    // fournisseurId a la selection (mirror PC). Idem livraison pour tracer
+    // la rentabilite par mission.
+    const fournisseursAll = M.charger('fournisseurs').filter(f => f && !f.archive);
+    const livraisonsAll = M.charger('livraisons').filter(l => l && !l.archive)
+      .sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')))
+      .slice(0, 100); // 100 dernieres pour rester perf
+    const datalistFournisseurs = '<datalist id="m-charge-fournisseurs-list">' +
+      fournisseursAll.map(f => `<option value="${M.escHtml(f.nom||'')}" data-id="${M.escHtml(f.id)}"></option>`).join('') +
+      '</datalist>';
 
     const body = `
       <div class="m-form-field" style="margin-bottom:14px">
@@ -1322,7 +1451,9 @@
         <p class="m-form-hint" id="m-charge-fac-status" style="text-align:center"></p>
       </div>
       ${M.formField('Libellé', M.formInput('libelle', { value: c.libelle || '', placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
-      ${M.formField('Fournisseur', M.formInput('fournisseur', { value: c.fournisseur || '', placeholder: 'Nom fournisseur' }))}
+      ${datalistFournisseurs}
+      ${M.formField('Fournisseur', M.formInput('fournisseur', { value: c.fournisseur || '', placeholder: 'Nom fournisseur', list: 'm-charge-fournisseurs-list', autocomplete: 'off' }), { hint: 'Auto-complete + auto-creation si nouveau' })}
+      ${M.formField('Livraison liee (optionnel)', M.formSelect('livraisonId', livraisonsAll.map(l => ({ value: l.id, label: (l.numLiv ? l.numLiv + ' · ' : '') + (l.client || 'Sans client') + (l.date ? ' (' + M.formatDate(l.date) + ')' : '') })), { placeholder: 'Aucune', value: c.livraisonId || '' }), { hint: 'Lie cette charge a une mission pour la rentabilite' })}
       ${M.formField('Date', M.formInput('date', { type: 'date', value: c.date || today, required: true }), { required: true })}
       <div class="m-form-row">
         ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantHT || '' }))}
@@ -1458,6 +1589,21 @@
             e.target.value = '';
           });
         }
+        // R7 : a la selection d'une livraison, auto-prefill le vehicule (parite PC).
+        const livSelect = body.querySelector('select[name=livraisonId]');
+        const vehSelect = body.querySelector('select[name=vehiculeId]');
+        if (livSelect) {
+          livSelect.addEventListener('change', () => {
+            const livId = livSelect.value;
+            if (!livId || !vehSelect || vehSelect.value) return;
+            const liv = M.charger('livraisons').find(l => l.id === livId);
+            const livVehId = liv ? (liv.vehId || liv.vehiculeId) : '';
+            if (livVehId) {
+              const opt = vehSelect.querySelector(`option[value="${livVehId}"]`);
+              if (opt) vehSelect.value = livVehId;
+            }
+          });
+        }
         if (enEdition) {
           body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
             const ok = await M.creerRecurrence('charges', c.id, {
@@ -1499,7 +1645,7 @@
           });
         }
       },
-      onSubmit() {
+      async onSubmit() {
         const form = M.lireFormSheet();
         const ttc = M.parseNum(form.montantTtc) || 0;
         const taux = M.parseNum(form.tauxTva) || 0;
@@ -1508,13 +1654,60 @@
         if (!form.libelle?.trim()) { M.toast('⚠️ Libellé requis'); return false; }
         if (!form.date) { M.toast('⚠️ Date requise'); return false; }
         if (!(ttc > 0)) { M.toast('⚠️ Montant TTC > 0 requis'); return false; }
+
+        // R7 — resolution FK fournisseur (mirror PC script-charges.js:560-591) :
+        // 1. Match par nom (insensible casse + trim).
+        // 2. Si nom inconnu : auto-creation + flush adapter avant save charge
+        //    (FK constraint charges.fournisseur_id -> fournisseurs.id).
+        const fournisseurNom = (form.fournisseur || '').trim();
+        let fournisseurId = c.fournisseurId || null;
+        if (fournisseurNom) {
+          const fournisseurs = M.charger('fournisseurs');
+          let match = (typeof window.findFournisseurByNom === 'function')
+            ? window.findFournisseurByNom(fournisseurNom, fournisseurs)
+            : null;
+          if (match) {
+            fournisseurId = match.id;
+          } else {
+            // Auto-create
+            const nouveau = {
+              id: M.genId(),
+              nom: fournisseurNom,
+              type: 'Pro',
+              creeLe: new Date().toISOString()
+            };
+            fournisseurs.push(nouveau);
+            M.sauvegarder('fournisseurs', fournisseurs);
+            fournisseurId = nouveau.id;
+            // Flush adapter pour que la charge ait la FK valide (mirror PC).
+            try {
+              if (window.DelivProEntityAdapters?.fournisseurs?.flushDiff) {
+                await window.DelivProEntityAdapters.fournisseurs.flushDiff();
+              }
+            } catch (e) { console.warn('[mobile] flush fournisseur:', e); }
+            M.toast('✅ Fournisseur « ' + fournisseurNom + ' » créé automatiquement', { duration: 2000 });
+            M.ajouterAudit?.('Création fournisseur (depuis charge mobile)', fournisseurNom);
+          }
+        }
+
+        // R7 — livraisonId capture + auto-prefill vehicule depuis la livraison.
+        let livraisonId = form.livraisonId || null;
+        let vehiculeIdFinal = form.vehiculeId || null;
+        if (livraisonId) {
+          const liv = M.charger('livraisons').find(l => l.id === livraisonId);
+          // Si pas de vehicule explicitement choisi, on hisse celui de la livraison
+          if (liv && !vehiculeIdFinal) vehiculeIdFinal = liv.vehId || liv.vehiculeId || null;
+        }
+
         const arr = M.charger('charges');
         const data = {
           date: form.date,
           libelle: form.libelle.trim(),
-          fournisseur: form.fournisseur?.trim() || '',
-          vehiculeId: form.vehiculeId || null,
-          vehId: form.vehiculeId || null,  // dual-write PC
+          fournisseur: fournisseurNom,           // snapshot nom (preserve historique)
+          fournisseurId: fournisseurId || null,  // R7 : FK
+          livraisonId: livraisonId,              // R7 : FK
+          vehiculeId: vehiculeIdFinal,
+          vehId: vehiculeIdFinal,                // dual-write PC
           montantHT: +ht.toFixed(2),  // PC + mobile
           montantHt: +ht.toFixed(2),  // alias mobile (compat ancien)
           montantTtc: ttc,
@@ -1524,7 +1717,8 @@
           tva: +tvaMontant.toFixed(2),
           categorie: form.categorie || '',
           statut: form.statut || 'a_payer',
-          statutPaiement: form.statut || 'a_payer'  // PC utilise statutPaiement
+          statutPaiement: form.statut || 'a_payer',  // PC utilise statutPaiement
+          _fk_migrated_v1: true
         };
         let chargeId;
         if (enEdition) {
@@ -1946,7 +2140,12 @@
       </div>
       <div class="m-form-row">
         ${M.formField('Date CT (prochain)', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
-        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }), { hint: 'Expiration carte verte' })}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || (v.assurance && v.assurance.dateExpiration) || '' }), { hint: 'Expiration carte verte' })}
+      </div>
+      <!-- R4 : compagnie + numero contrat assurance (parite PC) -->
+      <div class="m-form-row">
+        ${M.formField('Compagnie assurance', M.formInput('assuranceCompagnie', { value: (v.assurance && v.assurance.compagnie) || v.assuranceCompagnie || '', placeholder: 'AXA, Allianz...' }))}
+        ${M.formField('N° contrat assurance', M.formInput('assuranceNumero', { value: (v.assurance && v.assurance.numeroContrat) || v.assuranceNumero || '', placeholder: '123-XYZ' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Date carte grise', M.formInput('dateCarteGrise', { type: 'date', value: v.dateCarteGrise || '' }))}
@@ -2191,7 +2390,17 @@
           genre: f.genre || '',
           critAir: f.critAir || '',
           dateCT: f.dateCT || '',
+          // R4 : dual-write assurance — flat (mobile legacy) + nested (canonique
+          // PC, lu par alertes "carte verte" art. L211-1 C. assur.)
           dateAssurance: f.dateAssurance || '',
+          assurance: {
+            compagnie: (f.assuranceCompagnie || '').trim(),
+            numeroContrat: (f.assuranceNumero || '').trim(),
+            dateExpiration: f.dateAssurance || ''
+          },
+          assuranceCompagnie: (f.assuranceCompagnie || '').trim(),
+          assuranceNumero: (f.assuranceNumero || '').trim(),
+          _assurance_migrated_v1: true,
           dateCarteGrise: f.dateCarteGrise || '',
           dateAcquisition: f.dateAcquisition || '',
           dateMiseEnCirculation: f.dateMiseEnCirculation || '',
@@ -5664,6 +5873,8 @@
     };
     vehicules.forEach(v => {
       if (!v || v.archive) return;
+      // R4 : normalise pour lire dateExpiration nested si la donnee vient de PC
+      if (typeof window.normalizeVehicule === 'function') window.normalizeVehicule(v);
       checkDate(v, v.dateCT, 'ct', 'CT expiré', 'CT à renouveler', 60);
       checkDate(v, v.dateAssurance, 'assurance', 'Assurance expirée', 'Assurance expire', 30);
     });

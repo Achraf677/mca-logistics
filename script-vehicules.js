@@ -271,6 +271,9 @@ async function ajouterVehicule() {
     id: genId(), immat, modele, km, kmInitial: km, conso, capaciteReservoir, dateCT, dateCTDernier, tvaCarbDeductible,
     modeAcquisition, dateAcquisition, entretienIntervalKm, entretienIntervalMois,
     genre, carburant, ptac, ptra, essieux, critAir, date1Immat, vin, carteGrise, assurance,
+    // R4 dual-write : mirror flat dateAssurance pour readers mobile
+    dateAssurance: assurance.dateExpiration,
+    _assurance_migrated_v1: true,
     salId: salId||null, salNom: sal ? sal.nom : null,
     creeLe: new Date().toISOString()
   }, finance);
@@ -384,6 +387,9 @@ function afficherVehicules() {
   // Vérifier alertes CT (dans les 30 jours)
   const auj = new Date(); const dans30j = new Date(); dans30j.setDate(auj.getDate()+30);
   vehicules.forEach(v => {
+    // R4 : normalise pour que les vehicules saisis mobile (dateAssurance flat)
+    // voient leurs alertes "carte verte" se declencher cote PC.
+    if (typeof normalizeVehicule === 'function') normalizeVehicule(v);
     const pilotageEntretien = getPilotageEntretienVehicule(v);
     if (v.dateCT) {
       const dateCT = new Date(v.dateCT);
@@ -923,6 +929,9 @@ function confirmerEditVehicule() {
     numeroContrat: (document.getElementById('veh-assurance-numero')?.value || '').trim(),
     dateExpiration: document.getElementById('veh-assurance-date-exp')?.value || ''
   };
+  // R4 dual-write : mirror flat dateAssurance pour readers mobile
+  vehicules[idx].dateAssurance = vehicules[idx].assurance.dateExpiration;
+  vehicules[idx]._assurance_migrated_v1 = true;
   // Flotte étendue
   const getV2 = (id) => (document.getElementById(id)?.value || '').trim();
   vehicules[idx].genre = getV2('veh-genre');
