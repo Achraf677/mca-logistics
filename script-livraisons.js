@@ -302,7 +302,14 @@ function ajouterLivraison() {
   viderFormulaireLivraison();
   afficherLivraisons();
   if (clientCreeAuto && typeof afficherClients === 'function') {
-    try { afficherClients(); } catch (_) {}
+    try { afficherClients(); } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[livraisons:afficherClients]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
   }
   if (typeof afficherPlanningSemaine === 'function') afficherPlanningSemaine();
   if (conflitPlanning) {
@@ -966,13 +973,13 @@ function reinitialiserLivPeriode() {
   'use strict';
 
   function getMode() {
-    try { return localStorage.getItem('mca_pagination_mode') || 'client'; } catch (_) { return 'client'; }
+    try { return localStorage.getItem('mca_pagination_mode') || 'client'; } catch (_) { /* fail-silent: localStorage indisponible (mode privé) */ return 'client'; }
   }
   function setMode(mode) {
     try {
       if (mode === 'server') localStorage.setItem('mca_pagination_mode', 'server');
       else localStorage.removeItem('mca_pagination_mode');
-    } catch (_) {}
+    } catch (_) { /* fail-silent: localStorage indisponible (mode privé / quota) */ }
   }
 
   function buildLivraisonsServerFilters() {
