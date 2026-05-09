@@ -466,15 +466,8 @@ window.lancerBriefAuto = lancerBriefAuto;
 window.rafraichirBriefAgent = rafraichirBriefAgent;
 window.declencherBriefAutoLoginSiNecessaire = declencherBriefAutoLoginSiNecessaire;
 
-// Auto-boot : declenche au DOMContentLoaded si admin.
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-      // Petit delai pour laisser DelivProSupabase s'initialiser.
-      setTimeout(declencherBriefAutoLoginSiNecessaire, 1500);
-    });
-  } else {
-    setTimeout(declencherBriefAutoLoginSiNecessaire, 1500);
-  }
-}
+// Auto-boot retire le 2026-05-09 : le brief n'est plus declenche au login
+// pour economiser le quota Gemini Tier 1 (cap 5 EUR/mois Google Cloud).
+// Les fonctions ci-dessus restent exposees pour appel manuel via le bouton
+// "Rafraichir" du panneau-agent (admin.html #agent-refresh-btn).
 
