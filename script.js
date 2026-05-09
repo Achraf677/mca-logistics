@@ -11049,7 +11049,7 @@ genererRentabilitePDF = function() {
           <div class="s20-fiche-meta">${Math.round(kmActuel).toLocaleString('fr-FR')} km · ${esc(veh.modeAcquisition || 'achat')}${veh.dateAcquisition ? ' depuis ' + fmtDate(veh.dateAcquisition) : ''}</div>
           ${sal
             ? `<div class="s20-fiche-veh">👤 Affecté à <button type="button" class="s20-btn-360" onclick="window.ouvrirFiche360Salarie('${esc(sal.id)}')">${esc(sal.nom)}</button></div>`
-            : '<div class="s20-fiche-veh muted">Aucun salarié affecté</div>'}
+            : '<div class="s20-fiche-veh muted">Aucun chauffeur affecté</div>'}
         </div>
         <div class="s20-fiche-badges">
           ${alertes.length ? `<span class="s20-badge-alert">⚠️ ${alertes.length} alerte${alertes.length > 1 ? 's' : ''}</span>` : '<span class="badge badge-dispo">✅ OK</span>'}

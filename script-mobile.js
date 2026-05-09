@@ -2186,7 +2186,7 @@
         ${M.formField('Nb essieux', M.formInput('essieux', { type: 'number', step: '1', min: '1', placeholder: '2', value: v.essieux || '' }))}
         ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
       </div>
-      ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
+      ${M.formField('Chauffeur affecté', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
         <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Carte grise, Assurance, CT...)</summary>
@@ -3220,7 +3220,7 @@
     const body = `
       ${M.formField('Date', M.formInput('date', { type: 'date', value: (inc.date || (inc.creeLe || '').slice(0, 10) || today), required: true }), { required: true })}
       ${M.formField('Client', M.formInput('client', { value: inc.client || '', placeholder: 'Nom du client (libre)' }))}
-      ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: inc.salId || '' }))}
+      ${M.formField('Chauffeur', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: inc.salId || '' }))}
       ${M.formField('N° livraison', M.formInput('numLiv', { value: inc.numLiv || '', placeholder: 'Si lié à une livraison' }))}
       <div class="m-form-row">
         ${M.formField('Gravité', M.formSelect('gravite', [
@@ -10369,13 +10369,15 @@
             ? `<button type="button" onclick="MCAm.openDetail('clients','${M.escHtml(cli.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(i.client)} ›</span></button>`
             : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:500">${M.escHtml(i.client)}</span></div>`;
         })() : ''}
-        ${i.salNom ? (() => {
-          const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : M.findSalarieByName(i.salNom);
+        ${(i.salNom || i.chaufNom) ? (() => {
+          // H2.5 : fusion Salarié + Chauffeur en une seule ligne "Chauffeur"
+          // (les deux champs reflètent la même personne pour les incidents).
+          const nomAffiche = i.chaufNom || i.salNom;
+          const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : M.findSalarieByName(nomAffiche);
           return sal
-            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(i.salNom)} ›</span></button>`
-            : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:500">${M.escHtml(i.salNom)}</span></div>`;
+            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(nomAffiche)} ›</span></button>`
+            : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:500">${M.escHtml(nomAffiche)}</span></div>`;
         })() : ''}
-        ${i.chaufNom ?    `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:500">${M.escHtml(i.chaufNom)}</span></div>` : ''}
         ${i.numLiv ?      `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° livraison</span><span style="font-weight:500">${M.escHtml(i.numLiv)}</span></div>` : ''}
       </div>
 
