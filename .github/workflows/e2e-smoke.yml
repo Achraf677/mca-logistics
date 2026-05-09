@@ -34,10 +34,6 @@ jobs:
     name: Smoke E2E (~2min)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Smoke spec advisory pour le moment : la sequence login Playwright
-    # depasse 20s sur staging (selectors/redirect a re-aligner). Apres
-    # debug + fix, retirer continue-on-error pour rendre bloquant.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -81,11 +77,12 @@ jobs:
       - name: Run smoke spec
         id: smoke
         # Skip entierement quand secrets absents : Playwright peut exit non-zero
-        # meme avec test.skip (ex: "no tests run" selon version). Plus robuste
-        # de skipper le step au niveau workflow tant qu'Achraf n'a pas configure
-        # les secrets PLAYWRIGHT_ADMIN_EMAIL/PASSWORD. Quand configure -> step
-        # tourne et bloque normalement.
+        # meme avec test.skip (ex: "no tests run" selon version).
+        # continue-on-error : actuellement le smoke spec timeout au login sur
+        # staging (selectors/redirect a re-aligner). Apres debug + fix, retirer
+        # continue-on-error pour rendre bloquant.
         if: steps.secrets.outputs.has_creds == 'true'
+        continue-on-error: true
         env:
           ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
