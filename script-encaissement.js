@@ -255,7 +255,9 @@
     });
   }
 
-  // Hook navigation : PC utilise window.naviguerVers
+  /* WRAPPER encaissement — Hook naviguerVers : déclencher render() quand
+     l'utilisateur ouvre 'encaissement'. Chain pattern : __encHook idempotent,
+     capture orig avant override. H2.1. */
   function hookNav() {
     if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__encHook) return;
     var orig = window.naviguerVers;

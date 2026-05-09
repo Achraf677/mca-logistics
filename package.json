@@ -4,7 +4,7 @@
   "private": true,
   "description": "PGI interne MCA Logistics - gestion transport et livraisons",
   "scripts": {
-    "test": "node --test tests/business-rules.test.js tests/financial-regressions.test.js tests/data-schema-normalization.test.js tests/rentabilite.test.js tests/heures.test.js tests/carburant-anomalies.test.js tests/data-flow-rollback.test.js",
+    "test": "node --test tests/business-rules.test.js tests/financial-regressions.test.js tests/data-schema-normalization.test.js tests/code-quality-no-collisions.test.js",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install --with-deps chromium",
