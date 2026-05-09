@@ -17,6 +17,10 @@
 function buildSimplePeriodeState(defaultMode) {
   return { mode: defaultMode || 'mois', offset: 0 };
 }
+// Expose explicitement sur window pour que script.js l'appelle via
+// window.buildSimplePeriodeState(...) (defensif anti-ReferenceError, cf
+// fallback dans script.js section STATISTIQUES, mai 2026).
+if (typeof window !== 'undefined') window.buildSimplePeriodeState = buildSimplePeriodeState;
 
 // Stats mensuelles d'un salarié (livraisons, CA, heures réelles ou planifiées).
 // Utilisé par : script-salaries.js (carte fiche salarié), script-stats.js

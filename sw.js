@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v4_32-chatbot-prompts-refonte-176';
+const CACHE_VERSION = 'mca-v2026-05-09-v4_33-chatbot-prompts-merge-177';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -29,6 +29,7 @@ const CORE_ASSETS = [
   '/repo.js',
   '/script-inspections.js',
   '/script-incidents.js',
+  '/script-equipe-hub.js',
   '/script-rentabilite.js',
   '/script-rentabilite-multi.js',
   '/script-carburant.js',
@@ -43,6 +44,7 @@ const CORE_ASSETS = [
   '/script-fournisseurs.js',
   '/script-clients.js',
   '/script-charges.js',
+  '/script-charges-recurrence.js',
   '/script-salaries.js',
   '/script-vehicules.js',
   '/script-livraisons.js',
@@ -87,6 +89,8 @@ const CORE_ASSETS = [
   '/auth-2fa.js',
   // Mobile exports PDF (parite PC partielle Livraisons / Charges / Encaissement)
   '/script-mobile-exports.js',
+  // Setup wizard onboarding (1ere connexion admin) — parite PC + mobile
+  '/script-setup-wizard.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne

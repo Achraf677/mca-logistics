@@ -81,7 +81,11 @@
       <button class="m-drawer-link" data-page="inspections"><span>🚗</span><span>Inspections</span></button>
 
       <div class="m-drawer-section-label">Équipe</div>
-      <button class="m-drawer-link" data-page="salaries"><span>👥</span><span>Salariés</span></button>
+      <!-- Hub Équipe Sprint 22 (H2.4) — entrée unifiée. Les 3 sous-routes
+           (salaries / heures / incidents) restent enregistrees pour les
+           deeplinks IA et l'audit log mais l'utilisateur passe par "Équipe". -->
+      <button class="m-drawer-link" data-page="equipe" style="font-weight:600"><span>👥</span><span>Équipe</span></button>
+      <button class="m-drawer-link" data-page="salaries"><span>👤</span><span>Salariés</span></button>
       <button class="m-drawer-link" data-page="heures"><span>⏱️</span><span>Heures &amp; Km</span></button>
       <button class="m-drawer-link" data-page="incidents"><span>🚨</span><span>Incidents</span></button>
 
@@ -156,7 +160,7 @@
        Supabase pour les entites metier (livraisons, charges, vehicules, etc.).
        Sans ces adapters, les saisies mobile resterait en localStorage local. -->
   <script src="/entity-supabase-adapter.js?v=102"></script>
-  <script src="/all-entity-adapters.js?v=102"></script>
+  <script src="/all-entity-adapters.js?v=103"></script>
   <script src="/legacy-entity-adapters.js?v=102"></script>
   <script src="/plannings-supabase-adapter.js?v=102"></script>
   <script src="/clients-supabase-adapter.js?v=102"></script>
@@ -167,7 +171,9 @@
   <!-- DSO helper partage PC/mobile (Sprint H3.4) — doit etre charge AVANT script-mobile -->
   <script src="/script-core-dso.js?v=100"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=103"></script>
+  <script src="/script-mobile.js?v=105"></script>
+  <!-- Recurrence charges (chip 🔁 + bottom-sheet) - parite PC -->
+  <script src="/script-charges-recurrence.js?v=100"></script>
   <!-- Assistant IA Gemini (V1 admin) - parite PC -->
   <script src="/script-ai-chat.js?v=103"></script>
   <!-- Brouillons IA : page admin de validation des actions IA en attente.
@@ -177,6 +183,10 @@
        et genere un markdown copie dans le presse-papier. Boutons cables sur
        #m-bug-report-btn (drawer mobile) et #admin-bug-report-btn (PC). -->
   <script src="/bug-report.js?v=103"></script>
+  <!-- Setup wizard onboarding mobile (parite PC) : ne s'affiche que pour
+       les sessions admin (admin_login en sessionStorage). Le module gere
+       lui-meme la detection de role et le styling responsive. -->
+  <script src="/script-setup-wizard.js?v=103"></script>
   <script>
     // Cable le bouton 🐛 du drawer mobile (m.html). Listener delegue document-level
     // pour survivre a un re-render du drawer.

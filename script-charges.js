@@ -415,6 +415,12 @@ window.basculerStatutCharge = basculerStatutCharge;
 
 // L7072 (script.js d'origine)
 function afficherCharges() {
+  // Defensif : si _chargesPeriode est undefined (race init script.js liee
+  // au ReferenceError buildSimplePeriodeState), on rebuild via window pour
+  // eviter TypeError "Cannot read properties of undefined (reading 'mode')".
+  if (typeof _chargesPeriode === 'undefined' || !_chargesPeriode) {
+    window._chargesPeriode = { mode: 'mois', offset: 0 };
+  }
   var range = getChargesPeriodeRange();
   var periodSelect = document.getElementById('vue-charges-select');
   if (periodSelect) periodSelect.value = _chargesPeriode.mode;
@@ -681,7 +687,12 @@ function chargerFacturesEmises() {
 }
 
 // L8312 (script.js d'origine)
-function getChargesPeriodeRange() { return getPeriodeRange(_chargesPeriode.mode, _chargesPeriode.offset); }
+function getChargesPeriodeRange() {
+  if (typeof _chargesPeriode === 'undefined' || !_chargesPeriode) {
+    window._chargesPeriode = { mode: 'mois', offset: 0 };
+  }
+  return getPeriodeRange(_chargesPeriode.mode, _chargesPeriode.offset);
+}
 
 // L8313 (script.js d'origine)
 function changerVueCharges(mode) { changeSimplePeriode(_chargesPeriode, mode, afficherCharges, 'charges-mois-label', 'charges-mois-dates', 'vue-charges-select'); }
