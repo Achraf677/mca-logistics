@@ -193,8 +193,48 @@ function ajusterCategorieCharge() {
 function ouvrirModalCharge() {
   resetFormulaireCharge();
   ajusterCategorieCharge();
+  attacherSmartUploadCharge();
   openModal('modal-charge');
 }
+
+// PR Smart Upload Phase 2 : cable SmartUpload mode auto au modal-charge.
+// Drop unique -> Gemini detecte facture / ticket_carburant / autre et
+// pre-remplit fournisseur / date / montants / num_facture. Idempotent
+// via flag input._smartUploadAttached. Bucket charges-docs absent en prod
+// pour l'instant -> skipStorage:true (la migration bucket viendra dans
+// la PR de suivi qui cable aussi le drawer 360 PC).
+function attacherSmartUploadCharge() {
+  var input = document.getElementById('charge-smart-upload-input');
+  var feedback = document.getElementById('charge-smart-upload-feedback');
+  var label = document.getElementById('charge-smart-upload-label');
+  if (!input || !window.SmartUpload) return;
+  if (input._smartUploadAttached) return;
+  window.SmartUpload.attachToInput(input, {
+    mode: 'auto',
+    skipStorage: true,
+    feedbackEl: feedback || null,
+    onOcrResult: function (payload) {
+      if (label) label.textContent = '📤 Uploader (auto) — facture / ticket';
+      // Si ticket carburant detecte -> bascule la categorie pour activer
+      // les champs litres + prix/L (toggle gere par ajusterCategorieCharge).
+      if (payload && payload.type_detecte === 'ticket_carburant') {
+        var sel = document.getElementById('charge-cat');
+        if (sel && sel.value !== 'carburant') {
+          sel.value = 'carburant';
+          if (typeof window.ajusterCategorieCharge === 'function') window.ajusterCategorieCharge();
+        }
+      }
+      if (window.MCASmartUploadHelpers && window.MCASmartUploadHelpers.applyAutoResultToPCForm) {
+        window.MCASmartUploadHelpers.applyAutoResultToPCForm(payload, { expectedSection: 'facture' });
+      }
+    },
+    onError: function (err) {
+      if (label) label.textContent = '⚠️ Échec — réessayez';
+      console.warn('[charge smart-upload]', err);
+    },
+  });
+}
+window.attacherSmartUploadCharge = attacherSmartUploadCharge;
 
 // L7037 (script.js d'origine)
 function ouvrirEditCharge(id) {
@@ -255,6 +295,7 @@ function ouvrirEditCharge(id) {
   }
   ajusterCategorieCharge();
   toggleChargeStatutPaiement();
+  attacherSmartUploadCharge();
   // Si la charge avait un montant TVA saisi manuellement (cas TVA mixte),
   // marque le flag pour que les calculs HT↔TTC ne ré-écrasent pas le champ.
   if (typeof setChargeTvaManuelle === 'function') setChargeTvaManuelle(!!charge.tva);

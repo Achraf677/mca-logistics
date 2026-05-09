@@ -926,6 +926,14 @@
             </div>
             <div class="form-group"><label>🛡️ Expiration assurance</label><input type="date" id="nsal-date-assurance" / aria-label="nsal date assurance" /></div>
           </div>
+          <!-- SmartUpload mode auto : drop n'importe quel doc (RIB / permis) -> auto-detect + prefill -->
+          <div class="form-group full-width" style="margin-top:14px;margin-bottom:8px">
+            <label class="file-upload-button" for="nsal-smart-upload-input" style="background:var(--accent-soft);border:1px dashed var(--accent);color:var(--accent);text-align:center">
+              <span id="nsal-smart-upload-label">📤 Uploader (auto) — RIB / permis (auto-détection)</span>
+            </label>
+            <input type="file" id="nsal-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
+            <div id="nsal-smart-upload-feedback" style="font-size:.78rem;color:var(--text-muted);margin-top:6px"></div>
+          </div>
           <!-- Documents primaires : permis, carte ID, IBAN, carte vitale -->
           <div class="form-grid" style="margin-top:14px">
             <div class="form-group">
@@ -2490,6 +2498,14 @@
     <div class="modal">
       <div class="modal-header"><h3>⛽ Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
       <div class="modal-body">
+        <!-- SmartUpload mode auto : drop ticket carburant -> OCR detecte + pre-remplit -->
+        <div class="form-group full-width" style="margin-bottom:14px">
+          <label class="file-upload-button" for="carb-smart-upload-input" style="background:var(--accent-soft);border:1px dashed var(--accent);color:var(--accent);text-align:center">
+            <span id="carb-smart-upload-label">📤 Uploader (auto) — ticket carburant</span>
+          </label>
+          <input type="file" id="carb-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
+          <div id="carb-smart-upload-feedback" style="font-size:.78rem;color:var(--text-muted);margin-top:6px"></div>
+        </div>
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="carb-vehicule" aria-label="carb vehicule"><option value="">-- Choisir --</option></select></div>
           <div class="form-group"><label>Type carburant *</label>
@@ -2819,6 +2835,14 @@
       <div class="modal-header"><h3>💸 Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="charge-edit-id" />
+        <!-- SmartUpload mode auto : drop facture / ticket -> OCR detecte + pre-remplit -->
+        <div class="form-group full-width" style="margin-bottom:14px">
+          <label class="file-upload-button" for="charge-smart-upload-input" style="background:var(--accent-soft);border:1px dashed var(--accent);color:var(--accent);text-align:center">
+            <span id="charge-smart-upload-label">📤 Uploader (auto) — facture / ticket</span>
+          </label>
+          <input type="file" id="charge-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
+          <div id="charge-smart-upload-feedback" style="font-size:.78rem;color:var(--text-muted);margin-top:6px"></div>
+        </div>
         <div class="form-grid">
           <div class="form-group"><label id="charge-date-label">Date *</label><input type="date" id="charge-date" / aria-label="charge date" /></div>
           <div class="form-group"><label>Catégorie *</label>
@@ -3307,7 +3331,10 @@
   <script defer src="storage-uploader.js?v=20260509e-58"></script>
   <!-- Smart upload : un seul drop -> OCR + Storage en parallele.
        Doit etre charge APRES storage-uploader.js. -->
-  <script defer src="smart-upload.js?v=20260509e-59"></script>
+  <script defer src="smart-upload.js?v=20260510-180"></script>
+  <!-- Helpers cablage SmartUpload mode auto (charges, carburant, salaries).
+       Doit etre charge APRES smart-upload.js, AVANT scripts metiers. -->
+  <script defer src="script-core-smart-upload.js?v=20260510-180"></script>
   <script defer src="entity-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="clients-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="vehicules-supabase-adapter.js?v=20260509e-58"></script>

@@ -1300,7 +1300,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
 <script src="supabase-storage-sync.js"></script>
 <script src="storage-uploader.js?v=20260509e-18"></script>
 <!-- smart-upload : un seul drop -> OCR + Storage en parallele (parite PC). -->
-<script src="smart-upload.js?v=20260509e-19"></script>
+<script src="smart-upload.js?v=20260510-180"></script>
+<!-- Helpers cablage SmartUpload mode auto (parite PC + mobile chauffeur) -->
+<script src="script-core-smart-upload.js?v=20260510-180"></script>
 <!-- Offline queue : enfile uploads/mutations quand reseau coupe, retry au retour
      Doit etre chargee AVANT script-salarie.js pour que les fonctions de saisie
      l'utilisent immediatement. -->

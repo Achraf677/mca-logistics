@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v5_03-fix-sentry-merge-179';
+const CACHE_VERSION = 'mca-v2026-05-10-v5_04-smart-upload-phase2-180';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -57,6 +57,7 @@ const CORE_ASSETS = [
   '/all-entity-adapters.js',
   '/storage-uploader.js',
   '/smart-upload.js',
+  '/script-core-smart-upload.js',
   '/script-core-utils.js',
   '/script-core-storage.js',
   '/script-core-ui.js',
