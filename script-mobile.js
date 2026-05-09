@@ -9763,6 +9763,151 @@
     M.sauvegarder('postes', clean);
   };
 
+  // ============================================================
+  // HUB ÉQUIPE — Sprint 22 / H2.4 (parite PC)
+  // Wrapper qui agrege Salaries / Planning / Heures / Incidents derriere
+  // une seule entree drawer + 4 KPIs sticky + tabs scroll horizontal.
+  // ============================================================
+  M.calculerKpisEquipe = function () {
+    const salaries = M.charger('salaries');
+    const heures = M.charger('heures');
+    const livraisons = M.charger('livraisons');
+    const incidents = M.charger('incidents');
+    const plannings = M.charger('plannings');
+
+    // Range semaine en cours (lundi -> dimanche)
+    const ref = new Date(); ref.setHours(0, 0, 0, 0);
+    const day = ref.getDay();
+    const offset = day === 0 ? -6 : 1 - day;
+    const lundi = new Date(ref); lundi.setDate(lundi.getDate() + offset);
+    const dimanche = new Date(lundi); dimanche.setDate(lundi.getDate() + 6);
+    const fmt = d => d.toISOString().slice(0, 10);
+    const range = { debut: fmt(lundi), fin: fmt(dimanche) };
+
+    const actifs = salaries.filter(s => s && !s.archive && s.actif !== false && s.statut !== 'inactif');
+    const total = salaries.filter(s => s && !s.archive).length;
+
+    // Heures semaine : reelles + planifiees fallback
+    let heuresReelles = 0;
+    let heuresPlanifiees = 0;
+    const planBySal = new Map();
+    plannings.forEach(p => { if (p && p.salId) planBySal.set(p.salId, p); });
+    actifs.forEach(s => {
+      const reelles = heures
+        .filter(h => (h.salId === s.id || h.salarieId === s.id) && h.date >= range.debut && h.date <= range.fin)
+        .reduce((sum, h) => sum + (parseFloat(String(h.heures || '').replace(',', '.')) || 0), 0);
+      heuresReelles += reelles;
+      const plan = planBySal.get(s.id);
+      if (plan && Array.isArray(plan.semaine)) {
+        plan.semaine.forEach(j => {
+          if (!j || !j.travaille || (j.typeJour && j.typeJour !== 'travail')) return;
+          if (!j.heureDebut || !j.heureFin) return;
+          const [h1, m1] = String(j.heureDebut).split(':').map(Number);
+          const [h2, m2] = String(j.heureFin).split(':').map(Number);
+          if ([h1, m1, h2, m2].some(x => Number.isNaN(x))) return;
+          const min = (h2 * 60 + m2) - (h1 * 60 + m1);
+          if (min > 0) heuresPlanifiees += min / 60;
+        });
+      }
+    });
+    const heuresTotal = heuresReelles + Math.max(0, heuresPlanifiees - heuresReelles);
+
+    // Livraisons 30j
+    const limite = new Date(); limite.setDate(limite.getDate() - 30);
+    const limiteStr = limite.toISOString().slice(0, 10);
+    const livrees = livraisons.filter(l => l && l.statut === 'livre' && l.date && l.date >= limiteStr);
+    const ca30j = livrees.reduce((sum, l) => sum + (parseFloat(l.prix) || 0), 0);
+
+    // Conformite
+    const aujMs = ref.getTime();
+    const items = [];
+    const pushIf = (label, dateStr, seuilWarn) => {
+      if (!dateStr) return;
+      const d = new Date(dateStr); if (Number.isNaN(d.getTime())) return;
+      d.setHours(0, 0, 0, 0);
+      const diff = Math.ceil((d.getTime() - aujMs) / (1000 * 60 * 60 * 24));
+      if (diff < 0) items.push({ niveau: 'critical', label });
+      else if (diff <= seuilWarn) items.push({ niveau: 'warn', label: label + ' (' + diff + 'j)' });
+    };
+    actifs.forEach(s => {
+      pushIf('Permis ' + (s.nom || ''), s.datePermis, 60);
+      pushIf('Assurance ' + (s.nom || ''), s.dateAssurance, 30);
+      pushIf('Visite méd. ' + (s.nom || ''), s.visiteMedicale && s.visiteMedicale.dateExpiration, 60);
+    });
+    const incOuverts = incidents.filter(i => i && (i.statut || 'ouvert') === 'ouvert').length;
+    if (incOuverts > 0) items.push({ niveau: 'warn', label: incOuverts + ' incident(s) ouvert(s)' });
+    let niveau = 'ok';
+    if (items.some(i => i.niveau === 'critical')) niveau = 'critical';
+    else if (items.length > 0) niveau = 'warn';
+
+    return {
+      effectif: { actifs: actifs.length, total },
+      heures: { total: heuresTotal, reelles: heuresReelles, planifiees: heuresPlanifiees },
+      livraisons: { nb: livrees.length, ca: ca30j },
+      conformite: { niveau, items }
+    };
+  };
+
+  M.register('equipe', {
+    title: 'Équipe',
+    render() {
+      const k = M.calculerKpisEquipe();
+      const tab = M.state.equipeTab || 'salaries';
+      const fmtEur = n => (Math.round(n) || 0).toLocaleString('fr-FR') + ' €';
+      const labelConf = { ok: '🟢 Conforme', warn: '🟠 À surveiller', critical: '🔴 Action requise' }[k.conformite.niveau];
+
+      // Header KPIs sticky (4 cartes en grille 2x2 mobile)
+      const kpiRow = `
+        <div class="m-equipe-kpis" style="position:sticky;top:0;z-index:10;background:var(--m-bg,#0f1115);padding:12px 0 8px;margin:-8px 0 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">👥 Effectif</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.effectif.actifs}</div><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99)">${k.effectif.actifs} / ${k.effectif.total} contrat${k.effectif.total > 1 ? 's' : ''}</div></div>
+          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">⏱️ Heures sem.</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.heures.total.toFixed(1)} h</div><div style="font-size:.7rem;color:var(--m-text-muted,#8a8f99)">prévu ${k.heures.planifiees.toFixed(1)}h · réel ${k.heures.reelles.toFixed(1)}h</div></div>
+          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">📦 Livraisons 30j</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.livraisons.nb}</div><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99)">${fmtEur(k.livraisons.ca)} CA HT</div></div>
+          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px;border-left:3px solid ${k.conformite.niveau === 'critical' ? '#dc3545' : k.conformite.niveau === 'warn' ? '#e67e22' : '#28a745'}"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">✅ Conformité</div><div style="font-size:.95rem;font-weight:700;margin-top:4px">${labelConf}</div><div style="font-size:.7rem;color:var(--m-text-muted,#8a8f99)">${k.conformite.items.length === 0 ? 'Tout est à jour' : k.conformite.items.length + ' point(s) à traiter'}</div></div>
+        </div>
+      `;
+
+      // Tabs scroll horizontal
+      const tabsBar = `
+        <div class="m-equipe-tabs" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0;margin-bottom:14px;scrollbar-width:none">
+          <button class="m-alertes-chip ${tab === 'salaries' ? 'active' : ''}" data-equipe-tab="salaries" style="white-space:nowrap;flex:0 0 auto">👥 Salariés</button>
+          <button class="m-alertes-chip ${tab === 'planning' ? 'active' : ''}" data-equipe-tab="planning" style="white-space:nowrap;flex:0 0 auto">📅 Planning</button>
+          <button class="m-alertes-chip ${tab === 'heures' ? 'active' : ''}" data-equipe-tab="heures" style="white-space:nowrap;flex:0 0 auto">⏱️ Heures</button>
+          <button class="m-alertes-chip ${tab === 'incidents' ? 'active' : ''}" data-equipe-tab="incidents" style="white-space:nowrap;flex:0 0 auto">🚨 Incidents</button>
+        </div>
+      `;
+
+      // Le contenu de l'onglet est rendu en deeplink (deferred) : on affiche
+      // un CTA qui ouvre la page existante. Cela evite de dupliquer le rendu
+      // (souvent 200-400 lignes par onglet) dans le hub mobile.
+      const labels = { salaries: '👥 Salariés', planning: '📅 Planning', heures: '⏱️ Heures & Km', incidents: '🚨 Incidents' };
+      const content = `
+        <div class="m-card" style="text-align:center;padding:20px">
+          <div style="font-size:2rem;margin-bottom:10px">${labels[tab].split(' ')[0]}</div>
+          <div style="font-weight:600;margin-bottom:6px">${labels[tab].split(' ').slice(1).join(' ')}</div>
+          <div style="font-size:.82rem;color:var(--m-text-muted,#8a8f99);margin-bottom:14px">Ouvrir la vue dédiée pour gérer en détail.</div>
+          <button class="m-btn m-btn-primary" data-equipe-open="${tab}" style="width:auto">Ouvrir →</button>
+        </div>
+      `;
+
+      return kpiRow + tabsBar + content;
+    },
+    afterRender(container) {
+      container.querySelectorAll('[data-equipe-tab]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.equipeTab = btn.dataset.equipeTab;
+          M.go('equipe');
+        });
+      });
+      container.querySelectorAll('[data-equipe-open]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.equipeOpen;
+          // Deeplink vers la page existante (anti-regression)
+          if (M.routes[target]) M.go(target);
+        });
+      });
+    }
+  });
+
   M.register('salaries', {
     title: 'Salariés',
     render() {

@@ -111,9 +111,14 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
+          <!-- Hub Équipe Sprint 22 (H2.4) — entrée unifiée. Les 3 entrées plates
+               (salaries / heures / incidents) restent enregistrees comme routes
+               (deeplinks IA + audit log + alertes) mais sont masquees du
+               sidebar par CSS (cf. ligne 42-56). -->
+          <a href="#" class="nav-item" data-page="equipe"><span class="nav-icon">👥</span><span class="nav-label">Équipe <span class="badge-alertes-nav" id="badge-incidents-nav" style="display:none"></span></span></a>
           <a href="#" class="nav-item" data-page="salaries"><span class="nav-icon">👥</span><span class="nav-label">Salariés</span></a>
           <a href="#" class="nav-item" data-page="heures"><span class="nav-icon">⏱️</span><span class="nav-label">Heures & Km</span></a>
-          <a href="#" class="nav-item" data-page="incidents"><span class="nav-icon">🚨</span><span class="nav-label">Incidents <span class="badge-alertes-nav" id="badge-incidents-nav" style="display:none"></span></span></a>
+          <a href="#" class="nav-item" data-page="incidents"><span class="nav-icon">🚨</span><span class="nav-label">Incidents</span></a>
         </div>
       </div>
 
@@ -845,6 +850,41 @@
         <div class="card"><div class="card-header"><h2>🚐 Utilisation des véhicules</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div></div>
       </div>
       <div class="card mt-20"><div class="card-header"><h2>💶 CA par chauffeur (détail)</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div></div>
+    </section>
+
+    <!-- HUB ÉQUIPE — Sprint 22 / H2.4
+         Wrapper qui agrege Salaries / Planning / Heures / Incidents derriere
+         une seule entree sidebar, avec un dashboard global equipe (4 KPIs).
+         Les sous-pages restent accessibles par deeplink (anti-regression). -->
+    <section class="page" id="page-equipe">
+      <div class="page-actions" style="margin-bottom:14px"><h2>👥 Équipe</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="if(window.EquipeHub)window.EquipeHub.renderKpisPC()" title="Rafraîchir KPIs">↻</button>
+          <button class="btn-primary" onclick="naviguerVers('salaries');setTimeout(()=>{var b=document.querySelector('#page-salaries .btn-primary');if(b)b.click();},120)">+ Provisionner accès</button>
+        </div>
+      </div>
+
+      <!-- Header KPI row : 4 cartes (Effectif / Heures sem / Livraisons 30j / Conformite) -->
+      <div class="kpi-grid kpi-grid-primary" id="equipe-kpis-row" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
+        <div class="kpi-card"><div class="kpi-label">👥 Effectif</div><div class="kpi-value">—</div><div class="kpi-sub">Chargement…</div></div>
+        <div class="kpi-card"><div class="kpi-label">⏱️ Heures cette semaine</div><div class="kpi-value">—</div><div class="kpi-sub">Chargement…</div></div>
+        <div class="kpi-card"><div class="kpi-label">📦 Livraisons 30j</div><div class="kpi-value">—</div><div class="kpi-sub">Chargement…</div></div>
+        <div class="kpi-card"><div class="kpi-label">✅ Conformité</div><div class="kpi-value">—</div><div class="kpi-sub">Chargement…</div></div>
+      </div>
+
+      <!-- Onglets internes (deeplink vers pages existantes pour eviter double-render) -->
+      <div class="card" style="padding:0;margin-bottom:0;overflow:hidden">
+        <div class="view-toggle" style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--card-bg)">
+          <button class="btn-view active" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" style="flex:1;border-radius:0;border:none;border-right:1px solid var(--border);padding:14px">👥 Salariés</button>
+          <button class="btn-view" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" style="flex:1;border-radius:0;border:none;border-right:1px solid var(--border);padding:14px">📅 Planning</button>
+          <button class="btn-view" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" style="flex:1;border-radius:0;border:none;border-right:1px solid var(--border);padding:14px">⏱️ Heures & Km</button>
+          <button class="btn-view" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" style="flex:1;border-radius:0;border:none;padding:14px">🚨 Incidents</button>
+        </div>
+        <div style="padding:24px;text-align:center;color:var(--text-muted)">
+          <p style="margin:0 0 12px;font-size:.95rem">Choisissez un sous-domaine pour gérer votre équipe au quotidien.</p>
+          <p style="margin:0;font-size:.82rem">Les 4 onglets ouvrent les pages dédiées (deeplink). Les KPIs ci-dessus restent toujours visibles depuis cette page.</p>
+        </div>
+      </div>
     </section>
 
     <!-- SALARIÉS -->
@@ -3280,6 +3320,10 @@
   <script defer src="lazy-stubs.js?v=20260509e-58"></script>
   <script defer src="script-inspections.js?v=20260509e-58"></script>
   <script defer src="script-incidents.js?v=20260509e-58"></script>
+  <!-- Hub Equipe (Sprint 22 / H2.4) — wrapper qui agrege les 4 sous-domaines RH
+       derriere une seule entree sidebar. Doit etre charge APRES
+       script-core-navigation.js pour pouvoir hooker naviguerVers. -->
+  <script defer src="script-equipe-hub.js?v=20260509e-62"></script>
   <script defer src="script-rentabilite.js?v=20260509e-58"></script>
   <!-- script-rentabilite-multi.js : lazy-load via lazy-stubs.js (Sprint B bundle splitting). -->
   <script defer src="script-carburant.js?v=20260509e-60"></script>
