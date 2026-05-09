@@ -479,6 +479,10 @@ async function dispatchDraftAction(
     case "create_planning_creneau": return await execCreateEntity(sb, "plannings_hebdo", payload, actorId);
     case "create_inspection": return await execCreateEntity(sb, "inspections", payload, actorId);
     case "delete_entity": return await execDeleteEntity(sb, payload?.entity, payload?.id, payload?.raison, actorId);
+    case "bulk_execute": {
+      const r = await execBulk(sb, payload, actorId);
+      return { success: r.success, error: r.error };
+    }
   }
   if (action.startsWith("update_")) {
     const entity = action.slice("update_".length);
@@ -518,6 +522,69 @@ async function execExecuteDraft(
   }).eq("id", draftId);
 
   return { success: result.success, draft_id: draftId, executed: result };
+}
+
+// ===== Phase 5 — Bulk execution (atomique : tout ou rien via revert manuel si erreur) =====
+// Note Supabase JS n'expose pas les transactions BEGIN/COMMIT directement, on simule
+// la semantique "atomique" en revertant les inserts deja effectues si une etape echoue.
+
+async function execBulk(
+  sb: SbClient,
+  body: any,
+  actorId: string,
+): Promise<{ success: boolean; error?: string; results?: any[]; reverted?: boolean }> {
+  const actions = Array.isArray(body?.actions) ? body.actions : [];
+  if (actions.length === 0) return { success: false, error: "actions vide" };
+  if (actions.length > 100) return { success: false, error: "max 100 actions par bulk" };
+  const atomic = body?.atomic !== false; // defaut true
+
+  const results: any[] = [];
+  const insertedRows: Array<{ table: string; id: string }> = [];
+  for (let i = 0; i < actions.length; i++) {
+    const a = actions[i];
+    const action = String(a?.action || "");
+    const payload = a?.payload ?? {};
+    const r = await dispatchDraftAction(sb, action, payload, actorId);
+    results.push({ index: i, action, ...r });
+    if (!r.success) {
+      if (atomic && insertedRows.length > 0) {
+        // Revert les inserts deja effectues (best-effort)
+        for (const row of insertedRows.reverse()) {
+          await sb.from(row.table).delete().eq("id", row.id);
+        }
+        return {
+          success: false,
+          error: `Action #${i + 1} (${action}) echouee : ${r.error || "?"}. ${insertedRows.length} insert(s) prealable(s) annule(s).`,
+          results,
+          reverted: true,
+        };
+      }
+      if (atomic) return { success: false, error: r.error || "echec atomique premiere action", results };
+      // mode best-effort : continue
+      continue;
+    }
+    // Track les rows creees pour revert
+    if (r.created_id) {
+      const tableMap: Record<string, string> = {
+        create_livraison: "livraisons",
+        create_charge: "charges",
+        create_paiement: "paiements",
+        create_client: "clients",
+        create_fournisseur: "fournisseurs",
+        create_vehicule: "vehicules",
+        create_salarie: "salaries",
+        create_carburant: "carburant",
+        create_entretien: "entretiens",
+        create_incident: "incidents",
+        create_planning_creneau: "plannings_hebdo",
+        create_inspection: "inspections",
+      };
+      const t = tableMap[action];
+      if (t) insertedRows.push({ table: t, id: r.created_id });
+    }
+  }
+
+  return { success: true, results };
 }
 
 async function execRejectDraft(
@@ -647,6 +714,17 @@ Deno.serve(async (req) => {
       case "reject_draft":
         result = await execRejectDraft(sbAdmin, body, actorId);
         break;
+      // ===== Phase 5 — Bulk =====
+      case "bulk_execute": {
+        const r = await execBulk(sbAdmin, body, actorId);
+        result = { success: r.success, error: r.error };
+        // attache results meta dans la reponse JSON elargie
+        const status = r.success ? 200 : 400;
+        return new Response(JSON.stringify({ ...result, results: r.results, reverted: r.reverted }), {
+          status,
+          headers: { ...CORS, "Content-Type": "application/json" },
+        });
+      }
       default:
         result = { success: false, error: `action inconnue: ${action}` };
     }
