@@ -1123,7 +1123,7 @@
       </div>
       ${blocLignes}
       <div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-top:24px;font-size:.78rem;color:#9ca3af;text-align:center">
-        ${isFact ? 'Mode paiement : ' + esc(liv.modePaiement || 'À définir') + ' · Statut : ' + esc((liv.statutPaiement || 'En attente').replace('en-attente', 'En attente')) + ' · ' : ''}
+        ${isFact ? 'Mode paiement : ' + esc(liv.modePaiement || 'À définir') + ' · Statut : ' + esc((liv.statutPaiement || 'À payer').replace('en-attente', 'À payer')) + ' · ' : ''}
         Document généré le ${new Date().toLocaleString('fr-FR')}
       </div>
       </body></html>`;
@@ -4333,11 +4333,12 @@
         </div>
       `;
 
-      // Chips filtre paiement (Tout / À encaisser / Payé / Litige) - mirror PC filtre-paiement
+      // Chips filtre paiement (Tout / À payer / Payé / Litige) - mirror PC filtre-paiement
+      // H2.5 : "À encaisser" -> "À payer" (statut paiement unifie cote display).
       html += `
         <div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${fPaiement===''?'active':''}" data-fp="">Tous (${compteurs.all})</button>
-          <button class="m-alertes-chip ${fPaiement==='en-attente'?'active':''}" data-fp="en-attente">⏳ À encaisser (${compteurs['en-attente']})</button>
+          <button class="m-alertes-chip ${fPaiement==='en-attente'?'active':''}" data-fp="en-attente">⏳ À payer (${compteurs['en-attente']})</button>
           <button class="m-alertes-chip ${fPaiement==='payé'?'active':''}" data-fp="payé">✅ Payé (${compteurs['payé']})</button>
           <button class="m-alertes-chip ${fPaiement==='litige'?'active':''}" data-fp="litige">⚠️ Litige (${compteurs['litige']})</button>
         </div>
@@ -4431,7 +4432,7 @@
           : '';
         const sp = M.livStatutPaiement(l);
         // Pastille statut paiement (couleur)
-        const spLabel = sp === 'payé' ? '✅ Payé' : sp === 'litige' ? '⚠️ Litige' : '⏳ À encaisser';
+        const spLabel = sp === 'payé' ? '✅ Payé' : sp === 'litige' ? '⚠️ Litige' : '⏳ À payer';
         const spColor = sp === 'payé' ? 'var(--m-green)' : sp === 'litige' ? 'var(--m-red)' : 'var(--m-accent)';
         // Quick-action "Marquer payée" si non payé et pas en mode bulk
         const quickPay = (!bulkOn && sp !== 'payé')
@@ -8508,7 +8509,7 @@
               <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-green)">${M.format$(s.paye)}</div>
             </div>
             <div style="background:var(--m-card);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:12px;text-align:center">
-              <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">En attente</div>
+              <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">À payer</div>
               <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-accent)">${M.format$(s.attente - s.retard)}</div>
             </div>
             <div style="background:var(--m-card);border:1px solid ${s.retard > 0 ? 'rgba(231,76,60,0.4)' : 'var(--m-border)'};border-radius:12px;padding:12px;text-align:center">
@@ -8542,7 +8543,7 @@
         ${livClient.length ? livClient.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10).map(l => {
           const sp = (l.statutPaiement || 'en-attente').toLowerCase();
           const couleurStatut = sp === 'paye' ? 'var(--m-green)' : sp === 'partiel' ? 'var(--m-accent)' : 'var(--m-text-muted)';
-          const labelStatut = sp === 'paye' ? '✓ Payé' : sp === 'partiel' ? '~ Partiel' : '⏳ En attente';
+          const labelStatut = sp === 'paye' ? '✓ Payé' : sp === 'partiel' ? '~ Partiel' : '⏳ À payer';
           return `
           <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;min-height:48px">
             <div style="flex:1 1 auto;min-width:0">

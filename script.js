@@ -4124,9 +4124,9 @@ window.__adminFinalLock = function() {
   badgePaiementLivraisonHtml = function(statut) {
     return {
       'payé': '<span class="badge badge-dispo">Payé</span>',
-      'en-attente': '<span class="badge badge-attente">En attente</span>',
+      'en-attente': '<span class="badge badge-attente">À payer</span>',
       'litige': '<span class="badge badge-inactif">Litige</span>'
-    }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
+    }[statut || 'en-attente'] || '<span class="badge badge-attente">À payer</span>';
   };
 
   window.renderLivraisonsAdminFinal = function() {
@@ -4184,7 +4184,7 @@ window.__adminFinalLock = function() {
       const ttc = parseFloat(l.prix) || 0;
       const statutPaiement = l.statutPaiement || 'en-attente';
       const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
       const client = formatClientLabel(l.client || '—');
       const clientText = escapeHtml(client);
       const depart = l.depart || '';
@@ -4283,9 +4283,9 @@ filtrerRecherchePlanningModal = function() {
 badgePaiementLivraisonHtml = function(statut) {
   return {
     'payé': '<span class="badge badge-dispo">Payé</span>',
-    'en-attente': '<span class="badge badge-attente">En attente</span>',
+    'en-attente': '<span class="badge badge-attente">À payer</span>',
     'litige': '<span class="badge badge-inactif">Litige</span>'
-  }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
+  }[statut || 'en-attente'] || '<span class="badge badge-attente">À payer</span>';
 };
 
 const __finalLabelStatutLivraison = function(statut) {
@@ -4396,7 +4396,7 @@ window.renderLivraisonsAdminFinal = function() {
     const ttc = parseFloat(l.prix) || 0;
     const statutPaiement = l.statutPaiement || 'en-attente';
     const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
     const client = formatClientLabel(l.client || '—');
     const clientText = escapeHtml(client);
     const depart = l.depart || '';
@@ -4435,7 +4435,7 @@ afficherLivraisons = window.renderLivraisonsAdminFinal;
 
 /* ===== ADMIN FINAL UX / EXPORTS ===== */
 const labelPaiementLivraison = function(statut) {
-  return statut === 'payé' ? 'Payé' : statut === 'litige' ? 'Litige' : 'En attente';
+  return statut === 'payé' ? 'Payé' : statut === 'litige' ? 'Litige' : 'À payer';
 };
 
 const labelStatutLivraisonLisible = function(statut) {
@@ -4514,9 +4514,9 @@ construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom)
 badgePaiementLivraisonHtml = function(statut) {
   return {
     'payé': '<span class="badge badge-dispo">Payé</span>',
-    'en-attente': '<span class="badge badge-attente">En attente</span>',
+    'en-attente': '<span class="badge badge-attente">À payer</span>',
     'litige': '<span class="badge badge-inactif">Litige</span>'
-  }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
+  }[statut || 'en-attente'] || '<span class="badge badge-attente">À payer</span>';
 };
 
 labelStatutLivraison = function(statut) {
@@ -7895,7 +7895,7 @@ genererRentabilitePDF = function() {
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
         const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
@@ -8182,7 +8182,7 @@ genererRentabilitePDF = function() {
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
         const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
