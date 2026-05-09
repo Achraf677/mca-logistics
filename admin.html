@@ -344,7 +344,7 @@
         <input type="date" id="filtre-date-debut" / aria-label="filtre date debut" />
         <span class="filter-inline-label">Au</span>
         <input type="date" id="filtre-date-fin" / aria-label="filtre date fin" />
-        <button class="btn-primary" onclick="appliquerFiltresDatesLivraisons()">Valider</button>
+        <button class="btn-primary" onclick="appliquerFiltresDatesLivraisons()">Appliquer</button>
         <button class="btn-secondary" onclick="resetFiltres()">Réinitialiser</button>
       </div>
       <!-- VUE TABLEAU -->
@@ -2592,12 +2592,12 @@
   <!-- Affecter véhicule -->
   <div class="modal-overlay" id="modal-affecter-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>👤 Affecter un salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>👤 Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
-        <div class="form-group"><label>Salarié</label><select id="affect-salarie-sel" aria-label="affect salarie sel"><option value="">-- Retirer l'affectation --</option></select></div>
+        <div class="form-group"><label>Chauffeur</label><select id="affect-salarie-sel" aria-label="affect chauffeur sel"><option value="">-- Retirer l'affectation --</option></select></div>
       </div>
-      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-affecter-vehicule')">Annuler</button><button class="btn-primary" onclick="confirmerAffectationVehicule()">✅ Confirmer</button></div>
+      <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-affecter-vehicule')">Annuler</button><button class="btn-primary" onclick="confirmerAffectationVehicule()">✅ Enregistrer</button></div>
     </div>
   </div>
 

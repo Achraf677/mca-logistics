@@ -5840,7 +5840,7 @@ validerLivraisonLivree = async function(id) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return false;
-  var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Valider la livraison', icone:'📦', btnLabel:'Valider', danger:false });
+  var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Marquer livrée', icone:'📦', btnLabel:'Confirmer', danger:false });
   if (!ok) return false;
   livraisons[idx].statut = 'livre';
   livraisons[idx].dateLivraison = new Date().toISOString();
@@ -5859,7 +5859,7 @@ validerLivraisonPayee = async function(id) {
   var msg = liv.statut !== 'livre'
     ? 'Marquer cette livraison comme payée ?\n(le statut de livraison reste inchangé)'
     : 'Confirmer cette livraison comme payée ?';
-  var ok = await confirmDialog(msg, { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
+  var ok = await confirmDialog(msg, { titre:'Marquer payée', icone:'💳', btnLabel:'Encaisser', danger:false });
   if (!ok) return false;
   liv.statutPaiement = 'payé';
   liv.datePaiement = new Date().toISOString();
@@ -12773,7 +12773,7 @@ genererRentabilitePDF = function() {
           </div>
           <div class="s26-sig-actions">
             <button class="btn btn-ghost" onclick="window.s26EffacerSig()">🗑️ Effacer</button>
-            <button class="btn btn-primary" onclick="window.s26EnregistrerSig('${esc(liv.id)}')">✅ Valider & archiver</button>
+            <button class="btn btn-primary" onclick="window.s26EnregistrerSig('${esc(liv.id)}')">✅ Enregistrer & archiver</button>
           </div>
           ${existing ? `<div class="s26-sig-meta">Déjà signée le ${fmtDateTime(existing.date)} par ${esc(existing.signataire||'')}</div>` : ''}
         </div>
