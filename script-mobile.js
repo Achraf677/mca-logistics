@@ -12332,10 +12332,11 @@
     M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
     M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
 
-    // Initialise + auto-trigger du brief IA cote mobile (parite PC).
+    // Initialise le badge brief IA. Auto-trigger retire le 2026-05-09
+    // pour economiser le quota Gemini : declenchement manuel uniquement
+    // via le bouton "Rafraichir" du panneau-agent (header mobile bouton 🤖).
     M.updateBriefBadge();
     setInterval(M.updateBriefBadge, 30000);
-    M.declencherBriefAutoLoginSiNecessaire();
 
     // Scroll-fade des FAB secondaires (selection multiple) : ils sont
     // repositionnes en haut a droite pour ne plus chevaucher les FAB metier.
