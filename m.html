@@ -177,6 +177,10 @@
        et genere un markdown copie dans le presse-papier. Boutons cables sur
        #m-bug-report-btn (drawer mobile) et #admin-bug-report-btn (PC). -->
   <script src="/bug-report.js?v=103"></script>
+  <!-- Setup wizard onboarding mobile (parite PC) : ne s'affiche que pour
+       les sessions admin (admin_login en sessionStorage). Le module gere
+       lui-meme la detection de role et le styling responsive. -->
+  <script src="/script-setup-wizard.js?v=103"></script>
   <script>
     // Cable le bouton 🐛 du drawer mobile (m.html). Listener delegue document-level
     // pour survivre a un re-render du drawer.
