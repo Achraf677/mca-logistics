@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v4_10-zindex-doc-154';
+const CACHE_VERSION = 'mca-v2026-05-09-v4_13-cleanup-messages-157';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -78,7 +78,6 @@ const CORE_ASSETS = [
   '/monitoring.js',
   // Hotfix M3 (2026-05-09) — assets manquants au precachage, recuperes
   // via runtime cache-first jusqu'ici (degrade hors-ligne au premier load).
-  '/messages-supabase-adapter.js',
   '/plannings-supabase-adapter.js',
   '/legacy-entity-adapters.js',
   '/script-core-stats-helpers.js',

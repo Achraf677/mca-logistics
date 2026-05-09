@@ -3,7 +3,7 @@
  *
  * Extrait de salarie.html (decomposition modulaire phase 2).
  * Contient toutes les fonctions de l'interface salarie : accueil, planning,
- * livraisons sal, heures, carburant, messagerie, incidents, profil, etc.
+ * livraisons sal, heures, carburant, incidents, profil, etc.
  *
  * Charge depuis salarie.html via <script src="script-salarie.js">.
  */
