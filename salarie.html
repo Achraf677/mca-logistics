@@ -1178,6 +1178,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
               <div class="form-group"><label>Confirmer</label><input type="password" id="chg-confirmer" autocomplete="new-password" / aria-label="chg confirmer" /></div>
               <button class="btn-primary" onclick="changerMonMdp()">🔑 Mettre à jour</button>
             </div>
+            <div style="margin-top:12px">
+              <button class="btn-secondary" style="width:100%" id="salarie-bug-report-btn" type="button" title="Capture URL, version, viewport, console et copie un rapport markdown a transmettre.">🐛 Signaler un bug</button>
+            </div>
             <div style="margin-top:20px">
               <button class="btn-danger" style="width:100%" id="btn-salarie-logout" onclick="seDeconnecter()">⏏ Se déconnecter</button>
             </div>
@@ -1287,6 +1290,8 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
 <div class="toast" id="toast-sal"></div>
 
 <script src="monitoring.js?v=20260509e-18"></script>
+<!-- Bug report : capture URL/version/console + copie un markdown a coller dans une issue. -->
+<script src="bug-report.js?v=20260509e-18"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script src="supabase-client.js"></script>
@@ -1311,6 +1316,15 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     });
   }
+  // Bouton 🐛 Signaler un bug — visible chauffeur (panneau profil)
+  document.addEventListener('click', function (e) {
+    var btn = e.target && e.target.closest && e.target.closest('#salarie-bug-report-btn');
+    if (!btn) return;
+    e.preventDefault();
+    if (window.BugReport && typeof window.BugReport.open === 'function') {
+      window.BugReport.open();
+    }
+  });
 </script>
 </body>
 </html>

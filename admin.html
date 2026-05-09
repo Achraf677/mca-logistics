@@ -170,6 +170,7 @@
           <span class="topbar-user-caret">▾</span>
         </button>
         <div class="topbar-dropdown" id="topbar-admin-dropdown">
+          <button class="topbar-dropdown-item" id="admin-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre.">🐛 Signaler un bug</button>
           <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()">⏏ Déconnexion</button>
         </div>
       </div>
@@ -3236,6 +3237,8 @@
   <div id="panneau-agent-overlay" onclick="togglePanneauAgent()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;backdrop-filter:blur(2px)"></div>
 
   <script defer src="monitoring.js?v=20260509e-60"></script>
+  <!-- Bug report : capture URL/version/console + copie un markdown a coller dans une issue. -->
+  <script defer src="bug-report.js?v=20260509e-60"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="supabase-config.js"></script>
   <script defer src="supabase-client.js"></script>
@@ -3307,6 +3310,19 @@
         navigator.serviceWorker.register('/sw.js').catch(() => {});
       });
     }
+    // Bouton 🐛 Signaler un bug (dropdown admin). Listener delegue document-level
+    // pour survivre a un eventuel re-render du dropdown.
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('#admin-bug-report-btn');
+      if (!btn) return;
+      e.preventDefault();
+      // Ferme le dropdown admin (s'il est ouvert)
+      var dropdown = document.getElementById('topbar-admin-dropdown');
+      if (dropdown) dropdown.classList.remove('open');
+      if (window.BugReport && typeof window.BugReport.open === 'function') {
+        window.BugReport.open();
+      }
+    });
   </script>
 </body>
 </html>
