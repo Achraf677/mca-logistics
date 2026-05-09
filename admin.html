@@ -3260,6 +3260,9 @@
   <script defer src="script-core-stats-helpers.js?v=20260509e-58"></script>
   <script defer src="script-core-recherche.js?v=20260509e-58"></script>
   <script defer src="storage-uploader.js?v=20260509e-58"></script>
+  <!-- Smart upload : un seul drop -> OCR + Storage en parallele.
+       Doit etre charge APRES storage-uploader.js. -->
+  <script defer src="smart-upload.js?v=20260509e-58"></script>
   <script defer src="entity-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="clients-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="vehicules-supabase-adapter.js?v=20260509e-58"></script>
