@@ -834,7 +834,7 @@ function genererFactureLivraison(livId) {
     return;
   }
   const dateFacture = formatDateExport(livraison.date || aujourdhui());
-  const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'En attente';
+  const datePaiement = livraison.datePaiement ? formatDateExport(livraison.datePaiement) : 'À payer';
   const tauxTVA = parseFloat(livraison.tauxTVA ?? profile.defaultRate ?? 20) || 0;
   const montantHT = round2(getMontantHTLivraison(livraison));
   const montantTVA = round2((parseFloat(livraison.prix) || 0) - montantHT);
@@ -892,7 +892,7 @@ function genererFactureLivraison(livId) {
     + renderFacturePiedMentionsLegales(params, livraison, clientFiche)
     + '<div style="border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;font-size:.8rem;color:#6b7280;line-height:1.6">'
     + '<div>Mode de paiement : ' + planningEscapeHtml(livraison.modePaiement || 'À définir') + '</div>'
-    + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'En attente')) + '</div>'
+    + '<div>Statut de paiement : ' + planningEscapeHtml((livraison.statutPaiement || 'en-attente').replace('en-attente', 'À payer')) + '</div>'
     + '<div>Document généré le ' + formatDateHeureExport() + '</div>'
     + '</div>'
     + '</div>';
@@ -1051,7 +1051,9 @@ function reinitialiserLivPeriode() {
     }
 
     if (!res.rows.length) {
-      tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+      tb.innerHTML = (typeof emptyState === 'function')
+        ? emptyState('📦', 'Aucune livraison', 'Ajustez les filtres ou ajoutez une livraison.')
+        : '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
       window.PAGINATION.rendrerPagination('livraisons', 0, 1, st.perPage, 1, 0);
       if (typeof majBulkActions === 'function') majBulkActions();
       return;
@@ -1082,7 +1084,7 @@ function reinitialiserLivPeriode() {
       var tva = ttc - ht;
       var statutPaiement = l.statutPaiement || 'en-attente';
       var selectStatut = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-      var selectPaiement = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+      var selectPaiement = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
       var client = formatClientLabel(l.client || '—');
       var depart = l.depart || '';
       var arrivee = l.arrivee || '';

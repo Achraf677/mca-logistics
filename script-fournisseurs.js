@@ -22,7 +22,7 @@ function afficherFournisseursDashboard() {
     ? fournAll.filter(f => [f.nom, f.contact, f.tel, f.email, f.adresse, f.ville, f.cp, f.siren]
         .filter(Boolean).join(' ').toLowerCase().includes(filtre))
     : fournAll;
-  if (!fournisseurs.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
+  if (!fournisseurs.length) { tb.innerHTML = (typeof emptyState === 'function') ? emptyState('🔍', 'Aucun résultat', 'Aucun fournisseur ne correspond à « ' + filtre + ' ».') : '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
   const charges = charger('charges');
   tb.innerHTML = fournisseurs.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr')).map(f => {
     const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);

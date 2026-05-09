@@ -4075,7 +4075,7 @@ afficherPlanningSemaine = function() {
 
   var tb = document.getElementById('tb-planning-semaine');
   if (!tb) return;
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
+  if (!salaries.length) { tb.innerHTML = emptyState('👤', 'Aucun salarié', 'Ajoutez un salarié pour planifier la semaine.'); return; }
 
   var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
   var salariesFiltres = salaries.filter(function(s) {
@@ -4101,7 +4101,7 @@ afficherPlanningSemaine = function() {
   if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
   if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
   if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
-  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
+  if (!salariesFiltres.length) { tb.innerHTML = emptyState('🔍', 'Aucun résultat', 'Aucun salarié ne correspond à la recherche.'); return; }
 
   var typeIcons = { travail:'🟢', repos:'⚪', conge:'🔵', absence:'🟡', maladie:'🟣' };
   const renderPlanningCell = function(className, title, detail, note) {
@@ -4133,15 +4133,128 @@ afficherPlanningSemaine = function() {
     return '<tr><td><div class="planning-week-salarie"><strong>' + s.nom + '</strong>' + (s.poste ? '<span class="planning-week-meta">' + s.poste + '</span>' : '') + (s.numero ? '<span class="planning-week-meta">#' + s.numero + '</span>' : '') + '</div></td>' + cellules + '</tr>';
   }).join('');
 };
-/* H2.1 — `window.__adminFinalLock` neutralisé.
-   Jamais invoqué (cf. `grep __adminFinalLock` → seule la déclaration). Le corps
-   contenait une 1re définition de `window.renderLivraisonsAdminFinal` à 12 colonnes
-   (sans bulk-col, sans actions Lettre/Récurrence) qui aurait écrasé la définition
-   canonique 13 colonnes plus bas (~ligne 4222 actuelle) si la fonction avait été
-   appelée. Conservé comme no-op pour ne pas casser un éventuel appel futur.
-   Voir audit Code Quality H2.1 (collisions de noms globales).
-*/
-window.__adminFinalLock = function() { /* no-op H2.1 */ };
+window.__adminFinalLock = function() {
+  ouvrirFenetreImpression = function(titre, html, options) {
+    const win = ouvrirPopupSecure('', '_blank', options || 'width=900,height=700');
+    if (!win) return;
+    win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>body{margin:0;padding:20px;background:#fff;font-family:Segoe UI,Arial,sans-serif}.export-logo{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff;padding:6px}@page{margin:12mm}</style></head><body>' + html + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},700);});<\/script></body></html>');
+    win.document.close();
+  };
+
+  // construireEnteteExport : ancienne définition supprimée (code mort —
+  // écrasée par les redéfinitions ultérieures du fichier).
+
+  peuplerAbsenceSal = function() { planningSyncSearchWithSelect('absence-sal-search', 'absence-sal', 'absence-sal-datalist'); };
+  filtrerRechercheAbsence = function() {
+    var found = planningResolveSelectedEmployee('absence-sal-search', 'absence-sal');
+    if (!found) planningSyncSearchWithSelect('absence-sal-search', 'absence-sal', 'absence-sal-datalist');
+  };
+  peuplerSelectPlanningModal = function() { planningSyncSearchWithSelect('plan-salarie-search', 'plan-salarie', 'plan-salarie-datalist'); };
+  filtrerRecherchePlanningModal = function() {
+    var found = planningResolveSelectedEmployee('plan-salarie-search', 'plan-salarie');
+    if (!found) planningSyncSearchWithSelect('plan-salarie-search', 'plan-salarie', 'plan-salarie-datalist');
+    if (document.getElementById('plan-salarie')?.value) genererGrilleJours();
+  };
+
+  badgePaiementLivraisonHtml = function(statut) {
+    return {
+      'payé': '<span class="badge badge-dispo">Payé</span>',
+      'en-attente': '<span class="badge badge-attente">À payer</span>',
+      'litige': '<span class="badge badge-inactif">Litige</span>'
+    }[statut || 'en-attente'] || '<span class="badge badge-attente">À payer</span>';
+  };
+
+  window.renderLivraisonsAdminFinal = function() {
+    let livraisons = charger('livraisons');
+    const tb = document.getElementById('tb-livraisons');
+    const filtreStatut = document.getElementById('filtre-statut')?.value || '';
+    const filtreDateDeb = document.getElementById('filtre-date-debut')?.value || '';
+    const filtreDateFin = document.getElementById('filtre-date-fin')?.value || '';
+    const filtreRecherche = document.getElementById('filtre-recherche-liv')?.value?.toLowerCase().trim() || '';
+    const filtrePaiement = document.getElementById('filtre-paiement')?.value || '';
+    const filtreChauffeur = document.getElementById('filtre-chauffeur')?.value || '';
+    const selChauf = document.getElementById('filtre-chauffeur');
+
+    if (selChauf) {
+      const currentValue = selChauf.value;
+      selChauf.innerHTML = '<option value="">Tous les chauffeurs</option>';
+      charger('salaries').forEach(s => { selChauf.innerHTML += `<option value="${s.id}">${s.nom}</option>`; });
+      selChauf.value = currentValue;
+    }
+
+    if (filtreStatut) livraisons = livraisons.filter(l => l.statut === filtreStatut);
+    if (filtreDateDeb) livraisons = livraisons.filter(l => l.date >= filtreDateDeb);
+    if (filtreDateFin) livraisons = livraisons.filter(l => l.date <= filtreDateFin);
+    if (filtrePaiement) livraisons = livraisons.filter(l => (l.statutPaiement || 'en-attente') === filtrePaiement);
+    if (filtreChauffeur) livraisons = livraisons.filter(l => l.chaufId === filtreChauffeur);
+    if (filtreRecherche) livraisons = livraisons.filter(l => [l.client, l.chaufNom, l.numLiv, l.depart, l.arrivee].filter(Boolean).join(' ').toLowerCase().includes(filtreRecherche));
+    livraisons.sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe));
+
+    if (!tb) return;
+    if (!livraisons.length) {
+      tb.innerHTML = emptyState('📦', 'Aucune livraison', 'Ajustez les filtres ou ajoutez une livraison.');
+      return;
+    }
+
+    const escapeAttr = window.escapeAttr;
+    const escapeHtml = window.escapeHtml;
+    const formatClientLabel = function(value) {
+      var raw = String(value || '').trim();
+      if (!raw) return '—';
+      return /^\d+$/.test(raw) ? ('Client #' + raw) : raw;
+    };
+    const formatArchivedDriverHtml = function(value) {
+      var raw = String(value || '').trim();
+      if (!raw) return '<span class="livraison-cell-text livraison-driver-text">Non assigné</span>';
+      var archived = /\s*\(archivé\)\s*$/i.test(raw);
+      var clean = raw.replace(/\s*\(archivé\)\s*$/i, '').trim();
+      var safeClean = escapeHtml(clean || raw);
+      if (!archived) return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '</span>';
+      return '<span class="livraison-cell-text livraison-driver-text" title="' + escapeAttr(raw) + '">' + safeClean + '<span class="livraison-archived-badge">archivé</span></span>';
+    };
+
+    tb.innerHTML = livraisons.map(l => {
+      const ht = getMontantHTLivraison(l);
+      const tva = (parseFloat(l.prix) || 0) - ht;
+      const ttc = parseFloat(l.prix) || 0;
+      const statutPaiement = l.statutPaiement || 'en-attente';
+      const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
+      const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+      const client = formatClientLabel(l.client || '—');
+      const clientText = escapeHtml(client);
+      const depart = l.depart || '';
+      const arrivee = l.arrivee || '';
+      const zoneGeo = depart && arrivee && depart !== arrivee ? depart + ' → ' + arrivee : (arrivee || depart || '—');
+      const zoneGeoText = escapeHtml(zoneGeo || '—');
+      const chauffeur = l.chaufNom || 'Non assigné';
+      const datePaiement = l.datePaiement ? formatDateExport(String(l.datePaiement).slice(0, 10)) : '—';
+      return `<tr>
+        <td class="livraison-ref-cell">${escapeHtml(l.numLiv || '—')}</td>
+        <td><strong class="livraison-cell-text livraison-client-text" title="${escapeAttr(client)}">${clientText}</strong></td>
+        <td><span class="livraison-cell-text livraison-zone-text" title="${escapeAttr(zoneGeo || '—')}">${zoneGeoText}</span></td>
+        <td class="livraison-number-cell">${l.distance ? formatKm(l.distance) : '—'}</td>
+        <td class="livraison-number-cell">${euros(ht)}</td>
+        <td class="livraison-number-cell livraison-muted-cell">${euros(tva)}</td>
+        <td class="livraison-number-cell livraison-total-cell">${euros(ttc)}</td>
+        <td>${formatArchivedDriverHtml(chauffeur)}</td>
+        <td><div class="livraison-select-cell">${selectStatutPropre}</div></td>
+        <td><div class="livraison-select-cell">${selectPaiementPropre}</div></td>
+        <td class="livraison-number-cell">${datePaiement}</td>
+        <td class="actions-cell">${buildInlineActionsDropdown('Actions', [
+          { icon:'✏️', label:'Modifier', action:"ouvrirEditLivraison('" + l.id + "')" },
+          { icon:'📄', label:'Bon de livraison', action:"genererBonLivraison('" + l.id + "')" },
+          { icon:'🧾', label:'Facture', action:"genererFactureLivraison('" + l.id + "')" },
+          { icon:'📋', label:'Lettre de voiture', action:"genererLettreDeVoiture('" + l.id + "')" },
+          { icon:'📋', label:'Dupliquer', action:"dupliquerLivraison('" + l.id + "')" },
+          { icon:'🔁', label:'Récurrence', action:"ouvrirRecurrence('" + l.id + "')" },
+          { icon:'🗑️', label:'Supprimer', action:"supprimerLivraison('" + l.id + "')", danger:true }
+        ])}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  afficherLivraisons = window.renderLivraisonsAdminFinal;
+};
 /* ===== FINAL ADMIN LOCK ===== */
 ouvrirFenetreImpression = function(titre, html, options) {
   const win = ouvrirPopupSecure('', '_blank', options || 'width=900,height=700');
@@ -4205,9 +4318,9 @@ filtrerRecherchePlanningModal = function() {
 badgePaiementLivraisonHtml = function(statut) {
   return {
     'payé': '<span class="badge badge-dispo">Payé</span>',
-    'en-attente': '<span class="badge badge-attente">En attente</span>',
+    'en-attente': '<span class="badge badge-attente">À payer</span>',
     'litige': '<span class="badge badge-inactif">Litige</span>'
-  }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
+  }[statut || 'en-attente'] || '<span class="badge badge-attente">À payer</span>';
 };
 
 const __finalLabelStatutLivraison = function(statut) {
@@ -4290,7 +4403,7 @@ window.renderLivraisonsAdminFinal = function() {
 
   if (!tb) return;
   if (!livraisons.length) {
-    tb.innerHTML = '<tr><td colspan="13" class="empty-row">Aucune livraison</td></tr>';
+    tb.innerHTML = emptyState('📦', 'Aucune livraison', 'Ajustez les filtres ou ajoutez une livraison.');
     if (typeof majBulkActions === 'function') majBulkActions();
     return;
   }
@@ -4318,7 +4431,7 @@ window.renderLivraisonsAdminFinal = function() {
     const ttc = parseFloat(l.prix) || 0;
     const statutPaiement = l.statutPaiement || 'en-attente';
     const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+    const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
     const client = formatClientLabel(l.client || '—');
     const clientText = escapeHtml(client);
     const depart = l.depart || '';
@@ -4359,7 +4472,7 @@ window.renderLivraisonsAdminFinal = function() {
 
 /* ===== ADMIN FINAL UX / EXPORTS ===== */
 const labelPaiementLivraison = function(statut) {
-  return statut === 'payé' ? 'Payé' : statut === 'litige' ? 'Litige' : 'En attente';
+  return statut === 'payé' ? 'Payé' : statut === 'litige' ? 'Litige' : 'À payer';
 };
 
 const labelStatutLivraisonLisible = function(statut) {
@@ -4438,9 +4551,9 @@ construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom)
 badgePaiementLivraisonHtml = function(statut) {
   return {
     'payé': '<span class="badge badge-dispo">Payé</span>',
-    'en-attente': '<span class="badge badge-attente">En attente</span>',
+    'en-attente': '<span class="badge badge-attente">À payer</span>',
     'litige': '<span class="badge badge-inactif">Litige</span>'
-  }[statut || 'en-attente'] || '<span class="badge badge-attente">En attente</span>';
+  }[statut || 'en-attente'] || '<span class="badge badge-attente">À payer</span>';
 };
 
 labelStatutLivraison = function(statut) {
@@ -5766,7 +5879,7 @@ validerLivraisonLivree = async function(id) {
   var livraisons = charger('livraisons');
   var idx = livraisons.findIndex(l => l.id === id);
   if (idx === -1) return false;
-  var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Valider la livraison', icone:'📦', btnLabel:'Valider', danger:false });
+  var ok = await confirmDialog('Confirmer cette livraison comme livrée ?', { titre:'Marquer livrée', icone:'📦', btnLabel:'Confirmer', danger:false });
   if (!ok) return false;
   livraisons[idx].statut = 'livre';
   livraisons[idx].dateLivraison = new Date().toISOString();
@@ -5785,7 +5898,7 @@ validerLivraisonPayee = async function(id) {
   var msg = liv.statut !== 'livre'
     ? 'Marquer cette livraison comme payée ?\n(le statut de livraison reste inchangé)'
     : 'Confirmer cette livraison comme payée ?';
-  var ok = await confirmDialog(msg, { titre:'Valider le paiement', icone:'💳', btnLabel:'Valider', danger:false });
+  var ok = await confirmDialog(msg, { titre:'Marquer payée', icone:'💳', btnLabel:'Encaisser', danger:false });
   if (!ok) return false;
   liv.statutPaiement = 'payé';
   liv.datePaiement = new Date().toISOString();
@@ -6061,7 +6174,7 @@ afficherPlanningSemaine = function() {
 
   var tb = document.getElementById('tb-planning-semaine');
   if (!tb) return;
-  if (!salaries.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié</td></tr>'; return; }
+  if (!salaries.length) { tb.innerHTML = emptyState('👤', 'Aucun salarié', 'Ajoutez un salarié pour planifier la semaine.'); return; }
 
   var filtre = (document.getElementById('filtre-planning-salarie')?.value || '').trim().toLowerCase();
   var salariesFiltres = salaries.filter(function(s) {
@@ -6091,7 +6204,7 @@ afficherPlanningSemaine = function() {
   if (document.getElementById('planning-kpi-salaries')) document.getElementById('planning-kpi-salaries').textContent = salaries.length;
   if (document.getElementById('planning-kpi-planifies')) document.getElementById('planning-kpi-planifies').textContent = totalPlanifies;
   if (document.getElementById('planning-kpi-absences')) document.getElementById('planning-kpi-absences').textContent = totalAbsences;
-  if (!salariesFiltres.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun salarié ne correspond à la recherche</td></tr>'; return; }
+  if (!salariesFiltres.length) { tb.innerHTML = emptyState('🔍', 'Aucun résultat', 'Aucun salarié ne correspond à la recherche.'); return; }
 
   function renderCell(className, title, detail, note) {
     return '<td><div class="planning-week-state ' + className + '"><span>' + title + '</span>' + (detail ? '<span class="planning-week-time">' + detail + '</span>' : '') + (note ? '<span class="planning-week-note">' + note + '</span>' : '') + '</div></td>';
@@ -7823,7 +7936,7 @@ genererRentabilitePDF = function() {
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
         const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
@@ -8114,7 +8227,7 @@ genererRentabilitePDF = function() {
         const ttc = parseFloat(l.prix) || 0;
         const statutPaiement = l.statutPaiement || 'en-attente';
         const selectStatutPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('statut', l.statut) + '" onchange="changerStatutLivraison(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'statut\')"><option value="en-attente" ' + (l.statut === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="en-cours" ' + (l.statut === 'en-cours' ? 'selected' : '') + '>En cours</option><option value="livre" ' + (l.statut === 'livre' ? 'selected' : '') + '>Livré</option></select>';
-        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>En attente</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
+        const selectPaiementPropre = '<select class="livraison-inline-select ' + getLivraisonInlineSelectClass('paiement', statutPaiement) + '" onchange="changerStatutPaiement(\'' + l.id + '\',this.value,this);styliserSelectLivraison(this,\'paiement\')"><option value="en-attente" ' + (statutPaiement === 'en-attente' ? 'selected' : '') + '>À payer</option><option value="payé" ' + (statutPaiement === 'payé' ? 'selected' : '') + '>Payé</option><option value="litige" ' + (statutPaiement === 'litige' ? 'selected' : '') + '>Litige</option></select>';
         const client = formatClientLabel(l.client || '—');
         const clientText = escapeHtml(client);
         const depart = l.depart || '';
@@ -10020,7 +10133,7 @@ genererRentabilitePDF = function() {
         sourceIcon: '🏭',
         type: 'fournisseur_du',
         title: f.nom + ' · dû depuis ' + jRetard + ' j',
-        sub: 'Solde à régler ' + fmtEuro(solde),
+        sub: 'Solde à payer ' + fmtEuro(solde),
         gravite: grav,
         statut: 'ouvert',
         creeLe: dEch.toISOString(),
@@ -11021,7 +11134,7 @@ genererRentabilitePDF = function() {
           <div class="s20-fiche-meta">${Math.round(kmActuel).toLocaleString('fr-FR')} km · ${esc(veh.modeAcquisition || 'achat')}${veh.dateAcquisition ? ' depuis ' + fmtDate(veh.dateAcquisition) : ''}</div>
           ${sal
             ? `<div class="s20-fiche-veh">👤 Affecté à <button type="button" class="s20-btn-360" onclick="window.ouvrirFiche360Salarie('${esc(sal.id)}')">${esc(sal.nom)}</button></div>`
-            : '<div class="s20-fiche-veh muted">Aucun salarié affecté</div>'}
+            : '<div class="s20-fiche-veh muted">Aucun chauffeur affecté</div>'}
         </div>
         <div class="s20-fiche-badges">
           ${alertes.length ? `<span class="s20-badge-alert">⚠️ ${alertes.length} alerte${alertes.length > 1 ? 's' : ''}</span>` : '<span class="badge badge-dispo">✅ OK</span>'}
@@ -12747,7 +12860,7 @@ genererRentabilitePDF = function() {
           </div>
           <div class="s26-sig-actions">
             <button class="btn btn-ghost" onclick="window.s26EffacerSig()">🗑️ Effacer</button>
-            <button class="btn btn-primary" onclick="window.s26EnregistrerSig('${esc(liv.id)}')">✅ Valider & archiver</button>
+            <button class="btn btn-primary" onclick="window.s26EnregistrerSig('${esc(liv.id)}')">✅ Enregistrer & archiver</button>
           </div>
           ${existing ? `<div class="s26-sig-meta">Déjà signée le ${fmtDateTime(existing.date)} par ${esc(existing.signataire||'')}</div>` : ''}
         </div>

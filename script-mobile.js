@@ -1123,7 +1123,7 @@
       </div>
       ${blocLignes}
       <div style="border-top:1px solid #e5e7eb;padding-top:14px;margin-top:24px;font-size:.78rem;color:#9ca3af;text-align:center">
-        ${isFact ? 'Mode paiement : ' + esc(liv.modePaiement || 'À définir') + ' · Statut : ' + esc((liv.statutPaiement || 'En attente').replace('en-attente', 'En attente')) + ' · ' : ''}
+        ${isFact ? 'Mode paiement : ' + esc(liv.modePaiement || 'À définir') + ' · Statut : ' + esc((liv.statutPaiement || 'À payer').replace('en-attente', 'À payer')) + ' · ' : ''}
         Document généré le ${new Date().toLocaleString('fr-FR')}
       </div>
       </body></html>`;
@@ -2186,7 +2186,7 @@
         ${M.formField('Nb essieux', M.formInput('essieux', { type: 'number', step: '1', min: '1', placeholder: '2', value: v.essieux || '' }))}
         ${M.formField('Vidange tous les', M.formInputWithSuffix('entretienIntervalKm', 'km', { type: 'number', step: '500', min: '0', placeholder: '15000', value: v.entretienIntervalKm || '' }))}
       </div>
-      ${M.formField('Chauffeur attribué', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
+      ${M.formField('Chauffeur affecté', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
         <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Carte grise, Assurance, CT...)</summary>
@@ -3220,7 +3220,7 @@
     const body = `
       ${M.formField('Date', M.formInput('date', { type: 'date', value: (inc.date || (inc.creeLe || '').slice(0, 10) || today), required: true }), { required: true })}
       ${M.formField('Client', M.formInput('client', { value: inc.client || '', placeholder: 'Nom du client (libre)' }))}
-      ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: inc.salId || '' }))}
+      ${M.formField('Chauffeur', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: inc.salId || '' }))}
       ${M.formField('N° livraison', M.formInput('numLiv', { value: inc.numLiv || '', placeholder: 'Si lié à une livraison' }))}
       <div class="m-form-row">
         ${M.formField('Gravité', M.formSelect('gravite', [
@@ -4333,11 +4333,12 @@
         </div>
       `;
 
-      // Chips filtre paiement (Tout / À encaisser / Payé / Litige) - mirror PC filtre-paiement
+      // Chips filtre paiement (Tout / À payer / Payé / Litige) - mirror PC filtre-paiement
+      // H2.5 : "À encaisser" -> "À payer" (statut paiement unifie cote display).
       html += `
         <div style="display:flex;gap:6px;margin-bottom:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${fPaiement===''?'active':''}" data-fp="">Tous (${compteurs.all})</button>
-          <button class="m-alertes-chip ${fPaiement==='en-attente'?'active':''}" data-fp="en-attente">⏳ À encaisser (${compteurs['en-attente']})</button>
+          <button class="m-alertes-chip ${fPaiement==='en-attente'?'active':''}" data-fp="en-attente">⏳ À payer (${compteurs['en-attente']})</button>
           <button class="m-alertes-chip ${fPaiement==='payé'?'active':''}" data-fp="payé">✅ Payé (${compteurs['payé']})</button>
           <button class="m-alertes-chip ${fPaiement==='litige'?'active':''}" data-fp="litige">⚠️ Litige (${compteurs['litige']})</button>
         </div>
@@ -4431,7 +4432,7 @@
           : '';
         const sp = M.livStatutPaiement(l);
         // Pastille statut paiement (couleur)
-        const spLabel = sp === 'payé' ? '✅ Payé' : sp === 'litige' ? '⚠️ Litige' : '⏳ À encaisser';
+        const spLabel = sp === 'payé' ? '✅ Payé' : sp === 'litige' ? '⚠️ Litige' : '⏳ À payer';
         const spColor = sp === 'payé' ? 'var(--m-green)' : sp === 'litige' ? 'var(--m-red)' : 'var(--m-accent)';
         // Quick-action "Marquer payée" si non payé et pas en mode bulk
         const quickPay = (!bulkOn && sp !== 'payé')
@@ -8508,7 +8509,7 @@
               <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-green)">${M.format$(s.paye)}</div>
             </div>
             <div style="background:var(--m-card);border:1px solid rgba(245,166,35,0.3);border-radius:12px;padding:12px;text-align:center">
-              <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">En attente</div>
+              <div style="font-size:.66rem;color:var(--m-accent);text-transform:uppercase;letter-spacing:.04em;font-weight:700">À payer</div>
               <div style="font-size:1.05rem;font-weight:700;margin-top:4px;color:var(--m-accent)">${M.format$(s.attente - s.retard)}</div>
             </div>
             <div style="background:var(--m-card);border:1px solid ${s.retard > 0 ? 'rgba(231,76,60,0.4)' : 'var(--m-border)'};border-radius:12px;padding:12px;text-align:center">
@@ -8542,7 +8543,7 @@
         ${livClient.length ? livClient.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10).map(l => {
           const sp = (l.statutPaiement || 'en-attente').toLowerCase();
           const couleurStatut = sp === 'paye' ? 'var(--m-green)' : sp === 'partiel' ? 'var(--m-accent)' : 'var(--m-text-muted)';
-          const labelStatut = sp === 'paye' ? '✓ Payé' : sp === 'partiel' ? '~ Partiel' : '⏳ En attente';
+          const labelStatut = sp === 'paye' ? '✓ Payé' : sp === 'partiel' ? '~ Partiel' : '⏳ À payer';
           return `
           <button type="button" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" class="m-card m-card-pressable" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;font-family:inherit;min-height:48px">
             <div style="flex:1 1 auto;min-width:0">
@@ -9051,8 +9052,8 @@
           <div class="m-card" style="padding:0">
             ${v.km ? detailRow('Kilométrage', `${M.formatNum(v.km)} km`) : ''}
             ${v.kmInitial ? detailRow('Km initial', `${M.formatNum(v.kmInitial)} km`) : ''}
-            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100km</span>`) : ''}
-            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100km`) : ''}
+            ${consoCalc != null ? detailRow('Conso réelle', `<span style="color:${consoCalc > 12 ? 'var(--m-red)' : consoCalc > 8 ? 'var(--m-accent)' : 'var(--m-green)'}">${consoCalc.toFixed(1)} L/100 km</span>`) : ''}
+            ${v.conso ? detailRow('Conso constructeur', `${v.conso} L/100 km`) : ''}
             ${v.capaciteReservoir ? detailRow('Capacité réservoir', `${M.formatNum(v.capaciteReservoir)} L`) : ''}
             ${v.ptac ? detailRow('PTAC', `${M.formatNum(v.ptac)} kg`) : ''}
             ${v.ptra ? detailRow('PTRA', `${M.formatNum(v.ptra)} kg`) : ''}
@@ -10369,13 +10370,15 @@
             ? `<button type="button" onclick="MCAm.openDetail('clients','${M.escHtml(cli.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(i.client)} ›</span></button>`
             : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Client</span><span style="font-weight:500">${M.escHtml(i.client)}</span></div>`;
         })() : ''}
-        ${i.salNom ? (() => {
-          const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : M.findSalarieByName(i.salNom);
+        ${(i.salNom || i.chaufNom) ? (() => {
+          // H2.5 : fusion Salarié + Chauffeur en une seule ligne "Chauffeur"
+          // (les deux champs reflètent la même personne pour les incidents).
+          const nomAffiche = i.chaufNom || i.salNom;
+          const sal = i.salId ? M.charger('salaries').find(s => s.id === i.salId) : M.findSalarieByName(nomAffiche);
           return sal
-            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(i.salNom)} ›</span></button>`
-            : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Salarié</span><span style="font-weight:500">${M.escHtml(i.salNom)}</span></div>`;
+            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;background:none;border-top:none;border-left:none;border-right:none;color:inherit;font-family:inherit"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:600;color:var(--m-blue)">${M.escHtml(nomAffiche)} ›</span></button>`
+            : `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:500">${M.escHtml(nomAffiche)}</span></div>`;
         })() : ''}
-        ${i.chaufNom ?    `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Chauffeur</span><span style="font-weight:500">${M.escHtml(i.chaufNom)}</span></div>` : ''}
         ${i.numLiv ?      `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° livraison</span><span style="font-weight:500">${M.escHtml(i.numLiv)}</span></div>` : ''}
       </div>
 

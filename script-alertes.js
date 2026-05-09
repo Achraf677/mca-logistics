@@ -234,7 +234,7 @@ if (!toutesDejaLues) {
 
     const section = document.createElement('div');
     section.style.cssText = `background:${cat.color};border:1px solid ${cat.border};border-radius:10px;margin-bottom:16px;overflow:hidden`;
-    // Boutons "Tout valider / Tout ignorer" cachés en mode reportées (ils n'auraient pas de sens)
+    // Boutons "Tout traiter / Tout ignorer" cachés en mode reportées (ils n'auraient pas de sens)
     const bulkBtns = enModeReportees
       ? ''
       : `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3);font-size:.72rem;padding:3px 8px" onclick="validerAlertesParType('${cat.type}')" title="Marquer toutes ces alertes comme traitées">✅ Tout</button>
@@ -286,7 +286,7 @@ if (!toutesDejaLues) {
           } else if (estCritique) {
             btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Traité</button>`;
           } else {
-            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button>
+            btnActions = `<button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Traité</button>
               ${snoozeSelect(a.id)}
               <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer (silencieuse 30 jours)">✕ Ignorer</button>`;
           }
@@ -338,7 +338,7 @@ if (!toutesDejaLues) {
         const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
         return `<tr><td style="font-size:0.85rem">${a.message}</td><td>${a.meta?.salNom||'—'}</td>
           <td style="color:var(--text-muted);font-size:0.82rem">${dateFmt}</td>
-          <td><button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Valider</button></td></tr>`;
+          <td><button class="btn-icon" style="background:rgba(46,204,113,0.12);color:#2ecc71;border:1px solid rgba(46,204,113,0.3)" onclick="validerAlerte('${a.id}')">✅ Traité</button></td></tr>`;
       }).join('')}</tbody></table>`;
     container.appendChild(section);
   }
