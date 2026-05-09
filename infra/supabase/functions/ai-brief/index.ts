@@ -22,6 +22,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { buildRecentlyMentioned, dedupDecisions } from "./dedup.mjs";
 
 const PRO_DAILY_QUOTA = 50;
 const GEMINI_TIMEOUT_MS = 45000;
@@ -1032,7 +1033,26 @@ Deno.serve(async (req) => {
 
   const cand = resp.candidates?.[0];
   const text = (cand?.content?.parts ?? []).map((p) => p.text || "").join("\n").trim();
-  const decisions = parseDecisions(text);
+  const rawDecisions = parseDecisions(text);
+
+  // Dedup contre les 3 derniers runs : si une decision (hash type|entity|message)
+  // a deja ete proposee recemment, la skipper. Evite de bombarder Achraf avec les
+  // memes infos jour apres jour et economise lecture cote utilisateur.
+  let decisions = rawDecisions;
+  let dedupSkipped = 0;
+  try {
+    const { data: recentRuns } = await sbAdmin
+      .from("ai_brief_runs")
+      .select("decisions")
+      .order("ran_at", { ascending: false })
+      .limit(3);
+    const recentlyMentioned = await buildRecentlyMentioned(recentRuns ?? []);
+    const filtered = await dedupDecisions(rawDecisions, recentlyMentioned);
+    decisions = filtered.kept;
+    dedupSkipped = filtered.skipped;
+  } catch (e) {
+    console.warn("[ai-brief] dedup failed, keeping all decisions:", e);
+  }
 
   await bumpQuota(sbAdmin, model.includes("pro") ? "pro" : "flash");
 
@@ -1055,6 +1075,7 @@ Deno.serve(async (req) => {
     trigger,
     decisions,
     decisions_count: decisions.length,
+    dedup_skipped: dedupSkipped,
     model_used: model,
     pro_fell_back_to_flash: proFellBackToFlash,
     duration_ms: durationMs,

@@ -11744,6 +11744,42 @@
     }
   });
 
+  // ---------- Brouillons IA (parite PC : page admin/brouillons-ia) ----------
+  // Liste les actions ai_pending_actions deposees par le chatbot (mode brouillon).
+  // Le module window.AIBrouillons est expose par script-ai-brouillons.js (charge
+  // dans m.html). On retombe gracieusement si le module n'est pas pret.
+  M.register('brouillons-ia', {
+    title: 'Brouillons IA',
+    render() {
+      // On rend un container vide — AIBrouillons.renderDraftsPage() le remplit
+      // via mountAndLoad() (charge async les drafts puis injecte la liste).
+      return '<div id="m-brouillons-ia-list" class="m-brouillons-ia-host"></div>';
+    },
+    afterRender(container) {
+      const host = container.querySelector('#m-brouillons-ia-list');
+      if (!host) return;
+      if (window.AIBrouillons && typeof window.AIBrouillons.renderDraftsPage === 'function') {
+        try {
+          window.AIBrouillons.renderDraftsPage(host);
+        } catch (e) {
+          console.warn('[mobile/brouillons-ia] render failed', e);
+          host.innerHTML = '<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Erreur d\'affichage</h3><p class="m-empty-text">' + M.escHtml(e.message || String(e)) + '</p></div>';
+        }
+      } else {
+        // Module pas encore charge : on affiche un fallback et on retente
+        // une fois apres 800ms (script-ai-brouillons.js peut etre defer).
+        host.innerHTML = '<div class="m-empty"><div class="m-empty-icon">📋</div><h3 class="m-empty-title">Chargement…</h3><p class="m-empty-text">Module Brouillons IA en cours de chargement.</p></div>';
+        setTimeout(() => {
+          if (window.AIBrouillons && typeof window.AIBrouillons.renderDraftsPage === 'function') {
+            try { window.AIBrouillons.renderDraftsPage(host); } catch (_) {}
+          } else {
+            host.innerHTML = '<div class="m-empty"><div class="m-empty-icon">⚠️</div><h3 class="m-empty-title">Module indisponible</h3><p class="m-empty-text">script-ai-brouillons.js n\'a pas pu etre charge. Reessaie dans un instant ou recharge la page.</p></div>';
+          }
+        }, 800);
+      }
+    },
+  });
+
   // ============================================================
   // Coût IA — mobile (parité PC, cf. script-cout-ia.js).
   // Source : table Supabase public.ai_quota_daily (RLS admin only).
@@ -12332,10 +12368,11 @@
     M._toDocs   = setTimeout(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 1000);
     M._intDocs  = setInterval(() => { M.lancerVerifDocs(); M.updateAlertesBadge(); }, 3600000);
 
-    // Initialise + auto-trigger du brief IA cote mobile (parite PC).
+    // Initialise le badge brief IA. Auto-trigger retire le 2026-05-09
+    // pour economiser le quota Gemini : declenchement manuel uniquement
+    // via le bouton "Rafraichir" du panneau-agent (header mobile bouton 🤖).
     M.updateBriefBadge();
     setInterval(M.updateBriefBadge, 30000);
-    M.declencherBriefAutoLoginSiNecessaire();
 
     // Scroll-fade des FAB secondaires (selection multiple) : ils sont
     // repositionnes en haut a droite pour ne plus chevaucher les FAB metier.
