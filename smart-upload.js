@@ -11,12 +11,14 @@
  *
  *   window.SmartUpload.attachToInput(input, options)
  *   window.SmartUpload.processFile(file, options)
+ *   window.SmartUpload.routeByType(result, ctx)  // helper : map type_detecte -> fields
  *
  * options = {
- *   mode             : 'facture' | 'ticket_carburant' | 'rib' | 'carte_grise' | 'permis'
+ *   mode             : 'auto' | 'facture' | 'ticket_carburant' | 'rib' | 'carte_grise' | 'permis'
+ *                       (defaut: 'auto' — Gemini detecte le type + extrait en 1 appel)
  *   storageBucket    : nom du bucket Supabase (ex: 'salaries-docs')
  *   storagePath      : (file) => string  // construit le path Storage
- *   onOcrResult      : (data) => void    // payload sanitize de l'edge fn ai-ocr
+ *   onOcrResult      : (result) => void  // payload OCR (cf. forme ci-dessous)
  *   onUploaded       : (info) => void    // { path, bucket, contentType, name, size }
  *   onError          : (err) => void     // erreur fatale (les 2 brins ont rate)
  *   onProgress       : (status) => void  // 'compress'|'ocr_start'|'ocr_done'|'ocr_failed'|'storage_start'|'storage_done'|'storage_failed'|'done'
@@ -24,6 +26,13 @@
  *   skipOcr          : bool              // force aucun appel OCR (juste storage)
  *   skipStorage      : bool              // force aucun appel storage (juste OCR)
  * }
+ *
+ * Forme du payload onOcrResult :
+ *   - mode 'auto' : { type_detecte: 'facture'|'ticket_carburant'|'rib'|'carte_grise'|'permis'|'autre',
+ *                     confidence: 'haute'|'moyenne'|'basse'|null,
+ *                     data: { ...champs specifiques au type detecte } }
+ *   - mode specifique (facture, rib, ...) : payload "data" pre-sanitize directement
+ *     (retrocompat : on conserve l'ancienne signature pour les callers existants).
  *
  * Comportement :
  *   - upload Storage et appel OCR partent en `Promise.all`-like (independants).
@@ -43,14 +52,18 @@
   var OCR_TIMEOUT_MS = 60000;
   var MAX_FILE_BYTES = 20 * 1024 * 1024; // 20 MB cap aligne sur edge fn (PDF)
 
-  // Modes connus de l'edge fn ai-ocr (apres extension carte_grise + permis).
+  // Modes connus de l'edge fn ai-ocr. "auto" = detection type + extraction en 1
+  // appel (Phase 1 mode auto, ajout 2026-05-09). Les modes specifiques restent
+  // supportes pour retrocompat des callers existants (script-ai-chat.js).
   var KNOWN_MODES = {
+    auto: true,
     facture: true,
     ticket_carburant: true,
     rib: true,
     carte_grise: true,
     permis: true,
   };
+  var DEFAULT_MODE = 'auto';
 
   function escapeHtml(s) {
     if (window.MCASecurity && typeof window.MCASecurity.escapeHtml === 'function') {
@@ -172,7 +185,15 @@
       if (body && body.success === false) {
         return { ok: false, error: { message: body.error || 'Echec extraction', hint: body.hint } };
       }
-      return { ok: true, data: (body && body.data) || {}, raw: body };
+      // En mode auto, on retourne aussi type_detecte + confidence au caller
+      // (via raw). Pour les modes specifiques, raw.type_detecte sera undefined.
+      return {
+        ok: true,
+        data: (body && body.data) || {},
+        type_detecte: body && body.type_detecte ? body.type_detecte : null,
+        confidence: body && body.confidence ? body.confidence : null,
+        raw: body,
+      };
     } catch (e) {
       clearTimeout(timeoutId);
       if (e && e.name === 'AbortError') {
@@ -239,7 +260,9 @@
 
   async function processFile(file, options) {
     options = options || {};
-    var mode = options.mode || null;
+    // Defaut: mode 'auto' (detection type + extraction unifie). Les callers qui
+    // veulent forcer un type specifique passent explicitement options.mode.
+    var mode = options.mode || DEFAULT_MODE;
     var bucket = options.storageBucket || null;
     var pathFn = options.storagePath || null;
     var fbUI = options.feedbackEl ? buildFeedbackUI(options.feedbackEl) : null;
@@ -311,7 +334,12 @@
       emit('ocr_done');
       updatePill(fbUI && fbUI.ocrPill, 'ok', '✅ OCR');
       if (typeof options.onOcrResult === 'function') {
-        try { options.onOcrResult(ocrRes.data); } catch (e) { console.warn('[smart-upload] onOcrResult:', e); }
+        // Mode 'auto' : on passe { type_detecte, confidence, data } au callback.
+        // Modes specifiques : retrocompat — on passe juste data (l'ancienne signature).
+        var payload = (mode === 'auto')
+          ? { type_detecte: ocrRes.type_detecte, confidence: ocrRes.confidence, data: ocrRes.data }
+          : ocrRes.data;
+        try { options.onOcrResult(payload); } catch (e) { console.warn('[smart-upload] onOcrResult:', e); }
       }
     } else if (ocrRes.skipped) {
       // rien a dire
@@ -405,9 +433,109 @@
     });
   }
 
+  // ---------- Helper : route le resultat 'auto' vers les bons champs de form ----------
+  //
+  // Recoit le payload onOcrResult mode auto ({ type_detecte, confidence, data })
+  // et un contexte form ({ section: 'charges'|'salaries'|'vehicules'|'carburant' })
+  // optionnel. Retourne :
+  //   {
+  //     fields_to_prefill : { ...mapping cle->valeur a appliquer au form... },
+  //     target_section    : 'rib'|'permis'|'carte_grise'|'facture'|'ticket'|null,
+  //     handled           : bool  // true si le type est exploitable, false si 'autre'
+  //   }
+  //
+  // Les noms de champs renvoyes sont alignes sur les conventions MCA (snake_case
+  // pour DB, le caller fait le mapping vers ses inputs HTML). Si le type n'est
+  // pas pertinent pour la section, target_section reste null et handled=false.
+  function routeByType(result, ctx) {
+    ctx = ctx || {};
+    if (!result || !result.type_detecte) {
+      return { fields_to_prefill: {}, target_section: null, handled: false };
+    }
+    var t = String(result.type_detecte);
+    var d = (result.data && typeof result.data === 'object') ? result.data : {};
+    if (t === 'autre') {
+      return { fields_to_prefill: {}, target_section: null, handled: false };
+    }
+    if (t === 'facture') {
+      return {
+        fields_to_prefill: {
+          fournisseur_nom: d.fournisseur_nom || null,
+          date: d.date_facture || null,
+          montant_ttc: d.montant_ttc || null,
+          montant_ht: d.montant_ht || null,
+          taux_tva: d.taux_tva || null,
+          num_facture: d.num_facture || null,
+        },
+        target_section: 'facture',
+        handled: true,
+      };
+    }
+    if (t === 'ticket_carburant') {
+      return {
+        fields_to_prefill: {
+          station: d.station || null,
+          date: d.date || null,
+          litres: d.litres || null,
+          prix_litre: d.prix_litre || null,
+          montant_ttc: d.montant_ttc || null,
+          type_carburant: d.type_carburant || null,
+        },
+        target_section: 'ticket',
+        handled: true,
+      };
+    }
+    if (t === 'rib') {
+      return {
+        fields_to_prefill: {
+          titulaire: d.titulaire || null,
+          iban: d.iban || null,
+          bic: d.bic || null,
+          banque: d.banque || null,
+        },
+        target_section: 'rib',
+        handled: true,
+      };
+    }
+    if (t === 'carte_grise') {
+      return {
+        fields_to_prefill: {
+          immatriculation: d.immatriculation || null,
+          vin: d.vin || null,
+          marque: d.marque || null,
+          modele: d.modele || null,
+          date_premiere_immat: d.date_premiere_immat || null,
+          puissance_fiscale: d.puissance_fiscale || null,
+          carburant: d.carburant || null,
+          ptac_kg: d.ptac_kg || null,
+          genre: d.genre || null,
+        },
+        target_section: 'carte_grise',
+        handled: true,
+      };
+    }
+    if (t === 'permis') {
+      return {
+        fields_to_prefill: {
+          numero: d.numero || null,
+          nom: d.nom || null,
+          prenom: d.prenom || null,
+          date_naissance: d.date_naissance || null,
+          date_delivrance: d.date_delivrance || null,
+          date_expiration: d.date_expiration || null,
+          categories: d.categories || null,
+        },
+        target_section: 'permis',
+        handled: true,
+      };
+    }
+    return { fields_to_prefill: {}, target_section: null, handled: false };
+  }
+
   window.SmartUpload = {
     attachToInput: attachToInput,
     processFile: processFile,
+    routeByType: routeByType,
     // Expose interne pour tests unitaires
     _internals: {
       callOcr: callOcr,
@@ -415,6 +543,7 @@
       isPdf: isPdf,
       isImage: isImage,
       KNOWN_MODES: KNOWN_MODES,
+      DEFAULT_MODE: DEFAULT_MODE,
     },
   };
 })();
