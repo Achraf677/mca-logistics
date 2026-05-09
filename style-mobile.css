@@ -337,6 +337,18 @@ a { color: var(--m-accent); text-decoration: none; }
   border-top: 1px solid var(--m-border);
   margin: 8px 0;
 }
+.m-drawer-version-footer {
+  margin-top: 12px;
+  padding: 6px 12px;
+  font-size: 0.65rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--m-text-muted);
+  opacity: 0.55;
+  letter-spacing: 0.02em;
+  user-select: text;
+  text-align: center;
+  word-break: break-all;
+}
 
 /* ============================ CARDS ============================ */
 .m-card {
