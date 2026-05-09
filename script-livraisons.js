@@ -1142,7 +1142,10 @@ function reinitialiserLivPeriode() {
     wrapped.__paginated = !!prev.__paginated;
     wrapped.__sorted = !!prev.__sorted;
     window.renderLivraisonsAdminFinal = wrapped;
-    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = wrapped;
+    /* WRAPPER server-pagination — H2.1 : pas de réassignement de
+       window.afficherLivraisons. La fonction `afficherLivraisons` (déclarée
+       plus haut dans ce fichier) lit `window.renderLivraisonsAdminFinal` au
+       moment de l'appel, donc elle pointe automatiquement sur ce wrapper. */
   }
 
   // Re-tente d'installer le hook plusieurs fois car renderLivraisonsAdminFinal

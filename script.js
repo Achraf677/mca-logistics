@@ -1833,7 +1833,40 @@ function badgeStatut(s) {
 // MOVED -> script-core-audit.js : executerActionAgent
 
 const __toastRecents = new Map();
-function afficherToast(message, type='success') {
+/* CANONIQUE — `afficherToast` (toast simple, élément #toast).
+   H2.1 : registre de listeners fan-out. Au lieu de wrapper window.afficherToast
+   (chaîne fragile dépendant de l'ordre de chargement), les modules qui veulent
+   réagir aux toasts appellent `addToastListener(cb)`. Chaque appel à
+   afficherToast notifie tous les listeners enregistrés ; si un listener
+   throw, on log et continue. Si un listener retourne `true`, il "consomme"
+   l'événement et le toast simple #toast n'est PAS affiché en plus.
+   Voir Sprint 10 (toasts stackés) qui s'enregistre via ce registre au lieu
+   d'écraser window.afficherToast. */
+const __toastListeners = [];
+window.addToastListener = function(cb) {
+  if (typeof cb !== 'function') return function() {};
+  __toastListeners.push(cb);
+  return function() {
+    const idx = __toastListeners.indexOf(cb);
+    if (idx > -1) __toastListeners.splice(idx, 1);
+  };
+};
+window.removeToastListener = function(cb) {
+  const idx = __toastListeners.indexOf(cb);
+  if (idx > -1) __toastListeners.splice(idx, 1);
+};
+function afficherToast(message, type='success', options) {
+  // Notifier les listeners (Sprint 10 = toasts stackés, etc.). Si un listener
+  // retourne `true`, il consomme l'événement — on n'affiche pas le toast simple.
+  let consumed = false;
+  for (const cb of __toastListeners) {
+    try {
+      if (cb(message, type, options) === true) consumed = true;
+    } catch (e) {
+      console.error('[afficherToast] listener error', e);
+    }
+  }
+  if (consumed) return;
   const t=document.getElementById('toast');
   if (!t) return;
   // Dédup : même message émis dans les 2s = ignoré (anti-spam)
@@ -1853,6 +1886,8 @@ function afficherToast(message, type='success') {
   t.textContent=message; t.className='toast show'+(type==='error'?' error':'');
   setTimeout(()=>{t.className='toast';},3000);
 }
+// Exposer aussi sur window pour cohérence avec les call-sites window.afficherToast(...)
+window.afficherToast = afficherToast;
 
 /* ===== INSPECTIONS ===== */
 const INSPECTION_STORAGE_RETENTION_DAYS = 60;
@@ -4431,7 +4466,9 @@ window.renderLivraisonsAdminFinal = function() {
   }).join('');
   if (typeof majBulkActions === 'function') majBulkActions();
 };
-afficherLivraisons = window.renderLivraisonsAdminFinal;
+/* H2.1 — réassignement supprimé : `afficherLivraisons` (script-livraisons.js)
+   délègue déjà à `window.renderLivraisonsAdminFinal` via lookup dynamique,
+   donc inutile de la rebinder ici. Évite les collisions en chaîne. */
 
 /* ===== ADMIN FINAL UX / EXPORTS ===== */
 const labelPaiementLivraison = function(statut) {
@@ -4603,7 +4640,9 @@ calculerPrevision = function() {
   });
 };
 
-afficherLivraisons = window.renderLivraisonsAdminFinal;
+/* H2.1 — réassignement supprimé : `afficherLivraisons` (script-livraisons.js)
+   délègue déjà à `window.renderLivraisonsAdminFinal` via lookup dynamique,
+   donc inutile de la rebinder ici. Évite les collisions en chaîne. */
 
 window.__planningRewriteFinal = function() {
   toggleAbsenceTypeFields = function() {
@@ -5925,7 +5964,9 @@ changerStatutLivraison = async function(id, statut, selectEl) {
   if (!ok && selectEl) selectEl.value = ancienStatut;
 };
 
-afficherLivraisons = window.renderLivraisonsAdminFinal;
+/* H2.1 — réassignement supprimé : `afficherLivraisons` (script-livraisons.js)
+   délègue déjà à `window.renderLivraisonsAdminFinal` via lookup dynamique,
+   donc inutile de la rebinder ici. Évite les collisions en chaîne. */
 
 peuplerAbsenceSal = function() {
   var sel = document.getElementById('absence-sal');
@@ -7933,7 +7974,11 @@ genererRentabilitePDF = function() {
 
     patched.__paginated = true;
     window.renderLivraisonsAdminFinal = patched;
-    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = patched;
+    /* WRAPPER S7 — pagination livraisons. H2.1 : on ne réassigne plus
+       window.afficherLivraisons ici. `afficherLivraisons` (script-livraisons.js)
+       lit `window.renderLivraisonsAdminFinal` au moment de l'appel, donc elle
+       pointe automatiquement sur le wrapper courant — plus besoin de chaîner
+       les écritures (qui causaient des collisions selon l'ordre de chargement). */
   }
 
   /* ---------- Recherche instantanée (debounce 200ms) ---------- */
@@ -8222,7 +8267,8 @@ genererRentabilitePDF = function() {
     wrapped.__paginated = true;
     wrapped.__sorted = true;
     window.renderLivraisonsAdminFinal = wrapped;
-    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = wrapped;
+    /* WRAPPER S8 — tri colonnes livraisons. H2.1 : pas de réassignement de
+       window.afficherLivraisons (cf. WRAPPER S7). */
 
     // Re-render initial pour afficher l'indicateur si tri déjà mémorisé
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
@@ -8390,7 +8436,8 @@ genererRentabilitePDF = function() {
     patched.__sorted = true;
     patched.__emptyStated = true;
     window.renderLivraisonsAdminFinal = patched;
-    if (typeof window.afficherLivraisons !== 'undefined') window.afficherLivraisons = patched;
+    /* WRAPPER S9 — empty states riches livraisons. H2.1 : pas de réassignement
+       de window.afficherLivraisons (cf. WRAPPER S7). */
 
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
   }
@@ -8527,17 +8574,36 @@ genererRentabilitePDF = function() {
     return id;
   }
 
-  // Override global afficherToast — garder backward compatibility
-  const oldAfficherToast = window.afficherToast;
-  window.afficherToast = function(message, type, options) {
-    try {
-      return stackedToast(message, type, options);
-    } catch (e) {
-      // Fallback : ancien comportement si notre stack plante
-      if (typeof oldAfficherToast === 'function') return oldAfficherToast(message, type);
-      console.error(e);
-    }
-  };
+  /* WRAPPER S10 — toasts stackés. H2.1 : on n'écrase plus window.afficherToast.
+     On s'enregistre comme listener via addToastListener (registre fan-out
+     défini avec la définition canonique). Le listener retourne `true` pour
+     "consommer" l'événement et empêcher le toast simple #toast de s'afficher
+     en plus. Si stackedToast throw, on retourne false (le toast simple prend
+     la relève en fallback). */
+  if (typeof window.addToastListener === 'function' && !window.__s10ToastListenerInstalled) {
+    window.__s10ToastListenerInstalled = true;
+    window.addToastListener(function(message, type, options) {
+      try {
+        stackedToast(message, type, options);
+        return true; // consommé par le stack
+      } catch (e) {
+        console.error('[s10 stackedToast]', e);
+        return false; // laisser le toast simple prendre la main
+      }
+    });
+  } else if (typeof window.addToastListener !== 'function') {
+    // Fallback : addToastListener pas dispo (ne devrait jamais arriver). Garde
+    // l'ancien wrap pour compat.
+    const oldAfficherToast = window.afficherToast;
+    window.afficherToast = function(message, type, options) {
+      try {
+        return stackedToast(message, type, options);
+      } catch (e) {
+        if (typeof oldAfficherToast === 'function') return oldAfficherToast(message, type);
+        console.error(e);
+      }
+    };
+  }
 
   // Exposer dismissToast pour usage externe
   window.dismissToastById = function(id) {
@@ -8813,22 +8879,21 @@ genererRentabilitePDF = function() {
     }
   }
 
-  /* ---------- Wrap openModal pour installer + reset ---------- */
-  if (typeof window.openModal === 'function' && !window.openModal.__s11) {
-    const origOpen = window.openModal;
-    const wrapped = function(id) {
-      origOpen.apply(this, arguments);
-      if (id === 'modal-livraison') {
-        setTimeout(() => {
-          installModalLivraison();
-          document.querySelectorAll('#modal-livraison .field-error').forEach(e => { e.textContent = ''; e.style.display = 'none'; });
-          document.querySelectorAll('#modal-livraison .field-invalid, #modal-livraison .field-ok').forEach(e => e.classList.remove('field-invalid', 'field-ok'));
-          updateCalcSummary();
-        }, 20);
-      }
-    };
-    wrapped.__s11 = true;
-    window.openModal = wrapped;
+  /* HELPER S11 — `installModalLivraisonOnOpen` (anciennement wrapper de
+     window.openModal). H2.1 : remplacé par un hook nommé enregistré dans le
+     registre de modal-hooks (script-core-ui.js). Pas d'écrasement de la
+     canonique. Si registerModalHook absent, fallback no-op (le formulaire
+     restera fonctionnel sans le reset auto, l'utilisateur peut toujours saisir). */
+  if (typeof window.registerModalHook === 'function' && !window.__s11ModalHookInstalled) {
+    window.__s11ModalHookInstalled = true;
+    window.registerModalHook('open', 'modal-livraison', function() {
+      setTimeout(() => {
+        installModalLivraison();
+        document.querySelectorAll('#modal-livraison .field-error').forEach(e => { e.textContent = ''; e.style.display = 'none'; });
+        document.querySelectorAll('#modal-livraison .field-invalid, #modal-livraison .field-ok').forEach(e => e.classList.remove('field-invalid', 'field-ok'));
+        updateCalcSummary();
+      }, 20);
+    });
   }
 
   /* ---------- Wrap ajouterLivraison : validation bloquante inline ---------- */
@@ -8908,12 +8973,20 @@ genererRentabilitePDF = function() {
     modal.classList.add('open');
     return modal;
   };
-  // closeModal compat pour 'modal-info'
-  const _origCloseModal = window.closeModal;
-  window.closeModal = function(id) {
-    if (id === 'modal-info') { document.getElementById('s15-modal-info')?.classList.remove('open'); return; }
-    if (typeof _origCloseModal === 'function') return _origCloseModal.apply(this, arguments);
-  };
+  /* HELPER S15 — `closeModalInfo`. H2.1 : remplaçait un wrapper de
+     window.closeModal qui interceptait l'id virtuel 'modal-info' (en fait
+     #s15-modal-info dans le DOM). On utilise désormais un hook 'close' :
+     quand n'importe quelle modal se ferme avec id='modal-info', on ferme
+     l'overlay s15-modal-info. Le canonique closeModal cherche son overlay
+     par ID et ne trouve rien (modal-info n'existe pas dans le DOM), donc
+     pas d'effet de bord ; le hook fait le travail. */
+  if (typeof window.registerModalHook === 'function' && !window.__s15CloseHookInstalled) {
+    window.__s15CloseHookInstalled = true;
+    window.registerModalHook('close', 'modal-info', function() {
+      const el = document.getElementById('s15-modal-info');
+      if (el) el.classList.remove('open');
+    });
+  }
 
   /* ============================================================
      1. AUTO-CRÉATION CLIENT DEPUIS FACTURE
@@ -9719,7 +9792,10 @@ genererRentabilitePDF = function() {
 
   window.cal16 = { render, naviguer, aujourdhui, changerVue, allerA, retourMois, imprimer };
 
-  /* ---------- Hook navigation ---------- */
+  /* WRAPPER S16 — Hook naviguerVers : déclencher render() du calendrier
+     mensuel quand l'utilisateur navigue vers la page 'calendrier'. Pattern
+     chaîne propre : capture l'ancienne version, marqueur __s16 idempotent,
+     préserve les marqueurs des wrappers antérieurs (S12_1, S14, S15). H2.1. */
   function hookNav() {
     if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__s16) return;
     const orig = window.naviguerVers;
@@ -10340,7 +10416,9 @@ genererRentabilitePDF = function() {
     page.insertBefore(el, page.firstChild);
   }
 
-  /* ---------- Hook navigation incidents → centre alertes avec filtre ---------- */
+  /* WRAPPER S19 — Hook naviguerVers : déclencher renderCentre() quand
+     l'utilisateur ouvre 'alertes' pour rafraîchir le centre d'alertes.
+     Chain pattern : __s19 idempotent, capture orig avant override. H2.1. */
   function hookNavigation() {
     if (typeof window.naviguerVers !== 'function') { setTimeout(hookNavigation, 300); return; }
     if (window.naviguerVers.__s19) return;
@@ -10546,6 +10624,9 @@ genererRentabilitePDF = function() {
     if (window.resolveStorageImages && content) window.resolveStorageImages(content);
   };
 
+  /* CANONIQUE S20 — fermerFiche360. Seule définition forte ; le bloc S21
+     plus bas n'écrit que si cette fonction n'est pas encore définie (fallback
+     défensif). H2.1 : pas de collision. */
   window.fermerFiche360 = function() {
     const d = document.getElementById('s20-drawer');
     const o = document.getElementById('s20-drawer-overlay');
@@ -10973,7 +11054,11 @@ genererRentabilitePDF = function() {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && drawer.classList.contains('open')) window.fermerFiche360 && window.fermerFiche360();
     });
-    // Fallback fermerFiche360 si S20 absent
+    /* WRAPPER S21 — fermerFiche360 fallback. H2.1 : la définition canonique
+       vit dans le bloc S20 (`window.fermerFiche360 = function() { ... }`).
+       Ce bloc S21 (Fiche 360° Véhicule) réutilise le drawer S20. Le `if`
+       garantit qu'on ne ré-écrit JAMAIS la canonique — seulement défini si
+       S20 n'a pas encore tourné. Pas de collision. */
     if (typeof window.fermerFiche360 !== 'function') {
       window.fermerFiche360 = function() {
         const d = document.getElementById('s20-drawer');
@@ -11446,7 +11531,9 @@ genererRentabilitePDF = function() {
     });
   }
 
-  /* 5. Hook naviguerVers pour gérer les alias hub + bandeau auto */
+  /* WRAPPER S22 — Hook naviguerVers : gérer alias hub (Finance/Parc/RH/etc.)
+     et bandeau de navigation contextuel. Chain pattern : __s22Hooked
+     idempotent, capture orig avant override. H2.1. */
   function hookNav() {
     const orig = window.naviguerVers;
     if (!orig || orig.__s22Hooked) return;
@@ -13636,13 +13723,12 @@ genererRentabilitePDF = function() {
     reset: reset
   };
 
-  // Hook : quand la modale s'ouvre, reset + update progress
-  if (typeof window.openModal === 'function') {
-    const originalOpenModal = window.openModal;
-    window.openModal = function(id) {
-      const result = originalOpenModal.apply(this, arguments);
-      if (id === 'modal-livraison') { setTimeout(function(){ try { reset(); } catch(_){} }, 60); }
-      return result;
-    };
+  /* HELPER mcaLivForm — H2.1 : reset du form livraison à l'ouverture de la
+     modale, via hook 'open' au lieu de wrapper window.openModal. */
+  if (typeof window.registerModalHook === 'function' && !window.__livFormResetHookInstalled) {
+    window.__livFormResetHookInstalled = true;
+    window.registerModalHook('open', 'modal-livraison', function() {
+      setTimeout(function(){ try { reset(); } catch(_){} }, 60);
+    });
   }
 })();
