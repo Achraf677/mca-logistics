@@ -529,7 +529,7 @@ body.role-salarie-unified .page:not(.active) {
 
 /* ===== BOUTONS ===== */
 .btn-primary { background: var(--accent); color: #000; border: none; padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.btn-primary:hover { background: #d4911d; transform: translateY(-1px); }
+.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
 .btn-secondary { background: transparent; color: var(--text-muted); border: 1px solid var(--border); padding: 9px 18px; border-radius: 8px; font-size: 0.85rem; font-weight: 500; cursor: pointer; transition: all 0.2s; }
 .btn-secondary:hover { border-color: var(--text-muted); color: var(--text-primary); }
 .btn-icon { background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
@@ -1689,7 +1689,7 @@ body.light-mode .badge-inactif {
   z-index: 150;
 }
 #btn-scroll-top.visible { display: flex; }
-#btn-scroll-top:hover { transform: translateY(-2px); background: #d4911d; }
+#btn-scroll-top:hover { transform: translateY(-2px); background: var(--accent-hover); }
 
 /* ===== TOPBAR AMÉLIORÉE ===== */
 .topbar-user-menu { position: relative; }
