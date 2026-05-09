@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v4_27-hub-equipe-sprint22-171';
+const CACHE_VERSION = 'mca-v2026-05-09-v4_28-hub-equipe-merge-172';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -88,6 +88,8 @@ const CORE_ASSETS = [
   '/auth-2fa.js',
   // Mobile exports PDF (parite PC partielle Livraisons / Charges / Encaissement)
   '/script-mobile-exports.js',
+  // Setup wizard onboarding (1ere connexion admin) — parite PC + mobile
+  '/script-setup-wizard.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne

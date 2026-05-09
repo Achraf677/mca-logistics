@@ -3346,6 +3346,9 @@
   <script defer src="script.js?v=20260509e-61"></script>
   <script defer src="health-check.js?v=20260509e-60"></script>
   <script defer src="watchdog.js?v=20260509e-60"></script>
+  <!-- Setup wizard onboarding : 1ere connexion admin (4 etapes). Charge apres
+       script.js pour disposer de validerSIRET / afficherToast / appliquerBranding. -->
+  <script defer src="script-setup-wizard.js?v=20260509f-1"></script>
   <script>
     // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
     // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
