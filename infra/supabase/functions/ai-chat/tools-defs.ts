@@ -988,5 +988,76 @@ export const TOOLS = [{
         properties: { category: { type: "string" } },
       },
     },
+    // ===== Phase 9 — Anti-hallucination : tools manquants identifies en prod =====
+    {
+      name: "get_rentabilite_par_vehicule",
+      description: "Rentabilite par vehicule sur une periode : CA HT (livraisons rattachees) - charges (vehicule + carburant) = marge brute, eur/km. Utilise quand l'admin parle de 'rentabilite par camion' / 'quelle benne rapporte le plus' / 'cout/marge par vehicule'.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD (defaut : debut mois courant)" },
+          date_max: { type: "string", description: "YYYY-MM-DD (defaut : aujourd'hui)" },
+          vehicule_id: { type: "string", description: "Filtre sur un vehicule precis (optionnel)" },
+        },
+      },
+    },
+    {
+      name: "get_rentabilite_par_client",
+      description: "Rentabilite par client sur une periode : CA HT - charges rattachees (via livraisons) = marge brute, marge en %. Utilise quand l'admin demande 'quel client est le plus rentable' / 'rentabilite par client' / 'top clients marges'.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "YYYY-MM-DD (defaut : debut mois courant)" },
+          date_max: { type: "string", description: "YYYY-MM-DD (defaut : aujourd'hui)" },
+          limit: { type: "integer", description: "Top N clients (1-30, defaut 10)" },
+        },
+      },
+    },
+    {
+      name: "qonto_proposer_rapprochement",
+      description: "Pour une transaction Qonto (par transaction_id ou montant + date), suggere les livraisons impayees ou charges a payer les plus probables (memes scoring que cron qonto-sync-daily : 0.5 montant + 0.3 date + 0.2 nom, threshold 0.7). Retourne les candidats tries par score desc.",
+      parameters: {
+        type: "object",
+        properties: {
+          transaction_id: { type: "string", description: "ID de la transaction Qonto (alternative au couple amount/date)" },
+          amount: { type: "number", description: "Montant absolu (positif) si transaction_id absent" },
+          settled_at: { type: "string", description: "Date de la transaction YYYY-MM-DD (si transaction_id absent)" },
+          counterparty_name: { type: "string", description: "Nom contrepartie (si transaction_id absent)" },
+          side: { type: "string", enum: ["credit", "debit"], description: "credit = encaissement client (livraison), debit = paiement charge" },
+        },
+      },
+    },
+    {
+      name: "get_inventaire_capacites",
+      description: "Retourne la liste exhaustive des tools disponibles (avec leur description courte) + les pages PC/mobile dispo + les integrations actives. Utilise CE TOOL au lieu d'inventer une reponse quand l'admin demande 'qu'est-ce que tu peux faire' / 'tes capacites' / 'quelles sont tes limites' / 'quels sont tes outils'.",
+      parameters: {
+        type: "object",
+        properties: {
+          categorie: {
+            type: "string",
+            enum: ["all", "lecture", "ecriture", "memoire", "pages", "integrations"],
+            description: "Filtre la categorie (defaut all)",
+          },
+        },
+      },
+    },
+    {
+      name: "propose_provision_salarie",
+      description: "PROPOSE la creation/maj d'un compte de connexion pour un chauffeur existant (appelle l'edge fn provision-salarie-access apres validation). Args : salarie_id (UUID existant), email, password (mode 'manual') ou mode='auto-generate'. Retourne une proposition pour confirmation UI, n'execute PAS directement.",
+      parameters: {
+        type: "object",
+        properties: {
+          salarie_id: { type: "string", description: "UUID du salarie existant (obligatoire)" },
+          email: { type: "string", description: "Email du compte (defaut : email du salarie ou genere depuis numero)" },
+          temporary_password_method: {
+            type: "string",
+            enum: ["auto-generate", "manual"],
+            description: "auto-generate = mot de passe genere (16 chars random), manual = utilise password fourni",
+          },
+          password: { type: "string", description: "Si method=manual : mot de passe (>=8 chars). Sinon ignore." },
+        },
+        required: ["salarie_id"],
+      },
+    },
   ],
 }];

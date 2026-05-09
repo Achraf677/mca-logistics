@@ -458,6 +458,54 @@ async function execAddToDrafts(
   return { success: true, draft_id: (data as any).id, action: (data as any).action };
 }
 
+// Provision compte chauffeur : delegue a l'edge fn provision-salarie-access
+// (qui valide le role admin du caller et cree/maj le user auth + lie au salaries.profile_id).
+async function execProvisionSalarie(
+  sb: SbClient,
+  payload: any,
+  actorId: string,
+): Promise<{ success: boolean; error?: string; created_id?: string; entity?: string }> {
+  if (!payload || !payload.salarieId || !payload.password) {
+    return { success: false, error: "salarieId et password requis" };
+  }
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceKey = Deno.env.get("SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceKey) {
+    return { success: false, error: "config edge function provision manquante" };
+  }
+  const url = `${supabaseUrl}/functions/v1/provision-salarie-access`;
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceKey}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    return { success: false, error: "fetch provision: " + String(e).slice(0, 200) };
+  }
+  let body: any = null;
+  try { body = await resp.json(); } catch { /* ignore */ }
+  if (!resp.ok) {
+    return { success: false, error: body?.error || `HTTP ${resp.status}` };
+  }
+  await logAudit(sb, {
+    table_name: "salaries",
+    operation: "UPDATE",
+    row_id: String(body?.salarieId || payload.salarieId),
+    actor_id: actorId,
+    diff: {
+      _action: "provision_salarie_access",
+      profile_id: body?.profileId || null,
+      email: body?.email || null,
+    },
+  });
+  return { success: true, entity: "salaries", created_id: String(body?.profileId || body?.salarieId || "") };
+}
+
 async function dispatchDraftAction(
   sb: SbClient,
   action: string,
@@ -479,6 +527,7 @@ async function dispatchDraftAction(
     case "create_planning_creneau": return await execCreateEntity(sb, "plannings_hebdo", payload, actorId);
     case "create_inspection": return await execCreateEntity(sb, "inspections", payload, actorId);
     case "delete_entity": return await execDeleteEntity(sb, payload?.entity, payload?.id, payload?.raison, actorId);
+    case "provision_salarie": return await execProvisionSalarie(sb, payload, actorId);
     case "bulk_execute": {
       const r = await execBulk(sb, payload, actorId);
       return { success: r.success, error: r.error };
@@ -719,6 +768,10 @@ Deno.serve(async (req) => {
         break;
       case "reject_draft":
         result = await execRejectDraft(sbAdmin, body, actorId);
+        break;
+      // ===== Phase 9 — Provision compte chauffeur =====
+      case "provision_salarie":
+        result = await execProvisionSalarie(sbAdmin, payload, actorId);
         break;
       // ===== Phase 5 — Bulk =====
       case "bulk_execute": {
