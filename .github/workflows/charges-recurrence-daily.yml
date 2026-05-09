@@ -1,0 +1,128 @@
+name: Charges Recurrence Daily
+
+# Auto-generation des charges recurrentes (loyer, leasing, assurance, etc.) :
+#   - cron 5h UTC quotidien (= 6h Paris hiver / 7h ete) — avant les heures
+#     ouvrables, evite collision avec qonto-sync-daily (6h UTC).
+#   - workflow_dispatch pour test manuel avec inputs (as_of_date, dry_run).
+#
+# Appelle l'edge function Supabase `charges-recurrence-daily` avec le secret
+# cron. Pour chaque charge marquee `recurrence_actif=true`, genere la
+# prochaine occurrence si la date d'echeance est atteinte.
+#
+# Idempotent : index unique partial sur (recurrence_template_id, periode)
+# bloque les doublons (migration 041).
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      as_of_date:
+        description: 'Date de reference (YYYY-MM-DD). Vide = today UTC.'
+        required: false
+        type: string
+        default: ''
+      dry_run:
+        description: 'Mode dry_run (n''ecrit rien, retourne le plan)'
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: charges-recurrence-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  run:
+    name: Run charges recurrence
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout (for artifact dir)
+        uses: actions/checkout@v4
+
+      - name: Build payload
+        id: payload
+        env:
+          AS_OF:   ${{ github.event.inputs.as_of_date }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          set -e
+          mkdir -p _logs
+          payload=$(jq -nc \
+            --arg as_of "${AS_OF:-}" \
+            --arg dry   "${DRY_RUN:-false}" \
+            '
+              ($as_of | select(length > 0)) as $a
+              | { dry_run: ($dry == "true") }
+                + (if $a then { as_of_date: $a } else {} end)
+            ')
+          echo "Payload: $payload"
+          echo "$payload" > _logs/payload.json
+          echo "payload<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$payload"     >> "$GITHUB_OUTPUT"
+          echo "EOF"          >> "$GITHUB_OUTPUT"
+
+      - name: Call edge function charges-recurrence-daily
+        id: call
+        env:
+          SUPABASE_PROJECT_REF:      ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CRON_SECRET:               ${{ secrets.CRON_SECRET }}
+          PAYLOAD:                   ${{ steps.payload.outputs.payload }}
+        run: |
+          set -e
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::Missing required secrets (SUPABASE_PROJECT_REF, SUPABASE_SERVICE_ROLE_KEY, CRON_SECRET)"
+            exit 1
+          fi
+          URL="https://${SUPABASE_PROJECT_REF}.supabase.co/functions/v1/charges-recurrence-daily"
+          echo "POST $URL"
+          http_status=$(curl -sS -o _logs/response.json -w '%{http_code}' \
+            -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            --data "$PAYLOAD" \
+            --max-time 60)
+          echo "HTTP $http_status"
+          cat _logs/response.json
+          if [ "$http_status" != "200" ]; then
+            echo "::error::charges-recurrence-daily returned HTTP $http_status"
+            exit 1
+          fi
+
+      - name: Extract stats
+        if: always()
+        run: |
+          if [ -f _logs/response.json ]; then
+            echo "## Charges Recurrence Stats" >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            jq '{ok, dry_run, as_of, stats}' _logs/response.json >> "$GITHUB_STEP_SUMMARY" || cat _logs/response.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload run artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: charges-recurrence-${{ github.run_id }}
+          path: _logs/
+          retention-days: 30
+
+      - name: Notify on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 ${context.workflow} failed (${context.runId})`,
+              body: `Workflow [${context.workflow}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) failed at ${new Date().toISOString()}.\n\nCheck the logs: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['workflow-failure', 'priority-high']
+            });
