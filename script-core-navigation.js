@@ -33,6 +33,7 @@ function naviguerVers(page) {
     parametres:'⚙️ Paramètres',
     charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
     heures:'⏱️ Heures & Km',
+    equipe:'👥 Équipe',
     'espace-salarie':'Espace salarié',
     'brouillons-ia':'📋 Brouillons IA'
   };
@@ -42,6 +43,13 @@ function naviguerVers(page) {
     requestAnimationFrame(() => {
       switch (page) {
         case 'dashboard':    rafraichirDashboard(); break;
+        case 'equipe':
+          // Hub Equipe Sprint 22 — refresh KPIs (les onglets internes
+          // deeplinkent vers les pages individuelles via EquipeHub.ouvrirOnglet)
+          if (window.EquipeHub && typeof window.EquipeHub.renderKpisPC === 'function') {
+            window.EquipeHub.renderKpisPC();
+          }
+          break;
         case 'livraisons':   navLivPeriode('reset',0); afficherLivraisons(); break;
         case 'vehicules':    afficherVehicules(); break;
         case 'carburant':    navCarbMois(0); break;
