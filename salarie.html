@@ -916,15 +916,15 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
             <div id="carb-veh-info" style="margin-bottom:12px"></div>
             <div class="form-group">
               <label>Litres *</label>
-              <input type="number" id="sal-litres" placeholder="Ex : 40" min="0" step="0.1" inputmode="decimal" oninput="calculerPlein()" />
+              <input type="number" id="sal-litres" placeholder="Ex : 40" min="0" step="0.1" inputmode="decimal" oninput="calculerPlein()" / aria-label="Ex : 40" />
             </div>
             <div class="form-group">
               <label>Prix / litre (€) *</label>
-              <input type="number" id="sal-prix-litre" placeholder="Ex : 1.85" min="0" step="0.01" inputmode="decimal" oninput="calculerPlein()" />
+              <input type="number" id="sal-prix-litre" placeholder="Ex : 1.85" min="0" step="0.01" inputmode="decimal" oninput="calculerPlein()" / aria-label="Ex : 1.85" />
             </div>
             <div class="form-group">
               <label>Date</label>
-              <input type="date" id="sal-carb-date" />
+              <input type="date" id="sal-carb-date" / aria-label="sal carb date" />
             </div>
             <div class="result-box" id="plein-result">
               Total : <strong id="plein-total">0 €</strong>
@@ -983,7 +983,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
           <div class="card-body">
             <div class="form-group">
               <label>Date</label>
-              <input type="date" id="km-date" onchange="rafraichirTourneesSelect()" />
+              <input type="date" id="km-date" onchange="rafraichirTourneesSelect()" / aria-label="km date" />
             </div>
             <div class="form-group full" style="margin-bottom:16px">
   <label style="display:block;margin-bottom:10px">TYPE DE TRAJET *</label>
@@ -996,29 +996,29 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
 
   <!-- Type Livraison -->
   <div id="km-type-livraison-block">
-    <select id="km-tournee-id" onchange="rafraichirTourneesSelect()" style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit">
+    <select id="km-tournee-id" onchange="rafraichirTourneesSelect()" style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" aria-label="km tournee id">
       <option value="">— Sélectionner une livraison —</option>
     </select>
   </div>
 
   <!-- Type Pro -->
   <div id="km-type-pro-block" style="display:none">
-    <input type="text" id="km-motif-pro" placeholder="Ex : Dépôt marchandise, RDV client, Entretien véhicule..." style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" />
+    <input type="text" id="km-motif-pro" placeholder="Ex : Dépôt marchandise, RDV client, Entretien véhicule..." style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" / aria-label="Ex : Dépôt marchandise, RDV client, Entretien véhicule..." />
   </div>
 
   <!-- Type Autre -->
   <div id="km-type-autre-block" style="display:none">
-    <input type="text" id="km-motif-autre" placeholder="Précisez le motif..." style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" />
+    <input type="text" id="km-motif-autre" placeholder="Précisez le motif..." style="width:100%;padding:14px 16px;background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-size:.95rem;font-family:inherit" / aria-label="Précisez le motif..." />
   </div>
 </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Km début *</label>
-                <input type="number" id="km-depart" placeholder="Ex : 50 200" min="0" inputmode="numeric" oninput="majDistanceKm()" />
+                <input type="number" id="km-depart" placeholder="Ex : 50 200" min="0" inputmode="numeric" oninput="majDistanceKm()" / aria-label="Ex : 50 200" />
               </div>
               <div class="form-group">
                 <label>Km fin</label>
-                <input type="number" id="km-arrivee" placeholder="Ex : 50 650" min="0" inputmode="numeric" oninput="majDistanceKm()" />
+                <input type="number" id="km-arrivee" placeholder="Ex : 50 650" min="0" inputmode="numeric" oninput="majDistanceKm()" / aria-label="Ex : 50 650" />
               </div>
             </div>
             <div class="result-box" id="km-result" style="margin-bottom:14px">
@@ -1056,16 +1056,16 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
             <div class="form-row">
               <div class="form-group">
                 <label>Date *</label>
-                <input type="date" id="insp-date" />
+                <input type="date" id="insp-date" / aria-label="insp date" />
               </div>
               <div class="form-group">
                 <label>Km au compteur lors de l'inspection *</label>
-                <input type="number" id="insp-km" placeholder="50 200" inputmode="numeric" />
+                <input type="number" id="insp-km" placeholder="50 200" inputmode="numeric" / aria-label="50 200" />
               </div>
             </div>
             <div class="form-group">
               <label>Commentaire *</label>
-              <input type="text" id="insp-commentaire" placeholder="Ex : RAS, Rayure porte droite, Phare cassé..." />
+              <input type="text" id="insp-commentaire" placeholder="Ex : RAS, Rayure porte droite, Phare cassé..." / aria-label="Ex : RAS, Rayure porte droite, Phare cassé..." />
             </div>
             <div class="form-group">
               <label>Photos (1 à 4) *</label>
@@ -1118,9 +1118,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
     <button type="button" onclick="declencherPj('fichier')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">📄 Envoyer un fichier</button>
   </div>
 </div>
-<input type="file" id="msg-pj-photo" accept="image/*" capture="environment" style="display:none" onchange="envoyerPhotoSal(this)" />
-<input type="file" id="msg-pj-galerie" accept="image/*" style="display:none" onchange="envoyerPhotoSal(this)" />
-<input type="file" id="msg-pj-fichier" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="envoyerFichierSal(this)" />
+<input type="file" id="msg-pj-photo" accept="image/*" capture="environment" style="display:none" onchange="envoyerPhotoSal(this)" / aria-label="msg pj photo" />
+<input type="file" id="msg-pj-galerie" accept="image/*" style="display:none" onchange="envoyerPhotoSal(this)" / aria-label="msg pj galerie" />
+<input type="file" id="msg-pj-fichier" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" onchange="envoyerFichierSal(this)" / aria-label="msg pj fichier" />
             <textarea id="msg-input"
               placeholder="Votre message..."
               rows="1"
@@ -1136,7 +1136,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
                        this.style.height=Math.min(this.scrollHeight,120)+'px'"
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){
                 event.preventDefault();envoyerMessageSal();}"
-            ></textarea>
+             aria-label="Votre message..."></textarea>
             <button class="btn-send" onclick="envoyerMessageSal()" aria-label="Envoyer le message">➤</button>
           </div>
         </div>
@@ -1173,9 +1173,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
             </div>
             <div class="profil-section">
               <h3>Modifier le mot de passe</h3>
-              <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="chg-ancien" autocomplete="current-password" /></div>
-              <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="chg-nouveau" autocomplete="new-password" /></div>
-              <div class="form-group"><label>Confirmer</label><input type="password" id="chg-confirmer" autocomplete="new-password" /></div>
+              <div class="form-group"><label>Mot de passe actuel</label><input type="password" id="chg-ancien" autocomplete="current-password" / aria-label="chg ancien" /></div>
+              <div class="form-group"><label>Nouveau mot de passe</label><input type="password" id="chg-nouveau" autocomplete="new-password" / aria-label="chg nouveau" /></div>
+              <div class="form-group"><label>Confirmer</label><input type="password" id="chg-confirmer" autocomplete="new-password" / aria-label="chg confirmer" /></div>
               <button class="btn-primary" onclick="changerMonMdp()">🔑 Mettre à jour</button>
             </div>
             <div style="margin-top:20px">
@@ -1257,9 +1257,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
     <div class="modal-header">✏️ Modifier le plein <button class="btn-close" onclick="fermerModal('modal-modif-plein')" aria-label="Fermer">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="modif-plein-id" />
-      <div class="form-group"><label>Litres *</label><input type="number" id="modif-litres" min="0" step="0.1" /></div>
-      <div class="form-group"><label>Prix / litre (€) *</label><input type="number" id="modif-prix-litre" min="0" step="0.01" /></div>
-      <div class="form-group"><label>Date</label><input type="date" id="modif-date" /></div>
+      <div class="form-group"><label>Litres *</label><input type="number" id="modif-litres" min="0" step="0.1" / aria-label="modif litres" /></div>
+      <div class="form-group"><label>Prix / litre (€) *</label><input type="number" id="modif-prix-litre" min="0" step="0.01" / aria-label="modif prix litre" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="modif-date" / aria-label="modif date" /></div>
     </div>
     <div class="modal-footer">
       <button class="btn-sm" onclick="fermerModal('modal-modif-plein')">Annuler</button>
@@ -1273,9 +1273,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
     <div class="modal-header">✏️ Modifier le relevé <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')" aria-label="Fermer">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="edit-km-id" />
-      <div class="form-group"><label>Km début *</label><input type="number" id="edit-km-dep" min="0" inputmode="numeric" /></div>
-      <div class="form-group"><label>Km fin</label><input type="number" id="edit-km-arr" min="0" inputmode="numeric" /></div>
-      <div class="form-group"><label>Date</label><input type="date" id="edit-km-date" /></div>
+      <div class="form-group"><label>Km début *</label><input type="number" id="edit-km-dep" min="0" inputmode="numeric" / aria-label="edit km dep" /></div>
+      <div class="form-group"><label>Km fin</label><input type="number" id="edit-km-arr" min="0" inputmode="numeric" / aria-label="edit km arr" /></div>
+      <div class="form-group"><label>Date</label><input type="date" id="edit-km-date" / aria-label="edit km date" /></div>
     </div>
     <div class="modal-footer">
       <button class="btn-sm" onclick="fermerModal('modal-edit-km-sal')">Annuler</button>
