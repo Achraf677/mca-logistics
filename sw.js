@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v5_07-smart-upload-phase2-183';
+const CACHE_VERSION = 'mca-v2026-05-10-v5_08-cache-edit-locks-184';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -93,6 +93,10 @@ const CORE_ASSETS = [
   '/script-mobile-exports.js',
   // Setup wizard onboarding (1ere connexion admin) — parite PC + mobile
   '/script-setup-wizard.js',
+  // PR #51 (2026-05-09) — bouton "Vider le cache" mobile (m.html parametres)
+  '/script-cache-clear.js',
+  // PR #51 — edit-locks bootstrap (wrappe ouvrirEditLivraison/Charge/Client)
+  '/script-edit-locks-bootstrap.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne
