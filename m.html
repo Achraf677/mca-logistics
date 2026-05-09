@@ -158,7 +158,6 @@
   <script src="/all-entity-adapters.js?v=102"></script>
   <script src="/legacy-entity-adapters.js?v=102"></script>
   <script src="/plannings-supabase-adapter.js?v=102"></script>
-  <script src="/messages-supabase-adapter.js?v=102"></script>
   <script src="/clients-supabase-adapter.js?v=102"></script>
   <script src="/salaries-supabase-adapter.js?v=102"></script>
   <script src="/vehicules-supabase-adapter.js?v=102"></script>
@@ -167,8 +166,11 @@
   <!-- DSO helper partage PC/mobile (Sprint H3.4) — doit etre charge AVANT script-mobile -->
   <script src="/script-core-dso.js?v=100"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=102"></script>
+  <script src="/script-mobile.js?v=103"></script>
   <!-- Assistant IA Gemini (V1 admin) - parite PC -->
-  <script src="/script-ai-chat.js?v=102"></script>
+  <script src="/script-ai-chat.js?v=103"></script>
+  <!-- Brouillons IA : page admin de validation des actions IA en attente.
+       Expose window.AIBrouillons utilise par M.routes['brouillons-ia']. -->
+  <script src="/script-ai-brouillons.js?v=103"></script>
 </body>
 </html>

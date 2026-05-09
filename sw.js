@@ -79,7 +79,6 @@ const CORE_ASSETS = [
   '/monitoring.js',
   // Hotfix M3 (2026-05-09) — assets manquants au precachage, recuperes
   // via runtime cache-first jusqu'ici (degrade hors-ligne au premier load).
-  '/messages-supabase-adapter.js',
   '/plannings-supabase-adapter.js',
   '/legacy-entity-adapters.js',
   '/script-core-stats-helpers.js',

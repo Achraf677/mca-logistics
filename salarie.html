@@ -1300,15 +1300,11 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
      Doit etre chargee AVANT script-salarie.js pour que les fonctions de saisie
      l'utilisent immediatement. -->
 <script src="offline-queue.js?v=20260509e-18"></script>
-<!-- Messages adapter : sync localStorage messages_<salId> <-> public.messages
-     Indispensable cote chauffeur pour que ses envois remontent en DB et que
-     les messages admin descendent en realtime. -->
-<script src="messages-supabase-adapter.js?v=20260509e-18"></script>
 <script src="repo.js?v=20260509e-18"></script>
 <!-- i18n : libelles UI partages PC/mobile (Sprint H2.5) -->
 <script src="script-core-i18n.js?v=20260509e-18"></script>
 <script src="watchdog.js?v=20260509e-18"></script>
-<script src="script-salarie.js?v=20260509e-18"></script>
+<script src="script-salarie.js?v=20260509e-19"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => {

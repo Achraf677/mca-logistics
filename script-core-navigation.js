@@ -30,7 +30,7 @@ function naviguerVers(page) {
     rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
     salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
     alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
-    messagerie:'💬 Messagerie interne', parametres:'⚙️ Paramètres',
+    parametres:'⚙️ Paramètres',
     charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
     heures:'⏱️ Heures & Km',
     'espace-salarie':'Espace salarié',
