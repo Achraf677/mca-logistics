@@ -1,0 +1,97 @@
+name: E2E Smoke
+
+# Pilier 2 du process anti-regression : smoke test E2E rapide (~2 min)
+# qui bloque la CI en cas de regression sur les selectors critiques ou
+# le chevauchement de boutons FAB en viewport mobile.
+#
+# Strategy : on RUN toujours (jamais skip). Si secrets absents, on log
+# un warning visible et on sort en succes pour ne pas bloquer le repo
+# tant qu'Achraf n'a pas configure les secrets E2E. Apres configuration,
+# le workflow devient bloquant naturellement sur les vrais checks.
+#
+# Secrets requis (a configurer dans Settings -> Secrets and variables -> Actions) :
+#   - PLAYWRIGHT_ADMIN_EMAIL    : identifiant admin (peut etre email ou username)
+#   - PLAYWRIGHT_ADMIN_PASSWORD : mot de passe admin
+#   - PLAYWRIGHT_BASE_URL       : URL staging (ex: https://staging.mca-logistics.pages.dev)
+#                                  Si absent, fallback sur l'URL prod par defaut.
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'URL staging override'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  smoke:
+    name: Smoke E2E (~2min)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package.json
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Install Playwright + chromium
+        run: |
+          npm install --no-save @playwright/test@^1.48.0
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" != "true" ]; then
+            npx playwright install --with-deps chromium
+          else
+            npx playwright install-deps chromium
+          fi
+
+      - name: Check secrets
+        id: secrets
+        env:
+          ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+        run: |
+          if [ -z "$ADMIN_EMAIL" ] || [ -z "$ADMIN_PASSWORD" ]; then
+            echo "::warning title=Secrets E2E manquants::PLAYWRIGHT_ADMIN_EMAIL et/ou PLAYWRIGHT_ADMIN_PASSWORD non configures. Le smoke E2E va skip les tests authentifies. Configurer dans Settings > Secrets pour activer le check bloquant."
+            echo "has_creds=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_creds=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run smoke spec
+        id: smoke
+        env:
+          ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+          BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || 'https://mca-logistics.pages.dev' }}
+          HAS_CREDS: ${{ steps.secrets.outputs.has_creds }}
+        run: |
+          # On lance UNIQUEMENT le smoke spec (les autres specs e2e ne sont pas
+          # bloquantes ici, elles tournent dans tests.yml).
+          npx playwright test tests/e2e/smoke.spec.js --project=chromium --reporter=github
+
+      - name: Upload trace on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace-${{ github.run_id }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7

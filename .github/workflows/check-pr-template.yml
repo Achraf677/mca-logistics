@@ -1,0 +1,110 @@
+name: Check PR Template
+
+# Verifie que toute PR contient au minimum les sections '## Resume' (ou
+# '## Summary') et '## Test plan' (ou '## Plan de test') dans le body.
+# Si absent : commentaire de rappel + status check failure (sauf si
+# label 'skip-template' present sur la PR).
+#
+# Cible : eliminer les PRs sans description / sans plan de test qui
+# rendent les reviews infaisables et augmentent le risque de regression.
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, labeled, unlabeled, reopened]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  check-template:
+    name: PR body sections
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            if (!pr) {
+              core.info('No PR in payload, skipping');
+              return;
+            }
+            const body = pr.body || '';
+            const labels = (pr.labels || []).map(l => l.name);
+            const opted_out = labels.includes('skip-template');
+
+            // Sections requises (au moins UNE des variantes par section)
+            // Sections requises (au moins UNE des variantes par section).
+            // On accepte aussi "Contexte", "Pourquoi", "Why", "Context" comme
+            // equivalents de Resume — usage repandu dans les PRs existantes.
+            const SECTIONS = [
+              {
+                key: 'resume',
+                regex: /^##\s+(R[ée]sum[ée]|Summary|Contexte|Pourquoi|Why|Context)\b/im,
+                label: 'Resume / Summary / Contexte / Pourquoi',
+              },
+              {
+                key: 'test_plan',
+                regex: /^##\s+(Test plan|Plan de test)\b/im,
+                label: 'Test plan / Plan de test',
+              },
+            ];
+
+            const missing = SECTIONS.filter(s => !s.regex.test(body));
+
+            const COMMENT_MARKER = '<!-- pr-template-bot -->';
+            const { owner, repo } = context.repo;
+            const issue_number = pr.number;
+
+            // Cherche le commentaire bot existant pour update idempotent
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number,
+            });
+            const existing = comments.find(c => c.body && c.body.startsWith(COMMENT_MARKER));
+
+            if (missing.length === 0) {
+              // Tout bon : si on avait commente avant, on remplace par un OK
+              if (existing) {
+                const okBody = `${COMMENT_MARKER}\n\nLes sections **Resume** et **Test plan** sont presentes. Merci !`;
+                await github.rest.issues.updateComment({
+                  owner, repo, comment_id: existing.id, body: okBody,
+                });
+              }
+              core.info('PR body OK');
+              return;
+            }
+
+            // Sections manquantes
+            const list = missing.map(s => `- \`## ${s.label}\``).join('\n');
+            const optOutHint = opted_out
+              ? '\n\n_Label `skip-template` detecte : ce check ne bloquera pas la merge._'
+              : '\n\nPour bypasser temporairement, ajoute le label `skip-template`.';
+
+            const body_comment = `${COMMENT_MARKER}\n\n` +
+              `Sections manquantes dans la description de la PR :\n${list}\n\n` +
+              `Template attendu :\n` +
+              "```markdown\n" +
+              "## Resume\n" +
+              "<3-5 lignes : pourquoi ce changement, quel impact metier>\n\n" +
+              "## Test plan\n" +
+              "- [ ] tests unitaires (npm test)\n" +
+              "- [ ] tests visuels (parite PC/mobile + screenshots)\n" +
+              "- [ ] verification manuelle sur staging si applicable\n" +
+              "```" + optOutHint;
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body: body_comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number, body: body_comment,
+              });
+            }
+
+            if (opted_out) {
+              core.warning('PR sans sections requises mais label skip-template applique — check non bloquant');
+              return;
+            }
+            core.setFailed(`PR body manque ${missing.length} section(s) : ${missing.map(s => s.label).join(', ')}`);
