@@ -53,7 +53,8 @@
     var container = document.getElementById('encaissement-content');
     if (!container) return;
 
-    var all = getLivraisons().map(annoter);
+    var allLivraisons = getLivraisons();
+    var all = allLivraisons.map(annoter);
     var moisCle = new Date().toISOString().slice(0, 7);
     var totalAEncaisser = all.filter(a => !a.paye && !a.litige).reduce((s, a) => s + a.ttc, 0);
     var totalEncaisseMois = all.filter(a => a.paye && (a.liv.datePaiement || '').startsWith(moisCle)).reduce((s, a) => s + a.ttc, 0);
@@ -62,6 +63,11 @@
     var nbAEncaisser = all.filter(a => !a.paye && !a.litige).length;
     var nbRetard = all.filter(a => a.retard).length;
     var nbLitige = all.filter(a => a.litige).length;
+
+    // DSO reel (calcul a la volee sur 90 derniers jours) — Sprint H3.4
+    var dsoData = (typeof window.calculerDSO === 'function')
+      ? window.calculerDSO(allLivraisons)
+      : { dso: null, count: 0, byClient: {} };
 
     // Filtrage
     var filtered = all;
@@ -87,6 +93,7 @@
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--accent)"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⏳ À encaisser</div><div style="font-size:1.6rem;font-weight:700;color:var(--accent)">' + fmt$(totalAEncaisser) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbAEncaisser + ' livraison' + (nbAEncaisser > 1 ? 's' : '') + '</div></div>'
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--green)"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">✅ Encaissé ce mois</div><div style="font-size:1.6rem;font-weight:700;color:var(--green)">' + fmt$(totalEncaisseMois) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">paiements reçus</div></div>'
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--red);' + (totalRetard === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🔴 En retard (>30j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--red)">' + fmt$(totalRetard) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbRetard + ' facture' + (nbRetard > 1 ? 's' : '') + '</div></div>'
+      +   '<div class="card" title="Days Sales Outstanding — délai moyen réel de paiement client sur les 90 derniers jours" style="padding:18px;border-left:4px solid var(--accent);' + (dsoData.dso === null ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📊 DSO réel (90j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--accent)">' + (dsoData.dso !== null ? dsoData.dso + ' j' : '—') + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (dsoData.count > 0 ? dsoData.count + ' livraison' + (dsoData.count > 1 ? 's' : '') + ' payée' + (dsoData.count > 1 ? 's' : '') : 'aucune livraison payée') + '</div></div>'
       +   (nbLitige > 0 ? '<div class="card" style="padding:18px;border-left:4px solid #f59e0b"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⚠️ Litige</div><div style="font-size:1.6rem;font-weight:700;color:#f59e0b">' + fmt$(totalLitige) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbLitige + ' facture' + (nbLitige > 1 ? 's' : '') + '</div></div>' : '')
       + '</div>'
       // Filtres

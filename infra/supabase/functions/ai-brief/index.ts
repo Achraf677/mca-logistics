@@ -1,10 +1,12 @@
-// Edge function ai-brief — brief automatique panneau-agent (v4).
-// Scanne anomalies/opportunites via 9 sources deterministes + memoire long-terme,
+// Edge function ai-brief — brief automatique panneau-agent (v6).
+// Scanne anomalies/opportunites via 10 sources deterministes + memoire long-terme,
 // demande a Gemini de produire au moins 2 decisions JSON par run, ecrit dans
 // ai_brief_runs et retourne au client.
 //
 // v4 (2026-05-08) : ajoute KPIs financiers, top clients a risque, activite flotte,
 // docs salaries expirants, injection memoire long-terme, prompt force >=2 decisions.
+// v6 (2026-05-09) : nouvelle source dso_clients (Sprint H3.4) — DSO global +
+// top 5 clients les plus lents sur 90j (calcul aligne avec script-core-dso.js).
 //
 // Triggers acceptes :
 //   - cron       : workflow GitHub Actions, auth via service_role bearer
@@ -649,6 +651,84 @@ async function fetchDocsExpirants(sb: SbClient) {
   return { count: dedup.length, documents: dedup.slice(0, 12) };
 }
 
+// 10b) DSO clients (Sprint H3.4) : DSO global + top 5 clients les plus lents sur 90j.
+// Utilise la meme formule que script-core-dso.js cote front : delai moyen
+// (date_paiement - date_livraison) sur les livraisons payees des 90 derniers jours,
+// avec exclusion des delais aberrants (< 0 ou > 365j).
+async function fetchDsoClients(sb: SbClient) {
+  const dateMin90 = isoDaysAgo(90);
+  const today = todayISO();
+
+  const { data, error } = await sb.from("livraisons")
+    .select("client_id, client_nom, date_livraison, date_paiement, prix_ttc")
+    .eq("statut_paiement", "paye")
+    .gte("date_livraison", dateMin90)
+    .lte("date_livraison", today)
+    .not("date_paiement", "is", null)
+    .limit(1000);
+  if (error) return { dso_global: null, count: 0, top_lents: [], error: error.message };
+
+  const rows = (data ?? []) as any[];
+  if (!rows.length) return { dso_global: null, count: 0, top_lents: [] };
+
+  // Delais contractuels par client (pour comparer reel vs contractuel)
+  const ids = Array.from(new Set(rows.map((r) => r.client_id).filter(Boolean)));
+  const delaiContractMap = new Map<string, number>();
+  if (ids.length) {
+    const { data: cls } = await sb.from("clients").select("id, delai_paiement_jours").in("id", ids);
+    for (const c of cls ?? []) {
+      delaiContractMap.set((c as any).id, Number((c as any).delai_paiement_jours) || 30);
+    }
+  }
+
+  let totalDelai = 0;
+  let nbValides = 0;
+  const byClient = new Map<string, { nom: string; sum: number; count: number; ttc_total: number }>();
+  for (const r of rows) {
+    const a = r.date_livraison;
+    const b = r.date_paiement;
+    if (!a || !b) continue;
+    const diff = (Date.parse(b + "T00:00:00Z") - Date.parse(a + "T00:00:00Z")) / 86400000;
+    if (Number.isNaN(diff) || diff < 0 || diff > 365) continue;
+    totalDelai += diff;
+    nbValides += 1;
+    const k = r.client_id || r.client_nom || "unknown";
+    const cur = byClient.get(k) || { nom: r.client_nom || "Client", sum: 0, count: 0, ttc_total: 0 };
+    cur.sum += diff;
+    cur.count += 1;
+    cur.ttc_total += Number(r.prix_ttc) || 0;
+    byClient.set(k, cur);
+  }
+
+  if (!nbValides) return { dso_global: null, count: 0, top_lents: [] };
+
+  const dsoGlobal = Number((totalDelai / nbValides).toFixed(1));
+
+  // Top 5 clients les plus lents (au moins 2 livraisons pour eviter outliers)
+  const topLents: any[] = [];
+  for (const [k, v] of byClient) {
+    if (v.count < 2) continue;
+    const moy = v.sum / v.count;
+    const contractuel = delaiContractMap.get(k) ?? 30;
+    topLents.push({
+      client_id: k,
+      nom: v.nom,
+      dso_jours: Number(moy.toFixed(1)),
+      delai_contractuel: contractuel,
+      depasse_contractuel_de: Number((moy - contractuel).toFixed(1)),
+      nb_livraisons: v.count,
+      ttc_total: Number(v.ttc_total.toFixed(2)),
+    });
+  }
+  topLents.sort((a, b) => b.dso_jours - a.dso_jours);
+
+  return {
+    dso_global: dsoGlobal,
+    count: nbValides,
+    top_lents: topLents.slice(0, 5),
+  };
+}
+
 // 10) Memoire long-terme (top 30 par importance)
 async function fetchMemoireLongTerme(sb: SbClient) {
   const { data, error } = await sb.from("ai_memory")
@@ -764,6 +844,9 @@ function buildBriefPrompt(snapshot: Record<string, unknown>): string {
     `### KPIs financiers (semaine, mois, marge 30j, DSO)`,
     trimForPrompt(snapshot.kpis_financiers),
     ``,
+    `### DSO clients sur 90j (Days Sales Outstanding — delai moyen reel de paiement, global + top 5 clients les plus lents)`,
+    trimForPrompt(snapshot.dso_clients),
+    ``,
     `### Top 3 clients a risque (baisse CA semaine vs N-4 OU retard paiement reel > contractuel +14j)`,
     trimForPrompt(snapshot.clients_a_risque),
     ``,
@@ -875,12 +958,12 @@ Deno.serve(async (req) => {
 
   const sbAdmin = createClient(SUPABASE_URL, SERVICE);
 
-  // Snapshot business : 10 fetches en parallele (5 historiques + 4 nouvelles + memoire).
+  // Snapshot business : 11 fetches en parallele (5 historiques + 4 v4 + DSO clients v6 + memoire).
   let snapshot: Record<string, unknown>;
   try {
     const [
       livRetard, vehEch, anoCarb, alertes, audit,
-      kpis, clientsRisk, flotte, docsExp, memoire,
+      kpis, clientsRisk, flotte, docsExp, dsoClients, memoire,
     ] = await Promise.all([
       fetchLivraisonsImpayeesRetard(sbAdmin),
       fetchVehiculesEcheancesProches(sbAdmin),
@@ -891,6 +974,7 @@ Deno.serve(async (req) => {
       fetchClientsARisque(sbAdmin),
       fetchActiviteFlotte(sbAdmin),
       fetchDocsExpirants(sbAdmin),
+      fetchDsoClients(sbAdmin),
       fetchMemoireLongTerme(sbAdmin),
     ]);
     snapshot = {
@@ -903,6 +987,7 @@ Deno.serve(async (req) => {
       clients_a_risque: clientsRisk,
       activite_flotte: flotte,
       docs_expirants: docsExp,
+      dso_clients: dsoClients,
       memoire_long_terme: memoire,
     };
   } catch (e) {
