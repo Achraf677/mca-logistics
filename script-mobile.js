@@ -1271,6 +1271,13 @@
     const typeCarbDefaut = p.typeCarburant || vehDuPlein?.typeCarburant || '';
 
     const body = `
+      <div class="m-form-field" style="margin-bottom:14px">
+        <label for="m-carb-smart-upload-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
+          <span>📤</span><span>Uploader (auto) — ticket carburant</span>
+        </label>
+        <input type="file" id="m-carb-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
+        <p class="m-form-hint" id="m-carb-smart-upload-status" style="text-align:center"></p>
+      </div>
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.immatriculation || v.id })), { placeholder: 'Choisir un véhicule', value: p.vehiculeId || '', required: true }), { required: true })}
       ${M.formField('Type carburant', M.formSelect('typeCarburant', [
         { value: 'diesel',     label: '⛽ Diesel/Gazole' },
@@ -1327,6 +1334,42 @@
         litres.addEventListener('input', () => { dernierEdit = 'litres'; recalc(); });
         prixL.addEventListener('input', () => { dernierEdit = 'prixL'; recalc(); });
         total.addEventListener('input', () => { dernierEdit = 'total'; recalc(); });
+        // SmartUpload mode auto (Phase 2) : drop ticket -> Gemini detecte +
+        // pre-remplit date / litres / prix_litre / total / type_carburant.
+        // Storage : bucket carburant-recus (path : <vehId|inconnu>/<ts>_<name>).
+        const carbSUInput = body.querySelector('#m-carb-smart-upload-input');
+        const carbSUStatus = body.querySelector('#m-carb-smart-upload-status');
+        if (carbSUInput && window.SmartUpload && window.MCASmartUploadHelpers) {
+          window.SmartUpload.attachToInput(carbSUInput, {
+            mode: 'auto',
+            storageBucket: 'carburant-recus',
+            storagePath: (file) => {
+              const name = (window.DelivProStorage && window.DelivProStorage.sanitizeFilename)
+                ? window.DelivProStorage.sanitizeFilename(file.name) : file.name;
+              const vehId = (vehSelect && vehSelect.value) || 'inconnu';
+              return vehId + '/' + Date.now() + '_' + name;
+            },
+            feedbackEl: carbSUStatus,
+            onOcrResult: (payload) => {
+              const r = window.MCASmartUploadHelpers.applyAutoResultToMobileForm(payload, body);
+              const n = r && r.count ? r.count : 0;
+              if (carbSUStatus) {
+                carbSUStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
+                carbSUStatus.textContent = n > 0
+                  ? `✅ ${n} champ${n>1?'s':''} pré-rempli${n>1?'s':''}`
+                  : '⚠️ Ticket non reconnu';
+              }
+              dernierEdit = 'total';
+              try { recalc(); } catch (_) {}
+            },
+            onError: (err) => {
+              if (carbSUStatus) {
+                carbSUStatus.style.color = 'var(--m-red)';
+                carbSUStatus.textContent = '⚠️ ' + (err && err.message ? err.message : 'Erreur upload');
+              }
+            },
+          });
+        }
         // Auto-remplit le type carburant + km compteur depuis le vehicule selectionne
         const kmCompteurInput = body.querySelector('input[name=kmCompteur]');
         if (vehSelect) {
@@ -1547,44 +1590,70 @@
         ttc.addEventListener('input', () => { dernierEdit = 'ttc'; recalc(); });
         tva.addEventListener('input', () => { tvaManuelle = true; recalc(); });
         sel.addEventListener('change', () => { tvaManuelle = false; recalc(); });
-        // OCR facture (mode nouveau et edition)
+        // SmartUpload mode auto (Phase 2) : remplace l'OCR Tesseract local par
+        // l'edge fn ai-ocr (Gemini Flash) qui detecte le type + extrait en 1 appel.
+        // Fallback Tesseract conserve si SmartUpload absent.
         const facInput = body.querySelector('#m-charge-fac-input');
         const facStatus = body.querySelector('#m-charge-fac-status');
-        if (facInput) {
+        const facLabel = body.querySelector('label[for="m-charge-fac-input"] span:last-child');
+        if (facLabel) facLabel.textContent = 'Uploader (auto) — facture / ticket';
+        if (facInput && window.SmartUpload && window.MCASmartUploadHelpers) {
+          window.SmartUpload.attachToInput(facInput, {
+            mode: 'auto',
+            skipStorage: true,
+            feedbackEl: facStatus,
+            onOcrResult: (payload) => {
+              const r = window.MCASmartUploadHelpers.applyAutoResultToMobileForm(payload, body);
+              const n = r && r.count ? r.count : 0;
+              if (facStatus) {
+                facStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
+                facStatus.textContent = n > 0
+                  ? `✅ ${n} champ${n>1?'s':''} pré-rempli${n>1?'s':''} (vérifie + complète)`
+                  : '⚠️ Document non reconnu';
+              }
+              // Si ticket carburant detecte -> bascule la categorie carburant
+              // pour rester coherent (cf. PC).
+              if (payload && payload.type_detecte === 'ticket_carburant') {
+                const catSel = body.querySelector('select[name=categorie]');
+                if (catSel && catSel.value !== 'carburant') {
+                  catSel.value = 'carburant';
+                  try { catSel.dispatchEvent(new Event('change', { bubbles: true })); } catch (_) {}
+                }
+              }
+              dernierEdit = 'ttc';
+              try { recalc(); } catch (_) {}
+            },
+            onError: (err) => {
+              if (facStatus) {
+                facStatus.style.color = 'var(--m-red)';
+                facStatus.textContent = '⚠️ ' + (err && err.message ? err.message : 'Erreur upload');
+              }
+            },
+          });
+        } else if (facInput) {
+          // Fallback Tesseract local (cas SmartUpload pas encore charge)
           facInput.addEventListener('change', async (e) => {
             const file = e.target.files?.[0];
             if (!file) return;
             if (!window.MCAocr) { M.toast('⚠️ OCR indisponible'); return; }
             facStatus.style.color = 'var(--m-text-muted)';
-            facStatus.textContent = '⏳ Chargement de l\'OCR (1ère fois ~5s)...';
-            // Logger verbose sur le DOM pour debug en prod
-            window.MCAocr._onLog = (msg) => { facStatus.textContent = '⏳ ' + msg; };
+            facStatus.textContent = '⏳ Chargement de l\'OCR...';
             try {
               await MCAocr.ensureLoaded();
-              window.MCAocr._onLog = null;
-              facStatus.textContent = '⏳ Lecture de la facture...';
               const { text } = await MCAocr.recognize(file);
               const parsed = MCAocr.parseFacture(text);
-              let n = 0;
               const setVal = (name, val) => {
                 if (val == null || val === '' || val === 0) return;
                 const el = body.querySelector(`[name="${name}"]`);
-                if (el && !el.value) { el.value = val; n++; }
+                if (el && !el.value) el.value = val;
               };
               setVal('fournisseur', parsed.fournisseur);
-              setVal('libelle', parsed.numFacture ? `Facture ${parsed.numFacture}` : '');
               setVal('date', parsed.date);
               setVal('montantHt', parsed.ht ? parsed.ht.toFixed(2) : '');
-              setVal('tva', parsed.tva ? parsed.tva.toFixed(2) : '');
               setVal('montantTtc', parsed.ttc ? parsed.ttc.toFixed(2) : '');
-              if (parsed.tauxTva && sel) sel.value = String(parsed.tauxTva);
               dernierEdit = 'ttc'; recalc();
-              facStatus.textContent = n > 0 ? `✅ ${n} champ${n>1?'s':''} rempli${n>1?'s':''} (vérifie + complète)` : `⚠️ Aucun champ détecté (qualité photo ?)`;
-              facStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-red)';
             } catch (err) {
-              console.error('[OCR] erreur:', err);
-              facStatus.textContent = '⚠️ Erreur OCR : ' + (err.message || 'inconnue');
-              facStatus.style.color = 'var(--m-red)';
+              facStatus.textContent = '⚠️ Erreur : ' + (err.message || 'inconnue');
             }
             e.target.value = '';
           });
@@ -2701,6 +2770,13 @@
     const enEdition = !!existing;
     const s = existing || {};
     const body = `
+      <div class="m-form-field" style="margin-bottom:14px">
+        <label for="m-sal-smart-upload-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
+          <span>📤</span><span>Uploader (auto) — RIB / permis</span>
+        </label>
+        <input type="file" id="m-sal-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
+        <p class="m-form-hint" id="m-sal-smart-upload-status" style="text-align:center"></p>
+      </div>
       <div class="m-form-row">
         ${M.formField('Prénom', M.formInput('prenom', { value: s.prenom || '', placeholder: 'Jean', autocomplete: 'given-name' }))}
         ${M.formField('Nom', M.formInput('nom', { value: s.nom || '', placeholder: 'Dupont', required: true, autocomplete: 'family-name' }), { required: true })}
@@ -2783,6 +2859,57 @@
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
+        // SmartUpload mode auto (Phase 2) : drop n'importe quel doc (RIB / permis)
+        // -> Gemini detecte type et pre-remplit ce qu'on peut. OCR-only ici
+        // (les docs typed continuent d'etre uploades via les boutons par-type).
+        const salSUInput = b.querySelector('#m-sal-smart-upload-input');
+        const salSUStatus = b.querySelector('#m-sal-smart-upload-status');
+        if (salSUInput && window.SmartUpload && window.MCASmartUploadHelpers) {
+          window.SmartUpload.attachToInput(salSUInput, {
+            mode: 'auto',
+            skipStorage: true,
+            feedbackEl: salSUStatus,
+            onOcrResult: (payload) => {
+              const r = window.MCASmartUploadHelpers.applyAutoResultToMobileForm(payload, b);
+              const n = r && r.count ? r.count : 0;
+              const detected = (payload && payload.type_detecte) || 'inconnu';
+              if (salSUStatus) {
+                salSUStatus.style.color = n > 0 ? 'var(--m-green)' : 'var(--m-text-muted)';
+                salSUStatus.textContent = n > 0
+                  ? `✅ ${detected} : ${n} champ${n>1?'s':''} pré-rempli${n>1?'s':''}`
+                  : `⚠️ ${detected} détecté mais aucun champ exploitable`;
+              }
+              // Cas RIB : map iban -> form salarie (champ 'iban' si present)
+              if (payload && payload.type_detecte === 'rib' && r && r.route) {
+                const f = r.route.fields_to_prefill || {};
+                const ibanInput = b.querySelector('[name=iban]');
+                if (ibanInput && !ibanInput.value && f.iban) ibanInput.value = f.iban;
+              }
+              // Cas permis : map date_expiration -> datePermis
+              if (payload && payload.type_detecte === 'permis' && r && r.route) {
+                const f = r.route.fields_to_prefill || {};
+                const datePermisInput = b.querySelector('[name=datePermis]');
+                if (datePermisInput && !datePermisInput.value && f.date_expiration) {
+                  datePermisInput.value = f.date_expiration;
+                }
+                // Pre-remplit categorie permis si dispo (B / autre)
+                if (Array.isArray(f.categories) && f.categories.length) {
+                  const catSel = b.querySelector('select[name=catPermis]');
+                  if (catSel && !catSel.value) {
+                    const first = String(f.categories[0]).toUpperCase();
+                    catSel.value = (first === 'B') ? 'B' : 'autre';
+                  }
+                }
+              }
+            },
+            onError: (err) => {
+              if (salSUStatus) {
+                salSUStatus.style.color = 'var(--m-red)';
+                salSUStatus.textContent = '⚠️ ' + (err && err.message ? err.message : 'Erreur upload');
+              }
+            },
+          });
+        }
         // Bouton "Générer" mot de passe (toujours dispo, edit ou nouveau)
         b.querySelector('#m-sal-mdp-gen')?.addEventListener('click', () => {
           const nomRaw = b.querySelector('input[name=nom]')?.value || s.nom || 'MCA';
