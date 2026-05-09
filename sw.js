@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v4_10-zindex-doc-154';
+const CACHE_VERSION = 'mca-v2026-05-09-v4_16-stats-export-160';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -84,6 +84,8 @@ const CORE_ASSETS = [
   '/script-core-stats-helpers.js',
   '/script-exports.js',
   '/auth-2fa.js',
+  // Mobile exports PDF (parite PC partielle Livraisons / Charges / Encaissement)
+  '/script-mobile-exports.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne

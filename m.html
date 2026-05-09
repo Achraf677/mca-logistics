@@ -11,7 +11,7 @@
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
-  <link rel="stylesheet" href="/style-mobile.css?v=102" />
+  <link rel="stylesheet" href="/style-mobile.css?v=104" />
 </head>
 <body class="m-app m-theme-dark">
   <!-- Header compact : back btn + titre + chat IA + Agent IA (parite PC panneau-agent). -->
@@ -165,7 +165,10 @@
   <!-- DSO helper partage PC/mobile (Sprint H3.4) — doit etre charge AVANT script-mobile -->
   <script src="/script-core-dso.js?v=100"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=102"></script>
+  <script src="/script-mobile.js?v=104"></script>
+  <!-- Exports PDF mobile (parite PC partielle : Livraisons / Charges / Encaissement).
+       ~5 KB charge en eager ; Chart.js charge en lazy uniquement sur la page Stats. -->
+  <script src="/script-mobile-exports.js?v=104"></script>
   <!-- Assistant IA Gemini (V1 admin) - parite PC -->
   <script src="/script-ai-chat.js?v=102"></script>
 </body>

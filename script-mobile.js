@@ -464,6 +464,27 @@
   };
   M.escHtml = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
+  // Lazy-loader Chart.js mobile (parite PC ensureChartJs).
+  // Charge le bundle 197 KB UNIQUEMENT quand l'utilisateur ouvre la page Stats.
+  // Memoise la promesse pour eviter double <script>.
+  M._chartJsPromise = null;
+  M.ensureChartJs = function() {
+    if (typeof window.Chart !== 'undefined') return Promise.resolve();
+    if (M._chartJsPromise) return M._chartJsPromise;
+    M._chartJsPromise = new Promise(function(resolve, reject) {
+      var s = document.createElement('script');
+      s.src = '/chart.min.js?v=' + (window.CACHE_BUST_VERSION || 'unknown');
+      s.async = false;
+      s.onload = function() { resolve(); };
+      s.onerror = function() {
+        M._chartJsPromise = null;
+        reject(new Error('Chart.js load failed'));
+      };
+      document.head.appendChild(s);
+    });
+    return M._chartJsPromise;
+  };
+
   // Doughnut SVG inline (sans Chart.js, ~0 KB ajout). segments: [{label, value, color}]
   // opts: { centerLabel, centerValue, size }
   M.renderDoughnut = function(segments, opts) {
@@ -4328,8 +4349,9 @@
           <button class="m-alertes-chip ${vue==='liste'?'active':''}" data-vue="liste" style="flex:1 1 0">📋 Liste</button>
           <button class="m-alertes-chip ${vue==='kanban'?'active':''}" data-vue="kanban" style="flex:1 1 0">📊 Kanban</button>
         </div>
-        <div style="margin-bottom:10px">
-          <input type="search" id="m-liv-search" placeholder="🔍 Client, n°, ville, notes…" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
+        <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+          <input type="search" id="m-liv-search" placeholder="🔍 Client, n°, ville, notes…" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" style="flex:1 1 auto" />
+          <button type="button" id="m-liv-export-pdf" class="m-alertes-chip" style="flex:0 0 auto;padding:0 10px;height:38px;font-size:.78rem;font-weight:600" aria-label="Exporter en PDF" title="Exporter la liste filtrée en PDF">📄 PDF</button>
         </div>
       `;
 
@@ -4600,6 +4622,51 @@
           M.go('livraisons');
         });
       });
+      // Export PDF (parite PC) — utilise la liste filtree courante telle que displayee.
+      // Limite a 200 lignes pour eviter les PDFs interminables sur mobile.
+      container.querySelector('#m-liv-export-pdf')?.addEventListener('click', () => {
+        if (!window.MCAm || !window.MCAm.exportPDF) {
+          M.toast('Module export PDF indisponible'); return;
+        }
+        const livArr = M.charger('livraisons');
+        const recherche2 = (M.state.livraisonsRecherche || '').toLowerCase();
+        const fPaiement2 = M.state.livFiltrePaiement;
+        const fPeriode2 = M.state.livFiltrePeriode;
+        const fClient2 = M.state.livFiltreClient;
+        let f = livArr;
+        if (fPeriode2) {
+          const now2 = new Date(); let cutoff = null;
+          if (fPeriode2 === 'mois') cutoff = M.moisKey() + '-01';
+          else if (fPeriode2 === '30j') { const dd = new Date(now2); dd.setDate(dd.getDate() - 30); cutoff = dd.toISOString().slice(0, 10); }
+          else if (fPeriode2 === '90j') { const dd = new Date(now2); dd.setDate(dd.getDate() - 90); cutoff = dd.toISOString().slice(0, 10); }
+          if (cutoff) f = f.filter(l => (l.date || '') >= cutoff);
+        }
+        if (fClient2) f = f.filter(l => (l.client || '') === fClient2);
+        if (fPaiement2) f = f.filter(l => M.livStatutPaiement(l) === fPaiement2);
+        if (recherche2) f = f.filter(l => (`${l.client||''} ${l.numLiv||''} ${l.date||''} ${l.zone||''} ${l.expVille||''} ${l.destVille||''}`).toLowerCase().includes(recherche2));
+        f = [...f].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        if (f.length > 200) f = f.slice(0, 200);
+        const total = f.reduce((s, l) => s + (M.parseNum(l.prixTTC) || M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+        const cols = ['Date', 'N°', 'Client', 'Trajet', 'Statut', 'Montant TTC'];
+        const rows = f.map(l => [
+          l.date || '',
+          l.numLiv || '',
+          l.client || '',
+          [(l.expVille || ''), (l.destVille || '')].filter(Boolean).join(' -> '),
+          M.livStatutPaiement(l) || '',
+          M.format$(M.parseNum(l.prixTTC) || M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0)
+        ]);
+        const filtres = [];
+        if (fPeriode2) filtres.push('Période : ' + fPeriode2);
+        if (fPaiement2) filtres.push('Paiement : ' + fPaiement2);
+        if (fClient2) filtres.push('Client : ' + fClient2);
+        if (recherche2) filtres.push('Recherche : ' + recherche2);
+        window.MCAm.exportPDF('Livraisons', cols, rows, {
+          subtitle: filtres.length ? filtres.join(' · ') : 'Toutes livraisons',
+          summary: f.length + ' livraison' + (f.length > 1 ? 's' : '') + ' · Total ' + M.format$(total)
+        });
+      });
+
       // Active mode bulk
       container.querySelector('#m-liv-bulk-on')?.addEventListener('click', () => {
         M.state.livBulkMode = true;
@@ -6884,14 +6951,15 @@
           <button class="m-alertes-chip ${filtreStatut==='tous'?'active':''}" data-statut="tous">Tous</button>
         </div>
 
-        ${clients.length > 1 ? `
-          <div style="margin-bottom:14px">
-            <select id="m-enc-client" style="width:100%">
+        <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+          ${clients.length > 1 ? `
+            <select id="m-enc-client" style="flex:1 1 160px;min-width:140px">
               <option value="">— Tous les clients —</option>
               ${clients.map(c => `<option value="${M.escHtml(c)}" ${c === filtreClient ? 'selected' : ''}>${M.escHtml(c)}</option>`).join('')}
             </select>
-          </div>
-        ` : ''}
+          ` : ''}
+          <button type="button" id="m-enc-export-pdf" class="m-alertes-chip" style="flex:0 0 auto;padding:0 10px;height:38px;font-size:.78rem;font-weight:600" aria-label="Exporter en PDF" title="Exporter la liste filtrée en PDF">📄 PDF</button>
+        </div>
       `;
 
       const moisCles = Object.keys(groupes).sort().reverse();
@@ -6973,6 +7041,59 @@
       container.querySelector('#m-enc-client')?.addEventListener('change', e => {
         M.state.encClient = e.target.value;
         M.go('encaissement');
+      });
+      // Export PDF (parite PC) — meme filtre que la liste affichee.
+      container.querySelector('#m-enc-export-pdf')?.addEventListener('click', () => {
+        if (!window.MCAm || !window.MCAm.exportPDF) {
+          M.toast('Module export PDF indisponible'); return;
+        }
+        const livArr = M.charger('livraisons');
+        const encMan = M.charger('encaissements_manuels');
+        const annot = livArr.map(l => {
+          const ttc = M.parseNum(l.prixTTC) || M.parseNum(l.prix) || 0;
+          const statut = l.statutPaiement || 'en-attente';
+          const estPaye = statut === 'payé' || statut === 'paye' || statut === 'payee';
+          const estLitige = statut === 'litige';
+          const refDate = l.dateFacture || l.date;
+          const enRetard = !estPaye && !estLitige && refDate && (new Date(refDate) < new Date(Date.now() - 30 * 86400000));
+          return { ...l, _ttc: ttc, _statut: statut, _paye: estPaye, _litige: estLitige, _retard: enRetard, _isManual: false };
+        });
+        const annotMan = encMan.map(e => ({
+          ...e,
+          client: e.clientNom || e.libelle,
+          _ttc: M.parseNum(e.montantTtc) || 0,
+          _statut: 'payé', _paye: true, _litige: false, _retard: false, _isManual: true
+        }));
+        const all = annot.concat(annotMan);
+        const ftStt = M.state.encStatut, ftCli = M.state.encClient;
+        let f;
+        if (ftStt === 'encaisse') f = all.filter(l => l._paye);
+        else if (ftStt === 'tous') f = all;
+        else if (ftStt === 'a_encaisser') f = annot.filter(l => !l._paye && !l._litige);
+        else if (ftStt === 'retard') f = annot.filter(l => l._retard);
+        else if (ftStt === 'litige') f = annot.filter(l => l._litige);
+        else f = annot;
+        if (ftCli) f = f.filter(l => (l.client || '') === ftCli);
+        f = [...f].sort((a, b) => (b.dateFacture || b.date || '').localeCompare(a.dateFacture || a.date || ''));
+        if (f.length > 200) f = f.slice(0, 200);
+        const total = f.reduce((s, l) => s + (l._ttc || 0), 0);
+        const labelStatut = (l) => l._litige ? 'Litige' : l._paye ? 'Encaissé' : l._retard ? 'Retard' : 'À encaisser';
+        const cols = ['Date', 'N°', 'Client', 'Statut', 'Montant TTC'];
+        const rows = f.map(l => [
+          l.dateFacture || l.date || l.datePaiement || '',
+          l.numLiv || l.numero || '',
+          l.client || '',
+          labelStatut(l),
+          M.format$(l._ttc || 0)
+        ]);
+        const filtres = [];
+        const labelStt = { a_encaisser: 'À encaisser', encaisse: 'Encaissé', retard: 'Retard', litige: 'Litige', tous: 'Tous' };
+        if (ftStt) filtres.push('Statut : ' + (labelStt[ftStt] || ftStt));
+        if (ftCli) filtres.push('Client : ' + ftCli);
+        window.MCAm.exportPDF('Encaissement', cols, rows, {
+          subtitle: filtres.length ? filtres.join(' · ') : 'Toutes factures',
+          summary: f.length + ' facture' + (f.length > 1 ? 's' : '') + ' · Total ' + M.format$(total)
+        });
       });
       // Toggle mois
       container.querySelectorAll('button[data-mois]').forEach(btn => {
@@ -7175,12 +7296,15 @@
       `;
       // Filtre fournisseur (alignement PC)
       const fournisseurs = M.charger('fournisseurs');
+      html += `<div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;flex-wrap:wrap">`;
       if (fournisseurs.length) {
-        html += `<div style="margin-bottom:14px"><select id="m-charges-four">
+        html += `<select id="m-charges-four" style="flex:1 1 160px;min-width:140px">
           <option value="">🏭 Tous fournisseurs</option>
           ${fournisseurs.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'')).map(f => `<option value="${M.escHtml(f.id)}" ${fourFilter===f.id?'selected':''}>${M.escHtml(f.nom||f.id)}</option>`).join('')}
-        </select></div>`;
+        </select>`;
       }
+      html += `<button type="button" id="m-charges-export-pdf" class="m-alertes-chip" style="flex:0 0 auto;padding:0 10px;height:38px;font-size:.78rem;font-weight:600" aria-label="Exporter en PDF" title="Exporter la liste filtrée en PDF">📄 PDF</button>`;
+      html += `</div>`;
 
       if (!sorted.length) {
         html += `<div class="m-empty"><div class="m-empty-icon">💸</div><h3 class="m-empty-title">Aucune charge</h3><p class="m-empty-text">${statut === 'a_payer' ? 'Tu es à jour, aucune charge en attente.' : 'Tape sur ➕ pour saisir ta première charge.'}</p></div>`;
@@ -7277,6 +7401,45 @@
       container.querySelector('#m-charges-four')?.addEventListener('change', e => {
         M.state.chargesFournisseur = e.target.value;
         M.go('charges');
+      });
+      // Export PDF (parite PC) — applique les memes filtres que la liste affichee.
+      container.querySelector('#m-charges-export-pdf')?.addEventListener('click', () => {
+        if (!window.MCAm || !window.MCAm.exportPDF) {
+          M.toast('Module export PDF indisponible'); return;
+        }
+        const all = M.charger('charges');
+        const fourArr = M.charger('fournisseurs');
+        const stt = M.state.chargesStatut, ctg = M.state.chargesCategorie, fou = M.state.chargesFournisseur || '';
+        let f = all;
+        if (ctg) f = f.filter(c => (c.categorie || '') === ctg);
+        if (fou) f = f.filter(c => (c.fournisseurId === fou) || ((c.fournisseur || '').toLowerCase() === fou.toLowerCase()));
+        if (stt === 'a_payer') f = f.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
+        if (stt === 'paye')    f = f.filter(c => c.statut === 'paye' || c.statut === 'payee');
+        f = [...f].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        if (f.length > 200) f = f.slice(0, 200);
+        const total = f.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+        const fourLabel = (id) => {
+          if (!id) return '';
+          const fr = fourArr.find(x => x.id === id);
+          return fr ? (fr.nom || id) : id;
+        };
+        const cols = ['Date', 'Catégorie', 'Fournisseur', 'Libellé', 'Statut', 'Montant TTC'];
+        const rows = f.map(c => [
+          c.date || '',
+          c.categorie || '',
+          fourLabel(c.fournisseurId) || c.fournisseur || '',
+          c.libelle || c.description || '',
+          (c.statut === 'paye' || c.statut === 'payee') ? 'Payée' : 'À payer',
+          M.format$(M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0)
+        ]);
+        const filtres = [];
+        if (stt && stt !== 'tous') filtres.push('Statut : ' + (stt === 'a_payer' ? 'À payer' : 'Payée'));
+        if (ctg) filtres.push('Catégorie : ' + ctg);
+        if (fou) filtres.push('Fournisseur : ' + fourLabel(fou));
+        window.MCAm.exportPDF('Charges', cols, rows, {
+          subtitle: filtres.length ? filtres.join(' · ') : 'Toutes charges',
+          summary: f.length + ' charge' + (f.length > 1 ? 's' : '') + ' · Total ' + M.format$(total)
+        });
       });
       // Tap card charge -> ouvre le form en mode edition. Card est <div role=button>
       // (pas <button>) pour permettre le bouton "Marquer payee" imbrique.
@@ -10920,12 +11083,20 @@
     if (M.state.statsUnit === 'eur') return Math.round(v).toLocaleString('fr-FR') + '€';
     return Math.round(v / 1000) + 'k';
   };
+  // ============================================================
+  // Statistiques mobile — Chart.js interactif (parite PC).
+  // Refonte 2026-05-09 : remplacement des barres SVG figees 12 mois
+  // par 4 graphiques Chart.js (CA mensuel line / Top chauffeurs bar /
+  // Top vehicules bar / Repartition CA clients doughnut) + filtre
+  // 3/6/12 mois. Chart.js charge en lazy uniquement sur cette page.
+  // ============================================================
   M.register('statistiques', {
     title: 'Statistiques',
     render() {
       // Auto-refresh mois courant (cf. fix v3.57)
       if (!M.state.statsMoisManuel) M.state.statsMois = M.moisKey();
       const moisSel = M.state.statsMois;
+      const periode = M.state.statsPeriode || 12; // 3 / 6 / 12 mois
       const [y, m] = moisSel.split('-');
       const moisPrec = M.moisKey(new Date(parseInt(y), parseInt(m) - 2, 1));
 
@@ -10962,6 +11133,67 @@
         return `<span style="color:${color};font-weight:700;font-size:.78rem">${arrow} ${Math.abs(val).toFixed(0)}%</span>`;
       };
 
+      // Series CA mensuel sur la periode (3/6/12 mois) — datasets pour Chart.js,
+      // calcules une seule fois ici puis passes a afterRender via M._statsChartData.
+      const buildSeriesCA = (n) => {
+        const labels = [], data = [];
+        for (let k = n - 1; k >= 0; k--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
+          const cle = M.moisKey(d);
+          const caM = livraisons.filter(l => (l.date || '').startsWith(cle))
+            .reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
+          labels.push(d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''));
+          data.push(Math.round(caM));
+        }
+        return { labels, data };
+      };
+      const seriesCA = buildSeriesCA(periode);
+      const totalPeriode = seriesCA.data.reduce((a, b) => a + b, 0);
+      const moyennePeriode = totalPeriode / Math.max(1, periode);
+
+      // Top 5 (par CA) sur le mois selectionne — chauffeurs et vehicules.
+      const aggreg = (keyFn, labelFn) => {
+        const map = new Map();
+        livMois.forEach(l => {
+          const k = keyFn(l);
+          if (!k) return;
+          const cur = map.get(k) || { ca: 0, n: 0 };
+          cur.ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
+          cur.n += 1;
+          map.set(k, cur);
+        });
+        return [...map.entries()]
+          .map(([k, v]) => ({ label: labelFn(k), ca: v.ca, n: v.n }))
+          .sort((a, b) => b.ca - a.ca)
+          .slice(0, 5);
+      };
+      const topChauf = aggreg(l => l.salarieId || l.chaufId || l.chauffeur, k => {
+        const s = salaries.find(x => x.id === k);
+        return s ? ((s.prenom ? s.prenom + ' ' : '') + (s.nom || '')).trim() : (k || '—');
+      });
+      const topVeh = aggreg(l => l.vehiculeId || l.vehId, k => {
+        const v = vehicules.find(x => x.id === k);
+        return v ? (v.immat || v.modele || k) : (k || '—');
+      });
+
+      // Repartition activite (doughnut) : top 3 clients + "Autres".
+      const totalCarbMois = carbMois.reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+      const totalChargesMois = chargesMois.reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
+      const topClients3 = aggreg(l => (l.client || '').trim().toLowerCase(), k => k.replace(/^./, c => c.toUpperCase())).slice(0, 3);
+      const reste = ca - topClients3.reduce((s, c) => s + c.ca, 0);
+      const repartLabels = topClients3.map(c => c.label || '—').concat(reste > 0 ? ['Autres'] : []);
+      const repartData = topClients3.map(c => Math.round(c.ca)).concat(reste > 0 ? [Math.round(reste)] : []);
+
+      // Stocke les datasets pour afterRender (evite recalcul dans le handler).
+      M._statsChartData = {
+        ca: seriesCA,
+        chauf: { labels: topChauf.map(x => x.label), data: topChauf.map(x => Math.round(x.ca)) },
+        veh: { labels: topVeh.map(x => x.label), data: topVeh.map(x => Math.round(x.ca)) },
+        repart: { labels: repartLabels, data: repartData }
+      };
+
+      const fallbackEmpty = '<div style="text-align:center;padding:18px;color:var(--m-text-muted);font-size:.85rem">Aucune donnée sur la période</div>';
+
       return `
         <div style="margin-bottom:14px"><select id="m-stats-mois">${moisOptions.join('')}</select></div>
 
@@ -10974,161 +11206,65 @@
           <div class="m-card m-card-purple"><div class="m-card-title">Km parcourus</div><div class="m-card-value">${M.formatNum(km.toFixed(0))}</div><div class="m-card-sub">${evolBadge(evolKm)} vs précédent</div></div>
         </div>
         <div class="m-card-row">
-          <div class="m-card m-card-red"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(carbMois.reduce((s,p)=>s+(M.parseNum(p.total)||0),0))}</div></div>
+          <div class="m-card m-card-red"><div class="m-card-title">Pleins</div><div class="m-card-value">${carbMois.length}</div><div class="m-card-sub">${M.format$(totalCarbMois)}</div></div>
           <div class="m-card"><div class="m-card-title">€/km</div><div class="m-card-value" style="font-size:1.3rem">${M.format$(km > 0 ? ca / km : 0)}</div><div class="m-card-sub">prix moyen</div></div>
         </div>
 
-        ${(() => {
-          // Comparatif annuel : barres CA des 12 derniers mois (SVG simple, pas Chart.js)
-          const now = new Date();
-          const mois12 = [];
-          for (let k = 11; k >= 0; k--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-            const cle = M.moisKey(d);
-            const caM = livraisons.filter(l => (l.date || '').startsWith(cle))
-              .reduce((s, l) => s + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0), 0);
-            const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
-            mois12.push({ cle, label: labelM, ca: caM });
-          }
-          const maxCa = Math.max(...mois12.map(x => x.ca), 1);
-          const totalAn = mois12.reduce((s, x) => s + x.ca, 0);
-          const moyenneAn = totalAn / 12;
-
-          return `<div class="m-section"><div class="m-section-header" style="gap:6px;flex-wrap:wrap"><h3 class="m-section-title">📈 CA des 12 derniers mois</h3>
-            <div style="display:flex;gap:4px;margin-left:auto">
-              <button class="m-alertes-chip ${M.state.statsUnit==='k'?'active':''}" data-unit="k" style="font-size:.68rem;padding:2px 8px;min-height:0;height:24px">k€</button>
-              <button class="m-alertes-chip ${M.state.statsUnit==='eur'?'active':''}" data-unit="eur" style="font-size:.68rem;padding:2px 8px;min-height:0;height:24px">précis</button>
+        <!-- 1. CA mensuel (line) — interactif Chart.js, filtre 3/6/12 mois -->
+        <div class="m-section">
+          <div class="m-section-header" style="gap:6px;flex-wrap:wrap">
+            <h3 class="m-section-title">📈 CA mensuel</h3>
+            <div style="display:flex;gap:4px;margin-left:auto" role="tablist" aria-label="Période d'analyse">
+              <button class="m-alertes-chip ${periode===3?'active':''}" data-period="3" style="font-size:.72rem;padding:3px 10px;min-height:0;height:26px">3 mois</button>
+              <button class="m-alertes-chip ${periode===6?'active':''}" data-period="6" style="font-size:.72rem;padding:3px 10px;min-height:0;height:26px">6 mois</button>
+              <button class="m-alertes-chip ${periode===12?'active':''}" data-period="12" style="font-size:.72rem;padding:3px 10px;min-height:0;height:26px">12 mois</button>
             </div>
-            <span style="font-size:.78rem;color:var(--m-text-muted);width:100%;text-align:right">${M.format$(totalAn)}</span></div>
-            <div class="m-card" style="padding:14px">
-              <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:4px">
-                ${mois12.map(x => {
-                  const h = maxCa > 0 ? (x.ca / maxCa * 100) : 0;
-                  const isCurrent = x.cle === moisSel;
-                  const color = isCurrent ? 'var(--m-accent)' : x.ca > 0 ? 'var(--m-green)' : 'var(--m-border)';
-                  return `<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%">
-                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${M.fmtBar(x.ca)}</div>
-                    <div style="flex:1 1 auto;display:flex;align-items:flex-end;width:100%">
-                      <div style="width:100%;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-height:${x.ca > 0 ? '2px' : '0'}"></div>
-                    </div>
-                    <div style="font-size:.65rem;color:${isCurrent?'var(--m-accent)':'var(--m-text-muted)'};font-weight:${isCurrent?700:500}">${x.label}</div>
-                  </div>`;
-                }).join('')}
-              </div>
-              <div style="border-top:1px solid var(--m-border);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;font-size:.78rem">
-                <span style="color:var(--m-text-muted)">Moyenne mensuelle</span>
-                <span style="font-weight:600">${M.format$(moyenneAn)}</span>
-              </div>
+          </div>
+          <div class="m-card" style="padding:14px">
+            <div style="position:relative;height:240px"><canvas id="m-chart-ca" aria-label="Graphique CA mensuel"></canvas></div>
+            <div style="border-top:1px solid var(--m-border);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;font-size:.78rem">
+              <span style="color:var(--m-text-muted)">Total ${periode} mois</span>
+              <span style="font-weight:700;color:var(--m-green)">${M.format$(totalPeriode)}</span>
             </div>
-          </div>`;
-        })()}
-
-        ${(() => {
-          // Comparatif annuel charges + carburant : barres rouges 12 mois
-          const now = new Date();
-          const mois12 = [];
-          for (let k = 11; k >= 0; k--) {
-            const d = new Date(now.getFullYear(), now.getMonth() - k, 1);
-            const cle = M.moisKey(d);
-            const totalCharges = charges.filter(c => (c.date || '').startsWith(cle))
-              .reduce((s, c) => s + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
-            const totalCarb = carburant.filter(p => (p.date || '').startsWith(cle))
-              .reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
-            const labelM = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.','');
-            mois12.push({ cle, label: labelM, total: totalCharges + totalCarb });
-          }
-          const maxDep = Math.max(...mois12.map(x => x.total), 1);
-          const totalAnDep = mois12.reduce((s, x) => s + x.total, 0);
-          const moyenneAnDep = totalAnDep / 12;
-          if (totalAnDep === 0) return '';
-
-          return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">💸 Dépenses des 12 derniers mois</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${M.format$(totalAnDep)}</span></div>
-            <div class="m-card" style="padding:14px">
-              <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:4px">
-                ${mois12.map(x => {
-                  const h = maxDep > 0 ? (x.total / maxDep * 100) : 0;
-                  const isCurrent = x.cle === moisSel;
-                  const color = isCurrent ? 'var(--m-accent)' : x.total > 0 ? 'var(--m-red)' : 'var(--m-border)';
-                  return `<div style="flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%">
-                    <div style="font-size:.62rem;color:var(--m-text-muted);height:14px;line-height:14px">${M.fmtBar(x.total)}</div>
-                    <div style="flex:1 1 auto;display:flex;align-items:flex-end;width:100%">
-                      <div style="width:100%;height:${h}%;background:${color};border-radius:3px 3px 0 0;min-height:${x.total > 0 ? '2px' : '0'}"></div>
-                    </div>
-                    <div style="font-size:.65rem;color:${isCurrent?'var(--m-accent)':'var(--m-text-muted)'};font-weight:${isCurrent?700:500}">${x.label}</div>
-                  </div>`;
-                }).join('')}
-              </div>
-              <div style="border-top:1px solid var(--m-border);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between;font-size:.78rem">
-                <span style="color:var(--m-text-muted)">Moyenne mensuelle</span>
-                <span style="font-weight:600">${M.format$(moyenneAnDep)}</span>
-              </div>
+            <div style="display:flex;justify-content:space-between;font-size:.78rem;margin-top:4px">
+              <span style="color:var(--m-text-muted)">Moyenne mensuelle</span>
+              <span style="font-weight:600">${M.format$(moyennePeriode)}</span>
             </div>
-          </div>`;
-        })()}
+          </div>
+        </div>
 
-        ${(() => {
-          // Top 5 du mois : clients, chauffeurs, vehicules par CA
-          if (livMois.length === 0) return '';
-          const aggreg = (keyFn, labelFn) => {
-            const map = new Map();
-            livMois.forEach(l => {
-              const k = keyFn(l);
-              if (!k) return;
-              const cur = map.get(k) || { ca: 0, n: 0 };
-              cur.ca += M.parseNum(l.prix) || M.parseNum(l.prixHT) || 0;
-              cur.n += 1;
-              map.set(k, cur);
-            });
-            return [...map.entries()]
-              .map(([k, v]) => ({ label: labelFn(k), ca: v.ca, n: v.n }))
-              .sort((a, b) => b.ca - a.ca)
-              .slice(0, 5);
-          };
-          const topClients = aggreg(l => (l.client || '').trim().toLowerCase(), k => k.replace(/^./, c => c.toUpperCase()));
-          const topChauf = aggreg(l => l.salarieId || l.chaufId || l.chauffeur, k => {
-            const s = salaries.find(x => x.id === k);
-            return s ? ((s.prenom ? s.prenom + ' ' : '') + (s.nom || '')).trim() : k;
-          });
-          const topVeh = aggreg(l => l.vehiculeId || l.vehId, k => {
-            const v = M.charger('vehicules').find(x => x.id === k);
-            return v ? (v.immat || v.modele || k) : k;
-          });
-          const renderTop = (titre, icon, list) => {
-            if (!list.length) return '';
-            const max = Math.max(...list.map(x => x.ca), 1);
-            return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">${icon} Top ${titre} du mois</h3></div>
-              <div class="m-card" style="padding:0">
-                ${list.map((x, i) => {
-                  const pct = max > 0 ? (x.ca / max * 100) : 0;
-                  return `<div style="padding:12px 14px;${i < list.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                      <span style="font-weight:600;font-size:.92rem">${i + 1}. ${M.escHtml(x.label || '—')}</span>
-                      <span style="font-weight:700;color:var(--m-green);font-size:.92rem">${M.format$(x.ca)}</span>
-                    </div>
-                    <div style="height:4px;background:var(--m-border);border-radius:2px;overflow:hidden;margin-bottom:4px">
-                      <div style="height:100%;width:${pct}%;background:var(--m-accent)"></div>
-                    </div>
-                    <div style="font-size:.72rem;color:var(--m-text-muted)">${x.n} livraison${x.n > 1 ? 's' : ''}</div>
-                  </div>`;
-                }).join('')}
-              </div>
-            </div>`;
-          };
-          return renderTop('clients', '🏆', topClients) + renderTop('chauffeurs', '🥇', topChauf) + renderTop('véhicules', '🚐', topVeh);
-        })()}
+        <!-- 2. Top 5 chauffeurs (bar horizontal) -->
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">🥇 Top 5 chauffeurs (mois)</h3></div>
+          <div class="m-card" style="padding:14px">
+            ${topChauf.length ? '<div style="position:relative;height:240px"><canvas id="m-chart-chauf" aria-label="Top 5 chauffeurs par CA"></canvas></div>' : fallbackEmpty}
+          </div>
+        </div>
+
+        <!-- 3. Top 5 vehicules (bar horizontal) -->
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">🚐 Top 5 véhicules (mois)</h3></div>
+          <div class="m-card" style="padding:14px">
+            ${topVeh.length ? '<div style="position:relative;height:240px"><canvas id="m-chart-veh" aria-label="Top 5 véhicules par CA"></canvas></div>' : fallbackEmpty}
+          </div>
+        </div>
+
+        <!-- 4. Repartition activite (doughnut) — top 3 clients + Autres -->
+        <div class="m-section">
+          <div class="m-section-header"><h3 class="m-section-title">🍩 Répartition CA clients</h3></div>
+          <div class="m-card" style="padding:14px">
+            ${repartData.length ? '<div style="position:relative;height:240px"><canvas id="m-chart-repart" aria-label="Répartition CA par client"></canvas></div>' : fallbackEmpty}
+          </div>
+        </div>
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📊 Vue d'ensemble</h3></div>
           <div class="m-card" style="padding:0">
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>👥 Équipe active</span><span style="font-weight:600">${salaries.length}</span></div>
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>🚐 Véhicules</span><span style="font-weight:600">${vehicules.length}</span></div>
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>📦 Livraisons total</span><span style="font-weight:600">${livraisons.length}</span></div>
-            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>💸 Charges du mois</span><span style="font-weight:600">${M.format$(chargesMois.reduce((s,c)=>s+(M.parseNum(c.montantTtc)||M.parseNum(c.montant)||0),0))}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>💸 Charges du mois</span><span style="font-weight:600">${M.format$(totalChargesMois)}</span></div>
           </div>
         </div>
-
-        <p style="font-size:.78rem;color:var(--m-text-muted);text-align:center;margin-top:18px;line-height:1.5">
-          Pour les graphiques d'évolution annuelle, exports et comparatifs avancés, ouvre la version PC.
-        </p>
       `;
     },
     afterRender(container) {
@@ -11138,9 +11274,171 @@
         M.state.statsMoisManuel = true;
         M.go('statistiques');
       });
-      // Toggle K€ / précis sur les graphiques
-      container.querySelectorAll('button[data-unit]').forEach(btn => {
-        btn.addEventListener('click', () => { M.state.statsUnit = btn.dataset.unit; M.go('statistiques'); });
+      // Filtre periode 3 / 6 / 12 mois (re-render pour rafraichir les datasets).
+      container.querySelectorAll('button[data-period]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          M.state.statsPeriode = parseInt(btn.dataset.period, 10) || 12;
+          M.go('statistiques');
+        });
+      });
+
+      // Lazy-load Chart.js puis dessine les 4 charts. Si l'utilisateur quitte
+      // la page avant la fin du chargement, les canvas ne sont plus dans le DOM
+      // et les querySelector renvoient null — on early-return dans chaque cas.
+      const data = M._statsChartData;
+      if (!data) return;
+
+      M.ensureChartJs().then(() => {
+        // Detruit les charts precedents pour eviter les leaks (chart.js retient
+        // les listeners sur le canvas, et a chaque changement de mois on re-render).
+        M._statsCharts = M._statsCharts || {};
+        Object.values(M._statsCharts).forEach(c => { try { c && c.destroy(); } catch (_) {} });
+        M._statsCharts = {};
+
+        const isLight = document.body.classList.contains('m-theme-light');
+        const tickColor = isLight ? '#334155' : '#e2e8f0';
+        const gridColor = isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)';
+        const palette = ['#4f8ef7', '#9b59b6', '#e67e22', '#2ecc71', '#e74c3c', '#f5a623'];
+        const eurosFmt = (v) => (Number(v) || 0).toLocaleString('fr-FR') + ' €';
+
+        const baseOpts = (extra) => Object.assign({
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 600, easing: 'easeOutQuart' },
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false, labels: { color: tickColor, font: { size: 11 } } },
+            tooltip: {
+              backgroundColor: 'rgba(10,13,20,0.95)',
+              titleColor: '#fff',
+              bodyColor: '#e2e8f0',
+              borderColor: 'rgba(245,166,35,0.4)',
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8,
+              callbacks: { label: (ctx) => ' ' + eurosFmt(ctx.parsed.y != null ? ctx.parsed.y : ctx.parsed) }
+            }
+          },
+          scales: {
+            x: { grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 10 } } },
+            y: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 10 }, callback: v => eurosFmt(v) } }
+          }
+        }, extra || {});
+
+        // 1. CA mensuel (line)
+        const cvCa = container.querySelector('#m-chart-ca');
+        if (cvCa && data.ca && data.ca.labels.length) {
+          M._statsCharts.ca = new window.Chart(cvCa, {
+            type: 'line',
+            data: {
+              labels: data.ca.labels,
+              datasets: [{
+                label: 'CA',
+                data: data.ca.data,
+                borderColor: '#4f8ef7',
+                backgroundColor: 'rgba(79,142,247,0.18)',
+                fill: true,
+                tension: 0.35,
+                pointRadius: 4,
+                pointHoverRadius: 7,
+                pointBackgroundColor: '#4f8ef7',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                borderWidth: 3
+              }]
+            },
+            options: baseOpts()
+          });
+        }
+
+        // 2. Top 5 chauffeurs (bar horizontal)
+        const cvCh = container.querySelector('#m-chart-chauf');
+        if (cvCh && data.chauf && data.chauf.labels.length) {
+          M._statsCharts.chauf = new window.Chart(cvCh, {
+            type: 'bar',
+            data: {
+              labels: data.chauf.labels,
+              datasets: [{
+                label: 'CA',
+                data: data.chauf.data,
+                backgroundColor: 'rgba(155,89,182,0.85)',
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: baseOpts({
+              indexAxis: 'y',
+              scales: {
+                x: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 10 }, callback: v => eurosFmt(v) } },
+                y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
+              }
+            })
+          });
+        }
+
+        // 3. Top 5 vehicules (bar horizontal)
+        const cvVe = container.querySelector('#m-chart-veh');
+        if (cvVe && data.veh && data.veh.labels.length) {
+          M._statsCharts.veh = new window.Chart(cvVe, {
+            type: 'bar',
+            data: {
+              labels: data.veh.labels,
+              datasets: [{
+                label: 'CA',
+                data: data.veh.data,
+                backgroundColor: 'rgba(230,126,34,0.85)',
+                borderRadius: 6,
+                borderSkipped: false
+              }]
+            },
+            options: baseOpts({
+              indexAxis: 'y',
+              scales: {
+                x: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, font: { size: 10 }, callback: v => eurosFmt(v) } },
+                y: { grid: { display: false }, ticks: { color: tickColor, font: { size: 11 } } }
+              }
+            })
+          });
+        }
+
+        // 4. Repartition activite (doughnut)
+        const cvRe = container.querySelector('#m-chart-repart');
+        if (cvRe && data.repart && data.repart.labels.length) {
+          M._statsCharts.repart = new window.Chart(cvRe, {
+            type: 'doughnut',
+            data: {
+              labels: data.repart.labels,
+              datasets: [{
+                data: data.repart.data,
+                backgroundColor: data.repart.labels.map((_, i) => palette[i % palette.length]),
+                borderWidth: 2,
+                borderColor: isLight ? '#fff' : '#1a1d22'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              animation: { duration: 600 },
+              cutout: '62%',
+              plugins: {
+                legend: { position: 'bottom', labels: { color: tickColor, font: { size: 11 }, padding: 10, boxWidth: 12 } },
+                tooltip: {
+                  backgroundColor: 'rgba(10,13,20,0.95)',
+                  titleColor: '#fff',
+                  bodyColor: '#e2e8f0',
+                  callbacks: { label: (ctx) => ' ' + (ctx.label || '—') + ' : ' + eurosFmt(ctx.parsed) }
+                }
+              }
+            }
+          });
+        }
+      }).catch(err => {
+        // Chart.js indispo (offline + jamais charge) : on laisse les canvas
+        // vides — l'utilisateur voit les KPIs cards qui restent fonctionnels.
+        console.warn('[stats mobile] Chart.js load failed', err);
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(err); } catch (_) {}
+        }
       });
     }
   });
