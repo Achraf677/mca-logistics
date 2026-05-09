@@ -800,7 +800,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
     <div class="topbar-right">
       <span id="online-dot" title="État réseau" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green,#2ecc71);margin-right:6px"></span>
       <span id="offline-queue-badge" style="display:none;align-items:center;justify-content:center;background:var(--orange,#f5a623);color:#000;border-radius:20px;font-size:.7rem;font-weight:800;padding:2px 7px;margin-right:6px;min-width:18px;height:18px" title="Saisies en attente de synchronisation"></span>
-      <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil">
+      <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil" aria-label="Mon profil">
         👤
         <span class="notif-dot" id="notif-dot"></span>
       </button>
@@ -1111,7 +1111,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
             display:flex;gap:8px;align-items:flex-end;
           ">
             <div class="pj-menu-wrap" style="position:relative">
-  <button type="button" onclick="event.stopPropagation();togglePjMenu()" style="width:44px;height:44px;flex-shrink:0;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;" title="Joindre">📎</button>
+  <button type="button" onclick="event.stopPropagation();togglePjMenu()" style="width:44px;height:44px;flex-shrink:0;background:var(--card2);border:1.5px solid var(--border);border-radius:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;" title="Joindre" aria-label="Joindre une pièce jointe">📎</button>
   <div id="pj-menu" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:4px;min-width:200px;box-shadow:0 -10px 30px rgba(0,0,0,.5);z-index:9999;">
     <button type="button" onclick="declencherPj('photo')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">📸 Prendre une photo</button>
     <button type="button" onclick="declencherPj('galerie')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px;background:transparent;border:none;color:var(--text);font-size:.88rem;text-align:left;cursor:pointer;border-radius:8px;">🖼️ Choisir depuis la galerie</button>
@@ -1137,7 +1137,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
               onkeydown="if(event.key==='Enter'&&!event.shiftKey){
                 event.preventDefault();envoyerMessageSal();}"
             ></textarea>
-            <button class="btn-send" onclick="envoyerMessageSal()">➤</button>
+            <button class="btn-send" onclick="envoyerMessageSal()" aria-label="Envoyer le message">➤</button>
           </div>
         </div>
       </div>
@@ -1254,7 +1254,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
 <!-- Modales -->
 <div class="modal-overlay" id="modal-modif-plein">
   <div class="modal">
-    <div class="modal-header">✏️ Modifier le plein <button class="btn-close" onclick="fermerModal('modal-modif-plein')">✕</button></div>
+    <div class="modal-header">✏️ Modifier le plein <button class="btn-close" onclick="fermerModal('modal-modif-plein')" aria-label="Fermer">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="modif-plein-id" />
       <div class="form-group"><label>Litres *</label><input type="number" id="modif-litres" min="0" step="0.1" /></div>
@@ -1270,7 +1270,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
 
 <div class="modal-overlay" id="modal-edit-km-sal">
   <div class="modal">
-    <div class="modal-header">✏️ Modifier le relevé <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')">✕</button></div>
+    <div class="modal-header">✏️ Modifier le relevé <button class="btn-close" onclick="fermerModal('modal-edit-km-sal')" aria-label="Fermer">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="edit-km-id" />
       <div class="form-group"><label>Km début *</label><input type="number" id="edit-km-dep" min="0" inputmode="numeric" /></div>

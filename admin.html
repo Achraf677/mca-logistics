@@ -144,21 +144,21 @@
       </div>
     </nav>
     <div class="sidebar-footer">
-      <button class="btn-hamburger" id="toggleSidebar">☰</button>
+      <button class="btn-hamburger" id="toggleSidebar" aria-label="Ouvrir/fermer le menu latéral">☰</button>
     </div>
   </aside>
 
   <main class="main-content" id="mainContent">
     <div class="ptr-indicator" id="ptr-indicator">⬇️ Relâchez pour actualiser...</div>
     <header class="topbar">
-      <button class="btn-menu-mobile" id="menuMobile">☰</button>
+      <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile">☰</button>
       <div class="topbar-branding" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
         <span class="topbar-logo-name" id="topbar-brand-name">MCA Logistics</span>
       </div>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
       <button class="btn-secondary topbar-search-trigger" type="button" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)">⌘ Rechercher</button>
       <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil">📲 Installer</button>
-      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre">🌙</button>
+      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre">🌙</button>
       <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
         <span style="width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;animation:pulse-green 2s infinite;display:inline-block"></span>
         <span style="font-size:.78rem;font-weight:600;color:#e63946">Agent IA</span>
@@ -296,8 +296,8 @@
             <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')" title="Calendrier">📅 Cal.</button>
           </div>
           <div class="density-toggle">
-            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Normal">☰</button>
-            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Compact">≡</button>
+            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Normal" aria-label="Vue normale">☰</button>
+            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Compact" aria-label="Vue compacte">≡</button>
           </div>
           <button class="btn-secondary" onclick="exporterLivraisons()">📚 Historique des livraisons</button>
           <button class="btn-rapport" onclick="genererRapportMensuelPeriode()">📄 Rapport</button>
@@ -368,9 +368,9 @@
         <div class="card">
           <div class="card-header">
             <div class="cal-nav">
-              <button class="cal-nav-btn" onclick="calNaviguer(-1)">‹</button>
+              <button class="cal-nav-btn" onclick="calNaviguer(-1)" aria-label="Mois précédent">‹</button>
               <span class="cal-mois-label" id="cal-mois-label"></span>
-              <button class="cal-nav-btn" onclick="calNaviguer(1)">›</button>
+              <button class="cal-nav-btn" onclick="calNaviguer(1)" aria-label="Mois suivant">›</button>
               <button class="cal-nav-btn" onclick="_calMois=new Date();afficherCalendrier()">Aujourd'hui</button>
             </div>
           </div>
@@ -1207,7 +1207,7 @@
                 <div style="font-size:.9rem;font-weight:500">Mode clair / sombre</div>
                 <div style="font-size:.78rem;color:var(--text-muted)">Basculer l'apparence de l'interface</div>
               </div>
-              <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme-param" style="font-size:1.3rem;padding:8px 12px">🌙</button>
+              <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme-param" style="font-size:1.3rem;padding:8px 12px" aria-label="Basculer entre mode clair et sombre">🌙</button>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0">
               <div>
@@ -1330,13 +1330,13 @@
           <div class="modal-body">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:.82rem;color:var(--text-muted)">Compte connecté : —</div>
             <div class="form-group" style="margin-bottom:12px"><label>Mot de passe actuel</label>
-              <div style="position:relative"><input type="password" id="param-mdp-actuel" placeholder="Actuel" style="padding-right:44px;width:100%"/><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button></div>
+              <div style="position:relative"><input type="password" id="param-mdp-actuel" placeholder="Actuel" style="padding-right:44px;width:100%"/><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)" aria-label="Afficher/masquer le mot de passe actuel">👁️</button></div>
             </div>
             <div class="form-group" style="margin-bottom:12px"><label>Nouveau mot de passe</label>
-              <div style="position:relative"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" style="padding-right:44px;width:100%"/><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button></div>
+              <div style="position:relative"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" style="padding-right:44px;width:100%"/><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)" aria-label="Afficher/masquer le nouveau mot de passe">👁️</button></div>
             </div>
             <div class="form-group" style="margin-bottom:16px"><label>Confirmer</label>
-              <div style="position:relative"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" style="padding-right:44px;width:100%"/><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)">👁️</button></div>
+              <div style="position:relative"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" style="padding-right:44px;width:100%"/><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:1rem;color:var(--text-muted)" aria-label="Afficher/masquer la confirmation du mot de passe">👁️</button></div>
             </div>
             <button class="btn-primary" onclick="changerMdpAdmin()">🔑 Mettre à jour</button>
           </div>
@@ -1706,7 +1706,7 @@
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()" style="padding:6px 14px">Aujourd\'hui</button>
             <button class="btn-secondary" onclick="naviguerPlanningPeriode(1)" style="padding:6px 14px">Suivant</button>
-            <button class="btn-secondary" onclick="ouvrirMenuCopiesSemainePlanning()" style="padding:6px 14px" title="Copier cette semaine vers d\'autres semaines / vider les overrides">⋯</button>
+            <button class="btn-secondary" onclick="ouvrirMenuCopiesSemainePlanning()" style="padding:6px 14px" title="Copier cette semaine vers d\'autres semaines / vider les overrides" aria-label="Plus d'actions sur le planning">⋯</button>
           </div>
         </div>
       </div>
@@ -1886,7 +1886,7 @@
   <!-- Nouvelle livraison -->
   <div class="modal-overlay" id="modal-livraison">
     <div class="modal modal-large modal-livraison-enriched">
-      <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" onclick="closeModal('modal-livraison')">✕</button></div>
+      <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
 
             <section class="fp-section fp-section-compact">
@@ -2013,7 +2013,7 @@
   <!-- Nouveau client -->
   <div class="modal-overlay" id="modal-client">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>🧑‍💼 Nouveau Client</h3><button class="modal-close" onclick="closeModal('modal-client')">✕</button></div>
+      <div class="modal-header"><h3>🧑‍💼 Nouveau Client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -2078,7 +2078,7 @@
   <!-- Modifier client -->
   <div class="modal-overlay" id="modal-edit-client">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le client</h3><button class="modal-close" onclick="closeModal('modal-edit-client')">✕</button></div>
+      <div class="modal-header"><h3>✏️ Modifier le client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-cl-id" />
         <div class="client-type-selector">
@@ -2151,7 +2151,7 @@
 
   <div class="modal-overlay" id="modal-client-history">
     <div class="modal" style="max-width:920px">
-      <div class="modal-header"><h3>📚 Historique client — <span id="client-history-title"></span></h3><button class="modal-close" onclick="closeModal('modal-client-history')">✕</button></div>
+      <div class="modal-header"><h3>📚 Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div id="client-history-content"></div>
       </div>
@@ -2166,7 +2166,7 @@
   <!-- Nouveau fournisseur (miroir de modal-client : toggle Pro/Particulier + mêmes champs) -->
   <div class="modal-overlay" id="modal-fournisseur">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -2229,7 +2229,7 @@
   <!-- Modifier fournisseur (miroir modal-edit-client) -->
   <div class="modal-overlay" id="modal-edit-fournisseur">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-frn-id" />
         <div class="client-type-selector">
@@ -2292,7 +2292,7 @@
   <!-- Nouveau véhicule -->
   <div class="modal-overlay" id="modal-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>🚐 Nouveau Véhicule</h3><button class="modal-close" onclick="closeModal('modal-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>🚐 Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Immatriculation *</label><input type="text" id="veh-immat" placeholder="Immatriculation (ex : AB-123-CD)" /></div>
@@ -2448,7 +2448,7 @@
   <!-- Carburant -->
   <div class="modal-overlay" id="modal-carburant">
     <div class="modal">
-      <div class="modal-header"><h3>⛽ Enregistrer un plein</h3><button class="modal-close" onclick="closeModal('modal-carburant')">✕</button></div>
+      <div class="modal-header"><h3>⛽ Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="carb-vehicule"><option value="">-- Choisir --</option></select></div>
@@ -2478,7 +2478,7 @@
   <!-- Modal : Detail tournee (drill-down) -->
   <div class="modal-overlay" id="modal-detail-tournee">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3 id="detail-tournee-title">🛣️ Détail tournée</h3><button class="modal-close" onclick="closeModal('modal-detail-tournee')">✕</button></div>
+      <div class="modal-header"><h3 id="detail-tournee-title">🛣️ Détail tournée</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
       <div class="modal-body" id="detail-tournee-body"></div>
       <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-detail-tournee')">Fermer</button></div>
     </div>
@@ -2487,7 +2487,7 @@
   <!-- Modal : Configuration rentabilité -->
   <div class="modal-overlay" id="modal-config-rentabilite">
     <div class="modal">
-      <div class="modal-header"><h3>⚙️ Paramètres rentabilité</h3><button class="modal-close" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
+      <div class="modal-header"><h3>⚙️ Paramètres rentabilité</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
         <div class="form-grid">
@@ -2513,7 +2513,7 @@
   <!-- Modal : Configuration anomalies carburant -->
   <div class="modal-overlay" id="modal-config-carburant-anomalies">
     <div class="modal">
-      <div class="modal-header"><h3>⚙️ Détection anomalies carburant</h3><button class="modal-close" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
+      <div class="modal-header"><h3>⚙️ Détection anomalies carburant</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Configure les seuils de détection. Les anomalies créent automatiquement des alertes admin et un badge sur le plein concerné.</p>
 
@@ -2549,7 +2549,7 @@
   <!-- Modal : Planning salarié -->
   <div class="modal-overlay" id="modal-planning">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3>📋 Gérer les horaires</h3><button class="modal-close" onclick="closeModal('modal-planning')">✕</button></div>
+      <div class="modal-header"><h3>📋 Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
@@ -2581,7 +2581,7 @@
 
   <div class="modal-overlay" id="modal-planning-recap">
     <div class="modal" style="max-width:860px">
-      <div class="modal-header"><h3>📋 Récap planning</h3><button class="modal-close" onclick="closeModal('modal-planning-recap')">✕</button></div>
+      <div class="modal-header"><h3>📋 Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div id="planning-recap-content"></div>
       </div>
@@ -2592,7 +2592,7 @@
   <!-- Affecter véhicule -->
   <div class="modal-overlay" id="modal-affecter-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>👤 Affecter un salarié</h3><button class="modal-close" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>👤 Affecter un salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
         <div class="form-group"><label>Salarié</label><select id="affect-salarie-sel"><option value="">-- Retirer l'affectation --</option></select></div>
@@ -2604,7 +2604,7 @@
   <!-- Modifier fiche salarié -->
   <div class="modal-overlay" id="modal-edit-salarie">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier la fiche salarié</h3><button class="modal-close" onclick="closeModal('modal-edit-salarie')">✕</button></div>
+      <div class="modal-header"><h3>✏️ Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Nom *</label><input type="text" id="edit-sal-nom" /></div>
@@ -2650,7 +2650,7 @@
 
   <div class="modal-overlay" id="modal-reset-mdp">
     <div class="modal" style="max-width:460px">
-      <div class="modal-header"><h3>Accès salarié</h3><button class="modal-close" onclick="closeModal('modal-reset-mdp')">✕</button></div>
+      <div class="modal-header"><h3>Accès salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-mdp')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:10px;">Salarié : <strong id="reset-mdp-nom"></strong></p>
         <p style="color:var(--text-muted);margin-bottom:16px;">Identifiant : <code id="reset-mdp-numero" style="background:var(--bg-dark);padding:2px 8px;border-radius:6px">—</code></p>
@@ -2674,7 +2674,7 @@
   <!-- Modifier livraison -->
   <div class="modal-overlay" id="modal-edit-livraison">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier la livraison</h3><button class="modal-close" onclick="closeModal('modal-edit-livraison')">✕</button></div>
+      <div class="modal-header"><h3>✏️ Modifier la livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-liv-id" />
         <div class="form-grid">
@@ -2730,7 +2730,7 @@
         <div class="commentaires-container" id="commentaires-liv-list"></div>
         <div class="commentaire-input-row">
           <input type="text" id="commentaire-liv-input" placeholder="Ajouter un commentaire..." onkeydown="if(event.key==='Enter')ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" />
-          <button class="btn-primary" onclick="ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" style="padding:7px 12px;font-size:.82rem">+</button>
+          <button class="btn-primary" onclick="ajouterCommentaireLiv(document.getElementById('edit-liv-id').value)" style="padding:7px 12px;font-size:.82rem" aria-label="Ajouter un commentaire">+</button>
         </div>
       </div>
       <div class="modal-footer" style="gap:8px;flex-wrap:wrap"><button class="btn-secondary" onclick="closeModal('modal-edit-livraison')">Annuler</button><button class="btn-secondary" onclick="genererBonLivraison(document.getElementById('edit-liv-id').value)" title="Générer le bon de livraison PDF">📄 Bon de livraison</button><button class="btn-secondary" onclick="genererFactureLivraison(document.getElementById('edit-liv-id').value)" title="Générer la facture PDF">🧾 Facture</button><button class="btn-primary" onclick="confirmerEditLivraison()">✅ Enregistrer</button></div>
@@ -2740,7 +2740,7 @@
   <!-- Modifier plein carburant (admin) -->
   <div class="modal-overlay" id="modal-edit-carburant">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier le plein</h3><button class="modal-close" onclick="closeModal('modal-edit-carburant')">✕</button></div>
+      <div class="modal-header"><h3>✏️ Modifier le plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-carb-id" />
         <div class="form-grid">
@@ -2761,7 +2761,7 @@
   <!-- Modifier relevé km (admin) -->
   <div class="modal-overlay" id="modal-edit-km">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier le relevé km</h3><button class="modal-close" onclick="closeModal('modal-edit-km')">✕</button></div>
+      <div class="modal-header"><h3>✏️ Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Km départ *</label><input type="number" id="admin-km-dep" min="0" /></div>
@@ -2776,7 +2776,7 @@
   <!-- Modal Nouvelle charge -->
   <div class="modal-overlay" id="modal-charge">
     <div class="modal">
-      <div class="modal-header"><h3>💸 Nouvelle charge</h3><button class="modal-close" onclick="closeModal('modal-charge')">✕</button></div>
+      <div class="modal-header"><h3>💸 Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="charge-edit-id" />
         <div class="form-grid">
@@ -2848,7 +2848,7 @@
   <!-- Modal Incident -->
   <div class="modal-overlay" id="modal-incident">
     <div class="modal">
-      <div class="modal-header"><h3>🚨 Signaler un incident</h3><button class="modal-close" onclick="closeModal('modal-incident')">✕</button></div>
+      <div class="modal-header"><h3>🚨 Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Date *</label><input type="date" id="inc-date" /></div>
@@ -2871,7 +2871,7 @@
   <!-- Modal Entretien -->
   <div class="modal-overlay" id="modal-entretien">
     <div class="modal">
-      <div class="modal-header"><h3>🔧 Ajouter un entretien</h3><button class="modal-close" onclick="closeModal('modal-entretien')">✕</button></div>
+      <div class="modal-header"><h3>🔧 Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()"><option value="">— Choisir —</option></select></div>
@@ -2981,7 +2981,7 @@
   <!-- Modal Historique conducteurs -->
   <div class="modal-overlay" id="modal-hist-conducteurs">
     <div class="modal" style="max-width:560px">
-      <div class="modal-header"><h3>🚐 Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
+      <div class="modal-header"><h3>🚐 Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
       <div class="modal-body" style="padding:0">
         <div id="hist-conducteurs-modal" style="max-height:400px;overflow-y:auto;padding:16px"></div>
       </div>
@@ -2991,7 +2991,7 @@
 
   <div class="modal-overlay" id="modal-inspection-admin">
     <div class="modal" style="max-width:620px">
-      <div class="modal-header"><h3>🚗 Nouvelle inspection</h3><button class="modal-close" onclick="closeModal('modal-inspection-admin')">✕</button></div>
+      <div class="modal-header"><h3>🚗 Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
       <div class="modal-body form-grid">
         <div class="form-group"><label>Salarié</label><select id="admin-insp-salarie"><option value="">— Choisir —</option></select></div>
         <div class="form-group"><label>Véhicule</label><select id="admin-insp-vehicule"><option value="">— Aucun véhicule —</option></select></div>
@@ -3006,7 +3006,7 @@
   <!-- Modal TCO véhicule -->
   <div class="modal-overlay" id="modal-tco">
     <div class="modal" style="max-width:520px">
-      <div class="modal-header"><h3>💰 Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" onclick="closeModal('modal-tco')">✕</button></div>
+      <div class="modal-header"><h3>💰 Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
       <div class="modal-body">
         <div id="tco-detail"></div>
         <p style="font-size:.75rem;color:var(--text-muted);margin-top:12px">Cumul depuis la création du véhicule dans MCA Logistics.</p>
@@ -3018,7 +3018,7 @@
   <!-- Modal Note interne salarié -->
   <div class="modal-overlay" id="modal-note-interne">
     <div class="modal" style="max-width:460px">
-      <div class="modal-header"><h3>📝 Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" onclick="closeModal('modal-note-interne')">✕</button></div>
+      <div class="modal-header"><h3>📝 Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="note-interne-sal-id" />
         <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:12px">🔒 Visible uniquement par l'administrateur. Jamais par le salarié.</p>
@@ -3034,7 +3034,7 @@
   <!-- Modal Récurrence -->
   <div class="modal-overlay" id="modal-recurrence">
     <div class="modal" style="max-width:420px">
-      <div class="modal-header"><h3>🔁 Livraison récurrente</h3><button class="modal-close" onclick="closeModal('modal-recurrence')">✕</button></div>
+      <div class="modal-header"><h3>🔁 Livraison récurrente</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Créer des copies hebdomadaires de :</p>
         <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.88rem;font-weight:600" id="rec-liv-info"></div>
@@ -3078,7 +3078,7 @@
       <button type="button" class="btn-bulk" onclick="bulkMarquerPayees()" title="Marquer comme payées">💳 Payées</button>
       <button type="button" class="btn-bulk" onclick="bulkExporter()" title="Exporter en CSV">📥 CSV</button>
       <button type="button" class="btn-bulk" onclick="bulkExporterPDF()" title="Exporter en PDF">📄 PDF</button>
-      <button type="button" class="btn-bulk btn-bulk-danger" onclick="bulkSupprimer()" title="Supprimer la sélection">🗑️</button>
+      <button type="button" class="btn-bulk btn-bulk-danger" onclick="bulkSupprimer()" title="Supprimer la sélection" aria-label="Supprimer la sélection">🗑️</button>
     </div>
     <button type="button" class="bulk-action-close" onclick="bulkClear()" title="Annuler la sélection (Échap)" aria-label="Désélectionner tout">✕</button>
   </div>
@@ -3111,7 +3111,7 @@
   <!-- Réinitialisation compteur livraisons (test uniquement) -->
   <div class="modal-overlay" id="modal-reset-compteur">
     <div class="modal">
-      <div class="modal-header"><h3>🧹 Réinitialiser le compteur de livraisons</h3><button class="modal-close" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3>🧹 Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
           <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
@@ -3138,7 +3138,7 @@
     <div class="modal modal-search-global">
       <div class="modal-header">
         <h3>🔎 Recherche globale</h3>
-        <button class="modal-close" type="button" onclick="fermerRechercheGlobale()">✕</button>
+        <button class="modal-close" aria-label="Fermer" type="button" onclick="fermerRechercheGlobale()">✕</button>
       </div>
       <div class="modal-body">
         <div class="searchbar searchbar-global">
@@ -3152,7 +3152,7 @@
   </div>
 
   <!-- Bouton scroll to top -->
-  <button id="btn-scroll-top" onclick="mainContent.scrollTo({top:0,behavior:'smooth'})" title="Haut de page">↑</button>
+  <button id="btn-scroll-top" onclick="mainContent.scrollTo({top:0,behavior:'smooth'})" title="Haut de page" aria-label="Remonter en haut de la page">↑</button>
 
   <!-- Sidebar overlay mobile -->
   <div class="sidebar-overlay" id="sidebarOverlay" onclick="fermerMenuMobile()"></div>
@@ -3216,7 +3216,7 @@
         <div style="font-size:1.05rem;font-weight:800;color:#e63946">🤖 MCA Agent</div>
         <div style="font-size:.72rem;color:#7c8299" id="agent-last-check">En attente d'activation...</div>
       </div>
-      <button onclick="togglePanneauAgent()" title="Fermer" style="background:rgba(255,255,255,0.06);border:1px solid #2a2d3d;color:#e8eaf0;border-radius:8px;padding:6px 12px;cursor:pointer">✕</button>
+      <button onclick="togglePanneauAgent()" title="Fermer" style="background:rgba(255,255,255,0.06);border:1px solid #2a2d3d;color:#e8eaf0;border-radius:8px;padding:6px 12px;cursor:pointer" aria-label="Fermer le panneau agent">✕</button>
     </div>
     <div style="display:flex;gap:8px;padding:12px 20px;border-bottom:1px solid #2a2d3d">
       <button id="agent-refresh-btn" onclick="rafraichirBriefAgent()" title="Rafraichir le brief IA" style="flex:1;background:rgba(230,57,70,0.12);border:1px solid rgba(230,57,70,0.4);color:#ff8b80;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:.82rem">🔄 Rafraichir</button>
