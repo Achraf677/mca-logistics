@@ -12349,6 +12349,24 @@
         }, 600);
       }
     });
+
+    // A11Y — Sprint H2.3 : ESC handler global mobile (parite PC).
+    // Priorite : sheet (saisie en cours, contexte le plus recent) > drawer (menu lateral).
+    // Detecte l'etat via aria-hidden du DOM (source de verite : meme principe que sheetOuvert()).
+    document.addEventListener('keydown', function(e) {
+      if (e.key !== 'Escape') return;
+      const sheet = document.getElementById('m-sheet');
+      const drawer = document.getElementById('m-drawer');
+      const sheetOpen = sheet && !sheet.hidden && sheet.getAttribute('aria-hidden') !== 'true';
+      const drawerOpen = drawer && drawer.getAttribute('aria-hidden') === 'false';
+      if (sheetOpen) {
+        e.preventDefault();
+        M.closeSheet();
+      } else if (drawerOpen) {
+        e.preventDefault();
+        M.closeDrawer();
+      }
+    });
   }
 
   if (document.readyState === 'loading') {
