@@ -32,12 +32,31 @@
   var SENTRY_ENV = (typeof location !== 'undefined' && location.hostname === 'localhost')
     ? 'development'
     : 'production';
-  // Hotfix M4 (2026-05-09) — la release etait hardcodee et systematiquement
-  // desyncronisee du CACHE_VERSION (sw.js). On la recupere maintenant en
-  // runtime depuis sw.js (regex sur la constante) avec un fallback minimal.
-  // Le seul "bump" a faire reste donc CACHE_VERSION dans sw.js.
-  var SENTRY_RELEASE_FALLBACK = 'unknown';
-  var SENTRY_RELEASE = SENTRY_RELEASE_FALLBACK;
+  // SENTRY_RELEASE auto-extrait de sw.js CACHE_VERSION (PR #50 M4) — un seul
+  // endroit a bump : sw.js. Memoise dans window.__MCA_VERSION_PROMISE pour eviter
+  // double fetch (Sentry init + affichage UI sidebar).
+  var SENTRY_RELEASE = 'unknown';
+  if (typeof window !== 'undefined') {
+    if (!window.__MCA_VERSION_PROMISE) {
+      window.__MCA_VERSION_PROMISE = fetch('/sw.js', { cache: 'no-cache' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (txt) {
+          var m = /CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/.exec(txt || '');
+          var v = (m && m[1]) || 'unknown';
+          window.__MCA_VERSION = v;
+          // Hydrate l'affichage sidebar PC + footer mobile si presents
+          try {
+            var elPc = document.getElementById('sidebar-version-num');
+            if (elPc) elPc.textContent = v.replace(/^mca-/, '').slice(0, 32);
+            var elM = document.getElementById('m-app-version');
+            if (elM) elM.textContent = v.replace(/^mca-/, '');
+          } catch (_) {}
+          return v;
+        })
+        .catch(function () { window.__MCA_VERSION = 'unknown'; return 'unknown'; });
+    }
+    window.__MCA_VERSION_PROMISE.then(function (v) { SENTRY_RELEASE = v; });
+  }
 
   // ============================================================
   // Mode debug (logs categorises togglables sans deploy)
