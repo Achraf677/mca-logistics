@@ -32,7 +32,12 @@
   var SENTRY_ENV = (typeof location !== 'undefined' && location.hostname === 'localhost')
     ? 'development'
     : 'production';
-  var SENTRY_RELEASE = 'v3.69-20260505'; // bump avec le cache version
+  // Hotfix M4 (2026-05-09) — la release etait hardcodee et systematiquement
+  // desyncronisee du CACHE_VERSION (sw.js). On la recupere maintenant en
+  // runtime depuis sw.js (regex sur la constante) avec un fallback minimal.
+  // Le seul "bump" a faire reste donc CACHE_VERSION dans sw.js.
+  var SENTRY_RELEASE_FALLBACK = 'unknown';
+  var SENTRY_RELEASE = SENTRY_RELEASE_FALLBACK;
 
   // ============================================================
   // Mode debug (logs categorises togglables sans deploy)
@@ -88,11 +93,41 @@
   }
 
   // ============================================================
+  // Sentry release : extraite depuis sw.js (CACHE_VERSION) pour rester
+  // synchronisee sans intervention manuelle. Best-effort : si fetch echoue,
+  // on initialise quand meme avec le fallback ('unknown').
+  // ============================================================
+  function resolveReleaseThen(cb) {
+    try {
+      // Cache local pour eviter un fetch a chaque init (rare mais possible
+      // avec Sentry qui se charge async)
+      var cached = window.__MCA_SENTRY_RELEASE__;
+      if (cached) { SENTRY_RELEASE = cached; cb(); return; }
+    } catch (_) {}
+    try {
+      fetch('/sw.js', { cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (txt) {
+          var m = txt && txt.match(/CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/);
+          if (m && m[1]) {
+            SENTRY_RELEASE = m[1];
+            try { window.__MCA_SENTRY_RELEASE__ = m[1]; } catch (_) {}
+          }
+          cb();
+        })
+        .catch(function () { cb(); });
+    } catch (_) { cb(); }
+  }
+
+  // ============================================================
   // Sentry init (charge le SDK uniquement si DSN configure)
   // ============================================================
   function initSentry() {
     if (!SENTRY_DSN) return; // inactif tant que pas configure
+    resolveReleaseThen(_initSentryNow);
+  }
 
+  function _initSentryNow() {
     var script = document.createElement('script');
     script.src = 'https://browser.sentry-cdn.com/8.40.0/bundle.min.js';
     script.crossOrigin = 'anonymous';
