@@ -751,21 +751,37 @@
     }, { ca: 0, marge: 0, nb: 0 });
   }
 
-  // Expose
-  window.getConfigRentabilite          = getConfig;
-  window.getTourneeIdLivraison         = getTourneeId;
-  window.calculerRentabiliteParVehicule = calculerRentabiliteParVehicule;
-  window.afficherRentabiliteParVehicule = afficherRentabiliteParVehicule;
-  window.calculerRentabiliteParClient  = calculerRentabiliteParClient;
-  window.afficherRentabiliteParClient  = afficherRentabiliteParClient;
-  window.calculerRentabiliteParChauffeur = calculerRentabiliteParChauffeur;
-  window.afficherRentabiliteParChauffeur = afficherRentabiliteParChauffeur;
-  window.calculerRentabiliteParTournee = calculerRentabiliteParTournee;
-  window.afficherRentabiliteParTournee = afficherRentabiliteParTournee;
-  window.voirDetailTournee = voirDetailTournee;
-  window.exporterRapportRentabilitePDF = exporterRapportRentabilitePDF;
-  window.changerSousOngletRentabilite  = changerSousOngletRentabilite;
-  window.ouvrirConfigRentabilite       = ouvrirConfigRentabilite;
-  window.enregistrerConfigRentabilite  = enregistrerConfigRentabilite;
-  window.getRangeAnalyseRentabilite    = getRangeAnalyse;
+  // Expose (browser only — guard pour permettre require() en Node tests)
+  if (typeof window !== 'undefined') {
+    window.getConfigRentabilite          = getConfig;
+    window.getTourneeIdLivraison         = getTourneeId;
+    window.calculerRentabiliteParVehicule = calculerRentabiliteParVehicule;
+    window.afficherRentabiliteParVehicule = afficherRentabiliteParVehicule;
+    window.calculerRentabiliteParClient  = calculerRentabiliteParClient;
+    window.afficherRentabiliteParClient  = afficherRentabiliteParClient;
+    window.calculerRentabiliteParChauffeur = calculerRentabiliteParChauffeur;
+    window.afficherRentabiliteParChauffeur = afficherRentabiliteParChauffeur;
+    window.calculerRentabiliteParTournee = calculerRentabiliteParTournee;
+    window.afficherRentabiliteParTournee = afficherRentabiliteParTournee;
+    window.voirDetailTournee = voirDetailTournee;
+    window.exporterRapportRentabilitePDF = exporterRapportRentabilitePDF;
+    window.changerSousOngletRentabilite  = changerSousOngletRentabilite;
+    window.ouvrirConfigRentabilite       = ouvrirConfigRentabilite;
+    window.enregistrerConfigRentabilite  = enregistrerConfigRentabilite;
+    window.getRangeAnalyseRentabilite    = getRangeAnalyse;
+  }
+
+  // Export Node (tests unitaires uniquement) — sprint H2.2
+  // calculer* fonctions utilisent `charger()` global ou un context simulant.
+  // Les tests injectent un fake `charger` via globalThis avant require.
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      getMontantHTLiv: getMontantHTLiv,
+      getTourneeId: getTourneeId,
+      calculerRentabiliteParVehicule: calculerRentabiliteParVehicule,
+      calculerRentabiliteParClient: calculerRentabiliteParClient,
+      calculerRentabiliteParChauffeur: calculerRentabiliteParChauffeur,
+      calculerRentabiliteParTournee: calculerRentabiliteParTournee
+    };
+  }
 })();
