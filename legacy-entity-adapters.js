@@ -6,9 +6,8 @@
  *   - alertes_admin    (cle 'alertes_admin' -> public.alertes_admin)
  *   - absences_periodes (cle 'absences_periodes' -> public.absences_periodes)
  *
- * Le module 'plannings' (structure nested) et 'messages_*' (multi-key dynamique)
- * vivent dans des fichiers dedies (plannings-supabase-adapter.js,
- * messages-supabase-adapter.js).
+ * Le module 'plannings' (structure nested) vit dans un fichier dedie
+ * (plannings-supabase-adapter.js).
  *
  * Approche : mapping explicite + fallback `extra` (pour inspections via colonnes
  * absentes : photos, vehImmat, source, etc., on les preserve cote local et on

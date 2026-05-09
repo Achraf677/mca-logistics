@@ -10795,20 +10795,17 @@ genererRentabilitePDF = function() {
         <div class="s20-kpi"><div class="s20-kpi-val">${heuresSem.toFixed(1)} h</div><div class="s20-kpi-lbl">Semaine</div></div>
         <div class="s20-kpi"><div class="s20-kpi-val">${liv30.length}</div><div class="s20-kpi-lbl">Livr. 30j</div></div>
         <div class="s20-kpi"><div class="s20-kpi-val">${Math.round(ca30)} €</div><div class="s20-kpi-lbl">CA 30j</div></div>
-        <div class="s20-kpi ${msgNonLus ? 's20-kpi-alert' : ''}"><div class="s20-kpi-val">${msgNonLus}</div><div class="s20-kpi-lbl">Msg non lus</div></div>
       </div>
 
       <div class="s20-tabs">
         <button class="s20-tab active" data-tab="activite" onclick="window.s20SwitchTab('activite')">📅 Activité</button>
         <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab('livraisons')">📦 Livraisons (${livraisons.length})</button>
-        <button class="s20-tab" data-tab="messages" onclick="window.s20SwitchTab('messages')">💬 Messages (${messages.length})</button>
         <button class="s20-tab" data-tab="conformite" onclick="window.s20SwitchTab('conformite')">🪪 Conformité</button>
         <button class="s20-tab" data-tab="incidents" onclick="window.s20SwitchTab('incidents')">🚨 Incidents (${incidents.length})</button>
       </div>
 
-      <div class="s20-tab-content" id="s20-tab-activite">${renderActivite(livraisons, messages, incidents, alertes)}</div>
+      <div class="s20-tab-content" id="s20-tab-activite">${renderActivite(livraisons, [], incidents, alertes)}</div>
       <div class="s20-tab-content hidden" id="s20-tab-livraisons">${renderLivraisons(livraisons)}</div>
-      <div class="s20-tab-content hidden" id="s20-tab-messages">${renderMessages(messages)}</div>
       <div class="s20-tab-content hidden" id="s20-tab-conformite">${renderConformite(sal)}</div>
       <div class="s20-tab-content hidden" id="s20-tab-incidents">${renderIncidentsList(incidents)}</div>
 

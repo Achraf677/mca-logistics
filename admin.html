@@ -27,7 +27,7 @@
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preload" as="style" href="style.css?v=20260509e-60">
-  <link rel="preload" as="script" href="script.js?v=20260509e-60">
+  <link rel="preload" as="script" href="script.js?v=20260509e-61">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -44,7 +44,6 @@
     .nav-item[data-page="salaries"],
     .nav-item[data-page="heures"],
     .nav-item[data-page="planning"],
-    .nav-item[data-page="messagerie"],
     .nav-item[data-page="incidents"],
     .nav-item[data-page="vehicules"],
     .nav-item[data-page="carburant"],
@@ -253,11 +252,6 @@
           <div class="stat-pill-label">💸 Charges impayées</div>
           <div class="stat-pill-value" id="kpi-charges-impayees">0 €</div>
           <div class="stat-pill-sub" id="kpi-charges-impayees-sub">—</div>
-        </div>
-        <div class="stat-pill stat-pill-blue" style="cursor:pointer" onclick="naviguerVers('messagerie')">
-          <div class="stat-pill-label">💬 Messages</div>
-          <div class="stat-pill-value" id="kpi-messages">0</div>
-          <div class="stat-pill-sub">non lus</div>
         </div>
       </div>
 
@@ -3250,7 +3244,7 @@
   <script defer src="script-core-ui.js?v=20260509e-58"></script>
   <script defer src="script-core-auth.js?v=20260509e-58"></script>
   <script defer src="script-core-periodes.js?v=20260509e-58"></script>
-  <script defer src="script-core-navigation.js?v=20260509e-58"></script>
+  <script defer src="script-core-navigation.js?v=20260509e-59"></script>
   <script defer src="script-core-edit-locks.js?v=20260509e-58"></script>
   <script defer src="script-core-branding.js?v=20260509e-58"></script>
   <script defer src="script-core-audit.js?v=20260509e-59"></script>
@@ -3270,7 +3264,6 @@
   <script defer src="all-entity-adapters.js?v=20260509e-58"></script>
   <script defer src="legacy-entity-adapters.js?v=20260509e-58"></script>
   <script defer src="plannings-supabase-adapter.js?v=20260509e-58"></script>
-  <script defer src="messages-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="repo.js?v=20260509e-58"></script>
   <script defer src="lazy-loader.js?v=20260509e-58"></script>
   <script defer src="lazy-stubs.js?v=20260509e-58"></script>
@@ -3295,7 +3288,7 @@
   <script defer src="script-salaries.js?v=20260509e-60"></script>
   <script defer src="script-vehicules.js?v=20260509e-60"></script>
   <script defer src="script-livraisons.js?v=20260509e-60"></script>
-  <script defer src="script.js?v=20260509e-60"></script>
+  <script defer src="script.js?v=20260509e-61"></script>
   <script defer src="health-check.js?v=20260509e-60"></script>
   <script defer src="watchdog.js?v=20260509e-60"></script>
   <script>
