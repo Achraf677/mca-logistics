@@ -1775,7 +1775,19 @@ var _rentMoisOffset = 0;
 
 /* ===== STATISTIQUES ===== */
 let chartCA=null,chartChauff=null,chartVeh=null,chartCAParChauff=null;
-var _statsPeriode = buildSimplePeriodeState('mois');
+// Fallback defensif : si script-core-stats-helpers.js n'a pas charge (race
+// condition cache busting / SW stale), on attache un stub minimal sur window
+// pour eviter la ReferenceError "buildSimplePeriodeState is not defined" qui
+// casse tout l'init de script.js (Sentry x3, mai 2026). Le helper canonique
+// reste dans script-core-stats-helpers.js. NB : les autres init de _xxxPeriode
+// plus bas passent toutes par window.buildSimplePeriodeState pour beneficier
+// du fallback ici aussi.
+if (typeof window.buildSimplePeriodeState !== 'function') {
+  window.buildSimplePeriodeState = function(defaultMode) {
+    return { mode: defaultMode || 'mois', offset: 0 };
+  };
+}
+var _statsPeriode = window.buildSimplePeriodeState('mois');
 // MOVED -> script-stats.js : getStatsMoisRange
 // MOVED -> script-stats.js : navStatsMois
 // MOVED -> script-stats.js : changerVueStats
@@ -3803,7 +3815,7 @@ window.confirmerEditVehicule = confirmerEditVehicule;
    =============================================== */
 
 var _planningSemaineOffset = 0; // 0 = semaine courante
-var _planningPeriode = buildSimplePeriodeState('semaine');
+var _planningPeriode = window.buildSimplePeriodeState('semaine');
 
 // MOVED -> script-core-periodes.js : getLundiDeSemaine
 
@@ -3855,10 +3867,10 @@ var _heuresSemaineOffset = 0;
 // MOVED -> script-heures.js : majHeuresSemaineLabel
 
 /* --- INSPECTIONS / CHARGES / CARBURANT / ENTRETIENS --- */
-var _inspPeriode = buildSimplePeriodeState('semaine');
-var _chargesPeriode = buildSimplePeriodeState('mois');
-var _carbPeriode = buildSimplePeriodeState('mois');
-var _entrPeriode = buildSimplePeriodeState('mois');
+var _inspPeriode = window.buildSimplePeriodeState('semaine');
+var _chargesPeriode = window.buildSimplePeriodeState('mois');
+var _carbPeriode = window.buildSimplePeriodeState('mois');
+var _entrPeriode = window.buildSimplePeriodeState('mois');
 
 // MOVED -> script-core-periodes.js : changeSimplePeriode
 
@@ -3905,7 +3917,7 @@ var _entrPeriode = buildSimplePeriodeState('mois');
    ONGLET TVA — Récapitulatif mensuel
    =============================================== */
 
-var _tvaPeriode = buildSimplePeriodeState('mois');
+var _tvaPeriode = window.buildSimplePeriodeState('mois');
 // MOVED -> script-tva.js : navTvaMois
 
 // MOVED -> script-tva.js : getTvaMoisStr
