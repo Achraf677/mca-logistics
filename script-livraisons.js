@@ -8,6 +8,76 @@
  * A charger AVANT script.js dans admin.html.
  */
 
+// ============================================================
+// Migration boot — unification schemas data PC <-> mobile
+// (R3 LDV / R4 vehicule.assurance / R7 charges fournisseurId).
+// Idempotent : flagged via _ldv_migrated_v1 / _assurance_migrated_v1
+// / _fk_migrated_v1 sur chaque entite. Rerun safe.
+// Pendant qu'on tourne dual-read transitoire, on hisse l'ancienne data
+// du flat vers le nested canonique (et mirror) pour que readers PC ET
+// mobile voient le meme contenu.
+// ============================================================
+function migrerSchemasDataPC() {
+  // R3 — LDV
+  try {
+    if (typeof normalizeLDV === 'function') {
+      const livs = charger('livraisons');
+      let ch = false;
+      livs.forEach(l => {
+        if (!l || l._ldv_migrated_v1) return;
+        normalizeLDV(l);
+        l._ldv_migrated_v1 = true;
+        ch = true;
+      });
+      if (ch) sauvegarder('livraisons', livs);
+    }
+  } catch (e) { console.warn('[pc] migration LDV', e); }
+
+  // R4 — Vehicule assurance
+  try {
+    if (typeof normalizeVehicule === 'function') {
+      const vehs = charger('vehicules');
+      let ch = false;
+      vehs.forEach(v => {
+        if (!v || v._assurance_migrated_v1) return;
+        normalizeVehicule(v);
+        v._assurance_migrated_v1 = true;
+        ch = true;
+      });
+      if (ch) sauvegarder('vehicules', vehs);
+    }
+  } catch (e) { console.warn('[pc] migration assurance', e); }
+
+  // R7 — Charges sans fournisseurId : matching par nom (best-effort).
+  // Les non-matched sont loggees console pour visibilite admin.
+  try {
+    if (typeof findFournisseurByNom === 'function') {
+      const charges = charger('charges');
+      const fournisseurs = charger('fournisseurs');
+      let ch = false;
+      const orphelins = [];
+      charges.forEach(c => {
+        if (!c || c._fk_migrated_v1) return;
+        if (!c.fournisseurId && c.fournisseur) {
+          const match = findFournisseurByNom(c.fournisseur, fournisseurs);
+          if (match) {
+            c.fournisseurId = match.id;
+          } else {
+            orphelins.push({ id: c.id, nom: c.fournisseur });
+          }
+        }
+        c._fk_migrated_v1 = true;
+        ch = true;
+      });
+      if (ch) sauvegarder('charges', charges);
+      if (orphelins.length) {
+        console.warn('[pc] ' + orphelins.length + ' charge(s) sans fournisseurId (nom inconnu) :', orphelins);
+      }
+    }
+  } catch (e) { console.warn('[pc] migration FK charges', e); }
+}
+if (typeof window !== 'undefined') window.migrerSchemasDataPC = migrerSchemasDataPC;
+
 // L798 (script.js d'origine)
 function getMontantHTLivraison(livraison) {
   const taux = parseFloat(livraison?.tauxTVA) || 0;
@@ -200,6 +270,18 @@ function ajouterLivraison() {
     modePaiement:   document.getElementById('liv-mode-paiement')?.value || '',
     heureDebut:     document.getElementById('liv-heure-debut')?.value || '',
     expediteur, destinataire, marchandise, adr,
+    // Dual-write : mirror flat pour readers mobile (R3 unification).
+    expNom: expediteur.nom, expContact: expediteur.contact, expAdresse: expediteur.adresse,
+    expCp: expediteur.cp, expVille: expediteur.ville, expPays: expediteur.pays || 'FR',
+    destNom: destinataire.nom, destContact: destinataire.contact, destAdresse: destinataire.adresse,
+    destCp: destinataire.cp, destVille: destinataire.ville, destPays: destinataire.pays || 'FR',
+    marchNature: marchandise.nature, marchPoids: marchandise.poidsKg,
+    marchVolume: marchandise.volumeM3, marchColis: marchandise.nbColis,
+    adrEst: !!adr.estADR, adrEstADR: !!adr.estADR,
+    adrOnu: adr.codeONU, adrCodeONU: adr.codeONU,
+    adrClasse: adr.classe,
+    adrGroupe: adr.groupeEmballage, adrGroupeEmballage: adr.groupeEmballage,
+    _ldv_migrated_v1: true,
     creeLe: new Date().toISOString()
   };
 

@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v3_94-visual-agent-138';
+const CACHE_VERSION = 'mca-v2026-05-09-v3_93-data-schema-unification-137';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
