@@ -2,6 +2,18 @@
    MCA Logistics — Mobile App (m.html)
    Styles dedies, fresh start, mobile-first. Aucune dependance a style.css.
    Memes couleurs/identite que desktop, mais layout/composants pures mobile.
+
+   Echelle z-index canonique (a respecter pour eviter chevauchements) :
+     0    = contenu (cards, listes)
+     40   = .m-bottom-nav (fixed bottom)
+     45   = .m-fab + .m-fab-secondary (au-dessus nav, sous drawer)
+     50   = .m-header (sticky top)
+     80   = .m-drawer-overlay
+     90   = .m-drawer
+     100  = .m-sheet-overlay
+     110  = .m-sheet (au-dessus overlay)
+     200  = .m-toast (au-dessus de tout)
+   Ne jamais creer un nouveau z-index aleatoire.
    ========================================================================== */
 
 :root {

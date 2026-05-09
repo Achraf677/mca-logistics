@@ -1,5 +1,24 @@
 ﻿/* =====================================================
-   DelivPro — style.css v2
+   DelivPro / MCA Logistics — style.css v2
+   =====================================================
+   Echelle z-index canonique (a respecter pour eviter chevauchements) :
+     0      = contenu normal (cards, listes, KPI)
+     1-3    = decorations locales (::before, gradients)
+     10-50  = sticky elements (sidebar nav active, table headers)
+     90    = mobile-bottom-nav PC fallback
+     100   = sidebar mobile menu, dropdowns en haut
+     120   = toast simple (#toast)
+     150   = dropdowns row-action (sal-dropdown, etc.) - SOUS modales
+     160   = ai-chat-fab + ai-chat-panel sur petit ecran
+     500   = modal-confirm (au-dessus contenu, sous panneau-agent)
+     999   = panel slide-out (recherche, edition rapide)
+     1000  = panneau-agent slide-out
+     1090  = drawer side fullscreen
+     1100  = side-drawer-overlay
+     1101  = side-drawer (au-dessus overlay)
+     9998  = s15-modal-info-overlay (modales d'info legacy)
+     9999  = toast-stack, s15-palette-overlay (Ctrl+K)
+   Ne jamais creer un nouveau z-index aleatoire — utilise un palier existant.
    ===================================================== */
 
 :root {
@@ -5024,7 +5043,10 @@ body.light-mode input[type="time"] {
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-  z-index: 9999;
+  /* Dropdown row-action : au-dessus des cards/tableau (z=2-50)
+     mais SOUS modales (z>=500) et toasts (z>=9998).
+     Avant : z-index:9999 → restait visible au-dessus de toute modale. */
+  z-index: 150;
   min-width: 180px;
   overflow: hidden;
 }
