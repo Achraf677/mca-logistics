@@ -129,6 +129,13 @@
       statut_paiement: emptyToNull(c.statutPaiement) || 'a_payer',
       date_paiement: emptyToNull(c.datePaiement),
       mode_paiement: emptyToNull(c.modePaiement),
+      // Recurrence (migration 041) : persistance directe en colonnes pour
+      // permettre au cron `charges-recurrence-daily` de les lire en SQL.
+      recurrence_pattern: emptyToNull(c.recurrencePattern),
+      recurrence_actif: c.recurrenceActif === true,
+      recurrence_jour_du_mois: (typeof c.recurrenceJourDuMois === 'number' && c.recurrenceJourDuMois > 0) ? c.recurrenceJourDuMois : null,
+      recurrence_date_fin: emptyToNull(c.recurrenceDateFin),
+      recurrence_template_id: isUuidLike(c.recurrenceTemplateId) ? c.recurrenceTemplateId : null,
       extra: c
     };
     if (isUuidLike(c.id)) row.id = c.id;
@@ -156,6 +163,12 @@
       statutPaiement: r.statut_paiement || 'a_payer',
       datePaiement: r.date_paiement || '',
       modePaiement: r.mode_paiement || '',
+      // Recurrence (migration 041)
+      recurrencePattern: r.recurrence_pattern || '',
+      recurrenceActif: r.recurrence_actif === true,
+      recurrenceJourDuMois: r.recurrence_jour_du_mois == null ? null : Number(r.recurrence_jour_du_mois),
+      recurrenceDateFin: r.recurrence_date_fin || '',
+      recurrenceTemplateId: r.recurrence_template_id || null,
       creeLe: r.created_at || ''
     });
   }
