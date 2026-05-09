@@ -354,11 +354,22 @@
   // ============================================================
   // FOURNISSEURS
   // ============================================================
+  // Normalise le type fournisseur vers la casse acceptee par la contrainte
+  // CHECK fournisseurs_type_check (Pro / Particulier). Les forms HTML envoient
+  // 'pro' / 'particulier' minuscules -> DB rejette en 23514. Bug Sentry x6
+  // ("new row violates check constraint fournisseurs_type_check"), mai 2026.
+  function normalizeFournisseurType(t) {
+    var s = (t == null ? '' : String(t)).trim().toLowerCase();
+    if (s === 'particulier') return 'Particulier';
+    // 'pro', 'professionnel', 'entreprise', vide, ou tout le reste -> 'Pro'
+    return 'Pro';
+  }
+  if (typeof window !== 'undefined') window.normalizeFournisseurType = normalizeFournisseurType;
   function fournisseurJsToDb(f) {
     if (!f || typeof f !== 'object') return null;
     var row = {
       nom: emptyToNull(f.nom) || 'Sans nom',
-      type: emptyToNull(f.type) || 'Pro',
+      type: normalizeFournisseurType(f.type),
       secteur: emptyToNull(f.secteur),
       contact: emptyToNull(f.contact),
       prenom: emptyToNull(f.prenom),
