@@ -227,6 +227,35 @@ function __modalTrapKeydown(e) {
   }
 }
 
+/* H2.1 — Registre de hooks modal. Au lieu de wrapper window.openModal/closeModal
+   (chaîne fragile), les modules enregistrent un callback :
+     window.registerModalHook('open', 'modal-livraison', fn) → fn appelée APRÈS
+       openModal('modal-livraison').
+     window.registerModalHook('close', '*', fn) → fn appelée à toute closeModal.
+   Si fn throw, on log et on continue. Voir script.js Sprint 11/15/AdminFinal
+   qui utilisaient des wrappers de openModal/closeModal. */
+const __modalHooks = { open: { '*': [] }, close: { '*': [] } };
+window.registerModalHook = function(phase, modalId, cb) {
+  if ((phase !== 'open' && phase !== 'close') || typeof cb !== 'function') return function(){};
+  const key = modalId || '*';
+  if (!__modalHooks[phase][key]) __modalHooks[phase][key] = [];
+  __modalHooks[phase][key].push(cb);
+  return function() {
+    const arr = __modalHooks[phase][key];
+    if (!arr) return;
+    const idx = arr.indexOf(cb);
+    if (idx > -1) arr.splice(idx, 1);
+  };
+};
+function __runModalHooks(phase, id) {
+  const lists = [__modalHooks[phase]['*'], __modalHooks[phase][id]].filter(Boolean);
+  for (const list of lists) {
+    for (const cb of list) {
+      try { cb(id); } catch (e) { console.error('[modal hook ' + phase + '/' + id + ']', e); }
+    }
+  }
+}
+
 // L1773 (script.js d'origine)
 function openModal(id)  {
   mettreAJourSelects();
@@ -266,6 +295,8 @@ function openModal(id)  {
     }
     mettreAJourFormulaireVehicule();
   }
+  // H2.1 — Hooks open enregistrés via window.registerModalHook('open', ...)
+  __runModalHooks('open', id);
 }
 
 // L1812 (script.js d'origine)
@@ -297,6 +328,8 @@ function closeModal(id) {
       try { el.parentNode && el.parentNode.removeChild(el); } catch(_) {}
     });
   }
+  // H2.1 — Hooks close enregistrés via window.registerModalHook('close', ...)
+  __runModalHooks('close', id);
 }
 
 // L3681 (script.js d'origine)
