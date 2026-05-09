@@ -27,7 +27,7 @@
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preload" as="style" href="style.css?v=20260509e-60">
-  <link rel="preload" as="script" href="script.js?v=20260509f-1">
+  <link rel="preload" as="script" href="script.js?v=20260509f-2">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -3344,7 +3344,11 @@
   <script defer src="script-salaries.js?v=20260509e-60"></script>
   <script defer src="script-vehicules.js?v=20260509e-60"></script>
   <script defer src="script-livraisons.js?v=20260509e-60"></script>
-  <script defer src="script.js?v=20260509f-1"></script>
+  <script defer src="script.js?v=20260509f-2"></script>
+  <!-- Drawer 360 PC : parite KPIs avec mobile (Sprint H2.4). Doit etre charge
+       APRES script.js pour pouvoir hooker ouvrirFiche360Client/Fournisseur/
+       Salarie/Vehicule. Voir script-drawer-360-pc-parite.js + tests/drawer-360-pc.test.js. -->
+  <script defer src="script-drawer-360-pc-parite.js?v=20260509f-2"></script>
   <script defer src="health-check.js?v=20260509e-60"></script>
   <script defer src="watchdog.js?v=20260509e-60"></script>
   <!-- Setup wizard onboarding : 1ere connexion admin (4 etapes). Charge apres
