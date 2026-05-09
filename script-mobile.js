@@ -3882,7 +3882,7 @@
         // Gate session : 1x par session de login (et non 1x par jour calendaire,
         // sinon un re-login le meme jour ne re-declenche jamais le brief).
         sessionStorage.setItem(AI_BRIEF_LAST_RUN_KEY_M, '1');
-      } catch (_) {}
+      } catch (_) { /* fail-silent: sessionStorage indisponible (mode privé) — gate sera retentée */ }
       M.updateBriefBadge();
       if (trigger === 'manual') {
         M.toast(added > 0 ? `✅ ${added} nouvelle(s) décision(s)` : '✅ Rien de nouveau');
@@ -4023,7 +4023,7 @@
         M.toast('⚠️ Chatbot indisponible'); return;
       }
       // Ferme la sheet pour focus chat
-      try { M.closeSheet(); } catch (_) {}
+      try { M.closeSheet(); } catch (_) { /* fail-silent: sheet déjà fermée */ }
       window.AIChat.open();
       setTimeout(() => {
         const input = document.getElementById('ai-chat-input');
@@ -5884,9 +5884,30 @@
   // Lance la vérif complète (salariés + véhicules) au boot et toutes les heures.
   // Idempotent (cooldown bloqueRegen empêche la regen en boucle).
   M.lancerVerifDocs = function() {
-    try { M.alertes.purger(); } catch (_) {}
-    try { M.verifierDocumentsSalaries(); } catch (_) {}
-    try { M.verifierDocumentsVehicules(); } catch (_) {}
+    try { M.alertes.purger(); } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[mobile:lancerVerifDocs-purger]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
+    try { M.verifierDocumentsSalaries(); } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[mobile:verifierDocumentsSalaries]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
+    try { M.verifierDocumentsVehicules(); } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[mobile:verifierDocumentsVehicules]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
   };
 
   // ---------- Alertes (v3.33 : groupage par module/onglet metier) ----------
@@ -11952,7 +11973,14 @@
         try {
           const { data: { user } } = await client.auth.getUser();
           email = user?.email || '';
-        } catch (_) {}
+        } catch (e) {
+          if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+            console.warn('[mobile:changerMotDePasse-getUser]', e);
+          }
+          if (window.Sentry && window.Sentry.captureException) {
+            try { window.Sentry.captureException(e); } catch (_) {}
+          }
+        }
         if (!email) {
           M.toast('Session admin introuvable, reconnecte-toi', { duration: 5000 });
           return false;
@@ -12104,7 +12132,7 @@
             }
             // Supprime l'ancien si présent
             if (existant.ribPath && existant.ribPath !== newPath) {
-              try { await window.DelivProStorage.remove('company-docs', existant.ribPath); } catch (_) {}
+              try { await window.DelivProStorage.remove('company-docs', existant.ribPath); } catch (_) { /* fail-silent: ancien fichier RIB peut déjà être supprimé / orphelin */ }
             }
             ribPath = res.path;
           }

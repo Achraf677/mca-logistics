@@ -108,11 +108,11 @@ if (!window.__delivproLifecyclePatched) {
   const nativeClearInterval = window.clearInterval;
   window.setInterval = function() {
     const id = nativeSetInterval.apply(this, arguments);
-    try { window.__delivproIntervals.add(id); } catch(e) {}
+    try { window.__delivproIntervals.add(id); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
     return id;
   };
   window.clearInterval = function(id) {
-    try { window.__delivproIntervals.delete(id); } catch(e) {}
+    try { window.__delivproIntervals.delete(id); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
     return nativeClearInterval.call(this, id);
   };
 
@@ -120,10 +120,10 @@ if (!window.__delivproLifecyclePatched) {
     const NativeMO = window.MutationObserver;
     function PatchedMO(cb) {
       const inst = new NativeMO(cb);
-      try { window.__delivproObservers.add(inst); } catch(e) {}
+      try { window.__delivproObservers.add(inst); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
       const nativeDisc = inst.disconnect.bind(inst);
       inst.disconnect = function() {
-        try { window.__delivproObservers.delete(inst); } catch(e) {}
+        try { window.__delivproObservers.delete(inst); } catch(_) { /* fail-silent: registre lifecycle non bloquant */ }
         return nativeDisc();
       };
       return inst;
@@ -133,8 +133,8 @@ if (!window.__delivproLifecyclePatched) {
   }
 
   window.addEventListener('beforeunload', function() {
-    try { window.__delivproIntervals.forEach(function(id){ try { nativeClearInterval(id); } catch(e) {} }); } catch(e) {}
-    try { window.__delivproObservers.forEach(function(o){ try { o.disconnect(); } catch(e) {} }); } catch(e) {}
+    try { window.__delivproIntervals.forEach(function(id){ try { nativeClearInterval(id); } catch(_) { /* fail-silent: clearInterval cleanup au unload */ } }); } catch(_) { /* fail-silent: cleanup au unload non bloquant */ }
+    try { window.__delivproObservers.forEach(function(o){ try { o.disconnect(); } catch(_) { /* fail-silent: observer cleanup au unload */ } }); } catch(_) { /* fail-silent: cleanup au unload non bloquant */ }
   });
 }
 
@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           window.__delivproTabUnlocked = true;
           sessionStorage.setItem('auth_mode', 'supabase');
         }
-      } catch(_) {}
+      } catch(_) { /* fail-silent: refreshSession optionnel — fallback redirection login si non récupérée */ }
     }
     if (!supabaseSessionValide) {
       nettoyerSessionAppCourante();
@@ -822,7 +822,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('online', function() {
     afficherToast('✅ Connexion rétablie — synchronisation en cours…', 'success');
     if (window.DelivProRemoteStorage && window.DelivProRemoteStorage.flush) {
-      window.DelivProRemoteStorage.flush().catch(function() {});
+      window.DelivProRemoteStorage.flush().catch(function(e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:online-flush]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      });
     }
   });
   // BUG-005 PWA : prompt d'installation via beforeinstallprompt
@@ -834,14 +841,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const btn = document.getElementById('btn-install-pwa');
         if (btn) btn.style.display = 'inline-flex';
-      } catch(_) {}
+      } catch(_) { /* fail-silent: bouton install absent (DOM partiel) */ }
     });
     window.addEventListener('appinstalled', function() {
       window.__delivproDeferredPrompt = null;
       try {
         const btn = document.getElementById('btn-install-pwa');
         if (btn) btn.style.display = 'none';
-      } catch(_) {}
+      } catch(_) { /* fail-silent: bouton install déjà retiré */ }
       if (typeof afficherToast === 'function') afficherToast('📲 MCA Logistics installé sur votre appareil', 'success');
       if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('PWA', 'Application installée en mode standalone');
     });
@@ -931,8 +938,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   // PERF anti-FOUC : exécute S22 (hubs sidebar) et S26 (timeline dashboard)
   // synchrone avant de révéler le body, pour éviter le flash
   // "anciens onglets → nouveaux onglets" et l'apparition retardée de la timeline.
-  try { if (typeof window.__s22InitSidebar === 'function') window.__s22InitSidebar(); } catch (_) {}
-  try { if (typeof window.__s26InitDashboard === 'function') window.__s26InitDashboard(); } catch (_) {}
+  try { if (typeof window.__s22InitSidebar === 'function') window.__s22InitSidebar(); } catch (e) {
+    if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+      console.warn('[script:s22InitSidebar]', e);
+    }
+    if (window.Sentry && window.Sentry.captureException) {
+      try { window.Sentry.captureException(e); } catch (_) {}
+    }
+  }
+  try { if (typeof window.__s26InitDashboard === 'function') window.__s26InitDashboard(); } catch (e) {
+    if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+      console.warn('[script:s26InitDashboard]', e);
+    }
+    if (window.Sentry && window.Sentry.captureException) {
+      try { window.Sentry.captureException(e); } catch (_) {}
+    }
+  }
   requestAnimationFrame(() => {
     document.body.classList.remove('app-booting');
   });
@@ -3431,7 +3452,14 @@ function incrementerCompteurFactureAnnee(annee) {
       .filter(f => String(f.annee || '') === key)
       .reduce((m, f) => Math.max(m, parseInt(f.sequence, 10) || 0), 0);
     if (maxLive > (compteurs[key] || 0)) compteurs[key] = maxLive;
-  } catch(e) {}
+  } catch (e) {
+    if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+      console.warn('[script:incrementerCompteurFacture-syncMax]', e);
+    }
+    if (window.Sentry && window.Sentry.captureException) {
+      try { window.Sentry.captureException(e); } catch (_) {}
+    }
+  }
   compteurs[key] = (compteurs[key] || 0) + 1;
   localStorage.setItem(COMPTEURS_FACTURES_KEY, JSON.stringify(compteurs));
   return compteurs[key];
@@ -7300,7 +7328,14 @@ genererRentabilitePDF = function() {
   if (typeof afficherDashboardOrig === 'function') {
     window.afficherDashboard = function() {
       const r = afficherDashboardOrig.apply(this, arguments);
-      try { window.afficherHeroSante(); } catch (e) { /* ignore */ }
+      try { window.afficherHeroSante(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:afficherDashboard-heroSante]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
       return r;
     };
   }
@@ -7308,7 +7343,14 @@ genererRentabilitePDF = function() {
   // Premier rendu au chargement si dashboard déjà actif
   function initHeroSante() {
     setTimeout(function() {
-      try { window.afficherHeroSante(); } catch (e) {}
+      try { window.afficherHeroSante(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:initHeroSante]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
     }, 500);
   }
   if (document.readyState === 'loading') {
@@ -7411,7 +7453,7 @@ genererRentabilitePDF = function() {
 
     // Rend le focus à l'élément précédent
     if (_elementFocusAvantOuverture && typeof _elementFocusAvantOuverture.focus === 'function') {
-      try { _elementFocusAvantOuverture.focus(); } catch (e) {}
+      try { _elementFocusAvantOuverture.focus(); } catch (_) { /* fail-silent: élément focus original détaché du DOM (a11y best-effort) */ }
       _elementFocusAvantOuverture = null;
     }
 
@@ -7528,7 +7570,14 @@ genererRentabilitePDF = function() {
         if (!l.datePaiement) l.datePaiement = today;
         count++;
         if (typeof ajouterEntreeAudit === 'function') {
-          try { ajouterEntreeAudit('Paiement livraison (bulk)', (l.numLiv || 'Livraison') + ' · payé'); } catch (e) {}
+          try { ajouterEntreeAudit('Paiement livraison (bulk)', (l.numLiv || 'Livraison') + ' · payé'); } catch (e) {
+            if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+              console.warn('[script:bulkMarquerPayees-audit]', e);
+            }
+            if (window.Sentry && window.Sentry.captureException) {
+              try { window.Sentry.captureException(e); } catch (_) {}
+            }
+          }
         }
       }
     });
@@ -7553,7 +7602,14 @@ genererRentabilitePDF = function() {
         l.statut = 'livre';
         count++;
         if (typeof ajouterEntreeAudit === 'function') {
-          try { ajouterEntreeAudit('Statut livraison (bulk)', (l.numLiv || 'Livraison') + ' · livrée'); } catch (e) {}
+          try { ajouterEntreeAudit('Statut livraison (bulk)', (l.numLiv || 'Livraison') + ' · livrée'); } catch (e) {
+            if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+              console.warn('[script:bulkMarquerLivrees-audit]', e);
+            }
+            if (window.Sentry && window.Sentry.captureException) {
+              try { window.Sentry.captureException(e); } catch (_) {}
+            }
+          }
         }
       }
     });
@@ -7575,10 +7631,24 @@ genererRentabilitePDF = function() {
     const restantes = livraisons.filter(function(l) {
       if (ids.indexOf(l.id) !== -1) {
         if (typeof annulerArchiveFactureLivraison === 'function') {
-          try { annulerArchiveFactureLivraison(l); } catch (e) {}
+          try { annulerArchiveFactureLivraison(l); } catch (e) {
+            if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+              console.warn('[script:bulkSupprimer-annulerArchive]', e);
+            }
+            if (window.Sentry && window.Sentry.captureException) {
+              try { window.Sentry.captureException(e); } catch (_) {}
+            }
+          }
         }
         if (typeof ajouterEntreeAudit === 'function') {
-          try { ajouterEntreeAudit('Suppression livraison (bulk)', (l.numLiv || 'Livraison') + ' · ' + (l.client || 'Client')); } catch (e) {}
+          try { ajouterEntreeAudit('Suppression livraison (bulk)', (l.numLiv || 'Livraison') + ' · ' + (l.client || 'Client')); } catch (e) {
+            if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+              console.warn('[script:bulkSupprimer-audit]', e);
+            }
+            if (window.Sentry && window.Sentry.captureException) {
+              try { window.Sentry.captureException(e); } catch (_) {}
+            }
+          }
         }
         return false;
       }
@@ -8627,7 +8697,14 @@ genererRentabilitePDF = function() {
 
       // Suppression
       if (typeof annulerArchiveFactureLivraison === 'function') {
-        try { annulerArchiveFactureLivraison(livraison); } catch (e) {}
+        try { annulerArchiveFactureLivraison(livraison); } catch (e) {
+          if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+            console.warn('[script:supprimerLivraison-annulerArchive]', e);
+          }
+          if (window.Sentry && window.Sentry.captureException) {
+            try { window.Sentry.captureException(e); } catch (_) {}
+          }
+        }
       }
       sauvegarder('livraisons', livraisons.filter(l => l.id !== id));
       if (typeof ajouterEntreeAudit === 'function') {
@@ -8678,10 +8755,24 @@ genererRentabilitePDF = function() {
       const restantes = livraisons.filter(function(l) {
         if (ids.indexOf(l.id) !== -1) {
           if (typeof annulerArchiveFactureLivraison === 'function') {
-            try { annulerArchiveFactureLivraison(l); } catch (e) {}
+            try { annulerArchiveFactureLivraison(l); } catch (e) {
+              if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+                console.warn('[script:bulkUndo-annulerArchive]', e);
+              }
+              if (window.Sentry && window.Sentry.captureException) {
+                try { window.Sentry.captureException(e); } catch (_) {}
+              }
+            }
           }
           if (typeof ajouterEntreeAudit === 'function') {
-            try { ajouterEntreeAudit('Suppression livraison (bulk)', (l.numLiv || 'Livraison') + ' · ' + (l.client || 'Client')); } catch (e) {}
+            try { ajouterEntreeAudit('Suppression livraison (bulk)', (l.numLiv || 'Livraison') + ' · ' + (l.client || 'Client')); } catch (e) {
+              if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+                console.warn('[script:bulkUndo-audit]', e);
+              }
+              if (window.Sentry && window.Sentry.captureException) {
+                try { window.Sentry.captureException(e); } catch (_) {}
+              }
+            }
           }
           return false;
         }
@@ -9015,7 +9106,7 @@ genererRentabilitePDF = function() {
     const ta = document.createElement('textarea');
     ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
     document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); } catch(e){}
+    try { document.execCommand('copy'); } catch(_) { /* fail-silent: execCommand non supporté (Safari iOS strict / sandbox) */ }
     ta.remove();
     return Promise.resolve();
   }
@@ -9994,7 +10085,7 @@ genererRentabilitePDF = function() {
   window.__s19Installed = true;
 
   const loadJSON = (k) => { try { return loadSafe(k, []); } catch(e){ return []; } };
-  const saveJSON = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const saveJSON = (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(_) { /* fail-silent: localStorage quota / mode privé */ } };
   const fmtEuro = (n) => (typeof window.euros === 'function') ? window.euros(n) : ((parseFloat(n)||0).toFixed(2) + ' €');
   const esc = window.escapeHtml;
   const daysBetween = (d1, d2) => Math.floor((d2 - d1) / 86400000);
@@ -10455,7 +10546,7 @@ genererRentabilitePDF = function() {
   window.__s20Installed = true;
 
   const loadJSON = (k, def='[]') => { try { return JSON.parse(localStorage.getItem(k) || def); } catch(e){ return JSON.parse(def); } };
-  const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(_) { /* fail-silent: localStorage quota / mode privé */ } };
   const esc = window.escapeHtml;
   const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('fr-FR'); } catch(e){ return ''; } };
   const fmtDateTime = (d) => { try { return new Date(d).toLocaleString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } };
@@ -10581,7 +10672,16 @@ genererRentabilitePDF = function() {
     if (nouvelles.length || modifBase) {
       saveJSON('alertes_admin', [...alertes, ...nouvelles]);
     }
-    if (typeof window.renderCentre === 'function') { try { window.renderCentre(); } catch(e){} }
+    if (typeof window.renderCentre === 'function') {
+      try { window.renderCentre(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:renderCentre]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
+    }
   }
 
   /* ---------- 2. Drawer 360° ---------- */
@@ -10663,7 +10763,14 @@ genererRentabilitePDF = function() {
         const r = window.calculerHeuresSalarieSemaine(sal.id, ctx);
         heuresSem = r && typeof r.planifiees === 'number' ? r.planifiees : 0;
       }
-    } catch(e) {}
+    } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[script:calculerHeuresSemaine]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
 
     const initial = (sal.nom || '?').trim().charAt(0).toUpperCase();
     const badgeActif = sal.actif !== false
@@ -10917,7 +11024,16 @@ genererRentabilitePDF = function() {
       setupObservers();
     }, 600);
     // Re-génération périodique (5 min)
-    setInterval(() => { try { genererAlertesRH(); } catch(e){} }, 5 * 60 * 1000);
+    setInterval(() => {
+      try { genererAlertesRH(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:genererAlertesRH-cron]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
+    }, 5 * 60 * 1000);
     // PERF: setInterval 3s retiré — setupObservers() via MutationObserver
     // couvre déjà l'injection des boutons sur insertions dynamiques (pagination incluse)
   }
@@ -10934,7 +11050,7 @@ genererRentabilitePDF = function() {
   window.__s21Installed = true;
 
   const loadJSON = (k, def='[]') => { try { return JSON.parse(localStorage.getItem(k) || def); } catch(e){ return JSON.parse(def); } };
-  const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} };
+  const saveJSON = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(_) { /* fail-silent: localStorage quota / mode privé */ } };
   const esc = window.escapeHtml;
   const fmtDate = (d) => { try { return new Date(d).toLocaleDateString('fr-FR'); } catch(e){ return ''; } };
   const fmtDateTime = (d) => { try { return new Date(d).toLocaleString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } };
@@ -10983,7 +11099,14 @@ genererRentabilitePDF = function() {
             });
           }
         }
-      } catch(e) {}
+      } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:genererAlertesParc-entretien]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
 
       // 2. Conso anormale (conso réelle 60j vs théorique)
       if (v.conso && parseFloat(v.conso) > 0) {
@@ -11029,7 +11152,16 @@ genererRentabilitePDF = function() {
     });
 
     if (nouvelles.length || modif) saveJSON('alertes_admin', [...alertes, ...nouvelles]);
-    if (typeof window.renderCentre === 'function') { try { window.renderCentre(); } catch(e){} }
+    if (typeof window.renderCentre === 'function') {
+      try { window.renderCentre(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:renderCentre]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
+    }
   }
 
   /* ---------- 2. Fiche 360° Véhicule (réutilise drawer S20) ---------- */
@@ -11104,7 +11236,14 @@ genererRentabilitePDF = function() {
         pilotage = window.getPilotageEntretienVehicule(veh);
         if (pilotage) kmActuel = pilotage.kmActuel || kmActuel;
       }
-    } catch(e) {}
+    } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[script:renderFicheVehicule-pilotage]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
 
     // Conso réelle
     let consoReelle = null;
@@ -11359,7 +11498,16 @@ genererRentabilitePDF = function() {
       injecterBoutons360();
       setupObservers();
     }, 700);
-    setInterval(() => { try { genererAlertesParc(); } catch(e){} }, 5 * 60 * 1000);
+    setInterval(() => {
+      try { genererAlertesParc(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:genererAlertesParc-cron]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
+    }, 5 * 60 * 1000);
     // PERF: setInterval 3s retiré — setupObservers() via MutationObserver suffit
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
@@ -12486,7 +12634,24 @@ genererRentabilitePDF = function() {
     // Hook cron S24
     const origTick = window.s24CronTick;
     if (typeof origTick === 'function' && !origTick.__s25Hooked) {
-      const wrapped = function() { try { origTick(); } catch(e){} try { evaluerRegles(); } catch(e){} };
+      const wrapped = function() {
+        try { origTick(); } catch (e) {
+          if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+            console.warn('[script:s25-cronTick]', e);
+          }
+          if (window.Sentry && window.Sentry.captureException) {
+            try { window.Sentry.captureException(e); } catch (_) {}
+          }
+        }
+        try { evaluerRegles(); } catch (e) {
+          if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+            console.warn('[script:s25-evaluerRegles]', e);
+          }
+          if (window.Sentry && window.Sentry.captureException) {
+            try { window.Sentry.captureException(e); } catch (_) {}
+          }
+        }
+      };
       wrapped.__s25Hooked = true;
       window.s24CronTick = wrapped;
     }
@@ -12986,8 +13151,26 @@ genererRentabilitePDF = function() {
     audit('signature_bl', { livraisonId: livId, signataire: nom, qualite, horodatage: entry.date, documentHash, chainHash });
     toast('✅ Signature archivée & livraison clôturée', 'success');
     document.getElementById('s15-modal-info')?.classList.remove('open');
-    if (typeof window.afficherLivraisons === 'function') try { window.afficherLivraisons(); } catch(e){}
-    if (typeof window.s24CronTick === 'function') try { window.s24CronTick(); } catch(e){}
+    if (typeof window.afficherLivraisons === 'function') {
+      try { window.afficherLivraisons(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:postSignature-afficherLivraisons]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
+    }
+    if (typeof window.s24CronTick === 'function') {
+      try { window.s24CronTick(); } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[script:postSignature-s24CronTick]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
+    }
   };
 
   // Vérification d'intégrité de la chaîne (BUG-039) — utilisable pour audit / support
@@ -13728,7 +13911,16 @@ genererRentabilitePDF = function() {
   if (typeof window.registerModalHook === 'function' && !window.__livFormResetHookInstalled) {
     window.__livFormResetHookInstalled = true;
     window.registerModalHook('open', 'modal-livraison', function() {
-      setTimeout(function(){ try { reset(); } catch(_){} }, 60);
+      setTimeout(function(){
+        try { reset(); } catch (e) {
+          if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+            console.warn('[script:livForm-reset]', e);
+          }
+          if (window.Sentry && window.Sentry.captureException) {
+            try { window.Sentry.captureException(e); } catch (_) {}
+          }
+        }
+      }, 60);
     });
   }
 })();

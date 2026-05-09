@@ -223,6 +223,7 @@
   window.MCA = window.MCA || {};
   window.MCA.log = log;
   window.MCA.warn = warn;
+  window.MCA.shouldLog = shouldLog;
   window.MCA.captureException = captureException;
   window.MCA.captureMessage = captureMessage;
   window.MCA.debug = {
