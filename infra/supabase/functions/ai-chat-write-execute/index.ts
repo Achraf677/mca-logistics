@@ -496,7 +496,10 @@ async function execExecuteDraft(
   body: any,
   actorId: string,
 ) {
-  const draftId = String(body?.draft_id || body?.id || "").trim();
+  // Fix: le front envoie {action, payload: {draft_id}} via callEdge() (script-ai-brouillons.js).
+  // On lit donc payload.draft_id en priorite, puis fallback body.draft_id pour compat.
+  const payload = body?.payload || {};
+  const draftId = String(payload?.draft_id || payload?.id || body?.draft_id || body?.id || "").trim();
   if (!draftId) return { success: false, error: "draft_id manquant" };
 
   const { data: draft, error } = await sb.from("ai_pending_actions")
@@ -592,7 +595,10 @@ async function execRejectDraft(
   body: any,
   actorId: string,
 ) {
-  const draftId = String(body?.draft_id || body?.id || "").trim();
+  // Fix: le front envoie {action, payload: {draft_id}} via callEdge() (script-ai-brouillons.js).
+  // On lit donc payload.draft_id en priorite, puis fallback body.draft_id pour compat.
+  const payload = body?.payload || {};
+  const draftId = String(payload?.draft_id || payload?.id || body?.draft_id || body?.id || "").trim();
   if (!draftId) return { success: false, error: "draft_id manquant" };
   const { error } = await sb.from("ai_pending_actions").update({
     status: "rejected",
