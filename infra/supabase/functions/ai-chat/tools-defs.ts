@@ -707,6 +707,254 @@ export const TOOLS = [{
     ...UPDATE_TOOLS,
     DELETE_TOOL,
     DRAFT_TOOL,
+    // ===== Phase 5 — BULK operations (atomique, 1 brouillon = N actions) =====
+    {
+      name: "propose_bulk_livraisons",
+      description: "PROPOSE la creation de PLUSIEURS livraisons d'un coup (atomique : tout ou rien). Utilise quand l'admin demande d'enregistrer une serie de livraisons (ex: 'cree 5 livraisons pour Carrefour cette semaine'). Retourne UN seul brouillon contenant la liste des actions.",
+      parameters: {
+        type: "object",
+        properties: {
+          livraisons: {
+            type: "array",
+            description: "Liste des livraisons a creer (3-50 elements). Chaque element a la meme structure que propose_livraison.",
+            items: {
+              type: "object",
+              properties: {
+                client_nom: { type: "string" },
+                date_livraison: { type: "string" },
+                distance_km: { type: "number" },
+                prix_ht: { type: "number" },
+                taux_tva: { type: "number" },
+                salarie_id: { type: "string" },
+                vehicule_id: { type: "string" },
+                depart: { type: "string" },
+                arrivee: { type: "string" },
+                notes: { type: "string" },
+              },
+              required: ["client_nom", "date_livraison", "prix_ht"],
+            },
+          },
+          reasoning: { type: "string", description: "Justification metier (1-2 phrases)" },
+        },
+        required: ["livraisons"],
+      },
+    },
+    {
+      name: "propose_bulk_charges",
+      description: "PROPOSE la creation de PLUSIEURS charges d'un coup (utile pour charges recurrentes : loyer x12, abonnement x12). Atomique.",
+      parameters: {
+        type: "object",
+        properties: {
+          charges: {
+            type: "array",
+            description: "Liste des charges (1-30 elements).",
+            items: {
+              type: "object",
+              properties: {
+                categorie: { type: "string" },
+                description: { type: "string" },
+                date_charge: { type: "string" },
+                montant_ht: { type: "number" },
+                taux_tva: { type: "number" },
+                fournisseur_nom: { type: "string" },
+                vehicule_id: { type: "string" },
+              },
+              required: ["categorie", "date_charge", "montant_ht"],
+            },
+          },
+          reasoning: { type: "string" },
+        },
+        required: ["charges"],
+      },
+    },
+    {
+      name: "propose_bulk_paiements",
+      description: "PROPOSE l'enregistrement de PLUSIEURS paiements d'un coup (typique : un virement Qonto regroupe N factures, on materialise les paiements). Atomique.",
+      parameters: {
+        type: "object",
+        properties: {
+          paiements: {
+            type: "array",
+            description: "Liste des paiements (1-30 elements).",
+            items: {
+              type: "object",
+              properties: {
+                livraison_num_liv: { type: "string" },
+                livraison_id: { type: "string" },
+                montant: { type: "number" },
+                mode: { type: "string" },
+                date_paiement: { type: "string" },
+                reference: { type: "string" },
+                frais: { type: "number" },
+              },
+              required: ["montant"],
+            },
+          },
+          reasoning: { type: "string" },
+        },
+        required: ["paiements"],
+      },
+    },
+    // ===== Phase 6 — Actions metier complexes =====
+    {
+      name: "propose_clone_livraison",
+      description: "PROPOSE la duplication d'une livraison existante avec champs modifies (utile pour livraisons recurrentes). On copie la livraison source puis on applique les overrides.",
+      parameters: {
+        type: "object",
+        properties: {
+          source_livraison_id: { type: "string", description: "UUID de la livraison a cloner" },
+          source_num_liv: { type: "string", description: "Alternative au id : numero de livraison" },
+          overrides: {
+            type: "object",
+            description: "Champs a modifier dans la copie (date_livraison, prix_ht, depart, arrivee, etc.)",
+            properties: {
+              date_livraison: { type: "string" },
+              client_nom: { type: "string" },
+              distance_km: { type: "number" },
+              prix_ht: { type: "number" },
+              taux_tva: { type: "number" },
+              salarie_id: { type: "string" },
+              vehicule_id: { type: "string" },
+              depart: { type: "string" },
+              arrivee: { type: "string" },
+              notes: { type: "string" },
+            },
+          },
+        },
+        required: ["overrides"],
+      },
+    },
+    {
+      name: "propose_split_charge",
+      description: "PROPOSE de ventiler une charge multi-vehicules sur plusieurs lignes proportionnelles (la charge originale est supprimee). Ex: facture peage 600€ -> 200€/3 vehicules. Atomique.",
+      parameters: {
+        type: "object",
+        properties: {
+          source_charge_id: { type: "string", description: "UUID de la charge a ventiler" },
+          ventilation: {
+            type: "array",
+            description: "Liste des sous-charges (vehicule_id + ratio ou montant_ht). Total des ratios = 1, ou total des montants = montant_ht source.",
+            items: {
+              type: "object",
+              properties: {
+                vehicule_id: { type: "string" },
+                ratio: { type: "number", description: "Pourcentage 0-1 (alternative a montant_ht)" },
+                montant_ht: { type: "number", description: "Montant absolu (alternative au ratio)" },
+                description: { type: "string" },
+              },
+              required: ["vehicule_id"],
+            },
+          },
+        },
+        required: ["source_charge_id", "ventilation"],
+      },
+    },
+    {
+      name: "propose_import_planning",
+      description: "PROPOSE la creation d'un planning hebdomadaire complet (plusieurs salaries x plusieurs jours). Atomique. Utile pour 'planifie la semaine 22'.",
+      parameters: {
+        type: "object",
+        properties: {
+          semaine_label: { type: "string", description: "Ex: '2026-W22' ou 'semaine du 2026-05-25'" },
+          creneaux: {
+            type: "array",
+            description: "Liste des creneaux a creer.",
+            items: {
+              type: "object",
+              properties: {
+                salarie_id: { type: "string" },
+                jour: { type: "string", description: "YYYY-MM-DD" },
+                travaille: { type: "boolean" },
+                type_jour: { type: "string" },
+                heure_debut: { type: "string" },
+                heure_fin: { type: "string" },
+                zone: { type: "string" },
+                note: { type: "string" },
+              },
+              required: ["salarie_id", "jour"],
+            },
+          },
+        },
+        required: ["creneaux"],
+      },
+    },
+    // ===== Phase 7 — Read tools manquants =====
+    {
+      name: "get_dso_global",
+      description: "Calcule le DSO global (delai moyen reel de paiement client en jours) sur les N derniers jours. Reutilise calculerDSO server-side. Retourne dso, count.",
+      parameters: {
+        type: "object",
+        properties: { periode_jours: { type: "integer", description: "Defaut 90" } },
+      },
+    },
+    {
+      name: "get_dso_par_client",
+      description: "Idem que get_dso_global mais avec detail par client (delai moyen pour chaque client paye sur la periode). Utilise pour reperer les clients lents.",
+      parameters: {
+        type: "object",
+        properties: { periode_jours: { type: "integer", description: "Defaut 90" } },
+      },
+    },
+    {
+      name: "list_brouillons_en_attente",
+      description: "Liste les brouillons IA en attente de validation (status='pending'). Utile quand l'admin demande 'qu'est-ce que tu as propose recemment ?'",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "integer", description: "Defaut 20" },
+          action_type: { type: "string", description: "Filtre type action ex: 'create_livraison'" },
+        },
+      },
+    },
+    {
+      name: "list_charges_recurrentes",
+      description: "Detecte les patterns de charges recurrentes par heuristique : 3+ charges meme libelle/montant/fournisseur sur les 90 derniers jours. Utile pour suggerer une serie de bulk_charges.",
+      parameters: {
+        type: "object",
+        properties: { periode_jours: { type: "integer", description: "Defaut 90" } },
+      },
+    },
+    {
+      name: "get_kpi_dashboard",
+      description: "Snapshot des KPIs vue d'ensemble du mois courant : CA HT, charges HT, marge, encaissements, top 3 clients, nb alertes ouvertes.",
+      parameters: {
+        type: "object",
+        properties: { mois: { type: "string", description: "YYYY-MM (defaut: mois courant)" } },
+      },
+    },
+    {
+      name: "get_anomalies_synthese",
+      description: "Synthese aggregee des anomalies du mois : pleins carburant suspects + livraisons sans paiement + inspections non validees + vehicules CT/assurance expires + alertes critical/error.",
+      parameters: {
+        type: "object",
+        properties: {
+          date_min: { type: "string", description: "Defaut: debut mois courant" },
+          date_max: { type: "string", description: "Defaut: aujourd'hui" },
+        },
+      },
+    },
+    // ===== Phase 8 — Self-mgmt brouillons =====
+    {
+      name: "propose_validate_brouillon",
+      description: "PROPOSE la validation (execution reelle) d'un brouillon IA existant (par son id). Utile si l'admin dit 'execute le brouillon X' ou 'valide ce que tu m'as propose hier'.",
+      parameters: {
+        type: "object",
+        properties: { draft_id: { type: "string" } },
+        required: ["draft_id"],
+      },
+    },
+    {
+      name: "propose_reject_brouillon",
+      description: "PROPOSE le rejet d'un brouillon IA existant (passage en status='rejected'). Avec raison obligatoire ≥10 caracteres.",
+      parameters: {
+        type: "object",
+        properties: {
+          draft_id: { type: "string" },
+          raison: { type: "string", description: "Justification ≥10 caracteres" },
+        },
+        required: ["draft_id", "raison"],
+      },
+    },
     {
       name: "add_memory_fact",
       description: "Memorise un fait important sur le business pour le retenir dans toutes les conversations futures. Ne l'utilise QUE pour des faits de long terme.",

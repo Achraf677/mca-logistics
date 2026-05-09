@@ -1856,6 +1856,532 @@ async function toolProposeToDrafts(args: any, _sb: SbClient) {
   };
 }
 
+// ===== Phase 5 — BULK operations (atomique : 1 brouillon = N actions) =====
+
+async function toolProposeBulkLivraisons(args: any, sb: SbClient) {
+  const items = Array.isArray(args?.livraisons) ? args.livraisons : [];
+  if (items.length === 0) return { error: "livraisons vide" };
+  if (items.length > 50) return { error: "max 50 livraisons par bulk" };
+  const reasoning = String(args?.reasoning || "Bulk livraisons via chatbot").trim();
+
+  // Resolution best-effort des FK pour chaque livraison
+  const actions: Array<{ action: string; payload: Record<string, unknown> }> = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i] || {};
+    if (!it.client_nom || !it.date_livraison || it.prix_ht === undefined) {
+      return { error: `livraison #${i + 1} : client_nom/date_livraison/prix_ht obligatoires` };
+    }
+    const payload: Record<string, unknown> = {};
+    for (const k of [
+      "client_nom", "date_livraison", "distance_km", "prix_ht", "taux_tva",
+      "salarie_id", "vehicule_id", "depart", "arrivee", "notes",
+    ]) {
+      if (it[k] !== undefined && it[k] !== null) payload[k] = it[k];
+    }
+    actions.push({ action: "create_livraison", payload });
+  }
+
+  return {
+    proposal: {
+      type: "bulk_create_livraisons",
+      title: `Creer ${actions.length} livraisons (atomique)`,
+      summary: { count: actions.length, reasoning, premiere: actions[0]?.payload },
+      payload: { actions, atomic: true, reasoning },
+    },
+    write_actions: [{ action: "bulk_execute", actions, atomic: true, reasoning }],
+  };
+}
+
+async function toolProposeBulkCharges(args: any, sb: SbClient) {
+  const items = Array.isArray(args?.charges) ? args.charges : [];
+  if (items.length === 0) return { error: "charges vide" };
+  if (items.length > 30) return { error: "max 30 charges par bulk" };
+  const reasoning = String(args?.reasoning || "Bulk charges via chatbot").trim();
+
+  const actions: Array<{ action: string; payload: Record<string, unknown> }> = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i] || {};
+    if (!it.categorie || !it.date_charge || it.montant_ht === undefined) {
+      return { error: `charge #${i + 1} : categorie/date_charge/montant_ht obligatoires` };
+    }
+    const payload: Record<string, unknown> = {};
+    for (const k of [
+      "categorie", "description", "date_charge", "montant_ht", "taux_tva",
+      "fournisseur_nom", "vehicule_id",
+    ]) {
+      if (it[k] !== undefined && it[k] !== null) payload[k] = it[k];
+    }
+    actions.push({ action: "create_charge", payload });
+  }
+
+  return {
+    proposal: {
+      type: "bulk_create_charges",
+      title: `Creer ${actions.length} charges (atomique)`,
+      summary: { count: actions.length, reasoning, premiere: actions[0]?.payload },
+      payload: { actions, atomic: true, reasoning },
+    },
+    write_actions: [{ action: "bulk_execute", actions, atomic: true, reasoning }],
+  };
+}
+
+async function toolProposeBulkPaiements(args: any, sb: SbClient) {
+  const items = Array.isArray(args?.paiements) ? args.paiements : [];
+  if (items.length === 0) return { error: "paiements vide" };
+  if (items.length > 30) return { error: "max 30 paiements par bulk" };
+  const reasoning = String(args?.reasoning || "Bulk paiements via chatbot").trim();
+
+  const actions: Array<{ action: string; payload: Record<string, unknown> }> = [];
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i] || {};
+    if (it.montant === undefined || it.montant === null) {
+      return { error: `paiement #${i + 1} : montant obligatoire` };
+    }
+    if (!it.livraison_id && !it.livraison_num_liv) {
+      return { error: `paiement #${i + 1} : livraison_id ou livraison_num_liv obligatoire` };
+    }
+    let livraisonId = it.livraison_id;
+    if (!livraisonId && it.livraison_num_liv) {
+      const { data } = await sb.from("livraisons")
+        .select("id").eq("num_liv", it.livraison_num_liv).maybeSingle();
+      if (!data) return { error: `paiement #${i + 1} : livraison ${it.livraison_num_liv} introuvable` };
+      livraisonId = (data as any).id;
+    }
+    const payload: Record<string, unknown> = { livraison_id: livraisonId };
+    for (const k of ["montant", "mode", "date_paiement", "reference", "frais"]) {
+      if (it[k] !== undefined && it[k] !== null) payload[k] = it[k];
+    }
+    actions.push({ action: "create_paiement", payload });
+  }
+
+  return {
+    proposal: {
+      type: "bulk_create_paiements",
+      title: `Enregistrer ${actions.length} paiements (atomique)`,
+      summary: { count: actions.length, reasoning },
+      payload: { actions, atomic: true, reasoning },
+    },
+    write_actions: [{ action: "bulk_execute", actions, atomic: true, reasoning }],
+  };
+}
+
+// ===== Phase 6 — Actions metier complexes =====
+
+async function toolProposeCloneLivraison(args: any, sb: SbClient) {
+  const id = String(args?.source_livraison_id || "").trim();
+  const numLiv = String(args?.source_num_liv || "").trim();
+  if (!id && !numLiv) return { error: "source_livraison_id ou source_num_liv requis" };
+  const overrides = args?.overrides && typeof args.overrides === "object" ? args.overrides : {};
+
+  let q = sb.from("livraisons").select("*");
+  q = id ? q.eq("id", id) : q.eq("num_liv", numLiv);
+  const { data: src, error } = await q.maybeSingle();
+  if (error) return { error: error.message };
+  if (!src) return { error: "livraison source introuvable" };
+
+  const COPY_COLS = [
+    "client_id", "client_nom", "date_livraison", "distance_km",
+    "prix_ht", "taux_tva", "prix_ttc", "tva_montant", "salarie_id", "vehicule_id",
+    "zone", "depart", "arrivee", "notes",
+  ];
+  const payload: Record<string, unknown> = {};
+  for (const k of COPY_COLS) {
+    if ((src as any)[k] !== undefined && (src as any)[k] !== null) payload[k] = (src as any)[k];
+  }
+  // Apply overrides
+  for (const k of COPY_COLS) {
+    if (overrides[k] !== undefined && overrides[k] !== null) payload[k] = overrides[k];
+  }
+  // Reset statut + paiement (nouvelle livraison fraiche)
+  payload.statut = "en_attente";
+  payload.statut_paiement = "a_payer";
+
+  return {
+    proposal: {
+      type: "clone_livraison",
+      title: `Cloner livraison ${(src as any).num_liv || "?"}`,
+      summary: { source: (src as any).num_liv, overrides, payload },
+      payload,
+    },
+    write_actions: [{ action: "create_livraison", payload }],
+  };
+}
+
+async function toolProposeSplitCharge(args: any, sb: SbClient) {
+  const sourceId = String(args?.source_charge_id || "").trim();
+  if (!sourceId) return { error: "source_charge_id requis" };
+  const ventilation = Array.isArray(args?.ventilation) ? args.ventilation : [];
+  if (ventilation.length < 2) return { error: "ventilation : au moins 2 elements" };
+  if (ventilation.length > 20) return { error: "max 20 elements par split" };
+
+  const { data: src, error } = await sb.from("charges").select("*").eq("id", sourceId).maybeSingle();
+  if (error) return { error: error.message };
+  if (!src) return { error: "charge source introuvable" };
+
+  const montantHtSrc = Number((src as any).montant_ht) || 0;
+  if (montantHtSrc <= 0) return { error: "charge source : montant_ht invalide ou nul" };
+
+  // Determine mode : ratio ou montant. Coherence checks.
+  const hasRatios = ventilation.every((v: any) => v.ratio !== undefined && v.ratio !== null);
+  const hasMontants = ventilation.every((v: any) => v.montant_ht !== undefined && v.montant_ht !== null);
+  if (!hasRatios && !hasMontants) {
+    return { error: "ventilation : chaque element doit avoir ratio OU montant_ht (homogene sur tous)" };
+  }
+  let totalRatios = 0;
+  let totalMontants = 0;
+  for (const v of ventilation) {
+    if (hasRatios) totalRatios += Number(v.ratio) || 0;
+    if (hasMontants) totalMontants += Number(v.montant_ht) || 0;
+  }
+  if (hasRatios && Math.abs(totalRatios - 1) > 0.001) {
+    return { error: `somme des ratios = ${totalRatios.toFixed(3)}, doit etre 1.0` };
+  }
+  if (hasMontants && Math.abs(totalMontants - montantHtSrc) > 0.5) {
+    return { error: `somme des montants_ht = ${totalMontants.toFixed(2)}, doit etre ${montantHtSrc.toFixed(2)}` };
+  }
+
+  // Build N create_charge actions + 1 delete_entity
+  const actions: Array<Record<string, unknown>> = [];
+  const taux = Number((src as any).taux_tva) || 20;
+  for (const v of ventilation) {
+    const part = hasRatios ? montantHtSrc * Number(v.ratio) : Number(v.montant_ht);
+    const payload: Record<string, unknown> = {
+      categorie: (src as any).categorie,
+      description: v.description || `${(src as any).description || "Ventilation"} (split)`,
+      date_charge: (src as any).date_charge,
+      montant_ht: Math.round(part * 100) / 100,
+      taux_tva: taux,
+      vehicule_id: v.vehicule_id,
+      fournisseur_id: (src as any).fournisseur_id,
+      fournisseur_nom: (src as any).fournisseur_nom,
+      taux_deductibilite: (src as any).taux_deductibilite,
+    };
+    actions.push({ action: "create_charge", payload });
+  }
+  actions.push({
+    action: "delete_entity",
+    payload: { entity: "charges", id: sourceId, raison: `Split charge en ${ventilation.length} lignes` },
+  });
+
+  return {
+    proposal: {
+      type: "split_charge",
+      title: `Ventiler charge ${montantHtSrc.toFixed(2)}€ HT en ${ventilation.length} lignes`,
+      summary: { source_id: sourceId, montant_ht_source: montantHtSrc, ventilation_count: ventilation.length },
+      payload: { actions, atomic: true, reasoning: `Split charge ${sourceId}` },
+    },
+    write_actions: [{ action: "bulk_execute", actions, atomic: true, reasoning: `Split charge ${sourceId}` }],
+  };
+}
+
+async function toolProposeImportPlanning(args: any, sb: SbClient) {
+  const creneaux = Array.isArray(args?.creneaux) ? args.creneaux : [];
+  if (creneaux.length === 0) return { error: "creneaux vide" };
+  if (creneaux.length > 100) return { error: "max 100 creneaux par import" };
+
+  const actions: Array<{ action: string; payload: Record<string, unknown> }> = [];
+  for (let i = 0; i < creneaux.length; i++) {
+    const c = creneaux[i] || {};
+    if (!c.salarie_id || !c.jour) {
+      return { error: `creneau #${i + 1} : salarie_id et jour obligatoires` };
+    }
+    const payload: Record<string, unknown> = {};
+    for (const k of [
+      "salarie_id", "jour", "travaille", "type_jour",
+      "heure_debut", "heure_fin", "zone", "note",
+    ]) {
+      if (c[k] !== undefined && c[k] !== null) payload[k] = c[k];
+    }
+    actions.push({ action: "create_planning_creneau", payload });
+  }
+
+  return {
+    proposal: {
+      type: "import_planning",
+      title: `Importer planning : ${actions.length} creneaux (atomique)`,
+      summary: {
+        count: actions.length,
+        semaine_label: args?.semaine_label,
+        salaries_uniques: [...new Set(actions.map((a) => String(a.payload.salarie_id)))].length,
+      },
+      payload: { actions, atomic: true, reasoning: `Import planning ${args?.semaine_label || ""}` },
+    },
+    write_actions: [{ action: "bulk_execute", actions, atomic: true, reasoning: `Import planning ${args?.semaine_label || ""}` }],
+  };
+}
+
+// ===== Phase 7 — Read tools manquants =====
+
+// Reproduit la logique de calculerDSO (script-core-dso.js) cote serveur.
+// Les livraisons MCA stockent date_livraison + date_paiement + statut_paiement="paye" + client_nom.
+function computeDsoFromRows(
+  rows: Array<{ date_livraison: string | null; date_paiement: string | null; client_nom: string | null; statut_paiement: string | null }>,
+  periodeJours: number,
+): { dso: number | null; count: number; byClient: Record<string, number> } {
+  const today = new Date();
+  const dateMin = new Date(today.getTime() - periodeJours * 86400000);
+  const eligibles = rows.filter((l) => {
+    if (!l) return false;
+    const sp = String(l.statut_paiement || "").toLowerCase();
+    if (sp !== "paye" && sp !== "payé" && sp !== "payee" && sp !== "payée") return false;
+    if (!l.date_livraison || !l.date_paiement) return false;
+    const dl = new Date(l.date_livraison);
+    if (isNaN(dl.getTime())) return false;
+    if (dl < dateMin) return false;
+    return true;
+  });
+  if (!eligibles.length) return { dso: null, count: 0, byClient: {} };
+  let totalDelai = 0, nbValides = 0;
+  const byClientRaw: Record<string, { sum: number; count: number }> = {};
+  for (const l of eligibles) {
+    const dl = new Date(l.date_livraison!).getTime();
+    const dp = new Date(l.date_paiement!).getTime();
+    if (isNaN(dl) || isNaN(dp)) continue;
+    const delai = (dp - dl) / 86400000;
+    if (delai < 0 || delai > 365) continue;
+    totalDelai += delai;
+    nbValides += 1;
+    const c = l.client_nom || "Client inconnu";
+    if (!byClientRaw[c]) byClientRaw[c] = { sum: 0, count: 0 };
+    byClientRaw[c].sum += delai;
+    byClientRaw[c].count += 1;
+  }
+  if (!nbValides) return { dso: null, count: 0, byClient: {} };
+  const byClient: Record<string, number> = {};
+  for (const k of Object.keys(byClientRaw)) {
+    byClient[k] = Math.round(byClientRaw[k].sum / byClientRaw[k].count);
+  }
+  return { dso: Math.round(totalDelai / nbValides), count: nbValides, byClient };
+}
+
+async function toolGetDsoGlobal(args: any, sb: SbClient) {
+  const periode = Math.max(7, Math.min(365, Number(args?.periode_jours) || 90));
+  const dateMin = new Date(Date.now() - periode * 86400000).toISOString().slice(0, 10);
+  const { data, error } = await sb.from("livraisons")
+    .select("date_livraison, date_paiement, client_nom, statut_paiement")
+    .gte("date_livraison", dateMin)
+    .limit(2000);
+  if (error) return { error: error.message };
+  const r = computeDsoFromRows((data as any[]) || [], periode);
+  return { periode_jours: periode, dso: r.dso, count: r.count };
+}
+
+async function toolGetDsoParClient(args: any, sb: SbClient) {
+  const periode = Math.max(7, Math.min(365, Number(args?.periode_jours) || 90));
+  const dateMin = new Date(Date.now() - periode * 86400000).toISOString().slice(0, 10);
+  const { data, error } = await sb.from("livraisons")
+    .select("date_livraison, date_paiement, client_nom, statut_paiement")
+    .gte("date_livraison", dateMin)
+    .limit(2000);
+  if (error) return { error: error.message };
+  const r = computeDsoFromRows((data as any[]) || [], periode);
+  // Trie clients par delai desc (les plus lents en premier)
+  const sorted = Object.entries(r.byClient)
+    .map(([client, dso]) => ({ client, dso }))
+    .sort((a, b) => b.dso - a.dso);
+  return { periode_jours: periode, dso_global: r.dso, count: r.count, par_client: sorted };
+}
+
+async function toolListBrouillonsEnAttente(args: any, sb: SbClient) {
+  const limit = Math.max(1, Math.min(100, Number(args?.limit) || 20));
+  let q = sb.from("ai_pending_actions")
+    .select("id, action, payload, reasoning, created_at, created_by")
+    .eq("status", "pending")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (args?.action_type) q = q.eq("action", args.action_type);
+  const { data, error } = await q;
+  if (error) return { error: error.message };
+  return {
+    count: data?.length ?? 0,
+    brouillons: (data ?? []).map((d: any) => ({
+      id: d.id,
+      action: d.action,
+      reasoning: d.reasoning,
+      created_at: d.created_at,
+      preview: d.payload ? Object.keys(d.payload).slice(0, 5).join(", ") : "",
+    })),
+  };
+}
+
+async function toolListChargesRecurrentes(args: any, sb: SbClient) {
+  const periode = Math.max(30, Math.min(365, Number(args?.periode_jours) || 90));
+  const dateMin = new Date(Date.now() - periode * 86400000).toISOString().slice(0, 10);
+  const { data, error } = await sb.from("charges")
+    .select("id, categorie, description, montant_ht, fournisseur_nom, date_charge")
+    .gte("date_charge", dateMin)
+    .limit(2000);
+  if (error) return { error: error.message };
+  // Grouping heuristique : meme libelle + montant arrondi a 1€ + fournisseur
+  const groups: Record<string, { count: number; samples: any[]; total_ht: number }> = {};
+  for (const c of (data as any[]) || []) {
+    const key = [
+      String(c.categorie || "").toLowerCase().trim(),
+      String(c.description || "").toLowerCase().trim().slice(0, 40),
+      Math.round(Number(c.montant_ht) || 0),
+      String(c.fournisseur_nom || "").toLowerCase().trim(),
+    ].join("|");
+    if (!groups[key]) groups[key] = { count: 0, samples: [], total_ht: 0 };
+    groups[key].count += 1;
+    groups[key].total_ht += Number(c.montant_ht) || 0;
+    if (groups[key].samples.length < 3) groups[key].samples.push(c);
+  }
+  // Filtre : seulement les recurrentes (count >= 3)
+  const recurrentes = Object.values(groups)
+    .filter((g) => g.count >= 3)
+    .map((g) => ({
+      categorie: g.samples[0].categorie,
+      description: g.samples[0].description,
+      fournisseur_nom: g.samples[0].fournisseur_nom,
+      montant_ht_moyen: Math.round((g.total_ht / g.count) * 100) / 100,
+      occurrences: g.count,
+      derniere_date: g.samples[0].date_charge,
+    }))
+    .sort((a, b) => b.occurrences - a.occurrences);
+  return { periode_jours: periode, count: recurrentes.length, charges_recurrentes: recurrentes };
+}
+
+async function toolGetKpiDashboard(args: any, sb: SbClient) {
+  const monthArg = String(args?.mois || "").trim();
+  const today = new Date();
+  let dateMin: string, dateMax: string, label: string;
+  if (/^\d{4}-\d{2}$/.test(monthArg)) {
+    const [y, m] = monthArg.split("-").map(Number);
+    const start = new Date(Date.UTC(y, m - 1, 1));
+    const end = new Date(Date.UTC(y, m, 0));
+    dateMin = start.toISOString().slice(0, 10);
+    dateMax = end.toISOString().slice(0, 10);
+    label = monthArg;
+  } else {
+    const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+    dateMin = start.toISOString().slice(0, 10);
+    dateMax = today.toISOString().slice(0, 10);
+    label = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, "0")}`;
+  }
+
+  const [livRes, chargesRes, paiementsRes, alertesRes] = await Promise.all([
+    sb.from("livraisons").select("client_nom, prix_ht, prix_ttc, statut_paiement").gte("date_livraison", dateMin).lte("date_livraison", dateMax),
+    sb.from("charges").select("montant_ht, montant_ttc").gte("date_charge", dateMin).lte("date_charge", dateMax),
+    sb.from("paiements").select("montant").gte("date_paiement", dateMin).lte("date_paiement", dateMax),
+    sb.from("alertes_admin").select("id, niveau", { count: "exact" }).eq("resolved", false),
+  ]);
+  if (livRes.error) return { error: livRes.error.message };
+
+  const livraisons = (livRes.data as any[]) || [];
+  const ca_ht = livraisons.reduce((s, l) => s + (Number(l.prix_ht) || 0), 0);
+  const charges_ht = ((chargesRes.data as any[]) || []).reduce((s, c) => s + (Number(c.montant_ht) || 0), 0);
+  const encaissements = ((paiementsRes.data as any[]) || []).reduce((s, p) => s + (Number(p.montant) || 0), 0);
+  const marge_ht = ca_ht - charges_ht;
+
+  const byClient: Record<string, number> = {};
+  for (const l of livraisons) {
+    const c = l.client_nom || "Inconnu";
+    byClient[c] = (byClient[c] || 0) + (Number(l.prix_ht) || 0);
+  }
+  const top_clients = Object.entries(byClient)
+    .map(([client, ca]) => ({ client, ca_ht: Math.round(ca * 100) / 100 }))
+    .sort((a, b) => b.ca_ht - a.ca_ht)
+    .slice(0, 3);
+
+  const nbAlertes = alertesRes.count ?? ((alertesRes.data as any[]) || []).length;
+  return {
+    mois: label,
+    periode: { date_min: dateMin, date_max: dateMax },
+    nb_livraisons: livraisons.length,
+    ca_ht: Math.round(ca_ht * 100) / 100,
+    charges_ht: Math.round(charges_ht * 100) / 100,
+    marge_ht: Math.round(marge_ht * 100) / 100,
+    encaissements: Math.round(encaissements * 100) / 100,
+    top_clients,
+    nb_alertes_ouvertes: nbAlertes,
+  };
+}
+
+async function toolGetAnomaliesSynthese(args: any, sb: SbClient) {
+  const today = new Date();
+  const defaultMin = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)).toISOString().slice(0, 10);
+  const dateMin = String(args?.date_min || defaultMin);
+  const dateMax = String(args?.date_max || today.toISOString().slice(0, 10));
+
+  const [livImpayees, inspNonValid, vehicEcheances, alertes] = await Promise.all([
+    sb.from("livraisons").select("id, num_liv, client_nom, date_livraison, prix_ttc")
+      .eq("statut_paiement", "en_retard").limit(100),
+    sb.from("inspections").select("id, salarie_id, vehicule_id, date_inspection")
+      .eq("statut", "soumise").gte("date_inspection", dateMin).limit(50),
+    sb.from("vehicules").select("id, immat, date_ct, date_assurance, date_carte_grise"),
+    sb.from("alertes_admin").select("id, niveau, titre")
+      .in("niveau", ["error", "critical"]).eq("resolved", false).limit(50),
+  ]);
+
+  const todayMs = Date.now();
+  const vehicSoon = ((vehicEcheances.data as any[]) || []).filter((v) => {
+    for (const k of ["date_ct", "date_assurance", "date_carte_grise"]) {
+      const d = v[k] ? new Date(v[k]).getTime() : null;
+      if (d !== null && !isNaN(d) && (d - todayMs) / 86400000 <= 30) return true;
+    }
+    return false;
+  });
+
+  return {
+    periode: { date_min: dateMin, date_max: dateMax },
+    livraisons_impayees_count: ((livImpayees.data as any[]) || []).length,
+    livraisons_impayees_sample: ((livImpayees.data as any[]) || []).slice(0, 5),
+    inspections_non_validees_count: ((inspNonValid.data as any[]) || []).length,
+    vehicules_echeances_30j_count: vehicSoon.length,
+    vehicules_echeances_30j_sample: vehicSoon.slice(0, 5).map((v) => ({ immat: v.immat })),
+    alertes_critical_error_count: ((alertes.data as any[]) || []).length,
+    alertes_sample: ((alertes.data as any[]) || []).slice(0, 5),
+  };
+}
+
+// ===== Phase 8 — Self-mgmt brouillons =====
+
+async function toolProposeValidateBrouillon(args: any, sb: SbClient) {
+  const draftId = String(args?.draft_id || "").trim();
+  if (!draftId) return { error: "draft_id requis" };
+  const { data: draft, error } = await sb.from("ai_pending_actions")
+    .select("id, action, status, reasoning")
+    .eq("id", draftId).maybeSingle();
+  if (error) return { error: error.message };
+  if (!draft) return { error: "brouillon introuvable" };
+  if ((draft as any).status !== "pending") {
+    return { error: `brouillon deja traite (statut=${(draft as any).status})` };
+  }
+  return {
+    proposal: {
+      type: "validate_brouillon",
+      title: `Executer brouillon (${(draft as any).action})`,
+      summary: { draft_id: draftId, action: (draft as any).action, reasoning: (draft as any).reasoning },
+      payload: { draft_id: draftId },
+    },
+    write_actions: [{ action: "execute_draft", draft_id: draftId }],
+  };
+}
+
+async function toolProposeRejectBrouillon(args: any, sb: SbClient) {
+  const draftId = String(args?.draft_id || "").trim();
+  const raison = String(args?.raison || "").trim();
+  if (!draftId) return { error: "draft_id requis" };
+  if (raison.length < 10) return { error: "raison trop courte (≥10 caracteres requis)" };
+  const { data: draft, error } = await sb.from("ai_pending_actions")
+    .select("id, action, status").eq("id", draftId).maybeSingle();
+  if (error) return { error: error.message };
+  if (!draft) return { error: "brouillon introuvable" };
+  if ((draft as any).status !== "pending") {
+    return { error: `brouillon deja traite (statut=${(draft as any).status})` };
+  }
+  return {
+    proposal: {
+      type: "reject_brouillon",
+      title: `Rejeter brouillon (${(draft as any).action})`,
+      summary: { draft_id: draftId, raison },
+      payload: { draft_id: draftId, raison },
+      destructive: true,
+    },
+    write_actions: [{ action: "reject_draft", draft_id: draftId, raison }],
+  };
+}
+
 // ===== TOOL_HANDLERS : dispatcher (les noms doivent matcher tools-defs) =====
 
 export const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown>> = {
@@ -1926,4 +2452,22 @@ export const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<
   propose_delete: toolProposeDelete,
   // BROUILLON (Phase 4)
   propose_to_drafts: toolProposeToDrafts,
+  // BULK (Phase 5)
+  propose_bulk_livraisons: toolProposeBulkLivraisons,
+  propose_bulk_charges: toolProposeBulkCharges,
+  propose_bulk_paiements: toolProposeBulkPaiements,
+  // ACTIONS METIER (Phase 6)
+  propose_clone_livraison: toolProposeCloneLivraison,
+  propose_split_charge: toolProposeSplitCharge,
+  propose_import_planning: toolProposeImportPlanning,
+  // READ (Phase 7)
+  get_dso_global: toolGetDsoGlobal,
+  get_dso_par_client: toolGetDsoParClient,
+  list_brouillons_en_attente: toolListBrouillonsEnAttente,
+  list_charges_recurrentes: toolListChargesRecurrentes,
+  get_kpi_dashboard: toolGetKpiDashboard,
+  get_anomalies_synthese: toolGetAnomaliesSynthese,
+  // SELF-MGMT BROUILLONS (Phase 8)
+  propose_validate_brouillon: toolProposeValidateBrouillon,
+  propose_reject_brouillon: toolProposeRejectBrouillon,
 };
