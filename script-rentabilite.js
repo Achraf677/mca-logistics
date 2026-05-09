@@ -764,3 +764,12 @@ function ajouterChargeRentabilite() {
   rentabiliteSyncFromDom();
 }
 
+// Export Node (tests unitaires uniquement) — sprint H2.2
+// Seules les fonctions sans dependance DOM/charger() sont exposees ici.
+// Les fonctions UI restent au scope global comme avant.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    getVehiculeMensualiteRentabilite: getVehiculeMensualiteRentabilite,
+    getRentabiliteDefaults: getRentabiliteDefaults
+  };
+}
