@@ -99,6 +99,7 @@
 
       <hr class="m-drawer-sep" />
       <button class="m-drawer-link" id="m-toggle-theme"><span>🌙</span><span>Mode clair / sombre</span></button>
+      <button class="m-drawer-link" id="m-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre."><span>🐛</span><span>Signaler un bug</span></button>
       <button class="m-drawer-link m-drawer-link-danger" id="m-logout"><span>⏏</span><span>Déconnexion</span></button>
       <div class="m-drawer-version-footer" title="Version build (auto-extraite de sw.js CACHE_VERSION)">
         v<span id="m-app-version">…</span>
@@ -172,5 +173,26 @@
   <!-- Brouillons IA : page admin de validation des actions IA en attente.
        Expose window.AIBrouillons utilise par M.routes['brouillons-ia']. -->
   <script src="/script-ai-brouillons.js?v=103"></script>
+  <!-- Bug report : capture contexte tech (URL, version, viewport, console)
+       et genere un markdown copie dans le presse-papier. Boutons cables sur
+       #m-bug-report-btn (drawer mobile) et #admin-bug-report-btn (PC). -->
+  <script src="/bug-report.js?v=103"></script>
+  <script>
+    // Cable le bouton 🐛 du drawer mobile (m.html). Listener delegue document-level
+    // pour survivre a un re-render du drawer.
+    document.addEventListener('click', function (e) {
+      var btn = e.target && e.target.closest && e.target.closest('#m-bug-report-btn');
+      if (!btn) return;
+      e.preventDefault();
+      if (window.BugReport && typeof window.BugReport.open === 'function') {
+        // Ferme le drawer pour que la modale soit visible
+        var drawer = document.getElementById('m-drawer');
+        if (drawer) drawer.setAttribute('aria-hidden', 'true');
+        var overlay = document.getElementById('m-drawer-overlay');
+        if (overlay) overlay.hidden = true;
+        window.BugReport.open();
+      }
+    });
+  </script>
 </body>
 </html>
