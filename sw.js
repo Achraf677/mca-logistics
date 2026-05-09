@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v5_04-creds-chauffeur-180';
+const CACHE_VERSION = 'mca-v2026-05-09-v5_05-drawer-360-pc-181';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -68,6 +68,7 @@ const CORE_ASSETS = [
   '/script-core-audit.js',
   '/script-core-recherche.js',
   '/script-core-dso.js',
+  '/script-drawer-360-pc-parite.js',
   '/script-ai-chat.js',
   '/script-ai-brouillons.js',
   '/script-cout-ia.js',
