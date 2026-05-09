@@ -2065,7 +2065,12 @@
       </div>
       <div class="m-form-row">
         ${M.formField('Date CT (prochain)', M.formInput('dateCT', { type: 'date', value: v.dateCT || '' }))}
-        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || '' }), { hint: 'Expiration carte verte' })}
+        ${M.formField('Date assurance', M.formInput('dateAssurance', { type: 'date', value: v.dateAssurance || (v.assurance && v.assurance.dateExpiration) || '' }), { hint: 'Expiration carte verte' })}
+      </div>
+      <!-- R4 : compagnie + numero contrat assurance (parite PC) -->
+      <div class="m-form-row">
+        ${M.formField('Compagnie assurance', M.formInput('assuranceCompagnie', { value: (v.assurance && v.assurance.compagnie) || v.assuranceCompagnie || '', placeholder: 'AXA, Allianz...' }))}
+        ${M.formField('N° contrat assurance', M.formInput('assuranceNumero', { value: (v.assurance && v.assurance.numeroContrat) || v.assuranceNumero || '', placeholder: '123-XYZ' }))}
       </div>
       <div class="m-form-row">
         ${M.formField('Date carte grise', M.formInput('dateCarteGrise', { type: 'date', value: v.dateCarteGrise || '' }))}
@@ -2310,7 +2315,17 @@
           genre: f.genre || '',
           critAir: f.critAir || '',
           dateCT: f.dateCT || '',
+          // R4 : dual-write assurance — flat (mobile legacy) + nested (canonique
+          // PC, lu par alertes "carte verte" art. L211-1 C. assur.)
           dateAssurance: f.dateAssurance || '',
+          assurance: {
+            compagnie: (f.assuranceCompagnie || '').trim(),
+            numeroContrat: (f.assuranceNumero || '').trim(),
+            dateExpiration: f.dateAssurance || ''
+          },
+          assuranceCompagnie: (f.assuranceCompagnie || '').trim(),
+          assuranceNumero: (f.assuranceNumero || '').trim(),
+          _assurance_migrated_v1: true,
           dateCarteGrise: f.dateCarteGrise || '',
           dateAcquisition: f.dateAcquisition || '',
           dateMiseEnCirculation: f.dateMiseEnCirculation || '',
@@ -5783,6 +5798,8 @@
     };
     vehicules.forEach(v => {
       if (!v || v.archive) return;
+      // R4 : normalise pour lire dateExpiration nested si la donnee vient de PC
+      if (typeof window.normalizeVehicule === 'function') window.normalizeVehicule(v);
       checkDate(v, v.dateCT, 'ct', 'CT expiré', 'CT à renouveler', 60);
       checkDate(v, v.dateAssurance, 'assurance', 'Assurance expirée', 'Assurance expire', 30);
     });
