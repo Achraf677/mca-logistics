@@ -20,7 +20,15 @@
 
   var loadedModules = new Set();
   var loadingPromises = new Map();
-  var DEFAULT_VERSION = '20260430-2';
+  // H3.3 — version dynamique : lue depuis window.CACHE_BUST_VERSION (hydrate par
+  // monitoring.js a partir de sw.js CACHE_VERSION). Avant : valeur figee qui se
+  // desyncronisait a chaque release et cassait le cache busting des 47 fonctions
+  // exports / stats / rentabilite. Maintenant : un seul endroit a bump (sw.js).
+  var DEFAULT_VERSION = 'unknown';
+
+  function getCurrentVersion() {
+    return (typeof window !== 'undefined' && window.CACHE_BUST_VERSION) || DEFAULT_VERSION;
+  }
 
   // Modules deja charges au boot par <script defer> : pas besoin de les recharger
   // (la page admin.html peut indiquer ce qui est deja la via window.__bootedModules)
@@ -36,7 +44,11 @@
 
     var p = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = name + '.js?v=' + (version || DEFAULT_VERSION);
+      // Lecture dynamique a chaque chargement (et non a l'initialisation du
+      // module) : si monitoring.js hydrate window.CACHE_BUST_VERSION apres le
+      // boot de lazy-loader, on aura quand meme la bonne version a la 1ere
+      // utilisation reelle d'un chunk.
+      script.src = name + '.js?v=' + (version || getCurrentVersion());
       script.async = false; // preserve l'ordre d'execution
       script.onload = function () {
         loadedModules.add(name);
