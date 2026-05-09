@@ -810,6 +810,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('delivpro:remote-update', function(event) {
     notifierMajAutreAdmin(event.detail || {});
   });
+  // Migration silencieuse au boot : unifie schemas LDV / assurance vehicule
+  // / charges-FK pour rendre la donnee mobile visible cote PC (R3 / R4 / R7).
+  // Idempotent (flags _ldv_migrated_v1, _assurance_migrated_v1, _fk_migrated_v1).
+  try {
+    if (typeof migrerSchemasDataPC === 'function') migrerSchemasDataPC();
+  } catch (e) { console.warn('[boot] migrerSchemasDataPC', e); }
   window.addEventListener('offline', function() {
     afficherToast('⚠️ Connexion perdue — les données sont sauvegardées localement et seront synchronisées dès le retour réseau.', 'error');
   });
@@ -3414,6 +3420,9 @@ function genererLettreDeVoiture(livId) {
   const livraison = charger('livraisons').find(l => l.id === livId);
   if (!livraison) { afficherToast('⚠️ Livraison introuvable', 'error'); return; }
   const params = getEntrepriseExportParams();
+  // Dual-read : normalise flat (mobile) -> nested pour rendre la LDV PC
+  // visible meme pour les livraisons saisies cote mobile (R3 fix).
+  if (typeof normalizeLDV === 'function') normalizeLDV(livraison);
   const exp = livraison.expediteur || {};
   const dest = livraison.destinataire || {};
   const merch = livraison.marchandise || {};

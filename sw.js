@@ -65,6 +65,7 @@ const CORE_ASSETS = [
   '/script-core-audit.js',
   '/script-core-recherche.js',
   '/script-ai-chat.js',
+  '/script-ai-brouillons.js',
   '/script-cout-ia.js',
   '/lazy-loader.js',
   '/lazy-stubs.js',
@@ -74,6 +75,14 @@ const CORE_ASSETS = [
   '/watchdog.js',
   '/manifest.json',
   '/monitoring.js',
+  // Hotfix M3 (2026-05-09) — assets manquants au precachage, recuperes
+  // via runtime cache-first jusqu'ici (degrade hors-ligne au premier load).
+  '/messages-supabase-adapter.js',
+  '/plannings-supabase-adapter.js',
+  '/legacy-entity-adapters.js',
+  '/script-core-stats-helpers.js',
+  '/script-exports.js',
+  '/auth-2fa.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne
