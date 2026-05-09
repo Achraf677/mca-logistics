@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-09-v4_16-stats-export-160';
+const CACHE_VERSION = 'mca-v2026-05-09-v4_22-stats-final-166';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -54,6 +54,7 @@ const CORE_ASSETS = [
   '/salaries-supabase-adapter.js',
   '/all-entity-adapters.js',
   '/storage-uploader.js',
+  '/smart-upload.js',
   '/script-core-utils.js',
   '/script-core-storage.js',
   '/script-core-ui.js',
@@ -78,7 +79,6 @@ const CORE_ASSETS = [
   '/monitoring.js',
   // Hotfix M3 (2026-05-09) — assets manquants au precachage, recuperes
   // via runtime cache-first jusqu'ici (degrade hors-ligne au premier load).
-  '/messages-supabase-adapter.js',
   '/plannings-supabase-adapter.js',
   '/legacy-entity-adapters.js',
   '/script-core-stats-helpers.js',

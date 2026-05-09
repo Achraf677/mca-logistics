@@ -1531,6 +1531,34 @@ function rafraichirDashboard() {
   setText('kpi-charges-impayees-sub', nbChargesEnRetard > 0
     ? (nbChargesEnRetard + ' en retard')
     : (chargesImpayees.length + ' à payer'));
+
+  // KPI Encaissements du mois (parité avec Charges du mois) — somme TTC
+  // des livraisons payées dont datePaiement est dans le mois courant.
+  // Évolution vs mois précédent en %.
+  (function () {
+    var moisCourant = new Date().toISOString().slice(0, 7);
+    var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+    var moisPrec = d.toISOString().slice(0, 7);
+    function isPaye(l) {
+      var s = l && l.statutPaiement;
+      return s === 'paye' || s === 'payé' || s === 'payee' || s === 'payée';
+    }
+    function ttc(l) { return parseFloat(l.prixTTC) || parseFloat(l.prix) || 0; }
+    var encMois = livraisons.filter(function (l) { return isPaye(l) && (l.datePaiement || '').startsWith(moisCourant); }).reduce(function (s, l) { return s + ttc(l); }, 0);
+    var encPrec = livraisons.filter(function (l) { return isPaye(l) && (l.datePaiement || '').startsWith(moisPrec); }).reduce(function (s, l) { return s + ttc(l); }, 0);
+    var sub = '—';
+    if (encPrec > 0) {
+      var pct = Math.round(((encMois - encPrec) / encPrec) * 100);
+      var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '=';
+      sub = arrow + ' ' + (pct > 0 ? '+' : '') + pct + '% vs mois préc.';
+    } else if (encMois > 0) {
+      sub = '▲ démarrage ce mois';
+    } else {
+      sub = 'aucun encaissement';
+    }
+    setText('kpi-encaissements-mois', euros(encMois));
+    setText('kpi-encaissements-mois-sub', sub);
+  })();
   const alertes  = compterAlertesNonLues();
   const totalTvaCollectee = tvaSummary.totalCollectee;
   const totalTvaDeductible = tvaSummary.totalDeductible;
@@ -10795,20 +10823,17 @@ genererRentabilitePDF = function() {
         <div class="s20-kpi"><div class="s20-kpi-val">${heuresSem.toFixed(1)} h</div><div class="s20-kpi-lbl">Semaine</div></div>
         <div class="s20-kpi"><div class="s20-kpi-val">${liv30.length}</div><div class="s20-kpi-lbl">Livr. 30j</div></div>
         <div class="s20-kpi"><div class="s20-kpi-val">${Math.round(ca30)} €</div><div class="s20-kpi-lbl">CA 30j</div></div>
-        <div class="s20-kpi ${msgNonLus ? 's20-kpi-alert' : ''}"><div class="s20-kpi-val">${msgNonLus}</div><div class="s20-kpi-lbl">Msg non lus</div></div>
       </div>
 
       <div class="s20-tabs">
         <button class="s20-tab active" data-tab="activite" onclick="window.s20SwitchTab('activite')">📅 Activité</button>
         <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab('livraisons')">📦 Livraisons (${livraisons.length})</button>
-        <button class="s20-tab" data-tab="messages" onclick="window.s20SwitchTab('messages')">💬 Messages (${messages.length})</button>
         <button class="s20-tab" data-tab="conformite" onclick="window.s20SwitchTab('conformite')">🪪 Conformité</button>
         <button class="s20-tab" data-tab="incidents" onclick="window.s20SwitchTab('incidents')">🚨 Incidents (${incidents.length})</button>
       </div>
 
-      <div class="s20-tab-content" id="s20-tab-activite">${renderActivite(livraisons, messages, incidents, alertes)}</div>
+      <div class="s20-tab-content" id="s20-tab-activite">${renderActivite(livraisons, [], incidents, alertes)}</div>
       <div class="s20-tab-content hidden" id="s20-tab-livraisons">${renderLivraisons(livraisons)}</div>
-      <div class="s20-tab-content hidden" id="s20-tab-messages">${renderMessages(messages)}</div>
       <div class="s20-tab-content hidden" id="s20-tab-conformite">${renderConformite(sal)}</div>
       <div class="s20-tab-content hidden" id="s20-tab-incidents">${renderIncidentsList(incidents)}</div>
 

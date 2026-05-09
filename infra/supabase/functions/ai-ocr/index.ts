@@ -8,6 +8,8 @@
 //   - facture          : facture fournisseur (PDF rasterise ou photo)
 //   - ticket_carburant : ticket de pompe (Total, Avia, Esso...)
 //   - rib              : releve d'identite bancaire (IBAN/BIC/titulaire)
+//   - carte_grise      : carte grise FR (immat / VIN / marque / modele / dates)
+//   - permis           : permis de conduire FR (numero / categories / dates)
 //
 // Securite : verify_jwt: true au deploy. Limite taille image : 10 MB
 // (decode base64 puis controle). Modele : gemini-2.5-flash (tarif input image
@@ -38,7 +40,7 @@ const ALLOWED_MIME = new Set([
   "application/pdf", // Gemini multimodal supporte le PDF nativement (jusqu'a 1000 pages)
 ]);
 
-type Mode = "facture" | "ticket_carburant" | "rib";
+type Mode = "facture" | "ticket_carburant" | "rib" | "carte_grise" | "permis";
 
 // ----- Prompts par mode -----
 
@@ -106,11 +108,51 @@ Regles :
 - "bic" : 8 ou 11 caracteres alphanumeriques majuscules.
 - Si plusieurs lignes pour le titulaire, garde la 1ere (raison sociale).`;
 
+const PROMPT_CARTE_GRISE = `${SYSTEM_BASE}
+
+Extrais les informations de cette carte grise francaise (certificat d'immatriculation) et renvoie ce JSON :
+{
+  "immatriculation": string|null (ex: "AB-123-CD", strip espaces, majuscules),
+  "vin": string|null (17 caracteres alphanumeriques, code E),
+  "marque": string|null (code D.1, ex: "RENAULT"),
+  "modele": string|null (code D.3, ex: "MASTER L2H2"),
+  "date_premiere_immat": string|null (code B, YYYY-MM-DD),
+  "puissance_fiscale": number|null (code P.6, en CV),
+  "carburant": "gazole"|"essence"|"electrique"|"hybride"|null (code P.3),
+  "ptac_kg": number|null (code F.2, en kg),
+  "genre": string|null (code J.1, ex: "VP", "CTTE", "CAM")
+}
+
+Regles :
+- "immatriculation" : format SIV (AA-123-AA) ou ancien FNI. Strip les tirets/espaces puis re-format AA-123-AA si SIV.
+- "vin" : 17 caracteres exactement, alphanumeriques sans I/O/Q. Strip les espaces.
+- "carburant" : "gazole" inclut "GO", "diesel", "GAZOLE" ; "hybride" inclut "EE" / "EH".`;
+
+const PROMPT_PERMIS = `${SYSTEM_BASE}
+
+Extrais les informations de ce permis de conduire francais (recto + verso si visibles) et renvoie ce JSON :
+{
+  "numero": string|null (12 chiffres + 1 lettre pour le nouveau format, ou ancien format),
+  "nom": string|null,
+  "prenom": string|null,
+  "date_naissance": string|null (YYYY-MM-DD),
+  "date_delivrance": string|null (YYYY-MM-DD),
+  "date_expiration": string|null (YYYY-MM-DD),
+  "categories": string[]|null (liste des categories valides ex: ["B","C","CE"])
+}
+
+Regles :
+- "numero" : strip les espaces, majuscules.
+- "categories" : uniquement les categories effectivement obtenues (case 11 + 12 si tampon present). Possibles : A1, A2, A, B1, B, BE, C1, C1E, C, CE, D1, D1E, D, DE.
+- "date_expiration" : prends la plus tardive si plusieurs categories ont des dates differentes.`;
+
 function getPrompt(mode: Mode): string {
   switch (mode) {
     case "facture": return PROMPT_FACTURE;
     case "ticket_carburant": return PROMPT_TICKET_CARBURANT;
     case "rib": return PROMPT_RIB;
+    case "carte_grise": return PROMPT_CARTE_GRISE;
+    case "permis": return PROMPT_PERMIS;
   }
 }
 

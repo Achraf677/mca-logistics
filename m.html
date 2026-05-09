@@ -147,6 +147,8 @@
   <script src="/security-utils.js?v=102"></script>
   <!-- storage-uploader : helpers Supabase Storage (upload/download docs salaries) -->
   <script src="/storage-uploader.js?v=102"></script>
+  <!-- smart-upload : un seul drop -> OCR + Storage en parallele (parite PC). -->
+  <script src="/smart-upload.js?v=102"></script>
   <!-- ocr-helper : Tesseract.js wrapper (lazy, gratuit, offline) pour scan carte grise/facture/RIB/permis -->
   <script src="/ocr-helper.js?v=102"></script>
   <!-- Entity adapters Supabase : sync automatique localStorage <-> tables natives
@@ -156,7 +158,6 @@
   <script src="/all-entity-adapters.js?v=102"></script>
   <script src="/legacy-entity-adapters.js?v=102"></script>
   <script src="/plannings-supabase-adapter.js?v=102"></script>
-  <script src="/messages-supabase-adapter.js?v=102"></script>
   <script src="/clients-supabase-adapter.js?v=102"></script>
   <script src="/salaries-supabase-adapter.js?v=102"></script>
   <script src="/vehicules-supabase-adapter.js?v=102"></script>
@@ -170,6 +171,9 @@
        ~5 KB charge en eager ; Chart.js charge en lazy uniquement sur la page Stats. -->
   <script src="/script-mobile-exports.js?v=104"></script>
   <!-- Assistant IA Gemini (V1 admin) - parite PC -->
-  <script src="/script-ai-chat.js?v=102"></script>
+  <script src="/script-ai-chat.js?v=103"></script>
+  <!-- Brouillons IA : page admin de validation des actions IA en attente.
+       Expose window.AIBrouillons utilise par M.routes['brouillons-ia']. -->
+  <script src="/script-ai-brouillons.js?v=103"></script>
 </body>
 </html>

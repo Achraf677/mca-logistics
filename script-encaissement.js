@@ -27,7 +27,8 @@
     client: '',
     recherche: '',
     page: 1,
-    pageSize: 50
+    pageSize: 50,
+    selected: {} // id -> true (checkboxes pour relance batch)
   };
 
   function getServerMode() {
@@ -68,6 +69,14 @@
     var dsoData = (typeof window.calculerDSO === 'function')
       ? window.calculerDSO(allLivraisons)
       : { dso: null, count: 0, byClient: {} };
+    // Top 5 retard : clients dont DSO > 60j (mauvais payeurs)
+    var clientsRetardCount = Object.keys(dsoData.byClient || {}).filter(function (c) {
+      return dsoData.byClient[c] > 60;
+    }).length;
+    var clientsRetardTop = Object.keys(dsoData.byClient || {})
+      .filter(function (c) { return dsoData.byClient[c] > 60; })
+      .sort(function (a, b) { return dsoData.byClient[b] - dsoData.byClient[a]; })
+      .slice(0, 5);
 
     // Filtrage
     var filtered = all;
@@ -94,6 +103,7 @@
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--green)"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">✅ Encaissé ce mois</div><div style="font-size:1.6rem;font-weight:700;color:var(--green)">' + fmt$(totalEncaisseMois) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">paiements reçus</div></div>'
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--red);' + (totalRetard === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🔴 En retard (>30j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--red)">' + fmt$(totalRetard) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbRetard + ' facture' + (nbRetard > 1 ? 's' : '') + '</div></div>'
       +   '<div class="card" title="Days Sales Outstanding — délai moyen réel de paiement client sur les 90 derniers jours" style="padding:18px;border-left:4px solid var(--accent);' + (dsoData.dso === null ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📊 DSO réel (90j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--accent)">' + (dsoData.dso !== null ? dsoData.dso + ' j' : '—') + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (dsoData.count > 0 ? dsoData.count + ' livraison' + (dsoData.count > 1 ? 's' : '') + ' payée' + (dsoData.count > 1 ? 's' : '') : 'aucune livraison payée') + '</div></div>'
+      +   '<div class="card" title="' + escH(clientsRetardTop.join(', ') || 'Aucun client en retard chronique') + '" style="padding:18px;border-left:4px solid #f59e0b;' + (clientsRetardCount === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🐌 Top retard (DSO &gt; 60j)</div><div style="font-size:1.6rem;font-weight:700;color:#f59e0b">' + clientsRetardCount + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (clientsRetardCount > 0 ? 'client' + (clientsRetardCount > 1 ? 's' : '') + ' lent' + (clientsRetardCount > 1 ? 's' : '') : 'tous à jour') + '</div></div>'
       +   (nbLitige > 0 ? '<div class="card" style="padding:18px;border-left:4px solid #f59e0b"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⚠️ Litige</div><div style="font-size:1.6rem;font-weight:700;color:#f59e0b">' + fmt$(totalLitige) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbLitige + ' facture' + (nbLitige > 1 ? 's' : '') + '</div></div>' : '')
       + '</div>'
       // Filtres
@@ -105,6 +115,12 @@
       +   '<button class="enc-chip ' + (state.statut === 'tous' ? 'active' : '') + '" data-s="tous">Tous</button>'
       +   '<input type="search" id="enc-recherche" placeholder="🔍 Rechercher (client, n°...)" value="' + escH(state.recherche) + '" style="margin-left:auto;min-width:240px;padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text)" />'
       +   (clients.length > 1 ? '<select id="enc-client" style="padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text)"><option value="">— Tous clients —</option>' + clients.map(c => '<option value="' + escH(c) + '"' + (c === state.client ? ' selected' : '') + '>' + escH(c) + '</option>').join('') + '</select>' : '')
+      + '</div>'
+      // Barre actions batch (relance en lot)
+      + '<div id="enc-batch-bar" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap">'
+      +   '<span id="enc-batch-count" style="font-size:.85rem;color:var(--text-muted)">0 sélectionnée(s)</span>'
+      +   '<button type="button" id="enc-batch-relance" class="btn-rapport" style="padding:6px 12px;font-size:.82rem" disabled>📄 Relancer en lot</button>'
+      +   '<button type="button" id="enc-batch-clear" class="enc-chip" style="padding:5px 10px">Tout désélectionner</button>'
       + '</div>'
       // Table
       + '<style>'
@@ -129,6 +145,7 @@
 
       html += '<table class="enc-table">'
         + '<thead><tr>'
+        +   '<th style="width:34px"><input type="checkbox" id="enc-check-all" title="Tout sélectionner" /></th>'
         +   '<th>Date facture</th><th>Client</th><th>N°</th><th style="text-align:right">Montant TTC</th><th>Statut</th><th>Date paiement</th><th></th>'
         + '</tr></thead><tbody>';
       pageSlice.forEach(a => {
@@ -139,7 +156,14 @@
         var actionCell = !a.paye
           ? '<button class="enc-mark-pay" data-id="' + escH(a.liv.id) + '">💵 Marquer encaissé</button>'
           : '';
+        // Checkbox seulement pour livraisons non payées et non en litige (relançables)
+        var canRelance = !a.paye && !a.litige;
+        var checked = state.selected[a.liv.id] ? ' checked' : '';
+        var cbCell = canRelance
+          ? '<input type="checkbox" class="enc-row-check" data-id="' + escH(a.liv.id) + '"' + checked + ' />'
+          : '';
         html += '<tr>'
+          + '<td>' + cbCell + '</td>'
           + '<td>' + fmtDate(a.liv.dateFacture || a.liv.date) + '</td>'
           + '<td><strong>' + escH(a.liv.client || '—') + '</strong></td>'
           + '<td>' + escH(a.liv.numLiv || '—') + '</td>'
@@ -151,7 +175,7 @@
       });
       var totalFiltered = filtered.reduce((s, a) => s + a.ttc, 0);
       html += '<tr style="background:var(--bg-dark);font-weight:700">'
-        + '<td colspan="3">TOTAL (' + filtered.length + ')</td>'
+        + '<td></td><td colspan="3">TOTAL (' + filtered.length + ')</td>'
         + '<td style="text-align:right;color:var(--accent);font-size:1rem">' + fmt$(totalFiltered) + '</td>'
         + '<td colspan="3"></td>'
         + '</tr>';
@@ -238,6 +262,41 @@
       state.page = 1;
       render();
     });
+    // Checkboxes batch
+    function refreshBatchUi() {
+      var ids = Object.keys(state.selected).filter(function (k) { return state.selected[k]; });
+      var c = container.querySelector('#enc-batch-count');
+      var btn = container.querySelector('#enc-batch-relance');
+      if (c) c.textContent = ids.length + ' sélectionnée' + (ids.length > 1 ? 's' : '');
+      if (btn) btn.disabled = ids.length === 0;
+    }
+    var checkAll = container.querySelector('#enc-check-all');
+    if (checkAll) {
+      checkAll.addEventListener('change', function (e) {
+        container.querySelectorAll('.enc-row-check').forEach(function (cb) {
+          cb.checked = e.target.checked;
+          state.selected[cb.dataset.id] = e.target.checked;
+        });
+        refreshBatchUi();
+      });
+    }
+    container.querySelectorAll('.enc-row-check').forEach(function (cb) {
+      cb.addEventListener('change', function () {
+        state.selected[cb.dataset.id] = cb.checked;
+        refreshBatchUi();
+      });
+    });
+    var batchClear = container.querySelector('#enc-batch-clear');
+    if (batchClear) batchClear.addEventListener('click', function () {
+      state.selected = {};
+      render();
+    });
+    var batchRelance = container.querySelector('#enc-batch-relance');
+    if (batchRelance) batchRelance.addEventListener('click', function () {
+      relancerEnLot();
+    });
+    refreshBatchUi();
+
     container.querySelectorAll('.enc-mark-pay').forEach(b => {
       b.addEventListener('click', e => {
         e.stopPropagation();
@@ -260,6 +319,92 @@
         render();
       });
     });
+  }
+
+  /**
+   * Relance en lot : génère un PDF combiné (1 lettre par livraison sélectionnée,
+   * separée par page-break), incrémente nb_relances + derniereRelance sur
+   * chaque livraison. Réutilise le template de genererLettreRelance via une
+   * version inline simplifiée pour pouvoir concaténer.
+   */
+  function relancerEnLot() {
+    var ids = Object.keys(state.selected).filter(function (k) { return state.selected[k]; });
+    if (!ids.length) return;
+    var livs = getLivraisons();
+    var params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : { nom: 'MCA Logistics' };
+    var dateExp = (typeof formatDateExport === 'function') ? formatDateExport(new Date()) : new Date().toLocaleDateString('fr-FR');
+    var templates = (typeof chargerTemplatesRelance === 'function') ? chargerTemplatesRelance() : null;
+    var lettres = [];
+    var idsTraites = [];
+
+    ids.forEach(function (id) {
+      var liv = livs.find(function (l) { return l.id === id; });
+      if (!liv) return;
+      var dateBase = liv.dateFacture || liv.date;
+      var joursRetard = dateBase ? Math.max(0, Math.floor((new Date() - new Date(dateBase)) / 86400000)) : 0;
+      var niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : 1;
+      var ttc = parseFloat(liv.prixTTC) || parseFloat(liv.prix) || 0;
+      var montant = fmt$(ttc);
+      var couleur = niveau === 3 ? '#e74c3c' : niveau === 2 ? '#f39c12' : '#2ecc71';
+      var titre = niveau === 3 ? 'DERNIER AVIS AVANT CONTENTIEUX' : niveau === 2 ? 'MISE EN DEMEURE' : 'RELANCE AMIABLE';
+      var corpsTpl = templates ? templates[niveau] : 'La livraison {numLiv} du {dateLivraison} d\'un montant de {montant} reste impayée ({joursRetard} jours).';
+      var corps = (typeof construireTexteRelancePersonnalise === 'function')
+        ? construireTexteRelancePersonnalise(corpsTpl, liv, params, joursRetard, montant).replace(/\n/g, '<br><br>')
+        : String(corpsTpl).replace(/\{numLiv\}/g, liv.numLiv || '').replace(/\{dateLivraison\}/g, fmtDate(liv.date)).replace(/\{montant\}/g, montant).replace(/\{joursRetard\}/g, String(joursRetard));
+
+      lettres.push(
+        '<div style="page-break-after:always;font-family:Segoe UI,Arial,sans-serif;max-width:700px;margin:0 auto;padding:40px;color:#1a1d27">' +
+          '<div style="display:flex;justify-content:space-between;margin-bottom:24px"><div><div style="font-size:1.2rem;font-weight:800;color:#f5a623">' + escH(params.nom || 'MCA Logistics') + '</div>' +
+            (params.adresse ? '<div style="font-size:.8rem;color:#6b7280">' + escH(params.adresse) + '</div>' : '') +
+            (params.siret ? '<div style="font-size:.75rem;color:#9ca3af">SIRET : ' + escH(params.siret) + '</div>' : '') +
+          '</div><div style="font-size:.82rem;color:#9ca3af">' + escH(dateExp) + '</div></div>' +
+          '<div style="text-align:center;margin:20px 0;padding:10px;background:' + couleur + '15;border:2px solid ' + couleur + ';border-radius:10px;font-size:1rem;font-weight:800;color:' + couleur + ';letter-spacing:2px">' + titre + '</div>' +
+          '<div style="margin-bottom:16px"><div style="font-size:.82rem;color:#6b7280">Destinataire :</div><div style="font-size:1rem;font-weight:700">' + escH(liv.client || '—') + '</div></div>' +
+          '<div style="font-size:.85rem;line-height:1.7;margin-bottom:20px"><p>Madame, Monsieur,</p><p>' + corps + '</p><p>Veuillez agréer nos salutations distinguées.</p></div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:12px;background:#f8f9fc;border-radius:8px">' +
+            '<div><div style="font-size:.7rem;color:#9ca3af;text-transform:uppercase">Référence</div><div style="font-weight:700">' + escH(liv.numLiv || '—') + '</div></div>' +
+            '<div><div style="font-size:.7rem;color:#9ca3af;text-transform:uppercase">Montant dû</div><div style="font-weight:700;color:' + couleur + '">' + montant + '</div></div>' +
+            '<div><div style="font-size:.7rem;color:#9ca3af;text-transform:uppercase">Date livraison</div><div style="font-weight:700">' + fmtDate(liv.date) + '</div></div>' +
+            '<div><div style="font-size:.7rem;color:#9ca3af;text-transform:uppercase">Retard</div><div style="font-weight:700">' + joursRetard + ' jours</div></div>' +
+          '</div></div>'
+      );
+      // Increment nb_relances + derniere relance
+      liv.nb_relances = (parseInt(liv.nb_relances, 10) || 0) + 1;
+      liv.derniereRelance = new Date().toISOString();
+      liv.niveauRelance = niveau;
+      idsTraites.push(id);
+    });
+
+    if (!lettres.length) {
+      if (typeof afficherToast === 'function') afficherToast('⚠️ Aucune livraison relançable');
+      return;
+    }
+
+    // Persist
+    try { localStorage.setItem('livraisons', JSON.stringify(livs)); } catch (_) {}
+
+    // Pousser dans relances_log si helpers Supabase / sauvegarder dispo
+    if (typeof sauvegarder === 'function' && typeof charger === 'function') {
+      try {
+        var log = charger('relances_log') || [];
+        idsTraites.forEach(function (id) {
+          log.push({ id: 'rl_' + Date.now() + '_' + id.slice(-4), livraisonId: id, date: new Date().toISOString(), source: 'batch_pc' });
+        });
+        sauvegarder('relances_log', log);
+      } catch (_) {}
+    }
+
+    // Affiche toutes les lettres dans une fenêtre d'impression
+    var html = lettres.join('');
+    if (typeof ouvrirFenetreImpression === 'function') {
+      ouvrirFenetreImpression('Relances en lot (' + lettres.length + ')', html, 'width=800,height=900');
+    } else {
+      var w = window.open('', '_blank', 'width=800,height=900');
+      if (w) { w.document.write('<html><head><title>Relances en lot</title></head><body>' + html + '</body></html>'); w.document.close(); }
+    }
+    if (typeof afficherToast === 'function') afficherToast('📄 ' + lettres.length + ' lettre(s) de relance générée(s)');
+    state.selected = {};
+    render();
   }
 
   /* WRAPPER encaissement — Hook naviguerVers : déclencher render() quand
@@ -288,5 +433,5 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else setTimeout(init, 100);
 
-  window.encaissement = { render: render };
+  window.encaissement = { render: render, relancerEnLot: relancerEnLot };
 })();
