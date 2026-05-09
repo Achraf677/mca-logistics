@@ -115,6 +115,19 @@ test('tools-defs : self-mgmt brouillons presents', () => {
   }
 });
 
+test('tools-defs : Phase 9 anti-hallucination tools presents', () => {
+  const names = extractToolNames(defsSrc);
+  for (const expected of [
+    'get_rentabilite_par_vehicule',
+    'get_rentabilite_par_client',
+    'qonto_proposer_rapprochement',
+    'get_inventaire_capacites',
+    'propose_provision_salarie',
+  ]) {
+    assert.ok(names.includes(expected), `${expected} absent de tools-defs`);
+  }
+});
+
 test('tools-impl : handlers bulk/metier presents', () => {
   for (const expected of [
     'propose_bulk_livraisons', 'propose_bulk_charges', 'propose_bulk_paiements',
@@ -122,12 +135,27 @@ test('tools-impl : handlers bulk/metier presents', () => {
     'get_dso_global', 'get_dso_par_client', 'list_brouillons_en_attente',
     'list_charges_recurrentes', 'get_kpi_dashboard', 'get_anomalies_synthese',
     'propose_validate_brouillon', 'propose_reject_brouillon',
+    // Phase 9 anti-hallucination
+    'get_rentabilite_par_vehicule', 'get_rentabilite_par_client',
+    'qonto_proposer_rapprochement', 'get_inventaire_capacites',
+    'propose_provision_salarie',
   ]) {
     assert.ok(
       implSrc.includes(`${expected}:`),
       `Handler ${expected} absent de TOOL_HANDLERS`,
     );
   }
+});
+
+test('write-execute : action provision_salarie supportee', () => {
+  assert.ok(
+    execSrc.includes('case "provision_salarie"'),
+    'case "provision_salarie" manquant dans write-execute',
+  );
+  assert.ok(
+    execSrc.includes('execProvisionSalarie'),
+    'fonction execProvisionSalarie manquante',
+  );
 });
 
 test('write-execute : action bulk_execute supportee', () => {

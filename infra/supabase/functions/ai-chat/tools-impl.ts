@@ -2382,6 +2382,400 @@ async function toolProposeRejectBrouillon(args: any, sb: SbClient) {
   };
 }
 
+// ===== Phase 9 — Anti-hallucination : tools manquants identifies en prod =====
+
+// Rentabilite par vehicule : agrege CA HT (livraisons rattachees) - charges (vehicule + carburant)
+async function toolGetRentabiliteParVehicule(args: any, sb: SbClient) {
+  const today = todayISO();
+  const dateMax = args?.date_max ?? today;
+  const dateMin = args?.date_min ?? today.slice(0, 7) + "-01";
+
+  let vehQ = sb.from("vehicules").select("id, immat, marque, modele");
+  if (args?.vehicule_id) vehQ = vehQ.eq("id", args.vehicule_id);
+  const { data: vehs, error: vehErr } = await vehQ;
+  if (vehErr) return { error: "vehicules: " + vehErr.message };
+
+  let livQ = sb.from("livraisons").select("vehicule_id, prix_ht, distance_km")
+    .gte("date_livraison", dateMin).lte("date_livraison", dateMax)
+    .not("vehicule_id", "is", null);
+  if (args?.vehicule_id) livQ = livQ.eq("vehicule_id", args.vehicule_id);
+  const { data: liv, error: livErr } = await livQ;
+  if (livErr) return { error: "livraisons: " + livErr.message };
+
+  let carbQ = sb.from("carburant").select("vehicule_id, prix_ht, prix_ttc, litres")
+    .gte("date_plein", dateMin).lte("date_plein", dateMax)
+    .not("vehicule_id", "is", null);
+  if (args?.vehicule_id) carbQ = carbQ.eq("vehicule_id", args.vehicule_id);
+  const { data: carb, error: carbErr } = await carbQ;
+  if (carbErr) return { error: "carburant: " + carbErr.message };
+
+  let chgQ = sb.from("charges").select("vehicule_id, montant_ht")
+    .gte("date_charge", dateMin).lte("date_charge", dateMax)
+    .not("vehicule_id", "is", null);
+  if (args?.vehicule_id) chgQ = chgQ.eq("vehicule_id", args.vehicule_id);
+  const { data: chgs, error: chgErr } = await chgQ;
+  if (chgErr) return { error: "charges: " + chgErr.message };
+
+  const result = (vehs ?? []).map((v: any) => {
+    const vid = v.id;
+    const vLiv = (liv ?? []).filter((l: any) => l.vehicule_id === vid);
+    const ca_ht = vLiv.reduce((acc, l: any) => acc + (Number(l.prix_ht) || 0), 0);
+    const km_total = vLiv.reduce((acc, l: any) => acc + (Number(l.distance_km) || 0), 0);
+
+    const vCarb = (carb ?? []).filter((c: any) => c.vehicule_id === vid);
+    const carb_ht = vCarb.reduce((acc, c: any) => acc + (Number(c.prix_ht) || 0), 0);
+    const carb_litres = vCarb.reduce((acc, c: any) => acc + (Number(c.litres) || 0), 0);
+
+    const vChg = (chgs ?? []).filter((c: any) => c.vehicule_id === vid);
+    const charges_ht = vChg.reduce((acc, c: any) => acc + (Number(c.montant_ht) || 0), 0);
+
+    const total_charges = Number((carb_ht + charges_ht).toFixed(2));
+    const marge_brute_ht = Number((ca_ht - total_charges).toFixed(2));
+    const eur_par_km = km_total > 0 ? Number(((ca_ht - total_charges) / km_total).toFixed(2)) : 0;
+
+    return {
+      vehicule: { id: vid, immat: v.immat, marque: v.marque, modele: v.modele },
+      ca_ht: Number(ca_ht.toFixed(2)),
+      charges_carburant_ht: Number(carb_ht.toFixed(2)),
+      carburant_litres: Number(carb_litres.toFixed(2)),
+      charges_autres_ht: Number(charges_ht.toFixed(2)),
+      total_charges_ht: total_charges,
+      marge_brute_ht,
+      nb_livraisons: vLiv.length,
+      km_total: Number(km_total.toFixed(1)),
+      eur_par_km,
+    };
+  }).filter((r: any) => r.nb_livraisons > 0 || r.total_charges_ht > 0);
+
+  result.sort((a, b) => b.marge_brute_ht - a.marge_brute_ht);
+
+  return {
+    periode: { date_min: dateMin, date_max: dateMax },
+    count: result.length,
+    rentabilite: result.slice(0, 30),
+  };
+}
+
+// Rentabilite par client : agrege CA HT - charges rattachees (via livraisons.vehicule_id)
+async function toolGetRentabiliteParClient(args: any, sb: SbClient) {
+  const today = todayISO();
+  const dateMax = args?.date_max ?? today;
+  const dateMin = args?.date_min ?? today.slice(0, 7) + "-01";
+  const limit = Math.max(1, Math.min(30, Number(args?.limit) || 10));
+
+  const { data: liv, error: livErr } = await sb.from("livraisons")
+    .select("client_nom, client_id, vehicule_id, prix_ht, distance_km")
+    .gte("date_livraison", dateMin).lte("date_livraison", dateMax);
+  if (livErr) return { error: "livraisons: " + livErr.message };
+
+  // Pour la repartition des charges par client : on ventile les charges/carburant
+  // d'un vehicule entre les clients au prorata du CA (heuristique simple).
+  const { data: carb } = await sb.from("carburant")
+    .select("vehicule_id, prix_ht").gte("date_plein", dateMin).lte("date_plein", dateMax);
+  const { data: chgs } = await sb.from("charges")
+    .select("vehicule_id, montant_ht").gte("date_charge", dateMin).lte("date_charge", dateMax);
+
+  const caByVehClient = new Map<string, { veh: string; client: string; ca: number; nb: number; km: number }>();
+  const caByVeh = new Map<string, number>();
+  const clientStats = new Map<string, { client: string; ca_ht: number; nb_livraisons: number; km: number }>();
+  for (const l of (liv ?? [])) {
+    const veh = String((l as any).vehicule_id || "");
+    const client = String((l as any).client_nom || "(sans nom)");
+    const ca = Number((l as any).prix_ht) || 0;
+    const km = Number((l as any).distance_km) || 0;
+    const k = `${veh}|${client}`;
+    const cur = caByVehClient.get(k) ?? { veh, client, ca: 0, nb: 0, km: 0 };
+    cur.ca += ca; cur.nb += 1; cur.km += km;
+    caByVehClient.set(k, cur);
+    if (veh) caByVeh.set(veh, (caByVeh.get(veh) ?? 0) + ca);
+    const cs = clientStats.get(client) ?? { client, ca_ht: 0, nb_livraisons: 0, km: 0 };
+    cs.ca_ht += ca; cs.nb_livraisons += 1; cs.km += km;
+    clientStats.set(client, cs);
+  }
+
+  const chgByVeh = new Map<string, number>();
+  for (const c of (carb ?? [])) {
+    const v = String((c as any).vehicule_id || "");
+    if (!v) continue;
+    chgByVeh.set(v, (chgByVeh.get(v) ?? 0) + (Number((c as any).prix_ht) || 0));
+  }
+  for (const c of (chgs ?? [])) {
+    const v = String((c as any).vehicule_id || "");
+    if (!v) continue;
+    chgByVeh.set(v, (chgByVeh.get(v) ?? 0) + (Number((c as any).montant_ht) || 0));
+  }
+
+  const chargesByClient = new Map<string, number>();
+  for (const [, vc] of caByVehClient) {
+    const totalCaVeh = caByVeh.get(vc.veh) ?? 0;
+    if (totalCaVeh <= 0 || !vc.veh) continue;
+    const totalChargesVeh = chgByVeh.get(vc.veh) ?? 0;
+    const part = totalChargesVeh * (vc.ca / totalCaVeh);
+    chargesByClient.set(vc.client, (chargesByClient.get(vc.client) ?? 0) + part);
+  }
+
+  const result = Array.from(clientStats.values()).map((c) => {
+    const charges_ht = Number((chargesByClient.get(c.client) ?? 0).toFixed(2));
+    const marge_ht = Number((c.ca_ht - charges_ht).toFixed(2));
+    const marge_pct = c.ca_ht > 0 ? Number(((marge_ht / c.ca_ht) * 100).toFixed(1)) : 0;
+    return {
+      client: c.client,
+      ca_ht: Number(c.ca_ht.toFixed(2)),
+      charges_estimees_ht: charges_ht,
+      marge_brute_ht: marge_ht,
+      marge_pct,
+      nb_livraisons: c.nb_livraisons,
+      km_total: Number(c.km.toFixed(1)),
+    };
+  }).sort((a, b) => b.marge_brute_ht - a.marge_brute_ht).slice(0, limit);
+
+  return {
+    periode: { date_min: dateMin, date_max: dateMax },
+    count: result.length,
+    note: "Charges ventilees par client au prorata du CA sur le vehicule (heuristique).",
+    rentabilite: result,
+  };
+}
+
+// Qonto : pour une transaction donnee, suggerer livraisons/charges plausibles (memes scoring que cron qonto-sync-daily).
+async function toolQontoProposerRapprochement(args: any, sb: SbClient) {
+  let amount = Number(args?.amount);
+  let dateRef = String(args?.settled_at || "").slice(0, 10);
+  let counterpartyName = String(args?.counterparty_name || "");
+  let side = String(args?.side || "");
+
+  if (args?.transaction_id) {
+    const url = `${QONTO_BASE}/transactions?per_page=10&current_page=1`;
+    const data = await fetchSafeJson(url, { headers: { Authorization: qontoAuth() } });
+    const tx = (data?.transactions ?? []).find((t: any) => t.transaction_id === args.transaction_id);
+    if (!tx) return { error: `transaction ${args.transaction_id} introuvable (cherche les 10 dernieres)` };
+    amount = Math.abs(Number(tx.amount) || 0);
+    dateRef = String(tx.settled_at || "").slice(0, 10);
+    counterpartyName = String(tx.counterparty_name || "");
+    side = String(tx.side || "");
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) return { error: "amount manquant ou invalide" };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateRef)) return { error: "settled_at YYYY-MM-DD requis" };
+
+  const dateMs = Date.parse(dateRef + "T00:00:00Z");
+  const dWindow = 7 * 86400000;
+  const dateMin = new Date(dateMs - dWindow).toISOString().slice(0, 10);
+  const dateMax = new Date(dateMs + dWindow).toISOString().slice(0, 10);
+  const targetSide = side === "credit" || side === "debit" ? side : "credit";
+
+  function scoreCandidate(targetAmt: number, candAmt: number, candDate: string, candName: string): { score: number; amountDiff: number; dateDiffJ: number; nameMatch: boolean } {
+    const amtDiff = Math.abs(targetAmt - candAmt);
+    const candMs = Date.parse((candDate || "1970-01-01") + "T00:00:00Z");
+    const dateDiffJ = Math.abs((dateMs - candMs) / 86400000);
+    if (amtDiff > targetAmt * 0.05 + 1) return { score: 0, amountDiff: amtDiff, dateDiffJ, nameMatch: false };
+    if (dateDiffJ > 30) return { score: 0, amountDiff: amtDiff, dateDiffJ, nameMatch: false };
+    const amtScore = 1 - Math.min(1, amtDiff / Math.max(1, targetAmt * 0.05));
+    const dateScore = 1 - Math.min(1, dateDiffJ / 30);
+    const cName = (counterpartyName || "").toLowerCase();
+    const candNameLow = (candName || "").toLowerCase();
+    const nameMatch = !!cName && !!candNameLow && (cName.includes(candNameLow) || candNameLow.includes(cName));
+    const nameScore = nameMatch ? 1 : 0;
+    const score = 0.5 * amtScore + 0.3 * dateScore + 0.2 * nameScore;
+    return { score: Number(score.toFixed(3)), amountDiff: amtDiff, dateDiffJ, nameMatch };
+  }
+
+  const candidates: any[] = [];
+
+  if (targetSide === "credit") {
+    const { data: livs, error } = await sb.from("livraisons")
+      .select("id, num_liv, client_nom, date_livraison, prix_ttc, statut_paiement")
+      .gte("date_livraison", dateMin).lte("date_livraison", dateMax)
+      .in("statut_paiement", ["a_payer", "en_retard", "partiel"])
+      .limit(200);
+    if (error) return { error: "livraisons: " + error.message };
+    for (const l of (livs ?? [])) {
+      const r = scoreCandidate(amount, Number((l as any).prix_ttc) || 0, (l as any).date_livraison, (l as any).client_nom);
+      if (r.score > 0) {
+        candidates.push({
+          kind: "livraison",
+          id: (l as any).id,
+          num_liv: (l as any).num_liv,
+          label: `${(l as any).num_liv} - ${(l as any).client_nom}`,
+          montant_ttc: Number((l as any).prix_ttc) || 0,
+          date: (l as any).date_livraison,
+          ...r,
+        });
+      }
+    }
+  } else {
+    const { data: chgs, error } = await sb.from("charges")
+      .select("id, categorie, description, fournisseur_nom, date_charge, montant_ttc, statut_paiement")
+      .gte("date_charge", dateMin).lte("date_charge", dateMax)
+      .in("statut_paiement", ["a_payer", "en_retard", "partiel"])
+      .limit(200);
+    if (error) return { error: "charges: " + error.message };
+    for (const c of (chgs ?? [])) {
+      const r = scoreCandidate(amount, Number((c as any).montant_ttc) || 0, (c as any).date_charge, (c as any).fournisseur_nom);
+      if (r.score > 0) {
+        candidates.push({
+          kind: "charge",
+          id: (c as any).id,
+          label: `${(c as any).categorie} - ${(c as any).fournisseur_nom ?? "?"}`,
+          montant_ttc: Number((c as any).montant_ttc) || 0,
+          date: (c as any).date_charge,
+          ...r,
+        });
+      }
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  return {
+    transaction: {
+      amount,
+      settled_at: dateRef,
+      counterparty_name: counterpartyName || null,
+      side: targetSide,
+    },
+    threshold: 0.7,
+    count: candidates.length,
+    candidates: candidates.slice(0, 10),
+    note: "Score 0.5 montant + 0.3 date + 0.2 nom. Threshold sync auto = 0.7. Au-dessous, l'admin doit confirmer manuellement.",
+  };
+}
+
+// Inventaire des capacites : retourne meta-info sur ce que le bot peut faire (anti-hallucination).
+async function toolGetInventaireCapacites(args: any, _sb: SbClient) {
+  const cat = String(args?.categorie || "all");
+
+  const lecture = [
+    "search_livraisons / charges / clients / fournisseurs / vehicules / salaries / carburant / inspections / entretiens / incidents / alertes",
+    "get_stats : CA, charges, marge, conso sur periode",
+    "top_clients_ca : top N clients par CA HT",
+    "rentabilite_tournee : par chauffeur/tournee",
+    "get_rentabilite_par_vehicule : par vehicule",
+    "get_rentabilite_par_client : par client",
+    "livraisons_impayees_retard : factures clients en retard",
+    "vehicules_echeances_proches : CT/assurance/carte_grise expirant",
+    "get_anomalies_carburant : conso anormale, doublons, prix incoherent",
+    "audit_coherence_donnees : detective scan complet",
+    "get_anomalies_synthese : synthese anomalies du mois",
+    "get_dso_global / get_dso_par_client : delai moyen reel paiement",
+    "get_kpi_dashboard : snapshot KPIs mensuel",
+    "qonto_organization : soldes Qonto",
+    "qonto_search_transactions : transactions Qonto",
+    "qonto_proposer_rapprochement : suggere livraisons/charges pour une transaction",
+    "pennylane_factures_clients/fournisseurs : factures Pennylane",
+    "match_factures_pennylane_mca : matching deterministe Pennylane <-> MCA",
+    "ors_distance / ors_optimize_tournee : distance HGV + TSP",
+    "sentry_recent_issues : bugs JS prod",
+    "get_audit_log : qui a modifie quoi",
+    "get_livraison_detail : detail livraison + paiements + incidents",
+    "get_vehicule_historique : 12 mois historique vehicule",
+    "get_planning_semaine : creneaux + absences",
+    "list_brouillons_en_attente : brouillons IA pending",
+    "list_charges_recurrentes : detection charges recurrentes",
+  ];
+  const ecriture = [
+    "propose_livraison + propose_update_livraison + propose_clone_livraison + propose_bulk_livraisons",
+    "propose_charge + propose_update_charge + propose_split_charge + propose_bulk_charges",
+    "propose_paiement + propose_update_paiement + propose_bulk_paiements",
+    "propose_client / fournisseur / vehicule / salarie + leurs propose_update_*",
+    "propose_carburant / entretien / incident / inspection / planning_creneau + leurs propose_update_*",
+    "propose_import_planning : creneaux atomique multi-jours",
+    "propose_delete : suppression generique (raison >=10 chars)",
+    "propose_marquer_alerte_resolue",
+    "propose_provision_salarie : creation/maj compte chauffeur (auth)",
+    "propose_validate_brouillon / propose_reject_brouillon : self-mgmt brouillons",
+    "propose_to_drafts : empilage explicite brouillon",
+  ];
+  const memoire = [
+    "add_memory_fact : memorise fait long-terme (importance 1-5)",
+    "delete_memory_fact : supprime un fait",
+    "list_memory_facts : liste des faits memorises",
+  ];
+  const pages = [
+    "Dashboard, Livraisons (3 vues PC, 2 mobile), Charges, Carburant, Entretiens",
+    "Inspections, Incidents, Clients, Fournisseurs, Vehicules, Salaries (drawer 360 mobile)",
+    "Planning (3 vues), Heures & Km (CE 561), Rentabilite (3 axes)",
+    "TVA, Encaissement (DSO + KPIs), Statistiques (Chart.js)",
+    "Brouillons IA, Audit (18 tables triggerees), Parametres, Setup wizard",
+  ];
+  const integrations = [
+    "Pennylane : import FEC mensuel cron + factures clients/fournisseurs",
+    "Qonto : sync quotidien cron + rapprochement auto (score 0.5/0.3/0.2)",
+    "OCR Gemini Flash mode AUTO : facture / ticket / RIB / carte_grise / permis (PDF natif)",
+    "OpenRouteService : distance HGV + optimisation tournee TSP",
+    "Sentry : bugs JS prod",
+    "Visual agent : 50 screenshots/jour audites par Gemini Flash",
+  ];
+
+  const out: Record<string, unknown> = {};
+  if (cat === "all" || cat === "lecture") out.lecture = lecture;
+  if (cat === "all" || cat === "ecriture") out.ecriture = ecriture;
+  if (cat === "all" || cat === "memoire") out.memoire = memoire;
+  if (cat === "all" || cat === "pages") out.pages = pages;
+  if (cat === "all" || cat === "integrations") out.integrations = integrations;
+  if (cat === "all") {
+    out.totaux = {
+      tools_lecture: lecture.length,
+      tools_ecriture: ecriture.length,
+      tools_memoire: memoire.length,
+      pages_admin: pages.length,
+      integrations_actives: integrations.length,
+    };
+  }
+  return out;
+}
+
+// Provision compte chauffeur : delegue a l'edge fn provision-salarie-access via brouillon.
+async function toolProposeProvisionSalarie(args: any, sb: SbClient) {
+  const salarieId = String(args?.salarie_id || "").trim();
+  if (!salarieId) return { error: "salarie_id requis (UUID existant)" };
+
+  const { data: sal, error } = await sb.from("salaries")
+    .select("id, nom, prenom, numero, email, profile_id")
+    .eq("id", salarieId).maybeSingle();
+  if (error) return { error: "salaries: " + error.message };
+  if (!sal) return { error: `salarie ${salarieId} introuvable` };
+
+  const method = String(args?.temporary_password_method || "auto-generate");
+  let password = String(args?.password || "");
+  if (method === "auto-generate") {
+    const bytes = new Uint8Array(12);
+    crypto.getRandomValues(bytes);
+    password = Array.from(bytes).map((b) => b.toString(36).padStart(2, "0")).join("").slice(0, 16);
+  } else if (password.length < 8) {
+    return { error: "password doit faire >=8 caracteres en mode manual" };
+  }
+
+  const finalEmail = String(args?.email || (sal as any).email || "").toLowerCase();
+  const summary = {
+    salarie_id: salarieId,
+    nom: `${(sal as any).prenom ?? ""} ${(sal as any).nom ?? ""}`.trim(),
+    numero: (sal as any).numero,
+    email_propose: finalEmail || `(genere depuis ${(sal as any).numero})`,
+    method,
+    password_visible: method === "auto-generate" ? password : "(saisi manuellement, masque ici)",
+    deja_provisionne: !!(sal as any).profile_id,
+  };
+
+  const payload = {
+    salarieId,
+    numero: (sal as any).numero,
+    nom: (sal as any).nom,
+    prenom: (sal as any).prenom,
+    email: finalEmail,
+    password,
+  };
+
+  return {
+    proposal: {
+      type: "provision_salarie",
+      title: `Compte chauffeur : ${summary.nom || (sal as any).numero}`,
+      summary,
+      payload,
+    },
+    write_actions: [{ action: "provision_salarie", payload }],
+  };
+}
+
 // ===== TOOL_HANDLERS : dispatcher (les noms doivent matcher tools-defs) =====
 
 export const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<unknown>> = {
@@ -2470,4 +2864,10 @@ export const TOOL_HANDLERS: Record<string, (args: any, sb: SbClient) => Promise<
   // SELF-MGMT BROUILLONS (Phase 8)
   propose_validate_brouillon: toolProposeValidateBrouillon,
   propose_reject_brouillon: toolProposeRejectBrouillon,
+  // PHASE 9 — Anti-hallucination
+  get_rentabilite_par_vehicule: toolGetRentabiliteParVehicule,
+  get_rentabilite_par_client: toolGetRentabiliteParClient,
+  qonto_proposer_rapprochement: toolQontoProposerRapprochement,
+  get_inventaire_capacites: toolGetInventaireCapacites,
+  propose_provision_salarie: toolProposeProvisionSalarie,
 };
