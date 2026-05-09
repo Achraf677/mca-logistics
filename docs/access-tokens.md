@@ -129,6 +129,23 @@ Si tu reçois une alerte budget anormale ou une facture surprise :
 - Logs des appels Gemini (RPM, RPD, tokens) : https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas?project=budget-achraf
 - Si l'usage est légitime mais cher : passer le `MAX_TOOL_ITERATIONS` de 4 à 2 dans `infra/supabase/functions/ai-chat/index.ts` et redéployer.
 
+### Visual Audit Daily — Playwright + Gemini Flash
+
+Workflow GitHub Actions `visual-audit-daily.yml` (audit visuel quotidien
+gratuit). Cf. `docs/visual-agent.md` pour la doc complète.
+
+- **Secrets GitHub Actions requis** (à ajouter dans Repo → Settings → Secrets → Actions) :
+  - `PLAYWRIGHT_ADMIN_EMAIL` : identifiant admin MCA pour login `/login.html`
+  - `PLAYWRIGHT_ADMIN_PASSWORD` : password admin MCA
+  - `SUPABASE_URL` : `https://lkbfvgnhwgbapdtitglu.supabase.co`
+  - `SUPABASE_ANON_KEY` : anon key publishable Supabase (pour `/auth/v1/token` + appel edge fn)
+- **Secret runtime côté edge fn `ai-visual-audit`** : `GEMINI_API_KEY` (déjà
+  configuré, partagé avec ai-chat / ai-ocr).
+- **Coût** : 0 € (free tier Gemini 2.5 Flash, ~10 req/jour sur 250 RPD).
+- **Suivi conso** : table Supabase `ai_quota_daily.requests_flash` + table
+  `ai_visual_audit_runs` (historique des runs avec issues détectées).
+- **Désactivation** : Repo → Actions → "Visual Audit Daily" → ⋯ → Disable workflow.
+
 ### OpenRouteService (HeiGIT) — distance / geocoding / routing
 - **Origine** : https://openrouteservice.org (boîte allemande HeiGIT, basée sur OpenStreetMap)
 - **Secret runtime** : `ORS_API_KEY`
