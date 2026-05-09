@@ -44,6 +44,11 @@
           var m = /CACHE_VERSION\s*=\s*['"]([^'"]+)['"]/.exec(txt || '');
           var v = (m && m[1]) || 'unknown';
           window.__MCA_VERSION = v;
+          // H3.3 — expose la version courante pour le lazy-loader (cache busting
+          // dynamique des chunks differes : exports / stats / rentabilite).
+          // Avant : DEFAULT_VERSION fige dans lazy-loader.js. Apres : lecture
+          // dynamique de window.CACHE_BUST_VERSION a chaque chargement.
+          window.CACHE_BUST_VERSION = v;
           // Hydrate l'affichage sidebar PC + footer mobile si presents
           try {
             var elPc = document.getElementById('sidebar-version-num');
@@ -53,7 +58,11 @@
           } catch (_) {}
           return v;
         })
-        .catch(function () { window.__MCA_VERSION = 'unknown'; return 'unknown'; });
+        .catch(function () {
+          window.__MCA_VERSION = 'unknown';
+          window.CACHE_BUST_VERSION = 'unknown';
+          return 'unknown';
+        });
     }
     window.__MCA_VERSION_PROMISE.then(function (v) { SENTRY_RELEASE = v; });
   }
