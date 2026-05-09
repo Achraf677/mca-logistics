@@ -1531,6 +1531,34 @@ function rafraichirDashboard() {
   setText('kpi-charges-impayees-sub', nbChargesEnRetard > 0
     ? (nbChargesEnRetard + ' en retard')
     : (chargesImpayees.length + ' à payer'));
+
+  // KPI Encaissements du mois (parité avec Charges du mois) — somme TTC
+  // des livraisons payées dont datePaiement est dans le mois courant.
+  // Évolution vs mois précédent en %.
+  (function () {
+    var moisCourant = new Date().toISOString().slice(0, 7);
+    var d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - 1);
+    var moisPrec = d.toISOString().slice(0, 7);
+    function isPaye(l) {
+      var s = l && l.statutPaiement;
+      return s === 'paye' || s === 'payé' || s === 'payee' || s === 'payée';
+    }
+    function ttc(l) { return parseFloat(l.prixTTC) || parseFloat(l.prix) || 0; }
+    var encMois = livraisons.filter(function (l) { return isPaye(l) && (l.datePaiement || '').startsWith(moisCourant); }).reduce(function (s, l) { return s + ttc(l); }, 0);
+    var encPrec = livraisons.filter(function (l) { return isPaye(l) && (l.datePaiement || '').startsWith(moisPrec); }).reduce(function (s, l) { return s + ttc(l); }, 0);
+    var sub = '—';
+    if (encPrec > 0) {
+      var pct = Math.round(((encMois - encPrec) / encPrec) * 100);
+      var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '=';
+      sub = arrow + ' ' + (pct > 0 ? '+' : '') + pct + '% vs mois préc.';
+    } else if (encMois > 0) {
+      sub = '▲ démarrage ce mois';
+    } else {
+      sub = 'aucun encaissement';
+    }
+    setText('kpi-encaissements-mois', euros(encMois));
+    setText('kpi-encaissements-mois-sub', sub);
+  })();
   const alertes  = compterAlertesNonLues();
   const totalTvaCollectee = tvaSummary.totalCollectee;
   const totalTvaDeductible = tvaSummary.totalDeductible;

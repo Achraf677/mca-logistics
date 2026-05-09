@@ -253,6 +253,11 @@
           <div class="stat-pill-value" id="kpi-charges-impayees">0 €</div>
           <div class="stat-pill-sub" id="kpi-charges-impayees-sub">—</div>
         </div>
+        <div class="stat-pill stat-pill-green" style="cursor:pointer" onclick="naviguerVers('encaissement');setTimeout(()=>{try{var c=document.getElementById('encaissement-content');if(c&&typeof window.encaissement!=='undefined')window.encaissement.render();}catch(e){}},80)" title="Voir détail encaissements">
+          <div class="stat-pill-label">💵 Encaissements du mois</div>
+          <div class="stat-pill-value" id="kpi-encaissements-mois">0 €</div>
+          <div class="stat-pill-sub" id="kpi-encaissements-mois-sub">—</div>
+        </div>
       </div>
 
       <!-- 2-col grid : Qui travaille + Activité (Sprint 4) -->
@@ -3287,7 +3292,7 @@
   <script defer src="script-fournisseurs.js?v=20260509e-60"></script>
   <script defer src="script-clients.js?v=20260509e-60"></script>
   <script defer src="script-charges.js?v=20260509e-60"></script>
-  <script defer src="script-encaissement.js?v=20260509e-60"></script>
+  <script defer src="script-encaissement.js?v=20260509e-61"></script>
   <script defer src="script-salaries.js?v=20260509e-60"></script>
   <script defer src="script-vehicules.js?v=20260509e-60"></script>
   <script defer src="script-livraisons.js?v=20260509e-60"></script>
