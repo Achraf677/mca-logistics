@@ -38,15 +38,18 @@ jobs:
             // Sections requises (au moins UNE des variantes par section).
             // On accepte aussi "Contexte", "Pourquoi", "Why", "Context" comme
             // equivalents de Resume — usage repandu dans les PRs existantes.
+            // Pas de \b en fin : il echoue sur "Resume" car l'accent
+            // final 'e' n'est pas un word-char en mode non-unicode -> pas
+            // de boundary detectee, donc match=null.
             const SECTIONS = [
               {
                 key: 'resume',
-                regex: /^##\s+(R[ée]sum[ée]|Summary|Contexte|Pourquoi|Why|Context)\b/im,
+                regex: /^##\s+(R[ée]sum[ée]|Summary|Contexte|Pourquoi|Why|Context)(?=\s|$)/im,
                 label: 'Resume / Summary / Contexte / Pourquoi',
               },
               {
                 key: 'test_plan',
-                regex: /^##\s+(Test plan|Plan de test)\b/im,
+                regex: /^##\s+(Test plan|Plan de test)(?=\s|$)/im,
                 label: 'Test plan / Plan de test',
               },
             ];
