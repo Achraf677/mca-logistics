@@ -50,6 +50,9 @@ Dernière mise à jour : 2026-05-06
 - Commit messages au format `type(scope) — description courte`.
 - Cache busting : bumper `CACHE_VERSION` dans `sw.js` ET `?v=NN` dans
   `admin.html` / `m.html` / `salarie.html` / `login.html` à chaque release JS.
+  La release Sentry (`monitoring.js`) est désormais auto-extraite depuis
+  `CACHE_VERSION` au runtime (cf. hotfix M4, 2026-05-09) — un seul endroit à
+  bumper côté JS.
 
 ### Sécurité & secrets
 - **Aucun token / clé / secret en clair dans le repo. Jamais.** Tous les tokens
