@@ -8727,3 +8727,69 @@ body.light-mode .s30-ac-filter-tab-count { background: rgba(0,0,0,0.08); }
   }
 }
 
+/* ==========================================================================
+   A11Y — Sprint H2.3 (2026-05-09)
+   - Focus-visible global discret (accent rouge 2px, offset 2px) pour tous les
+     éléments interactifs où outline:none a été appliqué côté composant.
+     N'apparaît qu'en navigation clavier (pas au clic souris) — zéro régression visuelle.
+   - prefers-reduced-motion : neutralise animations/transitions pour utilisateurs
+     ayant configuré l'OS en "réduire les animations" (RGAA 13.6, WCAG 2.3.3).
+   - Tap targets minimaux 44x44 sur boutons critiques (modal-close, nav-item).
+   ========================================================================== */
+
+/* Focus-visible global — fallback partout où outline:none a été posé.
+   Comme la spec :focus-visible ne s'active qu'en navigation clavier ou
+   programmatique (pas au clic souris), aucun bouton ne se met à "flasher" en
+   rouge en utilisation pointer normale. */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.searchbar input:focus-visible,
+.form-group input:focus-visible,
+.form-group select:focus-visible,
+.form-group textarea:focus-visible,
+.modal-close:focus-visible,
+.cal-nav-btn:focus-visible,
+.btn-density:focus-visible,
+.btn-theme-toggle:focus-visible,
+.btn-hamburger:focus-visible,
+.btn-menu-mobile:focus-visible {
+  outline: 2px solid var(--accent, #e63946) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+
+/* Prefers-reduced-motion : neutralise tout (animation, transition, smooth
+   scroll). RGAA 13.6 / WCAG 2.3.3. Utilise !important pour passer outre les
+   règles inline ou très spécifiques. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Tap targets 44x44 minimum sur composants critiques (WCAG 2.5.5 niv. AAA, RGAA
+   recommandation). Sur PC un clic souris fonctionne avec 36px ; cette règle ne
+   gêne pas le pointeur mais améliore le tactile (tablette, écran tactile PC). */
+.modal-close,
+.nav-item,
+.btn-bulk,
+.cal-nav-btn,
+.btn-hamburger,
+.btn-menu-mobile {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Light mode : --text-muted déjà à #64748b (4.5:1 sur fond clair) — vérifié OK
+   contraste AA. Pas de patch nécessaire. */
+

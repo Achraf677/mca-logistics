@@ -701,3 +701,33 @@ a { color: var(--m-accent); text-decoration: none; }
 .m-stub-icon { font-size: 3.5rem; margin-bottom: 16px; }
 .m-stub-title { font-size: 1.15rem; font-weight: 700; color: var(--m-text); margin: 0 0 8px; }
 .m-stub-text  { font-size: .9rem; margin: 0 0 20px; line-height: 1.5; }
+
+/* ==========================================================================
+   A11Y — Sprint H2.3 (2026-05-09)
+   - Focus-visible global discret (accent rouge brand, 2px) — n'apparaît qu'en
+     navigation clavier/programmatique (pas au tap doigt).
+   - prefers-reduced-motion neutralise animations/transitions.
+   - Light mode --m-text-muted : déjà #64748b (4.5+:1 sur fond clair) — OK AA.
+   ========================================================================== */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--m-accent, #e63946) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
