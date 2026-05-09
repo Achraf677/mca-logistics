@@ -226,12 +226,15 @@ function afficherProfil() {
   const livraisons = JSON.parse(localStorage.getItem('livraisons')||'[]');
   const mois = new Date().toISOString().slice(0,7);
   const auj  = new Date().toISOString().split('T')[0];
-  const livsM = livraisons.filter(l => l.chaufId===sal.id && l.date.startsWith(mois)).length;
+  // BUGFIX 2026-05-09 : guard contre les livraisons / km sans date (donnees migrees ou
+  // saisies offline). Avant : l.date.startsWith(mois) jetait TypeError -> crash de
+  // l'onglet Profil et de tous les KPI utilisateur.
+  const livsM = livraisons.filter(l => l.chaufId===sal.id && typeof l.date === 'string' && l.date.startsWith(mois)).length;
   const livsA = livraisons.filter(l => l.chaufId===sal.id && l.date===auj).length;
 
   // Km ce mois
   const entrees = JSON.parse(localStorage.getItem('km_sal_'+sal.id)||'[]');
-  const kmMois  = entrees.filter(e => e.date.startsWith(mois)).reduce((s,e)=>s+(e.distance||0),0);
+  const kmMois  = entrees.filter(e => typeof e.date === 'string' && e.date.startsWith(mois)).reduce((s,e)=>s+(e.distance||0),0);
 
   document.getElementById('profil-nom-display').textContent = sal.nom;
   document.getElementById('profil-poste-display').textContent = sal.poste || 'Poste non renseigné';
@@ -699,7 +702,7 @@ function afficherAccueil() {
   if (planCont) {
     if (monPlan) {
       const entree = (monPlan.semaine||[]).find(j => j.jour === jourNom);
-      planCard.style.display = 'block';
+      if (planCard) planCard.style.display = 'block';
       if (entree && entree.travaille) {
         planCont.innerHTML = `
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">
@@ -889,7 +892,11 @@ function majDistanceKm() {
   const dep = parseFloat(document.getElementById('km-depart').value)||0;
   const arr = parseFloat(document.getElementById('km-arrivee').value)||0;
   const res = document.getElementById('km-result');
-  const calc = document.getElementById('km-calcule');
+  // BUGFIX 2026-05-09 : ID HTML est 'km-distance' (cf salarie.html:1025).
+  // Avant le fix, l'ancien id 'km-calcule' renvoyait null -> TypeError silencieux,
+  // et le bandeau "Distance : X km" restait fige a 0.
+  const calc = document.getElementById('km-distance');
+  if (!res || !calc) return;
   if (dep > 0 && arr > dep) {
     calc.textContent = (arr - dep).toFixed(0) + ' km';
     res.style.display = 'block';
@@ -1915,7 +1922,11 @@ async function envoyerInspection() {
 
   const veh = getMonVehicule();
   const inspId = Date.now().toString(36);
-  const bouton = document.querySelector('button[onclick="envoyerInspection()"]');
+  // BUGFIX 2026-05-09 : le bouton HTML appelle soumettreInspection() (salarie.html:1082),
+  // pas envoyerInspection(). L'ancien selecteur retournait null -> aucun blocage anti-doublon
+  // pendant l'upload Supabase (latence parfois 5-10s sur 4G). On cible les deux variantes.
+  const bouton = document.querySelector('button[onclick="soumettreInspection()"]')
+    || document.querySelector('button[onclick="envoyerInspection()"]');
 
   if (bouton) bouton.disabled = true;
   const statut = document.getElementById('insp-statut');
@@ -1987,13 +1998,18 @@ async function envoyerInspection() {
   } catch(e) { /* non bloquant */ }
 
   // Reset formulaire
+  // BUGFIX 2026-05-09 : ids HTML reels = 'insp-photos-preview' (cf salarie.html:1080).
+  // 'insp-previews' / 'insp-label' n'existent pas -> null.innerHTML jetait TypeError
+  // silencieux, le reset echouait et la prochaine soumission empilait les anciennes photos.
   reinitialiserPhotosInspection();
-  document.getElementById('insp-photos').value = '';
-  document.getElementById('insp-previews').innerHTML = '';
-  document.getElementById('insp-commentaire').value = '';
-  document.getElementById('insp-km').value = '';
-  const label = document.getElementById('insp-label');
-  if (label) { label.style.borderColor='rgba(79,142,247,.3)'; label.style.background='rgba(79,142,247,.08)'; }
+  const inspPhotosInput = document.getElementById('insp-photos');
+  if (inspPhotosInput) inspPhotosInput.value = '';
+  const inspPreview = document.getElementById('insp-photos-preview');
+  if (inspPreview) inspPreview.innerHTML = '';
+  const inspComm = document.getElementById('insp-commentaire');
+  if (inspComm) inspComm.value = '';
+  const inspKm = document.getElementById('insp-km');
+  if (inspKm) inspKm.value = '';
   if (statut) { statut.style.display='none'; statut.textContent=''; }
   if (bouton) bouton.disabled = false;
 
