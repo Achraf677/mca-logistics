@@ -3355,7 +3355,7 @@
   <script defer src="script-core-auth.js?v=20260509f-2"></script>
   <script defer src="script-core-periodes.js?v=20260509e-58"></script>
   <script defer src="script-core-navigation.js?v=20260509e-59"></script>
-  <script defer src="script-core-edit-locks.js?v=20260509e-58"></script>
+  <script defer src="script-core-edit-locks.js?v=20260509f-184"></script>
   <script defer src="script-core-branding.js?v=20260509e-58"></script>
   <script defer src="script-core-audit.js?v=20260509e-59"></script>
   <script defer src="script-core-dso.js?v=20260509e-58"></script>
@@ -3414,6 +3414,10 @@
        APRES script.js pour pouvoir hooker ouvrirFiche360Client/Fournisseur/
        Salarie/Vehicule. Voir script-drawer-360-pc-parite.js + tests/drawer-360-pc.test.js. -->
   <script defer src="script-drawer-360-pc-parite.js?v=20260509f-2"></script>
+  <!-- Edit-locks bootstrap (PR #51) : wrappe ouvrirEditLivraison/Charge/Client
+       avec acquireLock/refresh/release contre la table edit_locks. Charge APRES
+       les modules metiers pour pouvoir intercepter les fonctions globales. -->
+  <script defer src="script-edit-locks-bootstrap.js?v=20260509f-184"></script>
   <script defer src="health-check.js?v=20260509e-60"></script>
   <script defer src="watchdog.js?v=20260509e-60"></script>
   <!-- Setup wizard onboarding : 1ere connexion admin (4 etapes). Charge apres

@@ -11939,6 +11939,14 @@
           </div>
         </div>
 
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🔧 Maintenance</h3></div>
+          <button type="button" class="m-card m-card-pressable" id="m-param-vider-cache" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;text-align:left;color:#fff;background:#e63946;border:none;border-radius:12px;font-family:inherit;font-weight:600;cursor:pointer">
+            <span style="font-size:.95rem">🔄 Vider le cache de l'application</span>
+            <span style="font-size:1rem;opacity:.85">›</span>
+          </button>
+          <p class="m-form-hint" style="margin-top:8px">Recharge l'app et purge le cache local. Utile en cas d'écran figé / version qui ne se met pas à jour. Les saisies non synchronisées seront perdues.</p>
+        </div>
+
         <div class="m-section">
           <button class="m-btn m-btn-danger" id="m-param-logout">Déconnexion</button>
         </div>
@@ -11998,6 +12006,13 @@
       container.querySelector('#m-param-mdp')?.addEventListener('click', () => M.formChangerMdpAdmin());
       container.querySelector('#m-param-theme')?.addEventListener('click', M.toggleTheme);
       container.querySelector('#m-param-audit')?.addEventListener('click', () => M.go('audit'));
+      container.querySelector('#m-param-vider-cache')?.addEventListener('click', () => {
+        if (typeof window.confirmerEtViderCacheApp === 'function') {
+          window.confirmerEtViderCacheApp();
+        } else {
+          M.toast('Helper cache-clear indisponible', 'error');
+        }
+      });
       container.querySelector('#m-param-logout')?.addEventListener('click', M.logout);
       // Historique des versions : fetch CHANGELOG.md et rendu markdown minimal
       const changelogEl = container.querySelector('#m-changelog-content');
