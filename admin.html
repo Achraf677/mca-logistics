@@ -27,7 +27,7 @@
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preload" as="style" href="style.css?v=20260509e-60">
-  <link rel="preload" as="script" href="script.js?v=20260509e-60">
+  <link rel="preload" as="script" href="script.js?v=20260509e-61">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
@@ -253,6 +253,11 @@
           <div class="stat-pill-label">💸 Charges impayées</div>
           <div class="stat-pill-value" id="kpi-charges-impayees">0 €</div>
           <div class="stat-pill-sub" id="kpi-charges-impayees-sub">—</div>
+        </div>
+        <div class="stat-pill stat-pill-green" style="cursor:pointer" onclick="naviguerVers('encaissement');setTimeout(()=>{try{var c=document.getElementById('encaissement-content');if(c&&typeof window.encaissement!=='undefined')window.encaissement.render();}catch(e){}},80)" title="Voir détail encaissements">
+          <div class="stat-pill-label">💵 Encaissements du mois</div>
+          <div class="stat-pill-value" id="kpi-encaissements-mois">0 €</div>
+          <div class="stat-pill-sub" id="kpi-encaissements-mois-sub">—</div>
         </div>
         <div class="stat-pill stat-pill-blue" style="cursor:pointer" onclick="naviguerVers('messagerie')">
           <div class="stat-pill-label">💬 Messages</div>
@@ -3288,11 +3293,11 @@
   <script defer src="script-fournisseurs.js?v=20260509e-60"></script>
   <script defer src="script-clients.js?v=20260509e-60"></script>
   <script defer src="script-charges.js?v=20260509e-60"></script>
-  <script defer src="script-encaissement.js?v=20260509e-60"></script>
+  <script defer src="script-encaissement.js?v=20260509e-61"></script>
   <script defer src="script-salaries.js?v=20260509e-60"></script>
   <script defer src="script-vehicules.js?v=20260509e-60"></script>
   <script defer src="script-livraisons.js?v=20260509e-60"></script>
-  <script defer src="script.js?v=20260509e-60"></script>
+  <script defer src="script.js?v=20260509e-61"></script>
   <script defer src="health-check.js?v=20260509e-60"></script>
   <script defer src="watchdog.js?v=20260509e-60"></script>
   <script>
