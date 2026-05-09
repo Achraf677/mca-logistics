@@ -1431,6 +1431,16 @@
     const today = new Date().toISOString().slice(0, 10);
     const enEdition = !!existing;
     const c = existing || {};
+    // R7 : autocomplete fournisseur via <datalist> mobile-friendly + capture
+    // fournisseurId a la selection (mirror PC). Idem livraison pour tracer
+    // la rentabilite par mission.
+    const fournisseursAll = M.charger('fournisseurs').filter(f => f && !f.archive);
+    const livraisonsAll = M.charger('livraisons').filter(l => l && !l.archive)
+      .sort((a,b) => String(b.date||'').localeCompare(String(a.date||'')))
+      .slice(0, 100); // 100 dernieres pour rester perf
+    const datalistFournisseurs = '<datalist id="m-charge-fournisseurs-list">' +
+      fournisseursAll.map(f => `<option value="${M.escHtml(f.nom||'')}" data-id="${M.escHtml(f.id)}"></option>`).join('') +
+      '</datalist>';
 
     const body = `
       <div class="m-form-field" style="margin-bottom:14px">
@@ -1441,7 +1451,9 @@
         <p class="m-form-hint" id="m-charge-fac-status" style="text-align:center"></p>
       </div>
       ${M.formField('Libellé', M.formInput('libelle', { value: c.libelle || '', placeholder: 'Ex: Loyer atelier, Assurance...', required: true }), { required: true })}
-      ${M.formField('Fournisseur', M.formInput('fournisseur', { value: c.fournisseur || '', placeholder: 'Nom fournisseur' }))}
+      ${datalistFournisseurs}
+      ${M.formField('Fournisseur', M.formInput('fournisseur', { value: c.fournisseur || '', placeholder: 'Nom fournisseur', list: 'm-charge-fournisseurs-list', autocomplete: 'off' }), { hint: 'Auto-complete + auto-creation si nouveau' })}
+      ${M.formField('Livraison liee (optionnel)', M.formSelect('livraisonId', livraisonsAll.map(l => ({ value: l.id, label: (l.numLiv ? l.numLiv + ' · ' : '') + (l.client || 'Sans client') + (l.date ? ' (' + M.formatDate(l.date) + ')' : '') })), { placeholder: 'Aucune', value: c.livraisonId || '' }), { hint: 'Lie cette charge a une mission pour la rentabilite' })}
       ${M.formField('Date', M.formInput('date', { type: 'date', value: c.date || today, required: true }), { required: true })}
       <div class="m-form-row">
         ${M.formField('Montant HT', M.formInputWithSuffix('montantHt', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: c.montantHT || '' }))}
@@ -1577,6 +1589,21 @@
             e.target.value = '';
           });
         }
+        // R7 : a la selection d'une livraison, auto-prefill le vehicule (parite PC).
+        const livSelect = body.querySelector('select[name=livraisonId]');
+        const vehSelect = body.querySelector('select[name=vehiculeId]');
+        if (livSelect) {
+          livSelect.addEventListener('change', () => {
+            const livId = livSelect.value;
+            if (!livId || !vehSelect || vehSelect.value) return;
+            const liv = M.charger('livraisons').find(l => l.id === livId);
+            const livVehId = liv ? (liv.vehId || liv.vehiculeId) : '';
+            if (livVehId) {
+              const opt = vehSelect.querySelector(`option[value="${livVehId}"]`);
+              if (opt) vehSelect.value = livVehId;
+            }
+          });
+        }
         if (enEdition) {
           body.querySelector('#m-form-recurrence')?.addEventListener('click', async () => {
             const ok = await M.creerRecurrence('charges', c.id, {
@@ -1618,7 +1645,7 @@
           });
         }
       },
-      onSubmit() {
+      async onSubmit() {
         const form = M.lireFormSheet();
         const ttc = M.parseNum(form.montantTtc) || 0;
         const taux = M.parseNum(form.tauxTva) || 0;
@@ -1627,13 +1654,60 @@
         if (!form.libelle?.trim()) { M.toast('⚠️ Libellé requis'); return false; }
         if (!form.date) { M.toast('⚠️ Date requise'); return false; }
         if (!(ttc > 0)) { M.toast('⚠️ Montant TTC > 0 requis'); return false; }
+
+        // R7 — resolution FK fournisseur (mirror PC script-charges.js:560-591) :
+        // 1. Match par nom (insensible casse + trim).
+        // 2. Si nom inconnu : auto-creation + flush adapter avant save charge
+        //    (FK constraint charges.fournisseur_id -> fournisseurs.id).
+        const fournisseurNom = (form.fournisseur || '').trim();
+        let fournisseurId = c.fournisseurId || null;
+        if (fournisseurNom) {
+          const fournisseurs = M.charger('fournisseurs');
+          let match = (typeof window.findFournisseurByNom === 'function')
+            ? window.findFournisseurByNom(fournisseurNom, fournisseurs)
+            : null;
+          if (match) {
+            fournisseurId = match.id;
+          } else {
+            // Auto-create
+            const nouveau = {
+              id: M.genId(),
+              nom: fournisseurNom,
+              type: 'Pro',
+              creeLe: new Date().toISOString()
+            };
+            fournisseurs.push(nouveau);
+            M.sauvegarder('fournisseurs', fournisseurs);
+            fournisseurId = nouveau.id;
+            // Flush adapter pour que la charge ait la FK valide (mirror PC).
+            try {
+              if (window.DelivProEntityAdapters?.fournisseurs?.flushDiff) {
+                await window.DelivProEntityAdapters.fournisseurs.flushDiff();
+              }
+            } catch (e) { console.warn('[mobile] flush fournisseur:', e); }
+            M.toast('✅ Fournisseur « ' + fournisseurNom + ' » créé automatiquement', { duration: 2000 });
+            M.ajouterAudit?.('Création fournisseur (depuis charge mobile)', fournisseurNom);
+          }
+        }
+
+        // R7 — livraisonId capture + auto-prefill vehicule depuis la livraison.
+        let livraisonId = form.livraisonId || null;
+        let vehiculeIdFinal = form.vehiculeId || null;
+        if (livraisonId) {
+          const liv = M.charger('livraisons').find(l => l.id === livraisonId);
+          // Si pas de vehicule explicitement choisi, on hisse celui de la livraison
+          if (liv && !vehiculeIdFinal) vehiculeIdFinal = liv.vehId || liv.vehiculeId || null;
+        }
+
         const arr = M.charger('charges');
         const data = {
           date: form.date,
           libelle: form.libelle.trim(),
-          fournisseur: form.fournisseur?.trim() || '',
-          vehiculeId: form.vehiculeId || null,
-          vehId: form.vehiculeId || null,  // dual-write PC
+          fournisseur: fournisseurNom,           // snapshot nom (preserve historique)
+          fournisseurId: fournisseurId || null,  // R7 : FK
+          livraisonId: livraisonId,              // R7 : FK
+          vehiculeId: vehiculeIdFinal,
+          vehId: vehiculeIdFinal,                // dual-write PC
           montantHT: +ht.toFixed(2),  // PC + mobile
           montantHt: +ht.toFixed(2),  // alias mobile (compat ancien)
           montantTtc: ttc,
@@ -1643,7 +1717,8 @@
           tva: +tvaMontant.toFixed(2),
           categorie: form.categorie || '',
           statut: form.statut || 'a_payer',
-          statutPaiement: form.statut || 'a_payer'  // PC utilise statutPaiement
+          statutPaiement: form.statut || 'a_payer',  // PC utilise statutPaiement
+          _fk_migrated_v1: true
         };
         let chargeId;
         if (enEdition) {
