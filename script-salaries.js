@@ -351,6 +351,55 @@ function notifierSynchroSalarie(resultat, actionLabel) {
   afficherToast(`⚠️ ${actionLabel} enregistré localement uniquement (${message})`, 'error');
 }
 
+// Affiche modale "voici les identifiants temporaires" + boutons Copier.
+// Appelée après provisionnement reussi (creation salarie OU reset mdp).
+// GAP critique fixé : avant, le mdp disparaissait silencieusement après save,
+// l'admin n'avait aucun moyen fiable de le retrouver pour transmettre au chauffeur.
+function afficherCredentialsChauffeur(salarie, motDePasse) {
+  if (!salarie || !motDePasse) return;
+  const nom = (salarie.nom || '').trim() || 'Le chauffeur';
+  const numero = (salarie.numero || '').trim() || '—';
+  // Stocke en mémoire pour les boutons copier (pas de re-render risk).
+  window.__lastChauffeurCreds = { numero: numero, mdp: motDePasse, nom: nom };
+  const elNom = document.getElementById('creds-chauffeur-nom');
+  const elNum = document.getElementById('creds-chauffeur-numero');
+  const elMdp = document.getElementById('creds-chauffeur-mdp');
+  if (elNom) elNom.textContent = nom;
+  if (elNum) elNum.textContent = numero;
+  if (elMdp) elMdp.textContent = motDePasse;
+  if (typeof openModal === 'function') openModal('modal-credentials-chauffeur');
+}
+
+// Copie identifiant / mdp / les deux dans le presse-papier.
+function copierCredentialsChauffeur(quoi) {
+  const creds = window.__lastChauffeurCreds || null;
+  if (!creds) { if (typeof afficherToast === 'function') afficherToast('⚠️ Identifiants indisponibles', 'error'); return; }
+  let texte = '';
+  if (quoi === 'numero') texte = creds.numero;
+  else if (quoi === 'mdp') texte = creds.mdp;
+  else texte = `Identifiant : ${creds.numero}\nMot de passe : ${creds.mdp}`;
+  const done = function() { if (typeof afficherToast === 'function') afficherToast('📋 Copié dans le presse-papier'); };
+  const fallback = function() {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = texte; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      ta.remove();
+      done();
+    } catch (_) { if (typeof afficherToast === 'function') afficherToast('⚠️ Copie impossible', 'error'); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texte).then(done).catch(fallback);
+  } else {
+    fallback();
+  }
+}
+
+// Expose au scope global pour les onclick HTML.
+window.afficherCredentialsChauffeur = afficherCredentialsChauffeur;
+window.copierCredentialsChauffeur = copierCredentialsChauffeur;
+
 // L4095 (script.js d'origine)
 async function provisionnerAccesSalarie(salarie, password) {
   if (!salarie || !password) return { ok: false, reason: 'missing_data', error: { message: 'Donnees salarie manquantes' } };
@@ -626,9 +675,19 @@ async function creerSalarie() {
   document.getElementById('form-nouveau-salarie').style.display='none';
   afficherSalaries();
   rafraichirDependancesSalaries();
-  if (provisionResult?.ok) afficherToast(`✅ Salarie cree pour ${nomComplet} avec acces multi-appareils`);
-  else if (provisionResult && !provisionResult.ok) afficherToast(`⚠️ Salarie cree pour ${nomComplet}, mais l'acces distant n'a pas pu etre active (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
-  else afficherToast(`✅ Salarie cree pour ${nomComplet}`);
+  if (provisionResult?.ok) {
+    afficherToast(`✅ Salarie cree pour ${nomComplet} avec acces multi-appareils`);
+    // Affiche modale "voici les identifiants" — admin peut copier numero + mdp pour
+    // les transmettre au chauffeur (SMS / WhatsApp / main propre).
+    afficherCredentialsChauffeur(salarie, mdp);
+  } else if (provisionResult && !provisionResult.ok) {
+    afficherToast(`⚠️ Salarie cree pour ${nomComplet}, mais l'acces distant n'a pas pu etre active (${provisionResult.error?.message || provisionResult.reason || 'erreur inconnue'})`, 'error');
+  } else {
+    afficherToast(`✅ Salarie cree pour ${nomComplet}`);
+    // Mode local seul : on affiche quand même les creds pour que l'admin puisse
+    // les transmettre (le chauffeur pourra se connecter en mode local sur tablette).
+    afficherCredentialsChauffeur(salarie, mdp);
+  }
   notifierSynchroSalarie(syncResult, 'Salarie');
 }
 

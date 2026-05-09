@@ -2711,6 +2711,44 @@
     </div>
   </div>
 
+  <!-- Affichage credentials chauffeur (creation OU reset mdp) -->
+  <div class="modal-overlay" id="modal-credentials-chauffeur">
+    <div class="modal" style="max-width:480px">
+      <div class="modal-header">
+        <h3>🔐 Identifiants de connexion</h3>
+        <button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-credentials-chauffeur')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color:var(--text-muted);margin-bottom:14px;font-size:.88rem">
+          Transmettez ces identifiants à <strong id="creds-chauffeur-nom">le chauffeur</strong> par un canal sécurisé (SMS, WhatsApp, en main propre). <strong>Ce mot de passe ne sera plus affiché après fermeture.</strong>
+        </p>
+        <div style="background:var(--bg-dark);padding:14px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
+          <div style="margin-bottom:12px">
+            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Identifiant (numéro)</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <code id="creds-chauffeur-numero" style="flex:1;font-size:1rem;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:6px">—</code>
+              <button type="button" class="btn-secondary" onclick="copierCredentialsChauffeur('numero')" style="padding:8px 12px" aria-label="Copier le numero">📋</button>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Mot de passe TEMPORAIRE</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <code id="creds-chauffeur-mdp" style="flex:1;font-size:1rem;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:6px;font-family:monospace">—</code>
+              <button type="button" class="btn-secondary" onclick="copierCredentialsChauffeur('mdp')" style="padding:8px 12px" aria-label="Copier le mot de passe">📋</button>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:.78rem;color:var(--text-muted);background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.25);padding:10px 12px;border-radius:8px">
+          ⚠️ Demandez au chauffeur de changer son mot de passe lors de sa première connexion (page <em>Mon compte</em> côté salarié).
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="copierCredentialsChauffeur('both')">📋 Tout copier</button>
+        <button class="btn-primary" onclick="closeModal('modal-credentials-chauffeur')">J'ai transmis les identifiants</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Modifier livraison -->
   <div class="modal-overlay" id="modal-edit-livraison">
     <div class="modal">
@@ -3290,7 +3328,7 @@
   <script defer src="script-core-utils.js?v=20260509e-58"></script>
   <script defer src="script-core-storage.js?v=20260509e-58"></script>
   <script defer src="script-core-ui.js?v=20260509e-58"></script>
-  <script defer src="script-core-auth.js?v=20260509e-58"></script>
+  <script defer src="script-core-auth.js?v=20260509f-2"></script>
   <script defer src="script-core-periodes.js?v=20260509e-58"></script>
   <script defer src="script-core-navigation.js?v=20260509e-59"></script>
   <script defer src="script-core-edit-locks.js?v=20260509e-58"></script>
@@ -3341,7 +3379,7 @@
   <script defer src="script-charges.js?v=20260509f-1"></script>
   <script defer src="script-charges-recurrence.js?v=20260509e-61"></script>
   <script defer src="script-encaissement.js?v=20260509e-61"></script>
-  <script defer src="script-salaries.js?v=20260509e-60"></script>
+  <script defer src="script-salaries.js?v=20260509f-2"></script>
   <script defer src="script-vehicules.js?v=20260509e-60"></script>
   <script defer src="script-livraisons.js?v=20260509e-60"></script>
   <script defer src="script.js?v=20260509f-1"></script>

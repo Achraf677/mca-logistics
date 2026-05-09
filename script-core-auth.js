@@ -420,8 +420,13 @@ async function confirmerResetMdp() {
     salaries[idx].mdpHash=await hasherMotDePasseLocal(nouveau);
     sauvegarder('salaries', salaries);
     closeModal('modal-reset-mdp');
-    accessSalarieTargetId=null;
     afficherToast('✅ Acces salarie mis a jour');
+    // Affiche modale "voici les nouveaux identifiants" — sinon le mdp est perdu
+    // dès la fermeture de la modale reset (champ password vidé).
+    if (typeof afficherCredentialsChauffeur === 'function') {
+      afficherCredentialsChauffeur(salaries[idx], nouveau);
+    }
+    accessSalarieTargetId=null;
     return;
   }
   afficherToast(`⚠️ Mise a jour de l'acces impossible (${provisionResult?.error?.message || provisionResult?.reason || 'erreur inconnue'})`, 'error');
