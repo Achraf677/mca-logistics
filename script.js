@@ -10057,7 +10057,7 @@ genererRentabilitePDF = function() {
         sourceIcon: '🏭',
         type: 'fournisseur_du',
         title: f.nom + ' · dû depuis ' + jRetard + ' j',
-        sub: 'Solde à régler ' + fmtEuro(solde),
+        sub: 'Solde à payer ' + fmtEuro(solde),
         gravite: grav,
         statut: 'ouvert',
         creeLe: dEch.toISOString(),
