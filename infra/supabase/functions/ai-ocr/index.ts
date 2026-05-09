@@ -5,11 +5,16 @@
 // fournisseurs).
 //
 // Modes supportes :
+//   - auto             : detecte le type + extrait les champs en 1 seul appel (defaut recommande)
 //   - facture          : facture fournisseur (PDF rasterise ou photo)
 //   - ticket_carburant : ticket de pompe (Total, Avia, Esso...)
 //   - rib              : releve d'identite bancaire (IBAN/BIC/titulaire)
 //   - carte_grise      : carte grise FR (immat / VIN / marque / modele / dates)
 //   - permis           : permis de conduire FR (numero / categories / dates)
+//
+// Mode "auto" : la reponse est { success, type_detecte, confidence, data, ... }
+// au lieu de { success, data, ... } pour les modes specifiques. Le frontend
+// route alors vers les bons champs en fonction de type_detecte.
 //
 // Securite : verify_jwt: true au deploy. Limite taille image : 10 MB
 // (decode base64 puis controle). Modele : gemini-2.5-flash (tarif input image
@@ -40,7 +45,8 @@ const ALLOWED_MIME = new Set([
   "application/pdf", // Gemini multimodal supporte le PDF nativement (jusqu'a 1000 pages)
 ]);
 
-type Mode = "facture" | "ticket_carburant" | "rib" | "carte_grise" | "permis";
+type Mode = "auto" | "facture" | "ticket_carburant" | "rib" | "carte_grise" | "permis";
+type DetectedType = "facture" | "ticket_carburant" | "rib" | "carte_grise" | "permis" | "autre";
 
 // ----- Prompts par mode -----
 
@@ -146,8 +152,56 @@ Regles :
 - "categories" : uniquement les categories effectivement obtenues (case 11 + 12 si tampon present). Possibles : A1, A2, A, B1, B, BE, C1, C1E, C, CE, D1, D1E, D, DE.
 - "date_expiration" : prends la plus tardive si plusieurs categories ont des dates differentes.`;
 
+// Mode "auto" : on demande a Gemini d'identifier le type ET d'extraire en 1 appel.
+// Le schema "data" reproduit exactement les schemas des prompts dedies, pour que
+// le frontend puisse reutiliser le meme code de pre-remplissage (cle par cle).
+const PROMPT_AUTO = `${SYSTEM_BASE}
+
+Analyse ce document professionnel francais et identifie son type, puis extrais les champs pertinents.
+
+Types possibles :
+- "facture" : facture fournisseur (header avec n°, date, total HT/TTC, fournisseur)
+- "ticket_carburant" : ticket de pompe (station, litres, prix, date)
+- "rib" : releve d'identite bancaire (IBAN, BIC, titulaire)
+- "carte_grise" : certificat d'immatriculation FR (immat, VIN, marque, modele)
+- "permis" : permis de conduire FR (numero, categories, dates)
+- "autre" : si tu ne peux pas categoriser avec confiance
+
+Retourne ce JSON :
+{
+  "type_detecte": "facture"|"ticket_carburant"|"rib"|"carte_grise"|"permis"|"autre",
+  "confidence": "haute"|"moyenne"|"basse",
+  "data": { ...champs specifiques au type detecte... }
+}
+
+Schemas "data" attendus selon "type_detecte" :
+
+Si "facture" :
+  { "fournisseur_nom", "date_facture" (YYYY-MM-DD), "num_facture", "montant_ht", "montant_ttc", "taux_tva", "lignes": [{"description","quantite","prix_unitaire"}]|null }
+
+Si "ticket_carburant" :
+  { "station", "date" (YYYY-MM-DD), "litres", "prix_litre", "montant_ttc", "type_carburant": "gazole"|"sp95"|"sp98"|null }
+
+Si "rib" :
+  { "titulaire", "iban" (sans espaces), "bic", "banque" }
+
+Si "carte_grise" :
+  { "immatriculation", "vin", "marque", "modele", "date_premiere_immat" (YYYY-MM-DD), "puissance_fiscale", "carburant": "gazole"|"essence"|"electrique"|"hybride"|null, "ptac_kg", "genre" }
+
+Si "permis" :
+  { "numero", "nom", "prenom", "date_naissance", "date_delivrance", "date_expiration", "categories": ["B","C","CE",...] }
+
+Si "autre" : data peut etre {} ou contenir des infos brutes utiles ({ "texte_brut", "dates_detectees", "montants_detectes" }).
+
+Regles :
+- null pour les champs non detectes (jamais de string vide).
+- "confidence": "haute" si le type est evident (logo officiel / mise en page typique),
+  "moyenne" si plausible mais ambigu, "basse" si tu hesites entre 2 types.
+- Choisis "autre" plutot que de forcer un mauvais type.`;
+
 function getPrompt(mode: Mode): string {
   switch (mode) {
+    case "auto": return PROMPT_AUTO;
     case "facture": return PROMPT_FACTURE;
     case "ticket_carburant": return PROMPT_TICKET_CARBURANT;
     case "rib": return PROMPT_RIB;
@@ -213,43 +267,43 @@ function dateISO(v: unknown): string | null {
   return null;
 }
 
-function sanitize(mode: Mode, raw: any): Record<string, unknown> {
-  if (!raw || typeof raw !== "object") return {};
-  if (mode === "facture") {
-    const lignes = Array.isArray(raw.lignes)
-      ? raw.lignes
-        .filter((l: any) => l && typeof l === "object")
-        .map((l: any) => ({
-          description: str(l.description) ?? "",
-          quantite: num(l.quantite),
-          prix_unitaire: num(l.prix_unitaire),
-        }))
-        .filter((l: any) => l.description || l.quantite != null || l.prix_unitaire != null)
-        .slice(0, 50)
-      : null;
-    return {
-      fournisseur_nom: str(raw.fournisseur_nom),
-      date_facture: dateISO(raw.date_facture),
-      num_facture: str(raw.num_facture),
-      montant_ht: num(raw.montant_ht),
-      montant_ttc: num(raw.montant_ttc),
-      taux_tva: num(raw.taux_tva),
-      lignes,
-    };
-  }
-  if (mode === "ticket_carburant") {
-    const t = str(raw.type_carburant)?.toLowerCase() ?? null;
-    const typeNorm = t === "gazole" || t === "sp95" || t === "sp98" ? t : null;
-    return {
-      station: str(raw.station),
-      date: dateISO(raw.date),
-      litres: num(raw.litres),
-      prix_litre: num(raw.prix_litre),
-      montant_ttc: num(raw.montant_ttc),
-      type_carburant: typeNorm,
-    };
-  }
-  // rib
+function sanitizeFacture(raw: any): Record<string, unknown> {
+  const lignes = Array.isArray(raw.lignes)
+    ? raw.lignes
+      .filter((l: any) => l && typeof l === "object")
+      .map((l: any) => ({
+        description: str(l.description) ?? "",
+        quantite: num(l.quantite),
+        prix_unitaire: num(l.prix_unitaire),
+      }))
+      .filter((l: any) => l.description || l.quantite != null || l.prix_unitaire != null)
+      .slice(0, 50)
+    : null;
+  return {
+    fournisseur_nom: str(raw.fournisseur_nom),
+    date_facture: dateISO(raw.date_facture),
+    num_facture: str(raw.num_facture),
+    montant_ht: num(raw.montant_ht),
+    montant_ttc: num(raw.montant_ttc),
+    taux_tva: num(raw.taux_tva),
+    lignes,
+  };
+}
+
+function sanitizeTicket(raw: any): Record<string, unknown> {
+  const t = str(raw.type_carburant)?.toLowerCase() ?? null;
+  const typeNorm = t === "gazole" || t === "sp95" || t === "sp98" ? t : null;
+  return {
+    station: str(raw.station),
+    date: dateISO(raw.date),
+    litres: num(raw.litres),
+    prix_litre: num(raw.prix_litre),
+    montant_ttc: num(raw.montant_ttc),
+    type_carburant: typeNorm,
+  };
+}
+
+function sanitizeRib(raw: any): Record<string, unknown> {
   const iban = str(raw.iban);
   const bic = str(raw.bic);
   return {
@@ -258,6 +312,79 @@ function sanitize(mode: Mode, raw: any): Record<string, unknown> {
     bic: bic ? bic.replace(/\s+/g, "").toUpperCase() : null,
     banque: str(raw.banque),
   };
+}
+
+function sanitizeCarteGrise(raw: any): Record<string, unknown> {
+  const immat = str(raw.immatriculation);
+  const vin = str(raw.vin);
+  const carb = str(raw.carburant)?.toLowerCase() ?? null;
+  const carbNorm = carb === "gazole" || carb === "essence" || carb === "electrique" || carb === "hybride" ? carb : null;
+  return {
+    immatriculation: immat ? immat.replace(/\s+/g, "").toUpperCase() : null,
+    vin: vin ? vin.replace(/\s+/g, "").toUpperCase() : null,
+    marque: str(raw.marque),
+    modele: str(raw.modele),
+    date_premiere_immat: dateISO(raw.date_premiere_immat),
+    puissance_fiscale: num(raw.puissance_fiscale),
+    carburant: carbNorm,
+    ptac_kg: num(raw.ptac_kg),
+    genre: str(raw.genre),
+  };
+}
+
+function sanitizePermis(raw: any): Record<string, unknown> {
+  const cats = Array.isArray(raw.categories)
+    ? raw.categories
+      .map((c: unknown) => str(c)?.toUpperCase() ?? null)
+      .filter((c: string | null): c is string => !!c)
+      .slice(0, 20)
+    : null;
+  const num_ = str(raw.numero);
+  return {
+    numero: num_ ? num_.replace(/\s+/g, "").toUpperCase() : null,
+    nom: str(raw.nom),
+    prenom: str(raw.prenom),
+    date_naissance: dateISO(raw.date_naissance),
+    date_delivrance: dateISO(raw.date_delivrance),
+    date_expiration: dateISO(raw.date_expiration),
+    categories: cats && cats.length ? cats : null,
+  };
+}
+
+// Sanitize "autre" : on garde uniquement les infos textuelles brutes utiles
+// pour debug / stockage. Pas de schema strict (le frontend ne pre-remplit rien).
+function sanitizeAutre(raw: any): Record<string, unknown> {
+  const dates = Array.isArray(raw.dates_detectees)
+    ? raw.dates_detectees.map((d: unknown) => dateISO(d)).filter(Boolean).slice(0, 20)
+    : null;
+  const montants = Array.isArray(raw.montants_detectes)
+    ? raw.montants_detectes.map((m: unknown) => num(m)).filter((m: number | null) => m != null).slice(0, 20)
+    : null;
+  return {
+    texte_brut: str(raw.texte_brut),
+    dates_detectees: dates && dates.length ? dates : null,
+    montants_detectes: montants && montants.length ? montants : null,
+  };
+}
+
+function sanitizeByType(type: DetectedType, raw: any): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  switch (type) {
+    case "facture": return sanitizeFacture(raw);
+    case "ticket_carburant": return sanitizeTicket(raw);
+    case "rib": return sanitizeRib(raw);
+    case "carte_grise": return sanitizeCarteGrise(raw);
+    case "permis": return sanitizePermis(raw);
+    case "autre": return sanitizeAutre(raw);
+  }
+}
+
+// Dispatch pour les modes specifiques (rétrocompat). Le mode "auto" passe par
+// sanitizeByType directement avec le type detecte par Gemini.
+function sanitize(mode: Mode, raw: any): Record<string, unknown> {
+  if (!raw || typeof raw !== "object") return {};
+  if (mode === "auto") return raw as Record<string, unknown>; // jamais appele en pratique
+  return sanitizeByType(mode, raw);
 }
 
 // ----- Gemini call -----
@@ -427,9 +554,10 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...CORS, "Content-Type": "application/json" } },
       );
     }
-    if (mode !== "facture" && mode !== "ticket_carburant" && mode !== "rib") {
+    const VALID_MODES: Mode[] = ["auto", "facture", "ticket_carburant", "rib", "carte_grise", "permis"];
+    if (!VALID_MODES.includes(mode as Mode)) {
       return new Response(
-        JSON.stringify({ success: false, error: "mode invalide (attendu: facture|ticket_carburant|rib)" }),
+        JSON.stringify({ success: false, error: `mode invalide (attendu: ${VALID_MODES.join("|")})` }),
         { status: 400, headers: { ...CORS, "Content-Type": "application/json" } },
       );
     }
@@ -464,7 +592,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    const data = sanitize(mode, parsed);
+    // Mode "auto" : la reponse Gemini est { type_detecte, confidence, data }.
+    // On extrait type_detecte, on valide le sous-type et on sanitize "data" via
+    // le sanitizer dedie. Defense-in-depth contre un type_detecte non prevu.
+    let detectedType: DetectedType | null = null;
+    let confidence: "haute" | "moyenne" | "basse" | null = null;
+    let data: Record<string, unknown>;
+    if (mode === "auto") {
+      const p: any = parsed;
+      const td = String(p?.type_detecte ?? "").toLowerCase();
+      const VALID_TYPES: DetectedType[] = ["facture", "ticket_carburant", "rib", "carte_grise", "permis", "autre"];
+      detectedType = (VALID_TYPES as string[]).includes(td) ? (td as DetectedType) : "autre";
+      const conf = String(p?.confidence ?? "").toLowerCase();
+      confidence = conf === "haute" || conf === "moyenne" || conf === "basse" ? conf : null;
+      data = sanitizeByType(detectedType, p?.data ?? {});
+    } else {
+      data = sanitize(mode, parsed);
+    }
 
     // Compteur quota partage avec ai-chat pour suivi cout (table ai_quota_daily).
     // Best-effort : si la table n'existe pas ou autre erreur, on ne casse pas l'OCR.
@@ -489,13 +633,18 @@ Deno.serve(async (req) => {
       }
     } catch (_) { /* best-effort */ }
 
+    const responsePayload: Record<string, unknown> = {
+      success: true,
+      data,
+      raw_response: r.text.slice(0, 2000),
+      model_used: MODEL,
+    };
+    if (mode === "auto") {
+      responsePayload.type_detecte = detectedType;
+      responsePayload.confidence = confidence;
+    }
     return new Response(
-      JSON.stringify({
-        success: true,
-        data,
-        raw_response: r.text.slice(0, 2000),
-        model_used: MODEL,
-      }),
+      JSON.stringify(responsePayload),
       { headers: { ...CORS, "Content-Type": "application/json" } },
     );
   } catch (e) {
