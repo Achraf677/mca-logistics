@@ -44,7 +44,6 @@
     .nav-item[data-page="salaries"],
     .nav-item[data-page="heures"],
     .nav-item[data-page="planning"],
-    .nav-item[data-page="messagerie"],
     .nav-item[data-page="incidents"],
     .nav-item[data-page="vehicules"],
     .nav-item[data-page="carburant"],
@@ -258,11 +257,6 @@
           <div class="stat-pill-label">💵 Encaissements du mois</div>
           <div class="stat-pill-value" id="kpi-encaissements-mois">0 €</div>
           <div class="stat-pill-sub" id="kpi-encaissements-mois-sub">—</div>
-        </div>
-        <div class="stat-pill stat-pill-blue" style="cursor:pointer" onclick="naviguerVers('messagerie')">
-          <div class="stat-pill-label">💬 Messages</div>
-          <div class="stat-pill-value" id="kpi-messages">0</div>
-          <div class="stat-pill-sub">non lus</div>
         </div>
       </div>
 
@@ -3255,16 +3249,22 @@
   <script defer src="script-core-ui.js?v=20260509e-58"></script>
   <script defer src="script-core-auth.js?v=20260509e-58"></script>
   <script defer src="script-core-periodes.js?v=20260509e-58"></script>
-  <script defer src="script-core-navigation.js?v=20260509e-58"></script>
+  <script defer src="script-core-navigation.js?v=20260509e-59"></script>
   <script defer src="script-core-edit-locks.js?v=20260509e-58"></script>
   <script defer src="script-core-branding.js?v=20260509e-58"></script>
-  <script defer src="script-core-audit.js?v=20260509e-58"></script>
+  <script defer src="script-core-audit.js?v=20260509e-59"></script>
   <script defer src="script-core-dso.js?v=20260509e-58"></script>
   <script defer src="script-ai-chat.js?v=20260509e-58"></script>
+  <!-- Brouillons IA : page admin de validation des actions IA en attente.
+       Expose window.AIBrouillons utilise par script-core-navigation.js (case 'brouillons-ia'). -->
+  <script defer src="script-ai-brouillons.js?v=20260509e-58"></script>
   <script defer src="script-cout-ia.js?v=20260509e-58"></script>
   <script defer src="script-core-stats-helpers.js?v=20260509e-58"></script>
   <script defer src="script-core-recherche.js?v=20260509e-58"></script>
   <script defer src="storage-uploader.js?v=20260509e-58"></script>
+  <!-- Smart upload : un seul drop -> OCR + Storage en parallele.
+       Doit etre charge APRES storage-uploader.js. -->
+  <script defer src="smart-upload.js?v=20260509e-58"></script>
   <script defer src="entity-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="clients-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="vehicules-supabase-adapter.js?v=20260509e-58"></script>
@@ -3272,7 +3272,6 @@
   <script defer src="all-entity-adapters.js?v=20260509e-58"></script>
   <script defer src="legacy-entity-adapters.js?v=20260509e-58"></script>
   <script defer src="plannings-supabase-adapter.js?v=20260509e-58"></script>
-  <script defer src="messages-supabase-adapter.js?v=20260509e-58"></script>
   <script defer src="repo.js?v=20260509e-58"></script>
   <script defer src="lazy-loader.js?v=20260509e-58"></script>
   <script defer src="lazy-stubs.js?v=20260509e-58"></script>

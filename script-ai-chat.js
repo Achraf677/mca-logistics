@@ -82,11 +82,26 @@
 
   // ----- UI mount -----
 
+  // True quand l'app mobile est active (m.html charge le body avec class m-app).
+  // Sur mobile, on ne cree PAS le FAB ✨ — il chevauche le bouton + livraison
+  // (.m-fab) et chevauche aussi les FAB d'action de la page Encaissement.
+  // Le panneau reste monte normalement et est ouvrable via le bouton ✨ du
+  // header mobile (#m-chatbot-btn) qui appelle window.AIChat.toggle().
+  function isMobileApp() {
+    try {
+      return !!(document.body && document.body.classList && document.body.classList.contains('m-app'));
+    } catch (_) { return false; }
+  }
+
   function mount() {
     if (document.getElementById('ai-chat-root')) return;
     const root = document.createElement('div');
     root.id = 'ai-chat-root';
-    root.innerHTML = TEMPLATE;
+    // Sur mobile, on rend le template SANS le bouton FAB pour eviter le
+    // chevauchement avec .m-fab (bouton + livraison) et les FAB d'action
+    // (Encaissement, etc.). Le panel + overlay restent injectes pour que
+    // window.AIChat.open() depuis le bouton header marche sans accroc.
+    root.innerHTML = isMobileApp() ? TEMPLATE_MOBILE : TEMPLATE;
     document.body.appendChild(root);
     injectStyles();
     wireEvents();
@@ -130,6 +145,13 @@
     </div>
     <div id="ai-chat-overlay" hidden></div>
   `;
+
+  // Variante mobile : meme markup mais sans le FAB ✨ (qui chevauchait .m-fab).
+  // Le panneau reste ouvert via #m-chatbot-btn dans le header mobile.
+  const TEMPLATE_MOBILE = TEMPLATE.replace(
+    /<button id="ai-chat-fab"[\s\S]*?<\/button>\s*/,
+    ''
+  );
 
   const STYLES = `
     /* ========== Tokens locaux PC (defaut) ========== */
@@ -904,7 +926,31 @@
   }
 
   function wireEvents() {
-    document.getElementById('ai-chat-fab').addEventListener('click', toggle);
+    // FAB optionnel : sur mobile (body.m-app), il n'est pas rendu pour eviter
+    // le chevauchement avec .m-fab — l'ouverture passe alors par le bouton ✨
+    // du header mobile (#m-chatbot-btn) cable plus bas.
+    const fab = document.getElementById('ai-chat-fab');
+    if (fab) fab.addEventListener('click', toggle);
+    // Bouton ✨ du header mobile (m.html) : ouvre le panel chat IA. Listener
+    // direct + delegue document-level pour survivre a un re-render eventuel.
+    const headerBtn = document.getElementById('m-chatbot-btn');
+    if (headerBtn) {
+      headerBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        toggle();
+      });
+    }
+    // Filet de securite : delegation au cas ou le bouton header serait
+    // re-rendu apres le mount (ne devrait pas arriver — le header mobile
+    // est statique dans m.html — mais ca evite tout futur regression).
+    document.addEventListener('click', (e) => {
+      const target = e.target && e.target.closest && e.target.closest('#m-chatbot-btn');
+      if (!target) return;
+      if (target.dataset.aicWired === '1') return; // deja gere par le listener direct
+      e.preventDefault();
+      toggle();
+    });
+    if (headerBtn) headerBtn.dataset.aicWired = '1';
     document.getElementById('ai-chat-close').addEventListener('click', toggle);
     document.getElementById('ai-chat-overlay').addEventListener('click', toggle);
     document.getElementById('ai-chat-clear').addEventListener('click', () => {
