@@ -76,11 +76,16 @@ jobs:
 
       - name: Run smoke spec
         id: smoke
+        # Skip entierement quand secrets absents : Playwright peut exit non-zero
+        # meme avec test.skip (ex: "no tests run" selon version). Plus robuste
+        # de skipper le step au niveau workflow tant qu'Achraf n'a pas configure
+        # les secrets PLAYWRIGHT_ADMIN_EMAIL/PASSWORD. Quand configure -> step
+        # tourne et bloque normalement.
+        if: steps.secrets.outputs.has_creds == 'true'
         env:
           ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
           ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
           BASE_URL: ${{ inputs.base_url || secrets.PLAYWRIGHT_BASE_URL || 'https://mca-logistics.pages.dev' }}
-          HAS_CREDS: ${{ steps.secrets.outputs.has_creds }}
         run: |
           # On lance UNIQUEMENT le smoke spec (les autres specs e2e ne sont pas
           # bloquantes ici, elles tournent dans tests.yml).
