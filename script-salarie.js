@@ -20,7 +20,7 @@ function setBoutonDeconnexionSalarieEtat(enCours) {
 }
 
 function redirigerVersLoginSalarie(raison) {
-  try { sessionStorage.setItem('delivpro_debug_redirect', 'salarie: ' + (raison || 'inconnu') + ' @ ' + new Date().toLocaleTimeString()); } catch(_) {}
+  try { sessionStorage.setItem('delivpro_debug_redirect', 'salarie: ' + (raison || 'inconnu') + ' @ ' + new Date().toLocaleTimeString()); } catch(_) { /* fail-silent: sessionStorage indisponible (mode privé / iframe sandbox) */ }
   document.body.classList.add('app-booting');
   if (window.top && window.top !== window) {
     window.top.location.href = 'login.html';
@@ -1460,7 +1460,7 @@ function getInspectionStorageHelper() {
 function libererPhotosInspectionLocales() {
   _inspPhotos.forEach(photo => {
     if (photo && photo.previewUrl && photo.previewUrl.indexOf('blob:') === 0) {
-      try { URL.revokeObjectURL(photo.previewUrl); } catch (_) {}
+      try { URL.revokeObjectURL(photo.previewUrl); } catch (_) { /* fail-silent: blob URL déjà révoquée */ }
     }
   });
 }
@@ -1648,7 +1648,14 @@ async function uploaderPhotosInspection(date) {
           meta: { kind: 'inspection-photo', salId: salarieCourant.id, photoKind: kind }
         });
         return { ok: true, path: targetPath, queued: true };
-      } catch (_) {}
+      } catch (e) {
+        if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+          console.warn('[salarie:inspection-enqueueUpload]', e);
+        }
+        if (window.Sentry && window.Sentry.captureException) {
+          try { window.Sentry.captureException(e); } catch (_) {}
+        }
+      }
     }
     throw (r && r.error) || new Error('upload_failed');
   }
@@ -1680,7 +1687,7 @@ async function uploaderPhotosInspection(date) {
     if (uploadedPaths.length) {
       try {
         await storageHelper.removeInspectionPhotos(uploadedPaths);
-      } catch (_) {}
+      } catch (_) { /* fail-silent: cleanup best-effort, l'erreur d'origine sera re-throw */ }
     }
     throw error;
   }
@@ -1780,10 +1787,10 @@ function previsualiserPhotos() {
 function retirerPhoto(idx) {
   const photo = _inspPhotos[idx];
   if (photo && photo.previewUrl && photo.previewUrl.indexOf('blob:') === 0) {
-    try { URL.revokeObjectURL(photo.previewUrl); } catch (_) {}
+    try { URL.revokeObjectURL(photo.previewUrl); } catch (_) { /* fail-silent: blob URL déjà révoquée */ }
   }
   if (photo && photo.thumbPreviewUrl && photo.thumbPreviewUrl.indexOf('blob:') === 0) {
-    try { URL.revokeObjectURL(photo.thumbPreviewUrl); } catch (_) {}
+    try { URL.revokeObjectURL(photo.thumbPreviewUrl); } catch (_) { /* fail-silent: blob URL déjà révoquée */ }
   }
   _inspPhotos.splice(idx, 1);
   const container = document.getElementById('insp-previews');
@@ -1955,7 +1962,7 @@ async function envoyerInspection() {
       return [photo.path, photo.thumbPath].filter(Boolean);
     });
     if (photoPaths.length && storageHelper && storageHelper.removeInspectionPhotos) {
-      try { await storageHelper.removeInspectionPhotos(photoPaths); } catch (_) {}
+      try { await storageHelper.removeInspectionPhotos(photoPaths); } catch (_) { /* fail-silent: cleanup best-effort sur échec localStorage */ }
     }
     if (bouton) bouton.disabled = false;
     if (statut) {
@@ -2175,7 +2182,7 @@ function mettreAJourBadgeMsgSal() {
       g.gain.setValueAtTime(0.25, ctx.currentTime);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
       o.start(ctx.currentTime); o.stop(ctx.currentTime + 0.35);
-    } catch(e) {}
+    } catch(_) { /* fail-silent: AudioContext bloqué (auto-play policy navigateur) */ }
     if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   }
   window._prevNonLusSal = nonLus;
@@ -2217,7 +2224,14 @@ function toast(msg, type='success') {
 
 document.addEventListener('DOMContentLoaded', async function () {
   if (window.DelivProSecurity && typeof window.DelivProSecurity.registerServiceWorker === 'function') {
-    window.DelivProSecurity.registerServiceWorker().catch(function () {});
+    window.DelivProSecurity.registerServiceWorker().catch(function (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[salarie:registerServiceWorker]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    });
   }
   const embedAutorise = !!(window.top && window.top !== window && window.top.__delivproTabUnlocked);
 
@@ -2233,7 +2247,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       const cleanUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, '', cleanUrl);
     }
-  } catch(_) {}
+  } catch(_) { /* fail-silent: URLSearchParams / sessionStorage indisponible */ }
 
   // Si pas de ticket valide, tenter restauration Supabase
   // AVANT de rediriger (pour les nouveaux appareils avec session valide)
@@ -2249,12 +2263,12 @@ document.addEventListener('DOMContentLoaded', async function () {
           window.__delivproTabUnlocked = true;
           sessionStorage.setItem('auth_mode', 'supabase');
         }
-      } catch(_) {}
+      } catch(_) { /* fail-silent: restoreLegacySessionFromSupabase échoue → fallback redirect login */ }
     }
 
     // Si aucune session Supabase valide, redirection login
     if (!supabaseSessionValide) {
-      try { sessionStorage.setItem('delivpro_debug_redirect', 'guard: pas de ticket ni session Supabase @ ' + new Date().toLocaleTimeString()); } catch(_) {}
+      try { sessionStorage.setItem('delivpro_debug_redirect', 'guard: pas de ticket ni session Supabase @ ' + new Date().toLocaleTimeString()); } catch(_) { /* fail-silent: sessionStorage indisponible (mode privé) */ }
       if (window.top && window.top !== window) {
         window.top.location.href = 'login.html';
         return;
@@ -2283,7 +2297,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       if (restored === 'salarie' || restored === true) {
         sessionStorage.setItem('auth_mode', 'supabase');
       }
-    } catch(_) {}
+    } catch(_) { /* fail-silent: refreshSession optionnel — un échec ne bloque pas le boot */ }
   }
   const role = sessionStorage.getItem('role');
   const salarieId = sessionStorage.getItem('salarie_id');
@@ -2318,7 +2332,15 @@ document.addEventListener('DOMContentLoaded', async function () {
         tel: data.telephone,
         actif: data.actif !== false
       };
-    } catch(_) { return null; }
+    } catch (e) {
+      if (window.MCA && window.MCA.shouldLog && window.MCA.shouldLog('errors')) {
+        console.warn('[salarie:chargerSalarieDepuisSupabase]', e);
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+      return null;
+    }
   }
 
   let salaries = JSON.parse(localStorage.getItem('salaries') || '[]');
@@ -2334,7 +2356,7 @@ document.addEventListener('DOMContentLoaded', async function () {
       if (sal) {
         // Sauvegarder en local pour les prochaines fois
         salaries.push(sal);
-        try { localStorage.setItem('salaries', JSON.stringify(salaries)); } catch(_) {}
+        try { localStorage.setItem('salaries', JSON.stringify(salaries)); } catch(_) { /* fail-silent: localStorage quota / indisponible (mode privé) */ }
       }
     }
 
@@ -2347,7 +2369,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             salaries[idx].supabaseId = salarieId;
             localStorage.setItem('salaries', JSON.stringify(salaries));
           }
-        } catch (_) {}
+        } catch (_) { /* fail-silent: localStorage quota / indisponible — sync supabaseId reprise au prochain boot */ }
       }
       salarieCourant = sal;
       lancerInterface();
@@ -2365,7 +2387,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     }
   }
 
-  try { sessionStorage.setItem('delivpro_debug_redirect', 'fallthrough: salarié introuvable (role=' + role + ', id=' + salarieId + ', num=' + salarieNumero + ', authMode=' + authMode + ') @ ' + new Date().toLocaleTimeString()); } catch(_) {}
+  try { sessionStorage.setItem('delivpro_debug_redirect', 'fallthrough: salarié introuvable (role=' + role + ', id=' + salarieId + ', num=' + salarieNumero + ', authMode=' + authMode + ') @ ' + new Date().toLocaleTimeString()); } catch(_) { /* fail-silent: sessionStorage indisponible (mode privé) */ }
   if (window.top && window.top !== window) {
     window.top.location.href = 'login.html';
     return;

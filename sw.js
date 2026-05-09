@@ -64,6 +64,7 @@ const CORE_ASSETS = [
   '/script-core-branding.js',
   '/script-core-audit.js',
   '/script-core-recherche.js',
+  '/script-core-dso.js',
   '/script-ai-chat.js',
   '/script-ai-brouillons.js',
   '/script-cout-ia.js',
