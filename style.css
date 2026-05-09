@@ -239,6 +239,8 @@ body.app-shell.app-booting .main-content {
   opacity: 0.55;
   letter-spacing: 0.02em;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  -webkit-user-select: text;
+  -moz-user-select: text;
   user-select: text;
   padding: 2px 6px;
   border-radius: 4px;
@@ -843,6 +845,7 @@ body.light-mode .searchbar-clear:hover {
    Usage : ajouter classe .modal-fullpage-variant à l'overlay et .modal-fullpage au .modal */
 .modal-overlay.modal-fullpage-variant {
   background: var(--bg-dark);
+  -webkit-backdrop-filter: none;
   backdrop-filter: none;
   padding: 0;
   align-items: stretch;
@@ -995,6 +998,8 @@ body.light-mode .searchbar-clear:hover {
   font-size: 0.78rem;
   color: var(--text-muted);
   font-weight: 600;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   list-style: none;
   transition: color 0.2s;
@@ -1920,6 +1925,7 @@ body.light-mode tr.bulk-selected { background: rgba(230,57,70,.12) !important; }
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   opacity: 0;
   pointer-events: none;
@@ -2251,6 +2257,8 @@ body.light-mode .stat-pill { background: #fff; border-color: rgba(0,0,0,0.08); }
   opacity: .6;
   transition: opacity .2s, color .2s;
   text-align: left;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
 }
 .nav-section-header:hover {
@@ -2462,6 +2470,8 @@ body.light-mode .cmd-entity-row.cmd-row-active {
 /* ===== TRI COLONNES ===== */
 .th-sortable {
   cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   white-space: nowrap;
 }
@@ -2791,6 +2801,8 @@ kbd {
   padding: 12px 14px;
   cursor: grab;
   transition: transform .22s cubic-bezier(.4,0,.2,1), box-shadow .22s cubic-bezier(.4,0,.2,1), border-color .22s;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   box-shadow: 0 1px 3px rgba(0,0,0,.18);
 }
@@ -5378,6 +5390,8 @@ select {
   padding: 0 4px;
   color: var(--text-muted);
   font-weight: 700;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
 }
 .pagination-per-page {
@@ -5442,6 +5456,8 @@ body.light-mode .pagination-select {
    ============================================================ */
 .data-table th.sortable {
   cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   position: relative;
   padding-right: 20px !important;
@@ -6155,6 +6171,8 @@ body.light-mode .facture-badge-brouillon {
   font-size: 0.9rem;
   color: var(--text-muted);
   transition: all 0.18s ease;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
 }
 .client-type-option input[type="radio"]:checked + .client-type-label {
@@ -6615,6 +6633,7 @@ body.light-mode .s14-banner {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.55);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   display: none;
   z-index: 9998;
@@ -6687,6 +6706,7 @@ body.light-mode .s15-modal-info-box {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.55);
+  -webkit-backdrop-filter: blur(3px);
   backdrop-filter: blur(3px);
   display: none;
   z-index: 9999;
@@ -7365,6 +7385,8 @@ body.theme-light .fourn-cat-entretien { color: #1e40af; }
  * ========================================================================== */
 .data-table thead th.th-sortable {
   cursor: pointer;
+  -webkit-user-select: none;
+  -moz-user-select: none;
   user-select: none;
   position: relative;
   padding-right: 22px;
@@ -7933,7 +7955,7 @@ body.theme-light .s22-bandeau { background: #fff; }
 body.light-mode .s24-toggle-switch { background: #d1d5db; }
 
 /* ========================= Sprint 25 — Drawer 360° Client/Fournisseur ========================= */
-.s25-drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); display: none; z-index: 9990; }
+.s25-drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); display: none; z-index: 9990; }
 .s25-drawer-overlay.open { display: block; }
 .s25-drawer { position: fixed; top: 0; right: 0; width: min(720px, 96vw); height: 100vh; background: var(--bg-card, #1f2937); border-left: 1px solid var(--border); box-shadow: -10px 0 40px rgba(0,0,0,0.35); overflow-y: auto; transform: translateX(100%); transition: transform .28s ease; }
 .s25-drawer-overlay.open .s25-drawer { transform: translateX(0); }

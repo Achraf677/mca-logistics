@@ -345,6 +345,8 @@ a { color: var(--m-accent); text-decoration: none; }
   color: var(--m-text-muted);
   opacity: 0.55;
   letter-spacing: 0.02em;
+  -webkit-user-select: text;
+  -moz-user-select: text;
   user-select: text;
   text-align: center;
   word-break: break-all;
