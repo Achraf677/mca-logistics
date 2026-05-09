@@ -6783,6 +6783,11 @@
       const nbAEncaisser = livAnnotees.filter(l => !l._paye && !l._litige).length;
       const nbRetard = livAnnotees.filter(l => l._retard).length;
 
+      // DSO reel (calcul a la volee sur 90 derniers jours) — Sprint H3.4
+      const dsoData = (typeof window.calculerDSO === 'function')
+        ? window.calculerDSO(livraisons)
+        : { dso: null, count: 0, byClient: {} };
+
       // Liste filtree : encaissements manuels apparaissent uniquement dans
       // 'encaisse' et 'tous' (jamais dans à encaisser/retard/litige).
       let filtered;
@@ -6836,6 +6841,12 @@
             <div class="m-card-value">${M.format$(totalEncaisseMois)}</div>
             <div class="m-card-sub">paiements reçus</div>
           </div>
+        </div>
+
+        <div class="m-card m-card-accent" style="margin-bottom:14px;border-left:4px solid var(--m-accent)" title="Days Sales Outstanding — délai moyen réel de paiement client sur les 90 derniers jours">
+          <div class="m-card-title">📊 DSO réel (90j)</div>
+          <div class="m-card-value">${dsoData.dso !== null ? dsoData.dso + ' j' : '—'}</div>
+          <div class="m-card-sub">${dsoData.count > 0 ? dsoData.count + ' livraison' + (dsoData.count > 1 ? 's' : '') + ' payée' + (dsoData.count > 1 ? 's' : '') : 'aucune livraison payée'}</div>
         </div>
 
         ${totalRetard > 0 ? `<div class="m-card m-card-red m-card-pressable" onclick="MCAm.setEncStatut('retard')" style="margin-bottom:14px;border-left:4px solid var(--m-red)">
