@@ -1,0 +1,112 @@
+name: Visual Audit Daily
+
+# Audit visuel quotidien automatise — capture les screenshots de toutes les
+# pages de l'app (PC + mobile), les envoie a Gemini 2.5 Flash via l'edge
+# function `ai-visual-audit`, puis publie un rapport markdown comme issue
+# GitHub.
+#
+# Cout : 0 EUR (Gemini 2.5 Flash free tier 250 RPD ; on consomme ~10 req/run).
+#
+# Secrets requis :
+#   PLAYWRIGHT_ADMIN_EMAIL    : compte admin pour login
+#   PLAYWRIGHT_ADMIN_PASSWORD : password admin
+#   SUPABASE_URL              : https://lkbfvgnhwgbapdtitglu.supabase.co
+#   SUPABASE_ANON_KEY         : anon key publishable (pour /auth/v1/token)
+#   GITHUB_TOKEN              : auto-fourni par GH Actions (scope repo)
+
+on:
+  schedule:
+    - cron: '30 3 * * *'  # 3h30 UTC tous les jours (~4h30 Paris ete / 5h30 hiver)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Mode (full = 25 routes x 2 viewports, smoke = subset)'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - smoke
+      base_url:
+        description: 'URL de base a auditer (default: prod)'
+        required: false
+        default: 'https://mca-logistics.pages.dev'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  audit:
+    name: Capture + analyse Gemini Flash
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual audit spec
+        env:
+          PLAYWRIGHT_ADMIN_EMAIL: ${{ secrets.PLAYWRIGHT_ADMIN_EMAIL }}
+          PLAYWRIGHT_ADMIN_PASSWORD: ${{ secrets.PLAYWRIGHT_ADMIN_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          BASE_URL: ${{ inputs.base_url || 'https://mca-logistics.pages.dev' }}
+          AUDIT_TRIGGERED_BY: ${{ github.event_name == 'schedule' && 'cron' || 'manual' }}
+          AUDIT_CONTEXT: "audit ${{ github.event_name }} ${{ github.ref_name }} ${{ github.sha }}"
+        run: npx playwright test tests/visual-audit.spec.js --reporter=list
+
+      - name: Upload screenshots artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-audit-screenshots-${{ github.run_id }}
+          path: tests/visual-audit-output/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Aggregate report + post GitHub issue
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+        run: |
+          if [ -f tests/visual-audit-output/issues.json ]; then
+            node tools/visual-audit-aggregator.js
+          else
+            echo "::warning::issues.json absent — spec a probablement skip ou crash"
+          fi
+
+      - name: Upload markdown report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-audit-report-${{ github.run_id }}
+          path: tests/visual-audit-output/report.md
+          retention-days: 30
+          if-no-files-found: warn
