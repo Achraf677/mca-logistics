@@ -602,7 +602,8 @@ if (typeof module !== 'undefined' && module.exports) {
     normalizeLDV: normalizeLDV,
     normalizeVehicule: normalizeVehicule,
     findFournisseurByNom: findFournisseurByNom,
-    findLivraisonByRef: findLivraisonByRef
+    findLivraisonByRef: findLivraisonByRef,
+    calculerDureeJour: calculerDureeJour
   };
 }
 

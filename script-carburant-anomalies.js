@@ -313,12 +313,26 @@
     if (typeof afficherCarburant === 'function') afficherCarburant();
   }
 
-  // Expose
-  window.detecterAnomaliesPlein = detecterAnomaliesPlein;
-  window.calculerConsoPlein = calculerConsoPlein;
-  window.calculerMoyenneConso = calculerMoyenneConso;
-  window.sweepAnomaliesCarburant = sweepAnomaliesCarburant;
-  window.getConfigAnomaliesCarburant = getConfig;
-  window.ouvrirConfigAnomaliesCarburant = ouvrirConfigAnomaliesCarburant;
-  window.enregistrerConfigAnomaliesCarburant = enregistrerConfigAnomaliesCarburant;
+  // Expose (browser only — guard pour permettre require() en Node tests)
+  if (typeof window !== 'undefined') {
+    window.detecterAnomaliesPlein = detecterAnomaliesPlein;
+    window.calculerConsoPlein = calculerConsoPlein;
+    window.calculerMoyenneConso = calculerMoyenneConso;
+    window.sweepAnomaliesCarburant = sweepAnomaliesCarburant;
+    window.getConfigAnomaliesCarburant = getConfig;
+    window.ouvrirConfigAnomaliesCarburant = ouvrirConfigAnomaliesCarburant;
+    window.enregistrerConfigAnomaliesCarburant = enregistrerConfigAnomaliesCarburant;
+  }
+
+  // Export Node (tests unitaires uniquement) — sprint H2.2
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+      detecterAnomaliesPlein: detecterAnomaliesPlein,
+      calculerConsoPlein: calculerConsoPlein,
+      calculerMoyenneConso: calculerMoyenneConso,
+      trouverPleinPrecedent: trouverPleinPrecedent,
+      trouverPleinPrecedentBrut: trouverPleinPrecedentBrut,
+      getDefaults: function () { return Object.assign({}, DEFAULTS); }
+    };
+  }
 })();
