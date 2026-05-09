@@ -374,3 +374,235 @@ function formatPeriodeDateFr(dateLike) {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+// ============================================================
+// Normalisation des schemas data (PC <-> Mobile)
+//
+// Historiquement le form PC ecrivait en NESTED (`liv.expediteur.nom`,
+// `vehicule.assurance.dateExpiration`...) et le form mobile en FLAT
+// (`liv.expNom`, `vehicule.dateAssurance`...). Resultat: data invisible
+// d'un cote ou de l'autre, alertes manquees, KPIs faux.
+//
+// Strategie : NESTED = schema canonique. Les helpers ci-dessous detectent
+// les valeurs flat orphelines et les hissent en nested. Idempotents (rerun
+// safe). Utilises en READ par tous les readers (LDV PDF, drawer 360,
+// search, alertes...) et en MIGRATION boot pour fixer les anciennes
+// donnees in-place.
+// ============================================================
+
+/**
+ * Normalise une livraison vers le schema NESTED canonique pour la lettre
+ * de voiture (LDV). Detecte les anciens champs flat (expNom, destNom,
+ * marchNature, adrEst...) et les copie dans liv.expediteur / liv.destinataire
+ * / liv.marchandise / liv.adr si absents.
+ *
+ * IMPORTANT : ne supprime pas les champs flat (compat lectures legacy
+ * tierces). Idempotent : rerun safe.
+ *
+ * @param {Object} liv - Une livraison (mutable).
+ * @returns {Object} La meme livraison, mutee si necessaire.
+ */
+function normalizeLDV(liv) {
+  if (!liv || typeof liv !== 'object') return liv;
+
+  // Expediteur : flat -> nested
+  var expFlat = {
+    nom: liv.expNom || '',
+    contact: liv.expContact || '',
+    adresse: liv.expAdresse || '',
+    cp: liv.expCp || '',
+    ville: liv.expVille || '',
+    pays: liv.expPays || ''
+  };
+  var expNested = liv.expediteur && typeof liv.expediteur === 'object' ? liv.expediteur : null;
+  var expHasFlat = !!(expFlat.nom || expFlat.adresse || expFlat.ville);
+  var expHasNested = !!(expNested && (expNested.nom || expNested.adresse || expNested.ville));
+  if (expHasFlat && !expHasNested) {
+    liv.expediteur = {
+      nom: expFlat.nom,
+      contact: expFlat.contact,
+      adresse: expFlat.adresse,
+      cp: expFlat.cp,
+      ville: expFlat.ville,
+      pays: expFlat.pays || 'FR'
+    };
+  } else if (expHasNested && !expHasFlat) {
+    // mirror nested -> flat (compat lecture readers mobile non encore migres)
+    liv.expNom = expNested.nom || '';
+    liv.expContact = expNested.contact || '';
+    liv.expAdresse = expNested.adresse || '';
+    liv.expCp = expNested.cp || '';
+    liv.expVille = expNested.ville || '';
+    liv.expPays = expNested.pays || 'FR';
+  }
+
+  // Destinataire : flat -> nested
+  var destFlat = {
+    nom: liv.destNom || '',
+    contact: liv.destContact || '',
+    adresse: liv.destAdresse || '',
+    cp: liv.destCp || '',
+    ville: liv.destVille || '',
+    pays: liv.destPays || ''
+  };
+  var destNested = liv.destinataire && typeof liv.destinataire === 'object' ? liv.destinataire : null;
+  var destHasFlat = !!(destFlat.nom || destFlat.adresse || destFlat.ville);
+  var destHasNested = !!(destNested && (destNested.nom || destNested.adresse || destNested.ville));
+  if (destHasFlat && !destHasNested) {
+    liv.destinataire = {
+      nom: destFlat.nom,
+      contact: destFlat.contact,
+      adresse: destFlat.adresse,
+      cp: destFlat.cp,
+      ville: destFlat.ville,
+      pays: destFlat.pays || 'FR'
+    };
+  } else if (destHasNested && !destHasFlat) {
+    liv.destNom = destNested.nom || '';
+    liv.destContact = destNested.contact || '';
+    liv.destAdresse = destNested.adresse || '';
+    liv.destCp = destNested.cp || '';
+    liv.destVille = destNested.ville || '';
+    liv.destPays = destNested.pays || 'FR';
+  }
+
+  // Marchandise : flat -> nested. NB poidsKg/marchPoids, volumeM3/marchVolume,
+  // nbColis/marchColis. On garde 0 comme valeur valide.
+  var merchFlat = {
+    nature: liv.marchNature || '',
+    poidsKg: liv.marchPoids,
+    volumeM3: liv.marchVolume,
+    nbColis: liv.marchColis
+  };
+  var merchNested = liv.marchandise && typeof liv.marchandise === 'object' ? liv.marchandise : null;
+  var merchHasFlat = !!(merchFlat.nature || (merchFlat.poidsKg != null && merchFlat.poidsKg !== '') || (merchFlat.volumeM3 != null && merchFlat.volumeM3 !== '') || (merchFlat.nbColis != null && merchFlat.nbColis !== ''));
+  var merchHasNested = !!(merchNested && (merchNested.nature || merchNested.poidsKg || merchNested.volumeM3 || merchNested.nbColis));
+  if (merchHasFlat && !merchHasNested) {
+    liv.marchandise = {
+      nature: merchFlat.nature,
+      poidsKg: parseFloat(merchFlat.poidsKg) || 0,
+      volumeM3: parseFloat(merchFlat.volumeM3) || 0,
+      nbColis: parseInt(merchFlat.nbColis, 10) || 0
+    };
+  } else if (merchHasNested && !merchHasFlat) {
+    liv.marchNature = merchNested.nature || '';
+    liv.marchPoids = merchNested.poidsKg || 0;
+    liv.marchVolume = merchNested.volumeM3 || 0;
+    liv.marchColis = merchNested.nbColis || 0;
+  }
+
+  // ADR : flat -> nested. adrEst (mobile) <-> adr.estADR (PC). adrEstADR alias
+  // (un reader mobile l'utilise). Idempotent : ecrit dans les 3 cas.
+  var adrFlat = {
+    estADR: !!(liv.adrEst || liv.adrEstADR),
+    codeONU: liv.adrOnu || liv.adrCodeONU || '',
+    classe: liv.adrClasse || '',
+    groupeEmballage: liv.adrGroupe || liv.adrGroupeEmballage || ''
+  };
+  var adrNested = liv.adr && typeof liv.adr === 'object' ? liv.adr : null;
+  var adrHasFlat = adrFlat.estADR || !!adrFlat.codeONU || !!adrFlat.classe || !!adrFlat.groupeEmballage;
+  var adrHasNested = !!(adrNested && (adrNested.estADR || adrNested.codeONU || adrNested.classe || adrNested.groupeEmballage));
+  if (adrHasFlat && !adrHasNested) {
+    liv.adr = {
+      estADR: adrFlat.estADR,
+      codeONU: adrFlat.codeONU,
+      classe: adrFlat.classe,
+      groupeEmballage: adrFlat.groupeEmballage
+    };
+  } else if (adrHasNested && !adrHasFlat) {
+    liv.adrEst = !!adrNested.estADR;
+    liv.adrEstADR = !!adrNested.estADR;
+    liv.adrOnu = adrNested.codeONU || '';
+    liv.adrCodeONU = adrNested.codeONU || '';
+    liv.adrClasse = adrNested.classe || '';
+    liv.adrGroupe = adrNested.groupeEmballage || '';
+    liv.adrGroupeEmballage = adrNested.groupeEmballage || '';
+  }
+
+  return liv;
+}
+
+/**
+ * Normalise un vehicule vers le schema NESTED canonique pour l'assurance.
+ * Mobile ecrivait `vehicule.dateAssurance` (flat), PC ecrit
+ * `vehicule.assurance.{compagnie, numeroContrat, dateExpiration}` (nested).
+ * Sans ce helper, les alertes "carte verte" PC ne se declenchaient pas
+ * pour vehicules saisis mobile.
+ *
+ * Idempotent : rerun safe. Mirror dans les 2 sens pour rendre la donnee
+ * lisible par tous les readers existants pendant la phase dual-read.
+ *
+ * @param {Object} v - Un vehicule (mutable).
+ * @returns {Object} Le meme vehicule, mute si necessaire.
+ */
+function normalizeVehicule(v) {
+  if (!v || typeof v !== 'object') return v;
+
+  var nested = v.assurance && typeof v.assurance === 'object' ? v.assurance : null;
+  var nestedHasDate = !!(nested && nested.dateExpiration);
+  var flatDate = v.dateAssurance || '';
+
+  if (flatDate && !nestedHasDate) {
+    // Flat -> nested. Pas de compagnie/numero (mobile n'avait pas ces champs)
+    // mais on conserve toute info nested existante (compagnie/numero saisis
+    // PC sur un veh dont mobile aurait ecrase la date a part).
+    v.assurance = {
+      compagnie: (nested && nested.compagnie) || '',
+      numeroContrat: (nested && nested.numeroContrat) || '',
+      dateExpiration: flatDate
+    };
+  } else if (nestedHasDate && !flatDate) {
+    // Mirror nested -> flat (lecture mobile alertes/drawer 360)
+    v.dateAssurance = nested.dateExpiration;
+  }
+  return v;
+}
+
+/**
+ * Trouve un fournisseur par nom (insensible a la casse + trim).
+ * Helper partage entre PC et mobile pour la resolution FK des charges.
+ * @param {string} nom - Nom recherche.
+ * @param {Array} fournisseurs - Liste a parcourir.
+ * @returns {Object|null} Le fournisseur ou null.
+ */
+function findFournisseurByNom(nom, fournisseurs) {
+  if (!nom || !Array.isArray(fournisseurs)) return null;
+  var target = String(nom).trim().toLowerCase();
+  if (!target) return null;
+  return fournisseurs.find(function(f) {
+    return f && (f.nom || '').toLowerCase().trim() === target;
+  }) || null;
+}
+
+/**
+ * Trouve une livraison par identifiant lisible (numLiv ou client+date)
+ * pour les imports/migrations historiques.
+ * @param {string} numOuClient - numLiv ou nom client.
+ * @param {Array} livraisons
+ * @returns {Object|null}
+ */
+function findLivraisonByRef(numOuClient, livraisons) {
+  if (!numOuClient || !Array.isArray(livraisons)) return null;
+  var target = String(numOuClient).trim().toLowerCase();
+  return livraisons.find(function(l) {
+    return l && ((l.numLiv || '').toLowerCase() === target || (l.client || '').toLowerCase() === target);
+  }) || null;
+}
+
+// Expose au scope global (parite onclick + acces depuis script-mobile.js)
+if (typeof window !== 'undefined') {
+  window.normalizeLDV = normalizeLDV;
+  window.normalizeVehicule = normalizeVehicule;
+  window.findFournisseurByNom = findFournisseurByNom;
+  window.findLivraisonByRef = findLivraisonByRef;
+}
+
+// Export Node (tests unitaires uniquement)
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    normalizeLDV: normalizeLDV,
+    normalizeVehicule: normalizeVehicule,
+    findFournisseurByNom: findFournisseurByNom,
+    findLivraisonByRef: findLivraisonByRef
+  };
+}
+
