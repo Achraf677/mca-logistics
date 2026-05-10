@@ -1,0 +1,25 @@
+<!-- _toast.html — 4 variants notification toast -->
+<!-- L'élément #toast existe déjà dans admin.html. Le helper afficherToast(msg, type)
+     gère la className. CSS dans style-design-v2.css §17. -->
+<div class="toast show success" id="toast" role="status" aria-live="polite">
+  ✅ Livraison créée
+</div>
+
+<div class="toast show warning" role="status" aria-live="polite">
+  ⚠️ Champs obligatoires manquants
+</div>
+
+<div class="toast show error" role="alert" aria-live="assertive">
+  ❌ Erreur réseau, réessaye
+</div>
+
+<div class="toast show info" role="status" aria-live="polite">
+  ℹ️ Brouillon enregistré automatiquement
+</div>
+
+<!-- Usage JS prod :
+afficherToast('✅ Livraison créée');               // success par défaut
+afficherToast('⚠️ Format invalide', 'warning');
+afficherToast('❌ Réseau coupé', 'error');
+afficherToast('ℹ️ 2 modifs en attente', 'info');
+-->

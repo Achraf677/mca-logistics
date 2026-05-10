@@ -1,0 +1,55 @@
+<!-- _form-group.html — Field form complet -->
+<!-- Variant input text -->
+<div class="form-group">
+  <label for="ID_PRESERVE">Numéro de livraison</label>
+  <input type="text" id="ID_PRESERVE" placeholder="L-2026-XXXX" />
+  <div class="form-helper">Format auto-généré si laissé vide.</div>
+</div>
+
+<!-- Variant input avec erreur -->
+<div class="form-group has-error">
+  <label for="email">Email</label>
+  <input type="email" id="email" value="invalide" aria-invalid="true" />
+  <div class="form-error">⚠️ Format email invalide.</div>
+</div>
+
+<!-- Variant select -->
+<div class="form-group">
+  <label for="statut">Statut</label>
+  <select id="statut">
+    <option value="">— Choisir —</option>
+    <option value="livre">Livrée</option>
+    <option value="en-cours">En cours</option>
+    <option value="retard">Retard</option>
+  </select>
+</div>
+
+<!-- Variant textarea -->
+<div class="form-group">
+  <label for="notes">Notes internes</label>
+  <textarea id="notes" rows="4" placeholder="Saisis tes notes ici..."></textarea>
+</div>
+
+<!-- Variant checkbox -->
+<div class="form-group form-group--inline">
+  <input type="checkbox" id="urgent" />
+  <label for="urgent">Livraison urgente</label>
+</div>
+
+<!-- Variant radio -->
+<div class="form-group">
+  <label>Type de client</label>
+  <div class="radio-group">
+    <label><input type="radio" name="type" value="pro" /> 🏢 Professionnel</label>
+    <label><input type="radio" name="type" value="part" /> 👤 Particulier</label>
+  </div>
+</div>
+
+<!-- Variant toggle (switch) -->
+<div class="form-group form-group--inline">
+  <label class="toggle-switch">
+    <input type="checkbox" id="recurrent" />
+    <span class="toggle-track"></span>
+  </label>
+  <label for="recurrent">Charge récurrente</label>
+</div>

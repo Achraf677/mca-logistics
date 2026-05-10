@@ -1,0 +1,30 @@
+<!-- _modal-shell.html — Coque de modale DS canonique -->
+<!-- Tailles : sm (max-width 380), md (520, default), lg (720), xl (960), fullscreen
+     Garder l'ID modal-* d'origine pour le JS prod (closeModal/openModal).
+     data-modal-size optionnel. -->
+<div class="modal-overlay" id="ID_PRESERVE" data-modal-size="md">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Titre de la modale</h3>
+      <button class="modal-close" aria-label="Fermer" onclick="closeModal('ID_PRESERVE')">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Contenu form ou texte ici -->
+      <div class="form-group">
+        <label>Champ exemple</label>
+        <input type="text" placeholder="Saisir..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('ID_PRESERVE')">Annuler</button>
+      <button class="btn-primary" onclick="confirmAction()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- CSS attendu (déjà dans style-design-v2.css §17) :
+     .modal-overlay { z-index 9000, bg rgba(0,0,0,0.85), inset 0 fixed }
+     .modal { bg-card, radius 12px, max-width selon data-modal-size }
+     .modal-header { font-display 800, padding 14-20, border-bottom }
+     .modal-body { padding 20, scroll si overflow }
+     .modal-footer { gap 8, justify-end, padding 14-20, border-top } -->
