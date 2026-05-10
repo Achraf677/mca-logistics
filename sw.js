@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v8_6-phase2-refonte-dashboard-335';
+const CACHE_VERSION = 'mca-v2026-05-10-v8_8-phase2-refonte-equipe-337';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -61,6 +61,8 @@ const CORE_ASSETS = [
   '/script-charges-kpis-categorie.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
+  // Phase 2 HTML refonte — Equipe section-head counts
+  '/script-equipe-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
