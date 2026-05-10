@@ -9,24 +9,55 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>MCA Logistics</title>
   <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 60'><rect x='0' y='14' width='14' height='3' fill='%23e63946'/><rect x='2' y='22' width='12' height='3' fill='%23e63946'/><rect x='4' y='30' width='10' height='3' fill='%23e63946'/><rect x='2' y='38' width='12' height='3' fill='%23e63946'/><rect x='18' y='14' width='60' height='28' rx='4' fill='%231a1d22'/></svg>" />
   <link rel="preconnect" href="https://lkbfvgnhwgbapdtitglu.supabase.co" crossorigin>
-  <!-- Design system tokens (Phase 4 / PR-1) — prefixe --ds-* purement additif. N'ecrase aucun token existant. -->
+  <!-- Design system tokens (Phase 4 / PR-1) — prefixe --ds-* purement additif. -->
   <link rel="stylesheet" href="/style-tokens.css?v=1" />
   <link rel="stylesheet" href="/style-mobile.css?v=102" />
   <!-- Design mobile ds (Phase 4 / PR-22) — restyle .m-* avec tokens ds. CSS-only. -->
   <link rel="stylesheet" href="/style-design-mobile-ds.css?v=1" />
+  <style>
+    /* Refonte mobile pixel-pret — SVG icons + brand + polish */
+    .m-header-brand{display:flex;align-items:center;gap:8px;padding-right:8px}
+    .m-header-brand-logo{width:28px;height:20px;flex-shrink:0}
+    .m-header-brand-text{font-family:var(--font-display,"Syne",sans-serif);font-weight:800;font-size:12px;letter-spacing:-0.02em;line-height:1;display:none}
+    @media(min-width:380px){.m-header-brand-text{display:block}}
+    .m-header-brand-text .red{color:var(--ds-brand,#e63946);font-style:italic;font-weight:700;font-size:9px;display:block;margin-top:1px;letter-spacing:0.06em}
+
+    /* SVG icons in bottom nav + drawer */
+    .m-tab-icon svg,.m-drawer-link svg{width:20px;height:20px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+    .m-drawer-link svg{width:18px;height:18px;flex-shrink:0;opacity:0.85}
+    .m-header-action svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+    /* Top brand bar accent (red gradient under header) */
+    .m-header{position:relative}
+    .m-header::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--ds-brand,#e63946) 0%,transparent 50%);pointer-events:none}
+  </style>
 </head>
 <body class="m-app m-theme-dark">
-  <!-- Header compact : back btn + titre + chat IA + Agent IA (parite PC panneau-agent). -->
+  <!-- Header compact : brand + back btn + titre + chat IA + Agent IA -->
   <header class="m-header">
-    <button class="m-header-action m-header-back" id="m-back-btn" aria-label="Retour" hidden>‹</button>
+    <div class="m-header-brand">
+      <svg class="m-header-brand-logo" viewBox="0 0 88 60" aria-hidden="true">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="m-header-brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <button class="m-header-action m-header-back" id="m-back-btn" aria-label="Retour" hidden>
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
     <h1 class="m-header-title" id="m-title">Dashboard</h1>
     <button class="m-header-action m-header-chatbot" id="m-chatbot-btn" aria-label="Chatbot Gemini" title="Chatbot Gemini" type="button">
-      <span aria-hidden="true">✨</span>
+      <svg viewBox="0 0 24 24"><path d="M12 8V4l-3 3"/><rect x="2" y="8" width="20" height="14" rx="2"/><circle cx="8" cy="14" r="1.5"/><circle cx="16" cy="14" r="1.5"/><path d="M9 18h6"/></svg>
     </button>
     <button class="m-header-action m-header-agent-ia" id="m-agent-ia-btn" aria-label="Agent IA — décisions à examiner" type="button" style="position:relative">
-      <span aria-hidden="true">🤖</span>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 10v6m11-11h-6m-10 0H1m15.5-7.5l-4 4m-7 7l-4 4m15 0l-4-4m-7-7l-4-4"/></svg>
       <span class="m-header-agent-ia-badge" id="m-agent-ia-badge" hidden style="position:absolute;top:4px;right:4px;background:var(--m-accent,#e63946);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:0.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;line-height:1">0</span>
     </button>
   </header>
@@ -42,24 +73,24 @@
   <!-- Bottom tab nav (5 onglets : 4 raccourcis + Plus) -->
   <nav class="m-bottom-nav" aria-label="Navigation principale">
     <button class="m-tab" data-page="dashboard">
-      <span class="m-tab-icon" aria-hidden="true">📊</span>
+      <span class="m-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
       <span class="m-tab-label">Accueil</span>
     </button>
     <button class="m-tab" data-page="livraisons">
-      <span class="m-tab-icon" aria-hidden="true">📦</span>
+      <span class="m-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span>
       <span class="m-tab-label">Livraisons</span>
     </button>
     <button class="m-tab" data-page="planning">
-      <span class="m-tab-icon" aria-hidden="true">📅</span>
+      <span class="m-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span>
       <span class="m-tab-label">Planning</span>
     </button>
     <button class="m-tab" data-page="alertes">
-      <span class="m-tab-icon" aria-hidden="true">🔔</span>
+      <span class="m-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span>
       <span class="m-tab-label">Alertes</span>
       <span class="m-tab-badge" id="m-tab-badge-alertes" hidden></span>
     </button>
     <button class="m-tab" data-page="more">
-      <span class="m-tab-icon" aria-hidden="true">⋯</span>
+      <span class="m-tab-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg></span>
       <span class="m-tab-label">Plus</span>
     </button>
   </nav>
@@ -69,46 +100,111 @@
   <aside class="m-drawer" id="m-drawer" aria-hidden="true">
     <header class="m-drawer-header">
       <h2 class="m-drawer-title">Tous les modules</h2>
-      <button class="m-header-action" id="m-drawer-close" aria-label="Fermer">✕</button>
+      <button class="m-header-action" id="m-drawer-close" aria-label="Fermer">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </header>
     <nav class="m-drawer-nav">
-      <button class="m-drawer-link" data-page="recherche" style="font-weight:600"><span>🔍</span><span>Recherche globale</span></button>
+      <button class="m-drawer-link" data-page="recherche" style="font-weight:600">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span>Recherche globale</span>
+      </button>
 
       <div class="m-drawer-section-label">Tiers</div>
-      <button class="m-drawer-link" data-page="clients"><span>🧑‍💼</span><span>Clients</span></button>
-      <button class="m-drawer-link" data-page="fournisseurs"><span>🏭</span><span>Fournisseurs</span></button>
+      <button class="m-drawer-link" data-page="clients">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
+        <span>Clients</span>
+      </button>
+      <button class="m-drawer-link" data-page="fournisseurs">
+        <svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M3 7v14"/><path d="M21 7v14"/><path d="M3 7l9-4 9 4"/><path d="M9 21V11"/><path d="M15 21V11"/></svg>
+        <span>Fournisseurs</span>
+      </button>
 
       <div class="m-drawer-section-label">Flotte</div>
-      <button class="m-drawer-link" data-page="vehicules"><span>🚐</span><span>Véhicules</span></button>
-      <button class="m-drawer-link" data-page="carburant"><span>⛽</span><span>Carburant</span></button>
-      <button class="m-drawer-link" data-page="entretiens"><span>🔧</span><span>Entretiens</span></button>
-      <button class="m-drawer-link" data-page="inspections"><span>🚗</span><span>Inspections</span></button>
+      <button class="m-drawer-link" data-page="vehicules">
+        <svg viewBox="0 0 24 24"><path d="M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>
+        <span>Véhicules</span>
+      </button>
+      <button class="m-drawer-link" data-page="carburant">
+        <svg viewBox="0 0 24 24"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg>
+        <span>Carburant</span>
+      </button>
+      <button class="m-drawer-link" data-page="entretiens">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg>
+        <span>Entretiens</span>
+      </button>
+      <button class="m-drawer-link" data-page="inspections">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+        <span>Inspections</span>
+      </button>
 
       <div class="m-drawer-section-label">Équipe</div>
-      <!-- Hub Équipe Sprint 22 (H2.4) — entrée unifiée. Les 3 sous-routes
-           (salaries / heures / incidents) restent enregistrees pour les
-           deeplinks IA et l'audit log mais l'utilisateur passe par "Équipe". -->
-      <button class="m-drawer-link" data-page="equipe" style="font-weight:600"><span>👥</span><span>Équipe</span></button>
-      <button class="m-drawer-link" data-page="salaries"><span>👤</span><span>Salariés</span></button>
-      <button class="m-drawer-link" data-page="heures"><span>⏱️</span><span>Heures &amp; Km</span></button>
-      <button class="m-drawer-link" data-page="incidents"><span>🚨</span><span>Incidents</span></button>
+      <button class="m-drawer-link" data-page="equipe" style="font-weight:600">
+        <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg>
+        <span>Équipe</span>
+      </button>
+      <button class="m-drawer-link" data-page="salaries">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span>Salariés</span>
+      </button>
+      <button class="m-drawer-link" data-page="heures">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Heures &amp; Km</span>
+      </button>
+      <button class="m-drawer-link" data-page="incidents">
+        <svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Incidents</span>
+      </button>
 
       <div class="m-drawer-section-label">Finances</div>
-      <button class="m-drawer-link" data-page="charges"><span>💸</span><span>Charges</span></button>
-      <button class="m-drawer-link" data-page="encaissement"><span>💵</span><span>Encaissement</span></button>
-      <button class="m-drawer-link" data-page="tva"><span>🧾</span><span>TVA</span></button>
-      <button class="m-drawer-link" data-page="rentabilite"><span>💰</span><span>Rentabilité</span></button>
-      <button class="m-drawer-link" data-page="statistiques"><span>📈</span><span>Statistiques</span></button>
+      <button class="m-drawer-link" data-page="charges">
+        <svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg>
+        <span>Charges</span>
+      </button>
+      <button class="m-drawer-link" data-page="encaissement">
+        <svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>Encaissement</span>
+      </button>
+      <button class="m-drawer-link" data-page="tva">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+        <span>TVA</span>
+      </button>
+      <button class="m-drawer-link" data-page="rentabilite">
+        <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+        <span>Rentabilité</span>
+      </button>
+      <button class="m-drawer-link" data-page="statistiques">
+        <svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="9" width="4" height="12"/></svg>
+        <span>Statistiques</span>
+      </button>
 
       <div class="m-drawer-section-label">Autres</div>
-      <button class="m-drawer-link" data-page="calendrier"><span>🗓️</span><span>Calendrier</span></button>
-      <button class="m-drawer-link" data-page="brouillons-ia" type="button"><span>📋</span><span>Brouillons IA <span class="m-drawer-badge" id="m-drawer-badge-brouillons" hidden>0</span></span></button>
-      <button class="m-drawer-link" data-page="parametres"><span>⚙️</span><span>Paramètres</span></button>
+      <button class="m-drawer-link" data-page="calendrier">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+        <span>Calendrier</span>
+      </button>
+      <button class="m-drawer-link" data-page="brouillons-ia" type="button">
+        <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>
+        <span>Brouillons IA <span class="m-drawer-badge" id="m-drawer-badge-brouillons" hidden>0</span></span>
+      </button>
+      <button class="m-drawer-link" data-page="parametres">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Paramètres</span>
+      </button>
 
       <hr class="m-drawer-sep" />
-      <button class="m-drawer-link" id="m-toggle-theme"><span>🌙</span><span>Mode clair / sombre</span></button>
-      <button class="m-drawer-link" id="m-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre."><span>🐛</span><span>Signaler un bug</span></button>
-      <button class="m-drawer-link m-drawer-link-danger" id="m-logout"><span>⏏</span><span>Déconnexion</span></button>
+      <button class="m-drawer-link" id="m-toggle-theme">
+        <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span>Mode clair / sombre</span>
+      </button>
+      <button class="m-drawer-link" id="m-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre.">
+        <svg viewBox="0 0 24 24"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2"/><path d="M5 7l3 2"/><path d="M19 17l-3-2"/><path d="M5 17l3-2"/><path d="M12 6V2"/></svg>
+        <span>Signaler un bug</span>
+      </button>
+      <button class="m-drawer-link m-drawer-link-danger" id="m-logout">
+        <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Déconnexion</span>
+      </button>
       <div class="m-drawer-version-footer" title="Version build (auto-extraite de sw.js CACHE_VERSION)">
         v<span id="m-app-version">…</span>
       </div>
@@ -121,7 +217,9 @@
     <div class="m-sheet-handle" aria-hidden="true"></div>
     <header class="m-sheet-header">
       <h2 class="m-sheet-title" id="m-sheet-title">—</h2>
-      <button class="m-header-action" id="m-sheet-close" aria-label="Fermer">✕</button>
+      <button class="m-header-action" id="m-sheet-close" aria-label="Fermer">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </header>
     <div class="m-sheet-body" id="m-sheet-body"></div>
     <footer class="m-sheet-footer">
@@ -143,28 +241,16 @@
   <div class="m-toast" id="m-toast" hidden></div>
 
   <!-- Couche données (partagée avec desktop : memes Supabase tables, meme localStorage) -->
-  <!-- Supabase SDK : permet le sync temps reel des saisies mobile vers la base -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/supabase-config.js?v=102"></script>
   <script src="/supabase-client.js?v=102"></script>
-  <!-- supabase-storage-sync hook localStorage.setItem au niveau du prototype.
-       Toute ecriture (M.sauvegarder dans script-mobile) declenche un push
-       vers Supabase. Doit etre charge AVANT script-mobile. -->
   <script src="/supabase-storage-sync.js?v=186"></script>
   <script src="/repo.js?v=102"></script>
-  <!-- security-utils : hashPassword PBKDF2 partage avec desktop -->
   <script src="/security-utils.js?v=102"></script>
-  <!-- storage-uploader : helpers Supabase Storage (upload/download docs salaries) -->
   <script src="/storage-uploader.js?v=102"></script>
-  <!-- smart-upload : un seul drop -> OCR + Storage en parallele (parite PC). -->
   <script src="/smart-upload.js?v=180"></script>
-  <!-- Helpers cablage SmartUpload mode auto (charges, carburant, salaries, vehicules) -->
   <script src="/script-core-smart-upload.js?v=180"></script>
-  <!-- ocr-helper : Tesseract.js wrapper (lazy, gratuit, offline) pour scan carte grise/facture/RIB/permis -->
   <script src="/ocr-helper.js?v=102"></script>
-  <!-- Entity adapters Supabase : sync automatique localStorage <-> tables natives
-       Supabase pour les entites metier (livraisons, charges, vehicules, etc.).
-       Sans ces adapters, les saisies mobile resterait en localStorage local. -->
   <script src="/entity-supabase-adapter.js?v=186"></script>
   <script src="/all-entity-adapters.js?v=103"></script>
   <script src="/legacy-entity-adapters.js?v=102"></script>
@@ -172,60 +258,28 @@
   <script src="/clients-supabase-adapter.js?v=186"></script>
   <script src="/salaries-supabase-adapter.js?v=102"></script>
   <script src="/vehicules-supabase-adapter.js?v=102"></script>
-  <!-- i18n : libelles UI partages PC/mobile (Sprint H2.5) -->
   <script src="/script-core-i18n.js?v=100"></script>
-  <!-- DSO helper partage PC/mobile (Sprint H3.4) — doit etre charge AVANT script-mobile -->
   <script src="/script-core-dso.js?v=100"></script>
-  <!-- Dashboard KPIs partages PC/mobile (Bug #6 audit Chrome) — doit etre charge AVANT script-mobile -->
   <script src="/script-core-dashboard-kpis.js?v=3"></script>
-  <!-- Cache clear helper (mobile only) — bouton "Vider le cache" dans Parametres.
-       Doit etre charge AVANT script-mobile.js pour que window.viderCacheApp soit
-       disponible au moment du afterRender de la page parametres. -->
   <script src="/script-cache-clear.js?v=184"></script>
-  <!-- Edit-locks v2 (DB-backed via table edit_locks) — verrous d'edition collaboratifs.
-       Charge AVANT script-mobile pour que window.EditLocksV2 soit dispo dans les
-       handlers click "Modifier". Coexiste avec les helpers legacy localStorage du meme
-       fichier (pattern dual-read transitoire CLAUDE.md). -->
   <script src="/script-core-edit-locks.js?v=184"></script>
-  <!-- Core utils partages PC/mobile : window.todayLocalISO, dateLocalISO,
-       normalizeLDV, normalizeVehicule, findFournisseurByNom, findLivraisonByRef.
-       DOIT etre charge AVANT script-mobile.js : un appel TOP-LEVEL a
-       window.todayLocalISO() existe a la ligne 11452 de script-mobile.js
-       (M.state.calendrierDate = window.todayLocalISO()). Sans ce script,
-       l'IIFE de script-mobile crashe a 11452 -> init() jamais defini ->
-       page bloquee sur "Chargement…". Bug introduit par commit 452500a
-       (sed massif window.todayLocalISO sans ajouter le script ici). -->
   <script src="/script-core-utils.js?v=187"></script>
   <!-- App mobile -->
   <script src="/script-mobile.js?v=187"></script>
-  <!-- Edit-locks bootstrap : wrappe ouvrirEdit{Livraison,Charge,Client} avec
-       acquireLock/refresh/release. A charger APRES script-mobile (pour que les
-       modules metiers aient enregistre leurs fonctions globales). -->
   <script src="/script-edit-locks-bootstrap.js?v=184"></script>
-  <!-- Recurrence charges (chip 🔁 + bottom-sheet) - parite PC -->
   <script src="/script-charges-recurrence.js?v=100"></script>
-  <!-- Assistant IA Gemini (V1 admin) - parite PC -->
   <script src="/script-ai-chat.js?v=103"></script>
-  <!-- Brouillons IA : page admin de validation des actions IA en attente.
-       Expose window.AIBrouillons utilise par M.routes['brouillons-ia']. -->
   <script src="/script-ai-brouillons.js?v=186"></script>
-  <!-- Bug report : capture contexte tech (URL, version, viewport, console)
-       et genere un markdown copie dans le presse-papier. Boutons cables sur
-       #m-bug-report-btn (drawer mobile) et #admin-bug-report-btn (PC). -->
   <script src="/bug-report.js?v=103"></script>
-  <!-- Setup wizard onboarding mobile (parite PC) : ne s'affiche que pour
-       les sessions admin (admin_login en sessionStorage). Le module gere
-       lui-meme la detection de role et le styling responsive. -->
   <script src="/script-setup-wizard.js?v=103"></script>
   <script>
-    // Cable le bouton 🐛 du drawer mobile (m.html). Listener delegue document-level
+    // Cable le bouton bug-report du drawer mobile (m.html). Listener delegue document-level
     // pour survivre a un re-render du drawer.
     document.addEventListener('click', function (e) {
       var btn = e.target && e.target.closest && e.target.closest('#m-bug-report-btn');
       if (!btn) return;
       e.preventDefault();
       if (window.BugReport && typeof window.BugReport.open === 'function') {
-        // Ferme le drawer pour que la modale soit visible
         var drawer = document.getElementById('m-drawer');
         if (drawer) drawer.setAttribute('aria-hidden', 'true');
         var overlay = document.getElementById('m-drawer-overlay');
