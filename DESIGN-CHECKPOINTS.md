@@ -19,10 +19,10 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 - [x] PR-2 : Sidebar + shell admin → PR #118 mergee 2026-05-10 ~17:00 UTC, tag `design-checkpoint-2-shell`
 - [x] PR-3 : Login refondu → PR #119 mergee 2026-05-10 ~17:15 UTC, tag `design-checkpoint-3-login`
 - [x] PR-4 : Dashboard admin → PR #120 mergee 2026-05-10 ~17:30 UTC, tag `design-checkpoint-4-dashboard`
-- [ ] PR-5 : Empty states + Loading + Toasts unifies (en cours)
+- [x] PR-5 : Empty states + Loading + Toasts unifies → PR #121 mergee 2026-05-10 ~17:45 UTC, tag `design-checkpoint-5-feedback` (**Jalon 1 fini**)
 
 ### Jalon 2 — CRUD principal
-- [ ] PR-6 : Livraisons (table + filters + bulk-bar + kanban)
+- [ ] PR-6 : Livraisons (table + filters + bulk-bar + kanban) (en cours)
 - [ ] PR-7 : Modale Nouvelle/Edit livraison (24 champs)
 - [ ] PR-8 : Charges
 - [ ] PR-9 : Carburant (+ anomalies + OCR)
@@ -56,6 +56,7 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 | 2 | #118 shell admin | `design-checkpoint-2-shell` | `01fe8251` | 2026-05-10 ~17:00 | style-design-shell.css : restyle sidebar + topbar admin avec --ds-*. Visuel : palette Speed Red sur sidebar + topbar. |
 | 3 | #119 login | `design-checkpoint-3-login` | `7d910774` | 2026-05-10 ~17:15 | login.html : nettoyage residus orange (rgba(242,163,59), #f2a33b, #f6b456) -> Speed Red. Bleu salarie conserve. |
 | 4 | #120 dashboard | `design-checkpoint-4-dashboard` | `3c0c28c6` | 2026-05-10 ~17:30 | style-design-dashboard.css : KPIs (Syne italic 800), hero-sante, cards, tables (activity feed), btn-primary/secondary/danger. Variants couleur kpi-card preserves. |
+| 5 | #121 feedback | `design-checkpoint-5-feedback` | `4eaf8060` | 2026-05-10 ~17:45 | style-design-feedback.css : toasts 4 variantes (success/warning/error/info via classe ou data-toast-type), empty states avec font display, skeletons (.ds-skeleton-rect/circle/text/kpi/row + shimmer), spinner (.ds-spinner). **Jalon 1 termine.** |
 
 ## Règles de sécurité
 
