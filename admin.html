@@ -96,6 +96,8 @@
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Planning : section-head counts (semaine + planifies). -->
   <script defer src="script-planning-counts.js?v=1"></script>
+  <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
+  <script defer src="script-clients-fournisseurs-counts.js?v=1"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -467,9 +469,22 @@
 
     <!-- CLIENTS -->
     <section class="page" id="page-clients">
-      <div class="page-actions">
-        <h2>🧑‍💼 Carnet Clients</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Carnet Clients</h2>
+          <div class="ds-section-head__sub">
+            <span><span id="clients-section-sub-total">0</span> client(s)</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="clients-section-sub-actifs">0</span> actif(s) (90j)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">📚 Historique clients</button>
           <button class="btn-rapport" onclick="genererRapportClients()">📄 Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
@@ -494,9 +509,22 @@
 
     <!-- FOURNISSEURS — miroir de Clients -->
     <section class="page" id="page-fournisseurs">
-      <div class="page-actions">
-        <h2>🏭 Carnet Fournisseurs</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Carnet Fournisseurs</h2>
+          <div class="ds-section-head__sub">
+            <span><span id="fournisseurs-section-sub-total">0</span> fournisseur(s)</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="fournisseurs-section-sub-actifs">0</span> actif(s) (90j)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterHistoriqueFournisseursCSV()">📚 Historique fournisseurs</button>
           <button class="btn-rapport" onclick="genererRapportFournisseurs()">📄 Rapport</button>
           <button class="btn-primary" onclick="resetFormulaireFournisseur();openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
