@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v6_9-design-pr7-modale-318';
+const CACHE_VERSION = 'mca-v2026-05-10-v7_0-design-pr8-charges-319';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -30,6 +30,8 @@ const CORE_ASSETS = [
   '/style-design-livraisons.css',
   // Design modale + forms (Phase 4 / PR-7) — modal + form-group + drawers
   '/style-design-modal.css',
+  // Design charges (Phase 4 / PR-8) — nav-periode + recurrence + montants
+  '/style-design-charges.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
