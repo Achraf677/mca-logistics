@@ -12774,9 +12774,34 @@
     });
   }
 
+  // Diagnostic crash : enveloppe init() dans un try/catch global.
+  // Si init throw, on remplace le m-content par un message d'erreur explicite
+  // avec le stack trace + un bouton "Vider le cache + recharger" pour debug.
+  function safeInit() {
+    try { init(); }
+    catch (e) {
+      console.error('[mobile init crash]', e);
+      try {
+        var c = document.getElementById('m-content');
+        if (!c) return;
+        var msg = (e && (e.message || e.toString())) || 'Erreur inconnue';
+        var stack = (e && e.stack) ? String(e.stack).slice(0, 600) : '';
+        c.innerHTML =
+          '<div style="padding:24px 20px;color:var(--m-text,#f1f3f5)">'
+          + '<div style="font-size:42px;text-align:center;margin-bottom:12px">⚠️</div>'
+          + '<h2 style="font-family:var(--font-display,sans-serif);font-size:18px;font-weight:800;margin-bottom:6px;text-align:center">Crash au démarrage mobile</h2>'
+          + '<p style="font-size:13px;color:var(--m-text-muted,#adb5bd);margin-bottom:14px;text-align:center">' + (msg.replace(/[<>]/g, '')) + '</p>'
+          + (stack ? '<pre style="font-size:10px;color:var(--m-text-muted,#888);background:rgba(0,0,0,.3);padding:8px;border-radius:6px;overflow:auto;white-space:pre-wrap">' + stack.replace(/[<>]/g, '') + '</pre>' : '')
+          + '<button onclick="(async function(){try{var rs=await navigator.serviceWorker.getRegistrations();for(var r of rs)await r.unregister();var ks=await caches.keys();for(var k of ks)await caches.delete(k);location.reload(true);}catch(_){location.reload();}})();" '
+          + 'style="margin:14px auto 0;display:block;background:#e63946;color:#fff;border:none;border-radius:10px;padding:12px 18px;font-size:13px;font-weight:700;cursor:pointer">🔄 Vider le cache + recharger</button>'
+          + '</div>';
+      } catch (_) {}
+    }
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', safeInit);
   } else {
-    init();
+    safeInit();
   }
 })();
