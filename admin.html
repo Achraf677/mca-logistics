@@ -98,6 +98,8 @@
   <script defer src="script-planning-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
   <script defer src="script-clients-fournisseurs-counts.js?v=1"></script>
+  <!-- Phase 2 HTML refonte Alertes : counts actives + reportees + traitees. -->
+  <script defer src="script-alertes-counts.js?v=1"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -1148,7 +1150,27 @@
 
     <!-- ALERTES -->
     <section class="page" id="page-alertes">
-      <div class="page-actions"><h2>🔔 Alertes administrateur</h2><button class="btn-secondary" onclick="viderAlertes()">🗑️ Vider l'historique traité</button></div>
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Alertes administrateur</h2>
+          <div class="ds-section-head__sub">
+            <span><span id="alertes-section-sub-actives">0</span> active(s)</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="alertes-section-sub-reportees">0</span> reportée(s)</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="alertes-section-sub-traitees">0</span> traitée(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
+          <button class="btn-secondary" onclick="viderAlertes()">🗑️ Vider l'historique traité</button>
+        </div>
+      </div>
 
       <!-- Filtres alertes (sticky : reste visible quand on scroll dans une longue liste) -->
       <div class="filters alertes-filters-sticky" style="margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
