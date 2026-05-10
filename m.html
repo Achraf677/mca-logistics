@@ -146,7 +146,7 @@
   <!-- supabase-storage-sync hook localStorage.setItem au niveau du prototype.
        Toute ecriture (M.sauvegarder dans script-mobile) declenche un push
        vers Supabase. Doit etre charge AVANT script-mobile. -->
-  <script src="/supabase-storage-sync.js?v=102"></script>
+  <script src="/supabase-storage-sync.js?v=186"></script>
   <script src="/repo.js?v=102"></script>
   <!-- security-utils : hashPassword PBKDF2 partage avec desktop -->
   <script src="/security-utils.js?v=102"></script>
@@ -161,17 +161,19 @@
   <!-- Entity adapters Supabase : sync automatique localStorage <-> tables natives
        Supabase pour les entites metier (livraisons, charges, vehicules, etc.).
        Sans ces adapters, les saisies mobile resterait en localStorage local. -->
-  <script src="/entity-supabase-adapter.js?v=102"></script>
+  <script src="/entity-supabase-adapter.js?v=186"></script>
   <script src="/all-entity-adapters.js?v=103"></script>
   <script src="/legacy-entity-adapters.js?v=102"></script>
-  <script src="/plannings-supabase-adapter.js?v=102"></script>
-  <script src="/clients-supabase-adapter.js?v=102"></script>
+  <script src="/plannings-supabase-adapter.js?v=186"></script>
+  <script src="/clients-supabase-adapter.js?v=186"></script>
   <script src="/salaries-supabase-adapter.js?v=102"></script>
   <script src="/vehicules-supabase-adapter.js?v=102"></script>
   <!-- i18n : libelles UI partages PC/mobile (Sprint H2.5) -->
   <script src="/script-core-i18n.js?v=100"></script>
   <!-- DSO helper partage PC/mobile (Sprint H3.4) — doit etre charge AVANT script-mobile -->
   <script src="/script-core-dso.js?v=100"></script>
+  <!-- Dashboard KPIs partages PC/mobile (Bug #6 audit Chrome) — doit etre charge AVANT script-mobile -->
+  <script src="/script-core-dashboard-kpis.js?v=3"></script>
   <!-- Cache clear helper (mobile only) — bouton "Vider le cache" dans Parametres.
        Doit etre charge AVANT script-mobile.js pour que window.viderCacheApp soit
        disponible au moment du afterRender de la page parametres. -->
@@ -182,7 +184,7 @@
        fichier (pattern dual-read transitoire CLAUDE.md). -->
   <script src="/script-core-edit-locks.js?v=184"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=184"></script>
+  <script src="/script-mobile.js?v=186"></script>
   <!-- Edit-locks bootstrap : wrappe ouvrirEdit{Livraison,Charge,Client} avec
        acquireLock/refresh/release. A charger APRES script-mobile (pour que les
        modules metiers aient enregistre leurs fonctions globales). -->
@@ -193,7 +195,7 @@
   <script src="/script-ai-chat.js?v=103"></script>
   <!-- Brouillons IA : page admin de validation des actions IA en attente.
        Expose window.AIBrouillons utilise par M.routes['brouillons-ia']. -->
-  <script src="/script-ai-brouillons.js?v=103"></script>
+  <script src="/script-ai-brouillons.js?v=186"></script>
   <!-- Bug report : capture contexte tech (URL, version, viewport, console)
        et genere un markdown copie dans le presse-papier. Boutons cables sur
        #m-bug-report-btn (drawer mobile) et #admin-bug-report-btn (PC). -->

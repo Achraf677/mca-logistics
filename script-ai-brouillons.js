@@ -226,9 +226,12 @@
   async function getPendingCount() {
     const client = getClient();
     if (!client) return 0;
+    // Bug #2 audit Chrome : head:true peut retourner 503 selon table.
+    // Switch GET limit 1 + count exact (returns Content-Range, supabase-js extrait count).
     const { count, error } = await client.from('ai_pending_actions')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'pending');
+      .select('id', { count: 'exact' })
+      .eq('status', 'pending')
+      .limit(1);
     if (error) return 0;
     return count || 0;
   }
