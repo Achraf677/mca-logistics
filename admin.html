@@ -324,19 +324,19 @@
       <!-- 2-col grid : Qui travaille + Activité (Sprint 4) -->
       <div class="dashboard-2col">
         <div class="card">
-          <div class="card-header"><h2>👥 Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
+          <div class="card-header"><h2>Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
           <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
             <span style="font-size:.82rem;color:var(--text-muted)">Chargement...</span>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h2>📊 Activité des 7 derniers jours</h2></div>
+          <div class="card-header"><h2>Activité des 7 derniers jours</h2></div>
           <div class="chart-container"><canvas id="chartActivite"></canvas></div>
         </div>
       </div>
 
       <div class="card mt-20">
-        <div class="card-header"><h2>🕐 Livraisons récentes</h2></div>
+        <div class="card-header"><h2>Livraisons récentes</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Client</th><th>Chauffeur</th><th>HT</th><th>TTC</th><th>Statut</th><th>Date</th></tr></thead>
@@ -607,7 +607,7 @@
 
     <!-- CARBURANT -->
     <section class="page" id="page-carburant">
-      <div class="page-actions"><h2>⛽ Suivi Carburant</h2>
+      <div class="page-actions"><h2>Suivi Carburant</h2>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()" title="Configurer la détection d'anomalies">⚙️ Anomalies</button>
           <button class="btn-rapport" onclick="exporterCarburantPDF()">📄 Rapport</button>
@@ -665,7 +665,7 @@
 
     <!-- RENTABILITÉ -->
     <section class="page" id="page-rentabilite">
-      <div class="page-actions"><h2>💰 Rentabilité</h2>
+      <div class="page-actions"><h2>Rentabilité</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">⚙️ Config</button>
           <button class="btn-rapport" onclick="exporterRapportRentabilitePDF()" title="Rapport mensuel multi-axes (véhicules, clients, chauffeurs, tournées)">📄 Rapport</button>
@@ -989,12 +989,12 @@
         <div class="kpi-card orange"><div class="kpi-label">Panier moyen HT</div><div class="kpi-value" id="stats-panier-moyen">0 €</div><div class="kpi-sub">Moyenne hors taxes</div></div>
         <div class="kpi-card purple"><div class="kpi-label">Km total</div><div class="kpi-value" id="stats-km-total">0 km</div></div>
       </div>
-      <div class="card"><div class="card-header"><h2>📊 Évolution du CA</h2></div><div class="chart-container"><canvas id="chartCA"></canvas></div></div>
+      <div class="card"><div class="card-header"><h2>Évolution du CA</h2></div><div class="chart-container"><canvas id="chartCA"></canvas></div></div>
       <div class="stats-grid mt-20">
-        <div class="card"><div class="card-header"><h2>👤 Performance par chauffeur</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div></div>
-        <div class="card"><div class="card-header"><h2>🚐 Utilisation des véhicules</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div></div>
+        <div class="card"><div class="card-header"><h2>Performance par chauffeur</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div></div>
+        <div class="card"><div class="card-header"><h2>Utilisation des véhicules</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div></div>
       </div>
-      <div class="card mt-20"><div class="card-header"><h2>💶 CA par chauffeur (détail)</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div></div>
+      <div class="card mt-20"><div class="card-header"><h2>CA par chauffeur (détail)</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div></div>
     </section>
 
     <!-- HUB ÉQUIPE — Sprint 22 / H2.4
@@ -1048,10 +1048,10 @@
 
     <!-- SALARIÉS -->
     <section class="page" id="page-salaries">
-      <div class="page-actions"><h2>👥 Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
+      <div class="page-actions"><h2>Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
-        <div class="card-header"><h2>➕ Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
+        <div class="card-header"><h2>Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group"><label>Nom *</label><input type="text" id="nsal-nom" placeholder="Nom" / aria-label="Nom" /></div>
@@ -1233,7 +1233,7 @@
 
       <!-- Historique traité -->
       <div class="card" id="card-alertes-traitees">
-        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h2>✅ Historique des alertes traitées</h2></div>
+        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h2>Historique des alertes traitées</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Type</th><th>Message</th><th>Salarié / Client</th><th>Traité le</th></tr></thead>
@@ -1245,7 +1245,7 @@
 
     <!-- TVA -->
     <section class="page" id="page-tva">
-      <div class="page-actions"><h2>🧾 Récapitulatif TVA</h2>
+      <div class="page-actions"><h2>Récapitulatif TVA</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterTvaCSV()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterTvaPDF()">📄 Rapport TVA</button>
@@ -1284,7 +1284,7 @@
 
       <!-- TVA Collectée détail -->
       <div class="card mt-20">
-        <div class="card-header"><h2 id="tva-collectee-title">📤 TVA Collectée</h2></div>
+        <div class="card-header"><h2 id="tva-collectee-title">TVA Collectée</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
@@ -1296,7 +1296,7 @@
 
       <!-- TVA Déductible détail -->
       <div class="card mt-20">
-        <div class="card-header"><h2 id="tva-deductible-title">📥 TVA Déductible (charges, carburant, entretiens)</h2></div>
+        <div class="card-header"><h2 id="tva-deductible-title">TVA Déductible (charges, carburant, entretiens)</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
@@ -1308,7 +1308,7 @@
       <!-- Solde -->
       <div class="card mt-20" id="tva-solde-card">
         <div class="card-header">
-          <h2>📊 Solde TVA du mois</h2>
+          <h2>Solde TVA du mois</h2>
         </div>
         <div class="modal-body" id="tva-solde-detail"></div>
       </div>
@@ -1335,7 +1335,7 @@
 
         <!-- Entreprise -->
         <div class="card params-card-wide">
-          <div class="card-header"><h2>🏢 Informations entreprise</h2></div>
+          <div class="card-header"><h2>Informations entreprise</h2></div>
           <div class="modal-body">
             <div class="form-section-title" style="margin-bottom:10px">📇 Identification</div>
             <div class="form-grid">
@@ -1412,7 +1412,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>🖼️ Identité visuelle</h2></div>
+          <div class="card-header"><h2>Identité visuelle</h2></div>
           <div class="modal-body">
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
               <div id="param-logo-preview" style="width:72px;height:72px;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:2rem">🚐</div>
@@ -1429,7 +1429,7 @@
 
         <!-- Gestion des postes -->
         <div class="card">
-          <div class="card-header"><h2>🏷️ Postes / Fonctions</h2></div>
+          <div class="card-header"><h2>Postes / Fonctions</h2></div>
           <div class="modal-body">
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
@@ -1441,7 +1441,7 @@
 
         <!-- Apparence -->
         <div class="card">
-          <div class="card-header"><h2>🎨 Apparence</h2></div>
+          <div class="card-header"><h2>Apparence</h2></div>
           <div class="modal-body">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
               <div>
@@ -1464,7 +1464,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>🧾 Fiscalité TVA</h2></div>
+          <div class="card-header"><h2>Fiscalité TVA</h2></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration pilote la date d’exigibilité de la TVA, la périodicité de déclaration et le comportement de l’onglet TVA.</p>
             <div class="form-grid">
@@ -1515,7 +1515,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>💰 Trésorerie</h2></div>
+          <div class="card-header"><h2>Trésorerie</h2></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration sert de base au Budget et à la trésorerie prévisionnelle.</p>
             <div class="form-grid">
@@ -1534,7 +1534,7 @@
         </div>
 
         <div class="card params-card-wide">
-          <div class="card-header"><h2>📜 Journal d'audit</h2></div>
+          <div class="card-header"><h2>Journal d'audit</h2></div>
           <div class="modal-body">
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
               <button class="btn-secondary" onclick="exporterJournalAuditCSV()">📥 Export CSV</button>
@@ -1550,7 +1550,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>💾 Sauvegarde & restauration</h2></div>
+          <div class="card-header"><h2>Sauvegarde & restauration</h2></div>
           <div class="modal-body">
             <div class="param-backup-stats" id="param-backup-stats">
               <div class="param-backup-stat"><span>Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
@@ -1567,7 +1567,7 @@
 
         <!-- Sécurité -->
         <div class="card">
-          <div class="card-header"><h2>🔐 Mot de passe administrateur</h2></div>
+          <div class="card-header"><h2>Mot de passe administrateur</h2></div>
           <div class="modal-body">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:.82rem;color:var(--text-muted)">Compte connecté : —</div>
             <div class="form-group" style="margin-bottom:12px"><label>Mot de passe actuel</label>
@@ -1585,7 +1585,7 @@
 
         <!-- Blocage connexion -->
         <div class="card">
-          <div class="card-header"><h2>🔒 Blocage connexion</h2></div>
+          <div class="card-header"><h2>Blocage connexion</h2></div>
           <div class="modal-body">
             <div class="form-grid">
               <div class="form-group" style="margin-bottom:16px">
@@ -1605,7 +1605,7 @@
 
         <!-- Historique des versions -->
         <div class="card params-card-wide">
-          <div class="card-header"><h2>📋 Historique des versions</h2></div>
+          <div class="card-header"><h2>Historique des versions</h2></div>
           <div class="modal-body">
             <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 14px">
               Liste chronologique des évolutions du site. Format complet dans <code>CHANGELOG.md</code>.
@@ -1621,7 +1621,7 @@
 
     <!-- ENCAISSEMENT (miroir Charges côté revenus) -->
     <section class="page" id="page-encaissement">
-      <div class="page-actions"><h2>💵 Encaissement</h2>
+      <div class="page-actions"><h2>Encaissement</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterEncaissementCSV()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterEncaissementRapport()">📄 Rapport</button>
@@ -1767,7 +1767,7 @@
     <!-- INCIDENTS -->
     <section class="page" id="page-incidents">
       <div class="page-actions">
-        <h2>🚨 Incidents / Réclamations</h2>
+        <h2>Incidents / Réclamations</h2>
         <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
       </div>
       <div class="filters" style="margin-bottom:16px">
@@ -1801,7 +1801,7 @@
 
     <!-- ENTRETIENS -->
     <section class="page" id="page-entretiens">
-      <div class="page-actions"><h2>🔧 Carnet d'entretien</h2>
+      <div class="page-actions"><h2>Carnet d'entretien</h2>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="exporterEntretiens()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterEntretiensPDF()">📄 Rapport</button>
@@ -1856,7 +1856,7 @@
 
     <!-- HEURES & KM -->
     <section class="page" id="page-heures">
-      <div class="page-actions"><h2>⏱️ Heures & Km</h2>
+      <div class="page-actions"><h2>Heures & Km</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
           <div class="inline-dropdown" id="heures-rapports-menu">
@@ -1904,7 +1904,7 @@
       <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
       <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
         <div class="card">
-          <div class="card-header"><h2>⏱️ Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
+          <div class="card-header"><h2>Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
@@ -1914,7 +1914,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>🛣️ Relevés kilométriques</h2></div>
+          <div class="card-header"><h2>Relevés kilométriques</h2></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
@@ -1971,7 +1971,7 @@
       <div class="cal16-layout">
         <!-- Sidebar filtres -->
         <aside class="cal16-sidebar card">
-          <h3 style="margin:0 0 10px;font-size:1rem">🎛️ Filtres</h3>
+          <h3 style="margin:0 0 10px;font-size:1rem">Filtres</h3>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
@@ -1979,7 +1979,7 @@
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fer"></span> Jours fériés</label>
 
           <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 10px;font-size:1rem">📊 Mois en cours</h3>
+          <h3 style="margin:0 0 10px;font-size:1rem">Mois en cours</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">📦 Livs</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">⏰ Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
@@ -2043,7 +2043,7 @@
 
       <div class="card planning-card" style="margin-bottom:16px">
         <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <h2>📅 Organisation du planning</h2>
+          <h2>Organisation du planning</h2>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn-secondary" type="button" onclick="ouvrirPlanningRecurrence()">🔁 Horaires récurrents</button>
             <button class="btn-secondary" id="planning-toggle-quick-btn" onclick="togglePlanningQuickPanel()">+ Ajouter une période</button>
@@ -2161,7 +2161,7 @@
       </div>
     </section>
     <section class="page" id="page-inspections">
-      <div class="page-actions"><h2>🚗 Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
+      <div class="page-actions"><h2>Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
       <!-- Navigation semaine -->
       <div class="card" style="margin-bottom:12px;padding:10px 18px">
         <div class="nav-periode-bar">
@@ -2199,7 +2199,7 @@
 
     <!-- BROUILLONS IA — actions ai_pending_actions en attente de validation admin -->
     <section class="page" id="page-brouillons-ia" hidden>
-      <div class="page-actions"><h2>📋 Brouillons IA</h2></div>
+      <div class="page-actions"><h2>Brouillons IA</h2></div>
       <div class="card" style="margin-bottom:14px;padding:14px 18px">
         <div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">
           Liste des actions proposées par l'assistant IA et déposées en brouillon depuis le chat.
@@ -2216,7 +2216,7 @@
   <!-- Nouvelle livraison -->
   <div class="modal-overlay" id="modal-livraison">
     <div class="modal modal-large modal-livraison-enriched">
-      <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
+      <div class="modal-header"><h3>Nouvelle livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
 
             <section class="fp-section fp-section-compact">
@@ -2343,7 +2343,7 @@
   <!-- Nouveau client -->
   <div class="modal-overlay" id="modal-client">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>🧑‍💼 Nouveau Client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
+      <div class="modal-header"><h3>Nouveau Client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -2408,7 +2408,7 @@
   <!-- Modifier client -->
   <div class="modal-overlay" id="modal-edit-client">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-cl-id" />
         <div class="client-type-selector">
@@ -2481,7 +2481,7 @@
 
   <div class="modal-overlay" id="modal-client-history">
     <div class="modal" style="max-width:920px">
-      <div class="modal-header"><h3>📚 Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
+      <div class="modal-header"><h3>Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div id="client-history-content"></div>
       </div>
@@ -2496,7 +2496,7 @@
   <!-- Nouveau fournisseur (miroir de modal-client : toggle Pro/Particulier + mêmes champs) -->
   <div class="modal-overlay" id="modal-fournisseur">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3>Nouveau Fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -2559,7 +2559,7 @@
   <!-- Modifier fournisseur (miroir modal-edit-client) -->
   <div class="modal-overlay" id="modal-edit-fournisseur">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-frn-id" />
         <div class="client-type-selector">
@@ -2622,7 +2622,7 @@
   <!-- Nouveau véhicule -->
   <div class="modal-overlay" id="modal-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>🚐 Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Immatriculation *</label><input type="text" id="veh-immat" placeholder="Immatriculation (ex : AB-123-CD)" / aria-label="Immatriculation (ex : AB-123-CD)" /></div>
@@ -2778,7 +2778,7 @@
   <!-- Carburant -->
   <div class="modal-overlay" id="modal-carburant">
     <div class="modal">
-      <div class="modal-header"><h3>⛽ Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
+      <div class="modal-header"><h3>Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
       <div class="modal-body">
         <!-- SmartUpload mode auto : drop ticket carburant -> OCR detecte + pre-remplit -->
         <div class="form-group full-width" style="margin-bottom:14px">
@@ -2816,7 +2816,7 @@
   <!-- Modal : Detail tournee (drill-down) -->
   <div class="modal-overlay" id="modal-detail-tournee">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3 id="detail-tournee-title">🛣️ Détail tournée</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
+      <div class="modal-header"><h3 id="detail-tournee-title">Détail tournée</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
       <div class="modal-body" id="detail-tournee-body"></div>
       <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-detail-tournee')">Fermer</button></div>
     </div>
@@ -2825,7 +2825,7 @@
   <!-- Modal : Configuration rentabilité -->
   <div class="modal-overlay" id="modal-config-rentabilite">
     <div class="modal">
-      <div class="modal-header"><h3>⚙️ Paramètres rentabilité</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
+      <div class="modal-header"><h3>Paramètres rentabilité</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
         <div class="form-grid">
@@ -2851,7 +2851,7 @@
   <!-- Modal : Configuration anomalies carburant -->
   <div class="modal-overlay" id="modal-config-carburant-anomalies">
     <div class="modal">
-      <div class="modal-header"><h3>⚙️ Détection anomalies carburant</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
+      <div class="modal-header"><h3>Détection anomalies carburant</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Configure les seuils de détection. Les anomalies créent automatiquement des alertes admin et un badge sur le plein concerné.</p>
 
@@ -2887,7 +2887,7 @@
   <!-- Modal : Planning salarié -->
   <div class="modal-overlay" id="modal-planning">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3>📋 Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
+      <div class="modal-header"><h3>Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
@@ -2919,7 +2919,7 @@
 
   <div class="modal-overlay" id="modal-planning-recap">
     <div class="modal" style="max-width:860px">
-      <div class="modal-header"><h3>📋 Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
+      <div class="modal-header"><h3>Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div id="planning-recap-content"></div>
       </div>
@@ -2930,7 +2930,7 @@
   <!-- Affecter véhicule -->
   <div class="modal-overlay" id="modal-affecter-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>👤 Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
         <div class="form-group"><label>Chauffeur</label><select id="affect-salarie-sel" aria-label="affect chauffeur sel"><option value="">-- Retirer l'affectation --</option></select></div>
@@ -2942,7 +2942,7 @@
   <!-- Modifier fiche salarié -->
   <div class="modal-overlay" id="modal-edit-salarie">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
+      <div class="modal-header"><h3>Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Nom *</label><input type="text" id="edit-sal-nom" / aria-label="edit sal nom" /></div>
@@ -3013,7 +3013,7 @@
   <div class="modal-overlay" id="modal-credentials-chauffeur">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
-        <h3>🔐 Identifiants de connexion</h3>
+        <h3>Identifiants de connexion</h3>
         <button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-credentials-chauffeur')">✕</button>
       </div>
       <div class="modal-body">
@@ -3050,7 +3050,7 @@
   <!-- Modifier livraison -->
   <div class="modal-overlay" id="modal-edit-livraison">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier la livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
+      <div class="modal-header"><h3>Modifier la livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-liv-id" />
         <div class="form-grid">
@@ -3116,7 +3116,7 @@
   <!-- Modifier plein carburant (admin) -->
   <div class="modal-overlay" id="modal-edit-carburant">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier le plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-carb-id" />
         <div class="form-grid">
@@ -3137,7 +3137,7 @@
   <!-- Modifier relevé km (admin) -->
   <div class="modal-overlay" id="modal-edit-km">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Km départ *</label><input type="number" id="admin-km-dep" min="0" / aria-label="admin km dep" /></div>
@@ -3152,7 +3152,7 @@
   <!-- Modal Nouvelle charge -->
   <div class="modal-overlay" id="modal-charge">
     <div class="modal">
-      <div class="modal-header"><h3>💸 Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
+      <div class="modal-header"><h3>Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="charge-edit-id" />
         <!-- SmartUpload mode auto : drop facture / ticket -> OCR detecte + pre-remplit -->
@@ -3232,7 +3232,7 @@
   <!-- Modal Incident -->
   <div class="modal-overlay" id="modal-incident">
     <div class="modal">
-      <div class="modal-header"><h3>🚨 Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
+      <div class="modal-header"><h3>Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Date *</label><input type="date" id="inc-date" / aria-label="inc date" /></div>
@@ -3255,7 +3255,7 @@
   <!-- Modal Entretien -->
   <div class="modal-overlay" id="modal-entretien">
     <div class="modal">
-      <div class="modal-header"><h3>🔧 Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
+      <div class="modal-header"><h3>Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()" aria-label="entr veh"><option value="">— Choisir —</option></select></div>
@@ -3367,7 +3367,7 @@
   <!-- Modal Historique conducteurs -->
   <div class="modal-overlay" id="modal-hist-conducteurs">
     <div class="modal" style="max-width:560px">
-      <div class="modal-header"><h3>🚐 Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
+      <div class="modal-header"><h3>Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
       <div class="modal-body" style="padding:0">
         <div id="hist-conducteurs-modal" style="max-height:400px;overflow-y:auto;padding:16px"></div>
       </div>
@@ -3377,7 +3377,7 @@
 
   <div class="modal-overlay" id="modal-inspection-admin">
     <div class="modal" style="max-width:620px">
-      <div class="modal-header"><h3>🚗 Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
+      <div class="modal-header"><h3>Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
       <div class="modal-body form-grid">
         <div class="form-group"><label>Salarié</label><select id="admin-insp-salarie" aria-label="admin insp salarie"><option value="">— Choisir —</option></select></div>
         <div class="form-group"><label>Véhicule</label><select id="admin-insp-vehicule" aria-label="admin insp vehicule"><option value="">— Aucun véhicule —</option></select></div>
@@ -3408,7 +3408,7 @@
   <!-- Modal TCO véhicule -->
   <div class="modal-overlay" id="modal-tco">
     <div class="modal" style="max-width:520px">
-      <div class="modal-header"><h3>💰 Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
+      <div class="modal-header"><h3>Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
       <div class="modal-body">
         <div id="tco-detail"></div>
         <p style="font-size:.75rem;color:var(--text-muted);margin-top:12px">Cumul depuis la création du véhicule dans MCA Logistics.</p>
@@ -3420,7 +3420,7 @@
   <!-- Modal Note interne salarié -->
   <div class="modal-overlay" id="modal-note-interne">
     <div class="modal" style="max-width:460px">
-      <div class="modal-header"><h3>📝 Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
+      <div class="modal-header"><h3>Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="note-interne-sal-id" />
         <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:12px">🔒 Visible uniquement par l'administrateur. Jamais par le salarié.</p>
@@ -3436,7 +3436,7 @@
   <!-- Modal Récurrence -->
   <div class="modal-overlay" id="modal-recurrence">
     <div class="modal" style="max-width:420px">
-      <div class="modal-header"><h3>🔁 Livraison récurrente</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
+      <div class="modal-header"><h3>Livraison récurrente</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Créer des copies hebdomadaires de :</p>
         <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.88rem;font-weight:600" id="rec-liv-info"></div>
@@ -3513,7 +3513,7 @@
   <!-- Réinitialisation compteur livraisons (test uniquement) -->
   <div class="modal-overlay" id="modal-reset-compteur">
     <div class="modal">
-      <div class="modal-header"><h3>🧹 Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3>Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
           <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
@@ -3539,7 +3539,7 @@
   <div class="modal-overlay" id="modal-recherche-globale">
     <div class="modal modal-search-global">
       <div class="modal-header">
-        <h3>🔎 Recherche globale</h3>
+        <h3>Recherche globale</h3>
         <button class="modal-close" aria-label="Fermer" type="button" onclick="fermerRechercheGlobale()">✕</button>
       </div>
       <div class="modal-body">
