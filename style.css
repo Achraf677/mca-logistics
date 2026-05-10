@@ -8850,3 +8850,32 @@ textarea:focus-visible,
 /* Light mode : --text-muted déjà à #64748b (4.5:1 sur fond clair) — vérifié OK
    contraste AA. Pas de patch nécessaire. */
 
+
+/* #11 audit Chrome : FOUC page Salariés (1-2s gris foncé sur fond foncé,
+   illisible). Fix : transition d'opacité sur le contenu pendant le rendu. */
+.page { transition: opacity 0.18s ease-out; }
+.page:not(.active) { opacity: 0; }
+.page.active { opacity: 1; }
+
+/* #12 audit Chrome : truncation sans tooltip. Pour toute cellule td qui a
+   text-overflow:ellipsis ET pas de title= explicite, ajout d'un tooltip CSS
+   au hover via un pseudo-element. Helper class `cell-truncate-tooltip`. */
+td.cell-truncate, td[title][style*="ellipsis"] { position: relative; }
+td.cell-truncate:hover::after,
+td[title][style*="ellipsis"]:hover::after {
+  content: attr(title);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 100;
+  background: var(--bg, #1a1d22);
+  color: var(--text, #f1f3f5);
+  border: 1px solid var(--border, #3a4150);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  pointer-events: none;
+  margin-top: 4px;
+}

@@ -3891,6 +3891,12 @@
   // Badge alertes (sync avec compteur sidebar desktop)
   // ============================================================
   M.compterAlertesNonLues = function() {
+    // #38 #46 #50 #55 #77 #113 audit Chrome : single source of truth.
+    // Mobile et PC utilisaient 2 helpers differents -> 4 valeurs discordantes
+    // sur Dashboard / sidebar / page Alertes / mobile. Fix : delegue au PC.
+    if (typeof window.compterAlertesNonLues === 'function') {
+      try { return window.compterAlertesNonLues(); } catch (_) { /* fallback */ }
+    }
     const arr = M.charger('alertes_admin');
     const now = new Date();
     return arr.filter(a => {

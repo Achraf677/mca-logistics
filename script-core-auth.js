@@ -155,6 +155,18 @@ function purgerSessionAdminLocale() {
   sessionStorage.removeItem('admin_email');
   sessionStorage.removeItem('admin_nom');
   sessionStorage.removeItem('delivpro_fast_boot_role');
+  // #73 audit Chrome : purge des cles techniques edit-locks au logout
+  // (sinon on garde des marqueurs de tabs morts cross-session).
+  try {
+    var keysToDelete = [];
+    for (var i = 0; i < sessionStorage.length; i++) {
+      var k = sessionStorage.key(i);
+      if (k && (k.indexOf('mca_edit_lock_') === 0 || k === 'mca_edit_lock_tab_id')) {
+        keysToDelete.push(k);
+      }
+    }
+    keysToDelete.forEach(function (k) { sessionStorage.removeItem(k); });
+  } catch (_) {}
 }
 
 // L988 (script.js d'origine)

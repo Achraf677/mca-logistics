@@ -150,6 +150,10 @@ function ajouterCarburant() {
   ['carb-litres','carb-prix-litre','carb-km'].forEach(id => document.getElementById(id).value = '');
   if (document.getElementById('carb-taux-tva')) document.getElementById('carb-taux-tva').value = '20';
   afficherCarburant(); afficherToast('✅ Plein enregistré !');
+  // #26 audit Chrome : 1er save apres chargement, parfois la liste reste vide
+  // (race condition avec realtime adapter). 2eme rafraichi 250ms apres pour
+  // re-render avec la donnee Supabase confirmee.
+  setTimeout(function () { try { afficherCarburant(); } catch (_) {} }, 250);
 }
 
 // L4028 (script.js d'origine)
