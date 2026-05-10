@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v7_2-design-pr10-entretiens-321';
+const CACHE_VERSION = 'mca-v2026-05-10-v7_3-design-pr11-vehicules-322';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -36,6 +36,8 @@ const CORE_ASSETS = [
   '/style-design-carburant.css',
   // Design entretiens (Phase 4 / PR-10) — type-badge + source-badge + echeance
   '/style-design-entretiens.css',
+  // Design vehicules (Phase 4 / PR-11) — TCO + plaques + statuts
+  '/style-design-vehicules.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',

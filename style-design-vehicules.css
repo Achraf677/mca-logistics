@@ -1,0 +1,142 @@
+/* ==========================================================================
+   MCA Logistics — Design Vehicules (Phase 4 / PR-11)
+
+   Restyle CSS-only de la page Vehicules + TCO panel + drawer 360 vehicule.
+   La table principale (#tb-vehicules) et les filtres sont deja couverts par
+   PR-6 (livraisons). La modale d'ajout/edit vehicule est couverte par PR-7.
+   Le drawer 360 vehicule (#side-drawer pour vehicule) est couvert par PR-7.
+
+   Cette PR cible uniquement :
+   - TCO panel (.tco-grid / .tco-item / .tco-label / .tco-value / .tco-section)
+   - Plaques immat (.veh-plate ou similaire)
+   - Indicateurs etat vehicule (.veh-status / badges specifiques)
+   - .relance-row + .relance-badge (pattern relance, reutilisable)
+
+   Aucun changement HTML, IDs preserves (#tco-detail, #tco-veh-nom, #tb-vehicules).
+   ========================================================================== */
+
+/* ============ TCO PANEL ============ */
+
+.tco-section {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+.tco-grid {
+  font-family: var(--ds-font-body);
+}
+
+.tco-item {
+  background: var(--ds-bg-deep);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  text-align: center;
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.tco-item:hover {
+  border-color: var(--ds-border-strong);
+}
+
+.tco-label {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+/* SIGNATURE ds : valeurs TCO en Syne italic 800 mono tnum */
+.tco-value {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-h2);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
+
+#tco-veh-nom {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+/* ============ PLAQUES IMMAT (mono, fond contraste) ============ */
+
+.veh-plate,
+.plaque-immat,
+[data-plaque] {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-xs);
+  color: var(--ds-text);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-sm);
+  padding: 2px 8px;
+  display: inline-block;
+  font-feature-settings: "tnum";
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ============ ETATS VEHICULE (dispo / maintenance / hs) ============ */
+
+.veh-status,
+.vehicule-status,
+.statut-vehicule {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-1);
+  padding: 3px 10px;
+  border-radius: var(--ds-r-pill);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-xs);
+  font-weight: var(--ds-fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.veh-status.dispo,
+.vehicule-status.dispo,
+.statut-vehicule.dispo {
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+}
+
+.veh-status.maintenance,
+.vehicule-status.maintenance,
+.statut-vehicule.maintenance {
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
+}
+
+.veh-status.hs,
+.veh-status.indispo,
+.vehicule-status.hs,
+.statut-vehicule.hs {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+/* ============ RELANCE PATTERN (rangees relance + badges) ============ */
+
+.relance-row {
+  background: var(--ds-brand-soft) !important;
+}
+
+.relance-badge {
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  border-radius: var(--ds-r-pill);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
