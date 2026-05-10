@@ -1,0 +1,201 @@
+/* ==========================================================================
+   MCA Logistics — Design Clients + Fournisseurs (Phase 4 / PR-13+14 bundle)
+
+   Bundle PR-13 (Clients) + PR-14 (Fournisseurs) en un seul PR car les deux
+   pages sont structurellement clones (filtres + table + drawer 360 + modal).
+   La table principale et les filtres sont deja couverts par PR-6 (livraisons),
+   modale et drawer par PR-7. Cette PR ajuste uniquement les composants
+   specifiques aux pages tiers.
+
+   Aucun changement HTML, IDs preserves (#tb-clients, #tb-fournisseurs,
+   #s28-drawer, etc.).
+   ========================================================================== */
+
+/* ============ FILTRES SPECIFIQUES CLIENTS / FOURNISSEURS ============ */
+
+.filters-clients,
+.filters-fournisseurs {
+  font-family: var(--ds-font-body);
+}
+
+.filters-clients select,
+.filters-clients input,
+.filters-clients .searchbar,
+.filters-fournisseurs select,
+.filters-fournisseurs input,
+.filters-fournisseurs .searchbar {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              box-shadow var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.filters-clients select:focus,
+.filters-clients input:focus,
+.filters-fournisseurs select:focus,
+.filters-fournisseurs input:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* ============ INDICATEURS RISQUE / IMPAYE (clients) ============ */
+
+.client-risk-badge,
+.fournisseur-risk-badge,
+.tier-impaye-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ds-sp-1);
+  padding: 3px 10px;
+  border-radius: var(--ds-r-pill);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-xs);
+  font-weight: var(--ds-fw-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.client-risk-badge.haut,
+.fournisseur-risk-badge.haut,
+.tier-impaye-badge.eleve {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+  border: 1px solid var(--ds-brand);
+}
+
+.client-risk-badge.moyen,
+.fournisseur-risk-badge.moyen,
+.tier-impaye-badge.modere {
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
+  border: 1px solid var(--ds-warning);
+}
+
+.client-risk-badge.bas,
+.fournisseur-risk-badge.bas,
+.tier-impaye-badge.faible {
+  background: var(--ds-success-soft);
+  color: var(--ds-success);
+  border: 1px solid var(--ds-success);
+}
+
+/* Row client avec impayés en cours : tint discret rouge */
+tr.client-impaye td,
+tr.fournisseur-impaye td,
+tr[data-impaye="1"] td {
+  background: var(--ds-brand-soft);
+}
+
+/* ============ DRAWER 360 ONGLETS (clients/fournisseurs) ============
+   Utilise dans #s28-drawer (clients), #s20-drawer (legacy), drawer
+   fournisseur. Pattern : header + 4 onglets internes (Infos /
+   Livraisons / Factures / Notes ou similaire). */
+
+.drawer-tabs,
+.s28-drawer-tabs,
+.s20-drawer-tabs {
+  display: flex;
+  gap: var(--ds-sp-1);
+  border-bottom: 1px solid var(--ds-border);
+  font-family: var(--ds-font-body);
+}
+
+.drawer-tab,
+.s28-drawer-tab,
+.s20-drawer-tab {
+  padding: var(--ds-sp-3) var(--ds-sp-4);
+  background: transparent;
+  border: none;
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  font-size: var(--ds-fs-sm);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.drawer-tab:hover,
+.s28-drawer-tab:hover,
+.s20-drawer-tab:hover {
+  color: var(--ds-text);
+}
+
+.drawer-tab.active,
+.s28-drawer-tab.active,
+.s20-drawer-tab.active {
+  color: var(--ds-brand);
+}
+
+/* Underline rouge brand sous l'onglet actif (signature ds) */
+.drawer-tab.active::after,
+.s28-drawer-tab.active::after,
+.s20-drawer-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--ds-brand);
+  border-radius: var(--ds-r-sm) var(--ds-r-sm) 0 0;
+}
+
+/* ============ STATS CLIENT/FOURNISSEUR (drawer body) ============ */
+
+.tier-stat,
+.client-stat,
+.fournisseur-stat {
+  background: var(--ds-bg-deep);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+}
+
+.tier-stat-label,
+.client-stat-label,
+.fournisseur-stat-label {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+.tier-stat-value,
+.client-stat-value,
+.fournisseur-stat-value {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  color: var(--ds-text);
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum";
+}
+
+/* ============ SIRET / TVA INTRA (mono, validation visuelle) ============ */
+
+.siret,
+.tva-intra,
+[data-siret],
+[data-tva-intra] {
+  font-family: var(--ds-font-mono);
+  font-feature-settings: "tnum";
+  letter-spacing: 0.04em;
+}
+
+.siret.valide,
+.tva-intra.valide {
+  color: var(--ds-success);
+}
+
+.siret.invalide,
+.tva-intra.invalide {
+  color: var(--ds-danger);
+}

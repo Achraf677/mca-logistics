@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v7_4-design-pr12-equipe-323';
+const CACHE_VERSION = 'mca-v2026-05-10-v7_5-design-pr13-14-tiers-324';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -40,6 +40,8 @@ const CORE_ASSETS = [
   '/style-design-vehicules.css',
   // Design equipe (Phase 4 / PR-12) — s22-bandeau + avatar + incidents + credentials
   '/style-design-equipe.css',
+  // Design clients + fournisseurs bundle (Phase 4 / PR-13+14) — filtres + risque + drawer onglets
+  '/style-design-clients-fournisseurs.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
