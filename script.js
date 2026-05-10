@@ -3050,7 +3050,7 @@ function verifierNotificationsAutomatiquesMois2() {
       && planning.semaine.some(function(j) { return j.typeJour === 'travail' || j.travaille === true; });
     if (!aJourTravail) {
       ajouterAlerteSiAbsente('planning_manquant',
-        '📅 Aucun planning de travail defini — ' + (sal.nom || sal.id),
+        '📅 Aucun planning de travail défini — ' + (sal.nom || sal.id),
         { salId: sal.id, salNom: sal.nom || '', stageKey: 'planning-manquant-' + sal.id });
     }
   });
@@ -3074,7 +3074,7 @@ function verifierNotificationsAutomatiquesMois2() {
     var ageJ = last ? Math.floor((aujMs - new Date(last).getTime()) / 86400000) : null;
     if (last == null) {
       ajouterAlerteSiAbsente('inspection_manquante',
-        '🚗 Aucune inspection enregistree — ' + (v.immat || v.id),
+        '🚗 Aucune inspection enregistrée — ' + (v.immat || v.id),
         { vehId: v.id, stageKey: 'insp-manquante-jamais-' + v.id });
     } else if (ageJ >= 60) {
       ajouterAlerteSiAbsente('inspection_manquante',

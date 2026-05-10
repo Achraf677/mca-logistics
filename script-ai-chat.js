@@ -126,7 +126,7 @@
       <div id="ai-chat-quota" class="ai-chat-quota" hidden></div>
       <div id="ai-chat-messages" class="ai-chat-messages" aria-live="polite"></div>
       <form id="ai-chat-form" class="ai-chat-form">
-        <textarea id="ai-chat-input" placeholder="Demande-moi un truc sur ton activite..." rows="1" aria-label="Ton message"></textarea>
+        <textarea id="ai-chat-input" placeholder="Demande-moi un truc sur ton activité..." rows="1" aria-label="Ton message"></textarea>
         <button id="ai-chat-send" type="submit" title="Envoyer" aria-label="Envoyer">↑</button>
       </form>
       <!-- Sheet OCR : selection mode + upload + resultats. Vit dans le panel
@@ -1690,7 +1690,7 @@
       showToast('✅ ' + nice, 'success');
       state.history.push({
         role: 'model',
-        parts: [{ text: '✓ ' + nice + ' avec succes.' + (result.created_id ? ' ID: `' + result.created_id + '`' : '') }],
+        parts: [{ text: '✓ ' + nice + ' avec succès.' + (result.created_id ? ' ID: `' + result.created_id + '`' : '') }],
         _tools: [],
         _memory_ops: [],
         _write_actions: [],

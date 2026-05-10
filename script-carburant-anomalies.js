@@ -224,7 +224,7 @@
           anomalies.push({
             type: 'hors_heures',
             niveau: 'orange',
-            message: 'Plein effectue ' + raison,
+            message: 'Plein effectué ' + raison,
             heure: heure, jour: jour
           });
         }
