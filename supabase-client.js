@@ -8,48 +8,14 @@
     if (client) return client;
     if (!window.supabase || !config.url || !config.publishableKey) return null;
 
-    // #72 audit Chrome : JWT en localStorage = lisible par tout script (XSS).
-    // Mitigation pragmatique : wrapper localStorage qui ajoute un TTL 8h
-    // d'inactivite. Si dernier touch > 8h, on clear le token a la prochaine
-    // lecture (= redirige vers login). Limite la fenetre d'exploit en cas
-    // de XSS pendant que l'utilisateur etait deconnecte.
-    var TOKEN_TTL_MS = 8 * 60 * 60 * 1000; // 8 heures
-    var TOKEN_TS_KEY = 'mca_token_lastTouch';
-    function checkTtl() {
-      try {
-        var ts = parseInt(localStorage.getItem(TOKEN_TS_KEY), 10);
-        if (ts && (Date.now() - ts) > TOKEN_TTL_MS) {
-          // Inactif depuis trop longtemps : on purge tout token Supabase
-          var keys = [];
-          for (var i = 0; i < localStorage.length; i++) {
-            var k = localStorage.key(i);
-            if (k && (k.indexOf('sb-') === 0 || k.indexOf('supabase.auth.') === 0)) keys.push(k);
-          }
-          keys.forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
-          localStorage.removeItem(TOKEN_TS_KEY);
-        }
-      } catch (_) {}
-    }
-    checkTtl();
-    var ttlStorage = {
-      getItem: function (k) { try { return localStorage.getItem(k); } catch (_) { return null; } },
-      setItem: function (k, v) {
-        try {
-          localStorage.setItem(k, v);
-          localStorage.setItem(TOKEN_TS_KEY, String(Date.now()));
-        } catch (_) {}
-      },
-      removeItem: function (k) {
-        try { localStorage.removeItem(k); } catch (_) {}
-      }
-    };
-
+    // ROLLBACK temporaire (#72 TTL 8h custom storage casse le boot mobile).
+    // On garde le storage par defaut Supabase (localStorage) en attendant
+    // une mitigation #72 plus robuste qui n'interfere pas avec le SDK v2.
     client = window.supabase.createClient(config.url, config.publishableKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true,
-        storage: ttlStorage
+        detectSessionInUrl: true
       }
     });
 
