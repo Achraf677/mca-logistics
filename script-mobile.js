@@ -12216,7 +12216,7 @@
 
       <details style="margin-top:14px;background:var(--m-bg);border:1px solid var(--m-border);border-radius:10px">
         <summary style="cursor:pointer;padding:12px 14px;font-weight:600;font-size:.85rem;color:#dc3545;list-style:none;display:flex;align-items:center;gap:8px;min-height:var(--m-tap)">
-          <span aria-hidden="true">🚨</span><span>Désactivation d'urgence</span><span style="margin-left:auto;color:var(--m-text-muted);font-size:.74rem;font-weight:400">▾</span>
+          <span aria-hidden="true">🚨</span><span>Suspendre l'IA en cas de surfacturation</span><span style="margin-left:auto;color:var(--m-text-muted);font-size:.74rem;font-weight:400">▾</span>
         </summary>
         <div style="padding:0 14px 14px;font-size:.82rem;line-height:1.5">
           <div style="margin-top:8px;padding:10px;border:1px solid var(--m-border);border-radius:8px">
