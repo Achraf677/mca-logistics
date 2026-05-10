@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v7_7-design-pr16-alertes-326';
+const CACHE_VERSION = 'mca-v2026-05-10-v7_8-design-pr17-18-rent-stats-327';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -46,6 +46,8 @@ const CORE_ASSETS = [
   '/style-design-planning.css',
   // Design alertes (Phase 4 / PR-16) — s19 KPIs + s20 drawer + s25 rules
   '/style-design-alertes.css',
+  // Design rentabilite + stats bundle (Phase 4 / PR-17+18) — KPI tiles + simulator + previsions
+  '/style-design-rentabilite-stats.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',

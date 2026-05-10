@@ -1,0 +1,232 @@
+/* ==========================================================================
+   MCA Logistics — Design Rentabilite + Stats bundle (Phase 4 / PR-17+18)
+
+   Bundle PR-17 (Rentabilite) + PR-18 (Stats / Previsions). Pages structurellement
+   proches : KPIs financiers + charts Chart.js + filtres periode + simulator
+   (rentabilite uniquement).
+
+   Aucun changement HTML, IDs preserves (#rent-ca, #rent-marge, #rent-cout-km,
+   #stats-ca-periode, #prev-ca, etc.).
+   ========================================================================== */
+
+/* ============ STATS GRID + RENT GRID (layout containers) ============ */
+
+.stats-grid,
+.rent-grid {
+  font-family: var(--ds-font-body);
+}
+
+/* ============ KPI TILES (Rentabilite) ============ */
+
+.kpi-tile,
+.rent-tile {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              transform var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.kpi-tile:hover,
+.rent-tile:hover {
+  border-color: var(--ds-border-strong);
+  transform: translateY(-2px);
+}
+
+/* Accent bar TOP (signature ds) */
+.kpi-tile::before,
+.rent-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--ds-brand) 0%,
+    var(--ds-brand-soft) 100%
+  );
+}
+
+/* ============ RENT IDs (KPIs financiers Rentabilite) ============ */
+
+#rent-ca,
+#rent-charges,
+#rent-marge,
+#rent-profit,
+#rent-carb,
+#rent-entretien,
+#rent-cout-km {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-kpi);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.03em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+  line-height: var(--ds-lh-tight);
+}
+
+#rent-mois-label,
+#rent-mois-dates {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+/* ============ STATS IDs (Stats periode + KPIs) ============ */
+
+#stats-ca-periode,
+#stats-km-total,
+#stats-livraisons-periode,
+#stats-panier-moyen {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-kpi);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.03em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
+
+#stats-mois-label,
+#stats-mois-dates {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+}
+
+/* ============ PREVISIONS IDs (Stats forecast) ============ */
+
+#prev-ca,
+#prev-depenses,
+#prev-benefice,
+#prev-marge,
+#prev-livraisons-calc {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-h2);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
+
+#prev-tendance {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-sm);
+  font-feature-settings: "tnum";
+  font-weight: var(--ds-fw-bold);
+}
+
+#prev-avertissement {
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  color: var(--ds-text-muted);
+}
+
+/* ============ SIMULATOR (Rentabilite simulator panel) ============ */
+
+.simulator,
+.rent-simulator,
+.rentabilite-simulator {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+.simulator h3,
+.simulator .simulator-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+.simulator input,
+.simulator select {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+.simulator input:focus,
+.simulator select:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* ============ RENTABILITE CHARGE ROW (saisie multi) ============ */
+
+.rentabilite-charge-row {
+  background: var(--ds-bg-deep);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+}
+
+.rentabilite-charge-row input {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-sm);
+  font-family: var(--ds-font-body);
+}
+
+.rentabilite-charge-row input:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 2px var(--ds-brand-soft);
+}
+
+/* ============ ENC-STATS-GRID (Encaissement KPIs) ============ */
+
+.enc-stats-grid {
+  font-family: var(--ds-font-body);
+}
+
+.enc-stats-grid .stat-card {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.enc-stats-grid .stat-card:hover {
+  border-color: var(--ds-border-strong);
+}
+
+.enc-stats-grid .stat-label {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+.enc-stats-grid .stat-value {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-h2);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
+
+/* ============ FAC-STATS-GRID (Factures KPIs) ============ */
+
+.fac-stats-grid {
+  font-family: var(--ds-font-body);
+}
