@@ -985,3 +985,244 @@ body .drawer-tab.active::after {
   border-radius: 2px;
 }
 
+
+/* ============================================================
+   29. TOOLBAR + CHIPS (mockup livraisons / charges) — filtres pill
+   ============================================================ */
+body .toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+body .toolbar-spacer { flex: 1; }
+body .chip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--t-fast) var(--ease-out);
+  font-family: inherit;
+}
+body .chip:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+body .chip.active {
+  background: var(--brand-soft);
+  border-color: rgba(230, 57, 70, 0.4);
+  color: var(--brand);
+}
+body .chip .count {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+body .chip.active .count {
+  background: rgba(230, 57, 70, 0.18);
+}
+
+/* Range input pour filtres date */
+body .range-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+/* ============================================================
+   30. TABLE FOOT + PAGINATION (mockup livraisons)
+   ============================================================ */
+body .foot,
+body .table-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+body .pager {
+  display: flex;
+  gap: 4px;
+}
+body .pg {
+  padding: 4px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  background: transparent;
+  font-family: inherit;
+}
+body .pg:hover {
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+body .pg.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+
+/* ============================================================
+   31. DRIVER AVATAR INLINE (mockup livraisons : chauffeur cell)
+   ============================================================ */
+body .driver {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+body .driver-av {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-card-hover);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid var(--border-strong);
+  flex-shrink: 0;
+}
+
+/* Cellule montant aligné droite avec tabular nums */
+body .amount {
+  font-weight: 700;
+  text-align: right;
+  font-feature-settings: "tnum";
+}
+body .amount.amount--negative,
+body .amount-cell--negative {
+  color: var(--danger);
+}
+body .amount.amount--positive {
+  color: var(--success);
+}
+
+/* Cell client en gras */
+body td .client {
+  font-weight: 600;
+}
+
+/* ============================================================
+   32. ROW STATES (mockup livraisons : row-hover, checked)
+   ============================================================ */
+body tr.row-hover:hover td,
+body tr.row-clickable:hover td {
+  background: var(--bg-card-hover);
+  cursor: pointer;
+}
+body tr.checked td,
+body tr[aria-selected="true"] td {
+  background: rgba(230, 57, 70, 0.06);
+}
+body input[type="checkbox"] {
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+/* ============================================================
+   33. CONTEXT MENU (dropdown actions row)
+   ============================================================ */
+body .menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 260px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  z-index: 50;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease-out), transform var(--t-fast) var(--ease-out);
+}
+body .menu.open {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+body .menu-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 9px 11px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background var(--t-fast) var(--ease-out);
+}
+body .menu-item:hover {
+  background: var(--bg-card-hover);
+}
+
+/* ============================================================
+   34. KANBAN (mockup livraisons : vue kanban)
+   ============================================================ */
+body .kanban {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+body .kanban__col,
+body .kanban-col {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 200px;
+}
+body .kanban__col-header,
+body .kanban-col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+body .kanban__card,
+body .kanban-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: all var(--t-fast) var(--ease-out);
+}
+body .kanban__card:hover,
+body .kanban-card:hover {
+  border-color: var(--brand);
+  transform: translateY(-1px);
+}
+
