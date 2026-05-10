@@ -15,8 +15,8 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 ## Plan d'attaque (référence : `docs/refonte/07-plan-migration.md` du design pack)
 
 ### Jalon 1 — Fondations
-- [ ] PR-1 : Tokens design system (style-tokens.css)
-- [ ] PR-2 : Sidebar + shell admin
+- [x] PR-1 : Tokens design system (style-tokens.css) → PR #117 mergee 2026-05-10 16:48 UTC, tag `design-checkpoint-1-tokens`
+- [ ] PR-2 : Sidebar + shell admin (en cours)
 - [ ] PR-3 : Login refondu
 - [ ] PR-4 : Dashboard admin (KPIs + charts + activity feed)
 - [ ] PR-5 : Empty states + Loading + Toasts unifies
@@ -50,9 +50,9 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 
 ## Checkpoints (mis à jour après chaque merge)
 
-| # | PR | Tag | Merge SHA | Date | Notes |
-|---|-----|------|-----------|------|-------|
-| | | | | | |
+| # | PR | Tag | Merge SHA | Date (UTC) | Notes |
+|---|-----|------|-----------|------------|-------|
+| 1 | #117 tokens | `design-checkpoint-1-tokens` | `5f508843` | 2026-05-10 16:48 | style-tokens.css ajoute (--ds-* additif, zero override) + wire admin.html + m.html. Aucun changement visuel attendu. |
 
 ## Règles de sécurité
 
