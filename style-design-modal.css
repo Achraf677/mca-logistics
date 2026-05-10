@@ -1,0 +1,224 @@
+/* ==========================================================================
+   MCA Logistics — Design Modal + Forms (Phase 4 / PR-7)
+
+   Restyle visuel CSS-only des modales (toutes : Nouvelle livraison, Edit,
+   modal-livraison, modal-planning, side-drawer, s20-drawer, s25-drawer)
+   et des form-groups generiques. Aucun changement HTML, IDs preserves.
+
+   Mockup ref : preview/components-modal-pagination.html
+   ========================================================================== */
+
+/* ============ MODAL OVERLAY ============ */
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.85);
+  z-index: var(--ds-z-overlay);
+}
+
+/* ============ MODAL CONTENT ============ */
+
+.modal {
+  background: var(--ds-bg-elevated);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-xl);
+  box-shadow: var(--ds-shadow-xl);
+  font-family: var(--ds-font-body);
+}
+
+/* ============ MODAL HEADER ============ */
+
+.modal-header {
+  background: var(--ds-bg-elevated);
+  border-bottom: 1px solid var(--ds-border);
+  position: relative;
+}
+
+/* Accent bar bottom du modal-header (signature ds, comme topbar admin) */
+.modal-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.modal-header h3,
+.modal-title {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-h2);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+.modal-close {
+  background: transparent;
+  border: none;
+  color: var(--ds-text-muted);
+  border-radius: var(--ds-r-sm);
+  transition: background var(--ds-t-fast) var(--ds-ease-out),
+              color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.modal-close:hover {
+  background: var(--ds-bg-card-hover);
+  color: var(--ds-brand);
+}
+
+/* ============ MODAL BODY ============ */
+
+.modal-body {
+  background: var(--ds-bg-elevated);
+  font-family: var(--ds-font-body);
+  color: var(--ds-text);
+}
+
+/* ============ MODAL FOOTER ============ */
+
+.modal-footer {
+  background: var(--ds-bg-elevated);
+  border-top: 1px solid var(--ds-border);
+}
+
+/* ============ FORM GROUPS (24 champs livraison + autres) ============ */
+
+.form-group {
+  font-family: var(--ds-font-body);
+}
+
+.form-group label {
+  font-family: var(--ds-font-body);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea,
+.modal label + input,
+.modal label + select,
+.modal label + textarea,
+.modal input[type="text"],
+.modal input[type="email"],
+.modal input[type="number"],
+.modal input[type="date"],
+.modal input[type="time"],
+.modal input[type="search"],
+.modal input[type="tel"],
+.modal input[type="url"],
+.modal select,
+.modal textarea {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              box-shadow var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.form-group input::placeholder,
+.modal input::placeholder,
+.modal textarea::placeholder {
+  color: var(--ds-text-disabled);
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.modal input:focus,
+.modal select:focus,
+.modal textarea:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* Disabled inputs */
+.form-group input:disabled,
+.form-group select:disabled,
+.modal input:disabled,
+.modal select:disabled {
+  background: var(--ds-bg-deep);
+  color: var(--ds-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Required field indicator (asterisque rouge) */
+.form-group label.required::after,
+.form-group label[data-required="true"]::after {
+  content: ' *';
+  color: var(--ds-brand);
+  font-weight: var(--ds-fw-display);
+}
+
+/* ============ FORM HELPER + ERROR ============ */
+
+.form-helper,
+.form-group .helper {
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-xs);
+  font-family: var(--ds-font-body);
+}
+
+.form-error,
+.form-group .error,
+.form-group input.error,
+.form-group select.error {
+  border-color: var(--ds-danger);
+}
+
+.form-group .error-msg {
+  color: var(--ds-danger);
+  font-size: var(--ds-fs-xs);
+  font-family: var(--ds-font-body);
+}
+
+/* ============ FORM ROW (grid 2 cols) ============ */
+
+.form-row,
+.fp-grid-dense {
+  font-family: var(--ds-font-body);
+}
+
+/* ============ DRAWER 360 (cote, slide right) ============ */
+
+.side-drawer,
+#side-drawer,
+#s20-drawer .drawer-content,
+#s25-drawer .drawer-content {
+  background: var(--ds-bg-elevated);
+  border-left: 1px solid var(--ds-border);
+}
+
+#side-drawer-overlay,
+.drawer-overlay {
+  background: rgba(0, 0, 0, 0.7);
+  z-index: var(--ds-z-overlay);
+}
+
+.drawer-header,
+#side-drawer-header {
+  border-bottom: 1px solid var(--ds-border);
+  background: var(--ds-bg-elevated);
+}
+
+.drawer-title,
+#side-drawer-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+.drawer-body,
+#side-drawer-body {
+  background: var(--ds-bg-elevated);
+}

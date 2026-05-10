@@ -22,8 +22,8 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 - [x] PR-5 : Empty states + Loading + Toasts unifies → PR #121 mergee 2026-05-10 ~17:45 UTC, tag `design-checkpoint-5-feedback` (**Jalon 1 fini**)
 
 ### Jalon 2 — CRUD principal
-- [ ] PR-6 : Livraisons (table + filters + bulk-bar + kanban) (en cours)
-- [ ] PR-7 : Modale Nouvelle/Edit livraison (24 champs)
+- [x] PR-6 : Livraisons (table + filters + bulk-bar + kanban) → PR #122 mergee 2026-05-10 ~18:00 UTC, tag `design-checkpoint-6-livraisons`
+- [ ] PR-7 : Modale Nouvelle/Edit livraison (24 champs) (en cours)
 - [ ] PR-8 : Charges
 - [ ] PR-9 : Carburant (+ anomalies + OCR)
 - [ ] PR-10 : Entretiens
@@ -57,6 +57,7 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 | 3 | #119 login | `design-checkpoint-3-login` | `7d910774` | 2026-05-10 ~17:15 | login.html : nettoyage residus orange (rgba(242,163,59), #f2a33b, #f6b456) -> Speed Red. Bleu salarie conserve. |
 | 4 | #120 dashboard | `design-checkpoint-4-dashboard` | `3c0c28c6` | 2026-05-10 ~17:30 | style-design-dashboard.css : KPIs (Syne italic 800), hero-sante, cards, tables (activity feed), btn-primary/secondary/danger. Variants couleur kpi-card preserves. |
 | 5 | #121 feedback | `design-checkpoint-5-feedback` | `4eaf8060` | 2026-05-10 ~17:45 | style-design-feedback.css : toasts 4 variantes (success/warning/error/info via classe ou data-toast-type), empty states avec font display, skeletons (.ds-skeleton-rect/circle/text/kpi/row + shimmer), spinner (.ds-spinner). **Jalon 1 termine.** |
+| 6 | #122 livraisons | `design-checkpoint-6-livraisons` | `7d25a810` | 2026-05-10 ~18:00 | style-design-livraisons.css : filtres focus brand, tables hover/checked, bulk-bar avec count Syne italic, kanban col headers + cards hover brand, chips active brand-soft, pagination active brand. |
 
 ## Règles de sécurité
 
