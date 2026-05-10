@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v6_5-design-pr3-login-314';
+const CACHE_VERSION = 'mca-v2026-05-10-v6_6-design-pr4-dashboard-315';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -22,6 +22,8 @@ const CORE_ASSETS = [
   '/style-tokens.css',
   // Design shell (Phase 4 / PR-2) — restyle sidebar + topbar
   '/style-design-shell.css',
+  // Design dashboard (Phase 4 / PR-4) — restyle KPIs + cards + tables
+  '/style-design-dashboard.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
