@@ -434,4 +434,77 @@
   else setTimeout(init, 100);
 
   window.encaissement = { render: render, relancerEnLot: relancerEnLot };
+
+  // #94 audit Chrome : Encaissement n'avait NI bouton CSV NI Rapport. Ajoute
+  // les 2 exports en reutilisant la meme construction de rows que render().
+  function buildExportRows() {
+    var allLivraisons = getLivraisons();
+    var rows = allLivraisons.map(annoter).map(function (a) {
+      var l = a.liv || {};
+      return {
+        date: l.date || '',
+        date_facture: l.dateFacture || '',
+        num_liv: l.numLiv || '',
+        client: l.client || '',
+        ttc: a.ttc || 0,
+        statut: a.litige ? 'litige' : (a.paye ? 'encaisse' : (a.retard ? 'retard' : 'a_encaisser')),
+        date_paiement: l.datePaiement || '',
+        mode_paiement: l.modePaiement || '',
+        notes: l.notes || ''
+      };
+    });
+    rows.sort(function (a, b) { return (b.date_facture || b.date).localeCompare(a.date_facture || a.date); });
+    return rows;
+  }
+
+  window.exporterEncaissementCSV = function () {
+    var rows = buildExportRows();
+    var headers = ['Date livraison', 'Date facture', 'N° livraison', 'Client', 'Montant TTC', 'Statut', 'Date paiement', 'Mode paiement', 'Notes'];
+    var csv = headers.join(';') + '\n';
+    rows.forEach(function (r) {
+      csv += [
+        r.date, r.date_facture, r.num_liv,
+        '"' + String(r.client).replace(/"/g, '""') + '"',
+        Number(r.ttc).toFixed(2).replace('.', ','),
+        r.statut, r.date_paiement, r.mode_paiement,
+        '"' + String(r.notes).replace(/"/g, '""') + '"'
+      ].join(';') + '\n';
+    });
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'encaissement_' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { try { a.remove(); URL.revokeObjectURL(url); } catch (_) {} }, 1000);
+    if (typeof window.afficherToast === 'function') window.afficherToast('📥 Export CSV téléchargé');
+    if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Export Encaissement CSV', rows.length + ' ligne(s)');
+  };
+
+  window.exporterEncaissementRapport = function () {
+    var rows = buildExportRows();
+    var params = (typeof window.getParametresEntreprise === 'function') ? window.getParametresEntreprise() : {};
+    var dateExp = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+    var totalTtc = rows.reduce(function (s, r) { return s + Number(r.ttc || 0); }, 0);
+    var nbA = rows.filter(function (r) { return r.statut === 'a_encaisser'; }).length;
+    var nbR = rows.filter(function (r) { return r.statut === 'retard'; }).length;
+    var nbE = rows.filter(function (r) { return r.statut === 'encaisse'; }).length;
+    var entete = (typeof window.construireEnteteExport === 'function')
+      ? window.construireEnteteExport(params, 'État des encaissements', null, dateExp, rows.length + ' livraison(s) · ' + nbA + ' à encaisser · ' + nbR + ' en retard · ' + nbE + ' encaissée(s)')
+      : '<h1 style="color:#f5a623">État des encaissements — ' + dateExp + '</h1>';
+    var tableRows = rows.map(function (r) {
+      var color = r.statut === 'encaisse' ? '#06d6a0' : (r.statut === 'retard' ? '#e63946' : '#f5a623');
+      return '<tr><td>' + r.date + '</td><td>' + r.num_liv + '</td><td>' + (r.client || '').replace(/[<>]/g, '') + '</td>'
+        + '<td style="text-align:right">' + Number(r.ttc).toFixed(2).replace('.', ',') + ' €</td>'
+        + '<td style="color:' + color + ';font-weight:700">' + r.statut + '</td>'
+        + '<td>' + r.date_paiement + '</td><td>' + r.mode_paiement + '</td></tr>';
+    }).join('');
+    var html = entete
+      + '<table style="width:100%;border-collapse:collapse;margin-top:14px;font-size:.84rem"><thead><tr style="background:#f5a62333"><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Date</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">N°</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Client</th><th style="padding:8px;text-align:right;border-bottom:2px solid #f5a623">TTC</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Statut</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Date payé</th><th style="padding:8px;text-align:left;border-bottom:2px solid #f5a623">Mode</th></tr></thead><tbody>' + tableRows + '</tbody>'
+      + '<tfoot><tr style="background:#f5a62333;font-weight:700"><td colspan="3" style="padding:8px;border-top:2px solid #f5a623">TOTAL</td><td style="padding:8px;text-align:right;border-top:2px solid #f5a623">' + totalTtc.toFixed(2).replace('.', ',') + ' €</td><td colspan="3" style="border-top:2px solid #f5a623"></td></tr></tfoot></table>';
+    if (typeof window.ouvrirFenetreImpression === 'function') {
+      window.ouvrirFenetreImpression('Encaissement — ' + (params.nom || 'MCA Logistics'), html, 'width=1200,height=820');
+      if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Rapport Encaissement', rows.length + ' ligne(s)');
+    }
+  };
 })();

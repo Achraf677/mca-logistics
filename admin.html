@@ -1423,7 +1423,12 @@
 
     <!-- ENCAISSEMENT (miroir Charges côté revenus) -->
     <section class="page" id="page-encaissement">
-      <h2 style="display:flex;align-items:center;gap:10px;margin-bottom:18px">💵 Encaissement</h2>
+      <div class="page-actions"><h2>💵 Encaissement</h2>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-secondary" onclick="exporterEncaissementCSV()">📥 CSV</button>
+          <button class="btn-rapport" onclick="exporterEncaissementRapport()">📄 Rapport</button>
+        </div>
+      </div>
       <p style="color:var(--text-muted);margin:0 0 18px;font-size:.9rem">Liste des livraisons facturées et leur statut d'encaissement.</p>
       <div id="encaissement-content"></div>
     </section>
