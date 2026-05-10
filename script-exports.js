@@ -198,7 +198,7 @@ function exporterHistoriqueFournisseursCSV() {
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'fournisseurs_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = 'fournisseurs_' + window.todayLocalISO() + '.csv';
   a.click();
   afficherToast('📥 Export CSV fournisseurs');
 }
