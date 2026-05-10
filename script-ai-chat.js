@@ -1540,7 +1540,7 @@
       if (st.confirmed) {
         const id = (st.result && (st.result.created_id || st.result.updated_id || st.result.deleted_id || st.result.alerte_id)) || '';
         const num = st.result && st.result.num_liv ? ' (' + st.result.num_liv + ')' : '';
-        status.textContent = '✓ Confirmee et executee' + num + (id ? ' · id: ' + String(id).slice(0, 8) : '');
+        status.textContent = '✓ Confirmée et exécutée' + num + (id ? ' · id: ' + String(id).slice(0, 8) : '');
       } else if (st.drafted) {
         const did = st.result && st.result.draft_id ? String(st.result.draft_id).slice(0, 8) : '';
         status.textContent = '📋 Mise en brouillon IA' + (did ? ' · id: ' + did : '');
@@ -1731,26 +1731,26 @@
 
   function niceCreatedLabel(action, result) {
     switch (action) {
-      case 'create_livraison': return 'Livraison ' + (result.num_liv || '') + ' creee';
-      case 'create_charge': return 'Charge creee';
-      case 'create_paiement': return 'Paiement enregistre';
-      case 'resolve_alerte': return 'Alerte marquee resolue';
-      case 'create_client': return 'Client cree';
-      case 'create_fournisseur': return 'Fournisseur cree';
-      case 'create_vehicule': return 'Vehicule cree';
-      case 'create_salarie': return 'Salarie cree';
-      case 'create_carburant': return 'Plein enregistre';
-      case 'create_entretien': return 'Entretien cree';
-      case 'create_incident': return 'Incident cree';
-      case 'create_planning_creneau': return 'Creneau planning cree';
-      case 'create_inspection': return 'Inspection creee';
-      case 'delete_entity': return 'Entite supprimee';
-      case 'add_to_drafts': return 'Ajoutee aux brouillons';
-      case 'execute_draft': return 'Brouillon execute';
-      case 'reject_draft': return 'Brouillon rejete';
+      case 'create_livraison': return 'Livraison ' + (result.num_liv || '') + ' créée';
+      case 'create_charge': return 'Charge créée';
+      case 'create_paiement': return 'Paiement enregistré';
+      case 'resolve_alerte': return 'Alerte marquée résolue';
+      case 'create_client': return 'Client créé';
+      case 'create_fournisseur': return 'Fournisseur créé';
+      case 'create_vehicule': return 'Véhicule créé';
+      case 'create_salarie': return 'Salarié créé';
+      case 'create_carburant': return 'Plein enregistré';
+      case 'create_entretien': return 'Entretien créé';
+      case 'create_incident': return 'Incident créé';
+      case 'create_planning_creneau': return 'Créneau planning créé';
+      case 'create_inspection': return 'Inspection créée';
+      case 'delete_entity': return 'Entité supprimée';
+      case 'add_to_drafts': return 'Ajoutée aux brouillons';
+      case 'execute_draft': return 'Brouillon exécuté';
+      case 'reject_draft': return 'Brouillon rejeté';
       default:
-        if (action && action.startsWith('update_')) return 'Modification enregistree (' + action.slice(7) + ')';
-        return 'Action confirmee';
+        if (action && action.startsWith('update_')) return 'Modification enregistrée (' + action.slice(7) + ')';
+        return 'Action confirmée';
     }
   }
 

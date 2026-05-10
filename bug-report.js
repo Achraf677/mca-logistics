@@ -115,8 +115,8 @@
     modal.innerHTML = (
       '<div style="background:var(--bg-card,#1e2128);color:var(--text,#e5e7eb);padding:20px;border-radius:12px;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:system-ui,sans-serif">'
       + '<h2 style="margin:0 0 12px;font-size:1.1rem">🐛 Signaler un bug</h2>'
-      + '<p style="margin:0 0 12px;font-size:.9rem;color:var(--text-muted,#9ca3af)">Decris ce qui ne marche pas. Le contexte technique (URL, version, logs) est ajoute automatiquement.</p>'
-      + '<textarea id="bug-report-text" rows="5" placeholder="Ex: Le bouton + livraison ne reagit pas quand je tape dessus apres avoir ouvert un brouillon..." style="width:100%;padding:10px;border:1px solid var(--border,#374151);border-radius:6px;background:var(--bg-input,#111827);color:inherit;font:inherit;resize:vertical;box-sizing:border-box"></textarea>'
+      + '<p style="margin:0 0 12px;font-size:.9rem;color:var(--text-muted,#9ca3af)">Décris ce qui ne marche pas. Le contexte technique (URL, version, logs) est ajouté automatiquement.</p>'
+      + '<textarea id="bug-report-text" rows="5" placeholder="Ex: Le bouton + livraison ne réagit pas quand je tape dessus après avoir ouvert un brouillon..." style="width:100%;padding:10px;border:1px solid var(--border,#374151);border-radius:6px;background:var(--bg-input,#111827);color:inherit;font:inherit;resize:vertical;box-sizing:border-box"></textarea>'
       + '<div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">'
       + '<button type="button" id="bug-report-cancel" style="padding:8px 16px;border:1px solid var(--border,#374151);border-radius:6px;background:transparent;color:inherit;cursor:pointer">Annuler</button>'
       + '<button type="button" id="bug-report-submit" style="padding:8px 16px;border:none;border-radius:6px;background:var(--accent,#dc2626);color:#fff;cursor:pointer;font-weight:600">📋 Copier le rapport</button>'

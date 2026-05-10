@@ -9199,7 +9199,7 @@ genererRentabilitePDF = function() {
      ============================================================ */
   function buildSearchIndex() {
     const clients = load(LS.clients).map(c => ({ type:'client', id:c.id, label:c.nom||'(sans nom)', sub: (c.siren||c.email||c.ville||''), obj:c }));
-    const livs = load(LS.livraisons).map(l => ({ type:'livraison', id:l.id, label:l.numero||'(sans N°)', sub: (l.client||'')+' · '+fmtDate(l.date), obj:l }));
+    const livs = load(LS.livraisons).map(l => ({ type:'livraison', id:l.id, label:l.num_liv||l.numLiv||l.numero||'(sans N°)', sub: (l.client||'')+' · '+fmtDate(l.date), obj:l }));
     const factures = load(LS.factures).map(f => ({ type:'facture', id:f.id, label:f.numero||'(sans N°)', sub: (f.client||'')+' · '+fmtEur(f.totalTTC||f.total||0), obj:f }));
     const paiements = load(LS.paiements).map(p => ({ type:'paiement', id:p.id, label:'Paiement '+(p.numero||p.id?.slice(-4)||''), sub: fmtEur(p.montant||0)+' · '+fmtDate(p.date), obj:p }));
     return [...clients, ...livs, ...factures, ...paiements];
