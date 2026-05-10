@@ -211,6 +211,20 @@
 
     <!-- DASHBOARD -->
     <section class="page active" id="page-dashboard">
+      <!-- Phase 2 HTML refonte : section-head pattern mockup pour dashboard.
+           Pas de breadcrumb sur dashboard (page racine). -->
+      <div class="ds-section-head" style="margin-bottom:14px">
+        <div class="ds-section-head__title">
+          <h2>Vue d'ensemble</h2>
+          <div class="ds-section-head__sub">
+            <span>Performance opérationnelle du mois en cours</span>
+            <span class="ds-section-head__sep">·</span>
+            <span id="dashboard-section-sub-date"></span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions"></div>
+      </div>
+
       <div id="dashboard-ct-banner"></div>
 
       <!-- Quick actions bar retirée (Sprint 16) — raccourcis jugés inutiles
