@@ -1,0 +1,22 @@
+<!-- _empty-state.html — État vide générique -->
+<div class="empty-state">
+  <div class="empty-state-icon">📦</div>
+  <div class="empty-state-title">Aucune livraison</div>
+  <div class="empty-state-sub">Crée ta première livraison pour démarrer.</div>
+  <button class="btn-primary" onclick="ouvrirModalLivraison()">+ Nouvelle livraison</button>
+</div>
+
+<!-- Variant compact (pour cellule de tableau) -->
+<tr><td colspan="5" class="empty-row">Aucun résultat sur cette période.</td></tr>
+
+<!-- Variant illustrated (avec SVG décoratif) -->
+<div class="empty-state empty-state--illustrated">
+  <svg width="80" height="80" viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity:0.4">
+    <rect x="10" y="20" width="60" height="50" rx="4"/>
+    <line x1="10" y1="35" x2="70" y2="35"/>
+  </svg>
+  <div class="empty-state-title">Aucun résultat</div>
+  <div class="empty-state-sub">Modifie tes filtres ou crée une nouvelle entrée.</div>
+</div>
+
+<!-- Helper JS : MCA.emptyState({ icon, title, sub, cta }) — voir script-ui-helpers.js -->

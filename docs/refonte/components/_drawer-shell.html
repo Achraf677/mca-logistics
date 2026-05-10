@@ -1,0 +1,46 @@
+<!-- _drawer-shell.html — Drawer 360 slide-right canonique
+     Préserver les IDs : #s20-drawer (Sprint 20), #drawer-360 (autres). -->
+<div class="drawer-overlay" id="ID_PRESERVE-overlay"></div>
+<aside class="drawer-360" id="ID_PRESERVE">
+  <header class="drawer-360-header">
+    <div>
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em">Client</div>
+      <h2 style="font-family:var(--font-display);font-size:18px;font-weight:800;margin:2px 0 0">Carrefour Lille</h2>
+    </div>
+    <button class="modal-close" onclick="fermerDrawer360()" aria-label="Fermer">✕</button>
+  </header>
+
+  <!-- Tabs internes -->
+  <nav class="drawer-tabs" role="tablist">
+    <button class="drawer-tab active" data-tab="resume" role="tab">Résumé</button>
+    <button class="drawer-tab" data-tab="livraisons" role="tab">Livraisons</button>
+    <button class="drawer-tab" data-tab="historique" role="tab">Historique</button>
+    <button class="drawer-tab" data-tab="docs" role="tab">Documents</button>
+  </nav>
+
+  <div class="drawer-360-body">
+    <!-- Contenu onglet actif (KPI + listes + actions) -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:18px">
+      <div class="kpi-card">
+        <div class="kpi-label">Livraisons 30j</div>
+        <div class="kpi-value">12</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">CA HT</div>
+        <div class="kpi-value">4 280 €</div>
+      </div>
+    </div>
+    <h3 style="font-family:var(--font-display);font-size:14px;margin-bottom:10px">Dernières livraisons</h3>
+    <table>
+      <thead><tr><th>N°</th><th>Date</th><th>Statut</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">L-2026-0142</td><td>09/05</td><td><span class="badge ok">Livrée</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <footer style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn-secondary">Modifier</button>
+    <button class="btn-primary">Nouvelle livraison</button>
+  </footer>
+</aside>

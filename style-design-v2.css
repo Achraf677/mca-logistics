@@ -795,3 +795,193 @@ body .progress-bar-fill.danger {
   background: linear-gradient(90deg, var(--danger), #ff8c5e);
 }
 
+
+/* ============================================================
+   25. TABLE RESPONSIVE (Phase 4 #6) — cards stackées <768px
+   ============================================================ */
+@media (max-width: 768px) {
+  body .table-responsive thead { display: none; }
+  body .table-responsive tr {
+    display: block;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    background: var(--bg-card);
+  }
+  body .table-responsive td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 0;
+    border: none;
+    white-space: normal;
+  }
+  body .table-responsive td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+}
+
+/* ============================================================
+   26. FORM-GROUP (Phase 4 #7) — label + input + helper + error
+   ============================================================ */
+body .form-group {
+  margin-bottom: 16px;
+}
+body .form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+body .form-helper {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+body .form-error {
+  font-size: 11px;
+  color: var(--danger);
+  margin-top: 4px;
+  font-weight: 600;
+}
+body .form-group.has-error input,
+body .form-group.has-error textarea,
+body .form-group.has-error select {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.15);
+}
+body .form-group--inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+body .form-group--inline label {
+  margin-bottom: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+/* Radio group horizontal */
+body .radio-group {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+body .radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text);
+  cursor: pointer;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  transition: all var(--t-fast) var(--ease-out);
+  margin-bottom: 0;
+}
+body .radio-group label:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* ============================================================
+   27. TOGGLE SWITCH (Phase 4 #7)
+   ============================================================ */
+body .toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  cursor: pointer;
+}
+body .toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+body .toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--bg-card-hover);
+  border-radius: 999px;
+  transition: background 0.18s var(--ease-out);
+}
+body .toggle-track::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  background: var(--text);
+  border-radius: 50%;
+  transition: transform 0.18s var(--ease-out);
+}
+body .toggle-switch input:checked + .toggle-track {
+  background: var(--brand);
+}
+body .toggle-switch input:checked + .toggle-track::before {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+/* ============================================================
+   28. DRAWER TABS (Phase 4 #5 - drawer 360 onglets internes)
+   ============================================================ */
+body .drawer-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+body .drawer-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 12px 14px;
+  cursor: pointer;
+  position: relative;
+  font-family: inherit;
+  transition: color var(--t-fast) var(--ease-out);
+}
+body .drawer-tab:hover {
+  color: var(--text);
+}
+body .drawer-tab.active {
+  color: var(--brand);
+}
+body .drawer-tab.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand);
+  border-radius: 2px;
+}
+
