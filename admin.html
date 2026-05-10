@@ -82,8 +82,12 @@
   <link rel="stylesheet" href="style-design-parametres.css?v=1" />
   <!-- Design setup wizard (Phase 4 / PR-21) — overrides inline JS styles avec --ds-*. -->
   <link rel="stylesheet" href="style-design-setup-wizard.css?v=1" />
+  <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
+  <link rel="stylesheet" href="style-refonte-charges.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
+  <script defer src="script-charges-kpis-categorie.js?v=1"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -1461,12 +1465,51 @@
 
     <!-- CHARGES -->
     <section class="page" id="page-charges">
-      <div class="page-actions"><h2>💸 Charges</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:.88rem;color:var(--text-muted)" title="Somme TTC (HT + TVA, taux deductibilite ignore)">Total TTC : <strong id="charges-total-mois">0 €</strong></span>
+      <!-- Phase 2 HTML refonte : breadcrumb (mockup canonique) -->
+      <nav class="crumbs ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup (title + sub-meta + actions) -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Charges d'exploitation</h2>
+          <div class="ds-section-head__sub">
+            <span id="charges-section-sub-mois">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="charges-section-sub-count">0</span> lignes saisies</span>
+            <span class="ds-section-head__sep">·</span>
+            <span class="ds-section-head__total">Total TTC : <strong id="charges-total-mois" title="Somme TTC (HT + TVA, taux deductibilite ignore)">0 €</strong></span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="exporterCharges()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterChargesPDFMois()">📄 Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalCharge()">+ Nouvelle charge</button>
+        </div>
+      </div>
+
+      <!-- Phase 2 HTML refonte : 4 KPI cards par categorie (mockup canonique) -->
+      <div class="ds-kpi-grid ds-kpi-grid--charges" id="charges-kpi-grid-cat" aria-label="KPIs par categorie">
+        <div class="ds-kpi-card">
+          <div class="ds-kpi-card__label">Carburant</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-cat-carburant">—</div>
+          <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-carburant-count">0</span> lignes</div>
+        </div>
+        <div class="ds-kpi-card">
+          <div class="ds-kpi-card__label">Entretien</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-cat-entretien">—</div>
+          <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-entretien-count">0</span> lignes</div>
+        </div>
+        <div class="ds-kpi-card">
+          <div class="ds-kpi-card__label">Péages</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-cat-peage">—</div>
+          <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-peage-count">0</span> lignes</div>
+        </div>
+        <div class="ds-kpi-card">
+          <div class="ds-kpi-card__label">Assurance</div>
+          <div class="ds-kpi-card__value" id="charges-kpi-cat-assurance">—</div>
+          <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-assurance-count">0</span> lignes</div>
         </div>
       </div>
       <!-- Navigation mois -->
@@ -1488,6 +1531,26 @@
           </div>
         </div>
       </div>
+      <!-- Phase 2 HTML refonte : chips filtres rapides par categorie (mockup canonique).
+           Synchronisees avec #filtre-charge-cat via window.appliquerChipCharges (script-charges-chips.js). -->
+      <div class="ds-chips-toolbar" id="charges-chips-toolbar" role="tablist" aria-label="Filtres rapides categorie">
+        <button class="ds-chip active" type="button" data-charges-cat="" onclick="appliquerChipCharges('')" role="tab" aria-selected="true">
+          Toutes <span class="ds-chip__count" id="charges-chip-count-all">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="carburant" onclick="appliquerChipCharges('carburant')" role="tab" aria-selected="false">
+          ⛽ Carburant <span class="ds-chip__count" id="charges-chip-count-carburant">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="entretien" onclick="appliquerChipCharges('entretien')" role="tab" aria-selected="false">
+          🔧 Entretien <span class="ds-chip__count" id="charges-chip-count-entretien">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="peage" onclick="appliquerChipCharges('peage')" role="tab" aria-selected="false">
+          🛣️ Péages <span class="ds-chip__count" id="charges-chip-count-peage">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="autre" onclick="appliquerChipCharges('autre')" role="tab" aria-selected="false">
+          📝 Autres <span class="ds-chip__count" id="charges-chip-count-autre">0</span>
+        </button>
+      </div>
+
       <div class="filters" style="margin-bottom:16px">
         <select id="filtre-charge-cat" onchange="afficherCharges()" aria-label="filtre charge cat">
           <option value="">Toutes catégories</option>
