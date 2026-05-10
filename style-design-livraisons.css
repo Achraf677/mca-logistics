@@ -1,0 +1,310 @@
+/* ==========================================================================
+   MCA Logistics — Design Livraisons (Phase 4 / PR-6)
+
+   Restyle visuel CSS-only des composants de la page Livraisons admin :
+   - Filtres bar (.filters / .filters-livraisons)
+   - Tables (.tableau-conteneur, table standard)
+   - Bulk action bar (#bulk-action-bar, .bulk-action-bar)
+   - Kanban board (#kanban-board, .kanban-col, .kanban-card)
+
+   Aucun changement HTML, IDs preserves (#tb-livraisons, #bulk-action-bar,
+   #bulk-count-num, #kanban-board, #filtre-recherche-liv, etc.)
+   Voir docs/refonte/02-ids-data-attrs.md.
+
+   Mockup ref : ui_kits/admin/livraisons.html
+   ========================================================================== */
+
+/* ============ FILTRES (toolbar) ============ */
+
+.filters,
+.filters-livraisons {
+  font-family: var(--ds-font-body);
+}
+
+.filters select,
+.filters input[type="date"],
+.filters input[type="text"],
+.filters-livraisons select,
+.filters-livraisons input[type="date"],
+.filters-livraisons input[type="text"] {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              box-shadow var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.filters select:focus,
+.filters input:focus,
+.filters-livraisons select:focus,
+.filters-livraisons input:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+.filters .searchbar,
+.filters-livraisons .searchbar {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+}
+
+/* ============ TABLES (livraisons + autres) ============ */
+
+table thead th {
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+  color: var(--ds-text-muted);
+}
+
+table tbody td {
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  color: var(--ds-text);
+  vertical-align: middle;
+}
+
+table tbody tr.row-hover:hover td,
+table tbody tr:hover td {
+  background: var(--ds-bg-card-hover);
+}
+
+/* Row checked (selection multiple) : tint rouge brand soft */
+table tbody tr.checked td,
+table tbody tr.bulk-selected td,
+table tbody tr.row-selected td {
+  background: var(--ds-brand-soft);
+}
+
+/* Cellules monetaires alignees a droite, font mono pour tnum */
+table td.amount,
+table td.montant,
+table td.prix,
+table .num {
+  font-family: var(--ds-font-mono);
+  font-feature-settings: "tnum";
+  text-align: right;
+  font-weight: var(--ds-fw-bold);
+}
+
+/* Cellules ID/numero livraison en mono color muted */
+table td.mono,
+table .ldv-num,
+table .liv-num {
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-xs);
+  color: var(--ds-text-muted);
+}
+
+/* Checkbox accent rouge brand */
+input[type="checkbox"] {
+  accent-color: var(--ds-brand);
+}
+
+/* ============ BULK ACTION BAR ============ */
+
+.bulk-action-bar {
+  background: var(--ds-bg-elevated);
+  border: 1px solid var(--ds-brand);
+  border-radius: var(--ds-r-lg);
+  box-shadow: var(--ds-shadow-brand);
+  font-family: var(--ds-font-body);
+  z-index: var(--ds-z-sticky);
+}
+
+.bulk-action-bar .bulk-count {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  color: var(--ds-brand);
+  letter-spacing: -0.02em;
+}
+
+.bulk-action-bar .bulk-action-btn,
+.bulk-action-bar button {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ds-border-strong);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  letter-spacing: 0.02em;
+  transition: background var(--ds-t-fast) var(--ds-ease-out),
+              border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.bulk-action-bar .bulk-action-btn:hover,
+.bulk-action-bar button:hover {
+  background: var(--ds-bg-card-hover);
+  border-color: var(--ds-brand);
+}
+
+/* ============ KANBAN BOARD ============ */
+
+.kanban-board {
+  font-family: var(--ds-font-body);
+}
+
+.kanban-col {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  overflow: hidden;
+}
+
+.kanban-col-header {
+  background: var(--ds-bg-elevated);
+  border-bottom: 1px solid var(--ds-border);
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  font-size: var(--ds-fs-h3);
+  color: var(--ds-text);
+  letter-spacing: -0.01em;
+}
+
+/* Indicateur top colore par colonne (preservation des bords semantiques) */
+.kanban-col-header.attente {
+  box-shadow: inset 0 4px 0 0 var(--ds-warning);
+}
+
+.kanban-col-header.cours {
+  box-shadow: inset 0 4px 0 0 var(--ds-info);
+}
+
+.kanban-col-header.livre {
+  box-shadow: inset 0 4px 0 0 var(--ds-success);
+}
+
+.kanban-col-header.retard,
+.kanban-col-header.alert {
+  box-shadow: inset 0 4px 0 0 var(--ds-brand);
+}
+
+.kanban-count {
+  background: var(--ds-bg-card-hover);
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-xs);
+  font-weight: var(--ds-fw-bold);
+  border-radius: var(--ds-r-pill);
+}
+
+.kanban-col-body.drag-over {
+  background: var(--ds-brand-soft);
+}
+
+.kanban-card {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              transform var(--ds-t-fast) var(--ds-ease-out),
+              box-shadow var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.kanban-card:hover {
+  border-color: var(--ds-brand);
+  transform: translateY(-2px);
+  box-shadow: var(--ds-shadow-md);
+}
+
+.kanban-card-client {
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  color: var(--ds-text);
+}
+
+.kanban-card-sub {
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-xs);
+  color: var(--ds-text-muted);
+}
+
+.kanban-card-prix {
+  font-family: var(--ds-font-mono);
+  font-weight: var(--ds-fw-bold);
+  color: var(--ds-brand);
+  font-feature-settings: "tnum";
+}
+
+/* ============ CHIPS (toolbar filtres rapides) ============ */
+
+.chip {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text-muted);
+  border-radius: var(--ds-r-pill);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  font-size: var(--ds-fs-xs);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              color var(--ds-t-fast) var(--ds-ease-out),
+              background var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.chip:hover {
+  border-color: var(--ds-border-strong);
+  color: var(--ds-text);
+}
+
+.chip.active {
+  background: var(--ds-brand-soft);
+  border-color: var(--ds-brand);
+  color: var(--ds-brand);
+}
+
+.chip .count,
+.chip .chip-count {
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--ds-font-mono);
+  font-weight: var(--ds-fw-bold);
+  border-radius: var(--ds-r-pill);
+}
+
+.chip.active .count,
+.chip.active .chip-count {
+  background: var(--ds-brand-soft);
+  color: var(--ds-brand);
+}
+
+/* ============ PAGINATION ============ */
+
+.pager {
+  font-family: var(--ds-font-body);
+}
+
+.pg,
+.pagination-btn {
+  background: transparent;
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text-muted);
+  border-radius: var(--ds-r-sm);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-xs);
+  transition: background var(--ds-t-fast) var(--ds-ease-out),
+              color var(--ds-t-fast) var(--ds-ease-out),
+              border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.pg:hover,
+.pagination-btn:hover {
+  background: var(--ds-bg-card-hover);
+  color: var(--ds-text);
+}
+
+.pg.active,
+.pagination-btn.active {
+  background: var(--ds-brand);
+  color: var(--ds-brand-on);
+  border-color: var(--ds-brand);
+}
