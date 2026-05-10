@@ -2016,7 +2016,7 @@ async function envoyerInspection() {
   chargerHistoriqueInspections();
   const aQueued = (photoAssets || []).some(p => p && p.queued);
   toast(aQueued
-    ? '✅ Inspection enregistree — photos envoyees au retour reseau'
+    ? '✅ Inspection enregistrée — photos envoyées au retour réseau'
     : '✅ Inspection envoyée à l\'administrateur !');
 }
 
