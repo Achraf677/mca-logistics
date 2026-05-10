@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v8_3-design-pr23-24-chauffeur-332';
+const CACHE_VERSION = 'mca-v2026-05-10-v8_4-phase2-refonte-charges-333';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -56,6 +56,9 @@ const CORE_ASSETS = [
   '/style-design-setup-wizard.css',
   // Design mobile ds (Phase 4 / PR-22) — restyle .m-* avec tokens ds
   '/style-design-mobile-ds.css',
+  // Phase 2 HTML refonte — composants ds canoniques (Charges page premiere)
+  '/style-refonte-charges.css',
+  '/script-charges-kpis-categorie.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
