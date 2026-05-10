@@ -224,6 +224,25 @@
         window.BugReport.open();
       }
     });
+
+    // Garde-fou anti-stuck : si apres 6s le m-content est encore sur le state
+    // initial "Chargement..." (= M.go() jamais appele), afficher un fallback
+    // avec bouton "Vider le cache + reload" pour debloquer un SW cache obsolete.
+    setTimeout(function () {
+      var container = document.getElementById('m-content');
+      if (!container) return;
+      var stillStuck = container.querySelector('.m-loading > p')
+        && container.querySelector('.m-loading > p').textContent.indexOf('Chargement') === 0;
+      if (!stillStuck) return;
+      container.innerHTML =
+        '<div style="padding:32px 20px;text-align:center;color:var(--m-text,#f1f3f5)">'
+        + '<div style="font-size:48px;margin-bottom:16px">⚠️</div>'
+        + '<h2 style="font-family:var(--font-display,sans-serif);font-size:18px;font-weight:800;margin-bottom:8px">L\'app est restée bloquée</h2>'
+        + '<p style="font-size:13px;color:var(--m-text-muted,#adb5bd);margin-bottom:20px;line-height:1.5">Le service worker sert peut-être une version périmée. Vide le cache pour récupérer la dernière version.</p>'
+        + '<button onclick="(async function(){try{var rs=await navigator.serviceWorker.getRegistrations();for(var r of rs)await r.unregister();var ks=await caches.keys();for(var k of ks)await caches.delete(k);location.reload(true);}catch(e){alert(\'Vidage manuel : Réglages > Safari > Données > Effacer\');location.reload();}})();" '
+        + 'style="background:#e63946;color:#fff;border:none;border-radius:10px;padding:14px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">🔄 Vider le cache + recharger</button>'
+        + '</div>';
+    }, 6000);
   </script>
 </body>
 </html>
