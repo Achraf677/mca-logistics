@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v5_24-design-system-tokens-201';
+const CACHE_VERSION = 'mca-v2026-05-10-v5_26-design-v2-overrides-203';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -19,6 +19,7 @@ const CORE_ASSETS = [
   '/script-mobile.js',
   '/style.css',
   '/style-tokens.css',
+  '/style-design-v2.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
