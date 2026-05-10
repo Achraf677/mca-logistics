@@ -419,6 +419,201 @@ document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
 })();
 </script>
 
+<!-- Drawers -->
+<!-- ========================================================
+     Drawers 360° — détail entité (slide from right)
+     ======================================================== -->
+
+<!-- ====== DRAWER : Livraison 360° ====== -->
+<div class="drawer-overlay" id="drawer-livraison-overlay"></div>
+<aside class="drawer" id="drawer-livraison" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0">
+      <div class="drawer-title">L-2026-0142 · Auchan Nord</div>
+      <div class="drawer-sub">Livrée le 09/05/2026 · Lille → Roubaix · 320 €</div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-liv-detail">Détail</button>
+    <button class="drawer-tab" data-dr-tab="dr-liv-doc">Documents</button>
+    <button class="drawer-tab" data-dr-tab="dr-liv-paiement">Paiement</button>
+    <button class="drawer-tab" data-dr-tab="dr-liv-historique">Historique</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-liv-detail">
+      <div class="dr-row"><div class="dr-key">Client</div><div class="dr-val">Auchan Nord <span style="color:var(--text-muted);font-weight:500;margin-left:6px">· SIREN 404 502 198</span></div></div>
+      <div class="dr-row"><div class="dr-key">Trajet</div><div class="dr-val">Lille (59000) → Roubaix (59100)</div></div>
+      <div class="dr-row"><div class="dr-key">Distance</div><div class="dr-val">18,4 km · 28 min estimés</div></div>
+      <div class="dr-row"><div class="dr-key">Chauffeur</div><div class="dr-val">Karim Bouali</div></div>
+      <div class="dr-row"><div class="dr-key">Véhicule</div><div class="dr-val">Sprinter 314 <span class="mono" style="color:var(--text-muted);margin-left:6px">AB-314-MC</span></div></div>
+      <div class="dr-row"><div class="dr-key">Statut</div><div class="dr-val"><span class="badge ok">Livrée</span> · 09/05 à 14:32</div></div>
+      <div class="dr-row"><div class="dr-key">Montant HT</div><div class="dr-val">266,67 €</div></div>
+      <div class="dr-row"><div class="dr-key">TVA (20%)</div><div class="dr-val">53,33 €</div></div>
+      <div class="dr-row"><div class="dr-key">Total TTC</div><div class="dr-val" style="color:var(--text);font-weight:800;font-size:15px">320,00 €</div></div>
+      <div class="dr-row"><div class="dr-key">Marge brute</div><div class="dr-val" style="color:#06d6a0">+142 € · 53%</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-liv-doc">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:14px">Documents générés (3)</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="font-size:18px">📄</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Facture F-2026-0142</div><div style="font-size:11px;color:var(--text-muted)">Envoyée par email · 320,00 € TTC</div></div><button class="btn btn-secondary" style="padding:5px 10px;min-height:28px;font-size:11px">Voir</button></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="font-size:18px">📋</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Bon de livraison BL-2026-0142</div><div style="font-size:11px;color:var(--text-muted)">Émargé · signature client</div></div><button class="btn btn-secondary" style="padding:5px 10px;min-height:28px;font-size:11px">Voir</button></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="font-size:18px">📜</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Lettre de voiture CMR</div><div style="font-size:11px;color:var(--text-muted)">Transport routier conforme</div></div><button class="btn btn-secondary" style="padding:5px 10px;min-height:28px;font-size:11px">Voir</button></div>
+      </div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-liv-paiement">
+      <div class="dr-row"><div class="dr-key">Statut paiement</div><div class="dr-val"><span class="badge ok">Payée</span> · 12/05/2026</div></div>
+      <div class="dr-row"><div class="dr-key">Mode</div><div class="dr-val">Virement bancaire</div></div>
+      <div class="dr-row"><div class="dr-key">Référence</div><div class="dr-val mono">VIR-AUC-2026-0142</div></div>
+      <div class="dr-row"><div class="dr-key">Rapproché Qonto</div><div class="dr-val"><span class="badge ok">Auto · score 0.94</span></div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-liv-historique">
+      <div style="display:flex;flex-direction:column;gap:14px;position:relative;padding-left:20px">
+        <div style="position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)"></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#06d6a0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">12/05 09:22</div><div style="font-size:13px;color:var(--text);font-weight:600">Paiement reçu</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#06d6a0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">09/05 14:32</div><div style="font-size:13px;color:var(--text);font-weight:600">Livraison validée par client</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#4cc9f0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">09/05 08:15</div><div style="font-size:13px;color:var(--text);font-weight:600">En cours de livraison</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--text-muted);border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">08/05 18:00</div><div style="font-size:13px;color:var(--text);font-weight:600">Programmée</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary">Imprimer</button>
+    <button class="btn btn-secondary">Dupliquer</button>
+    <button class="btn btn-primary">Modifier</button>
+  </div>
+</aside>
+
+<!-- ====== DRAWER : Client 360° ====== -->
+<div class="drawer-overlay" id="drawer-client-overlay"></div>
+<aside class="drawer" id="drawer-client" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0;display:flex;align-items:center;gap:14px">
+      <div style="width:48px;height:48px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;flex-shrink:0">AN</div>
+      <div>
+        <div class="drawer-title">Auchan Nord</div>
+        <div class="drawer-sub">Client depuis 14/02/2023 · 22 livraisons 12 mois</div>
+      </div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-cli-detail">Détail</button>
+    <button class="drawer-tab" data-dr-tab="dr-cli-livraisons">Livraisons</button>
+    <button class="drawer-tab" data-dr-tab="dr-cli-paiements">Paiements</button>
+    <button class="drawer-tab" data-dr-tab="dr-cli-stats">Statistiques</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-cli-detail">
+      <div class="dr-row"><div class="dr-key">Raison sociale</div><div class="dr-val">Auchan Hypermarché Nord</div></div>
+      <div class="dr-row"><div class="dr-key">SIREN</div><div class="dr-val mono">404 502 198</div></div>
+      <div class="dr-row"><div class="dr-key">SIRET</div><div class="dr-val mono">404 502 198 00084</div></div>
+      <div class="dr-row"><div class="dr-key">N° TVA</div><div class="dr-val mono">FR 78 404 502 198</div></div>
+      <div class="dr-row"><div class="dr-key">Adresse</div><div class="dr-val">200 rue de la Recherche · 59650 Villeneuve-d'Ascq</div></div>
+      <div class="dr-row"><div class="dr-key">Téléphone</div><div class="dr-val mono">03 20 42 11 00</div></div>
+      <div class="dr-row"><div class="dr-key">Email</div><div class="dr-val">logistique.nord@auchan.fr</div></div>
+      <div class="dr-row"><div class="dr-key">Délai paiement</div><div class="dr-val">30 jours · virement</div></div>
+      <div class="dr-row"><div class="dr-key">Encours</div><div class="dr-val" style="color:var(--warning)">2 840 € · 1 facture en attente</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-cli-livraisons">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">22 livraisons sur 12 mois</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">N°</th><th style="padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">Date</th><th style="padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">Trajet</th><th style="text-align:right;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">HT</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">L-0142</td><td>09/05</td><td>Lille→Roubaix</td><td style="text-align:right">266,67 €</td></tr>
+          <tr><td class="mono">L-0136</td><td>07/05</td><td>Lille→Wattrelos</td><td style="text-align:right">129,17 €</td></tr>
+          <tr><td class="mono">L-0124</td><td>02/05</td><td>Lille→Tourcoing</td><td style="text-align:right">216,67 €</td></tr>
+          <tr><td class="mono">L-0118</td><td>28/04</td><td>Lille→Lambersart</td><td style="text-align:right">183,33 €</td></tr>
+          <tr><td class="mono">L-0112</td><td>22/04</td><td>Lille→Marcq</td><td style="text-align:right">241,67 €</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="drawer-tab-panel" id="dr-cli-paiements">
+      <div class="dr-row"><div class="dr-key">CA 12 mois</div><div class="dr-val" style="font-size:15px;font-weight:800">42 380 €</div></div>
+      <div class="dr-row"><div class="dr-key">Délai moyen paiement</div><div class="dr-val">28 jours</div></div>
+      <div class="dr-row"><div class="dr-key">Retards (12m)</div><div class="dr-val">0</div></div>
+      <div class="dr-row"><div class="dr-key">Encours actuel</div><div class="dr-val" style="color:var(--warning)">2 840 €</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-cli-stats">
+      <div class="dr-row"><div class="dr-key">Panier moyen HT</div><div class="dr-val">198,30 €</div></div>
+      <div class="dr-row"><div class="dr-key">Fréquence</div><div class="dr-val">~5 livr/mois</div></div>
+      <div class="dr-row"><div class="dr-key">Trajets favoris</div><div class="dr-val">Lille → Roubaix (8) · Lille → Tourcoing (5)</div></div>
+      <div class="dr-row"><div class="dr-key">Saisonnalité</div><div class="dr-val">Pic décembre +35%</div></div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary">Historique</button>
+    <button class="btn btn-secondary">Modifier</button>
+    <button class="btn btn-primary" data-modal-open="modal-new-livraison">Nouvelle livraison</button>
+  </div>
+</aside>
+
+<!-- ====== DRAWER : Véhicule 360° ====== -->
+<div class="drawer-overlay" id="drawer-vehicule-overlay"></div>
+<aside class="drawer" id="drawer-vehicule" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0">
+      <div class="drawer-title">Sprinter 314 · Mercedes-Benz</div>
+      <div class="drawer-sub mono">AB-314-MC · acquis 12/01/2024 · 142 380 km</div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-veh-detail">Identité</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-conf">Conformité</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-entretien">Entretien</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-carburant">Carburant</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-tco">TCO</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-veh-detail">
+      <div class="dr-row"><div class="dr-key">Immatriculation</div><div class="dr-val mono">AB-314-MC</div></div>
+      <div class="dr-row"><div class="dr-key">Marque · Modèle</div><div class="dr-val">Mercedes-Benz Sprinter 314 CDI</div></div>
+      <div class="dr-row"><div class="dr-key">Année</div><div class="dr-val">2024</div></div>
+      <div class="dr-row"><div class="dr-key">N° série</div><div class="dr-val mono">WDB907655RP123456</div></div>
+      <div class="dr-row"><div class="dr-key">Type · Carburant</div><div class="dr-val">VL (3,5T) · Gazole B7</div></div>
+      <div class="dr-row"><div class="dr-key">Charge utile</div><div class="dr-val">1 200 kg</div></div>
+      <div class="dr-row"><div class="dr-key">Volume utile</div><div class="dr-val">14 m³</div></div>
+      <div class="dr-row"><div class="dr-key">Crit'Air</div><div class="dr-val">Crit'Air 2</div></div>
+      <div class="dr-row"><div class="dr-key">Chauffeur attitré</div><div class="dr-val">Karim Bouali</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-conf">
+      <div class="dr-row"><div class="dr-key">Prochain CT</div><div class="dr-val">12/11/2026 · dans 6 mois</div></div>
+      <div class="dr-row"><div class="dr-key">Assurance</div><div class="dr-val">AXA Pro · expire 31/12/2026</div></div>
+      <div class="dr-row"><div class="dr-key">Carte grise</div><div class="dr-val"><span class="badge ok">Valide</span></div></div>
+      <div class="dr-row"><div class="dr-key">Vignette Crit'Air</div><div class="dr-val"><span class="badge ok">Apposée</span></div></div>
+      <div class="dr-row"><div class="dr-key">Dernière inspection</div><div class="dr-val">09/05 06:45 · Karim B. · Conforme</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-entretien">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Carnet d'entretien · 8 interventions</div>
+      <table style="width:100%;font-size:12px"><tbody>
+        <tr><td class="mono">07/05</td><td>Pneus AR (×2)</td><td style="text-align:right;color:#06d6a0">428,00 €</td></tr>
+        <tr><td class="mono">14/02</td><td>Vidange + filtres</td><td style="text-align:right;color:#06d6a0">312,00 €</td></tr>
+        <tr><td class="mono">22/11/25</td><td>Révision 100k km</td><td style="text-align:right;color:#06d6a0">580,00 €</td></tr>
+      </tbody></table>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-carburant">
+      <div class="dr-row"><div class="dr-key">Conso 30j</div><div class="dr-val">9,2 L/100 km</div></div>
+      <div class="dr-row"><div class="dr-key">Budget mensuel</div><div class="dr-val">1 240 €</div></div>
+      <div class="dr-row"><div class="dr-key">Écart vs budget</div><div class="dr-val" style="color:#06d6a0">-42 € (sous budget)</div></div>
+      <div class="dr-row"><div class="dr-key">Dernier plein</div><div class="dr-val">08/05 · Total Béthune · 186,40 € · 55,4 L</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-tco">
+      <div class="dr-row"><div class="dr-key">Coût acquisition</div><div class="dr-val">42 800 € HT</div></div>
+      <div class="dr-row"><div class="dr-key">Charges 12m</div><div class="dr-val">18 240 €</div></div>
+      <div class="dr-row"><div class="dr-key">CA généré 12m</div><div class="dr-val" style="color:#06d6a0">68 920 €</div></div>
+      <div class="dr-row"><div class="dr-key">TCO €/km</div><div class="dr-val">0,82 €/km</div></div>
+      <div class="dr-row"><div class="dr-key">ROI projeté</div><div class="dr-val" style="color:#06d6a0">28 mois</div></div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary" data-modal-open="modal-plan-entretien">Planifier entretien</button>
+    <button class="btn btn-secondary" data-modal-open="modal-program-ct">Programmer CT</button>
+    <button class="btn btn-primary">Modifier</button>
+  </div>
+</aside>
+
+
 <!-- Modals -->
 <!-- ========================================================
      Modals & Drawers — contenu HTML injecté dans chaque page
