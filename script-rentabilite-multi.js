@@ -119,16 +119,18 @@
       var taux = parseFloat(p.tauxTVA) || 20;
       s.coutCarburant += ttc / (1 + taux / 100);
     });
+    // #56 #57 #61 audit Chrome : charges/entretiens sans vehId allaient dans
+    // un "trou noir" -> totaux marge "Par vehicule" ne reconciliaient pas
+    // avec "Par client" (qui repartit tout). Fix : aggregation dans la
+    // ligne "sans-vehicule" pour avoir le meme perimetre total entre vues.
     charges.forEach(function (c) {
-      if (!c.vehId) return; // charges non rattachees au vehicule = exclues du calcul direct
-      var s = ensure(c.vehId);
+      var s = ensure(c.vehId || 'sans-vehicule');
       var ttc = parseFloat(c.montant) || 0;
       var taux = parseFloat(c.tauxTVA) || 20;
       s.coutCharges += ttc / (1 + taux / 100);
     });
     entretiens.forEach(function (e) {
-      if (!e.vehId) return;
-      var s = ensure(e.vehId);
+      var s = ensure(e.vehId || 'sans-vehicule');
       s.coutEntretien += parseFloat(e.cout) || 0;
     });
 

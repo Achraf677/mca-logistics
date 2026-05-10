@@ -3102,7 +3102,23 @@
         <div class="form-group"><label>Véhicule</label><select id="admin-insp-vehicule" aria-label="admin insp vehicule"><option value="">— Aucun véhicule —</option></select></div>
         <div class="form-group"><label>Date d'inspection</label><input type="date" id="admin-insp-date" / aria-label="admin insp date" /></div>
         <div class="form-group"><label>Kilométrage relevé</label><input type="number" id="admin-insp-km" min="0" step="1" placeholder="Ex : 125000" / aria-label="Ex : 125000" /></div>
-        <div class="form-group full-width"><label>Commentaire</label><textarea id="admin-insp-commentaire" rows="4" placeholder="Ex : inspection rapide OK, pneus avant à surveiller" aria-label="Ex : inspection rapide OK, pneus avant à surveiller"></textarea></div>
+        <!-- #47 audit Chrome : checkpoints inspection vehicule (DGITM controles
+             depart/retour). Auto-creation incident pour chaque KO. -->
+        <div class="form-group full-width">
+          <label style="margin-bottom:8px">Points de contrôle</label>
+          <div id="admin-insp-checkpoints" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:.88rem">
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="pneus" checked /> 🔘 Pneus (pression + état)</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="freins" checked /> 🛑 Freins</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="niveaux" checked /> 🛢️ Niveaux (huile, lave-glace)</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="eclairage" checked /> 💡 Éclairage</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="ceinture" checked /> 🔒 Ceintures</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="carrosserie" checked /> 🚘 Carrosserie</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="documents" checked /> 📄 Documents (CG, assurance)</label>
+            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="propreté" checked /> ✨ Propreté intérieure</label>
+          </div>
+          <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Coche = OK. Décoche = KO (un incident sera créé automatiquement).</p>
+        </div>
+        <div class="form-group full-width"><label>Commentaire</label><textarea id="admin-insp-commentaire" rows="3" placeholder="Détail des points KO ou observations" aria-label="Commentaire inspection"></textarea></div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-inspection-admin')">Annuler</button><button class="btn-primary" onclick="ajouterInspectionAdmin()">✅ Enregistrer</button></div>
     </div>
