@@ -35,7 +35,13 @@ function naviguerVers(page) {
     heures:'⏱️ Heures & Km',
     equipe:'👥 Équipe',
     'espace-salarie':'Espace salarié',
-    'brouillons-ia':'📋 Brouillons IA'
+    'brouillons-ia':'📋 Brouillons IA',
+    // #18 #66 audit Chrome : breadcrumbs en minuscules sans emoji
+    // ("calendrier", "encaissement") car alias absents du mapping.
+    calendrier: '🗓️ Calendrier opérationnel',
+    encaissement: '💵 Encaissement',
+    audit: '📋 Audit',
+    recherche: '🔍 Recherche globale'
   };
   const titleEl = document.getElementById('pageTitle');
   if (titleEl) titleEl.textContent = titres[page] || page;

@@ -7978,7 +7978,9 @@ genererRentabilitePDF = function() {
   function rendrerPagination(key, total, page, perPage, totalPages, start) {
     const container = document.querySelector('[data-pagination-key="' + key + '"]');
     if (!container) return;
-    if (total === 0) { container.style.display = 'none'; container.innerHTML = ''; return; }
+    // #20 audit Chrome : masquer la pagination si tout tient sur une page
+    // (avant le fix : "Affichage 1-1 sur 1" + selecteur 25/page sur 1 ligne).
+    if (total === 0 || total <= perPage) { container.style.display = 'none'; container.innerHTML = ''; return; }
     container.style.display = '';
 
     const end = Math.min(start + perPage, total);

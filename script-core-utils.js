@@ -616,12 +616,33 @@ function findLivraisonByRef(numOuClient, livraisons) {
   }) || null;
 }
 
+// #65 #85 audit Chrome : helper unique pour eviter les bugs timezone J-1
+// quand on saisit une date entre minuit local et 02h. Utilise dateToLocalISO
+// (defini dans script.js) si dispo, sinon fallback inline.
+function todayLocalISO() {
+  if (typeof window !== 'undefined' && typeof window.dateToLocalISO === 'function') {
+    return window.dateToLocalISO(new Date());
+  }
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function dateLocalISO(date) {
+  if (typeof window !== 'undefined' && typeof window.dateToLocalISO === 'function') {
+    return window.dateToLocalISO(date);
+  }
+  var d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
 // Expose au scope global (parite onclick + acces depuis script-mobile.js)
 if (typeof window !== 'undefined') {
   window.normalizeLDV = normalizeLDV;
   window.normalizeVehicule = normalizeVehicule;
   window.findFournisseurByNom = findFournisseurByNom;
   window.findLivraisonByRef = findLivraisonByRef;
+  window.todayLocalISO = todayLocalISO;
+  window.dateLocalISO = dateLocalISO;
 }
 
 // Export Node (tests unitaires uniquement)

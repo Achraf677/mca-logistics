@@ -311,7 +311,7 @@
             var idx = arr.findIndex(x => x.id === id);
             if (idx < 0) return;
             arr[idx].statutPaiement = 'payé';
-            arr[idx].datePaiement = new Date().toISOString().slice(0, 10);
+            arr[idx].datePaiement = window.todayLocalISO();
             localStorage.setItem('livraisons', JSON.stringify(arr));
           } catch (_) {}
         }
@@ -474,7 +474,7 @@
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'encaissement_' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.download = 'encaissement_' + window.todayLocalISO() + '.csv';
     document.body.appendChild(a); a.click();
     setTimeout(function () { try { a.remove(); URL.revokeObjectURL(url); } catch (_) {} }, 1000);
     if (typeof window.afficherToast === 'function') window.afficherToast('📥 Export CSV téléchargé');

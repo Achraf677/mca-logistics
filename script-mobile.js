@@ -386,7 +386,7 @@
   M.dialogChoisirDate = function(opts = {}) {
     return new Promise(resolve => {
       document.querySelector('.m-date-dialog')?.remove();
-      const today = new Date().toISOString().slice(0, 10);
+      const today = window.todayLocalISO();
       const valDef = opts.defaut || today;
       const overlay = document.createElement('div');
       overlay.className = 'm-date-dialog';
@@ -430,7 +430,7 @@
     if (!params) return false;
     const { interval, count } = params;
     const dateField = opts.dateField || 'date';
-    const baseDateStr = source[dateField] || new Date().toISOString().slice(0, 10);
+    const baseDateStr = source[dateField] || window.todayLocalISO();
     const baseDate = new Date(baseDateStr);
     const ajoutees = [];
     for (let i = 1; i <= count; i++) {
@@ -681,7 +681,7 @@
   M.formNouvelleLivraison = function(existing) {
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
     const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const enEdition = !!existing;
     const v = existing || {};
     // Dual-read : si la livraison vient de PC (nested only), hisse les valeurs
@@ -1262,7 +1262,7 @@
 
   M.formNouveauPlein = function(existing) {
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const enEdition = !!existing;
     const p = existing || {};
 
@@ -1471,7 +1471,7 @@
   };
 
   M.formNouvelleCharge = function(existing) {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const enEdition = !!existing;
     const c = existing || {};
     // R7 : autocomplete fournisseur via <datalist> mobile-friendly + capture
@@ -3223,7 +3223,7 @@
     const insp = existing || { photos: [] };
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
     const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const photos = Array.isArray(insp.photos) ? [...insp.photos] : [];
 
     const renderPhotosGrid = () => {
@@ -3343,7 +3343,7 @@
     const enEdition = !!existing;
     const inc = existing || {};
     const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const body = `
       ${M.formField('Date', M.formInput('date', { type: 'date', value: (inc.date || (inc.creeLe || '').slice(0, 10) || today), required: true }), { required: true })}
       ${M.formField('Client', M.formInput('client', { value: inc.client || '', placeholder: 'Nom du client (libre)' }))}
@@ -3426,7 +3426,7 @@
     const enEdition = !!(existing && existing.id);
     const e = existing || {};
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const body = `
       ${M.formField('Véhicule', M.formSelect('vehiculeId', vehicules.map(v => ({ value: v.id, label: v.immat || v.id })), { placeholder: 'Choisir véhicule', value: e.vehiculeId || '', required: true }), { required: true })}
       <div class="m-form-row">
@@ -3606,7 +3606,7 @@
     const h = existing || {};
     const salaries = M.charger('salaries').filter(s => s && !s.archive && s.statut !== 'inactif');
     const vehicules = M.charger('vehicules').filter(v => v && !v.archive);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const body = `
       ${M.formField('Salarié', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Choisir', value: h.salId || h.salarieId || '', required: true }), { required: true })}
       ${M.formField('Date', M.formInput('date', { type: 'date', value: h.date || today, required: true }), { required: true })}
@@ -3891,6 +3891,12 @@
   // Badge alertes (sync avec compteur sidebar desktop)
   // ============================================================
   M.compterAlertesNonLues = function() {
+    // #38 #46 #50 #55 #77 #113 audit Chrome : single source of truth.
+    // Mobile et PC utilisaient 2 helpers differents -> 4 valeurs discordantes
+    // sur Dashboard / sidebar / page Alertes / mobile. Fix : delegue au PC.
+    if (typeof window.compterAlertesNonLues === 'function') {
+      try { return window.compterAlertesNonLues(); } catch (_) { /* fallback */ }
+    }
     const arr = M.charger('alertes_admin');
     const now = new Date();
     return arr.filter(a => {
@@ -5249,7 +5255,7 @@
       }
     });
     if (absences.length) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = window.todayLocalISO();
       const enCours = absences.filter(a => a.dateDebut <= today && (!a.dateFin || a.dateFin >= today));
       const aVenir = absences.filter(a => a.dateDebut > today);
       const passees = absences.filter(a => a.dateFin && a.dateFin < today);
@@ -5751,7 +5757,7 @@
   M.formAbsenceLongue = function(absId, salIdInit) {
     const salaries = M.charger('salaries').filter(s => s && s.statut !== 'inactif' && !s.archive);
     const plannings = M.charger('plannings');
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     let abs = null, salPlanning = null;
     if (absId) {
       for (const p of plannings) {
@@ -6831,7 +6837,7 @@
   M.formNouvelEncaissement = function(existing) {
     const enEdition = !!existing;
     const e = existing || {};
-    const today = new Date().toISOString().slice(0, 10);
+    const today = window.todayLocalISO();
     const clients = M.charger('clients').sort((a,b) => (a.nom || '').localeCompare(b.nom || ''));
     const body = `
       ${M.formField('Libellé / Source', M.formInput('libelle', { value: e.libelle || '', placeholder: 'Ex: Acompte client X, virement libre...', required: true }), { required: true })}
@@ -7496,7 +7502,7 @@
           if (idx < 0) return;
           arr[idx].statut = 'paye';
           arr[idx].statutPaiement = 'paye';
-          arr[idx].datePaiement = new Date().toISOString().slice(0, 10);
+          arr[idx].datePaiement = window.todayLocalISO();
           arr[idx].modifieLe = new Date().toISOString();
           M.sauvegarder('charges', arr);
           M.toast('✅ Charge marquée payée');
@@ -9500,7 +9506,7 @@
         }
       }
     }
-    const auj = new Date().toISOString().slice(0, 10);
+    const auj = window.todayLocalISO();
     const kmRestants = prochainKm ? (prochainKm - kmActuel) : null;
     const dans30j = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
     return {
@@ -9588,7 +9594,7 @@
                     : `dans ${M.formatNum(pilotage.kmRestants)} km`)
                 : '';
               const detDate = pilotage.dateEcheance
-                ? (pilotage.dateEcheance < new Date().toISOString().slice(0, 10)
+                ? (pilotage.dateEcheance < window.todayLocalISO()
                     ? `échéance ${M.formatDate(pilotage.dateEcheance)} dépassée`
                     : `échéance ${M.formatDate(pilotage.dateEcheance)}`)
                 : '';
@@ -11443,7 +11449,7 @@
   });
 
   // ---------- Calendrier (v3.26 : vue jour + plannings + jours feries + echeances) ----------
-  M.state.calendrierDate = new Date().toISOString().slice(0, 10);
+  M.state.calendrierDate = window.todayLocalISO();
 
   // Jours feries FR (port de script.js : feriesDeLAnnee + paquesDate)
   M._feriesCache = {};
@@ -11520,7 +11526,7 @@
 
       const ferie = M.feriePourDate(dateSel);
       const dateLabel = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).replace(/^./, c => c.toUpperCase());
-      const estAujourd = dateSel === new Date().toISOString().slice(0, 10);
+      const estAujourd = dateSel === window.todayLocalISO();
 
       // Nav prev/next
       const prev = new Date(d); prev.setDate(prev.getDate() - 1);
@@ -11601,7 +11607,7 @@
       const picker = container.querySelector('#m-cal-picker');
       if (picker) picker.addEventListener('change', e => { M.state.calendrierDate = e.target.value; M.go('calendrier'); });
       const today = container.querySelector('.m-cal-today');
-      if (today) today.addEventListener('click', () => { M.state.calendrierDate = new Date().toISOString().slice(0, 10); M.go('calendrier'); });
+      if (today) today.addEventListener('click', () => { M.state.calendrierDate = window.todayLocalISO(); M.go('calendrier'); });
     }
   });
 
