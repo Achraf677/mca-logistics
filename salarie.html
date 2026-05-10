@@ -531,7 +531,7 @@ html, body {
   transform: translateY(-100%); transition: transform .3s, background .3s;
 }
 #offline-banner.visible { transform: translateY(0); }
-body.online-with-queue #offline-banner { background: var(--orange, #f5a623); color: #000; }
+body.online-with-queue #offline-banner { background: var(--orange, #e63946); color: #000; }
 
 /* ===== EMPTY STATE ===== */
 .empty { text-align: center; color: var(--muted); padding: 32px 20px; font-size: .88rem; }
@@ -693,7 +693,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
   font-family:inherit;
 }
 .pill-type.active {
-  background:linear-gradient(135deg,var(--accent),#ff8c00);
+  background:linear-gradient(135deg,var(--accent),#ff4d5c);
   color:#000;border-color:var(--accent);
 }
 .menu-actions-wrap { position:relative; }
@@ -799,7 +799,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
     </div>
     <div class="topbar-right">
       <span id="online-dot" title="État réseau" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green,#2ecc71);margin-right:6px"></span>
-      <span id="offline-queue-badge" style="display:none;align-items:center;justify-content:center;background:var(--orange,#f5a623);color:#000;border-radius:20px;font-size:.7rem;font-weight:800;padding:2px 7px;margin-right:6px;min-width:18px;height:18px" title="Saisies en attente de synchronisation"></span>
+      <span id="offline-queue-badge" style="display:none;align-items:center;justify-content:center;background:var(--orange,#e63946);color:#000;border-radius:20px;font-size:.7rem;font-weight:800;padding:2px 7px;margin-right:6px;min-width:18px;height:18px" title="Saisies en attente de synchronisation"></span>
       <button class="btn-profil" onclick="changerOnglet('profil',null)" title="Mon profil" aria-label="Mon profil">
         👤
         <span class="notif-dot" id="notif-dot"></span>
@@ -1027,7 +1027,7 @@ body.online-with-queue #offline-banner { background: var(--orange, #f5a623); col
             <div style="display:flex;gap:10px">
               <button id="btn-km-depart" onclick="enregistrerKmDepart()" style="
                 flex:1;
-                background:linear-gradient(135deg,#f5a623,#ff8c00);
+                background:linear-gradient(135deg,#e63946,#ff4d5c);
                 color:#000;border:none;border-radius:14px;
                 padding:17px;font-size:1rem;font-weight:800;
                 cursor:pointer;font-family:inherit;
