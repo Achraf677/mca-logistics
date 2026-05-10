@@ -4365,10 +4365,42 @@ window.__adminFinalLock = function() {
 };
 /* ===== FINAL ADMIN LOCK ===== */
 ouvrirFenetreImpression = function(titre, html, options) {
-  const win = ouvrirPopupSecure('', '_blank', options || 'width=900,height=700');
-  if (!win) return;
-  win.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>html,body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}body{padding:20px}.export-logo{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff;padding:6px}table,thead,tbody,tr,th,td,div,span{print-color-adjust:exact !important;-webkit-print-color-adjust:exact !important}@page{margin:12mm}</style></head><body>' + html + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},700);});<\/script></body></html>');
-  win.document.close();
+  // #93 #97 #98 audit Chrome : avant le fix, ouvrirPopupSecure retournait null
+  // si popup bloque (navigateur corp / mobile webview) -> rapport JAMAIS genere,
+  // toast "✓ Rapport genere" affiche AVANT le toast "⚠ Fenetre bloquee".
+  // Fix : on tente toujours la popup (impression directe), MAIS si bloque,
+  // fallback blob+download immediat (l'utilisateur recupere le HTML qu'il
+  // peut imprimer via Cmd+P / Ctrl+P depuis le fichier ouvert).
+  var fullHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + titre + '</title><style>html,body{margin:0;padding:0;background:#fff;font-family:Segoe UI,Arial,sans-serif;-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important}body{padding:20px}.export-logo{width:58px;height:58px;object-fit:contain;border-radius:12px;border:1px solid #e5e7eb;background:#fff;padding:6px}table,thead,tbody,tr,th,td,div,span{print-color-adjust:exact !important;-webkit-print-color-adjust:exact !important}@page{margin:12mm}</style></head><body>' + html + '<script>window.addEventListener("load",function(){setTimeout(function(){window.print();},700);});<\/script></body></html>';
+  var win = (typeof ouvrirPopupSecure === 'function')
+    ? ouvrirPopupSecure('', '_blank', options || 'width=900,height=700')
+    : window.open('', '_blank', options || 'width=900,height=700');
+  if (win && win.document) {
+    try {
+      win.document.write(fullHtml);
+      win.document.close();
+      return win;
+    } catch (_) { /* fallback */ }
+  }
+  // Fallback : blob download (popup bloque par navigateur)
+  try {
+    var blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = (titre || 'rapport').replace(/[^a-z0-9_\-]+/gi, '_').slice(0, 80) + '.html';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { try { a.remove(); URL.revokeObjectURL(url); } catch (_) {} }, 1000);
+    if (typeof afficherToast === 'function') {
+      afficherToast('📄 Rapport téléchargé (popup bloquée). Ouvre le fichier puis Cmd/Ctrl+P pour imprimer.', 'success');
+    }
+  } catch (e) {
+    if (typeof afficherToast === 'function') {
+      afficherToast('⚠️ Impossible de générer le rapport (' + (e && e.message || 'erreur navigateur') + ')', 'error');
+    }
+  }
+  return null;
 };
 
 construireEnteteExport = function(params, titre, sousTitre, dateExp, metaCustom) {
