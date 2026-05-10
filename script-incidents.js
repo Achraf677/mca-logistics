@@ -71,7 +71,11 @@ function ajouterIncident() {
   const date     = document.getElementById('inc-date')?.value || aujourdhui();
   const livId    = document.getElementById('inc-livraison')?.value || '';
   const salId    = document.getElementById('inc-salarie')?.value || '';
-  const desc     = document.getElementById('inc-description')?.value.trim() || '';
+  // #51 audit Chrome : sanitize defense en profondeur (le rendu echappe deja
+  // mais on retire <script>/<iframe>/on*= avant stockage pour eviter qu'un
+  // futur renderer innerHTML execute du code injecte).
+  const descRaw  = document.getElementById('inc-description')?.value.trim() || '';
+  const desc     = (typeof window.sanitizeUserInput === 'function') ? window.sanitizeUserInput(descRaw) : descRaw;
   const gravite  = document.getElementById('inc-gravite')?.value || 'moyen';
 
   if (!desc) { afficherToast('⚠️ Description obligatoire','error'); return; }
