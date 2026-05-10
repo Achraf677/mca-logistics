@@ -17,6 +17,7 @@
   <link rel="dns-prefetch" href="https://o4511305319907328.ingest.de.sentry.io">
   <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
   <link rel="preload" as="style" href="style.css?v=20260509e-60">
+  <link rel="preload" as="style" href="style-design-v2.css?v=218">
   <link rel="preload" as="script" href="script.js?v=20260510a-3">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
@@ -49,7 +50,7 @@
   <link rel="stylesheet" href="style-tokens.css?v=20260510a-1" />
   <link rel="stylesheet" href="style.css?v=20260509e-60" />
   <!-- Design system Phase 2 : overrides visuels (KPI border-left, sidebar active, buttons, badges, tables) - charge APRES style.css -->
-  <link rel="stylesheet" href="style-design-v2.css?v=20260510a-1" />
+  <link rel="stylesheet" href="style-design-v2.css?v=218" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 </head>
@@ -175,9 +176,13 @@
     <section class="page active" id="page-dashboard">
       <div id="dashboard-ct-banner"></div>
 
-      <!-- Quick actions bar retirée (Sprint 16) — raccourcis jugés inutiles
-           Export Z reste accessible depuis Facturation, Ctrl+K reste en keybind global -->
-
+      <!-- Section head DS canonique (mockup admin/index.html) -->
+      <div class="section-head" style="margin-bottom:18px">
+        <div>
+          <h2 style="font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-0.02em;margin:0">Vue d'ensemble</h2>
+          <div class="sub" style="color:var(--text-muted);font-size:13px;margin-top:4px">Performance opérationnelle du mois en cours</div>
+        </div>
+      </div>
 
       <!-- Hero santé avec score ring (Sprint 4) -->
       <div id="kpi-sante-globale" class="hero-sante">
