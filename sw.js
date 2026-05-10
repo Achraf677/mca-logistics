@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v9_5-phase2-refonte-planning-344';
+const CACHE_VERSION = 'mca-v2026-05-10-v9_9-phase2-refonte-clients-fournisseurs-348';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -67,6 +67,8 @@ const CORE_ASSETS = [
   '/script-vehicules-counts.js',
   // Phase 2 HTML refonte — Planning section-head counts (semaine + planifies)
   '/script-planning-counts.js',
+  // Phase 2 HTML refonte — Clients/Fournisseurs section-head counts
+  '/script-clients-fournisseurs-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
