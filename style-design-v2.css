@@ -1,0 +1,350 @@
+/**
+ * MCA Logistics — Design System Phase 2 : overrides visuels
+ *
+ * Applique les patterns canoniques (mockups Claude Design) aux selectors
+ * existants admin.html / m.html / salarie.html sans toucher au HTML.
+ *
+ * Charge APRES style.css pour overrider. Utilise `body.app-shell` comme
+ * gatekeeper de specificite.
+ *
+ * Mockups source : ui_kits/admin/index.html, livraisons.html, planning.html, etc.
+ */
+
+/* ============================================================
+   1. KPI / STAT PILLS — border-left brand 3px + uppercase labels
+   ============================================================ */
+body .stat-pill,
+body .kpi-card,
+body .stats-tile {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow: hidden;
+  transition: border-color var(--t-fast) var(--ease-out);
+}
+body .stat-pill::before,
+body .kpi-card::before,
+body .stats-tile::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  bottom: 0;
+  background: var(--brand);
+}
+body .stat-pill:hover,
+body .kpi-card:hover,
+body .stats-tile:hover {
+  border-color: var(--border-strong);
+}
+body .stat-pill-label,
+body .kpi-label,
+body .stats-tile-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+body .stat-pill-value,
+body .kpi-value,
+body .stats-tile-value {
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-feature-settings: "tnum";
+  color: var(--text);
+  line-height: 1.2;
+}
+
+/* Variantes semantiques : couleur de la bande gauche */
+body .stat-pill-green::before,
+body .kpi-card.green::before {
+  background: var(--success);
+}
+body .stat-pill-orange::before,
+body .kpi-card.orange::before,
+body .kpi-card.warning::before {
+  background: var(--warning);
+}
+body .stat-pill-red::before,
+body .kpi-card.red::before,
+body .kpi-card.danger::before {
+  background: var(--danger);
+}
+body .stat-pill-blue::before,
+body .kpi-card.blue::before {
+  background: var(--info);
+}
+
+/* ============================================================
+   2. SIDEBAR / NAV — active state avec stripe brand
+   ============================================================ */
+body .sidebar {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+}
+body .nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 2px;
+  transition: all var(--t-fast) var(--ease-out);
+}
+body .nav-item:hover {
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+body .nav-item.active {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+body .nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--brand);
+  border-radius: 0 3px 3px 0;
+}
+
+/* ============================================================
+   3. TOPBAR — typo display
+   ============================================================ */
+body .topbar {
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+body .topbar-title,
+body #pageTitle {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================================
+   4. BUTTONS — brand primary + reflet hover
+   ============================================================ */
+body .btn-primary {
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  min-height: 40px;
+  transition: all var(--t-fast) var(--ease-out);
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: var(--shadow-brand);
+  cursor: pointer;
+  font-family: inherit;
+}
+body .btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transition: left 0.7s ease;
+  z-index: -1;
+}
+body .btn-primary:hover {
+  background: var(--brand-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 24px 50px rgba(230, 57, 70, 0.45);
+}
+body .btn-primary:hover::before {
+  left: 130%;
+}
+body .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 40px;
+  transition: all var(--t-fast) var(--ease-out);
+  cursor: pointer;
+  font-family: inherit;
+}
+body .btn-secondary:hover {
+  background: var(--bg-card-hover);
+}
+
+/* ============================================================
+   5. TABLES — th uppercase tracking ample
+   ============================================================ */
+body table thead th,
+body .data-table th {
+  text-align: left;
+  padding: 12px 20px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+body table tbody td,
+body .data-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+body table tbody tr:hover td,
+body .data-table tbody tr:hover td {
+  background: var(--bg-card-hover);
+}
+
+/* ============================================================
+   6. BADGES — pill format avec dot devant
+   ============================================================ */
+body .badge,
+body .status-badge,
+body .charge-cat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+body .badge.ok,
+body .badge.success,
+body .status-badge.livre {
+  color: var(--success);
+  border-color: rgba(6, 214, 160, 0.4);
+  background: rgba(6, 214, 160, 0.08);
+}
+body .badge.pending,
+body .badge.warning,
+body .status-badge.en-cours,
+body .status-badge.en-attente {
+  color: var(--warning);
+  border-color: rgba(255, 214, 10, 0.4);
+  background: rgba(255, 214, 10, 0.08);
+}
+body .badge.late,
+body .badge.danger,
+body .status-badge.retard,
+body .status-badge.litige,
+body .status-badge.annule {
+  color: var(--brand);
+  border-color: rgba(230, 57, 70, 0.4);
+  background: rgba(230, 57, 70, 0.08);
+}
+
+/* ============================================================
+   7. CARDS — radius + shadow design system
+   ============================================================ */
+body .card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+body .card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+body .card-header h3,
+body .card-header h2 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   8. PAGE HEADERS — h2 typo display
+   ============================================================ */
+body .page h2,
+body .page-actions h2,
+body .section-head h2 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* ============================================================
+   9. INPUTS / SELECTS — bord brand au focus
+   ============================================================ */
+body input[type="text"],
+body input[type="email"],
+body input[type="password"],
+body input[type="number"],
+body input[type="date"],
+body input[type="time"],
+body input[type="search"],
+body select,
+body textarea {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 14px;
+  font-family: inherit;
+  transition: border-color var(--t-fast) var(--ease-out);
+}
+body input:focus,
+body select:focus,
+body textarea:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+/* ============================================================
+   10. FONT FAMILY GLOBALE
+   ============================================================ */
+body, body button, body input, body select, body textarea {
+  font-family: var(--font-body), system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+body h1, body h2, body h3, body .h1, body .h2, body .h3 {
+  font-family: var(--font-display);
+}
+
+/* Mono pour les chiffres ID, num livraison, immatriculation */
+body .mono,
+body code,
+body .num-liv,
+body .immat-display {
+  font-family: var(--font-mono);
+  font-feature-settings: "tnum";
+}
