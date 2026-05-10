@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Admin Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-feature-settings:"tnum";overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+.app{display:block;height:100vh;position:relative;z-index:1;overflow:hidden}
+
+.sidebar{background:var(--bg-elevated);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;height:100vh}
+.brand{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:relative}
+.brand::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 100%)}
+.brand-logo{width:48px;height:32px;flex-shrink:0}
+.brand-text{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.02em;line-height:1}
+.brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:12px;display:block;margin-top:2px;letter-spacing:0.06em}
+.nav{flex:1;padding:14px 10px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;font-weight:500;margin-bottom:2px;transition:all var(--t-fast) var(--ease-out);position:relative}
+.nav-item:hover{background:var(--bg-card-hover);color:var(--text)}
+.nav-item.active{background:var(--brand-soft);color:var(--brand)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--brand);border-radius:0 3px 3px 0}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0.85}
+.sidebar-foot{padding:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+.sidebar-foot .who{font-size:13px;font-weight:600}
+.sidebar-foot .role{font-size:11px;color:var(--text-muted)}
+
+.main{display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden}
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;width:240px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--brand)}
+.icon-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--t-fast) var(--ease-out)}
+.icon-btn:hover{background:var(--bg-card-hover);color:var(--text)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.content{padding:26px;flex:1;overflow:auto}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.section-head h2{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.01em}
+.section-head .sub{color:var(--text-muted);font-size:13px;margin-top:2px}
+.actions{display:flex;gap:8px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;position:relative;overflow:hidden;display:flex;align-items:baseline;justify-content:space-between;gap:12px;transition:border-color var(--t-fast) var(--ease-out)}
+.kpi:hover{border-color:var(--border-strong)}
+.kpi::before{content:'';position:absolute;top:0;left:0;width:3px;bottom:0;background:var(--brand)}
+.kpi-label{color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:600}
+.kpi-value{font-family:var(--font-body);font-size:18px;font-weight:700;letter-spacing:-0.01em;font-feature-settings:"tnum"}
+.kpi-sub{color:var(--text-muted);font-size:11px;margin-left:auto}
+.kpi-sub .up{color:var(--success);font-weight:600}
+.kpi-sub .down{color:var(--danger);font-weight:600}
+
+.grid-2{display:grid;grid-template-columns:1fr 280px;gap:18px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-header h3{font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:-0.01em}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:12px 20px;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15);white-space:nowrap}
+td{padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg-card-hover)}
+.mono{font-family:var(--font-mono);font-size:12px;color:var(--text-muted)}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#9bb1a4}
+.badge.pending{color:#d4b67a}
+.badge.late{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+
+.btn{padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:40px;letter-spacing:0.02em;transition:all var(--t-fast) var(--ease-out);display:inline-flex;align-items:center;gap:8px}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-brand);position:relative;overflow:hidden;isolation:isolate}
+.btn-primary::before{content:"";position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.45),transparent);transition:left .7s ease;z-index:-1}
+.btn-primary:hover{background:var(--brand-hover);transform:translateY(-1px);box-shadow:0 24px 50px rgba(230,57,70,0.45)}
+.btn-primary:hover::before{left:130%}
+.btn-secondary{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong)}
+.btn-secondary:hover{background:var(--bg-card-hover)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;min-height:32px;font-size:12px}
+
+.alerts{padding:6px}
+.alert-item{border-radius:8px;overflow:hidden;margin-bottom:4px}
+.alert-item+.alert-item{border-top:1px solid var(--border-subtle)}
+.alert-item summary{list-style:none;display:flex;align-items:center;gap:12px;padding:11px 12px;cursor:pointer;user-select:none}
+.alert-item summary::-webkit-details-marker{display:none}
+.alert-item summary:hover{background:var(--bg-card-hover)}
+.alert-item[open] summary{background:var(--bg-card-hover)}
+.alert-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-dot.warn{background:var(--warning)}
+.alert-dot.dang{background:var(--danger)}
+.alert-dot.ok{background:var(--success)}
+.alert-text{font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert-text strong{font-weight:700}
+.alert-chev{width:14px;height:14px;color:var(--text-muted);transition:transform .18s ease;flex-shrink:0}
+.alert-item[open] .alert-chev{transform:rotate(180deg)}
+.alert-body{padding:2px 12px 14px 32px;font-size:12px;color:var(--text-muted);display:flex;flex-direction:column;gap:8px}
+.alert-body .alert-actions{display:flex;gap:6px;margin-top:2px}
+
+@media (max-width:1100px){.grid-2{grid-template-columns:1fr}}
+@media (max-width:880px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.search{width:140px}.btn{min-height:48px;padding:13px 18px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <div class="page-title">Dashboard</div>
+        <div style="font-size:12px;color:var(--text-muted)">Mai 2026 — vue d'ensemble flotte</div>
+      </div>
+      <div class="topbar-right">
+        <input class="search" type="search" placeholder="Rechercher livraison, client…">
+        <button class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="section-head">
+        <div>
+          <h2>Vue d'ensemble</h2>
+          <div class="sub">Performance opérationnelle du mois en cours</div>
+        </div>
+        <div class="actions"></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div><div class="kpi-label">Livraisons</div><div class="kpi-value">142</div></div><div class="kpi-sub"><span class="up">+12%</span></div></div>
+        <div class="kpi"><div><div class="kpi-label">CA HT</div><div class="kpi-value">38 420 €</div></div><div class="kpi-sub"><span class="up">+8%</span></div></div>
+        <div class="kpi"><div><div class="kpi-label">Marge nette</div><div class="kpi-value">11 280 €</div></div><div class="kpi-sub">29,4%</div></div>
+        <div class="kpi"><div><div class="kpi-label">Retards</div><div class="kpi-value">3</div></div><div class="kpi-sub"><span class="down">+1</span></div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header">
+            <h3>Dernières livraisons</h3>
+            <button class="btn btn-secondary btn-sm">Voir tout</button>
+          </div>
+          <table>
+            <thead>
+              <tr><th>N° de livraison</th><th>Client</th><th>Véhicule</th><th>Trajet</th><th>Statut</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="mono">L-2026-0142</td><td>Auchan Nord</td><td>Sprinter 314</td><td>Lille → Roubaix</td><td><span class="badge ok">Livrée</span></td></tr>
+              <tr><td class="mono">L-2026-0141</td><td>Decathlon</td><td>Sprinter 316</td><td>Villeneuve → Lens</td><td><span class="badge pending">En cours</span></td></tr>
+              <tr><td class="mono">L-2026-0140</td><td>Boulanger</td><td>Master 130</td><td>Lille → Arras</td><td><span class="badge late">Retard</span></td></tr>
+              <tr><td class="mono">L-2026-0139</td><td>Carrefour</td><td>Sprinter 314</td><td>Roubaix → Tourcoing</td><td><span class="badge ok">Livrée</span></td></tr>
+              <tr><td class="mono">L-2026-0138</td><td>Leroy Merlin</td><td>Master 130</td><td>Lens → Béthune</td><td><span class="badge ok">Livrée</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3>Alertes</h3>
+            <span class="badge late">3 actives</span>
+          </div>
+          <div class="alerts">
+            <details class="alert-item" open>
+              <summary>
+                <span class="alert-dot dang"></span>
+                <span class="alert-text"><strong>Sprinter 316</strong> — CT expire dans 4 jours</span>
+                <svg class="alert-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </summary>
+              <div class="alert-body">
+                Programmer le contrôle technique avant le 14/05.
+                <div class="alert-actions"><button class="btn btn-secondary btn-sm">Planifier</button><button class="btn btn-secondary btn-sm">Ignorer</button></div>
+              </div>
+            </details>
+            <details class="alert-item">
+              <summary>
+                <span class="alert-dot warn"></span>
+                <span class="alert-text"><strong>Karim B.</strong> — permis à renouveler</span>
+                <svg class="alert-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </summary>
+              <div class="alert-body">
+                Échéance dans 22 jours · catégorie C.
+                <div class="alert-actions"><button class="btn btn-secondary btn-sm">Notifier</button></div>
+              </div>
+            </details>
+            <details class="alert-item">
+              <summary>
+                <span class="alert-dot warn"></span>
+                <span class="alert-text">Conso anormale <strong>Master 130</strong></span>
+                <svg class="alert-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </summary>
+              <div class="alert-body">
+                +18 % vs moyenne 30 j · 4 derniers pleins.
+                <div class="alert-actions"><button class="btn btn-secondary btn-sm">Voir l'historique</button></div>
+              </div>
+            </details>
+            <details class="alert-item">
+              <summary>
+                <span class="alert-dot ok"></span>
+                <span class="alert-text">Inspection hebdo flotte OK</span>
+                <svg class="alert-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </summary>
+              <div class="alert-body">
+                5 véhicules contrôlés · 0 défaut signalé.
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+</body>
+</html>

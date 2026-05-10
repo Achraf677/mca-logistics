@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Entretiens · MCA Logistics</title>
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-feature-settings:"tnum";overflow:hidden}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+.app{display:block;height:100vh;position:relative;z-index:1;overflow:hidden}
+
+.main{display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden}
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.page-sub{font-size:12px;color:var(--text-muted);margin-left:12px}
+
+.actions{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:36px;letter-spacing:0.02em;transition:all 0.15s ease;display:inline-flex;align-items:center;gap:6px}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:hover{background:var(--brand-hover)}
+.btn-secondary{background:var(--bg-card);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg-card-hover)}
+
+.content{padding:26px;flex:1;overflow:auto}
+
+.alert-banner{background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px}
+.alert-banner svg{width:20px;height:20px;stroke:var(--brand);stroke-width:2;fill:none;flex-shrink:0}
+.alert-banner-text{flex:1;font-size:13px;color:var(--text)}
+.alert-banner-text strong{font-weight:700}
+
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-header h3{font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:-0.01em}
+
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead{background:var(--bg-elevated)}
+th{text-align:left;padding:12px 16px;font-weight:700;color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:14px 16px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:last-child td{border-bottom:none}
+tr:hover{background:var(--bg-card-hover)}
+
+.mono{font-family:var(--font-mono);font-size:11px}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted)}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#9bb1a4}
+.badge.warn{color:#d4b67a}
+.badge.alert{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+
+.timeline{padding:20px;display:flex;flex-direction:column;gap:16px}
+.timeline-item{display:flex;gap:14px;position:relative}
+.timeline-dot{width:10px;height:10px;border-radius:50%;background:var(--brand);margin-top:6px;flex-shrink:0;position:relative;z-index:1}
+.timeline-dot.done{background:var(--success)}
+.timeline-dot.pending{background:var(--text-muted)}
+.timeline-item::after{content:'';position:absolute;left:4.5px;top:16px;width:1px;height:calc(100% + 6px);background:var(--border);z-index:0}
+.timeline-item:last-child::after{display:none}
+.timeline-content{flex:1}
+.timeline-date{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:4px}
+.timeline-title{font-size:13px;font-weight:700;margin-bottom:2px}
+.timeline-desc{font-size:12px;color:var(--text-muted)}
+
+.tabs{display:flex;gap:4px;background:var(--bg-elevated);padding:4px;border-radius:8px;margin-bottom:18px}
+.tab{padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s ease;border:none;background:transparent;color:var(--text-muted)}
+.tab:hover{background:var(--bg-card-hover)}
+.tab.active{background:var(--bg-card);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.1)}
+
+@media (max-width:880px){.alert-banner{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div class="app">
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <span class="page-title">Entretiens</span>
+        <span class="page-sub">Suivi des contrôles et réparations</span>
+      </div>
+      <div class="actions">
+        <button class="btn btn-secondary">Historique</button>
+        <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Planifier</button>
+      </div>
+    </header>
+
+    <section class="content">
+
+      <div class="alert-banner">
+        <svg viewBox="0 0 24 24"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <div class="alert-banner-text"><strong>2 véhicules</strong> nécessitent une intervention — CT expire dans 4 jours (Sprinter 316), révision 10k km dépassée (Master 130)</div>
+        <button class="btn btn-primary" style="flex-shrink:0">Voir</button>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">Tous</button>
+        <button class="tab">CT en cours</button>
+        <button class="tab">Révisions</button>
+        <button class="tab">Réparations</button>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Contrôles techniques à venir</h3>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Véhicule</th><th>Immatriculation</th><th>Dernier CT</th><th>Prochain CT</th><th>Jours restants</th><th>Statut</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Sprinter 316</strong></td>
+              <td class="mono">CD-316-MC</td>
+              <td class="mono">14/05/2024</td>
+              <td class="mono" style="color:var(--brand);font-weight:600">14/05/2026</td>
+              <td style="color:var(--brand);font-weight:600">4 jours</td>
+              <td><span class="badge alert">Urgent</span></td>
+            </tr>
+            <tr>
+              <td><strong>Master 135</strong></td>
+              <td class="mono">IJ-135-MC</td>
+              <td class="mono">22/08/2024</td>
+              <td class="mono">22/08/2026</td>
+              <td>104 jours</td>
+              <td><span class="badge ok">OK</span></td>
+            </tr>
+            <tr>
+              <td><strong>Sprinter 318</strong></td>
+              <td class="mono">GH-318-MC</td>
+              <td class="mono">03/09/2024</td>
+              <td class="mono">03/09/2026</td>
+              <td>116 jours</td>
+              <td><span class="badge ok">OK</span></td>
+            </tr>
+            <tr>
+              <td><strong>Sprinter 314</strong></td>
+              <td class="mono">AB-314-MC</td>
+              <td class="mono">12/11/2024</td>
+              <td class="mono">12/11/2026</td>
+              <td>186 jours</td>
+              <td><span class="badge ok">OK</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Historique Sprinter 316</h3>
+          <span class="badge alert">CT 4j</span>
+        </div>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">14/05/2026</div>
+              <div class="timeline-title">Contrôle technique à prévoir</div>
+              <div class="timeline-desc">CT réglementaire — échéance dans 4 jours</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot done"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">18/02/2026</div>
+              <div class="timeline-title">Révision 60 000 km</div>
+              <div class="timeline-desc">Vidange, filtres, plaquettes avant — 380 €</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot done"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">14/05/2024</div>
+              <div class="timeline-title">Contrôle technique</div>
+              <div class="timeline-desc">Contre-visite OK — aucun défaut</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-dot done"></div>
+            <div class="timeline-content">
+              <div class="timeline-date">22/11/2023</div>
+              <div class="timeline-title">Révision 40 000 km</div>
+              <div class="timeline-desc">Vidange, filtres — 220 €</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+</div>
+</body>
+</html>

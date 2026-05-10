@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Previews pixel-pret (validation)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--font-body);
+  min-height:100vh;
+  padding:48px 24px;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:var(--asphalt-stripes);
+  pointer-events:none;
+  z-index:0;
+}
+.wrap{
+  position:relative;
+  z-index:1;
+  max-width:1100px;
+  margin:0 auto;
+}
+header{margin-bottom:36px}
+h1{
+  font-family:var(--font-display);
+  font-size:36px;
+  font-weight:800;
+  letter-spacing:-0.02em;
+  margin-bottom:8px;
+}
+h1 .red{color:var(--brand);font-style:italic}
+.lead{
+  color:var(--text-muted);
+  font-size:15px;
+  line-height:1.55;
+  max-width:680px;
+}
+.section-label{
+  font-family:var(--font-display);
+  font-size:13px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:0.12em;
+  color:var(--brand);
+  margin:28px 0 12px;
+  padding-bottom:6px;
+  border-bottom:1px solid var(--border);
+}
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:12px;
+}
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:12px;
+  padding:16px 18px;
+  text-decoration:none;
+  color:var(--text);
+  position:relative;
+  overflow:hidden;
+  transition:all var(--t-fast) var(--ease-out);
+}
+.card::before{
+  content:'';
+  position:absolute;
+  top:0;left:0;right:0;
+  height:2px;
+  background:linear-gradient(90deg,var(--brand),transparent);
+}
+.card:hover{
+  transform:translateY(-2px);
+  border-color:var(--border-strong);
+  box-shadow:var(--shadow-md);
+}
+.card-icon{
+  font-size:20px;
+  margin-bottom:8px;
+  display:block;
+}
+.card-name{
+  font-family:var(--font-display);
+  font-size:15px;
+  font-weight:800;
+  letter-spacing:-0.01em;
+  margin-bottom:3px;
+}
+.card-sub{
+  color:var(--text-muted);
+  font-size:11px;
+  line-height:1.4;
+}
+.status{
+  display:inline-block;
+  margin-top:8px;
+  padding:2px 7px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:0.08em;
+  background:rgba(255,214,10,0.16);
+  color:var(--warning);
+  border:1px solid rgba(255,214,10,0.3);
+}
+.status.ok{background:rgba(6,214,160,0.16);color:var(--success);border-color:rgba(6,214,160,0.3)}
+.status.new{background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)}
+footer{
+  margin-top:42px;
+  padding-top:24px;
+  border-top:1px solid var(--border);
+  color:var(--text-muted);
+  font-size:12px;
+  line-height:1.6;
+}
+footer code{
+  font-family:var(--font-mono);
+  background:rgba(255,255,255,0.04);
+  padding:1px 6px;
+  border-radius:4px;
+  font-size:11px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Previews <span class="red">pixel-pret</span></h1>
+    <p class="lead">23 maquettes admin standalone — palette Asphalt &amp; Speed Red. Toutes intègrent le sidebar canonique + topbar + section-head + content. Clique sur une carte pour valider.</p>
+  </header>
+
+  <div class="section-label">🎯 Opérations</div>
+  <div class="grid">
+    <a class="card" href="dashboard.html" target="_blank"><span class="card-icon">📊</span><div class="card-name">Dashboard</div><div class="card-sub">Vue d'ensemble + KPIs + dernières livraisons</div><span class="status ok">Validé</span></a>
+    <a class="card" href="livraisons.html" target="_blank"><span class="card-icon">🚚</span><div class="card-name">Livraisons</div><div class="card-sub">Filtres statut + table + exports dropdown</div><span class="status ok">Validé</span></a>
+    <a class="card" href="calendrier.html" target="_blank"><span class="card-icon">🗓️</span><div class="card-name">Calendrier</div><div class="card-sub">Vue mensuelle + événements + livraisons</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="planning.html" target="_blank"><span class="card-icon">📅</span><div class="card-name">Planning</div><div class="card-sub">Semaine + horaires + récurrence</div><span class="status">À valider</span></a>
+    <a class="card" href="alertes.html" target="_blank"><span class="card-icon">🔔</span><div class="card-name">Alertes</div><div class="card-sub">KPIs sévérité + filtres + drawer détail</div><span class="status">À valider</span></a>
+  </div>
+
+  <div class="section-label">👥 Carnet</div>
+  <div class="grid">
+    <a class="card" href="clients.html" target="_blank"><span class="card-icon">🧑‍💼</span><div class="card-name">Clients</div><div class="card-sub">Liste + KPIs CA + filtres actifs/risque</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="fournisseurs.html" target="_blank"><span class="card-icon">🏭</span><div class="card-name">Fournisseurs</div><div class="card-sub">Liste + KPIs dépenses + catégories</div><span class="status new">Nouveau</span></a>
+  </div>
+
+  <div class="section-label">🚐 Flotte</div>
+  <div class="grid">
+    <a class="card" href="vehicules.html" target="_blank"><span class="card-icon">🚐</span><div class="card-name">Véhicules</div><div class="card-sub">Cards flotte + statuts + alertes CT</div><span class="status ok">Validé</span></a>
+    <a class="card" href="carburant.html" target="_blank"><span class="card-icon">⛽</span><div class="card-name">Carburant</div><div class="card-sub">Pleins + anomalies + conso L/100km</div><span class="status">À valider</span></a>
+    <a class="card" href="entretiens.html" target="_blank"><span class="card-icon">🔧</span><div class="card-name">Entretiens</div><div class="card-sub">Type + source badge + échéances</div><span class="status">À valider</span></a>
+    <a class="card" href="inspections.html" target="_blank"><span class="card-icon">🚗</span><div class="card-name">Inspections</div><div class="card-sub">Contrôles hebdo flotte + défauts</div><span class="status new">Nouveau</span></a>
+  </div>
+
+  <div class="section-label">👤 Équipe</div>
+  <div class="grid">
+    <a class="card" href="equipe.html" target="_blank"><span class="card-icon">👥</span><div class="card-name">Équipe (3-en-1)</div><div class="card-sub">Vue d'ensemble + Liste salariés + Espace salarié — tabs</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="heures.html" target="_blank"><span class="card-icon">⏱️</span><div class="card-name">Heures &amp; Km</div><div class="card-sub">Pointage + CE 561 + export paie</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="incidents.html" target="_blank"><span class="card-icon">🚨</span><div class="card-name">Incidents</div><div class="card-sub">Accidents + avaries + suivi assurance</div><span class="status new">Nouveau</span></a>
+  </div>
+
+  <div class="section-label">💰 Finances</div>
+  <div class="grid">
+    <a class="card" href="charges.html" target="_blank"><span class="card-icon">💸</span><div class="card-name">Charges</div><div class="card-sub">KPIs par catégorie + filtres + table</div><span class="status ok">Validé</span></a>
+    <a class="card" href="encaissement.html" target="_blank"><span class="card-icon">💵</span><div class="card-name">Encaissement</div><div class="card-sub">Impayés + relances + DSO</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="tva.html" target="_blank"><span class="card-icon">🧾</span><div class="card-name">TVA</div><div class="card-sub">Déclaration mensuelle + détail taux</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="rentabilite.html" target="_blank"><span class="card-icon">📈</span><div class="card-name">Rentabilité</div><div class="card-sub">Marges + simulateur + par mission</div><span class="status">À valider</span></a>
+    <a class="card" href="statistiques.html" target="_blank"><span class="card-icon">📊</span><div class="card-name">Statistiques</div><div class="card-sub">CA + chauffeurs + véhicules</div><span class="status new">Nouveau</span></a>
+  </div>
+
+  <div class="section-label">⚙️ Admin</div>
+  <div class="grid">
+    <a class="card" href="brouillons-ia.html" target="_blank"><span class="card-icon">🤖</span><div class="card-name">Brouillons IA</div><div class="card-sub">Validation actions IA OCR / chat</div><span class="status new">Nouveau</span></a>
+    <a class="card" href="parametres.html" target="_blank"><span class="card-icon">⚙️</span><div class="card-name">Paramètres</div><div class="card-sub">Entreprise + compta + notifications</div><span class="status new">Nouveau</span></a>
+  </div>
+
+  <footer>
+    <p><strong>Workflow validation</strong> : ouvre chaque page, vérifie le rendu pixel-pret, et dis-moi <em>OK</em> ou les <em>ajustements</em>. Une fois validé, j'intègre le markup dans <code>admin.html</code> en préservant les IDs/data-attrs/onclick sacrés (cf. <code>design-handoff/docs/02-ids-data-attrs.md</code>).</p>
+    <p style="margin-top:10px"><strong>Notes design</strong> : KPIs en DM Sans 800 (pas Syne italic). Polices titres = Syne 800. Sidebar canonique reproduit sur les 22 pages admin (Espace salarié inclus).</p>
+    <p style="margin-top:10px">Source mockups : <code>design-handoff/ui_kits/admin/</code> · Tokens : <code>previews/tokens.css</code> · Script générateur : <code>tools/build-missing-previews.mjs</code></p>
+  </footer>
+</div>
+</body>
+</html>

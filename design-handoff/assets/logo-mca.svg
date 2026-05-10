@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 88 60" aria-label="MCA Logistics logo">
+  
+  <rect x="0" y="14" width="14" height="3" fill="#e63946"></rect>
+  <rect x="2" y="22" width="12" height="3" fill="#e63946"></rect>
+  <rect x="4" y="30" width="10" height="3" fill="#e63946"></rect>
+  <rect x="2" y="38" width="12" height="3" fill="#e63946"></rect>
+  
+  <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"></rect>
+  <rect x="22" y="18" width="14" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"></rect>
+  <rect x="38" y="18" width="36" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"></rect>
+  <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"></circle>
+  <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"></circle>
+</svg>

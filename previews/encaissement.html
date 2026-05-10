@@ -1,0 +1,1216 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Encaissement</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="modals-shared.css">
+<style> *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-feature-settings:"tnum"}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;position:relative;z-index:1}
+
+.sidebar{background:var(--bg-elevated);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar .brand{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:relative}
+.sidebar .brand::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 100%)}
+.sidebar .brand-logo{width:48px;height:32px;flex-shrink:0}
+.sidebar .brand-text{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.02em;line-height:1}
+.sidebar .brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:12px;display:block;margin-top:2px;letter-spacing:0.06em}
+.nav{flex:1;padding:14px 10px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;font-weight:500;margin-bottom:2px;transition:all var(--t-fast) var(--ease-out);position:relative;text-decoration:none}
+.nav-item:hover{background:var(--bg-card-hover);color:var(--text)}
+.nav-item.active{background:var(--brand-soft);color:var(--brand)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--brand);border-radius:0 3px 3px 0}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0.85}
+.sidebar-foot{padding:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+.sidebar-foot .who{font-size:13px;font-weight:600}
+.sidebar-foot .role{font-size:11px;color:var(--text-muted)}
+
+.main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:relative}
+.topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 30%)}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;width:240px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--brand)}
+.icon-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all var(--t-fast) var(--ease-out)}
+.icon-btn:hover{background:var(--bg-card-hover);color:var(--text)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.content{padding:22px 26px;flex:1;overflow:auto;max-width:1600px;width:100%;margin:0 auto}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:14px}
+.crumbs a{color:var(--text-muted);text-decoration:none;transition:color var(--t-fast) var(--ease-out)}
+.crumbs a:hover{color:var(--brand)}
+
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:nowrap;gap:14px}
+.section-head h2{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.01em;white-space:nowrap}
+.section-head .sub{color:var(--text-muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.btn{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:38px;letter-spacing:0.02em;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all var(--t-fast) var(--ease-out)}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-primary:hover{background:var(--brand-hover);transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong)}
+.btn-secondary:hover{background:var(--bg-card-hover)}
+.btn-chip{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong);padding:8px 14px;min-height:34px;font-size:12px}
+.btn-chip:hover{background:var(--bg-card-hover)}
+.btn-chip.active{background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden;transition:border-color var(--t-fast) var(--ease-out)}
+.kpi:hover{border-color:var(--border-strong)}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--brand),transparent)}
+.kpi-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:6px}
+.kpi-sub .up{color:#9bb1a4;font-weight:700}
+.kpi-sub .down{color:var(--brand);font-weight:700}
+
+.chips-toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.card-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-header h3{font-family:var(--font-display);font-size:15px;font-weight:800;letter-spacing:-0.01em}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:11px 18px;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15);white-space:nowrap}
+td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.row-hover:hover td{background:var(--bg-card-hover);cursor:pointer}
+.mono{font-family:var(--font-mono);font-size:12px;color:var(--text-muted)}
+.amount{font-weight:700;text-align:right;font-feature-settings:"tnum"}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#9bb1a4}
+.badge.warn{color:#d4b67a}
+.badge.alert{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+
+@media (max-width:960px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.search{width:160px}}
+@media (max-width:880px){.app{grid-template-columns:1fr}.sidebar{display:none}}
+
+.nav-group-label{padding:14px 14px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-disabled);margin-top:4px}
+.nav-group-label:first-child{margin-top:0;padding-top:6px}
+.nav{flex:1;padding:8px 10px;overflow-y:auto}
+.nav::-webkit-scrollbar{width:6px}
+.nav::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px}
+.nav::-webkit-scrollbar-track{background:transparent}
+
+/* Export dropdown menu (Livraisons-pattern) */
+.export-wrap{position:relative}
+.menu{position:absolute;top:calc(100% + 6px);right:0;min-width:260px;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,0.45);padding:6px;z-index:50;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity var(--t-fast) var(--ease-out),transform var(--t-fast) var(--ease-out)}
+.menu.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 11px;border:none;background:transparent;color:var(--text);font-family:inherit;font-size:13px;text-align:left;border-radius:7px;cursor:pointer;transition:background var(--t-fast) var(--ease-out)}
+.menu-item:hover{background:var(--bg-card-hover)}
+.menu-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;color:var(--text-muted);flex-shrink:0}
+.menu-item:hover svg{color:var(--brand)}
+.mi-name{font-weight:600;font-size:13px;line-height:1.2}
+.mi-sub{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.2}
+.menu-sep{height:1px;background:var(--border);margin:5px 6px}
+
+/* Sidebar sticky scroll fix */
+.sidebar{position:sticky;top:0;max-height:100vh;overflow:hidden}
+.nav{overflow-y:auto !important;flex:1;min-height:0}
+
+/* Sidebar layout fix : brand + nav-scroll + foot-sticky */
+.sidebar{position:sticky;top:0;max-height:100vh;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.sidebar .brand{flex-shrink:0}
+.sidebar .nav{flex:1 1 auto;min-height:0;overflow-y:auto}
+.sidebar-foot{flex-shrink:0;background:var(--bg-elevated)}
+
+
+/* Sidebar user menu (logout dropdown) */
+.sidebar-foot{cursor:pointer;transition:background var(--t-fast) var(--ease-out);position:relative}
+.sidebar-foot:hover{background:var(--bg-card-hover)}
+.sidebar-foot::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid var(--text-muted);transition:transform var(--t-fast) var(--ease-out)}
+.sidebar-foot.open::after{transform:translateY(-50%) rotate(180deg)}
+.user-menu{position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 -18px 40px rgba(0,0,0,0.45);padding:6px;z-index:60;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity var(--t-fast) var(--ease-out),transform var(--t-fast) var(--ease-out)}
+.user-menu.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.user-menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 11px;border:none;background:transparent;color:var(--text);font-family:inherit;font-size:13px;text-align:left;border-radius:7px;cursor:pointer;text-decoration:none;transition:background var(--t-fast) var(--ease-out)}
+.user-menu-item:hover{background:var(--bg-card-hover)}
+.user-menu-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;color:var(--text-muted);flex-shrink:0}
+.user-menu-item:hover svg{color:var(--brand)}
+.user-menu-item.danger{color:var(--brand)}
+.user-menu-item.danger:hover{background:var(--brand-soft)}
+.user-menu-item.danger svg{color:var(--brand)}
+.user-menu-sep{height:1px;background:var(--border);margin:5px 6px}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 88 60">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <rect x="22" y="18" width="14" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <rect x="38" y="18" width="36" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <nav class="nav">
+        <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg> Dashboard</a>
+      <div class="nav-group-label">Opérations</div>
+        <a class="nav-item" href="livraisons.html"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg> Livraisons</a>
+        <a class="nav-item" href="calendrier.html"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Calendrier</a>
+        <a class="nav-item" href="planning.html"><svg viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg> Planning</a>
+        <a class="nav-item" href="alertes.html"><svg viewBox="0 0 24 24"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Alertes</a>
+      <div class="nav-group-label">Carnet</div>
+        <a class="nav-item" href="clients.html"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg> Clients</a>
+        <a class="nav-item" href="fournisseurs.html"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M3 7v14"/><path d="M21 7v14"/><path d="M3 7l9-4 9 4"/><path d="M9 21V11"/><path d="M15 21V11"/></svg> Fournisseurs</a>
+      <div class="nav-group-label">Flotte</div>
+        <a class="nav-item" href="vehicules.html"><svg viewBox="0 0 24 24"><path d="M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg> Véhicules</a>
+        <a class="nav-item" href="carburant.html"><svg viewBox="0 0 24 24"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> Carburant</a>
+        <a class="nav-item" href="entretiens.html"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg> Entretiens</a>
+        <a class="nav-item" href="inspections.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg> Inspections</a>
+      <div class="nav-group-label">Équipe</div>
+        <a class="nav-item" href="equipe.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg> Équipe</a>
+        <a class="nav-item" href="heures.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Heures & Km</a>
+        <a class="nav-item" href="incidents.html"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Incidents</a>
+      <div class="nav-group-label">Finances</div>
+        <a class="nav-item" href="charges.html"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg> Charges</a>
+        <a class="nav-item active" href="encaissement.html"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Encaissement</a>
+        <a class="nav-item" href="tva.html"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg> TVA</a>
+        <a class="nav-item" href="rentabilite.html"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Rentabilité</a>
+        <a class="nav-item" href="statistiques.html"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="9" width="4" height="12"/></svg> Statistiques</a>
+      <div class="nav-group-label">Admin</div>
+        <a class="nav-item" href="brouillons-ia.html"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg> Brouillons IA</a>
+        <a class="nav-item" href="parametres.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Paramètres</a>
+    </nav>
+    <div class="sidebar-foot" id="sidebar-foot-trigger">
+      <div class="av">AC</div>
+      <div>
+        <div class="who">Achraf Chikri</div>
+        <div class="role">Admin</div>
+      </div>
+      <div class="user-menu" id="user-menu">
+        <a class="user-menu-item" href="espace-salarie-NA">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Mon profil
+        </a>
+        <a class="user-menu-item" href="parametres.html">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Paramètres
+        </a>
+        <a class="user-menu-item" href="#" onclick="alert('🔒 Verrouillé');return false">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Verrouiller la session
+        </a>
+        <div class="user-menu-sep"></div>
+        <a class="user-menu-item danger" href="#" onclick="if(confirm('Déconnexion ?')){window.location.href='dashboard.html'}return false">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Se déconnecter
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:baseline;gap:14px">
+        <div class="page-title">Encaissement</div>
+        <div style="font-size:12px;color:var(--text-muted)">Suivi paiements · 12 480 € impayés</div>
+      </div>
+      <div class="topbar-right">
+        <input class="search" type="search" placeholder="Rechercher…">
+        <button class="icon-btn" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+        </div>
+    </header>
+
+    <section class="content">
+      <nav class="crumbs">
+        <a href="dashboard.html">← Retour au tableau de bord</a>
+      </nav>
+
+      <div class="section-head">
+        <div style="display:flex;align-items:baseline;gap:12px">
+          <h2>Encaissement</h2>
+          <div class="sub">6 factures impayées · DSO 28j · 4 relances à envoyer</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-secondary">Envoyer relances</button>
+          <div class="export-wrap">
+          <button class="btn btn-secondary" data-menu-trigger="export-menu-encaissement" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exporter
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="menu" id="export-menu-encaissement" role="menu">
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><div><div class="mi-name">Export PDF</div><div class="mi-sub">Suivi impayés imprimable</div></div></button>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg><div><div class="mi-name">Export CSV</div><div class="mi-sub">Factures + relances</div></div></button>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><div><div class="mi-name">Export Excel</div><div class="mi-sub">Onglet par statut</div></div></button>
+            <div class="menu-sep"></div>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg><div><div class="mi-name">Envoyer relances email</div><div class="mi-sub">Sélection multiple</div></div></button>
+          </div>
+        </div>
+          <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Enregistrer paiement</button>
+        </div>
+      </div>
+
+      <!-- Navigation période (harmonisé Jour/Semaine/Mois/Année) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" aria-label="Précédent"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="btn btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)">Aujourd'hui</button>
+          <button class="btn btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" aria-label="Suivant"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+          <div style="font-family:var(--font-body);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize">Mai 2026</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">01/05 → 31/05</div>
+        </div>
+        <div style="display:flex;gap:6px"><button class="btn btn-chip">Jour</button><button class="btn btn-chip">Semaine</button><button class="btn btn-chip active">Mois</button><button class="btn btn-chip">Année</button></div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-lbl">Encaissé ce mois</div><div class="kpi-val">28 420 €</div><div class="kpi-sub"><span class="up">+12%</span> vs avril</div></div>
+        <div class="kpi"><div class="kpi-lbl">Impayés</div><div class="kpi-val">12 480 €</div><div class="kpi-sub"><span class="down">+1 facture</span></div></div>
+        <div class="kpi"><div class="kpi-lbl">DSO</div><div class="kpi-val">28 j</div><div class="kpi-sub">Délai paiement moyen</div></div>
+        <div class="kpi"><div class="kpi-lbl">Relances en attente</div><div class="kpi-val">4</div><div class="kpi-sub">À envoyer cette semaine</div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Encaissements vs impayés — 6 derniers mois</h3><span style="font-size:11px;color:var(--text-muted)">DSO 28j</span></div>
+          <div style="padding:18px 20px"><div style="position:relative;height:240px"><canvas id="encEvolChart"></canvas></div></div>
+        </div>
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Vieillissement créances</h3><span style="font-size:11px;color:var(--text-muted)">Mai 2026</span></div>
+          <div style="padding:18px 20px"><div style="position:relative;height:240px"><canvas id="encAgeChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="chips-toolbar">
+        <button class="btn btn-chip active">À encaisser (6)</button>
+        <button class="btn btn-chip">En retard (3)</button>
+        <button class="btn btn-chip">Relances (4)</button>
+        <button class="btn btn-chip">Encaissés mois</button>
+      </div>
+
+      <div class="card">
+        <table>
+          <thead><tr><th>N° facture</th><th>Client</th><th>Émission</th><th>Échéance</th><th>Statut</th><th>Relances</th><th style="text-align:right">Montant TTC</th></tr></thead>
+          <tbody>
+            <tr class="row-hover"><td class="mono">F-2026-0142</td><td>Auchan Nord</td><td>09/04</td><td>09/05</td><td><span class="badge ok">À échéance</span></td><td>—</td><td class="amount">2 840 €</td></tr>
+            <tr class="row-hover"><td class="mono">F-2026-0140</td><td>Boulanger SAS</td><td>27/03</td><td>26/04</td><td><span class="badge warn">Retard 15j</span></td><td>1 (5j)</td><td class="amount">3 120 €</td></tr>
+            <tr class="row-hover"><td class="mono">F-2026-0138</td><td>Brico Dépôt</td><td>25/03</td><td>24/04</td><td><span class="badge alert">Retard 17j</span></td><td>2 (15j, 3j)</td><td class="amount">1 480 €</td></tr>
+            <tr class="row-hover"><td class="mono">F-2026-0135</td><td>Leroy Merlin</td><td>20/04</td><td>20/05</td><td><span class="badge ok">À échéance</span></td><td>—</td><td class="amount">980 €</td></tr>
+            <tr class="row-hover"><td class="mono">F-2026-0132</td><td>Decathlon</td><td>15/04</td><td>15/05</td><td><span class="badge ok">À échéance</span></td><td>—</td><td class="amount">1 250 €</td></tr>
+            <tr class="row-hover"><td class="mono">F-2026-0128</td><td>Brico Dépôt</td><td>05/03</td><td>04/04</td><td><span class="badge alert">Retard 37j</span></td><td>3 (35j, 25j, 10j)</td><td class="amount">2 810 €</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script> window.addEventListener('load',()=>{
+  if(!window.Chart) return;
+  Chart.defaults.color='#adb5bd';Chart.defaults.borderColor='rgba(255,255,255,0.06)';
+  Chart.defaults.font.family='"DM Sans",system-ui,sans-serif';Chart.defaults.font.size=11;
+  const tooltipCfg={backgroundColor:'rgba(34,38,45,0.96)',borderColor:'#4a5263',borderWidth:1,padding:12,cornerRadius:8,titleFont:{family:'"Syne",sans-serif',size:13,weight:800},bodyFont:{size:12}};
+
+  // Evolution chart
+  const c1=document.getElementById('encEvolChart');
+  if(c1){
+    const ctx=c1.getContext('2d');
+    const g1=ctx.createLinearGradient(0,0,0,240);g1.addColorStop(0,'rgba(6,214,160,0.28)');g1.addColorStop(1,'rgba(6,214,160,0)');
+    const g2=ctx.createLinearGradient(0,0,0,240);g2.addColorStop(0,'rgba(230,57,70,0.22)');g2.addColorStop(1,'rgba(230,57,70,0)');
+    new Chart(c1,{type:'line',data:{labels:['Déc','Janv','Févr','Mars','Avril','Mai'],datasets:[{label:'Encaissé',data:[22400,24800,21600,26200,28400,28420],borderColor:'#06d6a0',backgroundColor:g1,tension:0.4,fill:true,borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#06d6a0',pointBorderColor:'#fff',pointBorderWidth:1.5,pointHoverRadius:6},{label:'Impayés',data:[8200,9800,10400,11200,10600,12480],borderColor:'#e63946',backgroundColor:g2,tension:0.4,fill:true,borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#e63946',pointBorderColor:'#fff',pointBorderWidth:1.5,pointHoverRadius:6}]},options:{responsive:true,maintainAspectRatio:false,interaction:{intersect:false,mode:'index'},plugins:{legend:{position:'bottom',labels:{padding:10,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}},tooltip:{...tooltipCfg,callbacks:{label:c=>` ${c.dataset.label} : ${c.parsed.y.toLocaleString('fr-FR')} €`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},ticks:{padding:8,callback:v=>(v/1000)+'k €'}},x:{grid:{display:false},ticks:{padding:8}}}}});
+  }
+
+  // Aging bars (vieillissement)
+  const c2=document.getElementById('encAgeChart');
+  if(c2){
+    new Chart(c2,{type:'bar',data:{labels:['0-30j','31-60j','61-90j','+90j'],datasets:[{data:[5240,3120,1810,2310],backgroundColor:['rgba(230,57,70,0.25)','rgba(230,57,70,0.5)','rgba(230,57,70,0.75)','#e63946'],borderColor:'rgba(230,57,70,0.6)',borderWidth:1,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...tooltipCfg,callbacks:{label:c=>` ${c.parsed.y.toLocaleString('fr-FR')} €`}}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},ticks:{padding:8,callback:v=>(v/1000)+'k €'}},x:{grid:{display:false},ticks:{padding:8}}}}});
+  }
+});
+
+// Export menus (Livraisons-pattern) — supports multiple menus per page
+document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
+  const targetId=btn.getAttribute('data-menu-trigger');
+  const menu=document.getElementById(targetId);
+  if(!menu) return;
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.menu.open').forEach(m=>{if(m!==menu)m.classList.remove('open')});
+    const open=menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded',open);
+  });
+  document.addEventListener('click',e=>{
+    if(!menu.contains(e.target)&&e.target!==btn){menu.classList.remove('open');btn.setAttribute('aria-expanded','false')}
+  });
+  menu.querySelectorAll('.menu-item').forEach(mi=>mi.addEventListener('click',()=>menu.classList.remove('open')));
+});
+</script>
+<script>
+// Sidebar user menu toggle
+(function(){
+  const trig=document.getElementById('sidebar-foot-trigger');
+  const menu=document.getElementById('user-menu');
+  if(!trig||!menu) return;
+  trig.addEventListener('click',e=>{
+    if(e.target.closest('.user-menu-item')) return;
+    e.stopPropagation();
+    const open=menu.classList.toggle('open');
+    trig.classList.toggle('open',open);
+  });
+  document.addEventListener('click',e=>{
+    if(!menu.contains(e.target)&&!trig.contains(e.target)){
+      menu.classList.remove('open');trig.classList.remove('open');
+    }
+  });
+})();
+</script>
+
+<!-- Drawers -->
+<!-- ========================================================
+     Drawers 360° — détail entité (slide from right)
+     ======================================================== -->
+
+<!-- ====== DRAWER : Livraison 360° ====== -->
+<div class="drawer-overlay" id="drawer-livraison-overlay"></div>
+<aside class="drawer" id="drawer-livraison" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0">
+      <div class="drawer-title">L-2026-0142 · Auchan Nord</div>
+      <div class="drawer-sub">Livrée le 09/05/2026 · Lille → Roubaix · 320 €</div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-liv-detail">Détail</button>
+    <button class="drawer-tab" data-dr-tab="dr-liv-doc">Documents</button>
+    <button class="drawer-tab" data-dr-tab="dr-liv-paiement">Paiement</button>
+    <button class="drawer-tab" data-dr-tab="dr-liv-historique">Historique</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-liv-detail">
+      <div class="dr-row"><div class="dr-key">Client</div><div class="dr-val">Auchan Nord <span style="color:var(--text-muted);font-weight:500;margin-left:6px">· SIREN 404 502 198</span></div></div>
+      <div class="dr-row"><div class="dr-key">Trajet</div><div class="dr-val">Lille (59000) → Roubaix (59100)</div></div>
+      <div class="dr-row"><div class="dr-key">Distance</div><div class="dr-val">18,4 km · 28 min estimés</div></div>
+      <div class="dr-row"><div class="dr-key">Chauffeur</div><div class="dr-val">Karim Bouali</div></div>
+      <div class="dr-row"><div class="dr-key">Véhicule</div><div class="dr-val">Sprinter 314 <span class="mono" style="color:var(--text-muted);margin-left:6px">AB-314-MC</span></div></div>
+      <div class="dr-row"><div class="dr-key">Statut</div><div class="dr-val"><span class="badge ok">Livrée</span> · 09/05 à 14:32</div></div>
+      <div class="dr-row"><div class="dr-key">Montant HT</div><div class="dr-val">266,67 €</div></div>
+      <div class="dr-row"><div class="dr-key">TVA (20%)</div><div class="dr-val">53,33 €</div></div>
+      <div class="dr-row"><div class="dr-key">Total TTC</div><div class="dr-val" style="color:var(--text);font-weight:800;font-size:15px">320,00 €</div></div>
+      <div class="dr-row"><div class="dr-key">Marge brute</div><div class="dr-val" style="color:#06d6a0">+142 € · 53%</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-liv-doc">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:14px">Documents générés (3)</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="font-size:18px">📄</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Facture F-2026-0142</div><div style="font-size:11px;color:var(--text-muted)">Envoyée par email · 320,00 € TTC</div></div><button class="btn btn-secondary" style="padding:5px 10px;min-height:28px;font-size:11px">Voir</button></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="font-size:18px">📋</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Bon de livraison BL-2026-0142</div><div style="font-size:11px;color:var(--text-muted)">Émargé · signature client</div></div><button class="btn btn-secondary" style="padding:5px 10px;min-height:28px;font-size:11px">Voir</button></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="font-size:18px">📜</div><div style="flex:1"><div style="font-size:13px;font-weight:700">Lettre de voiture CMR</div><div style="font-size:11px;color:var(--text-muted)">Transport routier conforme</div></div><button class="btn btn-secondary" style="padding:5px 10px;min-height:28px;font-size:11px">Voir</button></div>
+      </div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-liv-paiement">
+      <div class="dr-row"><div class="dr-key">Statut paiement</div><div class="dr-val"><span class="badge ok">Payée</span> · 12/05/2026</div></div>
+      <div class="dr-row"><div class="dr-key">Mode</div><div class="dr-val">Virement bancaire</div></div>
+      <div class="dr-row"><div class="dr-key">Référence</div><div class="dr-val mono">VIR-AUC-2026-0142</div></div>
+      <div class="dr-row"><div class="dr-key">Rapproché Qonto</div><div class="dr-val"><span class="badge ok">Auto · score 0.94</span></div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-liv-historique">
+      <div style="display:flex;flex-direction:column;gap:14px;position:relative;padding-left:20px">
+        <div style="position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)"></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#06d6a0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">12/05 09:22</div><div style="font-size:13px;color:var(--text);font-weight:600">Paiement reçu</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#06d6a0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">09/05 14:32</div><div style="font-size:13px;color:var(--text);font-weight:600">Livraison validée par client</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#4cc9f0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">09/05 08:15</div><div style="font-size:13px;color:var(--text);font-weight:600">En cours de livraison</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--text-muted);border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">08/05 18:00</div><div style="font-size:13px;color:var(--text);font-weight:600">Programmée</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary">Imprimer</button>
+    <button class="btn btn-secondary">Dupliquer</button>
+    <button class="btn btn-primary">Modifier</button>
+  </div>
+</aside>
+
+<!-- ====== DRAWER : Client 360° ====== -->
+<div class="drawer-overlay" id="drawer-client-overlay"></div>
+<aside class="drawer" id="drawer-client" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0;display:flex;align-items:center;gap:14px">
+      <div style="width:48px;height:48px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;flex-shrink:0">AN</div>
+      <div>
+        <div class="drawer-title">Auchan Nord</div>
+        <div class="drawer-sub">Client depuis 14/02/2023 · 22 livraisons 12 mois</div>
+      </div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-cli-detail">Détail</button>
+    <button class="drawer-tab" data-dr-tab="dr-cli-livraisons">Livraisons</button>
+    <button class="drawer-tab" data-dr-tab="dr-cli-paiements">Paiements</button>
+    <button class="drawer-tab" data-dr-tab="dr-cli-stats">Statistiques</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-cli-detail">
+      <div class="dr-row"><div class="dr-key">Raison sociale</div><div class="dr-val">Auchan Hypermarché Nord</div></div>
+      <div class="dr-row"><div class="dr-key">SIREN</div><div class="dr-val mono">404 502 198</div></div>
+      <div class="dr-row"><div class="dr-key">SIRET</div><div class="dr-val mono">404 502 198 00084</div></div>
+      <div class="dr-row"><div class="dr-key">N° TVA</div><div class="dr-val mono">FR 78 404 502 198</div></div>
+      <div class="dr-row"><div class="dr-key">Adresse</div><div class="dr-val">200 rue de la Recherche · 59650 Villeneuve-d'Ascq</div></div>
+      <div class="dr-row"><div class="dr-key">Téléphone</div><div class="dr-val mono">03 20 42 11 00</div></div>
+      <div class="dr-row"><div class="dr-key">Email</div><div class="dr-val">logistique.nord@auchan.fr</div></div>
+      <div class="dr-row"><div class="dr-key">Délai paiement</div><div class="dr-val">30 jours · virement</div></div>
+      <div class="dr-row"><div class="dr-key">Encours</div><div class="dr-val" style="color:var(--warning)">2 840 € · 1 facture en attente</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-cli-livraisons">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">22 livraisons sur 12 mois</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">N°</th><th style="padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">Date</th><th style="padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">Trajet</th><th style="text-align:right;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase">HT</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">L-0142</td><td>09/05</td><td>Lille→Roubaix</td><td style="text-align:right">266,67 €</td></tr>
+          <tr><td class="mono">L-0136</td><td>07/05</td><td>Lille→Wattrelos</td><td style="text-align:right">129,17 €</td></tr>
+          <tr><td class="mono">L-0124</td><td>02/05</td><td>Lille→Tourcoing</td><td style="text-align:right">216,67 €</td></tr>
+          <tr><td class="mono">L-0118</td><td>28/04</td><td>Lille→Lambersart</td><td style="text-align:right">183,33 €</td></tr>
+          <tr><td class="mono">L-0112</td><td>22/04</td><td>Lille→Marcq</td><td style="text-align:right">241,67 €</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="drawer-tab-panel" id="dr-cli-paiements">
+      <div class="dr-row"><div class="dr-key">CA 12 mois</div><div class="dr-val" style="font-size:15px;font-weight:800">42 380 €</div></div>
+      <div class="dr-row"><div class="dr-key">Délai moyen paiement</div><div class="dr-val">28 jours</div></div>
+      <div class="dr-row"><div class="dr-key">Retards (12m)</div><div class="dr-val">0</div></div>
+      <div class="dr-row"><div class="dr-key">Encours actuel</div><div class="dr-val" style="color:var(--warning)">2 840 €</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-cli-stats">
+      <div class="dr-row"><div class="dr-key">Panier moyen HT</div><div class="dr-val">198,30 €</div></div>
+      <div class="dr-row"><div class="dr-key">Fréquence</div><div class="dr-val">~5 livr/mois</div></div>
+      <div class="dr-row"><div class="dr-key">Trajets favoris</div><div class="dr-val">Lille → Roubaix (8) · Lille → Tourcoing (5)</div></div>
+      <div class="dr-row"><div class="dr-key">Saisonnalité</div><div class="dr-val">Pic décembre +35%</div></div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary">Historique</button>
+    <button class="btn btn-secondary">Modifier</button>
+    <button class="btn btn-primary" data-modal-open="modal-new-livraison">Nouvelle livraison</button>
+  </div>
+</aside>
+
+<!-- ====== DRAWER : Véhicule 360° ====== -->
+<div class="drawer-overlay" id="drawer-vehicule-overlay"></div>
+<aside class="drawer" id="drawer-vehicule" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0">
+      <div class="drawer-title">Sprinter 314 · Mercedes-Benz</div>
+      <div class="drawer-sub mono">AB-314-MC · acquis 12/01/2024 · 142 380 km</div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-veh-detail">Identité</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-conf">Conformité</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-entretien">Entretien</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-carburant">Carburant</button>
+    <button class="drawer-tab" data-dr-tab="dr-veh-tco">TCO</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-veh-detail">
+      <div class="dr-row"><div class="dr-key">Immatriculation</div><div class="dr-val mono">AB-314-MC</div></div>
+      <div class="dr-row"><div class="dr-key">Marque · Modèle</div><div class="dr-val">Mercedes-Benz Sprinter 314 CDI</div></div>
+      <div class="dr-row"><div class="dr-key">Année</div><div class="dr-val">2024</div></div>
+      <div class="dr-row"><div class="dr-key">N° série</div><div class="dr-val mono">WDB907655RP123456</div></div>
+      <div class="dr-row"><div class="dr-key">Type · Carburant</div><div class="dr-val">VL (3,5T) · Gazole B7</div></div>
+      <div class="dr-row"><div class="dr-key">Charge utile</div><div class="dr-val">1 200 kg</div></div>
+      <div class="dr-row"><div class="dr-key">Volume utile</div><div class="dr-val">14 m³</div></div>
+      <div class="dr-row"><div class="dr-key">Crit'Air</div><div class="dr-val">Crit'Air 2</div></div>
+      <div class="dr-row"><div class="dr-key">Chauffeur attitré</div><div class="dr-val">Karim Bouali</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-conf">
+      <div class="dr-row"><div class="dr-key">Prochain CT</div><div class="dr-val">12/11/2026 · dans 6 mois</div></div>
+      <div class="dr-row"><div class="dr-key">Assurance</div><div class="dr-val">AXA Pro · expire 31/12/2026</div></div>
+      <div class="dr-row"><div class="dr-key">Carte grise</div><div class="dr-val"><span class="badge ok">Valide</span></div></div>
+      <div class="dr-row"><div class="dr-key">Vignette Crit'Air</div><div class="dr-val"><span class="badge ok">Apposée</span></div></div>
+      <div class="dr-row"><div class="dr-key">Dernière inspection</div><div class="dr-val">09/05 06:45 · Karim B. · Conforme</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-entretien">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">Carnet d'entretien · 8 interventions</div>
+      <table style="width:100%;font-size:12px"><tbody>
+        <tr><td class="mono">07/05</td><td>Pneus AR (×2)</td><td style="text-align:right;color:#06d6a0">428,00 €</td></tr>
+        <tr><td class="mono">14/02</td><td>Vidange + filtres</td><td style="text-align:right;color:#06d6a0">312,00 €</td></tr>
+        <tr><td class="mono">22/11/25</td><td>Révision 100k km</td><td style="text-align:right;color:#06d6a0">580,00 €</td></tr>
+      </tbody></table>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-carburant">
+      <div class="dr-row"><div class="dr-key">Conso 30j</div><div class="dr-val">9,2 L/100 km</div></div>
+      <div class="dr-row"><div class="dr-key">Budget mensuel</div><div class="dr-val">1 240 €</div></div>
+      <div class="dr-row"><div class="dr-key">Écart vs budget</div><div class="dr-val" style="color:#06d6a0">-42 € (sous budget)</div></div>
+      <div class="dr-row"><div class="dr-key">Dernier plein</div><div class="dr-val">08/05 · Total Béthune · 186,40 € · 55,4 L</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-veh-tco">
+      <div class="dr-row"><div class="dr-key">Coût acquisition</div><div class="dr-val">42 800 € HT</div></div>
+      <div class="dr-row"><div class="dr-key">Charges 12m</div><div class="dr-val">18 240 €</div></div>
+      <div class="dr-row"><div class="dr-key">CA généré 12m</div><div class="dr-val" style="color:#06d6a0">68 920 €</div></div>
+      <div class="dr-row"><div class="dr-key">TCO €/km</div><div class="dr-val">0,82 €/km</div></div>
+      <div class="dr-row"><div class="dr-key">ROI projeté</div><div class="dr-val" style="color:#06d6a0">28 mois</div></div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary" data-modal-open="modal-plan-entretien">Planifier entretien</button>
+    <button class="btn btn-secondary" data-modal-open="modal-program-ct">Programmer CT</button>
+    <button class="btn btn-primary">Modifier</button>
+  </div>
+</aside>
+
+
+<!-- Modals -->
+<!-- ========================================================
+     Modals & Drawers — contenu HTML injecté dans chaque page
+     Inclus via tools/inject-modals.mjs
+     ======================================================== -->
+
+<!-- ====== MODAL : Nouvelle livraison ====== -->
+<div class="modal-overlay" id="modal-new-livraison" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouvelle livraison</div>
+        <div class="modal-sub">Renseigner les informations · auto-remplissage IA disponible</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Identification</div>
+      <div class="field-row">
+        <div class="field"><label>N° livraison</label><input type="text" value="L-2026-0143" class="mono" readonly></div>
+        <div class="field"><label>Date</label><input type="date" value="2026-05-11"></div>
+      </div>
+      <div class="field"><label>Client *</label><input type="text" list="dl-clients" placeholder="Rechercher ou créer un client"><datalist id="dl-clients"><option value="Auchan Nord"><option value="Decathlon"><option value="Boulanger SAS"><option value="Carrefour HM"><option value="Leroy Merlin"></datalist></div>
+
+      <div class="field-section">Trajet</div>
+      <div class="field-row">
+        <div class="field"><label>Départ</label><input type="text" placeholder="Adresse de départ"></div>
+        <div class="field"><label>Arrivée *</label><input type="text" placeholder="Adresse de livraison"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Distance (km)</label><input type="number" placeholder="auto via ORS"></div>
+        <div class="field"><label>Durée estimée</label><input type="text" placeholder="auto" readonly></div>
+        <div class="field"><label>Type</label><select><option>Standard</option><option>Express</option><option>Fragile</option><option>Réfrigéré</option></select></div>
+      </div>
+
+      <div class="field-section">Affectation</div>
+      <div class="field-row">
+        <div class="field"><label>Chauffeur *</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option><option>Ahmed Mansouri</option></select></div>
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314 (AB-314-MC)</option><option>Sprinter 316 (CD-316-MC)</option><option>Master 130 (EF-130-MC)</option></select></div>
+      </div>
+
+      <div class="field-section">Tarification</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Montant HT (€) *</label><input type="number" step="0.01" placeholder="0,00"></div>
+        <div class="field"><label>Taux TVA</label><select><option>20%</option><option>10%</option><option>5,5%</option><option>0%</option></select></div>
+        <div class="field"><label>Total TTC</label><input type="text" placeholder="auto" readonly></div>
+      </div>
+
+      <div class="field"><label>Notes internes</label><textarea rows="2" placeholder="Commentaires sur la livraison…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <div class="foot-info">Champs * obligatoires</div>
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">Enregistrer brouillon</button>
+      <button class="btn btn-primary">Créer livraison</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau client ====== -->
+<div class="modal-overlay" id="modal-new-client" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau client</div>
+        <div class="modal-sub">SIREN auto-vérifié via API Sirene</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Identification</div>
+      <div class="field"><label>Raison sociale *</label><input type="text" placeholder="Ex: Auchan Nord"></div>
+      <div class="field-row">
+        <div class="field"><label>SIREN</label><input type="text" placeholder="9 chiffres" class="mono"><div class="field-hint">Vérifié auto via API Sirene INSEE</div></div>
+        <div class="field"><label>SIRET établissement</label><input type="text" placeholder="14 chiffres" class="mono"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>N° TVA intracom</label><input type="text" placeholder="FR + 11 chiffres" class="mono"></div>
+        <div class="field"><label>Code APE</label><input type="text" placeholder="4 chiffres + 1 lettre" class="mono"></div>
+      </div>
+
+      <div class="field-section">Contact</div>
+      <div class="field-row">
+        <div class="field"><label>Téléphone</label><input type="tel" placeholder="01 23 45 67 89"></div>
+        <div class="field"><label>Email</label><input type="email" placeholder="contact@..."></div>
+      </div>
+      <div class="field"><label>Adresse habituelle</label><input type="text" placeholder="Adresse postale complète"></div>
+      <div class="field-row">
+        <div class="field"><label>Code postal</label><input type="text" placeholder="59000" class="mono"></div>
+        <div class="field"><label>Ville</label><input type="text" placeholder="Lille"></div>
+      </div>
+
+      <div class="field-section">Facturation</div>
+      <div class="field-row">
+        <div class="field"><label>Délai paiement</label><select><option>30 jours</option><option>45 jours</option><option>60 jours</option><option>Comptant</option></select></div>
+        <div class="field"><label>Mode</label><select><option>Virement</option><option>Chèque</option><option>CB</option><option>Prélèvement</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Créer le client</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouvelle charge ====== -->
+<div class="modal-overlay" id="modal-new-charge" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouvelle charge</div>
+        <div class="modal-sub">OCR auto-détection sur upload de justificatif</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg-elevated);border:2px dashed var(--border-strong);border-radius:10px;padding:24px;text-align:center;margin-bottom:18px;cursor:pointer">
+        <svg viewBox="0 0 24 24" width="32" height="32" style="margin-bottom:8px;color:var(--text-muted);stroke:currentColor;stroke-width:2;fill:none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">Glisser un justificatif</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">PDF / JPG / PNG · OCR automatique via Gemini</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Date</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Catégorie *</label><select><option>Carburant</option><option>Entretien</option><option>Péages</option><option>Assurance</option><option>Parking</option><option>Salaires</option><option>Autres</option></select></div>
+      </div>
+      <div class="field"><label>Description *</label><input type="text" placeholder="Ex: Plein gazole Total Béthune"></div>
+      <div class="field"><label>Fournisseur</label><input type="text" list="dl-fournisseurs" placeholder="Rechercher ou créer"><datalist id="dl-fournisseurs"><option value="Total Énergies"><option value="Esso Express"><option value="Garage Lefèvre"><option value="SANEF"></datalist></div>
+      <div class="field-row">
+        <div class="field"><label>Véhicule</label><select><option>—</option><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+        <div class="field"><label>Salarié</label><select><option>—</option><option>Karim B.</option><option>Youssef E.</option><option>Saïd B.</option></select></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Montant HT *</label><input type="number" step="0.01" placeholder="0,00"></div>
+        <div class="field"><label>Taux TVA</label><select><option>20%</option><option>10%</option><option>5,5%</option><option>0%</option></select></div>
+        <div class="field"><label>Total TTC</label><input type="text" placeholder="auto" readonly></div>
+      </div>
+      <div class="field"><label>Statut</label><select><option>À payer</option><option>Payé</option><option>Partiel</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Enregistrer charge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau véhicule ====== -->
+<div class="modal-overlay" id="modal-new-vehicule" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Ajouter un véhicule</div>
+        <div class="modal-sub">OCR carte grise disponible · auto-remplissage</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Identification</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Immatriculation *</label><input type="text" placeholder="AB-123-CD" class="mono"></div>
+        <div class="field"><label>Marque *</label><select><option>Mercedes-Benz</option><option>Renault</option><option>Iveco</option><option>Volkswagen</option><option>Peugeot</option><option>Citroën</option></select></div>
+        <div class="field"><label>Modèle *</label><input type="text" placeholder="Sprinter 314"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Type</label><select><option>VL (3,5T)</option><option>PL (&gt;3,5T)</option><option>VUL</option></select></div>
+        <div class="field"><label>Carburant</label><select><option>Gazole</option><option>Essence</option><option>Électrique</option><option>Hybride</option><option>GNV</option></select></div>
+        <div class="field"><label>Année</label><input type="number" placeholder="2024"></div>
+      </div>
+
+      <div class="field-section">Conformité</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Prochain CT</label><input type="date"></div>
+        <div class="field"><label>Assurance fin</label><input type="date"></div>
+        <div class="field"><label>Vignette Crit'Air</label><select><option>Crit'Air 1</option><option>Crit'Air 2</option><option>Crit'Air 3</option><option>—</option></select></div>
+      </div>
+
+      <div class="field-section">Acquisition</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Date achat</label><input type="date"></div>
+        <div class="field"><label>Prix HT (€)</label><input type="number" step="0.01"></div>
+        <div class="field"><label>Mode</label><select><option>Achat comptant</option><option>Crédit</option><option>LLD</option><option>LOA</option></select></div>
+      </div>
+
+      <div class="field-section">Affectation</div>
+      <div class="field"><label>Chauffeur attitré</label><select><option>—</option><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary" data-modal-open="modal-config-anomalies">📷 Scanner carte grise</button>
+      <button class="btn btn-primary">Ajouter le véhicule</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau salarié ====== -->
+<div class="modal-overlay" id="modal-new-salarie" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau salarié</div>
+        <div class="modal-sub">SmartUpload détecte automatiquement les documents (RIB / Permis / CNI)</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">État civil</div>
+      <div class="field-row">
+        <div class="field"><label>Nom *</label><input type="text" placeholder="Nom de famille"></div>
+        <div class="field"><label>Prénom *</label><input type="text" placeholder="Prénom"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Date naissance</label><input type="date"></div>
+        <div class="field"><label>Lieu naissance</label><input type="text"></div>
+        <div class="field"><label>Nationalité</label><select><option>Française</option><option>UE</option><option>Hors UE</option></select></div>
+      </div>
+
+      <div class="field-section">Coordonnées</div>
+      <div class="field-row">
+        <div class="field"><label>Téléphone *</label><input type="tel" placeholder="06 12 34 56 78"></div>
+        <div class="field"><label>Email pro</label><input type="email" placeholder="prenom.n@mca-logistics.fr"></div>
+      </div>
+      <div class="field"><label>Adresse</label><input type="text" placeholder="Adresse complète"></div>
+
+      <div class="field-section">Contrat</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Poste *</label><select><option>Chauffeur PL</option><option>Chauffeur VL</option><option>Admin</option><option>Comptable</option></select></div>
+        <div class="field"><label>Date entrée *</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Type contrat</label><select><option>CDI</option><option>CDD</option><option>Intérim</option></select></div>
+      </div>
+
+      <div class="field-section">Permis &amp; documents</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Permis catégorie</label><select><option>B</option><option>C (PL)</option><option>CE (Super-PL)</option><option>D</option></select></div>
+        <div class="field"><label>N° permis</label><input type="text" class="mono"></div>
+        <div class="field"><label>Expire le</label><input type="date"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="foot-info">📎 SmartUpload : glisser RIB / Permis / CNI pour auto-fill</div>
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Créer le salarié</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Plein carburant ====== -->
+<div class="modal-overlay" id="modal-new-plein" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau plein</div>
+        <div class="modal-sub">OCR ticket disponible · auto-détection</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date *</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Heure</label><input type="time"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314 (AB-314-MC)</option><option>Sprinter 316 (CD-316-MC)</option><option>Master 130 (EF-130-MC)</option></select></div>
+        <div class="field"><label>Chauffeur</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option></select></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Litres</label><input type="number" step="0.01" placeholder="55,40"></div>
+        <div class="field"><label>Prix / L</label><input type="number" step="0.001" placeholder="1,970"></div>
+        <div class="field"><label>Total TTC *</label><input type="number" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Km compteur</label><input type="number" placeholder="142 380"></div>
+        <div class="field"><label>Type</label><select><option>Gazole B7</option><option>Gazole B10</option><option>SP95</option><option>SP98</option></select></div>
+      </div>
+      <div class="field"><label>Station</label><input type="text" placeholder="Ex: Total Béthune"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">📷 Scanner ticket</button>
+      <button class="btn btn-primary">Enregistrer plein</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Programmer CT véhicule ====== -->
+<div class="modal-overlay" id="modal-program-ct" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Programmer un contrôle technique</div>
+        <div class="modal-sub">Sprinter 316 · CT actuel expire le 13/05/2026 (dans 4 jours)</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date prévue</label><input type="date" value="2026-05-12"></div>
+        <div class="field"><label>Heure</label><input type="time" value="09:00"></div>
+      </div>
+      <div class="field"><label>Centre CT</label><select><option>Autovision Lille</option><option>Securitest Roubaix</option><option>DEKRA Tourcoing</option><option>Autre…</option></select></div>
+      <div class="field"><label>Notes</label><textarea rows="2" placeholder="Préciser éventuel souci à vérifier…"></textarea></div>
+      <div style="background:var(--brand-soft);border:1px solid rgba(230,57,70,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text)">
+        <strong>Rappel auto</strong> : une alerte sera envoyée 24h avant le rendez-vous.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Programmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Pointer heures ====== -->
+<div class="modal-overlay" id="modal-pointer" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Pointer une journée</div>
+        <div class="modal-sub">Saisie manuelle ou import GPS tachygraphe</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Salarié *</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option><option>Mehdi Achour</option></select></div>
+        <div class="field"><label>Date *</label><input type="date" value="2026-05-11"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Début</label><input type="time" value="06:30"></div>
+        <div class="field"><label>Fin</label><input type="time" value="17:45"></div>
+        <div class="field"><label>Pause</label><input type="time" value="00:45"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Km parcourus</label><input type="number" placeholder="280"></div>
+        <div class="field"><label>Véhicule</label><select><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea rows="2" placeholder="Incidents, retards…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">Importer GPS</button>
+      <button class="btn btn-primary">Enregistrer pointage</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Enregistrer paiement ====== -->
+<div class="modal-overlay" id="modal-payment" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Enregistrer un paiement</div>
+        <div class="modal-sub">Rapprochement automatique avec Qonto</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Facture *</label><select><option>F-2026-0142 · Auchan Nord · 2 840 €</option><option>F-2026-0140 · Boulanger SAS · 3 120 €</option><option>F-2026-0138 · Brico Dépôt · 1 480 €</option></select></div>
+      <div class="field-row">
+        <div class="field"><label>Date paiement</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Mode *</label><select><option>Virement</option><option>Chèque</option><option>CB</option><option>Espèces</option><option>Prélèvement</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Montant *</label><input type="number" step="0.01" placeholder="0,00"></div>
+        <div class="field"><label>Référence</label><input type="text" placeholder="VIR-2026-..." class="mono"></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea rows="2"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-modal-open="modal-payment">Enregistrer paiement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Déclarer incident ====== -->
+<div class="modal-overlay" id="modal-new-incident" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Déclarer un incident</div>
+        <div class="modal-sub">Notification automatique à l'assurance si grave</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row cols-3">
+        <div class="field"><label>Date *</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Heure</label><input type="time"></div>
+        <div class="field"><label>Type *</label><select><option>Accident</option><option>Avarie</option><option>Vol</option><option>Vandalisme</option><option>Sinistre client</option></select></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Gravité</label><select><option>Faible</option><option>Moyenne</option><option>Grave</option></select></div>
+        <div class="field"><label>Véhicule</label><select><option>—</option><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+        <div class="field"><label>Chauffeur</label><select><option>—</option><option>Karim B.</option><option>Youssef E.</option><option>Saïd B.</option></select></div>
+      </div>
+      <div class="field"><label>Description *</label><textarea rows="3" placeholder="Détails des circonstances…"></textarea></div>
+      <div class="field"><label>Coût estimé (€)</label><input type="number" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label>Photos / constat</label><input type="file" accept="image/*,application/pdf" multiple></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-modal-open="modal-new-incident">Déclarer incident</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouvelle inspection ====== -->
+<div class="modal-overlay" id="modal-new-inspection" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouvelle inspection véhicule</div>
+        <div class="modal-sub">8 photos minimum · checklist 12 points</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date *</label><input type="datetime-local" value="2026-05-11T06:30"></div>
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+      </div>
+      <div class="field"><label>Chauffeur</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option></select></div>
+
+      <div class="field-section">Checklist (12 points)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Phares avant</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Phares arrière</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Pneus avant</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Pneus arrière</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Rétroviseurs</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Pare-brise</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Carrosserie</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Niveau huile</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Niveau lave-glace</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Liquide refroidissement</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Freins (sensation)</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Propreté intérieure</label>
+      </div>
+
+      <div class="field" style="margin-top:14px"><label>Défauts constatés</label><textarea rows="2" placeholder="Aucun par défaut. Si défaut, préciser…"></textarea></div>
+      <div class="field"><label>Photos (8 min) *</label><input type="file" accept="image/*" multiple></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Valider inspection</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Configurer anomalies carburant ====== -->
+<div class="modal-overlay" id="modal-config-anomalies" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Configurer la détection d'anomalies</div>
+        <div class="modal-sub">Seuils personnalisables par véhicule</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Seuils globaux</div>
+      <div class="field"><label>Alerte si conso dépasse la moyenne 30j de</label><div style="display:flex;align-items:center;gap:10px"><input type="number" value="15" style="width:80px"><span style="color:var(--text-muted);font-size:13px">%</span></div></div>
+      <div class="field"><label>Détecter doublons (même véhicule, même jour)</label><select><option>Activé · alerte si écart &lt; 30 min</option><option>Désactivé</option></select></div>
+      <div class="field"><label>Alerte ticket sans véhicule attribué</label><select><option>Activé</option><option>Désactivé</option></select></div>
+
+      <div class="field-section">Seuils par véhicule (overrides)</div>
+      <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Seuils personnalisés écrasent les seuils globaux ci-dessus.</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid var(--border);color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Véhicule</th><th style="text-align:right;padding:6px;border-bottom:1px solid var(--border);color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Conso cible (L/100)</th><th style="text-align:right;padding:6px;border-bottom:1px solid var(--border);color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Seuil alerte (%)</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px">Sprinter 314</td><td style="text-align:right"><input type="number" value="9.2" step="0.1" style="width:80px"></td><td style="text-align:right"><input type="number" value="15" style="width:60px"></td></tr>
+          <tr><td style="padding:6px">Sprinter 316</td><td style="text-align:right"><input type="number" value="8.8" step="0.1" style="width:80px"></td><td style="text-align:right"><input type="number" value="15" style="width:60px"></td></tr>
+          <tr><td style="padding:6px">Master 130</td><td style="text-align:right"><input type="number" value="9.5" step="0.1" style="width:80px"></td><td style="text-align:right"><input type="number" value="10" style="width:60px"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Enregistrer config</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau fournisseur ====== -->
+<div class="modal-overlay" id="modal-new-fournisseur" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau fournisseur</div>
+        <div class="modal-sub">SIREN auto-vérifié via API Sirene</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Raison sociale *</label><input type="text" placeholder="Ex: Total Énergies"></div>
+      <div class="field-row">
+        <div class="field"><label>Catégorie</label><select><option>Carburant</option><option>Entretien</option><option>Assurance</option><option>Péages</option><option>Pièces détachées</option><option>Autres</option></select></div>
+        <div class="field"><label>SIREN</label><input type="text" placeholder="9 chiffres" class="mono"></div>
+      </div>
+      <div class="field"><label>Adresse</label><input type="text"></div>
+      <div class="field-row">
+        <div class="field"><label>Téléphone</label><input type="tel"></div>
+        <div class="field"><label>Email</label><input type="email"></div>
+      </div>
+      <div class="field"><label>Conditions paiement</label><select><option>30 jours fin de mois</option><option>45 jours</option><option>60 jours</option><option>Comptant</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Créer fournisseur</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Envoyer relances ====== -->
+<div class="modal-overlay" id="modal-relances" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Envoyer des relances</div>
+        <div class="modal-sub">4 factures sélectionnées · 12 480 € total</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Factures concernées</div>
+      <table style="width:100%;font-size:12px;margin-bottom:14px">
+        <tbody>
+          <tr><td style="padding:6px"><input type="checkbox" checked></td><td>F-2026-0140</td><td>Boulanger SAS</td><td style="text-align:right">3 120 €</td><td><span class="badge warn">15j</span></td></tr>
+          <tr><td style="padding:6px"><input type="checkbox" checked></td><td>F-2026-0138</td><td>Brico Dépôt</td><td style="text-align:right">1 480 €</td><td><span class="badge alert">17j</span></td></tr>
+          <tr><td style="padding:6px"><input type="checkbox" checked></td><td>F-2026-0128</td><td>Brico Dépôt</td><td style="text-align:right">2 810 €</td><td><span class="badge alert">37j</span></td></tr>
+          <tr><td style="padding:6px"><input type="checkbox"></td><td>F-2026-0125</td><td>Castorama</td><td style="text-align:right">5 070 €</td><td><span class="badge alert">52j</span></td></tr>
+        </tbody>
+      </table>
+      <div class="field"><label>Mode d'envoi</label><select><option>Email (auto)</option><option>Email + courrier</option><option>Courrier recommandé</option></select></div>
+      <div class="field"><label>Niveau de relance</label><select><option>Relance courtoise (1er rappel)</option><option>Relance ferme (2e rappel)</option><option>Mise en demeure (3e rappel)</option></select></div>
+      <div class="field"><label>Modèle de message</label><textarea rows="4">Bonjour, sauf erreur de notre part, le règlement de la facture F-XXXX-XXXX d'un montant de XXX € reste en attente. Nous vous remercions de bien vouloir procéder au paiement dans les meilleurs délais...</textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Envoyer 3 relances</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Changer régime TVA ====== -->
+<div class="modal-overlay" id="modal-tva-regime" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Changer le régime TVA</div>
+        <div class="modal-sub">Modification rétroactive impossible · effective au 1er du mois suivant</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Régime actuel</label><input type="text" value="Réel normal mensuel" readonly></div>
+      <div class="field"><label>Nouveau régime *</label><select><option>Réel normal mensuel</option><option>Réel normal trimestriel</option><option>Réel simplifié</option><option>Franchise en base</option></select></div>
+      <div class="field"><label>Effective à partir du</label><input type="date" value="2026-06-01"></div>
+      <div style="background:rgba(255,214,10,0.08);border:1px solid rgba(255,214,10,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text);margin-top:12px">
+        <strong>⚠️ Attention</strong> : ce changement doit être notifié au Trésor Public dans les 15 jours. Notre système préparera automatiquement le formulaire CERFA correspondant.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Confirmer changement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Planifier entretien ====== -->
+<div class="modal-overlay" id="modal-plan-entretien" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Planifier un entretien</div>
+        <div class="modal-sub">Création d'un ordre de mission garage</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date prévue *</label><input type="date"></div>
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+      </div>
+      <div class="field"><label>Type d'entretien *</label><select><option>Révision</option><option>Vidange</option><option>Pneus</option><option>Freins</option><option>Filtre à air</option><option>Carrosserie</option><option>Autres</option></select></div>
+      <div class="field"><label>Garage</label><select><option>Garage Lefèvre (Roubaix)</option><option>Norauto (Villeneuve)</option><option>Mercedes-Benz Lille</option><option>Autre…</option></select></div>
+      <div class="field-row">
+        <div class="field"><label>Km actuel</label><input type="number" placeholder="142 380"></div>
+        <div class="field"><label>Prochain km</label><input type="number" placeholder="auto +15000"></div>
+      </div>
+      <div class="field"><label>Description</label><textarea rows="2"></textarea></div>
+      <div class="field"><label>Coût estimé (€)</label><input type="number" step="0.01"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-modal-open="modal-plan-entretien">Planifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Gérer horaires (Planning) ====== -->
+<div class="modal-overlay" id="modal-horaires" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Gérer les horaires de la semaine</div>
+        <div class="modal-sub">Semaine 19 · 10–16 mai 2026</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Appliquer à</label><select><option>Tous les chauffeurs</option><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option><option>Sélection multiple…</option></select></div>
+      <div class="field-section">Horaires standards</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Jour</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Travail</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Début</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Fin</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Pause</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px">Lundi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Mardi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Mercredi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Jeudi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Vendredi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="16:00"></td><td><input type="time" value="00:30"></td></tr>
+          <tr><td style="padding:6px">Samedi</td><td style="text-align:center"><input type="checkbox"></td><td><input type="time" disabled></td><td><input type="time" disabled></td><td><input type="time" disabled></td></tr>
+          <tr><td style="padding:6px">Dimanche</td><td style="text-align:center"><input type="checkbox"></td><td><input type="time" disabled></td><td><input type="time" disabled></td><td><input type="time" disabled></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">Appliquer aux semaines suivantes</button>
+      <button class="btn btn-primary">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Confirmation déconnexion ====== -->
+<div class="modal-overlay" id="modal-logout" role="dialog" aria-modal="true">
+  <div class="modal-dialog" style="max-width:420px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Se déconnecter ?</div>
+        <div class="modal-sub">Tes modifications non enregistrées seront perdues</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-foot" style="border-top:none">
+      <button class="btn btn-secondary" data-modal-close>Rester connecté</button>
+      <button class="btn btn-primary">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<script src="modals-shared.js" defer></script>
+</body>
+</html>

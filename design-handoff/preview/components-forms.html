@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;padding:24px;background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:13px;max-width:560px}
+
+/* ---- Layout : CSS Grid, jamais d'overflow ---- */
+.form{display:grid;gap:16px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:20px;min-width:0}
+.row > *{min-width:0}                       /* ← clef : autorise les enfants à se compresser */
+
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.06em;display:flex;align-items:center;gap:4px}
+.field .req{color:var(--brand)}
+
+/* ---- Inputs ---- */
+.field input,
+.field select,
+.field textarea{
+  width:100%;
+  min-width:0;                               /* ← clef : ne dépasse jamais sa colonne */
+  padding:10px 12px;
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--text);
+  font-family:inherit;
+  font-size:13px;
+  outline:none;
+  transition:border-color .15s, box-shadow .15s;
+  text-overflow:ellipsis;                    /* ← clef : long texte = "…" */
+  overflow:hidden;
+}
+.field textarea{resize:vertical;min-height:80px;text-overflow:clip;overflow:auto}
+.field input::placeholder,
+.field textarea::placeholder{color:var(--text-muted);opacity:.5}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  border-color:var(--brand);
+  box-shadow:0 0 0 3px rgba(230,57,70,0.12);
+}
+
+.field select{
+  appearance:none;
+  padding-right:32px;
+  background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%23999' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  cursor:pointer;
+}
+
+/* ---- Checkbox / radio ---- */
+.choice{display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;color:var(--text);padding:2px 0}
+.choice input{
+  appearance:none;
+  width:20px;height:20px;flex:0 0 20px;
+  background:var(--bg-elevated);
+  border:1px solid var(--border);
+  cursor:pointer;
+  transition:all .15s;
+}
+.choice input[type="checkbox"]{border-radius:4px}
+.choice input[type="radio"]{border-radius:50%}
+.choice input:checked{background:var(--brand);border-color:var(--brand)}
+.choice input[type="checkbox"]:checked{
+  background-image:url("data:image/svg+xml,%3Csvg width='12' height='10' viewBox='0 0 12 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 5L4.5 8.5L11 1.5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:center;
+}
+.choice input[type="radio"]:checked{
+  background-image:radial-gradient(circle, white 0%, white 35%, transparent 35%);
+}
+
+.options-group{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+</style>
+</head>
+<body>
+
+<form class="form">
+
+  <div class="row">
+    <div class="field">
+      <label>Nom du client <span class="req">*</span></label>
+      <input type="text" placeholder="Auchan Nord" value="Decathlon">
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" placeholder="contact@client.fr">
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label>Véhicule</label>
+      <select>
+        <option>Sprinter 314</option>
+        <option>Master L3H2</option>
+        <option>Daily 35S14</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Date de livraison</label>
+      <input type="date" value="2026-05-15">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Instructions</label>
+    <textarea placeholder="Précisions sur la livraison, contact sur place, accès quai…"></textarea>
+  </div>
+
+</form>
+
+</body>
+</html>
