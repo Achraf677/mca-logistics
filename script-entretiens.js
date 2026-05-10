@@ -229,6 +229,9 @@ function ajouterEntretien() {
   const desc       = document.getElementById('entr-desc')?.value.trim() || '';
   const km         = parseFloat(document.getElementById('entr-km')?.value) || 0;
   const prochainKm = parseFloat(document.getElementById('entr-prochain-km')?.value) || 0;
+  // #37 audit Chrome : ajout champ date echeance prochaine (controle technique
+  // annuel, vidange selon constructeur, etc. — temporel seul, sans km).
+  const prochainDate = document.getElementById('entr-prochain-date')?.value || '';
   const coutHT     = parseFloat(document.getElementById('entr-cout-ht')?.value) || 0;
   const tauxTVA    = parseFloat(document.getElementById('entr-taux-tva')?.value) || 20;
   const cout       = parseFloat(document.getElementById('entr-cout')?.value) || (coutHT * (1 + tauxTVA/100));
@@ -250,7 +253,7 @@ function ajouterEntretien() {
     charges.push({ id:chargeId, entretienId, date, categorie:'entretien', description:`${getTypeEntretienLabel(type)} — ${desc||veh?.immat||''}`, montant:cout, montantHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, vehId, vehNom:veh?.immat||'', creeLe:new Date().toISOString() });
     sauvegarder('charges', charges);
   }
-  entretiens.push({ id:entretienId, chargeId, vehId, date, type, description:desc, km, prochainKm, cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, tauxDeductible, creeLe:new Date().toISOString() });
+  entretiens.push({ id:entretienId, chargeId, vehId, date, type, description:desc, km, prochainKm, prochainDate, cout, coutHT: coutHT || cout/(1+tauxTVA/100), tauxTVA, tauxDeductible, creeLe:new Date().toISOString() });
   sauvegarder('entretiens', entretiens);
   ajouterEntreeAudit('Création entretien', (desc || getTypeEntretienLabel(type) || 'Entretien') + ' · ' + euros(cout || 0));
   if (veh && km > (parseFloat(veh.km) || 0)) {

@@ -610,6 +610,16 @@
     removeItem: removeItem,
     onLogoChange: onLogoChange,
     shouldShow: shouldShow,
+    // #102 audit Chrome : permet de re-declencher le wizard depuis la console
+    // ou une page Parametres. Reset le flag local + supprime le cache local
+    // params_entreprise pour que le wizard revienne au prochain reload.
+    forceReshow: function () {
+      try {
+        localStorage.removeItem(FLAG_KEY);
+        localStorage.removeItem('params_entreprise');
+      } catch (_) {}
+      open();
+    },
     // Exposes pour tests
     _state: state,
     _isValidSiret: isValidSiret,

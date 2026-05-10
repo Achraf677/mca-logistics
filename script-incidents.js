@@ -76,6 +76,11 @@ function ajouterIncident() {
   // futur renderer innerHTML execute du code injecte).
   const descRaw  = document.getElementById('inc-description')?.value.trim() || '';
   const desc     = (typeof window.sanitizeUserInput === 'function') ? window.sanitizeUserInput(descRaw) : descRaw;
+  // #49 audit Chrome : avertir l'utilisateur si on a retire du contenu
+  // (avant le fix, strip silencieux -> user perdait son texte sans le savoir).
+  if (desc !== descRaw && typeof afficherToast === 'function') {
+    afficherToast('ℹ️ Caractères dangereux (<script>, on=, etc.) retirés de la description.');
+  }
   const gravite  = document.getElementById('inc-gravite')?.value || 'moyen';
 
   if (!desc) { afficherToast('⚠️ Description obligatoire','error'); return; }

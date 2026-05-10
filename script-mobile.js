@@ -6738,8 +6738,14 @@
             </button>
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
               ${items.map(p => {
-                const veh = p.vehiculeId ? vehIdx[p.vehiculeId] : null;
-                const immat = veh?.immat || veh?.immatriculation || (p.immat || '—');
+                // #75 audit Chrome : fallback p.vehId (legacy PC) en plus de p.vehiculeId
+                const vehKey = p.vehiculeId || p.vehId;
+                const veh = vehKey ? vehIdx[vehKey] : null;
+                const immat = veh?.immat || veh?.immatriculation || p.vehNom || p.immat || '—';
+                // #76 audit Chrome : afficher la TVA deductible (parite PC)
+                const tvaDed = (typeof window.getCarburantMontantTVA === 'function')
+                  ? window.getCarburantMontantTVA(p) * ((typeof window.getTauxDeductibiliteCarburant === 'function' ? window.getTauxDeductibiliteCarburant(p) : 80) / 100)
+                  : null;
                 const isSel = selSet.has(p.id);
                 const cls = bulkOn ? 'm-carb-toggle' : 'm-carb-edit';
                 const bg = bulkOn && isSel ? 'background:var(--m-accent-soft);border-color:var(--m-accent)' : 'background:var(--m-card);border:1px solid var(--m-border)';
@@ -6753,6 +6759,7 @@
                   <div style="text-align:right;flex-shrink:0">
                     <div style="font-weight:700;color:var(--m-red);white-space:nowrap;font-size:.95rem">${M.format$(p.total)}</div>
                     <div style="font-size:.75rem;color:var(--m-text-muted);margin-top:2px">${(M.parseNum(p.litres) || 0).toFixed(1)} L${p.prixLitre ? ' · ' + M.parseNum(p.prixLitre).toFixed(3) + '€/L' : ''}</div>
+                    ${tvaDed && tvaDed > 0 ? `<div style="font-size:.7rem;color:var(--m-text-muted);margin-top:2px">TVA déd. ${M.format$(tvaDed)}</div>` : ''}
                   </div>
                 </div>`;
               }).join('')}
