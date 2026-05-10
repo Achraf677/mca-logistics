@@ -100,6 +100,8 @@
   <script defer src="script-clients-fournisseurs-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Alertes : counts actives + reportees + traitees. -->
   <script defer src="script-alertes-counts.js?v=1"></script>
+  <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
+  <script defer src="script-stats-calendrier-counts.js?v=1"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -938,8 +940,24 @@
 
     <!-- STATISTIQUES -->
     <section class="page" id="page-statistiques">
-      <div class="page-actions"><h2>📈 Statistiques</h2>
-        <button class="btn-rapport" onclick="exporterStatsPDF()">📄 Rapport</button>
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Statistiques</h2>
+          <div class="ds-section-head__sub">
+            <span id="stats-section-sub-periode">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="stats-section-sub-livraisons">0</span> livraisons</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
+          <button class="btn-rapport" onclick="exporterStatsPDF()">📄 Rapport</button>
+        </div>
       </div>
       <div class="card" style="margin-bottom:12px;padding:10px 18px">
         <div class="nav-periode-bar">
@@ -1296,7 +1314,21 @@
 
     <!-- PARAMÈTRES -->
     <section class="page" id="page-parametres">
-      <div class="page-actions"><h2>⚙️ Paramètres</h2></div>
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Paramètres</h2>
+          <div class="ds-section-head__sub">
+            <span>Configuration entreprise &amp; préférences globales</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions"></div>
+      </div>
       <div class="params-grid">
 
         <!-- Entreprise -->
@@ -1893,9 +1925,20 @@
 
     <!-- CALENDRIER (Sprint 16) -->
     <section class="page" id="page-calendrier">
-      <div class="page-actions">
-        <h2>🗓️ Calendrier opérationnel</h2>
-        <div class="page-actions-toolbar">
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Calendrier opérationnel</h2>
+          <div class="ds-section-head__sub">
+            <span id="calendrier-section-sub-periode">—</span>
+          </div>
+        </div>
+        <div class="page-actions-toolbar ds-section-head__actions">
           <button class="btn-secondary" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
           <button class="btn-rapport" onclick="window.cal16?.imprimer()">📄 Rapport</button>
         </div>
