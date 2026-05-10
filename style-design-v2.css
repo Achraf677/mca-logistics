@@ -508,3 +508,159 @@ body [data-statut="retard"] {
     transition: none;
   }
 }
+
+/* ============================================================
+   17. TOASTS (Jalon 1 #24) — 4 variants avec icône, slide-in
+   ============================================================ */
+body .toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 14px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 10000;
+  max-width: 380px;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.18s var(--ease-out), transform 0.18s var(--ease-out);
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-left: 3px solid var(--info);
+}
+body .toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+body .toast.success,
+body .toast[data-type="success"] {
+  border-left-color: var(--success);
+}
+body .toast.warning,
+body .toast[data-type="warning"] {
+  border-left-color: var(--warning);
+}
+body .toast.error,
+body .toast[data-type="error"] {
+  border-left-color: var(--danger);
+}
+body .toast.info,
+body .toast[data-type="info"] {
+  border-left-color: var(--info);
+}
+
+/* ============================================================
+   18. EMPTY STATES (Jalon 1 #23) — icon + title + sub + CTA
+   ============================================================ */
+body .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+body .empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+body .empty-state-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
+}
+body .empty-state-sub {
+  font-size: 13px;
+  margin-bottom: 18px;
+  max-width: 340px;
+  line-height: 1.5;
+}
+
+/* Variant inline (dans une cellule de tableau qui dit "Aucun résultat") */
+body td.empty-row,
+body .empty-row {
+  text-align: center;
+  padding: 32px 16px !important;
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 13px;
+}
+
+/* ============================================================
+   19. LOADING SKELETONS (Jalon 1 #23)
+   ============================================================ */
+body .skeleton,
+body .skeleton-bar,
+body .skeleton-card {
+  background: linear-gradient(
+    90deg,
+    var(--bg-card) 0%,
+    var(--bg-card-hover) 50%,
+    var(--bg-card) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 8px;
+  animation: mca-skeleton-pulse 1.4s ease-in-out infinite;
+}
+body .skeleton-bar {
+  height: 14px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+body .skeleton-card {
+  height: 80px;
+  width: 100%;
+}
+@keyframes mca-skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Helper : spinner circulaire */
+body .mca-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: mca-spin 0.8s linear infinite;
+}
+@keyframes mca-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   20. SECTION HUB / SECTION CARDS (parametres, hubs)
+   ============================================================ */
+body .hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+body .hub-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px 20px;
+  transition: all var(--t-fast) var(--ease-out);
+  cursor: pointer;
+}
+body .hub-card:hover {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
