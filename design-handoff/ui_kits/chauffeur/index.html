@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MCA Logistics — Espace Chauffeur</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#1a1d22; --bg-el:#22262d; --bg-card:#2a2f37; --bg-hover:#323843;
+  --border:#3a4150; --border-strong:#4a5263;
+  --brand:#e63946; --brand-soft:rgba(230,57,70,.14);
+  --success:#06d6a0; --warning:#ffd60a; --danger:#ff6b35; --info:#4cc9f0;
+  --text:#f1f3f5; --muted:#adb5bd; --dim:#6c757d;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+  --header-h:56px; --nav-h:60px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;font-size:14px;overscroll-behavior:none}
+
+.shell{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;position:relative;background:var(--bg);overflow:hidden}
+
+/* HEADER */
+.hdr{flex-shrink:0;height:var(--header-h);background:var(--bg-el);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;gap:8px;padding-top:var(--safe-top)}
+.hdr-av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.hdr-who{flex:1;min-width:0}
+.hdr-name{font-size:14px;font-weight:700;letter-spacing:-.01em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-role{font-size:11px;color:var(--muted);margin-top:1px}
+.hdr-btn{width:36px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);position:relative}
+.hdr-btn:active{background:var(--bg-hover)}
+.hdr-badge{position:absolute;top:4px;right:4px;background:var(--brand);color:#fff;border-radius:99px;min-width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.content::-webkit-scrollbar{display:none}
+.page{display:none;padding:16px;padding-bottom:calc(16px + var(--safe-bot))}
+.page.active{display:block}
+
+/* BOTTOM NAV */
+.bnav{flex-shrink:0;height:calc(var(--nav-h) + var(--safe-bot));background:var(--bg-el);border-top:1px solid var(--border);display:flex;align-items:flex-start;padding-top:4px}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border:none;background:none;color:var(--dim);cursor:pointer;font-size:10px;font-weight:600;letter-spacing:.02em;text-transform:uppercase;position:relative;transition:color .15s}
+.tab.active{color:var(--brand)}
+.tab-icon{font-size:20px;line-height:1}
+.tab-badge{position:absolute;top:4px;right:calc(50% - 18px);background:var(--brand);color:#fff;border-radius:99px;min-width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px}
+
+/* DRAWER */
+.drawer-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:40;display:none}
+.drawer-overlay.open{display:block}
+.drawer{position:absolute;top:0;right:-100%;width:82%;max-width:300px;height:100%;background:var(--bg-el);border-left:1px solid var(--border);z-index:50;overflow-y:auto;transition:right .25s cubic-bezier(.4,0,.2,1)}
+.drawer.open{right:0}
+.drawer-hdr{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border)}
+.drawer-hdr h2{font-size:16px;font-weight:700}
+.drawer-close{width:32px;height:32px;border:none;background:none;color:var(--muted);font-size:20px;cursor:pointer}
+.drawer-item{display:flex;align-items:center;gap:12px;padding:12px 16px;border:none;background:none;color:var(--text);font-size:14px;width:calc(100% - 8px);text-align:left;cursor:pointer;border-radius:8px;margin:1px 4px}
+.drawer-item:active{background:var(--bg-hover)}
+.drawer-item span:first-child{font-size:18px;width:24px;text-align:center}
+
+/* TOKENS */
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card + .card{margin-top:12px}
+.card-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-hdr h3{font-size:14px;font-weight:700}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+.b-ok{background:rgba(6,214,160,.15);color:var(--success)}
+.b-pending{background:rgba(255,214,10,.12);color:var(--warning)}
+.b-late{background:rgba(230,57,70,.15);color:var(--brand)}
+.b-draft{color:var(--dim)}
+
+.btn{padding:11px 16px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:46px;letter-spacing:.01em;transition:all .15s;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-primary:active{background:#c8202a}
+.btn-ghost{background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border-strong)}
+.btn-ghost:active{background:var(--bg-hover)}
+.btn-success{background:var(--success);color:#0a1414}
+.btn-full{width:100%}
+
+/* HERO clock-in */
+.hero{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--brand);border-radius:14px;padding:18px;margin-bottom:14px;color:var(--text);position:relative;overflow:hidden}
+.hero-lab{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand)}
+.hero-time{font-size:36px;font-weight:800;letter-spacing:-.03em;margin-top:4px;font-feature-settings:"tnum"}
+.hero-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.hero-btn{margin-top:14px;background:rgba(255,255,255,.06);color:var(--text);border:1px solid var(--border-strong);padding:11px 18px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.hero-btn:active{background:var(--bg-hover)}
+
+/* KPI grid */
+.kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--brand),transparent)}
+.kpi-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+.kpi-val{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Petits écrans (iPhone SE ≤ 375px) */
+@media (max-width:380px){
+  .kpi{padding:12px}
+  .kpi-val{font-size:22px}
+  .hero-time{font-size:30px}
+  .hdr-name{font-size:13px}
+  .tab span:not(.tab-icon):not(.tab-badge){font-size:9px}
+  .delivery-name{font-size:14px}
+  .week .day-num{font-size:14px}
+  .fuel-quick-val{font-size:26px}
+}
+
+/* List items */
+.list-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border)}
+.list-item:last-child{border-bottom:none}
+.list-item:active{background:var(--bg-hover)}
+.li-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.li-main{flex:1;min-width:0}
+.li-title{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.li-right{text-align:right;flex-shrink:0}
+.li-val{font-size:13px;font-weight:700}
+.li-date{font-size:11px;color:var(--muted)}
+
+/* Delivery card */
+.delivery{padding:14px;border-bottom:1px solid var(--border)}
+.delivery:last-child{border-bottom:none}
+.delivery-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px}
+.delivery-id{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)}
+.delivery-name{font-size:15px;font-weight:700;letter-spacing:-.01em;margin-top:2px}
+.delivery-addr{font-size:12px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:6px}
+.delivery-actions{display:flex;gap:6px;margin-top:10px}
+.delivery-actions .btn{flex:1;min-height:36px;padding:6px 10px;font-size:12px}
+
+/* Form */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.field input,.field select,.field textarea{width:100%;padding:11px 12px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;outline:none;min-height:46px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
+.field textarea{min-height:80px;resize:vertical}
+
+/* Profile */
+.prof-hero{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;margin-bottom:14px}
+.prof-av{width:72px;height:72px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;margin:0 auto 12px}
+.prof-name{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.prof-role{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* Messages */
+.msg{padding:14px;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start}
+.msg:last-child{border-bottom:none}
+.msg.unread{background:rgba(230,57,70,.04)}
+.msg-av{width:36px;height:36px;border-radius:50%;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.msg-body{flex:1;min-width:0}
+.msg-from{font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+.msg-time{font-size:11px;color:var(--muted);font-weight:400}
+.msg-prev{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg.unread .msg-prev{color:var(--text)}
+.msg-dot{width:7px;height:7px;border-radius:50%;background:var(--brand);flex-shrink:0;margin-left:6px}
+
+/* Inspection checklist */
+.check{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer}
+.check:last-child{border-bottom:none}
+.check-box{width:24px;height:24px;border-radius:6px;border:2px solid var(--border-strong);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:14px;color:transparent}
+.check.done .check-box{background:var(--success);border-color:var(--success);color:#0a1414}
+.check.warn .check-box{background:var(--warning);border-color:var(--warning);color:#1a1a1a}
+.check-lbl{flex:1;font-size:14px;font-weight:500}
+.check.done .check-lbl{color:var(--muted);text-decoration:line-through}
+
+/* Planning weekly */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:14px}
+.day{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer}
+.day.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.day.off{opacity:.4}
+.day-name{font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted)}
+.day.active .day-name{color:#fff;opacity:.8}
+.day-num{font-size:16px;font-weight:800;margin-top:2px}
+
+/* Fuel form quick */
+.fuel-quick{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;text-align:center}
+.fuel-quick-lab{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:.08em}
+.fuel-quick-val{font-size:32px;font-weight:800;letter-spacing:-.03em;margin-top:4px}
+.fuel-quick-sub{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <header class="hdr">
+    <div class="hdr-av">MA</div>
+    <div class="hdr-who">
+      <div class="hdr-name">Mohamed Aït Hammou</div>
+      <div class="hdr-role">Sprinter 314 · Cat. C</div>
+    </div>
+    <button class="hdr-btn" title="Notifications">🔔<span class="hdr-badge">2</span></button>
+  </header>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ACCUEIL -->
+    <div class="page active" id="page-accueil">
+      <div class="hero">
+        <div class="hero-lab">Service en cours</div>
+        <div class="hero-time">06:42</div>
+        <div class="hero-sub">Démarré à 06:00 · Sprinter 314</div>
+        <button class="hero-btn">⏸ Pointer la pause</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-lbl">Aujourd'hui</div><div class="kpi-val">7</div><div class="kpi-sub">livraisons</div></div>
+        <div class="kpi"><div class="kpi-lbl">Restantes</div><div class="kpi-val" style="color:var(--success)">3</div><div class="kpi-sub">à livrer</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr"><h3>Prochaine livraison</h3><span class="badge b-pending">Dans 12 min</span></div>
+        <div class="delivery">
+          <div class="delivery-top">
+            <div>
+              <div class="delivery-id">L-2026-0142</div>
+              <div class="delivery-name">Decathlon Villeneuve</div>
+            </div>
+            <span class="badge b-pending">En cours</span>
+          </div>
+          <div class="delivery-addr">📍 12 av. de la République, 59650 Villeneuve-d'Ascq</div>
+          <div class="delivery-actions">
+            <button class="btn btn-ghost">📞 Appeler</button>
+            <button class="btn btn-primary">🧭 Itinéraire</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-hdr"><h3>Tournée du jour</h3><span style="font-size:11px;color:var(--muted)">7 arrêts</span></div>
+        <div class="list-item"><div class="li-icon" style="background:rgba(6,214,160,.12);color:var(--success)">✓</div><div class="li-main"><div class="li-title">Auchan Nord</div><div class="li-sub">L-2026-0140 · Livré 07:24</div></div></div>
+        <div class="list-item"><div class="li-icon" style="background:rgba(6,214,160,.12);color:var(--success)">✓</div><div class="li-main"><div class="li-title">Carrefour Lesquin</div><div class="li-sub">L-2026-0141 · Livré 08:12</div></div></div>
+        <div class="list-item"><div class="li-icon" style="background:var(--brand-soft);color:var(--brand)">→</div><div class="li-main"><div class="li-title">Decathlon Villeneuve</div><div class="li-sub">L-2026-0142 · 09:30</div></div></div>
+        <div class="list-item"><div class="li-icon" style="background:rgba(108,117,125,.12);color:var(--dim)">·</div><div class="li-main"><div class="li-title">Leroy Merlin</div><div class="li-sub">L-2026-0143 · 10:45</div></div></div>
+      </div>
+    </div>
+
+    <!-- LIVRAISONS -->
+    <div class="page" id="page-livraisons">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" style="min-height:32px;padding:5px 12px;font-size:12px">À livrer (3)</button>
+        <button class="btn btn-ghost" style="min-height:32px;padding:5px 12px;font-size:12px">Livrées (4)</button>
+        <button class="btn btn-ghost" style="min-height:32px;padding:5px 12px;font-size:12px">Toutes</button>
+      </div>
+      <div class="card">
+        <div class="delivery">
+          <div class="delivery-top">
+            <div><div class="delivery-id">L-2026-0142 · 09:30</div><div class="delivery-name">Decathlon Villeneuve</div></div>
+            <span class="badge b-pending">En cours</span>
+          </div>
+          <div class="delivery-addr">📍 12 av. de la République</div>
+          <div class="delivery-actions">
+            <button class="btn btn-success btn-full">✓ Marquer comme livré</button>
+          </div>
+        </div>
+        <div class="delivery">
+          <div class="delivery-top">
+            <div><div class="delivery-id">L-2026-0143 · 10:45</div><div class="delivery-name">Leroy Merlin</div></div>
+            <span class="badge b-draft">À faire</span>
+          </div>
+          <div class="delivery-addr">📍 Centre Cial Englos</div>
+        </div>
+        <div class="delivery">
+          <div class="delivery-top">
+            <div><div class="delivery-id">L-2026-0144 · 13:15</div><div class="delivery-name">Bricorama Mons</div></div>
+            <span class="badge b-draft">À faire</span>
+          </div>
+          <div class="delivery-addr">📍 8 rue Jean Jaurès, Mons-en-Barœul</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PLANNING -->
+    <div class="page" id="page-planning">
+      <div class="week">
+        <div class="day"><div class="day-name">L</div><div class="day-num">12</div></div>
+        <div class="day"><div class="day-name">M</div><div class="day-num">13</div></div>
+        <div class="day active"><div class="day-name">M</div><div class="day-num">14</div></div>
+        <div class="day"><div class="day-name">J</div><div class="day-num">15</div></div>
+        <div class="day"><div class="day-name">V</div><div class="day-num">16</div></div>
+        <div class="day off"><div class="day-name">S</div><div class="day-num">17</div></div>
+        <div class="day off"><div class="day-name">D</div><div class="day-num">18</div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><h3>Mercredi 14 mai</h3><span style="font-size:11px;color:var(--success)">Service</span></div>
+        <div class="list-item"><div class="li-icon" style="background:var(--brand-soft)">🕕</div><div class="li-main"><div class="li-title">Prise de service</div><div class="li-sub">06:00 — Dépôt Lille</div></div></div>
+        <div class="list-item"><div class="li-icon" style="background:rgba(255,214,10,.12)">☕</div><div class="li-main"><div class="li-title">Pause déjeuner</div><div class="li-sub">12:00 → 12:45</div></div></div>
+        <div class="list-item"><div class="li-icon" style="background:var(--brand-soft)">🏁</div><div class="li-main"><div class="li-title">Fin de service</div><div class="li-sub">14:30 — Dépôt Lille</div></div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="card-hdr"><h3>Cette semaine</h3></div>
+        <div class="list-item"><div class="li-main"><div class="li-title">Lun 12 → Ven 16</div><div class="li-sub">5 jours · 39h</div></div><div class="li-right"><div class="li-val">39h</div></div></div>
+        <div class="list-item"><div class="li-main"><div class="li-title">Sam 17 — Dim 18</div><div class="li-sub">Repos</div></div><span class="badge b-draft">Repos</span></div>
+      </div>
+    </div>
+
+    <!-- CARBURANT -->
+    <div class="page" id="page-carburant">
+      <div class="fuel-quick">
+        <div class="fuel-quick-lab">Dernier plein</div>
+        <div class="fuel-quick-val">82 L</div>
+        <div class="fuel-quick-sub">142 € · Total Lille · 14/05</div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr"><h3>Saisir un plein</h3></div>
+        <div style="padding:14px">
+          <div class="field"><label>Station</label><input type="text" placeholder="Total, Esso…"></div>
+          <div class="field"><label>Litres</label><input type="number" placeholder="0" inputmode="decimal"></div>
+          <div class="field"><label>Montant €</label><input type="number" placeholder="0" inputmode="decimal"></div>
+          <div class="field"><label>Km au compteur</label><input type="number" placeholder="142 380" inputmode="numeric"></div>
+          <div class="field"><label>Photo du ticket</label>
+            <button class="btn btn-ghost btn-full">📷 Prendre la photo</button>
+          </div>
+          <button class="btn btn-primary btn-full">Enregistrer le plein</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-hdr"><h3>Mes pleins — mai</h3></div>
+        <div class="list-item">
+          <div class="li-icon" style="background:rgba(255,214,10,.12)">⛽</div>
+          <div class="li-main"><div class="li-title">Total Lille</div><div class="li-sub">14/05 · 82 L</div></div>
+          <div class="li-right"><div class="li-val">142 €</div></div>
+        </div>
+        <div class="list-item">
+          <div class="li-icon" style="background:rgba(255,214,10,.12)">⛽</div>
+          <div class="li-main"><div class="li-title">BP Tourcoing</div><div class="li-sub">06/05 · 76 L</div></div>
+          <div class="li-right"><div class="li-val">131 €</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSPECTION & KM -->
+    <div class="page" id="page-inspection">
+      <div class="card">
+        <div class="card-hdr"><h3>Inspection prise de service</h3><span style="font-size:11px;color:var(--success)">06:02</span></div>
+        <div class="check done"><div class="check-box">✓</div><div class="check-lbl">Pneus & pression</div></div>
+        <div class="check done"><div class="check-box">✓</div><div class="check-lbl">Niveaux (huile, lave-glace)</div></div>
+        <div class="check done"><div class="check-box">✓</div><div class="check-lbl">Éclairage avant/arrière</div></div>
+        <div class="check warn"><div class="check-box">!</div><div class="check-lbl">Carrosserie — rayure aile AVD</div></div>
+        <div class="check"><div class="check-box">✓</div><div class="check-lbl">Sangles & bâche</div></div>
+        <div class="check"><div class="check-box">✓</div><div class="check-lbl">Documents (CG, assurance)</div></div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-hdr"><h3>Kilométrage</h3></div>
+        <div style="padding:14px">
+          <div class="field"><label>Km au départ</label><input type="number" value="142 380" disabled></div>
+          <div class="field"><label>Km à l'arrivée</label><input type="number" placeholder="—" inputmode="numeric"></div>
+          <button class="btn btn-primary btn-full">Valider le retour</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES (supprimé) -->
+
+    <!-- PROFIL -->
+    <div class="page" id="page-profil">
+      <div class="prof-hero">
+        <div class="prof-av">MA</div>
+        <div class="prof-name">Mohamed Aït Hammou</div>
+        <div class="prof-role">Chauffeur · Cat. C · Depuis 2021</div>
+      </div>
+
+      <div class="card">
+        <div class="card-hdr"><h3>Mes documents</h3></div>
+        <div class="list-item">
+          <div class="li-icon" style="background:rgba(6,214,160,.12);color:var(--success)">📄</div>
+          <div class="li-main"><div class="li-title">Permis C</div><div class="li-sub">Expire 14/03/2028</div></div>
+          <span class="badge b-ok">OK</span>
+        </div>
+        <div class="list-item">
+          <div class="li-icon" style="background:rgba(6,214,160,.12);color:var(--success)">📄</div>
+          <div class="li-main"><div class="li-title">FIMO / FCO</div><div class="li-sub">Expire 02/09/2027</div></div>
+          <span class="badge b-ok">OK</span>
+        </div>
+        <div class="list-item">
+          <div class="li-icon" style="background:rgba(255,214,10,.12)">📄</div>
+          <div class="li-main"><div class="li-title">Carte conducteur</div><div class="li-sub">Expire 22/06/2026</div></div>
+          <span class="badge b-pending">42j</span>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <div class="card-hdr" style="padding:8px 14px">
+          <button id="month-prev" style="width:32px;height:32px;border:1px solid var(--border-strong);background:var(--bg-card);color:var(--text);border-radius:8px;cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center">‹</button>
+          <h3 id="month-label" style="flex:1;text-align:center;font-size:14px">Mai 2026</h3>
+          <button id="month-next" style="width:32px;height:32px;border:1px solid var(--border-strong);background:var(--bg-card);color:var(--text);border-radius:8px;cursor:pointer;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center">›</button>
+        </div>
+        <div id="month-stats">
+          <div class="list-item"><div class="li-main"><div class="li-title">Heures travaillées</div></div><div class="li-right"><div class="li-val" data-stat="hours">156 h</div></div></div>
+          <div class="list-item"><div class="li-main"><div class="li-title">Livraisons</div></div><div class="li-right"><div class="li-val" data-stat="deliveries">98</div></div></div>
+          <div class="list-item"><div class="li-main"><div class="li-title">Km parcourus</div></div><div class="li-right"><div class="li-val" data-stat="km">4 280 km</div></div></div>
+          <div class="list-item"><div class="li-main"><div class="li-title">Jours travaillés</div></div><div class="li-right"><div class="li-val" data-stat="days">14 / 22</div></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <button class="drawer-item"><span>⚙️</span> Paramètres</button>
+        <button class="drawer-item"><span>❓</span> Aide & support</button>
+        <button class="drawer-item" style="color:var(--brand)"><span>⏏</span> Déconnexion</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <button class="tab active" data-page="accueil"><span class="tab-icon">🏠</span><span>Accueil</span></button>
+    <button class="tab" data-page="livraisons"><span class="tab-icon">📦</span><span>Livraisons</span></button>
+    <button class="tab" data-page="planning"><span class="tab-icon">📅</span><span>Planning</span></button>
+    <button class="tab" data-page="profil"><span class="tab-icon">👤</span><span>Profil</span></button>
+  </nav>
+
+</div>
+
+<script>
+const tabs = document.querySelectorAll('.tab[data-page]');
+const pages = document.querySelectorAll('.page');
+function goTo(id){
+  pages.forEach(p=>p.classList.remove('active'));
+  tabs.forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id)?.classList.add('active');
+  document.querySelector('.tab[data-page="'+id+'"]')?.classList.add('active');
+  document.querySelector('.content').scrollTop = 0;
+}
+tabs.forEach(t=>t.addEventListener('click',()=>goTo(t.dataset.page)));
+
+// Historique mensuel
+const monthData = {
+  '2026-05': {label:'Mai 2026 (en cours)', hours:'156 h', deliveries:'98',  km:'4 280 km', days:'14 / 22'},
+  '2026-04': {label:'Avril 2026',           hours:'168 h', deliveries:'112', km:'4 940 km', days:'21 / 21'},
+  '2026-03': {label:'Mars 2026',            hours:'172 h', deliveries:'118', km:'5 120 km', days:'22 / 22'},
+  '2026-02': {label:'Février 2026',         hours:'152 h', deliveries:'96',  km:'4 380 km', days:'19 / 20'},
+  '2026-01': {label:'Janvier 2026',         hours:'160 h', deliveries:'104', km:'4 620 km', days:'20 / 21'},
+  '2025-12': {label:'Décembre 2025',        hours:'128 h', deliveries:'82',  km:'3 720 km', days:'16 / 19'},
+};
+const monthKeys = Object.keys(monthData);
+let monthIdx = 0;
+function renderMonth(){
+  const d = monthData[monthKeys[monthIdx]];
+  document.getElementById('month-label').textContent = d.label;
+  document.querySelectorAll('#month-stats [data-stat]').forEach(el=>{
+    el.textContent = d[el.dataset.stat];
+  });
+  document.getElementById('month-prev').disabled = monthIdx >= monthKeys.length-1;
+  document.getElementById('month-next').disabled = monthIdx <= 0;
+  document.getElementById('month-prev').style.opacity = monthIdx >= monthKeys.length-1 ? '.35' : '1';
+  document.getElementById('month-next').style.opacity = monthIdx <= 0 ? '.35' : '1';
+}
+document.getElementById('month-prev')?.addEventListener('click',()=>{if(monthIdx<monthKeys.length-1){monthIdx++;renderMonth();}});
+document.getElementById('month-next')?.addEventListener('click',()=>{if(monthIdx>0){monthIdx--;renderMonth();}});
+renderMonth();
+
+// Inspection check toggle
+document.querySelectorAll('.check').forEach(c=>{
+  c.addEventListener('click',()=>{
+    if(c.classList.contains('warn')) return;
+    c.classList.toggle('done');
+    c.querySelector('.check-box').textContent = c.classList.contains('done') ? '✓' : '';
+  });
+});
+</script>
+</body>
+</html>

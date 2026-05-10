@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+body{margin:0;padding:22px;background:var(--bg);color:var(--text);font-family:var(--font-body)}
+.row{display:flex;flex-direction:column;gap:12px;width:240px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--brand)}
+.label{color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:8px}
+.value{font-family:var(--font-body);font-size:28px;font-weight:700;letter-spacing:-0.02em;font-feature-settings:"tnum"}
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="kpi"><div class="label">CA HT</div><div class="value">38 420 €</div></div>
+  <div class="kpi"><div class="label">Livraisons</div><div class="value">142</div></div>
+</div>
+</body>
+</html>

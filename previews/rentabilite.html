@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Rentabilité</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="tokens.css">
+<style> *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-feature-settings:"tnum"}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;position:relative;z-index:1}
+.main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:relative}
+.topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 30%)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{width:40px;height:28px}
+.brand-text{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:-0.02em;line-height:1}
+.brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:10px;display:block;margin-top:2px;letter-spacing:0.08em}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;width:240px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--brand)}
+.icon-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn:hover{background:var(--bg-card-hover);color:var(--text)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+.crumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:14px}
+.crumbs a{color:var(--text-muted);text-decoration:none}
+.crumbs a:hover{color:var(--brand)}
+.content{padding:22px 26px;flex:1;overflow:auto;max-width:1600px;width:100%;margin:0 auto}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:nowrap;gap:14px}
+.section-head h2{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.01em;white-space:nowrap}
+.section-head .sub{color:var(--text-muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:38px;letter-spacing:0.02em;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all var(--t-fast) var(--ease-out)}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-primary:hover{background:var(--brand-hover);transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong)}
+.btn-secondary:hover{background:var(--bg-card-hover)}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:11px 18px;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15);white-space:nowrap}
+td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.row-hover:hover td{background:var(--bg-card-hover);cursor:pointer}
+.mono{font-family:var(--font-mono);font-size:12px;color:var(--text-muted)}
+.amount{font-weight:700;text-align:right;font-feature-settings:"tnum"}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#9bb1a4}
+.badge.pending{color:#d4b67a}
+.badge.late{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--brand),transparent)}
+.kpi-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:8px}
+.kpi-val{font-size:28px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:6px}
+.kpi-sub .up{color:#9bb1a4;font-weight:700}
+.kpi-sub .down{color:var(--brand);font-weight:700}
+
+
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;position:relative;z-index:1}
+.sidebar{background:var(--bg-elevated);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.sidebar .brand{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:relative}
+.sidebar .brand::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 100%)}
+.sidebar .brand-logo{width:48px;height:32px;flex-shrink:0}
+.sidebar .brand-text{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.02em;line-height:1}
+.sidebar .brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:12px;display:block;margin-top:2px;letter-spacing:0.06em}
+.nav{flex:1;padding:14px 10px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;font-weight:500;margin-bottom:2px;transition:all var(--t-fast) var(--ease-out);position:relative;text-decoration:none}
+.nav-item:hover{background:var(--bg-card-hover);color:var(--text)}
+.nav-item.active{background:var(--brand-soft);color:var(--brand)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--brand);border-radius:0 3px 3px 0}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0.85}
+.sidebar-foot{padding:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+.sidebar-foot .who{font-size:13px;font-weight:600}
+.sidebar-foot .role{font-size:11px;color:var(--text-muted)}
+.main{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+@media (max-width:880px){.app{grid-template-columns:1fr}.sidebar{display:none}}
+
+.nav-group-label{padding:14px 14px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-disabled);margin-top:4px}
+.nav-group-label:first-child{margin-top:0;padding-top:6px}
+.nav{flex:1;padding:8px 10px;overflow-y:auto}
+.nav::-webkit-scrollbar{width:6px}
+.nav::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px}
+.nav::-webkit-scrollbar-track{background:transparent}
+
+/* Export dropdown menu (Livraisons-pattern) */
+.export-wrap{position:relative}
+.menu{position:absolute;top:calc(100% + 6px);right:0;min-width:260px;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,0.45);padding:6px;z-index:50;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity var(--t-fast) var(--ease-out),transform var(--t-fast) var(--ease-out)}
+.menu.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 11px;border:none;background:transparent;color:var(--text);font-family:inherit;font-size:13px;text-align:left;border-radius:7px;cursor:pointer;transition:background var(--t-fast) var(--ease-out)}
+.menu-item:hover{background:var(--bg-card-hover)}
+.menu-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;color:var(--text-muted);flex-shrink:0}
+.menu-item:hover svg{color:var(--brand)}
+.mi-name{font-weight:600;font-size:13px;line-height:1.2}
+.mi-sub{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.2}
+.menu-sep{height:1px;background:var(--border);margin:5px 6px}
+
+/* Sidebar sticky scroll fix */
+.sidebar{position:sticky;top:0;max-height:100vh;overflow:hidden}
+.nav{overflow-y:auto !important;flex:1;min-height:0}
+
+/* Sidebar layout fix : brand + nav-scroll + foot-sticky */
+.sidebar{position:sticky;top:0;max-height:100vh;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.sidebar .brand{flex-shrink:0}
+.sidebar .nav{flex:1 1 auto;min-height:0;overflow-y:auto}
+.sidebar-foot{flex-shrink:0;background:var(--bg-elevated)}
+
+
+/* Sidebar user menu (logout dropdown) */
+.sidebar-foot{cursor:pointer;transition:background var(--t-fast) var(--ease-out);position:relative}
+.sidebar-foot:hover{background:var(--bg-card-hover)}
+.sidebar-foot::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:5px solid var(--text-muted);transition:transform var(--t-fast) var(--ease-out)}
+.sidebar-foot.open::after{transform:translateY(-50%) rotate(180deg)}
+.user-menu{position:absolute;left:8px;right:8px;bottom:calc(100% + 6px);background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 -18px 40px rgba(0,0,0,0.45);padding:6px;z-index:60;opacity:0;transform:translateY(4px);pointer-events:none;transition:opacity var(--t-fast) var(--ease-out),transform var(--t-fast) var(--ease-out)}
+.user-menu.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.user-menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 11px;border:none;background:transparent;color:var(--text);font-family:inherit;font-size:13px;text-align:left;border-radius:7px;cursor:pointer;text-decoration:none;transition:background var(--t-fast) var(--ease-out)}
+.user-menu-item:hover{background:var(--bg-card-hover)}
+.user-menu-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;color:var(--text-muted);flex-shrink:0}
+.user-menu-item:hover svg{color:var(--brand)}
+.user-menu-item.danger{color:var(--brand)}
+.user-menu-item.danger:hover{background:var(--brand-soft)}
+.user-menu-item.danger svg{color:var(--brand)}
+.user-menu-sep{height:1px;background:var(--border);margin:5px 6px}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 88 60">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <rect x="22" y="18" width="14" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <rect x="38" y="18" width="36" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <nav class="nav">
+        <a class="nav-item" href="dashboard.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg> Dashboard</a>
+      <div class="nav-group-label">Opérations</div>
+        <a class="nav-item" href="livraisons.html"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg> Livraisons</a>
+        <a class="nav-item" href="calendrier.html"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Calendrier</a>
+        <a class="nav-item" href="planning.html"><svg viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg> Planning</a>
+        <a class="nav-item" href="alertes.html"><svg viewBox="0 0 24 24"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Alertes</a>
+      <div class="nav-group-label">Carnet</div>
+        <a class="nav-item" href="clients.html"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg> Clients</a>
+        <a class="nav-item" href="fournisseurs.html"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M3 7v14"/><path d="M21 7v14"/><path d="M3 7l9-4 9 4"/><path d="M9 21V11"/><path d="M15 21V11"/></svg> Fournisseurs</a>
+      <div class="nav-group-label">Flotte</div>
+        <a class="nav-item" href="vehicules.html"><svg viewBox="0 0 24 24"><path d="M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg> Véhicules</a>
+        <a class="nav-item" href="carburant.html"><svg viewBox="0 0 24 24"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> Carburant</a>
+        <a class="nav-item" href="entretiens.html"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg> Entretiens</a>
+        <a class="nav-item" href="inspections.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg> Inspections</a>
+      <div class="nav-group-label">Équipe</div>
+        <a class="nav-item" href="equipe.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg> Équipe</a>
+        <a class="nav-item" href="heures.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Heures & Km</a>
+        <a class="nav-item" href="incidents.html"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Incidents</a>
+      <div class="nav-group-label">Finances</div>
+        <a class="nav-item" href="charges.html"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg> Charges</a>
+        <a class="nav-item" href="encaissement.html"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> Encaissement</a>
+        <a class="nav-item" href="tva.html"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg> TVA</a>
+        <a class="nav-item active" href="rentabilite.html"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Rentabilité</a>
+        <a class="nav-item" href="statistiques.html"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="9" width="4" height="12"/></svg> Statistiques</a>
+      <div class="nav-group-label">Admin</div>
+        <a class="nav-item" href="brouillons-ia.html"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg> Brouillons IA</a>
+        <a class="nav-item" href="parametres.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Paramètres</a>
+    </nav>
+    <div class="sidebar-foot" id="sidebar-foot-trigger">
+      <div class="av">AC</div>
+      <div>
+        <div class="who">Achraf Chikri</div>
+        <div class="role">Admin</div>
+      </div>
+      <div class="user-menu" id="user-menu">
+        <a class="user-menu-item" href="espace-salarie-NA">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+          Mon profil
+        </a>
+        <a class="user-menu-item" href="parametres.html">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82 1V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82V15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Paramètres
+        </a>
+        <a class="user-menu-item" href="#" onclick="alert('🔒 Verrouillé');return false">
+          <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Verrouiller la session
+        </a>
+        <div class="user-menu-sep"></div>
+        <a class="user-menu-item danger" href="#" onclick="if(confirm('Déconnexion ?')){window.location.href='dashboard.html'}return false">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Se déconnecter
+        </a>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 88 60">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <rect x="22" y="18" width="14" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <rect x="38" y="18" width="36" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <div class="page-title">Rentabilité</div>
+    <div class="topbar-right">
+      <input class="search" type="search" placeholder="Rechercher…">
+      <button class="icon-btn"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+    </div>
+  </header>
+  <section class="content">
+    <nav class="crumbs">
+      <a href="vehicules.html">← Retour à la navigation</a>
+    </nav>
+    
+<div class="section-head">
+  <div style="display:flex;align-items:baseline;gap:12px;min-width:0">
+    <h2>Rentabilité</h2>
+    <div class="sub">Mois de mai 2026 · marge brute consolidée</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <select class="search" style="width:auto">
+      <option>Mai 2026</option><option>Avril 2026</option><option>Mars 2026</option><option>YTD 2026</option>
+    </select>
+    <div class="export-wrap">
+      <button class="btn btn-secondary" data-menu-trigger="export-menu-rentabilite" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Exporter
+        <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="menu" id="export-menu-rentabilite" role="menu">
+        <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><div><div class="mi-name">Export PDF</div><div class="mi-sub">Rapport rentabilité</div></div></button>
+        <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg><div><div class="mi-name">Export CSV</div><div class="mi-sub">Marges par mission</div></div></button>
+        <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><div><div class="mi-name">Export Excel</div><div class="mi-sub">Avec simulateur</div></div></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+      <!-- Navigation période (harmonisé Jour/Semaine/Mois/Année) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" aria-label="Précédent"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <button class="btn btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)">Aujourd'hui</button>
+          <button class="btn btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" aria-label="Suivant"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+          <div style="font-family:var(--font-body);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize">Mai 2026</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)">01/05 → 31/05</div>
+        </div>
+        <div style="display:flex;gap:6px"><button class="btn btn-chip">Jour</button><button class="btn btn-chip">Semaine</button><button class="btn btn-chip active">Mois</button><button class="btn btn-chip">Année</button></div>
+      </div>
+
+      <div class="kpi-grid">
+  <div class="kpi"><div class="kpi-lbl">Chiffre d'affaires</div><div class="kpi-val">38 240 €</div><div class="kpi-sub"><span class="up">+8,2%</span> vs avril</div></div>
+  <div class="kpi"><div class="kpi-lbl">Charges totales</div><div class="kpi-val">24 080 €</div><div class="kpi-sub"><span class="down">+4,1%</span> vs avril</div></div>
+  <div class="kpi"><div class="kpi-lbl">Marge brute</div><div class="kpi-val" style="color:#9bb1a4">14 160 €</div><div class="kpi-sub"><span class="up">37,0%</span> du CA</div></div>
+  <div class="kpi"><div class="kpi-lbl">Coût/km moyen</div><div class="kpi-val">0,82 €</div><div class="kpi-sub">flotte 3 véhicules</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px">
+  <div class="card" style="padding:18px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px">
+      <div style="font-family:var(--font-display);font-size:15px;font-weight:800">Évolution CA / charges (6 mois)</div>
+      <div style="font-size:11px;color:var(--text-muted)"><span style="color:#06d6a0">●</span> CA &nbsp; <span style="color:var(--brand)">●</span> Charges</div>
+    </div>
+    <div style="position:relative;height:240px;width:100%">
+      <canvas id="evol"></canvas>
+    </div>
+  </div>
+  <div class="card" style="padding:18px">
+    <div style="font-family:var(--font-display);font-size:15px;font-weight:800;margin-bottom:14px">Répartition charges</div>
+    <div style="position:relative;height:240px;width:100%">
+      <canvas id="dough"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ============ TABS RENTABILITÉ (5 onglets prod) ============ -->
+<nav class="tabs-bar" role="tablist" style="display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding:0 2px">
+  <button class="rent-tab-btn active" data-rent-tab="vehicule">Par véhicule</button>
+  <button class="rent-tab-btn" data-rent-tab="client">Par client</button>
+  <button class="rent-tab-btn" data-rent-tab="chauffeur">Par chauffeur</button>
+  <button class="rent-tab-btn" data-rent-tab="tournee">Par tournée</button>
+  <button class="rent-tab-btn" data-rent-tab="simulateur">Simulateur</button>
+</nav>
+
+<!-- TAB : Par véhicule -->
+<div class="rent-panel active" id="rent-vehicule">
+  <div class="card">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Rentabilité par véhicule</div>
+    <table>
+      <thead><tr><th>Véhicule</th><th>Livraisons</th><th>Km</th><th>CA généré</th><th>Carburant</th><th>Charges</th><th style="text-align:right">Marge</th><th style="text-align:right">% marge</th></tr></thead>
+      <tbody>
+        <tr class="row-hover"><td><strong>Sprinter 314</strong> <span class="mono">AB-314-MC</span></td><td>54</td><td>4 280 km</td><td class="amount">14 820 €</td><td class="amount">3 480 €</td><td class="amount">5 460 €</td><td class="amount" style="color:#06d6a0">5 880 €</td><td class="amount">39,7%</td></tr>
+        <tr class="row-hover"><td><strong>Master 130</strong> <span class="mono">CD-130-MC</span></td><td>42</td><td>3 940 km</td><td class="amount">12 460 €</td><td class="amount">4 060 €</td><td class="amount">4 160 €</td><td class="amount" style="color:#06d6a0">4 240 €</td><td class="amount">34,0%</td></tr>
+        <tr class="row-hover"><td><strong>Daily 35S14</strong> <span class="mono">EF-035-MC</span></td><td>36</td><td>3 120 km</td><td class="amount">10 960 €</td><td class="amount">2 920 €</td><td class="amount">4 000 €</td><td class="amount" style="color:#06d6a0">4 040 €</td><td class="amount">36,9%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB : Par client -->
+<div class="rent-panel" id="rent-client">
+  <div class="card">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Rentabilité par client</div>
+    <table>
+      <thead><tr><th>Client</th><th>Livraisons</th><th>Km</th><th>CA HT</th><th>Coûts</th><th style="text-align:right">Marge</th><th style="text-align:right">% marge</th></tr></thead>
+      <tbody>
+        <tr class="row-hover"><td><strong>Auchan Nord</strong></td><td>22</td><td>1 840 km</td><td class="amount">8 940 €</td><td class="amount">4 920 €</td><td class="amount" style="color:#06d6a0">4 020 €</td><td class="amount">45,0%</td></tr>
+        <tr class="row-hover"><td><strong>Decathlon</strong></td><td>18</td><td>1 560 km</td><td class="amount">6 480 €</td><td class="amount">3 880 €</td><td class="amount" style="color:#06d6a0">2 600 €</td><td class="amount">40,1%</td></tr>
+        <tr class="row-hover"><td><strong>Boulanger</strong></td><td>14</td><td>1 200 km</td><td class="amount">4 940 €</td><td class="amount">3 380 €</td><td class="amount" style="color:#06d6a0">1 560 €</td><td class="amount">31,6%</td></tr>
+        <tr class="row-hover"><td><strong>Carrefour HM</strong></td><td>12</td><td>980 km</td><td class="amount">3 920 €</td><td class="amount">2 720 €</td><td class="amount" style="color:#06d6a0">1 200 €</td><td class="amount">30,6%</td></tr>
+        <tr class="row-hover"><td><strong>Brico Dépôt</strong></td><td>8</td><td>1 100 km</td><td class="amount">2 810 €</td><td class="amount">2 350 €</td><td class="amount" style="color:var(--brand)">460 €</td><td class="amount">16,4%</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB : Par chauffeur -->
+<div class="rent-panel" id="rent-chauffeur">
+  <div class="card">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Rentabilité par chauffeur</div>
+    <table>
+      <thead><tr><th>Chauffeur</th><th>Livraisons</th><th>Km</th><th>CA généré</th><th>Salaire</th><th>Carburant</th><th style="text-align:right">Marge nette</th><th style="text-align:right">€/km</th></tr></thead>
+      <tbody>
+        <tr class="row-hover"><td><strong>Karim Bouali</strong></td><td>38</td><td>3 280 km</td><td class="amount">14 280 €</td><td class="amount">2 850 €</td><td class="amount">2 480 €</td><td class="amount" style="color:#06d6a0">8 950 €</td><td class="amount">2,73</td></tr>
+        <tr class="row-hover"><td><strong>Youssef Essaid</strong></td><td>32</td><td>2 920 km</td><td class="amount">11 540 €</td><td class="amount">2 750 €</td><td class="amount">2 180 €</td><td class="amount" style="color:#06d6a0">6 610 €</td><td class="amount">2,26</td></tr>
+        <tr class="row-hover"><td><strong>Saïd Belaïdi</strong></td><td>28</td><td>2 760 km</td><td class="amount">9 120 €</td><td class="amount">2 650 €</td><td class="amount">2 320 €</td><td class="amount" style="color:#06d6a0">4 150 €</td><td class="amount">1,50</td></tr>
+        <tr class="row-hover"><td><strong>Mehdi Achour</strong></td><td>14</td><td>1 280 km</td><td class="amount">3 480 €</td><td class="amount">1 750 €</td><td class="amount">980 €</td><td class="amount" style="color:#06d6a0">750 €</td><td class="amount">0,59</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB : Par tournée -->
+<div class="rent-panel" id="rent-tournee">
+  <div class="card">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Rentabilité par tournée (10 dernières)</div>
+    <table>
+      <thead><tr><th>Date</th><th>Chauffeur</th><th>Véhicule</th><th>Livr.</th><th>Km</th><th>CA HT</th><th>Coûts</th><th style="text-align:right">Marge</th></tr></thead>
+      <tbody>
+        <tr class="row-hover"><td class="mono">09/05</td><td>Karim B.</td><td>Sprinter 314</td><td>5</td><td>280 km</td><td class="amount">920 €</td><td class="amount">340 €</td><td class="amount" style="color:#06d6a0">580 €</td></tr>
+        <tr class="row-hover"><td class="mono">09/05</td><td>Youssef E.</td><td>Sprinter 316</td><td>4</td><td>180 km</td><td class="amount">820 €</td><td class="amount">310 €</td><td class="amount" style="color:#06d6a0">510 €</td></tr>
+        <tr class="row-hover"><td class="mono">09/05</td><td>Saïd B.</td><td>Master 130</td><td>6</td><td>340 km</td><td class="amount">1 080 €</td><td class="amount">520 €</td><td class="amount" style="color:#06d6a0">560 €</td></tr>
+        <tr class="row-hover"><td class="mono">08/05</td><td>Karim B.</td><td>Sprinter 314</td><td>4</td><td>240 km</td><td class="amount">740 €</td><td class="amount">280 €</td><td class="amount" style="color:#06d6a0">460 €</td></tr>
+        <tr class="row-hover"><td class="mono">08/05</td><td>Mehdi A.</td><td>Sprinter 314</td><td>3</td><td>160 km</td><td class="amount">480 €</td><td class="amount">220 €</td><td class="amount" style="color:#06d6a0">260 €</td></tr>
+        <tr class="row-hover"><td class="mono">07/05</td><td>Karim B.</td><td>Sprinter 314</td><td>5</td><td>300 km</td><td class="amount">980 €</td><td class="amount">360 €</td><td class="amount" style="color:#06d6a0">620 €</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- TAB : Simulateur -->
+<div class="rent-panel" id="rent-simulateur">
+  <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px">
+    <div class="kpi"><div class="kpi-lbl">CA HT projeté</div><div class="kpi-val">42 800 €</div><div class="kpi-sub"><span class="up">+11,4%</span></div></div>
+    <div class="kpi"><div class="kpi-lbl">CA TTC projeté</div><div class="kpi-val">51 360 €</div><div class="kpi-sub">TVA 20%</div></div>
+    <div class="kpi"><div class="kpi-lbl">Bénéfice net</div><div class="kpi-val" style="color:#06d6a0">16 240 €</div><div class="kpi-sub">37,9% du CA</div></div>
+    <div class="kpi"><div class="kpi-lbl">Seuil rentabilité</div><div class="kpi-val">22 400 €</div><div class="kpi-sub">jour 17 du mois</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card" style="margin:0">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Activité projetée</div>
+      <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px">Livraisons projetées</div><input type="number" value="160" style="width:100%;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit"></div>
+        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px">Panier moyen HT (€)</div><input type="number" value="268" style="width:100%;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit"></div>
+        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px">Km moyens / livraison</div><input type="number" value="62" style="width:100%;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin:0">
+      <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Carburant &amp; charges</div>
+      <div style="padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px">Conso flotte (L/100)</div><input type="number" step="0.1" value="9.1" style="width:100%;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit"></div>
+        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px">Prix carburant (€/L)</div><input type="number" step="0.01" value="1.97" style="width:100%;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit"></div>
+        <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px">Charges fixes mois (€)</div><input type="number" value="12800" style="width:100%;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:inherit"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:800">Résumé financier</div>
+    <div style="padding:20px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+      <div style="text-align:center;padding:16px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:8px">CA HT</div><div style="font-family:var(--font-display);font-size:24px;font-weight:800;letter-spacing:-0.02em">42 880 €</div></div>
+      <div style="text-align:center;padding:16px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:8px">Coût carburant</div><div style="font-family:var(--font-display);font-size:24px;font-weight:800;letter-spacing:-0.02em;color:var(--brand)">−4 720 €</div></div>
+      <div style="text-align:center;padding:16px;background:var(--bg-elevated);border-radius:10px;border:1px solid var(--border)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:8px">Charges fixes</div><div style="font-family:var(--font-display);font-size:24px;font-weight:800;letter-spacing:-0.02em;color:var(--brand)">−12 800 €</div></div>
+      <div style="text-align:center;padding:16px;background:var(--brand-soft);border-radius:10px;border:1px solid rgba(230,57,70,0.3)"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--brand);margin-bottom:8px">Marge nette</div><div style="font-family:var(--font-display);font-size:24px;font-weight:800;letter-spacing:-0.02em;color:#06d6a0">+16 240 €</div></div>
+    </div>
+  </div>
+</div>
+
+  </section>
+</div>
+
+<style> .rent-tab-btn{padding:10px 16px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:all var(--t-fast) var(--ease-out);position:relative;top:1px}
+.rent-tab-btn:hover{color:var(--text)}
+.rent-tab-btn.active{color:var(--brand);border-bottom-color:var(--brand)}
+.rent-panel{display:none}
+.rent-panel.active{display:block;animation:rent-fade 0.3s var(--ease-out)}
+@keyframes rent-fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+</style>
+
+<script> document.querySelectorAll('.rent-tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.rent-tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.rent-panel').forEach(p=>p.classList.remove('active'));
+    document.getElementById('rent-'+btn.getAttribute('data-rent-tab'))?.classList.add('active');
+  });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script> Chart.defaults.color = '#adb5bd';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+Chart.defaults.font.family = '"DM Sans",system-ui,sans-serif';
+Chart.defaults.font.size = 11;
+
+// Gradient helper for area fills
+function gradientFill(ctx,top,bottom,stop1,stop2){
+  const g=ctx.createLinearGradient(0,0,0,180);
+  g.addColorStop(0,stop1);g.addColorStop(1,stop2);
+  return g;
+}
+
+const evolCanvas=document.getElementById('evol');
+const evolCtx=evolCanvas.getContext('2d');
+
+new Chart(evolCanvas, {
+  type:'line',
+  data:{
+    labels:['Déc','Janv','Févr','Mars','Avril','Mai'],
+    datasets:[
+      {
+        label:'CA HT',
+        data:[28400,30200,32800,33900,35340,38240],
+        borderColor:'#06d6a0',
+        backgroundColor:gradientFill(evolCtx,0,180,'rgba(6,214,160,0.25)','rgba(6,214,160,0)'),
+        tension:.4,fill:true,borderWidth:2.5,
+        pointRadius:4,pointBackgroundColor:'#06d6a0',pointBorderColor:'#fff',pointBorderWidth:2,
+        pointHoverRadius:6
+      },
+      {
+        label:'Charges',
+        data:[19200,20100,21800,22400,23120,24080],
+        borderColor:'#e63946',
+        backgroundColor:gradientFill(evolCtx,0,180,'rgba(230,57,70,0.20)','rgba(230,57,70,0)'),
+        tension:.4,fill:true,borderWidth:2.5,
+        pointRadius:4,pointBackgroundColor:'#e63946',pointBorderColor:'#fff',pointBorderWidth:2,
+        pointHoverRadius:6
+      }
+    ]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    interaction:{intersect:false,mode:'index'},
+    plugins:{
+      legend:{display:false},
+      tooltip:{
+        backgroundColor:'rgba(34,38,45,0.95)',
+        borderColor:'#4a5263',borderWidth:1,
+        padding:10,cornerRadius:8,
+        titleFont:{family:'"Syne",sans-serif',size:13,weight:800},
+        bodyFont:{size:12},displayColors:true,boxPadding:4,
+        callbacks:{label:c=>` ${c.dataset.label} : ${c.parsed.y.toLocaleString('fr-FR')} €`}
+      }
+    },
+    scales:{
+      y:{beginAtZero:false,grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},ticks:{callback:v=>(v/1000)+'k €',padding:8}},
+      x:{grid:{display:false},ticks:{padding:8}}
+    }
+  }
+});
+
+const doughCanvas=document.getElementById('dough');
+new Chart(doughCanvas, {
+  type:'doughnut',
+  data:{
+    labels:['Carburant','Salaires','Entretien','Péages','Assurance','Autres'],
+    datasets:[{
+      data:[3480,12800,1920,1240,1600,3040],
+      backgroundColor:['#e63946','#4cc9f0','#d4b67a','#9bb1a4','#06d6a0','#6c757d'],
+      borderColor:'#2a2f37',borderWidth:3,hoverOffset:8
+    }]
+  },
+  options:{
+    responsive:true,maintainAspectRatio:false,
+    cutout:'65%',
+    plugins:{
+      legend:{
+        position:'bottom',
+        labels:{padding:10,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle',font:{size:11}}
+      },
+      tooltip:{
+        backgroundColor:'rgba(34,38,45,0.95)',
+        borderColor:'#4a5263',borderWidth:1,
+        padding:10,cornerRadius:8,
+        titleFont:{family:'"Syne",sans-serif',size:13,weight:800},
+        bodyFont:{size:12},
+        callbacks:{label:c=>` ${c.label} : ${c.parsed.toLocaleString('fr-FR')} € (${((c.parsed/24080)*100).toFixed(1)}%)`}
+      }
+    }
+  }
+});
+</script>
+<script> // Export menus (Livraisons-pattern) — supports multiple menus per page
+document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
+  const targetId=btn.getAttribute('data-menu-trigger');
+  const menu=document.getElementById(targetId);
+  if(!menu) return;
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    document.querySelectorAll('.menu.open').forEach(m=>{if(m!==menu)m.classList.remove('open')});
+    const open=menu.classList.toggle('open');
+    btn.setAttribute('aria-expanded',open);
+  });
+  document.addEventListener('click',e=>{
+    if(!menu.contains(e.target)&&e.target!==btn){menu.classList.remove('open');btn.setAttribute('aria-expanded','false')}
+  });
+  menu.querySelectorAll('.menu-item').forEach(mi=>mi.addEventListener('click',()=>menu.classList.remove('open')));
+});
+</script>
+<script>
+// Sidebar user menu toggle
+(function(){
+  const trig=document.getElementById('sidebar-foot-trigger');
+  const menu=document.getElementById('user-menu');
+  if(!trig||!menu) return;
+  trig.addEventListener('click',e=>{
+    if(e.target.closest('.user-menu-item')) return;
+    e.stopPropagation();
+    const open=menu.classList.toggle('open');
+    trig.classList.toggle('open',open);
+  });
+  document.addEventListener('click',e=>{
+    if(!menu.contains(e.target)&&!trig.contains(e.target)){
+      menu.classList.remove('open');trig.classList.remove('open');
+    }
+  });
+})();
+</script>
+</body>
+</html>

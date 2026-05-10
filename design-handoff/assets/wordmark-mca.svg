@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 140" aria-label="MCA Logistics wordmark">
+  <text x="240" y="80" text-anchor="middle" font-family="Syne, Segoe UI, Arial, sans-serif" font-weight="900" font-size="62" fill="#f1f3f5" letter-spacing="2">MCA</text>
+  <text x="240" y="115" text-anchor="middle" font-family="Syne, Segoe UI, Arial, sans-serif" font-weight="700" font-style="italic" font-size="22" fill="#e63946" letter-spacing="6">LOGISTICS</text>
+  <line x1="160" y1="92" x2="320" y2="92" stroke="#e63946" stroke-width="2" opacity="0.6"></line>
+</svg>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Livraisons</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-feature-settings:"tnum"}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+.app{display:flex;flex-direction:column;min-height:100vh;position:relative;z-index:1}
+
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:relative}
+.topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 30%)}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{width:40px;height:28px}
+.brand-text{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:-0.02em;line-height:1}
+.brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:10px;display:block;margin-top:2px;letter-spacing:0.08em}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;width:240px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--brand)}
+.icon-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn:hover{background:var(--bg-card-hover);color:var(--text)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+
+.content{padding:22px 26px;flex:1;overflow:auto;max-width:1280px;width:100%;margin:0 auto}
+.title-row{display:flex;align-items:baseline;gap:14px;white-space:nowrap;margin-bottom:14px}
+.sub-meta{font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis}
+
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:nowrap;gap:14px}
+.section-head h2{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.01em;white-space:nowrap}
+.section-head .sub{color:var(--text-muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.actions{display:flex;gap:8px;flex-shrink:0;align-items:center}
+
+.btn{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:38px;letter-spacing:0.02em;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;transition:all var(--t-fast) var(--ease-out)}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-primary:hover{background:var(--brand-hover);transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong)}
+.btn-secondary:hover{background:var(--bg-card-hover)}
+
+.modify-wrap{overflow:hidden;max-width:0;opacity:0;transition:max-width var(--t-base) var(--ease-out),opacity var(--t-base) var(--ease-out)}
+.modify-wrap.show{max-width:240px;opacity:1}
+
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.chip{padding:7px 12px;border-radius:999px;background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all var(--t-fast) var(--ease-out);font-family:inherit}
+.chip:hover{border-color:var(--border-strong);color:var(--text)}
+.chip.active{background:var(--brand-soft);border-color:rgba(230,57,70,0.4);color:var(--brand)}
+.chip .count{background:rgba(255,255,255,0.06);padding:1px 7px;border-radius:999px;font-size:11px}
+.chip.active .count{background:rgba(230,57,70,0.18)}
+.toolbar-spacer{flex:1}
+.range-input{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:7px 12px;color:var(--text);font-size:12px;font-family:inherit}
+
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:11px 18px;color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.15);position:sticky;top:0;white-space:nowrap}
+td{padding:13px 18px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr.row-hover:hover td{background:var(--bg-card-hover);cursor:pointer}
+tr.checked td{background:rgba(230,57,70,0.06)}
+.mono{font-family:var(--font-mono);font-size:12px;color:var(--text-muted)}
+.client{font-weight:600}
+.amount{font-weight:700;text-align:right;font-feature-settings:"tnum"}
+.driver{display:flex;align-items:center;gap:8px}
+.driver-av{width:24px;height:24px;border-radius:50%;background:var(--bg-card-hover);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:1px solid var(--border-strong)}
+input[type=checkbox]{accent-color:var(--brand);cursor:pointer}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted);white-space:nowrap}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#9bb1a4}
+.badge.pending{color:#d4b67a}
+.badge.late{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+.badge.draft{color:var(--text-muted)}
+
+.foot{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-top:1px solid var(--border);color:var(--text-muted);font-size:12px}
+.pager{display:flex;gap:4px}
+.pg{padding:4px 9px;border-radius:6px;border:1px solid var(--border);color:var(--text-muted);font-size:12px;cursor:pointer;background:transparent;font-family:inherit}
+.pg:hover{background:var(--bg-card-hover);color:var(--text)}
+.pg.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+
+.menu{position:absolute;top:calc(100% + 6px);right:0;min-width:260px;background:var(--bg-elevated);border:1px solid var(--border-strong);border-radius:10px;box-shadow:0 18px 40px rgba(0,0,0,0.45);padding:6px;z-index:50;opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity var(--t-fast) var(--ease-out),transform var(--t-fast) var(--ease-out)}
+.menu.open{opacity:1;transform:translateY(0);pointer-events:auto}
+.menu-item{display:flex;align-items:center;gap:11px;width:100%;padding:9px 11px;border:none;background:transparent;color:var(--text);font-family:inherit;font-size:13px;text-align:left;border-radius:7px;cursor:pointer;transition:background var(--t-fast) var(--ease-out)}
+.menu-item:hover{background:var(--bg-card-hover)}
+.menu-item svg{width:16px;height:16px;stroke:currentColor;stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round;color:var(--text-muted);flex-shrink:0}
+.menu-item:hover svg{color:var(--brand)}
+.mi-name{font-weight:600;font-size:13px;line-height:1.2}
+.mi-sub{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.2}
+.menu-sep{height:1px;background:var(--border);margin:5px 6px}
+
+@media (max-width:880px){.search{width:140px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 88 60">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <div class="topbar-right">
+      <input class="search" type="search" placeholder="Rechercher N°, client, chauffeur…">
+      <button class="icon-btn" title="Notifications"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+      <div class="av">AC</div>
+    </div>
+  </header>
+
+  <section class="content">
+
+    <div class="title-row">
+      <div class="page-title">Livraisons</div>
+      <div class="sub-meta">142 ce mois · 3 retards à traiter</div>
+    </div>
+
+    <div class="section-head">
+      <div style="display:flex;align-items:baseline;gap:12px;min-width:0">
+        <h2>Toutes les livraisons</h2>
+        <div class="sub">Filtrer, exporter, suivre l'état de chaque tournée</div>
+      </div>
+      <div class="actions">
+        <div class="modify-wrap" id="modify-wrap">
+          <button class="btn btn-secondary" id="modify-btn">
+            <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+            Modifier <span id="sel-count" style="opacity:.7"></span>
+          </button>
+        </div>
+        <div class="export-wrap" style="position:relative">
+          <button class="btn btn-secondary" id="gen-btn" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Générer
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="menu" id="gen-menu" role="menu">
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg><div><div class="mi-name">Facture</div><div class="mi-sub">PDF à envoyer au client</div></div></button>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg><div><div class="mi-name">Bon de livraison</div><div class="mi-sub">Émargement chauffeur + client</div></div></button>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg><div><div class="mi-name">Lettre de voiture</div><div class="mi-sub">CMR conforme transport</div></div></button>
+            <div class="menu-sep"></div>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg><div><div class="mi-name">Facture groupée</div><div class="mi-sub">PDF par client sélectionné</div></div></button>
+          </div>
+        </div>
+        <div class="export-wrap" style="position:relative">
+          <button class="btn btn-secondary" id="export-btn" aria-haspopup="true" aria-expanded="false">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exporter
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="menu" id="export-menu" role="menu">
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg><div><div class="mi-name">Export PDF</div><div class="mi-sub">Bon imprimable, 1 page</div></div></button>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg><div><div class="mi-name">Export CSV</div><div class="mi-sub">Toutes les colonnes, point-virgule</div></div></button>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg><div><div class="mi-name">Export Excel (.xlsx)</div><div class="mi-sub">Avec onglets par statut</div></div></button>
+            <div class="menu-sep"></div>
+            <button class="menu-item"><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg><div><div class="mi-name">Facture groupée</div><div class="mi-sub">PDF par client sélectionné</div></div></button>
+          </div>
+        </div>
+        <button class="btn btn-primary"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Nouvelle livraison</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="chip active">Toutes <span class="count">142</span></button>
+      <button class="chip">Livrées <span class="count">128</span></button>
+      <button class="chip">En cours <span class="count">11</span></button>
+      <button class="chip">Retard <span class="count">3</span></button>
+      <button class="chip">Brouillons <span class="count">5</span></button>
+      <div class="toolbar-spacer"></div>
+      <input class="range-input" type="text" value="01/05/2026 — 31/05/2026" style="width:200px">
+      <button class="chip"><svg viewBox="0 0 24 24" width="13" height="13" style="stroke:currentColor;stroke-width:2;fill:none"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg> Filtres</button>
+    </div>
+
+    <div class="card">
+      <div style="overflow:auto">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:32px"><input type="checkbox" id="check-all"></th>
+            <th>N°</th><th>Date</th><th>Client</th><th>Trajet</th><th>Chauffeur</th><th>Véhicule</th><th>Statut</th><th style="text-align:right">Montant HT</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0142</td><td>09/05</td><td class="client">Auchan Nord</td><td>Lille → Roubaix</td><td><div class="driver"><div class="driver-av">KB</div>Karim B.</div></td><td>Sprinter 314</td><td><span class="badge ok">Livrée</span></td><td class="amount">320 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0141</td><td>09/05</td><td class="client">Decathlon</td><td>Villeneuve → Lens</td><td><div class="driver"><div class="driver-av">YE</div>Youssef E.</div></td><td>Sprinter 316</td><td><span class="badge pending">En cours</span></td><td class="amount">410 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0140</td><td>09/05</td><td class="client">Boulanger</td><td>Lille → Arras</td><td><div class="driver"><div class="driver-av">SB</div>Saïd B.</div></td><td>Master 130</td><td><span class="badge late">Retard</span></td><td class="amount">280 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0139</td><td>08/05</td><td class="client">Carrefour</td><td>Roubaix → Tourcoing</td><td><div class="driver"><div class="driver-av">KB</div>Karim B.</div></td><td>Sprinter 314</td><td><span class="badge ok">Livrée</span></td><td class="amount">180 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0138</td><td>08/05</td><td class="client">Leroy Merlin</td><td>Lens → Béthune</td><td><div class="driver"><div class="driver-av">SB</div>Saïd B.</div></td><td>Master 130</td><td><span class="badge ok">Livrée</span></td><td class="amount">240 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0137</td><td>08/05</td><td class="client">Système U</td><td>Lille → Hénin-B.</td><td><div class="driver"><div class="driver-av">YE</div>Youssef E.</div></td><td>Sprinter 316</td><td><span class="badge ok">Livrée</span></td><td class="amount">295 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0136</td><td>07/05</td><td class="client">Auchan Nord</td><td>Lille → Wattrelos</td><td><div class="driver"><div class="driver-av">KB</div>Karim B.</div></td><td>Sprinter 314</td><td><span class="badge late">Retard</span></td><td class="amount">155 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0135</td><td>07/05</td><td class="client">Brico Dépôt</td><td>Arras → Cambrai</td><td><div class="driver"><div class="driver-av">SB</div>Saïd B.</div></td><td>Master 130</td><td><span class="badge ok">Livrée</span></td><td class="amount">340 €</td></tr>
+          <tr class="row-hover"><td><input type="checkbox" class="row-check"></td><td class="mono">L-2026-0134</td><td>07/05</td><td class="client">Castorama</td><td>Lille → Douai</td><td><div class="driver"><div class="driver-av">YE</div>Youssef E.</div></td><td>Sprinter 316</td><td><span class="badge draft">Brouillon</span></td><td class="amount">— €</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="foot">
+        <div>9 affichées sur 142</div>
+        <div class="pager">
+          <button class="pg">‹</button>
+          <button class="pg active">1</button>
+          <button class="pg">2</button>
+          <button class="pg">3</button>
+          <button class="pg">…</button>
+          <button class="pg">16</button>
+          <button class="pg">›</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// chip toggle
+document.querySelectorAll('.chip').forEach(c=>{
+  c.addEventListener('click',()=>{
+    if(c.querySelector('.count')){
+      document.querySelectorAll('.chip').forEach(x=>{if(x.querySelector('.count')) x.classList.remove('active')});
+      c.classList.add('active');
+    }
+  });
+});
+
+// checkbox -> show modify button
+const modifyWrap=document.getElementById('modify-wrap');
+const selCount=document.getElementById('sel-count');
+const allCheck=document.getElementById('check-all');
+const rowChecks=()=>document.querySelectorAll('.row-check');
+function refreshSelection(){
+  const checks=[...rowChecks()];
+  const n=checks.filter(c=>c.checked).length;
+  modifyWrap.classList.toggle('show',n>0);
+  selCount.textContent=n>0?`(${n})`:'';
+  checks.forEach(c=>c.closest('tr').classList.toggle('checked',c.checked));
+  allCheck.checked=n===checks.length&&n>0;
+  allCheck.indeterminate=n>0&&n<checks.length;
+}
+rowChecks().forEach(c=>c.addEventListener('change',refreshSelection));
+allCheck.addEventListener('change',()=>{rowChecks().forEach(c=>c.checked=allCheck.checked);refreshSelection()});
+
+// gen menu
+const genBtn=document.getElementById('gen-btn');
+const genMenu=document.getElementById('gen-menu');
+genBtn.addEventListener('click',e=>{e.stopPropagation();exportMenu.classList.remove('open');const open=genMenu.classList.toggle('open');genBtn.setAttribute('aria-expanded',open)});
+document.addEventListener('click',e=>{if(!genMenu.contains(e.target)&&e.target!==genBtn){genMenu.classList.remove('open');genBtn.setAttribute('aria-expanded','false')}});
+genMenu.querySelectorAll('.menu-item').forEach(mi=>mi.addEventListener('click',()=>{genMenu.classList.remove('open')}));
+
+// export menu
+const exportBtn=document.getElementById('export-btn');
+const exportMenu=document.getElementById('export-menu');
+exportBtn.addEventListener('click',e=>{e.stopPropagation();genMenu.classList.remove('open');const open=exportMenu.classList.toggle('open');exportBtn.setAttribute('aria-expanded',open)});
+document.addEventListener('click',e=>{if(!exportMenu.contains(e.target)&&e.target!==exportBtn){exportMenu.classList.remove('open');exportBtn.setAttribute('aria-expanded','false')}});
+exportMenu.querySelectorAll('.menu-item').forEach(mi=>mi.addEventListener('click',()=>{exportMenu.classList.remove('open')}));
+</script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Véhicules</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../../colors_and_type.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{min-height:100vh;font-feature-settings:"tnum"}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh;position:relative;z-index:1}
+
+.sidebar{background:var(--bg-elevated);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.brand{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;position:relative}
+.brand::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 100%)}
+.brand-logo{width:48px;height:32px;flex-shrink:0}
+.brand-text{font-family:var(--font-display);font-weight:800;font-size:17px;letter-spacing:-0.02em;line-height:1}
+.brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:12px;display:block;margin-top:2px;letter-spacing:0.06em}
+.nav{flex:1;padding:14px 10px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:11px 14px;border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;font-weight:500;margin-bottom:2px;transition:all var(--t-fast) var(--ease-out);position:relative;text-decoration:none}
+.nav-item:hover{background:var(--bg-card-hover);color:var(--text)}
+.nav-item.active{background:var(--brand-soft);color:var(--brand)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--brand);border-radius:0 3px 3px 0}
+.nav-item svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0.85}
+.sidebar-foot{padding:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sidebar-foot .av{width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+.sidebar-foot .who{font-size:13px;font-weight:600}
+.sidebar-foot .role{font-size:11px;color:var(--text-muted)}
+
+.main{display:flex;flex-direction:column;min-width:0}
+.topbar{height:60px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.page-title{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.02em}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.search{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;color:var(--text);font-size:13px;width:240px;font-family:inherit}
+.search:focus{outline:none;border-color:var(--brand)}
+.icon-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn:hover{background:var(--bg-card-hover);color:var(--text)}
+.icon-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+.content{padding:22px 26px;flex:1;overflow:auto}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.section-head h2{font-family:var(--font-display);font-size:20px;font-weight:800;letter-spacing:-0.01em}
+.section-head .sub{color:var(--text-muted);font-size:13px;margin-top:2px}
+
+.btn{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;font-family:inherit;min-height:38px;letter-spacing:0.02em;display:inline-flex;align-items:center;gap:8px}
+.btn svg{width:14px;height:14px;stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--brand);color:#fff;box-shadow:var(--shadow-brand)}
+.btn-primary:hover{background:var(--brand-hover);transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid var(--border-strong)}
+
+.fleet{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.veh{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color var(--t-fast) var(--ease-out)}
+.veh:hover{border-color:var(--border-strong)}
+.veh-top{padding:16px 18px 12px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.veh-top > div:first-child{min-width:0;flex:1}
+.veh-id{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.veh-name{font-family:var(--font-display);font-size:16px;font-weight:800;letter-spacing:-0.01em;margin-top:2px;line-height:1.2;word-break:break-word}
+.veh{position:relative}
+.veh-top .badge{position:absolute;top:10px;right:12px;flex-shrink:0;padding:3px 9px;font-size:10px}
+.veh-top > div:first-child{padding-right:78px}
+.veh-plate{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);margin-top:4px;background:rgba(0,0,0,0.2);display:inline-block;padding:2px 8px;border-radius:4px;border:1px solid var(--border)}
+
+.veh-art{height:88px;background:linear-gradient(180deg,rgba(0,0,0,0.2),transparent);display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+.veh-art::after{content:'';position:absolute;left:0;right:0;bottom:18px;height:1px;background:repeating-linear-gradient(90deg,var(--brand) 0 8px,transparent 8px 18px);opacity:0.5}
+.veh-art svg{position:relative;z-index:1}
+
+.veh-stats{padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:1px solid var(--border)}
+.veh-stat .lab{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-weight:700}
+.veh-stat .val{font-size:13px;font-weight:700;margin-top:2px;font-feature-settings:"tnum";white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.veh-foot{padding:12px 18px;display:flex;justify-content:space-between;align-items:center;gap:8px;white-space:nowrap}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted);white-space:nowrap;flex-shrink:0}
+.badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.ok{color:#9bb1a4}
+.badge.warn{color:#d4b67a}
+.badge.alert{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+
+.link{color:var(--text-muted);font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.link:hover{color:var(--brand)}
+
+@media (max-width:1100px){.fleet{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:880px){.app{grid-template-columns:1fr}.sidebar{display:none}.fleet{grid-template-columns:1fr}.search{width:140px}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 88 60">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <rect x="22" y="18" width="14" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <rect x="38" y="18" width="36" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="index.html"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg> Dashboard</a>
+      <a class="nav-item" href="livraisons.html"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg> Livraisons</a>
+      <a class="nav-item" href="charges.html"><svg viewBox="0 0 24 24"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h9"/><path d="M3 10h18"/><path d="M16 19h6"/></svg> Charges</a>
+      <a class="nav-item" href="rentabilite.html"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg> Rentabilité</a>
+      <a class="nav-item active" href="vehicules.html"><svg viewBox="0 0 24 24"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg> Véhicules</a>
+      <a class="nav-item" href="equipe.html"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg> Équipe</a>
+      <a class="nav-item" href="planning.html"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg> Planning</a>
+      <a class="nav-item" href="carburant.html"><svg viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M9 12h6"/><circle cx="12" cy="14" r="8"/></svg> Carburant</a>
+      <a class="nav-item" href="entretiens.html"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg> Entretiens</a>
+      <a class="nav-item" href="alertes.html"><svg viewBox="0 0 24 24"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> Alertes</a>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="av">AC</div>
+      <div>
+        <div class="who">Achraf Chikri</div>
+        <div class="role">Admin</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div style="display:flex;align-items:baseline;gap:14px;white-space:nowrap">
+        <div class="page-title">Véhicules</div>
+        <div style="font-size:12px;color:var(--text-muted)">3 véhicules · 1 alerte CT</div>
+      </div>
+      <div class="topbar-right">
+        <input class="search" type="search" placeholder="Rechercher plaque, modèle…">
+        <button class="icon-btn"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+      </div>
+    </header>
+
+    <section class="content">
+      <div class="section-head" style="flex-wrap:nowrap;gap:14px">
+        <div style="display:flex;align-items:baseline;gap:12px;min-width:0">
+          <h2 style="white-space:nowrap">Flotte</h2>
+          <div class="sub" style="margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">État des véhicules, kilométrage, prochaines échéances</div>
+        </div>
+        <div style="flex-shrink:0">
+          <button class="btn btn-primary" style="white-space:nowrap"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>Ajouter un véhicule</button>
+        </div>
+      </div>
+
+      <div class="fleet">
+
+        <div class="veh">
+          <div class="veh-top">
+            <div>
+              <div class="veh-id">Sprinter 314</div>
+              <div class="veh-name">Mercedes-Benz</div>
+              <div class="veh-plate">AB-314-MC</div>
+            </div>
+            <span class="badge ok">En service</span>
+          </div>
+          <div class="veh-art">
+            <svg width="170" height="60" viewBox="0 0 170 60">
+              <rect x="22" y="14" width="96" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+              <rect x="118" y="20" width="32" height="22" rx="3" fill="#2a2f37" stroke="#f1f3f5" stroke-width="1"/>
+              <rect x="26" y="18" width="20" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+              <rect x="48" y="18" width="68" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+              <circle cx="42" cy="44" r="6" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+              <circle cx="130" cy="44" r="6" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+              <rect x="0" y="22" width="18" height="2" fill="#e63946" opacity="0.7"/>
+              <rect x="2" y="28" width="14" height="2" fill="#e63946" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="veh-stats">
+            <div class="veh-stat"><div class="lab">Kilométrage</div><div class="val">142 380 km</div></div>
+            <div class="veh-stat"><div class="lab">Conso 30j</div><div class="val">9,2 L/100</div></div>
+            <div class="veh-stat"><div class="lab">Chauffeur</div><div class="val">Karim B.</div></div>
+            <div class="veh-stat"><div class="lab">Prochain CT</div><div class="val">12/11/2026</div></div>
+          </div>
+          <div class="veh-foot">
+            <a class="link" href="#">Voir le détail →</a>
+            <button class="btn btn-secondary" style="padding:6px 12px;min-height:30px;font-size:12px">Entretien</button>
+          </div>
+        </div>
+
+        <div class="veh">
+          <div class="veh-top">
+            <div>
+              <div class="veh-id">Sprinter 316</div>
+              <div class="veh-name">Mercedes-Benz</div>
+              <div class="veh-plate">CD-316-MC</div>
+            </div>
+            <span class="badge alert">CT 4j</span>
+          </div>
+          <div class="veh-art">
+            <svg width="170" height="60" viewBox="0 0 170 60">
+              <rect x="22" y="14" width="96" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+              <rect x="118" y="20" width="32" height="22" rx="3" fill="#2a2f37" stroke="#f1f3f5" stroke-width="1"/>
+              <rect x="26" y="18" width="20" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+              <rect x="48" y="18" width="68" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+              <circle cx="42" cy="44" r="6" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+              <circle cx="130" cy="44" r="6" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+              <rect x="0" y="22" width="18" height="2" fill="#e63946" opacity="0.7"/>
+              <rect x="2" y="28" width="14" height="2" fill="#e63946" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="veh-stats">
+            <div class="veh-stat"><div class="lab">Kilométrage</div><div class="val">98 540 km</div></div>
+            <div class="veh-stat"><div class="lab">Conso 30j</div><div class="val">8,8 L/100</div></div>
+            <div class="veh-stat"><div class="lab">Chauffeur</div><div class="val">Youssef E.</div></div>
+            <div class="veh-stat"><div class="lab">Prochain CT</div><div class="val" style="color:var(--brand)">13/05/2026</div></div>
+          </div>
+          <div class="veh-foot">
+            <a class="link" href="#">Voir le détail →</a>
+            <button class="btn btn-primary" style="padding:6px 12px;min-height:30px;font-size:12px">Programmer CT</button>
+          </div>
+        </div>
+
+        <div class="veh">
+          <div class="veh-top">
+            <div>
+              <div class="veh-id">Master 130</div>
+              <div class="veh-name">Renault</div>
+              <div class="veh-plate">EF-130-MC</div>
+            </div>
+            <span class="badge warn">Conso +18%</span>
+          </div>
+          <div class="veh-art">
+            <svg width="170" height="60" viewBox="0 0 170 60">
+              <rect x="22" y="14" width="96" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+              <rect x="118" y="20" width="32" height="22" rx="3" fill="#2a2f37" stroke="#f1f3f5" stroke-width="1"/>
+              <rect x="26" y="18" width="20" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+              <rect x="48" y="18" width="68" height="10" rx="1" fill="#2a2f37" stroke="#f1f3f5" stroke-width="0.8"/>
+              <circle cx="42" cy="44" r="6" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+              <circle cx="130" cy="44" r="6" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+              <rect x="0" y="22" width="18" height="2" fill="#e63946" opacity="0.7"/>
+              <rect x="2" y="28" width="14" height="2" fill="#e63946" opacity="0.5"/>
+            </svg>
+          </div>
+          <div class="veh-stats">
+            <div class="veh-stat"><div class="lab">Kilométrage</div><div class="val">186 240 km</div></div>
+            <div class="veh-stat"><div class="lab">Conso 30j</div><div class="val" style="color:#d4b67a">11,3 L/100</div></div>
+            <div class="veh-stat"><div class="lab">Chauffeur</div><div class="val">Saïd B.</div></div>
+            <div class="veh-stat"><div class="lab">Prochain CT</div><div class="val">02/03/2027</div></div>
+          </div>
+          <div class="veh-foot">
+            <a class="link" href="#">Voir le détail →</a>
+            <button class="btn btn-secondary" style="padding:6px 12px;min-height:30px;font-size:12px">Diagnostiquer</button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
