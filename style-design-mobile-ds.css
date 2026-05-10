@@ -1,0 +1,400 @@
+/* ==========================================================================
+   MCA Logistics — Design Mobile DS overrides (Phase 4 / PR-22)
+
+   Restyle CSS-only de m.html (mobile shell). Aucun changement HTML, IDs
+   preserves (m-content, m-back-btn, m-title, m-chatbot-btn, m-agent-ia-btn,
+   m-tab[data-page], m-drawer-link, m-sheet, m-toast, etc.)
+
+   Charge dans m.html APRES style-mobile.css pour gagner la cascade.
+   ========================================================================== */
+
+/* ============ HEADER MOBILE ============ */
+
+.m-header {
+  background: var(--ds-bg-elevated);
+  border-bottom: 1px solid var(--ds-border);
+  position: relative;
+  font-family: var(--ds-font-body);
+}
+
+/* Accent bar bottom du header (signature ds) */
+.m-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.m-header-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+}
+
+.m-header-action {
+  color: var(--ds-text-muted);
+  background: transparent;
+  border: none;
+  transition: color var(--ds-t-fast) var(--ds-ease-out),
+              background var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.m-header-action:hover {
+  color: var(--ds-text);
+  background: var(--ds-bg-card-hover);
+}
+
+.m-header-action:active {
+  background: var(--ds-border);
+}
+
+/* ============ BOTTOM NAV ============ */
+
+.m-bottom-nav {
+  background: var(--ds-bg-elevated);
+  border-top: 1px solid var(--ds-border);
+  font-family: var(--ds-font-body);
+}
+
+.m-tab {
+  color: var(--ds-text-muted);
+  background: transparent;
+  border: none;
+  transition: color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.m-tab.active {
+  color: var(--ds-brand);
+}
+
+/* Barre brand au-dessus du tab actif */
+.m-tab.active::before {
+  background: var(--ds-brand);
+}
+
+.m-tab-label {
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  font-size: var(--ds-fs-xs);
+}
+
+.m-tab-badge {
+  background: var(--ds-brand);
+  color: var(--ds-brand-on);
+  font-family: var(--ds-font-mono);
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+  border-radius: var(--ds-r-pill);
+}
+
+/* ============ CONTENT AREA ============ */
+
+.m-content {
+  background: var(--ds-bg);
+  font-family: var(--ds-font-body);
+  color: var(--ds-text);
+}
+
+/* ============ LOADING / SPINNER ============ */
+
+.m-loading {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+}
+
+.m-spinner {
+  border: 3px solid var(--ds-border-strong);
+  border-top-color: var(--ds-brand);
+  border-radius: var(--ds-r-pill);
+  animation: m-ds-spin 0.7s linear infinite;
+}
+
+@keyframes m-ds-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============ M-CARDS (dashboard et listes) ============ */
+
+.m-card {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+  color: var(--ds-text);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.m-card-pressable:active {
+  background: var(--ds-bg-card-hover);
+}
+
+.m-card-title {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+.m-card-value {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
+
+/* Variants couleur (green, blue, purple, red, accent) — gardent leur couleur semantique mais valeur prend la teinte */
+.m-card-green .m-card-value { color: var(--ds-success); }
+.m-card-blue .m-card-value { color: var(--ds-info); }
+.m-card-red .m-card-value { color: var(--ds-brand); }
+.m-card-accent .m-card-value { color: var(--ds-brand); }
+.m-card-purple .m-card-value { color: #9b59b6; }
+.m-card-warning .m-card-value { color: var(--ds-warning); }
+
+/* ============ SECTION LINKS ============ */
+
+.m-section-link {
+  color: var(--ds-brand);
+  background: transparent;
+  border: none;
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  font-size: var(--ds-fs-sm);
+}
+
+/* ============ BUTTONS ============ */
+
+.m-btn {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  letter-spacing: 0.02em;
+  min-height: 44px;
+}
+
+.m-btn-primary {
+  background: var(--ds-brand);
+  color: var(--ds-brand-on);
+  border-color: var(--ds-brand);
+  box-shadow: var(--ds-shadow-brand);
+}
+
+.m-btn-primary:active {
+  background: var(--ds-brand-hover);
+}
+
+/* ============ FAB (Floating Action Button) ============ */
+
+.m-fab {
+  background: var(--ds-brand);
+  color: var(--ds-brand-on);
+  box-shadow: var(--ds-shadow-brand);
+  border-radius: var(--ds-r-pill);
+  z-index: var(--ds-z-fab);
+}
+
+.m-fab:active {
+  background: var(--ds-brand-hover);
+}
+
+.m-fab-secondary {
+  background: var(--ds-bg-elevated);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-pill);
+}
+
+/* ============ DRAWER ============ */
+
+.m-drawer {
+  background: var(--ds-bg-elevated);
+  border-left: 1px solid var(--ds-border);
+  font-family: var(--ds-font-body);
+}
+
+.m-drawer-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.m-drawer-header {
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.m-drawer-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+}
+
+.m-drawer-link {
+  color: var(--ds-text);
+  background: transparent;
+  border: none;
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  transition: background var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.m-drawer-link:active {
+  background: var(--ds-bg-card-hover);
+}
+
+.m-drawer-link-danger {
+  color: var(--ds-brand);
+}
+
+.m-drawer-section-label {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+.m-drawer-badge {
+  background: var(--ds-brand);
+  color: var(--ds-brand-on);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-xs);
+  font-weight: var(--ds-fw-bold);
+  border-radius: var(--ds-r-pill);
+}
+
+.m-drawer-version-footer {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-mono);
+  font-size: var(--ds-fs-xs);
+}
+
+/* ============ SHEET (bottom-sheet saisie) ============ */
+
+.m-sheet {
+  background: var(--ds-bg-elevated);
+  border-top: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-xl) var(--ds-r-xl) 0 0;
+  font-family: var(--ds-font-body);
+  box-shadow: var(--ds-shadow-lg);
+}
+
+.m-sheet-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.m-sheet-handle {
+  background: var(--ds-border-strong);
+  border-radius: var(--ds-r-pill);
+}
+
+.m-sheet-header {
+  border-bottom: 1px solid var(--ds-border);
+}
+
+.m-sheet-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+}
+
+.m-sheet-footer {
+  border-top: 1px solid var(--ds-border);
+}
+
+/* ============ TOAST MOBILE ============ */
+
+.m-toast {
+  background: var(--ds-bg-card);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+  border-left: 4px solid var(--ds-success);
+  border-radius: var(--ds-r-md);
+  box-shadow: var(--ds-shadow-md);
+  font-family: var(--ds-font-body);
+  z-index: var(--ds-z-toast);
+}
+
+/* ============ FORM FIELDS MOBILE ============ */
+
+.m-form-field {
+  font-family: var(--ds-font-body);
+}
+
+.m-form-label {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+.m-form-label-required::after {
+  content: ' *';
+  color: var(--ds-brand);
+}
+
+.m-form-field input,
+.m-form-field select,
+.m-form-field textarea,
+.m-sheet-body input,
+.m-sheet-body select,
+.m-sheet-body textarea {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-body);
+}
+
+.m-form-field input:focus,
+.m-form-field select:focus,
+.m-form-field textarea:focus,
+.m-sheet-body input:focus,
+.m-sheet-body select:focus,
+.m-sheet-body textarea:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* ============ EMPTY STATE MOBILE ============ */
+
+.m-empty {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+}
+
+.m-empty-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  color: var(--ds-text);
+  letter-spacing: -0.01em;
+}
+
+.m-empty-text {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+}
+
+/* ============ MONO / NUMERIC ============ */
+
+.m-mono,
+.m-numeric {
+  font-family: var(--ds-font-mono);
+  font-feature-settings: "tnum";
+}

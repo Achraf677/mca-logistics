@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v8_1-design-pr21-setup-330';
+const CACHE_VERSION = 'mca-v2026-05-10-v8_2-design-pr22-mobile-331';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -54,6 +54,8 @@ const CORE_ASSETS = [
   '/style-design-parametres.css',
   // Design setup wizard (Phase 4 / PR-21) — overrides inline JS styles
   '/style-design-setup-wizard.css',
+  // Design mobile ds (Phase 4 / PR-22) — restyle .m-* avec tokens ds
+  '/style-design-mobile-ds.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
