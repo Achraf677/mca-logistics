@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v7_5-design-pr13-14-tiers-324';
+const CACHE_VERSION = 'mca-v2026-05-10-v7_6-design-pr15-planning-325';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -42,6 +42,8 @@ const CORE_ASSETS = [
   '/style-design-equipe.css',
   // Design clients + fournisseurs bundle (Phase 4 / PR-13+14) — filtres + risque + drawer onglets
   '/style-design-clients-fournisseurs.css',
+  // Design planning (Phase 4 / PR-15) — overview cards + jour-types + toolbar
+  '/style-design-planning.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
