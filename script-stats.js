@@ -48,13 +48,24 @@ function afficherStatistiques() {
   const livraisons = charger('livraisons');
   const lbl = document.getElementById('stats-mois-label'); if (lbl) lbl.textContent = range.label;
   const dates = document.getElementById('stats-mois-dates'); if (dates) dates.textContent = range.dates;
-  const livsFiltrees = livraisons.filter(l => l.date >= dateMinStr && l.date <= dateMaxStr);
+  // #59 #62 audit Chrome : Statistiques affichait 0 livraison car comparait
+  // l.date avec format heure (2026-05-09T...) au lieu de slice(0,10).
+  const livsFiltrees = livraisons.filter(l => {
+    const d = (l && l.date ? String(l.date) : '').slice(0, 10);
+    return d >= dateMinStr && d <= dateMaxStr;
+  });
 
-  // KPIs période
-  const caPeriode = livsFiltrees.reduce((s,l)=>s+(l.prix||0),0);
+  // KPIs période — CA en HT (le label dit "CA HT")
+  const caPeriode = livsFiltrees.reduce((s, l) => {
+    const ht = parseFloat(l.prixHT);
+    if (Number.isFinite(ht) && ht > 0) return s + ht;
+    const ttc = parseFloat(l.prix) || 0;
+    const taux = parseFloat(l.tauxTVA) || 20;
+    return s + (ttc / (1 + taux / 100));
+  }, 0);
   const nbLivs    = livsFiltrees.length;
   const panierMoy = nbLivs > 0 ? caPeriode / nbLivs : 0;
-  const kmTotal   = livsFiltrees.reduce((s,l)=>s+(l.distance||0),0);
+  const kmTotal   = livsFiltrees.reduce((s,l)=>s+(parseFloat(l.distance)||0),0);
   const el1=document.getElementById('stats-ca-periode'); if(el1) el1.textContent=euros(caPeriode);
   const el2=document.getElementById('stats-livraisons-periode'); if(el2) el2.textContent=nbLivs;
   const el3=document.getElementById('stats-panier-moyen'); if(el3) el3.textContent=euros(panierMoy);
