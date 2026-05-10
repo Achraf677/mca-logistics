@@ -150,6 +150,20 @@ function libererTousVerrousEdition() {
       || 'Utilisateur';
   }
 
+  // #101 audit Chrome : tab_id pour distinguer les onglets du meme user.
+  // sessionStorage est par tab (vs localStorage qui est partage). On genere un
+  // ID unique au boot du tab et on le compare dans acquireLock pour declencher
+  // un conflit meme entre 2 tabs du meme user (anti-ecrasement multi-onglet).
+  function _currentTabId() {
+    if (typeof sessionStorage === 'undefined') return 'no-tab';
+    var t = sessionStorage.getItem('mca_edit_lock_tab_id');
+    if (!t) {
+      t = 'tab-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+      try { sessionStorage.setItem('mca_edit_lock_tab_id', t); } catch (_) {}
+    }
+    return t;
+  }
+
   async function _currentUserId() {
     const sb = _sb();
     if (!sb) return null;
@@ -173,11 +187,12 @@ function libererTousVerrousEdition() {
     const userId = await _currentUserId();
     if (!userId) return { success: true, fallback: 'no_session' };
     const userName = _currentUserName();
+    const tabId = _currentTabId();
     const rid = String(rowId);
 
     // 1. Lire le lock courant (si existe)
     const { data: existing } = await sb.from('edit_locks')
-      .select('user_id,user_name,expires_at')
+      .select('user_id,user_name,expires_at,acquired_at')
       .eq('table_name', tableName).eq('row_id', rid)
       .maybeSingle();
 
@@ -186,13 +201,21 @@ function libererTousVerrousEdition() {
       const expiresMs = new Date(existing.expires_at).getTime();
       const isMine = existing.user_id === userId;
       const isExpired = expiresMs < now;
-      if (!isMine && !isExpired) {
+      // #101 audit Chrome : meme user dans un autre tab = conflit aussi.
+      // On utilise acquired_at comme proxy pour comparer les tabs (le tab actuel
+      // a un sessionStorage.tab_id different de celui qui detient le lock).
+      // Heuristique : si meme user mais lock pris il y a > 5s, c'est probablement
+      // un autre tab encore actif.
+      const localTabAcquired = sessionStorage.getItem('mca_edit_lock_' + tableName + '_' + rid);
+      const isMyTab = isMine && localTabAcquired === existing.acquired_at;
+      if (!isMyTab && !isExpired) {
         return {
           success: false,
-          owner: existing.user_name || 'Inconnu',
+          owner: existing.user_name + (isMine ? ' (autre onglet)' : ''),
           owner_user_id: existing.user_id,
           expires_at: existing.expires_at,
-          expires_in_s: Math.max(0, Math.round((expiresMs - now) / 1000))
+          expires_in_s: Math.max(0, Math.round((expiresMs - now) / 1000)),
+          same_user: isMine
         };
       }
     }
@@ -200,6 +223,7 @@ function libererTousVerrousEdition() {
     // 2. UPSERT (insert ou take-over) — le PRIMARY KEY (table_name, row_id) garantit unicite
     const expiresAt = new Date(now + LOCK_DURATION_S * 1000).toISOString();
     const acquiredAt = new Date(now).toISOString();
+    try { sessionStorage.setItem('mca_edit_lock_' + tableName + '_' + rid, acquiredAt); } catch (_) {}
     const { data, error } = await sb.from('edit_locks')
       .upsert({
         table_name: tableName, row_id: rid,

@@ -1906,7 +1906,7 @@
       if (c) {
         const div = document.createElement('div');
         div.className = 'ai-chat-msg-error';
-        div.textContent = 'Erreur : ' + errMsg + '\n(Le message a ete retire de l\'historique, tu peux le renvoyer.)';
+        div.textContent = 'Erreur : ' + errMsg + '\n(Le message a été retiré de l\'historique, tu peux le renvoyer.)';
         c.appendChild(div);
         scrollToBottom();
       }
@@ -2001,7 +2001,7 @@
       if (e && e.name === 'AbortError') {
         throw new Error('Delai depasse (90s). Reessaye, ou efface la conversation si l\'historique est trop long.');
       }
-      throw new Error('Reseau indisponible. Verifie ta connexion.');
+      throw new Error('Réseau indisponible. Vérifie ta connexion.');
     } finally { clearTimeout(t); }
     const body = await r.json().catch(() => ({}));
     if (!r.ok) {
@@ -2242,7 +2242,7 @@
       if (e && e.name === 'AbortError') {
         throw new Error('Delai depasse (' + Math.round(OCR_TIMEOUT_MS / 1000) + 's). Reessaye avec une image plus petite ou plus nette.');
       }
-      throw new Error('Reseau indisponible. Verifie ta connexion.');
+      throw new Error('Réseau indisponible. Vérifie ta connexion.');
     } finally { clearTimeout(t); }
 
     const body = await r.json().catch(() => ({}));

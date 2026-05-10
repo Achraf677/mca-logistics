@@ -528,7 +528,14 @@ function afficherCharges() {
     return;
   }
 
+  // #96 audit Chrome : libelles humains pour les categories raw (lld_credit ->
+  // "Crédit-bail / LLD"). Avant le fix, le badge affichait "lld_credit" en raw.
   const catIcons = { carburant:'⛽', peage:'🛣️', entretien:'🔧', assurance:'🛡️', salaires:'👥', lld_credit:'🚐', tva:'🧾', autre:'📝' };
+  const catLabels = {
+    carburant: 'Carburant', peage: 'Péage', entretien: 'Entretien',
+    assurance: 'Assurance', salaires: 'Salaires', lld_credit: 'Crédit-bail / LLD',
+    tva: 'TVA', autre: 'Autre'
+  };
   paginer(charges, 'tb-charges', function(items) {
     return items.map(c => {
     const ht = c.montantHT || (c.montant||0) / (1 + (c.tauxTVA||20)/100);
@@ -561,7 +568,7 @@ function afficherCharges() {
       + ' <button class="btn-icon" onclick="basculerStatutCharge(\'' + c.id + '\')" title="' + btnToggleTitre + '" style="padding:2px 4px;font-size:.85rem">' + btnToggleIcone + '</button>';
     return `<tr>
     <td>${formatDateExport(c.date)}</td>
-    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</span></td>
+    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${catLabels[c.categorie]||c.categorie||'Autre'}</span></td>
     <td>${descAffichee}</td>
     <td>${vehicule ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${vehicule.id}')" title="Ouvrir le véhicule">${vehicule.immat}</button>` : (c.vehNom||'—')}</td>
     <td style="font-size:.85rem">${euros(ht)}</td>
