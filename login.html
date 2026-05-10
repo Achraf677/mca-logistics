@@ -877,10 +877,17 @@
         return true;
       }
 
+      // Bug #4 audit Chrome : differencier compte introuvable / mot de passe incorrect
+      // pour aider l'utilisateur a diagnostiquer plus vite. Les 2 messages restent
+      // volontairement neutres pour ne pas leak l'existence d'un compte (anti-enumeration).
       if (authResult.reason === 'invalid_credentials') {
-        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
+        afficherErreurConnexion('Mot de passe incorrect. Vérifiez votre saisie ou réinitialisez-le.');
       } else if (authResult.reason === 'not_found') {
-        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
+        afficherErreurConnexion('Aucun compte trouvé pour cet identifiant.');
+      } else if (authResult.reason === 'rate_limited') {
+        afficherErreurConnexion('Trop de tentatives. Réessayez dans quelques minutes.');
+      } else if (authResult.reason === 'network') {
+        afficherErreurConnexion('Connexion impossible. Vérifiez votre réseau.');
       } else {
         afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       }

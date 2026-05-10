@@ -4188,22 +4188,40 @@
       const moisCle = M.moisKey(now); // YYYY-MM (local TZ)
 
       const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(moisCle));
-      const caMoisHt = livraisonsMois.reduce((acc, l) => acc + (M.parseNum(l.prix) || M.parseNum(l.prixHT) || M.parseNum(l.prix_ht) || 0), 0);
-      const caMoisTtc = livraisonsMois.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix_ttc) || (M.parseNum(l.prix) || 0) * 1.2), 0);
 
-      // Depenses du mois pour le benefice estime (HT, hors carburant qui est TTC)
-      const carbMois = carburant.filter(p => (p.date || '').startsWith(moisCle)).reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
-      const entrMois = entretiens.filter(e => (e.date || '').startsWith(moisCle)).reduce((s, e) => s + (M.parseNum(e.coutHt) || M.parseNum(e.cout) || 0), 0);
-      const chargesMois = charges.filter(c => (c.date || '').startsWith(moisCle) && c.categorie !== 'entretien')
-        .reduce((s, c) => s + (M.parseNum(c.montantHT) || M.parseNum(c.montant) || 0), 0);
-      const depMois = carbMois + entrMois + chargesMois;
-      const beneficeEstime = caMoisHt - depMois;
+      // Bug #6 audit Chrome : KPIs alignes PC + mobile via MCAKpis (single source of truth).
+      // Avant : mobile traitait `prix` comme HT et affichait CA HT 180€ vs PC 150€.
+      const avoirsEmis = M.charger('avoirs_emis');
+      const _kpis = (window.MCAKpis && window.MCAKpis.calcKpisDashboard)
+        ? window.MCAKpis.calcKpisDashboard({ livraisons: livraisons, charges: charges, carburant: carburant, alertes_admin: alertes, avoirs_emis: avoirsEmis }, moisCle)
+        : null;
+
+      const caMoisHt = _kpis ? _kpis.caHT : livraisonsMois.reduce((acc, l) => {
+        // Fallback fidele a la nouvelle convention (prix=TTC, prixHT prioritaire)
+        if (l.prixHT !== undefined && l.prixHT !== null && l.prixHT !== '') return acc + (M.parseNum(l.prixHT) || 0);
+        const ttc = M.parseNum(l.prixTTC) || M.parseNum(l.prix) || 0;
+        const taux = M.parseNum(l.tauxTVA) || 20;
+        return acc + ttc / (1 + taux / 100);
+      }, 0);
+      const caMoisTtc = _kpis ? _kpis.caTTC : livraisonsMois.reduce((acc, l) => acc + (M.parseNum(l.prixTTC) || M.parseNum(l.prix) || 0), 0);
+
+      // Depenses du mois pour le benefice estime (utilise MCAKpis pour parite PC).
+      const depMois = _kpis ? _kpis.charges.total : (function () {
+        const carbM = carburant.filter(p => (p.date || '').startsWith(moisCle)).reduce((s, p) => s + (M.parseNum(p.total) || 0), 0);
+        const entrM = entretiens.filter(e => (e.date || '').startsWith(moisCle)).reduce((s, e) => s + (M.parseNum(e.coutHt) || M.parseNum(e.cout) || 0), 0);
+        const chM = charges.filter(c => (c.date || '').startsWith(moisCle) && c.categorie !== 'entretien')
+          .reduce((s, c) => s + (M.parseNum(c.montantHT) || M.parseNum(c.montant) || 0), 0);
+        return carbM + entrM + chM;
+      })();
+      const beneficeEstime = _kpis ? _kpis.benefice : (caMoisHt - depMois);
       const benefColor = beneficeEstime >= 0 ? 'var(--m-green)' : 'var(--m-red)';
 
       const chargesAPayer = charges.filter(c => c.statut !== 'paye' && c.statut !== 'payee');
       const totalImpayes  = chargesAPayer.reduce((acc, c) => acc + (M.parseNum(c.montantTtc) || M.parseNum(c.montant) || 0), 0);
 
-      const alertesActives = alertes.filter(a => !a.traitee && !a.ignoree && !(a.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > now));
+      // Alertes : utilise MCAKpis pour parite stricte avec PC.
+      const alertesActivesCount = _kpis ? _kpis.alertes : alertes.filter(a => !a.traitee && !a.ignoree && !a.lu && !(a.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > now)).length;
+      const alertesActives = alertes.filter(a => !a.traitee && !a.ignoree && !a.lu && !(a.meta?.repousseJusquA && new Date(a.meta.repousseJusquA) > now));
       const alertesCritiques = alertesActives.filter(a => ['ct_expire','permis_expire','assurance_expire','charge_retard_paiement','carburant_anomalie'].includes(a.type)).length;
 
       const salariesActifs = salaries.filter(s => s.actif !== false && s.statut !== 'inactif' && !s.archive).length;
@@ -4251,7 +4269,7 @@
         <div class="m-card-row">
           <div class="m-card m-card-red m-card-pressable" onclick="MCAm.go('alertes')">
             <div class="m-card-title">Alertes</div>
-            <div class="m-card-value">${M.formatNum(alertesActives.length)}</div>
+            <div class="m-card-value">${M.formatNum(alertesActivesCount)}</div>
             <div class="m-card-sub">${alertesCritiques > 0 ? `🔴 ${alertesCritiques} critique${alertesCritiques>1?'s':''}` : 'à traiter'}</div>
           </div>
           <div class="m-card m-card-accent m-card-pressable" onclick="MCAm.go('charges')">
@@ -12623,8 +12641,16 @@
     // les query params (#planning?date=YYYY-MM-DD&vue=semaine) — la partie
     // avant le ? est la route, le reste est parsé par M.parsePlanningHash et
     // appliqué à M.state au moment du rendu de la page.
+    // Bug #5 audit Chrome : supporte aussi ?page=X (query string standard).
     const rawHash = (location.hash || '').replace(/^#/, '');
-    const initialPage = (rawHash.split('?')[0] || '').trim() || 'dashboard';
+    let initialPage = (rawHash.split('?')[0] || '').trim();
+    if (!initialPage) {
+      try {
+        const qs = new URLSearchParams(location.search).get('page');
+        if (qs) initialPage = String(qs).trim().toLowerCase();
+      } catch (_) {}
+    }
+    if (!initialPage) initialPage = 'dashboard';
     M.go(initialPage in M.routes ? initialPage : 'dashboard');
 
     // Re-render quand l'utilisateur change le hash (deep-link partagé / back).

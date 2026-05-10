@@ -175,12 +175,13 @@
     var client = getClient();
     if (!client) return false;
 
-    var countRes = await client.from(TABLE).select('id', { count: 'exact', head: true });
+    // Bug #2 audit Chrome : head:true => HTTP HEAD => 503 PostgREST. Switch GET limit 1.
+    var countRes = await client.from(TABLE).select('id').limit(1);
     if (countRes.error) {
       console.warn('[clients-adapter] count error:', countRes.error.message);
       return false;
     }
-    if ((countRes.count || 0) > 0) return false;
+    if ((countRes.data && countRes.data.length) > 0) return false;
 
     var localItems = readLocal();
     if (!localItems.length) return false;

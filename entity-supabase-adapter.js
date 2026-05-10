@@ -213,12 +213,15 @@
       var client = getSupabaseClient();
       if (!client) return false;
 
-      var countRes = await client.from(table).select('id', { count: 'exact', head: true });
+      // Bug #2 audit Chrome : head:true envoie un HTTP HEAD que PostgREST renvoie en 503
+      // sur certaines tables. Remplacement par GET ?limit=1 qui retourne 200 et permet
+      // de detecter rapidement si la table contient au moins une ligne.
+      var countRes = await client.from(table).select('id').limit(1);
       if (countRes.error) {
         console.warn('[' + table + '-adapter] count error:', countRes.error.message);
         return false;
       }
-      if ((countRes.count || 0) > 0) return false;
+      if ((countRes.data && countRes.data.length) > 0) return false;
 
       var localItems = readLocal();
       if (!localItems.length) return false;

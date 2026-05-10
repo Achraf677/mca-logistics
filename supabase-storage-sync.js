@@ -9,6 +9,19 @@
   // un pull plus reactif quand le user revient sur l'app).
   var POLL_INTERVAL_MS = 3600000;
   var RETRY_DELAY_MS = 600;
+
+  // Circuit-breaker app_state_apply (Bug #1 audit Chrome) : evite la boucle
+  // 100+ POST/min en cas d'echec persistant (RPC qui rejette en 400).
+  // Apres 3 echecs consecutifs : backoff exponentiel 2s, 4s, 8s, ..., max 5min.
+  // Apres 10 echecs : circuit ouvert, plus aucun appel jusqu'a un reset manuel
+  // (visibilitychange / focus). Reset complet au prochain succes.
+  var CB_FAIL_BACKOFF_AT = 3;
+  var CB_FAIL_OPEN_AT = 10;
+  var CB_BASE_DELAY_MS = 2000;
+  var CB_MAX_DELAY_MS = 5 * 60 * 1000;
+  var cbConsecutiveFailures = 0;
+  var cbBlockedUntil = 0;
+  var cbCircuitOpen = false;
   var suppressLocalSync = false;
   var pendingChanges = {};
   var pendingRemovals = {};
@@ -392,11 +405,47 @@
     }));
   }
 
+  function cbNextDelay() {
+    // 2^(failures-CB_FAIL_BACKOFF_AT) * BASE, capped at CB_MAX_DELAY_MS
+    var n = Math.max(0, cbConsecutiveFailures - CB_FAIL_BACKOFF_AT);
+    var delay = CB_BASE_DELAY_MS * Math.pow(2, n);
+    return Math.min(delay, CB_MAX_DELAY_MS);
+  }
+
+  function cbReset() {
+    cbConsecutiveFailures = 0;
+    cbBlockedUntil = 0;
+    cbCircuitOpen = false;
+  }
+
+  // Expose pour test + reset manuel (focus/visibilitychange peuvent rouvrir).
+  if (typeof window !== 'undefined') {
+    window.__appStateApplyCircuitBreaker = {
+      reset: cbReset,
+      getState: function () {
+        return {
+          consecutiveFailures: cbConsecutiveFailures,
+          blockedUntil: cbBlockedUntil,
+          circuitOpen: cbCircuitOpen
+        };
+      }
+    };
+  }
+
   async function pushChanges(changes, removedKeys) {
     var client = getClient();
     if (!client) return { ok: false, skipped: true };
     // Skip silencieux pour les non-admins (RPC app_state_apply restreinte aux admins)
     if (!(await isAdminUser())) return { ok: true, skipped: true };
+
+    // Circuit-breaker : bloque si circuit ouvert ou en backoff
+    var now = Date.now();
+    if (cbCircuitOpen) {
+      return { ok: false, error: { message: 'circuit_open' }, circuitOpen: true };
+    }
+    if (cbBlockedUntil && now < cbBlockedUntil) {
+      return { ok: false, error: { message: 'circuit_backoff' }, backoff: true, backoffUntil: cbBlockedUntil };
+    }
 
     var payload = changes && typeof changes === 'object' ? changes : {};
     var removals = Array.isArray(removedKeys) ? removedKeys : [];
@@ -413,8 +462,21 @@
 
     if (result.error) {
       lastErrorMessage = result.error.message || String(result.error);
+      cbConsecutiveFailures += 1;
+      if (cbConsecutiveFailures >= CB_FAIL_OPEN_AT) {
+        cbCircuitOpen = true;
+        cbBlockedUntil = now + CB_MAX_DELAY_MS;
+        try { console.warn('[app_state_apply] circuit-breaker OPEN apres', cbConsecutiveFailures, 'echecs consecutifs. Reset au prochain focus/visibilitychange.'); } catch (_) {}
+      } else if (cbConsecutiveFailures >= CB_FAIL_BACKOFF_AT) {
+        cbBlockedUntil = now + cbNextDelay();
+      }
       return { ok: false, error: result.error };
     }
+    // Succes : reset complet du circuit-breaker
+    if (cbConsecutiveFailures > 0) {
+      try { console.info('[app_state_apply] circuit-breaker RESET apres succes (etait a', cbConsecutiveFailures, 'echecs).'); } catch (_) {}
+    }
+    cbReset();
     lastErrorMessage = '';
     rememberRemoteState(result.data || null);
     return { ok: true, data: result.data || null };
@@ -442,7 +504,18 @@
       removedKeys.forEach(function (key) {
         pendingRemovals[key] = true;
       });
-      scheduleFlush(RETRY_DELAY_MS);
+      // Si circuit ouvert : on attend une reconnexion (focus/visibilitychange).
+      // Si backoff : on reschedule au moment du backoffUntil.
+      if (result.circuitOpen) {
+        // Pas de reschedule automatique : seul un focus/visibilitychange reset.
+        return;
+      }
+      if (result.backoff && result.backoffUntil) {
+        var wait = Math.max(RETRY_DELAY_MS, result.backoffUntil - Date.now());
+        scheduleFlush(wait);
+      } else {
+        scheduleFlush(RETRY_DELAY_MS);
+      }
     }
   }
 
@@ -518,8 +591,20 @@
     }
 
     document.addEventListener('visibilitychange', function () {
-      if (document.visibilityState === 'visible') pullSoon();
+      if (document.visibilityState === 'visible') {
+        // Reset circuit-breaker app_state_apply au retour visibility
+        // (cas typique : user revient apres maintenance, retry possible).
+        if (cbCircuitOpen || cbConsecutiveFailures >= CB_FAIL_BACKOFF_AT) {
+          cbReset();
+        }
+        pullSoon();
+      }
       if (document.visibilityState === 'hidden') flushPending().catch(function () {});
+    });
+    window.addEventListener('focus', function () {
+      if (cbCircuitOpen || cbConsecutiveFailures >= CB_FAIL_BACKOFF_AT) {
+        cbReset();
+      }
     });
     window.addEventListener('beforeunload', function () {
       flushPending().catch(function () {});

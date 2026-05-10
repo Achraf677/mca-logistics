@@ -932,7 +932,30 @@ document.addEventListener('DOMContentLoaded', async () => {
   verifierNotificationsAutomatiquesMois2();
   mettreAJourBadgesNav();
   verifierTriggersPlanningAuto(); // Vérifier au démarrage
-  naviguerVers('dashboard');
+  // Bug #5 audit Chrome : honorer les deeplinks ?page=X et #X au boot.
+  // Permet d'ouvrir directement une page via URL (lien partage, bookmark, IA).
+  var deeplinkPage = (function () {
+    try {
+      var qs = new URLSearchParams(window.location.search).get('page');
+      if (qs) return String(qs).toLowerCase();
+      var hash = (window.location.hash || '').replace(/^#/, '').trim();
+      if (hash) return String(hash).toLowerCase();
+    } catch (_) {}
+    return '';
+  })();
+  // Liste blanche des routes valides (cf. titres dans script-core-navigation.js).
+  var DEEPLINK_ROUTES = [
+    'dashboard','livraisons','calendrier','planning','alertes',
+    'clients','fournisseurs','vehicules','carburant','entretiens','inspections',
+    'charges','encaissement','tva','rentabilite','statistiques',
+    'salaries','heures','equipe','incidents',
+    'parametres','brouillons-ia','espace-salarie'
+  ];
+  if (deeplinkPage && DEEPLINK_ROUTES.indexOf(deeplinkPage) >= 0) {
+    naviguerVers(deeplinkPage);
+  } else {
+    naviguerVers('dashboard');
+  }
   majBadgeAgent();
   afficherDecisionsAgent();
   // PERF anti-FOUC : exécute S22 (hubs sidebar) et S26 (timeline dashboard)
@@ -1495,16 +1518,23 @@ function rafraichirDashboard() {
   };
   const livraisonsMois = livraisons.filter(l => (l.date || '').startsWith(mois));
   const livsAuj = livraisons.filter(l => l.date===auj);
+  // Bug #6 audit Chrome : KPIs PC + mobile alignes via MCAKpis (script-core-dashboard-kpis.js).
+  // Single source of truth pour CA HT / CA TTC / Benefice / Alertes / Charges.
+  const _kpiCAMois = (window.MCAKpis && window.MCAKpis.calcCAMois)
+    ? window.MCAKpis.calcCAMois(livraisons, mois, charger('avoirs_emis'))
+    : null;
   const caJour   = livsAuj.reduce((s,l)=>s+getMontantHTLivraison(l),0);
   const caSem    = livraisons.filter(l=>(l.date || '')>=sem).reduce((s,l)=>s+getMontantHTLivraison(l),0);
-  const caMoisBrut   = livraisonsMois.reduce((s,l)=>s+getMontantHTLivraison(l),0);
-  const caMoisTTCBrut = livraisonsMois.reduce((s,l)=>s+(parseFloat(l.prix) || 0),0);
-  // CA net = CA - avoirs émis ce mois (Sprint 12)
-  const avoirsMois = charger('avoirs_emis').filter(a => (a.date || '').startsWith(mois));
-  const avoirsHTMois = avoirsMois.reduce((s, a) => s + (parseFloat(a.montantHT) || 0), 0);
-  const avoirsTTCMois = avoirsMois.reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
-  const caMois   = Math.max(0, caMoisBrut - avoirsHTMois);
-  const caMoisTTC = Math.max(0, caMoisTTCBrut - avoirsTTCMois);
+  const caMois    = _kpiCAMois ? _kpiCAMois.caHT : (function () {
+    var brut = livraisonsMois.reduce((s,l)=>s+getMontantHTLivraison(l),0);
+    var av = charger('avoirs_emis').filter(a => (a.date || '').startsWith(mois)).reduce((s, a) => s + (parseFloat(a.montantHT) || 0), 0);
+    return Math.max(0, brut - av);
+  })();
+  const caMoisTTC = _kpiCAMois ? _kpiCAMois.caTTC : (function () {
+    var brut = livraisonsMois.reduce((s,l)=>s+(parseFloat(l.prix) || 0),0);
+    var av = charger('avoirs_emis').filter(a => (a.date || '').startsWith(mois)).reduce((s, a) => s + (parseFloat(a.montantTTC) || 0), 0);
+    return Math.max(0, brut - av);
+  })();
   const carbMois = budgetData.totalCarb || 0;
   const entretienChargesMois = budgetData.totalEntr || 0;
   const chargesSalarialesMois = budgetData.totalSalaires || 0;
