@@ -90,6 +90,8 @@
   <script defer src="script-charges-kpis-categorie.js?v=1"></script>
   <!-- Phase 2 HTML refonte Livraisons : chips toolbar handler + counts par statut. -->
   <script defer src="script-livraisons-chips.js?v=1"></script>
+  <!-- Phase 2 HTML refonte Equipe : counts actifs + postes. -->
+  <script defer src="script-equipe-counts.js?v=1"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -932,8 +934,22 @@
          une seule entree sidebar, avec un dashboard global equipe (4 KPIs).
          Les sous-pages restent accessibles par deeplink (anti-regression). -->
     <section class="page" id="page-equipe">
-      <div class="page-actions" style="margin-bottom:14px"><h2>👥 Équipe</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <!-- Phase 2 HTML refonte : breadcrumb -->
+      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
+        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
+      </nav>
+
+      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <div class="page-actions ds-section-head" style="margin-bottom:14px">
+        <div class="ds-section-head__title">
+          <h2>Équipe</h2>
+          <div class="ds-section-head__sub">
+            <span><span id="equipe-section-sub-actifs">0</span> salarié(s) actif(s)</span>
+            <span class="ds-section-head__sep">·</span>
+            <span><span id="equipe-section-sub-postes">0</span> poste(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="if(window.EquipeHub)window.EquipeHub.renderKpisPC()" title="Rafraîchir KPIs">↻</button>
           <button class="btn-primary" onclick="naviguerVers('salaries');setTimeout(()=>{var b=document.querySelector('#page-salaries .btn-primary');if(b)b.click();},120)">+ Nouveau salarié</button>
         </div>
