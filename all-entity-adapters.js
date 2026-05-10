@@ -42,14 +42,25 @@
   function livraisonJsToDb(l) {
     if (!l || typeof l !== 'object') return null;
     if (!l.date && !l.dateLivraison) return null;
+    // #84 audit Chrome : recalcul tva_montant + prix_ttc cote adapter quand non
+    // fournis par le caller. Avant le fix, livraisons.tva_montant restait a 0 en
+    // DB malgre prix_ht et taux_tva valides -> exports/BI/FEC voyaient 0 € TVA.
+    var prixHt = safeNum(l.prixHT, 0);
+    var tauxTva = safeNum(l.tauxTVA, 20);
+    var tvaMontantCalc = (l.tvaMontant != null && Number.isFinite(Number(l.tvaMontant)))
+      ? Number(l.tvaMontant)
+      : Math.round((prixHt * tauxTva / 100) * 100) / 100;
+    var prixTtcCalc = (l.prix != null && Number.isFinite(Number(l.prix)) && Number(l.prix) > 0)
+      ? Number(l.prix)
+      : Math.round((prixHt + tvaMontantCalc) * 100) / 100;
     var row = {
       num_liv: emptyToNull(l.numLiv),
       client_nom: emptyToNull(l.client),
       date_livraison: emptyToNull(l.date) || emptyToNull(l.dateLivraison),
       distance_km: safeNum(l.distance, 0),
-      prix_ht: safeNum(l.prixHT, 0),
-      taux_tva: safeNum(l.tauxTVA, 20),
-      prix_ttc: safeNum(l.prix, 0),
+      prix_ht: prixHt,
+      taux_tva: tauxTva,
+      prix_ttc: prixTtcCalc,
       statut: emptyToNull(l.statut),
       statut_paiement: emptyToNull(l.statutPaiement),
       zone: emptyToNull(l.zone),
@@ -60,7 +71,7 @@
       client_tva_intracom: emptyToNull(l.clientTvaIntracom),
       client_pays: emptyToNull(l.clientPays),
       date_paiement: emptyToNull(l.datePaiement),
-      tva_montant: safeNum(l.tvaMontant, 0),
+      tva_montant: tvaMontantCalc,
       kilometrage_compteur: safeNum(l.kmCompteur, null),
       client_id: isUuidLike(l.clientId) ? l.clientId : null,
       salarie_id: isUuidLike(l.chaufId) ? l.chaufId : null,

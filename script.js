@@ -1605,7 +1605,17 @@ function rafraichirDashboard() {
   setText('kpi-benefice', euros(caMois-depensesMois));
   var impayesEl = setText('kpi-solde', euros(impayesMois));
   if (impayesEl) impayesEl.className = 'kpi-value ' + (impayesMois > 0 ? 'solde-negatif' : '');
-  setText('kpi-tva-solde', soldeTva >= 0 ? euros(soldeTva) : euros(Math.abs(soldeTva)));
+  // #87 audit Chrome : libelle et signe du KPI TVA Dashboard. Si solde > 0 on
+  // doit "reverser" (dette envers Tresor), si solde < 0 c'est un "credit" TVA
+  // (creance). Avant le fix le label restait "TVA a reverser" meme en credit
+  // -> piege comptable (admin pourrait verser au lieu de demander remboursement).
+  var tvaLabelEl = document.getElementById('kpi-tva-label');
+  if (tvaLabelEl) {
+    tvaLabelEl.textContent = soldeTva >= 0
+      ? '🧾 TVA à reverser'
+      : '🧾 Crédit TVA (à reporter)';
+  }
+  setText('kpi-tva-solde', euros(Math.abs(soldeTva)));
   const depDetailEl = document.getElementById('kpi-depenses-detail');
   if (depDetailEl) depDetailEl.innerHTML = `
     <div class="kpi-depenses-line"><span>⛽</span><span class="kpi-depenses-label">Carburant</span><strong>${euros(carbMois)}</strong></div>

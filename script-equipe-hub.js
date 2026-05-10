@@ -86,18 +86,32 @@
    * Renvoie { nb, ca } : nombre + CA HT total des livraisons livrees sur 30j.
    */
   function calculerLivraisons30j(livraisons, refDate) {
+    // #109 audit Chrome : filtre etait restreint statut === 'livre' (pas
+    // d'inclusion 'en_attente'/'en_cours'/'a_facturer'). Resultat: une LDV creee
+    // mais non encore livree etait invisible -> KPI = 0 alors que livraison
+    // existe. Fix : compter toutes les livraisons sauf 'annule'. CA = HT
+    // (label dit "CA HT", on lit donc prixHT au lieu de prix=TTC).
     const arr = Array.isArray(livraisons) ? livraisons : [];
     const ref = refDate instanceof Date ? refDate : new Date();
     const limite = new Date(ref);
     limite.setDate(limite.getDate() - 30);
     const limiteStr = limite.toISOString().slice(0, 10);
     const refStr = ref.toISOString().slice(0, 10);
-    const livrees = arr.filter(l =>
-      l && l.statut === 'livre' &&
+    const eligibles = arr.filter(l =>
+      l && l.statut !== 'annule' &&
       l.date && l.date >= limiteStr && l.date <= refStr
     );
-    const ca = livrees.reduce((sum, l) => sum + (parseFloat(l.prix) || 0), 0);
-    return { nb: livrees.length, ca };
+    const ca = eligibles.reduce(function (sum, l) {
+      var ht = parseFloat(l.prixHT);
+      if (Number.isFinite(ht) && ht > 0) return sum + ht;
+      var ttc = parseFloat(l.prix);
+      var taux = parseFloat(l.tauxTVA);
+      if (Number.isFinite(ttc) && Number.isFinite(taux) && taux > 0) {
+        return sum + (ttc / (1 + taux / 100));
+      }
+      return sum + (Number.isFinite(ttc) ? ttc : 0);
+    }, 0);
+    return { nb: eligibles.length, ca: Math.round(ca * 100) / 100 };
   }
 
   /**
