@@ -5,6 +5,7 @@
 <title>MCA Logistics — Charges</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="modals-shared.css">
 <style> *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{min-height:100vh;font-feature-settings:"tnum"}
 body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
@@ -396,5 +397,657 @@ document.querySelectorAll('[data-menu-trigger]').forEach(btn=>{
   });
 })();
 </script>
+
+<!-- Modals -->
+<!-- ========================================================
+     Modals & Drawers — contenu HTML injecté dans chaque page
+     Inclus via tools/inject-modals.mjs
+     ======================================================== -->
+
+<!-- ====== MODAL : Nouvelle livraison ====== -->
+<div class="modal-overlay" id="modal-new-livraison" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouvelle livraison</div>
+        <div class="modal-sub">Renseigner les informations · auto-remplissage IA disponible</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Identification</div>
+      <div class="field-row">
+        <div class="field"><label>N° livraison</label><input type="text" value="L-2026-0143" class="mono" readonly></div>
+        <div class="field"><label>Date</label><input type="date" value="2026-05-11"></div>
+      </div>
+      <div class="field"><label>Client *</label><input type="text" list="dl-clients" placeholder="Rechercher ou créer un client"><datalist id="dl-clients"><option value="Auchan Nord"><option value="Decathlon"><option value="Boulanger SAS"><option value="Carrefour HM"><option value="Leroy Merlin"></datalist></div>
+
+      <div class="field-section">Trajet</div>
+      <div class="field-row">
+        <div class="field"><label>Départ</label><input type="text" placeholder="Adresse de départ"></div>
+        <div class="field"><label>Arrivée *</label><input type="text" placeholder="Adresse de livraison"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Distance (km)</label><input type="number" placeholder="auto via ORS"></div>
+        <div class="field"><label>Durée estimée</label><input type="text" placeholder="auto" readonly></div>
+        <div class="field"><label>Type</label><select><option>Standard</option><option>Express</option><option>Fragile</option><option>Réfrigéré</option></select></div>
+      </div>
+
+      <div class="field-section">Affectation</div>
+      <div class="field-row">
+        <div class="field"><label>Chauffeur *</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option><option>Ahmed Mansouri</option></select></div>
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314 (AB-314-MC)</option><option>Sprinter 316 (CD-316-MC)</option><option>Master 130 (EF-130-MC)</option></select></div>
+      </div>
+
+      <div class="field-section">Tarification</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Montant HT (€) *</label><input type="number" step="0.01" placeholder="0,00"></div>
+        <div class="field"><label>Taux TVA</label><select><option>20%</option><option>10%</option><option>5,5%</option><option>0%</option></select></div>
+        <div class="field"><label>Total TTC</label><input type="text" placeholder="auto" readonly></div>
+      </div>
+
+      <div class="field"><label>Notes internes</label><textarea rows="2" placeholder="Commentaires sur la livraison…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <div class="foot-info">Champs * obligatoires</div>
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">Enregistrer brouillon</button>
+      <button class="btn btn-primary">Créer livraison</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau client ====== -->
+<div class="modal-overlay" id="modal-new-client" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau client</div>
+        <div class="modal-sub">SIREN auto-vérifié via API Sirene</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Identification</div>
+      <div class="field"><label>Raison sociale *</label><input type="text" placeholder="Ex: Auchan Nord"></div>
+      <div class="field-row">
+        <div class="field"><label>SIREN</label><input type="text" placeholder="9 chiffres" class="mono"><div class="field-hint">Vérifié auto via API Sirene INSEE</div></div>
+        <div class="field"><label>SIRET établissement</label><input type="text" placeholder="14 chiffres" class="mono"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>N° TVA intracom</label><input type="text" placeholder="FR + 11 chiffres" class="mono"></div>
+        <div class="field"><label>Code APE</label><input type="text" placeholder="4 chiffres + 1 lettre" class="mono"></div>
+      </div>
+
+      <div class="field-section">Contact</div>
+      <div class="field-row">
+        <div class="field"><label>Téléphone</label><input type="tel" placeholder="01 23 45 67 89"></div>
+        <div class="field"><label>Email</label><input type="email" placeholder="contact@..."></div>
+      </div>
+      <div class="field"><label>Adresse habituelle</label><input type="text" placeholder="Adresse postale complète"></div>
+      <div class="field-row">
+        <div class="field"><label>Code postal</label><input type="text" placeholder="59000" class="mono"></div>
+        <div class="field"><label>Ville</label><input type="text" placeholder="Lille"></div>
+      </div>
+
+      <div class="field-section">Facturation</div>
+      <div class="field-row">
+        <div class="field"><label>Délai paiement</label><select><option>30 jours</option><option>45 jours</option><option>60 jours</option><option>Comptant</option></select></div>
+        <div class="field"><label>Mode</label><select><option>Virement</option><option>Chèque</option><option>CB</option><option>Prélèvement</option></select></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Créer le client</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouvelle charge ====== -->
+<div class="modal-overlay" id="modal-new-charge" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouvelle charge</div>
+        <div class="modal-sub">OCR auto-détection sur upload de justificatif</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--bg-elevated);border:2px dashed var(--border-strong);border-radius:10px;padding:24px;text-align:center;margin-bottom:18px;cursor:pointer">
+        <svg viewBox="0 0 24 24" width="32" height="32" style="margin-bottom:8px;color:var(--text-muted);stroke:currentColor;stroke-width:2;fill:none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div style="font-weight:700;font-size:14px;color:var(--text)">Glisser un justificatif</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px">PDF / JPG / PNG · OCR automatique via Gemini</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Date</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Catégorie *</label><select><option>Carburant</option><option>Entretien</option><option>Péages</option><option>Assurance</option><option>Parking</option><option>Salaires</option><option>Autres</option></select></div>
+      </div>
+      <div class="field"><label>Description *</label><input type="text" placeholder="Ex: Plein gazole Total Béthune"></div>
+      <div class="field"><label>Fournisseur</label><input type="text" list="dl-fournisseurs" placeholder="Rechercher ou créer"><datalist id="dl-fournisseurs"><option value="Total Énergies"><option value="Esso Express"><option value="Garage Lefèvre"><option value="SANEF"></datalist></div>
+      <div class="field-row">
+        <div class="field"><label>Véhicule</label><select><option>—</option><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+        <div class="field"><label>Salarié</label><select><option>—</option><option>Karim B.</option><option>Youssef E.</option><option>Saïd B.</option></select></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Montant HT *</label><input type="number" step="0.01" placeholder="0,00"></div>
+        <div class="field"><label>Taux TVA</label><select><option>20%</option><option>10%</option><option>5,5%</option><option>0%</option></select></div>
+        <div class="field"><label>Total TTC</label><input type="text" placeholder="auto" readonly></div>
+      </div>
+      <div class="field"><label>Statut</label><select><option>À payer</option><option>Payé</option><option>Partiel</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Enregistrer charge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau véhicule ====== -->
+<div class="modal-overlay" id="modal-new-vehicule" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Ajouter un véhicule</div>
+        <div class="modal-sub">OCR carte grise disponible · auto-remplissage</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Identification</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Immatriculation *</label><input type="text" placeholder="AB-123-CD" class="mono"></div>
+        <div class="field"><label>Marque *</label><select><option>Mercedes-Benz</option><option>Renault</option><option>Iveco</option><option>Volkswagen</option><option>Peugeot</option><option>Citroën</option></select></div>
+        <div class="field"><label>Modèle *</label><input type="text" placeholder="Sprinter 314"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Type</label><select><option>VL (3,5T)</option><option>PL (&gt;3,5T)</option><option>VUL</option></select></div>
+        <div class="field"><label>Carburant</label><select><option>Gazole</option><option>Essence</option><option>Électrique</option><option>Hybride</option><option>GNV</option></select></div>
+        <div class="field"><label>Année</label><input type="number" placeholder="2024"></div>
+      </div>
+
+      <div class="field-section">Conformité</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Prochain CT</label><input type="date"></div>
+        <div class="field"><label>Assurance fin</label><input type="date"></div>
+        <div class="field"><label>Vignette Crit'Air</label><select><option>Crit'Air 1</option><option>Crit'Air 2</option><option>Crit'Air 3</option><option>—</option></select></div>
+      </div>
+
+      <div class="field-section">Acquisition</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Date achat</label><input type="date"></div>
+        <div class="field"><label>Prix HT (€)</label><input type="number" step="0.01"></div>
+        <div class="field"><label>Mode</label><select><option>Achat comptant</option><option>Crédit</option><option>LLD</option><option>LOA</option></select></div>
+      </div>
+
+      <div class="field-section">Affectation</div>
+      <div class="field"><label>Chauffeur attitré</label><select><option>—</option><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary" data-modal-open="modal-config-anomalies">📷 Scanner carte grise</button>
+      <button class="btn btn-primary">Ajouter le véhicule</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau salarié ====== -->
+<div class="modal-overlay" id="modal-new-salarie" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau salarié</div>
+        <div class="modal-sub">SmartUpload détecte automatiquement les documents (RIB / Permis / CNI)</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">État civil</div>
+      <div class="field-row">
+        <div class="field"><label>Nom *</label><input type="text" placeholder="Nom de famille"></div>
+        <div class="field"><label>Prénom *</label><input type="text" placeholder="Prénom"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Date naissance</label><input type="date"></div>
+        <div class="field"><label>Lieu naissance</label><input type="text"></div>
+        <div class="field"><label>Nationalité</label><select><option>Française</option><option>UE</option><option>Hors UE</option></select></div>
+      </div>
+
+      <div class="field-section">Coordonnées</div>
+      <div class="field-row">
+        <div class="field"><label>Téléphone *</label><input type="tel" placeholder="06 12 34 56 78"></div>
+        <div class="field"><label>Email pro</label><input type="email" placeholder="prenom.n@mca-logistics.fr"></div>
+      </div>
+      <div class="field"><label>Adresse</label><input type="text" placeholder="Adresse complète"></div>
+
+      <div class="field-section">Contrat</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Poste *</label><select><option>Chauffeur PL</option><option>Chauffeur VL</option><option>Admin</option><option>Comptable</option></select></div>
+        <div class="field"><label>Date entrée *</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Type contrat</label><select><option>CDI</option><option>CDD</option><option>Intérim</option></select></div>
+      </div>
+
+      <div class="field-section">Permis &amp; documents</div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Permis catégorie</label><select><option>B</option><option>C (PL)</option><option>CE (Super-PL)</option><option>D</option></select></div>
+        <div class="field"><label>N° permis</label><input type="text" class="mono"></div>
+        <div class="field"><label>Expire le</label><input type="date"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <div class="foot-info">📎 SmartUpload : glisser RIB / Permis / CNI pour auto-fill</div>
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Créer le salarié</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Plein carburant ====== -->
+<div class="modal-overlay" id="modal-new-plein" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau plein</div>
+        <div class="modal-sub">OCR ticket disponible · auto-détection</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date *</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Heure</label><input type="time"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314 (AB-314-MC)</option><option>Sprinter 316 (CD-316-MC)</option><option>Master 130 (EF-130-MC)</option></select></div>
+        <div class="field"><label>Chauffeur</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option></select></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Litres</label><input type="number" step="0.01" placeholder="55,40"></div>
+        <div class="field"><label>Prix / L</label><input type="number" step="0.001" placeholder="1,970"></div>
+        <div class="field"><label>Total TTC *</label><input type="number" step="0.01" placeholder="0,00"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Km compteur</label><input type="number" placeholder="142 380"></div>
+        <div class="field"><label>Type</label><select><option>Gazole B7</option><option>Gazole B10</option><option>SP95</option><option>SP98</option></select></div>
+      </div>
+      <div class="field"><label>Station</label><input type="text" placeholder="Ex: Total Béthune"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">📷 Scanner ticket</button>
+      <button class="btn btn-primary">Enregistrer plein</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Programmer CT véhicule ====== -->
+<div class="modal-overlay" id="modal-program-ct" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Programmer un contrôle technique</div>
+        <div class="modal-sub">Sprinter 316 · CT actuel expire le 13/05/2026 (dans 4 jours)</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date prévue</label><input type="date" value="2026-05-12"></div>
+        <div class="field"><label>Heure</label><input type="time" value="09:00"></div>
+      </div>
+      <div class="field"><label>Centre CT</label><select><option>Autovision Lille</option><option>Securitest Roubaix</option><option>DEKRA Tourcoing</option><option>Autre…</option></select></div>
+      <div class="field"><label>Notes</label><textarea rows="2" placeholder="Préciser éventuel souci à vérifier…"></textarea></div>
+      <div style="background:var(--brand-soft);border:1px solid rgba(230,57,70,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text)">
+        <strong>Rappel auto</strong> : une alerte sera envoyée 24h avant le rendez-vous.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Programmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Pointer heures ====== -->
+<div class="modal-overlay" id="modal-pointer" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Pointer une journée</div>
+        <div class="modal-sub">Saisie manuelle ou import GPS tachygraphe</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Salarié *</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option><option>Mehdi Achour</option></select></div>
+        <div class="field"><label>Date *</label><input type="date" value="2026-05-11"></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Début</label><input type="time" value="06:30"></div>
+        <div class="field"><label>Fin</label><input type="time" value="17:45"></div>
+        <div class="field"><label>Pause</label><input type="time" value="00:45"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Km parcourus</label><input type="number" placeholder="280"></div>
+        <div class="field"><label>Véhicule</label><select><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea rows="2" placeholder="Incidents, retards…"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">Importer GPS</button>
+      <button class="btn btn-primary">Enregistrer pointage</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Enregistrer paiement ====== -->
+<div class="modal-overlay" id="modal-payment" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Enregistrer un paiement</div>
+        <div class="modal-sub">Rapprochement automatique avec Qonto</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Facture *</label><select><option>F-2026-0142 · Auchan Nord · 2 840 €</option><option>F-2026-0140 · Boulanger SAS · 3 120 €</option><option>F-2026-0138 · Brico Dépôt · 1 480 €</option></select></div>
+      <div class="field-row">
+        <div class="field"><label>Date paiement</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Mode *</label><select><option>Virement</option><option>Chèque</option><option>CB</option><option>Espèces</option><option>Prélèvement</option></select></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>Montant *</label><input type="number" step="0.01" placeholder="0,00"></div>
+        <div class="field"><label>Référence</label><input type="text" placeholder="VIR-2026-..." class="mono"></div>
+      </div>
+      <div class="field"><label>Notes</label><textarea rows="2"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-modal-open="modal-payment">Enregistrer paiement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Déclarer incident ====== -->
+<div class="modal-overlay" id="modal-new-incident" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Déclarer un incident</div>
+        <div class="modal-sub">Notification automatique à l'assurance si grave</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row cols-3">
+        <div class="field"><label>Date *</label><input type="date" value="2026-05-11"></div>
+        <div class="field"><label>Heure</label><input type="time"></div>
+        <div class="field"><label>Type *</label><select><option>Accident</option><option>Avarie</option><option>Vol</option><option>Vandalisme</option><option>Sinistre client</option></select></div>
+      </div>
+      <div class="field-row cols-3">
+        <div class="field"><label>Gravité</label><select><option>Faible</option><option>Moyenne</option><option>Grave</option></select></div>
+        <div class="field"><label>Véhicule</label><select><option>—</option><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+        <div class="field"><label>Chauffeur</label><select><option>—</option><option>Karim B.</option><option>Youssef E.</option><option>Saïd B.</option></select></div>
+      </div>
+      <div class="field"><label>Description *</label><textarea rows="3" placeholder="Détails des circonstances…"></textarea></div>
+      <div class="field"><label>Coût estimé (€)</label><input type="number" step="0.01" placeholder="0,00"></div>
+      <div class="field"><label>Photos / constat</label><input type="file" accept="image/*,application/pdf" multiple></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-modal-open="modal-new-incident">Déclarer incident</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouvelle inspection ====== -->
+<div class="modal-overlay" id="modal-new-inspection" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouvelle inspection véhicule</div>
+        <div class="modal-sub">8 photos minimum · checklist 12 points</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date *</label><input type="datetime-local" value="2026-05-11T06:30"></div>
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+      </div>
+      <div class="field"><label>Chauffeur</label><select><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option></select></div>
+
+      <div class="field-section">Checklist (12 points)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Phares avant</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Phares arrière</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Pneus avant</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Pneus arrière</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Rétroviseurs</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Pare-brise</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox" checked> Carrosserie</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Niveau huile</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Niveau lave-glace</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Liquide refroidissement</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Freins (sensation)</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px"><input type="checkbox"> Propreté intérieure</label>
+      </div>
+
+      <div class="field" style="margin-top:14px"><label>Défauts constatés</label><textarea rows="2" placeholder="Aucun par défaut. Si défaut, préciser…"></textarea></div>
+      <div class="field"><label>Photos (8 min) *</label><input type="file" accept="image/*" multiple></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Valider inspection</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Configurer anomalies carburant ====== -->
+<div class="modal-overlay" id="modal-config-anomalies" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Configurer la détection d'anomalies</div>
+        <div class="modal-sub">Seuils personnalisables par véhicule</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Seuils globaux</div>
+      <div class="field"><label>Alerte si conso dépasse la moyenne 30j de</label><div style="display:flex;align-items:center;gap:10px"><input type="number" value="15" style="width:80px"><span style="color:var(--text-muted);font-size:13px">%</span></div></div>
+      <div class="field"><label>Détecter doublons (même véhicule, même jour)</label><select><option>Activé · alerte si écart &lt; 30 min</option><option>Désactivé</option></select></div>
+      <div class="field"><label>Alerte ticket sans véhicule attribué</label><select><option>Activé</option><option>Désactivé</option></select></div>
+
+      <div class="field-section">Seuils par véhicule (overrides)</div>
+      <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Seuils personnalisés écrasent les seuils globaux ci-dessus.</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px;border-bottom:1px solid var(--border);color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Véhicule</th><th style="text-align:right;padding:6px;border-bottom:1px solid var(--border);color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Conso cible (L/100)</th><th style="text-align:right;padding:6px;border-bottom:1px solid var(--border);color:var(--text-muted);text-transform:uppercase;font-size:10px;letter-spacing:0.08em">Seuil alerte (%)</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px">Sprinter 314</td><td style="text-align:right"><input type="number" value="9.2" step="0.1" style="width:80px"></td><td style="text-align:right"><input type="number" value="15" style="width:60px"></td></tr>
+          <tr><td style="padding:6px">Sprinter 316</td><td style="text-align:right"><input type="number" value="8.8" step="0.1" style="width:80px"></td><td style="text-align:right"><input type="number" value="15" style="width:60px"></td></tr>
+          <tr><td style="padding:6px">Master 130</td><td style="text-align:right"><input type="number" value="9.5" step="0.1" style="width:80px"></td><td style="text-align:right"><input type="number" value="10" style="width:60px"></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Enregistrer config</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Nouveau fournisseur ====== -->
+<div class="modal-overlay" id="modal-new-fournisseur" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Nouveau fournisseur</div>
+        <div class="modal-sub">SIREN auto-vérifié via API Sirene</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Raison sociale *</label><input type="text" placeholder="Ex: Total Énergies"></div>
+      <div class="field-row">
+        <div class="field"><label>Catégorie</label><select><option>Carburant</option><option>Entretien</option><option>Assurance</option><option>Péages</option><option>Pièces détachées</option><option>Autres</option></select></div>
+        <div class="field"><label>SIREN</label><input type="text" placeholder="9 chiffres" class="mono"></div>
+      </div>
+      <div class="field"><label>Adresse</label><input type="text"></div>
+      <div class="field-row">
+        <div class="field"><label>Téléphone</label><input type="tel"></div>
+        <div class="field"><label>Email</label><input type="email"></div>
+      </div>
+      <div class="field"><label>Conditions paiement</label><select><option>30 jours fin de mois</option><option>45 jours</option><option>60 jours</option><option>Comptant</option></select></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Créer fournisseur</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Envoyer relances ====== -->
+<div class="modal-overlay" id="modal-relances" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Envoyer des relances</div>
+        <div class="modal-sub">4 factures sélectionnées · 12 480 € total</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-section">Factures concernées</div>
+      <table style="width:100%;font-size:12px;margin-bottom:14px">
+        <tbody>
+          <tr><td style="padding:6px"><input type="checkbox" checked></td><td>F-2026-0140</td><td>Boulanger SAS</td><td style="text-align:right">3 120 €</td><td><span class="badge warn">15j</span></td></tr>
+          <tr><td style="padding:6px"><input type="checkbox" checked></td><td>F-2026-0138</td><td>Brico Dépôt</td><td style="text-align:right">1 480 €</td><td><span class="badge alert">17j</span></td></tr>
+          <tr><td style="padding:6px"><input type="checkbox" checked></td><td>F-2026-0128</td><td>Brico Dépôt</td><td style="text-align:right">2 810 €</td><td><span class="badge alert">37j</span></td></tr>
+          <tr><td style="padding:6px"><input type="checkbox"></td><td>F-2026-0125</td><td>Castorama</td><td style="text-align:right">5 070 €</td><td><span class="badge alert">52j</span></td></tr>
+        </tbody>
+      </table>
+      <div class="field"><label>Mode d'envoi</label><select><option>Email (auto)</option><option>Email + courrier</option><option>Courrier recommandé</option></select></div>
+      <div class="field"><label>Niveau de relance</label><select><option>Relance courtoise (1er rappel)</option><option>Relance ferme (2e rappel)</option><option>Mise en demeure (3e rappel)</option></select></div>
+      <div class="field"><label>Modèle de message</label><textarea rows="4">Bonjour, sauf erreur de notre part, le règlement de la facture F-XXXX-XXXX d'un montant de XXX € reste en attente. Nous vous remercions de bien vouloir procéder au paiement dans les meilleurs délais...</textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Envoyer 3 relances</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Changer régime TVA ====== -->
+<div class="modal-overlay" id="modal-tva-regime" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Changer le régime TVA</div>
+        <div class="modal-sub">Modification rétroactive impossible · effective au 1er du mois suivant</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Régime actuel</label><input type="text" value="Réel normal mensuel" readonly></div>
+      <div class="field"><label>Nouveau régime *</label><select><option>Réel normal mensuel</option><option>Réel normal trimestriel</option><option>Réel simplifié</option><option>Franchise en base</option></select></div>
+      <div class="field"><label>Effective à partir du</label><input type="date" value="2026-06-01"></div>
+      <div style="background:rgba(255,214,10,0.08);border:1px solid rgba(255,214,10,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--text);margin-top:12px">
+        <strong>⚠️ Attention</strong> : ce changement doit être notifié au Trésor Public dans les 15 jours. Notre système préparera automatiquement le formulaire CERFA correspondant.
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary">Confirmer changement</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Planifier entretien ====== -->
+<div class="modal-overlay" id="modal-plan-entretien" role="dialog" aria-modal="true">
+  <div class="modal-dialog">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Planifier un entretien</div>
+        <div class="modal-sub">Création d'un ordre de mission garage</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field-row">
+        <div class="field"><label>Date prévue *</label><input type="date"></div>
+        <div class="field"><label>Véhicule *</label><select><option>Sprinter 314</option><option>Sprinter 316</option><option>Master 130</option></select></div>
+      </div>
+      <div class="field"><label>Type d'entretien *</label><select><option>Révision</option><option>Vidange</option><option>Pneus</option><option>Freins</option><option>Filtre à air</option><option>Carrosserie</option><option>Autres</option></select></div>
+      <div class="field"><label>Garage</label><select><option>Garage Lefèvre (Roubaix)</option><option>Norauto (Villeneuve)</option><option>Mercedes-Benz Lille</option><option>Autre…</option></select></div>
+      <div class="field-row">
+        <div class="field"><label>Km actuel</label><input type="number" placeholder="142 380"></div>
+        <div class="field"><label>Prochain km</label><input type="number" placeholder="auto +15000"></div>
+      </div>
+      <div class="field"><label>Description</label><textarea rows="2"></textarea></div>
+      <div class="field"><label>Coût estimé (€)</label><input type="number" step="0.01"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-primary" data-modal-open="modal-plan-entretien">Planifier</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Gérer horaires (Planning) ====== -->
+<div class="modal-overlay" id="modal-horaires" role="dialog" aria-modal="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Gérer les horaires de la semaine</div>
+        <div class="modal-sub">Semaine 19 · 10–16 mai 2026</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Appliquer à</label><select><option>Tous les chauffeurs</option><option>Karim Bouali</option><option>Youssef Essaid</option><option>Saïd Belaïdi</option><option>Sélection multiple…</option></select></div>
+      <div class="field-section">Horaires standards</div>
+      <table style="width:100%;font-size:12px">
+        <thead><tr><th style="text-align:left;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Jour</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Travail</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Début</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Fin</th><th style="text-align:center;padding:6px;color:var(--text-muted);font-size:10px;text-transform:uppercase;letter-spacing:0.08em">Pause</th></tr></thead>
+        <tbody>
+          <tr><td style="padding:6px">Lundi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Mardi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Mercredi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Jeudi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="17:30"></td><td><input type="time" value="00:45"></td></tr>
+          <tr><td style="padding:6px">Vendredi</td><td style="text-align:center"><input type="checkbox" checked></td><td><input type="time" value="06:30"></td><td><input type="time" value="16:00"></td><td><input type="time" value="00:30"></td></tr>
+          <tr><td style="padding:6px">Samedi</td><td style="text-align:center"><input type="checkbox"></td><td><input type="time" disabled></td><td><input type="time" disabled></td><td><input type="time" disabled></td></tr>
+          <tr><td style="padding:6px">Dimanche</td><td style="text-align:center"><input type="checkbox"></td><td><input type="time" disabled></td><td><input type="time" disabled></td><td><input type="time" disabled></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" data-modal-close>Annuler</button>
+      <button class="btn btn-secondary">Appliquer aux semaines suivantes</button>
+      <button class="btn btn-primary">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODAL : Confirmation déconnexion ====== -->
+<div class="modal-overlay" id="modal-logout" role="dialog" aria-modal="true">
+  <div class="modal-dialog" style="max-width:420px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Se déconnecter ?</div>
+        <div class="modal-sub">Tes modifications non enregistrées seront perdues</div>
+      </div>
+      <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-foot" style="border-top:none">
+      <button class="btn btn-secondary" data-modal-close>Rester connecté</button>
+      <button class="btn btn-primary">Se déconnecter</button>
+    </div>
+  </div>
+</div>
+
+<script src="modals-shared.js" defer></script>
 </body>
 </html>
