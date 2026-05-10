@@ -183,8 +183,17 @@
        handlers click "Modifier". Coexiste avec les helpers legacy localStorage du meme
        fichier (pattern dual-read transitoire CLAUDE.md). -->
   <script src="/script-core-edit-locks.js?v=184"></script>
+  <!-- Core utils partages PC/mobile : window.todayLocalISO, dateLocalISO,
+       normalizeLDV, normalizeVehicule, findFournisseurByNom, findLivraisonByRef.
+       DOIT etre charge AVANT script-mobile.js : un appel TOP-LEVEL a
+       window.todayLocalISO() existe a la ligne 11452 de script-mobile.js
+       (M.state.calendrierDate = window.todayLocalISO()). Sans ce script,
+       l'IIFE de script-mobile crashe a 11452 -> init() jamais defini ->
+       page bloquee sur "Chargement…". Bug introduit par commit 452500a
+       (sed massif window.todayLocalISO sans ajouter le script ici). -->
+  <script src="/script-core-utils.js?v=187"></script>
   <!-- App mobile -->
-  <script src="/script-mobile.js?v=186"></script>
+  <script src="/script-mobile.js?v=187"></script>
   <!-- Edit-locks bootstrap : wrappe ouvrirEdit{Livraison,Charge,Client} avec
        acquireLock/refresh/release. A charger APRES script-mobile (pour que les
        modules metiers aient enregistre leurs fonctions globales). -->
