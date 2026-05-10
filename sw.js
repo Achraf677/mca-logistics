@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v5_21-fix-bugs-heavy-2-198';
+const CACHE_VERSION = 'mca-v2026-05-10-v5_22-fix-last-4-bugs-199';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -98,6 +98,8 @@ const CORE_ASSETS = [
   '/script-cache-clear.js',
   // PR #51 — edit-locks bootstrap (wrappe ouvrirEditLivraison/Charge/Client)
   '/script-edit-locks-bootstrap.js',
+  // #74 audit Chrome : inline scripts admin extraits vers fichier externe
+  '/script-boot-admin.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne

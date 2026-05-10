@@ -8879,3 +8879,10 @@ td[title][style*="ellipsis"]:hover::after {
   pointer-events: none;
   margin-top: 4px;
 }
+
+/* #17 audit Chrome : emoji boîtes vides au zoom > 100% (police OS variable).
+   Fallback explicit Apple/Segoe/Noto Emoji pour garantir le rendu. */
+body, button, .nav-label, .btn-primary, .btn-secondary, h1, h2, h3, p {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}

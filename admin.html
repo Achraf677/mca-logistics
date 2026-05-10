@@ -2,19 +2,9 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <script>
-    // Redirection mobile stricte : si UA mobile + ecran etroit -> m.html.
-    // Pas d'override : tel = m.html, PC = admin.html.
-    (function() {
-      try {
-        var uaMobile = /iPhone|iPad|iPod|Android|Mobile/i.test(navigator.userAgent || '');
-        var ecranEtroit = (window.innerWidth || document.documentElement.clientWidth || 0) <= 760;
-        if (uaMobile && ecranEtroit) {
-          window.location.replace('m.html' + window.location.search + window.location.hash);
-        }
-      } catch(_) {}
-    })();
-  </script>
+  <!-- #74 audit Chrome : inline scripts extraits vers script-boot-admin.js
+       pour permettre de retirer 'unsafe-inline' du CSP a terme. -->
+  <script src="/script-boot-admin.js?v=20260510a-1"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="robots" content="noindex, nofollow" />
   <meta name="theme-color" content="#1a1d22" />
@@ -3286,50 +3276,6 @@
     <a href="#" class="mbn-item" data-page="alertes"><span class="mbn-icon">🔔</span><span class="mbn-label">Alertes</span><span class="mbn-badge" id="badge-alertes-mbn"></span></a>
     <button type="button" class="mbn-item mbn-item-more" id="mbnMoreBtn"><span class="mbn-icon">⋯</span><span class="mbn-label">Plus</span></button>
   </nav>
-  <script>
-    // Mobile bottom nav wiring : navigation + état actif
-    (function() {
-      function syncMbnActive(page) {
-        document.querySelectorAll('.mbn-item[data-page]').forEach(item => {
-          item.classList.toggle('active', item.dataset.page === page);
-        });
-      }
-      // Wire chaque mbn-item -> naviguerVers + ferme drawer si ouvert
-      document.querySelectorAll('.mbn-item[data-page]').forEach(item => {
-        item.addEventListener('click', e => {
-          e.preventDefault();
-          if (typeof window.naviguerVers === 'function') window.naviguerVers(item.dataset.page);
-          if (typeof window.fermerMenuMobile === 'function') window.fermerMenuMobile();
-          syncMbnActive(item.dataset.page);
-        });
-      });
-      // Bouton "Plus" -> ouvre le drawer
-      document.getElementById('mbnMoreBtn')?.addEventListener('click', () => {
-        if (typeof window.ouvrirMenuMobile === 'function') window.ouvrirMenuMobile();
-      });
-      // Initialise l'état actif depuis l'item .nav-item.active de la sidebar
-      const activeNav = document.querySelector('.nav-item.active[data-page]');
-      if (activeNav) syncMbnActive(activeNav.dataset.page);
-      // Hook naviguerVers pour synchroniser l'état actif quand l'utilisateur passe par la sidebar/drawer
-      const tryHook = () => {
-        if (typeof window.naviguerVers !== 'function' || window.naviguerVers.__mbn) {
-          if (typeof window.naviguerVers !== 'function') return setTimeout(tryHook, 200);
-          return;
-        }
-        const orig = window.naviguerVers;
-        const wrapped = function(page) {
-          const r = orig.apply(this, arguments);
-          syncMbnActive(page);
-          return r;
-        };
-        wrapped.__mbn = true;
-        // Préserver les marqueurs hooks précédents
-        Object.keys(orig).forEach(k => { if (k.startsWith('__')) wrapped[k] = orig[k]; });
-        window.naviguerVers = wrapped;
-      };
-      tryHook();
-    })();
-  </script>
 
   <div id="panneau-agent" style="position:fixed;top:0;right:-420px;width:400px;height:100vh;background:#1a1d27;border-left:1px solid #2a2d3d;z-index:1000;transition:right 0.3s ease;display:flex;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,0.4)">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 20px 12px;gap:8px;border-bottom:1px solid #2a2d3d">
@@ -3445,27 +3391,5 @@
   <!-- Setup wizard onboarding : 1ere connexion admin (4 etapes). Charge apres
        script.js pour disposer de validerSIRET / afficherToast / appliquerBranding. -->
   <script defer src="script-setup-wizard.js?v=20260509f-1"></script>
-  <script>
-    // PERF: Service Worker — cache-first pour assets, network-first pour HTML.
-    // Activé uniquement sur HTTPS (automatique sur Cloudflare Pages).
-    if ('serviceWorker' in navigator && location.protocol === 'https:') {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(() => {});
-      });
-    }
-    // Bouton 🐛 Signaler un bug (dropdown admin). Listener delegue document-level
-    // pour survivre a un eventuel re-render du dropdown.
-    document.addEventListener('click', function (e) {
-      var btn = e.target && e.target.closest && e.target.closest('#admin-bug-report-btn');
-      if (!btn) return;
-      e.preventDefault();
-      // Ferme le dropdown admin (s'il est ouvert)
-      var dropdown = document.getElementById('topbar-admin-dropdown');
-      if (dropdown) dropdown.classList.remove('open');
-      if (window.BugReport && typeof window.BugReport.open === 'function') {
-        window.BugReport.open();
-      }
-    });
-  </script>
 </body>
 </html>
