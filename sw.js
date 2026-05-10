@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v7_9-design-pr19-calendrier-328';
+const CACHE_VERSION = 'mca-v2026-05-10-v8_0-design-pr20-parametres-329';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -50,6 +50,8 @@ const CORE_ASSETS = [
   '/style-design-rentabilite-stats.css',
   // Design calendrier (Phase 4 / PR-19) — grid + cells + livraisons dots
   '/style-design-calendrier.css',
+  // Design parametres (Phase 4 / PR-20) — page-parametres cards + s24 toggles + s26 sig/timeline
+  '/style-design-parametres.css',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',

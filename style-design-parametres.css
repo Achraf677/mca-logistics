@@ -1,0 +1,210 @@
+/* ==========================================================================
+   MCA Logistics — Design Parametres (Phase 4 / PR-20)
+
+   Restyle CSS-only page Parametres + sub-sections Sprint 24/26.
+   IDs preserves (#page-parametres, #param-treso-*, #s24-params-section,
+   #s26-params-section, #s26-sig-*, etc.)
+   ========================================================================== */
+
+/* ============ PAGE PARAMETRES — Cards generiques ============ */
+
+#page-parametres .card {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+#page-parametres .card-header h2 {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+#page-parametres .modal-body {
+  background: var(--ds-bg-card);
+}
+
+#page-parametres .form-grid {
+  font-family: var(--ds-font-body);
+}
+
+/* ============ PARAM TRESORERIE ============ */
+
+#param-treso-echeance-tva,
+#param-treso-solde-depart {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+#param-treso-echeance-tva:focus,
+#param-treso-solde-depart:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+#param-treso-helper {
+  font-family: var(--ds-font-body);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-xs);
+}
+
+/* ============ S24 — Toggles & raccourcis ============ */
+
+.s24-toggles {
+  font-family: var(--ds-font-body);
+}
+
+.s24-toggle {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.s24-toggle:hover {
+  border-color: var(--ds-brand);
+}
+
+.s24-toggle-switch {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--ds-r-pill);
+  transition: background var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.s24-toggle input:checked + .s24-toggle-switch {
+  background: var(--ds-brand);
+}
+
+#s24-params-section {
+  font-family: var(--ds-font-body);
+}
+
+/* ============ S26 — Signature + Timeline ============ */
+
+#s26-params-section,
+#s26-params-card {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+#s26-sig-canvas {
+  background: var(--ds-bg-deep);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+}
+
+#s26-sig-nom,
+#s26-sig-qualite {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+#s26-sig-nom:focus,
+#s26-sig-qualite:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+#s26-tl-search,
+#s26-tl-acteur,
+#s26-tl-du,
+#s26-tl-au {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+#s26-tl-search:focus,
+#s26-tl-acteur:focus,
+#s26-tl-du:focus,
+#s26-tl-au:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+#s26-tl-list {
+  font-family: var(--ds-font-body);
+}
+
+#s26-tl-summary {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+}
+
+/* ============ S15 — Palette / commande couleur ============ */
+
+#s15-palette,
+#s15-palette-input,
+#s15-palette-results {
+  font-family: var(--ds-font-body);
+}
+
+#s15-palette-input {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+}
+
+#s15-palette-input:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* ============ S11 — Onboarding progress ============ */
+
+[data-s11-progress],
+.s11-progress {
+  background: var(--ds-bg-card);
+  border-radius: var(--ds-r-pill);
+  overflow: hidden;
+}
+
+.s11-progress-fill {
+  background: var(--ds-brand);
+  height: 100%;
+  transition: width var(--ds-t-base) var(--ds-ease-out);
+}
+
+/* ============ LISTE POSTES / TRAVAILLENT / ABSENCES ============ */
+
+#liste-postes,
+#liste-travaillent,
+#liste-absences-periodes,
+#nouveau-poste {
+  font-family: var(--ds-font-body);
+}
+
+#nouveau-poste {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+}
+
+#nouveau-poste:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
