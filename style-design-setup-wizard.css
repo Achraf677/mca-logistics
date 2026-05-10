@@ -1,0 +1,179 @@
+/* ==========================================================================
+   MCA Logistics — Design Setup Wizard (Phase 4 / PR-21)
+
+   Restyle CSS-only du wizard onboarding 4 etapes (script-setup-wizard.js).
+   Le JS injecte ses styles inline dans `injectStylesOnce()` avec
+   var(--accent, #f5a623) (orange legacy). Mes regles ci-dessous overrident
+   via specificity #mca-setup-wizard.
+
+   Aucun changement HTML/JS.
+   ========================================================================== */
+
+#mca-setup-wizard {
+  z-index: var(--ds-z-modal);
+  background: rgba(0, 0, 0, 0.7);
+  font-family: var(--ds-font-body);
+}
+
+#mca-setup-wizard .modal {
+  background: var(--ds-bg-elevated);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-xl);
+  box-shadow: var(--ds-shadow-xl);
+  position: relative;
+}
+
+/* Accent bar bottom du header (signature ds) */
+#mca-setup-wizard .modal-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--ds-border);
+  position: relative;
+}
+
+#mca-setup-wizard .modal-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+#mca-setup-wizard .modal-header h3 {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+#mca-setup-wizard .modal-body {
+  padding: 20px;
+  background: var(--ds-bg-elevated);
+}
+
+#mca-setup-wizard .modal-body h4 {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+#mca-setup-wizard .modal-body p {
+  font-family: var(--ds-font-body);
+  color: var(--ds-text-muted);
+}
+
+/* Inputs setup wizard */
+#mca-setup-wizard input,
+#mca-setup-wizard select {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out),
+              box-shadow var(--ds-t-fast) var(--ds-ease-out);
+}
+
+#mca-setup-wizard input:focus,
+#mca-setup-wizard select:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+#mca-setup-wizard input::placeholder {
+  color: var(--ds-text-disabled);
+}
+
+/* Boutons setup wizard */
+#mca-setup-wizard .btn-primary {
+  background: var(--ds-brand);
+  color: var(--ds-brand-on);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  letter-spacing: 0.02em;
+  box-shadow: var(--ds-shadow-brand);
+  transition: background var(--ds-t-fast) var(--ds-ease-out),
+              transform var(--ds-t-fast) var(--ds-ease-out);
+}
+
+#mca-setup-wizard .btn-primary:hover {
+  background: var(--ds-brand-hover);
+  transform: translateY(-1px);
+}
+
+#mca-setup-wizard .btn-secondary {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ds-text);
+  border: 1px solid var(--ds-border-strong);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  letter-spacing: 0.02em;
+}
+
+#mca-setup-wizard .btn-secondary:hover {
+  background: var(--ds-bg-card-hover);
+}
+
+#mca-setup-wizard .modal-close {
+  color: var(--ds-text-muted);
+  transition: color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+#mca-setup-wizard .modal-close:hover {
+  color: var(--ds-brand);
+}
+
+/* Progress pips (etapes 1/4 2/4 3/4 4/4) */
+#mca-setup-progress > div {
+  background: var(--ds-border);
+  height: 4px;
+  border-radius: var(--ds-r-sm);
+  transition: background var(--ds-t-fast) var(--ds-ease-out);
+}
+
+#mca-setup-progress > div[data-step-pip] {
+  /* Pip actif (i <= state.step) set via JS inline style background:var(--accent)
+     -> on cible TOUS les pips et le JS override avec ds-brand grace au var() */
+}
+
+/* Chips postes/categories */
+#mca-setup-wizard [data-chip] {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-pill);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+#mca-setup-wizard [data-chip] button {
+  color: var(--ds-text-muted);
+}
+
+#mca-setup-wizard [data-chip] button:hover {
+  color: var(--ds-brand);
+}
+
+/* Modal footer (nav buttons + link) */
+#mca-setup-wizard .modal-footer {
+  background: var(--ds-bg-elevated);
+  border-top: 1px solid var(--ds-border);
+}
+
+#mca-setup-wizard .btn-link {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+#mca-setup-wizard .btn-link:hover {
+  color: var(--ds-brand);
+}
