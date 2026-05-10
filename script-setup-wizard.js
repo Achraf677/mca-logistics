@@ -513,8 +513,6 @@
     try { localStorage.setItem(FLAG_KEY, '1'); } catch (_) {}
     hide();
     toast('Configuration passée. Accessible via Paramètres → Société.');
-    // Bascule dashboard apres skip (sinon mobile reste bloque sur "Chargement...")
-    navigateToDashboard();
   }
 
   function finish() {
@@ -522,24 +520,9 @@
     try { localStorage.setItem(FLAG_KEY, '1'); } catch (_) {}
     hide();
     toast('✅ Espace configuré', 'success');
-    navigateToDashboard();
-  }
-
-  // Helper unique : navigue vers dashboard, gere PC + mobile + chauffeur.
-  // BUG mobile : avant le fix, finish() appelait window.naviguerVers (PC seul)
-  // -> mobile (MCAm.go) restait bloque sur le state initial "Chargement...".
-  function navigateToDashboard() {
+    // Bascule dashboard si helper present
     try {
-      if (typeof window.naviguerVers === 'function') {
-        window.naviguerVers('dashboard');
-        return;
-      }
-      if (window.MCAm && typeof window.MCAm.go === 'function') {
-        window.MCAm.go('dashboard');
-        return;
-      }
-      // Dernier recours : reload pour relancer le boot complet
-      try { window.location.reload(); } catch (_) {}
+      if (typeof window.naviguerVers === 'function') window.naviguerVers('dashboard');
     } catch (_) {}
   }
 

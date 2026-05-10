@@ -8,9 +8,6 @@
     if (client) return client;
     if (!window.supabase || !config.url || !config.publishableKey) return null;
 
-    // ROLLBACK temporaire (#72 TTL 8h custom storage casse le boot mobile).
-    // On garde le storage par defaut Supabase (localStorage) en attendant
-    // une mitigation #72 plus robuste qui n'interfere pas avec le SDK v2.
     client = window.supabase.createClient(config.url, config.publishableKey, {
       auth: {
         persistSession: true,
