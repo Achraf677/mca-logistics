@@ -24,8 +24,8 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 ### Jalon 2 — CRUD principal
 - [x] PR-6 : Livraisons (table + filters + bulk-bar + kanban) → PR #122 mergee 2026-05-10 ~18:00 UTC, tag `design-checkpoint-6-livraisons`
 - [x] PR-7 : Modale + form-groups + drawers → PR #123 mergee 2026-05-10 ~18:15 UTC, tag `design-checkpoint-7-modale`
-- [ ] PR-8 : Charges (en cours)
-- [ ] PR-9 : Carburant (+ anomalies + OCR)
+- [x] PR-8 : Charges → PR #124 mergee 2026-05-10 ~18:30 UTC, tag `design-checkpoint-8-charges`
+- [ ] PR-9 : Carburant (+ anomalies + OCR) (en cours)
 - [ ] PR-10 : Entretiens
 
 ### Jalon 3 — Hubs entité
@@ -59,6 +59,7 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 | 5 | #121 feedback | `design-checkpoint-5-feedback` | `4eaf8060` | 2026-05-10 ~17:45 | style-design-feedback.css : toasts 4 variantes (success/warning/error/info via classe ou data-toast-type), empty states avec font display, skeletons (.ds-skeleton-rect/circle/text/kpi/row + shimmer), spinner (.ds-spinner). **Jalon 1 termine.** |
 | 6 | #122 livraisons | `design-checkpoint-6-livraisons` | `7d25a810` | 2026-05-10 ~18:00 | style-design-livraisons.css : filtres focus brand, tables hover/checked, bulk-bar avec count Syne italic, kanban col headers + cards hover brand, chips active brand-soft, pagination active brand. |
 | 7 | #123 modale | `design-checkpoint-7-modale` | `02b6b071` | 2026-05-10 ~18:15 | style-design-modal.css : modal-overlay z-index ds, modal radius xl + shadow-xl + accent-bar bottom brand, modal-title font display, form-group inputs focus ring brand-soft 3px, drawers 360 (side-drawer + s20 + s25). |
+| 8 | #124 charges | `design-checkpoint-8-charges` | `6cc166da` | 2026-05-10 ~18:30 | style-design-charges.css : nav-periode-bar + labels mois Syne, recurrence chip ds-info, montants negatif/positif ds-danger/success mono. Reutilise par carburant/entretiens/stats/tva/rentabilite. |
 
 ## Règles de sécurité
 

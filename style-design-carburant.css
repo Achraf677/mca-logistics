@@ -1,0 +1,89 @@
+/* ==========================================================================
+   MCA Logistics — Design Carburant (Phase 4 / PR-9)
+
+   PR ultra-minimale : table, filtres, modale, KPIs et nav-periode deja
+   couverts par PR-4/6/7/8. Cette PR affine uniquement les composants
+   specifiques carburant : .doublons-warning (avertissements OCR /
+   detection doublons) + libelles anomalies.
+
+   Aucun changement HTML, IDs preserves.
+   ========================================================================== */
+
+/* ============ DOUBLONS / ANOMALIES WARNING ============ */
+
+.doublons-warning {
+  background: linear-gradient(
+    135deg,
+    var(--ds-brand-soft),
+    rgba(230, 57, 70, 0.03)
+  );
+  border: 1px solid var(--ds-brand);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+.doublons-warning-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  color: var(--ds-brand);
+  letter-spacing: -0.01em;
+}
+
+.doublons-warning-list {
+  font-family: var(--ds-font-body);
+}
+
+.doublons-warning-item {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--ds-r-md);
+  font-size: var(--ds-fs-sm);
+  color: var(--ds-text);
+}
+
+/* ============ ANOMALIE ROW (carburant table — L/100km aberrant) ============ */
+
+tr.anomalie-row td,
+tr.row-anomalie td,
+tr[data-anomalie="1"] td {
+  background: var(--ds-warning-soft);
+}
+
+tr.anomalie-row:hover td,
+tr.row-anomalie:hover td,
+tr[data-anomalie="1"]:hover td {
+  background: rgba(255, 214, 10, 0.22);
+}
+
+.anomalie-badge,
+.badge-anomalie {
+  background: var(--ds-warning-soft);
+  color: var(--ds-warning);
+  border: 1px solid var(--ds-warning);
+  border-radius: var(--ds-r-pill);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ============ CONSO L/100km display ============ */
+
+.conso-l100,
+.consommation-value {
+  font-family: var(--ds-font-mono);
+  font-feature-settings: "tnum";
+  font-weight: var(--ds-fw-bold);
+}
+
+/* Conso elevee (> seuil) en rouge brand */
+.conso-elevee,
+.conso-l100.elevee {
+  color: var(--ds-brand);
+}
+
+/* Conso normale en muted */
+.conso-normale,
+.conso-l100.normale {
+  color: var(--ds-text-muted);
+}
