@@ -556,6 +556,138 @@ tr.row-hover:hover td{background:var(--bg-card-hover);cursor:pointer}
   </div>
 </aside>
 
+<!-- ====== DRAWER : Salarié 360° ====== -->
+<div class="drawer-overlay" id="drawer-salarie-overlay"></div>
+<aside class="drawer" id="drawer-salarie" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0;display:flex;align-items:center;gap:14px">
+      <div style="width:48px;height:48px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:18px;font-weight:800;flex-shrink:0">KB</div>
+      <div>
+        <div class="drawer-title">Karim Bouali</div>
+        <div class="drawer-sub">Chauffeur PL · Cat. C · entré 12/01/2023</div>
+      </div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-sal-detail">Identité</button>
+    <button class="drawer-tab" data-dr-tab="dr-sal-docs">Documents</button>
+    <button class="drawer-tab" data-dr-tab="dr-sal-perf">Performance</button>
+    <button class="drawer-tab" data-dr-tab="dr-sal-paie">Paie</button>
+    <button class="drawer-tab" data-dr-tab="dr-sal-historique">Historique</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-sal-detail">
+      <div class="dr-row"><div class="dr-key">Nom complet</div><div class="dr-val">Karim Bouali</div></div>
+      <div class="dr-row"><div class="dr-key">Téléphone</div><div class="dr-val mono">06 12 45 78 90</div></div>
+      <div class="dr-row"><div class="dr-key">Email</div><div class="dr-val">karim.b@mca-logistics.fr</div></div>
+      <div class="dr-row"><div class="dr-key">Adresse</div><div class="dr-val">12 rue Pasteur · 67000 Strasbourg</div></div>
+      <div class="dr-row"><div class="dr-key">Contact urgence</div><div class="dr-val">Aïcha B. · <span class="mono">06 98 76 54 32</span></div></div>
+      <div class="dr-row"><div class="dr-key">Né le</div><div class="dr-val">14/03/1987 · Lille</div></div>
+      <div class="dr-row"><div class="dr-key">N° SS</div><div class="dr-val mono">1 87 03 59 350 042 78</div></div>
+      <div class="dr-row"><div class="dr-key">N° matricule</div><div class="dr-val mono">MCA-2023-001</div></div>
+      <div class="dr-row"><div class="dr-key">Véhicule attitré</div><div class="dr-val">Sprinter 314 (AB-314-MC)</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-sal-docs">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px">6 documents · 100% à jour</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="flex:1"><div style="font-size:13px;font-weight:700">Permis B</div><div style="font-size:11px;color:var(--text-muted)">Expire 14/08/2027 · validité 2 ans</div></div><span class="badge ok">Valide</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="flex:1"><div style="font-size:13px;font-weight:700">Permis C (PL)</div><div style="font-size:11px;color:var(--text-muted)">Expire 14/08/2027</div></div><span class="badge ok">Valide</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="flex:1"><div style="font-size:13px;font-weight:700">FIMO</div><div style="font-size:11px;color:var(--text-muted)">Expire 30/04/2028</div></div><span class="badge ok">Valide</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="flex:1"><div style="font-size:13px;font-weight:700">Carte conducteur</div><div style="font-size:11px;color:var(--text-muted)">Expire 10/03/2027</div></div><span class="badge ok">Valide</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="flex:1"><div style="font-size:13px;font-weight:700">Visite médicale</div><div style="font-size:11px;color:var(--text-muted)">Expire 10/03/2027</div></div><span class="badge ok">Valide</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 12px;background:var(--bg-card-hover);border:1px solid var(--border);border-radius:8px"><div style="flex:1"><div style="font-size:13px;font-weight:700">RIB</div><div style="font-size:11px;color:var(--text-muted)">Crédit Agricole · vérifié</div></div><span class="badge ok">OK</span></div>
+      </div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-sal-perf">
+      <div class="dr-row"><div class="dr-key">Livraisons mois</div><div class="dr-val" style="font-size:15px;font-weight:800">38</div></div>
+      <div class="dr-row"><div class="dr-key">CA généré</div><div class="dr-val">14 280 €</div></div>
+      <div class="dr-row"><div class="dr-key">Km parcourus</div><div class="dr-val">3 280 km</div></div>
+      <div class="dr-row"><div class="dr-key">Ponctualité</div><div class="dr-val" style="color:#06d6a0">96%</div></div>
+      <div class="dr-row"><div class="dr-key">Incidents</div><div class="dr-val">0 cette année</div></div>
+      <div class="dr-row"><div class="dr-key">Score qualité</div><div class="dr-val" style="color:#06d6a0">98/100</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-sal-paie">
+      <div class="dr-row"><div class="dr-key">Contrat</div><div class="dr-val">CDI · 35h/semaine</div></div>
+      <div class="dr-row"><div class="dr-key">Salaire brut</div><div class="dr-val">2 850 €/mois</div></div>
+      <div class="dr-row"><div class="dr-key">Heures supp ce mois</div><div class="dr-val">12 h</div></div>
+      <div class="dr-row"><div class="dr-key">Primes ce mois</div><div class="dr-val">150 €</div></div>
+      <div class="dr-row"><div class="dr-key">Congés acquis</div><div class="dr-val">12,5 jours</div></div>
+      <div class="dr-row"><div class="dr-key">Dernière fiche paie</div><div class="dr-val">Avril 2026 · 3 124 € net</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-sal-historique">
+      <div style="display:flex;flex-direction:column;gap:14px;position:relative;padding-left:20px">
+        <div style="position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)"></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#06d6a0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">11/05</div><div style="font-size:13px;font-weight:600">Aujourd'hui · planifié</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#4cc9f0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">09/05</div><div style="font-size:13px;font-weight:600">5 livraisons · 280 km</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:#4cc9f0;border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">08/05</div><div style="font-size:13px;font-weight:600">4 livraisons · 240 km</div></div>
+        <div style="position:relative"><div style="position:absolute;left:-20px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--text-muted);border:2px solid var(--bg-card)"></div><div style="font-size:12px;color:var(--text-muted)">12/01/23</div><div style="font-size:13px;font-weight:600">Entrée dans l'entreprise</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary">Voir planning</button>
+    <button class="btn btn-secondary">Pointer journée</button>
+    <button class="btn btn-primary">Modifier profil</button>
+  </div>
+</aside>
+
+<!-- ====== DRAWER : Fournisseur 360° ====== -->
+<div class="drawer-overlay" id="drawer-fournisseur-overlay"></div>
+<aside class="drawer" id="drawer-fournisseur" role="dialog" aria-modal="true">
+  <div class="drawer-head">
+    <div style="flex:1;min-width:0;display:flex;align-items:center;gap:14px">
+      <div style="width:48px;height:48px;border-radius:8px;background:var(--brand-soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:800;flex-shrink:0">TE</div>
+      <div>
+        <div class="drawer-title">Total Énergies</div>
+        <div class="drawer-sub">Carburant · fournisseur depuis 02/2023 · 42 factures</div>
+      </div>
+    </div>
+    <button class="modal-close" data-modal-close aria-label="Fermer"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <nav class="drawer-tabs">
+    <button class="drawer-tab active" data-dr-tab="dr-fou-detail">Détail</button>
+    <button class="drawer-tab" data-dr-tab="dr-fou-charges">Charges</button>
+    <button class="drawer-tab" data-dr-tab="dr-fou-paiements">Paiements</button>
+    <button class="drawer-tab" data-dr-tab="dr-fou-stats">Statistiques</button>
+  </nav>
+  <div class="drawer-body">
+    <div class="drawer-tab-panel active" id="dr-fou-detail">
+      <div class="dr-row"><div class="dr-key">Raison sociale</div><div class="dr-val">Total Énergies SE</div></div>
+      <div class="dr-row"><div class="dr-key">Catégorie</div><div class="dr-val"><span class="badge warn">Carburant</span></div></div>
+      <div class="dr-row"><div class="dr-key">SIREN</div><div class="dr-val mono">542 051 180</div></div>
+      <div class="dr-row"><div class="dr-key">Adresse</div><div class="dr-val">2 place Jean Millier · 92400 Courbevoie</div></div>
+      <div class="dr-row"><div class="dr-key">Téléphone</div><div class="dr-val mono">09 70 80 89 65</div></div>
+      <div class="dr-row"><div class="dr-key">Délai paiement</div><div class="dr-val">30 jours fin de mois</div></div>
+      <div class="dr-row"><div class="dr-key">Mode paiement</div><div class="dr-val">Carte pro carburant</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-fou-charges">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px">14 charges sur 12 mois · 18 740 € cumulés</div>
+      <table style="width:100%;font-size:12px"><tbody>
+        <tr><td class="mono">12/05</td><td>Plein gazole Béthune</td><td style="text-align:right">186,40 €</td></tr>
+        <tr><td class="mono">09/05</td><td>Plein gazole Lens</td><td style="text-align:right">154,20 €</td></tr>
+        <tr><td class="mono">02/05</td><td>Plein gazole Liévin</td><td style="text-align:right">142,80 €</td></tr>
+        <tr><td class="mono">24/04</td><td>Plein gazole Béthune</td><td style="text-align:right">192,15 €</td></tr>
+      </tbody></table>
+    </div>
+    <div class="drawer-tab-panel" id="dr-fou-paiements">
+      <div class="dr-row"><div class="dr-key">Dépenses 12m</div><div class="dr-val" style="font-size:15px;font-weight:800">18 740 €</div></div>
+      <div class="dr-row"><div class="dr-key">À régler</div><div class="dr-val">340 €</div></div>
+      <div class="dr-row"><div class="dr-key">Délai paiement moyen</div><div class="dr-val">26 jours</div></div>
+      <div class="dr-row"><div class="dr-key">Retards 12m</div><div class="dr-val">0</div></div>
+    </div>
+    <div class="drawer-tab-panel" id="dr-fou-stats">
+      <div class="dr-row"><div class="dr-key">Panier moyen</div><div class="dr-val">175,80 €</div></div>
+      <div class="dr-row"><div class="dr-key">Fréquence</div><div class="dr-val">3-4 pleins/mois</div></div>
+      <div class="dr-row"><div class="dr-key">Part dépenses carburant</div><div class="dr-val">68% (top fournisseur)</div></div>
+    </div>
+  </div>
+  <div class="drawer-foot">
+    <button class="btn btn-secondary">Historique complet</button>
+    <button class="btn btn-primary">Modifier</button>
+  </div>
+</aside>
+
 
 <!-- Modals -->
 <!-- ========================================================

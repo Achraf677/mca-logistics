@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>MCA Logistics — Chauffeur (mobile)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1a1d22">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="modals-shared.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font-body);font-size:14px;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+body::before{content:'';position:fixed;inset:0;background:var(--asphalt-stripes);pointer-events:none;z-index:0}
+
+/* Mobile shell */
+.m-shell{position:relative;z-index:1;padding-bottom:80px;min-height:100vh}
+
+/* Topbar mobile */
+.m-topbar{position:sticky;top:0;height:56px;background:var(--bg-elevated);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:50;backdrop-filter:blur(8px)}
+.m-topbar::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 50%)}
+.m-brand{display:flex;align-items:center;gap:10px}
+.m-brand-logo{width:32px;height:22px}
+.m-brand-text{font-family:var(--font-display);font-weight:800;font-size:13px;letter-spacing:-0.02em;line-height:1}
+.m-brand-text .red{color:var(--brand);font-style:italic;font-weight:700;font-size:9px;display:block;margin-top:1px;letter-spacing:0.06em}
+.m-topbar-right{display:flex;align-items:center;gap:8px}
+.m-icon-btn{width:36px;height:36px;border-radius:8px;background:transparent;border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative}
+.m-icon-btn svg{width:16px;height:16px;stroke:currentColor;stroke-width:2;fill:none}
+.m-notif-badge{position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;border-radius:8px;background:var(--brand);color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--bg-elevated)}
+.m-av{width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;box-shadow:0 0 0 2px rgba(230,57,70,0.25)}
+
+/* Greeting hero */
+.m-hero{padding:18px 16px 14px;background:linear-gradient(180deg,rgba(230,57,70,0.06),transparent)}
+.m-hello{font-size:13px;color:var(--text-muted);margin-bottom:4px}
+.m-name{font-family:var(--font-display);font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1.1}
+.m-date{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+/* KPI tiles mobile */
+.m-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px;margin-bottom:14px}
+.m-kpi{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.m-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--brand),transparent)}
+.m-kpi-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;color:var(--text-muted);margin-bottom:6px}
+.m-kpi-val{font-family:var(--font-body);font-size:22px;font-weight:800;letter-spacing:-0.02em;line-height:1;font-feature-settings:"tnum"}
+.m-kpi-sub{font-size:10px;color:var(--text-muted);margin-top:4px}
+
+/* Section card */
+.m-section{margin:14px 16px 18px}
+.m-section-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.m-section-head h3{font-family:var(--font-display);font-size:14px;font-weight:800;letter-spacing:-0.01em}
+.m-section-head a{font-size:12px;color:var(--brand);text-decoration:none;font-weight:600}
+
+.m-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px}
+
+/* Livraison card mobile */
+.m-liv{padding:14px 16px;cursor:pointer;transition:background var(--t-fast) var(--ease-out)}
+.m-liv:active{background:var(--bg-card-hover)}
+.m-liv+.m-liv{border-top:1px solid var(--border)}
+.m-liv-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.m-liv-id{font-family:var(--font-mono);font-size:11px;color:var(--text-muted)}
+.m-liv-client{font-size:14px;font-weight:700;margin-top:2px}
+.m-liv-trajet{font-size:12px;color:var(--text-muted);margin-top:6px;display:flex;align-items:center;gap:6px}
+.m-liv-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.m-liv-amount{font-weight:800;font-size:14px;font-feature-settings:"tnum"}
+
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;background:rgba(255,255,255,0.04);border:1px solid var(--border-strong);color:var(--text-muted);white-space:nowrap}
+.badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.badge.ok{color:#06d6a0}
+.badge.pending{color:#ffd60a}
+.badge.late{color:var(--brand);border-color:rgba(230,57,70,0.4);background:rgba(230,57,70,0.08)}
+
+/* Bottom nav */
+.m-bottom-nav{position:fixed;bottom:0;left:0;right:0;height:64px;background:var(--bg-elevated);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:0 8px;z-index:100;backdrop-filter:blur(10px);padding-bottom:env(safe-area-inset-bottom,0)}
+.m-bottom-nav::before{content:'';position:absolute;left:0;right:0;top:-1px;height:2px;background:linear-gradient(90deg,var(--brand) 0%,transparent 100%)}
+.m-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;color:var(--text-muted);text-decoration:none;font-size:10px;font-weight:600;transition:color var(--t-fast) var(--ease-out)}
+.m-nav-item svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.m-nav-item.active{color:var(--brand)}
+.m-nav-item.active svg{filter:drop-shadow(0 0 6px rgba(230,57,70,0.5))}
+.m-nav-center{position:relative;top:-12px}
+.m-nav-center-btn{width:52px;height:52px;border-radius:50%;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(230,57,70,0.4),0 0 0 4px var(--bg-elevated);transition:transform var(--t-fast) var(--ease-out)}
+.m-nav-center-btn:active{transform:scale(0.94)}
+.m-nav-center-btn svg{width:24px;height:24px;stroke:currentColor;stroke-width:2.5}
+
+/* Quick action chips */
+.m-quick-row{display:flex;gap:8px;padding:0 16px 14px;overflow-x:auto;scrollbar-width:none}
+.m-quick-row::-webkit-scrollbar{display:none}
+.m-chip{flex-shrink:0;background:var(--bg-card);border:1px solid var(--border);border-radius:999px;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text);display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+.m-chip.active{background:var(--brand-soft);border-color:rgba(230,57,70,0.4);color:var(--brand)}
+.m-chip svg{width:14px;height:14px;stroke:currentColor;stroke-width:2;fill:none}
+
+/* Status pulse mini */
+.m-status-card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 16px 14px;display:flex;align-items:center;gap:12px}
+.m-status-dot{width:10px;height:10px;border-radius:50%;background:#06d6a0;flex-shrink:0;box-shadow:0 0 0 0 rgba(6,214,160,0.6);animation:m-pulse 2s ease-in-out infinite}
+@keyframes m-pulse{0%,100%{box-shadow:0 0 0 0 rgba(6,214,160,0.6)}50%{box-shadow:0 0 0 6px rgba(6,214,160,0)}}
+.m-status-text{font-size:13px;flex:1}
+.m-status-text strong{color:var(--text);font-weight:700}
+</style>
+</head>
+<body>
+<div class="m-shell">
+
+  <!-- TOPBAR -->
+  <header class="m-topbar">
+    <div class="m-brand">
+      <svg class="m-brand-logo" viewBox="0 0 88 60">
+        <rect x="0" y="14" width="14" height="3" fill="#e63946"/>
+        <rect x="2" y="22" width="12" height="3" fill="#e63946"/>
+        <rect x="4" y="30" width="10" height="3" fill="#e63946"/>
+        <rect x="2" y="38" width="12" height="3" fill="#e63946"/>
+        <rect x="18" y="14" width="60" height="28" rx="4" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1"/>
+        <circle cx="30" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+        <circle cx="66" cy="44" r="5" fill="#1a1d22" stroke="#f1f3f5" stroke-width="1.2"/>
+      </svg>
+      <div class="m-brand-text">MCA<span class="red">LOGISTICS</span></div>
+    </div>
+    <div class="m-topbar-right">
+      <button class="m-icon-btn"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="m-notif-badge">3</span></button>
+      <div class="m-av">KB</div>
+    </div>
+  </header>
+
+  <!-- GREETING HERO -->
+  <div class="m-hero">
+    <div class="m-hello">Bonjour 👋</div>
+    <div class="m-name">Karim B.</div>
+    <div class="m-date">Lundi 11 mai 2026 · Semaine 19</div>
+  </div>
+
+  <!-- STATUS LIVE -->
+  <div class="m-status-card">
+    <div class="m-status-dot"></div>
+    <div class="m-status-text"><strong>En service</strong> · pointé à 06:30 · Sprinter 314</div>
+  </div>
+
+  <!-- KPIs DU JOUR -->
+  <div class="m-kpi-grid">
+    <div class="m-kpi"><div class="m-kpi-lbl">Livraisons aujourd'hui</div><div class="m-kpi-val">5</div><div class="m-kpi-sub">2 livrées · 3 à faire</div></div>
+    <div class="m-kpi"><div class="m-kpi-lbl">Km du jour</div><div class="m-kpi-val">142 km</div><div class="m-kpi-sub">~3h restantes</div></div>
+    <div class="m-kpi"><div class="m-kpi-lbl">CA du jour</div><div class="m-kpi-val">820 €</div><div class="m-kpi-sub">+12% vs hier</div></div>
+    <div class="m-kpi"><div class="m-kpi-lbl">Heures travaillées</div><div class="m-kpi-val">5h 20</div><div class="m-kpi-sub">CE 561 OK</div></div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="m-quick-row">
+    <a class="m-chip active" href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/></svg> Tournée du jour</a>
+    <a class="m-chip" href="#"><svg viewBox="0 0 24 24"><path d="M12 2v6"/><path d="M9 12h6"/><circle cx="12" cy="14" r="8"/></svg> Plein</a>
+    <a class="m-chip" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg> Inspection</a>
+    <a class="m-chip" href="#"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg> Incident</a>
+    <a class="m-chip" href="#"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Pause</a>
+  </div>
+
+  <!-- LIVRAISONS DU JOUR -->
+  <div class="m-section">
+    <div class="m-section-head"><h3>Tournée du jour (5)</h3><a href="#">Voir tout →</a></div>
+    <div class="m-card">
+      <div class="m-liv" data-drawer-open="drawer-livraison">
+        <div class="m-liv-top">
+          <div>
+            <div class="m-liv-id">L-2026-0142</div>
+            <div class="m-liv-client">Auchan Nord</div>
+          </div>
+          <span class="badge ok">Livrée</span>
+        </div>
+        <div class="m-liv-trajet"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Lille → Roubaix · 18 km</div>
+        <div class="m-liv-foot">
+          <div style="font-size:11px;color:var(--text-muted)">Livrée 09:42 · 1h12 min</div>
+          <div class="m-liv-amount">320 €</div>
+        </div>
+      </div>
+      <div class="m-liv" data-drawer-open="drawer-livraison">
+        <div class="m-liv-top">
+          <div>
+            <div class="m-liv-id">L-2026-0143</div>
+            <div class="m-liv-client">Decathlon</div>
+          </div>
+          <span class="badge pending">En cours</span>
+        </div>
+        <div class="m-liv-trajet"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Villeneuve → Lens · 32 km</div>
+        <div class="m-liv-foot">
+          <div style="font-size:11px;color:var(--brand);font-weight:600">→ Démarrer GPS</div>
+          <div class="m-liv-amount">410 €</div>
+        </div>
+      </div>
+      <div class="m-liv" data-drawer-open="drawer-livraison">
+        <div class="m-liv-top">
+          <div>
+            <div class="m-liv-id">L-2026-0144</div>
+            <div class="m-liv-client">Boulanger SAS</div>
+          </div>
+          <span class="badge pending">11:30</span>
+        </div>
+        <div class="m-liv-trajet"><svg width="14" height="14" viewBox="0 0 24 24" style="stroke:currentColor;stroke-width:2;fill:none"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>Lille → Arras · 48 km</div>
+        <div class="m-liv-foot">
+          <div style="font-size:11px;color:var(--text-muted)">Programmée</div>
+          <div class="m-liv-amount">280 €</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERTES MOBILE -->
+  <div class="m-section">
+    <div class="m-section-head"><h3>Alertes (2)</h3></div>
+    <div class="m-card">
+      <div class="m-liv">
+        <div class="m-liv-top">
+          <div>
+            <div class="m-liv-id" style="color:var(--brand)">CT VÉHICULE</div>
+            <div class="m-liv-client" style="font-size:13px">Sprinter 316 expire dans 4j</div>
+          </div>
+        </div>
+        <div class="m-liv-trajet">Programmer un contrôle technique avant le 14/05</div>
+      </div>
+      <div class="m-liv">
+        <div class="m-liv-top">
+          <div>
+            <div class="m-liv-id" style="color:var(--warning)">PERMIS</div>
+            <div class="m-liv-client" style="font-size:13px">Renouvellement dans 22j</div>
+          </div>
+        </div>
+        <div class="m-liv-trajet">Pense à prendre rdv préfecture</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="m-bottom-nav">
+  <a class="m-nav-item active" href="#"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Accueil</a>
+  <a class="m-nav-item" href="#"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>Tournée</a>
+  <div class="m-nav-center">
+    <a class="m-nav-center-btn" href="#"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></a>
+  </div>
+  <a class="m-nav-item" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>Planning</a>
+  <a class="m-nav-item" href="salarie.html"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profil</a>
+</nav>
+
+<!-- Drawers reuse from drawers-content -->
+<!-- (Pour la prod : load via fetch ou inline) -->
+
+<script src="modals-shared.js" defer></script>
+</body>
+</html>
