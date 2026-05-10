@@ -21,6 +21,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>" />
   <style>
+.nav-icon svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:0.85;vertical-align:-3px}
+.nav-item.active .nav-icon svg{opacity:1}
     /* Critical CSS inline — anti-FOUC (masque tout le body pendant le boot JS) */
     html { background: #1a1d22; }
     body.app-shell { background: #1a1d22; color: #e5e7eb; margin: 0; }
@@ -110,7 +112,7 @@
       <span class="logo-text" id="sidebar-nom-entreprise">MCA Logistics</span>
     </div>
     <nav class="sidebar-nav" aria-label="Navigation principale">
-      <a href="#" class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="#" class="nav-item active" data-page="dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></span><span class="nav-label">Dashboard</span></a>
 
       <div class="nav-section" data-section="quotidien">
         <button type="button" class="nav-section-header" onclick="toggleNavSection('quotidien')" aria-expanded="true">
@@ -118,10 +120,10 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
-          <a href="#" class="nav-item" data-page="livraisons"><span class="nav-icon">📦</span><span class="nav-label">Livraisons</span></a>
-          <a href="#" class="nav-item" data-page="calendrier"><span class="nav-icon">🗓️</span><span class="nav-label">Calendrier</span></a>
-          <a href="#" class="nav-item" data-page="planning"><span class="nav-icon">📅</span><span class="nav-label">Planning</span></a>
-          <a href="#" class="nav-item" data-page="alertes"><span class="nav-icon">🔔</span><span class="nav-label">Alertes <span class="badge-alertes-nav" id="badge-alertes"></span></span></a>
+          <a href="#" class="nav-item" data-page="livraisons"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></span><span class="nav-label">Livraisons</span></a>
+          <a href="#" class="nav-item" data-page="calendrier"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></span><span class="nav-label">Calendrier</span></a>
+          <a href="#" class="nav-item" data-page="planning"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg></span><span class="nav-label">Planning</span></a>
+          <a href="#" class="nav-item" data-page="alertes"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></span><span class="nav-label">Alertes <span class="badge-alertes-nav" id="badge-alertes"></span></span></a>
         </div>
       </div>
 
@@ -131,8 +133,8 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
-          <a href="#" class="nav-item" data-page="clients"><span class="nav-icon">🧑‍💼</span><span class="nav-label">Clients</span></a>
-          <a href="#" class="nav-item" data-page="fournisseurs"><span class="nav-icon">🏭</span><span class="nav-label">Fournisseurs</span></a>
+          <a href="#" class="nav-item" data-page="clients"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg></span><span class="nav-label">Clients</span></a>
+          <a href="#" class="nav-item" data-page="fournisseurs"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M3 7v14"/><path d="M21 7v14"/><path d="M3 7l9-4 9 4"/><path d="M9 21V11"/><path d="M15 21V11"/></svg></span><span class="nav-label">Fournisseurs</span></a>
         </div>
       </div>
 
@@ -142,10 +144,10 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
-          <a href="#" class="nav-item" data-page="vehicules"><span class="nav-icon">🚐</span><span class="nav-label">Véhicules</span></a>
-          <a href="#" class="nav-item" data-page="carburant"><span class="nav-icon">⛽</span><span class="nav-label">Carburant</span></a>
-          <a href="#" class="nav-item" data-page="entretiens"><span class="nav-icon">🔧</span><span class="nav-label">Entretiens</span></a>
-          <a href="#" class="nav-item" data-page="inspections"><span class="nav-icon">🚗</span><span class="nav-label">Inspections</span></a>
+          <a href="#" class="nav-item" data-page="vehicules"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg></span><span class="nav-label">Véhicules</span></a>
+          <a href="#" class="nav-item" data-page="carburant"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span><span class="nav-label">Carburant</span></a>
+          <a href="#" class="nav-item" data-page="entretiens"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg></span><span class="nav-label">Entretiens</span></a>
+          <a href="#" class="nav-item" data-page="inspections"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg></span><span class="nav-label">Inspections</span></a>
         </div>
       </div>
 
@@ -156,10 +158,10 @@
            niveau racine (parite avec Dashboard / Calendrier flat items).
            Les 3 nav-item plates restent dans le DOM pour preserver les deeplinks
            (IA + alertes), masquees par CSS. -->
-      <a href="#" class="nav-item" data-page="equipe"><span class="nav-icon">👥</span><span class="nav-label">Équipe <span class="badge-alertes-nav" id="badge-incidents-nav" style="display:none"></span></span></a>
-      <a href="#" class="nav-item" data-page="salaries" hidden><span class="nav-icon">👥</span><span class="nav-label">Salariés</span></a>
-      <a href="#" class="nav-item" data-page="heures" hidden><span class="nav-icon">⏱️</span><span class="nav-label">Heures & Km</span></a>
-      <a href="#" class="nav-item" data-page="incidents" hidden><span class="nav-icon">🚨</span><span class="nav-label">Incidents</span></a>
+      <a href="#" class="nav-item" data-page="equipe"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg></span><span class="nav-label">Équipe <span class="badge-alertes-nav" id="badge-incidents-nav" style="display:none"></span></span></a>
+      <a href="#" class="nav-item" data-page="salaries" hidden><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><circle cx="17" cy="7" r="3"/></svg></span><span class="nav-label">Salariés</span></a>
+      <a href="#" class="nav-item" data-page="heures" hidden><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span><span class="nav-label">Heures & Km</span></a>
+      <a href="#" class="nav-item" data-page="incidents" hidden><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span><span class="nav-label">Incidents</span></a>
 
       <div class="nav-section" data-section="finances">
         <button type="button" class="nav-section-header" onclick="toggleNavSection('finances')" aria-expanded="true">
@@ -167,11 +169,11 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
-          <a href="#" class="nav-item" data-page="charges"><span class="nav-icon">💸</span><span class="nav-label">Charges</span></a>
-          <a href="#" class="nav-item" data-page="encaissement"><span class="nav-icon">💵</span><span class="nav-label">Encaissement</span></a>
-          <a href="#" class="nav-item" data-page="tva"><span class="nav-icon">🧾</span><span class="nav-label">TVA</span></a>
-          <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon">💰</span><span class="nav-label">Rentabilité</span></a>
-          <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon">📈</span><span class="nav-label">Statistiques</span></a>
+          <a href="#" class="nav-item" data-page="charges"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg></span><span class="nav-label">Charges</span></a>
+          <a href="#" class="nav-item" data-page="encaissement"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span><span class="nav-label">Encaissement</span></a>
+          <a href="#" class="nav-item" data-page="tva"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span><span class="nav-label">TVA</span></a>
+          <a href="#" class="nav-item" data-page="rentabilite"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg></span><span class="nav-label">Rentabilité</span></a>
+          <a href="#" class="nav-item" data-page="statistiques"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="6" width="4" height="15"/><rect x="17" y="9" width="4" height="12"/></svg></span><span class="nav-label">Statistiques</span></a>
         </div>
       </div>
 
@@ -181,8 +183,8 @@
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
-          <a href="#" class="nav-item" data-page="brouillons-ia"><span class="nav-icon">📋</span><span class="nav-label">Brouillons IA <span class="badge-alertes-nav" id="badge-brouillons-ia" style="display:none"></span></span></a>
-          <a href="#" class="nav-item" data-page="parametres"><span class="nav-icon">⚙️</span><span class="nav-label">Paramètres</span></a>
+          <a href="#" class="nav-item" data-page="brouillons-ia"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg></span><span class="nav-label">Brouillons IA <span class="badge-alertes-nav" id="badge-brouillons-ia" style="display:none"></span></span></a>
+          <a href="#" class="nav-item" data-page="parametres"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="nav-label">Paramètres</span></a>
         </div>
       </div>
     </nav>
@@ -192,30 +194,30 @@
   </aside>
 
   <main class="main-content" id="mainContent">
-    <div class="ptr-indicator" id="ptr-indicator">⬇️ Relâchez pour actualiser...</div>
+    <div class="ptr-indicator" id="ptr-indicator"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/></svg> Relâchez pour actualiser...</div>
     <header class="topbar">
-      <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile">☰</button>
+      <button class="btn-menu-mobile" id="menuMobile" aria-label="Ouvrir le menu mobile"><svg viewBox="0 0 24 24" width="18" height="18" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <div class="topbar-branding" onclick="naviguerVers('dashboard')" title="Retour Dashboard">
         <span class="topbar-logo-name" id="topbar-brand-name">MCA Logistics</span>
       </div>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
-      <button class="btn-secondary topbar-search-trigger" type="button" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)">⌘ Rechercher</button>
-      <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil">📲 Installer</button>
-      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre">🌙</button>
-      <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
-        <span style="width:8px;height:8px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71;animation:pulse-green 2s infinite;display:inline-block"></span>
+      <button class="btn-secondary topbar-search-trigger" type="button" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Rechercher</button>
+      <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
+      <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+      <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
+        <span style="width:8px;height:8px;border-radius:50%;background:#06d6a0;box-shadow:0 0 6px #06d6a0;animation:pulse-green 2s infinite;display:inline-block"></span>
         <span style="font-size:.78rem;font-weight:600;color:#e63946">Agent IA</span>
-        <span id="ai-decisions-badge" style="display:none;background:#e74c3c;color:#fff;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center">0</span>
+        <span id="ai-decisions-badge" style="display:none;background:#e63946;color:#fff;font-size:.68rem;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center">0</span>
       </div>
       <div class="topbar-user-menu" id="topbar-user-menu">
         <button class="topbar-user" id="topbar-user-trigger" type="button" onclick="toggleAdminMenu(event)">
           <div class="topbar-avatar" id="topbar-avatar-text">A</div>
           <span id="topbar-admin-label">Admin</span>
-          <span class="topbar-user-caret">▾</span>
+          <span class="topbar-user-caret"><svg viewBox="0 0 24 24" width="11" height="11" style="vertical-align:0;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg></span>
         </button>
         <div class="topbar-dropdown" id="topbar-admin-dropdown">
-          <button class="topbar-dropdown-item" id="admin-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre.">🐛 Signaler un bug</button>
-          <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()">⏏ Déconnexion</button>
+          <button class="topbar-dropdown-item" id="admin-bug-report-btn" type="button" title="Capture URL, version, console, viewport et copie un rapport markdown a transmettre."><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2"/><path d="M5 7l3 2"/><path d="M19 17l-3-2"/><path d="M5 17l3-2"/><path d="M12 6V2"/></svg>Signaler un bug</button>
+          <button class="topbar-dropdown-item" id="btn-admin-logout" type="button" onclick="deconnexionAdmin()"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;margin-right:6px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Déconnexion</button>
         </div>
       </div>
       <div class="topbar-date" id="currentDate"></div>
@@ -322,19 +324,19 @@
       <!-- 2-col grid : Qui travaille + Activité (Sprint 4) -->
       <div class="dashboard-2col">
         <div class="card">
-          <div class="card-header"><h2>👥 Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
+          <div class="card-header"><h2>Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
           <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
             <span style="font-size:.82rem;color:var(--text-muted)">Chargement...</span>
           </div>
         </div>
         <div class="card">
-          <div class="card-header"><h2>📊 Activité des 7 derniers jours</h2></div>
+          <div class="card-header"><h2>Activité des 7 derniers jours</h2></div>
           <div class="chart-container"><canvas id="chartActivite"></canvas></div>
         </div>
       </div>
 
       <div class="card mt-20">
-        <div class="card-header"><h2>🕐 Livraisons récentes</h2></div>
+        <div class="card-header"><h2>Livraisons récentes</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Client</th><th>Chauffeur</th><th>HT</th><th>TTC</th><th>Statut</th><th>Date</th></tr></thead>
@@ -605,7 +607,7 @@
 
     <!-- CARBURANT -->
     <section class="page" id="page-carburant">
-      <div class="page-actions"><h2>⛽ Suivi Carburant</h2>
+      <div class="page-actions"><h2>Suivi Carburant</h2>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()" title="Configurer la détection d'anomalies">⚙️ Anomalies</button>
           <button class="btn-rapport" onclick="exporterCarburantPDF()">📄 Rapport</button>
@@ -663,7 +665,7 @@
 
     <!-- RENTABILITÉ -->
     <section class="page" id="page-rentabilite">
-      <div class="page-actions"><h2>💰 Rentabilité</h2>
+      <div class="page-actions"><h2>Rentabilité</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">⚙️ Config</button>
           <button class="btn-rapport" onclick="exporterRapportRentabilitePDF()" title="Rapport mensuel multi-axes (véhicules, clients, chauffeurs, tournées)">📄 Rapport</button>
@@ -987,12 +989,12 @@
         <div class="kpi-card orange"><div class="kpi-label">Panier moyen HT</div><div class="kpi-value" id="stats-panier-moyen">0 €</div><div class="kpi-sub">Moyenne hors taxes</div></div>
         <div class="kpi-card purple"><div class="kpi-label">Km total</div><div class="kpi-value" id="stats-km-total">0 km</div></div>
       </div>
-      <div class="card"><div class="card-header"><h2>📊 Évolution du CA</h2></div><div class="chart-container"><canvas id="chartCA"></canvas></div></div>
+      <div class="card"><div class="card-header"><h2>Évolution du CA</h2></div><div class="chart-container"><canvas id="chartCA"></canvas></div></div>
       <div class="stats-grid mt-20">
-        <div class="card"><div class="card-header"><h2>👤 Performance par chauffeur</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div></div>
-        <div class="card"><div class="card-header"><h2>🚐 Utilisation des véhicules</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div></div>
+        <div class="card"><div class="card-header"><h2>Performance par chauffeur</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div></div>
+        <div class="card"><div class="card-header"><h2>Utilisation des véhicules</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div></div>
       </div>
-      <div class="card mt-20"><div class="card-header"><h2>💶 CA par chauffeur (détail)</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div></div>
+      <div class="card mt-20"><div class="card-header"><h2>CA par chauffeur (détail)</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div></div>
     </section>
 
     <!-- HUB ÉQUIPE — Sprint 22 / H2.4
@@ -1046,10 +1048,10 @@
 
     <!-- SALARIÉS -->
     <section class="page" id="page-salaries">
-      <div class="page-actions"><h2>👥 Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
+      <div class="page-actions"><h2>Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
-        <div class="card-header"><h2>➕ Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
+        <div class="card-header"><h2>Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-group"><label>Nom *</label><input type="text" id="nsal-nom" placeholder="Nom" / aria-label="Nom" /></div>
@@ -1231,7 +1233,7 @@
 
       <!-- Historique traité -->
       <div class="card" id="card-alertes-traitees">
-        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h2>✅ Historique des alertes traitées</h2></div>
+        <div class="card-header" style="background:rgba(46,204,113,0.05)"><h2>Historique des alertes traitées</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Type</th><th>Message</th><th>Salarié / Client</th><th>Traité le</th></tr></thead>
@@ -1243,7 +1245,7 @@
 
     <!-- TVA -->
     <section class="page" id="page-tva">
-      <div class="page-actions"><h2>🧾 Récapitulatif TVA</h2>
+      <div class="page-actions"><h2>Récapitulatif TVA</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterTvaCSV()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterTvaPDF()">📄 Rapport TVA</button>
@@ -1282,7 +1284,7 @@
 
       <!-- TVA Collectée détail -->
       <div class="card mt-20">
-        <div class="card-header"><h2 id="tva-collectee-title">📤 TVA Collectée</h2></div>
+        <div class="card-header"><h2 id="tva-collectee-title">TVA Collectée</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
@@ -1294,7 +1296,7 @@
 
       <!-- TVA Déductible détail -->
       <div class="card mt-20">
-        <div class="card-header"><h2 id="tva-deductible-title">📥 TVA Déductible (charges, carburant, entretiens)</h2></div>
+        <div class="card-header"><h2 id="tva-deductible-title">TVA Déductible (charges, carburant, entretiens)</h2></div>
         <div class="table-wrapper">
           <table class="data-table">
             <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
@@ -1306,7 +1308,7 @@
       <!-- Solde -->
       <div class="card mt-20" id="tva-solde-card">
         <div class="card-header">
-          <h2>📊 Solde TVA du mois</h2>
+          <h2>Solde TVA du mois</h2>
         </div>
         <div class="modal-body" id="tva-solde-detail"></div>
       </div>
@@ -1333,7 +1335,7 @@
 
         <!-- Entreprise -->
         <div class="card params-card-wide">
-          <div class="card-header"><h2>🏢 Informations entreprise</h2></div>
+          <div class="card-header"><h2>Informations entreprise</h2></div>
           <div class="modal-body">
             <div class="form-section-title" style="margin-bottom:10px">📇 Identification</div>
             <div class="form-grid">
@@ -1410,7 +1412,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>🖼️ Identité visuelle</h2></div>
+          <div class="card-header"><h2>Identité visuelle</h2></div>
           <div class="modal-body">
             <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
               <div id="param-logo-preview" style="width:72px;height:72px;border-radius:14px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg-dark);font-size:2rem">🚐</div>
@@ -1427,7 +1429,7 @@
 
         <!-- Gestion des postes -->
         <div class="card">
-          <div class="card-header"><h2>🏷️ Postes / Fonctions</h2></div>
+          <div class="card-header"><h2>Postes / Fonctions</h2></div>
           <div class="modal-body">
             <div id="liste-postes" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"></div>
             <div style="display:flex;gap:8px">
@@ -1439,7 +1441,7 @@
 
         <!-- Apparence -->
         <div class="card">
-          <div class="card-header"><h2>🎨 Apparence</h2></div>
+          <div class="card-header"><h2>Apparence</h2></div>
           <div class="modal-body">
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
               <div>
@@ -1462,7 +1464,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>🧾 Fiscalité TVA</h2></div>
+          <div class="card-header"><h2>Fiscalité TVA</h2></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration pilote la date d’exigibilité de la TVA, la périodicité de déclaration et le comportement de l’onglet TVA.</p>
             <div class="form-grid">
@@ -1513,7 +1515,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>💰 Trésorerie</h2></div>
+          <div class="card-header"><h2>Trésorerie</h2></div>
           <div class="modal-body">
             <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:16px">Cette configuration sert de base au Budget et à la trésorerie prévisionnelle.</p>
             <div class="form-grid">
@@ -1532,7 +1534,7 @@
         </div>
 
         <div class="card params-card-wide">
-          <div class="card-header"><h2>📜 Journal d'audit</h2></div>
+          <div class="card-header"><h2>Journal d'audit</h2></div>
           <div class="modal-body">
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
               <button class="btn-secondary" onclick="exporterJournalAuditCSV()">📥 Export CSV</button>
@@ -1548,7 +1550,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>💾 Sauvegarde & restauration</h2></div>
+          <div class="card-header"><h2>Sauvegarde & restauration</h2></div>
           <div class="modal-body">
             <div class="param-backup-stats" id="param-backup-stats">
               <div class="param-backup-stat"><span>Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
@@ -1565,7 +1567,7 @@
 
         <!-- Sécurité -->
         <div class="card">
-          <div class="card-header"><h2>🔐 Mot de passe administrateur</h2></div>
+          <div class="card-header"><h2>Mot de passe administrateur</h2></div>
           <div class="modal-body">
             <div id="param-admin-compte" style="margin-bottom:12px;font-size:.82rem;color:var(--text-muted)">Compte connecté : —</div>
             <div class="form-group" style="margin-bottom:12px"><label>Mot de passe actuel</label>
@@ -1583,7 +1585,7 @@
 
         <!-- Blocage connexion -->
         <div class="card">
-          <div class="card-header"><h2>🔒 Blocage connexion</h2></div>
+          <div class="card-header"><h2>Blocage connexion</h2></div>
           <div class="modal-body">
             <div class="form-grid">
               <div class="form-group" style="margin-bottom:16px">
@@ -1603,7 +1605,7 @@
 
         <!-- Historique des versions -->
         <div class="card params-card-wide">
-          <div class="card-header"><h2>📋 Historique des versions</h2></div>
+          <div class="card-header"><h2>Historique des versions</h2></div>
           <div class="modal-body">
             <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 14px">
               Liste chronologique des évolutions du site. Format complet dans <code>CHANGELOG.md</code>.
@@ -1619,7 +1621,7 @@
 
     <!-- ENCAISSEMENT (miroir Charges côté revenus) -->
     <section class="page" id="page-encaissement">
-      <div class="page-actions"><h2>💵 Encaissement</h2>
+      <div class="page-actions"><h2>Encaissement</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterEncaissementCSV()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterEncaissementRapport()">📄 Rapport</button>
@@ -1765,7 +1767,7 @@
     <!-- INCIDENTS -->
     <section class="page" id="page-incidents">
       <div class="page-actions">
-        <h2>🚨 Incidents / Réclamations</h2>
+        <h2>Incidents / Réclamations</h2>
         <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
       </div>
       <div class="filters" style="margin-bottom:16px">
@@ -1799,7 +1801,7 @@
 
     <!-- ENTRETIENS -->
     <section class="page" id="page-entretiens">
-      <div class="page-actions"><h2>🔧 Carnet d'entretien</h2>
+      <div class="page-actions"><h2>Carnet d'entretien</h2>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="exporterEntretiens()">📥 CSV</button>
           <button class="btn-rapport" onclick="exporterEntretiensPDF()">📄 Rapport</button>
@@ -1854,7 +1856,7 @@
 
     <!-- HEURES & KM -->
     <section class="page" id="page-heures">
-      <div class="page-actions"><h2>⏱️ Heures & Km</h2>
+      <div class="page-actions"><h2>Heures & Km</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
           <div class="inline-dropdown" id="heures-rapports-menu">
@@ -1902,7 +1904,7 @@
       <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
       <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
         <div class="card">
-          <div class="card-header"><h2>⏱️ Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
+          <div class="card-header"><h2>Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
@@ -1912,7 +1914,7 @@
         </div>
 
         <div class="card">
-          <div class="card-header"><h2>🛣️ Relevés kilométriques</h2></div>
+          <div class="card-header"><h2>Relevés kilométriques</h2></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Véhicule</th><th>Date</th><th>Km début</th><th>Km fin</th><th>Distance</th><th>Actions</th></tr></thead>
@@ -1969,7 +1971,7 @@
       <div class="cal16-layout">
         <!-- Sidebar filtres -->
         <aside class="cal16-sidebar card">
-          <h3 style="margin:0 0 10px;font-size:1rem">🎛️ Filtres</h3>
+          <h3 style="margin:0 0 10px;font-size:1rem">Filtres</h3>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
@@ -1977,7 +1979,7 @@
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fer"></span> Jours fériés</label>
 
           <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 10px;font-size:1rem">📊 Mois en cours</h3>
+          <h3 style="margin:0 0 10px;font-size:1rem">Mois en cours</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">📦 Livs</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">⏰ Échéances</div><div class="cal16-kpi-val" id="cal16-kpi-ech">0</div></div>
@@ -2041,7 +2043,7 @@
 
       <div class="card planning-card" style="margin-bottom:16px">
         <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <h2>📅 Organisation du planning</h2>
+          <h2>Organisation du planning</h2>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn-secondary" type="button" onclick="ouvrirPlanningRecurrence()">🔁 Horaires récurrents</button>
             <button class="btn-secondary" id="planning-toggle-quick-btn" onclick="togglePlanningQuickPanel()">+ Ajouter une période</button>
@@ -2159,7 +2161,7 @@
       </div>
     </section>
     <section class="page" id="page-inspections">
-      <div class="page-actions"><h2>🚗 Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
+      <div class="page-actions"><h2>Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
       <!-- Navigation semaine -->
       <div class="card" style="margin-bottom:12px;padding:10px 18px">
         <div class="nav-periode-bar">
@@ -2197,7 +2199,7 @@
 
     <!-- BROUILLONS IA — actions ai_pending_actions en attente de validation admin -->
     <section class="page" id="page-brouillons-ia" hidden>
-      <div class="page-actions"><h2>📋 Brouillons IA</h2></div>
+      <div class="page-actions"><h2>Brouillons IA</h2></div>
       <div class="card" style="margin-bottom:14px;padding:14px 18px">
         <div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">
           Liste des actions proposées par l'assistant IA et déposées en brouillon depuis le chat.
@@ -2214,7 +2216,7 @@
   <!-- Nouvelle livraison -->
   <div class="modal-overlay" id="modal-livraison">
     <div class="modal modal-large modal-livraison-enriched">
-      <div class="modal-header"><h3>📦 Nouvelle livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
+      <div class="modal-header"><h3>Nouvelle livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-livraison')">✕</button></div>
       <div class="modal-body">
 
             <section class="fp-section fp-section-compact">
@@ -2341,7 +2343,7 @@
   <!-- Nouveau client -->
   <div class="modal-overlay" id="modal-client">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>🧑‍💼 Nouveau Client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
+      <div class="modal-header"><h3>Nouveau Client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -2406,7 +2408,7 @@
   <!-- Modifier client -->
   <div class="modal-overlay" id="modal-edit-client">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le client</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-client')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-cl-id" />
         <div class="client-type-selector">
@@ -2479,7 +2481,7 @@
 
   <div class="modal-overlay" id="modal-client-history">
     <div class="modal" style="max-width:920px">
-      <div class="modal-header"><h3>📚 Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
+      <div class="modal-header"><h3>Historique client — <span id="client-history-title"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-client-history')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div id="client-history-content"></div>
       </div>
@@ -2494,7 +2496,7 @@
   <!-- Nouveau fournisseur (miroir de modal-client : toggle Pro/Particulier + mêmes champs) -->
   <div class="modal-overlay" id="modal-fournisseur">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>🏭 Nouveau Fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3>Nouveau Fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-fournisseur')">✕</button></div>
       <div class="modal-body">
         <div class="client-type-selector">
           <label class="client-type-option">
@@ -2557,7 +2559,7 @@
   <!-- Modifier fournisseur (miroir modal-edit-client) -->
   <div class="modal-overlay" id="modal-edit-fournisseur">
     <div class="modal modal-large">
-      <div class="modal-header"><h3>✏️ Modifier le fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le fournisseur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-fournisseur')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-frn-id" />
         <div class="client-type-selector">
@@ -2620,7 +2622,7 @@
   <!-- Nouveau véhicule -->
   <div class="modal-overlay" id="modal-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>🚐 Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>Nouveau Véhicule</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-vehicule')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Immatriculation *</label><input type="text" id="veh-immat" placeholder="Immatriculation (ex : AB-123-CD)" / aria-label="Immatriculation (ex : AB-123-CD)" /></div>
@@ -2776,7 +2778,7 @@
   <!-- Carburant -->
   <div class="modal-overlay" id="modal-carburant">
     <div class="modal">
-      <div class="modal-header"><h3>⛽ Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
+      <div class="modal-header"><h3>Enregistrer un plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-carburant')">✕</button></div>
       <div class="modal-body">
         <!-- SmartUpload mode auto : drop ticket carburant -> OCR detecte + pre-remplit -->
         <div class="form-group full-width" style="margin-bottom:14px">
@@ -2814,7 +2816,7 @@
   <!-- Modal : Detail tournee (drill-down) -->
   <div class="modal-overlay" id="modal-detail-tournee">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3 id="detail-tournee-title">🛣️ Détail tournée</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
+      <div class="modal-header"><h3 id="detail-tournee-title">Détail tournée</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-detail-tournee')">✕</button></div>
       <div class="modal-body" id="detail-tournee-body"></div>
       <div class="modal-footer"><button class="btn-primary" onclick="closeModal('modal-detail-tournee')">Fermer</button></div>
     </div>
@@ -2823,7 +2825,7 @@
   <!-- Modal : Configuration rentabilité -->
   <div class="modal-overlay" id="modal-config-rentabilite">
     <div class="modal">
-      <div class="modal-header"><h3>⚙️ Paramètres rentabilité</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
+      <div class="modal-header"><h3>Paramètres rentabilité</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-rentabilite')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Ces paramètres servent au calcul des marges multi-axes (par véhicule, client, chauffeur, tournée).</p>
         <div class="form-grid">
@@ -2849,7 +2851,7 @@
   <!-- Modal : Configuration anomalies carburant -->
   <div class="modal-overlay" id="modal-config-carburant-anomalies">
     <div class="modal">
-      <div class="modal-header"><h3>⚙️ Détection anomalies carburant</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
+      <div class="modal-header"><h3>Détection anomalies carburant</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-config-carburant-anomalies')">✕</button></div>
       <div class="modal-body">
         <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px">Configure les seuils de détection. Les anomalies créent automatiquement des alertes admin et un badge sur le plein concerné.</p>
 
@@ -2885,7 +2887,7 @@
   <!-- Modal : Planning salarié -->
   <div class="modal-overlay" id="modal-planning">
     <div class="modal" style="max-width:720px">
-      <div class="modal-header"><h3>📋 Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
+      <div class="modal-header"><h3>Gérer les horaires</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div class="form-group" style="margin-bottom:12px">
           <label>Salarié *</label>
@@ -2917,7 +2919,7 @@
 
   <div class="modal-overlay" id="modal-planning-recap">
     <div class="modal" style="max-width:860px">
-      <div class="modal-header"><h3>📋 Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
+      <div class="modal-header"><h3>Récap planning</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-planning-recap')">✕</button></div>
       <div class="modal-body" style="max-height:75vh;overflow-y:auto">
         <div id="planning-recap-content"></div>
       </div>
@@ -2928,7 +2930,7 @@
   <!-- Affecter véhicule -->
   <div class="modal-overlay" id="modal-affecter-vehicule">
     <div class="modal">
-      <div class="modal-header"><h3>👤 Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
+      <div class="modal-header"><h3>Affecter un chauffeur</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-affecter-vehicule')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);margin-bottom:16px;">Véhicule : <strong id="affect-veh-label"></strong></p>
         <div class="form-group"><label>Chauffeur</label><select id="affect-salarie-sel" aria-label="affect chauffeur sel"><option value="">-- Retirer l'affectation --</option></select></div>
@@ -2940,7 +2942,7 @@
   <!-- Modifier fiche salarié -->
   <div class="modal-overlay" id="modal-edit-salarie">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
+      <div class="modal-header"><h3>Modifier la fiche salarié</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-salarie')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Nom *</label><input type="text" id="edit-sal-nom" / aria-label="edit sal nom" /></div>
@@ -3011,7 +3013,7 @@
   <div class="modal-overlay" id="modal-credentials-chauffeur">
     <div class="modal" style="max-width:480px">
       <div class="modal-header">
-        <h3>🔐 Identifiants de connexion</h3>
+        <h3>Identifiants de connexion</h3>
         <button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-credentials-chauffeur')">✕</button>
       </div>
       <div class="modal-body">
@@ -3048,7 +3050,7 @@
   <!-- Modifier livraison -->
   <div class="modal-overlay" id="modal-edit-livraison">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier la livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
+      <div class="modal-header"><h3>Modifier la livraison</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-livraison')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-liv-id" />
         <div class="form-grid">
@@ -3114,7 +3116,7 @@
   <!-- Modifier plein carburant (admin) -->
   <div class="modal-overlay" id="modal-edit-carburant">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier le plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le plein</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-carburant')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="edit-carb-id" />
         <div class="form-grid">
@@ -3135,7 +3137,7 @@
   <!-- Modifier relevé km (admin) -->
   <div class="modal-overlay" id="modal-edit-km">
     <div class="modal">
-      <div class="modal-header"><h3>✏️ Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
+      <div class="modal-header"><h3>Modifier le relevé km</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-edit-km')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Km départ *</label><input type="number" id="admin-km-dep" min="0" / aria-label="admin km dep" /></div>
@@ -3150,7 +3152,7 @@
   <!-- Modal Nouvelle charge -->
   <div class="modal-overlay" id="modal-charge">
     <div class="modal">
-      <div class="modal-header"><h3>💸 Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
+      <div class="modal-header"><h3>Nouvelle charge</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-charge')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="charge-edit-id" />
         <!-- SmartUpload mode auto : drop facture / ticket -> OCR detecte + pre-remplit -->
@@ -3230,7 +3232,7 @@
   <!-- Modal Incident -->
   <div class="modal-overlay" id="modal-incident">
     <div class="modal">
-      <div class="modal-header"><h3>🚨 Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
+      <div class="modal-header"><h3>Signaler un incident</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-incident')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Date *</label><input type="date" id="inc-date" / aria-label="inc date" /></div>
@@ -3253,7 +3255,7 @@
   <!-- Modal Entretien -->
   <div class="modal-overlay" id="modal-entretien">
     <div class="modal">
-      <div class="modal-header"><h3>🔧 Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
+      <div class="modal-header"><h3>Ajouter un entretien</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-entretien')">✕</button></div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="entr-veh" onchange="autoFillKmEntretien()" aria-label="entr veh"><option value="">— Choisir —</option></select></div>
@@ -3365,7 +3367,7 @@
   <!-- Modal Historique conducteurs -->
   <div class="modal-overlay" id="modal-hist-conducteurs">
     <div class="modal" style="max-width:560px">
-      <div class="modal-header"><h3>🚐 Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
+      <div class="modal-header"><h3>Historique conducteurs — <span id="hist-cond-titre"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-hist-conducteurs')">✕</button></div>
       <div class="modal-body" style="padding:0">
         <div id="hist-conducteurs-modal" style="max-height:400px;overflow-y:auto;padding:16px"></div>
       </div>
@@ -3375,7 +3377,7 @@
 
   <div class="modal-overlay" id="modal-inspection-admin">
     <div class="modal" style="max-width:620px">
-      <div class="modal-header"><h3>🚗 Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
+      <div class="modal-header"><h3>Nouvelle inspection</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-inspection-admin')">✕</button></div>
       <div class="modal-body form-grid">
         <div class="form-group"><label>Salarié</label><select id="admin-insp-salarie" aria-label="admin insp salarie"><option value="">— Choisir —</option></select></div>
         <div class="form-group"><label>Véhicule</label><select id="admin-insp-vehicule" aria-label="admin insp vehicule"><option value="">— Aucun véhicule —</option></select></div>
@@ -3406,7 +3408,7 @@
   <!-- Modal TCO véhicule -->
   <div class="modal-overlay" id="modal-tco">
     <div class="modal" style="max-width:520px">
-      <div class="modal-header"><h3>💰 Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
+      <div class="modal-header"><h3>Coût Total Possession — <span id="tco-veh-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-tco')">✕</button></div>
       <div class="modal-body">
         <div id="tco-detail"></div>
         <p style="font-size:.75rem;color:var(--text-muted);margin-top:12px">Cumul depuis la création du véhicule dans MCA Logistics.</p>
@@ -3418,7 +3420,7 @@
   <!-- Modal Note interne salarié -->
   <div class="modal-overlay" id="modal-note-interne">
     <div class="modal" style="max-width:460px">
-      <div class="modal-header"><h3>📝 Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
+      <div class="modal-header"><h3>Note interne — <span id="note-interne-sal-nom"></span></h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-note-interne')">✕</button></div>
       <div class="modal-body">
         <input type="hidden" id="note-interne-sal-id" />
         <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:12px">🔒 Visible uniquement par l'administrateur. Jamais par le salarié.</p>
@@ -3434,7 +3436,7 @@
   <!-- Modal Récurrence -->
   <div class="modal-overlay" id="modal-recurrence">
     <div class="modal" style="max-width:420px">
-      <div class="modal-header"><h3>🔁 Livraison récurrente</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
+      <div class="modal-header"><h3>Livraison récurrente</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-recurrence')">✕</button></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Créer des copies hebdomadaires de :</p>
         <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:.88rem;font-weight:600" id="rec-liv-info"></div>
@@ -3511,7 +3513,7 @@
   <!-- Réinitialisation compteur livraisons (test uniquement) -->
   <div class="modal-overlay" id="modal-reset-compteur">
     <div class="modal">
-      <div class="modal-header"><h3>🧹 Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
+      <div class="modal-header"><h3>Réinitialiser le compteur de livraisons</h3><button class="modal-close" aria-label="Fermer" onclick="closeModal('modal-reset-compteur')">✕</button></div>
       <div class="modal-body">
         <div style="padding:14px;background:rgba(239,68,68,0.10);border:1px solid rgba(239,68,68,0.3);border-radius:10px;margin-bottom:14px">
           <div style="font-weight:700;color:#ef4444;margin-bottom:6px">⚠️ Opération irréversible</div>
@@ -3537,7 +3539,7 @@
   <div class="modal-overlay" id="modal-recherche-globale">
     <div class="modal modal-search-global">
       <div class="modal-header">
-        <h3>🔎 Recherche globale</h3>
+        <h3>Recherche globale</h3>
         <button class="modal-close" aria-label="Fermer" type="button" onclick="fermerRechercheGlobale()">✕</button>
       </div>
       <div class="modal-body">
