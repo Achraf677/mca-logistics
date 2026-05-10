@@ -25,8 +25,8 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 - [x] PR-6 : Livraisons (table + filters + bulk-bar + kanban) → PR #122 mergee 2026-05-10 ~18:00 UTC, tag `design-checkpoint-6-livraisons`
 - [x] PR-7 : Modale + form-groups + drawers → PR #123 mergee 2026-05-10 ~18:15 UTC, tag `design-checkpoint-7-modale`
 - [x] PR-8 : Charges → PR #124 mergee 2026-05-10 ~18:30 UTC, tag `design-checkpoint-8-charges`
-- [ ] PR-9 : Carburant (+ anomalies + OCR) (en cours)
-- [ ] PR-10 : Entretiens
+- [x] PR-9 : Carburant → PR #125 mergee 2026-05-10 ~18:45 UTC, tag `design-checkpoint-9-carburant`
+- [ ] PR-10 : Entretiens (en cours)
 
 ### Jalon 3 — Hubs entité
 - [ ] PR-11 : Véhicules + drawer 360 + TCO panel
@@ -60,6 +60,7 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 | 6 | #122 livraisons | `design-checkpoint-6-livraisons` | `7d25a810` | 2026-05-10 ~18:00 | style-design-livraisons.css : filtres focus brand, tables hover/checked, bulk-bar avec count Syne italic, kanban col headers + cards hover brand, chips active brand-soft, pagination active brand. |
 | 7 | #123 modale | `design-checkpoint-7-modale` | `02b6b071` | 2026-05-10 ~18:15 | style-design-modal.css : modal-overlay z-index ds, modal radius xl + shadow-xl + accent-bar bottom brand, modal-title font display, form-group inputs focus ring brand-soft 3px, drawers 360 (side-drawer + s20 + s25). |
 | 8 | #124 charges | `design-checkpoint-8-charges` | `6cc166da` | 2026-05-10 ~18:30 | style-design-charges.css : nav-periode-bar + labels mois Syne, recurrence chip ds-info, montants negatif/positif ds-danger/success mono. Reutilise par carburant/entretiens/stats/tva/rentabilite. |
+| 9 | #125 carburant | `design-checkpoint-9-carburant` | `09425b2d` | 2026-05-10 ~18:45 | style-design-carburant.css : doublons-warning ds-brand soft, anomalie row ds-warning-soft, conso-l100 mono tnum. |
 
 ## Règles de sécurité
 
