@@ -1,0 +1,223 @@
+/* ==========================================================================
+   MCA Logistics — Design Planning (Phase 4 / PR-15)
+
+   Restyle CSS-only de la page Planning (semaine + saisie rapide + detail jour
+   + jour-types + absences). Aucun changement HTML, IDs preserves
+   (#plan-jours-grid, #planning-kpi-*, #planning-semaine-label, etc.)
+
+   Mockup ref : ui_kits/admin/planning.html
+   ========================================================================== */
+
+/* ============ PLANNING CARD (container principal) ============ */
+
+.planning-card {
+  background:
+    linear-gradient(180deg, var(--ds-brand-soft), transparent 120px),
+    var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+/* ============ OVERVIEW KPIs (mini-cards bandeau haut) ============ */
+
+.planning-overview {
+  font-family: var(--ds-font-body);
+}
+
+.planning-overview-card {
+  background: var(--ds-bg-deep);
+  border: 1px solid var(--ds-brand-soft);
+  border-radius: var(--ds-r-lg);
+  transition: border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.planning-overview-card:hover {
+  border-color: var(--ds-brand);
+}
+
+.planning-overview-label {
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: var(--ds-fw-bold);
+  font-size: var(--ds-fs-xs);
+}
+
+/* SIGNATURE ds : valeurs KPI planning en Syne italic 800 */
+.planning-overview-value {
+  font-family: var(--ds-font-display);
+  font-size: var(--ds-fs-h2);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
+
+/* ============ JOUR-TYPE BUTTONS (travail/conge/absence/maladie) ============ */
+
+.planning-jour-type {
+  font-family: var(--ds-font-body);
+  display: flex;
+  gap: var(--ds-sp-2);
+  flex-wrap: wrap;
+}
+
+.planning-jour-type button {
+  background: transparent;
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text-muted);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-weight: var(--ds-fw-semibold);
+  font-size: var(--ds-fs-sm);
+  transition: background var(--ds-t-fast) var(--ds-ease-out),
+              color var(--ds-t-fast) var(--ds-ease-out),
+              border-color var(--ds-t-fast) var(--ds-ease-out);
+}
+
+.planning-jour-type button:hover {
+  background: var(--ds-bg-card-hover);
+  color: var(--ds-text);
+  border-color: var(--ds-border-strong);
+}
+
+/* Variants actifs : coloration semantique conservee */
+.planning-jour-type button.actif-travail {
+  background: var(--ds-success-soft);
+  border-color: var(--ds-success);
+  color: var(--ds-success);
+}
+
+.planning-jour-type button.actif-conge {
+  background: var(--ds-info-soft);
+  border-color: var(--ds-info);
+  color: var(--ds-info);
+}
+
+.planning-jour-type button.actif-absence {
+  background: var(--ds-brand-soft);
+  border-color: var(--ds-brand);
+  color: var(--ds-brand);
+}
+
+.planning-jour-type button.actif-maladie {
+  background: rgba(155, 89, 182, 0.15);
+  border-color: #9b59b6;
+  color: #9b59b6;
+}
+
+/* ============ TOOLBAR + SEARCH PLANNING ============ */
+
+.planning-table-toolbar,
+.planning-toolbar {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+.planning-table-search input,
+.planning-toolbar input,
+.planning-toolbar select {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+.planning-table-search input:focus,
+.planning-toolbar input:focus,
+.planning-toolbar select:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+.planning-panel-title {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+.planning-toolbar-sub {
+  font-family: var(--ds-font-body);
+  color: var(--ds-text-muted);
+  font-size: var(--ds-fs-sm);
+}
+
+/* ============ ABSENCES PANEL ============ */
+
+.planning-absence-form,
+.planning-absence-list {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.015)
+  );
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-lg);
+  font-family: var(--ds-font-body);
+}
+
+.planning-absence-form input,
+.planning-absence-form select,
+.planning-absence-form textarea {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+}
+
+.planning-absence-form input:focus,
+.planning-absence-form select:focus,
+.planning-absence-form textarea:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* ============ TYPE SELECT (combobox planning) ============ */
+
+.planning-type-select {
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  color: var(--ds-text);
+  border-radius: var(--ds-r-md);
+  font-family: var(--ds-font-body);
+  font-size: var(--ds-fs-sm);
+}
+
+.planning-type-select:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+  box-shadow: 0 0 0 3px var(--ds-brand-soft);
+}
+
+/* ============ SEMAINE LABEL (date range courante) ============ */
+
+#planning-semaine-label,
+#planning-semaine-dates {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+#planning-kpi-salaries,
+#planning-kpi-planifies,
+#planning-kpi-absences,
+#plan-total-heures {
+  font-family: var(--ds-font-display);
+  font-weight: var(--ds-fw-display);
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: var(--ds-text);
+  font-feature-settings: "tnum";
+}
