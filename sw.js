@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-10-v10_2-phase2-refonte-alertes-351';
+const CACHE_VERSION = 'mca-v2026-05-10-v10_4-phase2-refonte-stats-cal-param-353';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -71,6 +71,8 @@ const CORE_ASSETS = [
   '/script-clients-fournisseurs-counts.js',
   // Phase 2 HTML refonte — Alertes section-head counts
   '/script-alertes-counts.js',
+  // Phase 2 HTML refonte — Stats/Calendrier sub-meta (periode mirror + livraisons count)
+  '/script-stats-calendrier-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
