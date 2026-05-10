@@ -53,6 +53,7 @@ Tags créés AUTOMATIQUEMENT après chaque merge réussi par l'agent.
 | # | PR | Tag | Merge SHA | Date (UTC) | Notes |
 |---|-----|------|-----------|------------|-------|
 | 1 | #117 tokens | `design-checkpoint-1-tokens` | `5f508843` | 2026-05-10 16:48 | style-tokens.css ajoute (--ds-* additif, zero override) + wire admin.html + m.html. Aucun changement visuel attendu. |
+| 2 | #118 shell admin | `design-checkpoint-2-shell` | `01fe8251` | 2026-05-10 ~17:00 | style-design-shell.css : restyle sidebar + topbar admin avec --ds-*. CSS-only, IDs/data-attrs preserves. Visuel : palette Speed Red sur sidebar + topbar. |
 
 ## Règles de sécurité
 
