@@ -1523,7 +1523,18 @@
          SALARIÉS                                 : Fiches chauffeurs + documents + accès app
          ============================================================ -->
     <section class="page" id="page-salaries">
-      <div class="page-actions"><h2>Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
+      <!-- Phase 35 refonte HTML : section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Gestion des Salariés</h2>
+          <div class="ds-section-head__sub">
+            <span id="sal-section-sub-actifs">0</span> actif(s)
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
+          <button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button>
+        </div>
+      </div>
 
       <div class="card" id="form-nouveau-salarie" style="display:none;margin-bottom:20px;">
         <div class="card-header"><h2>Créer un salarié</h2><button class="btn-secondary" onclick="toggleFormulaireNewSalarie()">Fermer</button></div>
@@ -2415,8 +2426,17 @@
         </div>
       </div>
 
-      <div class="page-actions"><h2>Carnet d'entretien</h2>
-        <div style="display:flex;gap:8px">
+      <!-- Phase 35 refonte HTML : section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Carnet d'entretien</h2>
+          <div class="ds-section-head__sub">
+            <span id="entr-section-sub-periode">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span id="entr-section-sub-count">0 entretien(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="exporterEntretiens()">CSV</button>
           <button class="btn-rapport" onclick="exporterEntretiensPDF()">Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Ajouter entretien</button>
@@ -2911,7 +2931,16 @@
         <div class="sub-meta">Actions proposées par l'assistant à valider · création, modification, suppression</div>
       </div>
 
-      <div class="page-actions"><h2>Brouillons IA</h2></div>
+      <!-- Phase 35 refonte HTML : section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Brouillons IA</h2>
+          <div class="ds-section-head__sub">
+            <span id="brouillons-section-sub-count">0 action(s) en attente</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions"></div>
+      </div>
       <div class="card" style="margin-bottom:14px;padding:14px 18px">
         <div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">
           Liste des actions proposées par l'assistant IA et déposées en brouillon depuis le chat.
