@@ -13,11 +13,20 @@
    Aucun changement HTML ni script.js requis : tout via CSS sur structure existante.
    ========================================================================== */
 
-/* ============ Hide cols redondantes (mockup a 8-9 cols) ============ */
-/* Table structure : 1=checkbox, 2=N°LIV, 3=Client, 4=Zone, 5=Distance, 6=HT,
+/* ============ Hide cols redondantes (mockup a 8 cols) ============ */
+/* Table structure : 1=checkbox, 2=N°LIV, 3=Client, 4=Zone(→Trajet), 5=Distance, 6=HT,
                      7=TVA, 8=TTC, 9=Salarie, 10=Statut, 11=Paiement,
-                     12=Date paiement, 13=Actions */
+                     12=Date paiement, 13=Actions
+   Mockup           : checkbox, N°, Date, Client, Trajet, Chauffeur, Vehicule, Statut, MontantHT
+   On hide : Distance(5), HT(6), TVA(7), Paiement(11), DatePaiement(12), Actions(13)
+   On keep : checkbox(1), N°(2), Client(3), Zone→Trajet(4), TTC→MontantHT(8), Salarié(9), Statut(10)
+   = 7 cols visibles. La Date + Véhicule sont integres dans d'autres cellules.
+*/
 
+.livraisons-table th:nth-child(5),  /* Distance */
+.livraisons-table td:nth-child(5),
+.livraisons-table th:nth-child(6),  /* HT */
+.livraisons-table td:nth-child(6),
 .livraisons-table th:nth-child(7),  /* TVA */
 .livraisons-table td:nth-child(7),
 .livraisons-table th:nth-child(11), /* Paiement */
@@ -27,6 +36,44 @@
 .livraisons-table th:nth-child(13), /* Actions */
 .livraisons-table td:nth-child(13) {
   display: none;
+}
+
+/* Relabel TTC header to "Montant HT" via CSS content
+   (legacy thead text is "TTC", on overwrite visuellement) */
+.livraisons-table th:nth-child(8) {
+  font-size: 0;
+}
+.livraisons-table th:nth-child(8)::before {
+  content: 'Montant HT';
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+}
+
+/* Trajet cell (col 4) — afficher Zone → Distance ou injecté par JS */
+.livraisons-table td:nth-child(4) .liv-trajet {
+  font-size: 12.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+  white-space: nowrap;
+}
+
+.livraisons-table td:nth-child(4) .liv-trajet-arrow {
+  color: var(--ds-text-muted, var(--text-muted));
+  opacity: 0.6;
+  margin: 0 4px;
+}
+
+/* Renomme thead col 4 "Zone géographique" en "Trajet" */
+.livraisons-table th:nth-child(4) {
+  font-size: 0;
+}
+.livraisons-table th:nth-child(4)::before {
+  content: 'Trajet';
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
 }
 
 /* ============ Polish cellules ============ */
@@ -152,4 +199,156 @@
 /* ============ Row click affordance ============ */
 .livraisons-table tbody tr:not(.empty-row) {
   cursor: pointer;
+}
+
+/* ============ Aggressive cleanup (Phase 25) ============ */
+
+/* Hide period-row card (Tableau/Kanban/Calendrier + Jour/Sem/Mois/Année doublon
+   avec section-head density-toggle).
+   NOTE : on garde le toggle dans la section-head pour pas perdre la fonctionnalité,
+   mais on cache cette ligne (doublon visuel avec les chips status). */
+#page-livraisons > .period-row {
+  display: none;
+}
+
+/* Hide la grosse barre de filtres expanded par défaut.
+   Mockup : filtres compactés derrière 1 bouton "Filtres".
+   On affiche uniquement quand .filters-livraisons.expanded */
+#page-livraisons > .filters.filters-livraisons {
+  display: none;
+}
+
+#page-livraisons > .filters.filters-livraisons.expanded {
+  display: flex;
+  padding: 14px 18px;
+  background: var(--ds-bg-card, var(--bg-card));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 12px;
+  margin-bottom: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+/* Date range chip dans la toolbar (style proche mockup) */
+.liv-date-range-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-border, var(--border));
+  background: var(--ds-bg-card, var(--bg-card));
+  color: var(--ds-text, var(--text));
+  font-size: 12px;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.liv-date-range-chip:hover {
+  border-color: var(--ds-border-strong, var(--border));
+}
+
+.liv-date-range-chip svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  opacity: 0.6;
+}
+
+/* Bouton Filtres dans la toolbar (collapse) */
+.liv-filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-border, var(--border));
+  background: var(--ds-bg-card, var(--bg-card));
+  color: var(--ds-text-muted, var(--text-muted));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease-out;
+}
+
+.liv-filters-toggle:hover {
+  color: var(--ds-text, var(--text));
+  border-color: var(--ds-border-strong, var(--border));
+}
+
+.liv-filters-toggle.active {
+  background: var(--ds-brand-soft, rgba(230,57,70,0.12));
+  color: var(--ds-brand, var(--accent));
+  border-color: rgba(230, 57, 70, 0.4);
+}
+
+.liv-filters-toggle svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+/* Section-head : retirer density-toggle, montrer juste Générer / Exporter / + Nouvelle */
+#page-livraisons .density-toggle {
+  display: none;
+}
+
+/* Pagination footer style mockup */
+#pagination-livraisons {
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-top: 1px solid var(--ds-border, var(--border));
+  background: var(--ds-bg-card, var(--bg-card));
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+#pagination-livraisons:empty {
+  display: none !important;
+}
+
+#pagination-livraisons .pg-count {
+  font-feature-settings: "tnum";
+}
+
+#pagination-livraisons .pg-numbers {
+  display: flex;
+  gap: 4px;
+}
+
+#pagination-livraisons .pg-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--ds-border, var(--border));
+  color: var(--ds-text-muted, var(--text-muted));
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+#pagination-livraisons .pg-btn:hover {
+  color: var(--ds-text, var(--text));
+  border-color: var(--ds-border-strong, var(--border));
+}
+
+#pagination-livraisons .pg-btn.active {
+  background: var(--ds-brand, var(--accent));
+  color: #fff;
+  border-color: var(--ds-brand, var(--accent));
 }
