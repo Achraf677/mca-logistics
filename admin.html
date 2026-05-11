@@ -1102,10 +1102,12 @@
           </div>
         </div>
       </div>
+      <!-- Phase 39 refonte HTML : KPI grid carburant mockup-aligned (.kpi pattern) -->
       <div class="kpi-grid">
-        <div class="kpi-card orange"><div class="kpi-label">Total carburant (mois)</div><div class="kpi-value" id="kpi-carb-mois">0 €</div><div class="kpi-sub" id="kpi-carb-mois-detail"></div></div>
-        <div class="kpi-card"><div class="kpi-label">Litres ce mois</div><div class="kpi-value" id="kpi-litres-mois">0 L</div></div>
-        <div class="kpi-card blue"><div class="kpi-label">Prix moyen / litre</div><div class="kpi-value" id="kpi-prix-litre">0 €</div><div class="kpi-sub" id="kpi-prix-litre-detail"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="kpi-carb-mois">0 €</div><div class="kpi-sub" id="kpi-carb-mois-detail"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Litres consommés</div><div class="kpi-val" id="kpi-litres-mois">0 L</div></div>
+        <div class="kpi"><div class="kpi-lbl">Prix moyen</div><div class="kpi-val" id="kpi-prix-litre">0 €/L</div><div class="kpi-sub" id="kpi-prix-litre-detail"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Conso moyenne</div><div class="kpi-val" id="kpi-conso-l100">—</div><div class="kpi-sub">L/100 km flotte</div></div>
       </div>
       <div class="filters mt-20">
         <select id="filtre-carb-vehicule" onchange="afficherCarburant()" aria-label="filtre carb vehicule">
@@ -1369,12 +1371,13 @@
         </div>
 
         <div class="rentabilite-results">
+          <!-- Phase 39 refonte HTML : simulator KPIs → .kpi pattern (IDs inchangés) -->
           <div class="kpi-grid rentabilite-kpis">
-            <div class="kpi-card green"><div class="kpi-label">CA HT</div><div class="kpi-value" id="rent-ca-ht">0 €</div><div class="kpi-sub" id="rent-resume-activite">0 km / mois</div></div>
-            <div class="kpi-card blue"><div class="kpi-label">CA TTC</div><div class="kpi-value" id="rent-ca-ttc">0 €</div><div class="kpi-sub">Avec TVA</div></div>
-            <div class="kpi-card orange"><div class="kpi-label">Coût carburant total</div><div class="kpi-value" id="rent-cout-carburant">0 €</div><div class="kpi-sub" id="rent-volume-carburant">0 L / mois</div></div>
-            <div class="kpi-card"><div class="kpi-label">Charges fixes</div><div class="kpi-value" id="rent-charges-fixes">0 €</div><div class="kpi-sub">Mensuelles HT</div></div>
-            <div class="kpi-card purple"><div class="kpi-label">Coût total</div><div class="kpi-value" id="rent-cout-total">0 €</div><div class="kpi-sub">Fixes + carburant</div></div>
+            <div class="kpi"><div class="kpi-lbl">CA HT</div><div class="kpi-val" id="rent-ca-ht">0 €</div><div class="kpi-sub" id="rent-resume-activite">0 km / mois</div></div>
+            <div class="kpi"><div class="kpi-lbl">CA TTC</div><div class="kpi-val" id="rent-ca-ttc">0 €</div><div class="kpi-sub">Avec TVA</div></div>
+            <div class="kpi"><div class="kpi-lbl">Coût carburant total</div><div class="kpi-val" id="rent-cout-carburant">0 €</div><div class="kpi-sub" id="rent-volume-carburant">0 L / mois</div></div>
+            <div class="kpi"><div class="kpi-lbl">Charges fixes</div><div class="kpi-val" id="rent-charges-fixes">0 €</div><div class="kpi-sub">Mensuelles HT</div></div>
+            <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="rent-cout-total">0 €</div><div class="kpi-sub">Fixes + carburant</div></div>
           </div>
 
           <div class="rentabilite-highlight-grid">
@@ -1845,10 +1848,12 @@
         </div>
       </div>
 
-      <!-- KPIs TVA -->
+      <!-- Phase 39 refonte HTML : KPI grid TVA mockup-aligned (4 cols) -->
       <div class="kpi-grid">
-        <div class="kpi-card green"><div class="kpi-label">TVA collectée (sur ventes)</div><div class="kpi-value" id="tva-collectee">0 €</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">TVA déductible (sur achats)</div><div class="kpi-value" id="tva-deductible">0 €</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA collectée</div><div class="kpi-val" id="tva-collectee">0 €</div><div class="kpi-sub">Sur ventes (CA HT)</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA déductible</div><div class="kpi-val" id="tva-deductible">0 €</div><div class="kpi-sub">Sur achats (charges)</div></div>
+        <div class="kpi"><div class="kpi-lbl">TVA à payer</div><div class="kpi-val" id="tva-kpi-solde" style="color:var(--brand)">—</div><div class="kpi-sub">Solde net période</div></div>
+        <div class="kpi"><div class="kpi-lbl">Échéance</div><div class="kpi-val" id="tva-kpi-echeance">15/mois</div><div class="kpi-sub">Déclaration mensuelle</div></div>
       </div>
 
       <div class="card mt-20">
