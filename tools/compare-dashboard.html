@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Compare dashboard — mockup vs admin</title>
+<style>
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0 }
+  body { font-family: system-ui, sans-serif; background: #0a0d14; color: #f1f3f5; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 18px;
+    background: #14171c; border-bottom: 1px solid #2a2f37;
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar h1 {
+    font-size: 14px; font-weight: 800; letter-spacing: -0.01em;
+  }
+  .topbar .red { color: #e63946 }
+  .toolbar { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #adb5bd; }
+  .toolbar input { background: #1a1d22; border: 1px solid #2a2f37; color: #f1f3f5; padding: 6px 10px; border-radius: 6px; width: 240px; font-family: inherit; }
+  .toolbar button { background: #e63946; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  .toolbar button.secondary { background: transparent; border: 1px solid #2a2f37; color: #adb5bd; }
+  .toolbar label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .panes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    height: calc(100vh - 56px);
+  }
+  .pane {
+    border-right: 1px solid #2a2f37;
+    position: relative;
+    overflow: hidden;
+  }
+  .pane:last-child { border-right: none }
+  .pane-label {
+    position: absolute; top: 8px; right: 8px;
+    background: rgba(20,22,28,0.9);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    z-index: 5;
+    border: 1px solid #2a2f37;
+  }
+  .pane-label.target { color: #06d6a0; border-color: rgba(6,214,160,0.3); }
+  .pane-label.actual { color: #e63946; border-color: rgba(230,57,70,0.3); }
+  iframe {
+    width: 100%; height: 100%; border: none;
+    background: #0a0d14;
+  }
+  /* Overlay mode (toggleable) */
+  .overlay-mode .panes {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+  .overlay-mode .pane:nth-child(2) {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-right: none;
+  }
+  .overlay-mode .pane:nth-child(2) iframe {
+    opacity: var(--overlay-opacity, 0.5);
+    mix-blend-mode: difference;
+  }
+  /* Sync scroll indicator */
+  .syncing { color: #06d6a0 }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>MCA <span class="red">LOGISTICS</span> — Compare dashboard mockup vs admin live</h1>
+  <div class="toolbar">
+    <label><input type="checkbox" id="sync-scroll" checked> Sync scroll</label>
+    <label><input type="checkbox" id="overlay-mode"> Overlay diff</label>
+    <input type="range" id="opacity" min="0" max="100" value="50" style="width:120px" title="Opacity overlay">
+    <input type="text" id="admin-url" value="http://127.0.0.1:5500/admin.html?seed=1">
+    <button onclick="reload()">Reload</button>
+    <button class="secondary" onclick="swap()">⇄ Swap</button>
+  </div>
+</div>
+<div class="panes" id="panes">
+  <div class="pane">
+    <div class="pane-label target">Target (mockup)</div>
+    <iframe id="iframe-target" src="../previews/dashboard.html"></iframe>
+  </div>
+  <div class="pane">
+    <div class="pane-label actual">Actual (admin)</div>
+    <iframe id="iframe-actual" src="http://127.0.0.1:5500/admin.html?seed=1"></iframe>
+  </div>
+</div>
+<script>
+const target = document.getElementById('iframe-target');
+const actual = document.getElementById('iframe-actual');
+const adminUrl = document.getElementById('admin-url');
+const panes = document.getElementById('panes');
+const syncScroll = document.getElementById('sync-scroll');
+const overlayMode = document.getElementById('overlay-mode');
+const opacity = document.getElementById('opacity');
+
+function reload() {
+  actual.src = adminUrl.value;
+}
+function swap() {
+  const t = target.src; target.src = actual.src; actual.src = t;
+}
+
+opacity.oninput = () => {
+  document.body.style.setProperty('--overlay-opacity', opacity.value / 100);
+};
+
+overlayMode.onchange = () => {
+  document.body.classList.toggle('overlay-mode', overlayMode.checked);
+};
+
+// Sync scroll (best effort, may fail cross-origin)
+let syncing = false;
+function attachSync(src, dst) {
+  try {
+    src.contentWindow.addEventListener('scroll', () => {
+      if (syncing || !syncScroll.checked) return;
+      syncing = true;
+      try {
+        dst.contentWindow.scrollTo(src.contentWindow.scrollX, src.contentWindow.scrollY);
+      } catch (e) {}
+      setTimeout(() => { syncing = false; }, 50);
+    }, { passive: true });
+  } catch (e) {
+    console.warn('Cross-origin, sync scroll limited');
+  }
+}
+
+target.addEventListener('load', () => attachSync(target, actual));
+actual.addEventListener('load', () => attachSync(actual, target));
+</script>
+</body>
+</html>
