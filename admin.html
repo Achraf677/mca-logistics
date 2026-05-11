@@ -89,6 +89,8 @@
   <link rel="stylesheet" href="style-design-setup-wizard.css?v=1" />
   <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
   <link rel="stylesheet" href="style-refonte-charges.css?v=1" />
+  <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
+  <link rel="stylesheet" href="style-refonte-utilities.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
@@ -381,7 +383,7 @@
         <div class="card">
           <div class="card-header"><h2>Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
           <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">
-            <span style="font-size:.82rem;color:var(--text-muted)">Chargement...</span>
+            <span class="u-muted-sm">Chargement...</span>
           </div>
         </div>
         <div class="card">
@@ -453,7 +455,7 @@
         </button>
       </div>
       <!-- Navigation période -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="liv-periode-mode" onchange="changerVuePeriodeLivraisons(this.value)" aria-label="liv periode mode">
@@ -465,8 +467,8 @@
             <button class="btn-secondary" onclick="navLivPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
           <div class="nav-periode-center">
-            <div id="liv-periode-label" style="font-size:.95rem;font-weight:700"></div>
-            <div id="liv-periode-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
+            <div id="liv-periode-label" class="u-title-sm"></div>
+            <div id="liv-periode-dates" class="u-muted-sm"></div>
           </div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserLivPeriode()" style="padding:5px 12px">Aujourd'hui</button>
@@ -546,7 +548,7 @@
             <span><span id="clients-section-sub-actifs">0</span> actif(s) (90j)</span>
           </div>
         </div>
-        <div class="ds-section-head__actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="ds-section-head__actions u-flex-row">
           <button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">Historique clients</button>
           <button class="btn-rapport" onclick="genererRapportClients()">Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
@@ -588,7 +590,7 @@
             <span><span id="fournisseurs-section-sub-actifs">0</span> actif(s) (90j)</span>
           </div>
         </div>
-        <div class="ds-section-head__actions" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="ds-section-head__actions u-flex-row">
           <button class="btn-secondary" onclick="exporterHistoriqueFournisseursCSV()">Historique fournisseurs</button>
           <button class="btn-rapport" onclick="genererRapportFournisseurs()">Rapport</button>
           <button class="btn-primary" onclick="resetFormulaireFournisseur();openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
@@ -676,7 +678,7 @@
         </div>
       </div>
       <!-- Navigation mois -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="vue-carb-select" onchange="changerVueCarburant(this.value)" aria-label="vue carb select">
@@ -687,7 +689,7 @@
             </select>
             <button class="btn-secondary" onclick="navCarburantPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
-          <div class="nav-periode-center"><div id="carb-mois-label" style="font-size:.95rem;font-weight:700"></div><div id="carb-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
+          <div class="nav-periode-center"><div id="carb-mois-label" class="u-title-sm"></div><div id="carb-mois-dates" class="u-muted-sm"></div></div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="padding:5px 12px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="navCarburantPeriode(1)" style="padding:5px 12px">Suivant</button>
@@ -729,7 +731,7 @@
          ============================================================ -->
     <section class="page" id="page-rentabilite">
       <div class="page-actions"><h2>Rentabilité</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="u-flex-row">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
           <button class="btn-rapport" onclick="exporterRapportRentabilitePDF()" title="Rapport mensuel multi-axes (véhicules, clients, chauffeurs, tournées)">Rapport</button>
           <button class="btn-secondary" onclick="genererRentabilitePDF()" title="Rapport simulateur (calculateur)">Simulateur</button>
@@ -748,12 +750,12 @@
 
       <!-- Sous-onglet : Par vehicule -->
       <div id="rent-tab-vehicule">
-        <div class="card" style="margin-bottom:12px;padding:10px 16px">
-          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.88rem">
+        <div class="card u-block-pad-sm">
+          <div class="u-toolbar-row">
             <div>CA : <strong id="rent-veh-total-ca">0 €</strong></div>
             <div>Marge : <strong id="rent-veh-total-marge">0 €</strong></div>
             <div>Livraisons : <strong id="rent-veh-total-livs">0</strong></div>
-            <div style="color:var(--text-muted);font-size:.78rem">Période : reprend celle du simulateur</div>
+            <div class="u-muted-xs">Période : reprend celle du simulateur</div>
           </div>
         </div>
         <div class="card table-card">
@@ -771,8 +773,8 @@
 
       <!-- Sous-onglet : Par client -->
       <div id="rent-tab-client" style="display:none">
-        <div class="card" style="margin-bottom:12px;padding:10px 16px">
-          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.88rem">
+        <div class="card u-block-pad-sm">
+          <div class="u-toolbar-row">
             <div>CA : <strong id="rent-client-total-ca">0 €</strong></div>
             <div>Marge : <strong id="rent-client-total-marge">0 €</strong></div>
             <div>Livraisons : <strong id="rent-client-total-livs">0</strong></div>
@@ -791,8 +793,8 @@
       </div>
       <!-- Sous-onglet : Par chauffeur -->
       <div id="rent-tab-chauffeur" style="display:none">
-        <div class="card" style="margin-bottom:12px;padding:10px 16px">
-          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.88rem">
+        <div class="card u-block-pad-sm">
+          <div class="u-toolbar-row">
             <div>CA : <strong id="rent-chauffeur-total-ca">0 €</strong></div>
             <div>Marge : <strong id="rent-chauffeur-total-marge">0 €</strong></div>
             <div>Livraisons : <strong id="rent-chauffeur-total-livs">0</strong></div>
@@ -811,12 +813,12 @@
       </div>
       <!-- Sous-onglet : Par tournee -->
       <div id="rent-tab-tournee" style="display:none">
-        <div class="card" style="margin-bottom:12px;padding:10px 16px">
-          <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.88rem">
+        <div class="card u-block-pad-sm">
+          <div class="u-toolbar-row">
             <div>CA : <strong id="rent-tournee-total-ca">0 €</strong></div>
             <div>Marge : <strong id="rent-tournee-total-marge">0 €</strong></div>
             <div>Livraisons : <strong id="rent-tournee-total-livs">0</strong></div>
-            <div style="color:var(--text-muted);font-size:.78rem">1 tournée = 1 chauffeur × 1 jour</div>
+            <div class="u-muted-xs">1 tournée = 1 chauffeur × 1 jour</div>
           </div>
         </div>
         <div class="card table-card">
@@ -1026,7 +1028,7 @@
           <button class="btn-rapport" onclick="exporterStatsPDF()">Rapport</button>
         </div>
       </div>
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="vue-stats-select" onchange="changerVueStats(this.value)" aria-label="vue stats select">
@@ -1038,8 +1040,8 @@
             <button class="btn-secondary" onclick="navStatsPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
           <div class="nav-periode-center">
-            <div id="stats-mois-label" style="font-size:.95rem;font-weight:700"></div>
-            <div id="stats-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
+            <div id="stats-mois-label" class="u-title-sm"></div>
+            <div id="stats-mois-dates" class="u-muted-sm"></div>
           </div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserStatsPeriode()" style="padding:5px 12px">Aujourd'hui</button>
@@ -1129,14 +1131,14 @@
             </div>
             <div class="form-group">
               <label>Mot de passe de connexion *</label>
-              <div style="display:flex;gap:8px;align-items:center">
+              <div class="u-flex-row-tight">
                 <div style="position:relative;flex:1">
                   <input type="password" id="nsal-mdp" placeholder="8 caracteres min, avec majuscule et chiffre" style="padding-right:58px;width:100%" autocomplete="new-password" oninput="mettreAJourQualiteMdpSalarie('new')" / aria-label="8 caracteres min, avec majuscule et chiffre" />
                   <button onclick="toggleParamMdp('nsal-mdp')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)">Voir</button>
                 </div>
                 <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('new')">Générer</button>
               </div>
-              <div id="nsal-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Utilisez 8 caractères minimum avec majuscule, minuscule et chiffre.</div>
+              <div id="nsal-mdp-hint" class="u-muted-xs-mt">Utilisez 8 caractères minimum avec majuscule, minuscule et chiffre.</div>
             </div>
             <div class="form-group"><label>Téléphone</label><input type="tel" id="nsal-tel" placeholder="T&eacute;l&eacute;phone" / aria-label="T&eacute;l&eacute;phone" /></div>
             <div class="form-group"><label>Email</label><input type="email" id="nsal-email" placeholder="exemple@mca-logistics.fr" / aria-label="exemple@mca-logistics.fr" /></div>
@@ -1158,7 +1160,7 @@
               <span id="nsal-smart-upload-label">Uploader (auto) — RIB / permis (auto-détection)</span>
             </label>
             <input type="file" id="nsal-smart-upload-input" accept="image/*,application/pdf" data-max-bytes="20971520" style="display:none" />
-            <div id="nsal-smart-upload-feedback" style="font-size:.78rem;color:var(--text-muted);margin-top:6px"></div>
+            <div id="nsal-smart-upload-feedback" class="u-muted-xs-mt"></div>
           </div>
           <!-- Documents primaires : permis, carte ID, IBAN, carte vitale -->
           <div class="form-grid" style="margin-top:14px">
@@ -1187,7 +1189,7 @@
           <details id="nsal-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
             <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Suivi médical du travail
             </summary>
-            <div style="padding:14px;border-top:1px solid var(--border)">
+            <div class="u-card-section">
               <div class="form-grid">
                 <div class="form-group"><label>Date dernière visite</label><input type="date" id="nsal-visite-date" / aria-label="nsal visite date" /></div>
                 <div class="form-group"><label>Aptitude</label>
@@ -1316,14 +1318,14 @@
          ============================================================ -->
     <section class="page" id="page-tva">
       <div class="page-actions"><h2>Récapitulatif TVA</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="u-flex-row">
           <button class="btn-secondary" onclick="exporterTvaCSV()">CSV</button>
           <button class="btn-rapport" onclick="exporterTvaPDF()">Rapport TVA</button>
         </div>
       </div>
 
       <!-- Navigation période -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="vue-tva-select" onchange="changerVueTVA(this.value)" aria-label="vue tva select">
@@ -1334,7 +1336,7 @@
             </select>
             <button class="btn-secondary" onclick="navTvaPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
-          <div class="nav-periode-center"><div id="tva-mois-label" style="font-size:1rem;font-weight:700"></div><div id="tva-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
+          <div class="nav-periode-center"><div id="tva-mois-label" style="font-size:1rem;font-weight:700"></div><div id="tva-mois-dates" class="u-muted-sm"></div></div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserTVAPeriode()" style="padding:5px 12px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="navTvaPeriode(1)" style="padding:5px 12px">Suivant</button>
@@ -1436,7 +1438,7 @@
               <div class="form-group"><label>Capital libéré (€)</label><input type="number" id="param-capital-libere" placeholder="ex : 3600" min="0" step="0.01" / aria-label="ex : 3600" /></div>
             </div>
 
-            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">Siège social & contact</div>
+            <div class="form-section-title u-section-spacer">Siège social & contact</div>
             <div class="form-grid">
               <div class="form-group full-width"><label>Adresse (numéro + rue)</label><input type="text" id="param-adresse" placeholder="ex : 17 rue de la Chapelle" / aria-label="ex : 17 rue de la Chapelle" /></div>
               <div class="form-group"><label>Code postal</label><input type="text" id="param-code-postal" placeholder="67540" maxlength="5" / aria-label="67540" /></div>
@@ -1446,7 +1448,7 @@
               <div class="form-group"><label>Email</label><input type="email" id="param-email" placeholder="Email de contact" / aria-label="Email de contact" /></div>
             </div>
 
-            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">Transport routier léger</div>
+            <div class="form-section-title u-section-spacer">Transport routier léger</div>
             <div class="form-grid">
               <div class="form-group"><label>N° Licence Transport Intérieur léger (LTI)</label><input type="text" id="param-lti-numero" / aria-label="param lti numero" /></div>
               <div class="form-group"><label>Date émission LTI</label><input type="date" id="param-lti-date-emission" / aria-label="param lti date emission" /></div>
@@ -1458,7 +1460,7 @@
               <div class="form-group"><label>Date obtention capacité</label><input type="date" id="param-capacite-pro-date" / aria-label="param capacite pro date" /></div>
             </div>
 
-            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">Coordonnées bancaires & facturation</div>
+            <div class="form-section-title u-section-spacer">Coordonnées bancaires & facturation</div>
             <div class="form-grid">
               <div class="form-group"><label>IBAN</label><input type="text" id="param-iban" placeholder="FR76 …" style="text-transform:uppercase" / aria-label="FR76 …" /></div>
               <div class="form-group"><label>BIC</label><input type="text" id="param-bic" placeholder="ex : QNTOFRP1XXX" style="text-transform:uppercase" / aria-label="ex : QNTOFRP1XXX" /></div>
@@ -1468,7 +1470,7 @@
             </div>
 
             <!-- Upload RIB (PDF ou image, 5 MB max, prive) -->
-            <div class="form-section-title" style="margin-top:18px;margin-bottom:10px">Document RIB</div>
+            <div class="form-section-title u-section-spacer">Document RIB</div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
               <span id="param-rib-status" style="font-size:.85rem;color:var(--text-muted)">Aucun document chargé</span>
               <label class="btn-primary" style="cursor:pointer;margin:0">
@@ -1477,7 +1479,7 @@
               </label>
               <button type="button" class="btn-secondary" id="param-rib-view-btn" onclick="voirRibEntreprise()" style="display:none">Voir</button>
             </div>
-            <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">PDF / JPG / PNG, 5 Mo max. Stocké chiffré sur Supabase Storage (admin-only).</div>
+            <div class="u-muted-xs-mt">PDF / JPG / PNG, 5 Mo max. Stocké chiffré sur Supabase Storage (admin-only).</div>
 
             <button class="btn-primary" style="margin-top:18px" onclick="sauvegarderParametres()">Enregistrer</button>
           </div>
@@ -1520,7 +1522,7 @@
                 <div style="font-size:.9rem;font-weight:500">Mode clair / sombre</div>
                 <div style="font-size:.78rem;color:var(--text-muted)">Basculer l'apparence de l'interface</div>
               </div>
-              <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme-param" style="padding:8px 12px;display:inline-flex;align-items:center;justify-content:center" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
+              <button class="btn-theme-toggle u-icon-btn-inline" onclick="toggleTheme()" id="btn-theme-param" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0">
               <div>
@@ -1696,7 +1698,7 @@
          ============================================================ -->
     <section class="page" id="page-encaissement">
       <div class="page-actions"><h2>Encaissement</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="u-flex-row">
           <button class="btn-secondary" onclick="exporterEncaissementCSV()">CSV</button>
           <button class="btn-rapport" onclick="exporterEncaissementRapport()">Rapport</button>
         </div>
@@ -1757,7 +1759,7 @@
         </div>
       </div>
       <!-- Navigation mois -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="vue-charges-select" onchange="changerVueCharges(this.value)" aria-label="vue charges select">
@@ -1768,7 +1770,7 @@
             </select>
             <button class="btn-secondary" onclick="navChargesPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
-          <div class="nav-periode-center"><div id="charges-mois-label" style="font-size:.95rem;font-weight:700"></div><div id="charges-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
+          <div class="nav-periode-center"><div id="charges-mois-label" class="u-title-sm"></div><div id="charges-mois-dates" class="u-muted-sm"></div></div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserChargesPeriode()" style="padding:5px 12px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="navChargesPeriode(1)" style="padding:5px 12px">Suivant</button>
@@ -1820,7 +1822,7 @@
         <button class="btn-secondary" onclick="resetFiltresCharges()">Réinitialiser</button>
       </div>
       <div class="card" style="margin-bottom:12px;padding:12px 18px">
-        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center;font-size:.88rem">
+        <div class="u-toolbar-row">
           <div>Impayé : <strong id="charges-kpi-impaye" style="color:#dc3545">0 €</strong></div>
           <div>En retard : <strong id="charges-kpi-retard" style="color:#dc3545">0</strong></div>
           <div>Payé : <strong id="charges-kpi-paye" style="color:#28a745">0 €</strong></div>
@@ -1885,7 +1887,7 @@
         </div>
       </div>
       <!-- Navigation mois -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="vue-entr-select" onchange="changerVueEntretiens(this.value)" aria-label="vue entr select">
@@ -1896,7 +1898,7 @@
             </select>
             <button class="btn-secondary" onclick="navEntretiensPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
-          <div class="nav-periode-center"><div id="entr-mois-label" style="font-size:.95rem;font-weight:700"></div><div id="entr-mois-dates" style="font-size:.82rem;color:var(--text-muted)"></div></div>
+          <div class="nav-periode-center"><div id="entr-mois-label" class="u-title-sm"></div><div id="entr-mois-dates" class="u-muted-sm"></div></div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="padding:5px 12px">Aujourd'hui</button>
             <button class="btn-secondary" onclick="navEntretiensPeriode(1)" style="padding:5px 12px">Suivant</button>
@@ -1935,7 +1937,7 @@
          ============================================================ -->
     <section class="page" id="page-heures">
       <div class="page-actions"><h2>Heures & Km</h2>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div class="u-flex-row">
           <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
           <div class="inline-dropdown" id="heures-rapports-menu">
             <button class="btn-rapport" type="button" onclick="toggleHeuresRapportsMenu(event)">&#128196; Rapports &#9662;</button>
@@ -1950,7 +1952,7 @@
       </div>
 
       <!-- Navigation semaine -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="filtre-heures-vue" onchange="changerVueHeures(this.value)" aria-label="filtre heures vue">
@@ -1962,8 +1964,8 @@
             <button class="btn-secondary" id="heures-prev-btn" onclick="naviguerHeuresPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
           <div class="nav-periode-center">
-            <div id="heures-semaine-label" style="font-size:.95rem;font-weight:700"></div>
-            <div id="heures-semaine-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
+            <div id="heures-semaine-label" class="u-title-sm"></div>
+            <div id="heures-semaine-dates" class="u-muted-sm"></div>
           </div>
           <div class="nav-periode-right">
             <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="padding:5px 12px">Aujourd'hui</button>
@@ -1982,7 +1984,7 @@
       <!-- Layout horizontal : Compteur heures (gauche) | Relevés kilométriques (droite) -->
       <div class="heures-km-layout" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px">
         <div class="card">
-          <div class="card-header"><h2>Compteur d'heures</h2><span id="heures-periode-label" style="font-size:.82rem;color:var(--text-muted)"></span></div>
+          <div class="card-header"><h2>Compteur d'heures</h2><span id="heures-periode-label" class="u-muted-sm"></span></div>
           <div class="table-wrapper">
             <table class="data-table">
               <thead><tr><th>Salarié</th><th>Poste</th><th id="heures-col-total">H/semaine</th><th id="heures-col-detail">Détail par jour</th><th>Congés / Absences</th><th>Actions</th></tr></thead>
@@ -2039,7 +2041,7 @@
           </div>
           <div class="nav-periode-center">
             <div id="cal16-label" style="font-size:1rem;font-weight:700"></div>
-            <div id="cal16-sub" style="font-size:.82rem;color:var(--text-muted)"></div>
+            <div id="cal16-sub" class="u-muted-sm"></div>
           </div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="window.cal16?.aujourdhui()" style="padding:6px 14px">Aujourd'hui</button>
@@ -2113,7 +2115,7 @@
           </div>
           <div class="nav-periode-center">
             <div id="planning-semaine-label" style="font-size:1rem;font-weight:700"></div>
-            <div id="planning-semaine-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
+            <div id="planning-semaine-dates" class="u-muted-sm"></div>
           </div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserPlanningPeriode()" style="padding:6px 14px">Aujourd'hui</button>
@@ -2245,7 +2247,7 @@
     <section class="page" id="page-inspections">
       <div class="page-actions"><h2>Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
       <!-- Navigation semaine -->
-      <div class="card" style="margin-bottom:12px;padding:10px 18px">
+      <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
           <div class="nav-periode-left">
             <select class="period-selector" id="vue-insp-select" onchange="changerVueInspections(this.value)" aria-label="vue insp select">
@@ -2257,8 +2259,8 @@
             <button class="btn-secondary" onclick="navInspectionsPeriode(-1)" style="padding:5px 12px">Précédent</button>
           </div>
           <div class="nav-periode-center">
-            <div id="insp-semaine-label" style="font-size:.95rem;font-weight:700"></div>
-            <div id="insp-semaine-dates" style="font-size:.82rem;color:var(--text-muted)"></div>
+            <div id="insp-semaine-label" class="u-title-sm"></div>
+            <div id="insp-semaine-dates" class="u-muted-sm"></div>
           </div>
           <div class="nav-periode-right">
             <button class="btn-secondary" onclick="reinitialiserInspectionsPeriode()" style="padding:5px 12px">Aujourd'hui</button>
@@ -2734,7 +2736,7 @@
         <details id="veh-transport-section" style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
           <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Données flotte & conformité
           </summary>
-          <div style="padding:14px;border-top:1px solid var(--border)">
+          <div class="u-card-section">
             <div class="form-grid">
               <div class="form-group"><label>Genre</label>
                 <select id="veh-genre" onchange="ajusterTVACarburantSelonGenre()" aria-label="veh genre">
@@ -2869,7 +2871,7 @@
             <span id="carb-smart-upload-label">Uploader (auto) — ticket carburant</span>
           </label>
           <input type="file" id="carb-smart-upload-input" accept="image/*,application/pdf" data-max-bytes="20971520" style="display:none" />
-          <div id="carb-smart-upload-feedback" style="font-size:.78rem;color:var(--text-muted);margin-top:6px"></div>
+          <div id="carb-smart-upload-feedback" class="u-muted-xs-mt"></div>
         </div>
         <div class="form-grid">
           <div class="form-group"><label>Véhicule *</label><select id="carb-vehicule" aria-label="carb vehicule"><option value="">-- Choisir --</option></select></div>
@@ -3049,7 +3051,7 @@
         </div>
         <details style="margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0">
           <summary style="padding:10px 14px;cursor:pointer;font-weight:600;color:var(--accent);user-select:none">Suivi médical du travail</summary>
-          <div style="padding:14px;border-top:1px solid var(--border)">
+          <div class="u-card-section">
             <div class="form-grid">
               <div class="form-group"><label>Date dernière visite</label><input type="date" id="edit-sal-visite-date" / aria-label="edit sal visite date" /></div>
               <div class="form-group"><label>Aptitude</label>
@@ -3078,14 +3080,14 @@
         <div id="reset-mdp-statut" style="margin-bottom:16px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid var(--border);color:var(--text-muted);font-size:.82rem"></div>
         <div class="form-group">
           <label>Nouveau mot de passe *</label>
-          <div style="display:flex;gap:8px;align-items:center">
+          <div class="u-flex-row-tight">
             <div style="position:relative;flex:1">
               <input type="password" id="reset-mdp-val" oninput="mettreAJourQualiteMdpSalarie('access')" style="padding-right:58px;width:100%" / aria-label="reset mdp val" />
               <button onclick="toggleParamMdp('reset-mdp-val')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.82rem;color:var(--text-muted)">Voir</button>
             </div>
             <button type="button" class="btn-secondary" onclick="genererMotDePasseSalarie('access')">Générer</button>
           </div>
-          <div id="reset-mdp-hint" style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Le mot de passe est stocké localement et peut être modifié par le salarié ensuite.</div>
+          <div id="reset-mdp-hint" class="u-muted-xs-mt">Le mot de passe est stocké localement et peut être modifié par le salarié ensuite.</div>
         </div>
       </div>
       <div class="modal-footer"><button class="btn-secondary" onclick="closeModal('modal-reset-mdp')">Annuler</button><button class="btn-primary" onclick="confirmerResetMdp()">Enregistrer</button></div>
@@ -3106,16 +3108,16 @@
         <div style="background:var(--bg-dark);padding:14px;border-radius:10px;border:1px solid var(--border);margin-bottom:14px">
           <div style="margin-bottom:12px">
             <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Identifiant (numéro)</div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div class="u-flex-row-tight">
               <code id="creds-chauffeur-numero" style="flex:1;font-size:1rem;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:6px">—</code>
-              <button type="button" class="btn-secondary" onclick="copierCredentialsChauffeur('numero')" style="padding:8px 12px;display:inline-flex;align-items:center;justify-content:center" aria-label="Copier le numero"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button type="button" class="btn-secondary u-icon-btn-inline" onclick="copierCredentialsChauffeur('numero')" aria-label="Copier le numero"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
             </div>
           </div>
           <div>
             <div style="font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--text-muted);margin-bottom:4px">Mot de passe TEMPORAIRE</div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div class="u-flex-row-tight">
               <code id="creds-chauffeur-mdp" style="flex:1;font-size:1rem;padding:8px 12px;background:rgba(255,255,255,.05);border-radius:6px;font-family:monospace">—</code>
-              <button type="button" class="btn-secondary" onclick="copierCredentialsChauffeur('mdp')" style="padding:8px 12px;display:inline-flex;align-items:center;justify-content:center" aria-label="Copier le mot de passe"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+              <button type="button" class="btn-secondary u-icon-btn-inline" onclick="copierCredentialsChauffeur('mdp')" aria-label="Copier le mot de passe"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
             </div>
           </div>
         </div>
@@ -3244,7 +3246,7 @@
             <span id="charge-smart-upload-label">Uploader (auto) — facture / ticket</span>
           </label>
           <input type="file" id="charge-smart-upload-input" accept="image/*,application/pdf" data-max-bytes="20971520" style="display:none" />
-          <div id="charge-smart-upload-feedback" style="font-size:.78rem;color:var(--text-muted);margin-top:6px"></div>
+          <div id="charge-smart-upload-feedback" class="u-muted-xs-mt"></div>
         </div>
         <div class="form-grid">
           <div class="form-group"><label id="charge-date-label">Date *</label><input type="date" id="charge-date" / aria-label="charge date" /></div>
@@ -3274,10 +3276,10 @@
           <div class="form-group"><label>Montant TTC (€)</label><input type="number" id="charge-montant" placeholder="0.00" min="0" step="0.01" oninput="calculerHTDepuisTTC('charge')" / aria-label="0.00" /></div>
           <div class="form-group" id="charge-tva-period-wrap" style="display:none"><label>Période TVA concernée</label><input type="month" id="charge-tva-period" / aria-label="charge tva period" /></div>
           <div class="form-group" id="charge-veh-wrap"><label>Véhicule concerné</label><select id="charge-veh" aria-label="charge veh"><option value="">— Général —</option></select></div>
-          <div class="form-group" id="charge-carb-litres-wrap" style="display:none"><label>Litres <span style="color:var(--text-muted);font-size:.78rem">(crée le plein dans Carburant)</span></label><input type="number" id="charge-carb-litres" placeholder="40" min="0" step="0.1" / aria-label="40" /></div>
+          <div class="form-group" id="charge-carb-litres-wrap" style="display:none"><label>Litres <span class="u-muted-xs">(crée le plein dans Carburant)</span></label><input type="number" id="charge-carb-litres" placeholder="40" min="0" step="0.1" / aria-label="40" /></div>
           <div class="form-group" id="charge-carb-prix-litre-wrap" style="display:none"><label>Prix/L (€)</label><input type="number" id="charge-carb-prix-litre" placeholder="1.85" min="0" step="0.01" / aria-label="1.85" /></div>
           <div class="form-group full-width" id="charge-livraison-wrap">
-            <label>Livraison concernée <span style="color:var(--text-muted);font-size:.78rem">(optionnel — impute le coût à une livraison)</span></label>
+            <label>Livraison concernée <span class="u-muted-xs">(optionnel — impute le coût à une livraison)</span></label>
             <input type="text" id="charge-livraison-search" placeholder="Rechercher par n° livraison, client, date..." oninput="autoCompleteLivraisonCharge(this.value)" autocomplete="off" / aria-label="Rechercher par n° livraison, client, date..." />
             <div id="charge-livraison-selected" style="font-size:.82rem;color:var(--green);margin-top:4px;display:none"></div>
             <div id="livraison-suggestions" style="background:var(--bg-card);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-top:2px"></div>
@@ -3471,16 +3473,16 @@
         <div class="form-group full-width">
           <label style="margin-bottom:8px">Points de contrôle</label>
           <div id="admin-insp-checkpoints" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;font-size:.88rem">
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="pneus" checked /> Pneus (pression + état)</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="freins" checked /> Freins</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="niveaux" checked /> Niveaux (huile, lave-glace)</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="eclairage" checked /> Éclairage</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="ceinture" checked /> Ceintures</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="carrosserie" checked /> Carrosserie</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="documents" checked /> Documents (CG, assurance)</label>
-            <label style="display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:8px"><input type="checkbox" data-checkpoint="propreté" checked /> Propreté intérieure</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="pneus" checked /> Pneus (pression + état)</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="freins" checked /> Freins</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="niveaux" checked /> Niveaux (huile, lave-glace)</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="eclairage" checked /> Éclairage</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="ceinture" checked /> Ceintures</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="carrosserie" checked /> Carrosserie</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="documents" checked /> Documents (CG, assurance)</label>
+            <label class="u-check-row"><input type="checkbox" data-checkpoint="propreté" checked /> Propreté intérieure</label>
           </div>
-          <p style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Coche = OK. Décoche = KO (un incident sera créé automatiquement).</p>
+          <p class="u-muted-xs-mt">Coche = OK. Décoche = KO (un incident sera créé automatiquement).</p>
         </div>
         <div class="form-group full-width"><label>Commentaire</label><textarea id="admin-insp-commentaire" rows="3" placeholder="Détail des points KO ou observations" aria-label="Commentaire inspection"></textarea></div>
       </div>

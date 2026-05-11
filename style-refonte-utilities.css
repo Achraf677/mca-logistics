@@ -1,0 +1,40 @@
+/* ==========================================================================
+   MCA Logistics — Utility classes (Phase 2 refonte HTML)
+
+   But : extraire les inline styles répétés ≥3× dans admin.html pour réduire
+   le bruit visuel et faciliter les modifications futures.
+   Convention : prefix `u-` pour "utility" (anti-collision avec classes métier).
+
+   ========================================================================== */
+
+/* Texte */
+.u-muted-sm        { font-size: .82rem; color: var(--text-muted); }
+.u-muted-xs        { font-size: .78rem; color: var(--text-muted); }
+.u-muted-xs-mt     { font-size: .78rem; color: var(--text-muted); margin-top: 6px; }
+.u-title-sm        { font-size: .95rem; font-weight: 700; }
+
+/* Layouts flex courants */
+.u-flex-row        { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.u-flex-row-tight  { display: flex; gap: 8px; align-items: center; }
+.u-toolbar-row     { display: flex; gap: 18px; flex-wrap: wrap; align-items: center; font-size: .88rem; }
+
+/* Espacements bloc */
+.u-block-pad-md    { margin-bottom: 12px; padding: 10px 18px; }
+.u-block-pad-sm    { margin-bottom: 12px; padding: 10px 16px; }
+.u-section-spacer  { margin-top: 18px; margin-bottom: 10px; }
+.u-card-section    { padding: 14px; border-top: 1px solid var(--border); }
+
+/* Checkbox item rangée (Inspections, Setup, Onboarding) */
+.u-check-row       { display: flex; align-items: center; gap: 8px; padding: 6px 10px;
+                     border: 1px solid var(--border); border-radius: 8px; }
+
+/* Bouton icône inline (eye-toggle, copy, etc.) avec position absolue dans input */
+.u-input-icon-btn  { position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+                     background: none; border: none; cursor: pointer; color: var(--text-muted);
+                     display: inline-flex; align-items: center; justify-content: center; }
+
+.u-icon-btn-inline { padding: 8px 12px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* SVG inline base : reprend l'attribute-set stroke commun aux icônes Lucide */
+.u-svg-base        { vertical-align: -2px; stroke: currentColor; stroke-width: 2; fill: none;
+                     stroke-linecap: round; stroke-linejoin: round; }

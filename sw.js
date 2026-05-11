@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v11_5-agent-ia-sparkles-svg-359';
+const CACHE_VERSION = 'mca-v2026-05-11-v11_6-html-refonte-utilities-360';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -58,6 +58,8 @@ const CORE_ASSETS = [
   '/style-design-mobile-ds.css',
   // Phase 2 HTML refonte — composants ds canoniques (Charges page premiere)
   '/style-refonte-charges.css',
+  // Phase 2 refonte HTML — utility classes pour réduire inline styles
+  '/style-refonte-utilities.css',
   '/script-charges-kpis-categorie.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
