@@ -3,9 +3,9 @@
 > Document pivot pour ne pas perdre le contexte d'une session à l'autre.
 > Mis à jour à chaque fin de session significative.
 >
-> **Dernière mise à jour** : 2026-05-12
+> **Dernière mise à jour** : 2026-05-11
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : phase39 (chips Clients+Fournisseurs — agent :15)
+> **Dernier commit** : phase45 (Statistiques+Calendrier nav chips + Véhicules Exporter dropdown — agent :45)
 
 ---
 
@@ -28,16 +28,16 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | **Livraisons** | 92% | 90% | Phases 22-34 — BUG-004/005/013/015/016 fixés, 9 cols visibles |
 | Clients | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Actifs 90j/Risque/Inactifs |
 | Fournisseurs | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Carburant/Garage/Assurance |
-| Véhicules | 50% | 100% | Phase 34 : cols Acquisition/Finances/Carburant/Entretien masquées |
+| Véhicules | 55% | 100% | Phase 45 : section-head "Flotte" + Exporter dropdown |
 | Carburant | 55% | 100% | Phase 35b : section-head ds-section-head + sub-meta |
-| Entretiens | 60% | 100% | Phase 35d : section-head ds-section-head |
-| Inspections | 45% | 100% | Phase 35 : section-head + KPI grid (semaine/défauts/conformité/risque) |
+| Entretiens | 65% | 100% | Phase 44 : chips toolbar mockup-matched |
+| Inspections | 50% | 100% | Phase 43 : KPI grid peuplé |
 | Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
-| Encaissement | 30% | 100% | section-head manquant, contenu JS-driven |
-| TVA | 55% | 100% | Phase 35b : section-head + sub-meta |
+| Encaissement | 40% | 100% | Phase 40 : KPI grid ajouté |
+| TVA | 55% | 100% | Phase 41 : kpi-solde computation |
 | Rentabilité | 50% | 100% | Phase 35b : section-head + KPI grid (CA/Charges/Marge/Coût km) |
-| Statistiques | 30% | 100% | Phase 8 — à améliorer |
-| Calendrier | 30% | 100% | Phase 35c : CSS cal16-layout ajouté |
+| Statistiques | 45% | 100% | Phase 45 : Exporter dropdown + period nav chips mockup-aligned |
+| Calendrier | 40% | 100% | Phase 45 : nav bar chips + mockup-aligned prev/today/next |
 | Alertes | 30% | 100% | Phase 7 |
 | Équipe | 30% | 100% | Phase 8 |
 | Heures | 45% | 100% | Phase 35 : section-head + KPI grid (total/sup/km/CE561) |

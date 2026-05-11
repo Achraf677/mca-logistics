@@ -5,6 +5,19 @@
 
 ---
 
+## Session 2026-05-11 (:45) — Phase 45 : Statistiques + Calendrier + Véhicules toolbar
+**Phases** : 45
+**Commit final** : TBD
+**État** : period-chips nav Statistiques+Calendrier, Exporter dropdown Statistiques+Véhicules
+
+### Actions clés
+- Statistiques : section-head → Exporter dropdown (PDF/CSV/Excel via `exporterStatsPDF()`), period nav bar mockup-aligned (prev/today/next + chips Jour/Semaine/Mois/Année via period-chips pattern)
+- Calendrier : nav bar → mockup-aligned (prev/today/next + chips via period-chips pattern), duplicate Aujourd'hui button removed from section-head
+- Véhicules : section-head h2 "Véhicules" → "Flotte" (mockup), btn-rapport → Exporter dropdown
+- sw.js CACHE_VERSION v76 → v77
+
+---
+
 ## Session 2026-05-12 (:45) — Audit complet + Charges Export dropdown
 **Phases** : audit automatisé + phase 35 Charges
 **Commit final** : `TBD`

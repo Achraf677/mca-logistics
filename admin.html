@@ -1009,10 +1009,10 @@
         </div>
       </div>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 45 refonte : section-head mockup-aligned (Flotte + Exporter dropdown) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
-          <h2>Véhicules</h2>
+          <h2>Flotte</h2>
           <div class="ds-section-head__sub">
             <span><span id="vehicules-section-sub-count">0</span> véhicules</span>
             <span class="ds-section-head__sep">·</span>
@@ -1020,7 +1020,27 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-rapport" onclick="exporterVehiculesPDF()">Rapport</button>
+          <div class="liv-dropdown-wrap" style="position:relative">
+            <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="liv-dropdown-menu">
+              <button class="liv-dropdown-item" onclick="exporterVehiculesPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                <div><div style="font-weight:600;font-size:13px">Export PDF</div><div style="font-size:11px;color:var(--text-muted)">État flotte + échéances</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
+                <div><div style="font-weight:600;font-size:13px">Export CSV</div><div style="font-size:11px;color:var(--text-muted)">Plaques, km, conso</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <div><div style="font-weight:600;font-size:13px">Export Excel</div><div style="font-size:11px;color:var(--text-muted)">Onglet par véhicule</div></div>
+              </button>
+            </div>
+          </div>
           <button class="btn-primary" onclick="openModal('modal-vehicule')">+ Ajouter</button>
         </div>
       </div>
@@ -1458,7 +1478,7 @@
         <div class="sub-meta">Indicateurs de performance · activité, CA, flotte, équipe</div>
       </div>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 45 refonte : section-head + Exporter dropdown + period-row (mockup-aligned) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
           <h2>Statistiques</h2>
@@ -1469,30 +1489,56 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-rapport" onclick="exporterStatsPDF()">Rapport</button>
+          <div class="liv-dropdown-wrap" style="position:relative">
+            <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="liv-dropdown-menu">
+              <button class="liv-dropdown-item" onclick="exporterStatsPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                <div><div style="font-weight:600;font-size:13px">Export PDF</div><div style="font-size:11px;color:var(--text-muted)">Rapport mensuel</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
+                <div><div style="font-weight:600;font-size:13px">Export CSV</div><div style="font-size:11px;color:var(--text-muted)">Données brutes</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <div><div style="font-weight:600;font-size:13px">Export Excel</div><div style="font-size:11px;color:var(--text-muted)">Onglets par catégorie</div></div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-stats-select" onchange="changerVueStats(this.value)" aria-label="vue stats select">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navStatsPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center">
-            <div id="stats-mois-label" class="u-title-sm"></div>
-            <div id="stats-mois-dates" class="u-muted-sm"></div>
-          </div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserStatsPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="navStatsPeriode(1)" style="padding:5px 12px">Suivant</button>
-          </div>
+      <!-- Phase 45 : period nav bar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="navStatsPeriode(-1)" aria-label="Précédent">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button class="btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)" onclick="reinitialiserStatsPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="navStatsPeriode(1)" aria-label="Suivant">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <div id="stats-mois-label" style="font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize"></div>
+          <div id="stats-mois-dates" style="font-size:11px;color:var(--text-muted)"></div>
+        </div>
+        <div class="period-chips" data-period-target="vue-stats-select" style="display:flex;gap:6px">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
         </div>
       </div>
+      <!-- Hidden select kept for JS compat (changerVueStats reads vue-stats-select) -->
+      <select id="vue-stats-select" onchange="changerVueStats(this.value)" style="display:none" aria-hidden="true">
+        <option value="jour">Par jour</option>
+        <option value="semaine">Par semaine</option>
+        <option value="mois" selected>Par mois</option>
+        <option value="annee">Par année</option>
+      </select>
       <!-- Phase 36 refonte HTML : KPIs mockup-aligned + charts dans chart-card -->
       <div class="kpi-grid" style="margin-bottom:20px">
         <div class="kpi"><div class="kpi-lbl">CA période HT</div><div class="kpi-val" id="stats-ca-periode">0 €</div><div class="kpi-sub">Montant hors taxes</div></div>
@@ -2702,32 +2748,37 @@
           </div>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
-          <button class="btn-secondary" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
-          <button class="btn-rapport" onclick="window.cal16?.imprimer()">Rapport</button>
+          <button class="btn-secondary" onclick="window.cal16?.imprimer()">Imprimer</button>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom:16px;padding:12px 18px">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="cal16-vue" onchange="window.cal16?.changerVue(this.value)" aria-label="cal16 vue">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="window.cal16?.naviguer(-1)" style="padding:6px 14px">Précédent</button>
-          </div>
-          <div class="nav-periode-center">
-            <div id="cal16-label" style="font-size:1rem;font-weight:700"></div>
-            <div id="cal16-sub" class="u-muted-sm"></div>
-          </div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="window.cal16?.aujourdhui()" style="padding:6px 14px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="window.cal16?.naviguer(1)" style="padding:6px 14px">Suivant</button>
-          </div>
+      <!-- Phase 45 : cal toolbar mockup-aligned (prev/today/next + period-chips Jour/Semaine/Mois/Année) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="window.cal16?.naviguer(-1)" aria-label="Précédent">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button class="btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)" onclick="window.cal16?.aujourdhui()">Aujourd'hui</button>
+          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="window.cal16?.naviguer(1)" aria-label="Suivant">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <div id="cal16-label" style="font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize"></div>
+          <div id="cal16-sub" style="font-size:11px;color:var(--text-muted)"></div>
+        </div>
+        <div class="period-chips" data-period-target="cal16-vue" style="display:flex;gap:6px">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
         </div>
       </div>
+      <!-- Hidden select kept for JS compat (cal16 reads cal16-vue) -->
+      <select id="cal16-vue" onchange="window.cal16?.changerVue(this.value)" style="display:none" aria-hidden="true">
+        <option value="jour">Par jour</option>
+        <option value="semaine">Par semaine</option>
+        <option value="mois" selected>Par mois</option>
+        <option value="annee">Par année</option>
+      </select>
 
       <div class="cal16-layout">
         <!-- Sidebar filtres -->
