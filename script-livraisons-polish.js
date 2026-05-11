@@ -117,6 +117,53 @@
     return null;
   }
 
+  function formatDateShort(dStr) {
+    if (!dStr) return '';
+    try {
+      const d = new Date(dStr);
+      if (isNaN(d.getTime())) return '';
+      const day = String(d.getDate()).padStart(2, '0');
+      const mon = String(d.getMonth() + 1).padStart(2, '0');
+      return day + '/' + mon;
+    } catch (_) { return ''; }
+  }
+
+  function transformClientCell(td, livraison) {
+    if (!td || td.dataset.clientPolished === '1') return;
+    if (!livraison) return;
+    const date = formatDateShort(livraison.date || livraison.date_livraison || livraison.dateLivraison);
+    const client = String(livraison.client || td.textContent.trim() || '—').replace(/[<>]/g, '');
+    td.innerHTML = ''
+      + '<div class="liv-client-cell">'
+      +   (date ? '<span class="liv-client-date">' + date + '</span>' : '')
+      +   '<span class="liv-client-name">' + client + '</span>'
+      + '</div>';
+    td.dataset.clientPolished = '1';
+  }
+
+  function transformDriverCellWithVehicule(td, livraison) {
+    if (!td || td.dataset.driverPolished === '1') return;
+    const text = td.textContent.trim();
+    if (!text || text === '—' || text === '-') return;
+    const initials = getInitials(text);
+    const cls = avatarClassFromName(text);
+    const escaped = text.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+    // Si on a la livraison, injecter aussi le vehicule en sub
+    const vehImmat = livraison ? String(livraison.vehImmat || livraison.vehimmat || livraison.veh_immat || '').replace(/[<>]/g, '') : '';
+    const vehHtml = vehImmat
+      ? '<span class="driver-sub">' + vehImmat + '</span>'
+      : '';
+    td.innerHTML = ''
+      + '<span class="driver-cell">'
+      +   '<span class="driver-av ' + cls + '">' + initials + '</span>'
+      +   '<span class="driver-info">'
+      +     '<span class="driver-name">' + escaped + '</span>'
+      +     vehHtml
+      +   '</span>'
+      + '</span>';
+    td.dataset.driverPolished = '1';
+  }
+
   function polishRows() {
     const tbody = document.getElementById('tb-livraisons');
     if (!tbody) return;
@@ -124,12 +171,15 @@
       if (tr.classList.contains('empty-row') || tr.querySelector('td.empty-row')) return;
       const tds = tr.querySelectorAll('td');
       if (tds.length < 9) return;
-      transformDriverCell(tds[8]);
-      // Try transform col 4 (Zone géographique) into Trajet
+      // Lookup livraison source
       const liv = getLivraisonForRow(tr);
+      // Transform col 3 (Client) : prefix avec date
+      if (liv) transformClientCell(tds[2], liv);
+      // Transform col 4 (Zone → Trajet)
       if (liv) transformTrajetCell(tds[3], liv);
+      // Transform col 9 (Salarié → avatar + vehicule sub)
+      transformDriverCellWithVehicule(tds[8], liv);
     });
-    // Re-render pagination footer si dispo
     renderPaginationFooter();
   }
 
