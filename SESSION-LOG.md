@@ -165,6 +165,26 @@
 
 ---
 
+## Session 2026-05-12 (reprise contexte 4) — Phase 35 section-heads + KPI grids
+**Phases** : 35 / 35b / 35c / 35d
+**Commits** : `f39cf10` (35) · `bb92bfa` (35b) · `06f89c2` (35c) · `2ca607b` (35d)
+**État** : 0 NEW bugs, 16 FIXED, toutes pages ont section-head ds-section-head
+
+### Actions clés
+- **Phase 35** : section-heads + KPI grids pour Inspections / Incidents / Heures / Rentabilité
+- **Phase 35b** : section-heads pour Carburant / TVA + KPI grid Rentabilité (CA/Charges/Marge/Coût-km)
+- **Phase 35c** : CSS patterns manquants dans `style-refonte-utilities.css` — cal16-layout, chart-row, chart-card, stat-row bar-chart, tabs-bar/tab-btn/tab-panel
+- **Phase 35d** : section-heads Entretiens / Salariés / Brouillons IA
+- CACHE_VERSION v62 → v63 → v64 (rebase conflict) → v65 → v66
+
+### Décisions
+- Alertes : `script-alertes.js` génère du HTML inline-styled, on n'impose pas les classes mockup `.alert-row`/`.alert-list` (trop risqué de casser le rendu live)
+- Équipe : `script-equipe-hub.js` rend `.kpi-card` (existant style.css), pas `.kpi` — on ne change pas le JS
+- KPI grids sont peuplés via `—` (placeholder), des scripts existants ou à écrire injecteront les valeurs live
+- Conflit rebase v63 ↔ v63 résolu en prenant v64
+
+---
+
 ## Format pour nouvelles sessions
 
 ```markdown

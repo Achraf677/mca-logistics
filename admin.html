@@ -126,7 +126,7 @@
   <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
   <script defer src="script-clients-fournisseurs-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Alertes : counts actives + reportees + traitees. -->
-  <script defer src="script-alertes-counts.js?v=1"></script>
+  <script defer src="script-alertes-counts.js?v=2"></script>
   <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
   <script defer src="script-stats-calendrier-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
@@ -1449,19 +1449,31 @@
           </div>
         </div>
       </div>
-      <!-- KPIs résumé -->
+      <!-- Phase 36 refonte HTML : KPIs mockup-aligned + charts dans chart-card -->
       <div class="kpi-grid" style="margin-bottom:20px">
-        <div class="kpi-card green"><div class="kpi-label">CA période HT</div><div class="kpi-value" id="stats-ca-periode">0 €</div><div class="kpi-sub">Montant hors taxes</div></div>
-        <div class="kpi-card blue"><div class="kpi-label">Livraisons</div><div class="kpi-value" id="stats-livraisons-periode">0</div></div>
-        <div class="kpi-card orange"><div class="kpi-label">Panier moyen HT</div><div class="kpi-value" id="stats-panier-moyen">0 €</div><div class="kpi-sub">Moyenne hors taxes</div></div>
-        <div class="kpi-card purple"><div class="kpi-label">Km total</div><div class="kpi-value" id="stats-km-total">0 km</div></div>
+        <div class="kpi"><div class="kpi-lbl">CA période HT</div><div class="kpi-val" id="stats-ca-periode">0 €</div><div class="kpi-sub">Montant hors taxes</div></div>
+        <div class="kpi"><div class="kpi-lbl">Livraisons</div><div class="kpi-val" id="stats-livraisons-periode">0</div></div>
+        <div class="kpi"><div class="kpi-lbl">Panier moyen HT</div><div class="kpi-val" id="stats-panier-moyen">0 €</div><div class="kpi-sub">Moyenne hors taxes</div></div>
+        <div class="kpi"><div class="kpi-lbl">Km total</div><div class="kpi-val" id="stats-km-total">0 km</div></div>
       </div>
-      <div class="card"><div class="card-header"><h2>Évolution du CA</h2></div><div class="chart-container"><canvas id="chartCA"></canvas></div></div>
-      <div class="stats-grid mt-20">
-        <div class="card"><div class="card-header"><h2>Performance par chauffeur</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div></div>
-        <div class="card"><div class="card-header"><h2>Utilisation des véhicules</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div></div>
+      <div class="chart-card">
+        <h3>Évolution du CA<span class="chart-legend">CA HT mensuel</span></h3>
+        <div class="chart-container"><canvas id="chartCA"></canvas></div>
       </div>
-      <div class="card mt-20"><div class="card-header"><h2>CA par chauffeur (détail)</h2></div><div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div></div>
+      <div class="chart-row">
+        <div class="chart-card">
+          <h3>Performance par chauffeur<span class="chart-legend">CA généré</span></h3>
+          <div class="chart-container" style="max-height:300px"><canvas id="chartChauffeurs"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Utilisation des véhicules<span class="chart-legend">Km parcourus</span></h3>
+          <div class="chart-container" style="max-height:300px"><canvas id="chartVehicules"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>CA par chauffeur (détail)<span class="chart-legend">12 derniers mois</span></h3>
+        <div class="chart-container" style="max-height:300px"><canvas id="chartCAParChauffeur"></canvas></div>
+      </div>
     </section>
 
     <!-- HUB ÉQUIPE — Sprint 22 / H2.4
@@ -1689,6 +1701,13 @@
         <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="viderAlertes()">Vider l'historique traité</button>
         </div>
+      </div>
+
+      <!-- Phase 36 refonte HTML : KPI grid (Critiques / Avertissements / Info) -->
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl" style="color:var(--brand)">Critiques</div><div class="kpi-val" id="alertes-kpi-critiques" style="color:var(--brand)">—</div><div class="kpi-sub">Action immédiate requise</div></div>
+        <div class="kpi"><div class="kpi-lbl" style="color:#d4b67a">Avertissements</div><div class="kpi-val" id="alertes-kpi-alertes">—</div><div class="kpi-sub">À traiter cette semaine</div></div>
+        <div class="kpi"><div class="kpi-lbl">Info</div><div class="kpi-val" id="alertes-kpi-info">—</div><div class="kpi-sub">Notifications légères</div></div>
       </div>
 
       <!-- Filtres alertes (sticky : reste visible quand on scroll dans une longue liste) -->
@@ -2164,13 +2183,21 @@
         <div class="sub-meta">Suivi factures et relances clients · DSO et impayés</div>
       </div>
 
-      <div class="page-actions"><h2>Encaissement</h2>
-        <div class="u-flex-row">
+      <!-- Phase 36 refonte HTML : section-head ds-section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Encaissement</h2>
+          <div class="ds-section-head__sub">
+            <span id="enc-section-sub-impayees">—</span> impayée(s)
+            <span class="ds-section-head__sep">·</span>
+            DSO <span id="enc-section-sub-dso">—</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="exporterEncaissementCSV()">CSV</button>
           <button class="btn-rapport" onclick="exporterEncaissementRapport()">Rapport</button>
         </div>
       </div>
-      <p style="color:var(--text-muted);margin:0 0 18px;font-size:.9rem">Liste des livraisons facturées et leur statut d'encaissement.</p>
       <div id="encaissement-content"></div>
     </section>
 

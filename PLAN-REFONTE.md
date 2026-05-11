@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : `562d02a` (TVA cols phase 34)
+> **Dernier commit** : `2ca607b` (Phase 35d section-heads Entretiens+Salariés+Brouillons)
 
 ---
 
@@ -29,21 +29,21 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Clients | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
 | Fournisseurs | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
 | Véhicules | 50% | 100% | Phase 34 : cols Acquisition/Finances/Carburant/Entretien masquées |
-| Carburant | 45% | 100% | Phase 34 : cols TVA déductible + Source masquées |
-| Entretiens | 50% | 100% | Phase 34 : cols HT/TVA masquées |
-| Inspections | 25% | 100% | Phase 8 title-row seulement |
+| Carburant | 55% | 100% | Phase 35b : section-head ds-section-head + sub-meta |
+| Entretiens | 60% | 100% | Phase 35d : section-head ds-section-head |
+| Inspections | 45% | 100% | Phase 35 : section-head + KPI grid (semaine/défauts/conformité/risque) |
 | Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
-| Encaissement | 25% | 100% | Phase 8 — JS-driven, inline styles, hors-scope CSS |
-| TVA | 45% | 100% | Phase 34 : col Exigibilité + Actions masquées (collectée/déductible) |
-| Rentabilité | 25% | 100% | Phase 8 |
-| Statistiques | 25% | 100% | Phase 8 |
-| Calendrier | 25% | 100% | Phase 8 |
+| Encaissement | 30% | 100% | section-head manquant, contenu JS-driven |
+| TVA | 55% | 100% | Phase 35b : section-head + sub-meta |
+| Rentabilité | 50% | 100% | Phase 35b : section-head + KPI grid (CA/Charges/Marge/Coût km) |
+| Statistiques | 30% | 100% | Phase 8 — à améliorer |
+| Calendrier | 30% | 100% | Phase 35c : CSS cal16-layout ajouté |
 | Alertes | 30% | 100% | Phase 7 |
-| Équipe | 25% | 100% | Phase 8 |
-| Heures | 25% | 100% | Phase 8 |
-| Incidents | 25% | 100% | Phase 8 |
+| Équipe | 30% | 100% | Phase 8 |
+| Heures | 45% | 100% | Phase 35 : section-head + KPI grid (total/sup/km/CE561) |
+| Incidents | 45% | 100% | Phase 35 : section-head + KPI grid (ouverts/résolus/coût/délai) |
 | Paramètres | 25% | 100% | Phase 8 |
-| Brouillons IA | 25% | 100% | Phase 8 |
+| Brouillons IA | 40% | 100% | Phase 35d : section-head |
 | Planning | 30% | 100% | Phase 7 + period-row |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |
