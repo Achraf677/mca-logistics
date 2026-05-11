@@ -82,15 +82,32 @@
     if (!ctxEl) return false;
     var data = buildAreaData(readLivraisons(), state.range);
 
+    // Update stats footer + range label (Phase 18)
+    var rangeLabel = document.getElementById('dash-area-range-label');
+    if (rangeLabel) rangeLabel.textContent = String(state.range);
+    var totalLiv = data.counts.reduce(function (s, v) { return s + v; }, 0);
+    var totalCa = data.ca.reduce(function (s, v) { return s + v; }, 0);
+    var moy = state.range > 0 ? (totalLiv / state.range) : 0;
+    var setTxt = function (id, val) { var el = document.getElementById(id); if (el) el.textContent = val; };
+    setTxt('dash-stat-total', totalLiv);
+    setTxt('dash-stat-moy', moy.toFixed(1).replace('.', ','));
+    setTxt('dash-stat-ca', (totalCa / 1000).toFixed(1).replace('.', ','));
+
+    // CA en k€ pour matcher mockup
+    var caKE = data.ca.map(function (v) { return v / 1000; });
+
     var ctx = ctxEl.getContext('2d');
-    var gradRed = ctx.createLinearGradient(0, 0, 0, 220);
+    var gradRed = ctx.createLinearGradient(0, 0, 0, 260);
     gradRed.addColorStop(0, 'rgba(230, 57, 70, 0.35)');
     gradRed.addColorStop(1, 'rgba(230, 57, 70, 0)');
+    var gradGreen = ctx.createLinearGradient(0, 0, 0, 260);
+    gradGreen.addColorStop(0, 'rgba(6, 214, 160, 0.22)');
+    gradGreen.addColorStop(1, 'rgba(6, 214, 160, 0)');
 
     if (state.areaChart) {
       state.areaChart.data.labels = data.labels;
       state.areaChart.data.datasets[0].data = data.counts;
-      state.areaChart.data.datasets[1].data = data.ca;
+      state.areaChart.data.datasets[1].data = caKE;
       state.areaChart.update('none');
       return true;
     }
@@ -103,65 +120,78 @@
           {
             label: 'Livraisons',
             data: data.counts,
+            yAxisID: 'y',
             borderColor: '#e63946',
             backgroundColor: gradRed,
-            borderWidth: 2.5,
+            tension: 0.4,
             fill: true,
-            tension: 0.35,
+            borderWidth: 2.5,
             pointRadius: 3,
             pointBackgroundColor: '#e63946',
             pointBorderColor: '#fff',
             pointBorderWidth: 1.5,
-            yAxisID: 'y',
+            pointHoverRadius: 6,
+            pointHoverBorderWidth: 2,
           },
           {
-            label: 'CA HT (€)',
-            data: data.ca,
-            borderColor: '#4cc9f0',
-            backgroundColor: 'transparent',
-            borderWidth: 2,
-            fill: false,
-            tension: 0.35,
-            pointRadius: 0,
-            borderDash: [4, 4],
+            label: 'CA HT (k€)',
+            data: caKE,
             yAxisID: 'y1',
+            borderColor: '#06d6a0',
+            backgroundColor: gradGreen,
+            tension: 0.4,
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 2.5,
+            pointBackgroundColor: '#06d6a0',
+            pointBorderColor: '#fff',
+            pointBorderWidth: 1.5,
+            pointHoverRadius: 5,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
         plugins: {
-          legend: {
-            display: true,
-            position: 'top',
-            align: 'end',
-            labels: { color: '#9aa1ab', font: { size: 11, weight: '600' }, boxWidth: 10, boxHeight: 10, padding: 12 },
-          },
+          legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(20,22,28,0.95)',
-            borderColor: '#2a2f37',
+            backgroundColor: 'rgba(34,38,45,0.96)',
+            borderColor: '#4a5263',
             borderWidth: 1,
-            titleColor: '#f1f3f5',
-            bodyColor: '#adb5bd',
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { family: '"Syne",sans-serif', size: 13, weight: 800 },
+            bodyFont: { size: 12 },
+            displayColors: true,
+            boxPadding: 4,
+            callbacks: {
+              title: function (items) { return items[0].label; },
+              label: function (c) {
+                return c.datasetIndex === 0
+                  ? ' ' + c.parsed.y + ' livraisons'
+                  : ' ' + c.parsed.y.toFixed(1).replace('.', ',') + ' k€';
+              },
+            },
           },
         },
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#9aa1ab', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+            ticks: { color: '#adb5bd', font: { size: 10 }, padding: 8, maxRotation: 0, maxTicksLimit: 7 },
           },
           y: {
+            beginAtZero: true,
             position: 'left',
             grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-            ticks: { color: '#9aa1ab', font: { size: 10 }, precision: 0 },
-            beginAtZero: true,
+            ticks: { color: '#adb5bd', font: { size: 10 }, padding: 8, precision: 0 },
           },
           y1: {
-            position: 'right',
-            grid: { display: false },
-            ticks: { color: '#9aa1ab', font: { size: 10 }, callback: function (v) { return (v / 1000).toFixed(0) + 'k€'; } },
             beginAtZero: true,
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: { color: '#adb5bd', font: { size: 10 }, padding: 8, callback: function (v) { return v + ' k€'; } },
           },
         },
       },

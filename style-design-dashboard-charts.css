@@ -75,11 +75,72 @@
   color: var(--ds-text, var(--text));
 }
 
-/* Area chart canvas height */
+/* Area chart canvas height (legacy + new wrap) */
 #dash-area-chart {
   width: 100% !important;
   height: 220px !important;
   display: block;
+}
+
+/* Wrap mockup-aligned : container 260px haut */
+.chart-canvas-wrap {
+  position: relative;
+  height: 260px;
+  width: 100%;
+}
+
+.chart-canvas-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Chart footer mockup : legend dots + stats inline */
+.chart-footer {
+  display: flex;
+  gap: 18px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ds-border, var(--border));
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 14px;
+}
+
+.chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-legend-item .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.chart-legend-item .dot.dot-red   { background: var(--ds-brand, #e63946); }
+.chart-legend-item .dot.dot-green { background: #06d6a0; }
+.chart-legend-item .dot.dot-blue  { background: #4cc9f0; }
+
+.chart-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  font-feature-settings: "tnum";
+}
+
+.chart-stats strong {
+  color: var(--ds-text, var(--text));
+}
+
+.chart-stats > span:nth-child(2) strong {
+  color: #06d6a0;
 }
 
 /* Donut chart + legend */

@@ -491,7 +491,7 @@
         <!-- Card 1 : Activité area chart 14 jours -->
         <div class="card dash-chart-card dash-chart-activity">
           <div class="card-header">
-            <h2>Activité — 14 derniers jours</h2>
+            <h2>Activité — <span id="dash-area-range-label">14</span> derniers jours</h2>
             <div class="chart-toolbar">
               <button class="chip-mini active" data-range="14" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(14)">14j</button>
               <button class="chip-mini" data-range="30" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(30)">30j</button>
@@ -499,7 +499,20 @@
             </div>
           </div>
           <div class="chart-body">
-            <canvas id="dash-area-chart"></canvas>
+            <div class="chart-canvas-wrap">
+              <canvas id="dash-area-chart"></canvas>
+            </div>
+            <div class="chart-footer" id="dash-area-footer">
+              <div class="chart-legend">
+                <span class="chart-legend-item"><span class="dot dot-red"></span>Livraisons</span>
+                <span class="chart-legend-item"><span class="dot dot-green"></span>CA HT (k€)</span>
+              </div>
+              <div class="chart-stats">
+                <span><strong>Total :</strong> <span id="dash-stat-total">0</span> livr.</span>
+                <span><strong>Moy :</strong> <span id="dash-stat-moy">0</span>/j</span>
+                <span><strong>CA :</strong> <span id="dash-stat-ca">0</span> k€</span>
+              </div>
+            </div>
           </div>
         </div>
         <!-- Card 2 : Statuts livraisons donut -->
