@@ -379,7 +379,7 @@
   display: none !important;
 }
 
-/* Badge Brouillon (style legacy + nouveau seed value) */
+/* Badge Brouillon */
 .statut-brouillon,
 .data-table td .statut-brouillon,
 .livraisons-table td span[data-statut="brouillon"],
@@ -393,6 +393,83 @@
   border-radius: 999px;
   font-size: 11px;
   font-weight: 700;
+}
+
+/* ============ Statut select inline → look comme badge pill (Phase 31) ============ */
+/* Le statut + paiement utilisent <select class="livraison-inline-select"> pour
+   inline edit. Styler pour ressembler a un vrai badge color (mockup pattern). */
+
+.livraisons-table .livraison-select-cell {
+  display: inline-block;
+}
+
+.livraisons-table .livraison-inline-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2.5' stroke-linecap='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px 10px;
+  padding: 4px 22px 4px 11px !important;
+  border-radius: 999px !important;
+  border: 1px solid transparent !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 90px;
+  text-align: left;
+  outline: none;
+  transition: filter 0.15s ease-out;
+}
+
+.livraisons-table .livraison-inline-select:hover {
+  filter: brightness(1.1);
+}
+
+/* Variants couleurs (basees sur les classes legacy is-ok / is-warn / is-info / is-err) */
+.livraisons-table .livraison-inline-select.is-ok {
+  background-color: rgba(6, 214, 160, 0.15) !important;
+  color: #06d6a0 !important;
+  border-color: rgba(6, 214, 160, 0.3) !important;
+}
+
+.livraisons-table .livraison-inline-select.is-warn,
+.livraisons-table .livraison-inline-select.is-pending {
+  background-color: rgba(255, 214, 10, 0.15) !important;
+  color: #ffd60a !important;
+  border-color: rgba(255, 214, 10, 0.3) !important;
+}
+
+.livraisons-table .livraison-inline-select.is-info {
+  background-color: rgba(76, 201, 240, 0.15) !important;
+  color: #4cc9f0 !important;
+  border-color: rgba(76, 201, 240, 0.3) !important;
+}
+
+.livraisons-table .livraison-inline-select.is-err,
+.livraisons-table .livraison-inline-select.is-danger {
+  background-color: rgba(230, 57, 70, 0.15) !important;
+  color: #e63946 !important;
+  border-color: rgba(230, 57, 70, 0.3) !important;
+}
+
+.livraisons-table .livraison-inline-select.is-muted,
+.livraisons-table .livraison-inline-select.is-draft {
+  background-color: rgba(168, 162, 158, 0.15) !important;
+  color: #a8a29e !important;
+  border-color: rgba(168, 162, 158, 0.3) !important;
+}
+
+/* Options du dropdown : reset au look natif */
+.livraisons-table .livraison-inline-select option {
+  background: var(--ds-bg-card, #14171c);
+  color: var(--ds-text, #f1f3f5);
+  font-weight: 500;
+  padding: 4px;
 }
 
 #pagination-livraisons .pg-count {
