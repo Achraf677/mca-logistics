@@ -1618,10 +1618,10 @@ function rafraichirDashboard() {
   setText('kpi-tva-solde', euros(Math.abs(soldeTva)));
   const depDetailEl = document.getElementById('kpi-depenses-detail');
   if (depDetailEl) depDetailEl.innerHTML = `
-    <div class="kpi-depenses-line"><span>⛽</span><span class="kpi-depenses-label">Carburant</span><strong>${euros(carbMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>🔧</span><span class="kpi-depenses-label">Entretien</span><strong>${euros(entretienChargesMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>💸</span><span class="kpi-depenses-label">Charges</span><strong>${euros(autresChargesMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>👥</span><span class="kpi-depenses-label">Salaires</span><strong>${euros(chargesSalarialesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span><span class="kpi-depenses-label">Carburant</span><strong>${euros(carbMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg></span><span class="kpi-depenses-label">Entretien</span><strong>${euros(entretienChargesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg></span><span class="kpi-depenses-label">Charges</span><strong>${euros(autresChargesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg></span><span class="kpi-depenses-label">Salaires</span><strong>${euros(chargesSalarialesMois)}</strong></div>
   `;
   const tvaDetailEl = document.getElementById('kpi-tva-detail');
   if (tvaDetailEl) {
@@ -7205,7 +7205,7 @@ genererRentabilitePDF = function() {
         const sub = (typeof formatDateExport === 'function' ? formatDateExport(l.date) : (l.date || '')) +
                     ' · ' + (typeof euros === 'function' ? euros(l.prix || 0) : (l.prix || 0) + '€');
         res.push({
-          label: '📦 ' + (l.numLiv || '') + ' — ' + (l.client || ''),
+          label: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ' + (l.numLiv || '') + ' — ' + (l.client || ''),
           sub: sub,
           handler: 'rechercheOuvrirLivraison',
           arg: l.id
@@ -7217,7 +7217,7 @@ genererRentabilitePDF = function() {
       }).slice(0, 3).forEach(function(s) {
         const nom = typeof getSalarieNomComplet === 'function' ? getSalarieNomComplet(s) : ((s.prenom || '') + ' ' + (s.nom || ''));
         res.push({
-          label: '👤 ' + nom,
+          label: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ' + nom,
           sub: 'N° ' + (s.numero || '—'),
           handler: 'ouvrirEditSalarie',
           arg: s.id
@@ -9895,7 +9895,7 @@ genererRentabilitePDF = function() {
     save(LS.livraisons, livs);
     if (typeof window.logChange === 'function') window.logChange('livraison', livId, 'date', old, newDateISO, l.numero || 'Livraison');
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Déplacement livraison', (l.numero||'')+' : '+(old||'')+' → '+newDateISO);
-    toast('📦 '+(l.numero||'Livraison')+' déplacée au '+new Date(newDateISO).toLocaleDateString('fr-FR'), 'success');
+    toast('<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ' +(l.numero||'Livraison')+' déplacée au '+new Date(newDateISO).toLocaleDateString('fr-FR'), 'success');
     render();
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
     if (typeof window.__s14RefreshBanner === 'function') window.__s14RefreshBanner();
@@ -12361,7 +12361,7 @@ genererRentabilitePDF = function() {
           <div class="s25-head-meta">
             ${c.categorie ? '<span class="s25-badge">'+esc(c.categorie)+'</span>' : ''}
             ${c.email ? '<span>✉️ <a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a></span>' : ''}
-            ${c.tel ? '<span>📞 '+esc(c.tel)+'</span>' : ''}
+            ${c.tel ? '<span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> '+esc(c.tel)+'</span>' : ''}
             ${c.siren ? '<span>SIREN '+esc(c.siren)+'</span>' : ''}
           </div>
         </div>
@@ -12491,7 +12491,7 @@ genererRentabilitePDF = function() {
           <div class="s25-head-meta">
             ${f.categorie ? '<span class="s25-badge">'+esc(f.categorie)+'</span>' : ''}
             ${f.email ? '<span>✉️ <a href="mailto:'+esc(f.email)+'">'+esc(f.email)+'</a></span>' : ''}
-            ${f.tel ? '<span>📞 '+esc(f.tel)+'</span>' : ''}
+            ${f.tel ? '<span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> '+esc(f.tel)+'</span>' : ''}
             ${f.siren ? '<span>SIREN '+esc(f.siren)+'</span>' : ''}
           </div>
         </div>

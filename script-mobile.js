@@ -1273,7 +1273,7 @@
     const body = `
       <div class="m-form-field" style="margin-bottom:14px">
         <label for="m-carb-smart-upload-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
-          <span>📤</span><span>Uploader (auto) — ticket carburant</span>
+          <span class="ui-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span>Uploader (auto) — ticket carburant</span>
         </label>
         <input type="file" id="m-carb-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-carb-smart-upload-status" style="text-align:center"></p>
@@ -1488,7 +1488,7 @@
     const body = `
       <div class="m-form-field" style="margin-bottom:14px">
         <label for="m-charge-fac-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
-          <span>📷</span><span>Scanner la facture (auto-remplir)</span>
+          <span class="ui-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span>Scanner la facture (auto-remplir)</span>
         </label>
         <input type="file" id="m-charge-fac-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-charge-fac-status" style="text-align:center"></p>
@@ -2176,7 +2176,7 @@
     const body = `
       <div class="m-form-field" style="margin-bottom:14px">
         <label for="m-veh-cg-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
-          <span>📷</span><span>Scanner la carte grise (auto-remplir)</span>
+          <span class="ui-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span>Scanner la carte grise (auto-remplir)</span>
         </label>
         <input type="file" id="m-veh-cg-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-veh-cg-status" style="text-align:center"></p>
@@ -2772,7 +2772,7 @@
     const body = `
       <div class="m-form-field" style="margin-bottom:14px">
         <label for="m-sal-smart-upload-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">
-          <span>📤</span><span>Uploader (auto) — RIB / permis</span>
+          <span class="ui-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></span><span>Uploader (auto) — RIB / permis</span>
         </label>
         <input type="file" id="m-sal-smart-upload-input" accept="image/*,application/pdf" style="display:none" />
         <p class="m-form-hint" id="m-sal-smart-upload-status" style="text-align:center"></p>
@@ -3250,7 +3250,7 @@
         <label class="m-form-label">Photos</label>
         <div id="m-photos-container">${renderPhotosGrid()}</div>
         <label for="m-photos-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;cursor:pointer">
-          <span>📷</span><span>Ajouter une photo</span>
+          <span class="ui-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span><span>Ajouter une photo</span>
         </label>
         <input type="file" id="m-photos-input" accept="image/*" capture="environment" multiple style="display:none" />
       </div>
@@ -7650,9 +7650,9 @@
             : '<div class="m-card-sub" style="margin-top:8px">Aucune dépense sur la période.</div>'}
           </div>
           <div class="m-card" style="padding:0">
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>⛽</span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span>🔧</span><span>Entretien</span></span><span style="font-weight:600">${M.format$(entrTotal)}</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="display:flex;align-items:center;gap:10px"><span>💸</span><span>Autres charges</span></span><span style="font-weight:600">${M.format$(autresTotal)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span class="ui-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span><span>Carburant</span></span><span style="font-weight:600">${M.format$(carbTotal)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span style="display:flex;align-items:center;gap:10px"><span class="ui-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg></span><span>Entretien</span></span><span style="font-weight:600">${M.format$(entrTotal)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="display:flex;align-items:center;gap:10px"><span class="ui-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg></span><span>Autres charges</span></span><span style="font-weight:600">${M.format$(autresTotal)}</span></div>
           </div>
           ${topVeh.length ? `
             <div style="font-weight:600;font-size:.92rem;margin:18px 4px 8px">Top ${topVeh.length} véhicules par marge</div>
@@ -8008,7 +8008,7 @@
 
           <div class="m-card" style="padding:14px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-              <span>⛽ Carburant</span>
+              <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> Carburant</span>
               <button type="button" id="m-sim-fuel-real" class="m-btn" style="font-size:.72rem;padding:6px 10px">Prix moyen réel</button>
             </div>
             <div class="m-form-row">
@@ -8088,7 +8088,7 @@
                 <div class="m-card"><div class="m-card-title">Coût total</div><div class="m-card-value" style="color:var(--m-red)">${M.format$(coutTotalSim)}</div><div class="m-card-sub">${M.format$(coutParKm)}/km</div></div>
               </div>
               <div class="m-card" style="padding:0;margin-bottom:12px">
-                <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>⛽ Carburant</span><span style="font-weight:600">${M.format$(coutCarburant)} <span style="color:var(--m-text-muted);font-weight:400;font-size:.78rem">(${litresMois.toFixed(1).replace('.', ',')} L)</span></span></div>
+                <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> Carburant</span><span style="font-weight:600">${M.format$(coutCarburant)} <span style="color:var(--m-text-muted);font-weight:400;font-size:.78rem">(${litresMois.toFixed(1).replace('.', ',')} L)</span></span></div>
                 <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>Charges fixes</span><span style="font-weight:600">${M.format$(chargesFixes)}${cfg.repartitionCharges === 'prorata' && !prorataBlocked ? ' <span style="color:var(--m-text-muted);font-weight:400;font-size:.72rem">prorata</span>' : ''}</span></div>
                 <div style="display:flex;justify-content:space-between;padding:14px 16px"><span>Marge / km</span><span style="font-weight:600;color:${margeParKm >= 0 ? 'var(--m-green)' : 'var(--m-red)'}">${M.format$(margeParKm)}</span></div>
               </div>
@@ -8373,7 +8373,7 @@
     const margePct = ca > 0 ? (marge / ca * 100) : 0;
     const fullName = sal ? `${sal.prenom ? sal.prenom + ' ' : ''}${sal.nom || sal.id}` : salId;
     M.openSheet({
-      title: '👤 ' + fullName,
+      title: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ' + fullName,
       body: M.renderRentSheetBody({
         sub: sal?.poste || 'Chauffeur',
         ca, dep, marge, margePct, km, nbLiv: livs.length,
@@ -9366,7 +9366,7 @@
               return `<button type="button" onclick="MCAm.openDetail('inspections','${M.escHtml(i.id)}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:11px 14px;${isLast?'':'border-bottom:1px solid var(--m-border);'}background:transparent;border:0;color:inherit;font-family:inherit;text-align:left;cursor:pointer;min-height:48px">
                 <div style="flex:1 1 auto;min-width:0">
                   <div style="font-weight:600;font-size:.85rem">${M.formatDate(i.date)}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
-                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${nom ? '👤 ' + M.escHtml(nom) : ''}${nbPhotos ? (nom ? ' · ' : '') + '📸 ' + nbPhotos : ''}</div>
+                  <div style="color:var(--m-text-muted);font-size:.72rem;margin-top:2px">${nom ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ' + M.escHtml(nom) : ''}${nbPhotos ? (nom ? ' · ' : '') + '📸 ' + nbPhotos : ''}</div>
                 </div>
                 <span style="color:var(--m-text-muted)">›</span>
               </button>`;
@@ -11096,7 +11096,7 @@
           html += `<div class="m-card" style="padding:0">
             ${allDed.sort((a,b) => (b.date||'').localeCompare(a.date||'')).map(c => {
               const lbl = c._src === 'carb'
-                ? '⛽ ' + M.escHtml(c._libelle || 'Carburant')
+                ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg> ' + M.escHtml(c._libelle || 'Carburant')
                 : M.escHtml(c.libelle || c.fournisseur || '—');
               const cat = c._src === 'carb' ? 'carburant' : (c.categorie || '');
               return `<div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:start;gap:10px">
