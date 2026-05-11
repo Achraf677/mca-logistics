@@ -168,17 +168,39 @@ Quand le user signale un bug, je dois le FIXER, pas le noter pour plus tard.
 
 ---
 
-## 🧪 Principe #10 — Données réalistes obligatoires
+## 🧪 Principe #10 — Données réalistes OBLIGATOIRES (renforcé)
 
-> *« Saisi un max de fausses données, et après on clear »*
+> *« Rajoute dans ton md qu'il est fortement recommandé de rajouter des infos
+>   pour pouvoir tester visuellement, c'est meme obligatoire »*
 
-Avant de déclarer un visuel matche : avoir un seed riche.
-- 100+ livraisons (varied statuts, dates, montants)
-- 25 clients, 12 véhicules, 8 chauffeurs
-- Plusieurs alertes critiques + warns
-- Etc.
+**OBLIGATION ABSOLUE** : avant tout audit visuel, **seed riche** doit être en place.
 
-Sans data, le visuel est mensonger.
+Sans data :
+- La table empty-state ne représente rien
+- Les badges colorés invisibles
+- Les graphiques vides
+- Les compteurs à 0 partout
+- Les bugs de rendu (avatar, badge, pill) restent cachés
+- Le pixel-diff vs mockup est mensonger (impossible de comparer un site vide vs un site avec 142 livraisons)
+
+**Workflow obligatoire** :
+1. Avant chaque audit visuel d'une page → `?reseed=1` pour avoir un seed riche
+2. Vérifier que les data sont là (chips counts > 0, table peuplée)
+3. Si nécessaire : étendre `script-dev-seed.js` pour couvrir le cas testé
+4. Pour clear quand fini : `?reset=1` local OU SQL Supabase (cf `tools/supabase-cleanup-aggressive.sql`)
+
+**Cibles seed minimum par domaine** :
+- 500 livraisons (12 mois, statuts variés)
+- 25 clients B2B + 2 particuliers
+- 15 fournisseurs
+- 12 véhicules (mix états : actif, réserve, CT proche, assurance expirée)
+- 8 salariés (6 chauffeurs + 2 admin)
+- 250 pleins carburant
+- 120 charges (mensuelles + ponctuelles)
+- 30 alertes (critique/haute/warn/info)
+- 60 entretiens (passés + à venir)
+- 80 inspections hebdo
+- 30 incidents
 
 ---
 

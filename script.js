@@ -14052,6 +14052,16 @@ genererRentabilitePDF = function() {
       const hint = document.getElementById(id + '-hint');
       if (hint) { hint.textContent = ''; hint.classList.remove('fp-hint-ok', 'fp-hint-err'); }
     });
+    // BUG-002 fix : clear aussi field-invalid + error slots (validation FIELD-RULES, parallele a fp-invalid)
+    const modal = document.getElementById('modal-livraison');
+    if (modal) {
+      modal.querySelectorAll('.field-invalid').forEach(el => el.classList.remove('field-invalid'));
+      modal.querySelectorAll('.field-valid').forEach(el => el.classList.remove('field-valid'));
+      modal.querySelectorAll('.field-error-slot').forEach(slot => {
+        slot.textContent = '';
+        slot.style.display = 'none';
+      });
+    }
   }
 
   // mcaLivForm : API exposée pour les oninput="..." du HTML.

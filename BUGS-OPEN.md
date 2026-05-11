@@ -23,9 +23,10 @@
 - **Symptôme** : message rouge "⚠️ Client est requis" visible AVANT toute saisie.
 - **Severity** : MEDIUM (UX gênant)
 - **Reporter** : user 2026-05-11
-- **Cause suspectée** : `mcaLivForm.onInput` ou hook open déclenche validation au reset.
-- **Fix proposé** : déclencher validation au premier blur OU au submit. Reset état d'erreur au open.
-- **Test** : ouvrir modal → aucun message d'erreur visible avant action.
+- **Cause trouvée** : 2 systèmes de validation parallèles (`fp-invalid` form-progress + `field-invalid` field-rules). `reset()` au modal open clear `fp-invalid` mais PAS `field-invalid` ni les error slots. Si user avait submitted avant et réouvert, les erreurs persistaient.
+- **Status** : FIXED (commit à venir)
+- **Fix** : étendu `reset()` dans `script.js` ligne 14046 pour clear aussi `field-invalid` + error slots.
+- **Test** : ouvrir modal → aucun message → submit vide → erreurs apparaissent → fermer → réouvrir → erreurs disparues.
 
 ### BUG-003 — Icône calendrier déborde sous la modal
 - **Page** : Livraisons (modal Nouvelle livraison)
