@@ -587,16 +587,18 @@
           </div>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
-          <div class="view-toggle">
-            <button class="btn-view active" id="btn-vue-tableau" onclick="changerVueLivraisons('tableau')" title="Tableau">Tableau</button>
-            <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')" title="Kanban">⬜ Kanban</button>
-            <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')" title="Calendrier">Cal.</button>
+          <!-- view-toggle déplacé dans la period-row (Phase 12), retiré ici pour pas doublonner.
+               IDs legacy preserves pour compat script.js : on les met cachés. -->
+          <div class="view-toggle" hidden>
+            <button class="btn-view active" id="btn-vue-tableau" onclick="changerVueLivraisons('tableau')">Tableau</button>
+            <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')">Kanban</button>
+            <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')">Cal.</button>
           </div>
           <div class="density-toggle">
-            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Normal" aria-label="Vue normale">☰</button>
-            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Compact" aria-label="Vue compacte">≡</button>
+            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Vue normale" aria-label="Vue normale">☰</button>
+            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Vue compacte" aria-label="Vue compacte">≡</button>
           </div>
-          <button class="btn-secondary" onclick="exporterLivraisons()">Historique des livraisons</button>
+          <button class="btn-secondary" onclick="exporterLivraisons()">Historique</button>
           <button class="btn-rapport" onclick="genererRapportMensuelPeriode()">Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
         </div>

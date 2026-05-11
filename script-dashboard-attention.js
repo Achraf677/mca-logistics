@@ -554,14 +554,28 @@
   }
 
   function renderSparkline(score) {
-    // 6 valeurs sur 6 mois (mock progression vers le score actuel)
-    const final = score != null ? score : 78;
+    const fill = document.getElementById('dashboard-sparkline-fill');
+    const line = document.getElementById('dashboard-sparkline-line');
+    const last = document.getElementById('dashboard-sparkline-last');
+    const tickHost = document.getElementById('dashboard-sparkline-ticks');
+
+    // Pas de score = pas de courbe (vs fake progression précédente trompeuse)
+    if (score == null) {
+      if (fill) fill.setAttribute('d', '');
+      if (line) line.setAttribute('d', '');
+      if (last) { last.setAttribute('cx', '-10'); last.setAttribute('cy', '-10'); }
+      if (tickHost) tickHost.innerHTML = '<span style="opacity:0.5">—</span>';
+      return;
+    }
+
+    // 6 valeurs sur 6 mois (progression vers le score actuel — synthétique
+    // tant qu'on n'a pas d'historique stocké pour de vrai)
+    const final = score;
     const start = Math.max(50, final - 12);
     const ticks = [];
     for (let i = 0; i < 6; i++) {
       ticks.push(Math.round(start + ((final - start) * i / 5)));
     }
-    // Y va de score 50 → top à y=4, score 100 → y=28 inversé. height=40, plage scores 50-100.
     const yFromScore = (s) => 36 - ((Math.max(50, Math.min(100, s)) - 50) / 50) * 32;
     const xs = [0, 40, 80, 120, 160, 200];
     const pts = ticks.map((s, i) => [xs[i], yFromScore(s)]);
@@ -569,14 +583,9 @@
     const fillPath = linePath + ` L 200 40 L 0 40 Z`;
     const lastY = pts[5][1];
 
-    const fill = document.getElementById('dashboard-sparkline-fill');
-    const line = document.getElementById('dashboard-sparkline-line');
-    const last = document.getElementById('dashboard-sparkline-last');
     if (fill) fill.setAttribute('d', fillPath);
     if (line) line.setAttribute('d', linePath);
     if (last) { last.setAttribute('cx', '200'); last.setAttribute('cy', String(lastY)); }
-
-    const tickHost = document.getElementById('dashboard-sparkline-ticks');
     if (tickHost) {
       tickHost.innerHTML = ticks.map((t, i) =>
         `<span${i === ticks.length - 1 ? ' class="last"' : ''}>${t}</span>`
@@ -584,16 +593,42 @@
     }
   }
 
+  function hasAnyData() {
+    const read = (k) => (typeof window.charger === 'function' ? window.charger(k) || [] : []);
+    const total = read('livraisons').length + read('charges').length
+                + read('vehicules').length + read('salaries').length
+                + read('clients').length + read('carburant').length;
+    return total > 0;
+  }
+
   function renderHealth() {
     const sub = computeSubScores();
-    // Score = priorité legacy (si script.js calcule un vrai score) sinon dérivé sub-scores
-    const legacyScore = readScoreFromLegacy();
-    const score = legacyScore != null ? legacyScore : computeScoreFromSubScores(sub);
     const num = document.getElementById('dashboard-health-num');
     const badge = document.getElementById('dashboard-health-badge');
     const bar = document.getElementById('dashboard-health-bar');
     const delta = document.getElementById('dashboard-health-delta');
 
+    // Pas de données du tout → "—" partout, pas de score arbitraire
+    if (!hasAnyData()) {
+      if (num) num.textContent = '—';
+      if (bar) bar.style.setProperty('--w', '0%');
+      if (badge) {
+        badge.textContent = 'Sans données';
+        badge.className = 'health-badge warn';
+      }
+      if (delta) delta.textContent = 'Configurez vos premières données';
+      // Render reco vide aussi
+      const recoEl = document.getElementById('dashboard-health-reco');
+      if (recoEl) recoEl.style.display = 'none';
+      // Render factors (qui afficheront "—" partout)
+      renderFactors(buildFactors(sub));
+      renderSparkline(null);
+      return;
+    }
+
+    // Sinon, calcul normal du score
+    const legacyScore = readScoreFromLegacy();
+    const score = legacyScore != null ? legacyScore : computeScoreFromSubScores(sub);
     const displayScore = score != null ? score : 90;
     if (num) num.textContent = String(displayScore);
     if (bar) bar.style.setProperty('--w', displayScore + '%');
