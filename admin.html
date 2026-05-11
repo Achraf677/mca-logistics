@@ -107,6 +107,8 @@
   <link rel="stylesheet" href="style-design-modals-refine.css?v=1" />
   <!-- Phase 23 refonte HTML : livraisons table refonte (8 cols visibles + mono + avatar + montants) -->
   <link rel="stylesheet" href="style-design-livraisons-refonte.css?v=1" />
+  <!-- Phase 32 refonte HTML : drawer 360 livraison slide-from-right -->
+  <link rel="stylesheet" href="style-design-livraisons-drawer.css?v=1" />
   <!-- Phase 29 refonte HTML : topbar refine (brand + search input look + theme + agent + user compact) -->
   <link rel="stylesheet" href="style-design-topbar-refine.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
@@ -139,6 +141,8 @@
   <script defer src="script-period-chips.js?v=1"></script>
   <!-- Phase 23 refonte : livraisons table polish (driver avatar post-render) -->
   <script defer src="script-livraisons-polish.js?v=1"></script>
+  <!-- Phase 32 refonte : drawer 360 livraison (slide from right, 4 tabs) -->
+  <script defer src="script-livraisons-drawer.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
   <script src="script-dev-seed.js?v=1"></script>
 </head>
@@ -599,18 +603,21 @@
           <span id="livraisons-section-sub-count" hidden>0</span>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
-          <!-- view-toggle deplace dans la period-row (Phase 12), retire ici pour pas doublonner.
-               IDs legacy preserves pour compat script.js : caches via inline style
-               (style.css .view-toggle a display:flex qui beat l'attribut hidden) -->
+          <!-- view-toggle deplace dans la period-row (Phase 12), retire ici pour pas doublonner. -->
           <div class="view-toggle" style="display:none !important">
             <button class="btn-view active" id="btn-vue-tableau" onclick="changerVueLivraisons('tableau')">Tableau</button>
             <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')">Kanban</button>
             <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')">Cal.</button>
           </div>
-          <div class="density-toggle">
-            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Vue normale" aria-label="Vue normale">☰</button>
-            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Vue compacte" aria-label="Vue compacte">≡</button>
+          <div class="density-toggle" style="display:none">
+            <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" aria-label="Vue normale">☰</button>
+            <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" aria-label="Vue compacte">≡</button>
           </div>
+          <!-- Phase 32 : bouton Modifier (N) apparait quand N >= 1 rows selectionnees (bulk) -->
+          <button class="btn-secondary liv-modify-btn" id="liv-modify-btn" type="button" onclick="window.ouvrirBulkEditLivraisons && window.ouvrirBulkEditLivraisons()" style="display:none" title="Modifier les livraisons sélectionnées">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>
+            Modifier <span id="liv-modify-count" style="opacity:0.7;margin-left:2px">(0)</span>
+          </button>
           <!-- Dropdown Générer -->
           <div class="liv-dropdown-wrap">
             <button class="btn-secondary liv-dropdown-trigger" data-dropdown="gen" title="Générer rapport / factures">
@@ -619,17 +626,21 @@
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" data-dropdown-menu="gen" role="menu">
-              <button class="liv-dropdown-item" onclick="genererRapportMensuelPeriode()">
+              <button class="liv-dropdown-item" onclick="if(typeof genererFactureLivraison==='function')genererFactureLivraison();else genererRapportMensuelPeriode()">
                 <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
-                <div><div class="ld-name">Rapport mensuel</div><div class="ld-sub">PDF synthèse de la période</div></div>
-              </button>
-              <button class="liv-dropdown-item" onclick="if(typeof genererFacturesPeriode==='function')genererFacturesPeriode();else genererRapportMensuelPeriode()">
-                <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
-                <div><div class="ld-name">Factures groupées</div><div class="ld-sub">1 PDF par client sélectionné</div></div>
+                <div><div class="ld-name">Facture</div><div class="ld-sub">PDF à envoyer au client</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="if(typeof genererBonsLivraison==='function')genererBonsLivraison()">
+                <svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M9 8h6"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+                <div><div class="ld-name">Bon de livraison</div><div class="ld-sub">Émargement chauffeur + client</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="if(typeof genererLettreVoiture==='function')genererLettreVoiture();else genererRapportMensuelPeriode()">
                 <svg viewBox="0 0 24 24"><path d="M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>
-                <div><div class="ld-name">Bons de livraison</div><div class="ld-sub">CMR / émargement chauffeur</div></div>
+                <div><div class="ld-name">Lettre de voiture</div><div class="ld-sub">CMR conforme transport</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="if(typeof genererFacturesPeriode==='function')genererFacturesPeriode();else genererRapportMensuelPeriode()">
+                <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg>
+                <div><div class="ld-name">Facture groupée</div><div class="ld-sub">PDF par client sélectionné</div></div>
               </button>
             </div>
           </div>
@@ -641,17 +652,21 @@
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="liv-dropdown-menu" data-dropdown-menu="export" role="menu">
-              <button class="liv-dropdown-item" onclick="exporterLivraisons()">
-                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                <div><div class="ld-name">Export CSV</div><div class="ld-sub">Toutes colonnes, séparateur point-virgule</div></div>
-              </button>
               <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsPDF==='function')exporterLivraisonsPDF();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
-                <div><div class="ld-name">Export PDF</div><div class="ld-sub">Imprimable, paysage</div></div>
+                <div><div class="ld-name">Export PDF</div><div class="ld-sub">Bon imprimable, 1 page</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="exporterLivraisons()">
+                <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div><div class="ld-name">Export CSV</div><div class="ld-sub">Toutes les colonnes, point-virgule</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="if(typeof exporterLivraisonsXLSX==='function')exporterLivraisonsXLSX();else exporterLivraisons()">
                 <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                <div><div class="ld-name">Export Excel (.xlsx)</div><div class="ld-sub">Onglets par statut</div></div>
+                <div><div class="ld-name">Export Excel (.xlsx)</div><div class="ld-sub">Avec onglets par statut</div></div>
+              </button>
+              <button class="liv-dropdown-item" onclick="if(typeof genererFacturesPeriode==='function')genererFacturesPeriode();else exporterLivraisons()">
+                <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M9 9h6v6H9z"/></svg>
+                <div><div class="ld-name">Facture groupée</div><div class="ld-sub">PDF par client sélectionné</div></div>
               </button>
             </div>
           </div>
@@ -793,6 +808,39 @@
           <div class="calendrier-grid" id="calendrier-grid"></div>
         </div>
       </div>
+
+      <!-- ============================================================
+           DRAWER 360 LIVRAISON (Phase 32) — slide from right
+           ============================================================ -->
+      <div class="dr-overlay" id="dr-liv-overlay" hidden></div>
+      <aside class="dr-panel" id="dr-liv-panel" role="dialog" aria-modal="true" aria-labelledby="dr-liv-title" hidden>
+        <div class="dr-head">
+          <div style="flex:1;min-width:0">
+            <div class="dr-title" id="dr-liv-title">—</div>
+            <div class="dr-sub" id="dr-liv-sub">—</div>
+          </div>
+          <button class="dr-close" type="button" onclick="window.fermerDrawerLivraison && window.fermerDrawerLivraison()" aria-label="Fermer">
+            <svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <nav class="dr-tabs" role="tablist">
+          <button class="dr-tab active" type="button" data-dr-tab="detail" role="tab" aria-selected="true">Détail</button>
+          <button class="dr-tab" type="button" data-dr-tab="documents" role="tab" aria-selected="false">Documents</button>
+          <button class="dr-tab" type="button" data-dr-tab="paiement" role="tab" aria-selected="false">Paiement</button>
+          <button class="dr-tab" type="button" data-dr-tab="historique" role="tab" aria-selected="false">Historique</button>
+        </nav>
+        <div class="dr-body">
+          <div class="dr-tab-panel active" data-dr-panel="detail" id="dr-liv-detail-panel">—</div>
+          <div class="dr-tab-panel" data-dr-panel="documents" id="dr-liv-documents-panel">—</div>
+          <div class="dr-tab-panel" data-dr-panel="paiement" id="dr-liv-paiement-panel">—</div>
+          <div class="dr-tab-panel" data-dr-panel="historique" id="dr-liv-historique-panel">—</div>
+        </div>
+        <div class="dr-foot">
+          <button class="btn-secondary" type="button" id="dr-liv-btn-print">Imprimer</button>
+          <button class="btn-secondary" type="button" id="dr-liv-btn-duplicate">Dupliquer</button>
+          <button class="btn-primary" type="button" id="dr-liv-btn-edit">Modifier</button>
+        </div>
+      </aside>
     </section>
 
     <!-- ============================================================
@@ -2796,9 +2844,10 @@
                 <div class="form-group"><label>Date</label><input type="date" id="liv-date" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-date')" / aria-label="liv date" /></div>
                 <div class="form-group"><label>Heure début</label><input type="time" id="liv-heure-debut" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-heure-debut')" / aria-label="liv heure debut" /></div>
                 <div class="form-group"><label>Statut</label><select id="liv-statut" aria-label="liv statut"><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option></select></div>
-                <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="liv-zone" / aria-label="liv zone" /></div>
-                <input type="hidden" id="liv-depart" />
-                <input type="hidden" id="liv-arrivee" />
+                <div class="form-group"><label>Départ *</label><input type="text" id="liv-depart" placeholder="Adresse de départ" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-depart');window.mcaLivForm&&window.mcaLivForm.syncZoneFromTrajet&&window.mcaLivForm.syncZoneFromTrajet()" / aria-label="Adresse de départ" /></div>
+                <div class="form-group"><label>Arrivée *</label><input type="text" id="liv-arrivee" placeholder="Adresse de livraison" oninput="window.mcaLivForm&&window.mcaLivForm.onInput('liv-arrivee');window.mcaLivForm&&window.mcaLivForm.syncZoneFromTrajet&&window.mcaLivForm.syncZoneFromTrajet()" / aria-label="Adresse de livraison" /></div>
+                <!-- Zone géographique en lecture seule (auto-synthése depart → arrivée) -->
+                <input type="hidden" id="liv-zone" />
               </div>
               <details class="fp-notes-toggle">
                 <summary>+ Ajouter une note interne</summary>

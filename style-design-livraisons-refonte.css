@@ -262,14 +262,17 @@
   line-height: 1.3;
 }
 
-/* ============ Aggressive cleanup (Phase 25) ============ */
+/* ============ Aggressive cleanup (Phase 25 + 32) ============ */
 
-/* Hide period-row card (Tableau/Kanban/Calendrier + Jour/Sem/Mois/Année doublon
-   avec section-head density-toggle).
-   NOTE : on garde le toggle dans la section-head pour pas perdre la fonctionnalité,
-   mais on cache cette ligne (doublon visuel avec les chips status). */
+/* Hide period-row card (doublon avec chips toolbar) */
 #page-livraisons > .period-row {
   display: none;
+}
+
+/* Hide legacy bulk-action-bar floating (redondant avec bouton Modifier(N) en
+   section-head + caché par le chat bot FAB selon user feedback). */
+#bulk-action-bar {
+  display: none !important;
 }
 
 /* Hide la grosse barre de filtres expanded par défaut.

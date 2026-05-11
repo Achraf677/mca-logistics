@@ -292,6 +292,71 @@
     } catch (_) { return '—'; }
   }
 
+  // ============ Bulk Modifier button (Phase 32) ============
+  // Apparait quand >= 1 row checkbox cochee, avec compteur "(N)"
+  function updateBulkModifyButton() {
+    const btn = document.getElementById('liv-modify-btn');
+    const countEl = document.getElementById('liv-modify-count');
+    if (!btn || !countEl) return;
+    const checked = document.querySelectorAll('#tb-livraisons .bulk-liv-check:checked').length;
+    if (checked > 0) {
+      btn.style.display = '';
+      countEl.textContent = '(' + checked + ')';
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  // Hook : listen to changes on bulk checkboxes + bulk-select-all
+  function setupBulkModifyButton() {
+    const tbody = document.getElementById('tb-livraisons');
+    const checkAll = document.getElementById('bulk-select-all');
+    if (!tbody) return;
+    // Delegate change on tbody pour gerer les checkboxes ajoutees/retirees au re-render
+    tbody.addEventListener('change', function (e) {
+      if (e.target && e.target.classList.contains('bulk-liv-check')) {
+        updateBulkModifyButton();
+      }
+    });
+    if (checkAll) checkAll.addEventListener('change', () => setTimeout(updateBulkModifyButton, 50));
+    // Initial state
+    updateBulkModifyButton();
+  }
+
+  // Bouton Modifier(N) :
+  //  - 1 ligne selectionnee : ouvrir le modal d'edition livraison (modal-edit-livraison)
+  //  - N lignes : bulk edit modal si existe, sinon info toast
+  window.ouvrirBulkEditLivraisons = function () {
+    const ids = Array.from(document.querySelectorAll('#tb-livraisons .bulk-liv-check:checked'))
+      .map(c => c.dataset.livId)
+      .filter(Boolean);
+    if (!ids.length) return;
+    if (ids.length === 1) {
+      // Open modal d'edition direct (priorite legacy)
+      if (typeof window.ouvrirEditLivraison === 'function') {
+        window.ouvrirEditLivraison(ids[0]);
+        return;
+      }
+      if (typeof window.ouvrirEditLivraisonAdmin === 'function') {
+        window.ouvrirEditLivraisonAdmin(ids[0]);
+        return;
+      }
+      // Fallback drawer
+      if (typeof window.ouvrirDrawerLivraison === 'function') {
+        window.ouvrirDrawerLivraison(ids[0]);
+        return;
+      }
+    }
+    // Bulk N > 1
+    if (typeof window.bulkEditLivraisons === 'function') {
+      window.bulkEditLivraisons(ids);
+    } else if (typeof window.afficherToast === 'function') {
+      window.afficherToast(ids.length + ' livraisons sélectionnées — utilisez les actions de masse', 'info');
+    } else {
+      alert(ids.length + ' livraisons sélectionnées.');
+    }
+  };
+
   // ============ Filtres toggle (Phase 25) ============
   window.toggleLivraisonsFilters = function () {
     const bar = document.querySelector('#page-livraisons > .filters.filters-livraisons');
@@ -332,6 +397,7 @@
     resetLivraisonsDateFilters();
     updateDateRangeChip();
     setupDropdowns();
+    setupBulkModifyButton();
     // Update date range chip when filters change
     ['filtre-date-debut', 'filtre-date-fin'].forEach(id => {
       const el = document.getElementById(id);
