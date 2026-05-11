@@ -20,9 +20,18 @@
   grid-template-columns: 1.1fr 1fr;
   gap: 14px;
   margin-bottom: 18px;
+  align-items: stretch;
 }
 @media (max-width: 1100px) {
   .dashboard-hero-row { grid-template-columns: 1fr; }
+}
+
+/* Force les 2 cards à occuper toute la hauteur du grid row (sinon visuel cassé
+   si l'une a moins de contenu que l'autre, ex: 8 facteurs vs 1 pill). */
+.dashboard-hero-row > .hero-sante,
+.dashboard-hero-row > .dashboard-attention {
+  height: 100%;
+  align-self: stretch;
 }
 
 /* ============ HERO SANTÉ — RESTYLE (no ring, big number) ============ */
