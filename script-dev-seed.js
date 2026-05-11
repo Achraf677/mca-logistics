@@ -18,6 +18,27 @@
 (function () {
   'use strict';
 
+  // ============ DOMAIN GUARD — refuse de tourner sur prod ============
+  // Whitelist : localhost, 127.0.0.1, *.pages.dev (preview deploys Cloudflare).
+  // Le domaine prod final (mca-logistics.fr) n'a PAS le droit au seed.
+  const host = window.location.hostname || '';
+  const SEED_ALLOWED = (
+    host === 'localhost'
+    || host === '127.0.0.1'
+    || host.endsWith('.pages.dev')
+    || host.endsWith('.localhost')
+  );
+  if (!SEED_ALLOWED) {
+    // Sur prod, expose juste un helper d'info, ne fait RIEN d'autre
+    window.__mcaDevSeed = {
+      info() {
+        console.warn('[mca-dev-seed] DISABLED on prod domain (' + host + '). ' +
+          'Seed only runs on localhost / 127.0.0.1 / *.pages.dev.');
+      },
+    };
+    return;
+  }
+
   const params = new URLSearchParams(window.location.search);
   const wantSeed = params.get('seed') === '1';
   const wantReset = params.get('reset') === '1';
