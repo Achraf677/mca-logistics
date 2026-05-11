@@ -70,6 +70,20 @@
     setText('livraisons-section-sub-count', c.all);
     var periodeLabel = (document.getElementById('liv-periode-label') || {}).textContent || '';
     setText('livraisons-section-sub-mois', periodeLabel || 'Période courante');
+
+    // Phase 6 : title-row (H1 page name + sub-meta count)
+    setText('livraisons-titlerow-count', c.all);
+    setText('livraisons-titlerow-periode', periodeLabel || 'ce mois');
+    var retardsWrap = document.getElementById('livraisons-titlerow-retards-wrap');
+    if (retardsWrap) {
+      if (c.retard > 0) {
+        retardsWrap.style.display = '';
+        setText('livraisons-titlerow-retards', c.retard);
+        setText('livraisons-titlerow-retards-s', c.retard > 1 ? 's' : '');
+      } else {
+        retardsWrap.style.display = 'none';
+      }
+    }
   }
 
   // --- Chip click handler

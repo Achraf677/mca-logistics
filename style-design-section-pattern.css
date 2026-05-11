@@ -1,0 +1,118 @@
+/* ==========================================================================
+   MCA Logistics — Design Section Pattern (Phase 6 / Refonte HTML pixel-perfect)
+
+   Pattern title-row + section-head aligné sur les mockups previews/*.html.
+   Réutilisable sur toutes les pages (livraisons, planning, clients, etc.).
+
+   Hierarchy :
+   - .title-row    : H1 page name + sub-meta count/state
+   - .ds-section-head : H2 section description + actions buttons (existant)
+
+   Charge APRES style-design-shell.css. Aucun changement d'IDs.
+   ========================================================================== */
+
+/* ============ TITLE ROW (H1 page name + meta) ============ */
+.title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.title-row .page-title {
+  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ds-text, var(--text));
+  line-height: 1.1;
+  margin: 0;
+}
+
+.title-row .sub-meta {
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-feature-settings: "tnum";
+}
+
+.title-row .sub-meta strong {
+  color: var(--ds-text, var(--text));
+  font-weight: 700;
+}
+
+/* Quand title-row contient un emphasis "X retards à traiter" → rouge */
+.title-row .sub-meta .alert {
+  color: var(--ds-brand, var(--accent));
+  font-weight: 600;
+}
+
+/* ============ Period chips row (view toggle + period) ============ */
+.period-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.period-row .view-toggle {
+  display: inline-flex;
+  background: var(--ds-bg-card, var(--bg-card));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 10px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.period-row .view-toggle .btn-view {
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease-out;
+}
+
+.period-row .view-toggle .btn-view.active {
+  background: var(--ds-brand-soft, rgba(230,57,70,0.12));
+  color: var(--ds-brand, var(--accent));
+}
+
+.period-row .period-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.period-row .period-chips .chip-period {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--ds-border, var(--border));
+  background: var(--ds-bg-card, var(--bg-card));
+  color: var(--ds-text-muted, var(--text-muted));
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease-out;
+}
+
+.period-row .period-chips .chip-period:hover {
+  color: var(--ds-text, var(--text));
+}
+
+.period-row .period-chips .chip-period.active {
+  background: var(--ds-brand-soft, rgba(230,57,70,0.12));
+  color: var(--ds-brand, var(--accent));
+  border-color: rgba(230, 57, 70, 0.4);
+}

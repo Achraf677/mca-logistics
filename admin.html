@@ -93,6 +93,8 @@
   <link rel="stylesheet" href="style-refonte-utilities.css?v=1" />
   <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
   <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
+  <!-- Phase 6 refonte HTML : title-row + period-row pattern (reusable across pages) -->
+  <link rel="stylesheet" href="style-design-section-pattern.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
@@ -498,11 +500,26 @@
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
 
+      <!-- Phase 6 refonte HTML : title-row pattern (page name H1 + meta count) -->
+      <div class="title-row">
+        <h1 class="page-title">Livraisons</h1>
+        <div class="sub-meta">
+          <strong id="livraisons-titlerow-count">0</strong>
+          <span id="livraisons-titlerow-periode">ce mois</span>
+          <span> · </span>
+          <span id="livraisons-titlerow-retards-wrap" style="display:none">
+            <span class="alert"><strong id="livraisons-titlerow-retards">0</strong> retard<span id="livraisons-titlerow-retards-s"></span> à traiter</span>
+          </span>
+        </div>
+      </div>
+
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions page-actions-livraisons ds-section-head">
         <div class="ds-section-head__title">
-          <h2>Livraisons</h2>
+          <h2>Toutes les livraisons</h2>
           <div class="ds-section-head__sub">
+            <span>Filtrer, exporter, suivre l'état de chaque tournée</span>
+            <span class="ds-section-head__sep">·</span>
             <span id="livraisons-section-sub-mois">—</span>
             <span class="ds-section-head__sep">·</span>
             <span><span id="livraisons-section-sub-count">0</span> livraisons</span>
