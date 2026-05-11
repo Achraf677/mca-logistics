@@ -155,7 +155,12 @@
   text-transform: uppercase;
   letter-spacing: 0.07em;
   font-weight: 700;
-  padding: 12px 14px;
+  padding: 14px 16px;
+}
+
+/* Rows : aerer un peu (Phase 30) - de 11px a 14px de padding vertical */
+.livraisons-table tbody td {
+  padding: 14px 16px;
 }
 
 /* ============ Pagination footer polish ============ */

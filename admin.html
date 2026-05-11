@@ -288,7 +288,14 @@
         <span class="topbar-logo-name" id="topbar-brand-name">MCA Logistics</span>
       </div>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
-      <button class="btn-secondary topbar-search-trigger" type="button" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg> Rechercher</button>
+      <div class="topbar-search-wrap" onclick="ouvrirRechercheGlobale()" title="Recherche globale (Ctrl+K)">
+        <svg class="topbar-search-icon" viewBox="0 0 24 24" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="topbar-search-trigger" type="text" placeholder="Rechercher N°, client, chauffeur…" readonly />
+      </div>
+      <button class="topbar-bell" type="button" onclick="naviguerVers('alertes')" aria-label="Alertes" title="Voir les alertes">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="topbar-bell-badge" id="topbar-bell-count" style="display:none">0</span>
+      </button>
       <button class="btn-secondary" id="btn-install-pwa" type="button" onclick="declencherInstallPWA()" style="display:none" title="Installer l'application sur votre appareil"><svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Installer</button>
       <button class="btn-theme-toggle" onclick="toggleTheme()" id="btn-theme" title="Mode clair / sombre" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
       <div id="ai-status-bar" onclick="togglePanneauAgent()" style="display:flex;align-items:center;gap:8px;padding:6px 14px;background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.25);border-radius:20px;cursor:pointer;margin-left:auto;margin-right:12px;">
@@ -695,14 +702,12 @@
         <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" style="display:none">
           En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
         </button>
-        <!-- Phase 25 : period nav + date range + filtres toggle inline (aligne mockup) -->
+        <!-- Phase 30 : date range chip + filtres toggle (period nav arrows retires, pas dans mockup) -->
         <div class="liv-toolbar-right" style="margin-left:auto;display:flex;align-items:center;gap:8px">
-          <button class="btn-icon-mini" onclick="navLivPeriode(-1)" title="Période précédente" aria-label="Précédent">‹</button>
-          <div class="liv-date-range-chip" onclick="document.getElementById('filtre-date-debut')?.focus()" title="Période courante">
+          <div class="liv-date-range-chip" onclick="window.toggleLivraisonsFilters && window.toggleLivraisonsFilters()" title="Modifier la période">
             <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
-            <span id="liv-periode-label">Période</span>
+            <span id="liv-periode-label">Période courante</span>
           </div>
-          <button class="btn-icon-mini" onclick="navLivPeriode(1)" title="Période suivante" aria-label="Suivant">›</button>
           <button class="liv-filters-toggle" id="liv-filters-toggle-btn" onclick="window.toggleLivraisonsFilters && window.toggleLivraisonsFilters()" title="Filtres avancés">
             <svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>
             Filtres

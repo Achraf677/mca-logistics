@@ -271,10 +271,16 @@
     const dFin = document.getElementById('filtre-date-fin');
     const labelEl = document.getElementById('liv-periode-label');
     if (!labelEl) return;
-    const periodeStr = (dDeb && dDeb.value) || (dFin && dFin.value)
-      ? formatFr(dDeb && dDeb.value) + ' — ' + formatFr(dFin && dFin.value)
-      : 'Période courante';
-    labelEl.textContent = periodeStr;
+    if ((dDeb && dDeb.value) || (dFin && dFin.value)) {
+      labelEl.textContent = formatFr(dDeb && dDeb.value) + ' — ' + formatFr(dFin && dFin.value);
+      return;
+    }
+    // Sinon, calcul auto du mois courant
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const fmt = (d) => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth()+1).padStart(2, '0') + '/' + d.getFullYear();
+    labelEl.textContent = fmt(first) + ' — ' + fmt(last);
   }
 
   function formatFr(iso) {

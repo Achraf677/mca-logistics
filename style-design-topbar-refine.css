@@ -58,26 +58,107 @@
   letter-spacing: -0.01em;
 }
 
-/* ============ Search trigger : look-like-input ============ */
+/* ============ Search input (Phase 30) — vrai look input ============ */
+.topbar-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  min-width: 280px;
+  max-width: 380px;
+  flex: 0 1 320px;
+}
+
+.topbar-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  stroke: var(--ds-text-muted, var(--text-muted));
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
 .topbar-search-trigger {
+  width: 100%;
   background: var(--ds-bg-card, var(--bg-card)) !important;
   border: 1px solid var(--ds-border, var(--border)) !important;
   color: var(--ds-text-muted, var(--text-muted)) !important;
-  border-radius: 999px !important;
-  padding: 7px 16px 7px 14px !important;
-  min-width: 240px;
-  font-size: 12.5px !important;
+  border-radius: 8px !important;
+  padding: 8px 14px 8px 36px !important;
+  font-size: 13px !important;
   font-weight: 500 !important;
-  display: inline-flex !important;
-  align-items: center;
-  gap: 8px;
+  font-family: inherit;
   transition: all 0.15s ease-out;
-  text-align: left;
+  cursor: pointer;
+  outline: none;
 }
 
-.topbar-search-trigger:hover {
+.topbar-search-trigger::placeholder {
+  color: var(--ds-text-muted, var(--text-muted));
+  opacity: 0.7;
+}
+
+.topbar-search-wrap:hover .topbar-search-trigger {
   border-color: var(--ds-border-strong, var(--border)) !important;
-  color: var(--ds-text, var(--text)) !important;
+}
+
+.topbar-search-wrap:hover .topbar-search-icon {
+  opacity: 1;
+}
+
+/* ============ Bell notification icon (Phase 30) ============ */
+.topbar-bell {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--ds-border, var(--border));
+  color: var(--ds-text-muted, var(--text-muted));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  padding: 0;
+}
+
+.topbar-bell svg {
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.topbar-bell:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  color: var(--ds-text, var(--text));
+  border-color: var(--ds-border-strong, var(--border));
+}
+
+.topbar-bell-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ds-brand, var(--accent));
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--ds-bg-elevated, #1a1d22);
 }
 
 /* ============ Theme toggle compact ============ */
