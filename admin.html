@@ -139,6 +139,8 @@
   <script defer src="script-heures-counts.js?v=1"></script>
   <!-- Phase 43 refonte HTML : Inspections KPI grid counts. -->
   <script defer src="script-inspections-counts.js?v=1"></script>
+  <!-- Phase 44 refonte HTML : Entretiens type chips toolbar wiring. -->
+  <script defer src="script-entretiens-chips.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=1"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
@@ -2546,11 +2548,19 @@
           </div>
         </div>
       </div>
+      <!-- Phase 44 refonte HTML : chips tabs type entretien (mockup-matched) -->
+      <div class="ds-chips-toolbar" id="entr-chips-type" style="margin-bottom:8px">
+        <button class="ds-chip active" type="button" data-entr-type="" onclick="entrChipType(this,'')">Tous</button>
+        <button class="ds-chip" type="button" data-entr-type="revision" onclick="entrChipType(this,'revision')">Révisions</button>
+        <button class="ds-chip" type="button" data-entr-type="vidange" onclick="entrChipType(this,'vidange')">Vidanges</button>
+        <button class="ds-chip" type="button" data-entr-type="freins" onclick="entrChipType(this,'freins')">Freins / Pneus</button>
+        <button class="ds-chip" type="button" data-entr-type="carrosserie" onclick="entrChipType(this,'carrosserie')">Carrosserie</button>
+      </div>
       <div class="filters" style="margin-bottom:16px">
         <select id="filtre-entr-vehicule" onchange="afficherEntretiens()" aria-label="filtre entr vehicule">
           <option value="">Tous les véhicules</option>
         </select>
-        <select id="filtre-entr-type" onchange="afficherEntretiens()" aria-label="filtre entr type">
+        <select id="filtre-entr-type" onchange="afficherEntretiens();entrSyncChips(this.value)" aria-label="filtre entr type">
           <option value="">Tous les types</option>
           <option value="revision">Révision</option>
           <option value="vidange">Vidange</option>
@@ -2561,7 +2571,7 @@
           <option value="carrosserie">Carrosserie</option>
           <option value="autre">Autre</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-entr-vehicule').value='';document.getElementById('filtre-entr-type').value='';afficherEntretiens()">Réinitialiser</button>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-entr-vehicule').value='';document.getElementById('filtre-entr-type').value='';entrSyncChips('');afficherEntretiens()">Réinitialiser</button>
       </div>
       <div class="card">
         <div class="table-wrapper">
