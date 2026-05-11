@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v20-seed-domain-guard-373';
+const CACHE_VERSION = 'mca-v2026-05-11-v21-empty-states-374';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -71,6 +71,8 @@ const CORE_ASSETS = [
   '/script-dashboard-charts.js',
   // Phase 12 refonte HTML — period-chips wiring (sync chips ↔ existing selects)
   '/script-period-chips.js',
+  // Phase 13 refonte HTML — empty states stylisés cross-pages
+  '/style-design-empty-states.css',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)

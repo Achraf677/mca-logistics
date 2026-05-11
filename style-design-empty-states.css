@@ -1,0 +1,207 @@
+/* ==========================================================================
+   MCA Logistics — Empty states (Phase 13 / Refonte HTML pixel-perfect)
+
+   Pattern reutilisable pour TOUS les "Aucune livraison" / "Aucun client" /
+   "Aucun véhicule" / etc. Au lieu d'un texte plat dans une <td colspan>, on
+   transforme visuellement en : icone SVG + titre + sous-titre + CTA optionnel.
+
+   Approche : on hook les <tr><td class="empty-row"> existants via CSS only
+   (sans toucher le HTML genere par script.js). On peut aussi appliquer
+   .empty-state directement dans les pages.
+   ========================================================================== */
+
+/* ============ EMPTY STATE — version table cell (legacy) ============ */
+.data-table tbody tr td.empty-row {
+  text-align: center;
+  padding: 50px 24px 56px;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+  background: transparent;
+}
+
+/* Icone SVG en pseudo-element : un cercle qui contient une icone par defaut
+   (papier vide). Custom-able par data-empty-icon sur tbody si necessaire. */
+.data-table tbody tr td.empty-row::before {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background-color: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><line x1='12' y1='12' x2='12' y2='18'/><line x1='9' y1='15' x2='15' y2='15'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 32px 32px;
+  border: 1px solid var(--ds-border, var(--border));
+}
+
+/* Phrase complementaire stylisee */
+.data-table tbody tr td.empty-row::after {
+  content: 'Aucune donnée pour le moment';
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  opacity: 0.7;
+}
+
+/* Custom: si td.empty-row contient deja du texte explicite, c'est ce texte
+   qui titre. Le ::after ajoute la sous-phrase generique. */
+
+/* ============ EMPTY STATE — version block (.empty-state) ============ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--ds-bg-card, var(--bg-card));
+  border: 1px dashed var(--ds-border, var(--border));
+  border-radius: 12px;
+  gap: 12px;
+}
+
+.empty-state-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  border: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-bottom: 4px;
+}
+
+.empty-state-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.empty-state-title {
+  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ds-text, var(--text));
+  letter-spacing: -0.01em;
+}
+
+.empty-state-sub {
+  font-size: 13px;
+  color: var(--ds-text-muted, var(--text-muted));
+  max-width: 380px;
+  line-height: 1.5;
+}
+
+.empty-state-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.empty-state-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--ds-brand, var(--accent));
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease-out;
+  font-family: inherit;
+}
+
+.empty-state-cta:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.empty-state-cta-secondary {
+  background: transparent;
+  color: var(--ds-text, var(--text));
+  border: 1px solid var(--ds-border, var(--border));
+}
+
+.empty-state-cta-secondary:hover {
+  border-color: var(--ds-border-strong, var(--border));
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+/* ============ Variants colored (matches semantics) ============ */
+.empty-state-success .empty-state-icon { color: #06d6a0; border-color: rgba(6,214,160,0.3); }
+.empty-state-warn .empty-state-icon    { color: var(--ds-warning, #ffd60a); border-color: rgba(255,214,10,0.3); }
+.empty-state-danger .empty-state-icon  { color: var(--ds-brand, var(--accent)); border-color: rgba(230,57,70,0.3); }
+
+/* ============ Pagination empty (special case) ============ */
+.pagination-bar:empty,
+.pagination-bar[data-empty="true"] {
+  display: none !important;
+}
+
+/* ============ Icones contextuels par table ============ */
+
+/* Livraisons : camion */
+#tb-livraisons tr td.empty-row::before,
+#tb-livraisons-recentes tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 18H3v-6.6c0-.4.1-.7.3-1L7 5h10l3.7 5.4c.2.3.3.6.3 1V18h-2'/><circle cx='7' cy='18' r='2'/><circle cx='17' cy='18' r='2'/></svg>");
+}
+
+/* Clients : silhouette */
+#tb-clients tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2'/><circle cx='8.5' cy='7' r='4'/><path d='M20 8v6'/><path d='M23 11h-6'/></svg>");
+}
+
+/* Fournisseurs : building */
+#tb-fournisseurs tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 21h18'/><path d='M3 7v14'/><path d='M21 7v14'/><path d='M3 7l9-4 9 4'/><path d='M9 21V11'/><path d='M15 21V11'/></svg>");
+}
+
+/* Vehicules : van */
+#tb-vehicules tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2'/><circle cx='6.5' cy='16.5' r='2.5'/><circle cx='16.5' cy='16.5' r='2.5'/></svg>");
+}
+
+/* Salaries : team */
+#tb-salaries tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='9' cy='7' r='4'/><path d='M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2'/><circle cx='17' cy='7' r='3'/></svg>");
+}
+
+/* Carburant : pompe */
+#tb-carburant tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14'/><path d='M3 14h14'/><path d='M17 9l4 4v6a2 2 0 0 1-2 2'/></svg>");
+}
+
+/* Charges : carte bancaire */
+#tb-charges tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><rect x='2' y='6' width='20' height='13' rx='2'/><path d='M2 10h20'/><path d='M16 14h4'/></svg>");
+}
+
+/* Entretiens : cle */
+#tb-entretiens tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z'/></svg>");
+}
+
+/* Incidents : alerte */
+#tb-incidents tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z'/><path d='M12 9v4'/><path d='M12 17h.01'/></svg>");
+}
+
+/* Alertes : alerte */
+.alertes-table tr td.empty-row::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23adb5bd' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'/><path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'/></svg>");
+}
