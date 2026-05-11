@@ -94,7 +94,8 @@
     if (!select) return;
     // Le filtre "retard" n'existe pas dans le select prod -> fallback : statut vide + appliquer la logique cote table via afficherLivraisons() qui peut detecter retards.
     // Pour les autres : on set la valeur du select et trigger change.
-    var supported = ['', 'en-cours', 'livre', 'en-attente'];
+    // BUG-015 fix : ajouter 'brouillon' aux statuts supportés par le select
+    var supported = ['', 'en-cours', 'livre', 'en-attente', 'brouillon'];
     if (supported.indexOf(statut) !== -1) {
       select.value = statut || '';
       try {

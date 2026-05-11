@@ -502,3 +502,24 @@
 
   window.refonteLivraisonsPolish = polishRows;
 })();
+
+// ============ BUG-005 fix : actionGenererLivraison silently fails ============
+(function patchGenererWithErrorFeedback() {
+  const _origAction = window.actionGenererLivraison;
+  if (typeof _origAction !== 'function') return;
+  window.actionGenererLivraison = function(type) {
+    try {
+      _origAction.call(window, type);
+    } catch (e) {
+      console.error('[BUG-005] actionGenererLivraison(' + type + ') threw:', e);
+      if (typeof window.afficherToast === 'function') {
+        window.afficherToast('Erreur lors de la génération : ' + (e && e.message ? e.message : 'inconnue'), 'error');
+      } else {
+        alert('Erreur génération : ' + (e && e.message ? e.message : String(e)));
+      }
+      if (window.Sentry && window.Sentry.captureException) {
+        try { window.Sentry.captureException(e); } catch (_) {}
+      }
+    }
+  };
+})();

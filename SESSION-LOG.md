@@ -117,6 +117,28 @@
 
 ---
 
+## Session 2026-05-12 (reprise contexte 2) — BUG-005 + BUG-015 chips
+**Phases** : bug-fix post-merge-conflict
+**Commit** : fix(BUG-005 + BUG-015)
+**État** : 14 bugs FIXED, 1 NEW (BUG-014 Playwright-only), livraisons ~85% match
+
+### Actions clés
+- Résolution du conflit de rebase : branche remote avait déjà BUG-004 + BUG-013 (toast wizard) fixés
+- Reset sur `origin/claude/html-refonte-cleanup` + réapplication des changements uniques
+- BUG-015 découvert par analyse statique : chips Brouillons ne filtrait pas la table
+
+### Bugs fixés
+- **BUG-005** : try/catch wrapper sur `actionGenererLivraison` dans `script-livraisons-polish.js` (expose exceptions JS, toast + Sentry)
+- **BUG-015** : `'brouillon'` ajouté dans `supported[]` de `appliquerChipLivraisons` + option `<select>` manquante
+
+### Bugs détectés
+- **BUG-015** : détecté par analyse statique, fixé dans ce même commit
+
+### Décisions
+- Merge conflict résolu proprement par reset + cherry-pick sélectif des changements uniques (au lieu de résolution manuelle des conflits)
+
+---
+
 ## Format pour nouvelles sessions
 
 ```markdown

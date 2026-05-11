@@ -116,7 +116,7 @@
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
   <script defer src="script-charges-kpis-categorie.js?v=1"></script>
   <!-- Phase 2 HTML refonte Livraisons : chips toolbar handler + counts par statut. -->
-  <script defer src="script-livraisons-chips.js?v=1"></script>
+  <script defer src="script-livraisons-chips.js?v=2"></script>
   <!-- Phase 2 HTML refonte Equipe : counts actifs + postes. -->
   <script defer src="script-equipe-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
@@ -140,7 +140,7 @@
   <!-- Phase 12 refonte : period-chips wiring (sync chips ↔ existing selects) -->
   <script defer src="script-period-chips.js?v=1"></script>
   <!-- Phase 23 refonte : livraisons table polish (driver avatar post-render) -->
-  <script defer src="script-livraisons-polish.js?v=1"></script>
+  <script defer src="script-livraisons-polish.js?v=2"></script>
   <!-- Phase 32 refonte : drawer 360 livraison (slide from right, 4 tabs) -->
   <script defer src="script-livraisons-drawer.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
@@ -743,7 +743,7 @@
           <input type="search" id="filtre-recherche-liv" placeholder="Rechercher un client, un N° LIV ou un chauffeur..." oninput="afficherLivraisons()" / aria-label="Rechercher un client, un N° LIV ou un chauffeur..." />
         </div>
         <select id="filtre-statut" onchange="afficherLivraisons()" aria-label="filtre statut">
-          <option value="">Tous les statuts</option><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option>
+          <option value="">Tous les statuts</option><option value="en-attente">En attente</option><option value="en-cours">En cours</option><option value="livre">Livré</option><option value="brouillon">Brouillon</option>
         </select>
         <select id="filtre-paiement" onchange="afficherLivraisons()" aria-label="filtre paiement">
           <option value="">Tout paiement</option><option value="en-attente">À payer</option><option value="payé">Payé</option><option value="litige">Litige</option>

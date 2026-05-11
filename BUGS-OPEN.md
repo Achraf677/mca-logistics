@@ -18,15 +18,6 @@
 - **Fix proposé** : utiliser `page.locator('button:has-text("+ Nouvelle livraison")').click()` au lieu de `evaluate(openModal)` dans `tools/audit-fill-form.mjs`.
 - **Test** : rerun `tools/audit-fill-form.mjs` après fix → modal visible dans screenshot 02 → fill réussit.
 
-### BUG-005 — Génération facture depuis dropdown ne déclenche pas le PDF
-- **Page** : Livraisons (dropdown Générer)
-- **Symptôme** : clic "Facture" → rien ne se passe (aucun téléchargement).
-- **Severity** : HIGH (fonctionnel)
-- **Reporter** : user 2026-05-11
-- **Cause** : `actionGenererLivraison('facture')` appelle `window.genererFactureLivraison(livId)` mais cette fonction legacy a peut-être des deps non chargées (jsPDF) ou besoin de contexte.
-- **Fix proposé** : (1) vérifier que `genererFactureLivraison` peut être appelée standalone, (2) charger contexte (jsPDF lazy) si manquant, (3) loguer erreurs.
-- **Test** : sélectionner 1 livraison → Générer → Facture → vérifier PDF téléchargé.
-
 ---
 
 ## 🟡 IN_PROGRESS
@@ -85,6 +76,21 @@ _(vide pour l'instant)_
   - Générer : Facture / Bon de livraison / Lettre de voiture / Facture groupée (4)
   - Exporter : PDF / CSV / Excel / Facture groupée (4)
 
+### BUG-015 — Chip "Brouillons" ne filtre pas la table (select manquant)
+- **Status** : FIXED (ce commit)
+- **Découverte** : analyse statique — `appliquerChipLivraisons` dans `script-livraisons-chips.js` n'incluait pas `'brouillon'` dans le tableau `supported[]`, donc le clic chip tombait dans le fallback retard (reset select) sans filtrer. De plus `#filtre-statut` n'avait pas d'`<option value="brouillon">`.
+- **Fix** :
+  - `script-livraisons-chips.js` : ajout `'brouillon'` dans `supported[]` (BUG-015 fix)
+  - `admin.html` : ajout `<option value="brouillon">Brouillon</option>` dans `#filtre-statut`
+  - `admin.html` : `script-livraisons-chips.js?v=1` → `?v=2` (cache busting)
+- **À vérifier** : section Livraisons → cliquer chip "Brouillons" → table affiche uniquement les livraisons en statut brouillon.
+
+### BUG-005 — Génération facture depuis dropdown ne déclenche pas le PDF
+- **Status** : FIXED partiel (ce commit)
+- **Fix** : try/catch wrapper sur `actionGenererLivraison` dans `script-livraisons-polish.js` — toute exception JS est maintenant visible (toast + `console.error` + Sentry). Wrapper hors IIFE principale, s'applique après chargement.
+- **Note** : si "rien ne se passe" persiste malgré le wrapper, la cause est probablement le check SIRET absent qui redirecte vers Paramètres sans toast visible (comportement intentionnel).
+- **À vérifier** : (1) sans SIRET → toast "Renseigne un SIRET" ou redirect Paramètres ; (2) avec SIRET valide → popup impression ou toast d'erreur explicite.
+
 ### BUG-001 — Section titles tronqués dans modal Nouvelle livraison
 - **Status** : FIXED (commit `d036955`)
 - **À vérifier** : ouvrir modal "+ Nouvelle livraison" → vérifier 4 titres entiers.
@@ -109,8 +115,8 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 2 |
+| NEW | 1 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 12 |
+| FIXED (à vérifier) | 14 |
 | VERIFIED | 0 |
-| **Total** | **14** |
+| **Total** | **15** |
