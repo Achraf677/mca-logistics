@@ -2545,6 +2545,16 @@ body.light-mode .cmd-entity-row.cmd-row-active {
   margin-bottom: 14px;
   opacity: .35;
   filter: grayscale(30%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 56px;
+}
+.empty-illustrated .ei-icon svg {
+  width: 56px;
+  height: 56px;
+  opacity: 0.85;
+  filter: none;
 }
 .empty-illustrated .ei-title {
   font-size: .95rem;
