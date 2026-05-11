@@ -9,6 +9,24 @@
 
 ## 🔴 NEW (à traiter)
 
+### BUG-013 — Toast "Le nom de l'entreprise est requis" affiché au load page Livraisons
+- **Page** : Livraisons (admin.html)
+- **Symptôme** : au chargement de la page Livraisons (depuis nav-item, sans ouvrir aucun modal), un toast rouge "⚠️ Le nom de l'entreprise est requis" apparaît en bas droite. Capturé via `tools/audit-fill-form.mjs` screenshot `01-empty-state.png`.
+- **Severity** : MEDIUM (UX confus, fait penser qu'il y a un état d'erreur)
+- **Reporter** : audit Claude 2026-05-12
+- **Cause suspectée** : validation form `field-rules` ou `form-progress` qui se déclenche au render initial — pas seulement à l'ouverture du modal-livraison. Le `reset()` fix du BUG-002 dans script.js:14046 ciblait le modal, mais ce toast vient probablement d'un autre listener (peut-être `mcaLivForm.onInput` qui fire sans interaction, ou `field-rules` qui valide à `DOMContentLoaded`).
+- **Fix proposé** : grep `Le nom de l'entreprise est requis` ou `entreprise est requis` dans `script.js` et fichiers liés (script-livraisons.js, livraison-form.js, etc.), tracer le déclencheur, gater par `if (formInteracted)`.
+- **Test** : `?reset=1` → nav vers Livraisons → empty state visible → aucun toast d'erreur. Ne déclencher le toast QUE si submit vide ou perte de focus champ vide.
+
+### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
+- **Page** : Livraisons (audit Playwright)
+- **Symptôme** : `window.openModal('modal-livraison')` appelé après nav vers Livraisons → screenshot 02 montre Dashboard layout, pas le modal. Champ `#liv-client` reste détaché ou invisible 30s → Playwright timeout.
+- **Severity** : MEDIUM (bloque l'audit automatisé, pas la prod utilisateur — l'utilisateur clique sur "+ Nouvelle livraison" qui marche)
+- **Reporter** : audit Claude 2026-05-12
+- **Cause suspectée** : (1) `openModal` est défini ailleurs et navigue, (2) le modal est dans un partial lazy-loaded, (3) `MCASetup.later()` n'a pas fini, (4) display:none persistant.
+- **Fix proposé** : utiliser `page.locator('button:has-text("+ Nouvelle livraison")').click()` au lieu de `evaluate(openModal)` dans `tools/audit-fill-form.mjs`.
+- **Test** : rerun `tools/audit-fill-form.mjs` après fix → modal visible dans screenshot 02 → fill réussit.
+
 ### BUG-001 — Section titles tronqués dans modal Nouvelle livraison
 - **Page** : Livraisons
 - **Symptôme** : "Informations générales" → "énérales" / "Prix & TVA" → "`TVA"
@@ -110,8 +128,8 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 5 |
+| NEW | 7 |
 | IN_PROGRESS | 0 |
 | FIXED (à vérifier) | 7 |
 | VERIFIED | 0 |
-| **Total** | **12** |
+| **Total** | **14** |
