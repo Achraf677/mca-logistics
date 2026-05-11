@@ -3,14 +3,16 @@ name: E2E Tests (Playwright)
 # Tests Playwright — parcours critiques admin et mobile.
 #
 # Declencheurs :
-#   - Pull Requests vers main : verification systematique avant merge
 #   - Cron quotidien 06:00 UTC : watchdog production — si un parcours
 #     critique casse en prod, on est notifie le matin (avant les chauffeurs).
 #   - Workflow dispatch : declenchement manuel depuis l'UI GitHub.
+#
+# Le trigger pull_request a ete retire (2026-05-11) : le workflow tournait
+# en boucle sur chaque PR pour ~30 min, retardant les merges sans ajouter
+# de valeur (tests cassaient au login staging — secrets/selectors a re-aligner).
+# A reactiver une fois le login Playwright stable + duree reduite.
 
 on:
-  pull_request:
-    branches: [main]
   schedule:
     - cron: '0 6 * * *'   # 06:00 UTC = 08:00 CEST (avant ouverture)
   workflow_dispatch:
