@@ -652,7 +652,7 @@
     var corps = document.getElementById('detail-tournee-body');
     var titre = document.getElementById('detail-tournee-title');
     if (!corps || !titre) return;
-    titre.textContent = '🛣️ Tournée ' + t.date + ' — ' + t.chaufNom;
+    titre.textContent = 'Tournée ' + t.date + ' — ' + t.chaufNom;
     var couleur = t.marge >= 0 ? '#28a745' : '#dc3545';
     var html =
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">' +
@@ -731,13 +731,13 @@
     var html = '<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:780px;margin:0 auto;padding:32px;color:#1a1d27">'
       + (typeof construireEnteteExport === 'function' ? construireEnteteExport(params, 'Rapport rentabilité', periodeLabel, dateExp, meta) : '')
       + (typeof renderBlocInfosEntreprise === 'function' ? renderBlocInfosEntreprise(params) : '')
-      + renderTableSection('🚐 Par véhicule (top 20)',
+      + renderTableSection('Par véhicule (top 20)',
           ['Véhicule', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsV)
-      + renderTableSection('👤 Par client (top 20 par marge)',
+      + renderTableSection('Par client (top 20 par marge)',
           ['Client', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsC)
       + renderTableSection('🧑‍✈️ Par chauffeur (top 20 par marge)',
           ['Chauffeur', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsCh)
-      + renderTableSection('🛣️ Tournées (30 plus récentes)',
+      + renderTableSection('Tournées (30 plus récentes)',
           ['Date', 'Chauffeur', 'Véhicule', 'Livraisons', 'CA HT', 'Marge'], rowsT)
       + (typeof renderFooterEntreprise === 'function' ? renderFooterEntreprise(params, dateExp) : '')
       + '</div>';
@@ -750,7 +750,7 @@
       if (!win) { if (typeof afficherToast === 'function') afficherToast('⚠️ Popup bloqué', 'error'); return; }
       win.document.write('<!DOCTYPE html><html><head><title>Rentabilité ' + escapeHtml(nom) + '</title><style>body{margin:0;background:#fff}@page{margin:12mm}h3{page-break-after:avoid}table{page-break-inside:avoid}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
     }
-    if (typeof afficherToast === 'function') afficherToast('📄 Rapport rentabilité généré');
+    if (typeof afficherToast === 'function') afficherToast('Rapport rentabilité généré');
   }
 
   function sumStats(arr) {

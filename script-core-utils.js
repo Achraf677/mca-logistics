@@ -327,11 +327,11 @@ async function calculerDistanceMaps(depart, arrivee, inputId) {
 
     const input = document.getElementById(inputId);
     if (input) { input.value = distRoute; input.dispatchEvent(new Event('input')); }
-    afficherToast(`📍 Distance estimée : ${distRoute} km (via OSM)`);
+    afficherToast(`Distance estimée : ${distRoute} km (via OSM)`);
   } catch(e) {
     afficherToast('⚠️ Erreur de calcul — vérifiez votre connexion', 'error');
   } finally {
-    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = '📍 Calculer distance'; }
+    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = 'Calculer distance'; }
   }
 }
 

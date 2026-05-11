@@ -81,20 +81,20 @@
   function humanizeAction(action) {
     if (!action) return 'Action inconnue';
     const map = {
-      create_livraison: '📦 Créer livraison',
-      create_charge: '💸 Créer charge',
-      create_paiement: '💵 Enregistrer paiement',
-      create_client: '🧑‍💼 Créer client',
-      create_fournisseur: '🏭 Créer fournisseur',
-      create_vehicule: '🚐 Créer véhicule',
-      create_salarie: '👥 Créer salarié',
+      create_livraison: 'Créer livraison',
+      create_charge: 'Créer charge',
+      create_paiement: 'Enregistrer paiement',
+      create_client: 'Créer client',
+      create_fournisseur: 'Créer fournisseur',
+      create_vehicule: 'Créer véhicule',
+      create_salarie: 'Créer salarié',
       create_carburant: '⛽ Plein carburant',
-      create_entretien: '🔧 Créer entretien',
-      create_incident: '🚨 Créer incident',
-      create_planning_creneau: '📅 Créneau planning',
-      create_inspection: '🚗 Inspection véhicule',
+      create_entretien: 'Créer entretien',
+      create_incident: 'Créer incident',
+      create_planning_creneau: 'Créneau planning',
+      create_inspection: 'Inspection véhicule',
       resolve_alerte: '✅ Résoudre alerte',
-      delete_entity: '🗑️ Supprimer entité',
+      delete_entity: 'Supprimer entité',
     };
     if (map[action]) return map[action];
     if (action.startsWith('update_')) {
@@ -315,7 +315,7 @@
         <div class="aib-empty-icon" aria-hidden="true">⚠️</div>
         <h3>Impossible de charger les brouillons</h3>
         <p>${escHtml(state.lastError || 'Erreur inconnue')}</p>
-        <button type="button" class="aib-btn aib-btn-secondary" data-aib-retry="1">🔄 Réessayer</button>
+        <button type="button" class="aib-btn aib-btn-secondary" data-aib-retry="1">Réessayer</button>
       </div>
     `;
   }
@@ -330,11 +330,11 @@
           <span class="aib-card-date">${escHtml(formatDateTime(d.created_at))}</span>
         </div>
         ${summary ? `<div class="aib-card-summary">${escHtml(summary)}</div>` : ''}
-        ${reasoning ? `<div class="aib-card-reasoning">💡 ${reasoning}</div>` : ''}
+        ${reasoning ? `<div class="aib-card-reasoning">${reasoning}</div>` : ''}
         <div class="aib-card-actions">
           <button type="button" class="aib-btn aib-btn-approve" data-aib-approve="${escHtml(d.id)}">✅ Approuver</button>
           <button type="button" class="aib-btn aib-btn-reject" data-aib-reject="${escHtml(d.id)}">❌ Rejeter</button>
-          <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">👁️ Détail</button>
+          <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">Détail</button>
         </div>
       </div>
     `;
@@ -355,7 +355,7 @@
       const header = `
         <div class="aib-toolbar">
           <span class="aib-count">${state.drafts.length} brouillon${state.drafts.length > 1 ? 's' : ''} en attente</span>
-          <button type="button" class="aib-btn aib-btn-secondary" data-aib-refresh="1">🔄 Rafraîchir</button>
+          <button type="button" class="aib-btn aib-btn-secondary" data-aib-refresh="1">Rafraîchir</button>
         </div>
       `;
       container.innerHTML = header + '<div class="aib-list">' + state.drafts.map(renderCard).join('') + '</div>';

@@ -188,7 +188,7 @@
   M.exportPDFButton = function(id) {
     return '<button type="button" id="' + id + '" class="m-alertes-chip" ' +
       'style="flex:0 0 auto;padding:6px 10px;font-size:.78rem;font-weight:600" ' +
-      'aria-label="Exporter en PDF">📄 PDF</button>';
+      'aria-label="Exporter en PDF">PDF</button>';
   };
 
   // Expose pour tests Node si besoin (require('./script-mobile-exports.js'))

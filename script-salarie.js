@@ -108,9 +108,9 @@ function lancerInterface() {
 
   document.getElementById('sal-nom-display').textContent = salarieCourant.nom;
   const veh = getMonVehicule();
-  document.getElementById('sal-veh-display').textContent = veh ? `🚐 ${veh.immat} — ${veh.modele}` : 'Aucun véhicule affecté';
+  document.getElementById('sal-veh-display').textContent = veh ? `${veh.immat} — ${veh.modele}` : 'Aucun véhicule affecté';
 
-  const infoTxt = veh ? `🚐 Votre véhicule : ${veh.immat} — ${veh.modele}` : '';
+  const infoTxt = veh ? `Votre véhicule : ${veh.immat} — ${veh.modele}` : '';
   ['km-veh-info','carb-veh-info'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.textContent = infoTxt; el.style.display = infoTxt ? 'block' : 'none'; }
@@ -135,7 +135,7 @@ function lancerInterface() {
 
   // Info véhicule dans inspection + km
   const infoInsp = document.getElementById('insp-veh-info');
-  if (infoInsp && veh) { infoInsp.textContent = `🚐 Véhicule : ${veh.immat} — ${veh.modele}`; infoInsp.style.display = 'block'; }
+  if (infoInsp && veh) { infoInsp.textContent = `Véhicule : ${veh.immat} — ${veh.modele}`; infoInsp.style.display = 'block'; }
 
   // Date du jour dans inspection
   const inspDate = document.getElementById('insp-date');
@@ -266,7 +266,7 @@ function afficherProfil() {
                   <div style="font-weight:500">${i.description||'—'}</div>
                   <div style="font-size:.75rem;color:var(--muted)">${i.date} · ${i.client||'—'}</div>
                 </div>
-                <span class="incident-badge ${i.statut==='ouvert'?'incident-ouvert':i.statut==='traite'?'incident-traite':'incident-encours'}">${i.statut==='ouvert'?'🔴 Ouvert':i.statut==='traite'?'✅ Traité':'🟡 En cours'}</span>
+                <span class="incident-badge ${i.statut==='ouvert'?'incident-ouvert':i.statut==='traite'?'incident-traite':'incident-encours'}">${i.statut==='ouvert'?'Ouvert':i.statut==='traite'?'✅ Traité':'En cours'}</span>
               </div>`).join('')}
           </div>
         </div>`;
@@ -315,7 +315,7 @@ function gererChangementStorageSalarie(key) {
     const panneau = document.getElementById('panneau-planning');
     if (panneau && panneau.closest('.panneau.active')) afficherPlanningSal();
     else afficherPlanningSal(); // toujours mettre à jour en cache
-    toast('📅 Planning mis à jour par l\'administrateur');
+    toast('Planning mis à jour par l\'administrateur');
   }
   // Nouvelles livraisons assignées
   if (key === 'livraisons') {
@@ -374,7 +374,7 @@ function afficherResumeJournee() {
 
   cont.innerHTML = `
     <div class="resume-journee">
-      <div class="resume-journee-title">🌅 Résumé de votre journée</div>
+      <div class="resume-journee-title">Résumé de votre journée</div>
       <div class="resume-grid">
         <div class="resume-item"><div class="resume-item-val">${livraisons.length}</div><div class="resume-item-label">Livraisons</div></div>
         <div class="resume-item"><div class="resume-item-val" style="color:var(--green)">${livrees}</div><div class="resume-item-label">Livrées ✅</div></div>
@@ -413,7 +413,7 @@ function envoyerFichierSal(input) {
     msgs.push({
       id: Date.now().toString(36),
       auteur: 'salarie',
-      texte: '📎 Fichier : ' + file.name,
+      texte: 'Fichier : ' + file.name,
       fichier: e.target.result,
       nomFichier: file.name,
       lu: false,
@@ -476,7 +476,7 @@ function envoyerPhotoSal(input) {
 
       const msgs = JSON.parse(localStorage.getItem('messages_'+salarieCourant.id)||'[]');
       msgs.push({
-        id: msgId, auteur:'salarie', texte:'📷 Photo partagée',
+        id: msgId, auteur:'salarie', texte:'Photo partagée',
         photo: photoBase64, photoPath: photoPath, photoBucket: photoPath ? 'messages-photos' : null,
         lu:false, creeLe:new Date().toISOString()
       });
@@ -639,16 +639,15 @@ function afficherPlanningSal() {
   ${c.contenu.debut} → ${c.contenu.fin}
 </div>
             ${c.contenu.zone ? `
-              <div style="font-size:.78rem;color:var(--muted);margin-top:4px">
-                📍 ${c.contenu.zone}
+              <div style="font-size:.78rem;color:var(--muted);margin-top:4px">${c.contenu.zone}
               </div>` : ''}
           `;
         } else if (c.contenu?.typeJour === 'conge') {
-          contenuHtml = `<div style="color:#3b82f6;font-weight:700;font-size:.88rem">🏖️ Congé</div>`;
+          contenuHtml = `<div style="color:#3b82f6;font-weight:700;font-size:.88rem">Congé</div>`;
         } else if (c.contenu?.typeJour === 'maladie') {
-          contenuHtml = `<div style="color:#a855f7;font-weight:700;font-size:.88rem">🤒 Maladie</div>`;
+          contenuHtml = `<div style="color:#a855f7;font-weight:700;font-size:.88rem">Maladie</div>`;
         } else if (c.contenu?.typeJour === 'repos') {
-          contenuHtml = `<div style="color:var(--muted);font-weight:600;font-size:.88rem">💤 Repos</div>`;
+          contenuHtml = `<div style="color:var(--muted);font-weight:600;font-size:.88rem">Repos</div>`;
         } else {
           contenuHtml = `<div style="color:var(--muted);font-size:.85rem">—</div>`;
         }
@@ -710,10 +709,10 @@ function afficherAccueil() {
             ${entree.heureFin   ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">FIN</div><strong>${entree.heureFin}</strong></div>` : ''}
             ${entree.zone       ? `<div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:.7rem;color:var(--muted);margin-bottom:3px">ZONE</div><strong>${entree.zone}</strong></div>` : ''}
           </div>
-          ${entree.note ? `<p style="font-size:.82rem;color:var(--muted);margin-top:8px">📝 ${entree.note}</p>` : ''}
+          ${entree.note ? `<p style="font-size:.82rem;color:var(--muted);margin-top:8px">${entree.note}</p>` : ''}
           <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:10px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
       } else if (entree && !entree.travaille) {
-        planCont.innerHTML = `<p style="color:var(--green);font-size:.9rem">🏖️ Jour de repos — Bonne journée !</p>
+        planCont.innerHTML = `<p style="color:var(--green);font-size:.9rem">Jour de repos — Bonne journée !</p>
           <button onclick="changerOnglet('planning',document.getElementById('tab-planning'))" style="margin-top:8px;background:none;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:7px;font-size:.78rem;cursor:pointer">Voir semaine complète →</button>`;
       } else {
         planCont.innerHTML = `<p style="color:var(--muted);font-size:.85rem">Aucune entrée pour aujourd'hui.</p>
@@ -750,9 +749,9 @@ function afficherAccueil() {
   localStorage.setItem(cleCl, JSON.stringify(checklist));
 
   const taches = [
-    { cle:'kmDepart',   fait: checklist.kmDepart,   label:'🛣️ Relevé kilométrique de départ',       action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
-    { cle:'inspection', fait: checklist.inspection, label:'📷 Photos d\'inspection du véhicule',     action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Faire l\'inspection' },
-    { cle:'kmArrivee',  fait: checklist.kmArrivee,  label:'🏁 Relevé kilométrique de retour', action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+    { cle:'kmDepart',   fait: checklist.kmDepart,   label:'Relevé kilométrique de départ',       action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
+    { cle:'inspection', fait: checklist.inspection, label:'Photos d\'inspection du véhicule',     action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Faire l\'inspection' },
+    { cle:'kmArrivee',  fait: checklist.kmArrivee,  label:'Relevé kilométrique de retour', action:`changerOnglet('inspection',document.getElementById('tab-inspection'))`, btnLabel:'Saisir' },
   ];
 
   const done   = taches.filter(t=>t.fait).length + (checklist.pleinFait !== null ? 1 : 0);
@@ -805,7 +804,7 @@ function afficherAccueil() {
     resumeCont.innerHTML = livsAuj.map(l => `
       <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
         <span style="font-size:.88rem;flex:1">📦 <strong>${l.client}</strong>${l.arrivee ? ' → ' + l.arrivee : ''}</span>
-        <span style="font-size:.78rem;background:${l.statut==='livre'?'rgba(46,204,113,.12)':l.statut==='en-cours'?'rgba(79,142,247,.12)':'rgba(255,255,255,.06)'};color:${l.statut==='livre'?'var(--green)':l.statut==='en-cours'?'var(--blue)':'var(--muted)'};padding:3px 9px;border-radius:20px">${l.statut==='livre'?'✅ Livré':l.statut==='en-cours'?'🚐 En cours':'⏳ En attente'}</span>
+        <span style="font-size:.78rem;background:${l.statut==='livre'?'rgba(46,204,113,.12)':l.statut==='en-cours'?'rgba(79,142,247,.12)':'rgba(255,255,255,.06)'};color:${l.statut==='livre'?'var(--green)':l.statut==='en-cours'?'var(--blue)':'var(--muted)'};padding:3px 9px;border-radius:20px">${l.statut==='livre'?'✅ Livré':l.statut==='en-cours'?'En cours':'⏳ En attente'}</span>
       </div>`).join('');
   }
   // Résumé fin de journée (visible à partir de 15h)
@@ -837,7 +836,7 @@ function chargerLivraisons() {
   container.innerHTML = miennes.map(l => `
     <div class="livraison-item">
       <div class="livraison-info">
-        <div class="livraison-client">📦 ${l.client}</div>
+        <div class="livraison-client">${l.client}</div>
         <div class="livraison-adresses">
           ${l.depart ? '📍 '+l.depart+'<br>' : ''}
           ${l.arrivee ? '🏁 '+l.arrivee : ''}
@@ -848,7 +847,7 @@ function chargerLivraisons() {
       <div class="livraison-statut">
         <select onchange="changerStatut('${l.id}',this.value)">
           <option value="en-attente" ${l.statut==='en-attente'?'selected':''}>⏳ En attente</option>
-          <option value="en-cours"   ${l.statut==='en-cours'  ?'selected':''}>🚐 En cours</option>
+          <option value="en-cours"   ${l.statut==='en-cours'  ?'selected':''}>En cours</option>
           <option value="livre"      ${l.statut==='livre'     ?'selected':''}>✅ Livré</option>
         </select>
       </div>
@@ -883,7 +882,7 @@ function rafraichirTourneesSelect() {
     return;
   }
   miennes.forEach(l => {
-    const label = `📦 ${l.client}${l.arrivee ? ' → ' + l.arrivee : ''}${l.numLiv ? ' ('+l.numLiv+')' : ''}`;
+    const label = `${l.client}${l.arrivee ? ' → ' + l.arrivee : ''}${l.numLiv ? ' ('+l.numLiv+')' : ''}`;
     sel.innerHTML += `<option value="${l.id}">${label}</option>`;
   });
 }
@@ -1073,7 +1072,7 @@ function chargerHistoriqueKm() {
       ? '<span style="font-size:.72rem;background:rgba(231,76,60,.15);color:#e74c3c;padding:1px 6px;border-radius:8px;margin-left:4px">✏️</span>'
       : '';
     const livTag = e.livNom
-      ? `<span style="font-size:.74rem;background:rgba(79,142,247,.1);color:var(--blue);padding:1px 7px;border-radius:8px;margin-left:4px">📦 ${e.livNom}</span>`
+      ? `<span style="font-size:.74rem;background:rgba(79,142,247,.1);color:var(--blue);padding:1px 7px;border-radius:8px;margin-left:4px">${e.livNom}</span>`
       : '';
     const ligneKm = e.kmArrivee
       ? `${(e.kmDepart||0).toLocaleString('fr-FR')} → ${(e.kmArrivee||0).toLocaleString('fr-FR')} km`
@@ -1087,7 +1086,7 @@ function chargerHistoriqueKm() {
         <button class="btn-actions-open" onclick="event.stopPropagation();toggleMenuActions('km-${e.id}')">Actions ▾</button>
         <div class="menu-actions-dropdown" id="menu-actions-km-${e.id}">
           <button onclick="ouvrirEditKmSal('${e.id}')">✏️ Modifier</button>
-          <button class="danger" onclick="supprimerKmSal('${e.id}')">🗑️ Supprimer</button>
+          <button class="danger" onclick="supprimerKmSal('${e.id}')">Supprimer</button>
         </div>
       </div>
     </div>`;
@@ -1155,7 +1154,7 @@ function supprimerKmSal(id) {
   const list = getKmEntries().filter(e => e.id !== id);
   saveKmEntries(list);
   rechargerBlocKm();
-  toast('🗑️ Relevé supprimé');
+  toast('Relevé supprimé');
 }
 
 /* ===== CARBURANT ===== */
@@ -1305,7 +1304,7 @@ function supprimerPleinSal(id) {
   localStorage.setItem('carburant', JSON.stringify(global));
   chargerHistoriqueCarburant();
   afficherAccueil();
-  toast('🗑️ Plein supprimé');
+  toast('Plein supprimé');
 }
 
 function ouvrirModifPlein(id) {
@@ -1385,9 +1384,9 @@ function chargerHistoriqueCarburant() {
         <div class="menu-actions-wrap">
           <button class="btn-actions-open" onclick="event.stopPropagation();toggleMenuActions('carb-${p.id}')">Actions ▾</button>
           <div class="menu-actions-dropdown" id="menu-actions-carb-${p.id}">
-            ${aRecu ? `<button onclick="voirRecuSal('${p.id}')">👁️ Voir le ticket</button>` : ''}
+            ${aRecu ? `<button onclick="voirRecuSal('${p.id}')">Voir le ticket</button>` : ''}
             <button onclick="ouvrirModifPlein('${p.id}')">✏️ Modifier</button>
-            <button class="danger" onclick="supprimerPleinSal('${p.id}')">🗑️ Supprimer</button>
+            <button class="danger" onclick="supprimerPleinSal('${p.id}')">Supprimer</button>
           </div>
         </div>
       </div>
@@ -2034,17 +2033,17 @@ function chargerHistoriqueInspections() {
     return `
     <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-        <strong style="font-size:.9rem">🗓️ ${insp.date}</strong>
+        <strong style="font-size:.9rem">${insp.date}</strong>
         <span style="font-size:.78rem;color:var(--muted)">${insp.vehImmat}${insp.km ? ' · ' + parseInt(insp.km).toLocaleString('fr-FR') + ' km' : ''}</span>
       </div>
-      ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">💬 ${insp.commentaire}</p>` : ''}
+      ${insp.commentaire ? `<p style="font-size:.83rem;color:var(--muted);margin-bottom:8px">${insp.commentaire}</p>` : ''}
       <div style="display:grid;grid-template-columns:repeat(${Math.max(Math.min(photos.length,4), 1)},1fr);gap:6px">
         ${photos.map(p => {
           const thumb = getInspectionPhotoThumbDescriptor(p);
           const full = getInspectionPhotoFullDescriptor(p);
           // Si on a un path -> resolveStorageImages remplira src plus tard via signed URL.
           // Sinon (legacy base64 pur) -> src direct.
-          const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="📷 chargement..."';
+          const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="chargement..."';
           const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
           const onClick = full.src
             ? `voirPhotoPleinEcran('${full.src}')`
@@ -2113,7 +2112,7 @@ function chargerMessagesSal() {
     let contenuMsg;
     if (m.photoPath) {
       // Photo en Storage : placeholder + signed URL resolu apres render
-      contenuMsg = `<img data-photo-path="${m.photoPath}" data-photo-bucket="${m.photoBucket || 'messages-photos'}" alt="📷 chargement..." style="max-width:180px;border-radius:8px;display:block;cursor:pointer;background:rgba(0,0,0,0.1);min-height:100px" onclick="ouvrirPhotoMessageSal('${m.photoPath}','${m.photoBucket || 'messages-photos'}')" />`;
+      contenuMsg = `<img data-photo-path="${m.photoPath}" data-photo-bucket="${m.photoBucket || 'messages-photos'}" alt="chargement..." style="max-width:180px;border-radius:8px;display:block;cursor:pointer;background:rgba(0,0,0,0.1);min-height:100px" onclick="ouvrirPhotoMessageSal('${m.photoPath}','${m.photoBucket || 'messages-photos'}')" />`;
     } else if (m.photo) {
       contenuMsg = `<img src="${m.photo}" style="max-width:180px;border-radius:8px;display:block;cursor:pointer" onclick="window.open('${m.photo}','_blank')" />`;
     } else {
@@ -2522,9 +2521,9 @@ function initOfflineDetection() {
     if (banner) {
       const offline = !navigator.onLine;
       let msg = '';
-      if (offline && pendingCount > 0) msg = `📵 Hors ligne — ${pendingCount} saisie(s) en attente de sync`;
-      else if (offline) msg = '📵 Hors ligne — synchronisation au retour réseau';
-      else if (pendingCount > 0) msg = `🔄 ${pendingCount} saisie(s) en cours de synchronisation...`;
+      if (offline && pendingCount > 0) msg = `Hors ligne — ${pendingCount} saisie(s) en attente de sync`;
+      else if (offline) msg = 'Hors ligne — synchronisation au retour réseau';
+      else if (pendingCount > 0) msg = `${pendingCount} saisie(s) en cours de synchronisation...`;
       banner.textContent = msg;
       banner.classList.toggle('visible', offline || pendingCount > 0);
       document.body.classList.toggle('online-with-queue', !offline && pendingCount > 0);
@@ -2556,7 +2555,7 @@ function initOfflineDetection() {
     // Toast au retour reseau si qqch en queue
     window.addEventListener('online', function () {
       if (pendingCount > 0) {
-        toast(`🔄 Sync en cours (${pendingCount} saisies)...`, 'success');
+        toast(`Sync en cours (${pendingCount} saisies)...`, 'success');
       }
     });
     // Toast quand entry flushed

@@ -158,7 +158,7 @@
     container.innerHTML =
       '<div class="modal" style="max-width:600px;width:96%;max-height:90vh;overflow-y:auto">' +
         '<div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">' +
-          '<h3 id="mca-setup-title">🚀 Bienvenue chez MCA Logistics</h3>' +
+          '<h3 id="mca-setup-title">Bienvenue chez MCA Logistics</h3>' +
           '<button type="button" class="modal-close" aria-label="Plus tard" onclick="window.MCASetup.later()">✕</button>' +
         '</div>' +
         '<div class="modal-body">' +
@@ -506,7 +506,7 @@
       else if (state.step === 2) readStep2();
     } catch (_) {}
     hide();
-    toast('💾 Vous pourrez reprendre à votre prochaine connexion');
+    toast('Vous pourrez reprendre à votre prochaine connexion');
   }
 
   function skipAll() {

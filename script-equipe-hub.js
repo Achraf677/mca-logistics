@@ -156,7 +156,7 @@
     if (items.some(i => i.niveau === 'critical')) niveau = 'critical';
     else if (items.length > 0) niveau = 'warn';
 
-    const labels = { ok: '🟢 Conforme', warn: '🟠 À surveiller', critical: '🔴 Action requise' };
+    const labels = { ok: 'Conforme', warn: 'À surveiller', critical: 'Action requise' };
     return { niveau, label: labels[niveau], items };
   }
 
@@ -239,7 +239,7 @@
 
     ct.innerHTML = `
       <div class="kpi-card green">
-        <div class="kpi-label">👥 Effectif</div>
+        <div class="kpi-label">Effectif</div>
         <div class="kpi-value">${eff.actifs}</div>
         <div class="kpi-sub">${eff.label}</div>
       </div>
@@ -249,7 +249,7 @@
         <div class="kpi-sub">prévues ${heuresSem.planifiees.toFixed(1)} h · réelles ${heuresSem.reelles.toFixed(1)} h</div>
       </div>
       <div class="kpi-card purple">
-        <div class="kpi-label">📦 Livraisons 30j</div>
+        <div class="kpi-label">Livraisons 30j</div>
         <div class="kpi-value">${liv30.nb}</div>
         <div class="kpi-sub">${fmtEur(liv30.ca)} CA HT</div>
       </div>

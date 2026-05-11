@@ -228,14 +228,14 @@ function afficherInspections() {
       <div class="card-header">
         <span>👤 <strong>${insp.salNom}</strong> — ${insp.vehImmat}${insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : ''}</span>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.82rem;color:var(--text-muted)">🗓️ ${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
+          <span style="font-size:.82rem;color:var(--text-muted)">${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
           <button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button>
         </div>
       </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
           ${getInspectionPhotoList(insp).map((p, i) => {
             const thumb = getInspectionPhotoThumbDescriptorAdmin(p);
-            const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="📷 chargement..."';
+            const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="chargement..."';
             const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
             return `
             <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;background:rgba(0,0,0,0.05)" onclick="voirPhotoAdmin('${insp.id}',${i})">
@@ -391,7 +391,7 @@ async function supprimerInspectionAdmin(id) {
   localStorage.setItem('inspections', JSON.stringify(toutes));
   ajouterEntreeAudit('Suppression inspection', (inspection.vehImmat || 'Inspection') + ' · ' + (inspection.date || ''));
   afficherInspections();
-  afficherToast('🗑️ Inspection supprimée');
+  afficherToast('Inspection supprimée');
 }
 
 // L8001 (script.js d'origine)

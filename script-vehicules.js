@@ -146,7 +146,7 @@ function resetModalVehiculeToCreateMode() {
   if (!modal) return;
   var title = modal.querySelector('.modal-header h3');
   var primary = modal.querySelector('.modal-footer .btn-primary');
-  if (title) title.textContent = '🚐 Nouveau Véhicule';
+  if (title) title.textContent = 'Nouveau Véhicule';
   if (primary) {
     primary.textContent = 'Enregistrer';
     primary.setAttribute('onclick', 'ajouterVehicule()');
@@ -394,19 +394,19 @@ function afficherVehicules() {
     if (v.dateCT) {
       const dateCT = new Date(v.dateCT);
       if (dateCT < auj) ajouterAlerteSiAbsente('ct_expire', `⚠️ Contrôle technique expiré — ${v.immat}`, { vehId: v.id });
-      else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `🔔 CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
+      else if (dateCT < dans30j) ajouterAlerteSiAbsente('ct_proche', `CT à renouveler dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
     }
     // Carte verte / assurance (art. L211-1 Code des assurances — circulation interdite sans assurance)
     const assurance = v.assurance || {};
     if (assurance.dateExpiration) {
       const dateAssu = new Date(assurance.dateExpiration);
       if (dateAssu < auj) ajouterAlerteSiAbsente('assu_veh_expire_' + v.id, `⚠️ Carte verte expirée — ${v.immat} (circulation interdite L211-1 C. assur.)`, { vehId: v.id });
-      else if (dateAssu < dans30j) ajouterAlerteSiAbsente('assu_veh_proche_' + v.id, `🛡️ Carte verte expire dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
+      else if (dateAssu < dans30j) ajouterAlerteSiAbsente('assu_veh_proche_' + v.id, `Carte verte expire dans moins de 30 jours — ${v.immat}`, { vehId: v.id });
     }
     if (pilotageEntretien.estEnRetard && pilotageEntretien.prochainKm) {
-      ajouterAlerteSiAbsente('vidange', `🔧 Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
+      ajouterAlerteSiAbsente('vidange', `Entretien à effectuer — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
     } else if (pilotageEntretien.estProche && pilotageEntretien.prochainKm) {
-      ajouterAlerteSiAbsente('vidange', `🔔 Entretien proche — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
+      ajouterAlerteSiAbsente('vidange', `Entretien proche — ${v.immat} (${formatKm(pilotageEntretien.kmActuel)} / objectif ${formatKm(pilotageEntretien.prochainKm)})`, { vehId: v.id });
     }
   });
   afficherBadgeAlertes();
@@ -479,10 +479,10 @@ function afficherVehicules() {
     const carburantLabels = {
       'diesel': '⛽ Diesel/Gazole', 'gazole': '⛽ Diesel/Gazole',
       'essence': '⛽ Essence',
-      'gnv': '🌿 GNV/BioGNV', 'biognv': '🌿 GNV/BioGNV',
+      'gnv': 'GNV/BioGNV', 'biognv': 'GNV/BioGNV',
       'electrique': '⚡ Électrique',
-      'hybride': '🔋 Hybride',
-      'hydrogene': '💧 Hydrogène'
+      'hybride': 'Hybride',
+      'hydrogene': 'Hydrogène'
     };
     const carbKey = (v.typeCarburant || v.carburant || '').toLowerCase();
     // Match partiel pour les libellés composés ('diesel/gazole', etc.)
@@ -519,7 +519,7 @@ function afficherVehicules() {
       </td>
       <td>${financeInfos || '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${carbAffiche}</td>
-      <td>${sal ? `<span style="color:var(--accent-2)">👤 ${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${sal ? `<span style="color:var(--accent-2)">${getSalarieNomComplet(sal)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
       <td>${entretienInfos || '—'}</td>
       <td>
         ${buildInlineActionsDropdown('Actions', [
@@ -584,7 +584,7 @@ async function supprimerVehicule(id) {
   livraisons.forEach(l => { if (l.vehId === id) { l.vehId = null; l.vehNom = (veh?.immat||'Véhicule supprimé') + ' (archivé)'; } });
   sauvegarder('livraisons', livraisons);
   afficherVehicules(); afficherChauffeurs();
-  afficherToast('🗑️ Véhicule supprimé');
+  afficherToast('Véhicule supprimé');
 }
 
 // L4926 (script.js d'origine)
@@ -681,7 +681,7 @@ async function uploaderCarteGriseFromForm(input) {
       }
       if (btnLabel) btnLabel.textContent = '✅ ' + file.name;
       if (wrapper) wrapper.classList.add('has-file');
-      if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
+      if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">Visualiser</button>';
       afficherToast(`✅ Carte grise enregistrée (${elapsed}s)`);
       return;
     }
@@ -722,7 +722,7 @@ function resetCarteGriseFormUI() {
   const wrapper = document.querySelector('.file-upload-button[for="veh-carte-grise-fichier"]');
   const status = document.getElementById('veh-carte-grise-status');
   const input = document.getElementById('veh-carte-grise-fichier');
-  if (btnLabel) btnLabel.textContent = '📎 Choisir un fichier';
+  if (btnLabel) btnLabel.textContent = 'Choisir un fichier';
   if (wrapper) wrapper.classList.remove('has-file');
   if (status) status.textContent = '';
   if (input) input.value = '';
@@ -738,7 +738,7 @@ function prefillCarteGriseFormUI(veh) {
   const status = document.getElementById('veh-carte-grise-status');
   if (btnLabel) btnLabel.textContent = '✅ ' + (veh.carteGriseFichierNom || 'Carte grise enregistrée') + ' (cliquez pour remplacer)';
   if (wrapper) wrapper.classList.add('has-file');
-  if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">👁️ Visualiser</button>';
+  if (status) status.innerHTML = '<button type="button" class="btn-link-inline" style="font-size:.78rem;color:var(--accent)" onclick="visualiserCarteGrise(window._editVehId)">Visualiser</button>';
 }
 
 // L5084 (script.js d'origine)
@@ -946,7 +946,7 @@ function confirmerEditVehicule() {
   sauvegarder('vehicules', vehicules);
   closeModal('modal-vehicule');
   const modal = document.getElementById('modal-vehicule');
-  modal.querySelector('h3').textContent = '🚐 Nouveau Véhicule';
+  modal.querySelector('h3').textContent = 'Nouveau Véhicule';
   modal.querySelector('.modal-footer .btn-primary').textContent = 'Enregistrer';
   modal.querySelector('.modal-footer .btn-primary').setAttribute('onclick', 'ajouterVehicule()');
   ['veh-entretien-interval-km','veh-entretien-interval-mois'].forEach(function(fieldId) {

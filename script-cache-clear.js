@@ -142,7 +142,7 @@
     const message = "Cela va recharger l'app et perdre les données non synchronisées. Continuer ?";
     let ok = false;
     if (window.M && typeof window.M.confirm === 'function') {
-      try { ok = await window.M.confirm(message, { titre: '🔄 Vider le cache' }); }
+      try { ok = await window.M.confirm(message, { titre: 'Vider le cache' }); }
       catch (_) { ok = false; }
     } else if (typeof window.confirm === 'function') {
       ok = window.confirm(message);
