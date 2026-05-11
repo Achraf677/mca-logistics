@@ -3,9 +3,9 @@
 > Document pivot pour ne pas perdre le contexte d'une session à l'autre.
 > Mis à jour à chaque fin de session significative.
 >
-> **Dernière mise à jour** : 2026-05-11
+> **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : `8b1fd99` (Phase 33 bugfix batch)
+> **Dernier commit** : `9c1e0c9` (Véhicules + Entretiens phase 34)
 
 ---
 
@@ -25,14 +25,14 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Page | Visuel | Fonctionnel | Notes |
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
-| **Livraisons** | 85% | 80% | Phases 22-33 — en cours, bugs résiduels |
-| Clients | 30% | 100% | Phase 7 title-row seulement |
-| Fournisseurs | 30% | 100% | Phase 7 title-row seulement |
-| Véhicules | 30% | 100% | Phase 7 title-row seulement |
+| **Livraisons** | 92% | 90% | Phases 22-34 — BUG-004/005/013/015/016 fixés, 9 cols visibles |
+| Clients | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
+| Fournisseurs | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
+| Véhicules | 50% | 100% | Phase 34 : cols Acquisition/Finances/Carburant/Entretien masquées |
 | Carburant | 30% | 100% | Phase 7 + period-row |
-| Entretiens | 30% | 100% | Phase 7 + period-row |
+| Entretiens | 50% | 100% | Phase 34 : cols HT/TVA masquées |
 | Inspections | 25% | 100% | Phase 8 title-row seulement |
-| Charges | 70% | 100% | Phase 4 + 14 |
+| Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
 | Encaissement | 25% | 100% | Phase 8 title-row seulement |
 | TVA | 30% | 100% | Phase 8 + period-row |
 | Rentabilité | 25% | 100% | Phase 8 |
