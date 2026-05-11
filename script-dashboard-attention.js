@@ -389,7 +389,10 @@
       })
       .reduce((s, l) => s + livHT(l), 0);
     const impMark = impayes90 === 0 ? 'ok' : impayes90 < 5000 ? 'warn' : 'alert';
-    const impVal = impayes90 === 0 ? '0 €' : fmtEur(Math.round(impayes90));
+    // "—" si pas de livraisons du tout, "0 €" si livraisons existent mais aucun impayé
+    const impVal = livraisons.length === 0
+      ? '—'
+      : impayes90 === 0 ? '0 €' : fmtEur(Math.round(impayes90));
 
     // ============ 5. CT véhicules (≤7j ou expirés) ============
     const ctCrit = vehicules.filter(v => {
@@ -399,9 +402,12 @@
       return diff <= 7; // inclut expirés (diff < 0)
     }).length;
     const ctMark = ctCrit === 0 ? 'ok' : ctCrit === 1 ? 'warn' : 'alert';
-    const ctVal = ctCrit === 0
-      ? '0 critique'
-      : ctCrit + (ctCrit > 1 ? ' critiques' : ' critique');
+    // "—" si pas de véhicules, sinon count
+    const ctVal = vehicules.length === 0
+      ? '—'
+      : ctCrit === 0
+        ? '0 critique'
+        : ctCrit + (ctCrit > 1 ? ' critiques' : ' critique');
 
     // ============ 6. Conso flotte (pire écart vs target, 30j) ============
     // Pour chaque véhicule, somme litres 30j + estimate km via target conso → conso réelle vs target.
@@ -462,11 +468,16 @@
       return diff <= 60;
     });
     const permisMark = permisProches.length === 0 ? 'ok' : permisProches.length <= 2 ? 'warn' : 'alert';
-    let permisVal = '0 à renouveler';
-    if (permisProches.length === 1) {
+    // "—" si pas de salariés, sinon count
+    let permisVal;
+    if (salaries.length === 0) {
+      permisVal = '—';
+    } else if (permisProches.length === 0) {
+      permisVal = '0 à renouveler';
+    } else if (permisProches.length === 1) {
       const days = Math.round((salDatePermis(permisProches[0]).getTime() - now) / J);
       permisVal = '1 à renouveler' + (days >= 0 ? ' (' + days + 'j)' : ' (expiré)');
-    } else if (permisProches.length > 1) {
+    } else {
       permisVal = permisProches.length + ' à renouveler';
     }
 
