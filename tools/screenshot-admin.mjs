@@ -18,9 +18,11 @@ const BASE = process.env.BASE_URL || 'https://claude-admin-emoji-cleanup.mca-log
 const OUT_DIR = process.env.OUT_DIR || 'screenshots/admin-auth';
 const VIEWPORT = process.env.VIEWPORT || 'pc';
 const VIEWPORTS = {
-  pc:     { width: 1440, height: 900 },
+  pc:     { width: 1920, height: 1080 },  // Gold target user-specified
+  pc1440: { width: 1440, height: 900 },   // legacy
   mobile: { width: 390,  height: 844 },
 };
+const FULL_PAGE = process.env.FULL_PAGE !== '0'; // default true
 
 const PAGES = [
   'dashboard', 'livraisons', 'planning', 'alertes',
@@ -57,6 +59,16 @@ try {
   process.exit(1);
 }
 
+// Step 1.5 — Seed fake data if requested (SEED=1 env var)
+if (process.env.SEED === '1') {
+  console.log('[seed] activating dev seed...');
+  // Navigate to admin with ?seed=1 to trigger seed
+  const seedUrl = page.url().split('?')[0] + '?seed=1';
+  await page.goto(seedUrl, { waitUntil: 'networkidle', timeout: 15000 });
+  await page.waitForTimeout(2500); // let seed run + reload
+  console.log('[seed] done');
+}
+
 await page.waitForTimeout(1500); // let app boot
 
 // Step 1.5 — Dismiss setup wizard if present (first-login modal)
@@ -88,7 +100,7 @@ for (const slug of PAGES) {
     await page.evaluate(s => window.naviguerVers && window.naviguerVers(s), slug);
     await page.waitForTimeout(900);
     const file = `${OUT_DIR}/${String(ok + 1).padStart(2, '0')}-${slug}-${VIEWPORT}.png`;
-    await page.screenshot({ path: file, fullPage: false });
+    await page.screenshot({ path: file, fullPage: FULL_PAGE });
     console.log(`  ✓ ${slug.padEnd(15)} → ${file}`);
     ok++;
   } catch (e) {

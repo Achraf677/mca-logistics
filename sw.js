@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v11_9-toc-m-salarie-363';
+const CACHE_VERSION = 'mca-v2026-05-11-v11_10-seed-pixelmatch-364';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -62,6 +62,8 @@ const CORE_ASSETS = [
   '/style-refonte-utilities.css',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
+  // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)
+  '/script-dev-seed.js',
   '/script-charges-kpis-categorie.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
