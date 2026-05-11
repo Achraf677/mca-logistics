@@ -12,6 +12,8 @@
 .env*
 .env.*.local
 .env.local
+.local-secrets
+.local-secrets.*
 .idea/
 .vscode/
 .wrangler/
