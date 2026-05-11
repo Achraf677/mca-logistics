@@ -115,6 +115,8 @@
   <script defer src="script-stats-calendrier-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=1"></script>
+  <!-- Phase 7 refonte : title-row counts populated cross-pages -->
+  <script defer src="script-titlerow.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
   <script src="script-dev-seed.js?v=1"></script>
 </head>
@@ -641,6 +643,16 @@
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
 
+      <!-- Phase 7 refonte HTML : title-row (H1 page name + sub-meta count) -->
+      <div class="title-row">
+        <h1 class="page-title">Clients</h1>
+        <div class="sub-meta">
+          <strong id="clients-titlerow-total">0</strong> clients
+          <span> · </span>
+          <strong id="clients-titlerow-actifs">0</strong> actifs (90j)
+        </div>
+      </div>
+
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
@@ -683,6 +695,16 @@
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
 
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Fournisseurs</h1>
+        <div class="sub-meta">
+          <strong id="fournisseurs-titlerow-total">0</strong> fournisseurs
+          <span> · </span>
+          <strong id="fournisseurs-titlerow-actifs">0</strong> actifs (90j)
+        </div>
+      </div>
+
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
@@ -724,6 +746,18 @@
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
+
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Véhicules</h1>
+        <div class="sub-meta">
+          <strong id="vehicules-titlerow-total">0</strong> véhicules
+          <span id="vehicules-titlerow-alertes-wrap" style="display:none">
+            <span> · </span>
+            <span class="alert"><strong id="vehicules-titlerow-alertes">0</strong> alerte(s) CT/assurance</span>
+          </span>
+        </div>
+      </div>
 
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
@@ -773,6 +807,16 @@
          CARBURANT                                : Suivi pleins, anomalies, prix moyen, TVA déductible
          ============================================================ -->
     <section class="page" id="page-carburant">
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Carburant</h1>
+        <div class="sub-meta">
+          <strong id="carburant-titlerow-cemois">0</strong> pleins ce mois
+          <span> · </span>
+          <strong id="carburant-titlerow-montant">0 €</strong> dépensé
+        </div>
+      </div>
+
       <div class="page-actions"><h2>Suivi Carburant</h2>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()" title="Configurer la détection d'anomalies">Anomalies</button>
@@ -1348,6 +1392,18 @@
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
 
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Alertes</h1>
+        <div class="sub-meta">
+          <strong id="alertes-titlerow-actives">0</strong> active(s)
+          <span id="alertes-titlerow-critiques-wrap" style="display:none">
+            <span> · </span>
+            <span class="alert"><strong id="alertes-titlerow-critiques">0</strong> critique(s)</span>
+          </span>
+        </div>
+      </div>
+
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
@@ -1819,6 +1875,20 @@
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
 
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Charges</h1>
+        <div class="sub-meta">
+          <strong id="charges-titlerow-cemois">0</strong> charges ce mois
+          <span> · </span>
+          <strong id="charges-titlerow-montant">0 €</strong>
+          <span id="charges-titlerow-apayer-wrap" style="display:none">
+            <span> · </span>
+            <span class="alert"><strong id="charges-titlerow-apayer">0</strong> à payer</span>
+          </span>
+        </div>
+      </div>
+
       <!-- Phase 2 HTML refonte : section-head pattern mockup (title + sub-meta + actions) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
@@ -1982,6 +2052,18 @@
          ENTRETIENS                               : Carnet d'entretien véhicules
          ============================================================ -->
     <section class="page" id="page-entretiens">
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Entretiens</h1>
+        <div class="sub-meta">
+          <strong id="entretiens-titlerow-total">0</strong> entretiens
+          <span id="entretiens-titlerow-avenir-wrap" style="display:none">
+            <span> · </span>
+            <span class="alert"><strong id="entretiens-titlerow-avenir">0</strong> à venir (30j)</span>
+          </span>
+        </div>
+      </div>
+
       <div class="page-actions"><h2>Carnet d'entretien</h2>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="exporterEntretiens()">CSV</button>
@@ -2188,6 +2270,16 @@
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
+
+      <!-- Phase 7 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Planning</h1>
+        <div class="sub-meta">
+          <strong id="planning-titlerow-salaries">0</strong> salariés
+          <span> · </span>
+          <strong id="planning-titlerow-total">0</strong> planning(s)
+        </div>
+      </div>
 
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">

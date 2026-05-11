@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v13-livraisons-titlerow-366';
+const CACHE_VERSION = 'mca-v2026-05-11-v14-titlerow-batch-367';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -64,6 +64,8 @@ const CORE_ASSETS = [
   '/style-design-dashboard-hero.css',
   // Phase 6 refonte HTML — title-row + period-row pattern (réutilisable)
   '/style-design-section-pattern.css',
+  // Phase 7 refonte HTML — script title-row counts cross-pages
+  '/script-titlerow.js',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)
