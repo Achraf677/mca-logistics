@@ -184,3 +184,26 @@ td.km {
   font-family: var(--ds-font-mono);
   font-weight: var(--ds-fw-bold);
 }
+
+/* ============ Phase 37 : Hub Équipe KPI cards — uniform brand color ============ */
+/* renderKpisPC() injecte .kpi-card green/blue/purple — override pour uniformité mockup */
+#equipe-kpis-row .kpi-card::before,
+#equipe-kpis-row .kpi-card.green::before,
+#equipe-kpis-row .kpi-card.blue::before,
+#equipe-kpis-row .kpi-card.purple::before {
+  background: linear-gradient(90deg, var(--brand, #e63946), transparent);
+}
+#equipe-kpis-row .kpi-card:hover { transform: none; }
+#equipe-kpis-row .kpi-card .kpi-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+#equipe-kpis-row .kpi-card .kpi-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}

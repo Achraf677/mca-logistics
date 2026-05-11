@@ -72,7 +72,7 @@
   <!-- Design vehicules (Phase 4 / PR-11) — TCO panel + plaques + statuts vehicule + relance pattern. -->
   <link rel="stylesheet" href="style-design-vehicules.css?v=2" />
   <!-- Design equipe (Phase 4 / PR-12) — s22-bandeau hub tabs + avatars + incidents + heures + credentials. -->
-  <link rel="stylesheet" href="style-design-equipe.css?v=1" />
+  <link rel="stylesheet" href="style-design-equipe.css?v=2" />
   <!-- Design clients + fournisseurs (Phase 4 / PR-13+14) — bundle : filtres + risque + drawer onglets + SIRET/TVA. -->
   <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=2" />
   <!-- Design planning (Phase 4 / PR-15) — overview cards Syne + jour-types + toolbars planning. -->
@@ -122,7 +122,7 @@
   <!-- Phase 2 HTML refonte Vehicules : counts total + alertes CT/assurance. -->
   <script defer src="script-vehicules-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Planning : section-head counts (semaine + planifies). -->
-  <script defer src="script-planning-counts.js?v=1"></script>
+  <script defer src="script-planning-counts.js?v=2"></script>
   <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
   <script defer src="script-clients-fournisseurs-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Alertes : counts actives + reportees + traitees. -->
@@ -1516,18 +1516,15 @@
         <div class="kpi-card"><div class="kpi-label">Conformité</div><div class="kpi-value">—</div><div class="kpi-sub">Chargement…</div></div>
       </div>
 
-      <!-- Onglets internes (deeplink vers pages existantes pour eviter double-render) -->
-      <div class="card" style="padding:0;margin-bottom:0;overflow:hidden">
-        <div class="view-toggle" style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--card-bg)">
-          <button class="btn-view active" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" style="flex:1;border-radius:0;border:none;border-right:1px solid var(--border);padding:14px">Salariés</button>
-          <button class="btn-view" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" style="flex:1;border-radius:0;border:none;border-right:1px solid var(--border);padding:14px">Planning</button>
-          <button class="btn-view" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" style="flex:1;border-radius:0;border:none;border-right:1px solid var(--border);padding:14px">Heures &amp; Km</button>
-          <button class="btn-view" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" style="flex:1;border-radius:0;border:none;padding:14px">Incidents</button>
-        </div>
-        <div style="padding:24px;text-align:center;color:var(--text-muted)">
-          <p style="margin:0 0 12px;font-size:.95rem">Choisissez un sous-domaine pour gérer votre équipe au quotidien.</p>
-          <p style="margin:0;font-size:.82rem">Les 4 onglets ouvrent les pages dédiées (deeplink). Les KPIs ci-dessus restent toujours visibles depuis cette page.</p>
-        </div>
+      <!-- Phase 37 refonte HTML : tabs-bar mockup pattern (navigation deeplink) -->
+      <nav class="tabs-bar" id="equipe-tabs-nav" role="tablist">
+        <button class="tab-btn active" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab">Salariés</button>
+        <button class="tab-btn" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" role="tab">Planning</button>
+        <button class="tab-btn" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" role="tab">Heures &amp; Km</button>
+        <button class="tab-btn" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" role="tab">Incidents</button>
+      </nav>
+      <div class="card" style="margin-top:0;padding:18px 20px;color:var(--text-muted);font-size:.88rem">
+        Sélectionnez un onglet ci-dessus pour gérer chaque sous-domaine de votre équipe.
       </div>
     </section>
 
@@ -2731,6 +2728,14 @@
           <button class="btn-rapport" onclick="exporterPlanningSemainePDF()">Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalPlanning()">+ Gérer les horaires</button>
         </div>
+      </div>
+
+      <!-- Phase 37 refonte HTML : KPI grid planning (mockup-aligned) -->
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Effectif suivi</div><div class="kpi-val" id="planning-kpi-effectif">—</div><div class="kpi-sub">chauffeurs actifs</div></div>
+        <div class="kpi"><div class="kpi-lbl">Planifiés cette semaine</div><div class="kpi-val" id="planning-kpi-planifies">—</div><div class="kpi-sub">de l'effectif</div></div>
+        <div class="kpi"><div class="kpi-lbl">Absences</div><div class="kpi-val" id="planning-kpi-absences" style="color:var(--warning,#f5a623)">—</div><div class="kpi-sub">Congés / absences</div></div>
+        <div class="kpi"><div class="kpi-lbl">Heures planifiées</div><div class="kpi-val" id="planning-kpi-heures">—</div><div class="kpi-sub">Total semaine</div></div>
       </div>
 
       <!-- Phase 12 refonte HTML : period-row -->
