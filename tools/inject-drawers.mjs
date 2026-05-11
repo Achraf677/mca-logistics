@@ -29,8 +29,20 @@ for (const f of files) {
     changed = true;
   }
   if (f === 'vehicules.html') {
-    // Wire "Voir le détail →" link
     html = html.replace(/<a class="link" href="#">Voir le détail →<\/a>/g, '<a class="link" href="#" data-drawer-open="drawer-vehicule">Voir le détail →</a>');
+    changed = true;
+  }
+  if (f === 'equipe.html') {
+    // Wire member cards "Détails" button + table rows (Liste salariés tab)
+    html = html.replace(/<button class="btn btn-secondary" style="flex:1">Détails<\/button>/g, '<button class="btn btn-secondary" style="flex:1" data-drawer-open="drawer-salarie">Détails</button>');
+    changed = true;
+  }
+  if (f === 'fournisseurs.html') {
+    html = html.replace(/<tr class="row-hover"(?!data-drawer-open)/g, '<tr class="row-hover" data-drawer-open="drawer-fournisseur"');
+    changed = true;
+  }
+  if (f === 'salaries.html') {
+    html = html.replace(/<tr class="row-hover"(?!data-drawer-open)/g, '<tr class="row-hover" data-drawer-open="drawer-salarie"');
     changed = true;
   }
 

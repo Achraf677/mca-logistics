@@ -208,7 +208,7 @@ function afficherDecisionsAgent() {
   if (!decisions.length) {
     container.innerHTML = `
       <div style="text-align:center;padding:40px 20px;color:#7c8299">
-        <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
+        <div style="margin-bottom:12px;display:flex;justify-content:center"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#e63946" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.75"><path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5L12 2z"/><path d="M5 4l.5 2L7 6.5 5.5 7 5 9l-.5-2L3 6.5 4.5 6 5 4z"/><path d="M19 15l.5 2 1.5.5-1.5.5-.5 2-.5-2-1.5-.5 1.5-.5.5-2z"/></svg></div>
         <div style="font-size:.95rem;margin-bottom:6px;font-weight:600;color:#e8eaf0">Aucune décision en attente</div>
         <div style="font-size:.8rem">Le brief Gemini scanne tes données automatiquement à chaque session.</div>
       </div>`;

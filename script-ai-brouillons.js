@@ -284,8 +284,8 @@
           </div>
         </div>
         <footer class="aib-modal-footer">
-          <button type="button" class="aib-btn aib-btn-reject" data-detail-reject="${escHtml(d.id)}">❌ Rejeter</button>
-          <button type="button" class="aib-btn aib-btn-approve" data-detail-approve="${escHtml(d.id)}">✅ Approuver</button>
+          <button type="button" class="aib-btn aib-btn-reject" data-detail-reject="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeter</button>
+          <button type="button" class="aib-btn aib-btn-approve" data-detail-approve="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Approuver</button>
         </footer>
       </div>
     `;
@@ -332,8 +332,8 @@
         ${summary ? `<div class="aib-card-summary">${escHtml(summary)}</div>` : ''}
         ${reasoning ? `<div class="aib-card-reasoning">${reasoning}</div>` : ''}
         <div class="aib-card-actions">
-          <button type="button" class="aib-btn aib-btn-approve" data-aib-approve="${escHtml(d.id)}">✅ Approuver</button>
-          <button type="button" class="aib-btn aib-btn-reject" data-aib-reject="${escHtml(d.id)}">❌ Rejeter</button>
+          <button type="button" class="aib-btn aib-btn-approve" data-aib-approve="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Approuver</button>
+          <button type="button" class="aib-btn aib-btn-reject" data-aib-reject="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeter</button>
           <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">Détail</button>
         </div>
       </div>

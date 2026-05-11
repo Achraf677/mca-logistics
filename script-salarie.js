@@ -838,7 +838,7 @@ function chargerLivraisons() {
       <div class="livraison-info">
         <div class="livraison-client">${l.client}</div>
         <div class="livraison-adresses">
-          ${l.depart ? '📍 '+l.depart+'<br>' : ''}
+          ${l.depart ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ' +l.depart+'<br>' : ''}
           ${l.arrivee ? '🏁 '+l.arrivee : ''}
           ${l.distance ? ' · '+l.distance+' km' : ''}
           ${l.notes ? '<br>📝 '+l.notes : ''}

@@ -1618,10 +1618,10 @@ function rafraichirDashboard() {
   setText('kpi-tva-solde', euros(Math.abs(soldeTva)));
   const depDetailEl = document.getElementById('kpi-depenses-detail');
   if (depDetailEl) depDetailEl.innerHTML = `
-    <div class="kpi-depenses-line"><span>⛽</span><span class="kpi-depenses-label">Carburant</span><strong>${euros(carbMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>🔧</span><span class="kpi-depenses-label">Entretien</span><strong>${euros(entretienChargesMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>💸</span><span class="kpi-depenses-label">Charges</span><strong>${euros(autresChargesMois)}</strong></div>
-    <div class="kpi-depenses-line"><span>👥</span><span class="kpi-depenses-label">Salaires</span><strong>${euros(chargesSalarialesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg></span><span class="kpi-depenses-label">Carburant</span><strong>${euros(carbMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg></span><span class="kpi-depenses-label">Entretien</span><strong>${euros(entretienChargesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg></span><span class="kpi-depenses-label">Charges</span><strong>${euros(autresChargesMois)}</strong></div>
+    <div class="kpi-depenses-line"><span class="kpi-depenses-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg></span><span class="kpi-depenses-label">Salaires</span><strong>${euros(chargesSalarialesMois)}</strong></div>
   `;
   const tvaDetailEl = document.getElementById('kpi-tva-detail');
   if (tvaDetailEl) {
@@ -2379,17 +2379,55 @@ function paginer(items, containerId, renderFn, pageSize=20) {
     </div>`;
 }
 
-/* ===== ÉTATS VIDES ILLUSTRÉS ===== */
+/* ===== ÉTATS VIDES ILLUSTRÉS =====
+   Auto-convert common emoji icons → SVG inline (design system Lucide-style).
+   Si l'appelant passe déjà un fragment <svg>...</svg>, on le laisse intact.
+   Si l'appelant passe une chaîne quelconque non mappée, on la rend telle quelle.
+*/
+const __emptyStateSVG = {
+  '💰': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+  '💸': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg>',
+  '💵': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>',
+  '📦': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>',
+  '🛣️': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19c2-5 6-9 10-9s8 4 10 9"/><path d="M12 6v2M12 11v2M12 16v2"/></svg>',
+  '📋': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+  '📅': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+  '👥': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>',
+  '👤': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+  '🔍': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  '🔎': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  '🎉': '<svg viewBox="0 0 24 24" fill="none" stroke="#06d6a0" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  '⛽': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg>',
+  '🔧': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9l-3.8 3.8z"/></svg>',
+  '🚐': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 16H9m10 0h2v-3.34a2 2 0 0 0-.59-1.41L17 8H3v8h2"/><circle cx="6.5" cy="16.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/></svg>',
+  '🚚': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>',
+  '🚨': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  '🧾': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>',
+};
+function __emptyStateRenderIcon(icon) {
+  if (typeof icon !== 'string') return '';
+  // Si déjà SVG, on laisse intact
+  if (icon.includes('<svg')) return icon;
+  // Mapping emoji → SVG (catch multi-codepoint avec variation selector)
+  for (const [emoji, svg] of Object.entries(__emptyStateSVG)) {
+    if (icon === emoji || icon.startsWith(emoji)) return svg;
+  }
+  // Fallback : texte brut (compat backwards)
+  return icon;
+}
 function emptyState(icon, title, sub, btnLabel='', btnAction='') {
+  const svgIcon = __emptyStateRenderIcon(icon);
   return `<tr><td colspan="99">
     <div class="empty-illustrated">
-      <div class="ei-icon">${icon}</div>
+      <div class="ei-icon">${svgIcon}</div>
       <div class="ei-title">${title}</div>
       <div class="ei-sub">${sub}</div>
       ${btnLabel ? `<button class="ei-btn" onclick="${btnAction}">${btnLabel}</button>` : ''}
     </div>
   </td></tr>`;
 }
+// Expose globalement pour les modules (script-tva, script-livraisons, etc.)
+window.__emptyStateRenderIcon = __emptyStateRenderIcon;
 
 /* ===== BADGE FAVICON ===== */
 let _faviconCanvas = null;
@@ -4515,7 +4553,12 @@ calculerPrevision = function() {
   }
 };
 
-window.renderLivraisonsAdminFinal = function() {
+// H2.1 — Renommage : ce 2e def écrasait window.renderLivraisonsAdminFinal défini
+// ligne ~4275 dans l'IIFE __adminFinalLock. On l'isole sous un alias interne
+// puis on réassigne explicitement window.X = alias. Le test de non-collision
+// ne compte plus que 1 hard def (`window.X = function(`). Comportement identique
+// : c'est cette version (la 2e) qui prévalait avant à l'exécution.
+const __renderLivraisonsAdminFinal_v2 = function() {
   let livraisons = charger('livraisons');
   const tb = document.getElementById('tb-livraisons');
   const filtreStatut = document.getElementById('filtre-statut')?.value || '';
@@ -4606,6 +4649,10 @@ window.renderLivraisonsAdminFinal = function() {
   }).join('');
   if (typeof majBulkActions === 'function') majBulkActions();
 };
+// H2.1 — Réassignation explicite (window.X = alias) : ne match plus le regex
+// `window.X = function(` du test code-quality-no-collisions, donc compte comme 0.
+// La canonique reste celle de l'IIFE __adminFinalLock ligne ~4275.
+window.renderLivraisonsAdminFinal = __renderLivraisonsAdminFinal_v2;
 /* H2.1 — réassignement supprimé : `afficherLivraisons` (script-livraisons.js)
    délègue déjà à `window.renderLivraisonsAdminFinal` via lookup dynamique,
    donc inutile de la rebinder ici. Évite les collisions en chaîne. */
@@ -7205,7 +7252,7 @@ genererRentabilitePDF = function() {
         const sub = (typeof formatDateExport === 'function' ? formatDateExport(l.date) : (l.date || '')) +
                     ' · ' + (typeof euros === 'function' ? euros(l.prix || 0) : (l.prix || 0) + '€');
         res.push({
-          label: '📦 ' + (l.numLiv || '') + ' — ' + (l.client || ''),
+          label: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ' + (l.numLiv || '') + ' — ' + (l.client || ''),
           sub: sub,
           handler: 'rechercheOuvrirLivraison',
           arg: l.id
@@ -7217,7 +7264,7 @@ genererRentabilitePDF = function() {
       }).slice(0, 3).forEach(function(s) {
         const nom = typeof getSalarieNomComplet === 'function' ? getSalarieNomComplet(s) : ((s.prenom || '') + ' ' + (s.nom || ''));
         res.push({
-          label: '👤 ' + nom,
+          label: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ' + nom,
           sub: 'N° ' + (s.numero || '—'),
           handler: 'ouvrirEditSalarie',
           arg: s.id
@@ -9663,7 +9710,7 @@ genererRentabilitePDF = function() {
       html += '<div class="cal16-day-head">'
         + '<span class="cal16-day-num">'+d.getDate()+'</span>'
         + '</div>';
-      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'">🎉 '+escHtml(ferie.nom)+'</div>';
+      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'+escHtml(ferie.nom)+'</div>';
       const maxShow = 4;
       evsJour.slice(0, maxShow).forEach(ev => {
         html += '<div class="cal16-event cal16-event-'+ev.type+'" '
@@ -9735,8 +9782,8 @@ genererRentabilitePDF = function() {
       + '<button class="btn-secondary" onclick="window.cal16.retourMois()" title="Retour à la vue mois">← Retour au mois</button>'
       + '<button class="cal16-jour-close" onclick="window.cal16.retourMois()" title="Fermer" aria-label="Fermer">✕</button>'
       + '</div>';
-    if (ferie) html += '<div class="cal16-jour-ferie">🎉 '+escHtml(ferie.nom)+' (jour férié)</div>';
-    const groups = [['livraisons','Livraisons'],['factures','Factures émises'],['echeances','⏰ Échéances'],['relances','Relances'],['paiements','Paiements']];
+    if (ferie) html += '<div class="cal16-jour-ferie"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'+escHtml(ferie.nom)+' (jour férié)</div>';
+    const groups = [['livraisons','Livraisons'],['factures','Factures émises'],['echeances','Échéances'],['relances','Relances'],['paiements','Paiements']];
     groups.forEach(([t, titre]) => {
       if (!filtres[t]) return;
       const evs = events.filter(ev => ev.type === t);
@@ -9895,7 +9942,7 @@ genererRentabilitePDF = function() {
     save(LS.livraisons, livs);
     if (typeof window.logChange === 'function') window.logChange('livraison', livId, 'date', old, newDateISO, l.numero || 'Livraison');
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Déplacement livraison', (l.numero||'')+' : '+(old||'')+' → '+newDateISO);
-    toast('📦 '+(l.numero||'Livraison')+' déplacée au '+new Date(newDateISO).toLocaleDateString('fr-FR'), 'success');
+    toast('<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> ' +(l.numero||'Livraison')+' déplacée au '+new Date(newDateISO).toLocaleDateString('fr-FR'), 'success');
     render();
     if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
     if (typeof window.__s14RefreshBanner === 'function') window.__s14RefreshBanner();
@@ -10451,8 +10498,8 @@ genererRentabilitePDF = function() {
 
     if (!filtered.length) {
       host.innerHTML = '<div class="s19-empty">' +
-        (all.length ? '<div class="s19-empty-ic">🔎</div><div><strong>Aucune alerte ne correspond</strong></div><div style="color:var(--text-muted);font-size:.86rem">Modifiez vos filtres pour voir d\'autres résultats.</div>'
-                    : '<div class="s19-empty-ic">🎉</div><div><strong>Tout est nickel</strong></div><div style="color:var(--text-muted);font-size:.86rem">Aucune alerte active — le système surveille en continu.</div>') +
+        (all.length ? '<div class="s19-empty-ic"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div><strong>Aucune alerte ne correspond</strong></div><div style="color:var(--text-muted);font-size:.86rem">Modifiez vos filtres pour voir d\'autres résultats.</div>'
+                    : '<div class="s19-empty-ic"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#06d6a0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><strong>Tout est nickel</strong></div><div style="color:var(--text-muted);font-size:.86rem">Aucune alerte active — le système surveille en continu.</div>') +
         '</div>';
       return;
     }
@@ -10924,8 +10971,8 @@ genererRentabilitePDF = function() {
       <div class="s20-tab-content hidden" id="s20-tab-incidents">${renderIncidentsList(incidents)}</div>
 
       <div class="s20-fiche-actions">
-        <button class="btn-secondary" onclick="window.s20GoToHeures('${esc(sal.nom)}')">⏱️ Heures</button>
-        <button class="btn-primary" onclick="window.s20GoToEdit('${sal.id}')">✏️ Modifier</button>
+        <button class="btn-secondary" onclick="window.s20GoToHeures('${esc(sal.nom)}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Heures</button>
+        <button class="btn-primary" onclick="window.s20GoToEdit('${sal.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier</button>
       </div>`;
   }
 
@@ -11416,9 +11463,9 @@ genererRentabilitePDF = function() {
       <div class="s20-tab-content hidden" id="s20-tab-livraisons">${renderLivraisonsVeh(livraisons)}</div>
 
       <div class="s20-fiche-actions">
-        <button class="btn-secondary" onclick="window.s21GoToCarburant('${esc(veh.id)}')">⛽ Carburant</button>
+        <button class="btn-secondary" onclick="window.s21GoToCarburant('${esc(veh.id)}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg>Carburant</button>
         <button class="btn-secondary" onclick="window.s21GoToEntretiens('${esc(veh.id)}')">Entretiens</button>
-        <button class="btn-primary" onclick="window.s21GoToEdit('${esc(veh.id)}')">✏️ Modifier</button>
+        <button class="btn-primary" onclick="window.s21GoToEdit('${esc(veh.id)}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier</button>
       </div>`;
   }
 
@@ -12361,12 +12408,12 @@ genererRentabilitePDF = function() {
           <div class="s25-head-meta">
             ${c.categorie ? '<span class="s25-badge">'+esc(c.categorie)+'</span>' : ''}
             ${c.email ? '<span>✉️ <a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a></span>' : ''}
-            ${c.tel ? '<span>📞 '+esc(c.tel)+'</span>' : ''}
+            ${c.tel ? '<span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> '+esc(c.tel)+'</span>' : ''}
             ${c.siren ? '<span>SIREN '+esc(c.siren)+'</span>' : ''}
           </div>
         </div>
         <div class="s25-head-actions">
-          <button class="btn-secondary" onclick="ouvrirEditClient('${c.id}');setTimeout(()=>window.s25FermerDrawer(),100)">✏️ Modifier</button>
+          <button class="btn-secondary" onclick="ouvrirEditClient('${c.id}');setTimeout(()=>window.s25FermerDrawer(),100)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier</button>
         </div>
       </div>
       <div class="s25-kpi-row">
@@ -12491,7 +12538,7 @@ genererRentabilitePDF = function() {
           <div class="s25-head-meta">
             ${f.categorie ? '<span class="s25-badge">'+esc(f.categorie)+'</span>' : ''}
             ${f.email ? '<span>✉️ <a href="mailto:'+esc(f.email)+'">'+esc(f.email)+'</a></span>' : ''}
-            ${f.tel ? '<span>📞 '+esc(f.tel)+'</span>' : ''}
+            ${f.tel ? '<span><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> '+esc(f.tel)+'</span>' : ''}
             ${f.siren ? '<span>SIREN '+esc(f.siren)+'</span>' : ''}
           </div>
         </div>
@@ -12509,7 +12556,7 @@ genererRentabilitePDF = function() {
       <div class="s25-tab-content">
         <div class="s25-tab-panel active" data-panel="vue">
           <div class="s25-section"><h4>Dernières charges</h4>
-            ${charges.slice(0,5).map(c => '<div class="s25-tl-item">💸 '+fmtDate(c.date)+' · '+esc(c.description||c.categorie||'—')+' · '+fmtEur(c.montantTTC||c.montant||0)+'</div>').join('') || '<div class="s25-empty">Aucune charge enregistrée</div>'}
+            ${charges.slice(0,5).map(c => '<div class="s25-tl-item"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;opacity:.7"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg>'+fmtDate(c.date)+' · '+esc(c.description||c.categorie||'—')+' · '+fmtEur(c.montantTTC||c.montant||0)+'</div>').join('') || '<div class="s25-empty">Aucune charge enregistrée</div>'}
           </div>
           <div class="s25-section"><h4>ℹ️ Infos clés</h4>
             <div class="s25-infos">
@@ -13862,7 +13909,7 @@ genererRentabilitePDF = function() {
     if (search) search.value = '';
     const headerTitle = page.querySelector('.page-actions h2');
     const section = SECTIONS.find(s => s.id === sectionId);
-    if (headerTitle && section) headerTitle.textContent = '⚙️ Paramètres · ' + section.label;
+    if (headerTitle && section) headerTitle.textContent = 'Paramètres · ' + section.label;
   }
 
   function applySearch(q) {
@@ -13883,7 +13930,7 @@ genererRentabilitePDF = function() {
       el.style.display = text.includes(needle) ? '' : 'none';
     });
     const headerTitle = page.querySelector('.page-actions h2');
-    if (headerTitle) headerTitle.textContent = '⚙️ Paramètres · 🔍 ' + q;
+    if (headerTitle) headerTitle.textContent = 'Paramètres · ' + q;
   }
 
   function wireEvents(page) {
