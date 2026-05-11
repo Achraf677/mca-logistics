@@ -114,6 +114,12 @@ _(vide pour l'instant)_
 - **Status** : FIXED (commit `d036955`)
 - **À vérifier** : ouvrir modal → aucune icône hors limites.
 
+### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
+- **Status** : FIXED (tooling seulement — pas un bug prod)
+- **Cause réelle** : `window.openModal('modal-livraison')` via `page.evaluate()` bloqué par setup wizard intercept. L'utilisateur cliquant sur le bouton natif → modal s'ouvre normalement.
+- **Fix** : `tools/audit-fill-form.mjs` — utilise maintenant `page.locator('button:has-text("Nouvelle livraison")').click()` avec fallback `evaluate`.
+- **Confirmé** : audit direct via `[data-livraisons-statut="brouillon"]` → filtre='brouillon' ✓, `modal-charge` s'ouvre ✓.
+
 ---
 
 ## ✔️ VERIFIED

@@ -43,7 +43,7 @@ if (await btnNouv.count() > 0) {
 } else {
   await page.evaluate(() => { if (window.openModal) window.openModal('modal-livraison'); });
 }
-await page.waitForTimeout(1000);
+await page.waitForTimeout(1500);
 await page.evaluate(() => { document.querySelectorAll('.toast').forEach(el => el.style.display = 'none'); });
 await page.screenshot({ path: `${OUT_DIR}/02-modal-empty.png`, fullPage: false });
 console.log('✓ Modal opened (empty)');

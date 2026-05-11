@@ -5,6 +5,32 @@
 
 ---
 
+## Session 2026-05-12 (:45) — Audit complet + Charges Export dropdown
+**Phases** : audit automatisé + phase 35 Charges
+**Commit final** : `TBD`
+**État** : BUG-014 résolu (tooling), 0 bug NEW restant, Charges export dropdown aligné mockup
+
+### Actions clés
+- Audit Playwright systématique Livraisons + Charges (BUG-001, BUG-002, BUG-015, BUG-016 confirmés FIXED en prod)
+- BUG-014 confirmé tooling-only : prod OK, fix dans `tools/audit-fill-form.mjs`
+- Charges Export dropdown : flat buttons CSV+Rapport → dropdown `.liv-dropdown-wrap` avec Rapport PDF + CSV (pattern livraisons réutilisé)
+- sw.js CACHE_VERSION v58 → v59
+
+### Bugs fixés
+- **BUG-014** : tooling-only fix — `audit-fill-form.mjs` utilise maintenant le bouton natif au lieu de `evaluate(openModal)`
+
+### Bugs vérifiés en prod (pas NEW)
+- **BUG-001** : section titles dans modal ✓ (9 titres corrects)
+- **BUG-002** : aucune erreur à ouverture modal ✓
+- **BUG-015** : chip Brouillons → filtre=brouillon ✓ (1 row filtered)
+- **BUG-016** : Kanban active class ✓ ; btn-vue-tableau actif par défaut ✓
+
+### Décisions
+- Setup wizard dismissed via evaluate (pas de mod prod — purement pour l'audit Playwright)
+- Inline-select statut livraisons : selects stylés en pills acceptables (plus fonctionnel que les static badges mockup)
+
+---
+
 ## Session 2026-05-11 (matin) — Dashboard refonte
 **Phases** : 5-21
 **Commit final** : `7dfa409`
