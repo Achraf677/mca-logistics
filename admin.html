@@ -121,6 +121,8 @@
   <script defer src="script-titlerow.js?v=1"></script>
   <!-- Phase 10 refonte : dashboard dash-charts (area + donut) -->
   <script defer src="script-dashboard-charts.js?v=1"></script>
+  <!-- Phase 12 refonte : period-chips wiring (sync chips ↔ existing selects) -->
+  <script defer src="script-period-chips.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
   <script src="script-dev-seed.js?v=1"></script>
 </head>
@@ -578,6 +580,30 @@
         </div>
       </div>
 
+      <!-- Phase 12 refonte HTML : period-row (view-toggle + period chips) align mockup -->
+      <div class="period-row">
+        <div class="view-toggle">
+          <button class="btn-view active" data-vue="tableau" onclick="changerVueLivraisons('tableau')">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
+            Tableau
+          </button>
+          <button class="btn-view" data-vue="kanban" onclick="changerVueLivraisons('kanban')">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
+            Kanban
+          </button>
+          <button class="btn-view" data-vue="calendrier" onclick="changerVueLivraisons('calendrier')">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+            Calendrier
+          </button>
+        </div>
+        <div class="period-chips" data-period-target="liv-periode-mode">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
+        </div>
+      </div>
+
       <!-- Phase 2 HTML refonte : chips toolbar filtres rapides par statut.
            Synchronises avec #filtre-statut via window.appliquerChipLivraisons (script-livraisons-chips.js). -->
       <div class="ds-chips-toolbar" id="livraisons-chips-toolbar" role="tablist" aria-label="Filtres rapides statut">
@@ -859,6 +885,17 @@
           <button class="btn-primary" onclick="openModal('modal-carburant')">+ Enregistrer un plein</button>
         </div>
       </div>
+      <!-- Phase 12 refonte HTML : period-row -->
+      <div class="period-row">
+        <div></div>
+        <div class="period-chips" data-period-target="vue-carb-select">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
+        </div>
+      </div>
+
       <!-- Navigation mois -->
       <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
@@ -1542,6 +1579,17 @@
         </div>
       </div>
 
+      <!-- Phase 12 refonte HTML : period-row -->
+      <div class="period-row">
+        <div></div>
+        <div class="period-chips" data-period-target="vue-tva-select">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
+        </div>
+      </div>
+
       <!-- Navigation période -->
       <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
@@ -2002,6 +2050,17 @@
           <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-assurance-count">0</span> lignes</div>
         </div>
       </div>
+      <!-- Phase 12 refonte HTML : period-row -->
+      <div class="period-row">
+        <div></div>
+        <div class="period-chips" data-period-target="vue-charges-select">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
+        </div>
+      </div>
+
       <!-- Navigation mois -->
       <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
@@ -2148,6 +2207,17 @@
           <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Ajouter entretien</button>
         </div>
       </div>
+      <!-- Phase 12 refonte HTML : period-row -->
+      <div class="period-row">
+        <div></div>
+        <div class="period-chips" data-period-target="vue-entr-select">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period" data-period="semaine">Semaine</button>
+          <button class="chip-period active" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
+        </div>
+      </div>
+
       <!-- Navigation mois -->
       <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
@@ -2383,6 +2453,17 @@
         <div class="page-actions-toolbar ds-section-head__actions">
           <button class="btn-rapport" onclick="exporterPlanningSemainePDF()">Rapport</button>
           <button class="btn-primary" onclick="ouvrirModalPlanning()">+ Gérer les horaires</button>
+        </div>
+      </div>
+
+      <!-- Phase 12 refonte HTML : period-row -->
+      <div class="period-row">
+        <div></div>
+        <div class="period-chips" data-period-target="vue-planning-select">
+          <button class="chip-period" data-period="jour">Jour</button>
+          <button class="chip-period active" data-period="semaine">Semaine</button>
+          <button class="chip-period" data-period="mois">Mois</button>
+          <button class="chip-period" data-period="annee">Année</button>
         </div>
       </div>
 
