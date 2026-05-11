@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : `9c1e0c9` (Véhicules + Entretiens phase 34)
+> **Dernier commit** : `562d02a` (TVA cols phase 34)
 
 ---
 
@@ -29,12 +29,12 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Clients | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
 | Fournisseurs | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
 | Véhicules | 50% | 100% | Phase 34 : cols Acquisition/Finances/Carburant/Entretien masquées |
-| Carburant | 30% | 100% | Phase 7 + period-row |
+| Carburant | 45% | 100% | Phase 34 : cols TVA déductible + Source masquées |
 | Entretiens | 50% | 100% | Phase 34 : cols HT/TVA masquées |
 | Inspections | 25% | 100% | Phase 8 title-row seulement |
 | Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
-| Encaissement | 25% | 100% | Phase 8 title-row seulement |
-| TVA | 30% | 100% | Phase 8 + period-row |
+| Encaissement | 25% | 100% | Phase 8 — JS-driven, inline styles, hors-scope CSS |
+| TVA | 45% | 100% | Phase 34 : col Exigibilité + Actions masquées (collectée/déductible) |
 | Rentabilité | 25% | 100% | Phase 8 |
 | Statistiques | 25% | 100% | Phase 8 |
 | Calendrier | 25% | 100% | Phase 8 |
