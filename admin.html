@@ -1026,8 +1026,17 @@
         </div>
       </div>
 
-      <div class="page-actions"><h2>Suivi Carburant</h2>
-        <div style="display:flex;gap:8px">
+      <!-- Phase 35 refonte HTML : section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Suivi Carburant</h2>
+          <div class="ds-section-head__sub">
+            <span id="carb-section-sub-periode">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span id="carb-section-sub-count">0 plein(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()" title="Configurer la détection d'anomalies">Anomalies</button>
           <button class="btn-rapport" onclick="exporterCarburantPDF()">Rapport</button>
           <button class="btn-primary" onclick="openModal('modal-carburant')">+ Enregistrer un plein</button>
@@ -1114,6 +1123,13 @@
           <button class="btn-rapport" onclick="exporterRapportRentabilitePDF()" title="Rapport mensuel multi-axes (véhicules, clients, chauffeurs, tournées)">Rapport</button>
           <button class="btn-secondary" onclick="genererRentabilitePDF()" title="Rapport simulateur (calculateur)">Simulateur</button>
         </div>
+      </div>
+      <!-- Phase 35 : KPI grid rentabilité (valeurs peuplées par script-rentabilite-multi.js) -->
+      <div class="kpi-grid" style="margin-bottom:14px">
+        <div class="kpi"><div class="kpi-lbl">CA HT période</div><div class="kpi-val" id="rent-kpi-ca">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Charges totales</div><div class="kpi-val" id="rent-kpi-charges">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Marge brute</div><div class="kpi-val" id="rent-kpi-marge">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Coût/km moyen</div><div class="kpi-val" id="rent-kpi-cout-km">—</div></div>
       </div>
       <!-- Sous-onglets -->
       <div class="card" style="margin-bottom:14px;padding:8px 12px">
@@ -1725,8 +1741,17 @@
         <div class="sub-meta">Récapitulatif TVA collectée et déductible · CA3 mensuel / trimestriel</div>
       </div>
 
-      <div class="page-actions"><h2>Récapitulatif TVA</h2>
-        <div class="u-flex-row">
+      <!-- Phase 35 refonte HTML : section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Récapitulatif TVA</h2>
+          <div class="ds-section-head__sub">
+            <span id="tva-section-sub-periode">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span id="tva-section-sub-count">0 écriture(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="exporterTvaCSV()">CSV</button>
           <button class="btn-rapport" onclick="exporterTvaPDF()">Rapport TVA</button>
         </div>
