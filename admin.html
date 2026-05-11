@@ -114,7 +114,7 @@
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
-  <script defer src="script-charges-kpis-categorie.js?v=1"></script>
+  <script defer src="script-charges-kpis-categorie.js?v=2"></script>
   <!-- Phase 2 HTML refonte Livraisons : chips toolbar handler + counts par statut. -->
   <script defer src="script-livraisons-chips.js?v=2"></script>
   <!-- Phase 2 HTML refonte Equipe : counts actifs + postes. -->
@@ -2238,7 +2238,13 @@
         </button>
         <button class="ds-chip" type="button" data-charges-cat="entretien" onclick="appliquerChipCharges('entretien')" role="tab" aria-selected="false">Entretien <span class="ds-chip__count" id="charges-chip-count-entretien">0</span>
         </button>
+        <button class="ds-chip" type="button" data-charges-cat="assurance" onclick="appliquerChipCharges('assurance')" role="tab" aria-selected="false">Assurance <span class="ds-chip__count" id="charges-chip-count-assurance">0</span>
+        </button>
         <button class="ds-chip" type="button" data-charges-cat="peage" onclick="appliquerChipCharges('peage')" role="tab" aria-selected="false">Péages <span class="ds-chip__count" id="charges-chip-count-peage">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="tva" onclick="appliquerChipCharges('tva')" role="tab" aria-selected="false">Taxes <span class="ds-chip__count" id="charges-chip-count-tva">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-charges-cat="salaires" onclick="appliquerChipCharges('salaires')" role="tab" aria-selected="false">Salaires <span class="ds-chip__count" id="charges-chip-count-salaires">0</span>
         </button>
         <button class="ds-chip" type="button" data-charges-cat="autre" onclick="appliquerChipCharges('autre')" role="tab" aria-selected="false">Autres <span class="ds-chip__count" id="charges-chip-count-autre">0</span>
         </button>

@@ -76,6 +76,12 @@ _(vide pour l'instant)_
   - Générer : Facture / Bon de livraison / Lettre de voiture / Facture groupée (4)
   - Exporter : PDF / CSV / Excel / Facture groupée (4)
 
+### BUG-016 — View-toggle active class sur boutons cachés
+- **Status** : FIXED (commit `9e88622`)
+- **Découverte** : analyse statique — `changerVueLivraisons()` dans `script-livraisons.js` utilise `getElementById('btn-vue-X')` pour appliquer la classe `active`. Les IDs étaient sur les boutons cachés (`display:none !important` dans section-head), jamais sur les boutons visibles du `period-row`. Clic Kanban/Calendrier → vue change mais aucun bouton ne s'allume.
+- **Fix** : déplacement des IDs `btn-vue-{tableau,kanban,calendrier}` des boutons cachés vers les boutons period-row visibles (admin.html lignes 680/684/688).
+- **À vérifier** : cliquer Kanban → bouton "Kanban" s'allume ; Tableau → "Tableau" s'allume.
+
 ### BUG-015 — Chip "Brouillons" ne filtre pas la table (select manquant)
 - **Status** : FIXED (ce commit)
 - **Découverte** : analyse statique — `appliquerChipLivraisons` dans `script-livraisons-chips.js` n'incluait pas `'brouillon'` dans le tableau `supported[]`, donc le clic chip tombait dans le fallback retard (reset select) sans filtrer. De plus `#filtre-statut` n'avait pas d'`<option value="brouillon">`.
@@ -117,6 +123,6 @@ _(vide pour l'instant — user à valider)_
 |---|---|
 | NEW | 1 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 14 |
+| FIXED (à vérifier) | 15 |
 | VERIFIED | 0 |
-| **Total** | **15** |
+| **Total** | **16** |
