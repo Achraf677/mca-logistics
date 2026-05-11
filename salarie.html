@@ -768,6 +768,34 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
 </head>
 <body class="app-shell app-booting">
 
+  <!-- ========================================================================
+       MCA LOGISTICS — salarie.html — Plan du fichier (espace chauffeur web)
+       ========================================================================
+       1. SHELL                          ~ligne 769
+          - #offline-banner               : banner connectivité
+          - #ecran-salarie                : root container
+          - <header class="topbar">       ~ligne 777 : brand + profil + theme
+          - <div class="tabs">            ~ligne 813 : 7 tabs (Accueil/Livraisons
+                                                       /Planning/Carburant
+                                                       /Inspection/Messages/Profil)
+
+       2. PAGES (sections) ~ligne 830-1170
+          - ACCUEIL          ~ligne 830  : hub livraisons du jour + actions
+          - LIVRAISONS       ~ligne 885  : liste assignées (filtres jour/sem)
+          - PLANNING         ~ligne 897  : horaires de la semaine
+          - CARBURANT        ~ligne 907  : enregistrer un plein + OCR ticket
+          - INSPECTION       ~ligne ?    : checklist + photos + envoi
+          - MESSAGES         ~ligne 1088 : messagerie admin ↔ chauffeur
+          - PROFIL           ~ligne 1141 : password, PWA install, bug report
+
+       3. BOTTOM NAV (mobile)            ~ligne 1207-1255 : 7 boutons mirror tabs
+       4. SHEET (modales mobile)         ~ligne ?
+
+       Sacred IDs : bn-accueil/livraisons/inspection/carburant/messages/planning/
+       profil, tab-*, badge-accueil, badge-msg-sal, profil-avatar, etc.
+       script-salarie.js + script-mobile.js hydratent les onglets.
+       ======================================================================== -->
+
 <!-- OFFLINE BANNER -->
 <div id="offline-banner">Hors ligne — synchronisation en attente</div>
 
@@ -827,7 +855,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
   <div class="main" id="main-scroll">
     <div class="main-inner">
 
-      <!-- ACCUEIL -->
+      <!-- ============================================================
+           ACCUEIL          : hub livraisons du jour + actions rapides
+           ============================================================ -->
       <div class="panneau active" id="panneau-accueil">
         <div id="resume-journee-container"></div>
 
@@ -882,7 +912,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
         </div>
       </div>
 
-      <!-- LIVRAISONS -->
+      <!-- ============================================================
+           LIVRAISONS       : liste assignées + filtres jour/semaine
+           ============================================================ -->
       <div class="panneau" id="panneau-livraisons">
         <div class="card">
           <div class="card-header">Mes livraisons du jour
@@ -894,7 +926,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
         </div>
       </div>
 
-      <!-- PLANNING -->
+      <!-- ============================================================
+           PLANNING         : horaires de la semaine (lecture seule)
+           ============================================================ -->
       <div class="panneau" id="panneau-planning">
         <div class="card">
           <div class="card-header">Mon planning de la semaine</div>
@@ -904,7 +938,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
         </div>
       </div>
 
-      <!-- CARBURANT -->
+      <!-- ============================================================
+           CARBURANT        : enregistrer un plein + OCR ticket
+           ============================================================ -->
       <div class="panneau" id="panneau-carburant">
         <div id="notifs-carburant-container"></div>
         <div class="card">
@@ -1085,7 +1121,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
         </div>
       </div>
 
-      <!-- MESSAGES -->
+      <!-- ============================================================
+           MESSAGES         : messagerie admin ↔ chauffeur
+           ============================================================ -->
       <div class="panneau" id="panneau-messages">
         <div class="card" style="
           display:flex;flex-direction:column;
@@ -1138,7 +1176,9 @@ body.online-with-queue #offline-banner { background: var(--orange, #e63946); col
         </div>
       </div>
 
-      <!-- PROFIL -->
+      <!-- ============================================================
+           PROFIL           : mot de passe + PWA install + bug report
+           ============================================================ -->
       <div class="panneau" id="panneau-profil">
         <div id="mes-incidents-container" style="margin-bottom:14px"></div>
         <div id="notifs-profil-container"></div>

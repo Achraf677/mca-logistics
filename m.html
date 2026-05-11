@@ -35,6 +35,27 @@
   </style>
 </head>
 <body class="m-app m-theme-dark">
+
+  <!-- ========================================================================
+       MCA LOGISTICS — m.html — Plan du fichier (app chauffeur mobile)
+       ========================================================================
+       Shell léger (sans pages internes — le main #m-content est SWAPÉ par JS) :
+
+       1. <header class="m-header">     ~ligne 39  : brand + back + titre + IA
+       2. <main #m-content>             ~ligne 66  : conteneur unique, contenu
+                                                     injecté par script-mobile.js
+                                                     selon la route active
+       3. <aside #m-drawer>             ~ligne 100 : drawer latéral (menu nav)
+       4. <aside #m-sheet>              ~ligne 216 : bottom sheet (modales mobile)
+       5. Toasts, dialogs, FAB Agent IA, bottom nav
+
+       Sacred IDs (NE PAS RENOMMER) :
+         #m-content, #m-back-btn, #m-title, #m-chatbot-btn, #m-agent-ia-btn,
+         #m-agent-ia-badge, #m-bottom-nav, #m-drawer*, #m-sheet*, #m-toast.
+
+       script-mobile.js (12k lignes) hydrate #m-content à chaque route change.
+       ======================================================================== -->
+
   <!-- Header compact : brand + back btn + titre + chat IA + Agent IA -->
   <header class="m-header">
     <div class="m-header-brand">
