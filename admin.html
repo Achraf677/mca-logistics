@@ -587,17 +587,16 @@
         </div>
       </div>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 2 HTML refonte : section-head pattern mockup. Sub-meta epuree (Phase 31) -->
       <div class="page-actions page-actions-livraisons ds-section-head">
         <div class="ds-section-head__title">
           <h2>Toutes les livraisons</h2>
           <div class="ds-section-head__sub">
             <span>Filtrer, exporter, suivre l'état de chaque tournée</span>
-            <span class="ds-section-head__sep">·</span>
-            <span id="livraisons-section-sub-mois">—</span>
-            <span class="ds-section-head__sep">·</span>
-            <span><span id="livraisons-section-sub-count">0</span> livraisons</span>
           </div>
+          <!-- IDs preserves pour compat scripts (caches) -->
+          <span id="livraisons-section-sub-mois" hidden></span>
+          <span id="livraisons-section-sub-count" hidden>0</span>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
           <!-- view-toggle deplace dans la period-row (Phase 12), retire ici pour pas doublonner.
@@ -773,7 +772,7 @@
               <tbody id="tb-livraisons"><tr><td colspan="16" class="empty-row">Aucune livraison</td></tr></tbody>
             </table>
           </div>
-          <div class="pagination-bar" id="pagination-livraisons" data-pagination-key="livraisons" style="display:none"></div>
+          <div class="pagination-bar" id="pagination-livraisons" data-pagination-key="livraisons"></div>
         </div>
       </div>
       <!-- VUE KANBAN -->

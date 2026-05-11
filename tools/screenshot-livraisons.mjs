@@ -98,7 +98,28 @@ console.log('  ✓ calendrier →', `${OUT_DIR}/02c-livraisons-calendrier.png`);
 await page.evaluate(() => {
   if (typeof window.changerVueLivraisons === 'function') window.changerVueLivraisons('tableau');
 });
-await page.waitForTimeout(1000);
+await page.waitForTimeout(1500);
+await cleanUI();
+
+// Tentative ouverture drawer 360 (clic 1ere ligne livraison)
+try {
+  await page.evaluate(() => {
+    const firstRow = document.querySelector('#tb-livraisons tr:not(.empty-row)');
+    if (firstRow) {
+      // Cherche un bouton edit ou fait clic ligne
+      const editBtn = firstRow.querySelector('button[onclick*="ouvrirEdit"], button[onclick*="afficherFiche"]');
+      if (editBtn) editBtn.click();
+      else firstRow.click();
+    }
+  });
+  await page.waitForTimeout(1500);
+  await cleanUI();
+  await page.screenshot({ path: `${OUT_DIR}/02d-livraisons-drawer.png`, fullPage: false });
+  console.log('  ✓ drawer 360 →', `${OUT_DIR}/02d-livraisons-drawer.png`);
+  // Close drawer
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(500);
+} catch (e) { console.warn('[drawer]', e.message); }
 
 // Full page
 await page.evaluate(() => {

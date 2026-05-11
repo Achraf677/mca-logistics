@@ -363,7 +363,7 @@
   display: none;
 }
 
-/* Pagination footer style mockup */
+/* Pagination footer style mockup (Phase 31 : toujours visible quand pas vide) */
 #pagination-livraisons {
   display: flex !important;
   align-items: center;
@@ -377,6 +377,22 @@
 
 #pagination-livraisons:empty {
   display: none !important;
+}
+
+/* Badge Brouillon (style legacy + nouveau seed value) */
+.statut-brouillon,
+.data-table td .statut-brouillon,
+.livraisons-table td span[data-statut="brouillon"],
+.livraisons-table td .badge.draft {
+  background: rgba(168, 162, 158, 0.15);
+  color: #a8a29e;
+  border: 1px solid rgba(168, 162, 158, 0.3);
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 #pagination-livraisons .pg-count {

@@ -218,8 +218,14 @@
       const prixHT = Math.round(distance * prixKm * 100) / 100;
       const tauxTVA = 20;
       const prixTTC = Math.round(prixHT * (1 + tauxTVA/100) * 100) / 100;
-      const statut = daysAgo > 7 ? 'livre' : pick(STATUTS_BIASED);
-      const statutPaie = daysAgo > 60 ? 'paye' : (statut !== 'livre' ? 'en-attente' : pick(STATUTS_PAIEMENT));
+      // ~3% brouillons (pour montrer la chip "Brouillons" peuplee dans la toolbar)
+      let statut;
+      if (chance(0.03)) statut = 'brouillon';
+      else if (daysAgo > 7) statut = 'livre';
+      else statut = pick(STATUTS_BIASED);
+      const statutPaie = statut === 'brouillon'
+        ? 'brouillon'
+        : (daysAgo > 60 ? 'paye' : (statut !== 'livre' ? 'en-attente' : pick(STATUTS_PAIEMENT)));
       LIVRAISONS.push({
         id: uid(),
         numLiv: 'L-' + new Date().getFullYear() + '-' + String(i + 1).padStart(4, '0'),
