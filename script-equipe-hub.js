@@ -251,7 +251,7 @@
         <div class="kpi-sub">${eff.label}</div>
       </div>
       <div class="kpi-card blue">
-        <div class="kpi-label">⏱️ Heures cette semaine</div>
+        <div class="kpi-label">Heures cette semaine</div>
         <div class="kpi-value">${heuresSem.total.toFixed(1)} h</div>
         <div class="kpi-sub">prévues ${heuresSem.planifiees.toFixed(1)} h · réelles ${heuresSem.reelles.toFixed(1)} h</div>
       </div>
@@ -261,7 +261,7 @@
         <div class="kpi-sub">${fmtEur(liv30.ca)} CA HT</div>
       </div>
       <div class="kpi-card" style="border-top:3px solid ${conf.niveau === 'critical' ? '#dc3545' : conf.niveau === 'warn' ? '#e67e22' : '#28a745'}">
-        <div class="kpi-label">✅ Conformité</div>
+        <div class="kpi-label">Conformité</div>
         <div class="kpi-value" style="font-size:1.1rem">${conf.label}</div>
         <div class="kpi-sub">${conf.items.length === 0 ? 'Tout est à jour' : conf.items.length + ' point' + (conf.items.length > 1 ? 's' : '') + ' à traiter'}</div>
       </div>
