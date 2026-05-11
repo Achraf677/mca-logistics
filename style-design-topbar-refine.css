@@ -1,0 +1,183 @@
+/* ==========================================================================
+   MCA Logistics — Topbar refine (Phase 29)
+
+   Refonte CSS-only de la topbar admin pour matcher visuellement le mockup :
+   - Brand simplifié (juste "MCA LOGISTICS" sans truck logo en topbar)
+   - Search look-like-input (au lieu de button "Rechercher" actuel)
+   - Theme toggle compact icon-only (cache "Dark mode" label si)
+   - Agent IA pill compact (juste pulse + "Agent IA" sans badge si vide)
+   - User menu compact (avatar + caret, retire "Admin" label)
+   - Date discrete (right-aligned smaller)
+
+   Compatible avec features existantes — pas de DOM change.
+   ========================================================================== */
+
+/* ============ Topbar global ============ */
+.topbar {
+  height: 60px;
+  padding: 0 18px;
+  gap: 12px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  background: var(--ds-bg-elevated, #1a1d22);
+}
+
+/* ============ Brand : simplifier ============ */
+.topbar-branding {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0 8px 0 0;
+}
+
+.topbar-branding::before {
+  content: '';
+  width: 24px;
+  height: 18px;
+  flex-shrink: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 60'><rect x='0' y='14' width='14' height='3' fill='%23e63946'/><rect x='2' y='22' width='12' height='3' fill='%23e63946'/><rect x='4' y='30' width='10' height='3' fill='%23e63946'/><rect x='2' y='38' width='12' height='3' fill='%23e63946'/><rect x='18' y='14' width='60' height='28' rx='4' fill='%231a1d22' stroke='%23f1f3f5' stroke-width='1'/><circle cx='30' cy='44' r='5' fill='%231a1d22' stroke='%23f1f3f5' stroke-width='1.2'/><circle cx='66' cy='44' r='5' fill='%231a1d22' stroke='%23f1f3f5' stroke-width='1.2'/></svg>");
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.topbar-branding .topbar-logo-name {
+  font-family: var(--ds-font-display, var(--font-display, "Syne", sans-serif));
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+/* ============ Page title : entre brand et search, discret ============ */
+.topbar-title {
+  font-family: var(--ds-font-display, var(--font-display, "Syne", sans-serif));
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ds-text, var(--text));
+  margin-right: auto;
+  letter-spacing: -0.01em;
+}
+
+/* ============ Search trigger : look-like-input ============ */
+.topbar-search-trigger {
+  background: var(--ds-bg-card, var(--bg-card)) !important;
+  border: 1px solid var(--ds-border, var(--border)) !important;
+  color: var(--ds-text-muted, var(--text-muted)) !important;
+  border-radius: 999px !important;
+  padding: 7px 16px 7px 14px !important;
+  min-width: 240px;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease-out;
+  text-align: left;
+}
+
+.topbar-search-trigger:hover {
+  border-color: var(--ds-border-strong, var(--border)) !important;
+  color: var(--ds-text, var(--text)) !important;
+}
+
+/* ============ Theme toggle compact ============ */
+.btn-theme-toggle {
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1px solid var(--ds-border, var(--border)) !important;
+  color: var(--ds-text-muted, var(--text-muted)) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-theme-toggle:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04)) !important;
+  color: var(--ds-text, var(--text)) !important;
+}
+
+/* ============ Agent IA pill compact ============ */
+#ai-status-bar {
+  padding: 5px 12px !important;
+  font-size: 12px !important;
+  border-radius: 999px !important;
+  height: 32px;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  background: rgba(6, 214, 160, 0.1) !important;
+  border-color: rgba(6, 214, 160, 0.25) !important;
+}
+
+#ai-status-bar > span:nth-child(2) {
+  color: #06d6a0 !important;
+}
+
+/* ============ User menu compact (mockup : juste AC avatar) ============ */
+.topbar-user {
+  padding: 4px 8px 4px 4px !important;
+  border-radius: 999px !important;
+  background: var(--ds-bg-card, var(--bg-card)) !important;
+  border: 1px solid var(--ds-border, var(--border)) !important;
+  gap: 6px !important;
+}
+
+.topbar-user:hover {
+  border-color: var(--ds-border-strong, var(--border)) !important;
+}
+
+.topbar-avatar {
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 50% !important;
+  background: var(--ds-brand, var(--accent)) !important;
+  color: #fff !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  flex-shrink: 0;
+}
+
+#topbar-admin-label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: var(--ds-text, var(--text)) !important;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar-user-caret {
+  color: var(--ds-text-muted, var(--text-muted)) !important;
+  opacity: 0.6;
+}
+
+/* ============ Date : discrete (sm muted) ============ */
+.topbar-date {
+  font-size: 11.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+  white-space: nowrap;
+  margin-left: 8px;
+  font-feature-settings: "tnum";
+}
+
+/* ============ Responsive : hide elements on small screens ============ */
+@media (max-width: 1100px) {
+  .topbar-title { display: none; }
+  .topbar-search-trigger { min-width: 180px; }
+}
+
+@media (max-width: 900px) {
+  .topbar-date { display: none; }
+  #ai-status-bar > span:nth-child(2) { display: none; }
+}
+
+@media (max-width: 720px) {
+  .topbar-search-trigger { display: none !important; }
+  #topbar-admin-label { display: none; }
+}
