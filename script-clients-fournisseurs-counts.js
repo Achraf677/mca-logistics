@@ -1,4 +1,5 @@
 /* Phase 2 PR-F Clients/Fournisseurs section-head counts */
+/* Phase 38 — KPI grids (actifs / top / encours / categorie) */
 (function () {
   'use strict';
 
@@ -42,6 +43,10 @@
     }).length;
   }
 
+  function fmtEuros(n) {
+    return Number(n || 0).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  }
+
   function update() {
     var cliSubTotal = document.getElementById('clients-section-sub-total');
     var cliSubActifs = document.getElementById('clients-section-sub-actifs');
@@ -58,10 +63,106 @@
     if (cliSubActifs) cliSubActifs.textContent = actifsRecents(clients, livraisons, charges, 'client');
     if (frnSubTotal) frnSubTotal.textContent = fournisseurs.length;
     if (frnSubActifs) frnSubActifs.textContent = actifsRecents(fournisseurs, livraisons, charges, 'fournisseur');
+
+    // ── Clients KPIs ──
+    var cliKpiActifs = document.getElementById('clients-kpi-actifs');
+    var cliKpiTopNom = document.getElementById('clients-kpi-top-nom');
+    var cliKpiTopCa = document.getElementById('clients-kpi-top-ca');
+    var cliKpiDso = document.getElementById('clients-kpi-dso');
+    var cliKpiEncours = document.getElementById('clients-kpi-encours');
+    var cliKpiEncoursNb = document.getElementById('clients-kpi-encours-nb');
+
+    if (cliKpiActifs || cliKpiTopNom || cliKpiEncours) {
+      var actifsCli = actifsRecents(clients, livraisons, charges, 'client');
+      if (cliKpiActifs) cliKpiActifs.textContent = actifsCli;
+
+      // CA par client (12 mois)
+      var caParClient = {};
+      var now12 = new Date(); now12.setFullYear(now12.getFullYear() - 1);
+      livraisons.forEach(function (l) {
+        if (!l) return;
+        var d = parseDate(l.date || l.dateLivraison);
+        if (!d || d < now12) return;
+        var nom = (l.client && l.client.nom) || l.client || l.clientId || '';
+        if (!nom) return;
+        caParClient[nom] = (caParClient[nom] || 0) + (parseFloat(l.prixHT || l.prix || 0));
+      });
+      var topCli = Object.keys(caParClient).sort(function (a, b) { return caParClient[b] - caParClient[a]; })[0];
+      if (cliKpiTopNom) cliKpiTopNom.textContent = topCli || '—';
+      if (cliKpiTopCa) cliKpiTopCa.textContent = topCli ? fmtEuros(caParClient[topCli]) + ' sur 12m' : '';
+
+      // Encours impayés
+      var impayees = livraisons.filter(function (l) {
+        if (!l) return false;
+        var s = l.statutPaiement || l.statut_paiement || '';
+        return s !== 'payé' && s !== 'paye' && s !== 'payee' && s !== 'litige';
+      });
+      var encours = impayees.reduce(function (s, l) { return s + parseFloat(l.prixTTC || l.prixHT || l.prix || 0); }, 0);
+      if (cliKpiEncours) cliKpiEncours.textContent = encours > 0 ? fmtEuros(encours) : '—';
+      if (cliKpiEncoursNb) cliKpiEncoursNb.textContent = impayees.length > 0 ? impayees.length + ' facture(s) impayée(s)' : 'À jour';
+
+      // DSO calculé si disponible
+      if (cliKpiDso) {
+        var dso = (typeof window.calculerDSO === 'function') ? window.calculerDSO(livraisons) : null;
+        cliKpiDso.textContent = dso && dso.dso !== null ? dso.dso + ' j' : '—';
+      }
+    }
+
+    // ── Fournisseurs KPIs ──
+    var frnKpiActifs = document.getElementById('fournisseurs-kpi-actifs');
+    var frnKpiTopNom = document.getElementById('fournisseurs-kpi-top-nom');
+    var frnKpiTopCa = document.getElementById('fournisseurs-kpi-top-ca');
+    var frnKpiEncours = document.getElementById('fournisseurs-kpi-encours');
+    var frnKpiEncoursNb = document.getElementById('fournisseurs-kpi-encours-nb');
+    var frnKpiCat = document.getElementById('fournisseurs-kpi-categorie');
+    var frnKpiCatPct = document.getElementById('fournisseurs-kpi-categorie-pct');
+
+    if (frnKpiActifs || frnKpiTopNom || frnKpiEncours) {
+      var actifsFrn = actifsRecents(fournisseurs, livraisons, charges, 'fournisseur');
+      if (frnKpiActifs) frnKpiActifs.textContent = actifsFrn;
+
+      // Dépenses par fournisseur (12m)
+      var depParFrn = {};
+      charges.forEach(function (c) {
+        if (!c) return;
+        var nom = (c.fournisseur && c.fournisseur.nom) || c.fournisseur || c.fournisseurId || '';
+        if (!nom) return;
+        depParFrn[nom] = (depParFrn[nom] || 0) + parseFloat(c.montant || 0);
+      });
+      var topFrn = Object.keys(depParFrn).sort(function (a, b) { return depParFrn[b] - depParFrn[a]; })[0];
+      if (frnKpiTopNom) frnKpiTopNom.textContent = topFrn || '—';
+      if (frnKpiTopCa) frnKpiTopCa.textContent = topFrn ? fmtEuros(depParFrn[topFrn]) + ' sur 12m' : '';
+
+      // Charges à régler
+      var chargesImpayees = charges.filter(function (c) {
+        if (!c) return false;
+        return !c.estPaye && c.estPaye !== true && c.statut !== 'payee' && c.statut !== 'payé';
+      });
+      var encoursC = chargesImpayees.reduce(function (s, c) { return s + parseFloat(c.montant || 0); }, 0);
+      if (frnKpiEncours) frnKpiEncours.textContent = encoursC > 0 ? fmtEuros(encoursC) : '—';
+      if (frnKpiEncoursNb) frnKpiEncoursNb.textContent = chargesImpayees.length > 0 ? chargesImpayees.length + ' facture(s) en attente' : 'À jour';
+
+      // Catégorie dominante
+      if (frnKpiCat) {
+        var catTotaux = {};
+        var totalCharges = 0;
+        charges.forEach(function (c) {
+          if (!c) return;
+          var cat = c.categorie || c.type || '—';
+          catTotaux[cat] = (catTotaux[cat] || 0) + parseFloat(c.montant || 0);
+          totalCharges += parseFloat(c.montant || 0);
+        });
+        var topCat = Object.keys(catTotaux).sort(function (a, b) { return catTotaux[b] - catTotaux[a]; })[0];
+        frnKpiCat.textContent = topCat || '—';
+        if (frnKpiCatPct && topCat && totalCharges > 0) {
+          frnKpiCatPct.textContent = Math.round(catTotaux[topCat] / totalCharges * 100) + '% des dépenses';
+        }
+      }
+    }
   }
 
   function tryAttach() {
-    if (!document.getElementById('clients-section-sub-total') && !document.getElementById('fournisseurs-section-sub-total')) return false;
+    if (!document.getElementById('clients-section-sub-total') && !document.getElementById('fournisseurs-section-sub-total') && !document.getElementById('clients-kpi-actifs')) return false;
     update();
     if (!window.__refonteCliFrnIv) {
       window.__refonteCliFrnIv = setInterval(update, 5000);
