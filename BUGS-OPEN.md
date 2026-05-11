@@ -9,15 +9,6 @@
 
 ## 🔴 NEW (à traiter)
 
-### BUG-013 — Toast "Le nom de l'entreprise est requis" affiché au load page Livraisons
-- **Page** : Livraisons (admin.html)
-- **Symptôme** : au chargement de la page Livraisons (depuis nav-item, sans ouvrir aucun modal), un toast rouge "⚠️ Le nom de l'entreprise est requis" apparaît en bas droite. Capturé via `tools/audit-fill-form.mjs` screenshot `01-empty-state.png`.
-- **Severity** : MEDIUM (UX confus, fait penser qu'il y a un état d'erreur)
-- **Reporter** : audit Claude 2026-05-12
-- **Cause suspectée** : validation form `field-rules` ou `form-progress` qui se déclenche au render initial — pas seulement à l'ouverture du modal-livraison. Le `reset()` fix du BUG-002 dans script.js:14046 ciblait le modal, mais ce toast vient probablement d'un autre listener (peut-être `mcaLivForm.onInput` qui fire sans interaction, ou `field-rules` qui valide à `DOMContentLoaded`).
-- **Fix proposé** : grep `Le nom de l'entreprise est requis` ou `entreprise est requis` dans `script.js` et fichiers liés (script-livraisons.js, livraison-form.js, etc.), tracer le déclencheur, gater par `if (formInteracted)`.
-- **Test** : `?reset=1` → nav vers Livraisons → empty state visible → aucun toast d'erreur. Ne déclencher le toast QUE si submit vide ou perte de focus champ vide.
-
 ### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
 - **Page** : Livraisons (audit Playwright)
 - **Symptôme** : `window.openModal('modal-livraison')` appelé après nav vers Livraisons → screenshot 02 montre Dashboard layout, pas le modal. Champ `#liv-client` reste détaché ou invisible 30s → Playwright timeout.
@@ -26,42 +17,6 @@
 - **Cause suspectée** : (1) `openModal` est défini ailleurs et navigue, (2) le modal est dans un partial lazy-loaded, (3) `MCASetup.later()` n'a pas fini, (4) display:none persistant.
 - **Fix proposé** : utiliser `page.locator('button:has-text("+ Nouvelle livraison")').click()` au lieu de `evaluate(openModal)` dans `tools/audit-fill-form.mjs`.
 - **Test** : rerun `tools/audit-fill-form.mjs` après fix → modal visible dans screenshot 02 → fill réussit.
-
-### BUG-001 — Section titles tronqués dans modal Nouvelle livraison
-- **Page** : Livraisons
-- **Symptôme** : "Informations générales" → "énérales" / "Prix & TVA" → "`TVA"
-- **Severity** : HIGH (visible)
-- **Reporter** : user 2026-05-11
-- **Cause suspectée** : interaction `.fp-section::before` (gradient bar) + `.fp-section-title` display:flex. Overflow ou position absolute crop le texte.
-- **Fix proposé** : `.fp-section-title { padding-left: 0 !important; text-indent: 0 !important; overflow: visible !important; }` + investiguer parent overflow.
-- **Test** : ouvrir modal "+ Nouvelle livraison" → vérifier 4 titres entiers ("Informations générales", "Prix & TVA", "Affectation", "Lettre de voiture").
-
-### BUG-002 — "Client est requis" affiché à l'ouverture sans interaction
-- **Page** : Livraisons (modal Nouvelle livraison)
-- **Symptôme** : message rouge "⚠️ Client est requis" visible AVANT toute saisie.
-- **Severity** : MEDIUM (UX gênant)
-- **Reporter** : user 2026-05-11
-- **Cause trouvée** : 2 systèmes de validation parallèles (`fp-invalid` form-progress + `field-invalid` field-rules). `reset()` au modal open clear `fp-invalid` mais PAS `field-invalid` ni les error slots. Si user avait submitted avant et réouvert, les erreurs persistaient.
-- **Status** : FIXED (commit à venir)
-- **Fix** : étendu `reset()` dans `script.js` ligne 14046 pour clear aussi `field-invalid` + error slots.
-- **Test** : ouvrir modal → aucun message → submit vide → erreurs apparaissent → fermer → réouvrir → erreurs disparues.
-
-### BUG-003 — Icône calendrier déborde sous la modal
-- **Page** : Livraisons (modal Nouvelle livraison)
-- **Symptôme** : icône native date picker visible en bas de la modal.
-- **Severity** : LOW (cosmétique)
-- **Reporter** : user 2026-05-11
-- **Fix proposé** : `.modal-body { overflow: hidden }` + repositionner picker.
-- **Test** : ouvrir modal → aucune icône hors limites.
-
-### BUG-004 — Modal "Modifier la livraison" incomplète vs "Nouvelle"
-- **Page** : Livraisons
-- **Symptôme** : champs manquants dans Modifier (pas de Statut, Heure début, Notes, Départ/Arrivée séparés).
-- **Severity** : HIGH (fonctionnel)
-- **Reporter** : user 2026-05-11
-- **Cause** : 2 modals séparées (modal-livraison ligne 2828 + modal-edit-livraison ligne 3662).
-- **Fix proposé** : extraire les champs dans un partial `partials/livraison-form-fields.html` injecté dans les 2 modals → source de vérité unique.
-- **Test** : ouvrir une livraison existante via "Modifier" → tous les champs présents en création le sont en édition.
 
 ### BUG-005 — Génération facture depuis dropdown ne déclenche pas le PDF
 - **Page** : Livraisons (dropdown Générer)
@@ -81,6 +36,20 @@ _(vide pour l'instant)_
 ---
 
 ## ✅ FIXED (à vérifier par user)
+
+### BUG-013 — Toast "Le nom de l'entreprise est requis" affiché au load page Livraisons
+- **Status** : FIXED (commit session :15 2026-05-12)
+- **Cause réelle** : `later()` dans `script-setup-wizard.js` appelait `readStep1()` qui affiche le toast si `setup-nom` est vide, même sans interaction user. Extrait en `saveStep1Draft()` qui lit sans valider.
+- **Fix** : ajout de `saveStep1Draft()` dans `script-setup-wizard.js`, utilisé dans `later()` et `prev()` à la place de `readStep1()`.
+- **À vérifier** : `?reset=1` → nav vers Livraisons → aucun toast rouge visible.
+
+### BUG-004 — Modal "Modifier la livraison" incomplète vs "Nouvelle"
+- **Status** : FIXED (commit session :15 2026-05-12)
+- **Cause** : `edit-liv-depart` et `edit-liv-arrivee` étaient des `type="hidden"`, pas de champ `edit-liv-heure-debut`, `confirmerEditLivraison()` écrasait `arrivee = ''` systématiquement.
+- **Fix** :
+  - `admin.html` : hidden → visible inputs pour Départ/Arrivée, ajout champ Heure début, suppression `edit-liv-zone` (fusionné redondant).
+  - `script-livraisons.js` : `confirmerEditLivraison()` lit depart/arrivee séparément + sauve `heureDebut`. `ouvrirEditLivraison()` peuple `edit-liv-heure-debut` + code zone mort retiré.
+- **À vérifier** : ouvrir une livraison existante → "Modifier" → Départ + Arrivée visibles et pré-remplis → Heure début visible → sauvegarder → rouvrir → données persistées.
 
 ### BUG-006 — Trajet arrivée non saisie (champ hidden)
 - **Status** : FIXED Phase 32 (commit `935fe0f`)
@@ -116,6 +85,18 @@ _(vide pour l'instant)_
   - Générer : Facture / Bon de livraison / Lettre de voiture / Facture groupée (4)
   - Exporter : PDF / CSV / Excel / Facture groupée (4)
 
+### BUG-001 — Section titles tronqués dans modal Nouvelle livraison
+- **Status** : FIXED (commit `d036955`)
+- **À vérifier** : ouvrir modal "+ Nouvelle livraison" → vérifier 4 titres entiers.
+
+### BUG-002 — "Client est requis" affiché à l'ouverture sans interaction
+- **Status** : FIXED (commit `9876fc6`)
+- **À vérifier** : ouvrir modal → aucun message → submit vide → erreurs apparaissent → fermer → réouvrir → erreurs disparues.
+
+### BUG-003 — Icône calendrier déborde sous la modal
+- **Status** : FIXED (commit `d036955`)
+- **À vérifier** : ouvrir modal → aucune icône hors limites.
+
 ---
 
 ## ✔️ VERIFIED
@@ -128,8 +109,8 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 7 |
+| NEW | 2 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 7 |
+| FIXED (à vérifier) | 12 |
 | VERIFIED | 0 |
 | **Total** | **14** |

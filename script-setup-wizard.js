@@ -491,9 +491,23 @@
     renderStep();
   }
 
+  // Sauvegarde step1 sans validation (pour later() et prev()) — évite le toast erreur si nom vide
+  function saveStep1Draft() {
+    try {
+      var get = function (id) { return (document.getElementById(id) || {}).value || ''; };
+      state.branding.nom = get('setup-nom').trim();
+      state.branding.siret = get('setup-siret').replace(/\s+/g, '');
+      state.branding.adresse = get('setup-adresse').trim();
+      state.branding.codePostal = get('setup-cp').trim();
+      state.branding.ville = get('setup-ville').trim();
+      state.branding.tel = get('setup-tel').trim();
+      state.branding.email = get('setup-email').trim();
+    } catch (_) {}
+  }
+
   function prev() {
     // Sauvegarde l'etat de l'etape courante en passe-droit (sans valider)
-    if (state.step === 1) { try { readStep1(); } catch (_) {} }
+    if (state.step === 1) { saveStep1Draft(); }
     else if (state.step === 2) { try { readStep2(); } catch (_) {} }
     if (state.step > 1) state.step -= 1;
     renderStep();
@@ -502,7 +516,7 @@
   function later() {
     // Sauvegarde best-effort de ce qui est saisi sans flag final
     try {
-      if (state.step === 1) readStep1();
+      if (state.step === 1) saveStep1Draft();
       else if (state.step === 2) readStep2();
     } catch (_) {}
     hide();

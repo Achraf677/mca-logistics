@@ -3665,30 +3665,27 @@
       <div class="modal-body">
         <input type="hidden" id="edit-liv-id" />
         <div class="form-grid">
-          <div class="form-group"><label>Client *</label><input type="text" id="edit-liv-client" / aria-label="edit liv client" /></div>
-          <div class="form-group full-width"><label>Zone géographique</label><input type="text" id="edit-liv-zone" / aria-label="edit liv zone" /></div>
-          <input type="hidden" id="edit-liv-depart" />
-          <input type="hidden" id="edit-liv-arrivee" />
-          <div class="form-group"><label>Distance (km)</label><input type="number" id="edit-liv-distance" min="0" step="0.1" / aria-label="edit liv distance" /></div>
-          <div class="form-group"><label>Prix HT (€)</label><input type="number" id="edit-liv-prix-ht" min="0" step="0.01" oninput="calculerTTCDepuisHT('edit-liv')" / aria-label="edit liv prix ht" /></div>
+          <div class="form-group"><label>Client *</label><input type="text" id="edit-liv-client" aria-label="Nom du client" /></div>
+          <div class="form-group"><label>Date</label><input type="date" id="edit-liv-date" aria-label="Date de livraison" /></div>
+          <div class="form-group"><label>Heure début</label><input type="time" id="edit-liv-heure-debut" aria-label="Heure de début" /></div>
+          <div class="form-group"><label>Statut</label>
+            <select id="edit-liv-statut" aria-label="Statut de la livraison">
+              <option value="en-attente">En attente</option>
+              <option value="en-cours">En cours</option>
+              <option value="livre">Livré</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Départ *</label><input type="text" id="edit-liv-depart" placeholder="Adresse de départ" aria-label="Adresse de départ" /></div>
+          <div class="form-group"><label>Arrivée *</label><input type="text" id="edit-liv-arrivee" placeholder="Adresse de livraison" aria-label="Adresse de livraison" /></div>
+          <div class="form-group"><label>Distance (km)</label><input type="number" id="edit-liv-distance" min="0" step="0.1" aria-label="Distance en km" /></div>
+          <div class="form-group"><label>Prix HT (€)</label><input type="number" id="edit-liv-prix-ht" min="0" step="0.01" oninput="calculerTTCDepuisHT('edit-liv')" aria-label="Prix HT en euros" /></div>
           <div class="form-group"><label>Taux TVA</label>
-            <input type="number" id="edit-liv-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('edit-liv')" placeholder="20" / aria-label="20" />
+            <input type="number" id="edit-liv-taux-tva" list="taux-tva-suggestions" min="0" max="100" step="0.1" value="20" oninput="calculerTTCDepuisHT('edit-liv')" placeholder="20" aria-label="Taux TVA en %" />
             <div id="edit-liv-montant-tva" style="font-size:.78rem;color:var(--accent);margin-top:4px"></div>
           </div>
-          <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="edit-liv-prix" min="0" step="0.01" oninput="calculerHTDepuisTTC('edit-liv')" / aria-label="edit liv prix" /></div>
-          <div class="form-group"><label>Chauffeur affecté</label>
-            <select id="edit-liv-chauffeur" onchange="autoRemplirVehiculeEdit()" aria-label="edit liv chauffeur">
-              <option value="">-- Choisir --</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Véhicule assigné</label>
-            <select id="edit-liv-vehicule" onchange="autoRemplirChauffeurDepuisVehiculeEdit()" aria-label="edit liv vehicule">
-              <option value="">-- Choisir un véhicule --</option>
-            </select>
-          </div>
-          <div class="form-group"><label>Date</label><input type="date" id="edit-liv-date" / aria-label="edit liv date" /></div>
+          <div class="form-group"><label>Prix TTC (€)</label><input type="number" id="edit-liv-prix" min="0" step="0.01" oninput="calculerHTDepuisTTC('edit-liv')" aria-label="Prix TTC en euros" /></div>
           <div class="form-group"><label>Mode de paiement</label>
-            <select id="edit-liv-mode-paiement" aria-label="edit liv mode paiement">
+            <select id="edit-liv-mode-paiement" aria-label="Mode de paiement">
               <option value="">— Non renseigné —</option>
               <option value="virement">Virement</option>
               <option value="especes">Espèces</option>
@@ -3696,14 +3693,17 @@
               <option value="cb">Carte bancaire</option>
             </select>
           </div>
-          <div class="form-group"><label>Statut</label>
-            <select id="edit-liv-statut" aria-label="edit liv statut">
-              <option value="en-attente">En attente</option>
-              <option value="en-cours">En cours</option>
-              <option value="livre">Livré</option>
+          <div class="form-group"><label>Chauffeur affecté</label>
+            <select id="edit-liv-chauffeur" onchange="autoRemplirVehiculeEdit()" aria-label="Chauffeur affecté">
+              <option value="">-- Choisir --</option>
             </select>
           </div>
-          <div class="form-group full-width"><label>Notes</label><input type="text" id="edit-liv-notes" / aria-label="edit liv notes" /></div>
+          <div class="form-group"><label>Véhicule assigné</label>
+            <select id="edit-liv-vehicule" onchange="autoRemplirChauffeurDepuisVehiculeEdit()" aria-label="Véhicule assigné">
+              <option value="">-- Choisir un véhicule --</option>
+            </select>
+          </div>
+          <div class="form-group full-width"><label>Notes</label><input type="text" id="edit-liv-notes" aria-label="Notes internes" /></div>
         </div>
       </div>
       <!-- Historique modifications -->

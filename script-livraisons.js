@@ -453,10 +453,11 @@ function confirmerEditLivraison() {
   if (idx === -1) return;
   const ancien = { ...livraisons[idx] };
 
-  const zoneGeo = document.getElementById('edit-liv-zone')?.value.trim() || document.getElementById('edit-liv-depart').value.trim();
+  const depart  = document.getElementById('edit-liv-depart')?.value.trim() || '';
+  const arrivee = document.getElementById('edit-liv-arrivee')?.value.trim() || '';
   livraisons[idx].client   = client;
-  livraisons[idx].depart   = zoneGeo;
-  livraisons[idx].arrivee  = '';
+  livraisons[idx].depart   = depart;
+  livraisons[idx].arrivee  = arrivee;
   livraisons[idx].distance = parseFloat(document.getElementById('edit-liv-distance').value) || 0;
   livraisons[idx].prixHT   = parseFloat(document.getElementById('edit-liv-prix-ht')?.value) || 0;
   livraisons[idx].tauxTVA  = parseFloat(document.getElementById('edit-liv-taux-tva')?.value) || 20;
@@ -473,7 +474,8 @@ function confirmerEditLivraison() {
   livraisons[idx].chaufNom = affectation.chaufNom;
   livraisons[idx].vehId = affectation.vehId || null;
   livraisons[idx].vehNom = affectation.vehNom;
-  livraisons[idx].date     = document.getElementById('edit-liv-date').value;
+  livraisons[idx].date      = document.getElementById('edit-liv-date').value;
+  livraisons[idx].heureDebut = document.getElementById('edit-liv-heure-debut')?.value || '';
   livraisons[idx].modePaiement = document.getElementById('edit-liv-mode-paiement')?.value || '';
   livraisons[idx].statut   = document.getElementById('edit-liv-statut').value;
   livraisons[idx].notes    = document.getElementById('edit-liv-notes').value.trim();
@@ -585,11 +587,6 @@ async function ouvrirEditLivraison(id) {
   }
   document.getElementById('edit-liv-id').value      = id;
   document.getElementById('edit-liv-client').value  = l.client||'';
-  const zoneGeo = l.depart && l.arrivee && l.depart !== l.arrivee
-    ? (l.depart + ' → ' + l.arrivee)
-    : (l.arrivee || l.depart || '');
-  const editZone = document.getElementById('edit-liv-zone');
-  if (editZone) editZone.value = zoneGeo;
   document.getElementById('edit-liv-depart').value  = l.depart||'';
   document.getElementById('edit-liv-arrivee').value = l.arrivee||'';
   document.getElementById('edit-liv-distance').value= l.distance||'';
@@ -598,6 +595,8 @@ async function ouvrirEditLivraison(id) {
   document.getElementById('edit-liv-prix').value    = l.prix||'';
   peuplerSelectsLivraisonEdition(l.chaufId || '', l.vehId || '');
   document.getElementById('edit-liv-date').value    = l.date||'';
+  const editHeureDebut = document.getElementById('edit-liv-heure-debut');
+  if (editHeureDebut) editHeureDebut.value = l.heureDebut || '';
   const editModePaiement = document.getElementById('edit-liv-mode-paiement');
   if (editModePaiement) editModePaiement.value = l.modePaiement || '';
   document.getElementById('edit-liv-statut').value  = l.statut||'en-attente';

@@ -99,6 +99,24 @@
 
 ---
 
+## Session 2026-05-12 :15 — Fixes BUG-013 + BUG-004 (agent :15)
+**Phases** : bug-fix
+**Commit** : fix(BUG-013 + BUG-004)
+**État** : 2 bugs fixés, 2 restants (BUG-014 audit-only, BUG-005 génération PDF)
+
+### Actions clés
+- **BUG-013** (toast "nom entreprise requis" au load) : cause réelle = `later()` appelait `readStep1()` qui valide + affiche toast même si nom vide. Extrait en `saveStep1Draft()` sans validation dans `script-setup-wizard.js`. Fix appliqué dans `later()` et `prev()`.
+- **BUG-004** (modal Modifier incomplète) :
+  - `admin.html` : `edit-liv-depart` + `edit-liv-arrivee` passés de `type=hidden` → inputs visibles. Ajout champ `edit-liv-heure-debut`. Suppression champ fusionné `edit-liv-zone`.
+  - `script-livraisons.js` : `confirmerEditLivraison()` lit depart/arrivee séparément + sauve `heureDebut`. `ouvrirEditLivraison()` peuple `heureDebut` + code zone mort retiré.
+- `sw.js` CACHE_VERSION → v53
+
+### Bugs restants (2 open)
+- BUG-014 : modal invisible depuis Playwright (non-bloquant prod) — fix = utiliser `.click()` plutôt que `evaluate(openModal)`
+- BUG-005 : génération facture PDF ne fonctionne pas
+
+---
+
 ## Format pour nouvelles sessions
 
 ```markdown
