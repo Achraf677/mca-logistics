@@ -252,7 +252,7 @@
         wrap.style.cssText = 'display:flex;gap:6px;margin-left:auto';
         const btnEdit = document.createElement('button');
         btnEdit.className = 'btn-secondary';
-        btnEdit.innerHTML = '✏️ Modifier';
+        btnEdit.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier';
         btnEdit.onclick = function () {
           if (typeof window.ouvrirEditFournisseur === 'function') {
             window.s25FermerDrawer && window.s25FermerDrawer();

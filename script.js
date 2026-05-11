@@ -11463,9 +11463,9 @@ genererRentabilitePDF = function() {
       <div class="s20-tab-content hidden" id="s20-tab-livraisons">${renderLivraisonsVeh(livraisons)}</div>
 
       <div class="s20-fiche-actions">
-        <button class="btn-secondary" onclick="window.s21GoToCarburant('${esc(veh.id)}')">⛽ Carburant</button>
+        <button class="btn-secondary" onclick="window.s21GoToCarburant('${esc(veh.id)}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 14h14"/><path d="M17 9l4 4v6a2 2 0 0 1-2 2"/></svg>Carburant</button>
         <button class="btn-secondary" onclick="window.s21GoToEntretiens('${esc(veh.id)}')">Entretiens</button>
-        <button class="btn-primary" onclick="window.s21GoToEdit('${esc(veh.id)}')">✏️ Modifier</button>
+        <button class="btn-primary" onclick="window.s21GoToEdit('${esc(veh.id)}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier</button>
       </div>`;
   }
 
