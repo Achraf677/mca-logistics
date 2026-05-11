@@ -14,6 +14,21 @@
 
   var state = { range: 14, areaChart: null, donutChart: null };
 
+  // Force police globale Chart.js sur DM Sans (eviter render italique/serif aleatoire)
+  function ensureChartDefaults() {
+    if (typeof window.Chart === 'undefined') return;
+    if (window.__mcaChartDefaultsSet) return;
+    try {
+      window.Chart.defaults.color = '#adb5bd';
+      window.Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+      window.Chart.defaults.font.family = '"DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif';
+      window.Chart.defaults.font.size = 11;
+      window.Chart.defaults.font.style = 'normal';
+      window.Chart.defaults.font.weight = '500';
+      window.__mcaChartDefaultsSet = true;
+    } catch (_) {}
+  }
+
   function readLivraisons() {
     if (typeof window.charger === 'function') {
       try { return window.charger('livraisons') || []; } catch (_) {}
@@ -78,6 +93,7 @@
 
   function renderAreaChart() {
     if (typeof window.Chart === 'undefined') return false;
+    ensureChartDefaults();
     var ctxEl = document.getElementById('dash-area-chart');
     if (!ctxEl) return false;
     var data = buildAreaData(readLivraisons(), state.range);
@@ -157,13 +173,16 @@
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: 'rgba(34,38,45,0.96)',
-            borderColor: '#4a5263',
+            backgroundColor: 'rgba(20,22,28,0.96)',
+            borderColor: '#2a2f37',
             borderWidth: 1,
             padding: 12,
             cornerRadius: 8,
-            titleFont: { family: '"Syne",sans-serif', size: 13, weight: 800 },
-            bodyFont: { size: 12 },
+            titleColor: '#f1f3f5',
+            bodyColor: '#adb5bd',
+            // Force police body normale (pas Syne display qui rendait italique/bizarre)
+            titleFont: { family: '"DM Sans", system-ui, sans-serif', size: 13, weight: '700', style: 'normal' },
+            bodyFont: { family: '"DM Sans", system-ui, sans-serif', size: 12, weight: '500', style: 'normal' },
             displayColors: true,
             boxPadding: 4,
             callbacks: {
