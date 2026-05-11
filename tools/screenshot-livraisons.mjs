@@ -83,11 +83,13 @@ await cleanUI();
 await page.screenshot({ path: `${OUT_DIR}/02b-livraisons-kanban.png`, fullPage: false });
 console.log('  ✓ kanban →', `${OUT_DIR}/02b-livraisons-kanban.png`);
 
-// Switch to Calendrier
+// Switch to Calendrier (force re-nav livraisons puis calendrier)
+await goLivraisons();
+await cleanUI();
 await page.evaluate(() => {
   if (typeof window.changerVueLivraisons === 'function') window.changerVueLivraisons('calendrier');
 });
-await page.waitForTimeout(1500);
+await page.waitForTimeout(2000);
 await cleanUI();
 await page.screenshot({ path: `${OUT_DIR}/02c-livraisons-calendrier.png`, fullPage: false });
 console.log('  ✓ calendrier →', `${OUT_DIR}/02c-livraisons-calendrier.png`);

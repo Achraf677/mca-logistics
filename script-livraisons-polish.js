@@ -16,6 +16,32 @@
 (function () {
   'use strict';
 
+  // ============ FIX bug : filtres date auto-init "aujourd'hui" cassent kanban/calendrier ============
+  // script.js (boot) fait : input[type=date].value = aujourdhui() sur TOUS les inputs date.
+  // Resultat : Kanban + Calendrier livraisons filtrent uniquement les livs du jour (vide).
+  // On reset ces 2 filtres au boot livraisons.
+  function resetLivraisonsDateFilters() {
+    const dDeb = document.getElementById('filtre-date-debut');
+    const dFin = document.getElementById('filtre-date-fin');
+    if (dDeb && dDeb.value) dDeb.value = '';
+    if (dFin && dFin.value) dFin.value = '';
+  }
+
+  // Hook sur changerVueLivraisons pour clear dates + re-afficher
+  function wrapChangerVue() {
+    if (window.__changerVueWrapped) return;
+    const orig = window.changerVueLivraisons;
+    if (typeof orig !== 'function') return;
+    window.changerVueLivraisons = function (vue) {
+      // Pour Kanban/Calendrier : clear date filters AVANT l'appel
+      if (vue === 'kanban' || vue === 'calendrier') {
+        resetLivraisonsDateFilters();
+      }
+      orig.apply(this, arguments);
+    };
+    window.__changerVueWrapped = true;
+  }
+
   function getInitials(name) {
     if (!name) return '?';
     const parts = String(name).trim().split(/\s+/).filter(Boolean);
@@ -59,6 +85,9 @@
 
   function setupHook() {
     polishRows();
+    wrapChangerVue();
+    // Au boot des livraisons, clear filtres date pour eviter le bug "vide aujourd'hui"
+    resetLivraisonsDateFilters();
     const tbody = document.getElementById('tb-livraisons');
     if (!tbody) return;
     const obs = new MutationObserver((muts) => {
