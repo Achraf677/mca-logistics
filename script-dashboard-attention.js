@@ -137,28 +137,185 @@
   }
 
   function computeSubScores() {
-    // Heuristiques simples basées sur les données dispo dans localStorage / window.charger.
-    // À enrichir au fil de l'eau ; pour le visuel les valeurs par défaut suffisent.
+    // 4 sub-scores calculés sur de vraies KPIs (Phase 19) :
+    // - Finance    : marge brute + impayés + DSO
+    // - Flotte     : CT véhicules + conso anormale
+    // - RH         : permis chauffeurs
+    // - Conformité : inspections hebdo + alertes critiques en cours
     const def = { finance: 90, flotte: 88, rh: 85, conformite: 95 };
     if (typeof window.charger !== 'function') return def;
     try {
-      const alertes = (window.charger('alertes_admin') || []).filter(a => !a.lu && !a.traitee && !a.ignoree);
-      const critiques = alertes.filter(a => a.niveau === 'critical' || a.niveau === 'haute').length;
-      // Décrémente les sub-scores proportionnellement aux alertes critiques par domaine.
-      const byDom = (mot) => alertes.filter(a => String(a.categorie || '').toLowerCase().includes(mot)).length;
+      const read = (k) => window.charger(k) || [];
+      const livs = read('livraisons');
+      const charges = read('charges');
+      const vehs = read('vehicules');
+      const sals = read('salaries');
+      const inspections = read('inspections');
+      const alertes = read('alertes_admin').filter(a => !a.lu && !a.traitee && !a.ignoree);
+
+      const now = Date.now();
+      const J = 86400000;
+
+      // ===== FINANCE =====
+      // Marge brute (12 mois)
+      const livs365 = livs.filter(l => {
+        const d = livDate(l);
+        return d && (now - d.getTime()) <= 365 * J;
+      });
+      const ca = livs365.reduce((s, l) => s + livHT(l), 0);
+      const dep = charges
+        .filter(c => {
+          const d = chDate(c) || chDatePaiement(c);
+          return d && (now - d.getTime()) <= 365 * J;
+        })
+        .reduce((s, c) => s + chMontantHT(c), 0);
+      const marge = ca > 0 ? ((ca - dep) / ca) * 100 : null;
+
+      // Impayés > 90j
+      const impayes90 = livs
+        .filter(l => {
+          if (isPaye(livStatutPaiement(l))) return false;
+          const d = livDate(l);
+          return d && (now - d.getTime()) > 90 * J;
+        })
+        .reduce((s, l) => s + livHT(l), 0);
+
+      // Score finance : base 95, pénalités proportionnelles
+      let financeScore = 95;
+      if (marge != null) {
+        if (marge < 15) financeScore -= 15;
+        else if (marge < 25) financeScore -= 7;
+        else if (marge < 35) financeScore -= 2;
+      }
+      if (impayes90 > 10000) financeScore -= 15;
+      else if (impayes90 > 5000) financeScore -= 8;
+      else if (impayes90 > 0) financeScore -= 3;
+
+      // ===== FLOTTE =====
+      const ctCrit = vehs.filter(v => {
+        const d = vehCT(v);
+        if (!d) return false;
+        return (d.getTime() - now) / J <= 7;
+      }).length;
+      let flotteScore = 92;
+      flotteScore -= ctCrit * 6;
+      // Conso anormale (compte les véhicules avec >50L sur 30j si data dispo)
+      const carbAlerts = alertes.filter(a => String(a.categorie || '').toLowerCase().includes('carburant')
+                                          || String(a.type || '').toLowerCase().includes('conso')).length;
+      flotteScore -= carbAlerts * 3;
+
+      // ===== RH =====
+      const permisProches = sals.filter(s => {
+        if (s.actif === false) return false;
+        const d = salDatePermis(s);
+        if (!d) return false;
+        return (d.getTime() - now) / J <= 60;
+      }).length;
+      let rhScore = 88;
+      rhScore -= permisProches * 5;
+
+      // ===== CONFORMITÉ =====
+      // Inspections hebdo + alertes critiques générales
+      const inspThisWeek = inspections.filter(i => {
+        const d = inspDate(i);
+        return d && (now - d.getTime()) <= 7 * J;
+      }).length;
+      const vehActifs = vehs.filter(v => vehStatut(v) === 'actif').length || vehs.length;
+      const inspRate = vehActifs > 0 ? inspThisWeek / vehActifs : 1;
+      const critiques = alertes.filter(a => /^(critical|haute)$/i.test(a.niveau)).length;
+      let confScore = 95;
+      if (vehActifs > 0 && inspRate < 0.5) confScore -= 12;
+      else if (vehActifs > 0 && inspRate < 1) confScore -= 5;
+      confScore -= critiques * 2;
+
       return {
-        finance: Math.max(60, 95 - byDom('impay') * 3 - byDom('tva') * 2),
-        flotte: Math.max(60, 92 - byDom('vehic') * 4 - byDom('ct') * 3),
-        rh: Math.max(60, 88 - byDom('salarie') * 4 - byDom('permis') * 3),
-        conformite: Math.max(60, 95 - critiques * 2),
+        finance: Math.max(50, Math.min(100, Math.round(financeScore))),
+        flotte: Math.max(50, Math.min(100, Math.round(flotteScore))),
+        rh: Math.max(50, Math.min(100, Math.round(rhScore))),
+        conformite: Math.max(50, Math.min(100, Math.round(confScore))),
       };
-    } catch (_) {
+    } catch (e) {
+      console.warn('[dashboard-attention] computeSubScores fallback:', e);
       return def;
     }
   }
 
+  // ============ Field accessors (support snake_case Supabase ET camelCase legacy) ============
+  function getNum(obj, ...keys) {
+    for (const k of keys) {
+      const v = obj && obj[k];
+      if (v != null && v !== '') {
+        const n = Number(v);
+        if (!Number.isNaN(n)) return n;
+      }
+    }
+    return 0;
+  }
+  function getStr(obj, ...keys) {
+    for (const k of keys) {
+      const v = obj && obj[k];
+      if (v != null && v !== '') return String(v);
+    }
+    return '';
+  }
+  function getDate(obj, ...keys) {
+    for (const k of keys) {
+      const v = obj && obj[k];
+      if (!v) continue;
+      try {
+        const d = new Date(v);
+        if (!Number.isNaN(d.getTime())) return d;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  // Accessors par entité (résilient au schéma snake_case ↔ camelCase)
+  const livHT = (l) => getNum(l, 'prix_ht', 'prixHT', 'ht', 'prix');
+  const livDate = (l) => getDate(l, 'date_livraison', 'dateLivraison', 'dateLiv', 'date');
+  const livStatutPaiement = (l) => getStr(l, 'statut_paiement', 'statutPaiement').toLowerCase();
+  const livDatePaiement = (l) => getDate(l, 'date_paiement', 'datePaiement');
+
+  const chMontantHT = (c) => getNum(c, 'montant_ht', 'montantHT', 'ht');
+  const chMontantTTC = (c) => getNum(c, 'montant_ttc', 'montantTTC', 'ttc', 'montant');
+  const chDate = (c) => getDate(c, 'date_charge', 'dateCharge', 'date');
+  const chDatePaiement = (c) => getDate(c, 'date_paiement', 'datePaiement');
+  const chStatutPaiement = (c) => getStr(c, 'statut_paiement', 'statutPaiement', 'statut').toLowerCase();
+
+  const paieMontant = (p) => getNum(p, 'montant');
+  const paieDate = (p) => getDate(p, 'date_paiement', 'datePaiement', 'date');
+
+  const vehCT = (v) => getDate(v, 'date_ct', 'dateCT', 'dateProchainCT');
+  const vehConso = (v) => getNum(v, 'conso', 'consoTarget') || 10;
+  const vehStatut = (v) => getStr(v, 'statut') || 'actif';
+  const vehLabel = (v) => getStr(v, 'modele') || getStr(v, 'immat', 'immatriculation') || '—';
+
+  const salDatePermis = (s) => getDate(s, 'date_permis', 'dateExpirationPermis', 'datePermis');
+
+  const carbDate = (c) => getDate(c, 'date_plein', 'datePlein', 'date');
+  const carbLitres = (c) => getNum(c, 'litres');
+  const carbVehId = (c) => getStr(c, 'vehicule_id', 'vehiculeId', 'vehId');
+
+  const inspDate = (i) => getDate(i, 'date_inspection', 'dateInspection', 'date');
+
+  function isPaye(statut) {
+    return statut === 'paye' || statut === 'payé' || statut === 'payee' || statut === 'payée';
+  }
+
+  function fmtEur(v, dec) {
+    if (v == null || !Number.isFinite(v)) return '—';
+    return v.toLocaleString('fr-FR', { minimumFractionDigits: dec || 0, maximumFractionDigits: dec || 0 }) + ' €';
+  }
+
+  function fmtKEur(v) {
+    if (v == null || !Number.isFinite(v)) return '—';
+    const sign = v >= 0 ? '+' : '';
+    const k = Math.round(v / 100) / 10;
+    return sign + k.toFixed(1).replace('.', ',') + 'k€';
+  }
+
   function buildFactors(subScores) {
-    // 8 facteurs branchés sur les vraies données (Phase 19).
+    // 8 facteurs branchés sur les vraies données (Phase 19 — fields snake_case + camelCase).
     const read = (k) => (typeof window.charger === 'function' ? window.charger(k) || [] : []);
     const livraisons = read('livraisons');
     const charges    = read('charges');
@@ -171,125 +328,166 @@
     const now = Date.now();
     const J = 86400000;
 
-    // ============ 1. Marge brute ============
-    const ca = livraisons.reduce((s, l) => s + (Number(l.ht || l.prixHT || l.prix_ht) || 0), 0);
-    const dep = charges.reduce((s, c) => s + (Number(c.montantHT || c.montant_ht) || Number(c.montant) || 0), 0);
-    const marge = ca > 0 ? ((ca - dep) / ca) * 100 : 0;
-    const margeMark = marge >= 25 ? 'ok' : marge >= 15 ? 'warn' : 'alert';
+    // ============ 1. Marge brute (12 derniers mois) ============
+    // CA - Charges sur 365j, normalisé sur 12 mois pour lisser saisonnalité.
+    const livs365 = livraisons.filter(l => {
+      const d = livDate(l);
+      return d && (now - d.getTime()) <= 365 * J;
+    });
+    const ca = livs365.reduce((s, l) => s + livHT(l), 0);
+    const charges365 = charges.filter(c => {
+      const d = chDate(c) || chDatePaiement(c);
+      return d && (now - d.getTime()) <= 365 * J;
+    });
+    const dep = charges365.reduce((s, c) => s + chMontantHT(c), 0);
+    const marge = ca > 0 ? ((ca - dep) / ca) * 100 : null;
+    const margeMark = marge == null ? 'ok' : marge >= 25 ? 'ok' : marge >= 15 ? 'warn' : 'alert';
+    const margeVal = marge == null ? '—' : marge.toFixed(1).replace('.', ',') + '%';
 
-    // ============ 2. Trésorerie nette ============
-    // = somme paiements reçus - somme charges payées (dernier mois)
-    const paie30 = paiements.filter(p => p.date && (now - new Date(p.date).getTime()) < 30 * J);
-    const charges30 = charges.filter(c => {
-      const statut = String(c.statut || c.statutPaiement || '').toLowerCase();
-      const isPaid = statut === 'paye' || statut === 'payé';
-      return isPaid && c.date && (now - new Date(c.date).getTime()) < 30 * J;
+    // ============ 2. Trésorerie nette (solde 30j : encaissements - décaissements) ============
+    // Encaissements : paiements reçus avec date_paiement dans les 30 derniers jours
+    // Décaissements : charges payées avec date_paiement dans les 30 derniers jours
+    const paie30 = paiements.filter(p => {
+      const d = paieDate(p);
+      return d && (now - d.getTime()) <= 30 * J;
     });
-    const tresorerie = paie30.reduce((s, p) => s + (Number(p.montant) || 0), 0)
-                     - charges30.reduce((s, c) => s + (Number(c.montantTTC || c.montant) || 0), 0);
-    const tresoSign = tresorerie >= 0 ? '+' : '';
-    const tresoMark = tresorerie >= 5000 ? 'ok' : tresorerie >= 0 ? 'warn' : 'alert';
+    const encaisse = paie30.reduce((s, p) => s + paieMontant(p), 0);
 
-    // ============ 3. DSO (délai moyen paiement) ============
-    const paidLivs = livraisons.filter(l => {
-      const sp = String(l.statutPaiement || '').toLowerCase();
-      return (sp === 'paye' || sp === 'payé') && l.date && l.datePaiement;
+    const charges30Paye = charges.filter(c => {
+      if (!isPaye(chStatutPaiement(c))) return false;
+      const d = chDatePaiement(c) || chDate(c);
+      return d && (now - d.getTime()) <= 30 * J;
     });
-    const dsoVals = paidLivs.map(l => {
-      const d1 = new Date(l.date).getTime();
-      const d2 = new Date(l.datePaiement).getTime();
-      return Math.max(0, (d2 - d1) / J);
+    const decaisse = charges30Paye.reduce((s, c) => s + chMontantTTC(c), 0);
+
+    const tresorerie = encaisse - decaisse;
+    const hasTresoData = (paiements.length + charges.length) > 0;
+    const tresoVal = hasTresoData ? fmtKEur(tresorerie) : '—';
+    const tresoMark = !hasTresoData ? 'ok' : tresorerie >= 5000 ? 'ok' : tresorerie >= 0 ? 'warn' : 'alert';
+
+    // ============ 3. DSO (délai moyen paiement, 6 derniers mois) ============
+    const paidLivs6m = livraisons.filter(l => {
+      if (!isPaye(livStatutPaiement(l))) return false;
+      const d1 = livDate(l);
+      const d2 = livDatePaiement(l);
+      if (!d1 || !d2) return false;
+      return (now - d2.getTime()) <= 180 * J;
     });
+    const dsoVals = paidLivs6m.map(l => Math.max(0, (livDatePaiement(l).getTime() - livDate(l).getTime()) / J));
     const dso = dsoVals.length > 0
       ? Math.round(dsoVals.reduce((s, v) => s + v, 0) / dsoVals.length)
-      : 0;
-    const dsoMark = dso <= 35 ? 'ok' : dso <= 50 ? 'warn' : 'alert';
+      : null;
+    const dsoMark = dso == null ? 'ok' : dso <= 35 ? 'ok' : dso <= 50 ? 'warn' : 'alert';
+    const dsoVal = dso == null ? '—' : dso + 'j';
 
     // ============ 4. Impayés +90j ============
     const impayes90 = livraisons
       .filter(l => {
-        const sp = String(l.statutPaiement || '').toLowerCase();
-        if (sp === 'paye' || sp === 'payé') return false;
-        return l.date && (now - new Date(l.date).getTime()) > 90 * J;
+        if (isPaye(livStatutPaiement(l))) return false;
+        const d = livDate(l);
+        return d && (now - d.getTime()) > 90 * J;
       })
-      .reduce((s, l) => s + (Number(l.ht || l.prixHT || l.prix_ht) || 0), 0);
+      .reduce((s, l) => s + livHT(l), 0);
     const impMark = impayes90 === 0 ? 'ok' : impayes90 < 5000 ? 'warn' : 'alert';
+    const impVal = impayes90 === 0 ? '0 €' : fmtEur(Math.round(impayes90));
 
-    // ============ 5. CT véhicules ============
+    // ============ 5. CT véhicules (≤7j ou expirés) ============
     const ctCrit = vehicules.filter(v => {
-      const d = v.dateProchainCT || v.dateCT;
+      const d = vehCT(v);
       if (!d) return false;
-      const diff = (new Date(d).getTime() - now) / J;
-      return diff <= 7;
+      const diff = (d.getTime() - now) / J;
+      return diff <= 7; // inclut expirés (diff < 0)
     }).length;
     const ctMark = ctCrit === 0 ? 'ok' : ctCrit === 1 ? 'warn' : 'alert';
     const ctVal = ctCrit === 0
       ? '0 critique'
       : ctCrit + (ctCrit > 1 ? ' critiques' : ' critique');
 
-    // ============ 6. Conso flotte (véhicule le plus anormal) ============
-    // Pour chaque véhicule actif, calculer conso moyenne du mois et comparer à v.conso target.
+    // ============ 6. Conso flotte (pire écart vs target, 30j) ============
+    // Pour chaque véhicule, somme litres 30j + estimate km via target conso → conso réelle vs target.
     let consoText = '—';
     let consoMark = 'ok';
-    if (carburant.length > 0 && vehicules.length > 0) {
-      const conso30 = {};
-      const km30 = {};
-      carburant.forEach(c => {
-        if (!c.date || (now - new Date(c.date).getTime()) > 30 * J) return;
-        const id = c.vehiculeId;
+    const carb30 = carburant.filter(c => {
+      const d = carbDate(c);
+      return d && (now - d.getTime()) <= 30 * J;
+    });
+    if (carb30.length >= 5 && vehicules.length > 0) {
+      const litresParVeh = {};
+      carb30.forEach(c => {
+        const id = carbVehId(c);
         if (!id) return;
-        conso30[id] = (conso30[id] || 0) + (Number(c.litres) || 0);
-        // Naïve : pas de km tracking dans le seed donc on suppose 1000km/véhicule/mois
+        litresParVeh[id] = (litresParVeh[id] || 0) + carbLitres(c);
       });
-      let worst = null;
-      vehicules.forEach(v => {
-        const litres = conso30[v.id] || 0;
-        if (litres < 50) return;
-        const target = Number(v.conso) || 10;
-        // Pseudo-écart : si litres > target × estimated km / 100 × 1.15 → anomalie
-        // Estimate km basé sur litres et target conso
-        const ecart = ((litres / 10) / target - 1) * 100;
-        if (!worst || ecart > worst.ecart) worst = { v: v, ecart: ecart };
-      });
-      if (worst && worst.ecart > 5) {
-        consoText = (worst.v.modele || worst.v.immat || '—') + ' +' + Math.round(worst.ecart) + '%';
-        consoMark = worst.ecart > 15 ? 'warn' : 'ok';
+      // Pour chaque véhicule actif, l'écart vs target est mesuré sur le ratio litres/litres_attendus.
+      // Litres attendus = (km/100) × target. Faute de km exact, on prend conso médiane comme base.
+      const litresAll = Object.values(litresParVeh).filter(l => l >= 50);
+      if (litresAll.length >= 2) {
+        const median = litresAll.slice().sort((a, b) => a - b)[Math.floor(litresAll.length / 2)];
+        let worst = null;
+        vehicules.forEach(v => {
+          const l = litresParVeh[v.id];
+          if (!l || l < 50) return;
+          // Ecart vs médiane flotte, pondéré par target conso individuelle
+          const target = vehConso(v);
+          const expected = median * (target / 10); // 10L/100km baseline
+          if (expected < 10) return;
+          const ecart = ((l - expected) / expected) * 100;
+          if (!worst || ecart > worst.ecart) worst = { v: v, ecart: ecart };
+        });
+        if (worst && worst.ecart > 5) {
+          consoText = vehLabel(worst.v) + ' +' + Math.round(worst.ecart) + '%';
+          consoMark = worst.ecart > 15 ? 'warn' : 'ok';
+        } else {
+          consoText = 'Flotte normale';
+          consoMark = 'ok';
+        }
       } else {
-        consoText = 'Flotte OK';
+        consoText = carb30.length + ' plein' + (carb30.length > 1 ? 's' : '') + ' / 30j';
         consoMark = 'ok';
       }
+    } else if (carburant.length === 0) {
+      consoText = '—';
+      consoMark = 'ok';
+    } else {
+      consoText = 'Données insuffisantes';
+      consoMark = 'ok';
     }
 
-    // ============ 7. Permis chauffeurs ============
+    // ============ 7. Permis chauffeurs (≤60j) ============
     const permisProches = salaries.filter(s => {
-      if (!s.dateExpirationPermis) return false;
-      const diff = (new Date(s.dateExpirationPermis).getTime() - now) / J;
-      return diff > 0 && diff <= 60;
+      if (s.actif === false) return false;
+      const d = salDatePermis(s);
+      if (!d) return false;
+      const diff = (d.getTime() - now) / J;
+      return diff <= 60;
     });
     const permisMark = permisProches.length === 0 ? 'ok' : permisProches.length <= 2 ? 'warn' : 'alert';
     let permisVal = '0 à renouveler';
     if (permisProches.length === 1) {
-      const days = Math.round((new Date(permisProches[0].dateExpirationPermis).getTime() - now) / J);
-      permisVal = '1 à renouveler (' + days + 'j)';
+      const days = Math.round((salDatePermis(permisProches[0]).getTime() - now) / J);
+      permisVal = '1 à renouveler' + (days >= 0 ? ' (' + days + 'j)' : ' (expiré)');
     } else if (permisProches.length > 1) {
       permisVal = permisProches.length + ' à renouveler';
     }
 
-    // ============ 8. Inspections hebdo ============
+    // ============ 8. Inspections hebdo (7 derniers jours) ============
     const inspThisWeek = inspections.filter(i => {
-      if (!i.date) return false;
-      const diff = (now - new Date(i.date).getTime()) / J;
-      return diff <= 7;
+      const d = inspDate(i);
+      return d && (now - d.getTime()) <= 7 * J;
     }).length;
-    const vehActifs = vehicules.filter(v => (v.statut || 'actif') === 'actif').length || vehicules.length;
-    const inspMark = inspThisWeek >= vehActifs ? 'ok' : inspThisWeek >= vehActifs / 2 ? 'warn' : 'alert';
-    const inspVal = inspThisWeek + '/' + vehActifs + ' véhicules';
+    const vehActifs = vehicules.filter(v => vehStatut(v) === 'actif').length || vehicules.length;
+    const inspMark = vehActifs === 0
+      ? 'ok'
+      : inspThisWeek >= vehActifs ? 'ok'
+      : inspThisWeek >= vehActifs / 2 ? 'warn'
+      : 'alert';
+    const inspVal = vehActifs === 0 ? '—' : inspThisWeek + '/' + vehActifs + ' véhicules';
 
     return [
-      { mark: margeMark,    lbl: 'Marge brute',          val: marge.toFixed(1).replace('.', ',') + '%' },
-      { mark: tresoMark,    lbl: 'Trésorerie nette',     val: tresoSign + Math.round(tresorerie / 100) / 10 + 'k€' },
-      { mark: dsoMark,      lbl: 'DSO (délai paiement)', val: dso + 'j' },
-      { mark: impMark,      lbl: 'Impayés +90j',         val: impayes90 === 0 ? '0 €' : Math.round(impayes90).toLocaleString('fr-FR') + ' €' },
+      { mark: margeMark,    lbl: 'Marge brute',          val: margeVal },
+      { mark: tresoMark,    lbl: 'Trésorerie nette',     val: tresoVal },
+      { mark: dsoMark,      lbl: 'DSO (délai paiement)', val: dsoVal },
+      { mark: impMark,      lbl: 'Impayés +90j',         val: impVal },
       { mark: ctMark,       lbl: 'CT véhicules',         val: ctVal },
       { mark: consoMark,    lbl: 'Conso flotte',         val: consoText },
       { mark: permisMark,   lbl: 'Permis chauffeurs',    val: permisVal },
