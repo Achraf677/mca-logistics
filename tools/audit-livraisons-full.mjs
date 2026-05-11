@@ -138,7 +138,9 @@ for (const statut of ['', 'livre', 'en-cours', 'retard', 'brouillon']) {
 }
 log('Click chips filtres', 'pass', JSON.stringify(chipResults));
 
-// T8 : Search input livraisons
+// T8 : Search input livraisons — expand filters first (bar collapsed by design)
+await page.evaluate(() => { if (window.toggleLivraisonsFilters) window.toggleLivraisonsFilters(); });
+await page.waitForTimeout(400);
 const searchInput = await page.locator('#filtre-recherche-liv').count();
 if (searchInput > 0) {
   await page.fill('#filtre-recherche-liv', 'Amazon');

@@ -167,6 +167,24 @@
 
 ---
 
+## Session 2026-05-12 :30 — BUG-006b arrivée fix (agent :30)
+**Phases** : bug-fix
+**Commit** : fix(BUG-006b) — arrivée lue depuis #liv-arrivee + audit-livraisons-full filtres
+**État** : 0 bugs NEW, BUG-006b FIXED, CACHE_VERSION v62
+
+### Actions clés
+- **BUG-006b** : `script-livraisons.js:149` — `const arrivee = ''` hardcodé découvert. Remplacé par `document.getElementById('liv-arrivee')?.value.trim() || ''`. Audit confirme `arrivee:"Roubaix"` correctement persistée.
+- **BUG-014 complément** : `tools/audit-livraisons-full.mjs` — `toggleLivraisonsFilters()` ajouté avant test search (barre `.filters-livraisons` collapsée par design CSS `display:none` / `.expanded { display:flex }`).
+- CACHE_VERSION v61 → v62
+
+### Observations bug-hunt Livraisons
+- Chauffeur/vehicule selects vides avant openModal = attendu (`mettreAJourSelects` dans `openModal`)
+- 249 occurrences `/ aria-label` dans admin.html (malformed HTML) — sprint H2.3 a11y
+- Edit modal fonctionne (timing issue dans test initial uniquement)
+- Barre filtres collapsée par design — `style-design-livraisons-refonte.css:7-8` + toggle via `window.toggleLivraisonsFilters()`
+
+---
+
 ## Format pour nouvelles sessions
 
 ```markdown

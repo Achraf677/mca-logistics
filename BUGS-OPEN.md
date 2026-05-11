@@ -22,10 +22,16 @@ _(vide pour l'instant)_
 ## ✅ FIXED (à vérifier par user)
 
 ### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
-- **Status** : FIXED (commit session :16 2026-05-12)
+- **Status** : FIXED (session :16 + :30 2026-05-12)
 - **Cause** : `page.evaluate(() => openModal('modal-livraison'))` appelé avant que le modal soit dans le DOM / avant que `openModal` pointe la bonne fonction.
-- **Fix** : `tools/audit-fill-form.mjs` utilise désormais `btnNouv.click()` avec fallback `evaluate`.
+- **Fix** : `tools/audit-fill-form.mjs` utilise désormais `btnNouv.click()` avec fallback `evaluate`. `tools/audit-livraisons-full.mjs` appelle `toggleLivraisonsFilters()` avant de tester `#filtre-recherche-liv` (barre collapsée par design CSS `.expanded`).
 - **À vérifier** : rerun `tools/audit-fill-form.mjs` → screenshot 02 montre modal visible.
+
+### BUG-006b — Arrivée toujours vide à la création (régression BUG-006)
+- **Status** : FIXED (session :30 2026-05-12)
+- **Cause** : `ajouterLivraison()` dans `script-livraisons.js:149` avait `const arrivee = ''` hardcodé. Le champ `#liv-arrivee` rendu visible en phase 32 mais valeur jamais lue.
+- **Fix** : `const arrivee = document.getElementById('liv-arrivee')?.value.trim() || ''` + `const depart = document.getElementById('liv-depart')?.value.trim() || zoneGeo`.
+- **À vérifier** : créer livraison avec Départ "Paris" Arrivée "Lyon" → save → drawer 360 → Arrivée = "Lyon".
 
 ### BUG-013 — Toast "Le nom de l'entreprise est requis" affiché au load page Livraisons
 - **Status** : FIXED (commit session :15 2026-05-12)

@@ -145,8 +145,8 @@ function ajouterLivraison() {
   const client      = document.getElementById('liv-client').value.trim();
   const clientSiren = (document.getElementById('liv-client-siren')?.value || '').replace(/\s+/g, '');
   const zoneGeo  = document.getElementById('liv-zone')?.value.trim() || document.getElementById('liv-depart').value.trim();
-  const depart   = zoneGeo;
-  const arrivee  = '';
+  const depart   = document.getElementById('liv-depart')?.value.trim() || zoneGeo;
+  const arrivee  = document.getElementById('liv-arrivee')?.value.trim() || '';
   const distance = parseFloat(document.getElementById('liv-distance').value) || 0;
   const prixHT   = parseFloat(document.getElementById('liv-prix-ht')?.value) || 0;
   const tauxTVA  = parseFloat(document.getElementById('liv-taux-tva')?.value) || 20;
