@@ -295,11 +295,37 @@
     if (btn) btn.classList.toggle('active', isOpen);
   };
 
+  // ============ Dropdowns Générer/Exporter (Phase 28) ============
+  function setupDropdowns() {
+    document.addEventListener('click', function (e) {
+      const trigger = e.target.closest('.liv-dropdown-trigger');
+      const inside = e.target.closest('.liv-dropdown-menu');
+      // Close all open dropdowns
+      const openMenus = document.querySelectorAll('.liv-dropdown-menu.open');
+      if (trigger) {
+        const wrap = trigger.parentElement;
+        const menu = wrap && wrap.querySelector('.liv-dropdown-menu');
+        if (menu) {
+          const wasOpen = menu.classList.contains('open');
+          // Close all
+          openMenus.forEach(m => m.classList.remove('open'));
+          // Toggle this one
+          if (!wasOpen) menu.classList.add('open');
+          e.stopPropagation();
+        }
+      } else if (!inside) {
+        // Click outside : close all
+        openMenus.forEach(m => m.classList.remove('open'));
+      }
+    });
+  }
+
   function setupHook() {
     polishRows();
     wrapChangerVue();
     resetLivraisonsDateFilters();
     updateDateRangeChip();
+    setupDropdowns();
     // Update date range chip when filters change
     ['filtre-date-debut', 'filtre-date-fin'].forEach(id => {
       const el = document.getElementById(id);
