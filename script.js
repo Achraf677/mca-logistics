@@ -10971,8 +10971,8 @@ genererRentabilitePDF = function() {
       <div class="s20-tab-content hidden" id="s20-tab-incidents">${renderIncidentsList(incidents)}</div>
 
       <div class="s20-fiche-actions">
-        <button class="btn-secondary" onclick="window.s20GoToHeures('${esc(sal.nom)}')">⏱️ Heures</button>
-        <button class="btn-primary" onclick="window.s20GoToEdit('${sal.id}')">✏️ Modifier</button>
+        <button class="btn-secondary" onclick="window.s20GoToHeures('${esc(sal.nom)}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Heures</button>
+        <button class="btn-primary" onclick="window.s20GoToEdit('${sal.id}')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier</button>
       </div>`;
   }
 
@@ -12413,7 +12413,7 @@ genererRentabilitePDF = function() {
           </div>
         </div>
         <div class="s25-head-actions">
-          <button class="btn-secondary" onclick="ouvrirEditClient('${c.id}');setTimeout(()=>window.s25FermerDrawer(),100)">✏️ Modifier</button>
+          <button class="btn-secondary" onclick="ouvrirEditClient('${c.id}');setTimeout(()=>window.s25FermerDrawer(),100)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Modifier</button>
         </div>
       </div>
       <div class="s25-kpi-row">
@@ -12556,7 +12556,7 @@ genererRentabilitePDF = function() {
       <div class="s25-tab-content">
         <div class="s25-tab-panel active" data-panel="vue">
           <div class="s25-section"><h4>Dernières charges</h4>
-            ${charges.slice(0,5).map(c => '<div class="s25-tl-item">💸 '+fmtDate(c.date)+' · '+esc(c.description||c.categorie||'—')+' · '+fmtEur(c.montantTTC||c.montant||0)+'</div>').join('') || '<div class="s25-empty">Aucune charge enregistrée</div>'}
+            ${charges.slice(0,5).map(c => '<div class="s25-tl-item"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;opacity:.7"><rect x="2" y="6" width="20" height="13" rx="2"/><path d="M2 10h20"/><path d="M16 14h4"/></svg>'+fmtDate(c.date)+' · '+esc(c.description||c.categorie||'—')+' · '+fmtEur(c.montantTTC||c.montant||0)+'</div>').join('') || '<div class="s25-empty">Aucune charge enregistrée</div>'}
           </div>
           <div class="s25-section"><h4>ℹ️ Infos clés</h4>
             <div class="s25-infos">
