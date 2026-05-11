@@ -429,3 +429,67 @@
 
 /* Quand v2 actif, masquer ancien card-header + ancienne liste */
 .dashboard-attention.dashboard-attention-v2 > .card-header { display: none; }
+
+/* ============ DASHBOARD POST-HERO CLEANUP (Phase 9) ============ */
+
+/* Cacher stats-row-pills : les pills sont desormais dans .hero-pills v2.
+   Garde les IDs dans le DOM pour compat script.js (qui set kpi-solde etc.). */
+#page-dashboard .stats-row-pills {
+  display: none !important;
+}
+
+/* KPI grid primary : uniformiser sur le style mockup
+   - Pas de variants colorees (.green/.blue/.purple) qui changent border-top
+   - Accent bar rouge a gauche uniquement (deja gere par style-design-dashboard.css)
+   - Taille reduite pour matcher le mockup compact */
+#page-dashboard .kpi-grid-primary {
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+#page-dashboard .kpi-grid-primary .kpi-card {
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+  /* Override les border-top colores des variants .green/.blue/.purple */
+  border-top: 1px solid var(--ds-border, var(--border)) !important;
+}
+
+#page-dashboard .kpi-grid-primary .kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  bottom: 0;
+  background: var(--ds-brand, var(--accent));
+  /* Override le gradient horizontal par defaut */
+  height: auto !important;
+  right: auto !important;
+}
+
+#page-dashboard .kpi-grid-primary .kpi-label {
+  color: var(--ds-text-muted, var(--text-muted));
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+#page-dashboard .kpi-grid-primary .kpi-value {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-feature-settings: "tnum";
+}
+
+#page-dashboard .kpi-grid-primary .kpi-sub {
+  color: var(--ds-text-muted, var(--text-muted));
+  font-size: 11px;
+}
+
