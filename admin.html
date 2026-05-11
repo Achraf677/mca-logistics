@@ -141,6 +141,7 @@
   <script defer src="script-inspections-counts.js?v=1"></script>
   <!-- Phase 44 refonte HTML : Entretiens type chips toolbar wiring. -->
   <script defer src="script-entretiens-chips.js?v=1"></script>
+  <script defer src="script-brouillons-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=1"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
@@ -3032,6 +3033,20 @@
           </div>
         </div>
         <div class="ds-section-head__actions"></div>
+      </div>
+      <!-- Phase 45 refonte HTML — Brouillons IA KPI grid -->
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">En attente</div><div class="kpi-val" id="brouillons-kpi-attente">—</div><div class="kpi-sub">À traiter</div></div>
+        <div class="kpi"><div class="kpi-lbl">Validées mois</div><div class="kpi-val" id="brouillons-kpi-validees">—</div><div class="kpi-sub" id="brouillons-kpi-validees-sub">Ce mois</div></div>
+        <div class="kpi"><div class="kpi-lbl">Rejetées mois</div><div class="kpi-val" id="brouillons-kpi-rejetees">—</div><div class="kpi-sub">Ce mois</div></div>
+        <div class="kpi"><div class="kpi-lbl">Économie temps</div><div class="kpi-val" id="brouillons-kpi-temps">—</div><div class="kpi-sub">Sur saisie manuelle</div></div>
+      </div>
+      <!-- Phase 45 — chips toolbar statut brouillons -->
+      <div class="ds-chips-toolbar" id="brouillons-chips" style="margin-bottom:12px">
+        <button class="ds-chip active" type="button" data-brouillons-statut="pending" onclick="brouillonsChipFilter(this)">En attente</button>
+        <button class="ds-chip" type="button" data-brouillons-statut="executed" onclick="brouillonsChipFilter(this)">Validées</button>
+        <button class="ds-chip" type="button" data-brouillons-statut="rejected" onclick="brouillonsChipFilter(this)">Rejetées</button>
+        <button class="ds-chip" type="button" data-brouillons-statut="ocr" onclick="brouillonsChipFilter(this)">OCR factures</button>
       </div>
       <div class="card" style="margin-bottom:14px;padding:14px 18px">
         <div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">
