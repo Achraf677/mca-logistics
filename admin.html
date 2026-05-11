@@ -109,6 +109,8 @@
   <script defer src="script-alertes-counts.js?v=1"></script>
   <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
   <script defer src="script-stats-calendrier-counts.js?v=1"></script>
+  <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
+  <script defer src="script-dashboard-attention.js?v=1"></script>
 </head>
 <body class="app-shell app-booting">
 
@@ -323,6 +325,19 @@
           <div class="hero-sante-tag" style="margin-top:10px">Dernier calcul agent</div>
           <div class="hero-sante-agent" id="kpi-agent-derniere-analyse">—</div>
         </div>
+      </div>
+
+      <!-- Phase 3 refonte : Points d'attention preview (top 3 alertes + voir tout) -->
+      <div class="card dashboard-attention" id="dashboard-points-attention" style="margin-bottom:18px;display:none">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:10px">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <h3 style="margin:0;font-size:1rem;font-weight:700">Points d'attention</h3>
+            <span class="u-muted-sm" id="dashboard-attention-count">0 alertes à traiter</span>
+          </div>
+          <a href="#" onclick="naviguerVers('alertes');return false" class="u-muted-sm" style="text-decoration:none;color:var(--accent)">Tout voir →</a>
+        </div>
+        <div class="dashboard-attention-list" id="dashboard-attention-list" style="padding:6px 12px"></div>
       </div>
 
       <div class="kpi-grid kpi-grid-primary" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">

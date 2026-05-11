@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v11_7-html-refonte-fix-toc-361';
+const CACHE_VERSION = 'mca-v2026-05-11-v11_8-dashboard-attention-362';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -60,6 +60,8 @@ const CORE_ASSETS = [
   '/style-refonte-charges.css',
   // Phase 2 refonte HTML — utility classes pour réduire inline styles
   '/style-refonte-utilities.css',
+  // Phase 3 refonte HTML — dashboard preview "Points d'attention"
+  '/script-dashboard-attention.js',
   '/script-charges-kpis-categorie.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
