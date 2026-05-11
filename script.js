@@ -849,7 +849,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const btn = document.getElementById('btn-install-pwa');
         if (btn) btn.style.display = 'none';
       } catch(_) { /* fail-silent: bouton install déjà retiré */ }
-      if (typeof afficherToast === 'function') afficherToast('📲 MCA Logistics installé sur votre appareil', 'success');
+      if (typeof afficherToast === 'function') afficherToast('MCA Logistics installé sur votre appareil', 'success');
       if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('PWA', 'Application installée en mode standalone');
     });
     window.declencherInstallPWA = function() {
@@ -862,7 +862,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       prompt.userChoice.then(function(choice) {
         window.__delivproDeferredPrompt = null;
         if (choice && choice.outcome === 'accepted' && typeof afficherToast === 'function') {
-          afficherToast('📲 Installation en cours…', 'success');
+          afficherToast('Installation en cours…', 'success');
         }
       });
     };
@@ -1110,7 +1110,7 @@ function mettreAJourSelects() {
   if (sc) {
     const v = sc.value; sc.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
     // Salariés d'abord (avec badge), puis chauffeurs non-salariés
-    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">👤 ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    salaries.forEach(s => { sc.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sc.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sc.value = v;
@@ -1119,7 +1119,7 @@ function mettreAJourSelects() {
   const sec = document.getElementById('edit-liv-chauffeur');
   if (sec) {
     const v = sec.value; sec.innerHTML = '<option value="">-- Choisir un salarié / chauffeur --</option>';
-    salaries.forEach(s => { sec.innerHTML += `<option value="${s.id}">👤 ${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
+    salaries.forEach(s => { sec.innerHTML += `<option value="${s.id}">${getSalarieNomComplet(s, { includeNumero: true })}</option>`; });
     chauffeurs.filter(c => !salaries.find(s => s.id === c.id))
       .forEach(c => { sec.innerHTML += `<option value="${c.id}">${c.nom}</option>`; });
     sec.value = v;
@@ -1214,7 +1214,7 @@ function changerStatutPaiement(id, statut) {
     livraisons[idx].statutPaiement = statut;
     sauvegarder('livraisons', livraisons);
     ajouterEntreeAudit('Paiement livraison', (livraisons[idx].numLiv || 'Livraison') + ' · statut ' + statut);
-    afficherToast('💳 Paiement mis à jour');
+    afficherToast('Paiement mis à jour');
   }
 }
 
@@ -1612,8 +1612,8 @@ function rafraichirDashboard() {
   var tvaLabelEl = document.getElementById('kpi-tva-label');
   if (tvaLabelEl) {
     tvaLabelEl.textContent = soldeTva >= 0
-      ? '🧾 TVA à reverser'
-      : '🧾 Crédit TVA (à reporter)';
+      ? 'TVA à reverser'
+      : 'Crédit TVA (à reporter)';
   }
   setText('kpi-tva-solde', euros(Math.abs(soldeTva)));
   const depDetailEl = document.getElementById('kpi-depenses-detail');
@@ -1918,7 +1918,7 @@ window.__salDocsTemp = {};
 function badgeStatut(s) {
   return {
     'en-attente': '<span class="badge badge-attente">⏳ En attente</span>',
-    'en-cours':   '<span class="badge badge-cours">🚐 En cours</span>',
+    'en-cours':   '<span class="badge badge-cours">En cours</span>',
     'livre':      '<span class="badge badge-livre">✅ Livré</span>'
   }[s] || s;
 }
@@ -2089,11 +2089,11 @@ function genererGrilleJours() {
             <strong style="font-size:.9rem">${JOURS_COURTS[i]} — ${jour.charAt(0).toUpperCase()+jour.slice(1)}</strong>
           </label>
           <select class="planning-type-select" id="plan-type-${jour}" onchange="toggleTypeJour('${jour}')" style="width:110px">
-            <option value="travail" ${typeJour==='travail'?'selected':''}>🟢 Travail</option>
+            <option value="travail" ${typeJour==='travail'?'selected':''}>Travail</option>
             <option value="repos"   ${typeJour==='repos'  ?'selected':''}>Repos</option>
-            <option value="conge"   ${typeJour==='conge'  ?'selected':''}>🔵 Congé</option>
-            <option value="absence" ${typeJour==='absence'?'selected':''}>🔴 Absence</option>
-            <option value="maladie" ${typeJour==='maladie'?'selected':''}>🟣 Maladie</option>
+            <option value="conge"   ${typeJour==='conge'  ?'selected':''}>Congé</option>
+            <option value="absence" ${typeJour==='absence'?'selected':''}>Absence</option>
+            <option value="maladie" ${typeJour==='maladie'?'selected':''}>Maladie</option>
           </select>
         </div>
         <div id="plan-horaires-${jour}" style="display:${existing.travaille&&typeJour==='travail' ? 'grid' : 'none'};grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -2152,7 +2152,7 @@ function verifierConformiteConduiteCE561(semaine) {
     warnings.push('🛑 ' + nbJoursSupA9h + ' jours > 9h cette semaine — max 2 dérogations autorisées (CE 561/2006 art. 6.1)');
   }
   if (totalHebdoMin > 56 * 60) {
-    warnings.push('🛑 Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — dépasse la limite 56h/sem (CE 561/2006 art. 6.2)');
+    warnings.push('Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — dépasse la limite 56h/sem (CE 561/2006 art. 6.2)');
   } else if (totalHebdoMin > 48 * 60) {
     warnings.push('⚠️ Semaine : ' + (totalHebdoMin / 60).toFixed(1) + 'h — au-delà de la moyenne 48h/sem recommandée (directive 2002/15/CE)');
   }
@@ -2192,7 +2192,7 @@ function afficherKanban() {
     else cols['en-attente'].push(l);
   });
 
-  const labels = { 'en-attente': '⏳ En attente', 'en-cours': '🚐 En cours', 'livre': '✅ Livré' };
+  const labels = { 'en-attente': '⏳ En attente', 'en-cours': 'En cours', 'livre': '✅ Livré' };
   const classes= { 'en-attente': 'attente', 'en-cours': 'cours', 'livre': 'livre' };
 
   const board = document.getElementById('kanban-board');
@@ -2214,10 +2214,10 @@ function afficherKanban() {
               ondragstart="dragKanban(event,'${l.id}')"
               ondragend="document.querySelectorAll('.kanban-col-body').forEach(c=>c.classList.remove('drag-over'))"
               onclick="ouvrirEditLivraison('${l.id}')">
-              <div class="kanban-card-client">📦 ${l.client}</div>
+              <div class="kanban-card-client">${l.client}</div>
               <div class="kanban-card-sub">${l.numLiv||'—'} · ${l.date}</div>
-              ${l.chaufNom ? `<div class="kanban-card-sub">👤 ${l.chaufNom}</div>` : ''}
-              ${l.arrivee  ? `<div class="kanban-card-sub">📍 ${l.arrivee}</div>` : ''}
+              ${l.chaufNom ? `<div class="kanban-card-sub">${l.chaufNom}</div>` : ''}
+              ${l.arrivee  ? `<div class="kanban-card-sub">${l.arrivee}</div>` : ''}
               <div class="kanban-card-prix">${l.prix ? euros(l.prix) : 'Prix manquant'}</div>
             </div>`).join('')}
       </div>
@@ -2323,7 +2323,7 @@ function filtrerCalJour(date) {
   if (fin) fin.value = date;
   afficherLivraisons();
   document.getElementById('barre-recherche-univ')?.blur();
-  afficherToast(`📅 Livraisons du ${new Date(date).toLocaleDateString('fr-FR', {day:'numeric',month:'long'})}`);
+  afficherToast(`Livraisons du ${new Date(date).toLocaleDateString('fr-FR', {day:'numeric',month:'long'})}`);
 }
 
 /* ===== DUPLICATION LIVRAISON ===== */
@@ -2488,7 +2488,7 @@ function afficherPonctualite() {
   const color = taux>=90?'var(--green)':taux>=70?'var(--accent)':'var(--red)';
   cont.innerHTML = `
     <div class="card mt-20">
-      <div class="card-header"><h2>🎯 Taux de ponctualité</h2><span style="font-size:1.3rem;font-weight:800;color:${color}">${taux}%</span></div>
+      <div class="card-header"><h2>Taux de ponctualité</h2><span style="font-size:1.3rem;font-weight:800;color:${color}">${taux}%</span></div>
       <div style="padding:16px">
         <div class="ponctualite-bar"><div class="ponctualite-fill" style="width:${taux}%;background:${color}"></div></div>
         <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px">${livrees} livrées sur ${total} assignées</div>
@@ -2496,7 +2496,7 @@ function afficherPonctualite() {
           ${[
             ['✅ Livrées', livrees, 'var(--green)'],
             ['⏳ En attente', total-livrees, 'var(--accent)'],
-            ['📊 Taux', taux+'%', color]
+            ['Taux', taux+'%', color]
           ].map(([l,v,c])=>`<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px;text-align:center">
             <div style="font-size:1.1rem;font-weight:700;color:${c}">${v}</div>
             <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px">${l}</div>
@@ -2577,7 +2577,7 @@ function toggleVueCompacte() {
   const btn2= document.getElementById('btn-density-normal');
   if (btn)  btn.classList.toggle('active',  _vueCompacte);
   if (btn2) btn2.classList.toggle('active', !_vueCompacte);
-  afficherToast(_vueCompacte ? '🗜️ Vue compacte' : '📋 Vue normale');
+  afficherToast(_vueCompacte ? 'Vue compacte' : 'Vue normale');
 }
 
 /* ===== MODÈLES DE MESSAGES PRÉDÉFINIS ===== */
@@ -2585,7 +2585,7 @@ const MODELES_MESSAGES = [
   { id:1, titre:'Tournée prête',      texte:'Bonjour {prenom} 👋 Votre tournée du jour est prête. Vérifiez vos livraisons assignées dans l\'onglet Livraisons.' },
   { id:2, titre:'Rappel km retour',   texte:'Bonsoir {prenom}, n\'oubliez pas d\'enregistrer votre km de retour et votre plein si vous en avez fait un. Merci 🙏' },
   { id:3, titre:'Rappel inspection',  texte:'Rappel : pensez à faire l\'inspection de votre véhicule avant le départ. Photos obligatoires 📷' },
-  { id:4, titre:'Livraison urgente',  texte:'📦 Livraison urgente ajoutée à votre tournée. Consultez l\'onglet Livraisons pour les détails.' },
+  { id:4, titre:'Livraison urgente',  texte:'Livraison urgente ajoutée à votre tournée. Consultez l\'onglet Livraisons pour les détails.' },
   { id:5, titre:'Bonne journée',      texte:'Bonjour {prenom} ☀️ Bonne journée de livraisons ! N\'hésitez pas à me contacter en cas de problème.' },
 ];
 
@@ -2740,7 +2740,7 @@ function afficherDocumentDansFenetre(url, isPdf, titre) {
     bodyHtml = '<div style="background:#1a1d27;border-radius:14px;padding:32px 26px;max-width:380px;width:100%;text-align:center;color:#fff">'
       + '<div style="font-size:3.5rem;line-height:1;margin-bottom:14px">📄</div>'
       + '<div style="font-weight:600;font-size:1.05rem;margin-bottom:22px;word-break:break-word">' + escHtml(titre || 'Document PDF') + '</div>'
-      + '<a href="' + url + '" target="_blank" rel="noopener" style="display:block;background:#f5a623;color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">🔍 Ouvrir le PDF</a>'
+      + '<a href="' + url + '" target="_blank" rel="noopener" style="display:block;background:#f5a623;color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">Ouvrir le PDF</a>'
       + '<a href="' + url + '" download="' + escHtml(fname) + '" style="display:block;background:#374151;color:#fff;text-decoration:none;font-weight:600;padding:14px;border-radius:12px;font-size:.95rem">⬇ Télécharger</a>'
       + '</div>';
   } else {
@@ -2824,7 +2824,7 @@ function initPullToRefresh() {
     if (diff > 80) {
       const page = document.querySelector('.page.active')?.id?.replace('page-','');
       if (page) naviguerVers(page);
-      afficherToast('🔄 Actualisé');
+      afficherToast('Actualisé');
     }
   }, { passive: true });
 }
@@ -2869,7 +2869,7 @@ function genererFicheTournee(salId, date) {
       <div style="background:#f8f9fc;border-radius:10px;padding:14px">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">Chauffeur</div>
         <div style="font-size:1rem;font-weight:700">${sal.nom}</div>
-        ${sal.tel?`<div style="font-size:.82rem;color:#6b7280">📞 ${sal.tel}</div>`:''}
+        ${sal.tel?`<div style="font-size:.82rem;color:#6b7280">${sal.tel}</div>`:''}
       </div>
       <div style="background:#f8f9fc;border-radius:10px;padding:14px">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#9ca3af;margin-bottom:6px">Véhicule</div>
@@ -2880,8 +2880,8 @@ function genererFicheTournee(salId, date) {
 
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px">
       ${[
-        ['📦 Livraisons', livraisons.length],
-        ['🛣️ Km estimés', totalKm+' km'],
+        ['Livraisons', livraisons.length],
+        ['Km estimés', totalKm+' km'],
       ].map(([l,v])=>`<div style="background:#f8f9fc;border-radius:8px;padding:12px;text-align:center">
         <div style="font-size:.72rem;color:#9ca3af;margin-bottom:4px">${l}</div>
         <div style="font-size:1.2rem;font-weight:800">${v}</div>
@@ -2927,7 +2927,7 @@ function genererFicheTournee(salId, date) {
     <style>body{margin:0;padding:20px;background:#fff} @page{margin:12mm}</style>
     </head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
-  afficherToast('📄 Fiche de tournée générée');
+  afficherToast('Fiche de tournée générée');
 }
 
 /* ===== GOOGLE MAPS — DISTANCE AUTO ===== */
@@ -2945,9 +2945,9 @@ function initDensiteTableau() {
 
 /* ===== MODÈLES DE MESSAGES ===== */
 const MSG_TEMPLATES = [
-  { label: '🚀 Tournée prête',   texte: 'Bonjour [prénom] 👋 Votre tournée du jour est prête. Vérifiez vos livraisons dans l\'onglet Livraisons. Bonne journée !' },
-  { label: '🛣️ Relevé km',       texte: 'Rappel : pensez à enregistrer votre relevé kilométrique de retour dans l\'onglet Inspection & Km. Merci !' },
-  { label: '🚗 Inspection',      texte: 'Rappel : inspection véhicule obligatoire avant le départ. Prenez les 4 photos demandées. Merci !' },
+  { label: 'Tournée prête',   texte: 'Bonjour [prénom] 👋 Votre tournée du jour est prête. Vérifiez vos livraisons dans l\'onglet Livraisons. Bonne journée !' },
+  { label: 'Relevé km',       texte: 'Rappel : pensez à enregistrer votre relevé kilométrique de retour dans l\'onglet Inspection & Km. Merci !' },
+  { label: 'Inspection',      texte: 'Rappel : inspection véhicule obligatoire avant le départ. Prenez les 4 photos demandées. Merci !' },
   { label: '⛽ Plein',           texte: 'Si vous avez fait le plein aujourd\'hui, n\'oubliez pas de le saisir dans l\'onglet Carburant. Merci !' },
   { label: '✅ Bonne journée',   texte: 'Bonjour à tous ! Bonne journée de livraisons. Restez prudents sur la route 🚐' },
 ];
@@ -2994,7 +2994,7 @@ function verifierNotificationsAutomatiquesMois2() {
     if (joursRetard <= 0) return;
     const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : 1;
     const label = niveau === 3 ? 'Dernier avis' : niveau === 2 ? 'Mise en demeure' : 'Relance amiable';
-    ajouterAlerteSiAbsente('relance_auto', `💸 ${label} à envoyer — ${item.client} (${item.numLiv || 'livraison'})`, {
+    ajouterAlerteSiAbsente('relance_auto', `${label} à envoyer — ${item.client} (${item.numLiv || 'livraison'})`, {
       livId: item.id,
       stageKey: 'relance-' + niveau + '-' + item.id,
       client: item.client || '',
@@ -3020,7 +3020,7 @@ function verifierNotificationsAutomatiquesMois2() {
     }
     const seuil = [7, 15, 30].find(function(jours) { return ctIso <= seuilsDate[jours]; });
     if (seuil) {
-      ajouterAlerteSiAbsente('ct_proche', `🚐 CT à renouveler dans ${seuil} jour(s) — ${item.immat} (${formatDateExport(ctIso)})`, {
+      ajouterAlerteSiAbsente('ct_proche', `CT à renouveler dans ${seuil} jour(s) — ${item.immat} (${formatDateExport(ctIso)})`, {
         vehId:item.id,
         stageKey:'ct-' + seuil + '-' + item.id
       });
@@ -3038,8 +3038,8 @@ function verifierNotificationsAutomatiquesMois2() {
     if (joursRetard < 0) return;
     var libelle = (c.fournisseur || c.description || c.categorie || 'charge');
     var msg;
-    if (joursRetard === 0) msg = '💸 Charge à payer aujourd’hui — ' + libelle + ' (' + euros(c.montant || 0) + ')';
-    else msg = '🔴 Charge en retard de paiement (' + joursRetard + 'j) — ' + libelle + ' (' + euros(c.montant || 0) + ')';
+    if (joursRetard === 0) msg = 'Charge à payer aujourd’hui — ' + libelle + ' (' + euros(c.montant || 0) + ')';
+    else msg = 'Charge en retard de paiement (' + joursRetard + 'j) — ' + libelle + ' (' + euros(c.montant || 0) + ')';
     ajouterAlerteSiAbsente('charge_retard_paiement', msg, {
       chargeId: c.id,
       stageKey: 'charge-retard-' + c.id + '-' + (joursRetard > 30 ? '30' : joursRetard > 7 ? '7' : '0')
@@ -3060,7 +3060,7 @@ function verifierNotificationsAutomatiquesMois2() {
       && planning.semaine.some(function(j) { return j.typeJour === 'travail' || j.travaille === true; });
     if (!aJourTravail) {
       ajouterAlerteSiAbsente('planning_manquant',
-        '📅 Aucun planning de travail défini — ' + (sal.nom || sal.id),
+        'Aucun planning de travail défini — ' + (sal.nom || sal.id),
         { salId: sal.id, salNom: sal.nom || '', stageKey: 'planning-manquant-' + sal.id });
     }
   });
@@ -3084,15 +3084,15 @@ function verifierNotificationsAutomatiquesMois2() {
     var ageJ = last ? Math.floor((aujMs - new Date(last).getTime()) / 86400000) : null;
     if (last == null) {
       ajouterAlerteSiAbsente('inspection_manquante',
-        '🚗 Aucune inspection enregistrée — ' + (v.immat || v.id),
+        'Aucune inspection enregistrée — ' + (v.immat || v.id),
         { vehId: v.id, stageKey: 'insp-manquante-jamais-' + v.id });
     } else if (ageJ >= 60) {
       ajouterAlerteSiAbsente('inspection_manquante',
-        '🚗 Pas d\'inspection depuis ' + ageJ + ' jours (>60j) — ' + (v.immat || v.id),
+        'Pas d\'inspection depuis ' + ageJ + ' jours (>60j) — ' + (v.immat || v.id),
         { vehId: v.id, stageKey: 'insp-manquante-60-' + v.id });
     } else if (ageJ >= 30) {
       ajouterAlerteSiAbsente('inspection_manquante',
-        '🚗 Pas d\'inspection depuis ' + ageJ + ' jours — ' + (v.immat || v.id),
+        'Pas d\'inspection depuis ' + ageJ + ' jours — ' + (v.immat || v.id),
         { vehId: v.id, stageKey: 'insp-manquante-30-' + v.id });
     }
   });
@@ -3116,7 +3116,7 @@ function afficherTemplatesSMS() {
       <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">${t.titre}</div>
       <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;font-style:italic">${t.texte}</div>
       <button class="btn-secondary" style="font-size:.75rem;padding:4px 10px"
-        onclick="copierTemplateSMS('${t.id}')">📋 Copier</button>
+        onclick="copierTemplateSMS('${t.id}')">Copier</button>
     </div>`).join('');
 }
 
@@ -3124,13 +3124,13 @@ function copierTemplateSMS(id) {
   const t = TEMPLATES_SMS.find(x=>x.id===parseInt(id, 10));
   if (!t) return;
   navigator.clipboard?.writeText(t.texte).then(()=>{
-    afficherToast('📋 Template SMS copié dans le presse-papier');
+    afficherToast('Template SMS copié dans le presse-papier');
   }).catch(()=>{
     // Fallback si clipboard non disponible
     const ta = document.createElement('textarea');
     ta.value = t.texte; document.body.appendChild(ta);
     ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
-    afficherToast('📋 Template SMS copié');
+    afficherToast('Template SMS copié');
   });
 }
 
@@ -3314,7 +3314,7 @@ function supprimerPoste(idx) {
   postes.splice(idx, 1);
   sauvegarderPostes(postes);
   afficherPostes();
-  afficherToast('🗑️ Poste supprimé');
+  afficherToast('Poste supprimé');
 }
 
 function majSelectsPostes() {
@@ -3439,7 +3439,7 @@ function marquerPaye(id) {
     afficherRelances();
     afficherTva();
     rafraichirDashboard();
-    afficherToast('💳 Marqué comme payé');
+    afficherToast('Marqué comme payé');
   }
 }
 // MOVED -> script-paiements.js : marquerRelance
@@ -3454,13 +3454,13 @@ function afficherTCO(vehId) {
   if (!cont || !veh) return;
 
   cont.innerHTML = `
-    <div style="font-size:.9rem;font-weight:600;margin-bottom:12px">🚐 TCO — ${veh.immat} ${veh.modele||''}</div>
+    <div style="font-size:.9rem;font-weight:600;margin-bottom:12px">TCO — ${veh.immat} ${veh.modele||''}</div>
     <div class="tco-grid">
-      <div class="tco-item"><div class="tco-label">🏷️ Acquisition HT</div><div class="tco-value" style="color:#4f8ef7">${euros(tco.achatHT)}</div></div>
+      <div class="tco-item"><div class="tco-label">Acquisition HT</div><div class="tco-value" style="color:#4f8ef7">${euros(tco.achatHT)}</div></div>
       <div class="tco-item"><div class="tco-label">⛽ Carburant</div><div class="tco-value" style="color:#e74c3c">${euros(tco.totalCarb)}</div></div>
-      <div class="tco-item"><div class="tco-label">🔧 Entretiens</div><div class="tco-value" style="color:var(--accent)">${euros(tco.totalEntr)}</div></div>
-      <div class="tco-item"><div class="tco-label">💸 Autres charges</div><div class="tco-value" style="color:#9b59b6">${euros(tco.totalCharg)}</div></div>
-      <div class="tco-item" style="border:1px solid var(--border)"><div class="tco-label">💰 Total TCO</div><div class="tco-value" style="color:var(--text-primary)">${euros(tco.total)}</div></div>
+      <div class="tco-item"><div class="tco-label">Entretiens</div><div class="tco-value" style="color:var(--accent)">${euros(tco.totalEntr)}</div></div>
+      <div class="tco-item"><div class="tco-label">Autres charges</div><div class="tco-value" style="color:#9b59b6">${euros(tco.totalCharg)}</div></div>
+      <div class="tco-item" style="border:1px solid var(--border)"><div class="tco-label">Total TCO</div><div class="tco-value" style="color:var(--text-primary)">${euros(tco.total)}</div></div>
     </div>`;
 }
 
@@ -3663,7 +3663,7 @@ function genererLettreDeVoiture(livId) {
   ajouterEntreeAudit('Lettre de voiture', numLDV + ' · ' + (livraison.client || 'Client') + (manques.length ? ' (incomplète : ' + manques.length + ' champs)' : ''));
   afficherToast(manques.length
     ? '⚠️ Lettre de voiture générée avec ' + manques.length + ' champ(s) manquant(s)'
-    : '📋 Lettre de voiture générée');
+    : 'Lettre de voiture générée');
 }
 window.genererLettreDeVoiture = genererLettreDeVoiture;
 
@@ -3725,7 +3725,7 @@ function genererRegistreRGPD() {
 
   const html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1080px;margin:0 auto;padding:28px;color:#111827;background:#fff">'
     + '<div style="border-bottom:2px solid #111827;padding-bottom:14px;margin-bottom:20px">'
-    + '<div style="font-size:1.4rem;font-weight:900">📖 Registre des activités de traitement</div>'
+    + '<div style="font-size:1.4rem;font-weight:900">Registre des activités de traitement</div>'
     + '<div style="font-size:.85rem;color:#6b7280;margin-top:4px">Article 30 du Règlement (UE) 2016/679 (RGPD) · ' + esc(dateExp) + '</div>'
     + '</div>'
     + '<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin-bottom:20px">'
@@ -4235,7 +4235,7 @@ afficherPlanningSemaine = function() {
         return renderCell('is-rest', 'Repos', '', '');
       }
 
-      return renderCell('is-work', '🟢 Travail', (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : ''), jour.zone || '');
+      return renderCell('is-work', 'Travail', (jour.heureDebut||'') + (jour.heureFin ? ' – ' + jour.heureFin : ''), jour.zone || '');
     }).join('');
 
     return '<tr><td><div class="planning-week-salarie"><strong>' + s.nom + '</strong>' + (s.poste ? '<span class="planning-week-meta">' + s.poste + '</span>' : '') + (s.numero ? '<span class="planning-week-meta">#' + s.numero + '</span>' : '') + '</div></td>' + cellules + '</tr>';
@@ -4393,7 +4393,7 @@ ouvrirFenetreImpression = function(titre, html, options) {
     a.click();
     setTimeout(function () { try { a.remove(); URL.revokeObjectURL(url); } catch (_) {} }, 1000);
     if (typeof afficherToast === 'function') {
-      afficherToast('📄 Rapport téléchargé (popup bloquée). Ouvre le fichier puis Cmd/Ctrl+P pour imprimer.', 'success');
+      afficherToast('Rapport téléchargé (popup bloquée). Ouvre le fichier puis Cmd/Ctrl+P pour imprimer.', 'success');
     }
   } catch (e) {
     if (typeof afficherToast === 'function') {
@@ -5162,7 +5162,7 @@ genererGrilleJours = function() {
 
 ouvrirModalPlanning = function() {
   var modalTitle = document.querySelector('#modal-planning .modal-header h3');
-  if (modalTitle) modalTitle.textContent = '📅 Horaires hebdomadaires';
+  if (modalTitle) modalTitle.textContent = 'Horaires hebdomadaires';
   peuplerSelectPlanningModal();
   var search = document.getElementById('plan-salarie-search');
   var select = document.getElementById('plan-salarie');
@@ -5176,7 +5176,7 @@ ouvrirModalPlanning = function() {
 
 ouvrirEditPlanning = function(salId) {
   var modalTitle = document.querySelector('#modal-planning .modal-header h3');
-  if (modalTitle) modalTitle.textContent = '📅 Horaires hebdomadaires';
+  if (modalTitle) modalTitle.textContent = 'Horaires hebdomadaires';
   peuplerSelectPlanningModal();
   var select = document.getElementById('plan-salarie');
   var search = document.getElementById('plan-salarie-search');
@@ -5618,10 +5618,10 @@ genererGrilleJours = function() {
 };
 
 ouvrirModalPlanning = function() {
-  // Restaure le titre par défaut '📋 Gérer les horaires' (ouvrirPlanningRecurrence
-  // peut le surcharger avec '🔁 Horaires récurrents' avant nous → on reset ici)
+  // Restaure le titre par défaut 'Gérer les horaires' (ouvrirPlanningRecurrence
+  // peut le surcharger avec 'Horaires récurrents' avant nous → on reset ici)
   var modalTitle = document.querySelector('#modal-planning .modal-header h3');
-  if (modalTitle && !modalTitle.dataset.recurrent) modalTitle.textContent = '📋 Gérer les horaires';
+  if (modalTitle && !modalTitle.dataset.recurrent) modalTitle.textContent = 'Gérer les horaires';
   peuplerSelectPlanningModal();
   var search = document.getElementById('plan-salarie-search');
   var select = document.getElementById('plan-salarie');
@@ -7801,7 +7801,7 @@ genererRentabilitePDF = function() {
       { label: 'Date paiement', get: function(l) { return l.datePaiement || ''; } }
     ], filename);
 
-    if (typeof afficherToast === 'function') afficherToast('📥 Export de ' + ids.length + ' livraison(s)');
+    if (typeof afficherToast === 'function') afficherToast('Export de ' + ids.length + ' livraison(s)');
   };
 
   window.bulkExporterPDF = function() {
@@ -7908,7 +7908,7 @@ genererRentabilitePDF = function() {
     );
     win.document.close();
 
-    if (typeof afficherToast === 'function') afficherToast('📄 PDF de ' + ids.length + ' livraison(s) prêt à imprimer');
+    if (typeof afficherToast === 'function') afficherToast('PDF de ' + ids.length + ' livraison(s) prêt à imprimer');
   };
 
   // Touche Échap pour vider la sélection
@@ -8827,7 +8827,7 @@ genererRentabilitePDF = function() {
       if (typeof afficherLivraisons === 'function') afficherLivraisons();
 
       // Toast avec Undo
-      window.afficherToast('🗑️ Livraison ' + (livraison.numLiv || '') + ' supprimée', 'success', {
+      window.afficherToast('Livraison ' + (livraison.numLiv || '') + ' supprimée', 'success', {
         action: {
           label: 'Annuler',
           onClick: function() {
@@ -9230,7 +9230,7 @@ genererRentabilitePDF = function() {
     if (!el) return;
     const text = el.getAttribute('data-copy') || el.textContent.trim();
     copyToClipboard(text).then(() => {
-      toast('📋 Copié : '+ (text.length > 40 ? text.slice(0,40)+'…' : text), 'success');
+      toast('Copié : '+ (text.length > 40 ? text.slice(0,40)+'…' : text), 'success');
       el.classList.add('s15-copy-flash');
       setTimeout(() => el.classList.remove('s15-copy-flash'), 600);
     }).catch(() => toast('Impossible de copier', 'error'));
@@ -9736,7 +9736,7 @@ genererRentabilitePDF = function() {
       + '<button class="cal16-jour-close" onclick="window.cal16.retourMois()" title="Fermer" aria-label="Fermer">✕</button>'
       + '</div>';
     if (ferie) html += '<div class="cal16-jour-ferie">🎉 '+escHtml(ferie.nom)+' (jour férié)</div>';
-    const groups = [['livraisons','📦 Livraisons'],['factures','📄 Factures émises'],['echeances','⏰ Échéances'],['relances','🔔 Relances'],['paiements','💰 Paiements']];
+    const groups = [['livraisons','Livraisons'],['factures','Factures émises'],['echeances','⏰ Échéances'],['relances','Relances'],['paiements','Paiements']];
     groups.forEach(([t, titre]) => {
       if (!filtres[t]) return;
       const evs = events.filter(ev => ev.type === t);
@@ -9966,8 +9966,8 @@ genererRentabilitePDF = function() {
     var entreprise = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : (params || {});
     var dateExp = new Date().toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
     var entete = (typeof construireEnteteExport === 'function')
-      ? construireEnteteExport(entreprise, '🗓️ Calendrier opérationnel', titre, dateExp)
-      : '<div><h1>🗓️ Calendrier — '+escHtml(titre)+'</h1></div>';
+      ? construireEnteteExport(entreprise, 'Calendrier opérationnel', titre, dateExp)
+      : '<div><h1>Calendrier — '+escHtml(titre)+'</h1></div>';
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Calendrier — '+titre+'</title><style>'
       + 'body{font-family:"Segoe UI",Arial,sans-serif;padding:24px;color:#111827;max-width:1080px;margin:0 auto}'
       + 'table.mois{width:100%;border-collapse:collapse;font-size:.76rem} table.mois th{background:#f9fafb;color:#374151;padding:7px 4px;text-align:center;font-weight:600;border-bottom:2px solid #d1d5db;border-right:1px solid #e5e7eb} table.mois th:last-child{border-right:none}'
@@ -9978,7 +9978,7 @@ genererRentabilitePDF = function() {
       + '.ev-print{padding:7px 12px;margin:5px 0;background:#f9fafb;border-radius:4px;font-size:.86rem;color:#374151} .ev-print span{color:#6b7280;font-weight:600;margin-right:10px;min-width:85px;display:inline-block}'
       + 'button.print-btn{margin-bottom:14px;padding:7px 14px;background:#374151;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:.85rem} button.print-btn:hover{background:#1f2937} @media print{button.print-btn{display:none}}'
       + '</style></head><body>'
-      + '<button class="print-btn" onclick="window.print()">📄 Imprimer / PDF</button>'
+      + '<button class="print-btn" onclick="window.print()">Imprimer / PDF</button>'
       + entete
       + body + '</body></html>');
     w.document.close();
@@ -10390,13 +10390,13 @@ genererRentabilitePDF = function() {
   }
 
   const GRAV_ORDER = { critique: 4, haute: 3, moyen: 2, basse: 1 };
-  const GRAV_LABEL = { critique: '🔴 Critique', haute: '🟠 Haute', moyen: '🟡 Moyenne', basse: '🟢 Basse' };
+  const GRAV_LABEL = { critique: 'Critique', haute: 'Haute', moyen: 'Moyenne', basse: 'Basse' };
   const SOURCE_LABELS = {
-    systeme: '🤖 Système auto',
-    incident: '🚨 Incidents',
-    facture: '💶 Factures clients',
-    fournisseur: '🏭 Fournisseurs',
-    livraison: '📦 Livraisons'
+    systeme: 'Système auto',
+    incident: 'Incidents',
+    facture: 'Factures clients',
+    fournisseur: 'Fournisseurs',
+    livraison: 'Livraisons'
   };
 
   function applyFilters(list) {
@@ -10433,9 +10433,9 @@ genererRentabilitePDF = function() {
     const kpi = document.getElementById('s19-kpis');
     if (kpi) {
       kpi.innerHTML =
-        '<div class="s19-kpi s19-kpi-critique"><div class="s19-kpi-val">' + kCrit + '</div><div class="s19-kpi-lbl">🔴 Critiques</div></div>' +
-        '<div class="s19-kpi s19-kpi-haute"><div class="s19-kpi-val">' + kHaute + '</div><div class="s19-kpi-lbl">🟠 Hautes</div></div>' +
-        '<div class="s19-kpi s19-kpi-moyen"><div class="s19-kpi-val">' + kMoyen + '</div><div class="s19-kpi-lbl">🟡 Moyennes</div></div>' +
+        '<div class="s19-kpi s19-kpi-critique"><div class="s19-kpi-val">' + kCrit + '</div><div class="s19-kpi-lbl">Critiques</div></div>' +
+        '<div class="s19-kpi s19-kpi-haute"><div class="s19-kpi-val">' + kHaute + '</div><div class="s19-kpi-lbl">Hautes</div></div>' +
+        '<div class="s19-kpi s19-kpi-moyen"><div class="s19-kpi-val">' + kMoyen + '</div><div class="s19-kpi-lbl">Moyennes</div></div>' +
         '<div class="s19-kpi s19-kpi-traitee"><div class="s19-kpi-val">' + kTr + '</div><div class="s19-kpi-lbl">✅ Traitées</div></div>';
     }
 
@@ -10461,7 +10461,7 @@ genererRentabilitePDF = function() {
       const rel = relTime(a.creeLe);
       const gravClass = 's19-card-' + a.gravite;
       const statutBadge = a.statut === 'traite' ? '<span class="s19-badge s19-badge-traite">✅ Traité</span>'
-                        : a.statut === 'encours' ? '<span class="s19-badge s19-badge-encours">🟡 En cours</span>'
+                        : a.statut === 'encours' ? '<span class="s19-badge s19-badge-encours">En cours</span>'
                         : '';
       const actions = (a.actions || []).map(act => {
         const cls = act.danger ? 's19-act s19-act-danger' : 's19-act';
@@ -10569,7 +10569,7 @@ genererRentabilitePDF = function() {
   window.s19RefreshNow = function() {
     autoCloture();
     renderCentre();
-    if (typeof window.afficherToast === 'function') window.afficherToast('🔄 Centre d\'alertes rafraîchi','success');
+    if (typeof window.afficherToast === 'function') window.afficherToast('Centre d\'alertes rafraîchi','success');
   };
   window.s19RenderCentre = renderCentre;
 
@@ -10589,9 +10589,9 @@ genererRentabilitePDF = function() {
     el.id = 's19-centre';
     el.innerHTML =
       '<div class="page-actions">' +
-        '<h2>🔔 Centre d\'alertes</h2>' +
+        '<h2>Centre d\'alertes</h2>' +
         '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
-          '<button class="btn-secondary" onclick="window.s19RefreshNow()">🔄 Rafraîchir</button>' +
+          '<button class="btn-secondary" onclick="window.s19RefreshNow()">Rafraîchir</button>' +
           '<button class="btn-primary" onclick="openModal(\'modal-incident\')">+ Signaler un incident</button>' +
         '</div>' +
       '</div>' +
@@ -10604,15 +10604,15 @@ genererRentabilitePDF = function() {
         '</select>' +
         '<select id="s19-filter-gravite" onchange="window.s19RenderCentre && window.s19RenderCentre()">' +
           '<option value="">Toutes gravités</option>' +
-          '<option value="critique">🔴 Critique</option>' +
-          '<option value="haute">🟠 Haute</option>' +
-          '<option value="moyen">🟡 Moyenne</option>' +
-          '<option value="basse">🟢 Basse</option>' +
+          '<option value="critique">Critique</option>' +
+          '<option value="haute">Haute</option>' +
+          '<option value="moyen">Moyenne</option>' +
+          '<option value="basse">Basse</option>' +
         '</select>' +
         '<select id="s19-filter-statut" onchange="window.s19RenderCentre && window.s19RenderCentre()">' +
-          '<option value="ouvert" selected>🔓 Actives</option>' +
+          '<option value="ouvert" selected>Actives</option>' +
           '<option value="traite">✅ Traitées</option>' +
-          '<option value="toutes">📋 Toutes</option>' +
+          '<option value="toutes">Toutes</option>' +
         '</select>' +
         '<button class="btn-secondary" onclick="document.getElementById(\'s19-search\').value=\'\';document.getElementById(\'s19-filter-source\').value=\'\';document.getElementById(\'s19-filter-gravite\').value=\'\';document.getElementById(\'s19-filter-statut\').value=\'ouvert\';window.s19RenderCentre && window.s19RenderCentre();">Réinitialiser</button>' +
       '</div>' +
@@ -10697,7 +10697,7 @@ genererRentabilitePDF = function() {
           const jours = Math.floor((nowMs - lastActiv) / 86400000);
           nouvelles.push({
             id: key, type: 'rh_inactivite',
-            message: `💤 ${s.nom} — aucune activité depuis ${jours}j`,
+            message: `${s.nom} — aucune activité depuis ${jours}j`,
             salNom: s.nom, salId: s.id,
             creeLe: new Date().toISOString(), traitee: false
           });
@@ -10708,7 +10708,7 @@ genererRentabilitePDF = function() {
         if (!alertes.find(a => a.id === key)) {
           nouvelles.push({
             id: key, type: 'rh_inactivite',
-            message: `💤 ${s.nom} — aucune activité enregistrée`,
+            message: `${s.nom} — aucune activité enregistrée`,
             salNom: s.nom, salId: s.id,
             creeLe: new Date().toISOString(), traitee: false
           });
@@ -10729,7 +10729,7 @@ genererRentabilitePDF = function() {
               const h = Math.floor((nowMs - tSal) / 3600000);
               nouvelles.push({
                 id: key, type: 'rh_msg_non_repondu',
-                message: `💬 Message de ${s.nom} non répondu depuis ${h}h`,
+                message: `Message de ${s.nom} non répondu depuis ${h}h`,
                 salNom: s.nom, salId: s.id,
                 creeLe: new Date().toISOString(), traitee: false
               });
@@ -10831,7 +10831,7 @@ genererRentabilitePDF = function() {
     ensureDrawer();
     const content = document.getElementById('s20-drawer-content');
     const title = document.getElementById('s20-drawer-title');
-    if (title) title.textContent = `👤 ${sal.nom}`;
+    if (title) title.textContent = `${sal.nom}`;
     if (content) content.innerHTML = renderFicheContent(sal);
     document.getElementById('s20-drawer').classList.add('open');
     document.getElementById('s20-drawer-overlay').classList.add('open');
@@ -10912,10 +10912,10 @@ genererRentabilitePDF = function() {
       </div>
 
       <div class="s20-tabs">
-        <button class="s20-tab active" data-tab="activite" onclick="window.s20SwitchTab('activite')">📅 Activité</button>
-        <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab('livraisons')">📦 Livraisons (${livraisons.length})</button>
-        <button class="s20-tab" data-tab="conformite" onclick="window.s20SwitchTab('conformite')">🪪 Conformité</button>
-        <button class="s20-tab" data-tab="incidents" onclick="window.s20SwitchTab('incidents')">🚨 Incidents (${incidents.length})</button>
+        <button class="s20-tab active" data-tab="activite" onclick="window.s20SwitchTab('activite')">Activité</button>
+        <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab('livraisons')">Livraisons (${livraisons.length})</button>
+        <button class="s20-tab" data-tab="conformite" onclick="window.s20SwitchTab('conformite')">Conformité</button>
+        <button class="s20-tab" data-tab="incidents" onclick="window.s20SwitchTab('incidents')">Incidents (${incidents.length})</button>
       </div>
 
       <div class="s20-tab-content" id="s20-tab-activite">${renderActivite(livraisons, [], incidents, alertes)}</div>
@@ -10940,7 +10940,7 @@ genererRentabilitePDF = function() {
       const t = new Date(m.creeLe || 0).getTime();
       if (!t) return;
       const ic = m.auteur === 'salarie' ? '📩' : '📤';
-      const extrait = String(m.texte || (m.photo ? '📷 Photo' : '') || '').slice(0, 100);
+      const extrait = String(m.texte || (m.photo ? 'Photo' : '') || '').slice(0, 100);
       items.push({ t, icon: ic, label: (m.auteur === 'salarie' ? '<em>Salarié : </em>' : '<em>Admin : </em>') + esc(extrait) });
     });
     incidents.forEach(i => {
@@ -10988,7 +10988,7 @@ genererRentabilitePDF = function() {
       const who = m.auteur === 'salarie' ? 'in' : 'out';
       let txt;
       if (m.photoPath) {
-        txt = '<img data-photo-path="' + esc(m.photoPath) + '" data-photo-bucket="' + esc(m.photoBucket || 'messages-photos') + '" alt="📷 chargement..." style="max-width:180px;border-radius:6px;display:block;background:rgba(0,0,0,0.1);min-height:100px" />';
+        txt = '<img data-photo-path="' + esc(m.photoPath) + '" data-photo-bucket="' + esc(m.photoBucket || 'messages-photos') + '" alt="chargement..." style="max-width:180px;border-radius:6px;display:block;background:rgba(0,0,0,0.1);min-height:100px" />';
       } else if (m.photo) {
         txt = '<img src="' + esc(m.photo) + '" style="max-width:180px;border-radius:6px;display:block" />';
       } else {
@@ -11014,8 +11014,8 @@ genererRentabilitePDF = function() {
       return `<div class="s20-conf-row s20-conf-${cl}"><span>${label}</span><span>${emoji} ${esc(fmtDate(dateStr))} · ${etat}</span></div>`;
     };
     return `<div class="s20-conf-list">
-      ${row(sal.datePermis, '🪪 Permis de conduire')}
-      ${row(sal.dateAssurance, '🛡️ Assurance')}
+      ${row(sal.datePermis, 'Permis de conduire')}
+      ${row(sal.dateAssurance, 'Assurance')}
       ${sal.visiteMedicale ? row(sal.visiteMedicale, '⚕️ Visite médicale') : ''}
     </div>`;
   }
@@ -11190,7 +11190,7 @@ genererRentabilitePDF = function() {
               : `échéance dépassée (${pilotage.dateEcheance || '—'})`;
             nouvelles.push({
               id: key, type: 'parc_entretien_expire',
-              message: `🔧 ${v.immat} — entretien en retard : ${motif}`,
+              message: `${v.immat} — entretien en retard : ${motif}`,
               vehId: v.id, vehImmat: v.immat,
               creeLe: new Date().toISOString(), traitee: false
             });
@@ -11204,7 +11204,7 @@ genererRentabilitePDF = function() {
               : pilotage.dateEcheance ? ` (d’ici le ${fmtDate(pilotage.dateEcheance)})` : '';
             nouvelles.push({
               id: key, type: 'parc_entretien_proche',
-              message: `🔧 ${v.immat} — entretien bientôt dû${detail}`,
+              message: `${v.immat} — entretien bientôt dû${detail}`,
               vehId: v.id, vehImmat: v.immat,
               creeLe: new Date().toISOString(), traitee: false
             });
@@ -11318,7 +11318,7 @@ genererRentabilitePDF = function() {
     ensureDrawer();
     const content = document.getElementById('s20-drawer-content');
     const title = document.getElementById('s20-drawer-title');
-    if (title) title.textContent = `🚐 ${veh.immat}`;
+    if (title) title.textContent = `${veh.immat}`;
     if (content) content.innerHTML = renderFicheVehicule(veh);
     document.getElementById('s20-drawer').classList.add('open');
     document.getElementById('s20-drawer-overlay').classList.add('open');
@@ -11383,7 +11383,7 @@ genererRentabilitePDF = function() {
           <div class="s20-fiche-nom">${esc(veh.immat)} <span style="font-weight:400;color:var(--text-muted);font-size:.88rem">· ${esc(veh.modele || '')}</span></div>
           <div class="s20-fiche-meta">${Math.round(kmActuel).toLocaleString('fr-FR')} km · ${esc(veh.modeAcquisition || 'achat')}${veh.dateAcquisition ? ' depuis ' + fmtDate(veh.dateAcquisition) : ''}</div>
           ${sal
-            ? `<div class="s20-fiche-veh">👤 Affecté à <button type="button" class="s20-btn-360" onclick="window.ouvrirFiche360Salarie('${esc(sal.id)}')">${esc(sal.nom)}</button></div>`
+            ? `<div class="s20-fiche-veh">Affecté à <button type="button" class="s20-btn-360" onclick="window.ouvrirFiche360Salarie('${esc(sal.id)}')">${esc(sal.nom)}</button></div>`
             : '<div class="s20-fiche-veh muted">Aucun chauffeur affecté</div>'}
         </div>
         <div class="s20-fiche-badges">
@@ -11402,11 +11402,11 @@ genererRentabilitePDF = function() {
       </div>
 
       <div class="s20-tabs">
-        <button class="s20-tab active" data-tab="specs" onclick="window.s20SwitchTab && window.s20SwitchTab('specs')">📋 Specs</button>
-        <button class="s20-tab" data-tab="entretiens" onclick="window.s20SwitchTab && window.s20SwitchTab('entretiens')">🔧 Entretiens (${entretiens.length})</button>
+        <button class="s20-tab active" data-tab="specs" onclick="window.s20SwitchTab && window.s20SwitchTab('specs')">Specs</button>
+        <button class="s20-tab" data-tab="entretiens" onclick="window.s20SwitchTab && window.s20SwitchTab('entretiens')">Entretiens (${entretiens.length})</button>
         <button class="s20-tab" data-tab="carburant" onclick="window.s20SwitchTab && window.s20SwitchTab('carburant')">⛽ Carburant (${carburants.length})</button>
-        <button class="s20-tab" data-tab="inspections" onclick="window.s20SwitchTab && window.s20SwitchTab('inspections')">🚗 Inspections (${inspections.length})</button>
-        <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab && window.s20SwitchTab('livraisons')">📦 Livraisons (${livraisons.length})</button>
+        <button class="s20-tab" data-tab="inspections" onclick="window.s20SwitchTab && window.s20SwitchTab('inspections')">Inspections (${inspections.length})</button>
+        <button class="s20-tab" data-tab="livraisons" onclick="window.s20SwitchTab && window.s20SwitchTab('livraisons')">Livraisons (${livraisons.length})</button>
       </div>
 
       <div class="s20-tab-content" id="s20-tab-specs">${renderSpecs(veh, pilotage)}</div>
@@ -11417,7 +11417,7 @@ genererRentabilitePDF = function() {
 
       <div class="s20-fiche-actions">
         <button class="btn-secondary" onclick="window.s21GoToCarburant('${esc(veh.id)}')">⛽ Carburant</button>
-        <button class="btn-secondary" onclick="window.s21GoToEntretiens('${esc(veh.id)}')">🔧 Entretiens</button>
+        <button class="btn-secondary" onclick="window.s21GoToEntretiens('${esc(veh.id)}')">Entretiens</button>
         <button class="btn-primary" onclick="window.s21GoToEdit('${esc(veh.id)}')">✏️ Modifier</button>
       </div>`;
   }
@@ -11439,13 +11439,13 @@ genererRentabilitePDF = function() {
 
     let pilotageHtml = '';
     if (pilotage) {
-      if (pilotage.estEnRetard) pilotageHtml = `<div class="s20-conf-row s20-conf-ko"><span>🔧 Entretien</span><span>❌ En retard</span></div>`;
+      if (pilotage.estEnRetard) pilotageHtml = `<div class="s20-conf-row s20-conf-ko"><span>Entretien</span><span>❌ En retard</span></div>`;
       else if (pilotage.estProche) {
         const detail = pilotage.kmRestants !== null && pilotage.kmRestants > 0
           ? `reste ${Math.round(pilotage.kmRestants)} km`
           : (pilotage.dateEcheance ? 'échéance ' + fmtDate(pilotage.dateEcheance) : '');
-        pilotageHtml = `<div class="s20-conf-row s20-conf-warn"><span>🔧 Entretien</span><span>⚠️ ${detail}</span></div>`;
-      } else pilotageHtml = `<div class="s20-conf-row s20-conf-ok"><span>🔧 Entretien</span><span>✅ À jour</span></div>`;
+        pilotageHtml = `<div class="s20-conf-row s20-conf-warn"><span>Entretien</span><span>⚠️ ${detail}</span></div>`;
+      } else pilotageHtml = `<div class="s20-conf-row s20-conf-ok"><span>Entretien</span><span>✅ À jour</span></div>`;
     }
 
     return `<div class="s21-spec-grid">${html}</div>${pilotageHtml ? '<div class="s20-conf-list">' + pilotageHtml + '</div>' : ''}`;
@@ -11528,7 +11528,7 @@ genererRentabilitePDF = function() {
         </div>
         ${photos.length ? `<div class="s21-photo-grid">${photos.slice(0, 6).map((p, idx) => {
           const d = thumbDescriptor(p);
-          const srcAttr = d.src ? `src="${esc(d.src)}"` : 'src="" alt="📷 chargement..."';
+          const srcAttr = d.src ? `src="${esc(d.src)}"` : 'src="" alt="chargement..."';
           const dataAttrs = d.path ? `data-photo-path="${esc(d.path)}" data-photo-bucket="inspections-photos"` : '';
           return `<img ${srcAttr} ${dataAttrs} style="background:rgba(0,0,0,0.05)" onclick="window.voirPhotoAdmin && window.voirPhotoAdmin('${esc(i.id)}',${idx})" />`;
         }).join('')}</div>` : '<div style="color:var(--text-muted);font-size:.82rem">Aucune photo</div>'}
@@ -11640,41 +11640,41 @@ genererRentabilitePDF = function() {
   const HUBS = {
     rh: {
       alias: 'rh',
-      title: '👥 Équipe',
+      title: 'Équipe',
       icon: '👥',
       label: 'Équipe',
       section: 'equipe',
       // Note : 'messagerie' retirée temporairement (page HTML supprimée par
       // commit 09dc43e). À ré-ajouter quand l'onglet Messagerie sera retravaillé.
       pages: ['salaries', 'heures', 'planning', 'incidents'],
-      labels: { salaries: '👥 Salariés', heures: '⏱️ Heures & Km', planning: '📋 Planning', incidents: '🚨 Incidents' },
+      labels: { salaries: 'Salariés', heures: '⏱️ Heures & Km', planning: 'Planning', incidents: 'Incidents' },
       defaultPage: 'salaries',
       storageKey: 's22_last_rh',
     },
     parc: {
       alias: 'parc',
-      title: '🚐 Parc auto',
+      title: 'Parc auto',
       icon: '🚐',
       label: 'Parc auto',
       section: 'flotte',
       pages: ['vehicules', 'carburant', 'entretiens', 'inspections'],
-      labels: { vehicules: '🚐 Véhicules', carburant: '⛽ Carburant', entretiens: '🔧 Entretiens', inspections: '🚗 Inspections' },
+      labels: { vehicules: 'Véhicules', carburant: '⛽ Carburant', entretiens: 'Entretiens', inspections: 'Inspections' },
       defaultPage: 'vehicules',
       storageKey: 's22_last_parc',
     },
     compta: {
       alias: 'compta',
-      title: '💼 Comptabilité',
+      title: 'Comptabilité',
       icon: '💼',
       label: 'Finances',
       section: 'finances',
       pages: ['charges', 'encaissement', 'tva', 'rentabilite', 'statistiques'],
       labels: {
-        charges: '💸 Charges',
-        encaissement: '💵 Encaissement',
-        tva: '🧾 TVA',
-        rentabilite: '💰 Rentabilité',
-        statistiques: '📈 Statistiques',
+        charges: 'Charges',
+        encaissement: 'Encaissement',
+        tva: 'TVA',
+        rentabilite: 'Rentabilité',
+        statistiques: 'Statistiques',
       },
       defaultPage: 'charges',
       storageKey: 's22_last_compta',
@@ -12041,7 +12041,7 @@ genererRentabilitePDF = function() {
       if (!alertExist) {
         alertes.push({
           id: genId(), type: 'relance_escalade', refId: f.id, niveauCible: prochain,
-          titre: '🔔 Relance niv. ' + prochain + ' à lancer — ' + (f.numero||'—'),
+          titre: 'Relance niv. ' + prochain + ' à lancer — ' + (f.numero||'—'),
           message: 'Client ' + (f.client||'—') + ' · Solde ' + solde.toFixed(2) + ' € · ' + joursDepuis + 'j depuis ' + (niveauActuel<0?'échéance':'niv. '+niveauActuel),
           gravite: prochain >= 3 ? 'high' : 'medium',
           traitee: false, dateCreation: new Date().toISOString(), auto: true
@@ -12146,7 +12146,7 @@ genererRentabilitePDF = function() {
       // Ctrl+S : sauvegarder export (déclenche bouton Export CSV de la page si présent)
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
         const exportBtn = document.querySelector('.page.active .btn-secondary[onclick*="export"], .page[style*="block"] .btn-secondary[onclick*="export"]');
-        if (exportBtn) { e.preventDefault(); exportBtn.click(); toast('💾 Export lancé (Ctrl+S)'); }
+        if (exportBtn) { e.preventDefault(); exportBtn.click(); toast('Export lancé (Ctrl+S)'); }
         return;
       }
       // N : Nouveau (contextuel — cherche bouton + sur la page active)
@@ -12195,7 +12195,7 @@ genererRentabilitePDF = function() {
     section.innerHTML = `
       <h2 style="margin-top:32px">⚙️ Automatisations</h2>
       <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Règles qui tournent en arrière-plan côté MCA. Les automatisations de facturation / relance / clôture sont gérées par Pennylane.</p>
-      <h3 style="margin-top:24px">📅 Décalage férié / weekend</h3>
+      <h3 style="margin-top:24px">Décalage férié / weekend</h3>
       <p style="color:var(--text-muted);font-size:.88rem">Les nouvelles échéances créées sont automatiquement repoussées au prochain jour ouvré (hors weekends et jours fériés FR).</p>
       <h3 style="margin-top:24px">⌨️ Raccourcis clavier</h3>
       <div class="s24-keyboard-help">
@@ -12345,11 +12345,11 @@ genererRentabilitePDF = function() {
     }).length;
 
     const tabs = [
-      { k: 'vue', label: '📊 Vue d\'ensemble' },
-      { k: 'fact', label: '📄 Factures ('+factures.length+')' },
-      { k: 'livs', label: '📦 Livraisons ('+livs.length+')' },
-      { k: 'pay', label: '💳 Paiements ('+paiements.length+')' },
-      { k: 'com', label: '📨 Communications ('+relances.length+')' },
+      { k: 'vue', label: 'Vue d\'ensemble' },
+      { k: 'fact', label: 'Factures ('+factures.length+')' },
+      { k: 'livs', label: 'Livraisons ('+livs.length+')' },
+      { k: 'pay', label: 'Paiements ('+paiements.length+')' },
+      { k: 'com', label: 'Communications ('+relances.length+')' },
     ];
 
     const html = `
@@ -12357,12 +12357,12 @@ genererRentabilitePDF = function() {
         <button class="s25-close" onclick="window.s25FermerDrawer()" aria-label="Fermer">✕</button>
         <div class="s25-avatar">${esc(initials(c.nom))}</div>
         <div class="s25-head-body">
-          <div class="s25-head-title">👤 ${esc(c.nom||'—')}</div>
+          <div class="s25-head-title">${esc(c.nom||'—')}</div>
           <div class="s25-head-meta">
             ${c.categorie ? '<span class="s25-badge">'+esc(c.categorie)+'</span>' : ''}
             ${c.email ? '<span>✉️ <a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a></span>' : ''}
             ${c.tel ? '<span>📞 '+esc(c.tel)+'</span>' : ''}
-            ${c.siren ? '<span>🏢 SIREN '+esc(c.siren)+'</span>' : ''}
+            ${c.siren ? '<span>SIREN '+esc(c.siren)+'</span>' : ''}
           </div>
         </div>
         <div class="s25-head-actions">
@@ -12399,7 +12399,7 @@ genererRentabilitePDF = function() {
     return `
       <div class="s25-tab-panel active" data-panel="vue">
         <div class="s25-section">
-          <h4>📅 Dernières interactions</h4>
+          <h4>Dernières interactions</h4>
           <div class="s25-timeline">
             ${lastLiv ? '<div class="s25-tl-item">📦 <strong>Livraison</strong> '+esc(lastLiv.numero||'—')+' · '+fmtDate(lastLiv.date)+' · '+fmtEur(lastLiv.montant||lastLiv.totalHT||0)+'</div>' : ''}
             ${lastFact ? '<div class="s25-tl-item">📄 <strong>Facture</strong> '+esc(lastFact.numero||'—')+' · '+fmtDate(lastFact.dateFacture)+' · '+fmtEur(lastFact.montantTTC||lastFact.totalTTC||0)+'</div>' : ''}
@@ -12476,10 +12476,10 @@ genererRentabilitePDF = function() {
     })();
 
     const tabs = [
-      { k: 'vue', label: '📊 Vue d\'ensemble' },
-      { k: 'charges', label: '💸 Charges ('+charges.length+')' },
-      { k: 'pay', label: '💳 Paiements ('+paiements.length+')' },
-      { k: 'docs', label: '📎 Documents' },
+      { k: 'vue', label: 'Vue d\'ensemble' },
+      { k: 'charges', label: 'Charges ('+charges.length+')' },
+      { k: 'pay', label: 'Paiements ('+paiements.length+')' },
+      { k: 'docs', label: 'Documents' },
     ];
 
     const html = `
@@ -12487,12 +12487,12 @@ genererRentabilitePDF = function() {
         <button class="s25-close" onclick="window.s25FermerDrawer()" aria-label="Fermer">✕</button>
         <div class="s25-avatar" style="background:rgba(245,166,35,0.18);color:#f5a623">${esc(initials(f.nom))}</div>
         <div class="s25-head-body">
-          <div class="s25-head-title">🏭 ${esc(f.nom||'—')}</div>
+          <div class="s25-head-title">${esc(f.nom||'—')}</div>
           <div class="s25-head-meta">
             ${f.categorie ? '<span class="s25-badge">'+esc(f.categorie)+'</span>' : ''}
             ${f.email ? '<span>✉️ <a href="mailto:'+esc(f.email)+'">'+esc(f.email)+'</a></span>' : ''}
             ${f.tel ? '<span>📞 '+esc(f.tel)+'</span>' : ''}
-            ${f.siren ? '<span>🏢 SIREN '+esc(f.siren)+'</span>' : ''}
+            ${f.siren ? '<span>SIREN '+esc(f.siren)+'</span>' : ''}
           </div>
         </div>
       </div>
@@ -12508,7 +12508,7 @@ genererRentabilitePDF = function() {
       </div>
       <div class="s25-tab-content">
         <div class="s25-tab-panel active" data-panel="vue">
-          <div class="s25-section"><h4>📅 Dernières charges</h4>
+          <div class="s25-section"><h4>Dernières charges</h4>
             ${charges.slice(0,5).map(c => '<div class="s25-tl-item">💸 '+fmtDate(c.date)+' · '+esc(c.description||c.categorie||'—')+' · '+fmtEur(c.montantTTC||c.montant||0)+'</div>').join('') || '<div class="s25-empty">Aucune charge enregistrée</div>'}
           </div>
           <div class="s25-section"><h4>ℹ️ Infos clés</h4>
@@ -12594,9 +12594,9 @@ genererRentabilitePDF = function() {
      Évaluées par s24CronTick toutes les 5 min
      ========================================================================== */
   const RULE_SCOPES = {
-    facture: { key: LS.factures, label: '📄 Facture', fields: ['montantTTC','statut','dateFacture','dateEcheance','client'] },
-    livraison: { key: LS.livraisons, label: '📦 Livraison', fields: ['montant','statut','date','client'] },
-    charge: { key: LS.charges, label: '💸 Charge', fields: ['montantTTC','statut','date','fournisseur'] },
+    facture: { key: LS.factures, label: 'Facture', fields: ['montantTTC','statut','dateFacture','dateEcheance','client'] },
+    livraison: { key: LS.livraisons, label: 'Livraison', fields: ['montant','statut','date','client'] },
+    charge: { key: LS.charges, label: 'Charge', fields: ['montantTTC','statut','date','fournisseur'] },
   };
   const OPS = {
     '>': (a,b) => parseFloat(a) > parseFloat(b),
@@ -12650,7 +12650,7 @@ genererRentabilitePDF = function() {
     const section = document.createElement('div');
     section.id = 's25-rules-section'; section.className = 'settings-section';
     section.innerHTML = `
-      <h2 style="margin-top:32px">🔔 Règles d'alertes personnalisées</h2>
+      <h2 style="margin-top:32px">Règles d'alertes personnalisées</h2>
       <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">Créez vos propres règles : quand une condition est vraie, une alerte est ajoutée au Centre d'alertes.</p>
       <div id="s25-rules-list"></div>
       <button class="btn-primary" onclick="window.s25NewRule()" style="margin-top:12px">+ Nouvelle règle</button>
@@ -12687,13 +12687,13 @@ genererRentabilitePDF = function() {
     const ok = await confirmDialog('Supprimer cette règle ?', { titre:'Supprimer la règle', icone:'🧩', btnLabel:'Supprimer' });
     if (!ok) return;
     save(LS.rules, load(LS.rules).filter(r => r.id !== id));
-    toast('🗑️ Règle supprimée', 'success');
+    toast('Règle supprimée', 'success');
     renderRulesList();
   };
   window.s25NewRule = function() {
     const scopes = Object.keys(RULE_SCOPES);
     const html = `<div>
-      <h3 style="margin:0 0 14px">🔔 Nouvelle règle d'alerte</h3>
+      <h3 style="margin:0 0 14px">Nouvelle règle d'alerte</h3>
       <div class="form-group"><label>Nom de la règle</label><input type="text" id="s25-rule-nom" placeholder="ex. Facture > 5000€ en retard"/></div>
       <div class="form-group"><label>Déclencheur</label><select id="s25-rule-trigger">${scopes.map(k => '<option value="'+k+'">'+RULE_SCOPES[k].label+'</option>').join('')}</select></div>
       <div class="form-group"><label>Champ</label><select id="s25-rule-field"></select></div>
@@ -12854,12 +12854,12 @@ genererRentabilitePDF = function() {
   }
 
   const TIMELINE_TYPES = [
-    { k: 'facture', lbl: '📄 Factures' },
-    { k: 'livraison', lbl: '🚚 Livraisons' },
-    { k: 'paiement', lbl: '💰 Paiements' },
+    { k: 'facture', lbl: 'Factures' },
+    { k: 'livraison', lbl: 'Livraisons' },
+    { k: 'paiement', lbl: 'Paiements' },
     { k: 'avoir', lbl: '↩️ Avoirs' },
-    { k: 'charge', lbl: '💸 Charges' },
-    { k: 'relance', lbl: '🔔 Relances' },
+    { k: 'charge', lbl: 'Charges' },
+    { k: 'relance', lbl: 'Relances' },
   ];
 
   function ouvrirTimelineGlobale() {
@@ -12870,7 +12870,7 @@ genererRentabilitePDF = function() {
     const html = `
       <div class="s15-modal-info-box" style="max-width:1100px;width:96vw;max-height:92vh">
         <div class="s15-modal-info-header">
-          <h2>📊 Timeline globale — activité consolidée</h2>
+          <h2>Timeline globale — activité consolidée</h2>
           <button class="btn-close" onclick="document.getElementById('s15-modal-info').classList.remove('open')">✕</button>
         </div>
         <div class="s15-modal-info-body" style="overflow:auto;max-height:calc(92vh - 70px)">
@@ -13135,7 +13135,7 @@ genererRentabilitePDF = function() {
             <div class="s26-sig-canvas-hint">Signez ci-dessus</div>
           </div>
           <div class="s26-sig-actions">
-            <button class="btn btn-ghost" onclick="window.s26EffacerSig()">🗑️ Effacer</button>
+            <button class="btn btn-ghost" onclick="window.s26EffacerSig()">Effacer</button>
             <button class="btn btn-primary" onclick="window.s26EnregistrerSig('${esc(liv.id)}')">✅ Enregistrer & archiver</button>
           </div>
           ${existing ? `<div class="s26-sig-meta">Déjà signée le ${fmtDateTime(existing.date)} par ${esc(existing.signataire||'')}</div>` : ''}
@@ -13329,18 +13329,18 @@ genererRentabilitePDF = function() {
     section.id = 's26-params-section';
     section.className = 'settings-section';
     section.innerHTML = `
-      <h2 style="margin-top:32px">📋 Pilotage & Traçabilité</h2>
+      <h2 style="margin-top:32px">Pilotage & Traçabilité</h2>
       <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:16px">
         Outils de vision transverse et options de capture.
       </p>
       <div class="s26-params-actions">
-        <button class="btn btn-primary" onclick="window.ouvrirTimelineGlobale()">📊 Ouvrir la Timeline globale</button>
+        <button class="btn btn-primary" onclick="window.ouvrirTimelineGlobale()">Ouvrir la Timeline globale</button>
       </div>
       <h3 style="margin-top:24px">✍️ Signature BL sur tablette / mobile</h3>
       <p style="color:var(--text-muted);font-size:.88rem">Capture d'une signature manuscrite au moment de la livraison.</p>
       <div class="s26-toggles">
         ${renderToggle('signature_bl', '✍️ Signature BL (canvas)', 'Bouton Signer sur chaque livraison. À la validation : clôture auto + archive horodatée.', false)}
-        ${renderToggle('signature_obligatoire', '🔒 Signature obligatoire pour clôturer', 'Bloque le passage au statut livré sans signature capturée.', false)}
+        ${renderToggle('signature_obligatoire', 'Signature obligatoire pour clôturer', 'Bloque le passage au statut livré sans signature capturée.', false)}
       </div>
     `;
     container.appendChild(section);
@@ -13445,7 +13445,7 @@ genererRentabilitePDF = function() {
           if (c) {
             td.setAttribute('data-s28-client', c.id);
             td.style.cursor = 'pointer';
-            td.title = '👤 Ouvrir fiche client 360°';
+            td.title = 'Ouvrir fiche client 360°';
             td.classList.add('s28-link-cell');
           }
         });
@@ -13464,7 +13464,7 @@ genererRentabilitePDF = function() {
           if (c) {
             td.setAttribute('data-s28-client', c.id);
             td.style.cursor = 'pointer';
-            td.title = '👤 Ouvrir fiche client 360°';
+            td.title = 'Ouvrir fiche client 360°';
             td.classList.add('s28-link-cell');
           }
         });
@@ -13483,7 +13483,7 @@ genererRentabilitePDF = function() {
           if (f) {
             td.setAttribute('data-s28-fourn', f.id);
             td.style.cursor = 'pointer';
-            td.title = '🏭 Ouvrir fiche fournisseur 360°';
+            td.title = 'Ouvrir fiche fournisseur 360°';
             td.classList.add('s28-link-cell');
           }
         });
@@ -13625,7 +13625,7 @@ genererRentabilitePDF = function() {
     card.className = 'card params-card-wide s29-conformite-card';
     card.dataset.s29Section = 'conformite';
     card.innerHTML = `
-      <div class="card-header"><h2>📋 Conformité & obligations légales</h2></div>
+      <div class="card-header"><h2>Conformité & obligations légales</h2></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:18px">
           Tableau de bord centralisé des obligations légales françaises applicables à votre activité transport/logistique.
@@ -13633,7 +13633,7 @@ genererRentabilitePDF = function() {
         </p>
         <div class="s29-conformite-grid">
           <div class="s29-conf-item">
-            <div class="s29-conf-title">🗄️ Archivage documents (Code de commerce art. L123-22 / CGI art. L102 B)</div>
+            <div class="s29-conf-title">Archivage documents (Code de commerce art. L123-22 / CGI art. L102 B)</div>
             <ul class="s29-conf-list">
               <li><strong>Factures émises & reçues :</strong> 10 ans (support numérique ou papier)</li>
               <li><strong>Pièces comptables (livre journal, grand livre) :</strong> 10 ans</li>
@@ -13644,7 +13644,7 @@ genererRentabilitePDF = function() {
             </ul>
           </div>
           <div class="s29-conf-item">
-            <div class="s29-conf-title">📘 Fichier des Écritures Comptables — FEC (CGI art. A47 A-1)</div>
+            <div class="s29-conf-title">Fichier des Écritures Comptables — FEC (CGI art. A47 A-1)</div>
             <p>Format normé 18 colonnes, obligatoire en cas de contrôle fiscal pour toute entreprise soumise à TVA.
             Le FEC officiel est produit par Pennylane depuis ses données comptables complètes. Ne pas produire un FEC depuis MCA Logistics :
             il serait incomplet (MCA n'ayant plus les factures) et risquerait un conflit avec la comptabilité officielle.</p>
@@ -13657,7 +13657,7 @@ genererRentabilitePDF = function() {
             Pour une valeur probante renforcée, prévoir un prestataire de service de confiance qualifié (PSCo).</p>
           </div>
           <div class="s29-conf-item">
-            <div class="s29-conf-title">🛡️ RGPD — Règlement UE 2016/679</div>
+            <div class="s29-conf-title">RGPD — Règlement UE 2016/679</div>
             <ul class="s29-conf-list">
               <li><strong>Registre des traitements :</strong> art. 30 RGPD, obligatoire dès le premier salarié</li>
               <li><strong>Consentement signature/géoloc :</strong> à recueillir lors de la collecte (base légale)</li>
@@ -13665,10 +13665,10 @@ genererRentabilitePDF = function() {
               <li><strong>DPO :</strong> obligatoire si traitement à grande échelle ou données sensibles</li>
               <li><strong>localStorage :</strong> aucun cookie de tracking dans cette app — consentement non requis</li>
             </ul>
-            <button class="btn-secondary" onclick="genererRegistreRGPD()" style="margin-top:10px">📖 Générer le registre des traitements (art. 30)</button>
+            <button class="btn-secondary" onclick="genererRegistreRGPD()" style="margin-top:10px">Générer le registre des traitements (art. 30)</button>
           </div>
           <div class="s29-conf-item">
-            <div class="s29-conf-title">👥 DSN — Déclaration Sociale Nominative</div>
+            <div class="s29-conf-title">DSN — Déclaration Sociale Nominative</div>
             <ul class="s29-conf-list">
               <li><strong>Obligation :</strong> mensuelle dès le 1er salarié (net-entreprises.fr)</li>
               <li><strong>Périmètre :</strong> contrats, rémunérations, cotisations, arrêts, fins de contrat</li>
@@ -13676,7 +13676,7 @@ genererRentabilitePDF = function() {
             </ul>
           </div>
           <div class="s29-conf-item">
-            <div class="s29-conf-title">🚚 Transport routier (Code des transports)</div>
+            <div class="s29-conf-title">Transport routier (Code des transports)</div>
             <ul class="s29-conf-list">
               <li><strong>Lettre de voiture :</strong> obligatoire pour tout transport rémunéré (art. L3222-1)</li>
               <li><strong>CMR :</strong> convention applicable dès qu'il y a transport international</li>
@@ -13685,7 +13685,7 @@ genererRentabilitePDF = function() {
             </ul>
           </div>
           <div class="s29-conf-item">
-            <div class="s29-conf-title">🧾 Réforme de la facturation électronique</div>
+            <div class="s29-conf-title">Réforme de la facturation électronique</div>
             <p>Généralisation de la facture électronique B2B en France : <strong>obligation de réception dès septembre 2026</strong>
             pour toutes les entreprises, obligation d'émission progressive jusqu'à septembre 2027.
             Format structuré attendu : Factur-X (PDF/A-3 + XML CII), UBL ou CII. Plateforme de dématérialisation partenaire (PDP) requise.
@@ -13694,7 +13694,7 @@ genererRentabilitePDF = function() {
           </div>
         </div>
         <div class="s29-conf-actions">
-          <button class="btn btn-ghost" onclick="window.ouvrirTimelineGlobale && window.ouvrirTimelineGlobale()">📊 Ouvrir la timeline d'audit</button>
+          <button class="btn btn-ghost" onclick="window.ouvrirTimelineGlobale && window.ouvrirTimelineGlobale()">Ouvrir la timeline d'audit</button>
         </div>
       </div>
     `;
@@ -13730,7 +13730,7 @@ genererRentabilitePDF = function() {
     card.className = 'card s29-transport-card';
     card.dataset.s29Section = 'transport';
     card.innerHTML = `
-      <div class="card-header"><h2>🚚 Règles transport & livraison</h2></div>
+      <div class="card-header"><h2>Règles transport & livraison</h2></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
           Les règles de calcul (heures, km, indemnités) sont pilotées depuis les onglets Heures, KM et Chauffeurs.
@@ -13752,7 +13752,7 @@ genererRentabilitePDF = function() {
     card.className = 'card s29-compta-card';
     card.dataset.s29Section = 'comptabilite';
     card.innerHTML = `
-      <div class="card-header"><h2>📊 Comptabilité (déléguée)</h2></div>
+      <div class="card-header"><h2>Comptabilité (déléguée)</h2></div>
       <div class="modal-body">
         <p style="color:var(--text-muted);font-size:.88rem;margin-bottom:14px">
           MCA Logistics se concentre sur l'opérationnel transport.
@@ -13783,7 +13783,7 @@ genererRentabilitePDF = function() {
     sidebar.className = 's29-sidebar';
     sidebar.innerHTML = `
       <div class="s29-search-wrap">
-        <input type="text" class="s29-search" placeholder="🔍 Rechercher (Ctrl + /)…" autocomplete="off" />
+        <input type="text" class="s29-search" placeholder="Rechercher (Ctrl + /)…" autocomplete="off" />
       </div>
       <nav class="s29-nav">
         ${SECTIONS.map(s => `

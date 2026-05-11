@@ -220,7 +220,7 @@
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
       overlay.innerHTML = `
         <div style="background:var(--m-card);border-radius:18px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">🔁 Créer une récurrence</div>
+          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">Créer une récurrence</div>
           <div style="font-size:.84rem;color:var(--m-text-muted);margin-bottom:18px">${M.escHtml(opts.sousTitre || 'Duplique cet élément à intervalle régulier.')}</div>
           <div class="m-form-row" style="margin-bottom:14px">
             <div class="m-form-field" style="margin-bottom:0">
@@ -393,7 +393,7 @@
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
       overlay.innerHTML = `
         <div style="background:var(--m-card);border-radius:18px;padding:22px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4)">
-          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">${M.escHtml(opts.titre || '📅 Choisir une date')}</div>
+          <div style="font-weight:700;font-size:1.05rem;margin-bottom:6px">${M.escHtml(opts.titre || 'Choisir une date')}</div>
           ${opts.sousTitre ? `<div style="font-size:.84rem;color:var(--m-text-muted);margin-bottom:16px">${M.escHtml(opts.sousTitre)}</div>` : '<div style="margin-bottom:14px"></div>'}
           <div class="m-form-field" style="margin-bottom:18px">
             <label class="m-form-label">${M.escHtml(opts.labelDate || 'Date')}</label>
@@ -449,7 +449,7 @@
       ajoutees.push(copy);
     }
     M.sauvegarder(entityKey, arr);
-    M.toast(`🔁 ${count} occurrence${count>1?'s':''} créée${count>1?'s':''}`);
+    M.toast(`${count} occurrence${count>1?'s':''} créée${count>1?'s':''}`);
     return ajoutees;
   };
 
@@ -725,7 +725,7 @@
 
       <!-- LETTRE DE VOITURE (LDV) - section collapsible -->
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${(v.expNom || v.destNom || v.marchNature) ? 'open' : ''}>
-        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">🧾 Lettre de voiture (LDV)</summary>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">Lettre de voiture (LDV)</summary>
         <div style="padding:14px">
           <div style="font-size:.78rem;color:var(--m-text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Expéditeur</div>
           ${M.formField('Nom / Raison sociale', M.formInput('expNom', { value: v.expNom || '', placeholder: 'Société expéditeur' }))}
@@ -776,18 +776,18 @@
       </details>
       ${enEdition && (v.vehiculeId || v.salarieId) ? `
         <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
-          ${v.vehiculeId ? `<button type="button" class="m-btn" data-goto-veh="${M.escHtml(v.vehiculeId)}" style="flex:1 1 140px">🚐 Fiche véhicule</button>` : ''}
-          ${v.salarieId ? `<button type="button" class="m-btn" data-goto-sal="${M.escHtml(v.salarieId)}" style="flex:1 1 140px">👤 Fiche salarié</button>` : ''}
+          ${v.vehiculeId ? `<button type="button" class="m-btn" data-goto-veh="${M.escHtml(v.vehiculeId)}" style="flex:1 1 140px">Fiche véhicule</button>` : ''}
+          ${v.salarieId ? `<button type="button" class="m-btn" data-goto-sal="${M.escHtml(v.salarieId)}" style="flex:1 1 140px">Fiche salarié</button>` : ''}
         </div>
       ` : ''}
       ${enEdition ? `
         <div style="display:flex;gap:8px;margin-top:14px">
-          <button type="button" class="m-btn" id="m-form-bon" style="flex:1">📄 Bon</button>
-          <button type="button" class="m-btn" id="m-form-facture" style="flex:1">🧾 Facture</button>
-          <button type="button" class="m-btn" id="m-form-ldv" style="flex:1">📋 LDV</button>
+          <button type="button" class="m-btn" id="m-form-bon" style="flex:1">Bon</button>
+          <button type="button" class="m-btn" id="m-form-facture" style="flex:1">Facture</button>
+          <button type="button" class="m-btn" id="m-form-ldv" style="flex:1">LDV</button>
         </div>
-        <button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:8px">🔁 Créer une récurrence</button>
-        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer cette livraison</button>
+        <button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:8px">Créer une récurrence</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">Supprimer cette livraison</button>
       ` : ''}
     `;
 
@@ -884,7 +884,7 @@
             }
             M.sauvegarder('livraisons', M.charger('livraisons').filter(x => x.id !== v.id));
             M.ajouterAudit?.('Suppression livraison', (v.client || '') + ' · ' + (v.numLiv || '') + (aFacture ? ' + facture annulée' : ''));
-            M.toast('🗑️ Livraison supprimée');
+            M.toast('Livraison supprimée');
             M.closeSheet();
             M.go('livraisons');
           });
@@ -1013,7 +1013,7 @@
   };
 
   // ---- BONS / FACTURES (mobile) ----
-  // Affiche un HTML pleine page dans une modal viewer. Bouton "🖨 Imprimer/PDF"
+  // Affiche un HTML pleine page dans une modal viewer. Bouton "Imprimer/PDF"
   // qui call iframe.contentWindow.print() -> sheet iOS natif (Save to PDF,
   // AirDrop, Mail, WhatsApp...).
   M.afficherDocHTML = function(html, titre) {
@@ -1024,7 +1024,7 @@
     overlay.innerHTML = `
       <header style="flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:12px 14px;padding-top:max(12px,env(safe-area-inset-top));background:rgba(0,0,0,.4);color:#fff">
         <div style="flex:1 1 auto;font-weight:600;font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${M.escHtml(titre || 'Document')}</div>
-        <button type="button" class="m-doc-html-print" aria-label="Imprimer" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:40px;border-radius:20px;background:var(--m-accent);color:#1a1208;border:none;font-size:.85rem;font-weight:700">🖨 Imprimer / PDF</button>
+        <button type="button" class="m-doc-html-print" aria-label="Imprimer" style="flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;padding:0 14px;height:40px;border-radius:20px;background:var(--m-accent);color:#1a1208;border:none;font-size:.85rem;font-weight:700">Imprimer / PDF</button>
         <button type="button" class="m-doc-html-close" aria-label="Fermer" style="flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.15);color:#fff;border:none;font-size:1.1rem">✕</button>
       </header>
       <div style="flex:1 1 auto;overflow:auto;background:#fff">
@@ -1087,9 +1087,9 @@
           <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;color:#92400e;margin-bottom:8px">Marchandise</div>
           ${liv.marchNature ? `<div><strong>Nature :</strong> ${esc(liv.marchNature)}</div>` : ''}
           <div style="display:flex;gap:14px;margin-top:6px;font-size:.88rem">
-            ${liv.marchPoids ? `<span>📦 ${esc(liv.marchPoids)} kg</span>` : ''}
-            ${liv.marchVolume ? `<span>📐 ${esc(liv.marchVolume)} m³</span>` : ''}
-            ${liv.marchColis ? `<span>🔢 ${esc(liv.marchColis)} colis</span>` : ''}
+            ${liv.marchPoids ? `<span>${esc(liv.marchPoids)} kg</span>` : ''}
+            ${liv.marchVolume ? `<span>${esc(liv.marchVolume)} m³</span>` : ''}
+            ${liv.marchColis ? `<span>${esc(liv.marchColis)} colis</span>` : ''}
           </div>
         </div>
       ` : ''}
@@ -1104,7 +1104,7 @@
         <div>
           <div style="font-size:1.5rem;font-weight:900;color:#f5a623">${esc(ent.nom || 'MCA Logistics')}</div>
           ${ent.adresse ? `<div style="font-size:.82rem;color:#6b7280;margin-top:4px">${esc(ent.adresse)}</div>` : ''}
-          ${ent.tel ? `<div style="font-size:.82rem;color:#6b7280">📞 ${esc(ent.tel)}</div>` : ''}
+          ${ent.tel ? `<div style="font-size:.82rem;color:#6b7280">${esc(ent.tel)}</div>` : ''}
           ${ent.email ? `<div style="font-size:.82rem;color:#6b7280">✉ ${esc(ent.email)}</div>` : ''}
           ${ent.siret ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:4px">SIRET ${esc(ent.siret)}</div>` : ''}
           ${ent.tva ? `<div style="font-size:.78rem;color:#9ca3af">TVA ${esc(ent.tva)}</div>` : ''}
@@ -1204,17 +1204,17 @@
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
         <div>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">📤 Expéditeur (chargement)</div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">Expéditeur (chargement)</div>
           ${adresseBlock(liv.expNom, liv.expAdresse, liv.expCp, liv.expVille, liv.expPays, liv.expContact)}
         </div>
         <div>
-          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">📥 Destinataire (déchargement)</div>
+          <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">Destinataire (déchargement)</div>
           ${adresseBlock(liv.destNom, liv.destAdresse, liv.destCp, liv.destVille, liv.destPays, liv.destContact)}
         </div>
       </div>
 
       <div style="margin-bottom:18px">
-        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">📦 Marchandise</div>
+        <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;color:#6b7280;letter-spacing:.05em;margin-bottom:6px">Marchandise</div>
         <table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
           <thead><tr style="background:#f8fafc">
             <th style="padding:10px;text-align:left;font-size:.78rem;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb">Nature</th>
@@ -1297,10 +1297,10 @@
       </div>
       ${M.formField('Total payé', M.formInputWithSuffix('total', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: p.total || '', required: true }), { hint: 'Si laissé vide, calculé automatiquement (litres × prix/L)', required: true })}
       ${enEdition && p.vehiculeId ? `
-        <button type="button" class="m-btn" data-goto-veh="${M.escHtml(p.vehiculeId)}" style="margin-top:18px">🚐 Voir fiche véhicule</button>
+        <button type="button" class="m-btn" data-goto-veh="${M.escHtml(p.vehiculeId)}" style="margin-top:18px">Voir fiche véhicule</button>
       ` : ''}
-      ${enEdition ? `<button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">🔁 Créer une récurrence</button>
-        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer ce plein</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">Créer une récurrence</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">Supprimer ce plein</button>` : ''}
     `;
 
     M.openSheet({
@@ -1406,7 +1406,7 @@
               c.carburantId !== p.id && (!p.chargeId || c.id !== p.chargeId)
             ));
             M.ajouterAudit?.('Suppression plein', (p.litres ? p.litres + ' L' : '') + (aLien ? ' + cascade charge' : ''));
-            M.toast('🗑️ Plein supprimé');
+            M.toast('Plein supprimé');
             M.closeSheet();
             M.go('carburant');
           });
@@ -1520,22 +1520,22 @@
       ${M.formField('Statut', M.formSelect('statut', [
         { value: 'a_payer', label: '⏳ À payer' },
         { value: 'paye',    label: '✅ Payée' },
-        { value: 'partiel', label: '🟡 Partielle' }
+        { value: 'partiel', label: 'Partielle' }
       ], { value: c.statut || 'a_payer' }))}
       ${enEdition && (c.fournisseurId || c.fournisseur) ? (() => {
         const four = c.fournisseurId
           ? M.charger('fournisseurs').find(f => f.id === c.fournisseurId)
           : M.findFournisseurByName(c.fournisseur);
         return four
-          ? `<button type="button" class="m-btn" data-goto-four="${M.escHtml(four.id)}" style="margin-top:18px">🏭 Voir fiche fournisseur</button>`
+          ? `<button type="button" class="m-btn" data-goto-four="${M.escHtml(four.id)}" style="margin-top:18px">Voir fiche fournisseur</button>`
           : '';
       })() : ''}
-      ${enEdition ? `<button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">🔁 Créer une récurrence</button>
-        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">🗑️ Supprimer cette charge</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn" id="m-form-recurrence" style="margin-top:14px">Créer une récurrence</button>
+        <button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:8px">Supprimer cette charge</button>` : ''}
     `;
 
     M.openSheet({
-      title: enEdition ? '✏️ Modifier charge' : '💸 Nouvelle charge',
+      title: enEdition ? '✏️ Modifier charge' : 'Nouvelle charge',
       body,
       submitLabel: 'Enregistrer',
       afterMount(body) {
@@ -1704,7 +1704,7 @@
               M.sauvegarder('entretiens', M.charger('entretiens').filter(e => e.id !== c.entretienId));
             }
             M.ajouterAudit?.('Suppression charge', (c.libelle || '') + (liens.length ? ' + cascade : ' + liens.join(', ') : ''));
-            M.toast('🗑️ Charge supprimée');
+            M.toast('Charge supprimée');
             M.closeSheet();
             M.go('charges');
           });
@@ -2033,11 +2033,11 @@
         <div style="display:flex;gap:8px" id="m-cli-type-radios">
           <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:1px solid var(--m-border);border-radius:12px;cursor:pointer;background:var(--m-card);min-height:48px">
             <input type="radio" name="type" value="pro" ${typeInit === 'pro' ? 'checked' : ''} style="accent-color:var(--m-accent)" />
-            <span style="font-weight:600">🏢 Pro</span>
+            <span style="font-weight:600">Pro</span>
           </label>
           <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px;border:1px solid var(--m-border);border-radius:12px;cursor:pointer;background:var(--m-card);min-height:48px">
             <input type="radio" name="type" value="particulier" ${typeInit === 'particulier' ? 'checked' : ''} style="accent-color:var(--m-accent)" />
-            <span style="font-weight:600">👤 Particulier</span>
+            <span style="font-weight:600">Particulier</span>
           </label>
         </div>
       </div>
@@ -2047,16 +2047,16 @@
       </div>
       <div id="m-cli-pro-fields" style="${typeInit === 'pro' ? '' : 'display:none'}">
         ${M.formField('Secteur d\'activité', M.formSelect('secteur', [
-          { value: 'transport',  label: '🚚 Transport / logistique' },
-          { value: 'industrie',  label: '🏭 Industrie / usine' },
-          { value: 'btp',        label: '🏗️ BTP / chantier' },
-          { value: 'commerce',   label: '🏪 Commerce / retail' },
-          { value: 'ecommerce',  label: '🛒 E-commerce' },
-          { value: 'agro',       label: '🌾 Agro-alimentaire' },
+          { value: 'transport',  label: 'Transport / logistique' },
+          { value: 'industrie',  label: 'Industrie / usine' },
+          { value: 'btp',        label: 'BTP / chantier' },
+          { value: 'commerce',   label: 'Commerce / retail' },
+          { value: 'ecommerce',  label: 'E-commerce' },
+          { value: 'agro',       label: 'Agro-alimentaire' },
           { value: 'sante',      label: '⚕️ Santé / pharma' },
-          { value: 'public',     label: '🏛️ Public / collectivité' },
-          { value: 'evenement',  label: '🎪 Événementiel' },
-          { value: 'autre',      label: '📝 Autre' }
+          { value: 'public',     label: 'Public / collectivité' },
+          { value: 'evenement',  label: 'Événementiel' },
+          { value: 'autre',      label: 'Autre' }
         ], { placeholder: '— Choisir —', value: c.secteur || '' }))}
         ${M.formField('Contact (interlocuteur)', M.formInput('contact', { value: c.contact || c.prenom || '', placeholder: 'Nom du référent' }))}
         <div class="m-form-row">
@@ -2088,7 +2088,7 @@
       </div>
       ${M.formField('IBAN', M.formInput('iban', { value: c.iban || '', placeholder: 'FR76 …' }))}
       ${M.formField('Notes internes', M.formTextarea('notes', { value: c.notes || '', rows: 3, placeholder: 'Remarques, préférences, historique...' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce client</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer ce client</button>` : ''}
     `;
     M.openSheet({
       title: enEdition ? '✏️ Modifier client' : '➕ Nouveau client',
@@ -2109,7 +2109,7 @@
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le client ${c.nom} ?`, { titre: 'Supprimer client' })) return;
           M.sauvegarder('clients', M.charger('clients').filter(x => x.id !== c.id));
-          M.toast('🗑️ Client supprimé');
+          M.toast('Client supprimé');
           M.state.detail.clients = null;
           M.closeSheet();
           M.go('clients');
@@ -2223,12 +2223,12 @@
       <div class="m-form-row">
         ${M.formField('Date acquisition', M.formInput('dateAcquisition', { type: 'date', value: v.dateAcquisition || '' }))}
         ${M.formField('Mode acquisition', M.formSelect('modeAcquisition', [
-          { value: 'achat',    label: '💰 Achat neuf' },
-          { value: 'occasion', label: '🚗 Occasion' },
-          { value: 'lld',      label: '📋 LLD' },
-          { value: 'loa',      label: '📝 LOA' },
-          { value: 'credit',   label: '🏦 Crédit' },
-          { value: 'location', label: '📅 Location' }
+          { value: 'achat',    label: 'Achat neuf' },
+          { value: 'occasion', label: 'Occasion' },
+          { value: 'lld',      label: 'LLD' },
+          { value: 'loa',      label: 'LOA' },
+          { value: 'credit',   label: 'Crédit' },
+          { value: 'location', label: 'Location' }
         ], { placeholder: 'Choisir mode', value: v.modeAcquisition || '' }))}
       </div>
       <div class="m-form-row">
@@ -2258,7 +2258,7 @@
       ${M.formField('Chauffeur affecté', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Aucun', value: v.salId || '' }))}
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${v.docs && Object.keys(v.docs).length ? 'open' : ''}>
-        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Carte grise, Assurance, CT...)</summary>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">Documents (Carte grise, Assurance, CT...)</summary>
         <div style="padding:14px" id="m-veh-docs-list" data-veh-id="${M.escHtml(v.id)}">
           ${M.DOC_TYPES_VEHICULE.map(({ type, label, icon }) => {
             const doc = v.docs?.[type];
@@ -2285,7 +2285,7 @@
       </details>
       ` : `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden">
-        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Carte grise, Assurance, CT...)</summary>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">Documents (Carte grise, Assurance, CT...)</summary>
         <div style="padding:14px" id="m-veh-docs-temp-list">
           ${M.DOC_TYPES_VEHICULE.map(({ type, label, icon }) => `
             <div class="m-card" data-veh-doc-type="${type}" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
@@ -2303,7 +2303,7 @@
         </div>
       </details>
       `}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce véhicule</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer ce véhicule</button>` : ''}
     `;
     M.openSheet({
       title: enEdition ? '✏️ Modifier véhicule' : '➕ Nouveau véhicule',
@@ -2372,7 +2372,7 @@
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le véhicule ${v.immat} ?`, { titre: 'Supprimer véhicule' })) return;
           M.sauvegarder('vehicules', M.charger('vehicules').filter(x => x.id !== v.id));
-          M.toast('🗑️ Véhicule supprimé');
+          M.toast('Véhicule supprimé');
           M.state.detail.vehicules = null;
           M.closeSheet();
           M.go('vehicules');
@@ -2424,7 +2424,7 @@
               const ok = await M.supprimerDocVehicule(v.id, type);
               if (ok) {
                 refreshVehDocCard(type);
-                M.toast('🗑️ Document supprimé');
+                M.toast('Document supprimé');
               }
             };
           });
@@ -2699,7 +2699,7 @@
         <div style="background:#1a1a1a;border-radius:14px;padding:28px 22px;max-width:340px;width:100%;text-align:center;color:#fff">
           <div style="font-size:3.5rem;line-height:1;margin-bottom:14px">📄</div>
           <div style="font-weight:600;font-size:1.05rem;margin-bottom:22px;word-break:break-word">${M.escHtml(titre || 'Document PDF')}</div>
-          <a href="${url}" target="_blank" rel="noopener" style="display:block;background:var(--m-accent);color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">🔍 Ouvrir le PDF</a>
+          <a href="${url}" target="_blank" rel="noopener" style="display:block;background:var(--m-accent);color:#1a1208;text-decoration:none;font-weight:700;padding:14px;border-radius:12px;margin-bottom:10px;font-size:.95rem">Ouvrir le PDF</a>
           <a href="${url}" download="${M.escHtml(fname)}" style="display:block;background:#374151;color:#fff;text-decoration:none;font-weight:600;padding:14px;border-radius:12px;font-size:.95rem">⬇ Télécharger</a>
         </div>
       `;
@@ -2815,17 +2815,17 @@
 
       <!-- Mot de passe (acces salarie) : option de generation, hash via security-utils PBKDF2 (compat PC) -->
       <div class="m-form-field" style="margin-top:14px">
-        <label class="m-form-label">${s.mdpHash ? '🔐 Réinitialiser mot de passe' : '🔐 Mot de passe (accès salarié)'}</label>
+        <label class="m-form-label">${s.mdpHash ? 'Réinitialiser mot de passe' : 'Mot de passe (accès salarié)'}</label>
         <div style="display:flex;gap:8px">
           <input type="text" name="mdpClair" id="m-sal-mdp" placeholder="${s.mdpHash ? 'Laisser vide = inchangé' : 'Au moins 8 caractères'}" value="" autocomplete="new-password" style="flex:1 1 auto" />
-          <button type="button" id="m-sal-mdp-gen" class="m-btn" style="flex:0 0 auto;width:auto;padding:0 14px">🎲 Générer</button>
+          <button type="button" id="m-sal-mdp-gen" class="m-btn" style="flex:0 0 auto;width:auto;padding:0 14px">Générer</button>
         </div>
         <p class="m-form-hint">${s.mdpHash ? 'Le mot de passe actuel est conservé si tu laisses vide.' : 'Génère ou tape un mot de passe. Hashé via PBKDF2 avant stockage.'}</p>
       </div>
 
       ${enEdition ? `
       <details style="margin-top:14px;border:1px solid var(--m-border);border-radius:12px;padding:0;overflow:hidden" ${s.docs && Object.keys(s.docs).length ? 'open' : ''}>
-        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">📎 Documents (Permis, CNI, RIB, Vitale, Médecine)</summary>
+        <summary style="padding:14px;background:var(--m-bg-elevated);cursor:pointer;font-weight:600;font-size:.95rem">Documents (Permis, CNI, RIB, Vitale, Médecine)</summary>
         <div style="padding:14px" id="m-sal-docs-list" data-sal-id="${M.escHtml(s.id)}">
           ${M.DOC_TYPES_SALARIE.map(({ type, label, icon }) => {
             const doc = s.docs?.[type];
@@ -2850,9 +2850,9 @@
           <p class="m-form-hint" style="margin-top:6px">PDF ou image, 5 Mo max. Stocké chiffré sur Supabase Storage.</p>
         </div>
       </details>
-      ` : '<p class="m-form-hint" style="margin-top:14px">💡 Les documents (permis, CNI, RIB...) seront uploadables après la première sauvegarde.</p>'}
+      ` : '<p class="m-form-hint" style="margin-top:14px">Les documents (permis, CNI, RIB...) seront uploadables après la première sauvegarde.</p>'}
 
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce salarié</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer ce salarié</button>` : ''}
     `;
     M.openSheet({
       title: enEdition ? '✏️ Modifier salarié' : '➕ Nouveau salarié',
@@ -2920,7 +2920,7 @@
           const mdp = base + '!' + suffixe;
           const input = b.querySelector('#m-sal-mdp');
           if (input) input.value = mdp;
-          M.toast(`🔐 ${mdp} (copié)`, { duration: 4500 });
+          M.toast(`${mdp} (copié)`, { duration: 4500 });
           // Copie auto dans le presse-papier
           if (navigator.clipboard) navigator.clipboard.writeText(mdp).catch(()=>{});
         });
@@ -2951,7 +2951,7 @@
           // Supprime ses saisies heures
           M.sauvegarder('heures', M.charger('heures').filter(h => h.salId !== s.id && h.salarieId !== s.id));
           M.ajouterAudit?.('Suppression salarié', ((s.prenom || '') + ' ' + (s.nom || '')).trim());
-          M.toast('🗑️ Salarié supprimé (cascade complète)');
+          M.toast('Salarié supprimé (cascade complète)');
           M.state.detail.salaries = null;
           M.closeSheet();
           M.go('salaries');
@@ -3009,7 +3009,7 @@
               const ok = await M.supprimerDocSalarie(s.id, type);
               if (ok) {
                 refreshDocCard(type);
-                M.toast('🗑️ Document supprimé');
+                M.toast('Document supprimé');
               }
             };
           });
@@ -3135,7 +3135,7 @@
         { value: 'especes',     label: 'Espèces' }
       ], { value: f.modePaiement || '' }))}
       ${M.formField('Notes', M.formTextarea('notes', { value: f.notes || '', rows: 2, placeholder: 'Conditions, contact, etc.' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer ce fournisseur</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer ce fournisseur</button>` : ''}
     `;
     M.openSheet({
       title: enEdition ? '✏️ Modifier fournisseur' : '➕ Nouveau fournisseur',
@@ -3146,7 +3146,7 @@
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm(`Supprimer définitivement le fournisseur ${f.nom} ?`, { titre: 'Supprimer fournisseur' })) return;
           M.sauvegarder('fournisseurs', M.charger('fournisseurs').filter(x => x.id !== f.id));
-          M.toast('🗑️ Fournisseur supprimé');
+          M.toast('Fournisseur supprimé');
           M.state.detail.fournisseurs = null;
           M.closeSheet();
           M.go('fournisseurs');
@@ -3247,18 +3247,18 @@
       </div>
       ${M.formField('Effectuée par', M.formSelect('salId', salaries.map(s => ({ value: s.id, label: ((s.prenom ? s.prenom + ' ' : '') + (s.nom || s.id)).trim() })), { placeholder: 'Choisir un salarié', value: insp.salId || '' }))}
       <div class="m-form-field">
-        <label class="m-form-label">📸 Photos</label>
+        <label class="m-form-label">Photos</label>
         <div id="m-photos-container">${renderPhotosGrid()}</div>
         <label for="m-photos-input" class="m-btn" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;cursor:pointer">
           <span>📷</span><span>Ajouter une photo</span>
         </label>
         <input type="file" id="m-photos-input" accept="image/*" capture="environment" multiple style="display:none" />
       </div>
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette inspection</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer cette inspection</button>` : ''}
     `;
 
     M.openSheet({
-      title: enEdition ? '✏️ Modifier inspection' : '🚗 Nouvelle inspection',
+      title: enEdition ? '✏️ Modifier inspection' : 'Nouvelle inspection',
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
@@ -3292,7 +3292,7 @@
           b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
             if (!await M.confirm(`Supprimer définitivement cette inspection (${insp.vehImmat || ''}) ?`, { titre: 'Supprimer inspection' })) return;
             M.sauvegarder('inspections', M.charger('inspections').filter(x => x.id !== insp.id));
-            M.toast('🗑️ Inspection supprimée');
+            M.toast('Inspection supprimée');
             M.state.detail.inspections = null;
             M.closeSheet();
             M.go('inspections');
@@ -3353,21 +3353,21 @@
         ${M.formField('Gravité', M.formSelect('gravite', [
           { value: 'faible', label: 'Faible' },
           { value: 'moyen',  label: 'Moyen' },
-          { value: 'grave',  label: '🔴 Grave' }
+          { value: 'grave',  label: 'Grave' }
         ], { value: inc.gravite || 'moyen' }))}
         ${M.formField('Statut', M.formSelect('statut', [
-          { value: 'ouvert',   label: '🔴 Ouvert' },
+          { value: 'ouvert',   label: 'Ouvert' },
           { value: 'encours',  label: 'En cours' },
           { value: 'traite',   label: '✅ Traité' },
           { value: 'resolu',   label: '✅ Résolu' },
-          { value: 'clos',     label: '🔒 Clos' }
+          { value: 'clos',     label: 'Clos' }
         ], { value: inc.statut || 'ouvert' }))}
       </div>
       ${M.formField('Description', M.formTextarea('description', { value: inc.description || '', rows: 4, placeholder: 'Décris l\'incident en détails...' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet incident</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer cet incident</button>` : ''}
     `;
     M.openSheet({
-      title: enEdition ? '✏️ Modifier incident' : '🚨 Nouvel incident',
+      title: enEdition ? '✏️ Modifier incident' : 'Nouvel incident',
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
@@ -3375,7 +3375,7 @@
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm('Supprimer définitivement cet incident ?', { titre: 'Supprimer incident' })) return;
           M.sauvegarder('incidents', M.charger('incidents').filter(x => x.id !== inc.id));
-          M.toast('🗑️ Incident supprimé');
+          M.toast('Incident supprimé');
           M.state.detail.incidents = null;
           M.closeSheet();
           M.go('incidents');
@@ -3455,10 +3455,10 @@
         ${M.formField('Coût TTC', M.formInputWithSuffix('cout', '€', { type: 'number', step: '0.01', min: '0', placeholder: '0.00', value: e.cout || e.coutTtc || '', required: true }), { required: true })}
       </div>
       ${M.formField('Description', M.formTextarea('description', { value: e.description || '', rows: 2, placeholder: 'Détails (pièces, garage, observations...)' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet entretien</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer cet entretien</button>` : ''}
     `;
     M.openSheet({
-      title: enEdition ? '✏️ Modifier entretien' : '🔧 Nouvel entretien',
+      title: enEdition ? '✏️ Modifier entretien' : 'Nouvel entretien',
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
@@ -3537,7 +3537,7 @@
               c.entretienId !== e.id && (!e.chargeId || c.id !== e.chargeId)
             ));
             M.ajouterAudit?.('Suppression entretien', (e.type || '') + (aLien ? ' + cascade charge' : ''));
-            M.toast('🗑️ Entretien supprimé');
+            M.toast('Entretien supprimé');
             M.closeSheet();
             M.go('entretiens');
           });
@@ -3616,7 +3616,7 @@
         ${M.formField('Km parcourus', M.formInputWithSuffix('km', 'km', { type: 'number', step: '1', min: '0', placeholder: '0', value: h.km || '' }))}
       </div>
       ${M.formField('Notes', M.formTextarea('notes', { value: h.notes || '', rows: 2, placeholder: 'Détails (heures sup, dépassement...)' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cette saisie</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer cette saisie</button>` : ''}
     `;
     M.openSheet({
       title: enEdition ? '✏️ Modifier saisie' : '⏱️ Saisie heures / km',
@@ -3627,7 +3627,7 @@
         b.querySelector('#m-form-delete')?.addEventListener('click', async () => {
           if (!await M.confirm('Supprimer définitivement cette saisie ?', { titre: 'Supprimer saisie' })) return;
           M.sauvegarder('heures', M.charger('heures').filter(x => x.id !== h.id));
-          M.toast('🗑️ Saisie supprimée');
+          M.toast('Saisie supprimée');
           M.closeSheet();
           M.go('heures');
         });
@@ -3738,7 +3738,7 @@
       </div>
     `;
     M.openSheet({
-      title: '📅 Planning ' + jourLabel,
+      title: 'Planning ' + jourLabel,
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
@@ -3945,7 +3945,7 @@
     if (window.__delivproAiBriefPendingMobile) return { skipped: 'pending' };
     window.__delivproAiBriefPendingMobile = true;
     try {
-      if (trigger === 'manual') M.toast('🔄 Brief IA en cours…');
+      if (trigger === 'manual') M.toast('Brief IA en cours…');
       const client = window.DelivProSupabase && window.DelivProSupabase.getClient
         ? window.DelivProSupabase.getClient()
         : null;
@@ -4072,7 +4072,7 @@
           const lu = d.lu ? '' : 'border-left:3px solid var(--m-accent,#e63946);';
           // Bouton "Discuter" (tap-target 44px min, parite PC). Ouvre le chatbot IA
           // avec le contexte de la decision pre-rempli.
-          const btnDiscuter = `<button type="button" data-discuter-id="${d.id}" class="m-btn" style="min-height:44px;padding:8px 14px;font-size:0.8rem;font-weight:600;background:var(--m-bg-soft,#1f2229);color:var(--m-text,#e8eaf0);border:1px solid var(--m-border,#2a2d3d);border-radius:10px;cursor:pointer">💬 Discuter</button>`;
+          const btnDiscuter = `<button type="button" data-discuter-id="${d.id}" class="m-btn" style="min-height:44px;padding:8px 14px;font-size:0.8rem;font-weight:600;background:var(--m-bg-soft,#1f2229);color:var(--m-text,#e8eaf0);border:1px solid var(--m-border,#2a2d3d);border-radius:10px;cursor:pointer">Discuter</button>`;
           return `
             <div style="background:var(--m-card,#2a2f37);border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
               <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
@@ -4086,11 +4086,11 @@
         }).join('');
 
     M.openSheet({
-      title: '🔔 Brief IA',
+      title: 'Brief IA',
       body: `
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <button id="m-brief-refresh" class="m-btn" type="button" style="flex:1;min-height:44px">🔄 Rafraîchir</button>
-          ${decisions.length ? '<button id="m-brief-clear" class="m-btn" type="button" style="flex:1;min-height:44px">🗑 Tout effacer</button>' : ''}
+          <button id="m-brief-refresh" class="m-btn" type="button" style="flex:1;min-height:44px">Rafraîchir</button>
+          ${decisions.length ? '<button id="m-brief-clear" class="m-btn" type="button" style="flex:1;min-height:44px">Tout effacer</button>' : ''}
         </div>
         ${html}
       `,
@@ -4128,11 +4128,11 @@
             if (!confirm('Effacer toutes les décisions ?')) return;
             M.sauvegarder('agent_decisions', []);
             M.updateBriefBadge();
-            M.toast('🗑 Décisions effacées');
+            M.toast('Décisions effacées');
             M.closeSheet();
           });
         }
-        // Boutons "💬 Discuter" sur chaque card
+        // Boutons "Discuter" sur chaque card
         root.querySelectorAll('button[data-discuter-id]').forEach((btn) => {
           btn.addEventListener('click', (e) => {
             const id = btn.getAttribute('data-discuter-id');
@@ -4276,7 +4276,7 @@
           <div class="m-card m-card-red m-card-pressable" onclick="MCAm.go('alertes')">
             <div class="m-card-title">Alertes</div>
             <div class="m-card-value">${M.formatNum(alertesActivesCount)}</div>
-            <div class="m-card-sub">${alertesCritiques > 0 ? `🔴 ${alertesCritiques} critique${alertesCritiques>1?'s':''}` : 'à traiter'}</div>
+            <div class="m-card-sub">${alertesCritiques > 0 ? `${alertesCritiques} critique${alertesCritiques>1?'s':''}` : 'à traiter'}</div>
           </div>
           <div class="m-card m-card-accent m-card-pressable" onclick="MCAm.go('charges')">
             <div class="m-card-title">Impayés</div>
@@ -4288,7 +4288,7 @@
         ${auTravail.length ? `
           <div class="m-section">
             <div class="m-section-header">
-              <h3 class="m-section-title">📅 Qui travaille aujourd'hui</h3>
+              <h3 class="m-section-title">Qui travaille aujourd'hui</h3>
               <button class="m-section-link" onclick="MCAm.go('planning')">Planning →</button>
             </div>
             ${auTravail.slice(0, 5).map(({ sal, jourData }) => {
@@ -4467,8 +4467,8 @@
           </div>
           ${selCount > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:6px">
             <button type="button" class="m-liv-bulk-action m-btn" data-action="livre" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">✅ Marquer livré</button>
-            <button type="button" class="m-liv-bulk-action m-btn" data-action="paye" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">💵 Encaisser</button>
-            <button type="button" class="m-liv-bulk-action m-btn m-btn-danger" data-action="delete" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">🗑️ Supprimer</button>
+            <button type="button" class="m-liv-bulk-action m-btn" data-action="paye" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">Encaisser</button>
+            <button type="button" class="m-liv-bulk-action m-btn m-btn-danger" data-action="delete" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">Supprimer</button>
           </div>` : ''}
         </div>`;
       }
@@ -4476,11 +4476,11 @@
       // Toggle vue Liste / Kanban (alignement PC)
       html += `
         <div style="display:flex;gap:6px;margin-bottom:14px">
-          <button class="m-alertes-chip ${vue==='liste'?'active':''}" data-vue="liste" style="flex:1 1 0">📋 Liste</button>
-          <button class="m-alertes-chip ${vue==='kanban'?'active':''}" data-vue="kanban" style="flex:1 1 0">📊 Kanban</button>
+          <button class="m-alertes-chip ${vue==='liste'?'active':''}" data-vue="liste" style="flex:1 1 0">Liste</button>
+          <button class="m-alertes-chip ${vue==='kanban'?'active':''}" data-vue="kanban" style="flex:1 1 0">Kanban</button>
         </div>
         <div style="margin-bottom:10px">
-          <input type="search" id="m-liv-search" placeholder="🔍 Client, n°, ville, notes…" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
+          <input type="search" id="m-liv-search" placeholder="Client, n°, ville, notes…" value="${M.escHtml(M.state.livraisonsRecherche)}" autocomplete="off" />
         </div>
       `;
 
@@ -4498,7 +4498,7 @@
       // Chips filtre période + tri (sur la même rangée si possible)
       html += `
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${fPeriode===''?'active':''}" data-fperiode="">📅 Tout</button>
+          <button class="m-alertes-chip ${fPeriode===''?'active':''}" data-fperiode="">Tout</button>
           <button class="m-alertes-chip ${fPeriode==='mois'?'active':''}" data-fperiode="mois">Ce mois</button>
           <button class="m-alertes-chip ${fPeriode==='30j'?'active':''}" data-fperiode="30j">30j</button>
           <button class="m-alertes-chip ${fPeriode==='90j'?'active':''}" data-fperiode="90j">90j</button>
@@ -4516,11 +4516,11 @@
             </select>
           ` : ''}
           <select id="m-liv-tri" style="flex:1 1 160px;min-width:140px" aria-label="Trier les livraisons">
-            <option value="date-desc"    ${tri==='date-desc'?'selected':''}>📅 Date (récent)</option>
-            <option value="date-asc"     ${tri==='date-asc'?'selected':''}>📅 Date (ancien)</option>
-            <option value="client-asc"   ${tri==='client-asc'?'selected':''}>🔤 Client A→Z</option>
-            <option value="montant-desc" ${tri==='montant-desc'?'selected':''}>💶 Montant ↓</option>
-            <option value="montant-asc"  ${tri==='montant-asc'?'selected':''}>💶 Montant ↑</option>
+            <option value="date-desc"    ${tri==='date-desc'?'selected':''}>Date (récent)</option>
+            <option value="date-asc"     ${tri==='date-asc'?'selected':''}>Date (ancien)</option>
+            <option value="client-asc"   ${tri==='client-asc'?'selected':''}>Client A→Z</option>
+            <option value="montant-desc" ${tri==='montant-desc'?'selected':''}>Montant ↓</option>
+            <option value="montant-asc"  ${tri==='montant-asc'?'selected':''}>Montant ↑</option>
           </select>
         </div>
       `;
@@ -4529,7 +4529,7 @@
       if (vue === 'kanban') {
         const cols = [
           { key: 'en-attente', label: '⏳ En attente', color: 'var(--m-text-muted)' },
-          { key: 'en-cours',   label: '🟡 En cours',   color: 'var(--m-accent)' },
+          { key: 'en-cours',   label: 'En cours',   color: 'var(--m-accent)' },
           { key: 'livre',      label: '✅ Livré',      color: 'var(--m-green)' }
         ];
         // Limite a livraisons des 3 derniers mois pour perf (sinon Kanban infini)
@@ -4558,7 +4558,7 @@
           </div>`;
         });
         html += `</div>`;
-        html += `<p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:8px">💡 Glisse latéralement entre les colonnes. Tap = édition.</p>`;
+        html += `<p style="font-size:.75rem;color:var(--m-text-muted);text-align:center;margin-top:8px">Glisse latéralement entre les colonnes. Tap = édition.</p>`;
         return html;
       }
 
@@ -4725,7 +4725,7 @@
           M.go('livraisons');
         });
       });
-      // Quick-action "💵 Marquer payée" sur card non-payée (mode normal)
+      // Quick-action "Marquer payée" sur card non-payée (mode normal)
       container.querySelectorAll('.m-liv-quick-pay').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           e.stopPropagation();
@@ -4736,10 +4736,10 @@
           if (idx < 0) return;
           const liv = arr[idx];
           const res = await M.dialogChoisirDate({
-            titre: '💵 Marquer payée',
+            titre: 'Marquer payée',
             sousTitre: `${liv.client || 'Livraison'} · ${M.format$(M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0)}`,
             labelDate: 'Date de paiement',
-            btnOk: '💵 Confirmer'
+            btnOk: 'Confirmer'
           });
           if (!res) return;
           arr[idx].statutPaiement = 'payé';
@@ -4747,7 +4747,7 @@
           arr[idx].modifieLe = new Date().toISOString();
           M.sauvegarder('livraisons', arr);
           M.ajouterAudit?.('Encaissement livraison', (liv.client || '') + ' · ' + (liv.numLiv || '') + ' · ' + M.formatDate(res.date));
-          M.toast(`💵 Encaissée le ${M.formatDate(res.date)}`);
+          M.toast(`Encaissée le ${M.formatDate(res.date)}`);
           M.go('livraisons');
         });
       });
@@ -4773,7 +4773,7 @@
             if (!await M.confirm(`Supprimer définitivement ${ids.length} livraison${ids.length>1?'s':''} ?`, { titre: 'Suppression en lot' })) return;
             const arr = M.charger('livraisons').filter(l => !ids.includes(l.id));
             M.sauvegarder('livraisons', arr);
-            M.toast(`🗑️ ${ids.length} livraison${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
+            M.toast(`${ids.length} livraison${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
           } else if (action === 'livre') {
             const arr = M.charger('livraisons');
             const now = new Date().toISOString();
@@ -4786,9 +4786,9 @@
             M.toast(`✅ ${n} livraison${n>1?'s':''} marquée${n>1?'s':''} livrée${n>1?'s':''}`);
           } else if (action === 'paye') {
             const res = await M.dialogChoisirDate({
-              titre: `💵 Encaisser ${ids.length} livraison${ids.length>1?'s':''}`,
+              titre: `Encaisser ${ids.length} livraison${ids.length>1?'s':''}`,
               labelDate: 'Date de paiement',
-              btnOk: '💵 Confirmer'
+              btnOk: 'Confirmer'
             });
             if (!res) return;
             const arr = M.charger('livraisons');
@@ -4804,7 +4804,7 @@
               }
             });
             M.sauvegarder('livraisons', arr);
-            M.toast(`💵 ${n} encaissement${n>1?'s':''} au ${M.formatDate(res.date)}`);
+            M.toast(`${n} encaissement${n>1?'s':''} au ${M.formatDate(res.date)}`);
           }
           M.state.livBulkSel.clear();
           M.state.livBulkMode = false;
@@ -4837,9 +4837,9 @@
       // "Par salarié" (grille 1 ligne par salarié × 7 jours) pour parite PC.
       let html = `
         <div style="display:flex;gap:6px;margin-bottom:14px;width:100%">
-          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">📅 Jour</button>
-          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">🗓️ Sem.</button>
-          <button class="m-alertes-chip ${vue==='salarie'?'active':''}" data-vue="salarie" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">👥 Par sal.</button>
+          <button class="m-alertes-chip ${vue==='jour'?'active':''}" data-vue="jour" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">Jour</button>
+          <button class="m-alertes-chip ${vue==='semaine'?'active':''}" data-vue="semaine" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">Sem.</button>
+          <button class="m-alertes-chip ${vue==='salarie'?'active':''}" data-vue="salarie" style="flex:1 1 0;min-width:0;font-size:.78rem;padding:0 6px">Par sal.</button>
           <button id="m-planning-abs-add" class="m-btn" style="flex:0 0 44px;padding:0;height:40px;font-size:1.1rem;line-height:1" title="Ajouter une période d'absence longue">🏖️</button>
         </div>
       `;
@@ -5281,7 +5281,7 @@
       };
       html += renderAbs(enCours, 'En cours', '🟢') + renderAbs(aVenir, 'À venir', '⏰') + renderAbs(passees.slice(0, 5), 'Passées (5 dernières)', '📋');
     } else {
-      html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "🏖️ Absence longue" en haut pour en créer.</p>`;
+      html += `<p style="text-align:center;color:var(--m-text-muted);font-size:.78rem;margin-top:18px">Aucune période d'absence longue. Tape sur "Absence longue" en haut pour en créer.</p>`;
     }
 
     // FAB : raccourci "Bloquer la semaine pour X" (parity-mobile-planning).
@@ -5509,7 +5509,7 @@
       if (dDeb) dDeb.value = lundiISO;
       if (dFin) dFin.value = dimancheISO;
       const titleEl = document.getElementById('m-sheet-title');
-      if (titleEl) titleEl.textContent = '🏖️ Bloquer la semaine';
+      if (titleEl) titleEl.textContent = 'Bloquer la semaine';
     }, 50);
   };
 
@@ -5538,7 +5538,7 @@
         </p>
         <div>${otherDaysHtml}</div>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--m-border)">
-          <button type="button" class="m-btn m-btn-danger" id="m-jour-vider-overrides" style="width:100%">🗑️ Vider tous les overrides de cette semaine</button>
+          <button type="button" class="m-btn m-btn-danger" id="m-jour-vider-overrides" style="width:100%">Vider tous les overrides de cette semaine</button>
           <p class="m-form-hint" style="margin-top:6px">Supprime les saisies par semaine et revient au pattern récurrent.</p>
         </div>
       `,
@@ -5644,7 +5644,7 @@
         <button type="button" class="m-btn" data-copies="4" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 4 prochaines semaines</button>
         <button type="button" class="m-btn" data-copies="12" style="text-align:left;padding:12px 14px;width:100%;margin-bottom:6px;justify-content:flex-start">→ Vers les 12 prochaines semaines</button>
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--m-border)">
-          <button type="button" class="m-btn m-btn-danger" id="m-sem-vider-overrides" style="width:100%">🗑️ Vider tous les overrides de cette semaine</button>
+          <button type="button" class="m-btn m-btn-danger" id="m-sem-vider-overrides" style="width:100%">Vider tous les overrides de cette semaine</button>
           <p class="m-form-hint" style="margin-top:6px">Supprime les saisies par-semaine de tous les salariés (revient au pattern récurrent).</p>
         </div>
       `,
@@ -5783,10 +5783,10 @@
         ${M.formField('Date fin', M.formInput('dateFin', { type: 'date', value: a.dateFin || '' }), { hint: 'Vide = sans fin' })}
       </div>
       ${M.formField('Motif (optionnel)', M.formTextarea('motif', { value: a.motif || '', rows: 2, placeholder: 'Raison interne...' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-abs-delete" style="margin-top:14px">🗑️ Supprimer cette période</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-abs-delete" style="margin-top:14px">Supprimer cette période</button>` : ''}
     `;
     M.openSheet({
-      title: enEdition ? '✏️ Modifier période d\'absence' : '🏖️ Nouvelle absence longue',
+      title: enEdition ? '✏️ Modifier période d\'absence' : 'Nouvelle absence longue',
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
@@ -5800,7 +5800,7 @@
             if (idx >= 0) allP[idx] = salPlanning;
             M.sauvegarder('plannings', allP);
           }
-          M.toast('🗑️ Période supprimée');
+          M.toast('Période supprimée');
           M.closeSheet();
           M.go('planning');
         });
@@ -5884,7 +5884,7 @@
       arr[idx].ignoreeLe = new Date().toISOString();
       arr[idx].cooldownJusquA = M.alertes.dateCooldownIso();
       M.sauvegarder('alertes_admin', arr);
-      M.toast('🗑️ Alerte ignorée (silencieuse 30j)');
+      M.toast('Alerte ignorée (silencieuse 30j)');
       return true;
     },
     reporter(id, jours) {
@@ -5932,7 +5932,7 @@
       const ids = new Set(cibles.map(a => a.id));
       const out = arr.map(a => ids.has(a.id) ? { ...a, ignoree: true, ignoreeLe: now, cooldownJusquA: cd } : a);
       M.sauvegarder('alertes_admin', out);
-      M.toast(`🗑️ ${cibles.length} alerte${cibles.length>1?'s':''} ignorée${cibles.length>1?'s':''}`);
+      M.toast(`${cibles.length} alerte${cibles.length>1?'s':''} ignorée${cibles.length>1?'s':''}`);
       return true;
     },
     // Crée une alerte si aucune active du même (type, scope) n'existe + pas en cooldown.
@@ -5983,7 +5983,7 @@
           { salId: s.id, salNom: nom });
       } else if (diff <= seuilJours) {
         M.alertes.ajouterSiAbsente(prefix + '_proche',
-          `🔔 ${lblProche} dans ${diff} j — ${nom}`,
+          `${lblProche} dans ${diff} j — ${nom}`,
           { salId: s.id, salNom: nom });
       }
     };
@@ -6019,7 +6019,7 @@
           { vehId: v.id, immat });
       } else if (diff <= seuilJours) {
         M.alertes.ajouterSiAbsente(prefix + '_proche',
-          `🔔 ${lblProche} dans ${diff} j — ${immat}`,
+          `${lblProche} dans ${diff} j — ${immat}`,
           { vehId: v.id, immat });
       }
     };
@@ -6090,13 +6090,13 @@
 
   // Modules dans l'ordre d'affichage (avec page cible pour le bouton "Voir l'onglet")
   const M_ALERTES_MODULES = [
-    { key: 'vehicules',   label: '🚐 Véhicules',   page: 'vehicules' },
-    { key: 'salaries',    label: '👥 Salariés',    page: 'salaries' },
-    { key: 'charges',     label: '💸 Charges',     page: 'charges' },
+    { key: 'vehicules',   label: 'Véhicules',   page: 'vehicules' },
+    { key: 'salaries',    label: 'Salariés',    page: 'salaries' },
+    { key: 'charges',     label: 'Charges',     page: 'charges' },
     { key: 'carburant',   label: '⛽ Carburant',   page: 'carburant' },
-    { key: 'livraisons',  label: '📦 Livraisons',  page: 'livraisons' },
-    { key: 'inspections', label: '🚗 Inspections', page: 'inspections' },
-    { key: 'planning',    label: '📅 Planning',    page: 'planning' },
+    { key: 'livraisons',  label: 'Livraisons',  page: 'livraisons' },
+    { key: 'inspections', label: 'Inspections', page: 'inspections' },
+    { key: 'planning',    label: 'Planning',    page: 'planning' },
     { key: 'heures',      label: '⏱️ Heures & Km',  page: 'heures' },
   ];
   const M_SEVERITES = {
@@ -6160,17 +6160,17 @@
       // Header : recherche + chips statut
       let html = `
         <div style="margin-bottom:14px">
-          <input type="search" id="m-alertes-search" placeholder="🔍 Rechercher (titre, message, salarié...)" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-alertes-search" placeholder="Rechercher (titre, message, salarié...)" value="${M.escHtml(M.state.alertesRecherche)}" autocomplete="off" />
         </div>
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${statut==='actives'?'active':''}" data-statut="actives">🔴 Actives</button>
+          <button class="m-alertes-chip ${statut==='actives'?'active':''}" data-statut="actives">Actives</button>
           <button class="m-alertes-chip ${statut==='reportees'?'active':''}" data-statut="reportees">⏰ Reportées${allReportees ? ` (${allReportees})` : ''}</button>
           <button class="m-alertes-chip ${statut==='traitees'?'active':''}" data-statut="traitees">✅ Traitées</button>
         </div>
         <!-- parity-mobile-alertes-clients : filtre par niveau + bulk toggle -->
         <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
           <button class="m-alertes-chip ${sevFilter==='tous'?'active':''}" data-sev="tous" style="font-size:.74rem;padding:0 10px;height:30px">Tous</button>
-          <button class="m-alertes-chip ${sevFilter==='critique'?'active':''}" data-sev="critique" style="font-size:.74rem;padding:0 10px;height:30px">🚨 Critique</button>
+          <button class="m-alertes-chip ${sevFilter==='critique'?'active':''}" data-sev="critique" style="font-size:.74rem;padding:0 10px;height:30px">Critique</button>
           <button class="m-alertes-chip ${sevFilter==='alerte'?'active':''}" data-sev="alerte" style="font-size:.74rem;padding:0 10px;height:30px">⚠️ À traiter</button>
           <button class="m-alertes-chip ${sevFilter==='info'?'active':''}" data-sev="info" style="font-size:.74rem;padding:0 10px;height:30px">ℹ️ Info</button>
           ${statut === 'actives' && filtered.length > 1 ? `<button type="button" id="m-alertes-bulk-toggle" class="m-alertes-chip ${bulkOn ? 'active' : ''}" style="font-size:.74rem;padding:0 10px;height:30px;margin-left:auto">${bulkOn ? '✕ Annuler' : '☑️ Multi'}</button>` : ''}
@@ -6182,7 +6182,7 @@
             <button type="button" id="m-alertes-bulk-ignorer" style="background:rgba(231,76,60,0.15);color:var(--m-red);border:1px solid rgba(231,76,60,0.4);padding:6px 10px;border-radius:8px;font-size:.74rem;font-weight:700;cursor:pointer;font-family:inherit;min-height:36px">✕ Ignorer</button>
           </div>
         ` : ''}
-        ${statut === 'traitees' ? `<button type="button" id="m-alertes-vider" class="m-btn m-btn-danger" style="margin-bottom:14px">🗑️ Vider l'historique traité</button>` : ''}
+        ${statut === 'traitees' ? `<button type="button" id="m-alertes-vider" class="m-btn m-btn-danger" style="margin-bottom:14px">Vider l'historique traité</button>` : ''}
       `;
 
       // Stats banner (uniquement en vue actives)
@@ -6409,7 +6409,7 @@
         if (!traitees.length) return M.toast('Aucune alerte traitée à vider');
         if (!await M.confirm(`Effacer définitivement ${traitees.length} alerte${traitees.length>1?'s':''} traitée${traitees.length>1?'s':''} ?`, { titre: "Vider l'historique" })) return;
         M.sauvegarder('alertes_admin', arr.filter(a => !a.traitee));
-        M.toast(`🗑️ ${traitees.length} alerte${traitees.length>1?'s':''} effacée${traitees.length>1?'s':''}`);
+        M.toast(`${traitees.length} alerte${traitees.length>1?'s':''} effacée${traitees.length>1?'s':''}`);
         M.go('alertes');
       });
       // Actions individuelles
@@ -6484,11 +6484,11 @@
 
     // "Aller vers l'entité" — déduit de meta/contexte
     let entiteAction = null;
-    if (ctx.salId)        entiteAction = { label: '👥 Voir le salarié',  page: 'salaries',  id: ctx.salId };
-    else if (ctx.vehId || ctx.vehiculeId) entiteAction = { label: '🚐 Voir le véhicule', page: 'vehicules', id: ctx.vehId || ctx.vehiculeId };
-    else if (ctx.clientId) entiteAction = { label: '🧑 Voir le client',  page: 'clients',   id: ctx.clientId };
-    else if (ctx.livId || ctx.livraisonId) entiteAction = { label: '📦 Voir la livraison', page: 'livraisons', id: ctx.livId || ctx.livraisonId };
-    else if (ctx.chargeId) entiteAction = { label: '💸 Voir la charge', page: 'charges',   id: ctx.chargeId };
+    if (ctx.salId)        entiteAction = { label: 'Voir le salarié',  page: 'salaries',  id: ctx.salId };
+    else if (ctx.vehId || ctx.vehiculeId) entiteAction = { label: 'Voir le véhicule', page: 'vehicules', id: ctx.vehId || ctx.vehiculeId };
+    else if (ctx.clientId) entiteAction = { label: 'Voir le client',  page: 'clients',   id: ctx.clientId };
+    else if (ctx.livId || ctx.livraisonId) entiteAction = { label: 'Voir la livraison', page: 'livraisons', id: ctx.livId || ctx.livraisonId };
+    else if (ctx.chargeId) entiteAction = { label: 'Voir la charge', page: 'charges',   id: ctx.chargeId };
     else if (cat?.module)  entiteAction = { label: `→ Onglet ${cat.module}`, page: cat.module };
 
     const estCritiqueExpire = ['ct_expire','permis_expire','assurance_expire'].includes(a.type);
@@ -6680,7 +6680,7 @@
             <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionné${selCount>1?'s':''}</div>
             <button type="button" id="m-carb-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
           </div>
-          ${selCount > 0 ? `<button type="button" id="m-carb-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">🗑️ Supprimer la sélection (cascade charge liée)</button>` : ''}
+          ${selCount > 0 ? `<button type="button" id="m-carb-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">Supprimer la sélection (cascade charge liée)</button>` : ''}
         </div>`;
       }
       html += `
@@ -6699,7 +6699,7 @@
         ${vehicules.length > 1 ? `
           <div style="margin:14px 0">
             <select id="m-carb-veh">
-              <option value="">🚐 Tous les véhicules</option>
+              <option value="">Tous les véhicules</option>
               ${vehicules.map(v => `<option value="${M.escHtml(v.id)}" ${v.id === filterVeh ? 'selected' : ''}>${M.escHtml(v.immat || v.id)}</option>`).join('')}
             </select>
           </div>
@@ -6802,7 +6802,7 @@
         M.sauvegarder('carburant', pleins.filter(p => !ids.includes(p.id)));
         if (chargeIds.length) M.sauvegarder('charges', M.charger('charges').filter(c => !chargeIds.includes(c.id) && !ids.includes(c.carburantId)));
         else M.sauvegarder('charges', M.charger('charges').filter(c => !ids.includes(c.carburantId)));
-        M.toast(`🗑️ ${ids.length} plein${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
+        M.toast(`${ids.length} plein${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
         M.state.carbBulkSel.clear(); M.state.carbBulkMode = false;
         M.go('carburant');
       });
@@ -6855,10 +6855,10 @@
         { value: 'autre',    label: 'Autre' }
       ], { value: e.modePaiement || 'virement' }))}
       ${M.formField('Notes', M.formTextarea('notes', { value: e.notes || '', rows: 2, placeholder: 'Remarques (référence, motif...)' }))}
-      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">🗑️ Supprimer cet encaissement</button>` : ''}
+      ${enEdition ? `<button type="button" class="m-btn m-btn-danger" id="m-form-delete" style="margin-top:18px">Supprimer cet encaissement</button>` : ''}
     `;
     M.openSheet({
-      title: enEdition ? '✏️ Modifier encaissement' : '💵 Nouvel encaissement',
+      title: enEdition ? '✏️ Modifier encaissement' : 'Nouvel encaissement',
       body,
       submitLabel: 'Enregistrer',
       afterMount(b) {
@@ -6867,7 +6867,7 @@
           if (!await M.confirm('Supprimer définitivement cet encaissement ?', { titre: 'Supprimer encaissement' })) return;
           M.sauvegarder('encaissements_manuels', M.charger('encaissements_manuels').filter(x => x.id !== e.id));
           M.ajouterAudit?.('Suppression encaissement manuel', e.libelle || '');
-          M.toast('🗑️ Encaissement supprimé');
+          M.toast('Encaissement supprimé');
           M.closeSheet();
           M.go('encaissement');
         });
@@ -7004,7 +7004,7 @@
               <strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}
               ${selCount > 0 ? `<span style="color:var(--m-text-muted);font-size:.78rem;margin-left:6px">${M.format$(selTotal)}</span>` : ''}
             </div>
-            ${selCount > 0 ? `<button type="button" id="m-enc-bulk-pay" class="m-btn m-btn-primary" style="width:auto;padding:0 12px;height:38px;font-size:.78rem">💵 Tout encaisser</button>` : ''}
+            ${selCount > 0 ? `<button type="button" id="m-enc-bulk-pay" class="m-btn m-btn-primary" style="width:auto;padding:0 12px;height:38px;font-size:.78rem">Tout encaisser</button>` : ''}
             <button type="button" id="m-enc-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:38px;font-size:.78rem">✕</button>
           </div>
         `}
@@ -7023,20 +7023,20 @@
         </div>
 
         <div class="m-card m-card-accent" style="margin-bottom:14px;border-left:4px solid var(--m-accent)" title="Days Sales Outstanding — délai moyen réel de paiement client sur les 90 derniers jours">
-          <div class="m-card-title">📊 DSO réel (90j)</div>
+          <div class="m-card-title">DSO réel (90j)</div>
           <div class="m-card-value">${dsoData.dso !== null ? dsoData.dso + ' j' : '—'}</div>
           <div class="m-card-sub">${dsoData.count > 0 ? dsoData.count + ' livraison' + (dsoData.count > 1 ? 's' : '') + ' payée' + (dsoData.count > 1 ? 's' : '') : 'aucune livraison payée'}</div>
         </div>
 
         ${totalRetard > 0 ? `<div class="m-card m-card-red m-card-pressable" onclick="MCAm.setEncStatut('retard')" style="margin-bottom:14px;border-left:4px solid var(--m-red)">
-          <div class="m-card-title">🔴 En retard (>30j)</div>
+          <div class="m-card-title">En retard (>30j)</div>
           <div class="m-card-value" style="color:var(--m-red)">${M.format$(totalRetard)}</div>
           <div class="m-card-sub">${nbRetard} facture${nbRetard>1?'s':''} — Tap pour voir</div>
         </div>` : ''}
 
         <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${filtreStatut==='a_encaisser'?'active':''}" data-statut="a_encaisser">⏳ À encaisser (${nbAEncaisser})</button>
-          <button class="m-alertes-chip ${filtreStatut==='retard'?'active':''}" data-statut="retard">🔴 Retard (${nbRetard})</button>
+          <button class="m-alertes-chip ${filtreStatut==='retard'?'active':''}" data-statut="retard">Retard (${nbRetard})</button>
           <button class="m-alertes-chip ${filtreStatut==='encaisse'?'active':''}" data-statut="encaisse">✅ Encaissé</button>
           <button class="m-alertes-chip ${filtreStatut==='litige'?'active':''}" data-statut="litige">⚠️ Litige${totalLitige > 0 ? ` (${M.format$(totalLitige)})` : ''}</button>
           <button class="m-alertes-chip ${filtreStatut==='tous'?'active':''}" data-statut="tous">Tous</button>
@@ -7078,14 +7078,14 @@
             <div data-content="${M.escHtml(month)}" style="display:${isOpen ? 'block' : 'none'}">
               ${items.map(l => {
                 const couleur = l._paye ? 'var(--m-green)' : l._litige ? 'var(--m-red)' : l._retard ? 'var(--m-red)' : 'var(--m-accent)';
-                const statutLabel = l._isManual ? '💵 Manuel' : l._paye ? '✅ Payé' : l._litige ? '⚠️ Litige' : l._retard ? '🔴 Retard' : '⏳ À encaisser';
+                const statutLabel = l._isManual ? 'Manuel' : l._paye ? '✅ Payé' : l._litige ? '⚠️ Litige' : l._retard ? 'Retard' : '⏳ À encaisser';
                 const datePaiementAff = l.datePaiement ? M.formatDate(l.datePaiement) : '';
                 // Encaissement manuel : pas de bouton annuler (toujours payé), pas de bouton marquer
                 let actionBtn;
                 if (l._isManual) {
                   actionBtn = `<div style="font-size:.7rem;color:var(--m-green);font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>`;
                 } else if (!l._paye) {
-                  actionBtn = `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">💵 Marquer encaissé</button>`;
+                  actionBtn = `<button type="button" class="m-enc-pay" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3);border-radius:6px;padding:4px 10px;font-size:.72rem;font-weight:700;font-family:inherit;cursor:pointer">Marquer encaissé</button>`;
                 } else {
                   actionBtn = `<div style="font-size:.7rem;color:${couleur};font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.04em">${statutLabel}${datePaiementAff ? ' · ' + datePaiementAff : ''}</div>
                      <button type="button" class="m-enc-revert" data-id="${M.escHtml(l.id)}" style="margin-top:6px;background:rgba(231,76,60,0.10);color:var(--m-red);border:1px solid rgba(231,76,60,0.3);border-radius:6px;padding:4px 10px;font-size:.7rem;font-weight:600;font-family:inherit;cursor:pointer">↶ Annuler</button>`;
@@ -7180,10 +7180,10 @@
         const ids = [...M.state.encBulkSel];
         if (!ids.length) return;
         const res = await M.dialogChoisirDate({
-          titre: `💵 Encaisser ${ids.length} facture${ids.length>1?'s':''}`,
+          titre: `Encaisser ${ids.length} facture${ids.length>1?'s':''}`,
           sousTitre: `Total ${M.format$(filtered.filter(l => M.state.encBulkSel.has(l.id)).reduce((s, l) => s + l._ttc, 0))}. Choisis la date de paiement réelle.`,
           labelDate: 'Date de paiement',
-          btnOk: '💵 Confirmer encaissement'
+          btnOk: 'Confirmer encaissement'
         });
         if (!res) return;
         const arr = M.charger('livraisons');
@@ -7200,7 +7200,7 @@
         M.sauvegarder('livraisons', arr);
         M.state.encBulkSel.clear();
         M.state.encBulkMode = false;
-        M.toast(`💵 ${n} encaissement${n>1?'s':''} au ${M.formatDate(res.date)}`);
+        M.toast(`${n} encaissement${n>1?'s':''} au ${M.formatDate(res.date)}`);
         M.go('encaissement');
       });
       // Bouton "Marquer encaissé" rapide (mode normal) -> ouvre date picker
@@ -7214,17 +7214,17 @@
           if (idx < 0) return;
           const liv = arr[idx];
           const res = await M.dialogChoisirDate({
-            titre: '💵 Marquer encaissée',
+            titre: 'Marquer encaissée',
             sousTitre: `${liv.client || 'Livraison'} · ${M.format$(M.parseNum(liv.prixTTC) || M.parseNum(liv.prix) || 0)}`,
             labelDate: 'Date de paiement',
-            btnOk: '💵 Confirmer'
+            btnOk: 'Confirmer'
           });
           if (!res) return;
           arr[idx].statutPaiement = 'payé';
           arr[idx].datePaiement = res.date;
           arr[idx].modifieLe = new Date().toISOString();
           M.sauvegarder('livraisons', arr);
-          M.toast(`💵 Encaissement au ${M.formatDate(res.date)}`);
+          M.toast(`Encaissement au ${M.formatDate(res.date)}`);
           M.go('encaissement');
         });
       });
@@ -7297,7 +7297,7 @@
           </div>
           ${selCount > 0 ? `<div style="display:flex;gap:6px;flex-wrap:wrap">
             <button type="button" class="m-charges-bulk-action m-btn" data-action="paye" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">✅ Marquer payée</button>
-            <button type="button" class="m-charges-bulk-action m-btn m-btn-danger" data-action="delete" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">🗑️ Supprimer</button>
+            <button type="button" class="m-charges-bulk-action m-btn m-btn-danger" data-action="delete" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">Supprimer</button>
           </div>` : ''}
         </div>`;
       }
@@ -7315,27 +7315,27 @@
           </div>
         </div>
         <div style="display:flex;gap:6px;margin:16px 0 8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">📋 Toutes</button>
+          <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">Toutes</button>
           <button class="m-alertes-chip ${statut==='a_payer'?'active':''}" data-statut="a_payer">⚠️ À payer${aPayer.length?` (${aPayer.length})`:''}</button>
           <button class="m-alertes-chip ${statut==='paye'?'active':''}" data-statut="paye">✅ Payées</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip m-charges-cat ${cat===''?'active':''}" data-cat="">Toutes catégories</button>
           <button class="m-alertes-chip m-charges-cat ${cat==='carburant'?'active':''}" data-cat="carburant">⛽ Carburant</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='peage'?'active':''}" data-cat="peage">🛣️ Péage</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='entretien'?'active':''}" data-cat="entretien">🔧 Entretien</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='assurance'?'active':''}" data-cat="assurance">🛡️ Assurance</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='salaires'?'active':''}" data-cat="salaires">👥 Salaires</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='lld_credit'?'active':''}" data-cat="lld_credit">🚐 LLD/Crédit</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='tva'?'active':''}" data-cat="tva">🧾 TVA</button>
-          <button class="m-alertes-chip m-charges-cat ${cat==='autre'?'active':''}" data-cat="autre">📝 Autre</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='peage'?'active':''}" data-cat="peage">Péage</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='entretien'?'active':''}" data-cat="entretien">Entretien</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='assurance'?'active':''}" data-cat="assurance">Assurance</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='salaires'?'active':''}" data-cat="salaires">Salaires</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='lld_credit'?'active':''}" data-cat="lld_credit">LLD/Crédit</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='tva'?'active':''}" data-cat="tva">TVA</button>
+          <button class="m-alertes-chip m-charges-cat ${cat==='autre'?'active':''}" data-cat="autre">Autre</button>
         </div>
       `;
       // Filtre fournisseur (alignement PC)
       const fournisseurs = M.charger('fournisseurs');
       if (fournisseurs.length) {
         html += `<div style="margin-bottom:14px"><select id="m-charges-four">
-          <option value="">🏭 Tous fournisseurs</option>
+          <option value="">Tous fournisseurs</option>
           ${fournisseurs.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'')).map(f => `<option value="${M.escHtml(f.id)}" ${fourFilter===f.id?'selected':''}>${M.escHtml(f.nom||f.id)}</option>`).join('')}
         </select></div>`;
       }
@@ -7383,7 +7383,7 @@
                 const estPayee = c.statut === 'paye' || c.statut === 'payee';
                 const estPartielle = c.statut === 'partiel';
                 const enRetard = !estPayee && c.date && (new Date(c.date) < new Date(Date.now() - 7*86400000));
-                const statutLabel = estPayee ? '✅ Payée' : estPartielle ? '🟡 Partielle' : (enRetard ? '🔴 Retard' : '⏳ À payer');
+                const statutLabel = estPayee ? '✅ Payée' : estPartielle ? 'Partielle' : (enRetard ? 'Retard' : '⏳ À payer');
                 const statutColor = estPayee ? 'var(--m-green)' : estPartielle ? 'var(--m-accent)' : (enRetard ? 'var(--m-red)' : 'var(--m-text-muted)');
                 const borderColor = estPayee ? 'var(--m-green)' : (enRetard ? 'var(--m-red)' : 'var(--m-accent)');
                 // Si pas payee, le badge statut devient un bouton "Marquer payee" (stopPropagation pour ne pas declencher l'edit)
@@ -7474,7 +7474,7 @@
             M.sauvegarder('charges', arr.filter(c => !ids.includes(c.id)));
             if (pleinIds.length) M.sauvegarder('carburant', M.charger('carburant').filter(p => !pleinIds.includes(p.id)));
             if (entIds.length) M.sauvegarder('entretiens', M.charger('entretiens').filter(e => !entIds.includes(e.id)));
-            M.toast(`🗑️ ${ids.length} charge${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
+            M.toast(`${ids.length} charge${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
           } else if (action === 'paye') {
             const res = await M.dialogChoisirDate({ titre: `✅ Marquer ${ids.length} charge${ids.length>1?'s':''} payée${ids.length>1?'s':''}`, labelDate: 'Date de paiement', btnOk: '✅ Confirmer' });
             if (!res) return;
@@ -7587,12 +7587,12 @@
       let html = `
         ${M.renderPeriodeBar('rentabilite', 'mois')}
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${tab==='global'?'active':''}" data-tab="global">📊 Global</button>
-          <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">🚐 Véhicule</button>
-          <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">🧑‍💼 Client</button>
-          <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">👤 Chauffeur</button>
-          <button class="m-alertes-chip ${tab==='tournee'?'active':''}" data-tab="tournee">🛣️ Tournée</button>
-          <button class="m-alertes-chip ${tab==='simulateur'?'active':''}" data-tab="simulateur">🧮 Simulateur</button>
+          <button class="m-alertes-chip ${tab==='global'?'active':''}" data-tab="global">Global</button>
+          <button class="m-alertes-chip ${tab==='vehicule'?'active':''}" data-tab="vehicule">Véhicule</button>
+          <button class="m-alertes-chip ${tab==='client'?'active':''}" data-tab="client">Client</button>
+          <button class="m-alertes-chip ${tab==='chauffeur'?'active':''}" data-tab="chauffeur">Chauffeur</button>
+          <button class="m-alertes-chip ${tab==='tournee'?'active':''}" data-tab="tournee">Tournée</button>
+          <button class="m-alertes-chip ${tab==='simulateur'?'active':''}" data-tab="simulateur">Simulateur</button>
         </div>
       `;
 
@@ -7655,7 +7655,7 @@
             <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px"><span style="display:flex;align-items:center;gap:10px"><span>💸</span><span>Autres charges</span></span><span style="font-weight:600">${M.format$(autresTotal)}</span></div>
           </div>
           ${topVeh.length ? `
-            <div style="font-weight:600;font-size:.92rem;margin:18px 4px 8px">🏆 Top ${topVeh.length} véhicules par marge</div>
+            <div style="font-weight:600;font-size:.92rem;margin:18px 4px 8px">Top ${topVeh.length} véhicules par marge</div>
             ${topVeh.map((x, i) => {
               const margePct = x.ca > 0 ? (x.marge / x.ca * 100) : 0;
               const c = x.marge >= 0 ? margeColor(margePct) : 'var(--m-red)';
@@ -7761,7 +7761,7 @@
           html += `<div class="m-empty"><div class="m-empty-icon">🧑‍💼</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons sur la période.</p></div>`;
           return html;
         }
-        html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée = CA - (km × coût/km flotte ${M.format$(coutKmRef)}/km)</p>`;
+        html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">Marge estimée = CA - (km × coût/km flotte ${M.format$(coutKmRef)}/km)</p>`;
         const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
         html += renderTotaux(`Total ${stats.length} client${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
         stats.forEach(({ nom, ca, dep, km, nbLiv }) => {
@@ -7789,7 +7789,7 @@
           html += `<div class="m-empty"><div class="m-empty-icon">👤</div><h3 class="m-empty-title">Aucune donnée</h3><p class="m-empty-text">Pas de livraisons rattachées à un chauffeur sur la période.</p></div>`;
           return html;
         }
-        html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">💡 Marge estimée : CA - carburant chauffeur - autres charges (au prorata des km)</p>`;
+        html += `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 12px;line-height:1.4">Marge estimée : CA - carburant chauffeur - autres charges (au prorata des km)</p>`;
         const tot = stats.reduce((a, x) => ({ ca: a.ca + x.ca, marge: a.marge + (x.ca - x.dep), nbLiv: a.nbLiv + x.nbLiv }), { ca: 0, marge: 0, nbLiv: 0 });
         html += renderTotaux(`Total ${stats.length} chauffeur${stats.length > 1 ? 's' : ''}`, tot.ca, tot.marge, tot.nbLiv);
         stats.forEach(({ s, ca, dep, km, nbLiv }) => {
@@ -7965,7 +7965,7 @@
         const livSorted = livAll.slice().sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
         html += `
-          <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 14px;line-height:1.4">💡 Simulateur de rentabilité (parité PC). Configure tes hypothèses ou pars d'une livraison existante. Tout est en HT.</p>
+          <p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 14px;line-height:1.4">Simulateur de rentabilité (parité PC). Configure tes hypothèses ou pars d'une livraison existante. Tout est en HT.</p>
 
           <div class="m-card" style="padding:14px;margin-bottom:12px">
             <div class="m-form-field" style="margin-bottom:10px">
@@ -7988,7 +7988,7 @@
           </div>
 
           <div class="m-card" style="padding:14px;margin-bottom:12px">
-            <div style="font-weight:600;margin-bottom:10px">📈 Activité</div>
+            <div style="font-weight:600;margin-bottom:10px">Activité</div>
             <div class="m-form-row">
               <div class="m-form-field">
                 <label class="m-form-label">${isLivMode ? 'Distance livraison' : 'Km / jour'}</label>
@@ -8025,7 +8025,7 @@
 
           <div class="m-card" style="padding:14px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap">
-              <span>💸 Charges fixes mensuelles HT</span>
+              <span>Charges fixes mensuelles HT</span>
               <div style="display:flex;gap:6px">
                 <button type="button" id="m-sim-charges-real" class="m-btn" style="font-size:.7rem;padding:6px 8px">Charges réelles</button>
                 <button type="button" id="m-sim-load-veh" class="m-btn" style="font-size:.7rem;padding:6px 8px">Depuis véhicule</button>
@@ -8058,7 +8058,7 @@
 
           <div class="m-card" style="padding:14px;margin-bottom:12px">
             <div style="font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
-              <span>📝 Autres charges mensuelles</span>
+              <span>Autres charges mensuelles</span>
               <button type="button" id="m-sim-add-charge" class="m-btn m-btn-primary" style="font-size:.72rem;padding:6px 10px">+ Ajouter</button>
             </div>
             <div id="m-sim-autres-list">
@@ -8089,17 +8089,17 @@
               </div>
               <div class="m-card" style="padding:0;margin-bottom:12px">
                 <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>⛽ Carburant</span><span style="font-weight:600">${M.format$(coutCarburant)} <span style="color:var(--m-text-muted);font-weight:400;font-size:.78rem">(${litresMois.toFixed(1).replace('.', ',')} L)</span></span></div>
-                <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>📦 Charges fixes</span><span style="font-weight:600">${M.format$(chargesFixes)}${cfg.repartitionCharges === 'prorata' && !prorataBlocked ? ' <span style="color:var(--m-text-muted);font-weight:400;font-size:.72rem">prorata</span>' : ''}</span></div>
-                <div style="display:flex;justify-content:space-between;padding:14px 16px"><span>📏 Marge / km</span><span style="font-weight:600;color:${margeParKm >= 0 ? 'var(--m-green)' : 'var(--m-red)'}">${M.format$(margeParKm)}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--m-border)"><span>Charges fixes</span><span style="font-weight:600">${M.format$(chargesFixes)}${cfg.repartitionCharges === 'prorata' && !prorataBlocked ? ' <span style="color:var(--m-text-muted);font-weight:400;font-size:.72rem">prorata</span>' : ''}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:14px 16px"><span>Marge / km</span><span style="font-weight:600;color:${margeParKm >= 0 ? 'var(--m-green)' : 'var(--m-red)'}">${M.format$(margeParKm)}</span></div>
               </div>
               <div class="m-card" style="padding:14px;margin-bottom:12px">
-                <div style="font-weight:600;margin-bottom:10px">📊 Analyse journalière</div>
+                <div style="font-weight:600;margin-bottom:10px">Analyse journalière</div>
                 <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px"><span style="color:var(--m-text-muted)">Revenu / jour</span><span>${M.format$(revenuJ)}</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px"><span style="color:var(--m-text-muted)">Coût variable / jour</span><span style="color:var(--m-red)">−${M.format$(coutVarJ)}</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:.88rem"><span style="color:var(--m-text-muted)">Marge / jour</span><span style="color:${margeJ >= 0 ? 'var(--m-green)' : 'var(--m-red)'};font-weight:600">${M.format$(margeJ)}</span></div>
               </div>
               <div class="m-card" style="padding:14px;margin-bottom:12px">
-                <div style="font-weight:600;margin-bottom:10px">🎯 Seuil de rentabilité</div>
+                <div style="font-weight:600;margin-bottom:10px">Seuil de rentabilité</div>
                 <div style="display:flex;justify-content:space-between;font-size:.88rem;margin-bottom:6px"><span style="color:var(--m-text-muted)">Jours nécessaires</span><span style="font-weight:600">${fmtJ(seuilJours)}</span></div>
                 <div style="display:flex;justify-content:space-between;font-size:.88rem"><span style="color:var(--m-text-muted)">Point mort CA</span><span style="font-weight:600">${pointMortCA != null ? M.format$(pointMortCA) : 'Non atteignable'}</span></div>
               </div>
@@ -8450,7 +8450,7 @@
           </div>`).join('')}
         </div>` : ''}
       ${(opts.livraisons || []).length ? `
-        <div style="font-weight:600;font-size:.88rem;margin:14px 0 8px">📋 Livraisons (${opts.livraisons.length})</div>
+        <div style="font-weight:600;font-size:.88rem;margin:14px 0 8px">Livraisons (${opts.livraisons.length})</div>
         ${livItems}
       ` : '<div class="m-empty" style="padding:20px"><p class="m-empty-text">Aucune livraison sur la période.</p></div>'}
     `;
@@ -8543,12 +8543,12 @@
       let html = `<button class="m-fab" onclick="MCAm.formNouveauClient()" aria-label="Nouveau client">+</button>`;
       html += `
         <div style="margin-bottom:10px">
-          <input type="search" id="m-clients-search" placeholder="🔍 Rechercher (nom, tel, ville, SIREN)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
+          <input type="search" id="m-clients-search" placeholder="Rechercher (nom, tel, ville, SIREN)" value="${M.escHtml(M.state.clientsRecherche)}" autocomplete="off" />
         </div>
         <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
           <button class="m-alertes-chip ${typeFilter==='tous'?'active':''}" data-cli-type="tous">Tous (${clients.length})</button>
-          <button class="m-alertes-chip ${typeFilter==='pro'?'active':''}" data-cli-type="pro">🏢 Pro (${cntPro})</button>
-          <button class="m-alertes-chip ${typeFilter==='particulier'?'active':''}" data-cli-type="particulier">👤 Particulier (${cntPart})</button>
+          <button class="m-alertes-chip ${typeFilter==='pro'?'active':''}" data-cli-type="pro">Pro (${cntPro})</button>
+          <button class="m-alertes-chip ${typeFilter==='particulier'?'active':''}" data-cli-type="particulier">Particulier (${cntPart})</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:14px;align-items:center;font-size:.78rem;color:var(--m-text-muted)">
           <span>Tri :</span>
@@ -8660,8 +8660,8 @@
     const isPro = (c.type || 'pro') === 'pro';
     const nomAffiche = c.type === 'particulier' && c.prenom ? `${c.prenom} ${c.nom||''}` : (c.nom || '—');
     const badgeType = isPro
-      ? `<span style="background:rgba(95,149,255,0.15);color:var(--m-blue);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">🏢 PRO</span>`
-      : `<span style="background:rgba(155,89,182,0.15);color:var(--m-purple);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">👤 PARTICULIER</span>`;
+      ? `<span style="background:rgba(95,149,255,0.15);color:var(--m-blue);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">PRO</span>`
+      : `<span style="background:rgba(155,89,182,0.15);color:var(--m-purple);padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;letter-spacing:.04em">PARTICULIER</span>`;
 
     return `
       <div style="text-align:center;padding:8px 0 18px">
@@ -8688,7 +8688,7 @@
       <!-- Encaissement (parity-mobile-alertes-clients) -->
       ${s.facture > 0 ? `
         <div class="m-section" style="margin-top:18px">
-          <div class="m-section-header"><h3 class="m-section-title">💰 Encaissement</h3></div>
+          <div class="m-section-header"><h3 class="m-section-title">Encaissement</h3></div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
             <div style="background:var(--m-card);border:1px solid var(--m-border);border-radius:12px;padding:12px;text-align:center">
               <div style="font-size:.66rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.04em;font-weight:700">Facturé</div>
@@ -8727,7 +8727,7 @@
 
       <div class="m-section">
         <div class="m-section-header">
-          <h3 class="m-section-title">📦 Livraisons</h3>
+          <h3 class="m-section-title">Livraisons</h3>
           <span style="font-size:.85rem;color:var(--m-text-muted)">${livClient.length} · ${M.format$(s.caTotal)}</span>
         </div>
         ${livClient.length ? livClient.slice().sort((a,b) => (b.date||'').localeCompare(a.date||'')).slice(0, 10).map(l => {
@@ -8778,7 +8778,7 @@
       let html = `<button class="m-fab" onclick="MCAm.formNouveauFournisseur()" aria-label="Nouveau fournisseur">+</button>`;
       html += `
         <div style="margin-bottom:14px">
-          <input type="search" id="m-four-search" placeholder="🔍 Rechercher" value="${M.escHtml(M.state.fournisseursRecherche)}" autocomplete="off" />
+          <input type="search" id="m-four-search" placeholder="Rechercher" value="${M.escHtml(M.state.fournisseursRecherche)}" autocomplete="off" />
         </div>
       `;
 
@@ -8931,20 +8931,20 @@
       let html = `<button class="m-fab" onclick="MCAm.formNouveauVehicule()" aria-label="Nouveau véhicule">+</button>`;
       html += `
         <div style="margin-bottom:10px">
-          <input type="search" id="m-veh-search" placeholder="🔍 Rechercher (immat, marque, VIN)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-veh-search" placeholder="Rechercher (immat, marque, VIN)" value="${M.escHtml(M.state.vehiculesRecherche)}" autocomplete="off" />
         </div>
         <div style="display:flex;gap:6px;margin-bottom:8px">
           <select id="m-veh-carb" style="flex:1 1 auto">
             <option value="">⛽ Tous carburants</option>
             <option value="diesel"     ${filtreCarb==='diesel'?'selected':''}>⛽ Diesel/Gazole</option>
             <option value="essence"    ${filtreCarb==='essence'?'selected':''}>⛽ Essence</option>
-            <option value="gnv"        ${filtreCarb==='gnv'?'selected':''}>🌿 GNV/BioGNV</option>
+            <option value="gnv"        ${filtreCarb==='gnv'?'selected':''}>GNV/BioGNV</option>
             <option value="electrique" ${filtreCarb==='electrique'?'selected':''}>⚡ Électrique</option>
-            <option value="hybride"    ${filtreCarb==='hybride'?'selected':''}>🔋 Hybride</option>
-            <option value="hydrogene"  ${filtreCarb==='hydrogene'?'selected':''}>💧 Hydrogène</option>
+            <option value="hybride"    ${filtreCarb==='hybride'?'selected':''}>Hybride</option>
+            <option value="hydrogene"  ${filtreCarb==='hydrogene'?'selected':''}>Hydrogène</option>
           </select>
           <select id="m-veh-sal" style="flex:1 1 auto">
-            <option value="">👤 Tous chauffeurs</option>
+            <option value="">Tous chauffeurs</option>
             ${salaries.map(s => `<option value="${M.escHtml(s.id)}" ${filtreSal===s.id?'selected':''}>${M.escHtml(((s.prenom?s.prenom+' ':'') + (s.nom||s.id)).trim())}</option>`).join('')}
           </select>
         </div>
@@ -8970,7 +8970,7 @@
         const ct  = M.statutDateBadge(v.dateCT, 'CT');
         const ass = M.statutDateBadge(v.dateAssurance, 'Assu');
         const cgUploaded = !!(v.docs?.carte_grise);
-        const cgIcon = cgUploaded ? `<span title="Carte grise uploadée" style="color:var(--m-green);font-size:.78rem;font-weight:600">📄 CG</span>`
+        const cgIcon = cgUploaded ? `<span title="Carte grise uploadée" style="color:var(--m-green);font-size:.78rem;font-weight:600">CG</span>`
                                   : `<span title="Carte grise manquante" style="color:var(--m-text-muted);font-size:.78rem">📄—</span>`;
         const kmTxt = v.km ? `${M.formatNum(v.km)} km` : '';
         html += `<button type="button" class="m-card m-card-pressable m-veh-row" data-id="${M.escHtml(v.id)}" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:18px;margin-bottom:10px;color:inherit;min-height:48px">
@@ -9118,8 +9118,8 @@
     // Type de carburant lisible
     const carbLabels = {
       diesel: '⛽ Diesel/Gazole', gazole: '⛽ Diesel/Gazole',
-      essence: '⛽ Essence', gnv: '🌿 GNV/BioGNV', biognv: '🌿 GNV/BioGNV',
-      electrique: '⚡ Électrique', hybride: '🔋 Hybride', hydrogene: '💧 Hydrogène'
+      essence: '⛽ Essence', gnv: 'GNV/BioGNV', biognv: 'GNV/BioGNV',
+      electrique: '⚡ Électrique', hybride: 'Hybride', hydrogene: 'Hydrogène'
     };
     const carbAffiche = v.typeCarburant ? (carbLabels[(v.typeCarburant||'').toLowerCase()] || v.typeCarburant) : '—';
 
@@ -9154,8 +9154,8 @@
         ${v.salNom ? (() => {
           const sal = v.salId ? M.charger('salaries').find(s => s.id === v.salId) : M.findSalarieByName(v.salNom);
           return sal
-            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(v.salNom)} ›</button>`
-            : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(v.salNom)}</p>`;
+            ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(sal.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">${M.escHtml(v.salNom)} ›</button>`
+            : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(v.salNom)}</p>`;
         })() : ''}
       </div>
 
@@ -9177,14 +9177,14 @@
 
       <!-- 📅 ECHEANCES (CT, assurance, carte grise) -->
       <div class="m-section">
-        <div class="m-section-header"><h3 class="m-section-title">📅 Échéances</h3></div>
+        <div class="m-section-header"><h3 class="m-section-title">Échéances</h3></div>
         <div class="m-card" style="padding:0;border-left:4px solid ${ct.color}">
-          ${echeanceRow('🔧 Contrôle technique', v.dateCT, ct)}
-          ${echeanceRow('🛡️ Assurance (carte verte)', v.dateAssurance, ass)}
-          ${echeanceRow('📄 Carte grise', v.dateCarteGrise, cg)}
+          ${echeanceRow('Contrôle technique', v.dateCT, ct)}
+          ${echeanceRow('Assurance (carte verte)', v.dateAssurance, ass)}
+          ${echeanceRow('Carte grise', v.dateCarteGrise, cg)}
           <div style="padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px">
             <div>
-              <div style="font-size:.78rem;font-weight:600">📜 1ère mise en circulation</div>
+              <div style="font-size:.78rem;font-weight:600">1ère mise en circulation</div>
               <div style="font-size:.72rem;color:var(--m-text-muted);margin-top:2px">${v.dateMiseEnCirculation ? new Date(v.dateMiseEnCirculation).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Non renseigné'}</div>
             </div>
             ${v.dateMiseEnCirculation ? (() => {
@@ -9197,7 +9197,7 @@
 
       <!-- 📄 CARTE GRISE (aperçu + actions) -->
       <div class="m-section">
-        <div class="m-section-header"><h3 class="m-section-title">📄 Carte grise</h3></div>
+        <div class="m-section-header"><h3 class="m-section-title">Carte grise</h3></div>
         <div class="m-card" style="padding:14px 16px">
           ${docCG ? `
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
@@ -9208,14 +9208,14 @@
               </div>
             </div>
             <div style="display:flex;gap:6px">
-              <button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','carte_grise')" class="m-btn" style="flex:1 1 auto">👁 Voir</button>
+              <button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','carte_grise')" class="m-btn" style="flex:1 1 auto">Voir</button>
               <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="flex:1 1 auto">↻ Remplacer</button>
             </div>
           ` : `
             <div style="text-align:center;padding:8px 0 4px">
               <div style="font-size:2rem;margin-bottom:6px">📄</div>
               <p style="color:var(--m-text-muted);font-size:.85rem;margin:0 0 10px">Aucune carte grise enregistrée</p>
-              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">📷 Uploader la carte grise</button>
+              <button type="button" onclick="MCAm.replaceCarteGrise('${M.escHtml(v.id)}')" class="m-btn" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px dashed var(--m-accent)">Uploader la carte grise</button>
             </div>
           `}
         </div>
@@ -9223,7 +9223,7 @@
 
       <!-- 🪪 IDENTITE -->
       <div class="m-section">
-        <div class="m-section-header"><h3 class="m-section-title">🪪 Identité</h3></div>
+        <div class="m-section-header"><h3 class="m-section-title">Identité</h3></div>
         <div class="m-card" style="padding:0">
           ${detailRow('Immatriculation', M.escHtml(v.immat || '—'))}
           ${v.marque ? detailRow('Marque', M.escHtml(v.marque)) : ''}
@@ -9238,7 +9238,7 @@
       <!-- 📐 CARACTERISTIQUES -->
       ${(v.km || v.kmInitial || v.capaciteReservoir || v.conso || consoCalc != null || v.ptac || v.ptra || v.essieux || v.entretienIntervalKm) ? `
         <div class="m-section">
-          <div class="m-section-header"><h3 class="m-section-title">📐 Caractéristiques</h3></div>
+          <div class="m-section-header"><h3 class="m-section-title">Caractéristiques</h3></div>
           <div class="m-card" style="padding:0">
             ${v.km ? detailRow('Kilométrage', `${M.formatNum(v.km)} km`) : ''}
             ${v.kmInitial ? detailRow('Km initial', `${M.formatNum(v.kmInitial)} km`) : ''}
@@ -9256,7 +9256,7 @@
       <!-- 💰 ACQUISITION -->
       ${(v.modeAcquisition || v.dateAcquisition) ? `
         <div class="m-section">
-          <div class="m-section-header"><h3 class="m-section-title">💰 Acquisition</h3></div>
+          <div class="m-section-header"><h3 class="m-section-title">Acquisition</h3></div>
           <div class="m-card" style="padding:0">
             ${v.modeAcquisition ? detailRow('Mode', `<span style="text-transform:uppercase">${M.escHtml(v.modeAcquisition)}</span>`) : ''}
             ${v.dateAcquisition ? detailRow('Date', M.formatDate(v.dateAcquisition), { last: !v.prixAchatHT && !v.loyerMensuelHT }) : ''}
@@ -9308,10 +9308,10 @@
       ${entretiens.length ? `
         <div class="m-section">
           <div class="m-section-header">
-            <h3 class="m-section-title">🔧 Entretiens</h3>
+            <h3 class="m-section-title">Entretiens</h3>
             <span style="font-size:.85rem;color:var(--m-text-muted)">${entretiens.length} · ${derniersEntretiens.length} affichés</span>
           </div>
-          ${dernierEntretien?.prochainKm ? `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px;padding:0 4px">🔔 Prochain prévu : <strong>${M.formatNum(dernierEntretien.prochainKm)} km</strong></p>` : ''}
+          ${dernierEntretien?.prochainKm ? `<p style="font-size:.78rem;color:var(--m-text-muted);margin:0 0 8px;padding:0 4px">Prochain prévu : <strong>${M.formatNum(dernierEntretien.prochainKm)} km</strong></p>` : ''}
           <div class="m-card" style="padding:0">
             ${derniersEntretiens.map((e, i) => {
               const isLast = i === derniersEntretiens.length - 1;
@@ -9331,7 +9331,7 @@
       ${charges.length ? `
         <div class="m-section">
           <div class="m-section-header">
-            <h3 class="m-section-title">💸 Charges rattachées</h3>
+            <h3 class="m-section-title">Charges rattachées</h3>
             <span style="font-size:.85rem;color:var(--m-text-muted)">${charges.length} · ${M.format$(totalCharges)}</span>
           </div>
           <div class="m-card" style="padding:0">
@@ -9354,7 +9354,7 @@
       ${inspections.length ? `
         <div class="m-section">
           <div class="m-section-header">
-            <h3 class="m-section-title">🚗 Inspections</h3>
+            <h3 class="m-section-title">Inspections</h3>
             <span style="font-size:.85rem;color:var(--m-text-muted)">${inspections.length} · ${dernieresInspections.length} affichées</span>
           </div>
           <div class="m-card" style="padding:0">
@@ -9397,7 +9397,7 @@
         return `
           ${docsAutres.length ? `
             <div class="m-section">
-              <div class="m-section-header"><h3 class="m-section-title">📎 Autres documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsAutres.length}</span></div>
+              <div class="m-section-header"><h3 class="m-section-title">Autres documents</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${docsAutres.length}</span></div>
               <div class="m-card" style="padding:0">
                 ${docsAutres.map((t, i) => `<button type="button" onclick="MCAm.visualiserDocVehicule('${M.escHtml(v.id)}','${t.type}')" style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;${i < docsAutres.length - 1 ? 'border-bottom:1px solid var(--m-border);' : ''}background:transparent;border:0;color:inherit;text-align:left;cursor:pointer;font-family:inherit;min-height:48px"><span style="font-size:1.2rem">${t.icon}</span><span style="flex:1 1 auto;font-weight:500;font-size:.88rem">${t.label}</span><span style="color:var(--m-text-muted)">›</span></button>`).join('')}
               </div>
@@ -9406,14 +9406,14 @@
 
           <div class="m-section">
             <div class="m-section-header">
-              <h3 class="m-section-title">📦 Activité totale</h3>
+              <h3 class="m-section-title">Activité totale</h3>
               <span style="font-size:.85rem;color:var(--m-text-muted)">${livraisons.length} liv · ${M.format$(totalCa)} · ${M.formatNum(totalKm.toFixed(0))} km</span>
             </div>
           </div>
 
           ${topChauf.length ? `
             <div class="m-section">
-              <div class="m-section-header"><h3 class="m-section-title">👤 Historique conducteurs</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${topChauf.length}</span></div>
+              <div class="m-section-header"><h3 class="m-section-title">Historique conducteurs</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${topChauf.length}</span></div>
               <div class="m-card" style="padding:0">
                 ${topChauf.map((c, i) => {
                   const sal = salaries.find(s => s.id === c.id);
@@ -9434,7 +9434,7 @@
           ` : ''}
 
           <div class="m-section">
-            <div class="m-section-header"><h3 class="m-section-title">📋 Dernières livraisons</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${dernieres.length} affichées</span></div>
+            <div class="m-section-header"><h3 class="m-section-title">Dernières livraisons</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${dernieres.length} affichées</span></div>
             ${dernieres.map(l => `
               <button type="button" class="m-card m-card-pressable" onclick="MCAm.editerLivraison('${M.escHtml(l.id)}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;width:100%;text-align:left;background:var(--m-card);border:1px solid var(--m-border);border-radius:14px;margin-bottom:8px;color:inherit;font-family:inherit;min-height:48px">
                 <div style="flex:1 1 auto;min-width:0">
@@ -9569,7 +9569,7 @@
             <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionné${selCount>1?'s':''}</div>
             <button type="button" id="m-entr-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
           </div>
-          ${selCount > 0 ? `<button type="button" id="m-entr-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">🗑️ Supprimer la sélection (cascade charge liée)</button>` : ''}
+          ${selCount > 0 ? `<button type="button" id="m-entr-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">Supprimer la sélection (cascade charge liée)</button>` : ''}
         </div>`;
       }
       html += `
@@ -9601,7 +9601,7 @@
               const det = [detKm, detDate].filter(Boolean).join(' · ');
               return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--m-border);min-height:44px">
                 <div style="flex:1 1 auto;min-width:0">
-                  <div style="font-weight:600;font-size:.88rem">🚐 ${M.escHtml(veh.immat || veh.id)} ${tag}</div>
+                  <div style="font-weight:600;font-size:.88rem">${M.escHtml(veh.immat || veh.id)} ${tag}</div>
                   <div style="font-size:.78rem;color:var(--m-text-muted);margin-top:2px">${M.escHtml(det || 'Échéance proche')}</div>
                 </div>
                 <button type="button" class="m-btn m-entr-add-for-veh" data-veh="${M.escHtml(veh.id)}" style="width:auto;padding:0 12px;height:36px;font-size:.78rem;flex-shrink:0">+ Saisir</button>
@@ -9619,7 +9619,7 @@
         html += `
           <div style="margin:0 0 10px">
             <select id="m-ent-vehfilter">
-              <option value="">🚐 Tous les véhicules</option>
+              <option value="">Tous les véhicules</option>
               ${vehicules.map(v => `<option value="${M.escHtml(v.id)}" ${v.id === filterId ? 'selected' : ''}>${M.escHtml(v.immat || v.id)}</option>`).join('')}
             </select>
           </div>
@@ -9744,7 +9744,7 @@
         const chargeIds = aSuppr.map(e => e.chargeId).filter(Boolean);
         M.sauvegarder('entretiens', entrs.filter(e => !ids.includes(e.id)));
         M.sauvegarder('charges', M.charger('charges').filter(c => !chargeIds.includes(c.id) && !ids.includes(c.entretienId)));
-        M.toast(`🗑️ ${ids.length} entretien${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
+        M.toast(`${ids.length} entretien${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
         M.state.entrBulkSel.clear(); M.state.entrBulkMode = false;
         M.go('entretiens');
       });
@@ -9783,12 +9783,12 @@
             <div style="flex:1 1 auto;font-size:.92rem"><strong>${selCount}</strong> sélectionnée${selCount>1?'s':''}</div>
             <button type="button" id="m-insp-bulk-exit" class="m-btn" style="width:auto;padding:0 12px;height:36px;font-size:.78rem">✕</button>
           </div>
-          ${selCount > 0 ? `<button type="button" id="m-insp-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">🗑️ Supprimer la sélection</button>` : ''}
+          ${selCount > 0 ? `<button type="button" id="m-insp-bulk-delete" class="m-btn m-btn-danger" style="width:100%;height:36px;font-size:.74rem">Supprimer la sélection</button>` : ''}
         </div>`;
       }
       html += `
         <div style="margin-bottom:14px">
-          <input type="search" id="m-insp-search" placeholder="🔍 Rechercher (immat, salarié)" value="${M.escHtml(M.state.inspectionsRecherche)}" autocomplete="off" />
+          <input type="search" id="m-insp-search" placeholder="Rechercher (immat, salarié)" value="${M.escHtml(M.state.inspectionsRecherche)}" autocomplete="off" />
         </div>
       `;
 
@@ -9812,7 +9812,7 @@
           <div style="flex:1 1 auto;min-width:0">
             <div style="font-weight:600;font-size:.95rem">${M.escHtml(i.vehImmat || '—')}</div>
             <div style="color:var(--m-text-muted);font-size:.8rem;margin-top:2px">${M.formatDate(i.date)}${i.salNom ? ' · 👤 ' + M.escHtml(i.salNom) : ''}${i.km ? ' · ' + M.formatNum(i.km) + ' km' : ''}</div>
-            ${nbPhotos ? `<div style="margin-top:4px;font-size:.75rem;color:var(--m-blue);font-weight:600">📸 ${nbPhotos} photo${nbPhotos>1?'s':''}</div>` : ''}
+            ${nbPhotos ? `<div style="margin-top:4px;font-size:.75rem;color:var(--m-blue);font-weight:600">${nbPhotos} photo${nbPhotos>1?'s':''}</div>` : ''}
           </div>
           ${bulkOn ? '' : '<span style="color:var(--m-text-muted);font-size:1.2rem;flex-shrink:0">›</span>'}
         </div>`;
@@ -9852,7 +9852,7 @@
         if (!ids.length) return;
         if (!await M.confirm(`Supprimer définitivement ${ids.length} inspection${ids.length>1?'s':''} ?`, { titre: 'Suppression en lot' })) return;
         M.sauvegarder('inspections', M.charger('inspections').filter(x => !ids.includes(x.id)));
-        M.toast(`🗑️ ${ids.length} inspection${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
+        M.toast(`${ids.length} inspection${ids.length>1?'s':''} supprimée${ids.length>1?'s':''}`);
         M.state.inspBulkSel.clear(); M.state.inspBulkMode = false; M.go('inspections');
       });
     }
@@ -9875,8 +9875,8 @@
           : `<div style="display:inline-block;padding:8px 18px;background:var(--m-accent-soft);color:var(--m-accent);border-radius:14px;font-size:1.4rem;font-weight:800;letter-spacing:.05em">${M.escHtml(i.vehImmat || '—')}</div>`}
         <p style="font-size:.95rem;margin:8px 0 0;font-weight:500">Inspection du ${M.formatDate(i.date)}</p>
         ${i.salNom ? (salInsp
-          ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(salInsp.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">👤 ${M.escHtml(i.salNom)} ›</button>`
-          : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">👤 ${M.escHtml(i.salNom)}</p>`) : ''}
+          ? `<button type="button" onclick="MCAm.openDetail('salaries','${M.escHtml(salInsp.id)}')" style="background:none;border:none;color:var(--m-blue);font-size:.85rem;margin-top:4px;font-weight:600;cursor:pointer;font-family:inherit">${M.escHtml(i.salNom)} ›</button>`
+          : `<p style="color:var(--m-text-muted);font-size:.85rem;margin:4px 0 0">${M.escHtml(i.salNom)}</p>`) : ''}
         <div style="margin-top:12px"><button type="button" onclick="MCAm.editerInspection('${M.escHtml(i.id)}')" style="background:var(--m-accent-soft);color:var(--m-accent);border:1px solid rgba(245,166,35,0.3);border-radius:10px;padding:8px 16px;font-weight:600;font-size:.85rem;cursor:pointer;font-family:inherit">✏️ Modifier</button></div>
       </div>
 
@@ -9889,7 +9889,7 @@
 
       ${photos.length ? `
         <div class="m-section">
-          <div class="m-section-header"><h3 class="m-section-title">📸 Photos (${photos.length})</h3></div>
+          <div class="m-section-header"><h3 class="m-section-title">Photos (${photos.length})</h3></div>
           <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
             ${photos.map((p, idx) => {
               const url = typeof p === 'string' ? p : (p.url || p.dataUrl || '');
@@ -10012,14 +10012,14 @@
       const k = M.calculerKpisEquipe();
       const tab = M.state.equipeTab || 'salaries';
       const fmtEur = n => (Math.round(n) || 0).toLocaleString('fr-FR') + ' €';
-      const labelConf = { ok: '🟢 Conforme', warn: '🟠 À surveiller', critical: '🔴 Action requise' }[k.conformite.niveau];
+      const labelConf = { ok: 'Conforme', warn: 'À surveiller', critical: 'Action requise' }[k.conformite.niveau];
 
       // Header KPIs sticky (4 cartes en grille 2x2 mobile)
       const kpiRow = `
         <div class="m-equipe-kpis" style="position:sticky;top:0;z-index:10;background:var(--m-bg,#0f1115);padding:12px 0 8px;margin:-8px 0 14px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">👥 Effectif</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.effectif.actifs}</div><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99)">${k.effectif.actifs} / ${k.effectif.total} contrat${k.effectif.total > 1 ? 's' : ''}</div></div>
+          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">Effectif</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.effectif.actifs}</div><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99)">${k.effectif.actifs} / ${k.effectif.total} contrat${k.effectif.total > 1 ? 's' : ''}</div></div>
           <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">⏱️ Heures sem.</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.heures.total.toFixed(1)} h</div><div style="font-size:.7rem;color:var(--m-text-muted,#8a8f99)">prévu ${k.heures.planifiees.toFixed(1)}h · réel ${k.heures.reelles.toFixed(1)}h</div></div>
-          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">📦 Livraisons 30j</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.livraisons.nb}</div><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99)">${fmtEur(k.livraisons.ca)} CA HT</div></div>
+          <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">Livraisons 30j</div><div style="font-size:1.4rem;font-weight:700;margin-top:4px">${k.livraisons.nb}</div><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99)">${fmtEur(k.livraisons.ca)} CA HT</div></div>
           <div class="m-kpi-card" style="background:var(--m-card,#1a1d22);border-radius:12px;padding:12px;border-left:3px solid ${k.conformite.niveau === 'critical' ? '#dc3545' : k.conformite.niveau === 'warn' ? '#e67e22' : '#28a745'}"><div style="font-size:.72rem;color:var(--m-text-muted,#8a8f99);text-transform:uppercase;letter-spacing:.04em">✅ Conformité</div><div style="font-size:.95rem;font-weight:700;margin-top:4px">${labelConf}</div><div style="font-size:.7rem;color:var(--m-text-muted,#8a8f99)">${k.conformite.items.length === 0 ? 'Tout est à jour' : k.conformite.items.length + ' point(s) à traiter'}</div></div>
         </div>
       `;
@@ -10027,17 +10027,17 @@
       // Tabs scroll horizontal
       const tabsBar = `
         <div class="m-equipe-tabs" style="display:flex;gap:6px;overflow-x:auto;padding:4px 0;margin-bottom:14px;scrollbar-width:none">
-          <button class="m-alertes-chip ${tab === 'salaries' ? 'active' : ''}" data-equipe-tab="salaries" style="white-space:nowrap;flex:0 0 auto">👥 Salariés</button>
-          <button class="m-alertes-chip ${tab === 'planning' ? 'active' : ''}" data-equipe-tab="planning" style="white-space:nowrap;flex:0 0 auto">📅 Planning</button>
+          <button class="m-alertes-chip ${tab === 'salaries' ? 'active' : ''}" data-equipe-tab="salaries" style="white-space:nowrap;flex:0 0 auto">Salariés</button>
+          <button class="m-alertes-chip ${tab === 'planning' ? 'active' : ''}" data-equipe-tab="planning" style="white-space:nowrap;flex:0 0 auto">Planning</button>
           <button class="m-alertes-chip ${tab === 'heures' ? 'active' : ''}" data-equipe-tab="heures" style="white-space:nowrap;flex:0 0 auto">⏱️ Heures</button>
-          <button class="m-alertes-chip ${tab === 'incidents' ? 'active' : ''}" data-equipe-tab="incidents" style="white-space:nowrap;flex:0 0 auto">🚨 Incidents</button>
+          <button class="m-alertes-chip ${tab === 'incidents' ? 'active' : ''}" data-equipe-tab="incidents" style="white-space:nowrap;flex:0 0 auto">Incidents</button>
         </div>
       `;
 
       // Le contenu de l'onglet est rendu en deeplink (deferred) : on affiche
       // un CTA qui ouvre la page existante. Cela evite de dupliquer le rendu
       // (souvent 200-400 lignes par onglet) dans le hub mobile.
-      const labels = { salaries: '👥 Salariés', planning: '📅 Planning', heures: '⏱️ Heures & Km', incidents: '🚨 Incidents' };
+      const labels = { salaries: 'Salariés', planning: 'Planning', heures: '⏱️ Heures & Km', incidents: 'Incidents' };
       const content = `
         <div class="m-card" style="text-align:center;padding:20px">
           <div style="font-size:2rem;margin-bottom:10px">${labels[tab].split(' ')[0]}</div>
@@ -10104,12 +10104,12 @@
       let html = `<button class="m-fab" onclick="MCAm.formNouveauSalarie()" aria-label="Nouveau salarié">+</button>`;
       html += `
         <div style="margin-bottom:10px">
-          <input type="search" id="m-sal-search" placeholder="🔍 Rechercher (nom, tel, poste)" value="${M.escHtml(M.state.salariesRecherche)}" autocomplete="off" />
+          <input type="search" id="m-sal-search" placeholder="Rechercher (nom, tel, poste)" value="${M.escHtml(M.state.salariesRecherche)}" autocomplete="off" />
         </div>
         <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
           ${chip('actifs', '✅ Actifs', cntActifs)}
           ${chip('inactifs', '⏸️ Inactifs', cntInactifs)}
-          ${chip('tous', '📋 Tous', salaries.length)}
+          ${chip('tous', 'Tous', salaries.length)}
           <button type="button" id="m-sal-postes" style="margin-left:auto;padding:7px 11px;border-radius:14px;border:1px solid var(--m-border);background:var(--m-card);color:var(--m-text-muted);font-size:.74rem;cursor:pointer;font-family:inherit" aria-label="Gérer les postes">⚙️ Postes</button>
         </div>
       `;
@@ -10232,7 +10232,7 @@
               if (!await M.confirm(`Supprimer le poste "${arr[idx]}" ?`, { titre: 'Supprimer poste' })) return;
               arr.splice(idx, 1);
               M.sauvegarderPostes(arr);
-              M.toast('🗑️ Poste supprimé');
+              M.toast('Poste supprimé');
               refresh();
             });
           });
@@ -10275,11 +10275,11 @@
       <!-- Documents -->
       ${(s.datePermis || s.dateAssurance || s.visiteMedicale) ? `
         <div class="m-section">
-          <div class="m-section-header"><h3 class="m-section-title">📋 Documents</h3></div>
+          <div class="m-section-header"><h3 class="m-section-title">Documents</h3></div>
           <div class="m-card" style="padding:0">
-            ${s.datePermis ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">🪪 Permis</span><span style="font-weight:600;color:${permis.color};font-size:.85rem">${permis.icon} ${permis.label}</span></div>` : ''}
-            ${s.dateAssurance ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">🛡️ Assurance</span><span style="font-weight:600;color:${assurance.color};font-size:.85rem">${assurance.icon} ${assurance.label}</span></div>` : ''}
-            ${s.visiteMedicale ?  `<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">🩺 Visite médicale</span><span style="font-weight:600;color:${visite.color};font-size:.85rem">${visite.icon} ${visite.label}</span></div>` : ''}
+            ${s.datePermis ?      `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">Permis</span><span style="font-weight:600;color:${permis.color};font-size:.85rem">${permis.icon} ${permis.label}</span></div>` : ''}
+            ${s.dateAssurance ?   `<div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">Assurance</span><span style="font-weight:600;color:${assurance.color};font-size:.85rem">${assurance.icon} ${assurance.label}</span></div>` : ''}
+            ${s.visiteMedicale ?  `<div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span style="font-size:.85rem">Visite médicale</span><span style="font-weight:600;color:${visite.color};font-size:.85rem">${visite.icon} ${visite.label}</span></div>` : ''}
           </div>
         </div>
       ` : ''}
@@ -10319,7 +10319,7 @@
         return `
           <div class="m-section">
             <div class="m-section-header">
-              <h3 class="m-section-title">🏆 Performances du mois</h3>
+              <h3 class="m-section-title">Performances du mois</h3>
               <span style="font-size:.78rem;color:var(--m-text-muted)">${new Date().toLocaleDateString('fr-FR', { month: 'long' })}</span>
             </div>
             <div class="m-card-row">
@@ -10334,7 +10334,7 @@
 
           <div class="m-section">
             <div class="m-section-header">
-              <h3 class="m-section-title">📦 Total cumulé</h3>
+              <h3 class="m-section-title">Total cumulé</h3>
               <span style="font-size:.85rem;color:var(--m-text-muted)">${livSal.length} liv · ${M.format$(totalCa)}</span>
             </div>
             ${dernieres.map(l => `
@@ -10577,7 +10577,7 @@
           </div>
           ${selCount > 0 ? `<div style="display:flex;gap:6px">
             <button type="button" id="m-inc-bulk-resolu" class="m-btn" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem;background:rgba(46,204,113,0.12);color:var(--m-green);border:1px solid rgba(46,204,113,0.3)">✅ Marquer résolu</button>
-            <button type="button" id="m-inc-bulk-delete" class="m-btn m-btn-danger" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">🗑️ Supprimer</button>
+            <button type="button" id="m-inc-bulk-delete" class="m-btn m-btn-danger" style="flex:1 1 auto;padding:0 8px;height:36px;font-size:.74rem">Supprimer</button>
           </div>` : ''}
         </div>`;
       }
@@ -10587,9 +10587,9 @@
           <div class="m-card m-card-accent"><div class="m-card-title">Total</div><div class="m-card-value">${incidents.length}</div><div class="m-card-sub">enregistrés</div></div>
         </div>
         <div style="display:flex;gap:6px;margin:16px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">📋 Tous</button>
-          <button class="m-alertes-chip ${statut==='ouverts'?'active':''}" data-statut="ouverts">🔴 Ouverts${ouverts.length?` (${ouverts.length})`:''}</button>
-          <button class="m-alertes-chip ${statut==='encours'?'active':''}" data-statut="encours">🟡 En cours${enCours.length?` (${enCours.length})`:''}</button>
+          <button class="m-alertes-chip ${statut==='tous'?'active':''}" data-statut="tous">Tous</button>
+          <button class="m-alertes-chip ${statut==='ouverts'?'active':''}" data-statut="ouverts">Ouverts${ouverts.length?` (${ouverts.length})`:''}</button>
+          <button class="m-alertes-chip ${statut==='encours'?'active':''}" data-statut="encours">En cours${enCours.length?` (${enCours.length})`:''}</button>
           <button class="m-alertes-chip ${statut==='traites'?'active':''}" data-statut="traites">✅ Traités</button>
         </div>
       `;
@@ -10664,7 +10664,7 @@
         if (!ids.length) return;
         if (!await M.confirm(`Supprimer définitivement ${ids.length} incident${ids.length>1?'s':''} ?`, { titre: 'Suppression en lot' })) return;
         M.sauvegarder('incidents', M.charger('incidents').filter(x => !ids.includes(x.id)));
-        M.toast(`🗑️ ${ids.length} incident${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
+        M.toast(`${ids.length} incident${ids.length>1?'s':''} supprimé${ids.length>1?'s':''}`);
         M.state.incBulkSel.clear(); M.state.incBulkMode = false; M.go('incidents');
       });
     }
@@ -10717,7 +10717,7 @@
         ${i.numLiv ?      `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">N° livraison</span><span style="font-weight:500">${M.escHtml(i.numLiv)}</span></div>` : ''}
       </div>
 
-      ${i.description ? `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📝 Description</h3></div><div class="m-card" style="padding:14px;font-size:.88rem;line-height:1.5">${M.escHtml(i.description)}</div></div>` : ''}
+      ${i.description ? `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Description</h3></div><div class="m-card" style="padding:14px;font-size:.88rem;line-height:1.5">${M.escHtml(i.description)}</div></div>` : ''}
     `;
   };
 
@@ -10814,7 +10814,7 @@
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 100);
-    M.toast('📥 Export CSV en cours');
+    M.toast('Export CSV en cours');
   };
 
   M.register('tva', {
@@ -10967,17 +10967,17 @@
 
       let html = `
         <div style="display:flex;gap:8px;margin-bottom:10px">
-          <button type="button" class="m-alertes-chip ${periodeMode==='mois'?'active':''}" data-pmode="mois" style="min-height:36px;flex:1 1 auto">📅 Mois</button>
-          <button type="button" class="m-alertes-chip ${periodeMode==='trimestre'?'active':''}" data-pmode="trimestre" style="min-height:36px;flex:1 1 auto">🗓️ Trimestre</button>
+          <button type="button" class="m-alertes-chip ${periodeMode==='mois'?'active':''}" data-pmode="mois" style="min-height:36px;flex:1 1 auto">Mois</button>
+          <button type="button" class="m-alertes-chip ${periodeMode==='trimestre'?'active':''}" data-pmode="trimestre" style="min-height:36px;flex:1 1 auto">Trimestre</button>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
           <select id="m-tva-periode" style="flex:1 1 auto;min-height:44px">${optionsHtml}</select>
-          <button type="button" class="m-btn" id="m-tva-export-csv" style="width:auto;flex:0 0 auto;min-height:44px;padding:0 14px;font-size:.85rem" title="Exporter CSV">📥 CSV</button>
+          <button type="button" class="m-btn" id="m-tva-export-csv" style="width:auto;flex:0 0 auto;min-height:44px;padding:0 14px;font-size:.85rem" title="Exporter CSV">CSV</button>
         </div>
         <div style="display:flex;gap:6px;margin-bottom:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px">
-          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap" style="min-height:36px">📊 Récap</button>
-          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee" style="min-height:36px">📥 Collectée (${livAvecTva.length})</button>
-          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible" style="min-height:36px">📤 Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='recap'?'active':''}" data-tab="recap" style="min-height:36px">Récap</button>
+          <button class="m-alertes-chip ${tab==='collectee'?'active':''}" data-tab="collectee" style="min-height:36px">Collectée (${livAvecTva.length})</button>
+          <button class="m-alertes-chip ${tab==='deductible'?'active':''}" data-tab="deductible" style="min-height:36px">Déductible (${chargesAvecTva.length + carbAvecTva.length})</button>
         </div>
       `;
 
@@ -11024,7 +11024,7 @@
           </div>
           ${livEnAttente.length ? `
             <div class="m-card" style="padding:12px 14px;margin-bottom:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)">
-              <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">📅 Facturé mais non exigible</div>
+              <div style="font-size:.85rem;font-weight:700;margin-bottom:4px">Facturé mais non exigible</div>
               <div style="font-size:.74rem;color:var(--m-text-muted);line-height:1.4">${livEnAttente.length} livraison${livEnAttente.length>1?'s':''} facturée${livEnAttente.length>1?'s':''} sur la période, en attente de paiement avant exigibilité TVA.</div>
             </div>
           ` : ''}
@@ -11042,7 +11042,7 @@
           </div>
           ${versementsTVA.length ? `
             <div class="m-section" style="margin-top:16px">
-              <div class="m-section-header"><h3 class="m-section-title">💸 Versements TVA</h3></div>
+              <div class="m-section-header"><h3 class="m-section-title">Versements TVA</h3></div>
               <div class="m-card" style="padding:0">
                 ${versementsTVA.map(v => `
                   <div style="padding:12px 14px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:44px">
@@ -11297,7 +11297,7 @@
           const totalAn = mois12.reduce((s, x) => s + x.ca, 0);
           const moyenneAn = totalAn / 12;
 
-          return `<div class="m-section"><div class="m-section-header" style="gap:6px;flex-wrap:wrap"><h3 class="m-section-title">📈 CA des 12 derniers mois</h3>
+          return `<div class="m-section"><div class="m-section-header" style="gap:6px;flex-wrap:wrap"><h3 class="m-section-title">CA des 12 derniers mois</h3>
             <div style="display:flex;gap:4px;margin-left:auto">
               <button class="m-alertes-chip ${M.state.statsUnit==='k'?'active':''}" data-unit="k" style="font-size:.68rem;padding:2px 8px;min-height:0;height:24px">k€</button>
               <button class="m-alertes-chip ${M.state.statsUnit==='eur'?'active':''}" data-unit="eur" style="font-size:.68rem;padding:2px 8px;min-height:0;height:24px">précis</button>
@@ -11345,7 +11345,7 @@
           const moyenneAnDep = totalAnDep / 12;
           if (totalAnDep === 0) return '';
 
-          return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">💸 Dépenses des 12 derniers mois</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${M.format$(totalAnDep)}</span></div>
+          return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Dépenses des 12 derniers mois</h3><span style="font-size:.78rem;color:var(--m-text-muted)">${M.format$(totalAnDep)}</span></div>
             <div class="m-card" style="padding:14px">
               <div style="display:flex;align-items:flex-end;gap:4px;height:120px;padding-bottom:4px">
                 ${mois12.map(x => {
@@ -11420,12 +11420,12 @@
           return renderTop('clients', '🏆', topClients) + renderTop('chauffeurs', '🥇', topChauf) + renderTop('véhicules', '🚐', topVeh);
         })()}
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📊 Vue d'ensemble</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Vue d'ensemble</h3></div>
           <div class="m-card" style="padding:0">
-            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>👥 Équipe active</span><span style="font-weight:600">${salaries.length}</span></div>
-            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>🚐 Véhicules</span><span style="font-weight:600">${vehicules.length}</span></div>
-            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>📦 Livraisons total</span><span style="font-weight:600">${livraisons.length}</span></div>
-            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>💸 Charges du mois</span><span style="font-weight:600">${M.format$(chargesMois.reduce((s,c)=>s+(M.parseNum(c.montantTtc)||M.parseNum(c.montant)||0),0))}</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>Équipe active</span><span style="font-weight:600">${salaries.length}</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>Véhicules</span><span style="font-weight:600">${vehicules.length}</span></div>
+            <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span>Livraisons total</span><span style="font-weight:600">${livraisons.length}</span></div>
+            <div style="padding:14px 16px;display:flex;justify-content:space-between"><span>Charges du mois</span><span style="font-weight:600">${M.format$(chargesMois.reduce((s,c)=>s+(M.parseNum(c.montantTtc)||M.parseNum(c.montant)||0),0))}</span></div>
           </div>
         </div>
 
@@ -11547,7 +11547,7 @@
           <input type="date" id="m-cal-picker" value="${dateSel}" style="max-width:200px;display:inline-block" />
           ${!estAujourd ? `<button class="m-cal-today" style="margin-left:8px;padding:0 14px;height:48px;border-radius:10px;background:var(--m-accent);color:#1a1208;border:none;font-weight:600">Aujourd'hui</button>` : ''}
         </div>
-        ${ferie ? `<div class="m-card" style="background:#fee2e2;color:#991b1b;border-left:3px solid #dc2626;padding:12px 14px;margin-bottom:12px;font-weight:600">🎉 ${M.escHtml(ferie.nom)} (jour férié)</div>` : ''}
+        ${ferie ? `<div class="m-card" style="background:#fee2e2;color:#991b1b;border-left:3px solid #dc2626;padding:12px 14px;margin-bottom:12px;font-weight:600">${M.escHtml(ferie.nom)} (jour férié)</div>` : ''}
       `;
 
       if (!totalEvenements) {
@@ -11560,7 +11560,7 @@
         return `<div class="m-section"><div class="m-section-header"><h3 class="m-section-title" style="color:${color}">${title}</h3><span style="font-size:.85rem;color:var(--m-text-muted)">${items.length}</span></div>${items.map(renderItem).join('')}</div>`;
       };
 
-      html += renderEvents('📦 Livraisons', livraisons, 'var(--m-blue)', l => `
+      html += renderEvents('Livraisons', livraisons, 'var(--m-blue)', l => `
         <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-blue);display:flex;justify-content:space-between;gap:10px">
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml(l.client || '—')}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${l.numLiv ? M.escHtml(l.numLiv) + ' · ' : ''}${l.distance ? M.formatNum(l.distance) + ' km' : ''}</div></div>
           <div style="font-weight:700;color:var(--m-green);white-space:nowrap">${M.format$(l.prix || 0)}</div>
@@ -11570,12 +11570,12 @@
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:500;font-size:.88rem">${M.formatNum((p.litres||0).toFixed(0))} L · ${p.kmCompteur ? M.formatNum(p.kmCompteur)+' km' : ''}</div></div>
           <div style="font-weight:700;color:var(--m-red);white-space:nowrap">${M.format$(p.total || 0)}</div>
         </div>`);
-      html += renderEvents('🔧 Entretiens', entretiens, 'var(--m-blue)', e => `
+      html += renderEvents('Entretiens', entretiens, 'var(--m-blue)', e => `
         <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-blue);display:flex;justify-content:space-between;gap:10px">
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:500;font-size:.88rem">${M.escHtml(e.type || 'Entretien')}</div>${e.description ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(e.description)}</div>` : ''}</div>
           <div style="font-weight:700;color:var(--m-blue);white-space:nowrap">${M.format$(e.cout || 0)}</div>
         </div>`);
-      html += renderEvents('🚨 Incidents', incidents, 'var(--m-red)', i => `
+      html += renderEvents('Incidents', incidents, 'var(--m-red)', i => `
         <div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-red)">
           <div style="font-weight:500;font-size:.88rem">${M.escHtml(i.client || i.salNom || 'Incident')}</div>
           ${i.description ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px;line-height:1.4">${M.escHtml(i.description.slice(0, 120))}${i.description.length > 120 ? '…' : ''}</div>` : ''}
@@ -11585,13 +11585,13 @@
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml(c.libelle || c.fournisseur || '—')}</div>${c.fournisseur && c.libelle ? `<div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${M.escHtml(c.fournisseur)}</div>` : ''}</div>
           <div style="font-weight:700;color:var(--m-accent);white-space:nowrap">${M.format$(c.montantTtc || c.montant || 0)}</div>
         </div>`);
-      html += renderEvents('👥 Au travail', auTravail, 'var(--m-green)', ({ sal, jourData }) => {
+      html += renderEvents('Au travail', auTravail, 'var(--m-green)', ({ sal, jourData }) => {
         const horaires = jourData?.heureDebut && jourData?.heureFin ? `${jourData.heureDebut}–${jourData.heureFin}` : 'Présent';
         return `<div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-green);display:flex;justify-content:space-between;gap:10px">
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${horaires}${jourData?.zone ? ' · ' + M.escHtml(jourData.zone) : ''}</div></div>
         </div>`;
       });
-      html += renderEvents('🏖️ Absences', enConge, 'var(--m-text-muted)', ({ sal, type }) => {
+      html += renderEvents('Absences', enConge, 'var(--m-text-muted)', ({ sal, type }) => {
         const labels = { conge: 'Congé', absence: 'Absence', maladie: 'Maladie' };
         return `<div class="m-card" style="padding:12px 14px;border-left:3px solid var(--m-border);display:flex;justify-content:space-between;gap:10px;opacity:.85">
           <div style="flex:1 1 auto;min-width:0"><div style="font-weight:600;font-size:.92rem">${M.escHtml((sal.prenom ? sal.prenom + ' ' : '') + (sal.nom || ''))}</div><div style="color:var(--m-text-muted);font-size:.78rem;margin-top:2px">${labels[type] || type}</div></div>
@@ -11685,7 +11685,7 @@
       const q = (M.state.rechercheGlobaleQ || '').trim().toLowerCase();
       let html = `
         <div style="margin-bottom:14px">
-          <input type="search" id="m-rg-input" placeholder="🔍 Tape ce que tu cherches (client, immat, n°, montant...)" value="${M.escHtml(M.state.rechercheGlobaleQ)}" autocomplete="off" autofocus />
+          <input type="search" id="m-rg-input" placeholder="Tape ce que tu cherches (client, immat, n°, montant...)" value="${M.escHtml(M.state.rechercheGlobaleQ)}" autocomplete="off" autofocus />
         </div>
       `;
       if (!q || q.length < 2) {
@@ -11894,14 +11894,14 @@
           <h2 style="margin:0;font-size:1.2rem;font-weight:700">Paramètres</h2>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">👤 Compte</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Compte</h3></div>
           <div class="m-card" style="padding:0">
             <div style="padding:14px 16px;border-bottom:1px solid var(--m-border);display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Nom</span><span style="font-weight:500">${M.escHtml(adminNom)}</span></div>
             ${adminLogin ? `<div style="padding:14px 16px;display:flex;justify-content:space-between"><span style="color:var(--m-text-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:.05em">Identifiant</span><span style="font-weight:500">${M.escHtml(adminLogin)}</span></div>` : ''}
           </div>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🏢 Entreprise</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Entreprise</h3></div>
           <button type="button" id="m-param-entreprise" class="m-card m-card-pressable" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;width:100%;padding:14px 16px;text-align:left;color:inherit;font-family:inherit;border:1px solid var(--m-border)">
             <div style="flex:1 1 auto;min-width:0">
               ${entreprise.nom ? `<div style="font-weight:600;margin-bottom:4px">${M.escHtml(entreprise.nom)}</div>` : '<div style="color:var(--m-text-muted);margin-bottom:4px">Aucune information</div>'}
@@ -11916,7 +11916,7 @@
           <p class="m-form-hint" style="margin-top:8px">Tape pour modifier raison sociale, SIRET, adresse, IBAN…</p>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🧾 TVA</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">TVA</h3></div>
           <div class="m-card" style="padding:0">
             <button type="button" id="m-param-tva-regime" class="m-card-pressable" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;border:none;background:transparent;border-bottom:1px solid var(--m-border);color:inherit;text-align:left;font-family:inherit;cursor:pointer">
               <span style="font-size:.85rem">Régime TVA</span>
@@ -11951,28 +11951,28 @@
 
         <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Traçabilité</h3></div>
           <button class="m-card m-card-pressable" id="m-param-audit" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px;text-align:left;color:inherit;font-family:inherit">
-            <span style="font-size:.95rem;font-weight:500">📜 Journal d'audit</span>
+            <span style="font-size:.95rem;font-weight:500">Journal d'audit</span>
             <span style="color:var(--m-text-muted);font-size:.85rem">${(M.charger('audit_log') || []).length} entr. ›</span>
           </button>
           <p class="m-form-hint" style="margin-top:8px">Toutes les actions admin (création / modif / suppression). Purge auto > 12 mois (RGPD).</p>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🤖 Coût IA</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Coût IA</h3></div>
           <div class="m-card" id="m-cout-ia-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55">
             <div style="color:var(--m-text-muted)">Chargement…</div>
           </div>
           <p class="m-form-hint" style="margin-top:8px">Consommation chatbot Gemini (estimation €). Source : <code>ai_quota_daily</code>.</p>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">📋 Historique des versions</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Historique des versions</h3></div>
           <div class="m-card" id="m-changelog-content" style="padding:14px 16px;font-size:.82rem;line-height:1.55;max-height:360px;overflow:auto">
             <div style="color:var(--m-text-muted)">Chargement…</div>
           </div>
         </div>
 
-        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">🔧 Maintenance</h3></div>
+        <div class="m-section"><div class="m-section-header"><h3 class="m-section-title">Maintenance</h3></div>
           <button type="button" class="m-card m-card-pressable" id="m-param-vider-cache" style="display:flex;justify-content:space-between;align-items:center;width:100%;padding:14px 16px;text-align:left;color:#fff;background:#e63946;border:none;border-radius:12px;font-family:inherit;font-weight:600;cursor:pointer">
-            <span style="font-size:.95rem">🔄 Vider le cache de l'application</span>
+            <span style="font-size:.95rem">Vider le cache de l'application</span>
             <span style="font-size:1rem;opacity:.85">›</span>
           </button>
           <p class="m-form-hint" style="margin-top:8px">Recharge l'app et purge le cache local. Utile en cas d'écran figé / version qui ne se met pas à jour. Les saisies non synchronisées seront perdues.</p>
@@ -11999,7 +11999,7 @@
       // Dialog choix régime
       container.querySelector('#m-param-tva-regime')?.addEventListener('click', async () => {
         const choice = await M.dialogChoix({
-          titre: '🧾 Régime TVA',
+          titre: 'Régime TVA',
           options: [
             { value: 'franchise_base', label: 'Franchise en base (pas de TVA)' },
             { value: 'reel_simplifie', label: 'Réel simplifié' },
@@ -12393,7 +12393,7 @@
   M.formEditEntreprise = function() {
     const e = M.chargerObj('params_entreprise') || M.chargerObj('entreprise') || {};
     const body = `
-      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">📇 Identification</div>
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 6px;font-weight:600">Identification</div>
       ${M.formField('Raison sociale', M.formInput('nom', { value: e.nom || '', placeholder: 'MCA LOGISTICS' }))}
       <div class="m-form-row">
         ${M.formField('SIRET', M.formInput('siret', { value: e.siret || '', placeholder: '14 chiffres' }))}
@@ -12401,20 +12401,20 @@
       </div>
       ${M.formField('N° TVA intracom.', M.formInput('tvaIntracom', { value: e.tvaIntracom || e.tva || '', placeholder: 'FR + 11 chiffres' }))}
 
-      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">📍 Adresse</div>
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">Adresse</div>
       ${M.formField('Adresse', M.formInput('adresse', { value: e.adresse || '', placeholder: '17 rue de la Chapelle' }))}
       <div class="m-form-row">
         ${M.formField('Code postal', M.formInput('codePostal', { value: e.codePostal || '', placeholder: '67540' }))}
         ${M.formField('Ville', M.formInput('ville', { value: e.ville || '', placeholder: 'Ostwald' }))}
       </div>
 
-      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">📞 Contact</div>
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">Contact</div>
       <div class="m-form-row">
         ${M.formField('Téléphone', M.formInput('tel', { type: 'tel', value: e.tel || '', placeholder: '03 88 …' }))}
         ${M.formField('Email', M.formInput('email', { type: 'email', value: e.email || '', placeholder: 'contact@…' }))}
       </div>
 
-      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">💳 Banque</div>
+      <div style="font-size:.78rem;color:var(--m-text-muted);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px;font-weight:600">Banque</div>
       <div class="m-form-row">
         ${M.formField('IBAN', M.formInput('iban', { value: e.iban || '', placeholder: 'FR76 …' }))}
         ${M.formField('BIC', M.formInput('bic', { value: e.bic || '', placeholder: 'QNTOFRP1XXX' }))}
@@ -12423,7 +12423,7 @@
 
       <!-- Upload RIB (PDF ou image, max 5 MB, prive) -->
       <div style="margin-top:10px">
-        <label style="display:block;font-size:.85rem;font-weight:500;margin-bottom:6px">📎 RIB (PDF ou image)</label>
+        <label style="display:block;font-size:.85rem;font-weight:500;margin-bottom:6px">RIB (PDF ou image)</label>
         <div id="m-rib-status" style="font-size:.78rem;color:var(--m-text-muted);margin-bottom:8px">
           ${e.ribPath ? '✅ Document chargé' : 'Aucun document chargé'}
         </div>
@@ -12458,7 +12458,7 @@
         sheetBody.querySelector('[name="ribFile"]')?.addEventListener('change', (e) => {
           const f = e.target.files?.[0];
           const status = sheetBody.querySelector('#m-rib-status');
-          if (f && status) status.innerHTML = `📎 ${M.escHtml(f.name)} (${(f.size/1024).toFixed(0)} Ko) — sera uploadé à l'enregistrement`;
+          if (f && status) status.innerHTML = `${M.escHtml(f.name)} (${(f.size/1024).toFixed(0)} Ko) — sera uploadé à l'enregistrement`;
         });
       },
       onSubmit: async (sheetBody) => {
