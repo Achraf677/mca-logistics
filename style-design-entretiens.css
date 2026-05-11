@@ -101,3 +101,11 @@
   color: var(--ds-success);
   border: 1px solid var(--ds-success);
 }
+
+/* ============ Phase 34 : masquer colonnes HT / TVA (hors-mockup) ============ */
+.entretiens-table th:nth-child(7),
+.entretiens-table td:nth-child(7),
+.entretiens-table th:nth-child(8),
+.entretiens-table td:nth-child(8) {
+  display: none !important;
+}

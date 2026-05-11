@@ -140,3 +140,16 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+
+/* ============ Phase 34 : masquer colonnes hors-mockup ============ */
+/* Acquisition (4), Finances (7), Carburant (8), Dernier entretien (10) */
+.vehicules-table th:nth-child(4),
+.vehicules-table td:nth-child(4),
+.vehicules-table th:nth-child(7),
+.vehicules-table td:nth-child(7),
+.vehicules-table th:nth-child(8),
+.vehicules-table td:nth-child(8),
+.vehicules-table th:nth-child(10),
+.vehicules-table td:nth-child(10) {
+  display: none !important;
+}
