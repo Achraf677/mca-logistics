@@ -231,3 +231,15 @@
   background: var(--ds-brand-soft);
   color: var(--ds-brand);
 }
+
+/* ============================================================
+   Phase 34 — Aligner table Charges avec mockup
+   Masquer colonnes HT + TVA (détail financier → drawer/modal)
+   Montant TTC renommé en colonne visible principale.
+   ============================================================ */
+.charges-table th:nth-child(5),
+.charges-table td:nth-child(5),
+.charges-table th:nth-child(6),
+.charges-table td:nth-child(6) {
+  display: none !important;
+}

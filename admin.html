@@ -88,7 +88,7 @@
   <!-- Design setup wizard (Phase 4 / PR-21) — overrides inline JS styles avec --ds-*. -->
   <link rel="stylesheet" href="style-design-setup-wizard.css?v=1" />
   <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
-  <link rel="stylesheet" href="style-refonte-charges.css?v=1" />
+  <link rel="stylesheet" href="style-refonte-charges.css?v=2" />
   <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
   <link rel="stylesheet" href="style-refonte-utilities.css?v=1" />
   <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
@@ -2287,8 +2287,8 @@
       </div>
       <div class="card table-card">
         <div class="table-wrapper">
-          <table class="data-table">
-            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Véhicule</th><th>HT</th><th>TVA</th><th>TTC</th><th>Statut</th><th>Actions</th></tr></thead>
+          <table class="data-table charges-table">
+            <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Véhicule</th><th>HT</th><th>TVA</th><th>Montant TTC</th><th>Statut</th><th>Actions</th></tr></thead>
             <tbody id="tb-charges"></tbody>
           </table>
         </div>
