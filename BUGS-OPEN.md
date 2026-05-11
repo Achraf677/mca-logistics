@@ -9,14 +9,7 @@
 
 ## 🔴 NEW (à traiter)
 
-### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
-- **Page** : Livraisons (audit Playwright)
-- **Symptôme** : `window.openModal('modal-livraison')` appelé après nav vers Livraisons → screenshot 02 montre Dashboard layout, pas le modal. Champ `#liv-client` reste détaché ou invisible 30s → Playwright timeout.
-- **Severity** : MEDIUM (bloque l'audit automatisé, pas la prod utilisateur — l'utilisateur clique sur "+ Nouvelle livraison" qui marche)
-- **Reporter** : audit Claude 2026-05-12
-- **Cause suspectée** : (1) `openModal` est défini ailleurs et navigue, (2) le modal est dans un partial lazy-loaded, (3) `MCASetup.later()` n'a pas fini, (4) display:none persistant.
-- **Fix proposé** : utiliser `page.locator('button:has-text("+ Nouvelle livraison")').click()` au lieu de `evaluate(openModal)` dans `tools/audit-fill-form.mjs`.
-- **Test** : rerun `tools/audit-fill-form.mjs` après fix → modal visible dans screenshot 02 → fill réussit.
+_(vide)_
 
 ---
 
@@ -27,6 +20,12 @@ _(vide pour l'instant)_
 ---
 
 ## ✅ FIXED (à vérifier par user)
+
+### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
+- **Status** : FIXED (commit session :16 2026-05-12)
+- **Cause** : `page.evaluate(() => openModal('modal-livraison'))` appelé avant que le modal soit dans le DOM / avant que `openModal` pointe la bonne fonction.
+- **Fix** : `tools/audit-fill-form.mjs` utilise désormais `btnNouv.click()` avec fallback `evaluate`.
+- **À vérifier** : rerun `tools/audit-fill-form.mjs` → screenshot 02 montre modal visible.
 
 ### BUG-013 — Toast "Le nom de l'entreprise est requis" affiché au load page Livraisons
 - **Status** : FIXED (commit session :15 2026-05-12)
@@ -121,8 +120,8 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 1 |
+| NEW | 0 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 15 |
+| FIXED (à vérifier) | 16 |
 | VERIFIED | 0 |
 | **Total** | **16** |

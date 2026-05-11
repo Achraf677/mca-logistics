@@ -35,8 +35,14 @@ console.log('=== AUDIT CREATION LIVRAISON via FORM ===\n');
 await page.screenshot({ path: `${OUT_DIR}/01-empty-state.png`, fullPage: false });
 console.log('✓ Empty state captured');
 
-// 2. Open modal Nouvelle livraison
-await page.evaluate(() => { if (window.openModal) window.openModal('modal-livraison'); });
+// 2. Open modal Nouvelle livraison — BUG-014 fix : click le bouton plutôt qu'evaluate
+// pour éviter que openModal soit redéfini / le modal soit lazy-loaded non encore prêt.
+const btnNouv = page.locator('button, a').filter({ hasText: /Nouvelle livraison/ }).first();
+if (await btnNouv.count() > 0) {
+  await btnNouv.click();
+} else {
+  await page.evaluate(() => { if (window.openModal) window.openModal('modal-livraison'); });
+}
 await page.waitForTimeout(1000);
 await page.evaluate(() => { document.querySelectorAll('.toast').forEach(el => el.style.display = 'none'); });
 await page.screenshot({ path: `${OUT_DIR}/02-modal-empty.png`, fullPage: false });
