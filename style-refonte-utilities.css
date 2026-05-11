@@ -95,3 +95,163 @@
 .tva-deductible-table td:nth-child(7) {
   display: none !important;
 }
+
+/* ============ Phase 35c : calendrier cal16-layout ============ */
+/* Layout sidebar (filtres + mini KPIs) + grid principal */
+.cal16-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.cal16-sidebar {
+  position: sticky;
+  top: 14px;
+  padding: 18px 16px;
+  margin: 0;
+}
+.cal16-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.cal16-filter input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--brand, #e63946);
+  cursor: pointer;
+}
+.cal16-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cal16-dot-liv  { background: var(--brand, #e63946); }
+.cal16-dot-ech  { background: var(--warning, #f5a623); }
+.cal16-dot-rel  { background: #ff6b35; }
+.cal16-dot-pai  { background: #06d6a0; }
+.cal16-dot-fer  { background: #4cc9f0; }
+
+/* ============ Phase 35c : chart-row / chart-card (statistiques, rentabilité) ============ */
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.chart-card {
+  background: var(--card-bg, #1e2128);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.chart-card h3 {
+  font-family: var(--font-display, "Syne", system-ui, sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0 0 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.chart-card .chart-legend {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ============ Phase 35c : stat-row bar charts (top chauffeurs, véhicules) ============ */
+.stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.stat-row .lbl {
+  font-size: 12px;
+  color: var(--text);
+  width: 80px;
+  flex-shrink: 0;
+  font-weight: 600;
+}
+.stat-row .bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-card-hover, #2a2f3a);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.stat-row .bar-fill {
+  height: 100%;
+  width: var(--w, 0%);
+  background: var(--brand, #e63946);
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(.22,1,.36,1);
+}
+.stat-row .val {
+  font-family: var(--font-mono, "DM Mono", monospace);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  width: 72px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* ============ Phase 35c : tabs-bar / tab-btn (universal tab navigation) ============ */
+.tabs-bar {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  padding: 0 2px;
+}
+.tab-btn, .rent-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-family: var(--font-display, "Syne", system-ui, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tab-btn:hover, .rent-tab-btn:hover {
+  color: var(--text);
+}
+.tab-btn.active, .rent-tab-btn.active {
+  color: var(--brand, #e63946);
+  border-bottom-color: var(--brand, #e63946);
+}
+.tab-btn .count {
+  display: inline-block;
+  background: var(--bg-card-hover);
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  margin-left: 6px;
+  color: var(--text-muted);
+}
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeInUp 0.2s ease; }
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .cal16-layout { grid-template-columns: 1fr; }
+  .chart-row { grid-template-columns: 1fr; }
+}
