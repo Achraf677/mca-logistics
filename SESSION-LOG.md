@@ -231,6 +231,29 @@
 
 ---
 
+## Session 2026-05-12 :15 — Phase 39 chips Clients + Fournisseurs (agent :15)
+**Phases** : Phase 39 (post Phase 38 KPI grids)
+**Commit** : feat(ui) — Phase 39 : chips toolbar Clients + Fournisseurs
+**État** : 0 bugs NEW, Clients 70%, Fournisseurs 70%, CACHE_VERSION v70
+
+### Actions clés
+- Phase 38 (agent :00) déjà ajouté KPI grids Clients+Fournisseurs → évité doublon
+- **Chips toolbar Clients** (Tous / Actifs 90j / Risque / Inactifs) ajouté entre KPI grid et searchbar
+- **Chips toolbar Fournisseurs** (Tous / Carburant / Garage / Assurance) filtrant par `f.secteur`
+- **`script-clients-fournisseurs-kpis.js`** [NEW] : monkey-patch post-render pour chip filter
+  - `cliChipFilter(chip)` + `frnChipFilter(chip)` globals
+  - `_applyCliChip()` : filtre rows par actifs 90j / risque (impayés) / inactifs
+  - `_applyFrnChip()` : filtre rows par secteur fournisseur
+- **`style-design-clients-fournisseurs.css` v3** : `.clients-kpi-grid` + `.fournisseurs-kpi-grid` → 4 cols, responsive 2col@1024 / 1col@600
+- CACHE_VERSION v69 → v70 (conflit v69 résolu en prenant v70)
+
+### Décisions
+- Reset hard sur origin après double conflit sw.js (agents parallèles v68+v69 simultanés)
+- KPI computation laissée à `script-clients-fournisseurs-counts.js` (Phase 38), mon script = chips only
+- Monkey-patch additive : zéro modification scripts legacy
+
+---
+
 ## Format pour nouvelles sessions
 
 ```markdown

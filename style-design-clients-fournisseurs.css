@@ -200,6 +200,27 @@ tr[data-impaye="1"] td {
   color: var(--ds-danger);
 }
 
+/* ============ Phase 38/39 : KPI grid 4 colonnes Clients + Fournisseurs ============ */
+
+.clients-kpi-grid,
+.fournisseurs-kpi-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+@media (max-width: 1024px) {
+  .clients-kpi-grid,
+  .fournisseurs-kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .clients-kpi-grid,
+  .fournisseurs-kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ============ Phase 34 : masquer colonnes hors-mockup ============ */
 /* Clients : Contact (2) + Adresse habituelle (4) */
 .clients-table th:nth-child(2),

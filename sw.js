@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-12-v69-phase38-clients-fournisseurs-kpis';
+const CACHE_VERSION = 'mca-v2026-05-12-v70-phase39-chips-clients-fournisseurs';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -103,8 +103,10 @@ const CORE_ASSETS = [
   '/script-vehicules-counts.js',
   // Phase 2 HTML refonte — Planning section-head counts (semaine + planifies)
   '/script-planning-counts.js',
-  // Phase 2 HTML refonte — Clients/Fournisseurs section-head counts
+  // Phase 2 HTML refonte — Clients/Fournisseurs section-head counts + KPI
   '/script-clients-fournisseurs-counts.js',
+  // Phase 39 — Clients/Fournisseurs chips toolbar filter
+  '/script-clients-fournisseurs-kpis.js',
   // Phase 2 HTML refonte — Alertes section-head counts
   '/script-alertes-counts.js',
   // Phase 2 HTML refonte — Stats/Calendrier sub-meta (periode mirror + livraisons count)

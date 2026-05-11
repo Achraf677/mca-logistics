@@ -74,7 +74,7 @@
   <!-- Design equipe (Phase 4 / PR-12) — s22-bandeau hub tabs + avatars + incidents + heures + credentials. -->
   <link rel="stylesheet" href="style-design-equipe.css?v=2" />
   <!-- Design clients + fournisseurs (Phase 4 / PR-13+14) — bundle : filtres + risque + drawer onglets + SIRET/TVA. -->
-  <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=2" />
+  <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=3" />
   <!-- Design planning (Phase 4 / PR-15) — overview cards Syne + jour-types + toolbars planning. -->
   <link rel="stylesheet" href="style-design-planning.css?v=1" />
   <!-- Design alertes (Phase 4 / PR-16) — s19 KPIs gravite + filtres + s20 drawer + s25 rules engine. -->
@@ -125,6 +125,8 @@
   <script defer src="script-planning-counts.js?v=2"></script>
   <!-- Phase 2 HTML refonte Clients/Fournisseurs : section-head counts (total + actifs 90j). -->
   <script defer src="script-clients-fournisseurs-counts.js?v=2"></script>
+  <!-- Phase 39 : Clients + Fournisseurs chips toolbar filter. -->
+  <script defer src="script-clients-fournisseurs-kpis.js?v=1"></script>
   <!-- Phase 2 HTML refonte Alertes : counts actives + reportees + traitees. -->
   <script defer src="script-alertes-counts.js?v=2"></script>
   <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
@@ -879,11 +881,18 @@
         </div>
       </div>
       <!-- Phase 38 refonte HTML : KPI grid clients (mockup-aligned) -->
-      <div class="kpi-grid" style="margin-bottom:16px">
+      <div class="kpi-grid clients-kpi-grid" style="margin-bottom:14px">
         <div class="kpi"><div class="kpi-lbl">Clients actifs</div><div class="kpi-val" id="clients-kpi-actifs">—</div><div class="kpi-sub">90 derniers jours</div></div>
-        <div class="kpi"><div class="kpi-lbl">Top client (CA)</div><div class="kpi-val" id="clients-kpi-top-nom" style="font-size:1.1rem">—</div><div class="kpi-sub" id="clients-kpi-top-ca"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Top client (CA)</div><div class="kpi-val" id="clients-kpi-top-nom" style="font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div><div class="kpi-sub" id="clients-kpi-top-ca"></div></div>
         <div class="kpi"><div class="kpi-lbl">DSO global</div><div class="kpi-val" id="clients-kpi-dso">—</div><div class="kpi-sub">Délai paiement moyen</div></div>
-        <div class="kpi"><div class="kpi-lbl">Encours impayés</div><div class="kpi-val" id="clients-kpi-encours">—</div><div class="kpi-sub" id="clients-kpi-encours-nb"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Encours impayés</div><div class="kpi-val" id="clients-kpi-encours" style="font-size:1.15rem">—</div><div class="kpi-sub" id="clients-kpi-encours-nb"></div></div>
+      </div>
+      <!-- Phase 39 : chips toolbar Clients (mockup-matched) -->
+      <div class="ds-chips-toolbar" id="cli-chips-toolbar" style="margin-bottom:8px">
+        <button class="ds-chip active" type="button" data-chip="tous" onclick="cliChipFilter('tous')">Tous</button>
+        <button class="ds-chip" type="button" data-chip="actifs90j" onclick="cliChipFilter('actifs90j')">Actifs 90j</button>
+        <button class="ds-chip" type="button" data-chip="risque" onclick="cliChipFilter('risque')">Risque</button>
+        <button class="ds-chip" type="button" data-chip="inactifs" onclick="cliChipFilter('inactifs')">Inactifs</button>
       </div>
       <div class="filters filters-clients" style="margin-bottom:16px">
         <div class="searchbar">
@@ -938,11 +947,18 @@
         </div>
       </div>
       <!-- Phase 38 refonte HTML : KPI grid fournisseurs (mockup-aligned) -->
-      <div class="kpi-grid" style="margin-bottom:16px">
+      <div class="kpi-grid fournisseurs-kpi-grid" style="margin-bottom:14px">
         <div class="kpi"><div class="kpi-lbl">Fournisseurs actifs</div><div class="kpi-val" id="fournisseurs-kpi-actifs">—</div><div class="kpi-sub">90 derniers jours</div></div>
-        <div class="kpi"><div class="kpi-lbl">Top dépense</div><div class="kpi-val" id="fournisseurs-kpi-top-nom" style="font-size:1.1rem">—</div><div class="kpi-sub" id="fournisseurs-kpi-top-ca"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Charges à régler</div><div class="kpi-val" id="fournisseurs-kpi-encours">—</div><div class="kpi-sub" id="fournisseurs-kpi-encours-nb"></div></div>
-        <div class="kpi"><div class="kpi-lbl">Catégorie dominante</div><div class="kpi-val" id="fournisseurs-kpi-categorie" style="font-size:1.1rem">—</div><div class="kpi-sub" id="fournisseurs-kpi-categorie-pct"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Top dépense</div><div class="kpi-val" id="fournisseurs-kpi-top-nom" style="font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div><div class="kpi-sub" id="fournisseurs-kpi-top-ca"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Charges à régler</div><div class="kpi-val" id="fournisseurs-kpi-encours" style="font-size:1.15rem">—</div><div class="kpi-sub" id="fournisseurs-kpi-encours-nb"></div></div>
+        <div class="kpi"><div class="kpi-lbl">Catégorie dominante</div><div class="kpi-val" id="fournisseurs-kpi-categorie" style="font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div><div class="kpi-sub" id="fournisseurs-kpi-categorie-pct"></div></div>
+      </div>
+      <!-- Phase 39 : chips toolbar Fournisseurs (mockup-matched) -->
+      <div class="ds-chips-toolbar" id="frn-chips-toolbar" style="margin-bottom:8px">
+        <button class="ds-chip active" type="button" data-chip="tous" onclick="frnChipFilter('tous')">Tous</button>
+        <button class="ds-chip" type="button" data-chip="carburant" onclick="frnChipFilter('carburant')">Carburant</button>
+        <button class="ds-chip" type="button" data-chip="garage" onclick="frnChipFilter('garage')">Garage</button>
+        <button class="ds-chip" type="button" data-chip="assurance" onclick="frnChipFilter('assurance')">Assurance</button>
       </div>
       <div class="filters filters-fournisseurs" style="margin-bottom:16px">
         <div class="searchbar">

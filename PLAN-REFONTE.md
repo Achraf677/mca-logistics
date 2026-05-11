@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : `2ca607b` (Phase 35d section-heads Entretiens+Salariés+Brouillons)
+> **Dernier commit** : phase39 (chips Clients+Fournisseurs — agent :15)
 
 ---
 
@@ -26,8 +26,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
 | **Livraisons** | 92% | 90% | Phases 22-34 — BUG-004/005/013/015/016 fixés, 9 cols visibles |
-| Clients | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
-| Fournisseurs | 50% | 100% | Phase 34 : cols Contact+Adresse masquées |
+| Clients | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Actifs 90j/Risque/Inactifs |
+| Fournisseurs | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Carburant/Garage/Assurance |
 | Véhicules | 50% | 100% | Phase 34 : cols Acquisition/Finances/Carburant/Entretien masquées |
 | Carburant | 55% | 100% | Phase 35b : section-head ds-section-head + sub-meta |
 | Entretiens | 60% | 100% | Phase 35d : section-head ds-section-head |
