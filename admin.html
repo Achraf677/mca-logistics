@@ -95,6 +95,8 @@
   <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
   <!-- Phase 6 refonte HTML : title-row + period-row pattern (reusable across pages) -->
   <link rel="stylesheet" href="style-design-section-pattern.css?v=1" />
+  <!-- Phase 10 refonte HTML : dashboard dash-charts (area 14j + donut statuts) -->
+  <link rel="stylesheet" href="style-design-dashboard-charts.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
@@ -117,6 +119,8 @@
   <script defer src="script-dashboard-attention.js?v=1"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
   <script defer src="script-titlerow.js?v=1"></script>
+  <!-- Phase 10 refonte : dashboard dash-charts (area + donut) -->
+  <script defer src="script-dashboard-charts.js?v=1"></script>
   <!-- Solution B refonte visuelle : fake data seed pour démos Playwright (no-op sans ?seed=1) -->
   <script src="script-dev-seed.js?v=1"></script>
 </head>
@@ -468,8 +472,39 @@
         </div>
       </div>
 
-      <!-- 2-col grid : Qui travaille + Activité (Sprint 4) -->
-      <div class="dashboard-2col">
+      <!-- ============================================================ -->
+      <!-- === DASH CHARTS ROW (Phase 10) : area 14j + donut statuts === -->
+      <!-- ============================================================ -->
+      <div class="dash-charts">
+        <!-- Card 1 : Activité area chart 14 jours -->
+        <div class="card dash-chart-card dash-chart-activity">
+          <div class="card-header">
+            <h2>Activité — 14 derniers jours</h2>
+            <div class="chart-toolbar">
+              <button class="chip-mini active" data-range="14" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(14)">14j</button>
+              <button class="chip-mini" data-range="30" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(30)">30j</button>
+              <button class="chip-mini" data-range="90" onclick="window.refonteDashboardCharts && window.refonteDashboardCharts.setRange(90)">90j</button>
+            </div>
+          </div>
+          <div class="chart-body">
+            <canvas id="dash-area-chart"></canvas>
+          </div>
+        </div>
+        <!-- Card 2 : Statuts livraisons donut -->
+        <div class="card dash-chart-card dash-chart-statuts">
+          <div class="card-header">
+            <h2>Statuts livraisons</h2>
+            <span class="dash-chart-meta" id="dash-statuts-total">0 livraisons</span>
+          </div>
+          <div class="chart-body">
+            <canvas id="dash-statuts-chart"></canvas>
+            <div class="dash-statuts-legend" id="dash-statuts-legend"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2-col grid legacy (cache via CSS, conserve pour compat script.js) -->
+      <div class="dashboard-2col" style="display:none">
         <div class="card">
           <div class="card-header"><h2>Qui travaille aujourd'hui ?</h2><span class="kpi-value" id="kpi-travaillent" style="font-size:1.1rem;color:var(--accent)">0</span></div>
           <div style="padding:12px 18px;display:flex;flex-wrap:wrap;gap:6px" id="liste-travaillent">

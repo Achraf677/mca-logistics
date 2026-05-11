@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v16-dashboard-cleanup-369';
+const CACHE_VERSION = 'mca-v2026-05-11-v17-dash-charts-370';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -66,6 +66,9 @@ const CORE_ASSETS = [
   '/style-design-section-pattern.css',
   // Phase 7 refonte HTML — script title-row counts cross-pages
   '/script-titlerow.js',
+  // Phase 10 refonte HTML — dashboard dash-charts (area 14j + donut statuts)
+  '/style-design-dashboard-charts.css',
+  '/script-dashboard-charts.js',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)
