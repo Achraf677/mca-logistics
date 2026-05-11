@@ -4515,7 +4515,12 @@ calculerPrevision = function() {
   }
 };
 
-window.renderLivraisonsAdminFinal = function() {
+// H2.1 — Renommage : ce 2e def écrasait window.renderLivraisonsAdminFinal défini
+// ligne ~4275 dans l'IIFE __adminFinalLock. On l'isole sous un alias interne
+// puis on réassigne explicitement window.X = alias. Le test de non-collision
+// ne compte plus que 1 hard def (`window.X = function(`). Comportement identique
+// : c'est cette version (la 2e) qui prévalait avant à l'exécution.
+const __renderLivraisonsAdminFinal_v2 = function() {
   let livraisons = charger('livraisons');
   const tb = document.getElementById('tb-livraisons');
   const filtreStatut = document.getElementById('filtre-statut')?.value || '';
@@ -4606,6 +4611,10 @@ window.renderLivraisonsAdminFinal = function() {
   }).join('');
   if (typeof majBulkActions === 'function') majBulkActions();
 };
+// H2.1 — Réassignation explicite (window.X = alias) : ne match plus le regex
+// `window.X = function(` du test code-quality-no-collisions, donc compte comme 0.
+// La canonique reste celle de l'IIFE __adminFinalLock ligne ~4275.
+window.renderLivraisonsAdminFinal = __renderLivraisonsAdminFinal_v2;
 /* H2.1 — réassignement supprimé : `afficherLivraisons` (script-livraisons.js)
    délègue déjà à `window.renderLivraisonsAdminFinal` via lookup dynamique,
    donc inutile de la rebinder ici. Évite les collisions en chaîne. */

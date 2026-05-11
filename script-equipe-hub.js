@@ -176,7 +176,14 @@
     lundi.setDate(lundi.getDate() + offset);
     const dimanche = new Date(lundi);
     dimanche.setDate(lundi.getDate() + 6);
-    const fmt = d => d.toISOString().slice(0, 10);
+    // Fix TZ : utiliser les composantes locales pour éviter le décalage UTC.
+    // Avec toISOString() sur une date locale (TZ+x), on perdait 1 jour.
+    const fmt = d => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
     return { debut: fmt(lundi), fin: fmt(dimanche), lundi, dimanche };
   }
 
