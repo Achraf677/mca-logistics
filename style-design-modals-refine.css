@@ -134,6 +134,50 @@
   border-bottom: 1px solid var(--ds-border, var(--border));
 }
 
+/* BUG-001 fix : titres section legacy .fp-section-title rendaient "énérales" / "`TVA"
+   — défensif : force display block + overflow visible + reset padding/indent + clean text */
+.modal-body .fp-section-title {
+  display: block !important;
+  overflow: visible !important;
+  text-indent: 0 !important;
+  padding-left: 0 !important;
+  margin-left: 0 !important;
+  width: auto !important;
+  white-space: normal !important;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ds-text, var(--text));
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  letter-spacing: -0.01em;
+}
+
+/* BUG-003 fix : icone date picker native qui debordait — contraindre dans le champ */
+.modal-body input[type="date"]::-webkit-calendar-picker-indicator,
+.modal-body input[type="time"]::-webkit-calendar-picker-indicator {
+  position: static;
+  margin-left: auto;
+  cursor: pointer;
+  filter: invert(0.6);
+}
+
+.modal-body input[type="date"],
+.modal-body input[type="time"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Modal body : safeguard contre les enfants qui sortent du flow */
+.modal-body > * {
+  max-width: 100%;
+}
+
+/* Section parent : ne pas masquer le titre via overflow hidden */
+.modal-body .fp-section {
+  overflow: visible !important;
+}
+
 .field-section:first-child,
 .modal-body .form-section-title:first-child {
   margin-top: 0;
