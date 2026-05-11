@@ -430,6 +430,11 @@
 /* Quand v2 actif, masquer ancien card-header + ancienne liste */
 .dashboard-attention.dashboard-attention-v2 > .card-header { display: none; }
 
+/* Phase 19 : cacher dashboard-ct-banner si Points d'attention pills actives (redondant) */
+#page-dashboard #dashboard-ct-banner {
+  display: none !important;
+}
+
 /* ============ DASHBOARD POST-HERO CLEANUP (Phase 9) ============ */
 
 /* Cacher stats-row-pills : les pills sont desormais dans .hero-pills v2.
