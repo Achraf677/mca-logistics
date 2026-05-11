@@ -128,38 +128,75 @@
     } catch (_) { return ''; }
   }
 
-  function transformClientCell(td, livraison) {
-    if (!td || td.dataset.clientPolished === '1') return;
-    if (!livraison) return;
-    const date = formatDateShort(livraison.date || livraison.date_livraison || livraison.dateLivraison);
-    const client = String(livraison.client || td.textContent.trim() || '—').replace(/[<>]/g, '');
-    td.innerHTML = ''
-      + '<div class="liv-client-cell">'
-      +   (date ? '<span class="liv-client-date">' + date + '</span>' : '')
-      +   '<span class="liv-client-name">' + client + '</span>'
-      + '</div>';
-    td.dataset.clientPolished = '1';
+  function fmtEur(n) {
+    if (n == null || !Number.isFinite(Number(n))) return '—';
+    return Math.round(Number(n)).toLocaleString('fr-FR') + ' €';
   }
 
-  function transformDriverCellWithVehicule(td, livraison) {
+  // ============ Injection 3 nouvelles colonnes (Phase 27) ============
+  // Script.js rend 13 <td> par row. On INJECTE :
+  //   - <td> Date à la position 3 (apres N°)
+  //   - <td> Véhicule à la position 11 (apres Chauffeur transformed)
+  //   - <td> Montant HT à la fin (lecture depuis td[8] TTC ou td[5] HT du DOM)
+  function injectExtraCells(tr, livraison) {
+    if (!tr || tr.dataset.colsInjected === '1') return;
+    const tds = tr.querySelectorAll('td');
+    if (tds.length < 13) return;
+
+    // 1. Date <td> au index 2 (entre N° et Client)
+    const dateTd = document.createElement('td');
+    dateTd.className = 'liv-date-cell';
+    if (livraison) {
+      const d = formatDateShort(livraison.date || livraison.date_livraison || livraison.dateLivraison);
+      dateTd.textContent = d || '—';
+    } else {
+      dateTd.textContent = '—';
+    }
+    tr.insertBefore(dateTd, tds[2]);
+
+    // 2. Apres Chauffeur (initial col 9, après insertion col 10 → index 9) : insérer Véhicule
+    const tdsAfter1 = tr.querySelectorAll('td'); // refresh after insertion (14 tds maintenant)
+    const vehTd = document.createElement('td');
+    vehTd.className = 'liv-veh-cell';
+    if (livraison) {
+      const veh = livraison.vehImmat || livraison.vehimmat || livraison.veh_immat
+                 || livraison.vehicule || livraison.vehiculeImmat || '';
+      vehTd.textContent = String(veh).replace(/[<>]/g, '') || '—';
+    } else {
+      vehTd.textContent = '—';
+    }
+    // Inserer apres Chauffeur (index 9 dans la liste à 14 tds)
+    if (tdsAfter1[10]) tr.insertBefore(vehTd, tdsAfter1[10]);
+    else tr.appendChild(vehTd);
+
+    // 3. Montant HT en fin de row
+    const montantTd = document.createElement('td');
+    montantTd.className = 'liv-montant-cell';
+    if (livraison) {
+      const ht = Number(livraison.ht || livraison.prix_ht || livraison.prixHT || livraison.prix || 0);
+      montantTd.textContent = fmtEur(ht);
+    } else {
+      // Fallback : lire depuis td legacy HT (col 6 dans le DOM original = index 5 maintenant)
+      const oldHt = tds[5];
+      montantTd.textContent = oldHt ? oldHt.textContent.trim() : '—';
+    }
+    tr.appendChild(montantTd);
+
+    tr.dataset.colsInjected = '1';
+  }
+
+  function transformDriverCell(td) {
+    // Version simple sans vehicule sub (Phase 27 — Vehicule est une col separate maintenant)
     if (!td || td.dataset.driverPolished === '1') return;
     const text = td.textContent.trim();
     if (!text || text === '—' || text === '-') return;
     const initials = getInitials(text);
     const cls = avatarClassFromName(text);
     const escaped = text.replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-    // Si on a la livraison, injecter aussi le vehicule en sub
-    const vehImmat = livraison ? String(livraison.vehImmat || livraison.vehimmat || livraison.veh_immat || '').replace(/[<>]/g, '') : '';
-    const vehHtml = vehImmat
-      ? '<span class="driver-sub">' + vehImmat + '</span>'
-      : '';
     td.innerHTML = ''
       + '<span class="driver-cell">'
       +   '<span class="driver-av ' + cls + '">' + initials + '</span>'
-      +   '<span class="driver-info">'
-      +     '<span class="driver-name">' + escaped + '</span>'
-      +     vehHtml
-      +   '</span>'
+      +   '<span class="driver-name">' + escaped + '</span>'
       + '</span>';
     td.dataset.driverPolished = '1';
   }
@@ -171,14 +208,15 @@
       if (tr.classList.contains('empty-row') || tr.querySelector('td.empty-row')) return;
       const tds = tr.querySelectorAll('td');
       if (tds.length < 9) return;
-      // Lookup livraison source
       const liv = getLivraisonForRow(tr);
-      // Transform col 3 (Client) : prefix avec date
-      if (liv) transformClientCell(tds[2], liv);
-      // Transform col 4 (Zone → Trajet)
-      if (liv) transformTrajetCell(tds[3], liv);
-      // Transform col 9 (Salarié → avatar + vehicule sub)
-      transformDriverCellWithVehicule(tds[8], liv);
+      // ORDER MATTERS : inject extra cells AVANT les transforms car ça change les indices
+      injectExtraCells(tr, liv);
+      // Re-query tds après injection (maintenant 16 tds)
+      const tdsAfter = tr.querySelectorAll('td');
+      // Transform Trajet (col 5 maintenant)
+      if (liv && tdsAfter[4]) transformTrajetCell(tdsAfter[4], liv);
+      // Transform Chauffeur (col 10 maintenant = index 9)
+      if (tdsAfter[9]) transformDriverCell(tdsAfter[9]);
     });
     renderPaginationFooter();
   }

@@ -13,67 +13,88 @@
    Aucun changement HTML ni script.js requis : tout via CSS sur structure existante.
    ========================================================================== */
 
-/* ============ Hide cols redondantes (mockup a 8 cols) ============ */
-/* Table structure : 1=checkbox, 2=N°LIV, 3=Client, 4=Zone(→Trajet), 5=Distance, 6=HT,
-                     7=TVA, 8=TTC, 9=Salarie, 10=Statut, 11=Paiement,
-                     12=Date paiement, 13=Actions
-   Mockup           : checkbox, N°, Date, Client, Trajet, Chauffeur, Vehicule, Statut, MontantHT
-   On hide : Distance(5), HT(6), TVA(7), Paiement(11), DatePaiement(12), Actions(13)
-   On keep : checkbox(1), N°(2), Client(3), Zone→Trajet(4), TTC→MontantHT(8), Salarié(9), Statut(10)
-   = 7 cols visibles. La Date + Véhicule sont integres dans d'autres cellules.
+/* ============ Hide cols redondantes (Phase 27 — 16 cols total) ============ */
+/* Structure :
+   1=checkbox, 2=N°, 3=Date(NEW), 4=Client, 5=Trajet(was Zone), 6=Distance,
+   7=HT, 8=TVA, 9=TTC, 10=Chauffeur(was Salarié), 11=Véhicule(NEW), 12=Statut,
+   13=Paiement, 14=Date paiement, 15=Actions, 16=Montant HT(NEW)
+
+   Visible : 1, 2, 3, 4, 5, 10, 11, 12, 16 = 9 cols (parite mockup)
+   Hidden  : 6, 7, 8, 9, 13, 14, 15
 */
 
-.livraisons-table th:nth-child(5),  /* Distance */
-.livraisons-table td:nth-child(5),
-.livraisons-table th:nth-child(6),  /* HT */
+.livraisons-table th:nth-child(6),  /* Distance */
 .livraisons-table td:nth-child(6),
-.livraisons-table th:nth-child(7),  /* TVA */
+.livraisons-table th:nth-child(7),  /* HT */
 .livraisons-table td:nth-child(7),
-.livraisons-table th:nth-child(11), /* Paiement */
-.livraisons-table td:nth-child(11),
-.livraisons-table th:nth-child(12), /* Date paiement */
-.livraisons-table td:nth-child(12),
-.livraisons-table th:nth-child(13), /* Actions */
-.livraisons-table td:nth-child(13) {
+.livraisons-table th:nth-child(8),  /* TVA */
+.livraisons-table td:nth-child(8),
+.livraisons-table th:nth-child(9),  /* TTC (remplace par col 16 Montant HT) */
+.livraisons-table td:nth-child(9),
+.livraisons-table th:nth-child(13), /* Paiement */
+.livraisons-table td:nth-child(13),
+.livraisons-table th:nth-child(14), /* Date paiement */
+.livraisons-table td:nth-child(14),
+.livraisons-table th:nth-child(15), /* Actions */
+.livraisons-table td:nth-child(15) {
   display: none;
 }
 
-/* Relabel TTC header to "Montant HT" via CSS content
-   (legacy thead text is "TTC", on overwrite visuellement) */
-.livraisons-table th:nth-child(8) {
-  font-size: 0;
+/* Col 3 : Date (NEW injectee) */
+.livraisons-table th:nth-child(3),
+.livraisons-table td:nth-child(3) {
+  white-space: nowrap;
 }
-.livraisons-table th:nth-child(8)::before {
-  content: 'Montant HT';
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  font-weight: 700;
+.livraisons-table td:nth-child(3).liv-date-cell {
+  font-size: 12.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-feature-settings: "tnum";
 }
 
-/* Trajet cell (col 4) — afficher Zone → Distance ou injecté par JS */
-.livraisons-table td:nth-child(4) .liv-trajet {
+/* Col 4 : Client */
+.livraisons-table td:nth-child(4) {
+  font-weight: 600;
+}
+
+/* Col 5 : Trajet (was Zone géographique header renamed) */
+.livraisons-table td:nth-child(5) {
+  font-size: 12.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+.livraisons-table td:nth-child(5) .liv-trajet {
   font-size: 12.5px;
   color: var(--ds-text-muted, var(--text-muted));
   white-space: nowrap;
 }
-
-.livraisons-table td:nth-child(4) .liv-trajet-arrow {
+.livraisons-table td:nth-child(5) .liv-trajet-arrow {
   color: var(--ds-text-muted, var(--text-muted));
   opacity: 0.6;
   margin: 0 4px;
 }
 
-/* Renomme thead col 4 "Zone géographique" en "Trajet" */
-.livraisons-table th:nth-child(4) {
-  font-size: 0;
+/* Col 11 : Véhicule (NEW injectee) */
+.livraisons-table th:nth-child(11),
+.livraisons-table td:nth-child(11) {
+  white-space: nowrap;
 }
-.livraisons-table th:nth-child(4)::before {
-  content: 'Trajet';
-  font-size: 10.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+.livraisons-table td:nth-child(11).liv-veh-cell {
+  font-size: 12.5px;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+/* Col 16 : Montant HT (NEW injectee, right-aligned bold) */
+.livraisons-table th:nth-child(16),
+.livraisons-table td:nth-child(16) {
+  text-align: right;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.livraisons-table td:nth-child(16).liv-montant-cell {
   font-weight: 700;
+  color: var(--ds-text, var(--text));
 }
 
 /* ============ Polish cellules ============ */
@@ -87,104 +108,21 @@
   white-space: nowrap;
 }
 
-/* Col 5 : Distance compact + muted */
-.livraisons-table td:nth-child(5) {
-  font-size: 12px;
-  color: var(--ds-text-muted, var(--text-muted));
-  font-feature-settings: "tnum";
-  text-align: right;
+/* Col 10 : Chauffeur (was Salarié) - driver avatar */
+.livraisons-table td:nth-child(10) {
   white-space: nowrap;
 }
 
-/* Col 6, 8 : HT, TTC right-aligned + bold + tnum */
-.livraisons-table th:nth-child(6),
-.livraisons-table td:nth-child(6),
-.livraisons-table th:nth-child(8),
-.livraisons-table td:nth-child(8) {
-  text-align: right;
-  font-feature-settings: "tnum";
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.livraisons-table td:nth-child(6),
-.livraisons-table td:nth-child(8) {
-  font-weight: 700;
-}
-
-/* Col 8 (TTC) : highlight comme montant principal */
-.livraisons-table td:nth-child(8) {
-  color: var(--ds-text, var(--text));
-}
-
-/* Col 6 (HT) : muted */
-.livraisons-table td:nth-child(6) {
-  color: var(--ds-text-muted, var(--text-muted));
-  font-weight: 600;
-}
-
-/* Col 3 : Client cell - bold + lien hover */
-.livraisons-table td:nth-child(3) {
-  font-weight: 600;
-}
-
-/* Col 4 : Zone géographique muted + smaller */
-.livraisons-table td:nth-child(4) {
-  font-size: 12.5px;
-  color: var(--ds-text-muted, var(--text-muted));
-}
-
-/* Col 3 : Client cell avec date prefix (Phase 25) */
-.livraisons-table td:nth-child(3) .liv-client-cell {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  line-height: 1.2;
-}
-
-.livraisons-table td:nth-child(3) .liv-client-date {
-  font-size: 11px;
-  color: var(--ds-text-muted, var(--text-muted));
-  font-feature-settings: "tnum";
-}
-
-.livraisons-table td:nth-child(3) .liv-client-name {
-  font-weight: 600;
-  font-size: 13.5px;
-  color: var(--ds-text, var(--text));
-}
-
-/* Col 9 : Salarié - prepare l'espace pour driver avatar (injecté par JS) */
-.livraisons-table td:nth-child(9) {
-  white-space: nowrap;
-}
-
-.livraisons-table td:nth-child(9) .driver-cell {
+.livraisons-table td:nth-child(10) .driver-cell {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   vertical-align: middle;
 }
 
-.livraisons-table td:nth-child(9) .driver-info {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  line-height: 1.2;
-}
-
-.livraisons-table td:nth-child(9) .driver-name {
+.livraisons-table td:nth-child(10) .driver-name {
   font-size: 13px;
   font-weight: 600;
-}
-
-.livraisons-table td:nth-child(9) .driver-sub {
-  font-size: 11px;
-  color: var(--ds-text-muted, var(--text-muted));
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-  letter-spacing: 0.02em;
 }
 
 .livraisons-table .driver-av {
