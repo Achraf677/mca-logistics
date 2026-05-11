@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-12-v74-phase42-incidents-heures-kpis-counts';
+const CACHE_VERSION = 'mca-v2026-05-12-v75-phase43-inspections-kpis-counts';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -117,6 +117,8 @@ const CORE_ASSETS = [
   '/script-incidents-counts.js',
   // Phase 42 refonte HTML — Heures KPI grid counts
   '/script-heures-counts.js',
+  // Phase 43 refonte HTML — Inspections KPI grid counts
+  '/script-inspections-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
