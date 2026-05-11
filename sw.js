@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v37-livraisons-no-doublon-390';
+const CACHE_VERSION = 'mca-v2026-05-11-v38-livraisons-refonte-391';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -77,6 +77,9 @@ const CORE_ASSETS = [
   '/style-design-tables-refine.css',
   // Phase 15 refonte HTML — modals + drawer refinement (legacy + mockup patterns)
   '/style-design-modals-refine.css',
+  // Phase 23 refonte HTML — livraisons table refonte (mockup-aligned)
+  '/style-design-livraisons-refonte.css',
+  '/script-livraisons-polish.js',
   // Phase 16 refonte HTML — mobile refinement (m.html + salarie.html)
   '/style-design-mobile-refine.css',
   // Phase 17 refonte HTML — dashboard finish (status-card v2 + grid-2)

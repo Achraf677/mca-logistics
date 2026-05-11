@@ -1,0 +1,155 @@
+/* ==========================================================================
+   MCA Logistics — Livraisons refonte HTML (Phase 23)
+
+   Aligne la page Livraisons sur previews/livraisons.html :
+   - Table density compacte
+   - Mono N° LIV (col 2)
+   - Cols redondantes cachees (TVA col 7, Paiement col 11, DatePaiement col 12, Actions col 13)
+   - Montants HT/TTC right-aligned + tabular-nums
+   - Salarie cell : driver avatar (injecte par script-livraisons-polish.js)
+   - Statut + Paiement : badges colores pills (deja Phase 14)
+   - Footer pagination polish
+
+   Aucun changement HTML ni script.js requis : tout via CSS sur structure existante.
+   ========================================================================== */
+
+/* ============ Hide cols redondantes (mockup a 8-9 cols) ============ */
+/* Table structure : 1=checkbox, 2=N°LIV, 3=Client, 4=Zone, 5=Distance, 6=HT,
+                     7=TVA, 8=TTC, 9=Salarie, 10=Statut, 11=Paiement,
+                     12=Date paiement, 13=Actions */
+
+.livraisons-table th:nth-child(7),  /* TVA */
+.livraisons-table td:nth-child(7),
+.livraisons-table th:nth-child(11), /* Paiement */
+.livraisons-table td:nth-child(11),
+.livraisons-table th:nth-child(12), /* Date paiement */
+.livraisons-table td:nth-child(12),
+.livraisons-table th:nth-child(13), /* Actions */
+.livraisons-table td:nth-child(13) {
+  display: none;
+}
+
+/* ============ Polish cellules ============ */
+
+/* Col 2 : N° LIV en mono */
+.livraisons-table td:nth-child(2) {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-muted, var(--text-muted));
+  white-space: nowrap;
+}
+
+/* Col 5 : Distance compact + muted */
+.livraisons-table td:nth-child(5) {
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-feature-settings: "tnum";
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Col 6, 8 : HT, TTC right-aligned + bold + tnum */
+.livraisons-table th:nth-child(6),
+.livraisons-table td:nth-child(6),
+.livraisons-table th:nth-child(8),
+.livraisons-table td:nth-child(8) {
+  text-align: right;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.livraisons-table td:nth-child(6),
+.livraisons-table td:nth-child(8) {
+  font-weight: 700;
+}
+
+/* Col 8 (TTC) : highlight comme montant principal */
+.livraisons-table td:nth-child(8) {
+  color: var(--ds-text, var(--text));
+}
+
+/* Col 6 (HT) : muted */
+.livraisons-table td:nth-child(6) {
+  color: var(--ds-text-muted, var(--text-muted));
+  font-weight: 600;
+}
+
+/* Col 3 : Client cell - bold + lien hover */
+.livraisons-table td:nth-child(3) {
+  font-weight: 600;
+}
+
+/* Col 4 : Zone géographique muted + smaller */
+.livraisons-table td:nth-child(4) {
+  font-size: 12.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+/* Col 9 : Salarié - prepare l'espace pour driver avatar (injecté par JS) */
+.livraisons-table td:nth-child(9) {
+  white-space: nowrap;
+}
+
+.livraisons-table td:nth-child(9) .driver-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  vertical-align: middle;
+}
+
+.livraisons-table .driver-av {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ds-brand, var(--accent));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Avatar variants couleurs (palette pour différencier chauffeurs) */
+.livraisons-table .driver-av.av-1 { background: #e63946; }
+.livraisons-table .driver-av.av-2 { background: #06d6a0; color: #1a1d22; }
+.livraisons-table .driver-av.av-3 { background: #4cc9f0; color: #1a1d22; }
+.livraisons-table .driver-av.av-4 { background: #ffd60a; color: #1a1d22; }
+.livraisons-table .driver-av.av-5 { background: #a855f7; }
+.livraisons-table .driver-av.av-6 { background: #ff9f1c; color: #1a1d22; }
+
+/* ============ Header polish ============ */
+.livraisons-table thead th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 700;
+  padding: 12px 14px;
+}
+
+/* ============ Pagination footer polish ============ */
+.pagination-bar {
+  padding: 14px 20px;
+  border-top: 1px solid var(--ds-border, var(--border));
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  background: var(--ds-bg-card, var(--bg-card));
+}
+
+.pagination-bar:empty,
+.pagination-bar[data-empty="true"] {
+  display: none !important;
+}
+
+/* ============ Row click affordance ============ */
+.livraisons-table tbody tr:not(.empty-row) {
+  cursor: pointer;
+}
