@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v21-empty-states-374';
+const CACHE_VERSION = 'mca-v2026-05-11-v22-tables-refine-375';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -73,6 +73,8 @@ const CORE_ASSETS = [
   '/script-period-chips.js',
   // Phase 13 refonte HTML — empty states stylisés cross-pages
   '/style-design-empty-states.css',
+  // Phase 14 refonte HTML — tables refinement (pills + zebra + hover + sortable)
+  '/style-design-tables-refine.css',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)
