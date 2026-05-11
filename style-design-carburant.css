@@ -87,3 +87,12 @@ tr[data-anomalie="1"]:hover td {
 .conso-l100.normale {
   color: var(--ds-text-muted);
 }
+
+/* ============ Phase 34 : masquer colonnes hors-mockup ============ */
+/* TVA déductible (6) + Source (9) */
+.carburant-table th:nth-child(6),
+.carburant-table td:nth-child(6),
+.carburant-table th:nth-child(9),
+.carburant-table td:nth-child(9) {
+  display: none !important;
+}

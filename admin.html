@@ -66,7 +66,7 @@
   <!-- Design charges (Phase 4 / PR-8) — nav-periode + recurrence chips + montants negatifs. Specifique charges/carburant/entretiens/stats. -->
   <link rel="stylesheet" href="style-design-charges.css?v=1" />
   <!-- Design carburant (Phase 4 / PR-9) — anomalies/doublons warnings + conso L/100km. Specifique carburant. -->
-  <link rel="stylesheet" href="style-design-carburant.css?v=1" />
+  <link rel="stylesheet" href="style-design-carburant.css?v=2" />
   <!-- Design entretiens (Phase 4 / PR-10) — type-badge + source-badge + echeance-badge. -->
   <link rel="stylesheet" href="style-design-entretiens.css?v=2" />
   <!-- Design vehicules (Phase 4 / PR-11) — TCO panel + plaques + statuts vehicule + relance pattern. -->
@@ -1085,7 +1085,7 @@
       </div>
       <div class="card mt-20">
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table carburant-table">
             <thead><tr><th>Libellé (plaque — salarié)</th><th>Type</th><th>Litres</th><th>Prix/L</th><th>Total</th><th>TVA déductible</th><th>Km compteur</th><th>Date</th><th>Source</th><th>Actions</th></tr></thead>
             <tbody id="tb-carburant"><tr><td colspan="10" class="empty-row">Aucun plein</td></tr></tbody>
           </table>
@@ -2330,7 +2330,7 @@
       </div>
       <div class="card">
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table incidents-table">
             <thead><tr><th>Date</th><th>Client</th><th>Chauffeur</th><th>Description</th><th>Gravité</th><th>Statut</th><th>Actions</th></tr></thead>
             <tbody id="tb-incidents"></tbody>
           </table>
