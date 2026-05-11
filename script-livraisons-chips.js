@@ -38,12 +38,13 @@
   // --- Compter par statut
   function computerCounts() {
     var livs = lireLivraisons();
-    var counts = { all: 0, 'en-cours': 0, livre: 0, 'en-attente': 0, retard: 0 };
+    var counts = { all: 0, 'en-cours': 0, livre: 0, 'en-attente': 0, retard: 0, brouillon: 0 };
     for (var i = 0; i < livs.length; i++) {
       var l = livs[i] || {};
       counts.all += 1;
       var statut = (l.statut || l.status || '').toLowerCase();
-      if (statut === 'en-cours' || statut === 'en cours') counts['en-cours'] += 1;
+      if (statut === 'brouillon' || statut === 'draft' || l.brouillon === true) counts.brouillon += 1;
+      else if (statut === 'en-cours' || statut === 'en cours') counts['en-cours'] += 1;
       else if (statut === 'livre' || statut === 'livré' || statut === 'livree') counts.livre += 1;
       else if (statut === 'en-attente' || statut === 'en attente' || statut === '') counts['en-attente'] += 1;
       if (estEnRetard(l)) counts.retard += 1;
@@ -66,6 +67,7 @@
     setText('livraisons-chip-count-livre', c.livre);
     setText('livraisons-chip-count-en-attente', c['en-attente']);
     setText('livraisons-chip-count-retard', c.retard);
+    setText('livraisons-chip-count-brouillon', c.brouillon);
     // Section-head sub-meta
     setText('livraisons-section-sub-count', c.all);
     var periodeLabel = (document.getElementById('liv-periode-label') || {}).textContent || '';

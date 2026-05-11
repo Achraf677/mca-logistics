@@ -603,8 +603,14 @@
             <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" title="Vue normale" aria-label="Vue normale">☰</button>
             <button class="btn-density" id="btn-density-compact" onclick="if(!_vueCompacte)toggleVueCompacte()" title="Vue compacte" aria-label="Vue compacte">≡</button>
           </div>
-          <button class="btn-secondary" onclick="exporterLivraisons()">Historique</button>
-          <button class="btn-rapport" onclick="genererRapportMensuelPeriode()">Rapport</button>
+          <button class="btn-secondary" onclick="genererRapportMensuelPeriode()" title="Générer rapport / factures">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            Générer
+          </button>
+          <button class="btn-secondary" onclick="exporterLivraisons()" title="Exporter en PDF/CSV/Excel">
+            <svg viewBox="0 0 24 24" width="13" height="13" style="vertical-align:-2px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Exporter
+          </button>
           <button class="btn-primary" onclick="openModal('modal-livraison')">+ Nouvelle livraison</button>
         </div>
       </div>
@@ -643,9 +649,13 @@
         </button>
         <button class="ds-chip" type="button" data-livraisons-statut="en-cours" onclick="appliquerChipLivraisons('en-cours')" role="tab" aria-selected="false">En cours <span class="ds-chip__count" id="livraisons-chip-count-en-cours">0</span>
         </button>
-        <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" role="tab" aria-selected="false">En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
-        </button>
         <button class="ds-chip" type="button" data-livraisons-statut="retard" onclick="appliquerChipLivraisons('retard')" role="tab" aria-selected="false">Retard <span class="ds-chip__count" id="livraisons-chip-count-retard">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-livraisons-statut="brouillon" onclick="appliquerChipLivraisons('brouillon')" role="tab" aria-selected="false">Brouillons <span class="ds-chip__count" id="livraisons-chip-count-brouillon">0</span>
+        </button>
+        <!-- En attente conservé en DOM mais caché pour compat -->
+        <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" style="display:none">
+          En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
         </button>
         <!-- Phase 25 : period nav + date range + filtres toggle inline (aligne mockup) -->
         <div class="liv-toolbar-right" style="margin-left:auto;display:flex;align-items:center;gap:8px">

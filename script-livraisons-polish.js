@@ -189,7 +189,13 @@
     if (!wrap) return;
     const tbody = document.getElementById('tb-livraisons');
     if (!tbody) return;
-    const visibleRows = tbody.querySelectorAll('tr:not([style*="display: none"])').length;
+    // Count visible rows (non-display-none)
+    let visibleRows = 0;
+    tbody.querySelectorAll('tr').forEach(tr => {
+      if (tr.classList.contains('empty-row') || tr.querySelector('td.empty-row')) return;
+      const display = window.getComputedStyle(tr).display;
+      if (display !== 'none') visibleRows++;
+    });
     const livraisons = (typeof window.charger === 'function' ? window.charger('livraisons') || [] : []);
     const total = livraisons.length;
     if (total === 0) {
@@ -197,11 +203,49 @@
       wrap.style.display = 'none';
       return;
     }
-    // Simple footer : "X affichées sur Y" (pagination réelle est dans script.js si dispo)
+    // Pagination simulee (par defaut on affiche tout - 1 seule page)
+    // Si visible >= 20, on simule pages de 20
+    const perPage = 20;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const currentPage = 1;
+    let pages = '';
+    if (totalPages > 1) {
+      const numbers = [];
+      for (let i = 1; i <= Math.min(3, totalPages); i++) numbers.push(i);
+      if (totalPages > 4) numbers.push('…');
+      if (totalPages > 3) numbers.push(totalPages);
+      pages = numbers.map(n => {
+        if (n === '…') return '<span class="pg-btn" style="border:none;cursor:default">…</span>';
+        return '<button class="pg-btn' + (n === currentPage ? ' active' : '') + '" type="button">' + n + '</button>';
+      }).join('');
+      pages = '<button class="pg-btn" type="button" aria-label="Précédent">‹</button>' + pages
+            + '<button class="pg-btn" type="button" aria-label="Suivant">›</button>';
+    }
     wrap.innerHTML = ''
       + '<div class="pg-count">' + visibleRows + ' affichée' + (visibleRows > 1 ? 's' : '') + ' sur ' + total + '</div>'
-      + '<div class="pg-numbers" id="pagination-livraisons-numbers"></div>';
+      + '<div class="pg-numbers">' + pages + '</div>';
     wrap.style.display = 'flex';
+  }
+
+  // ============ Date range chip (Phase 26) ============
+  function updateDateRangeChip() {
+    const dDeb = document.getElementById('filtre-date-debut');
+    const dFin = document.getElementById('filtre-date-fin');
+    const labelEl = document.getElementById('liv-periode-label');
+    if (!labelEl) return;
+    const periodeStr = (dDeb && dDeb.value) || (dFin && dFin.value)
+      ? formatFr(dDeb && dDeb.value) + ' — ' + formatFr(dFin && dFin.value)
+      : 'Période courante';
+    labelEl.textContent = periodeStr;
+  }
+
+  function formatFr(iso) {
+    if (!iso) return '—';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return '—';
+      return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+    } catch (_) { return '—'; }
   }
 
   // ============ Filtres toggle (Phase 25) ============
@@ -216,12 +260,16 @@
   function setupHook() {
     polishRows();
     wrapChangerVue();
-    // Au boot des livraisons, clear filtres date pour eviter le bug "vide aujourd'hui"
     resetLivraisonsDateFilters();
+    updateDateRangeChip();
+    // Update date range chip when filters change
+    ['filtre-date-debut', 'filtre-date-fin'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener('change', updateDateRangeChip);
+    });
     const tbody = document.getElementById('tb-livraisons');
     if (!tbody) return;
     const obs = new MutationObserver((muts) => {
-      // Quand tbody change (re-render), re-polish
       polishRows();
     });
     obs.observe(tbody, { childList: true, subtree: false });
