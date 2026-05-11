@@ -27,7 +27,8 @@ const PAGES = [
   'clients', 'fournisseurs', 'vehicules', 'carburant',
   'entretiens', 'inspections', 'salaries', 'heures',
   'incidents', 'charges', 'rentabilite', 'encaissement',
-  'tva', 'stats', 'calendrier', 'parametres',
+  'tva', 'statistiques', 'calendrier', 'parametres',
+  'brouillons-ia', 'equipe',
 ];
 
 mkdirSync(OUT_DIR, { recursive: true });

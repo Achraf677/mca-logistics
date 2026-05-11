@@ -26,13 +26,13 @@ function naviguerVers(page) {
   }
   const titres = {
     dashboard:'Dashboard', livraisons:'Livraisons', clients:'Carnet Clients', fournisseurs:'Carnet Fournisseurs',
-    vehicules:'Véhicules', carburant:'⛽ Carburant',
+    vehicules:'Véhicules', carburant:'Carburant',
     rentabilite:'Rentabilité', statistiques:'Statistiques', tva:'TVA',
     salaries:'Gestion Salariés', planning:'Planning hebdomadaire',
     alertes:'Alertes', inspections:'Inspections véhicules',
-    parametres:'⚙️ Paramètres',
-    charges:'Charges', encaissements:'Encaissements & Avoirs', incidents:'Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'Carnet d\'entretien',
-    heures:'⏱️ Heures & Km',
+    parametres:'Paramètres',
+    charges:'Charges', encaissements:'Encaissements & Avoirs', incidents:'Incidents / Réclamations', relances:'Relances paiement', entretiens:'Carnet d\'entretien',
+    heures:'Heures & Km',
     equipe:'Équipe',
     'espace-salarie':'Espace salarié',
     'brouillons-ia':'Brouillons IA',

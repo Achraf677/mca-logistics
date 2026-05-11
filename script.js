@@ -13909,7 +13909,7 @@ genererRentabilitePDF = function() {
     if (search) search.value = '';
     const headerTitle = page.querySelector('.page-actions h2');
     const section = SECTIONS.find(s => s.id === sectionId);
-    if (headerTitle && section) headerTitle.textContent = '⚙️ Paramètres · ' + section.label;
+    if (headerTitle && section) headerTitle.textContent = 'Paramètres · ' + section.label;
   }
 
   function applySearch(q) {
@@ -13930,7 +13930,7 @@ genererRentabilitePDF = function() {
       el.style.display = text.includes(needle) ? '' : 'none';
     });
     const headerTitle = page.querySelector('.page-actions h2');
-    if (headerTitle) headerTitle.textContent = '⚙️ Paramètres · 🔍 ' + q;
+    if (headerTitle) headerTitle.textContent = 'Paramètres · ' + q;
   }
 
   function wireEvents(page) {
