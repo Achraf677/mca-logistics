@@ -142,20 +142,31 @@
 ## Format pour nouvelles sessions
 
 ```markdown
-## Session YYYY-MM-DD (créneau) — Sujet
-**Phases** : N-M
-**Commit final** : `hash`
-**État** : <résumé court>
+## Session 2026-05-12 (reprise contexte 3) — Phase 34 multi-pages
+**Phases** : Phase 34 Clients/Fournisseurs/Véhicules/Entretiens
+**Commit final** : `c6b7e84`
+**État** : 0 NEW bugs, 16 FIXED, Livraisons 92%, Charges 78%, +4 pages à 50%
 
 ### Actions clés
-- ...
+- Ajout `fournisseurs-table` class sur table Fournisseurs
+- CSS column-hiding pour Clients (Contact/Adresse) + Fournisseurs (Contact/Adresse) → `style-design-clients-fournisseurs.css?v=2`
+- CSS column-hiding pour Véhicules (Acquisition/Finances/Carburant/Dernier entretien) → `style-design-vehicules.css?v=2`
+- CSS column-hiding pour Entretiens (HT/TVA) → `style-design-entretiens.css?v=2`
+- BUG-014 fix : `tools/audit-fill-form.mjs` utilise `btnNouv.click()` au lieu de `evaluate(openModal)`
+- CACHE_VERSION v59
 
 ### Bugs fixés
-- BUG-XXX : ...
+- **BUG-014** : audit-fill-form Playwright → utilise click() sur le bouton Nouvelle livraison
 
 ### Bugs détectés
-- BUG-YYY : ...
+- Aucun
 
 ### Décisions
-- ...
-```
+- Column-hiding CSS-only reste la bonne approche : zéro risk de casser le JS rendering
+- Entretiens HT/TVA masquées (mockup n'en a pas), Actions conservées (UX critique)
+
+---
+
+## Format pour nouvelles sessions
+
+```markdown
