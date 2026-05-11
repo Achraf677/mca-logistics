@@ -587,9 +587,10 @@
           </div>
         </div>
         <div class="page-actions-toolbar ds-section-head__actions">
-          <!-- view-toggle déplacé dans la period-row (Phase 12), retiré ici pour pas doublonner.
-               IDs legacy preserves pour compat script.js : on les met cachés. -->
-          <div class="view-toggle" hidden>
+          <!-- view-toggle deplace dans la period-row (Phase 12), retire ici pour pas doublonner.
+               IDs legacy preserves pour compat script.js : caches via inline style
+               (style.css .view-toggle a display:flex qui beat l'attribut hidden) -->
+          <div class="view-toggle" style="display:none !important">
             <button class="btn-view active" id="btn-vue-tableau" onclick="changerVueLivraisons('tableau')">Tableau</button>
             <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')">Kanban</button>
             <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')">Cal.</button>

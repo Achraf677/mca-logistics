@@ -21,24 +21,84 @@ await page.addInitScript(() => {
 });
 
 await page.goto(BASE + '/admin.html?reseed=1', { waitUntil: 'domcontentloaded' });
-await page.waitForTimeout(4000);
+// Wait reseed cycle complet (clear + ?seed=1 + final reload)
+await page.waitForTimeout(5000);
 
+// Helper qui ferme wizard + toasts (à appeler après chaque action qui pourrait les ramener)
+const cleanUI = async () => {
+  await page.evaluate(() => {
+    try { if (window.MCASetup?.later) window.MCASetup.later(); } catch {}
+    var w = document.getElementById('mca-setup-wizard');
+    if (w) { w.classList.remove('active'); w.style.display = 'none'; }
+    document.querySelectorAll('.toast, [class*="toast"], .mca-toast').forEach(el => el.style.display = 'none');
+  }).catch(() => {});
+};
+await cleanUI();
+await page.waitForTimeout(500);
+
+// Navigate to livraisons - try multiple methods
+async function goLivraisons() {
+  // Method 1 : click nav-item
+  const clicked = await page.evaluate(() => {
+    const item = document.querySelector('.nav-item[data-page="livraisons"]');
+    if (item) { item.click(); return true; }
+    return false;
+  });
+  await page.waitForTimeout(1500);
+  if (!clicked) {
+    // Method 2 : naviguerVers
+    await page.evaluate(() => {
+      if (typeof window.naviguerVers === 'function') window.naviguerVers('livraisons');
+    });
+    await page.waitForTimeout(1500);
+  }
+  // Method 3 : manual class toggle
+  await page.evaluate(() => {
+    document.querySelectorAll('section.page').forEach(s => s.classList.remove('active'));
+    const liv = document.getElementById('page-livraisons');
+    if (liv) liv.classList.add('active');
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navItem = document.querySelector('.nav-item[data-page="livraisons"]');
+    if (navItem) navItem.classList.add('active');
+  });
+  await page.waitForTimeout(500);
+}
+await goLivraisons();
+await cleanUI();
+
+// Top view 1440x900 - Tableau
+await page.screenshot({ path: `${OUT_DIR}/02a-livraisons-tableau.png`, fullPage: false });
+console.log('  ✓ tableau top →', `${OUT_DIR}/02a-livraisons-tableau.png`);
+
+// S'assurer qu'on est bien sur livraisons avant de switcher de vue
+await goLivraisons();
+await cleanUI();
+
+// Switch to Kanban
 await page.evaluate(() => {
-  if (window.MCASetup?.later) window.MCASetup.later();
-  document.querySelectorAll('.toast, [class*="toast"], .mca-toast').forEach(el => el.style.display = 'none');
+  if (typeof window.changerVueLivraisons === 'function') window.changerVueLivraisons('kanban');
 });
+await page.waitForTimeout(1500);
+await cleanUI();
+await page.screenshot({ path: `${OUT_DIR}/02b-livraisons-kanban.png`, fullPage: false });
+console.log('  ✓ kanban →', `${OUT_DIR}/02b-livraisons-kanban.png`);
 
-// Navigate to livraisons
+// Switch to Calendrier
 await page.evaluate(() => {
-  if (typeof window.naviguerVers === 'function') window.naviguerVers('livraisons');
+  if (typeof window.changerVueLivraisons === 'function') window.changerVueLivraisons('calendrier');
 });
-await page.waitForTimeout(2000);
+await page.waitForTimeout(1500);
+await cleanUI();
+await page.screenshot({ path: `${OUT_DIR}/02c-livraisons-calendrier.png`, fullPage: false });
+console.log('  ✓ calendrier →', `${OUT_DIR}/02c-livraisons-calendrier.png`);
 
-// Top view 1440x900
-await page.screenshot({ path: `${OUT_DIR}/02a-livraisons-top.png`, fullPage: false });
-console.log('  ✓ livraisons top →', `${OUT_DIR}/02a-livraisons-top.png`);
+// Back to Tableau + full page
+await page.evaluate(() => {
+  if (typeof window.changerVueLivraisons === 'function') window.changerVueLivraisons('tableau');
+});
+await page.waitForTimeout(1000);
 
-// Full page (resize viewport to capture all)
+// Full page
 await page.evaluate(() => {
   const mc = document.getElementById('mainContent');
   if (mc) { mc.style.overflow = 'visible'; mc.style.height = 'auto'; }
