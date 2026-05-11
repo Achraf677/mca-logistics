@@ -133,6 +133,10 @@
   <script defer src="script-stats-calendrier-counts.js?v=1"></script>
   <!-- Phase 40 refonte HTML : Encaissement KPI grid + section-head counts. -->
   <script defer src="script-encaissement-counts.js?v=1"></script>
+  <!-- Phase 42 refonte HTML : Incidents KPI grid counts. -->
+  <script defer src="script-incidents-counts.js?v=1"></script>
+  <!-- Phase 42 refonte HTML : Heures KPI grid counts. -->
+  <script defer src="script-heures-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=1"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
@@ -2444,10 +2448,10 @@
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">Ouverts</div><div class="kpi-val" id="inc-kpi-ouverts" style="color:var(--brand)">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Ouverts</div><div class="kpi-val" id="inc-kpi-ouverts" style="color:var(--brand)">—</div><div class="kpi-sub">Action requise</div></div>
         <div class="kpi"><div class="kpi-lbl">Résolus mois</div><div class="kpi-val" id="inc-kpi-resolus">—</div></div>
-        <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="inc-kpi-cout">—</div></div>
-        <div class="kpi"><div class="kpi-lbl">Délai résolution</div><div class="kpi-val" id="inc-kpi-delai">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="inc-kpi-cout">—</div><div class="kpi-sub">À facturer assurance</div></div>
+        <div class="kpi"><div class="kpi-lbl">Délai résolution</div><div class="kpi-val" id="inc-kpi-delai">—</div><div class="kpi-sub">Moyenne sur 30j</div></div>
       </div>
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar">
@@ -2601,9 +2605,9 @@
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">
-        <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div></div>
-        <div class="kpi"><div class="kpi-lbl">Heures sup.</div><div class="kpi-val" id="heures-kpi-sup">—</div></div>
-        <div class="kpi"><div class="kpi-lbl">Km parcourus</div><div class="kpi-val" id="heures-kpi-km">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div><div class="kpi-sub">Planning semaine</div></div>
+        <div class="kpi"><div class="kpi-lbl">Heures sup.</div><div class="kpi-val" id="heures-kpi-sup">—</div><div class="kpi-sub">25% + 50% inclus</div></div>
+        <div class="kpi"><div class="kpi-lbl">Km parcourus</div><div class="kpi-val" id="heures-kpi-km">—</div><div class="kpi-sub">Livraisons ce mois</div></div>
         <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div></div>
       </div>
 

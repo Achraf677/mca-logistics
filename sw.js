@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-12-v73-phase41-tva-kpi-solde-carb-l100km';
+const CACHE_VERSION = 'mca-v2026-05-12-v74-phase42-incidents-heures-kpis-counts';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -113,6 +113,10 @@ const CORE_ASSETS = [
   '/script-stats-calendrier-counts.js',
   // Phase 40 refonte HTML — Encaissement KPI grid + section-head counts
   '/script-encaissement-counts.js',
+  // Phase 42 refonte HTML — Incidents KPI grid counts
+  '/script-incidents-counts.js',
+  // Phase 42 refonte HTML — Heures KPI grid counts
+  '/script-heures-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
