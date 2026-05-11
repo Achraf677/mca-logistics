@@ -93,9 +93,28 @@ await page.evaluate(() => {
 }).catch(() => {});
 await page.waitForTimeout(800);
 
-const file = `${OUT_DIR}/01-dashboard.png`;
-await page.screenshot({ path: file, fullPage: true });
-console.log('  ✓ dashboard →', file);
+// Screenshot top viewport 1440x900 (matche mockup)
+const fileTop = `${OUT_DIR}/01a-dashboard-top.png`;
+await page.screenshot({ path: fileTop, fullPage: false });
+console.log('  ✓ dashboard top 1440x900 →', fileTop);
+
+// Pour le fullpage, on étend la viewport ET on neutralise les overflow conteneurs
+await page.evaluate(() => {
+  const mc = document.getElementById('mainContent');
+  if (mc) { mc.style.overflow = 'visible'; mc.style.height = 'auto'; }
+  document.body.style.overflow = 'visible';
+  document.body.style.height = 'auto';
+});
+const dashboardHeight = await page.evaluate(() => {
+  const d = document.getElementById('page-dashboard');
+  return d ? d.scrollHeight + 200 : 1800;
+});
+await page.setViewportSize({ width: 1440, height: dashboardHeight });
+await page.waitForTimeout(500);
+
+const fileFull = `${OUT_DIR}/01-dashboard.png`;
+await page.screenshot({ path: fileFull, fullPage: true });
+console.log('  ✓ dashboard full →', fileFull);
 
 await browser.close();
 console.log('Done.');

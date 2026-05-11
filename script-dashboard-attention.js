@@ -120,6 +120,15 @@
     return Number.isFinite(score) ? score : null;
   }
 
+  function computeScoreFromSubScores(sub) {
+    // Score global = moyenne pondérée des 4 sub-scores
+    // Finance 30% / Flotte 25% / RH 20% / Conformité 25%
+    const w = { finance: 0.30, flotte: 0.25, rh: 0.20, conformite: 0.25 };
+    const s = (sub.finance * w.finance) + (sub.flotte * w.flotte)
+            + (sub.rh * w.rh) + (sub.conformite * w.conformite);
+    return Math.round(s);
+  }
+
   function badgeFromScore(s) {
     if (s == null) return { label: 'Chargement', cls: '' };
     if (s >= 80) return { label: 'Excellent', cls: '' };
@@ -149,25 +158,142 @@
   }
 
   function buildFactors(subScores) {
-    // 8 facteurs alignés sur mockup, mix mock + valeurs réelles si dispo.
-    const livraisons = (typeof window.charger === 'function' ? window.charger('livraisons') || [] : []);
-    const charges = (typeof window.charger === 'function' ? window.charger('charges') || [] : []);
-    const vehicules = (typeof window.charger === 'function' ? window.charger('vehicules') || [] : []);
+    // 8 facteurs branchés sur les vraies données (Phase 19).
+    const read = (k) => (typeof window.charger === 'function' ? window.charger(k) || [] : []);
+    const livraisons = read('livraisons');
+    const charges    = read('charges');
+    const vehicules  = read('vehicules');
+    const salaries   = read('salaries');
+    const carburant  = read('carburant');
+    const inspections = read('inspections');
+    const paiements  = read('paiements');
 
-    // Marge brute basique
-    const ca = livraisons.reduce((s, l) => s + (Number(l.ht || l.prix_ht) || 0), 0);
-    const dep = charges.reduce((s, c) => s + (Number(c.montant) || 0), 0);
-    const marge = ca > 0 ? Math.max(0, ((ca - dep) / ca) * 100) : 0;
+    const now = Date.now();
+    const J = 86400000;
+
+    // ============ 1. Marge brute ============
+    const ca = livraisons.reduce((s, l) => s + (Number(l.ht || l.prixHT || l.prix_ht) || 0), 0);
+    const dep = charges.reduce((s, c) => s + (Number(c.montantHT || c.montant_ht) || Number(c.montant) || 0), 0);
+    const marge = ca > 0 ? ((ca - dep) / ca) * 100 : 0;
+    const margeMark = marge >= 25 ? 'ok' : marge >= 15 ? 'warn' : 'alert';
+
+    // ============ 2. Trésorerie nette ============
+    // = somme paiements reçus - somme charges payées (dernier mois)
+    const paie30 = paiements.filter(p => p.date && (now - new Date(p.date).getTime()) < 30 * J);
+    const charges30 = charges.filter(c => {
+      const statut = String(c.statut || c.statutPaiement || '').toLowerCase();
+      const isPaid = statut === 'paye' || statut === 'payé';
+      return isPaid && c.date && (now - new Date(c.date).getTime()) < 30 * J;
+    });
+    const tresorerie = paie30.reduce((s, p) => s + (Number(p.montant) || 0), 0)
+                     - charges30.reduce((s, c) => s + (Number(c.montantTTC || c.montant) || 0), 0);
+    const tresoSign = tresorerie >= 0 ? '+' : '';
+    const tresoMark = tresorerie >= 5000 ? 'ok' : tresorerie >= 0 ? 'warn' : 'alert';
+
+    // ============ 3. DSO (délai moyen paiement) ============
+    const paidLivs = livraisons.filter(l => {
+      const sp = String(l.statutPaiement || '').toLowerCase();
+      return (sp === 'paye' || sp === 'payé') && l.date && l.datePaiement;
+    });
+    const dsoVals = paidLivs.map(l => {
+      const d1 = new Date(l.date).getTime();
+      const d2 = new Date(l.datePaiement).getTime();
+      return Math.max(0, (d2 - d1) / J);
+    });
+    const dso = dsoVals.length > 0
+      ? Math.round(dsoVals.reduce((s, v) => s + v, 0) / dsoVals.length)
+      : 0;
+    const dsoMark = dso <= 35 ? 'ok' : dso <= 50 ? 'warn' : 'alert';
+
+    // ============ 4. Impayés +90j ============
+    const impayes90 = livraisons
+      .filter(l => {
+        const sp = String(l.statutPaiement || '').toLowerCase();
+        if (sp === 'paye' || sp === 'payé') return false;
+        return l.date && (now - new Date(l.date).getTime()) > 90 * J;
+      })
+      .reduce((s, l) => s + (Number(l.ht || l.prixHT || l.prix_ht) || 0), 0);
+    const impMark = impayes90 === 0 ? 'ok' : impayes90 < 5000 ? 'warn' : 'alert';
+
+    // ============ 5. CT véhicules ============
+    const ctCrit = vehicules.filter(v => {
+      const d = v.dateProchainCT || v.dateCT;
+      if (!d) return false;
+      const diff = (new Date(d).getTime() - now) / J;
+      return diff <= 7;
+    }).length;
+    const ctMark = ctCrit === 0 ? 'ok' : ctCrit === 1 ? 'warn' : 'alert';
+    const ctVal = ctCrit === 0
+      ? '0 critique'
+      : ctCrit + (ctCrit > 1 ? ' critiques' : ' critique');
+
+    // ============ 6. Conso flotte (véhicule le plus anormal) ============
+    // Pour chaque véhicule actif, calculer conso moyenne du mois et comparer à v.conso target.
+    let consoText = '—';
+    let consoMark = 'ok';
+    if (carburant.length > 0 && vehicules.length > 0) {
+      const conso30 = {};
+      const km30 = {};
+      carburant.forEach(c => {
+        if (!c.date || (now - new Date(c.date).getTime()) > 30 * J) return;
+        const id = c.vehiculeId;
+        if (!id) return;
+        conso30[id] = (conso30[id] || 0) + (Number(c.litres) || 0);
+        // Naïve : pas de km tracking dans le seed donc on suppose 1000km/véhicule/mois
+      });
+      let worst = null;
+      vehicules.forEach(v => {
+        const litres = conso30[v.id] || 0;
+        if (litres < 50) return;
+        const target = Number(v.conso) || 10;
+        // Pseudo-écart : si litres > target × estimated km / 100 × 1.15 → anomalie
+        // Estimate km basé sur litres et target conso
+        const ecart = ((litres / 10) / target - 1) * 100;
+        if (!worst || ecart > worst.ecart) worst = { v: v, ecart: ecart };
+      });
+      if (worst && worst.ecart > 5) {
+        consoText = (worst.v.modele || worst.v.immat || '—') + ' +' + Math.round(worst.ecart) + '%';
+        consoMark = worst.ecart > 15 ? 'warn' : 'ok';
+      } else {
+        consoText = 'Flotte OK';
+        consoMark = 'ok';
+      }
+    }
+
+    // ============ 7. Permis chauffeurs ============
+    const permisProches = salaries.filter(s => {
+      if (!s.dateExpirationPermis) return false;
+      const diff = (new Date(s.dateExpirationPermis).getTime() - now) / J;
+      return diff > 0 && diff <= 60;
+    });
+    const permisMark = permisProches.length === 0 ? 'ok' : permisProches.length <= 2 ? 'warn' : 'alert';
+    let permisVal = '0 à renouveler';
+    if (permisProches.length === 1) {
+      const days = Math.round((new Date(permisProches[0].dateExpirationPermis).getTime() - now) / J);
+      permisVal = '1 à renouveler (' + days + 'j)';
+    } else if (permisProches.length > 1) {
+      permisVal = permisProches.length + ' à renouveler';
+    }
+
+    // ============ 8. Inspections hebdo ============
+    const inspThisWeek = inspections.filter(i => {
+      if (!i.date) return false;
+      const diff = (now - new Date(i.date).getTime()) / J;
+      return diff <= 7;
+    }).length;
+    const vehActifs = vehicules.filter(v => (v.statut || 'actif') === 'actif').length || vehicules.length;
+    const inspMark = inspThisWeek >= vehActifs ? 'ok' : inspThisWeek >= vehActifs / 2 ? 'warn' : 'alert';
+    const inspVal = inspThisWeek + '/' + vehActifs + ' véhicules';
 
     return [
-      { mark: 'ok',   lbl: 'Marge brute',          val: marge > 0 ? marge.toFixed(1) + '%' : '37,0%' },
-      { mark: 'ok',   lbl: 'Trésorerie nette',     val: '+14,2k€' },
-      { mark: 'ok',   lbl: 'DSO (délai paiement)', val: '28j' },
-      { mark: 'warn', lbl: 'Impayés +90j',         val: '2 810 €' },
-      { mark: vehicules.length > 0 ? 'ok' : 'warn', lbl: 'CT véhicules', val: vehicules.length > 0 ? '0 critique' : '—' },
-      { mark: 'warn', lbl: 'Conso flotte',         val: 'Master 130 +18%' },
-      { mark: 'ok',   lbl: 'Permis chauffeurs',    val: '1 à renouveler (22j)' },
-      { mark: 'ok',   lbl: 'Inspections hebdo',    val: '5/4 véhicules' },
+      { mark: margeMark,    lbl: 'Marge brute',          val: marge.toFixed(1).replace('.', ',') + '%' },
+      { mark: tresoMark,    lbl: 'Trésorerie nette',     val: tresoSign + Math.round(tresorerie / 100) / 10 + 'k€' },
+      { mark: dsoMark,      lbl: 'DSO (délai paiement)', val: dso + 'j' },
+      { mark: impMark,      lbl: 'Impayés +90j',         val: impayes90 === 0 ? '0 €' : Math.round(impayes90).toLocaleString('fr-FR') + ' €' },
+      { mark: ctMark,       lbl: 'CT véhicules',         val: ctVal },
+      { mark: consoMark,    lbl: 'Conso flotte',         val: consoText },
+      { mark: permisMark,   lbl: 'Permis chauffeurs',    val: permisVal },
+      { mark: inspMark,     lbl: 'Inspections hebdo',    val: inspVal },
     ];
   }
 
@@ -216,7 +342,10 @@
   }
 
   function renderHealth() {
-    const score = readScoreFromLegacy();
+    const sub = computeSubScores();
+    // Score = priorité legacy (si script.js calcule un vrai score) sinon dérivé sub-scores
+    const legacyScore = readScoreFromLegacy();
+    const score = legacyScore != null ? legacyScore : computeScoreFromSubScores(sub);
     const num = document.getElementById('dashboard-health-num');
     const badge = document.getElementById('dashboard-health-badge');
     const bar = document.getElementById('dashboard-health-bar');
@@ -233,7 +362,6 @@
     }
     if (delta) delta.textContent = '+4 pts vs mois dernier';
 
-    const sub = computeSubScores();
     const setSS = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
     setSS('dashboard-ss-finance', sub.finance);
     setSS('dashboard-ss-flotte', sub.flotte);
