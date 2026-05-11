@@ -634,38 +634,31 @@
         <button class="ds-chip active" type="button" data-livraisons-statut="" onclick="appliquerChipLivraisons('')" role="tab" aria-selected="true">
           Toutes <span class="ds-chip__count" id="livraisons-chip-count-all">0</span>
         </button>
-        <button class="ds-chip" type="button" data-livraisons-statut="en-cours" onclick="appliquerChipLivraisons('en-cours')" role="tab" aria-selected="false">En cours <span class="ds-chip__count" id="livraisons-chip-count-en-cours">0</span>
-        </button>
         <button class="ds-chip" type="button" data-livraisons-statut="livre" onclick="appliquerChipLivraisons('livre')" role="tab" aria-selected="false">Livrées <span class="ds-chip__count" id="livraisons-chip-count-livre">0</span>
         </button>
-        <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" role="tab" aria-selected="false">
-          ⏳ En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
+        <button class="ds-chip" type="button" data-livraisons-statut="en-cours" onclick="appliquerChipLivraisons('en-cours')" role="tab" aria-selected="false">En cours <span class="ds-chip__count" id="livraisons-chip-count-en-cours">0</span>
+        </button>
+        <button class="ds-chip" type="button" data-livraisons-statut="en-attente" onclick="appliquerChipLivraisons('en-attente')" role="tab" aria-selected="false">En attente <span class="ds-chip__count" id="livraisons-chip-count-en-attente">0</span>
         </button>
         <button class="ds-chip" type="button" data-livraisons-statut="retard" onclick="appliquerChipLivraisons('retard')" role="tab" aria-selected="false">Retard <span class="ds-chip__count" id="livraisons-chip-count-retard">0</span>
         </button>
-      </div>
-      <!-- Navigation période -->
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="liv-periode-mode" onchange="changerVuePeriodeLivraisons(this.value)" aria-label="liv periode mode">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navLivPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center">
-            <div id="liv-periode-label" class="u-title-sm"></div>
-            <div id="liv-periode-dates" class="u-muted-sm"></div>
-          </div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserLivPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="navLivPeriode(1)" style="padding:5px 12px">Suivant</button>
-          </div>
+        <!-- Phase 22 : navigation période inline (Précédent / label / Suivant) -->
+        <div class="liv-period-nav-inline" style="margin-left:auto;display:flex;align-items:center;gap:8px">
+          <button class="btn-icon-mini" onclick="navLivPeriode(-1)" title="Période précédente" aria-label="Précédent">‹</button>
+          <div style="font-size:12.5px;font-weight:700;color:var(--ds-text,var(--text));min-width:140px;text-align:center" id="liv-periode-label"></div>
+          <button class="btn-icon-mini" onclick="navLivPeriode(1)" title="Période suivante" aria-label="Suivant">›</button>
+          <button class="btn-icon-mini" onclick="reinitialiserLivPeriode()" title="Aujourd'hui" aria-label="Aujourd'hui">●</button>
         </div>
       </div>
+
+      <!-- Select période legacy caché — drivers script.js -->
+      <select class="period-selector" id="liv-periode-mode" onchange="changerVuePeriodeLivraisons(this.value)" aria-label="liv periode mode" hidden>
+        <option value="jour">Par jour</option>
+        <option value="semaine">Par semaine</option>
+        <option value="mois" selected>Par mois</option>
+        <option value="annee">Par année</option>
+      </select>
+      <span id="liv-periode-dates" hidden></span>
       <div class="filters filters-livraisons">
         <div class="searchbar">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
