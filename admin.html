@@ -110,6 +110,56 @@
 </head>
 <body class="app-shell app-booting">
 
+  <!-- ========================================================================
+       MCA LOGISTICS — admin.html — Plan du fichier
+       ========================================================================
+       1. SHELL (1-227)
+          - <aside class="sidebar">       : nav latérale 6 sections (ligne ~113)
+          - <main class="main-content">   : conteneur pages (ligne ~199)
+          - <header class="topbar">       : recherche + agent IA + avatar (ligne ~201)
+
+       2. PAGES (21 sections, chacune <section class="page" id="page-X">)
+          QUOTIDIEN
+            page-dashboard      ~ligne  230  : Vue d'ensemble + KPI hero
+            page-livraisons     ~ligne  353  : Tableau/Kanban/Calendrier courses
+            page-calendrier     ~ligne 1923  : Calendrier opérationnel mensuel
+            page-alertes        ~ligne 1170  : Centre d'alertes
+            page-planning       ~ligne 1993  : Planning hebdomadaire
+          TIERS
+            page-clients        ~ligne  477  : Carnet clients
+            page-fournisseurs   ~ligne  517  : Carnet fournisseurs
+          FLOTTE (Parc auto + Équipe)
+            page-vehicules      ~ligne  557
+            page-carburant      ~ligne  608
+            page-entretiens     ~ligne 1797
+            page-inspections    ~ligne 2157
+            page-equipe         ~ligne 1003  : Hub équipe (4 sous-onglets)
+            page-salaries       ~ligne 1049
+            page-heures         ~ligne 1852  : Heures & Km
+            page-incidents      ~ligne 1762
+          FINANCES (Comptabilité)
+            page-charges        ~ligne 1633
+            page-encaissement   ~ligne 1621
+            page-tva            ~ligne 1245
+            page-rentabilite    ~ligne  666
+            page-statistiques   ~ligne  943
+          SYSTÈME
+            page-brouillons-ia  ~ligne 2195  : Validation IA
+            page-parametres     ~ligne 1316  : Config entreprise + RGPD
+
+       3. MODALS (~2400-3470)
+          17 modals : nouvelle livraison, client, fournisseur, véhicule,
+          charge, plein, planning, salarié, etc.
+
+       4. DRAWERS / PANELS (~3480-3590)
+          - #side-drawer        : drawer 360° unique (contenu injecté par JS)
+          - #panneau-agent      : panel Agent IA latéral
+
+       Convention : chaque section commence par <!-- ====== NOM ====== -->
+       Sacred IDs : ne JAMAIS renommer les id="page-X" et id="modal-X",
+       script.js + script-mobile.js en dépendent (50+ onclick / lookup).
+       ======================================================================== -->
+
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header" onclick="naviguerVers('dashboard')" style="cursor:pointer" title="Retour Dashboard">
       <span class="logo-text" id="sidebar-nom-entreprise">MCA Logistics</span>
@@ -226,7 +276,9 @@
       <div class="topbar-date" id="currentDate"></div>
     </header>
 
-    <!-- DASHBOARD -->
+    <!-- ============================================================
+         DASHBOARD                                : Vue d'ensemble + KPI hero + circular health gauge
+         ============================================================ -->
     <section class="page active" id="page-dashboard">
       <!-- Phase 2 HTML refonte : section-head pattern mockup pour dashboard.
            Pas de breadcrumb sur dashboard (page racine). -->
@@ -349,7 +401,9 @@
       </div>
     </section>
 
-    <!-- LIVRAISONS -->
+    <!-- ============================================================
+         LIVRAISONS                               : Tableau / Kanban / Calendrier des courses + filtres
+         ============================================================ -->
     <section class="page" id="page-livraisons">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -473,7 +527,9 @@
       </div>
     </section>
 
-    <!-- CLIENTS -->
+    <!-- ============================================================
+         CLIENTS                                  : Carnet clients (B2B)
+         ============================================================ -->
     <section class="page" id="page-clients">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -513,7 +569,9 @@
       </div>
     </section>
 
-    <!-- FOURNISSEURS — miroir de Clients -->
+    <!-- ============================================================
+         FOURNISSEURS                             : Carnet fournisseurs (miroir clients)
+         ============================================================ -->
     <section class="page" id="page-fournisseurs">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -553,7 +611,9 @@
       </div>
     </section>
 
-    <!-- VÉHICULES -->
+    <!-- ============================================================
+         VÉHICULES                                : Flotte : immatriculation, CT, kms, finances par véhicule
+         ============================================================ -->
     <section class="page" id="page-vehicules">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -604,7 +664,9 @@
       </div>
     </section>
 
-    <!-- CARBURANT -->
+    <!-- ============================================================
+         CARBURANT                                : Suivi pleins, anomalies, prix moyen, TVA déductible
+         ============================================================ -->
     <section class="page" id="page-carburant">
       <div class="page-actions"><h2>Suivi Carburant</h2>
         <div style="display:flex;gap:8px">
@@ -662,7 +724,9 @@
       </div>
     </section>
 
-    <!-- RENTABILITÉ -->
+    <!-- ============================================================
+         RENTABILITÉ                              : Marge par véhicule / client / chauffeur / tournée + simulateur
+         ============================================================ -->
     <section class="page" id="page-rentabilite">
       <div class="page-actions"><h2>Rentabilité</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -939,7 +1003,9 @@
       </div>
     </section>
 
-    <!-- STATISTIQUES -->
+    <!-- ============================================================
+         STATISTIQUES                             : CA, livraisons, panier moyen, km totaux + graphes
+         ============================================================ -->
     <section class="page" id="page-statistiques">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -1045,7 +1111,9 @@
       </div>
     </section>
 
-    <!-- SALARIÉS -->
+    <!-- ============================================================
+         SALARIÉS                                 : Fiches chauffeurs + documents + accès app
+         ============================================================ -->
     <section class="page" id="page-salaries">
       <div class="page-actions"><h2>Gestion des Salariés</h2><button class="btn-primary" onclick="toggleFormulaireNewSalarie()">+ Nouveau salarié</button></div>
 
@@ -1166,7 +1234,9 @@
       ></iframe>
     </section>
 
-    <!-- ALERTES -->
+    <!-- ============================================================
+         ALERTES                                  : Centre d'alertes : CT, permis, conso, échéances
+         ============================================================ -->
     <section class="page" id="page-alertes">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -1241,7 +1311,9 @@
       </div>
     </section>
 
-    <!-- TVA -->
+    <!-- ============================================================
+         TVA                                      : Récap TVA collectée / déductible (CA3)
+         ============================================================ -->
     <section class="page" id="page-tva">
       <div class="page-actions"><h2>Récapitulatif TVA</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1312,7 +1384,9 @@
       </div>
     </section>
 
-    <!-- PARAMÈTRES -->
+    <!-- ============================================================
+         PARAMÈTRES                               : Config entreprise + comptabilité + sécurité + à propos
+         ============================================================ -->
     <section class="page" id="page-parametres">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -1617,7 +1691,9 @@
       </div>
     </section>
 
-    <!-- ENCAISSEMENT (miroir Charges côté revenus) -->
+    <!-- ============================================================
+         ENCAISSEMENT                             : Factures à encaisser, DSO, relances (miroir Charges côté revenus)
+         ============================================================ -->
     <section class="page" id="page-encaissement">
       <div class="page-actions"><h2>Encaissement</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1629,7 +1705,9 @@
       <div id="encaissement-content"></div>
     </section>
 
-    <!-- CHARGES -->
+    <!-- ============================================================
+         CHARGES                                  : Charges d'exploitation (carburant, entretien, etc.)
+         ============================================================ -->
     <section class="page" id="page-charges">
       <!-- Phase 2 HTML refonte : breadcrumb (mockup canonique) -->
       <nav class="crumbs ds-crumbs" aria-label="Fil d'Ariane">
@@ -1758,7 +1836,9 @@
       </div>
     </section>
 
-    <!-- INCIDENTS -->
+    <!-- ============================================================
+         INCIDENTS                                : Incidents & réclamations clients
+         ============================================================ -->
     <section class="page" id="page-incidents">
       <div class="page-actions">
         <h2>Incidents / Réclamations</h2>
@@ -1793,7 +1873,9 @@
       </div>
     </section>
 
-    <!-- ENTRETIENS -->
+    <!-- ============================================================
+         ENTRETIENS                               : Carnet d'entretien véhicules
+         ============================================================ -->
     <section class="page" id="page-entretiens">
       <div class="page-actions"><h2>Carnet d'entretien</h2>
         <div style="display:flex;gap:8px">
@@ -1848,7 +1930,9 @@
       </div>
     </section>
 
-    <!-- HEURES & KM -->
+    <!-- ============================================================
+         HEURES & KM                              : Compteur heures (CE 561) + relevés km véhicules
+         ============================================================ -->
     <section class="page" id="page-heures">
       <div class="page-actions"><h2>Heures & Km</h2>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -1919,7 +2003,9 @@
       </div>
     </section>
 
-    <!-- CALENDRIER (Sprint 16) -->
+    <!-- ============================================================
+         CALENDRIER                               : Calendrier opérationnel mensuel (Sprint 16)
+         ============================================================ -->
     <section class="page" id="page-calendrier">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -1989,7 +2075,9 @@
       </div>
     </section>
 
-    <!-- PLANNING -->
+    <!-- ============================================================
+         PLANNING                                 : Planning hebdomadaire équipe
+         ============================================================ -->
     <section class="page" id="page-planning">
       <!-- Phase 2 HTML refonte : breadcrumb -->
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
@@ -2191,7 +2279,9 @@
       </div>
     </section>
 
-    <!-- BROUILLONS IA — actions ai_pending_actions en attente de validation admin -->
+    <!-- ============================================================
+         BROUILLONS IA                            : Validation des actions proposées par l'IA
+         ============================================================ -->
     <section class="page" id="page-brouillons-ia" hidden>
       <div class="page-actions"><h2>Brouillons IA</h2></div>
       <div class="card" style="margin-bottom:14px;padding:14px 18px">
