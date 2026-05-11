@@ -199,3 +199,17 @@ tr[data-impaye="1"] td {
 .tva-intra.invalide {
   color: var(--ds-danger);
 }
+
+/* ============ Phase 34 : masquer colonnes hors-mockup ============ */
+/* Clients : Contact (2) + Adresse habituelle (4) */
+.clients-table th:nth-child(2),
+.clients-table td:nth-child(2),
+.clients-table th:nth-child(4),
+.clients-table td:nth-child(4),
+/* Fournisseurs : Contact (2) + Adresse habituelle (4) */
+.fournisseurs-table th:nth-child(2),
+.fournisseurs-table td:nth-child(2),
+.fournisseurs-table th:nth-child(4),
+.fournisseurs-table td:nth-child(4) {
+  display: none !important;
+}

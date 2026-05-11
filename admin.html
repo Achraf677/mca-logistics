@@ -74,7 +74,7 @@
   <!-- Design equipe (Phase 4 / PR-12) — s22-bandeau hub tabs + avatars + incidents + heures + credentials. -->
   <link rel="stylesheet" href="style-design-equipe.css?v=1" />
   <!-- Design clients + fournisseurs (Phase 4 / PR-13+14) — bundle : filtres + risque + drawer onglets + SIRET/TVA. -->
-  <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=1" />
+  <link rel="stylesheet" href="style-design-clients-fournisseurs.css?v=2" />
   <!-- Design planning (Phase 4 / PR-15) — overview cards Syne + jour-types + toolbars planning. -->
   <link rel="stylesheet" href="style-design-planning.css?v=1" />
   <!-- Design alertes (Phase 4 / PR-16) — s19 KPIs gravite + filtres + s20 drawer + s25 rules engine. -->
@@ -887,7 +887,7 @@
       </div>
       <div class="card">
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table clients-table">
             <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total CA</th><th>Actions</th></tr></thead>
             <tbody id="tb-clients"><tr><td colspan="6" class="empty-row">Aucun client enregistré</td></tr></tbody>
           </table>
@@ -939,7 +939,7 @@
       </div>
       <div class="card">
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table fournisseurs-table">
             <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total dépensé</th><th>Actions</th></tr></thead>
             <tbody id="tb-fournisseurs"><tr><td colspan="6" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
           </table>
