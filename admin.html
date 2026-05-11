@@ -131,6 +131,8 @@
   <script defer src="script-alertes-counts.js?v=2"></script>
   <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
   <script defer src="script-stats-calendrier-counts.js?v=1"></script>
+  <!-- Phase 40 refonte HTML : Encaissement KPI grid + section-head counts. -->
+  <script defer src="script-encaissement-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=1"></script>
   <!-- Phase 7 refonte : title-row counts populated cross-pages -->
@@ -2230,6 +2232,13 @@
           <button class="btn-rapport" onclick="exporterEncaissementRapport()">Rapport</button>
         </div>
       </div>
+      <!-- Phase 40 refonte HTML : KPI grid Encaissement (mockup-matched) -->
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Encaissé ce mois</div><div class="kpi-val" id="enc-kpi-encaisse">—</div><div class="kpi-sub">Règlements reçus</div></div>
+        <div class="kpi"><div class="kpi-lbl">Impayés</div><div class="kpi-val" id="enc-kpi-impayes">—</div><div class="kpi-sub" id="enc-kpi-impayes-sub"></div></div>
+        <div class="kpi"><div class="kpi-lbl">DSO</div><div class="kpi-val" id="enc-kpi-dso">—</div><div class="kpi-sub">Délai paiement moyen</div></div>
+        <div class="kpi"><div class="kpi-lbl">Relances en attente</div><div class="kpi-val" id="enc-kpi-relances">—</div><div class="kpi-sub">Impayées &gt; 30 jours</div></div>
+      </div>
       <div id="encaissement-content"></div>
     </section>
 
@@ -2823,11 +2832,11 @@
             </div>
             <div class="planning-overview-card">
               <div class="planning-overview-label">Planifiés cette semaine</div>
-              <div class="planning-overview-value" id="planning-kpi-planifies">0</div>
+              <div class="planning-overview-value" id="planning-overview-planifies">0</div>
             </div>
             <div class="planning-overview-card">
               <div class="planning-overview-label">Absences sur la semaine</div>
-              <div class="planning-overview-value" id="planning-kpi-absences">0</div>
+              <div class="planning-overview-value" id="planning-overview-absences">0</div>
             </div>
           </div>
 

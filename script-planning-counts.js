@@ -34,15 +34,18 @@
 
     if (kpiEffectif) kpiEffectif.textContent = actifs || '—';
 
-    if (kpiPlanifies) {
-      var planifiesCnt = plannings.filter(function (p) { return p && p.jours && Object.keys(p.jours || {}).some(function (j) { return p.jours[j] && p.jours[j].heureDebut; }); }).length;
-      kpiPlanifies.textContent = planifiesCnt || (actifs > 0 ? actifs : '—');
+    var planifiesCnt = 0;
+    if (kpiPlanifies || document.getElementById('planning-overview-planifies')) {
+      planifiesCnt = plannings.filter(function (p) { return p && p.jours && Object.keys(p.jours || {}).some(function (j) { return p.jours[j] && p.jours[j].heureDebut; }); }).length;
+      var planifiesVal = planifiesCnt || (actifs > 0 ? actifs : '—');
+      if (kpiPlanifies) kpiPlanifies.textContent = planifiesVal;
+      var ov = document.getElementById('planning-overview-planifies');
+      if (ov) ov.textContent = planifiesVal;
     }
 
-    if (kpiAbsences) {
+    if (kpiAbsences || document.getElementById('planning-overview-absences')) {
       try {
         var absences = JSON.parse(localStorage.getItem('absences_periodes') || '[]') || [];
-        var nowIso = new Date().toISOString().slice(0, 10);
         var nowWeekStart = getMonday(new Date());
         var nowWeekEnd = new Date(nowWeekStart); nowWeekEnd.setDate(nowWeekEnd.getDate() + 6);
         var absWeek = absences.filter(function (a) {
@@ -51,8 +54,12 @@
           var end = a.date_fin || a.dateFin || start;
           return start <= nowWeekEnd.toISOString().slice(0, 10) && end >= nowWeekStart.toISOString().slice(0, 10);
         }).length;
-        kpiAbsences.textContent = absWeek;
-      } catch (_) { kpiAbsences.textContent = '—'; }
+        if (kpiAbsences) kpiAbsences.textContent = absWeek;
+        var ovAbs = document.getElementById('planning-overview-absences');
+        if (ovAbs) ovAbs.textContent = absWeek;
+      } catch (_) {
+        if (kpiAbsences) kpiAbsences.textContent = '—';
+      }
     }
 
     if (kpiHeures) {
