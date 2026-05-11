@@ -521,3 +521,37 @@
   color: #fff;
   border-color: var(--ds-brand, var(--accent));
 }
+
+/* ============================================================
+   Phase 34 — Alignement mockup : masquer colonnes hors-mockup
+   Mockup = 9 cols visibles : ☐ N° / Date / Client / Trajet /
+   Chauffeur / Véhicule / Statut / Montant HT
+   Colonnes masquées : Distance / HT seul / TVA / TTC /
+   Paiement / Date paiement / Actions inline
+   ============================================================ */
+
+/* TH : ciblage par data-sort-key */
+.livraisons-table th[data-sort-key="distance"],
+.livraisons-table th[data-sort-key="ht"],
+.livraisons-table th[data-sort-key="tva"],
+.livraisons-table th[data-sort-key="ttc"],
+.livraisons-table th[data-sort-key="paiement"],
+.livraisons-table th[data-sort-key="datePaiement"] {
+  display: none !important;
+}
+/* TH Actions (pas de data-sort-key : nth-child 15) */
+.livraisons-table thead tr th:nth-child(15) {
+  display: none !important;
+}
+
+/* TD : positions après injection polish
+   (Date injectée col 3, Véhicule col 11, MontantHT col 16) */
+.livraisons-table td:nth-child(6),       /* Distance */
+.livraisons-table td:nth-child(7),       /* HT breakdown */
+.livraisons-table td.livraison-muted-cell,  /* TVA */
+.livraisons-table td.livraison-total-cell,  /* TTC */
+.livraisons-table td:nth-child(13),      /* Paiement select */
+.livraisons-table td:nth-child(14),      /* Date paiement */
+.livraisons-table td.actions-cell        /* Actions dropdown */ {
+  display: none !important;
+}
