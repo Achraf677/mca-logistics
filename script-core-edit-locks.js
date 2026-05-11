@@ -419,7 +419,7 @@ function libererTousVerrousEdition() {
   }
 
   // Badge HTML pour la liste — appele par les renderers de tables/cards
-  // Usage : await EditLocksV2.renderBadge('livraisons', livId) -> '<span ...>🔒 Achraf</span>' ou ''
+  // Usage : await EditLocksV2.renderBadge('livraisons', livId) -> '<span ...>Achraf</span>' ou ''
   async function renderBadge(tableName, rowId) {
     const status = await pollLockStatus(tableName, rowId);
     if (!status.locked || status.is_mine) return '';

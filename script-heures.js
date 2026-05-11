@@ -215,7 +215,7 @@ function afficherCompteurHeures() {
     const absences = plan?.semaine?.filter(j=>['conge','absence','maladie'].includes(j.typeJour)) || [];
     const absencesPeriodeSemaine = absencesPeriodes.filter(a => a.salId===s.id && a.type !== 'travail' && a.fin >= range.debut && a.debut <= range.fin);
     const typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-    const typeLabels = { conge:'🔵 Congé', absence:'🔴 Absence', maladie:'🟣 Maladie' };
+    const typeLabels = { conge:'Congé', absence:'Absence', maladie:'Maladie' };
     const absStr = absences.length
       ? absences.map(j=>`<span style="display:inline-block;background:${typeColors[j.typeJour]||'var(--muted)'}20;color:${typeColors[j.typeJour]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[j.typeJour]||j.typeJour} ${j.jour.substring(0,3)}</span>`).join(' ')
       : '<span style="color:var(--text-muted);font-size:.78rem">—</span>';

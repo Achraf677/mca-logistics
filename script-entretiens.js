@@ -215,7 +215,7 @@ function ouvrirModalEntretien() {
   const type = document.getElementById('entr-type'); if (type) type.value = 'revision';
   const tva = document.getElementById('entr-taux-tva'); if (tva) tva.value = '20';
   const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = '🔧 Ajouter un entretien';
+  modal.querySelector('h3').textContent = 'Ajouter un entretien';
   modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   openModal('modal-entretien');
 }
@@ -352,7 +352,7 @@ function confirmerEditEntretien() {
   }
   closeModal('modal-entretien');
   const modal = document.getElementById('modal-entretien');
-  modal.querySelector('h3').textContent = '🔧 Ajouter un entretien';
+  modal.querySelector('h3').textContent = 'Ajouter un entretien';
   modal.querySelector('.modal-footer .btn-primary').textContent = '✅ Enregistrer';
   window._editEntretienId = null;
   afficherEntretiens();
@@ -381,7 +381,7 @@ async function supprimerEntretien(id) {
   }
   afficherEntretiens();
   afficherTva();
-  afficherToast('🗑️ Entretien supprimé');
+  afficherToast('Entretien supprimé');
 }
 
 // L11408 (script.js d'origine)
@@ -407,7 +407,7 @@ function exporterEntretiensPDF() {
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Entretiens — ${nom}`, html, 'width=800,height=700');
-  afficherToast('📄 Rapport entretiens généré');
+  afficherToast('Rapport entretiens généré');
 }
 
 // L11606 (script.js d'origine)

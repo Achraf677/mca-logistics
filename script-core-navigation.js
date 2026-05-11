@@ -25,23 +25,23 @@ function naviguerVers(page) {
     setTimeout(() => pageEl.classList.remove('route-enter'), 240);
   }
   const titres = {
-    dashboard:'📊 Dashboard', livraisons:'📦 Livraisons', clients:'🧑‍💼 Carnet Clients', fournisseurs:'🏭 Carnet Fournisseurs',
-    vehicules:'🚐 Véhicules', carburant:'⛽ Carburant',
-    rentabilite:'💰 Rentabilité', statistiques:'📈 Statistiques', tva:'🧾 TVA',
-    salaries:'👥 Gestion Salariés', planning:'📅 Planning hebdomadaire',
-    alertes:'🔔 Alertes', inspections:'🚗 Inspections véhicules',
+    dashboard:'Dashboard', livraisons:'Livraisons', clients:'Carnet Clients', fournisseurs:'Carnet Fournisseurs',
+    vehicules:'Véhicules', carburant:'⛽ Carburant',
+    rentabilite:'Rentabilité', statistiques:'Statistiques', tva:'TVA',
+    salaries:'Gestion Salariés', planning:'Planning hebdomadaire',
+    alertes:'Alertes', inspections:'Inspections véhicules',
     parametres:'⚙️ Paramètres',
-    charges:'💸 Charges', encaissements:'💳 Encaissements & Avoirs', incidents:'🚨 Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'🔧 Carnet d\'entretien',
+    charges:'Charges', encaissements:'Encaissements & Avoirs', incidents:'Incidents / Réclamations', relances:'⏰ Relances paiement', entretiens:'Carnet d\'entretien',
     heures:'⏱️ Heures & Km',
-    equipe:'👥 Équipe',
+    equipe:'Équipe',
     'espace-salarie':'Espace salarié',
-    'brouillons-ia':'📋 Brouillons IA',
+    'brouillons-ia':'Brouillons IA',
     // #18 #66 audit Chrome : breadcrumbs en minuscules sans emoji
     // ("calendrier", "encaissement") car alias absents du mapping.
-    calendrier: '🗓️ Calendrier opérationnel',
-    encaissement: '💵 Encaissement',
-    audit: '📋 Audit',
-    recherche: '🔍 Recherche globale'
+    calendrier: 'Calendrier opérationnel',
+    encaissement: 'Encaissement',
+    audit: 'Audit',
+    recherche: 'Recherche globale'
   };
   const titleEl = document.getElementById('pageTitle');
   if (titleEl) titleEl.textContent = titres[page] || page;

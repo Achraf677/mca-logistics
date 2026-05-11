@@ -202,7 +202,7 @@ async function supprimerFournisseur(id) {
   sauvegarder('fournisseurs', charger('fournisseurs').filter(x => x.id !== id));
   afficherFournisseursDashboard();
   if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Suppression fournisseur', f.nom || 'sans nom');
-  afficherToast('🗑️ Fournisseur supprimé');
+  afficherToast('Fournisseur supprimé');
 }
 
 // ============================================================

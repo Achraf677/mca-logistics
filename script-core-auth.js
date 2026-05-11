@@ -414,7 +414,7 @@ async function supprimerKmAdmin(salId, kmId) {
   const cle = 'km_sal_'+salId;
   const entrees = charger(cle).filter(e => e.id !== kmId);
   sauvegarder(cle, entrees);
-  afficherReleveKm(); afficherToast('🗑️ Relevé supprimé');
+  afficherReleveKm(); afficherToast('Relevé supprimé');
 }
 
 // L2515 (script.js d'origine)
@@ -468,7 +468,7 @@ async function voirPhotoAdmin(inspId, idx) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;flex-direction:column;gap:12px';
   overlay.innerHTML = `
-    <img src="" id="photo-plein-ecran" alt="📷 chargement..." style="max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.05)" />
+    <img src="" id="photo-plein-ecran" alt="chargement..." style="max-width:100%;max-height:80vh;border-radius:8px;object-fit:contain;background:rgba(255,255,255,0.05)" />
     <div style="display:flex;gap:10px" id="photo-thumbs-row">
       ${_adminPhotos.map((_, i) => `<div onclick="changerPhotoAdmin(${i})" style="width:48px;height:48px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid ${i===idx?'var(--accent)':'transparent'};background:rgba(255,255,255,0.05)"><img data-thumb-idx="${i}" src="" style="width:100%;height:100%;object-fit:cover"/></div>`).join('')}
     </div>

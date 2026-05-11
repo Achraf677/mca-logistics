@@ -161,7 +161,7 @@
     div.innerHTML = ''
       + '<div class="modal-content" style="background:var(--card-bg,#fff);border-radius:14px;'
       +   'max-width:480px;width:100%;padding:22px;box-shadow:0 10px 40px rgba(0,0,0,.2);max-height:90vh;overflow:auto">'
-      + '<h3 id="modal-charge-recurrence-title" style="margin:0 0 14px;font-size:1.15rem">🔁 Récurrence de la charge</h3>'
+      + '<h3 id="modal-charge-recurrence-title" style="margin:0 0 14px;font-size:1.15rem">Récurrence de la charge</h3>'
       + '<div id="charge-recurrence-context" style="font-size:.85rem;color:var(--text-muted);margin-bottom:14px;padding:10px;background:var(--bg-soft,#f8f9fa);border-radius:8px"></div>'
       + '<div id="charge-recurrence-instances-info" style="display:none;font-size:.78rem;color:var(--text-muted);margin-bottom:12px"></div>'
       + '<div style="display:flex;flex-direction:column;gap:12px">'

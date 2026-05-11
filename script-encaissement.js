@@ -101,25 +101,25 @@
       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:24px">'
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--accent)"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⏳ À encaisser</div><div style="font-size:1.6rem;font-weight:700;color:var(--accent)">' + fmt$(totalAEncaisser) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbAEncaisser + ' livraison' + (nbAEncaisser > 1 ? 's' : '') + '</div></div>'
       +   '<div class="card" style="padding:18px;border-left:4px solid var(--green)"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">✅ Encaissé ce mois</div><div style="font-size:1.6rem;font-weight:700;color:var(--green)">' + fmt$(totalEncaisseMois) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">paiements reçus</div></div>'
-      +   '<div class="card" style="padding:18px;border-left:4px solid var(--red);' + (totalRetard === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🔴 En retard (>30j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--red)">' + fmt$(totalRetard) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbRetard + ' facture' + (nbRetard > 1 ? 's' : '') + '</div></div>'
-      +   '<div class="card" title="Days Sales Outstanding — délai moyen réel de paiement client sur les 90 derniers jours" style="padding:18px;border-left:4px solid var(--accent);' + (dsoData.dso === null ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">📊 DSO réel (90j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--accent)">' + (dsoData.dso !== null ? dsoData.dso + ' j' : '—') + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (dsoData.count > 0 ? dsoData.count + ' livraison' + (dsoData.count > 1 ? 's' : '') + ' payée' + (dsoData.count > 1 ? 's' : '') : 'aucune livraison payée') + '</div></div>'
-      +   '<div class="card" title="' + escH(clientsRetardTop.join(', ') || 'Aucun client en retard chronique') + '" style="padding:18px;border-left:4px solid #f59e0b;' + (clientsRetardCount === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">🐌 Top retard (DSO &gt; 60j)</div><div style="font-size:1.6rem;font-weight:700;color:#f59e0b">' + clientsRetardCount + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (clientsRetardCount > 0 ? 'client' + (clientsRetardCount > 1 ? 's' : '') + ' lent' + (clientsRetardCount > 1 ? 's' : '') : 'tous à jour') + '</div></div>'
+      +   '<div class="card" style="padding:18px;border-left:4px solid var(--red);' + (totalRetard === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">En retard (>30j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--red)">' + fmt$(totalRetard) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbRetard + ' facture' + (nbRetard > 1 ? 's' : '') + '</div></div>'
+      +   '<div class="card" title="Days Sales Outstanding — délai moyen réel de paiement client sur les 90 derniers jours" style="padding:18px;border-left:4px solid var(--accent);' + (dsoData.dso === null ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">DSO réel (90j)</div><div style="font-size:1.6rem;font-weight:700;color:var(--accent)">' + (dsoData.dso !== null ? dsoData.dso + ' j' : '—') + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (dsoData.count > 0 ? dsoData.count + ' livraison' + (dsoData.count > 1 ? 's' : '') + ' payée' + (dsoData.count > 1 ? 's' : '') : 'aucune livraison payée') + '</div></div>'
+      +   '<div class="card" title="' + escH(clientsRetardTop.join(', ') || 'Aucun client en retard chronique') + '" style="padding:18px;border-left:4px solid #f59e0b;' + (clientsRetardCount === 0 ? 'opacity:.5' : '') + '"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Top retard (DSO &gt; 60j)</div><div style="font-size:1.6rem;font-weight:700;color:#f59e0b">' + clientsRetardCount + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + (clientsRetardCount > 0 ? 'client' + (clientsRetardCount > 1 ? 's' : '') + ' lent' + (clientsRetardCount > 1 ? 's' : '') : 'tous à jour') + '</div></div>'
       +   (nbLitige > 0 ? '<div class="card" style="padding:18px;border-left:4px solid #f59e0b"><div style="font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">⚠️ Litige</div><div style="font-size:1.6rem;font-weight:700;color:#f59e0b">' + fmt$(totalLitige) + '</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">' + nbLitige + ' facture' + (nbLitige > 1 ? 's' : '') + '</div></div>' : '')
       + '</div>'
       // Filtres
       + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center">'
       +   '<button class="enc-chip ' + (state.statut === 'a_encaisser' ? 'active' : '') + '" data-s="a_encaisser">⏳ À encaisser (' + nbAEncaisser + ')</button>'
-      +   '<button class="enc-chip ' + (state.statut === 'retard' ? 'active' : '') + '" data-s="retard">🔴 Retard (' + nbRetard + ')</button>'
+      +   '<button class="enc-chip ' + (state.statut === 'retard' ? 'active' : '') + '" data-s="retard">Retard (' + nbRetard + ')</button>'
       +   '<button class="enc-chip ' + (state.statut === 'encaisse' ? 'active' : '') + '" data-s="encaisse">✅ Encaissé</button>'
       +   '<button class="enc-chip ' + (state.statut === 'litige' ? 'active' : '') + '" data-s="litige">⚠️ Litige</button>'
       +   '<button class="enc-chip ' + (state.statut === 'tous' ? 'active' : '') + '" data-s="tous">Tous</button>'
-      +   '<input type="search" id="enc-recherche" placeholder="🔍 Rechercher (client, n°...)" value="' + escH(state.recherche) + '" style="margin-left:auto;min-width:240px;padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text)" />'
+      +   '<input type="search" id="enc-recherche" placeholder="Rechercher (client, n°...)" value="' + escH(state.recherche) + '" style="margin-left:auto;min-width:240px;padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text)" />'
       +   (clients.length > 1 ? '<select id="enc-client" style="padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;color:var(--text)"><option value="">— Tous clients —</option>' + clients.map(c => '<option value="' + escH(c) + '"' + (c === state.client ? ' selected' : '') + '>' + escH(c) + '</option>').join('') + '</select>' : '')
       + '</div>'
       // Barre actions batch (relance en lot)
       + '<div id="enc-batch-bar" style="display:flex;gap:10px;align-items:center;margin-bottom:14px;padding:8px 12px;background:var(--bg-dark);border:1px solid var(--border);border-radius:8px;flex-wrap:wrap">'
       +   '<span id="enc-batch-count" style="font-size:.85rem;color:var(--text-muted)">0 sélectionnée(s)</span>'
-      +   '<button type="button" id="enc-batch-relance" class="btn-rapport" style="padding:6px 12px;font-size:.82rem" disabled>📄 Relancer en lot</button>'
+      +   '<button type="button" id="enc-batch-relance" class="btn-rapport" style="padding:6px 12px;font-size:.82rem" disabled>Relancer en lot</button>'
       +   '<button type="button" id="enc-batch-clear" class="enc-chip" style="padding:5px 10px">Tout désélectionner</button>'
       + '</div>'
       // Table
@@ -151,10 +151,10 @@
       pageSlice.forEach(a => {
         var statutLabel = a.paye ? '<span class="enc-status-paye">✅ Encaissé</span>'
           : a.litige ? '<span class="enc-status-litige">⚠️ Litige</span>'
-          : a.retard ? '<span class="enc-status-retard">🔴 En retard</span>'
+          : a.retard ? '<span class="enc-status-retard">En retard</span>'
           : '<span class="enc-status-att">⏳ À encaisser</span>';
         var actionCell = !a.paye
-          ? '<button class="enc-mark-pay" data-id="' + escH(a.liv.id) + '">💵 Marquer encaissé</button>'
+          ? '<button class="enc-mark-pay" data-id="' + escH(a.liv.id) + '">Marquer encaissé</button>'
           : '';
         // Checkbox seulement pour livraisons non payées et non en litige (relançables)
         var canRelance = !a.paye && !a.litige;
@@ -315,7 +315,7 @@
             localStorage.setItem('livraisons', JSON.stringify(arr));
           } catch (_) {}
         }
-        if (typeof afficherToast === 'function') afficherToast('💵 Encaissement enregistré');
+        if (typeof afficherToast === 'function') afficherToast('Encaissement enregistré');
         render();
       });
     });
@@ -477,7 +477,7 @@
     a.download = 'encaissement_' + window.todayLocalISO() + '.csv';
     document.body.appendChild(a); a.click();
     setTimeout(function () { try { a.remove(); URL.revokeObjectURL(url); } catch (_) {} }, 1000);
-    if (typeof window.afficherToast === 'function') window.afficherToast('📥 Export CSV téléchargé');
+    if (typeof window.afficherToast === 'function') window.afficherToast('Export CSV téléchargé');
     if (typeof window.ajouterEntreeAudit === 'function') window.ajouterEntreeAudit('Export Encaissement CSV', rows.length + ' ligne(s)');
   };
 

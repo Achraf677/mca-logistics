@@ -51,7 +51,7 @@ function resetFormulaireCharge() {
   if (modal) {
     var title = modal.querySelector('.modal-header h3');
     var btn = modal.querySelector('.modal-footer .btn-primary');
-    if (title) title.textContent = '💸 Nouvelle charge';
+    if (title) title.textContent = 'Nouvelle charge';
     if (btn) btn.textContent = '✅ Enregistrer';
   }
 }
@@ -214,7 +214,7 @@ function attacherSmartUploadCharge() {
     skipStorage: true,
     feedbackEl: feedback || null,
     onOcrResult: function (payload) {
-      if (label) label.textContent = '📤 Uploader (auto) — facture / ticket';
+      if (label) label.textContent = 'Uploader (auto) — facture / ticket';
       // Si ticket carburant detecte -> bascule la categorie pour activer
       // les champs litres + prix/L (toggle gere par ajusterCategorieCharge).
       if (payload && payload.type_detecte === 'ticket_carburant') {
@@ -558,8 +558,8 @@ function afficherCharges() {
     var statutLabels = {
       a_payer:  { txt: '⏳ À payer',   bg: '#fff3cd', col: '#856404' },
       paye:     { txt: '✅ Payé',      bg: '#d4edda', col: '#155724' },
-      partiel:  { txt: '🟡 Partiel',   bg: '#fff3cd', col: '#856404' },
-      en_retard:{ txt: '🔴 En retard', bg: '#f8d7da', col: '#721c24' }
+      partiel:  { txt: 'Partiel',   bg: '#fff3cd', col: '#856404' },
+      en_retard:{ txt: 'En retard', bg: '#f8d7da', col: '#721c24' }
     };
     var st = statutLabels[statutEff] || statutLabels.a_payer;
     var btnToggleTitre = (statutEff === 'paye') ? 'Marquer à payer' : 'Marquer payée';
@@ -726,7 +726,7 @@ async function supprimerCharge(id) {
   afficherRentabilite();
   if (typeof afficherCarburant === 'function') afficherCarburant();
   ajouterEntreeAudit('Suppression charge', (charge?.categorie || 'charge') + ' · ' + euros(charge?.montant || 0));
-  afficherToast('🗑️ Charge supprimée');
+  afficherToast('Charge supprimée');
 }
 
 // L7493 (script.js d'origine)

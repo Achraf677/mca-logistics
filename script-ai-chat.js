@@ -135,7 +135,7 @@
         <div class="ai-chat-ocr-backdrop"></div>
         <div class="ai-chat-ocr-card" role="dialog" aria-label="Scanner un document">
           <header class="ai-chat-ocr-header">
-            <h3 class="ai-chat-ocr-title">📎 Scanner un document</h3>
+            <h3 class="ai-chat-ocr-title">Scanner un document</h3>
             <button class="ai-chat-iconbtn" id="ai-chat-ocr-close" type="button" aria-label="Fermer">✕</button>
           </header>
           <div class="ai-chat-ocr-body" id="ai-chat-ocr-body"></div>
@@ -1016,9 +1016,9 @@
           <strong>Salut Achraf 👋</strong>
           Je suis ton assistant business MCA. Demande-moi par exemple :
           <ul>
-            <li data-q="Combien j'ai gagne ce mois-ci ?">💰 Combien j'ai gagne ce mois-ci ?</li>
+            <li data-q="Combien j'ai gagne ce mois-ci ?">Combien j'ai gagne ce mois-ci ?</li>
             <li data-q="Quelles factures clients sont impayees ?">⚠️ Quelles factures clients sont impayees ?</li>
-            <li data-q="Resume mes 5 dernieres charges">📋 Resume mes 5 dernieres charges</li>
+            <li data-q="Resume mes 5 dernieres charges">Resume mes 5 dernieres charges</li>
             <li data-q="Quel vehicule consomme le plus ?">⛽ Quel vehicule consomme le plus ?</li>
           </ul>
         </div>
@@ -1330,7 +1330,7 @@
         if (bubble) {
           bubble.textContent = remaining > 0
             ? `⏳ Quota Gemini atteint, retry auto dans ${remaining}s…`
-            : `🔄 Reprise…`;
+            : `Reprise…`;
         }
         if (remaining <= 0) {
           clearInterval(t);
@@ -1443,9 +1443,9 @@
     update_planning_creneau: { icon: '✏️', title: '✏️ Modifier un creneau', kind: 'update' },
     update_inspection: { icon: '✏️', title: '✏️ Modifier une inspection', kind: 'update' },
     // Phase 3 — DELETE (rouge)
-    delete_entity: { icon: '🗑️', title: '🗑️ SUPPRIMER une entite', kind: 'delete' },
+    delete_entity: { icon: '🗑️', title: 'SUPPRIMER une entite', kind: 'delete' },
     // Phase 4 — Brouillon (mode autonome)
-    add_to_drafts: { icon: '📋', title: '📋 Ajouter aux brouillons IA', kind: 'draft' },
+    add_to_drafts: { icon: '📋', title: 'Ajouter aux brouillons IA', kind: 'draft' },
   };
 
   // Formatage d'une valeur pour la table de confirmation : null/undefined -> tiret,
@@ -1543,7 +1543,7 @@
         status.textContent = '✓ Confirmée et exécutée' + num + (id ? ' · id: ' + String(id).slice(0, 8) : '');
       } else if (st.drafted) {
         const did = st.result && st.result.draft_id ? String(st.result.draft_id).slice(0, 8) : '';
-        status.textContent = '📋 Mise en brouillon IA' + (did ? ' · id: ' + did : '');
+        status.textContent = 'Mise en brouillon IA' + (did ? ' · id: ' + did : '');
       } else {
         status.textContent = '✗ Annulee';
       }
@@ -1562,7 +1562,7 @@
     const draftBtn = document.createElement('button');
     draftBtn.type = 'button';
     draftBtn.className = 'ai-chat-write-card-btn ai-chat-write-card-btn-draft';
-    draftBtn.textContent = '📋 Brouillon';
+    draftBtn.textContent = 'Brouillon';
     draftBtn.style.cssText = 'min-height:44px;background:#e5e7eb;color:#374151;';
     draftBtn.title = 'Garder en brouillon — a revoir plus tard dans la page Brouillons IA';
 
@@ -1572,7 +1572,7 @@
     confirmBtn.style.minHeight = '44px';
     if (kind === 'delete') {
       confirmBtn.classList.add('ai-chat-write-card-btn-danger');
-      confirmBtn.textContent = '🗑️ Supprimer (long-press)';
+      confirmBtn.textContent = 'Supprimer (long-press)';
       confirmBtn.style.cssText += 'min-height:44px;background:#dc2626;color:white;';
     } else if (kind === 'update') {
       confirmBtn.textContent = '✓ Confirmer modification';
@@ -1590,7 +1590,7 @@
         if (e && e.preventDefault) e.preventDefault();
         if (confirmBtn.disabled) return;
         pressing = true;
-        confirmBtn.textContent = '🗑️ Maintien...';
+        confirmBtn.textContent = 'Maintien...';
         pressTimer = setTimeout(() => {
           if (pressing) {
             confirmBtn.textContent = '⏳ Suppression...';
@@ -1601,7 +1601,7 @@
       const endPress = () => {
         pressing = false;
         if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-        if (!confirmBtn.disabled) confirmBtn.textContent = '🗑️ Supprimer (long-press)';
+        if (!confirmBtn.disabled) confirmBtn.textContent = 'Supprimer (long-press)';
       };
       confirmBtn.addEventListener('mousedown', startPress);
       confirmBtn.addEventListener('touchstart', startPress, { passive: false });
@@ -1639,7 +1639,7 @@
       const result = await callWriteExecute(draftAction);
       if (!result || !result.success) {
         confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
-        draftBtn.textContent = '📋 Brouillon';
+        draftBtn.textContent = 'Brouillon';
         showToast('Erreur brouillon : ' + (result?.error || 'inconnu'), 'error');
         return;
       }
@@ -1648,11 +1648,11 @@
       }
       msg._write_states[actionIdx] = { drafted: true, result };
       saveHistory();
-      showToast('📋 Action mise en brouillon', 'info');
+      showToast('Action mise en brouillon', 'info');
       renderMessages();
     } catch (e) {
       confirmBtn.disabled = false; cancelBtn.disabled = false; draftBtn.disabled = false;
-      draftBtn.textContent = '📋 Brouillon';
+      draftBtn.textContent = 'Brouillon';
       showToast('Erreur : ' + (e.message || e), 'error');
     }
   }
@@ -2183,7 +2183,7 @@
       renderOcrStatus('Encodage...');
       const base64 = await fileToBase64(compressed);
       const mime = compressed.type || file.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-      renderOcrStatus('🔍 Analyse en cours...');
+      renderOcrStatus('Analyse en cours...');
       const result = await callOcr({ image_base64: base64, mime, mode: ocrState.mode });
       ocrState.lastResult = result;
       renderOcrResult(result);
@@ -2554,7 +2554,7 @@
     const done = (t) => {
       try {
         if (window.MCAm && typeof window.MCAm.toast === 'function') {
-          window.MCAm.toast('📋 Donnees copiees dans le presse-papier');
+          window.MCAm.toast('Donnees copiees dans le presse-papier');
         } else {
           alert('Donnees copiees dans le presse-papier:\n\n' + t);
         }

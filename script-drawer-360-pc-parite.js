@@ -192,7 +192,7 @@
         btn.className = 'btn-danger';
         btn.setAttribute('data-augm-del', '1');
         btn.style.cssText = 'background:#ef4444;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;margin-left:6px';
-        btn.innerHTML = '🗑️ Supprimer';
+        btn.innerHTML = 'Supprimer';
         btn.onclick = function () {
           if (typeof window.supprimerClient === 'function') {
             window.s25FermerDrawer && window.s25FermerDrawer();
@@ -261,7 +261,7 @@
         };
         const btnDel = document.createElement('button');
         btnDel.style.cssText = 'background:#ef4444;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer';
-        btnDel.innerHTML = '🗑️ Supprimer';
+        btnDel.innerHTML = 'Supprimer';
         btnDel.onclick = function () {
           if (typeof window.supprimerFournisseur === 'function') {
             window.s25FermerDrawer && window.s25FermerDrawer();
@@ -308,7 +308,7 @@
         btn.className = 's20-tab';
         btn.setAttribute('data-tab', 'docs');
         btn.setAttribute('onclick', "window.s20SwitchTab && window.s20SwitchTab('docs')");
-        btn.innerHTML = '📎 Documents (' + docs.length + ')';
+        btn.innerHTML = 'Documents (' + docs.length + ')';
         tabsBar.appendChild(btn);
 
         // Panel
@@ -335,7 +335,7 @@
         const btn = document.createElement('button');
         btn.setAttribute('data-augm-del', '1');
         btn.style.cssText = 'background:#ef4444;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer';
-        btn.innerHTML = '🗑️ Supprimer';
+        btn.innerHTML = 'Supprimer';
         btn.onclick = function () {
           if (typeof window.supprimerSalarie === 'function') {
             window.fermerFiche360 && window.fermerFiche360();
@@ -383,7 +383,7 @@
         const btn = document.createElement('button');
         btn.setAttribute('data-augm-del', '1');
         btn.style.cssText = 'background:#ef4444;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer';
-        btn.innerHTML = '🗑️ Supprimer';
+        btn.innerHTML = 'Supprimer';
         btn.onclick = function () {
           if (typeof window.supprimerVehicule === 'function') {
             window.fermerFiche360 && window.fermerFiche360();

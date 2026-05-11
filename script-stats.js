@@ -190,7 +190,7 @@ function exporterStatsPDF() {
   if (!win) return;
   win.document.write(`<!DOCTYPE html><html><head><title>Statistiques — ${nom}</title><style>body{margin:0;padding:20px;background:#fff}@page{margin:12mm}</style></head><body>${html}<script>setTimeout(()=>{window.print();},400)<\/script></body></html>`);
   win.document.close();
-  afficherToast('📄 Rapport statistiques généré');
+  afficherToast('Rapport statistiques généré');
 }
 
 // buildSimplePeriodeState a été déplacée dans script-core-stats-helpers.js
