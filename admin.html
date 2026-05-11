@@ -91,6 +91,8 @@
   <link rel="stylesheet" href="style-refonte-charges.css?v=1" />
   <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
   <link rel="stylesheet" href="style-refonte-utilities.css?v=1" />
+  <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
+  <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
@@ -306,41 +308,108 @@
            Export Z reste accessible depuis Facturation, Ctrl+K reste en keybind global -->
 
 
-      <!-- Hero santé avec score ring (Sprint 4) -->
-      <div id="kpi-sante-globale" class="hero-sante">
-        <div class="hero-sante-main">
-          <div class="hero-sante-tag">Santé entreprise</div>
-          <div class="hero-sante-title" id="kpi-sante-label">Bonne santé</div>
-          <div class="hero-sante-detail" id="kpi-sante-detail">Chargement...</div>
-        </div>
-        <div class="hero-sante-ring-wrap" title="Score de santé calculé">
-          <svg class="sante-ring" viewBox="0 0 120 120" width="128" height="128" aria-label="Score de santé">
-            <circle class="sante-ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
-            <circle class="sante-ring-fg" id="sante-ring-fg" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="0 327"/>
-            <text x="60" y="62" text-anchor="middle" class="sante-ring-score" id="sante-ring-score">—</text>
-            <text x="60" y="80" text-anchor="middle" class="sante-ring-unit">/ 100</text>
-          </svg>
-        </div>
-        <div class="hero-sante-side">
-          <div class="hero-sante-tag">Seuil de rentabilité</div>
-          <div class="hero-sante-seuil" id="kpi-seuil-label">—</div>
-          <div class="hero-sante-tag" style="margin-top:10px">Dernier calcul agent</div>
-          <div class="hero-sante-agent" id="kpi-agent-derniere-analyse">—</div>
-        </div>
-      </div>
+      <!-- ============================================================== -->
+      <!-- === HERO ROW : Santé entreprise + Points d'attention (Phase 5) === -->
+      <!-- ============================================================== -->
+      <div class="dashboard-hero-row">
 
-      <!-- Phase 3 refonte : Points d'attention preview (top 3 alertes + voir tout) -->
-      <div class="card dashboard-attention" id="dashboard-points-attention" style="margin-bottom:18px;display:none">
-        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)">
-          <div style="display:flex;align-items:center;gap:10px">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <h3 style="margin:0;font-size:1rem;font-weight:700">Points d'attention</h3>
-            <span class="u-muted-sm" id="dashboard-attention-count">0 alertes à traiter</span>
+        <!-- BLOC SANTÉ — restyle hero-sante-v2 (no ring, big number, factors, reco) -->
+        <div id="kpi-sante-globale" class="hero-sante hero-sante-v2">
+          <!-- Anciens blocs préservés pour compat JS (cachés via CSS v2) -->
+          <div class="hero-sante-main" hidden>
+            <div class="hero-sante-tag">Santé entreprise</div>
+            <div class="hero-sante-title" id="kpi-sante-label">Bonne santé</div>
+            <div class="hero-sante-detail" id="kpi-sante-detail">Chargement...</div>
           </div>
-          <a href="#" onclick="naviguerVers('alertes');return false" class="u-muted-sm" style="text-decoration:none;color:var(--accent)">Tout voir →</a>
+          <div class="hero-sante-ring-wrap" hidden title="Score de santé calculé">
+            <svg class="sante-ring" viewBox="0 0 120 120" width="128" height="128" aria-label="Score de santé">
+              <circle class="sante-ring-bg" cx="60" cy="60" r="52" fill="none" stroke-width="10"/>
+              <circle class="sante-ring-fg" id="sante-ring-fg" cx="60" cy="60" r="52" fill="none" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="0 327"/>
+              <text x="60" y="62" text-anchor="middle" class="sante-ring-score" id="sante-ring-score">—</text>
+              <text x="60" y="80" text-anchor="middle" class="sante-ring-unit">/ 100</text>
+            </svg>
+          </div>
+          <div class="hero-sante-side" hidden>
+            <div class="hero-sante-tag">Seuil de rentabilité</div>
+            <div class="hero-sante-seuil" id="kpi-seuil-label">—</div>
+            <div class="hero-sante-tag">Dernier calcul agent</div>
+            <div class="hero-sante-agent" id="kpi-agent-derniere-analyse">—</div>
+          </div>
+
+          <!-- Nouveau layout v2 : left (score+bar+sparkline+sub-scores) | right (factors+reco) -->
+          <div class="health-left">
+            <div class="health-eyebrow">Indice de santé business</div>
+            <div class="health-score">
+              <span class="health-num" id="dashboard-health-num">—</span>
+              <span class="health-unit">/100</span>
+            </div>
+            <div class="health-trend">
+              <span class="health-badge" id="dashboard-health-badge">Chargement</span>
+              <span class="health-delta" id="dashboard-health-delta"></span>
+            </div>
+            <div class="health-bar-wrap"><div class="health-bar" id="dashboard-health-bar" style="--w:0%"></div></div>
+
+            <div class="health-sparkline-block">
+              <div class="health-eyebrow">Évolution 6 mois</div>
+              <svg class="health-sparkline" id="dashboard-health-sparkline" viewBox="0 0 200 40" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="dashboard-spark-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#06d6a0" stop-opacity="0.4"/>
+                    <stop offset="100%" stop-color="#06d6a0" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <path id="dashboard-sparkline-fill" fill="url(#dashboard-spark-grad)" d=""/>
+                <path id="dashboard-sparkline-line" fill="none" stroke="#06d6a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d=""/>
+                <circle id="dashboard-sparkline-last" cx="200" cy="8" r="3" fill="#06d6a0" stroke="#fff" stroke-width="1.5"/>
+              </svg>
+              <div class="health-sparkline-ticks" id="dashboard-sparkline-ticks"></div>
+            </div>
+
+            <div class="sub-scores">
+              <div class="sub-score"><div class="ss-lbl">Finance</div><div class="ss-val" id="dashboard-ss-finance">—</div></div>
+              <div class="sub-score"><div class="ss-lbl">Flotte</div><div class="ss-val" id="dashboard-ss-flotte">—</div></div>
+              <div class="sub-score"><div class="ss-lbl">RH</div><div class="ss-val" id="dashboard-ss-rh">—</div></div>
+              <div class="sub-score"><div class="ss-lbl">Conformité</div><div class="ss-val" id="dashboard-ss-conformite">—</div></div>
+            </div>
+          </div>
+
+          <div class="health-right">
+            <div class="health-eyebrow">Facteurs analysés (<span id="dashboard-factors-count">0</span>)</div>
+            <div class="health-factors" id="dashboard-health-factors"></div>
+            <div class="health-reco" id="dashboard-health-reco" style="display:none">
+              <div class="reco-inner">
+                <div class="reco-dot">!</div>
+                <div style="flex:1;min-width:0">
+                  <div class="reco-title">Action prioritaire</div>
+                  <div class="reco-body" id="dashboard-health-reco-body"></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="dashboard-attention-list" id="dashboard-attention-list" style="padding:6px 12px"></div>
+
+        <!-- BLOC POINTS D'ATTENTION — restyle pills colorées (Phase 5) -->
+        <div class="dashboard-attention dashboard-attention-v2" id="dashboard-points-attention">
+          <!-- Ancien header conservé pour compat (caché via CSS v2) -->
+          <div class="card-header" hidden>
+            <h3>Points d'attention</h3>
+            <span id="dashboard-attention-count">0 alertes à traiter</span>
+          </div>
+          <!-- Nouveau header v2 -->
+          <div class="hero-pills-head">
+            <div>
+              <div class="eyebrow">Points d'attention</div>
+              <div class="count" id="dashboard-attention-count-v2">Chargement…</div>
+            </div>
+            <a href="#" onclick="naviguerVers('alertes');return false" class="all-link">Tout voir →</a>
+          </div>
+          <div id="dashboard-attention-list"></div>
+        </div>
+
       </div>
+      <!-- ============================================================== -->
+      <!-- === / FIN HERO ROW                                          === -->
+      <!-- ============================================================== -->
 
       <div class="kpi-grid kpi-grid-primary" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
         <div class="kpi-card green">

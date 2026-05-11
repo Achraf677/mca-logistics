@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v11_10-seed-pixelmatch-364';
+const CACHE_VERSION = 'mca-v2026-05-11-v12-dashboard-hero-365';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -60,6 +60,8 @@ const CORE_ASSETS = [
   '/style-refonte-charges.css',
   // Phase 2 refonte HTML — utility classes pour réduire inline styles
   '/style-refonte-utilities.css',
+  // Phase 5 refonte HTML — dashboard hero row (santé v2 + points d'attention v2)
+  '/style-design-dashboard-hero.css',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)

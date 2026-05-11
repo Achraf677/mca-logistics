@@ -1,0 +1,431 @@
+/* ==========================================================================
+   MCA Logistics — Design Dashboard Hero (Phase 5 / Refonte HTML pixel-perfect)
+
+   Restructure visuel du bloc santé + points d'attention au-dessus des KPIs.
+   Cible : mockup previews/dashboard.html (hero-row 1.1fr + 1fr).
+
+   - .dashboard-hero-row : grid 2 colonnes (santé large + pills compactes)
+   - .hero-sante         : RESTYLE en hero-health (no ring, score 64px, bar,
+                           sparkline, sub-scores, factors, reco)
+   - .dashboard-attention: RESTYLE en hero-pills (pills colored left border)
+
+   Charge APRES style-design-dashboard.css (overrides additifs).
+   Aucun changement HTML d'IDs : #kpi-sante-globale + #dashboard-points-attention
+   restent, les overrides ciblent .hero-sante / .dashboard-attention.
+   ========================================================================== */
+
+/* ============ HERO ROW WRAPPER ============ */
+.dashboard-hero-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+@media (max-width: 1100px) {
+  .dashboard-hero-row { grid-template-columns: 1fr; }
+}
+
+/* ============ HERO SANTÉ — RESTYLE (no ring, big number) ============ */
+
+/* Override l'ancien layout 3-col (.hero-sante-main / ring / side).
+   Nouveau layout 2-col : left (score+sparkline+sub-scores) | right (factors+reco) */
+.hero-sante.hero-sante-v2 {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 28px;
+  align-items: stretch;
+  padding: 22px 24px;
+  position: relative;
+  overflow: hidden;
+  background: var(--ds-bg-card, var(--bg-card));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 12px;
+}
+.hero-sante.hero-sante-v2::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand, var(--accent)) 0%, transparent 60%);
+}
+@media (max-width: 760px) {
+  .hero-sante.hero-sante-v2 { grid-template-columns: 1fr; gap: 18px; }
+}
+
+.hero-sante-v2 .health-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-right: 1px solid var(--ds-border, var(--border));
+  padding-right: 24px;
+}
+@media (max-width: 760px) {
+  .hero-sante-v2 .health-left {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid var(--ds-border, var(--border));
+    padding-bottom: 14px;
+  }
+}
+
+.hero-sante-v2 .health-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+.hero-sante-v2 .health-score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: 1;
+}
+.hero-sante-v2 .health-num {
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
+  font-size: 64px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ds-text, var(--text));
+  font-feature-settings: "tnum";
+}
+.hero-sante-v2 .health-unit {
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+.hero-sante-v2 .health-trend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.hero-sante-v2 .health-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(6, 214, 160, 0.16);
+  color: #06d6a0;
+  border: 1px solid rgba(6, 214, 160, 0.3);
+}
+.hero-sante-v2 .health-badge.warn {
+  background: rgba(255, 214, 10, 0.16);
+  color: var(--ds-warning, #ffd60a);
+  border-color: rgba(255, 214, 10, 0.3);
+}
+.hero-sante-v2 .health-badge.alert {
+  background: rgba(230, 57, 70, 0.16);
+  color: var(--ds-brand, #e63946);
+  border-color: rgba(230, 57, 70, 0.3);
+}
+.hero-sante-v2 .health-delta {
+  font-size: 12px;
+  color: #06d6a0;
+  font-weight: 700;
+}
+.hero-sante-v2 .health-delta.down { color: var(--ds-brand, #e63946); }
+
+.hero-sante-v2 .health-bar-wrap {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 14px;
+  border: 1px solid var(--ds-border, var(--border));
+}
+.hero-sante-v2 .health-bar {
+  height: 100%;
+  width: var(--w, 50%);
+  background: linear-gradient(90deg, #06d6a0, #4cc9f0);
+  border-radius: 3px;
+  animation: dashboard-health-grow 1s ease-out both;
+}
+@keyframes dashboard-health-grow {
+  from { width: 0; }
+}
+
+/* Sparkline 6 mois */
+.hero-sante-v2 .health-sparkline-block { margin-top: 18px; }
+.hero-sante-v2 .health-sparkline-block .health-eyebrow { margin-bottom: 6px; }
+.hero-sante-v2 .health-sparkline {
+  width: 100%;
+  height: 36px;
+  display: block;
+}
+.hero-sante-v2 .health-sparkline-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-top: 4px;
+  font-feature-settings: 'tnum';
+}
+.hero-sante-v2 .health-sparkline-ticks .last {
+  color: #06d6a0;
+  font-weight: 700;
+}
+
+/* Sub-scores grid (4 tiles) */
+.hero-sante-v2 .sub-scores {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.hero-sante-v2 .sub-score {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: center;
+}
+.hero-sante-v2 .ss-lbl {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-bottom: 4px;
+}
+.hero-sante-v2 .ss-val {
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ds-text, var(--text));
+  line-height: 1;
+  font-feature-settings: "tnum";
+}
+
+/* Right column : factors + reco */
+.hero-sante-v2 .health-right {
+  display: flex;
+  flex-direction: column;
+}
+.hero-sante-v2 .health-factors {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hero-sante-v2 .hf {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+}
+.hero-sante-v2 .hf:last-child { border-bottom: none; }
+.hero-sante-v2 .hf-mark { font-size: 10px; line-height: 1; }
+.hero-sante-v2 .hf-ok .hf-mark { color: #06d6a0; }
+.hero-sante-v2 .hf-warn .hf-mark { color: var(--ds-warning, #ffd60a); }
+.hero-sante-v2 .hf-alert .hf-mark { color: var(--ds-brand, #e63946); }
+.hero-sante-v2 .hf-label {
+  font-size: 13px;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-weight: 500;
+}
+.hero-sante-v2 .hf-value {
+  font-size: 13px;
+  color: var(--ds-text, var(--text));
+  font-weight: 700;
+  font-feature-settings: "tnum";
+}
+
+/* Recommandation prioritaire */
+.hero-sante-v2 .health-reco {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 214, 10, 0.08);
+  border: 1px solid rgba(255, 214, 10, 0.25);
+  border-radius: 8px;
+}
+.hero-sante-v2 .reco-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.hero-sante-v2 .reco-dot {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ds-warning, #ffd60a);
+  color: #1a1d22;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+.hero-sante-v2 .reco-title {
+  font-size: 12px;
+  color: var(--ds-text, var(--text));
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.hero-sante-v2 .reco-body {
+  font-size: 11px;
+  color: var(--ds-text-muted, var(--text-muted));
+  line-height: 1.45;
+}
+
+/* Quand v2 actif, masquer ancien ring + ancien layout 3-col */
+.hero-sante.hero-sante-v2 .hero-sante-main,
+.hero-sante.hero-sante-v2 .hero-sante-ring-wrap,
+.hero-sante.hero-sante-v2 .hero-sante-side {
+  display: none;
+}
+
+/* ============ POINTS D'ATTENTION — RESTYLE en hero-pills ============ */
+
+.dashboard-attention.dashboard-attention-v2 {
+  background: var(--ds-bg-card, var(--bg-card));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 12px;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.dashboard-attention.dashboard-attention-v2::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand, var(--accent)) 0%, transparent 60%);
+}
+
+/* Header = remplace .card-header old */
+.dashboard-attention-v2 .hero-pills-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+}
+.dashboard-attention-v2 .hero-pills-head .eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+.dashboard-attention-v2 .hero-pills-head .count {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ds-text, var(--text));
+  margin-top: 2px;
+}
+.dashboard-attention-v2 .hero-pills-head .all-link {
+  font-size: 12px;
+  color: var(--ds-brand, var(--accent));
+  text-decoration: none;
+  font-weight: 600;
+}
+
+/* Pills list */
+.dashboard-attention-v2 .pill {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  border: 1px solid var(--ds-border, var(--border));
+  text-decoration: none;
+  color: var(--ds-text, var(--text));
+  transition: all 0.18s ease-out;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.dashboard-attention-v2 .pill::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.18s ease-out;
+}
+.dashboard-attention-v2 .pill-red::before    { background: var(--ds-brand, #e63946); }
+.dashboard-attention-v2 .pill-orange::before { background: var(--ds-warning, #ffd60a); }
+.dashboard-attention-v2 .pill-green::before  { background: #06d6a0; }
+.dashboard-attention-v2 .pill-blue::before   { background: var(--ds-info, #4cc9f0); }
+
+.dashboard-attention-v2 .pill:hover {
+  transform: translateX(2px);
+  border-color: var(--ds-border-strong, var(--border));
+}
+
+.dashboard-attention-v2 .pill-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dashboard-attention-v2 .pill-icon svg { width: 18px; height: 18px; }
+.dashboard-attention-v2 .pill-red .pill-icon {
+  background: rgba(230, 57, 70, 0.15);
+  color: var(--ds-brand, #e63946);
+}
+.dashboard-attention-v2 .pill-orange .pill-icon {
+  background: rgba(255, 214, 10, 0.16);
+  color: var(--ds-warning, #ffd60a);
+}
+.dashboard-attention-v2 .pill-green .pill-icon {
+  background: rgba(6, 214, 160, 0.16);
+  color: #06d6a0;
+}
+.dashboard-attention-v2 .pill-blue .pill-icon {
+  background: rgba(76, 201, 240, 0.16);
+  color: var(--ds-info, #4cc9f0);
+}
+
+.dashboard-attention-v2 .pill-info { flex: 1; min-width: 0; }
+.dashboard-attention-v2 .pill-val {
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  font-feature-settings: "tnum";
+}
+.dashboard-attention-v2 .pill-red .pill-val    { color: var(--ds-brand, #e63946); }
+.dashboard-attention-v2 .pill-orange .pill-val { color: var(--ds-warning, #ffd60a); }
+.dashboard-attention-v2 .pill-green .pill-val  { color: #06d6a0; }
+.dashboard-attention-v2 .pill-blue .pill-val   { color: var(--ds-info, #4cc9f0); }
+
+.dashboard-attention-v2 .pill-lbl {
+  font-size: 11px;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-top: 3px;
+}
+
+.dashboard-attention-v2 .pill-arrow {
+  color: var(--ds-text-muted, var(--text-muted));
+  flex-shrink: 0;
+  transition: transform 0.18s ease-out;
+}
+.dashboard-attention-v2 .pill:hover .pill-arrow {
+  transform: translateX(3px);
+  color: var(--ds-brand, var(--accent));
+}
+
+/* Quand v2 actif, masquer ancien card-header + ancienne liste */
+.dashboard-attention.dashboard-attention-v2 > .card-header { display: none; }
