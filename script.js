@@ -9672,7 +9672,7 @@ genererRentabilitePDF = function() {
       html += '<div class="cal16-day-head">'
         + '<span class="cal16-day-num">'+d.getDate()+'</span>'
         + '</div>';
-      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'">🎉 '+escHtml(ferie.nom)+'</div>';
+      if (ferie) html += '<div class="cal16-day-ferie-row" title="'+escHtml(ferie.nom)+'"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'+escHtml(ferie.nom)+'</div>';
       const maxShow = 4;
       evsJour.slice(0, maxShow).forEach(ev => {
         html += '<div class="cal16-event cal16-event-'+ev.type+'" '
@@ -9744,8 +9744,8 @@ genererRentabilitePDF = function() {
       + '<button class="btn-secondary" onclick="window.cal16.retourMois()" title="Retour à la vue mois">← Retour au mois</button>'
       + '<button class="cal16-jour-close" onclick="window.cal16.retourMois()" title="Fermer" aria-label="Fermer">✕</button>'
       + '</div>';
-    if (ferie) html += '<div class="cal16-jour-ferie">🎉 '+escHtml(ferie.nom)+' (jour férié)</div>';
-    const groups = [['livraisons','Livraisons'],['factures','Factures émises'],['echeances','⏰ Échéances'],['relances','Relances'],['paiements','Paiements']];
+    if (ferie) html += '<div class="cal16-jour-ferie"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'+escHtml(ferie.nom)+' (jour férié)</div>';
+    const groups = [['livraisons','Livraisons'],['factures','Factures émises'],['echeances','Échéances'],['relances','Relances'],['paiements','Paiements']];
     groups.forEach(([t, titre]) => {
       if (!filtres[t]) return;
       const evs = events.filter(ev => ev.type === t);
@@ -10460,8 +10460,8 @@ genererRentabilitePDF = function() {
 
     if (!filtered.length) {
       host.innerHTML = '<div class="s19-empty">' +
-        (all.length ? '<div class="s19-empty-ic">🔎</div><div><strong>Aucune alerte ne correspond</strong></div><div style="color:var(--text-muted);font-size:.86rem">Modifiez vos filtres pour voir d\'autres résultats.</div>'
-                    : '<div class="s19-empty-ic">🎉</div><div><strong>Tout est nickel</strong></div><div style="color:var(--text-muted);font-size:.86rem">Aucune alerte active — le système surveille en continu.</div>') +
+        (all.length ? '<div class="s19-empty-ic"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div><strong>Aucune alerte ne correspond</strong></div><div style="color:var(--text-muted);font-size:.86rem">Modifiez vos filtres pour voir d\'autres résultats.</div>'
+                    : '<div class="s19-empty-ic"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#06d6a0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div><strong>Tout est nickel</strong></div><div style="color:var(--text-muted);font-size:.86rem">Aucune alerte active — le système surveille en continu.</div>') +
         '</div>';
       return;
     }

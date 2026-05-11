@@ -131,7 +131,12 @@
       + '</style>';
 
     if (!filtered.length) {
-      html += '<div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="font-size:3rem;margin-bottom:10px">' + (state.statut === 'encaisse' ? '💵' : state.statut === 'retard' ? '🎉' : '📋') + '</div><div>' + (state.statut === 'retard' ? 'Aucune facture en retard' : 'Aucune facture trouvée') + '</div></div>';
+      const emptyIcon = state.statut === 'encaisse'
+        ? '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#06d6a0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>'
+        : state.statut === 'retard'
+          ? '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#06d6a0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
+          : '<svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>';
+      html += '<div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><div style="margin-bottom:10px;display:flex;justify-content:center">' + emptyIcon + '</div><div>' + (state.statut === 'retard' ? 'Aucune facture en retard' : 'Aucune facture trouvée') + '</div></div>';
     } else {
       // Pagination cote affichage : on slice apres filtre/sort.
       // Les KPI restent calcules sur 'all' (totaux globaux).
