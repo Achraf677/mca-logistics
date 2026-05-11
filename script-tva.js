@@ -602,6 +602,7 @@ function afficherTva() {
   var setT = function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};
   setT('tva-collectee', euros(summary.totalCollectee));
   setT('tva-deductible', euros(summary.totalDeductible));
+  setT('tva-kpi-solde', summary.soldeBrut > 0 ? euros(summary.soldeBrut) : (summary.soldeBrut < 0 ? 'Crédit ' + euros(Math.abs(summary.soldeBrut)) : '—'));
   window.__lastTvaBrutSolde = summary.soldeBrut;
 
   var soldeEl = document.getElementById('tva-solde-detail');

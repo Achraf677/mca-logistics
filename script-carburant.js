@@ -206,6 +206,15 @@ function afficherCarburant() {
   document.getElementById('kpi-prix-litre').textContent  = euros(prixMoyenTTC);
   const elPrixLitreDetail = document.getElementById('kpi-prix-litre-detail');
   if (elPrixLitreDetail) elPrixLitreDetail.textContent = `HT ${euros(prixMoyenHT)} • TTC ${euros(prixMoyenTTC)}`;
+  const elConso = document.getElementById('kpi-conso-l100');
+  if (elConso) {
+    if (lts > 0 && typeof charger === 'function' && typeof isDateInRange === 'function') {
+      const kmTotal = charger('livraisons').filter(l => isDateInRange(l.date || l.dateLivraison, range)).reduce((s, l) => s + (parseFloat(l.distance) || 0), 0);
+      elConso.textContent = kmTotal > 50 ? (lts / kmTotal * 100).toFixed(1) + ' L/100' : '—';
+    } else {
+      elConso.textContent = '—';
+    }
+  }
 
   // Sweep anomalies (genere les alertes admin manquantes a chaque affichage)
   if (typeof sweepAnomaliesCarburant === 'function') {
