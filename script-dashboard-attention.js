@@ -314,6 +314,13 @@
     return sign + k.toFixed(1).replace('.', ',') + 'k€';
   }
 
+  function fmtEurSigned(v) {
+    if (v == null || !Number.isFinite(v)) return '—';
+    const sign = v >= 0 ? '+' : '';
+    const rounded = Math.round(v);
+    return sign + rounded.toLocaleString('fr-FR') + ' €';
+  }
+
   function buildFactors(subScores) {
     // 8 facteurs branchés sur les vraies données (Phase 19 — fields snake_case + camelCase).
     const read = (k) => (typeof window.charger === 'function' ? window.charger(k) || [] : []);
@@ -344,25 +351,52 @@
     const margeMark = marge == null ? 'ok' : marge >= 25 ? 'ok' : marge >= 15 ? 'warn' : 'alert';
     const margeVal = marge == null ? '—' : marge.toFixed(1).replace('.', ',') + '%';
 
-    // ============ 2. Trésorerie nette (solde 30j : encaissements - décaissements) ============
-    // Encaissements : paiements reçus avec date_paiement dans les 30 derniers jours
-    // Décaissements : charges payées avec date_paiement dans les 30 derniers jours
+    // ============ 2. Trésorerie nette (flux 30j : encaissements - décaissements) ============
+    // Sources d'encaissements (par ordre de priorité) :
+    //   A. Table `paiements` (générée par script-paiements.js quand un client paie)
+    //   B. Sinon, livraisons avec statut_paiement=paye et date_paiement dans 30j (TTC)
+    // → On UNION les 2 (avec dédup par livraison_id si présent)
     const paie30 = paiements.filter(p => {
       const d = paieDate(p);
       return d && (now - d.getTime()) <= 30 * J;
     });
-    const encaisse = paie30.reduce((s, p) => s + paieMontant(p), 0);
+    const paieIds = new Set();
+    paie30.forEach(p => {
+      const lid = p.livraison_id || p.livraisonId;
+      if (lid) paieIds.add(lid);
+    });
+    const encaissePaie = paie30.reduce((s, p) => s + paieMontant(p), 0);
 
+    const livPaye30 = livraisons.filter(l => {
+      if (!isPaye(livStatutPaiement(l))) return false;
+      const d = livDatePaiement(l);
+      if (!d || (now - d.getTime()) > 30 * J) return false;
+      if (paieIds.has(l.id)) return false; // déjà compté dans paiements
+      return true;
+    });
+    const encaisseLiv = livPaye30.reduce((s, l) => s + (getNum(l, 'prix_ttc', 'prixTTC', 'ttc') || livHT(l) * 1.2), 0);
+    const encaisse = encaissePaie + encaisseLiv;
+
+    // Décaissements = charges payées + carburant (toujours TTC, paiement immédiat à la pompe)
     const charges30Paye = charges.filter(c => {
       if (!isPaye(chStatutPaiement(c))) return false;
       const d = chDatePaiement(c) || chDate(c);
       return d && (now - d.getTime()) <= 30 * J;
     });
-    const decaisse = charges30Paye.reduce((s, c) => s + chMontantTTC(c), 0);
+    const decaisseCharges = charges30Paye.reduce((s, c) => s + chMontantTTC(c), 0);
 
+    const carburant30 = carburant.filter(c => {
+      const d = carbDate(c);
+      return d && (now - d.getTime()) <= 30 * J;
+    });
+    const decaisseCarb = carburant30.reduce((s, c) => s + getNum(c, 'prix_ttc', 'prixTTC', 'total', 'montant'), 0);
+
+    const decaisse = decaisseCharges + decaisseCarb;
     const tresorerie = encaisse - decaisse;
-    const hasTresoData = (paiements.length + charges.length) > 0;
-    const tresoVal = hasTresoData ? fmtKEur(tresorerie) : '—';
+
+    // "—" uniquement si AUCUNE donnée source des 4 tables n'est dispo
+    const hasTresoData = (paiements.length + livraisons.length + charges.length + carburant.length) > 0;
+    const tresoVal = hasTresoData ? fmtEurSigned(tresorerie) : '—';
     const tresoMark = !hasTresoData ? 'ok' : tresorerie >= 5000 ? 'ok' : tresorerie >= 0 ? 'warn' : 'alert';
 
     // ============ 3. DSO (délai moyen paiement, 6 derniers mois) ============
