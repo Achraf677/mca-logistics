@@ -90,7 +90,7 @@
   <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
   <link rel="stylesheet" href="style-refonte-charges.css?v=2" />
   <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
-  <link rel="stylesheet" href="style-refonte-utilities.css?v=1" />
+  <link rel="stylesheet" href="style-refonte-utilities.css?v=2" />
   <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
   <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
   <!-- Phase 6 refonte HTML : title-row + period-row pattern (reusable across pages) -->
@@ -1772,7 +1772,7 @@
       <div class="card mt-20">
         <div class="card-header"><h2 id="tva-collectee-title">TVA Collectée</h2></div>
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table tva-collectee-table">
             <thead><tr><th>Exigibilité</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
             <tbody id="tb-tva-collectee"></tbody>
           </table>
@@ -1784,7 +1784,7 @@
       <div class="card mt-20">
         <div class="card-header"><h2 id="tva-deductible-title">TVA Déductible (charges, carburant, entretiens)</h2></div>
         <div class="table-wrapper">
-          <table class="data-table">
+          <table class="data-table tva-deductible-table">
             <thead><tr><th>Date</th><th>Taux</th><th>Libellé</th><th>Base HT</th><th>Montant TVA</th><th>Montant TTC</th><th>Actions</th></tr></thead>
             <tbody id="tb-tva-deductible"></tbody>
           </table>
