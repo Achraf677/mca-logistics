@@ -1,0 +1,477 @@
+/* ==========================================================================
+   MCA Logistics — Mobile refinement (Phase 16)
+
+   Polish des m.html (chauffeur) + salarie.html (espace salarié unifié)
+   pour rapprocher visuellement des mockups pixel-perfect.
+
+   Touche : m-header, m-content cards, m-bottom-nav, m-drawer, m-sheet,
+   m-fab, m-toast, formulaires mobile, listes (livraisons, etc.).
+
+   Aucun changement HTML/JS — CSS-only sur les classes .m-* existantes.
+   ========================================================================== */
+
+/* ============ HEADER POLISH ============ */
+.m-header {
+  background: var(--ds-bg-elevated, #1a1d22) !important;
+  border-bottom: 1px solid var(--ds-border, var(--border, #2a2f37)) !important;
+  height: 56px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.m-title {
+  font-family: var(--ds-font-display, "Syne", sans-serif);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--ds-text, #f1f3f5);
+}
+
+.m-header-action {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--ds-border, #2a2f37);
+  color: var(--ds-text-muted, #adb5bd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.m-header-action:hover,
+.m-header-action:active {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  color: var(--ds-text, #f1f3f5);
+}
+
+/* Badge sur header action (notif IA, etc.) */
+.m-header-action .m-badge,
+.m-agent-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--ds-brand, #e63946);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: 0 0 0 2px var(--ds-bg-elevated, #1a1d22);
+}
+
+/* ============ BOTTOM NAV ============ */
+.m-bottom-nav {
+  background: var(--ds-bg-elevated, #1a1d22) !important;
+  border-top: 1px solid var(--ds-border, #2a2f37) !important;
+  height: 60px;
+  padding: 6px 4px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding-bottom: env(safe-area-inset-bottom, 6px);
+}
+
+.m-tab,
+.m-bottom-nav a,
+.m-bottom-nav button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--ds-text-muted, #adb5bd);
+  text-decoration: none;
+  font-size: 10.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  padding: 4px 2px;
+  cursor: pointer;
+  transition: color 0.15s ease-out;
+  position: relative;
+  font-family: inherit;
+}
+
+.m-tab.active,
+.m-bottom-nav .active {
+  color: var(--ds-brand, #e63946);
+}
+
+.m-tab.active::before,
+.m-bottom-nav .active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2px;
+  background: var(--ds-brand, #e63946);
+  border-radius: 0 0 2px 2px;
+}
+
+.m-tab-icon svg,
+.m-bottom-nav svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+}
+
+/* ============ M-CONTENT (zone scrollable) ============ */
+.m-content,
+#m-content {
+  padding: 14px;
+  padding-bottom: 76px; /* room for bottom nav */
+  background: var(--ds-bg-app, #0f1115);
+  min-height: calc(100vh - 56px);
+}
+
+/* ============ CARDS mobile ============ */
+.m-card,
+#m-content .card {
+  background: var(--ds-bg-card, var(--bg-card, #14171c));
+  border: 1px solid var(--ds-border, #2a2f37);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.m-card-header,
+#m-content .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ds-border, #2a2f37);
+}
+
+.m-card-header h2,
+.m-card-header h3,
+.m-card-title {
+  font-family: var(--ds-font-display, "Syne", sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+  color: var(--ds-text, #f1f3f5);
+}
+
+.m-card-sub {
+  font-size: 11px;
+  color: var(--ds-text-muted, #adb5bd);
+}
+
+/* ============ LISTES (livraisons, etc.) ============ */
+.m-list-item,
+.m-livraison-row {
+  background: var(--ds-bg-card, #14171c);
+  border: 1px solid var(--ds-border, #2a2f37);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.m-list-item::before,
+.m-livraison-row::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  transition: background 0.15s ease-out;
+}
+
+.m-list-item:active,
+.m-livraison-row:active {
+  transform: scale(0.99);
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+/* Status variants */
+.m-list-item.success::before,
+.m-livraison-row.livre::before { background: #06d6a0; }
+.m-list-item.warn::before,
+.m-livraison-row.en-cours::before { background: #4cc9f0; }
+.m-list-item.attente::before,
+.m-livraison-row.en-attente::before { background: var(--ds-warning, #ffd60a); }
+.m-list-item.danger::before,
+.m-livraison-row.retard::before { background: var(--ds-brand, #e63946); }
+
+/* ============ FAB (floating action button) ============ */
+.m-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 76px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--ds-brand, #e63946) !important;
+  color: #fff !important;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px -4px rgba(230, 57, 70, 0.5),
+              0 0 0 2px rgba(255, 255, 255, 0.1) inset;
+  cursor: pointer;
+  z-index: 45;
+  transition: all 0.18s ease-out;
+}
+
+.m-fab:active {
+  transform: scale(0.95);
+}
+
+.m-fab svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ============ DRAWER (side menu) ============ */
+.m-drawer,
+#m-drawer {
+  background: var(--ds-bg-elevated, #1a1d22) !important;
+  border-right: 1px solid var(--ds-border, #2a2f37) !important;
+  box-shadow: 24px 0 48px -12px rgba(0, 0, 0, 0.5);
+}
+
+.m-drawer-link,
+#m-drawer a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: var(--ds-text-muted, #adb5bd);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  margin: 0 8px 2px;
+  transition: all 0.15s ease-out;
+  position: relative;
+}
+
+.m-drawer-link:hover,
+.m-drawer-link.active,
+#m-drawer a.active {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  color: var(--ds-text, #f1f3f5);
+}
+
+.m-drawer-link.active {
+  background: rgba(230, 57, 70, 0.12);
+  color: var(--ds-brand, #e63946);
+}
+
+.m-drawer-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--ds-brand, #e63946);
+  border-radius: 0 3px 3px 0;
+}
+
+/* ============ SHEET (bottom modal) ============ */
+.m-sheet,
+#m-sheet {
+  background: var(--ds-bg-card, #14171c) !important;
+  border-top: 1px solid var(--ds-border, #2a2f37) !important;
+  border-radius: 16px 16px 0 0 !important;
+  box-shadow: 0 -16px 32px -8px rgba(0, 0, 0, 0.4);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.m-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--ds-border-strong, rgba(255,255,255,0.15));
+  border-radius: 2px;
+  margin: 8px auto 12px;
+}
+
+.m-sheet-header,
+#m-sheet .m-sheet-header {
+  padding: 4px 16px 12px;
+  border-bottom: 1px solid var(--ds-border, #2a2f37);
+}
+
+.m-sheet-title {
+  font-family: var(--ds-font-display, "Syne", sans-serif);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ds-text, #f1f3f5);
+}
+
+.m-sheet-body {
+  padding: 16px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* ============ FORMS mobile (inputs taille tactile) ============ */
+.m-content input,
+.m-content select,
+.m-content textarea,
+#m-content input,
+#m-content select,
+#m-content textarea {
+  width: 100%;
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  border: 1px solid var(--ds-border, #2a2f37);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--ds-text, #f1f3f5);
+  font-family: inherit;
+  font-size: 15px; /* >= 16px évite zoom auto iOS */
+  transition: all 0.15s ease-out;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.m-content input:focus,
+.m-content select:focus,
+.m-content textarea:focus,
+#m-content input:focus,
+#m-content select:focus,
+#m-content textarea:focus {
+  outline: none;
+  border-color: var(--ds-brand, #e63946);
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.15);
+}
+
+/* ============ BUTTONS mobile (taille tactile 44px min) ============ */
+.m-btn,
+.m-content .btn,
+.m-content button:not(.m-tab):not(.m-fab):not(.m-header-action) {
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid transparent;
+}
+
+.m-btn.m-btn-primary,
+.m-content .btn-primary {
+  background: var(--ds-brand, #e63946);
+  color: #fff;
+  border-color: var(--ds-brand, #e63946);
+}
+
+.m-btn.m-btn-primary:active,
+.m-content .btn-primary:active {
+  transform: scale(0.98);
+  filter: brightness(0.92);
+}
+
+.m-btn.m-btn-secondary,
+.m-content .btn-secondary {
+  background: transparent;
+  color: var(--ds-text, #f1f3f5);
+  border-color: var(--ds-border, #2a2f37);
+}
+
+/* ============ TOAST ============ */
+.m-toast,
+#m-toast {
+  background: var(--ds-bg-card, #14171c) !important;
+  border: 1px solid var(--ds-border, #2a2f37) !important;
+  color: var(--ds-text, #f1f3f5) !important;
+  border-radius: 10px !important;
+  padding: 12px 16px;
+  box-shadow: 0 12px 32px -6px rgba(0, 0, 0, 0.5);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.m-toast.success { border-left: 3px solid #06d6a0; }
+.m-toast.warn    { border-left: 3px solid var(--ds-warning, #ffd60a); }
+.m-toast.danger  { border-left: 3px solid var(--ds-brand, #e63946); }
+.m-toast.info    { border-left: 3px solid var(--ds-info, #4cc9f0); }
+
+/* ============ EMPTY STATE mobile ============ */
+.m-empty-state,
+#m-content .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--ds-text-muted, #adb5bd);
+}
+
+.m-empty-state svg,
+#m-content .empty-state svg {
+  width: 56px;
+  height: 56px;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  fill: none;
+  opacity: 0.5;
+  margin-bottom: 12px;
+}
+
+.m-empty-state h3,
+.m-empty-state-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ds-text, #f1f3f5);
+  margin-bottom: 4px;
+}
+
+.m-empty-state p,
+.m-empty-state-sub {
+  font-size: 12.5px;
+  line-height: 1.5;
+}
