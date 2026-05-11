@@ -877,6 +877,12 @@
          RENTABILITÉ                              : Marge par véhicule / client / chauffeur / tournée + simulateur
          ============================================================ -->
     <section class="page" id="page-rentabilite">
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Rentabilité</h1>
+        <div class="sub-meta">Analyse multi-axes · véhicule, client, chauffeur, tournée</div>
+      </div>
+
       <div class="page-actions"><h2>Rentabilité</h2>
         <div class="u-flex-row">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
@@ -1161,6 +1167,12 @@
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
 
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Statistiques</h1>
+        <div class="sub-meta">Indicateurs de performance · activité, CA, flotte, équipe</div>
+      </div>
+
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
@@ -1220,6 +1232,12 @@
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
+
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Équipe</h1>
+        <div class="sub-meta">Salariés, postes, planning et incidents</div>
+      </div>
 
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head" style="margin-bottom:14px">
@@ -1476,6 +1494,12 @@
          TVA                                      : Récap TVA collectée / déductible (CA3)
          ============================================================ -->
     <section class="page" id="page-tva">
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">TVA</h1>
+        <div class="sub-meta">Récapitulatif TVA collectée et déductible · CA3 mensuel / trimestriel</div>
+      </div>
+
       <div class="page-actions"><h2>Récapitulatif TVA</h2>
         <div class="u-flex-row">
           <button class="btn-secondary" onclick="exporterTvaCSV()">CSV</button>
@@ -1553,6 +1577,12 @@
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
+
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Paramètres</h1>
+        <div class="sub-meta">Configuration entreprise · comptabilité, sécurité, branding, à propos</div>
+      </div>
 
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
@@ -1856,6 +1886,12 @@
          ENCAISSEMENT                             : Factures à encaisser, DSO, relances (miroir Charges côté revenus)
          ============================================================ -->
     <section class="page" id="page-encaissement">
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Encaissement</h1>
+        <div class="sub-meta">Suivi factures et relances clients · DSO et impayés</div>
+      </div>
+
       <div class="page-actions"><h2>Encaissement</h2>
         <div class="u-flex-row">
           <button class="btn-secondary" onclick="exporterEncaissementCSV()">CSV</button>
@@ -2015,6 +2051,12 @@
          INCIDENTS                                : Incidents & réclamations clients
          ============================================================ -->
     <section class="page" id="page-incidents">
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Incidents</h1>
+        <div class="sub-meta">Réclamations clients · suivi gravité et statut</div>
+      </div>
+
       <div class="page-actions">
         <h2>Incidents / Réclamations</h2>
         <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
@@ -2121,6 +2163,12 @@
          HEURES & KM                              : Compteur heures (CE 561) + relevés km véhicules
          ============================================================ -->
     <section class="page" id="page-heures">
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Heures &amp; Km</h1>
+        <div class="sub-meta">Pointage chauffeurs · conformité CE 561 et relevé kilométrique</div>
+      </div>
+
       <div class="page-actions"><h2>Heures & Km</h2>
         <div class="u-flex-row">
           <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
@@ -2198,6 +2246,12 @@
       <nav class="ds-crumbs" aria-label="Fil d'Ariane">
         <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
       </nav>
+
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Calendrier</h1>
+        <div class="sub-meta">Vue globale livraisons, planning et entretiens</div>
+      </div>
 
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
@@ -2440,6 +2494,12 @@
       </div>
     </section>
     <section class="page" id="page-inspections">
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Inspections</h1>
+        <div class="sub-meta">Contrôles véhicules hebdomadaires · sécurité et conformité</div>
+      </div>
+
       <div class="page-actions"><h2>Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
       <!-- Navigation semaine -->
       <div class="card u-block-pad-md">
@@ -2480,6 +2540,12 @@
          BROUILLONS IA                            : Validation des actions proposées par l'IA
          ============================================================ -->
     <section class="page" id="page-brouillons-ia" hidden>
+      <!-- Phase 8 refonte HTML : title-row -->
+      <div class="title-row">
+        <h1 class="page-title">Brouillons IA</h1>
+        <div class="sub-meta">Actions proposées par l'assistant à valider · création, modification, suppression</div>
+      </div>
+
       <div class="page-actions"><h2>Brouillons IA</h2></div>
       <div class="card" style="margin-bottom:14px;padding:14px 18px">
         <div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">
