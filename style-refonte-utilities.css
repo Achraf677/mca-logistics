@@ -39,6 +39,49 @@
 .u-svg-base        { vertical-align: -2px; stroke: currentColor; stroke-width: 2; fill: none;
                      stroke-linecap: round; stroke-linejoin: round; }
 
+/* ============ Phase 35 : kpi card générique (alias mockup .kpi) ============ */
+/* Complète .kpi-card / .kpi-value / .kpi-label existants dans style.css */
+.kpi {
+  background: var(--card-bg, #1e2128);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-lbl {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.kpi-val {
+  font-family: var(--font-body, "DM Sans", system-ui, sans-serif);
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+}
+.kpi-sub {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+.kpi-sub .up   { color: #06d6a0; }
+.kpi-sub .down { color: var(--brand, #e63946); }
+
+/* ============ Phase 35 : chips-toolbar (filtres chauffeurs, statuts) ============ */
+.chips-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
 /* ============ Phase 34 : column-hiding TVA tables ============ */
 /* TVA collectée : masquer col 1(Exigibilité) + col 7(Actions) */
 .tva-collectee-table th:nth-child(1),

@@ -90,7 +90,7 @@
   <!-- Phase 2 HTML refonte — composants ds canoniques (crumbs / section-head / kpi-grid / chips). -->
   <link rel="stylesheet" href="style-refonte-charges.css?v=2" />
   <!-- Phase 2 refonte HTML : utility classes pour réduire les inline styles répétés -->
-  <link rel="stylesheet" href="style-refonte-utilities.css?v=2" />
+  <link rel="stylesheet" href="style-refonte-utilities.css?v=3" />
   <!-- Phase 5 refonte HTML : dashboard hero row (sante + points attention side-by-side) -->
   <link rel="stylesheet" href="style-design-dashboard-hero.css?v=1" />
   <!-- Phase 6 refonte HTML : title-row + period-row pattern (reusable across pages) -->
@@ -1103,8 +1103,13 @@
         <div class="sub-meta">Analyse multi-axes · véhicule, client, chauffeur, tournée</div>
       </div>
 
-      <div class="page-actions"><h2>Rentabilité</h2>
-        <div class="u-flex-row">
+      <!-- Phase 35 refonte HTML : section-head -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Rentabilité</h2>
+          <div class="ds-section-head__sub">Analyse multi-axes · véhicule, client, chauffeur, tournée</div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="ouvrirConfigRentabilite()" title="Configurer les paramètres de calcul">Config</button>
           <button class="btn-rapport" onclick="exporterRapportRentabilitePDF()" title="Rapport mensuel multi-axes (véhicules, clients, chauffeurs, tournées)">Rapport</button>
           <button class="btn-secondary" onclick="genererRentabilitePDF()" title="Rapport simulateur (calculateur)">Simulateur</button>
@@ -2320,9 +2325,25 @@
         <div class="sub-meta">Réclamations clients · suivi gravité et statut</div>
       </div>
 
-      <div class="page-actions">
-        <h2>Incidents / Réclamations</h2>
-        <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
+      <!-- Phase 35 refonte HTML : section-head + KPI grid -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Incidents / Réclamations</h2>
+          <div class="ds-section-head__sub">
+            <span id="inc-section-sub-ouverts">0</span> ouvert(s)
+            <span class="ds-section-head__sep">·</span>
+            <span id="inc-section-sub-resolus">0</span> résolu(s) ce mois
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
+          <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
+        </div>
+      </div>
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Ouverts</div><div class="kpi-val" id="inc-kpi-ouverts" style="color:var(--brand)">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Résolus mois</div><div class="kpi-val" id="inc-kpi-resolus">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="inc-kpi-cout">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Délai résolution</div><div class="kpi-val" id="inc-kpi-delai">—</div></div>
       </div>
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar">
@@ -2443,8 +2464,17 @@
         <div class="sub-meta">Pointage chauffeurs · conformité CE 561 et relevé kilométrique</div>
       </div>
 
-      <div class="page-actions"><h2>Heures & Km</h2>
-        <div class="u-flex-row">
+      <!-- Phase 35 refonte HTML : section-head + KPI grid -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Heures &amp; Km</h2>
+          <div class="ds-section-head__sub">
+            <span id="heures-section-sub-periode">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span id="heures-section-sub-count">0 salarié(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
           <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
           <div class="inline-dropdown" id="heures-rapports-menu">
             <button class="btn-rapport" type="button" onclick="toggleHeuresRapportsMenu(event)">&#128196; Rapports &#9662;</button>
@@ -2456,6 +2486,12 @@
           </div>
           <button class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Saisir un relevé</button>
         </div>
+      </div>
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Heures totales</div><div class="kpi-val" id="heures-kpi-total">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Heures sup.</div><div class="kpi-val" id="heures-kpi-sup">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Km parcourus</div><div class="kpi-val" id="heures-kpi-km">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div></div>
       </div>
 
       <!-- Navigation semaine -->
@@ -2785,7 +2821,26 @@
         <div class="sub-meta">Contrôles véhicules hebdomadaires · sécurité et conformité</div>
       </div>
 
-      <div class="page-actions"><h2>Inspections véhicules</h2><button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button></div>
+      <!-- Phase 35 refonte HTML : section-head + KPI grid -->
+      <div class="page-actions ds-section-head">
+        <div class="ds-section-head__title">
+          <h2>Inspections véhicules</h2>
+          <div class="ds-section-head__sub">
+            <span id="insp-section-sub-semaine">—</span>
+            <span class="ds-section-head__sep">·</span>
+            <span id="insp-section-sub-count">0 inspection(s)</span>
+          </div>
+        </div>
+        <div class="ds-section-head__actions">
+          <button class="btn-primary" onclick="ouvrirModalInspectionAdmin()">+ Nouvelle inspection</button>
+        </div>
+      </div>
+      <div class="kpi-grid" style="margin-bottom:16px">
+        <div class="kpi"><div class="kpi-lbl">Cette semaine</div><div class="kpi-val" id="insp-kpi-semaine">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Défauts signalés</div><div class="kpi-val" id="insp-kpi-defauts">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Conformité globale</div><div class="kpi-val" id="insp-kpi-conformite">—</div></div>
+        <div class="kpi"><div class="kpi-lbl">Véhicule à risque</div><div class="kpi-val" id="insp-kpi-risque">—</div></div>
+      </div>
       <!-- Navigation semaine -->
       <div class="card u-block-pad-md">
         <div class="nav-periode-bar">
