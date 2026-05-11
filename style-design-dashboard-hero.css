@@ -455,18 +455,23 @@
 #page-dashboard .kpi-grid-primary .kpi-card {
   border-radius: 12px;
   padding: 20px 22px 18px;
-  /* Layout : label en haut + value centrée grosse + sub en bas */
+  /* Layout : label en haut, value sous le label, sub poussé en bas via margin-top auto */
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 6px;
   min-height: 130px;
   position: relative;
   overflow: hidden;
-  /* Override les border-top colores des variants .green/.blue/.purple */
   border-top: 1px solid var(--ds-border, var(--border)) !important;
   transition: transform 0.18s ease-out, border-color 0.18s ease-out;
+}
+
+/* Masque les enfants div vides (kpi-objectif-pct, kpi-objectif-liv-pct, kpi-sub :empty)
+   pour que le layout flex ne réserve pas d'espace pour rien */
+#page-dashboard .kpi-grid-primary .kpi-card > div:empty {
+  display: none;
 }
 
 #page-dashboard .kpi-grid-primary .kpi-card:hover {
@@ -504,10 +509,13 @@
   line-height: 1.1;
   color: var(--ds-text, var(--text));
   font-feature-settings: "tnum";
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
-#page-dashboard .kpi-grid-primary .kpi-sub {
+/* Sub (TTC, breakdown dépenses, CA HT - dépenses) poussé en bas */
+#page-dashboard .kpi-grid-primary .kpi-sub,
+#page-dashboard .kpi-grid-primary .kpi-card > div[id$="-detail"],
+#page-dashboard .kpi-grid-primary .kpi-card > div[id$="-ttc"] {
   color: var(--ds-text-muted, var(--text-muted));
   font-size: 11.5px;
   font-weight: 500;

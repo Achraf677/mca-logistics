@@ -605,12 +605,7 @@
     }
     if (delta) delta.textContent = '+4 pts vs mois dernier';
 
-    const setSS = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
-    setSS('dashboard-ss-finance', sub.finance);
-    setSS('dashboard-ss-flotte', sub.flotte);
-    setSS('dashboard-ss-rh', sub.rh);
-    setSS('dashboard-ss-conformite', sub.conformite);
-
+    // Sub-scores UI supprimés (Phase 21) — le compute reste utilisé pour le score global
     const factors = buildFactors(sub);
     renderFactors(factors);
 
