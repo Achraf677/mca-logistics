@@ -605,9 +605,9 @@
         <div class="page-actions-toolbar ds-section-head__actions">
           <!-- view-toggle deplace dans la period-row (Phase 12), retire ici pour pas doublonner. -->
           <div class="view-toggle" style="display:none !important">
-            <button class="btn-view active" id="btn-vue-tableau" onclick="changerVueLivraisons('tableau')">Tableau</button>
-            <button class="btn-view" id="btn-vue-kanban" onclick="changerVueLivraisons('kanban')">Kanban</button>
-            <button class="btn-view" id="btn-vue-calendrier" onclick="changerVueLivraisons('calendrier')">Cal.</button>
+            <button class="btn-view active" onclick="changerVueLivraisons('tableau')">Tableau</button>
+            <button class="btn-view" onclick="changerVueLivraisons('kanban')">Kanban</button>
+            <button class="btn-view" onclick="changerVueLivraisons('calendrier')">Cal.</button>
           </div>
           <div class="density-toggle" style="display:none">
             <button class="btn-density active" id="btn-density-normal" onclick="if(_vueCompacte)toggleVueCompacte()" aria-label="Vue normale">☰</button>
@@ -677,15 +677,15 @@
       <!-- Phase 12 refonte HTML : period-row (view-toggle + period chips) align mockup -->
       <div class="period-row">
         <div class="view-toggle">
-          <button class="btn-view active" data-vue="tableau" onclick="changerVueLivraisons('tableau')">
+          <button class="btn-view active" id="btn-vue-tableau" data-vue="tableau" onclick="changerVueLivraisons('tableau')">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/></svg>
             Tableau
           </button>
-          <button class="btn-view" data-vue="kanban" onclick="changerVueLivraisons('kanban')">
+          <button class="btn-view" id="btn-vue-kanban" data-vue="kanban" onclick="changerVueLivraisons('kanban')">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="9" rx="1"/><rect x="14" y="15" width="7" height="6" rx="1"/></svg>
             Kanban
           </button>
-          <button class="btn-view" data-vue="calendrier" onclick="changerVueLivraisons('calendrier')">
+          <button class="btn-view" id="btn-vue-calendrier" data-vue="calendrier" onclick="changerVueLivraisons('calendrier')">
             <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
             Calendrier
           </button>
