@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v22-tables-refine-375';
+const CACHE_VERSION = 'mca-v2026-05-11-v23-modals-refine-376';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -75,6 +75,8 @@ const CORE_ASSETS = [
   '/style-design-empty-states.css',
   // Phase 14 refonte HTML — tables refinement (pills + zebra + hover + sortable)
   '/style-design-tables-refine.css',
+  // Phase 15 refonte HTML — modals + drawer refinement (legacy + mockup patterns)
+  '/style-design-modals-refine.css',
   // Phase 3 refonte HTML — dashboard preview "Points d'attention"
   '/script-dashboard-attention.js',
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)

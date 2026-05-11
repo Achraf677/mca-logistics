@@ -1,0 +1,364 @@
+/* ==========================================================================
+   MCA Logistics — Modals & Drawers refinement (Phase 15)
+
+   Polish CSS-only des modales et drawers existants pour matcher les mockups
+   previews/modals-content.html + previews/drawers-content.html.
+
+   Cible double :
+   - Pattern legacy : .modal-overlay > .modal > .modal-header / .modal-body / .modal-footer
+   - Pattern mockup : .modal-overlay > .modal-dialog > .modal-head / .modal-body / .modal-foot
+
+   Aucun changement HTML/JS requis : tout en CSS.
+   ========================================================================== */
+
+/* ============ MODAL OVERLAY ============ */
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ============ MODAL DIALOG (legacy + new) ============ */
+.modal,
+.modal-dialog {
+  background: var(--ds-bg-card, var(--bg-card)) !important;
+  border: 1px solid var(--ds-border, var(--border)) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.5),
+              0 0 0 1px rgba(255, 255, 255, 0.02) inset !important;
+  overflow: hidden;
+}
+
+/* Sizes mockup */
+.modal-dialog.modal-sm { max-width: 420px; }
+.modal-dialog.modal-md { max-width: 580px; }
+.modal-dialog.modal-lg { max-width: 760px; }
+.modal-dialog.modal-xl { max-width: 1040px; }
+
+/* ============ HEADER ============ */
+.modal-header,
+.modal-head {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--ds-bg-card, var(--bg-card));
+  position: relative;
+}
+
+.modal-header::after,
+.modal-head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand, var(--accent)) 0%, transparent 60%);
+}
+
+.modal-title,
+.modal-header h2,
+.modal-header h3 {
+  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--ds-text, var(--text));
+  margin: 0;
+  line-height: 1.2;
+}
+
+.modal-sub {
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+/* Close button */
+.modal-close,
+.modal-header .close-modal,
+.modal-header button[aria-label="Fermer"] {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid var(--ds-border, var(--border));
+  color: var(--ds-text-muted, var(--text-muted));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  padding: 0;
+}
+
+.modal-close svg,
+.modal-header .close-modal svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.modal-close:hover,
+.modal-header .close-modal:hover {
+  background: rgba(230, 57, 70, 0.1);
+  color: var(--ds-brand, var(--accent));
+  border-color: rgba(230, 57, 70, 0.3);
+}
+
+/* ============ BODY ============ */
+.modal-body {
+  padding: 22px 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Sections inside body */
+.field-section,
+.modal-body .form-section-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin: 18px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+}
+
+.field-section:first-child,
+.modal-body .form-section-title:first-child {
+  margin-top: 0;
+}
+
+/* Fields */
+.field,
+.modal-body .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 12px;
+}
+
+.field label,
+.modal-body .form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ds-text-muted, var(--text-muted));
+  letter-spacing: 0.01em;
+}
+
+.field input,
+.field select,
+.field textarea,
+.modal-body .form-group input,
+.modal-body .form-group select,
+.modal-body .form-group textarea {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--ds-text, var(--text));
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.15s ease-out;
+  width: 100%;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus,
+.modal-body .form-group input:focus,
+.modal-body .form-group select:focus,
+.modal-body .form-group textarea:focus {
+  outline: none;
+  border-color: var(--ds-brand, var(--accent));
+  background: var(--ds-bg-card, var(--bg-card));
+  box-shadow: 0 0 0 3px rgba(230, 57, 70, 0.15);
+}
+
+.field input.mono,
+.field select.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+}
+
+.field input[readonly] {
+  background: var(--ds-bg-card, var(--bg-card));
+  color: var(--ds-text-muted, var(--text-muted));
+  cursor: not-allowed;
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+/* Field rows (multi-col) */
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.field-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.field-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.field-row > .field { margin-bottom: 0; }
+
+@media (max-width: 640px) {
+  .field-row,
+  .field-row.cols-3,
+  .field-row.cols-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ FOOTER ============ */
+.modal-footer,
+.modal-foot {
+  padding: 14px 24px;
+  border-top: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--ds-bg-card, var(--bg-card));
+}
+
+.foot-info {
+  margin-right: auto;
+  font-size: 11px;
+  color: var(--ds-text-muted, var(--text-muted));
+  font-style: italic;
+}
+
+/* ============ MODAL BUTTONS ============ */
+.modal-footer .btn,
+.modal-foot .btn,
+.modal-footer .btn-primary,
+.modal-footer .btn-secondary {
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.modal-foot .btn-primary,
+.modal-footer .btn-primary {
+  background: var(--ds-brand, var(--accent));
+  color: #fff;
+  border: 1px solid var(--ds-brand, var(--accent));
+}
+
+.modal-foot .btn-primary:hover,
+.modal-footer .btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.modal-foot .btn-secondary,
+.modal-footer .btn-secondary {
+  background: transparent;
+  color: var(--ds-text, var(--text));
+  border: 1px solid var(--ds-border, var(--border));
+}
+
+.modal-foot .btn-secondary:hover,
+.modal-footer .btn-secondary:hover {
+  border-color: var(--ds-border-strong, var(--border));
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+/* ============ DRAWER 360 (right slide-in) ============ */
+.drawer-360,
+.drawer,
+.fiche-drawer {
+  background: var(--ds-bg-card, var(--bg-card)) !important;
+  border-left: 1px solid var(--ds-border, var(--border)) !important;
+  box-shadow: -24px 0 48px -12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.drawer-360 .drawer-header,
+.drawer .drawer-header,
+.fiche-drawer .drawer-header,
+.drawer-head {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  background: var(--ds-bg-card, var(--bg-card));
+  position: relative;
+}
+
+.drawer-360 .drawer-header::after,
+.drawer .drawer-header::after,
+.fiche-drawer .drawer-header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ds-brand, var(--accent)) 0%, transparent 60%);
+}
+
+/* Drawer tabs */
+.drawer-tabs,
+.drawer-360 .tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  padding: 0 24px;
+  background: var(--ds-bg-card, var(--bg-card));
+  overflow-x: auto;
+}
+
+.drawer-tabs .tab,
+.drawer-360 .tabs .tab {
+  padding: 11px 16px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ds-text-muted, var(--text-muted));
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s ease-out;
+  white-space: nowrap;
+  font-family: inherit;
+}
+
+.drawer-tabs .tab:hover,
+.drawer-360 .tabs .tab:hover {
+  color: var(--ds-text, var(--text));
+}
+
+.drawer-tabs .tab.active,
+.drawer-360 .tabs .tab.active {
+  color: var(--ds-brand, var(--accent));
+  border-bottom-color: var(--ds-brand, var(--accent));
+}
+
+/* Drawer body */
+.drawer-body,
+.drawer-360 .drawer-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+}
