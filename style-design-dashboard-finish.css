@@ -1,0 +1,480 @@
+/* ==========================================================================
+   MCA Logistics — Dashboard finish (Phase 17)
+
+   Compose les 2 derniers blocs du mockup previews/dashboard.html :
+   - Status card v2 (remplace Chart.js donut) :
+     * status-hero  : grand chiffre "90,1%" Taux de réussite + trend
+     * status-bars  : 3 barres horizontales animées (livré / en cours / retard)
+     * status-foot  : pulse animation + "Dernière livraison il y a X min"
+   - Grid-2 inférieur :
+     * "Dernières livraisons" : table 5 derniers + badges colores
+     * "Alertes" : <details> collapsibles avec dot color + chevron
+
+   ========================================================================== */
+
+/* ============ STATUS CARD V2 ============ */
+.status-card-v2 {
+  background: var(--ds-bg-card, var(--bg-card));
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.status-card-v2 .card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-card-v2 .card-header h3 {
+  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.status-card-v2 .status-meta {
+  font-size: 11px;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+.status-card-v2 .status-body {
+  padding: 22px 22px 18px;
+}
+
+/* Status hero (taux de réussite) */
+.status-hero {
+  text-align: center;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+}
+
+.status-hero .sh-eyebrow {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-bottom: 8px;
+}
+
+.status-hero .sh-val {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+
+.status-hero .sh-num {
+  font-family: var(--ds-font-body, var(--font-body, system-ui));
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #06d6a0;
+  font-feature-settings: "tnum";
+}
+
+.status-hero .sh-num .sh-decimal {
+  font-size: 28px;
+  opacity: 0.85;
+}
+
+.status-hero .sh-pct {
+  font-size: 22px;
+  font-weight: 800;
+  color: #06d6a0;
+  margin-left: 2px;
+}
+
+.status-hero .sh-meta {
+  font-size: 11.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+/* Status bars */
+.status-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sb-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sb-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.sb-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ds-text, var(--text));
+  font-weight: 600;
+}
+
+.sb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sb-row.sb-ok .sb-dot     { background: #06d6a0; box-shadow: 0 0 8px rgba(6,214,160,0.6); }
+.sb-row.sb-warn .sb-dot   { background: #4cc9f0; box-shadow: 0 0 8px rgba(76,201,240,0.6); }
+.sb-row.sb-attente .sb-dot { background: var(--ds-warning, #ffd60a); box-shadow: 0 0 8px rgba(255,214,10,0.5); }
+.sb-row.sb-alert .sb-dot  { background: var(--ds-brand, #e63946); box-shadow: 0 0 8px rgba(230,57,70,0.6); }
+
+.sb-val {
+  font-weight: 700;
+  color: var(--ds-text, var(--text));
+  font-feature-settings: "tnum";
+}
+
+.sb-val .sb-pct {
+  font-weight: 500;
+  color: var(--ds-text-muted, var(--text-muted));
+  margin-left: 4px;
+  font-size: 11px;
+}
+
+.sb-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 3px;
+  overflow: hidden;
+  border: 1px solid var(--ds-border, var(--border));
+}
+
+.sb-fill {
+  height: 100%;
+  width: var(--w, 0%);
+  border-radius: 3px;
+  animation: sb-grow 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.sb-row.sb-ok .sb-fill {
+  background: linear-gradient(90deg, #06d6a0 0%, #4cc9f0 100%);
+  box-shadow: 0 0 12px rgba(6,214,160,0.4);
+}
+
+.sb-row.sb-warn .sb-fill {
+  background: linear-gradient(90deg, #4cc9f0 0%, #06d6a0 100%);
+}
+
+.sb-row.sb-attente .sb-fill {
+  background: linear-gradient(90deg, var(--ds-warning, #ffd60a) 0%, #ff9f1c 100%);
+}
+
+.sb-row.sb-alert .sb-fill {
+  background: linear-gradient(90deg, var(--ds-brand, #e63946) 0%, #ff4d5c 100%);
+  box-shadow: 0 0 12px rgba(230,57,70,0.4);
+}
+
+@keyframes sb-grow {
+  from { width: 0; }
+}
+
+/* Status foot (pulse + dernière liv) */
+.status-foot {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+.sf-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #06d6a0;
+  box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.7);
+  animation: sf-pulse 1.8s infinite;
+}
+
+@keyframes sf-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0.7); }
+  60%  { box-shadow: 0 0 0 8px rgba(6, 214, 160, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(6, 214, 160, 0); }
+}
+
+.sf-link {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--ds-brand, var(--accent));
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.sf-link:hover {
+  text-decoration: underline;
+}
+
+/* ============ GRID-2 BOTTOM (Dernières livraisons + Alertes) ============ */
+.dashboard-grid-2 {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid-2 { grid-template-columns: 1fr; }
+}
+
+/* Dernières livraisons card */
+.last-deliveries-card .card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.last-deliveries-card .card-header h3 {
+  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.last-deliveries-card .btn-sm {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 7px;
+  background: transparent;
+  border: 1px solid var(--ds-border, var(--border));
+  color: var(--ds-text-muted, var(--text-muted));
+  cursor: pointer;
+  transition: all 0.15s ease-out;
+}
+
+.last-deliveries-card .btn-sm:hover {
+  border-color: var(--ds-border-strong, var(--border));
+  color: var(--ds-text, var(--text));
+}
+
+.last-deliveries-card table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+
+.last-deliveries-card thead th {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: var(--ds-text-muted, var(--text-muted));
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+}
+
+.last-deliveries-card tbody tr {
+  transition: background 0.12s ease-out;
+}
+
+.last-deliveries-card tbody tr:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+.last-deliveries-card tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  color: var(--ds-text, var(--text));
+  vertical-align: middle;
+}
+
+.last-deliveries-card tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.last-deliveries-card td.mono {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--ds-text-muted, var(--text-muted));
+}
+
+/* Badges in last deliveries */
+.last-deliveries-card .badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.last-deliveries-card .badge.ok {
+  background: rgba(6, 214, 160, 0.15);
+  color: #06d6a0;
+  border-color: rgba(6, 214, 160, 0.3);
+}
+
+.last-deliveries-card .badge.pending {
+  background: rgba(76, 201, 240, 0.15);
+  color: #4cc9f0;
+  border-color: rgba(76, 201, 240, 0.3);
+}
+
+.last-deliveries-card .badge.attente {
+  background: rgba(255, 214, 10, 0.15);
+  color: var(--ds-warning, #ffd60a);
+  border-color: rgba(255, 214, 10, 0.3);
+}
+
+.last-deliveries-card .badge.late {
+  background: rgba(230, 57, 70, 0.15);
+  color: var(--ds-brand, var(--accent));
+  border-color: rgba(230, 57, 70, 0.3);
+}
+
+/* Alertes details card */
+.dashboard-alerts-card .card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ds-border, var(--border));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboard-alerts-card .card-header h3 {
+  font-family: var(--ds-font-display, var(--font-display, system-ui));
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.dashboard-alerts-card .alert-count-badge {
+  background: rgba(230, 57, 70, 0.15);
+  color: var(--ds-brand, var(--accent));
+  border: 1px solid rgba(230, 57, 70, 0.3);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.dashboard-alerts-list {
+  padding: 8px 0;
+}
+
+.dashboard-alerts-list .alert-item {
+  border-bottom: 1px solid var(--ds-border, var(--border));
+}
+
+.dashboard-alerts-list .alert-item:last-child {
+  border-bottom: none;
+}
+
+.dashboard-alerts-list .alert-item summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.15s ease-out;
+}
+
+.dashboard-alerts-list .alert-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.dashboard-alerts-list .alert-item summary:hover {
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+.dashboard-alerts-list .alert-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dashboard-alerts-list .alert-dot.dang { background: var(--ds-brand, #e63946); box-shadow: 0 0 8px rgba(230,57,70,0.5); }
+.dashboard-alerts-list .alert-dot.warn { background: var(--ds-warning, #ffd60a); box-shadow: 0 0 6px rgba(255,214,10,0.5); }
+.dashboard-alerts-list .alert-dot.ok   { background: #06d6a0; box-shadow: 0 0 6px rgba(6,214,160,0.5); }
+.dashboard-alerts-list .alert-dot.info { background: #4cc9f0; box-shadow: 0 0 6px rgba(76,201,240,0.5); }
+
+.dashboard-alerts-list .alert-text {
+  flex: 1;
+  font-size: 12.5px;
+  color: var(--ds-text, var(--text));
+  line-height: 1.4;
+}
+
+.dashboard-alerts-list .alert-text strong {
+  font-weight: 700;
+}
+
+.dashboard-alerts-list .alert-chev {
+  width: 14px;
+  height: 14px;
+  color: var(--ds-text-muted, var(--text-muted));
+  transition: transform 0.18s ease-out;
+  flex-shrink: 0;
+}
+
+.dashboard-alerts-list .alert-item[open] .alert-chev {
+  transform: rotate(180deg);
+}
+
+.dashboard-alerts-list .alert-body {
+  padding: 0 20px 14px 38px;
+  font-size: 12px;
+  color: var(--ds-text-muted, var(--text-muted));
+  line-height: 1.5;
+}
+
+.dashboard-alerts-list .alert-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.dashboard-alerts-list .alert-actions .btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--ds-border, var(--border));
+  color: var(--ds-text, var(--text));
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease-out;
+}
+
+.dashboard-alerts-list .alert-actions .btn-sm:hover {
+  border-color: var(--ds-border-strong, var(--border));
+  background: var(--ds-bg-card-hover, rgba(255,255,255,0.04));
+}
+
+/* Hide the existing "Livraisons recentes" card legacy
+   (replaced by .last-deliveries-card v2) */
+#page-dashboard > .card.mt-20:has(#tb-livraisons-recentes) {
+  display: none;
+}
