@@ -126,28 +126,33 @@
 }
 
 .livraisons-table .driver-av {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: var(--ds-brand, var(--accent));
+  background: var(--ds-brand, #e63946);
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10.5px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 700;
   letter-spacing: 0.02em;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: none;
+  font-family: var(--ds-font-display, var(--font-display, "Syne", sans-serif));
 }
 
-/* Avatar variants couleurs (palette pour différencier chauffeurs) */
-.livraisons-table .driver-av.av-1 { background: #e63946; }
-.livraisons-table .driver-av.av-2 { background: #06d6a0; color: #1a1d22; }
-.livraisons-table .driver-av.av-3 { background: #4cc9f0; color: #1a1d22; }
-.livraisons-table .driver-av.av-4 { background: #ffd60a; color: #1a1d22; }
-.livraisons-table .driver-av.av-5 { background: #a855f7; }
-.livraisons-table .driver-av.av-6 { background: #ff9f1c; color: #1a1d22; }
+/* Avatar variants : par defaut TOUS en brand red (mockup match).
+   On garde av-* classes si le user veut differencier plus tard, mais defaut = red */
+.livraisons-table .driver-av.av-1,
+.livraisons-table .driver-av.av-2,
+.livraisons-table .driver-av.av-3,
+.livraisons-table .driver-av.av-4,
+.livraisons-table .driver-av.av-5,
+.livraisons-table .driver-av.av-6 {
+  background: var(--ds-brand, #e63946);
+  color: #fff;
+}
 
 /* ============ Header polish ============ */
 .livraisons-table thead th {
@@ -433,35 +438,42 @@
   filter: brightness(1.1);
 }
 
-/* Variants couleurs (basees sur les classes legacy is-ok / is-warn / is-info / is-err) */
-.livraisons-table .livraison-inline-select.is-ok {
+/* Variants couleurs : legacy uses is-success/is-info/is-warn/is-danger.
+   Mes alias is-ok/is-err/is-muted/is-draft pour cas custom. */
+.livraisons-table .livraison-inline-select.is-success,
+.livraisons-table .livraison-inline-select.is-ok,
+.livraisons-table .livraison-inline-select[data-statut="livre"] {
   background-color: rgba(6, 214, 160, 0.15) !important;
   color: #06d6a0 !important;
   border-color: rgba(6, 214, 160, 0.3) !important;
 }
 
 .livraisons-table .livraison-inline-select.is-warn,
-.livraisons-table .livraison-inline-select.is-pending {
+.livraisons-table .livraison-inline-select.is-pending,
+.livraisons-table .livraison-inline-select[data-statut="en-attente"] {
   background-color: rgba(255, 214, 10, 0.15) !important;
   color: #ffd60a !important;
   border-color: rgba(255, 214, 10, 0.3) !important;
 }
 
-.livraisons-table .livraison-inline-select.is-info {
+.livraisons-table .livraison-inline-select.is-info,
+.livraisons-table .livraison-inline-select[data-statut="en-cours"] {
   background-color: rgba(76, 201, 240, 0.15) !important;
   color: #4cc9f0 !important;
   border-color: rgba(76, 201, 240, 0.3) !important;
 }
 
+.livraisons-table .livraison-inline-select.is-danger,
 .livraisons-table .livraison-inline-select.is-err,
-.livraisons-table .livraison-inline-select.is-danger {
+.livraisons-table .livraison-inline-select[data-statut="retard"] {
   background-color: rgba(230, 57, 70, 0.15) !important;
   color: #e63946 !important;
   border-color: rgba(230, 57, 70, 0.3) !important;
 }
 
 .livraisons-table .livraison-inline-select.is-muted,
-.livraisons-table .livraison-inline-select.is-draft {
+.livraisons-table .livraison-inline-select.is-draft,
+.livraisons-table .livraison-inline-select[data-statut="brouillon"] {
   background-color: rgba(168, 162, 158, 0.15) !important;
   color: #a8a29e !important;
   border-color: rgba(168, 162, 158, 0.3) !important;

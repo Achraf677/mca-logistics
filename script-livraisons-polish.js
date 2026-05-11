@@ -292,6 +292,73 @@
     } catch (_) { return '—'; }
   }
 
+  // ============ Action Générer wrapper (Phase 33) ============
+  // Le dropdown Générer expose 4 types : facture / bl / cmr / facture-groupee
+  // On lit les IDs des rows checkboxes ; si aucun, on prend la 1ere row visible ;
+  // sinon on demande de selectionner.
+  window.actionGenererLivraison = function (type) {
+    const selected = Array.from(document.querySelectorAll('#tb-livraisons .bulk-liv-check:checked'))
+      .map(c => c.dataset.livId).filter(Boolean);
+
+    // Aucune selection : prendre la 1ere ligne visible (UX practical)
+    let livId = null;
+    if (selected.length >= 1) {
+      livId = selected[0];
+    } else {
+      const firstRow = document.querySelector('#tb-livraisons tr:not(.empty-row)');
+      if (firstRow) {
+        const cb = firstRow.querySelector('.bulk-liv-check');
+        if (cb) livId = cb.dataset.livId;
+      }
+    }
+
+    if (!livId) {
+      const toast = window.afficherToast || ((msg) => alert(msg));
+      toast('Sélectionnez une livraison pour générer ce document', 'warn');
+      return;
+    }
+
+    // Dispatch selon type
+    const dispatch = {
+      'facture': () => {
+        if (typeof window.genererFactureLivraison === 'function') {
+          window.genererFactureLivraison(livId);
+          // Enregistrer la trace
+          if (typeof window.enregistrerDocumentLivraison === 'function') {
+            const livs = (window.charger ? window.charger('livraisons') : []) || [];
+            const l = livs.find(x => x.id === livId);
+            const numLiv = l ? (l.numLiv || l.num_liv || livId) : livId;
+            window.enregistrerDocumentLivraison(livId, {
+              type: 'facture',
+              name: 'Facture ' + numLiv.replace(/^L-/, 'F-'),
+            });
+          }
+        } else { alert('Fonction genererFactureLivraison absente — TODO côté backend'); }
+      },
+      'bl': () => {
+        if (typeof window.genererBonsLivraison === 'function') window.genererBonsLivraison(livId);
+        else if (typeof window.genererBonLivraison === 'function') window.genererBonLivraison(livId);
+        else alert('Fonction BL absente');
+        if (typeof window.enregistrerDocumentLivraison === 'function') {
+          window.enregistrerDocumentLivraison(livId, { type: 'bl', name: 'Bon de livraison' });
+        }
+      },
+      'cmr': () => {
+        if (typeof window.genererLettreVoiture === 'function') window.genererLettreVoiture(livId);
+        else alert('Fonction CMR absente');
+        if (typeof window.enregistrerDocumentLivraison === 'function') {
+          window.enregistrerDocumentLivraison(livId, { type: 'cmr', name: 'Lettre de voiture CMR' });
+        }
+      },
+      'facture-groupee': () => {
+        if (typeof window.genererFacturesPeriode === 'function') window.genererFacturesPeriode(selected.length > 0 ? selected : null);
+        else if (typeof window.genererFacturesGroupees === 'function') window.genererFacturesGroupees(selected);
+        else alert('Fonction Facture groupée absente');
+      },
+    };
+    if (dispatch[type]) dispatch[type]();
+  };
+
   // ============ Bulk Modifier button (Phase 32) ============
   // Apparait quand >= 1 row checkbox cochee, avec compteur "(N)"
   function updateBulkModifyButton() {
