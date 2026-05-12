@@ -42,9 +42,9 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Équipe | 55% | 100% | Phase 46 : breadcrumb+h1 supprimés, KPI val 28px, tab count badges (Salariés/Incidents) |
 | Heures | 45% | 100% | Phase 35 : section-head + KPI grid (total/sup/km/CE561) |
 | Incidents | 45% | 100% | Phase 35 : section-head + KPI grid (ouverts/résolus/coût/délai) |
-| Paramètres | 25% | 100% | Phase 8 |
+| Paramètres | 35% | 100% | Phase 46 : breadcrumb + title-row supprimés, boutons Annuler+Enregistrer mockup-matched |
 | Brouillons IA | 40% | 100% | Phase 35d : section-head |
-| Planning | 30% | 100% | Phase 7 + period-row |
+| Planning | 40% | 100% | Phase 46 : breadcrumb + title-row supprimés |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |
 

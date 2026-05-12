@@ -1952,18 +1952,7 @@
          PARAMÈTRES                               : Config entreprise + comptabilité + sécurité + à propos
          ============================================================ -->
     <section class="page" id="page-parametres">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
-
-      <!-- Phase 8 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Paramètres</h1>
-        <div class="sub-meta">Configuration entreprise · comptabilité, sécurité, branding, à propos</div>
-      </div>
-
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 46 refonte HTML : breadcrumb + title-row supprimés (mockup), boutons Annuler+Enregistrer ajoutés -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
           <h2>Paramètres</h2>
@@ -1971,7 +1960,10 @@
             <span>Configuration entreprise &amp; préférences globales</span>
           </div>
         </div>
-        <div class="ds-section-head__actions"></div>
+        <div class="ds-section-head__actions">
+          <button class="btn-secondary" onclick="if(typeof reinitialiserParametres==='function')reinitialiserParametres()">Annuler</button>
+          <button class="btn-primary" onclick="if(typeof enregistrerParametres==='function')enregistrerParametres()">Enregistrer modifications</button>
+        </div>
       </div>
       <div class="params-grid">
 
@@ -2810,21 +2802,7 @@
          PLANNING                                 : Planning hebdomadaire équipe
          ============================================================ -->
     <section class="page" id="page-planning">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
-
-      <!-- Phase 7 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Planning</h1>
-        <div class="sub-meta">
-          <strong id="planning-titlerow-salaries">0</strong> salariés
-          <span> · </span>
-          <strong id="planning-titlerow-total">0</strong> planning(s)
-        </div>
-      </div>
-
+      <!-- Phase 46 refonte HTML : breadcrumb + title-row supprimés (mockup) -->
       <!-- Phase 2 HTML refonte : section-head pattern mockup -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
