@@ -123,6 +123,22 @@ function exporterStatsExcel() {
 }
 window.exporterStatsExcel = exporterStatsExcel;
 
+function exporterRentabiliteExcel() {
+  const livs = charger('livraisons');
+  const cfg = (typeof window.config !== 'undefined' && window.config) ? window.config : { coutKmEstime: 0.5 };
+  exporterExcelXML(livs, [
+    { label: 'N° LIV', get: l => l.numLiv || '' },
+    { label: 'Date', get: l => l.date || '' },
+    { label: 'Client', get: l => l.client || '' },
+    { label: 'CA HT', get: l => parseFloat(l.prixHT || l.prix || 0) },
+    { label: 'Km', get: l => parseFloat(l.distance || 0) },
+    { label: 'Coût estimé', get: l => parseFloat((parseFloat(l.distance || 0) * cfg.coutKmEstime).toFixed(2)) },
+    { label: 'Marge estimée', get: l => parseFloat((parseFloat(l.prixHT || l.prix || 0) - parseFloat(l.distance || 0) * cfg.coutKmEstime).toFixed(2)) }
+  ], 'rentabilite-' + new Date().toISOString().slice(0, 10), 'Rentabilité');
+  if (typeof afficherToast === 'function') afficherToast('Excel rentabilité exporté');
+}
+window.exporterRentabiliteExcel = exporterRentabiliteExcel;
+
 function exporterRentabiliteCSV() {
   const livs = charger('livraisons');
   const cfg = (typeof window.config !== 'undefined' && window.config) ? window.config : { coutKmEstime: 0.5 };
