@@ -6,6 +6,109 @@
    #s26-params-section, #s26-sig-*, etc.)
    ========================================================================== */
 
+/* ============ PARAM TABS — Phase 53 (mockup-aligned) ============ */
+
+#page-parametres .param-tabs-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--ds-border);
+  padding: 0 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#page-parametres .param-tabs-bar::-webkit-scrollbar { display: none; }
+
+#page-parametres .param-tab {
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--ds-text-muted);
+  font-family: var(--ds-font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--ds-t-fast) var(--ds-ease-out), border-color var(--ds-t-fast) var(--ds-ease-out);
+  position: relative;
+  top: 1px;
+}
+#page-parametres .param-tab:hover { color: var(--ds-text); }
+#page-parametres .param-tab.active { color: var(--ds-brand); border-bottom-color: var(--ds-brand); }
+
+#page-parametres .param-panel { display: none; }
+#page-parametres .param-panel.active {
+  display: block;
+  animation: param-fade 0.25s var(--ds-ease-out);
+}
+@keyframes param-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Toggle rows for notifications panel */
+#page-parametres .toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--ds-border);
+}
+#page-parametres .toggle-row:last-child { border: none; }
+#page-parametres .toggle-row .info { flex: 1; }
+#page-parametres .toggle-row .info .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; color: var(--ds-text); }
+#page-parametres .toggle-row .info .desc { font-size: 11px; color: var(--ds-text-muted); }
+#page-parametres .toggle {
+  width: 36px; height: 20px;
+  background: var(--ds-bg-card-hover);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1px solid var(--ds-border-strong);
+  transition: all var(--ds-t-fast) var(--ds-ease-out);
+}
+#page-parametres .toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--ds-text-muted);
+  transition: all var(--ds-t-fast) var(--ds-ease-out);
+}
+#page-parametres .toggle.on { background: var(--ds-brand-soft); border-color: var(--ds-brand); }
+#page-parametres .toggle.on::after { left: 18px; background: var(--ds-brand); }
+
+/* Field pattern for integrations/security panels */
+#page-parametres .field { margin-bottom: 14px; }
+#page-parametres .field label {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: var(--ds-text-muted);
+  margin-bottom: 6px;
+}
+#page-parametres .field input,
+#page-parametres .field select {
+  width: 100%;
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--ds-text);
+  font-size: 13px;
+  font-family: var(--ds-font-body);
+}
+#page-parametres .field input:focus,
+#page-parametres .field select:focus {
+  outline: none;
+  border-color: var(--ds-brand);
+}
+
 /* ============ PAGE PARAMETRES — Cards generiques ============ */
 
 #page-parametres .card {

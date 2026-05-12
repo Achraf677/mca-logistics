@@ -2050,21 +2050,19 @@
           <button class="btn-primary" onclick="if(typeof enregistrerParametres==='function')enregistrerParametres()">Enregistrer modifications</button>
         </div>
       </div>
-
-      <!-- Phase 53 refonte HTML : tabs navigation Paramètres (mockup-aligned) -->
-      <nav class="params-tabs-nav" style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);overflow-x:auto;padding-bottom:0">
-        <button class="ptab-btn ptab-active" data-ptab="entreprise">Entreprise</button>
-        <button class="ptab-btn" data-ptab="comptabilite">Comptabilité</button>
-        <button class="ptab-btn" data-ptab="securite">Sécurité</button>
-        <button class="ptab-btn" data-ptab="apparence">Apparence</button>
-        <button class="ptab-btn" data-ptab="sauvegarde">Sauvegarde</button>
+      <!-- Phase 53 : tabs navigation mockup-aligned (7 tabs) -->
+      <nav class="param-tabs-bar" role="tablist">
+        <button class="param-tab active" data-ptab="entreprise" role="tab" onclick="switchParamTab('entreprise')">Entreprise</button>
+        <button class="param-tab" data-ptab="comptable" role="tab" onclick="switchParamTab('comptable')">Comptabilité</button>
+        <button class="param-tab" data-ptab="notifications" role="tab" onclick="switchParamTab('notifications')">Notifications</button>
+        <button class="param-tab" data-ptab="securite" role="tab" onclick="switchParamTab('securite')">Sécurité</button>
+        <button class="param-tab" data-ptab="integrations" role="tab" onclick="switchParamTab('integrations')">Intégrations</button>
+        <button class="param-tab" data-ptab="apparence" role="tab" onclick="switchParamTab('apparence')">Apparence</button>
+        <button class="param-tab" data-ptab="sauvegarde" role="tab" onclick="switchParamTab('sauvegarde')">Sauvegarde</button>
       </nav>
-      <style>
-        #page-parametres .ptab-btn{padding:10px 18px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;margin-bottom:-2px;transition:color 0.15s,border-color 0.15s}
-        #page-parametres .ptab-btn:hover{color:var(--text)}
-        #page-parametres .ptab-btn.ptab-active{color:var(--brand);border-bottom-color:var(--brand)}
-      </style>
 
+      <!-- ===== PANEL : Entreprise ===== -->
+      <div class="param-panel active" id="ptab-entreprise">
       <div class="params-grid">
 
         <!-- Entreprise -->
@@ -2173,29 +2171,12 @@
           </div>
         </div>
 
-        <!-- Apparence -->
-        <div class="card">
-          <div class="card-header"><h2>Apparence</h2></div>
-          <div class="modal-body">
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
-              <div>
-                <div style="font-size:.9rem;font-weight:500">Mode clair / sombre</div>
-                <div style="font-size:.78rem;color:var(--text-muted)">Basculer l'apparence de l'interface</div>
-              </div>
-              <button class="btn-theme-toggle u-icon-btn-inline" onclick="toggleTheme()" id="btn-theme-param" aria-label="Basculer entre mode clair et sombre"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0">
-              <div>
-                <div style="font-size:.9rem;font-weight:500">Couleur principale</div>
-                <div style="font-size:.78rem;color:var(--text-muted)">Couleur des boutons et accents</div>
-              </div>
-              <div style="display:flex;align-items:center;gap:10px">
-                <input type="color" id="param-accent-color" value="#e63946" style="width:40px;height:36px;border:2px solid var(--border);border-radius:8px;cursor:pointer;background:none;padding:2px" / aria-label="param accent color" />
-                <button class="btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:.82rem">Appliquer</button>
-              </div>
-            </div>
-          </div>
-        </div>
+      </div><!-- /params-grid entreprise -->
+      </div><!-- /ptab-entreprise -->
+
+      <!-- ===== PANEL : Comptabilité ===== -->
+      <div class="param-panel" id="ptab-comptable">
+      <div class="params-grid">
 
         <div class="card">
           <div class="card-header"><h2>Fiscalité TVA</h2></div>
@@ -2267,14 +2248,188 @@
           </div>
         </div>
 
-        <div class="card params-card-wide">
-          <div class="card-header"><h2>Journal d'audit</h2></div>
-          <div class="modal-body">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-              <button class="btn-secondary" onclick="exporterJournalAuditCSV()">Export CSV</button>
-              <button class="btn-secondary" onclick="viderJournalAudit()">Vider</button>
+      </div><!-- /params-grid comptable -->
+      </div><!-- /ptab-comptable -->
+
+      <!-- ===== PANEL : Notifications ===== -->
+      <div class="param-panel" id="ptab-notifications">
+        <div class="card">
+          <div class="card-header"><h3>Notifications &amp; alertes</h3><span style="font-size:11px;color:var(--text-muted)">12 actives</span></div>
+          <div style="padding:18px 20px">
+            <div class="toggle-row"><div class="info"><div class="name">Alertes CT véhicule</div><div class="desc">À 30j et 7j avant échéance</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Alertes assurance véhicule</div><div class="desc">À 30j et 7j avant échéance</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Alertes permis chauffeur</div><div class="desc">À 60j et 30j avant échéance</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Alertes visite médicale</div><div class="desc">À 30j avant échéance</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Anomalies carburant</div><div class="desc">Conso +15% vs moyenne 30j</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Doublons carburant</div><div class="desc">Tickets rapprochés (même véhicule, même jour)</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Impayés clients</div><div class="desc">Retards de paiement +30j</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">CE 561 (temps de conduite)</div><div class="desc">Alerte dépassement 10h ou pause manquée</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Brief IA quotidien</div><div class="desc">À l'ouverture du dashboard</div></div><div class="toggle"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Push mobile</div><div class="desc">Notifications push sur m.html</div></div><div class="toggle"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Email récap hebdo</div><div class="desc">Synthèse semaine chaque lundi</div></div><div class="toggle on"></div></div>
+          </div>
+        </div>
+      </div><!-- /ptab-notifications -->
+
+      <!-- ===== PANEL : Sécurité ===== -->
+      <div class="param-panel" id="ptab-securite">
+      <div class="params-grid">
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Mot de passe administrateur</h3></div>
+          <div style="padding:18px 20px">
+            <div id="param-admin-compte" style="margin-bottom:12px;font-size:12px;color:var(--text-muted)">Compte connecté : —</div>
+            <div class="field"><label>Mot de passe actuel</label>
+              <div style="position:relative"><input type="password" id="param-mdp-actuel" placeholder="Actuel" style="padding-right:44px;width:100%"/ aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
             </div>
-            <div class="table-wrapper">
+            <div class="field"><label>Nouveau mot de passe</label>
+              <div style="position:relative"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" style="padding-right:44px;width:100%"/ aria-label="8 caractères min, avec majuscule et chiffre" /><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le nouveau mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            </div>
+            <div class="field"><label>Confirmer</label>
+              <div style="position:relative"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" style="padding-right:44px;width:100%"/ aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="changerMdpAdmin()">Modifier le mot de passe</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Authentification &amp; sessions</h3></div>
+          <div style="padding:18px 20px">
+            <div class="toggle-row"><div class="info"><div class="name">Authentification 2 facteurs (2FA)</div><div class="desc">Code Authenticator au login</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Verrouillage auto session</div><div class="desc">Après inactivité (min)</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Multi-device</div><div class="desc">Autoriser plusieurs sessions actives</div></div><div class="toggle"></div></div>
+            <div style="height:1px;background:var(--border);margin:14px 0 10px"></div>
+            <div class="field"><label>Tentatives max avant blocage</label><input type="number" id="param-max-tentatives" value="5" min="1" max="20" / aria-label="param max tentatives" /></div>
+            <div class="field"><label>Déconnexion auto après inactivité (min)</label><input type="number" id="param-session-timeout" value="30" min="5" max="240" / aria-label="param session timeout" /></div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
+          </div>
+        </div>
+
+      </div><!-- /params-grid securite -->
+      </div><!-- /ptab-securite -->
+
+      <!-- ===== PANEL : Intégrations ===== -->
+      <div class="param-panel" id="ptab-integrations">
+      <div class="params-grid">
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Pennylane (compta)</h3><span class="badge ok">Connecté</span></div>
+          <div style="padding:18px 20px">
+            <div class="field"><label>Company ID</label><input type="text" value="23200904" class="mono" readonly / aria-label="Pennylane company ID" /></div>
+            <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Dernier sync : <strong style="color:var(--text)">FEC import auto le 1er du mois</strong></div>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="typeof testerConnexionPennylane==='function'&&testerConnexionPennylane()">Tester la connexion</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Qonto (banque)</h3><span class="badge ok">Connecté</span></div>
+          <div style="padding:18px 20px">
+            <div class="field"><label>Organization slug</label><input type="text" value="mca-logistics-3134" class="mono" readonly / aria-label="Qonto org slug" /></div>
+            <div style="font-size:12px;color:var(--text-muted);padding:8px 0">Sync : <strong style="color:var(--text)">quotidien 03:00 UTC</strong> · Rapprochement auto seuil 0.7</div>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="naviguerVers('charges')">Voir les transactions</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Gemini AI</h3><span class="badge ok">Tier 1</span></div>
+          <div style="padding:18px 20px">
+            <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Consommation : <strong style="color:var(--text)">~0,55-0,90 €/mois</strong> · Cap : 5 €/mois</div>
+            <div class="toggle-row"><div class="info"><div class="name">Chatbot IA</div><div class="desc">Assistance opérationnelle</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">OCR multimodal</div><div class="desc">Factures + tickets + RIB</div></div><div class="toggle on"></div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>OpenRouteService (Maps)</h3><span class="badge ok">Actif</span></div>
+          <div style="padding:18px 20px">
+            <div style="font-size:12px;color:var(--text-muted);padding:0 0 10px">Quota : <strong style="color:var(--text)">2000 req/jour</strong> · Profil : HGV (camion)</div>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center">Voir la consommation</button>
+          </div>
+        </div>
+
+      </div><!-- /params-grid integrations -->
+      </div><!-- /ptab-integrations -->
+
+      <!-- ===== PANEL : Apparence ===== -->
+      <div class="param-panel" id="ptab-apparence">
+      <div class="params-grid">
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Thème &amp; palette</h3></div>
+          <div style="padding:18px 20px">
+            <div class="field"><label>Mode</label>
+              <select aria-label="mode theme"><option>Sombre (Asphalt &amp; Speed Red)</option><option>Clair (Premium)</option><option>Auto (système)</option></select>
+            </div>
+            <div class="field"><label>Couleur d'accent</label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                <input type="color" id="param-accent-color" value="#e63946" style="width:36px;height:36px;border:2px solid var(--border-strong);border-radius:8px;cursor:pointer;background:none;padding:2px" / aria-label="param accent color" />
+                <button class="btn btn-primary" onclick="appliquerAccentColor()" style="padding:7px 14px;font-size:12px">Appliquer</button>
+              </div>
+            </div>
+            <div class="field"><label>Police body</label>
+              <select aria-label="police body"><option>DM Sans (défaut)</option><option>Inter</option><option>Roboto</option></select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Préférences</h3></div>
+          <div style="padding:18px 20px">
+            <div class="field"><label>Langue</label>
+              <select aria-label="langue"><option>Français</option><option>English</option></select>
+            </div>
+            <div class="field"><label>Devise</label>
+              <select aria-label="devise"><option>EUR (€)</option><option>USD ($)</option></select>
+            </div>
+            <div class="field"><label>Fuseau horaire</label>
+              <select aria-label="fuseau horaire"><option>Europe/Paris (UTC+1)</option></select>
+            </div>
+            <div class="field"><label>Format date</label>
+              <select aria-label="format date"><option>JJ/MM/AAAA</option><option>AAAA-MM-JJ</option></select>
+            </div>
+            <div style="padding-top:4px">
+              <button class="btn-theme-toggle u-icon-btn-inline" onclick="toggleTheme()" id="btn-theme-param" aria-label="Basculer entre mode clair et sombre">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                Mode clair / sombre
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /params-grid apparence -->
+      </div><!-- /ptab-apparence -->
+
+      <!-- ===== PANEL : Sauvegarde ===== -->
+      <div class="param-panel" id="ptab-sauvegarde">
+      <div class="params-grid">
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Sauvegarde automatique</h3><span class="badge ok">Actif</span></div>
+          <div style="padding:18px 20px">
+            <div class="toggle-row"><div class="info"><div class="name">Backup quotidien Supabase</div><div class="desc">Snapshot 02:00 UTC</div></div><div class="toggle on"></div></div>
+            <div class="toggle-row"><div class="info"><div class="name">Export Cloudflare R2</div><div class="desc">Réplique hebdomadaire</div></div><div class="toggle on"></div></div>
+            <div class="param-backup-stats" id="param-backup-stats" style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+              <div class="param-backup-stat"><span style="font-size:12px;color:var(--text-muted)">Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+              <button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="exporterSauvegardeAdmin()">Télécharger snapshot</button>
+              <label class="btn btn-secondary" style="width:100%;justify-content:center;cursor:pointer;margin:0">
+                Restaurer snapshot
+                <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" / aria-label="param backup file" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header"><h3>Audit log &amp; journal</h3></div>
+          <div style="padding:18px 20px">
+            <div style="font-size:13px;color:var(--text-muted);line-height:1.5;margin-bottom:14px">Toutes les modifications admin sont tracées dans <code style="color:var(--brand);background:var(--bg-elevated);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px">audit_log</code> (18 tables couvertes).</div>
+            <div style="display:flex;gap:8px;margin-bottom:14px">
+              <button class="btn btn-secondary" onclick="exporterJournalAuditCSV()">Export CSV</button>
+              <button class="btn btn-secondary" onclick="viderJournalAudit()">Vider</button>
+            </div>
+            <div class="table-wrapper" style="max-height:260px;overflow:auto">
               <table class="data-table">
                 <thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Détail</th></tr></thead>
                 <tbody id="tb-audit-log"><tr><td colspan="4" class="empty-row">Aucune action journalisée</td></tr></tbody>
@@ -2283,123 +2438,32 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header"><h2>Sauvegarde & restauration</h2></div>
-          <div class="modal-body">
-            <div class="param-backup-stats" id="param-backup-stats">
-              <div class="param-backup-stat"><span>Dernière sauvegarde</span><strong id="backup-stat-date">Jamais</strong></div>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
-              <button class="btn-primary" onclick="exporterSauvegardeAdmin()">⬇️ Télécharger</button>
-              <label class="btn-secondary" style="cursor:pointer;margin:0">
-                ⬆️ Restaurer
-                <input type="file" id="param-backup-file" accept=".json,application/json" style="display:none" onchange="importerSauvegardeAdmin(this)" / aria-label="param backup file" />
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sécurité -->
-        <div class="card">
-          <div class="card-header"><h2>Mot de passe administrateur</h2></div>
-          <div class="modal-body">
-            <div id="param-admin-compte" style="margin-bottom:12px;font-size:.82rem;color:var(--text-muted)">Compte connecté : —</div>
-            <div class="form-group" style="margin-bottom:12px"><label>Mot de passe actuel</label>
-              <div style="position:relative"><input type="password" id="param-mdp-actuel" placeholder="Actuel" style="padding-right:44px;width:100%"/ aria-label="Actuel" /><button onclick="toggleParamMdp('param-mdp-actuel')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le mot de passe actuel"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-            </div>
-            <div class="form-group" style="margin-bottom:12px"><label>Nouveau mot de passe</label>
-              <div style="position:relative"><input type="password" id="param-mdp-nouveau" placeholder="8 caractères min, avec majuscule et chiffre" style="padding-right:44px;width:100%"/ aria-label="8 caractères min, avec majuscule et chiffre" /><button onclick="toggleParamMdp('param-mdp-nouveau')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer le nouveau mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-            </div>
-            <div class="form-group" style="margin-bottom:16px"><label>Confirmer</label>
-              <div style="position:relative"><input type="password" id="param-mdp-confirmer" placeholder="Confirmer" style="padding-right:44px;width:100%"/ aria-label="Confirmer" /><button onclick="toggleParamMdp('param-mdp-confirmer')" type="button" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);display:inline-flex;align-items:center;justify-content:center" aria-label="Afficher/masquer la confirmation du mot de passe"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
-            </div>
-            <button class="btn-primary" onclick="changerMdpAdmin()">Mettre à jour</button>
-          </div>
-        </div>
-
-        <!-- Blocage connexion -->
-        <div class="card">
-          <div class="card-header"><h2>Blocage connexion</h2></div>
-          <div class="modal-body">
-            <div class="form-grid">
-              <div class="form-group" style="margin-bottom:16px">
-                <label>Nombre max de tentatives avant blocage</label>
-                <input type="number" id="param-max-tentatives" value="5" min="1" max="20" / aria-label="param max tentatives" />
-                <span style="font-size:.75rem;color:var(--text-muted)">Le compte est bloqué 15 min après X échecs consécutifs</span>
-              </div>
-              <div class="form-group" style="margin-bottom:16px">
-                <label>Déconnexion auto après inactivité (min)</label>
-                <input type="number" id="param-session-timeout" value="30" min="5" max="240" / aria-label="param session timeout" />
-                <span style="font-size:.75rem;color:var(--text-muted)">Appliqué à la session admin active si aucune activité n'est détectée</span>
-              </div>
-            </div>
-            <button class="btn-primary" onclick="sauvegarderMaxTentatives()">Enregistrer</button>
-          </div>
-        </div>
-
-        <!-- Historique des versions -->
-        <div class="card params-card-wide">
-          <div class="card-header"><h2>Historique des versions</h2></div>
-          <div class="modal-body">
-            <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 14px">
+        <div class="card params-card-wide" style="margin:0">
+          <div class="card-header"><h3>Historique des versions</h3></div>
+          <div style="padding:18px 20px">
+            <p style="font-size:12px;color:var(--text-muted);margin:0 0 14px">
               Liste chronologique des évolutions du site. Format complet dans <code>CHANGELOG.md</code>.
             </p>
-            <div id="changelog-content" style="max-height:480px;overflow:auto;font-size:.88rem;line-height:1.6">
+            <div id="changelog-content" style="max-height:480px;overflow:auto;font-size:13px;line-height:1.6">
               <div style="color:var(--text-muted)">Chargement…</div>
             </div>
           </div>
         </div>
 
-      </div>
+      </div><!-- /params-grid sauvegarde -->
+      </div><!-- /ptab-sauvegarde -->
 
-      <!-- Phase 53 : param-tabs JS wiring (post-render, additive) -->
       <script>
-      (function(){
-        var TAB_MAP = {
-          'entreprise':   ['informations entreprise', 'identit', 'postes'],
-          'comptabilite': ['fiscalit', 'trésorerie'],
-          'securite':     ['mot de passe', 'blocage'],
-          'apparence':    ['apparence'],
-          'sauvegarde':   ['journal d\'audit', 'sauvegarde', 'historique des versions']
+        window.switchParamTab = function(tab) {
+          var page = document.getElementById('page-parametres');
+          if (!page) return;
+          page.querySelectorAll('.param-tab').forEach(function(b){ b.classList.remove('active'); });
+          page.querySelectorAll('.param-panel').forEach(function(p){ p.classList.remove('active'); });
+          var btn = page.querySelector('.param-tab[data-ptab="'+tab+'"]');
+          var panel = document.getElementById('ptab-'+tab);
+          if (btn) btn.classList.add('active');
+          if (panel) panel.classList.add('active');
         };
-        function getCardTab(card) {
-          var h = card.querySelector('.card-header h2');
-          if (!h) return 'entreprise';
-          var text = h.textContent.toLowerCase().trim();
-          for (var tab in TAB_MAP) {
-            for (var i = 0; i < TAB_MAP[tab].length; i++) {
-              if (text.indexOf(TAB_MAP[tab][i]) !== -1) return tab;
-            }
-          }
-          return 'sauvegarde';
-        }
-        function initParamTabs() {
-          var grid = document.querySelector('#page-parametres .params-grid');
-          if (!grid) return;
-          var cards = grid.querySelectorAll(':scope > .card');
-          cards.forEach(function(c) { c.setAttribute('data-ptab', getCardTab(c)); });
-          function activateTab(name) {
-            document.querySelectorAll('#page-parametres .ptab-btn').forEach(function(b) {
-              var on = b.getAttribute('data-ptab') === name;
-              b.classList.toggle('ptab-active', on);
-            });
-            cards.forEach(function(c) {
-              c.style.display = c.getAttribute('data-ptab') === name ? '' : 'none';
-            });
-          }
-          document.querySelectorAll('#page-parametres .ptab-btn').forEach(function(b) {
-            b.addEventListener('click', function() { activateTab(b.getAttribute('data-ptab')); });
-          });
-          activateTab('entreprise');
-        }
-        if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', function() { setTimeout(initParamTabs, 50); });
-        } else { setTimeout(initParamTabs, 50); }
-        document.addEventListener('click', function(e) {
-          var nav = e.target.closest && e.target.closest('.nav-item[data-page="parametres"]');
-          if (nav) setTimeout(initParamTabs, 100);
-        });
-      })();
       </script>
     </section>
 
