@@ -42,7 +42,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
 | Heures | 82% | 100% | Phase 59 : sub-meta format mockup (X chauffeurs · Y jours pointés) + Export Excel (5 items dropdown) |
 | Incidents | 80% | 100% | Phase 59 : Export Excel ajouté (3 items : Rapport PDF + CSV + Excel) |
-| Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
+| Paramètres | 82% | 100% | Phase 59 : audit code-level — 7 panels structurellement alignés mockup (Notifications 11 toggles, Sécurité, Intégrations Pennylane/Qonto/Gemini/ORS). Visual fine-tuning sans screenshot reste à valider user. |
 | Brouillons IA | 85% | 100% | Phase 59 : sub-meta mockup (X actions en attente · Y traitées ce mois) + chips filtrent vraiment |
 | Planning | 80% | 100% | Phase 59 : Export dropdown 4 items (PDF semaine + CSV créneaux + Excel par salarié + iCal .ics) |
 | Mobile m.html | 75% | 100% | Phase 16 |
