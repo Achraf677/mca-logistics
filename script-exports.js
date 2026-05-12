@@ -49,6 +49,115 @@ function exporterCSV(data, colonnes, nomFichier) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// Phase 59 polish — helper Excel XML générique (compatible Office, pas besoin de lib externe)
+function exporterExcelXML(data, colonnes, nomFichier, sheetName) {
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+  let xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
+  xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+  xml += '<Worksheet ss:Name="' + esc(sheetName || 'Export') + '"><Table>';
+  xml += '<Row>' + colonnes.map(c => '<Cell><Data ss:Type="String">' + esc(c.label) + '</Data></Cell>').join('') + '</Row>';
+  data.forEach(row => {
+    xml += '<Row>' + colonnes.map(c => {
+      const val = c.get(row) == null ? '' : c.get(row);
+      const type = (typeof val === 'number' && isFinite(val)) ? 'Number' : 'String';
+      return '<Cell><Data ss:Type="' + type + '">' + esc(val) + '</Data></Cell>';
+    }).join('') + '</Row>';
+  });
+  xml += '</Table></Worksheet></Workbook>';
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nomFichier.endsWith('.xls') ? nomFichier : nomFichier + '.xls';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+window.exporterExcelXML = exporterExcelXML;
+
+// Phase 59 polish — Excel/CSV wrappers pour pages dont les exports étaient des stubs
+function exporterChargesExcel() {
+  const charges = charger('charges').sort((a, b) => new Date(b.date) - new Date(a.date));
+  exporterExcelXML(charges, [
+    { label: 'Date', get: c => c.date || '' },
+    { label: 'Catégorie', get: c => c.categorie || '' },
+    { label: 'Description', get: c => c.description || '' },
+    { label: 'Véhicule', get: c => c.vehNom || '' },
+    { label: 'Montant HT', get: c => parseFloat(c.montantHT || c.montant || 0) },
+    { label: 'TVA', get: c => parseFloat(c.tva || 0) },
+    { label: 'Montant TTC', get: c => parseFloat(c.montantTTC || c.montant || 0) }
+  ], 'charges_' + new Date().toISOString().slice(0, 10), 'Charges');
+  if (typeof afficherToast === 'function') afficherToast('Excel charges exporté (' + charges.length + ' lignes)');
+}
+window.exporterChargesExcel = exporterChargesExcel;
+
+function exporterStatsCSV() {
+  const livs = charger('livraisons');
+  exporterCSV(livs, [
+    { label: 'N° LIV', get: l => l.numLiv || '' },
+    { label: 'Date', get: l => l.date || '' },
+    { label: 'Client', get: l => l.client || '' },
+    { label: 'Statut', get: l => l.statut || '' },
+    { label: 'Prix HT', get: l => l.prixHT || l.prix || 0 },
+    { label: 'Distance km', get: l => l.distance || 0 },
+    { label: 'Chauffeur', get: l => l.chaufNom || '' },
+    { label: 'Véhicule', get: l => l.vehNom || '' }
+  ], 'stats-livraisons-' + new Date().toISOString().slice(0, 10) + '.csv');
+  if (typeof afficherToast === 'function') afficherToast('CSV stats exporté');
+}
+window.exporterStatsCSV = exporterStatsCSV;
+
+function exporterStatsExcel() {
+  const livs = charger('livraisons');
+  exporterExcelXML(livs, [
+    { label: 'N° LIV', get: l => l.numLiv || '' },
+    { label: 'Date', get: l => l.date || '' },
+    { label: 'Client', get: l => l.client || '' },
+    { label: 'Statut', get: l => l.statut || '' },
+    { label: 'Prix HT', get: l => parseFloat(l.prixHT || l.prix || 0) },
+    { label: 'Distance km', get: l => parseFloat(l.distance || 0) },
+    { label: 'Chauffeur', get: l => l.chaufNom || '' },
+    { label: 'Véhicule', get: l => l.vehNom || '' }
+  ], 'stats-livraisons-' + new Date().toISOString().slice(0, 10), 'Statistiques');
+  if (typeof afficherToast === 'function') afficherToast('Excel stats exporté');
+}
+window.exporterStatsExcel = exporterStatsExcel;
+
+function exporterRentabiliteCSV() {
+  const livs = charger('livraisons');
+  const cfg = (typeof window.config !== 'undefined' && window.config) ? window.config : { coutKmEstime: 0.5 };
+  exporterCSV(livs, [
+    { label: 'N° LIV', get: l => l.numLiv || '' },
+    { label: 'Date', get: l => l.date || '' },
+    { label: 'Client', get: l => l.client || '' },
+    { label: 'CA HT', get: l => parseFloat(l.prixHT || l.prix || 0).toFixed(2) },
+    { label: 'Km', get: l => l.distance || 0 },
+    { label: 'Coût estimé', get: l => (parseFloat(l.distance || 0) * cfg.coutKmEstime).toFixed(2) },
+    { label: 'Marge estimée', get: l => (parseFloat(l.prixHT || l.prix || 0) - parseFloat(l.distance || 0) * cfg.coutKmEstime).toFixed(2) }
+  ], 'rentabilite-' + new Date().toISOString().slice(0, 10) + '.csv');
+  if (typeof afficherToast === 'function') afficherToast('CSV rentabilité exporté');
+}
+window.exporterRentabiliteCSV = exporterRentabiliteCSV;
+
+function exporterEncaissementExcel() {
+  const livs = charger('livraisons').filter(l => {
+    const s = (l && (l.statutPaiement || l.statut_paiement)) || '';
+    return s !== '';
+  });
+  exporterExcelXML(livs, [
+    { label: 'N° LIV', get: l => l.numLiv || '' },
+    { label: 'Date', get: l => l.date || '' },
+    { label: 'Client', get: l => l.client || '' },
+    { label: 'Montant HT', get: l => parseFloat(l.prixHT || l.prix || 0) },
+    { label: 'Montant TTC', get: l => parseFloat(l.prixTTC || l.prixHT || l.prix || 0) },
+    { label: 'Statut paiement', get: l => l.statutPaiement || '' },
+    { label: 'Date paiement', get: l => l.datePaiement || '' },
+    { label: 'Mode paiement', get: l => l.modePaiement || '' }
+  ], 'encaissement-' + new Date().toISOString().slice(0, 10), 'Encaissement');
+  if (typeof afficherToast === 'function') afficherToast('Excel encaissement exporté');
+}
+window.exporterEncaissementExcel = exporterEncaissementExcel;
+
 // Phase 59 polish — Export Livraisons PDF (rapport imprimable)
 function exporterLivraisonsPDF() {
   if (typeof getLivraisonsFiltresActifs !== 'function' || typeof ouvrirFenetreImpression !== 'function') {
