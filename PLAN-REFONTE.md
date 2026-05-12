@@ -24,7 +24,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 
 | Page | Visuel | Fonctionnel | Notes |
 |---|---|---|---|
-| **Dashboard** | 90% | 100% | Phases 5-21 — fini |
+| **Dashboard** | 92% | 100% | Phase 59 : sub-meta date "Mai 2026" maintenant wired (était vide). User a confirmé "pas finie" comme toutes pages |
 | **Livraisons** | 92% | 95% | User correction 2026-05-12 : 100% prématuré. Reste : couleurs chips/Kanban/statut pills, alignement colonnes table, boutons morts/doublons, génération facture+CSV+XLSX à valider end-to-end, modals Nouvelle/Modifier parité, drawer 360 polish |
 | Clients | 90% | 100% | Phase 59 : sub-meta mockup CA cumulé 12m ajouté (X clients · Y actifs 90j · CA cumulé Z €) |
 | Fournisseurs | 90% | 100% | Phase 59 : sub-meta mockup Dépenses cumulées 12m ajouté (X fourn · Y actifs 90j · Dépenses Z €) |
