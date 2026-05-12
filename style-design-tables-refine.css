@@ -308,3 +308,9 @@
 .table-wrapper::-webkit-scrollbar-thumb:hover {
   background: var(--ds-text-muted, rgba(255,255,255,0.2));
 }
+
+/* ============ Phase 60 polish — row-hover plus marqué (Gemini audit LOW) ============ */
+.data-table tbody tr:hover {
+  background: var(--ds-bg-card-hover, var(--bg-card-hover, rgba(255,255,255,0.05))) !important;
+  cursor: default;
+}

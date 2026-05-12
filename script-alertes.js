@@ -538,10 +538,21 @@ function filtreAlerteQuick(mode) {
   const btnT = document.getElementById('btn-alerte-quick-toutes');
   const btnA = document.getElementById('btn-alerte-quick-actives');
   if (btnT && btnA) {
-    const activeStyle = 'background:var(--brand);color:#fff;border-color:var(--brand)';
-    const inactiveStyle = '';
-    btnT.style.cssText = mode === 'toutes' ? activeStyle : inactiveStyle;
-    btnA.style.cssText = mode !== 'toutes' ? activeStyle : inactiveStyle;
+    // Phase 60 polish (Gemini audit MEDIUM) : ne pas wipe le padding/min-height en utilisant cssText.
+    // On toggle juste les styles brand via properties spécifiques.
+    function applyState(btn, isActive) {
+      if (isActive) {
+        btn.style.background = 'var(--brand)';
+        btn.style.color = '#fff';
+        btn.style.borderColor = 'var(--brand)';
+      } else {
+        btn.style.background = '';
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }
+    }
+    applyState(btnT, mode === 'toutes');
+    applyState(btnA, mode !== 'toutes');
   }
   afficherAlertes();
 }
