@@ -21,6 +21,24 @@ _(vide pour l'instant)_
 
 ## ✅ FIXED (à vérifier par user)
 
+### BUG-021 — [watchdog] afficherDashboard manquante (fausse alerte console)
+- **Status** : FIXED (session 2026-05-12)
+- **Cause** : `watchdog.js` listait `afficherDashboard` dans ADMIN_REQUIRED mais cette fonction n'existe pas (remplacée par `rafraichirDashboard`, confirmé dans script.js:9428).
+- **Fix** : retrait de `afficherDashboard` de ADMIN_REQUIRED dans `watchdog.js`.
+- **À vérifier** : ouvrir admin.html → console → pas de `[watchdog] MANQUANTES : afficherDashboard`.
+
+### BUG-020 — Chat FAB obscurcit bouton "Modifier" dans drawer 360
+- **Status** : FIXED (session 2026-05-12)
+- **Cause** : `.dr-panel` avait z-index 101 < `#ai-chat-fab` z-index 180. Le FAB (✨ orange) chevauchait le bouton "Modifier" en bas droite du drawer.
+- **Fix** : `style-design-livraisons-drawer.css` — `.dr-panel { z-index: 200 }` (au-dessus du FAB 180, sous panneau-agent 1000).
+- **À vérifier** : ouvrir drawer 360 → bouton "Modifier" pleinement visible sans être masqué par le FAB ✨.
+
+### BUG-019 — Boutons Tableau/Kanban/Calendrier invisibles (period-row cachée)
+- **Status** : FIXED (session 2026-05-12)
+- **Cause** : Phase 25+32 avait ajouté `#page-livraisons > .period-row { display: none }` dans `style-design-livraisons-refonte.css` avec le commentaire "doublon chips toolbar". Mais la period-row contient les boutons Tableau/Kanban/Calendrier (view toggle) + Jour/Semaine/Mois/Année, pas les chips de statut.
+- **Fix** : `display: none` → `display: flex` sur `#page-livraisons > .period-row`.
+- **À vérifier** : Livraisons → "Tableau | Kanban | Calendrier" + "Jour | Semaine | Mois | Année" visibles.
+
 ### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
 - **Status** : FIXED (session :16 + :30 2026-05-12)
 - **Cause** : `page.evaluate(() => openModal('modal-livraison'))` appelé avant que le modal soit dans le DOM / avant que `openModal` pointe la bonne fonction.
@@ -154,6 +172,6 @@ _(vide pour l'instant — user à valider)_
 |---|---|
 | NEW | 0 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 19 |
+| FIXED (à vérifier) | 21 |
 | VERIFIED | 0 |
-| **Total** | **19** |
+| **Total** | **21** |

@@ -5,6 +5,33 @@
 
 ---
 
+## Session 2026-05-12 (autonome) — BUG-019/020/021 + Livraisons audit systématique
+**Phases** : audit + bugfixes
+**Commit final** : e63668d
+**État** : 3 nouveaux bugs trouvés et fixés, Livraisons ~95% match mockup
+
+### Actions clés
+- Setup env (npm install, playwright install chromium, http-server 5500)
+- Audit complet Livraisons (audit-livraisons-deep.mjs) : 21 OK / 3 vrais bugs trouvés
+- **BUG-019** : `#page-livraisons > .period-row { display: none }` → `display: flex` — buttons Tableau/Kanban/Calendrier maintenant visibles
+- **BUG-020** : `.dr-panel { z-index: 101 }` → `z-index: 200` — drawer au-dessus du FAB (z-index 180), bouton "Modifier" maintenant fully visible
+- **BUG-021** : `watchdog.js` retirait `afficherDashboard` de ADMIN_REQUIRED (fonction non définie, confirmé script.js:9428)
+- Comparaison screenshot prod vs mockup : layout aligné, columns identiques
+- Outils créés : `audit-livraisons-deep.mjs`, `compare-livraisons-mockup.mjs`, `screenshot-compare-livraisons.mjs`, `check-period.mjs`
+- sw.js CACHE_VERSION v84 → v85
+
+### Bugs fixés
+- **BUG-019** : period-row Tableau/Kanban/Calendrier cachée
+- **BUG-020** : chat FAB masquait bouton Modifier dans drawer footer
+- **BUG-021** : watchdog afficherDashboard fausse alerte console
+
+### État Livraisons post-session
+- Visuel : ~95% match mockup
+- Fonctionnel : ✓ modal créa, ✓ modal modifier, ✓ drawer 360 (4 tabs), ✓ dropdowns 4 items, ✓ chips filtre, ✓ bulk select, ✓ kanban (12 cards), ✓ calendrier
+- Reste à valider user : drawer Modifier visible, period-row visible
+
+---
+
 ## Session 2026-05-12 (:15) — Phase 46 : Alertes section-head + card liste
 **Phases** : 46a-46d
 **Commit final** : e440ad8

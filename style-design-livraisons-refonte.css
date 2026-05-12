@@ -269,9 +269,10 @@
 
 /* ============ Aggressive cleanup (Phase 25 + 32) ============ */
 
-/* Hide period-row card (doublon avec chips toolbar) */
+/* Period-row visible (Tableau/Kanban/Calendrier + Jour/Semaine/Mois/Année) — mockup shows this row */
+/* BUG-019 fix: was incorrectly hidden as "doublon" but is the view toggle row */
 #page-livraisons > .period-row {
-  display: none;
+  display: flex;
 }
 
 /* Hide legacy bulk-action-bar floating (redondant avec bouton Modifier(N) en

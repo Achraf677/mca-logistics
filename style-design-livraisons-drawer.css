@@ -37,7 +37,7 @@
   background: var(--ds-bg-card, #14171c);
   border-left: 1px solid var(--ds-border, #2a2f37);
   box-shadow: -24px 0 48px -12px rgba(0, 0, 0, 0.5);
-  z-index: 101;
+  z-index: 200;
   transform: translateX(100%);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;

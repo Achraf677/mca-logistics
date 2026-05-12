@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : phase45 (Statistiques+Calendrier nav chips + Véhicules Exporter dropdown — agent :45)
+> **Dernier commit** : session 2026-05-12 (BUG-019/020/021 + Livraisons period-row + drawer z-index)
 
 ---
 
@@ -25,7 +25,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Page | Visuel | Fonctionnel | Notes |
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
-| **Livraisons** | 96% | 95% | Phases 22-34 + BUG-017/018/019 fixés — modal-body clip, auto-focus ring, FAB overlap |
+| **Livraisons** | 96% | 95% | Phases 22-34 + BUG-017/018/019/020/021 fixés — period-row visible, drawer z-index, watchdog |
 | Clients | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Actifs 90j/Risque/Inactifs |
 | Fournisseurs | 70% | 100% | Phase 38 : KPI grid 4 cols ; Phase 39 : chips Tous/Carburant/Garage/Assurance |
 | Véhicules | 55% | 100% | Phase 45 : section-head "Flotte" + Exporter dropdown |

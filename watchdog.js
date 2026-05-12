@@ -24,7 +24,8 @@
     // Auth
     'genId',
     // Modules metier (entry points principaux)
-    'afficherDashboard', 'rafraichirDashboard',
+    // Note: afficherDashboard n'existe pas (alias non défini) — rafraichirDashboard est le seul entry point
+    'rafraichirDashboard',
     'afficherLivraisons', 'ajouterLivraison',
     'afficherClients', 'ajouterClient',
     'afficherVehicules', 'ajouterVehicule',
