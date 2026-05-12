@@ -7017,8 +7017,9 @@ body.light-mode .s15-palette-item:hover { background: #eef2ff; }
 }
 .cal16-day-other { background: rgba(0,0,0,0.18); opacity: 0.55; }
 .cal16-day-today {
-  background: linear-gradient(180deg, rgba(99,102,241,0.18), transparent 70%);
-  box-shadow: inset 0 0 0 2px var(--primary, #6366f1);
+  /* Phase 60 V6 H26 — passage de indigo violet vers brand red (mockup-aligned) */
+  background: linear-gradient(180deg, rgba(230,57,70,0.14), transparent 70%);
+  box-shadow: inset 0 0 0 2px var(--brand, #e63946);
 }
 .cal16-day-weekend { background: rgba(107,114,128,0.08); }
 .cal16-day-ferie { background: linear-gradient(180deg, rgba(239,68,68,0.08), transparent); }
