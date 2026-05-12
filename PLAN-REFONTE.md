@@ -26,14 +26,14 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
 | **Livraisons** | 92% | 95% | User correction 2026-05-12 : 100% prématuré. Reste : couleurs chips/Kanban/statut pills, alignement colonnes table, boutons morts/doublons, génération facture+CSV+XLSX à valider end-to-end, modals Nouvelle/Modifier parité, drawer 360 polish |
-| Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
-| Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
+| Clients | 90% | 100% | Phase 59 : sub-meta mockup CA cumulé 12m ajouté (X clients · Y actifs 90j · CA cumulé Z €) |
+| Fournisseurs | 90% | 100% | Phase 59 : sub-meta mockup Dépenses cumulées 12m ajouté (X fourn · Y actifs 90j · Dépenses Z €) |
 | Véhicules | 85% | 100% | Phase 59 : Export CSV véhicules vraiment implémenté (14 cols, conso moy, BOM UTF-8) + Excel wired |
 | Carburant | 82% | 100% | Phase 59 : Export CSV vraiment implémenté (10 cols, BOM UTF-8) + Export Excel ajouté |
 | Entretiens | 82% | 100% | Phase 59 : Export Excel ajouté (3 items : Carnet PDF + CSV + Excel) |
 | Inspections | 82% | 100% | Phase 59 : sub-meta format mockup (Semaine N · X véhicules contrôlés · Y inspections cette semaine) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
-| Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
+| Encaissement | 88% | 100% | Phase 59 : sub-meta mockup 3 parties (X factures impayées · DSO · Y relances à envoyer) |
 | TVA | 80% | 100% | Phase 59 : Export Excel ajouté (3 items dropdown mockup-aligned : CA3 PDF + CSV par taux + Excel annexes). BUG-026 ouvert (tabs Collectée/Déductible) |
 | Rentabilité | 78% | 100% | Phase 59 : Export CSV + Excel ajoutés (4 items dropdown) + tabs underline-style mockup-aligned (rent-tab-btn) |
 | Statistiques | 82% | 100% | Phase 59 : Export CSV+Excel wired (au lieu de no-op silencieux) |

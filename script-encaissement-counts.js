@@ -54,15 +54,17 @@
     if (subDso) subDso.textContent = dsoVal;
 
     // Relances en attente (impayées > 30 jours)
-    if (kpiRelances) {
-      var seuil30 = new Date();
-      seuil30.setDate(seuil30.getDate() - 30);
-      var relances = impayes.filter(function (l) {
-        var d = new Date(l.date || l.dateLivraison || l.date_livraison || '');
-        return !isNaN(d.getTime()) && d < seuil30;
-      });
-      kpiRelances.textContent = relances.length > 0 ? relances.length : '—';
-    }
+    var seuil30 = new Date();
+    seuil30.setDate(seuil30.getDate() - 30);
+    var relances = impayes.filter(function (l) {
+      var d = new Date(l.date || l.dateLivraison || l.date_livraison || '');
+      return !isNaN(d.getTime()) && d < seuil30;
+    });
+    if (kpiRelances) kpiRelances.textContent = relances.length > 0 ? relances.length : '—';
+
+    // Phase 59 — section-head sub-meta "X relances à envoyer" (mockup-aligned)
+    var subRelances = document.getElementById('enc-section-sub-relances');
+    if (subRelances) subRelances.textContent = relances.length;
   }
 
   function tryAttach() {

@@ -64,6 +64,35 @@
     if (frnSubTotal) frnSubTotal.textContent = fournisseurs.length;
     if (frnSubActifs) frnSubActifs.textContent = actifsRecents(fournisseurs, livraisons, charges, 'fournisseur');
 
+    // Phase 59 — sub-meta mockup CA cumulé clients + Dépenses cumulées fournisseurs (12 mois)
+    var seuil12m = new Date(); seuil12m.setFullYear(seuil12m.getFullYear() - 1);
+    var caClients12m = livraisons.reduce(function (s, l) {
+      if (!l) return s;
+      var d = parseDate(l.date || l.dateLivraison);
+      if (!d || d < seuil12m) return s;
+      return s + (parseFloat(l.prixHT || l.prix || 0));
+    }, 0);
+    var cliSubCa = document.getElementById('clients-section-sub-ca');
+    var cliSep = document.getElementById('clients-section-sep-ca');
+    if (cliSubCa && cliSep) {
+      cliSubCa.textContent = 'CA cumulé ' + fmtEuros(caClients12m);
+      cliSubCa.style.display = '';
+      cliSep.style.display = '';
+    }
+    var depFourn12m = charges.reduce(function (s, c) {
+      if (!c) return s;
+      var d = parseDate(c.date);
+      if (!d || d < seuil12m) return s;
+      return s + (parseFloat(c.montantTTC || c.montant || 0));
+    }, 0);
+    var frnSubDep = document.getElementById('fournisseurs-section-sub-depenses');
+    var frnSep = document.getElementById('fournisseurs-section-sep-depenses');
+    if (frnSubDep && frnSep) {
+      frnSubDep.textContent = 'Dépenses cumulées ' + fmtEuros(depFourn12m);
+      frnSubDep.style.display = '';
+      frnSep.style.display = '';
+    }
+
     // ── Clients KPIs ──
     var cliKpiActifs = document.getElementById('clients-kpi-actifs');
     var cliKpiTopNom = document.getElementById('clients-kpi-top-nom');
