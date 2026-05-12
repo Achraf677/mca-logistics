@@ -34,7 +34,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Inspections | 75% | 100% | Phase 58 : Excel export ajouté + status filter (heuristique KO count) + btn 'Nouvelle inspection' mockup-aligned. BUG-023 ouvert (cards vs table mockup) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
-| TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
+| TVA | 80% | 100% | Phase 59 : Export Excel ajouté (3 items dropdown mockup-aligned : CA3 PDF + CSV par taux + Excel annexes). BUG-026 ouvert (tabs Collectée/Déductible) |
 | Rentabilité | 78% | 100% | Phase 59 : Export CSV + Excel ajoutés (4 items dropdown) + tabs underline-style mockup-aligned (rent-tab-btn) |
 | Statistiques | 78% | 100% | Phase 57 : chips Mois/Trimestre/Année section-head + stat-row bar charts CSS + KPI label fix |
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |

@@ -9,6 +9,14 @@
 
 ## 🔴 NEW (à traiter)
 
+### BUG-026 — TVA : tabs Collectée/Déductible manquantes (mockup les utilise pour switch)
+- **Page** : TVA (admin.html)
+- **Symptôme** : prod affiche les 2 tables (TVA Collectée + TVA Déductible) simultanément. Le mockup utilise des tabs `tva-tab-btn` avec count badges ("TVA collectée [142 fact.]" / "TVA déductible [42 charges]"), une seule visible à la fois.
+- **Severity** : LOW (info-density vs UX scan — choix design)
+- **Reporter** : audit polish 2026-05-12 Phase 59
+- **Fix proposé** : wrapper tabs-bar mockup-aligned + JS switch (afficher/masquer .tva-collectee-table / .tva-deductible-table).
+- **Test** : ouvrir TVA → voir 2 tabs au lieu des 2 tables empilées.
+
 ### BUG-023 — Inspections : rendu cards-photo-grid au lieu de table mockup
 - **Page** : Inspections (admin.html)
 - **Symptôme** : `afficherInspections()` dans `script-inspections.js:226` produit des `<div class="card">` avec grille de photos. Le mockup `previews/inspections.html:281` montre une `<table>` classique Date / Véhicule / Chauffeur / Photos / Défauts / Statut avec badges colorés (ok/warn/alert).
@@ -199,7 +207,7 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 1 |
+| NEW | 2 |
 | IN_PROGRESS | 0 |
 | FIXED (à vérifier) | 24 |
 | VERIFIED | 0 |
