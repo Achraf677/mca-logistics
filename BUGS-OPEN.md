@@ -9,13 +9,6 @@
 
 ## 🔴 NEW (à traiter)
 
-### BUG-026 — TVA : tabs Collectée/Déductible manquantes (mockup les utilise pour switch)
-- **Page** : TVA (admin.html)
-- **Symptôme** : prod affiche les 2 tables (TVA Collectée + TVA Déductible) simultanément. Le mockup utilise des tabs `tva-tab-btn` avec count badges ("TVA collectée [142 fact.]" / "TVA déductible [42 charges]"), une seule visible à la fois.
-- **Severity** : LOW (info-density vs UX scan — choix design)
-- **Reporter** : audit polish 2026-05-12 Phase 59
-- **Fix proposé** : wrapper tabs-bar mockup-aligned + JS switch (afficher/masquer .tva-collectee-table / .tva-deductible-table).
-- **Test** : ouvrir TVA → voir 2 tabs au lieu des 2 tables empilées.
 
 ### BUG-023 — Inspections : rendu cards-photo-grid au lieu de table mockup
 - **Page** : Inspections (admin.html)
@@ -37,6 +30,11 @@ _(vide pour l'instant)_
 ---
 
 ## ✅ FIXED (à vérifier par user)
+
+### BUG-026 — TVA : tabs Collectée/Déductible (mockup-aligned)
+- **Status** : FIXED Phase 59 (2026-05-12)
+- **Fix** : nouveau `<nav class="tva-tabs-bar">` avec 2 tabs underline-style + count badges. `script-tva-tabs.js` expose `switchTvaTab(which)` qui toggle display:none/'' sur `#tva-panel-collectee`/`#tva-panel-deductible`. CSS `.tva-tab-btn` underline brand active (style-design-rentabilite-stats.css).
+- **À vérifier** : ouvrir TVA → 2 tabs visibles, clic Déductible → cache Collectée. Count badges mis à jour.
 
 ### BUG-025 — Brouillons IA : chips Validées/Rejetées/OCR ne filtrent pas la liste
 - **Status** : FIXED Phase 58 polish 2026-05-12
@@ -207,7 +205,7 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 2 |
+| NEW | 1 |
 | IN_PROGRESS | 0 |
 | FIXED (à vérifier) | 24 |
 | VERIFIED | 0 |

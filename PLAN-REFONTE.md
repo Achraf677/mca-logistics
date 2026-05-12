@@ -34,7 +34,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Inspections | 82% | 100% | Phase 59 : sub-meta format mockup (Semaine N · X véhicules contrôlés · Y inspections cette semaine) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 88% | 100% | Phase 59 : sub-meta mockup 3 parties (X factures impayées · DSO · Y relances à envoyer) |
-| TVA | 80% | 100% | Phase 59 : Export Excel ajouté (3 items dropdown mockup-aligned : CA3 PDF + CSV par taux + Excel annexes). BUG-026 ouvert (tabs Collectée/Déductible) |
+| TVA | 88% | 100% | Phase 59 : BUG-026 FIXED — tabs Collectée/Déductible underline-style avec count badges + JS switch (script-tva-tabs.js) |
 | Rentabilité | 85% | 100% | Phase 59 : sub-meta mockup ("Mois de mai 2026 · marge brute consolidée") + tabs underline + Export 4 items |
 | Statistiques | 82% | 100% | Phase 59 : Export CSV+Excel wired (au lieu de no-op silencieux) |
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
