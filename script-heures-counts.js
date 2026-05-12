@@ -76,6 +76,25 @@
       }).length;
       kpiCe561.textContent = ce561 > 0 ? ce561 : '—';
     }
+
+    // Phase 59 — sub-meta format mockup (X chauffeurs · Y jours pointés)
+    var subChauffeurs = document.getElementById('heures-section-sub-chauffeurs');
+    var subJours = document.getElementById('heures-section-sub-jours');
+    if (subChauffeurs || subJours) {
+      var chauffeursIds = new Set();
+      var joursPointes = 0;
+      plannings.forEach(function (p) {
+        if (!p || !p.jours) return;
+        var hasAny = false;
+        Object.keys(p.jours).forEach(function (j) {
+          var jour = p.jours[j];
+          if (jour && jour.heureDebut && jour.heureFin) { joursPointes++; hasAny = true; }
+        });
+        if (hasAny && p.salId) chauffeursIds.add(p.salId);
+      });
+      if (subChauffeurs) subChauffeurs.textContent = chauffeursIds.size;
+      if (subJours) subJours.textContent = joursPointes;
+    }
   }
 
   function tryAttach() {
