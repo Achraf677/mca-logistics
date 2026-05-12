@@ -28,9 +28,9 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | **Livraisons** | 95% | 100% | Phase 59 : exporterLivraisonsPDF + exporterLivraisonsXLSX vraiment implémentés (étaient fallback CSV silencieux). Reste couleurs visuelles à valider via screenshot user. |
 | Clients | 90% | 100% | Phase 59 : sub-meta mockup CA cumulé 12m ajouté (X clients · Y actifs 90j · CA cumulé Z €) |
 | Fournisseurs | 90% | 100% | Phase 59 : sub-meta mockup Dépenses cumulées 12m ajouté (X fourn · Y actifs 90j · Dépenses Z €) |
-| Véhicules | 85% | 100% | Phase 59 : Export CSV véhicules vraiment implémenté (14 cols, conso moy, BOM UTF-8) + Excel wired |
-| Carburant | 87% | 100% | Phase 59 : Export CSV impl + Excel + Email cabinet compta (Pennylane) ajoutés (5 items dropdown mockup-aligned) |
-| Entretiens | 87% | 100% | Phase 59 : Excel + Email cabinet compta ajoutés (4 items dropdown mockup-aligned) |
+| Véhicules | 92% | 100% | Phase 59 : exporterVehiculesCSV + exporterVehiculesExcel tous deux vraiment impl (étaient stubs/fallback) |
+| Carburant | 92% | 100% | Phase 59 : exporterCarburantExcel vraiment impl (était fallback CSV). Tous exports réels. |
+| Entretiens | 92% | 100% | Phase 59 : exporterEntretiensExcel vraiment impl (était fallback) + Email cabinet compta |
 | Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
@@ -40,8 +40,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Calendrier | 85% | 100% | Phase 59 : sub-meta mockup format + structure complète (sidebar filtres + KPIs + Légende + toolbar prev/Aujourd'hui/next + period chips + grid 7-col) toutes alignées mockup. Visual fine-tuning sans screenshot reste à valider. |
 | Alertes | 82% | 100% | Phase 59 : sub-meta format mockup ("X alertes actives · Y échéances dans les 30 jours") + compute logic ECHEANCE_TYPES |
 | Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
-| Heures | 82% | 100% | Phase 59 : sub-meta format mockup (X chauffeurs · Y jours pointés) + Export Excel (5 items dropdown) |
-| Incidents | 85% | 100% | Phase 59 : sub-meta "en attente expertise" ajouté (mockup format complet : X ouverts · Y résolus ce mois · Z en attente expertise) |
+| Heures | 88% | 100% | Phase 59 : exporterHeuresExcel vraiment impl (était fallback) + sub-meta mockup |
+| Incidents | 90% | 100% | Phase 59 : exporterIncidentsExcel vraiment impl + sub-meta "en attente expertise" mockup-aligned |
 | Paramètres | 82% | 100% | Phase 59 : audit code-level — 7 panels structurellement alignés mockup (Notifications 11 toggles, Sécurité, Intégrations Pennylane/Qonto/Gemini/ORS). Visual fine-tuning sans screenshot reste à valider user. |
 | Brouillons IA | 85% | 100% | Phase 59 : sub-meta mockup (X actions en attente · Y traitées ce mois) + chips filtrent vraiment |
 | Planning | 90% | 100% | Phase 59 : exporterPlanningCSV + exporterPlanningExcel + exporterPlanningIcal (.ics) vraiment impl (étaient stubs alert) |

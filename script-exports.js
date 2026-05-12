@@ -225,6 +225,89 @@ function exporterPlanningExcel() {
 }
 window.exporterPlanningExcel = exporterPlanningExcel;
 
+// Phase 59 — Excel impl pour Carburant / Heures / Entretiens / Incidents / Véhicules
+function exporterCarburantExcel() {
+  const pleins = charger('carburant');
+  const vehicules = charger('vehicules');
+  exporterExcelXML(pleins, [
+    { label: 'Date', get: p => p.date || '' },
+    { label: 'Véhicule', get: p => { const v = vehicules.find(v => v.id === p.vehId); return v ? v.immat : ''; } },
+    { label: 'Type', get: p => p.type || 'gasoil' },
+    { label: 'Litres', get: p => parseFloat(p.litres || 0) },
+    { label: 'Total TTC', get: p => parseFloat(p.total || 0) },
+    { label: 'Conso L/100km', get: p => parseFloat(p.consoL100 || 0) }
+  ], 'carburant-' + new Date().toISOString().slice(0, 10), 'Carburant');
+  if (typeof afficherToast === 'function') afficherToast('Excel carburant exporté');
+}
+window.exporterCarburantExcel = exporterCarburantExcel;
+
+function exporterHeuresExcel() {
+  const heures = charger('heures');
+  const salaries = charger('salaries');
+  exporterExcelXML(heures, [
+    { label: 'Date', get: h => h.date || '' },
+    { label: 'Salarié', get: h => { const s = salaries.find(s => s.id === h.salId); return s ? (s.nom + ' ' + (s.prenom || '')) : ''; } },
+    { label: 'Heures', get: h => parseFloat(h.heures || 0) },
+    { label: 'Km', get: h => parseFloat(h.km || 0) },
+    { label: 'Mission', get: h => h.mission || '' }
+  ], 'heures-' + new Date().toISOString().slice(0, 10), 'Heures');
+  if (typeof afficherToast === 'function') afficherToast('Excel heures exporté');
+}
+window.exporterHeuresExcel = exporterHeuresExcel;
+
+function exporterEntretiensExcel() {
+  const entretiens = charger('entretiens');
+  const vehicules = charger('vehicules');
+  exporterExcelXML(entretiens, [
+    { label: 'Date', get: e => e.date || '' },
+    { label: 'Véhicule', get: e => { const v = vehicules.find(v => v.id === e.vehId); return v ? v.immat : ''; } },
+    { label: 'Type', get: e => e.type || '' },
+    { label: 'Description', get: e => e.description || '' },
+    { label: 'Coût TTC', get: e => parseFloat(e.cout || e.montant || 0) },
+    { label: 'Fournisseur', get: e => e.fournisseur || '' },
+    { label: 'Km', get: e => parseFloat(e.km || 0) }
+  ], 'entretiens-' + new Date().toISOString().slice(0, 10), 'Entretiens');
+  if (typeof afficherToast === 'function') afficherToast('Excel entretiens exporté');
+}
+window.exporterEntretiensExcel = exporterEntretiensExcel;
+
+function exporterIncidentsExcel() {
+  const incidents = charger('incidents');
+  exporterExcelXML(incidents, [
+    { label: 'Date', get: i => i.creeLe || i.date || '' },
+    { label: 'Type', get: i => i.type || '' },
+    { label: 'Description', get: i => i.description || '' },
+    { label: 'Gravité', get: i => i.gravite || '' },
+    { label: 'Statut', get: i => i.statut || '' },
+    { label: 'Client', get: i => i.client || '' },
+    { label: 'Chauffeur', get: i => i.chaufNom || '' },
+    { label: 'Coût', get: i => parseFloat(i.cout || 0) }
+  ], 'incidents-' + new Date().toISOString().slice(0, 10), 'Incidents');
+  if (typeof afficherToast === 'function') afficherToast('Excel incidents exporté');
+}
+window.exporterIncidentsExcel = exporterIncidentsExcel;
+
+function exporterVehiculesExcel() {
+  const vehicules = charger('vehicules');
+  const entretiens = charger('entretiens');
+  exporterExcelXML(vehicules, [
+    { label: 'Immatriculation', get: v => v.immat || '' },
+    { label: 'Modèle', get: v => v.modele || '' },
+    { label: 'Marque', get: v => v.marque || '' },
+    { label: 'Année', get: v => v.annee || '' },
+    { label: 'Km', get: v => parseFloat(v.km || 0) },
+    { label: 'Date CT', get: v => v.dateCT || '' },
+    { label: 'Date assurance', get: v => v.dateAssurance || '' },
+    { label: 'Salarié', get: v => v.salNom || '' },
+    { label: 'Dernier entretien', get: v => {
+      const ent = entretiens.filter(e => e.vehId === v.id).sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      return ent ? ent.date : '';
+    }}
+  ], 'vehicules-' + new Date().toISOString().slice(0, 10), 'Véhicules');
+  if (typeof afficherToast === 'function') afficherToast('Excel véhicules exporté');
+}
+window.exporterVehiculesExcel = exporterVehiculesExcel;
+
 function exporterEncaissementExcel() {
   const livs = charger('livraisons').filter(l => {
     const s = (l && (l.statutPaiement || l.statut_paiement)) || '';
