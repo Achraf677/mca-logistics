@@ -33,10 +33,24 @@
     var inSemaine = inspections.filter(function (i) { return i && i.date >= weekStartIso && i.date < weekEndIso; });
     if (kpiSemaine) kpiSemaine.textContent = inSemaine.length > 0 ? inSemaine.length : '—';
     if (subSemaine) {
-      var label = weekStartIso.slice(5).replace('-', '/') + ' — ' + new Date(weekEnd - 86400000).toISOString().slice(5, 10).replace('-', '/');
-      subSemaine.textContent = label;
+      // Phase 59 mockup format : "Semaine N"
+      var semNum = (function() {
+        var d = new Date(weekStart);
+        d.setHours(0,0,0,0);
+        d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+        var yearStart = new Date(d.getFullYear(), 0, 4);
+        return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+      })();
+      subSemaine.textContent = 'Semaine ' + semNum;
     }
-    if (subCount) subCount.textContent = inspections.length + ' inspection(s)';
+    // Phase 59 mockup : compteurs distincts véhicules + inspections semaine
+    if (subCount) subCount.textContent = inSemaine.length;
+    var subVehicules = document.getElementById('insp-section-sub-vehicules');
+    if (subVehicules) {
+      var vehSet = new Set();
+      inSemaine.forEach(function (i) { if (i.vehImmat || i.vehId) vehSet.add(i.vehImmat || i.vehId); });
+      subVehicules.textContent = vehSet.size;
+    }
 
     // Défauts (checkpoints ko) sur les 30 derniers jours
     if (kpiDefauts) {

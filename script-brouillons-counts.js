@@ -35,6 +35,10 @@
 
     if (kpiAttente) kpiAttente.textContent = pending > 0 ? pending : '—';
 
+    // Phase 59 — section-head sub-meta count (mockup-aligned)
+    var subCount = document.getElementById('brouillons-section-sub-count');
+    if (subCount) subCount.textContent = pending;
+
     // Met à jour le libellé du chip "En attente" avec le count
     var chipAttente = document.querySelector('#brouillons-chips .ds-chip[data-brouillons-statut="pending"]');
     if (chipAttente) {
@@ -70,6 +74,10 @@
       }
 
       if (kpiRejetees) kpiRejetees.textContent = rejetees > 0 ? rejetees : '—';
+
+      // Phase 59 — section-head sub-meta "traitées ce mois" (validées + rejetées)
+      var subTraitees = document.getElementById('brouillons-section-sub-traitees');
+      if (subTraitees) subTraitees.textContent = (validees + rejetees);
 
       // Économie temps : ~5 min/action validée → heures arrondies
       if (kpiTemps) {

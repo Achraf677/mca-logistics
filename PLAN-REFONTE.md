@@ -31,7 +31,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Véhicules | 85% | 100% | Phase 59 : Export CSV véhicules vraiment implémenté (14 cols, conso moy, BOM UTF-8) + Excel wired |
 | Carburant | 82% | 100% | Phase 59 : Export CSV vraiment implémenté (10 cols, BOM UTF-8) + Export Excel ajouté |
 | Entretiens | 82% | 100% | Phase 59 : Export Excel ajouté (3 items : Carnet PDF + CSV + Excel) |
-| Inspections | 75% | 100% | Phase 58 : Excel export ajouté + status filter (heuristique KO count) + btn 'Nouvelle inspection' mockup-aligned. BUG-023 ouvert (cards vs table mockup) |
+| Inspections | 82% | 100% | Phase 59 : sub-meta format mockup (Semaine N · X véhicules contrôlés · Y inspections cette semaine) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
 | TVA | 80% | 100% | Phase 59 : Export Excel ajouté (3 items dropdown mockup-aligned : CA3 PDF + CSV par taux + Excel annexes). BUG-026 ouvert (tabs Collectée/Déductible) |
@@ -43,7 +43,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Heures | 82% | 100% | Phase 59 : sub-meta format mockup (X chauffeurs · Y jours pointés) + Export Excel (5 items dropdown) |
 | Incidents | 80% | 100% | Phase 59 : Export Excel ajouté (3 items : Rapport PDF + CSV + Excel) |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
-| Brouillons IA | 78% | 100% | Phase 58 : chips Validées/Rejetées/OCR filtrent vraiment la liste (fetchDrafts paramétré + setStatusFilter) |
+| Brouillons IA | 85% | 100% | Phase 59 : sub-meta mockup (X actions en attente · Y traitées ce mois) + chips filtrent vraiment |
 | Planning | 80% | 100% | Phase 59 : Export dropdown 4 items (PDF semaine + CSV créneaux + Excel par salarié + iCal .ics) |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |
