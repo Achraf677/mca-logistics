@@ -139,6 +139,92 @@ function exporterRentabiliteCSV() {
 }
 window.exporterRentabiliteCSV = exporterRentabiliteCSV;
 
+// Phase 59 — Export Planning iCal (.ics, mockup-aligned)
+function exporterPlanningIcal() {
+  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings_hebdo', []) : (charger ? charger('plannings_hebdo') : []);
+  const salaries = (typeof charger === 'function') ? charger('salaries') : [];
+  const lines = [];
+  lines.push('BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//MCA Logistics//Planning//FR', 'CALSCALE:GREGORIAN');
+  const now = new Date();
+  const lundiCur = new Date(now); lundiCur.setDate(lundiCur.getDate() - ((lundiCur.getDay() + 6) % 7));
+  lundiCur.setHours(0, 0, 0, 0);
+  const JOURS_MAP = { lundi: 0, mardi: 1, mercredi: 2, jeudi: 3, vendredi: 4, samedi: 5, dimanche: 6 };
+  plannings.forEach(p => {
+    if (!p || !p.jours) return;
+    const sal = salaries.find(s => s.id === p.salId);
+    const nom = sal ? (sal.nom + ' ' + (sal.prenom || '')).trim() : 'Salarié';
+    Object.keys(p.jours).forEach(j => {
+      const jour = p.jours[j];
+      if (!jour || !jour.heureDebut || !jour.heureFin) return;
+      const offset = JOURS_MAP[j];
+      if (offset === undefined) return;
+      const dateJ = new Date(lundiCur); dateJ.setDate(dateJ.getDate() + offset);
+      const ymd = dateJ.toISOString().slice(0, 10).replace(/-/g, '');
+      const dtStart = ymd + 'T' + jour.heureDebut.replace(':', '') + '00';
+      const dtEnd = ymd + 'T' + jour.heureFin.replace(':', '') + '00';
+      lines.push('BEGIN:VEVENT', 'UID:planning-' + p.salId + '-' + j + '@mca-logistics', 'DTSTART:' + dtStart, 'DTEND:' + dtEnd, 'SUMMARY:Service ' + nom, 'END:VEVENT');
+    });
+  });
+  lines.push('END:VCALENDAR');
+  const ics = lines.join('\r\n');
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'planning-' + new Date().toISOString().slice(0, 10) + '.ics';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  if (typeof afficherToast === 'function') afficherToast('Planning iCal exporté');
+}
+window.exporterPlanningIcal = exporterPlanningIcal;
+
+function exporterPlanningCSV() {
+  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings_hebdo', []) : (charger ? charger('plannings_hebdo') : []);
+  const salaries = (typeof charger === 'function') ? charger('salaries') : [];
+  const rows = [];
+  plannings.forEach(p => {
+    if (!p || !p.jours) return;
+    const sal = salaries.find(s => s.id === p.salId);
+    const nom = sal ? (sal.nom + ' ' + (sal.prenom || '')).trim() : 'Salarié';
+    Object.keys(p.jours).forEach(j => {
+      const jour = p.jours[j];
+      if (!jour || !jour.heureDebut || !jour.heureFin) return;
+      rows.push({ nom: nom, jour: j, debut: jour.heureDebut, fin: jour.heureFin });
+    });
+  });
+  exporterCSV(rows, [
+    { label: 'Salarié', get: r => r.nom },
+    { label: 'Jour', get: r => r.jour },
+    { label: 'Heure début', get: r => r.debut },
+    { label: 'Heure fin', get: r => r.fin }
+  ], 'planning-' + new Date().toISOString().slice(0, 10) + '.csv');
+  if (typeof afficherToast === 'function') afficherToast('CSV planning exporté');
+}
+window.exporterPlanningCSV = exporterPlanningCSV;
+
+function exporterPlanningExcel() {
+  const plannings = (typeof loadSafe === 'function') ? loadSafe('plannings_hebdo', []) : (charger ? charger('plannings_hebdo') : []);
+  const salaries = (typeof charger === 'function') ? charger('salaries') : [];
+  const rows = [];
+  plannings.forEach(p => {
+    if (!p || !p.jours) return;
+    const sal = salaries.find(s => s.id === p.salId);
+    const nom = sal ? (sal.nom + ' ' + (sal.prenom || '')).trim() : 'Salarié';
+    Object.keys(p.jours).forEach(j => {
+      const jour = p.jours[j];
+      if (!jour || !jour.heureDebut || !jour.heureFin) return;
+      rows.push({ nom: nom, jour: j, debut: jour.heureDebut, fin: jour.heureFin });
+    });
+  });
+  exporterExcelXML(rows, [
+    { label: 'Salarié', get: r => r.nom },
+    { label: 'Jour', get: r => r.jour },
+    { label: 'Heure début', get: r => r.debut },
+    { label: 'Heure fin', get: r => r.fin }
+  ], 'planning-' + new Date().toISOString().slice(0, 10), 'Planning');
+  if (typeof afficherToast === 'function') afficherToast('Excel planning exporté');
+}
+window.exporterPlanningExcel = exporterPlanningExcel;
+
 function exporterEncaissementExcel() {
   const livs = charger('livraisons').filter(l => {
     const s = (l && (l.statutPaiement || l.statut_paiement)) || '';

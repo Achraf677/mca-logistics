@@ -44,7 +44,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Incidents | 85% | 100% | Phase 59 : sub-meta "en attente expertise" ajouté (mockup format complet : X ouverts · Y résolus ce mois · Z en attente expertise) |
 | Paramètres | 82% | 100% | Phase 59 : audit code-level — 7 panels structurellement alignés mockup (Notifications 11 toggles, Sécurité, Intégrations Pennylane/Qonto/Gemini/ORS). Visual fine-tuning sans screenshot reste à valider user. |
 | Brouillons IA | 85% | 100% | Phase 59 : sub-meta mockup (X actions en attente · Y traitées ce mois) + chips filtrent vraiment |
-| Planning | 80% | 100% | Phase 59 : Export dropdown 4 items (PDF semaine + CSV créneaux + Excel par salarié + iCal .ics) |
+| Planning | 90% | 100% | Phase 59 : exporterPlanningCSV + exporterPlanningExcel + exporterPlanningIcal (.ics) vraiment impl (étaient stubs alert) |
 | Mobile m.html | 78% | 100% | Phase 59 audit code-level : m-tabs déjà accessibles (aria-hidden SVG + text labels), 75% reflète manque mockup mobile. Polish visuel impossible sans mockup mobile dédié. |
 | Mobile salarie.html | 75% | 100% | Phase 59 audit code-level : 31/41 boutons ont aria-label (bonne couverture). Polish visuel impossible sans mockup mobile dédié. |
 
