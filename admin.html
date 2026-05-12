@@ -1571,18 +1571,7 @@
          une seule entree sidebar, avec un dashboard global equipe (4 KPIs).
          Les sous-pages restent accessibles par deeplink (anti-regression). -->
     <section class="page" id="page-equipe">
-      <!-- Phase 2 HTML refonte : breadcrumb -->
-      <nav class="ds-crumbs" aria-label="Fil d'Ariane">
-        <a href="#" onclick="naviguerVers('dashboard');return false;">← Retour au tableau de bord</a>
-      </nav>
-
-      <!-- Phase 8 refonte HTML : title-row -->
-      <div class="title-row">
-        <h1 class="page-title">Équipe</h1>
-        <div class="sub-meta">Salariés, postes, planning et incidents</div>
-      </div>
-
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 46 refonte HTML : section-head mockup-aligned (breadcrumb + title-row supprimés) -->
       <div class="page-actions ds-section-head" style="margin-bottom:14px">
         <div class="ds-section-head__title">
           <h2>Équipe</h2>
@@ -1593,8 +1582,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="if(window.EquipeHub)window.EquipeHub.renderKpisPC()" title="Rafraîchir KPIs">↻</button>
-          <button class="btn-primary" onclick="naviguerVers('salaries');setTimeout(()=>{var b=document.querySelector('#page-salaries .btn-primary');if(b)b.click();},120)">+ Nouveau salarié</button>
+          <button class="btn-primary" onclick="naviguerVers('salaries');setTimeout(()=>{var b=document.querySelector('#page-salaries .btn-primary');if(b)b.click();},120)">+ Ajouter</button>
         </div>
       </div>
 
@@ -1606,15 +1594,15 @@
         <div class="kpi-card"><div class="kpi-label">Conformité</div><div class="kpi-value">—</div><div class="kpi-sub">Chargement…</div></div>
       </div>
 
-      <!-- Phase 37 refonte HTML : tabs-bar mockup pattern (navigation deeplink) -->
+      <!-- Phase 37/46 refonte HTML : tabs-bar mockup pattern + count badges -->
       <nav class="tabs-bar" id="equipe-tabs-nav" role="tablist">
-        <button class="tab-btn active" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab">Salariés</button>
+        <button class="tab-btn active" id="equipe-tab-salaries" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('salaries')" role="tab">Salariés <span class="count" id="equipe-tab-sal-count"></span></button>
         <button class="tab-btn" id="equipe-tab-planning" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('planning')" role="tab">Planning</button>
         <button class="tab-btn" id="equipe-tab-heures" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('heures')" role="tab">Heures &amp; Km</button>
-        <button class="tab-btn" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" role="tab">Incidents</button>
+        <button class="tab-btn" id="equipe-tab-incidents" onclick="window.EquipeHub&&window.EquipeHub.ouvrirOnglet('incidents')" role="tab">Incidents <span class="count" id="equipe-tab-inc-count"></span></button>
       </nav>
       <div class="card" style="margin-top:0;padding:18px 20px;color:var(--text-muted);font-size:.88rem">
-        Sélectionnez un onglet ci-dessus pour gérer chaque sous-domaine de votre équipe.
+        Sélectionnez un onglet pour gérer les salariés, le planning, les heures ou les incidents.
       </div>
     </section>
 

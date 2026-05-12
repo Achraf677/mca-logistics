@@ -1,4 +1,4 @@
-/* Phase 2 PR-E Equipe section-head counts */
+/* Phase 2 PR-E Equipe section-head counts — Phase 46 : tab badges */
 (function () {
   'use strict';
   function lire(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (_) { return []; } }
@@ -8,9 +8,16 @@
     if (!subActifs && !subPostes) return;
     var salaries = lire('salaries');
     var postes = lire('postes');
+    var incidents = lire('incidents');
     var actifs = salaries.filter(function (s) { return !s || s.actif !== false; }).length;
     if (subActifs) subActifs.textContent = actifs;
     if (subPostes) subPostes.textContent = postes.length;
+    // Tab count badges (Phase 46)
+    var salCount = document.getElementById('equipe-tab-sal-count');
+    var incCount = document.getElementById('equipe-tab-inc-count');
+    var incOuverts = incidents.filter(function (i) { return i && !i.resolu && !i.archive; }).length;
+    if (salCount) salCount.textContent = actifs > 0 ? actifs : '';
+    if (incCount) incCount.textContent = incOuverts > 0 ? incOuverts : '';
   }
   function tryAttach() {
     if (!document.getElementById('equipe-section-sub-actifs')) return false;
