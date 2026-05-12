@@ -366,6 +366,13 @@
   }
 }
 
+/* BUG-019: FAB chat (#ai-chat-fab, fixed bottom:20px) overlaps the dr-foot Modifier button
+   when drawer is open. Lift the FAB above the 60px footer zone while drawer is visible. */
+body:has(#dr-liv-panel.open) #ai-chat-fab {
+  bottom: 80px;
+  transition: bottom 0.2s ease-out;
+}
+
 /* Badge style local au drawer */
 .dr-badge {
   display: inline-flex;

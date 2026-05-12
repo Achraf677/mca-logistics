@@ -102,6 +102,12 @@ _(vide pour l'instant)_
 - **Note** : si "rien ne se passe" persiste malgré le wrapper, la cause est probablement le check SIRET absent qui redirecte vers Paramètres sans toast visible (comportement intentionnel).
 - **À vérifier** : (1) sans SIRET → toast "Renseigne un SIRET" ou redirect Paramètres ; (2) avec SIRET valide → popup impression ou toast d'erreur explicite.
 
+### BUG-019 — FAB chat recouvre le bouton "Modifier" du drawer footer
+- **Status** : FIXED (session :30 2026-05-12)
+- **Cause** : `#ai-chat-fab` est `position:fixed; bottom:20px; right:20px; width:56px`. Quand le drawer 360 livraison est ouvert (560px depuis la droite), le bouton "Modifier" (x=1335–1424) chevauche horizontalement et verticalement le FAB (x=1364–1420, y=824–880).
+- **Fix** : `style-design-livraisons-drawer.css` — `body:has(#dr-liv-panel.open) #ai-chat-fab { bottom: 80px }` lève le FAB au-dessus de la zone footer pendant que le drawer est ouvert.
+- **À vérifier** : ouvrir drawer 360 livraison → bouton "Modifier" pleinement visible, aucun chevauchement FAB.
+
 ### BUG-018 — Champ CLIENT affiche ring rouge à l'ouverture de modal (avant toute frappe)
 - **Status** : FIXED (session :30 2026-05-12)
 - **Cause** : `openModal()` dans `script-core-ui.js` auto-focus le premier champ focusable (CLIENT) via `target.focus()`. La règle CSS `:focus` applique `border-color: var(--brand)` + `box-shadow` immédiatement. `:focus:not(:focus-visible)` inefficace — Chrome headless considère `focus()` programmatique comme `:focus-visible: true`.
@@ -148,6 +154,6 @@ _(vide pour l'instant — user à valider)_
 |---|---|
 | NEW | 0 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 18 |
+| FIXED (à vérifier) | 19 |
 | VERIFIED | 0 |
-| **Total** | **18** |
+| **Total** | **19** |
