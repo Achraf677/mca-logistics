@@ -6,16 +6,17 @@
 ---
 
 ## Session 2026-05-12 (:15) — Phase 46 : Alertes section-head + card liste
-**Phases** : 46
-**Commit final** : TBD
-**État** : Alertes 30% → 55% — section-head mockup-matched, card wrapper "Liste des alertes" + quick filters
+**Phases** : 46a-46d
+**Commit final** : e440ad8
+**État** : 6 pages améliorées, CSS global title-row/breadcrumb
 
 ### Actions clés
-- Section-head h2 "Alertes administrateur" → "Alertes & échéances" (mockup match)
-- Bouton section-head "Vider l'historique traité" → "Tout marquer comme lu" avec `marquerToutesAlertesLues()`
-- Card wrapper autour filtres + #alertes-categories : card-header "Liste des alertes" + boutons "Toutes"/"Non lues"
-- `filtreAlerteQuick(mode)` : quick filter Toutes/actives avec highlight bouton actif
-- sw.js CACHE_VERSION v80 → v81
+- Alertes 30%→55% : section-head "Alertes & échéances" + card "Liste des alertes" + quick filters Toutes/Non lues + marquerToutesAlertesLues()
+- Équipe 30%→55% : breadcrumb+h1 supprimés, KPI val 28px, tab count badges Salariés/Incidents
+- Planning 30%→40% : breadcrumb + title-row supprimés
+- Paramètres 25%→35% : breadcrumb + title-row supprimés, boutons Annuler+Enregistrer ajoutés
+- CSS global : `.title-row { display:none!important }` + `.ds-crumbs { display:none!important }` (IDs DOM préservés pour script-titlerow.js) → impact cross-pages
+- sw.js CACHE_VERSION v80 → v84
 
 ---
 
