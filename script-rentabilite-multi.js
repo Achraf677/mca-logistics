@@ -25,15 +25,6 @@
 (function () {
   'use strict';
 
-  // #60 audit Chrome : marge en % parfois -519%, peut casser exports CSV.
-  // Plafond visuel +/- 999%.
-  function fmtMargePct(pct) {
-    if (!Number.isFinite(pct)) return '0,0%';
-    if (pct > 999) return '> 999%';
-    if (pct < -999) return '< -999%';
-    return pct.toFixed(1) + '%';
-  }
-
   var DEFAULTS = {
     tarifHoraireDefaut: 12,    // €/h brut chargé estime
     methodeRepartition: 'livraisons'
@@ -119,18 +110,16 @@
       var taux = parseFloat(p.tauxTVA) || 20;
       s.coutCarburant += ttc / (1 + taux / 100);
     });
-    // #56 #57 #61 audit Chrome : charges/entretiens sans vehId allaient dans
-    // un "trou noir" -> totaux marge "Par vehicule" ne reconciliaient pas
-    // avec "Par client" (qui repartit tout). Fix : aggregation dans la
-    // ligne "sans-vehicule" pour avoir le meme perimetre total entre vues.
     charges.forEach(function (c) {
-      var s = ensure(c.vehId || 'sans-vehicule');
+      if (!c.vehId) return; // charges non rattachees au vehicule = exclues du calcul direct
+      var s = ensure(c.vehId);
       var ttc = parseFloat(c.montant) || 0;
       var taux = parseFloat(c.tauxTVA) || 20;
       s.coutCharges += ttc / (1 + taux / 100);
     });
     entretiens.forEach(function (e) {
-      var s = ensure(e.vehId || 'sans-vehicule');
+      if (!e.vehId) return;
+      var s = ensure(e.vehId);
       s.coutEntretien += parseFloat(e.cout) || 0;
     });
 
@@ -202,7 +191,7 @@
         '<td>' + euros(s.ca) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutCarburant) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutCharges + s.coutEntretien) + '</td>' +
-        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + fmtMargePct(s.margePct) + '</span></td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
       '</tr>';
     }).join('');
     var totaux = stats.reduce(function (acc, s) {
@@ -370,7 +359,7 @@
         '<td>' + (s.kmTotal ? Math.round(s.kmTotal) + ' km' : '—') + '</td>' +
         '<td>' + euros(s.ca) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutTotal) + '</td>' +
-        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + fmtMargePct(s.margePct) + '</span></td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
       '</tr>';
     }).join('');
     var totaux = stats.reduce(function (acc, s) {
@@ -503,7 +492,7 @@
         '<td>' + euros(s.ca) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutSalaire) + '</td>' +
         '<td style="font-size:.85rem">' + euros(s.coutCarburant) + '</td>' +
-        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + fmtMargePct(s.margePct) + '</span></td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(s.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + s.margePct.toFixed(1) + '%)</span></td>' +
       '</tr>';
     }).join('');
     var totaux = stats.reduce(function (acc, s) {
@@ -635,7 +624,7 @@
         '<td>' + (t.kmTotal ? Math.round(t.kmTotal) + ' km' : '—') + '</td>' +
         '<td>' + euros(t.ca) + '</td>' +
         '<td style="font-size:.85rem">' + euros(t.coutTotal) + '</td>' +
-        '<td style="color:' + couleur + ';font-weight:700">' + euros(t.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + fmtMargePct(t.margePct) + '</span></td>' +
+        '<td style="color:' + couleur + ';font-weight:700">' + euros(t.marge) + ' <span style="font-size:.74rem;font-weight:400">(' + t.margePct.toFixed(1) + '%)</span></td>' +
       '</tr>';
     }).join('');
     var totaux = stats.reduce(function (acc, t) {
@@ -652,14 +641,14 @@
     var corps = document.getElementById('detail-tournee-body');
     var titre = document.getElementById('detail-tournee-title');
     if (!corps || !titre) return;
-    titre.textContent = 'Tournée ' + t.date + ' — ' + t.chaufNom;
+    titre.textContent = '🛣️ Tournée ' + t.date + ' — ' + t.chaufNom;
     var couleur = t.marge >= 0 ? '#28a745' : '#dc3545';
     var html =
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">' +
         kpiBox('CA HT', euros(t.ca)) +
         kpiBox('Carburant', euros(t.coutCarburant)) +
         kpiBox('Salaire imputé', euros(t.coutSalaire)) +
-        kpiBox('Marge', '<span style="color:' + couleur + '">' + euros(t.marge) + ' (' + fmtMargePct(t.margePct) + ')</span>') +
+        kpiBox('Marge', '<span style="color:' + couleur + '">' + euros(t.marge) + ' (' + t.margePct.toFixed(1) + '%)</span>') +
       '</div>' +
       '<div style="font-weight:600;margin-bottom:6px">Livraisons (' + t.livraisons.length + ')</div>' +
       '<table class="data-table" style="font-size:.88rem">' +
@@ -716,28 +705,28 @@
     };
 
     var rowsV = v.slice(0, 20).map(function (s) {
-      return renderRow([escapeHtml(s.immat), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + fmtMargePct(s.margePct) + ')']);
+      return renderRow([escapeHtml(s.immat), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + s.margePct.toFixed(1) + '%)']);
     });
     var rowsC = c.slice(0, 20).map(function (s) {
-      return renderRow([escapeHtml(s.clientNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + fmtMargePct(s.margePct) + ')']);
+      return renderRow([escapeHtml(s.clientNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + s.margePct.toFixed(1) + '%)']);
     });
     var rowsCh = ch.slice(0, 20).map(function (s) {
-      return renderRow([escapeHtml(s.chaufNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + fmtMargePct(s.margePct) + ')']);
+      return renderRow([escapeHtml(s.chaufNom), s.nbLivraisons, Math.round(s.kmTotal) + ' km', euros(s.ca), euros(s.coutTotal), '<strong>' + euros(s.marge) + '</strong> (' + s.margePct.toFixed(1) + '%)']);
     });
     var rowsT = tr.slice(0, 30).map(function (t) {
-      return renderRow([t.date, escapeHtml(t.chaufNom), escapeHtml(t.vehImmat || '—'), t.nbLivraisons, euros(t.ca), '<strong>' + euros(t.marge) + '</strong> (' + fmtMargePct(t.margePct) + ')']);
+      return renderRow([t.date, escapeHtml(t.chaufNom), escapeHtml(t.vehImmat || '—'), t.nbLivraisons, euros(t.ca), '<strong>' + euros(t.marge) + '</strong> (' + t.margePct.toFixed(1) + '%)']);
     });
 
     var html = '<div style="font-family:\'Segoe UI\',Arial,sans-serif;max-width:780px;margin:0 auto;padding:32px;color:#1a1d27">'
       + (typeof construireEnteteExport === 'function' ? construireEnteteExport(params, 'Rapport rentabilité', periodeLabel, dateExp, meta) : '')
       + (typeof renderBlocInfosEntreprise === 'function' ? renderBlocInfosEntreprise(params) : '')
-      + renderTableSection('Par véhicule (top 20)',
+      + renderTableSection('🚐 Par véhicule (top 20)',
           ['Véhicule', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsV)
-      + renderTableSection('Par client (top 20 par marge)',
+      + renderTableSection('👤 Par client (top 20 par marge)',
           ['Client', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsC)
       + renderTableSection('🧑‍✈️ Par chauffeur (top 20 par marge)',
           ['Chauffeur', 'Livraisons', 'Km', 'CA HT', 'Coûts', 'Marge'], rowsCh)
-      + renderTableSection('Tournées (30 plus récentes)',
+      + renderTableSection('🛣️ Tournées (30 plus récentes)',
           ['Date', 'Chauffeur', 'Véhicule', 'Livraisons', 'CA HT', 'Marge'], rowsT)
       + (typeof renderFooterEntreprise === 'function' ? renderFooterEntreprise(params, dateExp) : '')
       + '</div>';
@@ -750,7 +739,7 @@
       if (!win) { if (typeof afficherToast === 'function') afficherToast('⚠️ Popup bloqué', 'error'); return; }
       win.document.write('<!DOCTYPE html><html><head><title>Rentabilité ' + escapeHtml(nom) + '</title><style>body{margin:0;background:#fff}@page{margin:12mm}h3{page-break-after:avoid}table{page-break-inside:avoid}</style></head><body>' + html + '<script>setTimeout(function(){window.print();},400)<\/script></body></html>');
     }
-    if (typeof afficherToast === 'function') afficherToast('Rapport rentabilité généré');
+    if (typeof afficherToast === 'function') afficherToast('📄 Rapport rentabilité généré');
   }
 
   function sumStats(arr) {

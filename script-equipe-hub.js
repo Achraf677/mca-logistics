@@ -86,32 +86,18 @@
    * Renvoie { nb, ca } : nombre + CA HT total des livraisons livrees sur 30j.
    */
   function calculerLivraisons30j(livraisons, refDate) {
-    // #109 audit Chrome : filtre etait restreint statut === 'livre' (pas
-    // d'inclusion 'en_attente'/'en_cours'/'a_facturer'). Resultat: une LDV creee
-    // mais non encore livree etait invisible -> KPI = 0 alors que livraison
-    // existe. Fix : compter toutes les livraisons sauf 'annule'. CA = HT
-    // (label dit "CA HT", on lit donc prixHT au lieu de prix=TTC).
     const arr = Array.isArray(livraisons) ? livraisons : [];
     const ref = refDate instanceof Date ? refDate : new Date();
     const limite = new Date(ref);
     limite.setDate(limite.getDate() - 30);
     const limiteStr = limite.toISOString().slice(0, 10);
     const refStr = ref.toISOString().slice(0, 10);
-    const eligibles = arr.filter(l =>
-      l && l.statut !== 'annule' &&
+    const livrees = arr.filter(l =>
+      l && l.statut === 'livre' &&
       l.date && l.date >= limiteStr && l.date <= refStr
     );
-    const ca = eligibles.reduce(function (sum, l) {
-      var ht = parseFloat(l.prixHT);
-      if (Number.isFinite(ht) && ht > 0) return sum + ht;
-      var ttc = parseFloat(l.prix);
-      var taux = parseFloat(l.tauxTVA);
-      if (Number.isFinite(ttc) && Number.isFinite(taux) && taux > 0) {
-        return sum + (ttc / (1 + taux / 100));
-      }
-      return sum + (Number.isFinite(ttc) ? ttc : 0);
-    }, 0);
-    return { nb: eligibles.length, ca: Math.round(ca * 100) / 100 };
+    const ca = livrees.reduce((sum, l) => sum + (parseFloat(l.prix) || 0), 0);
+    return { nb: livrees.length, ca };
   }
 
   /**
@@ -156,7 +142,7 @@
     if (items.some(i => i.niveau === 'critical')) niveau = 'critical';
     else if (items.length > 0) niveau = 'warn';
 
-    const labels = { ok: 'Conforme', warn: 'À surveiller', critical: 'Action requise' };
+    const labels = { ok: '🟢 Conforme', warn: '🟠 À surveiller', critical: '🔴 Action requise' };
     return { niveau, label: labels[niveau], items };
   }
 
@@ -176,14 +162,7 @@
     lundi.setDate(lundi.getDate() + offset);
     const dimanche = new Date(lundi);
     dimanche.setDate(lundi.getDate() + 6);
-    // Fix TZ : utiliser les composantes locales pour éviter le décalage UTC.
-    // Avec toISOString() sur une date locale (TZ+x), on perdait 1 jour.
-    const fmt = d => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
+    const fmt = d => d.toISOString().slice(0, 10);
     return { debut: fmt(lundi), fin: fmt(dimanche), lundi, dimanche };
   }
 
@@ -246,22 +225,22 @@
 
     ct.innerHTML = `
       <div class="kpi-card green">
-        <div class="kpi-label">Effectif</div>
+        <div class="kpi-label">👥 Effectif</div>
         <div class="kpi-value">${eff.actifs}</div>
         <div class="kpi-sub">${eff.label}</div>
       </div>
       <div class="kpi-card blue">
-        <div class="kpi-label">Heures cette semaine</div>
+        <div class="kpi-label">⏱️ Heures cette semaine</div>
         <div class="kpi-value">${heuresSem.total.toFixed(1)} h</div>
         <div class="kpi-sub">prévues ${heuresSem.planifiees.toFixed(1)} h · réelles ${heuresSem.reelles.toFixed(1)} h</div>
       </div>
       <div class="kpi-card purple">
-        <div class="kpi-label">Livraisons 30j</div>
+        <div class="kpi-label">📦 Livraisons 30j</div>
         <div class="kpi-value">${liv30.nb}</div>
         <div class="kpi-sub">${fmtEur(liv30.ca)} CA HT</div>
       </div>
       <div class="kpi-card" style="border-top:3px solid ${conf.niveau === 'critical' ? '#dc3545' : conf.niveau === 'warn' ? '#e67e22' : '#28a745'}">
-        <div class="kpi-label">Conformité</div>
+        <div class="kpi-label">✅ Conformité</div>
         <div class="kpi-value" style="font-size:1.1rem">${conf.label}</div>
         <div class="kpi-sub">${conf.items.length === 0 ? 'Tout est à jour' : conf.items.length + ' point' + (conf.items.length > 1 ? 's' : '') + ' à traiter'}</div>
       </div>

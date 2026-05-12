@@ -150,10 +150,6 @@ function ajouterCarburant() {
   ['carb-litres','carb-prix-litre','carb-km'].forEach(id => document.getElementById(id).value = '');
   if (document.getElementById('carb-taux-tva')) document.getElementById('carb-taux-tva').value = '20';
   afficherCarburant(); afficherToast('✅ Plein enregistré !');
-  // #26 audit Chrome : 1er save apres chargement, parfois la liste reste vide
-  // (race condition avec realtime adapter). 2eme rafraichi 250ms apres pour
-  // re-render avec la donnee Supabase confirmee.
-  setTimeout(function () { try { afficherCarburant(); } catch (_) {} }, 250);
 }
 
 // L4028 (script.js d'origine)
@@ -221,7 +217,7 @@ function afficherCarburant() {
   const allVehicules = charger('vehicules');
   tb.innerHTML = [...pleins].sort((a,b) => new Date(b.creeLe)-new Date(a.creeLe)).map(p => {
     const src = p.source==='salarie'
-      ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">Salarié</span>'
+      ? '<span style="background:rgba(79,142,247,0.15);color:#4f8ef7;padding:2px 7px;border-radius:12px;font-size:0.75rem;">👤 Salarié</span>'
       : '<span style="background:rgba(245,166,35,0.12);color:var(--accent);padding:2px 7px;border-radius:12px;font-size:0.75rem;">⚙️ Admin</span>';
     const mod = p.modifie ? '<span style="background:rgba(231,76,60,0.15);color:#e74c3c;padding:2px 7px;border-radius:12px;font-size:0.75rem;margin-left:4px;">✏️ Modifié</span>' : '';
     // Badge anomalie carburant
@@ -242,11 +238,11 @@ function afficherCarburant() {
     // Label étendu : matche les 6 types + tolère les synonymes
     const carbKey = (p.typeCarburant || 'diesel').toLowerCase();
     let typeLabel = '⛽ Diesel/Gazole';
-    if (carbKey === 'essence') typeLabel = 'Essence';
-    else if (carbKey === 'gnv' || carbKey === 'biognv') typeLabel = 'GNV/BioGNV';
+    if (carbKey === 'essence') typeLabel = '🟢 Essence';
+    else if (carbKey === 'gnv' || carbKey === 'biognv') typeLabel = '🌿 GNV/BioGNV';
     else if (carbKey === 'electrique') typeLabel = '⚡ Électrique';
-    else if (carbKey === 'hybride') typeLabel = 'Hybride';
-    else if (carbKey === 'hydrogene') typeLabel = 'Hydrogène';
+    else if (carbKey === 'hybride') typeLabel = '🔋 Hybride';
+    else if (carbKey === 'hydrogene') typeLabel = '💧 Hydrogène';
     // Menu Actions standardisé (pattern Livraisons/Clients)
     const actionsItems = [
       { icon: '✏️', label: 'Modifier', action: `ouvrirEditCarburantAdmin('${p.id}')` },
@@ -277,7 +273,7 @@ async function supprimerCarburant(id) {
   if (!_ok) return;
   removeChargeCarburant(id);
   sauvegarder('carburant', charger('carburant').filter(p => p.id !== id));
-  afficherCarburant(); afficherToast('Supprimé');
+  afficherCarburant(); afficherToast('🗑️ Supprimé');
 }
 
 // L4131 (script.js d'origine)
@@ -466,6 +462,6 @@ function exporterCarburantPDF() {
     '</div>';
 
   ouvrirFenetreImpression('Carburant '+moisLabel+' — '+nom, html, 'width=850,height=700');
-  afficherToast('Rapport carburant généré');
+  afficherToast('📄 Rapport carburant généré');
 }
 

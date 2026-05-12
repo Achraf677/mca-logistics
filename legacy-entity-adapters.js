@@ -114,24 +114,9 @@
     if (a.cooldownJusquA) contexte.__cooldownJusquA = a.cooldownJusquA;
     if (a.traiteeLe) contexte.__traiteeLe = a.traiteeLe;
     if (a.luLe) contexte.__luLe = a.luLe;
-    // #103 audit Chrome : sevérité (rouge/orange) etait stockee uniquement
-    // dans meta.niveau, pas au top-level. Le mapping mettait toujours 'info'
-    // -> filtre "Critiques" sur la page Alertes ne remontait jamais les
-    // anomalies rouges. Fix : lire meta.niveau et mapper rouge->critique,
-    // orange->haute, info->moyenne (cohérent avec UI severite).
-    var rawNiveau = emptyToNull(a.niveau)
-      || (a.meta && (emptyToNull(a.meta.niveau) || emptyToNull(a.meta.severite) || emptyToNull(a.meta.severity)));
-    var niveau = (function (n) {
-      var v = String(n || '').toLowerCase();
-      if (v === 'rouge' || v === 'critical' || v === 'critique') return 'critique';
-      if (v === 'orange' || v === 'high' || v === 'haute') return 'haute';
-      if (v === 'jaune' || v === 'medium' || v === 'moyenne') return 'moyenne';
-      if (v === 'vert' || v === 'low' || v === 'basse') return 'basse';
-      return v || 'info';
-    })(rawNiveau);
     var row = {
       type: emptyToNull(a.type) || 'autre',
-      niveau: niveau,
+      niveau: emptyToNull(a.niveau) || 'info',
       titre: titre,
       message: emptyToNull(a.message),
       contexte: contexte,

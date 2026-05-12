@@ -81,20 +81,20 @@
   function humanizeAction(action) {
     if (!action) return 'Action inconnue';
     const map = {
-      create_livraison: 'Créer livraison',
-      create_charge: 'Créer charge',
-      create_paiement: 'Enregistrer paiement',
-      create_client: 'Créer client',
-      create_fournisseur: 'Créer fournisseur',
-      create_vehicule: 'Créer véhicule',
-      create_salarie: 'Créer salarié',
+      create_livraison: '📦 Créer livraison',
+      create_charge: '💸 Créer charge',
+      create_paiement: '💵 Enregistrer paiement',
+      create_client: '🧑‍💼 Créer client',
+      create_fournisseur: '🏭 Créer fournisseur',
+      create_vehicule: '🚐 Créer véhicule',
+      create_salarie: '👥 Créer salarié',
       create_carburant: '⛽ Plein carburant',
-      create_entretien: 'Créer entretien',
-      create_incident: 'Créer incident',
-      create_planning_creneau: 'Créneau planning',
-      create_inspection: 'Inspection véhicule',
+      create_entretien: '🔧 Créer entretien',
+      create_incident: '🚨 Créer incident',
+      create_planning_creneau: '📅 Créneau planning',
+      create_inspection: '🚗 Inspection véhicule',
       resolve_alerte: '✅ Résoudre alerte',
-      delete_entity: 'Supprimer entité',
+      delete_entity: '🗑️ Supprimer entité',
     };
     if (map[action]) return map[action];
     if (action.startsWith('update_')) {
@@ -226,12 +226,9 @@
   async function getPendingCount() {
     const client = getClient();
     if (!client) return 0;
-    // Bug #2 audit Chrome : head:true peut retourner 503 selon table.
-    // Switch GET limit 1 + count exact (returns Content-Range, supabase-js extrait count).
     const { count, error } = await client.from('ai_pending_actions')
-      .select('id', { count: 'exact' })
-      .eq('status', 'pending')
-      .limit(1);
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
     if (error) return 0;
     return count || 0;
   }
@@ -284,8 +281,8 @@
           </div>
         </div>
         <footer class="aib-modal-footer">
-          <button type="button" class="aib-btn aib-btn-reject" data-detail-reject="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeter</button>
-          <button type="button" class="aib-btn aib-btn-approve" data-detail-approve="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Approuver</button>
+          <button type="button" class="aib-btn aib-btn-reject" data-detail-reject="${escHtml(d.id)}">❌ Rejeter</button>
+          <button type="button" class="aib-btn aib-btn-approve" data-detail-approve="${escHtml(d.id)}">✅ Approuver</button>
         </footer>
       </div>
     `;
@@ -315,7 +312,7 @@
         <div class="aib-empty-icon" aria-hidden="true">⚠️</div>
         <h3>Impossible de charger les brouillons</h3>
         <p>${escHtml(state.lastError || 'Erreur inconnue')}</p>
-        <button type="button" class="aib-btn aib-btn-secondary" data-aib-retry="1">Réessayer</button>
+        <button type="button" class="aib-btn aib-btn-secondary" data-aib-retry="1">🔄 Réessayer</button>
       </div>
     `;
   }
@@ -330,11 +327,11 @@
           <span class="aib-card-date">${escHtml(formatDateTime(d.created_at))}</span>
         </div>
         ${summary ? `<div class="aib-card-summary">${escHtml(summary)}</div>` : ''}
-        ${reasoning ? `<div class="aib-card-reasoning">${reasoning}</div>` : ''}
+        ${reasoning ? `<div class="aib-card-reasoning">💡 ${reasoning}</div>` : ''}
         <div class="aib-card-actions">
-          <button type="button" class="aib-btn aib-btn-approve" data-aib-approve="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polyline points="20 6 9 17 4 12"/></svg>Approuver</button>
-          <button type="button" class="aib-btn aib-btn-reject" data-aib-reject="${escHtml(d.id)}"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>Rejeter</button>
-          <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">Détail</button>
+          <button type="button" class="aib-btn aib-btn-approve" data-aib-approve="${escHtml(d.id)}">✅ Approuver</button>
+          <button type="button" class="aib-btn aib-btn-reject" data-aib-reject="${escHtml(d.id)}">❌ Rejeter</button>
+          <button type="button" class="aib-btn aib-btn-detail" data-aib-detail="${escHtml(d.id)}">👁️ Détail</button>
         </div>
       </div>
     `;
@@ -355,7 +352,7 @@
       const header = `
         <div class="aib-toolbar">
           <span class="aib-count">${state.drafts.length} brouillon${state.drafts.length > 1 ? 's' : ''} en attente</span>
-          <button type="button" class="aib-btn aib-btn-secondary" data-aib-refresh="1">Rafraîchir</button>
+          <button type="button" class="aib-btn aib-btn-secondary" data-aib-refresh="1">🔄 Rafraîchir</button>
         </div>
       `;
       container.innerHTML = header + '<div class="aib-list">' + state.drafts.map(renderCard).join('') + '</div>';

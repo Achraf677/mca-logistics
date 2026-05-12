@@ -121,7 +121,7 @@ function afficherRelances() {
     const joursRetard = Math.floor((today - dateEcheance) / (1000*60*60*24));
     const joursAffiches = Math.max(0, joursRetard);
     const niveau = joursRetard > 30 ? 3 : joursRetard > 15 ? 2 : joursRetard > 0 ? 1 : 0;
-    const niveauLabel = niveau===3 ? 'Dernier avis' : niveau===2 ? 'Mise en demeure' : niveau===1 ? 'Amiable' : 'À suivre';
+    const niveauLabel = niveau===3 ? '🔴 Dernier avis' : niveau===2 ? '🟡 Mise en demeure' : niveau===1 ? '🟢 Amiable' : '🔵 À suivre';
     return `<tr class="relance-row">
       <td><span style="font-size:.78rem;color:var(--text-muted)">${l.numLiv||'—'}</span></td>
       <td><strong>${l.client}</strong></td>
@@ -130,7 +130,7 @@ function afficherRelances() {
       <td><span class="relance-badge">⏰ ${joursAffiches}j</span><br><span style="font-size:.7rem">${niveauLabel}</span></td>
       <td style="white-space:nowrap">
         <button class="btn-icon" onclick="marquerPaye('${l.id}')" title="Marquer payé">💳</button>
-        <button class="btn-rapport" onclick="genererLettreRelance('${l.id}',${Math.max(niveau,1)})" title="Lettre de relance" style="padding:4px 10px;font-size:.75rem">Lettre</button>
+        <button class="btn-rapport" onclick="genererLettreRelance('${l.id}',${Math.max(niveau,1)})" title="Lettre de relance" style="padding:4px 10px;font-size:.75rem">📄 Lettre</button>
       </td>
     </tr>`;
   }).join('');
@@ -141,7 +141,7 @@ function afficherRelances() {
 function marquerRelance(id) {
   const livs = charger('livraisons');
   const idx  = livs.findIndex(l=>l.id===id);
-  if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); sauvegarder('livraisons',livs); afficherRelances(); afficherToast('Relance notée'); }
+  if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); sauvegarder('livraisons',livs); afficherRelances(); afficherToast('📧 Relance notée'); }
 }
 
 // L10747 (script.js d'origine)
@@ -206,6 +206,6 @@ function genererLettreRelance(livId, niveau) {
   var idx = livs.findIndex(function(l){return l.id===livId;});
   if (idx>-1) { livs[idx].derniereRelance=new Date().toISOString(); livs[idx].niveauRelance=niveau; sauvegarder('livraisons',livs); }
   afficherRelances();
-  afficherToast('Lettre de relance niveau ' + niveau + ' générée');
+  afficherToast('📄 Lettre de relance niveau ' + niveau + ' générée');
 }
 

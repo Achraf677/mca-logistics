@@ -193,7 +193,7 @@ function ouvrirHistoriqueClient(id) {
     +   '</div>'
     +   '<div style="margin-top:14px"><div style="font-size:.76rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Adresse habituelle</div><div style="font-weight:700">' + (client.adresse || '—') + '</div></div>'
     + '</div></div>'
-    + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>Livraisons du client</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° LIV</th><th>Date</th><th>Statut</th><th>Paiement</th><th>HT</th><th>TTC</th></tr></thead><tbody>'
+    + '<div class="card" style="margin-bottom:16px"><div class="card-header"><h2>📦 Livraisons du client</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>N° LIV</th><th>Date</th><th>Statut</th><th>Paiement</th><th>HT</th><th>TTC</th></tr></thead><tbody>'
     +   (snapshot.livraisons.length
           ? snapshot.livraisons.map(function(item) {
               return '<tr>'
@@ -207,7 +207,7 @@ function ouvrirHistoriqueClient(id) {
             }).join('')
           : '<tr><td colspan="6" class="empty-row">Aucune livraison pour ce client</td></tr>')
     + '</tbody></table></div></div>'
-    + '<div class="card"><div class="card-header"><h2>Incidents & suivi</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Gravité</th><th>Description</th><th>Statut</th></tr></thead><tbody>'
+    + '<div class="card"><div class="card-header"><h2>🚨 Incidents & suivi</h2></div><div class="table-wrapper"><table class="data-table"><thead><tr><th>Date</th><th>Gravité</th><th>Description</th><th>Statut</th></tr></thead><tbody>'
     +   (snapshot.incidents.length
           ? snapshot.incidents.map(function(item) {
               return '<tr>'
@@ -372,7 +372,7 @@ async function supprimerClient(id) {
   localStorage.setItem('clients', JSON.stringify(clients));
   afficherClients();
   ajouterEntreeAudit('Suppression client', (client.nom || 'Client') + ' supprimé' + (livsLiees.length ? ' (' + livsLiees.length + ' livraison(s) orpheline(s))' : ''));
-  afficherToast('Client supprimé');
+  afficherToast('🗑️ Client supprimé');
 }
 
 // L6817 (script.js d'origine)

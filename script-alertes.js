@@ -157,30 +157,30 @@ if (!toutesDejaLues) {
     { type: 'ct_expire',              severity: 'critique', label: '⚠️ Contrôles techniques expirés',           color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
     { type: 'permis_expire',          severity: 'critique', label: '⚠️ Permis de conduire expirés',             color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
     { type: 'assurance_expire',       severity: 'critique', label: '⚠️ Assurances expirées',                    color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
-    { type: 'charge_retard_paiement', severity: 'critique', label: 'Charges en retard de paiement',          color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
+    { type: 'charge_retard_paiement', severity: 'critique', label: '💸 Charges en retard de paiement',          color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
     { type: 'carburant_anomalie',     severity: 'critique', label: '⛽ Anomalies carburant (conso / fraude)',    color: 'rgba(231,76,60,0.08)', border: 'rgba(231,76,60,0.3)'  },
     // 🟠 ALERTE
-    { type: 'ct_proche',              severity: 'alerte',   label: 'CT à renouveler (< 30 jours)',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'permis_proche',          severity: 'alerte',   label: 'Permis expirent bientôt',                color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'assurance_proche',       severity: 'alerte',   label: 'Assurances expirent bientôt',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'vidange',                severity: 'alerte',   label: 'Vidanges à effectuer',                   color: 'rgba(52,152,219,0.06)', border: 'rgba(52,152,219,0.2)' },
-    { type: 'prix_manquant',          severity: 'alerte',   label: 'Prix de livraison manquant',             color: 'rgba(245,166,35,0.08)', border: 'rgba(245,166,35,0.3)' },
-    { type: 'planning_manquant',      severity: 'alerte',   label: 'Salariés sans planning défini',          color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
-    { type: 'inspection_manquante',   severity: 'alerte',   label: 'Véhicules sans inspection récente',      color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'ct_proche',              severity: 'alerte',   label: '🔔 CT à renouveler (< 30 jours)',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'permis_proche',          severity: 'alerte',   label: '🪪 Permis expirent bientôt',                color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'assurance_proche',       severity: 'alerte',   label: '🛡️ Assurances expirent bientôt',           color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'vidange',                severity: 'alerte',   label: '🔧 Vidanges à effectuer',                   color: 'rgba(52,152,219,0.06)', border: 'rgba(52,152,219,0.2)' },
+    { type: 'prix_manquant',          severity: 'alerte',   label: '💶 Prix de livraison manquant',             color: 'rgba(245,166,35,0.08)', border: 'rgba(245,166,35,0.3)' },
+    { type: 'planning_manquant',      severity: 'alerte',   label: '📅 Salariés sans planning défini',          color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
+    { type: 'inspection_manquante',   severity: 'alerte',   label: '🚗 Véhicules sans inspection récente',      color: 'rgba(245,166,35,0.06)', border: 'rgba(245,166,35,0.2)' },
     // 🔵 INFO
     { type: 'livraison_modif',        severity: 'info',     label: '✏️ Livraisons modifiées',                   color: 'rgba(155,89,182,0.06)', border: 'rgba(155,89,182,0.25)'},
     { type: 'carburant_modif',        severity: 'info',     label: '✏️ Modifications carburant',                color: 'rgba(231,76,60,0.06)',  border: 'rgba(231,76,60,0.25)' },
     { type: 'km_modif',               severity: 'info',     label: '✏️ Modifications relevés km',               color: 'rgba(79,142,247,0.06)', border: 'rgba(79,142,247,0.25)'},
-    { type: 'inspection',             severity: 'info',     label: 'Inspections véhicules reçues',           color: 'rgba(46,204,113,0.06)', border: 'rgba(46,204,113,0.25)'},
+    { type: 'inspection',             severity: 'info',     label: '🚗 Inspections véhicules reçues',           color: 'rgba(46,204,113,0.06)', border: 'rgba(46,204,113,0.25)'},
   ];
   // Types à ne jamais afficher dans les alertes (gérés ailleurs)
   const typesExclus = ['message'];
 
   const SEVERITES_ORDER = ['critique', 'alerte', 'info'];
   const SEVERITES_HEADER = {
-    critique: { label: 'Critique — à traiter immédiatement', color: '#e74c3c' },
-    alerte:   { label: 'À traiter prochainement',             color: '#f5a623' },
-    info:     { label: 'Pour information',                    color: '#4f8ef7' },
+    critique: { label: '🔴 Critique — à traiter immédiatement', color: '#e74c3c' },
+    alerte:   { label: '🟠 À traiter prochainement',             color: '#f5a623' },
+    info:     { label: '🔵 Pour information',                    color: '#4f8ef7' },
   };
 
   const container = document.getElementById('alertes-categories');
@@ -212,9 +212,9 @@ if (!toutesDejaLues) {
       </button>`;
     };
     banner.innerHTML = [
-      tile('Critique',    countBySev.critique || 0, '#e74c3c', 'sev-critique', 'Voir les alertes critiques'),
-      tile('À traiter',   countBySev.alerte   || 0, '#f5a623', 'sev-alerte',   'Voir les alertes à traiter'),
-      tile('Pour info',   countBySev.info     || 0, '#4f8ef7', 'sev-info',     'Voir les alertes d\'information'),
+      tile('🔴 Critique',    countBySev.critique || 0, '#e74c3c', 'sev-critique', 'Voir les alertes critiques'),
+      tile('🟠 À traiter',   countBySev.alerte   || 0, '#f5a623', 'sev-alerte',   'Voir les alertes à traiter'),
+      tile('🔵 Pour info',   countBySev.info     || 0, '#4f8ef7', 'sev-info',     'Voir les alertes d\'information'),
       tile('⏰ Reportées',   allReportees.length,      '#9b59b6', null,            `${allReportees.length} alerte(s) reportée(s) — utilise le filtre statut pour les voir`),
     ].join('');
     container.appendChild(banner);
@@ -259,28 +259,28 @@ if (!toutesDejaLues) {
           // Raccourci contextuel selon le type
           let btnRaccourci = '';
           if (['permis_expire','permis_proche'].includes(cat.type) && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">Modifier permis</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">🪪 Modifier permis</button>`;
           } else if (['assurance_expire','assurance_proche'].includes(cat.type) && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">Modifier assurance</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="ouvrirEditSalarie('${a.meta.salId}')" title="Modifier la fiche salarié">🛡️ Modifier assurance</button>`;
           } else if (['ct_expire','ct_proche'].includes(cat.type) && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('vehicules');setTimeout(()=>ouvrirEditVehicule('${a.meta.vehId}'),200)" title="Modifier le véhicule">Modifier véhicule</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('vehicules');setTimeout(()=>ouvrirEditVehicule('${a.meta.vehId}'),200)" title="Modifier le véhicule">🚐 Modifier véhicule</button>`;
           } else if (cat.type === 'vidange' && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('entretiens')" title="Ajouter entretien">Entretien</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('entretiens')" title="Ajouter entretien">🔧 Entretien</button>`;
           } else if (cat.type === 'charge_retard_paiement' && a.meta?.chargeId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(46,204,113,.12);color:#2ecc71;border:1px solid rgba(46,204,113,.3);font-size:.75rem" onclick="basculerStatutCharge('${a.meta.chargeId}');validerAlerte('${a.id}')" title="Marquer la charge payée">Marquer payée</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(46,204,113,.12);color:#2ecc71;border:1px solid rgba(46,204,113,.3);font-size:.75rem" onclick="basculerStatutCharge('${a.meta.chargeId}');validerAlerte('${a.id}')" title="Marquer la charge payée">💸 Marquer payée</button>`;
           } else if (cat.type === 'carburant_anomalie' && a.meta?.vehId) {
             btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('carburant');setTimeout(()=>{var f=document.getElementById('filtre-carb-vehicule');if(f){f.value='${a.meta.vehId}';if(typeof afficherCarburant==='function')afficherCarburant();}},80)" title="Voir les pleins de ce véhicule">⛽ Voir pleins</button>`;
           } else if (cat.type === 'planning_manquant' && a.meta?.salId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('planning');setTimeout(()=>{if(typeof ouvrirModalPlanning==='function')ouvrirModalPlanning();},80)" title="Definir le planning">Définir planning</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('planning');setTimeout(()=>{if(typeof ouvrirModalPlanning==='function')ouvrirModalPlanning();},80)" title="Definir le planning">📅 Définir planning</button>`;
           } else if (cat.type === 'inspection_manquante' && a.meta?.vehId) {
-            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('inspections')" title="Demander/saisir une inspection">Inspections</button>`;
+            btnRaccourci = `<button class="btn-icon" style="background:rgba(79,142,247,.1);color:var(--blue);border:1px solid rgba(79,142,247,.3);font-size:.75rem" onclick="naviguerVers('inspections')" title="Demander/saisir une inspection">🚗 Inspections</button>`;
           }
 
           // Mode reportées : un seul bouton "Reprendre" (la date de reprise s'affiche dans la colonne date)
           if (enModeReportees) {
             btnActions = `<button class="btn-icon" style="background:rgba(155,89,182,.12);color:#9b59b6;border:1px solid rgba(155,89,182,.3)" onclick="reprendreAlerte('${a.id}')" title="Réafficher l'alerte maintenant">▶️ Reprendre</button>`;
           } else if (estPrixManquant) {
-            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">Saisir</button>
+            btnActions = `<button class="btn-icon" style="background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid rgba(245,166,35,0.3)" onclick="ouvrirLivraisonPourPrix('${a.meta?.client||''}')">📝 Saisir</button>
               ${snoozeSelect(a.id)}
               <button class="btn-icon danger" onclick="ignorerAlerte('${a.id}')" style="margin-left:4px" title="Ignorer (silencieuse 30 jours)">✕ Ignorer</button>`;
           } else if (estCritique) {
@@ -332,7 +332,7 @@ if (!toutesDejaLues) {
     const section = document.createElement('div');
     section.style.cssText = 'background:rgba(108,117,125,0.06);border:1px solid rgba(108,117,125,0.2);border-radius:10px;margin-bottom:16px;overflow:hidden';
     section.innerHTML = `
-      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid rgba(108,117,125,0.2)">Autres alertes</div>
+      <div style="padding:12px 16px;font-weight:600;font-size:0.9rem;border-bottom:1px solid rgba(108,117,125,0.2)">🔔 Autres alertes</div>
       <table class="data-table" style="background:transparent"><thead><tr><th>Message</th><th>Salarié</th><th>Date/Heure</th><th>Action</th></tr></thead>
       <tbody>${autres.map(a => {
         const dateFmt = new Date(a.creeLe).toLocaleDateString('fr-FR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
@@ -432,7 +432,7 @@ function ignorerAlerte(id) {
   }
   afficherAlertes();
   afficherBadgeAlertes();
-  afficherToast('Alerte ignorée (silencieuse 30j)');
+  afficherToast('🗑️ Alerte ignorée (silencieuse 30j)');
 }
 
 // L4152 (script.js d'origine)
@@ -440,7 +440,7 @@ async function viderAlertes() {
   const _ok7 = await confirmDialog('Effacer toutes les alertes traitées ?', {titre:'Vider l\'historique',icone:'🗑️',btnLabel:'Effacer',danger:false});
   if (!_ok7) return;
   sauvegarder('alertes_admin', charger('alertes_admin').filter(a => !a.traitee));
-  afficherAlertes(); afficherToast('Historique effacé');
+  afficherAlertes(); afficherToast('🗑️ Historique effacé');
 }
 
 // Bulk : valider toutes les alertes actives d'un type
@@ -480,7 +480,7 @@ async function ignorerAlertesParType(type) {
   sauvegarder('alertes_admin', out);
   afficherAlertes();
   afficherBadgeAlertes();
-  afficherToast(`${cibles.length} alerte${cibles.length > 1 ? 's' : ''} ignorée${cibles.length > 1 ? 's' : ''}`);
+  afficherToast(`🗑️ ${cibles.length} alerte${cibles.length > 1 ? 's' : ''} ignorée${cibles.length > 1 ? 's' : ''}`);
 }
 
 // Snooze : reporte une alerte de N jours (cachée du listing actives jusqu'à expiration)

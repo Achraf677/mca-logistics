@@ -15,10 +15,9 @@ name: E2E Smoke
 #   - PLAYWRIGHT_BASE_URL       : URL staging (ex: https://staging.mca-logistics.pages.dev)
 #                                  Si absent, fallback sur l'URL prod par defaut.
 
-# Trigger pull_request retire (2026-05-11) : workflow tournait sur chaque PR
-# avec continue-on-error:true (donc non bloquant) mais ajoutait ~2min de bruit
-# visuel sans bloquer. A reactiver une fois les selectors stabilises.
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       base_url:

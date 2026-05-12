@@ -26,7 +26,7 @@
   },
   "rules": {
     "eqeqeq": ["warn", "always", { "null": "ignore" }],
-    "no-undef": "warn",
+    "no-undef": "error",
     "no-redeclare": "warn",
     "no-unused-vars": ["off"],
     "no-implicit-globals": "off",

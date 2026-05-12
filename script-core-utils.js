@@ -34,34 +34,6 @@ function escapeAttr(s) {
 }
 
 /**
- * Sanitize les inputs utilisateur avant stockage en base. Filet de défense
- * en profondeur contre le XSS stocké (#51 audit Chrome 2026-05-10) :
- * - strip <script>, <iframe>, <object>, <embed>
- * - strip handlers on*= ("onclick", "onerror", etc.)
- * - strip javascript: et data:text/html dans les attributs
- * Le rendu front utilise déjà escapeHtml/escapeAttr — cette fn est une
- * 2e ligne pour éviter qu'un futur renderer innerHTML expose une faille.
- * @param {*} s - Texte utilisateur libre
- * @returns {string}
- */
-function sanitizeUserInput(s) {
-  if (s == null) return '';
-  return String(s)
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<object\b[^<]*(?:(?!<\/object>)<[^<]*)*<\/object>/gi, '')
-    .replace(/<embed\b[^<]*\/?>/gi, '')
-    .replace(/<svg\b[^<]*(?:(?!<\/svg>)<[^<]*)*<\/svg>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/data:text\/html/gi, '')
-    .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
-    .replace(/on\w+\s*=\s*'[^']*'/gi, '')
-    .replace(/on\w+\s*=\s*[^\s>]+/gi, '');
-}
-if (typeof window !== 'undefined') window.sanitizeUserInput = sanitizeUserInput;
-if (typeof module !== 'undefined' && module.exports) module.exports.sanitizeUserInput = sanitizeUserInput;
-
-/**
  * Genere un identifiant unique au format UUID v4 (RFC 4122).
  * Utilise crypto.randomUUID si disponible (HTTPS uniquement), fallback
  * sur crypto.getRandomValues, ou en dernier recours timestamp + random.
@@ -327,11 +299,11 @@ async function calculerDistanceMaps(depart, arrivee, inputId) {
 
     const input = document.getElementById(inputId);
     if (input) { input.value = distRoute; input.dispatchEvent(new Event('input')); }
-    afficherToast(`Distance estimée : ${distRoute} km (via OSM)`);
+    afficherToast(`📍 Distance estimée : ${distRoute} km (via OSM)`);
   } catch(e) {
     afficherToast('⚠️ Erreur de calcul — vérifiez votre connexion', 'error');
   } finally {
-    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = 'Calculer distance'; }
+    if (btn) { btn.classList.remove('maps-loading'); btn.textContent = '📍 Calculer distance'; }
   }
 }
 
@@ -616,33 +588,12 @@ function findLivraisonByRef(numOuClient, livraisons) {
   }) || null;
 }
 
-// #65 #85 audit Chrome : helper unique pour eviter les bugs timezone J-1
-// quand on saisit une date entre minuit local et 02h. Utilise dateToLocalISO
-// (defini dans script.js) si dispo, sinon fallback inline.
-function todayLocalISO() {
-  if (typeof window !== 'undefined' && typeof window.dateToLocalISO === 'function') {
-    return window.dateToLocalISO(new Date());
-  }
-  var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-function dateLocalISO(date) {
-  if (typeof window !== 'undefined' && typeof window.dateToLocalISO === 'function') {
-    return window.dateToLocalISO(date);
-  }
-  var d = date instanceof Date ? date : new Date(date);
-  if (isNaN(d.getTime())) return '';
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
 // Expose au scope global (parite onclick + acces depuis script-mobile.js)
 if (typeof window !== 'undefined') {
   window.normalizeLDV = normalizeLDV;
   window.normalizeVehicule = normalizeVehicule;
   window.findFournisseurByNom = findFournisseurByNom;
   window.findLivraisonByRef = findLivraisonByRef;
-  window.todayLocalISO = todayLocalISO;
-  window.dateLocalISO = dateLocalISO;
 }
 
 // Export Node (tests unitaires uniquement)

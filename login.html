@@ -59,9 +59,9 @@
       z-index: 0;
       animation: float 16s ease-in-out infinite;
     }
-    .orb.o1 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(230,57,70,0.45), transparent 70%); top: -120px; left: -100px; animation-delay: 0s; }
+    .orb.o1 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(242,163,59,0.45), transparent 70%); top: -120px; left: -100px; animation-delay: 0s; }
     .orb.o2 { width: 360px; height: 360px; background: radial-gradient(circle, rgba(76,140,245,0.38), transparent 70%); bottom: -80px; right: -80px; animation-delay: -6s; }
-    .orb.o3 { width: 260px; height: 260px; background: radial-gradient(circle, rgba(230,57,70,0.22), transparent 70%); top: 50%; left: 60%; animation-delay: -3s; }
+    .orb.o3 { width: 260px; height: 260px; background: radial-gradient(circle, rgba(242,163,59,0.22), transparent 70%); top: 50%; left: 60%; animation-delay: -3s; }
 
     @keyframes float {
       0%, 100% { transform: translate(0, 0) scale(1); }
@@ -76,7 +76,7 @@
       display: grid;
       grid-template-columns: 1fr;
       background: linear-gradient(180deg, rgba(13, 21, 36, 0.62), rgba(8, 14, 23, 0.82));
-      border: 1px solid rgba(230, 57, 70, 0.28);
+      border: 1px solid rgba(242, 163, 59, 0.28);
       border-radius: var(--radius-xl);
       overflow: hidden;
       box-shadow: var(--shadow);
@@ -93,7 +93,7 @@
       inset: 0;
       border-radius: var(--radius-xl);
       padding: 1px;
-      background: linear-gradient(135deg, rgba(230,57,70,0.55), rgba(76,140,245,0.35) 50%, rgba(255,255,255,0.10));
+      background: linear-gradient(135deg, rgba(242,163,59,0.55), rgba(76,140,245,0.35) 50%, rgba(255,255,255,0.10));
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: xor;
               mask-composite: exclude;
@@ -109,7 +109,7 @@
     .hero {
       padding: 44px 30px 28px;
       background:
-        linear-gradient(145deg, rgba(230, 57, 70, 0.10), transparent 50%),
+        linear-gradient(145deg, rgba(242, 163, 59, 0.10), transparent 50%),
         linear-gradient(210deg, rgba(76, 140, 245, 0.08), transparent 50%),
         rgba(10, 17, 29, 0.42);
       border-bottom: 1px solid var(--border);
@@ -126,7 +126,7 @@
       width: 420px;
       height: 280px;
       transform: translate(-50%, -50%);
-      background: radial-gradient(ellipse, rgba(230, 57, 70, 0.28), transparent 65%);
+      background: radial-gradient(ellipse, rgba(242, 163, 59, 0.28), transparent 65%);
       filter: blur(20px);
       animation: pulseGlow 4s ease-in-out infinite;
       pointer-events: none;
@@ -151,7 +151,7 @@
       width: min(360px, 70%);
       height: auto;
       display: block;
-      filter: drop-shadow(0 8px 32px rgba(230, 57, 70, 0.35));
+      filter: drop-shadow(0 8px 32px rgba(242, 163, 59, 0.35));
     }
     /* L'image (logo uploadé) est cachée par défaut, le SVG fallback est visible
        jusqu'à ce que appliquerBrandingLogin() permute en JS */
@@ -178,7 +178,7 @@
       font-size: 1.65rem;
       margin-bottom: 0;
       letter-spacing: -0.01em;
-      background: linear-gradient(90deg, #ffffff 0%, #ffd0d4 100%);
+      background: linear-gradient(90deg, #ffffff 0%, #ffd49e 100%);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
@@ -210,9 +210,9 @@
     }
 
     .role-btn.active-admin {
-      border-color: rgba(230, 57, 70, 0.4);
-      background: rgba(230, 57, 70, 0.09);
-      box-shadow: inset 0 0 0 1px rgba(230, 57, 70, 0.1);
+      border-color: rgba(242, 163, 59, 0.4);
+      background: rgba(242, 163, 59, 0.09);
+      box-shadow: inset 0 0 0 1px rgba(242, 163, 59, 0.1);
     }
 
     .role-btn.active-salarie {
@@ -252,10 +252,10 @@
 
     .field input:focus {
       outline: none;
-      border-color: rgba(230, 57, 70, 0.65);
+      border-color: rgba(242, 163, 59, 0.65);
       box-shadow:
-        0 0 0 4px rgba(230, 57, 70, 0.10),
-        0 8px 24px rgba(230, 57, 70, 0.10);
+        0 0 0 4px rgba(242, 163, 59, 0.10),
+        0 8px 24px rgba(242, 163, 59, 0.10);
       background: rgba(4, 9, 17, 0.85);
     }
 
@@ -282,7 +282,7 @@
       border-radius: 8px;
       transition: background 0.15s ease, color 0.15s ease;
     }
-    .toggle-password:hover { background: rgba(230,57,70,0.08); color: var(--accent); }
+    .toggle-password:hover { background: rgba(242,163,59,0.08); color: var(--accent); }
 
     .submit {
       width: 100%;
@@ -305,7 +305,7 @@
       background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent) 100%);
       background-size: 200% 100%;
       box-shadow:
-        0 18px 38px rgba(230, 57, 70, 0.32),
+        0 18px 38px rgba(242, 163, 59, 0.32),
         inset 0 1px 0 rgba(255, 255, 255, 0.35);
       transition: transform 0.18s ease, box-shadow 0.25s ease, background-position 0.6s ease;
       animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.60s both;
@@ -320,7 +320,7 @@
     .submit:hover {
       transform: translateY(-2px);
       box-shadow:
-        0 24px 50px rgba(230, 57, 70, 0.45),
+        0 24px 50px rgba(242, 163, 59, 0.45),
         inset 0 1px 0 rgba(255, 255, 255, 0.4);
       background-position: 100% 0;
     }
@@ -472,13 +472,13 @@
         <svg id="brand-fallback" class="brand-logo brand-fallback-svg" viewBox="0 0 480 140" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="mcaGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#e63946"/>
-              <stop offset="100%" stop-color="#ff4d5c"/>
+              <stop offset="0%" stop-color="#f2a33b"/>
+              <stop offset="100%" stop-color="#f6b456"/>
             </linearGradient>
           </defs>
           <text x="240" y="80" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="900" font-size="62" fill="url(#mcaGrad)" letter-spacing="2">MCA</text>
           <text x="240" y="115" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-weight="500" font-size="22" fill="#eef3fb" letter-spacing="6">LOGISTICS</text>
-          <line x1="160" y1="92" x2="320" y2="92" stroke="#e63946" stroke-width="2" opacity="0.6"/>
+          <line x1="160" y1="92" x2="320" y2="92" stroke="#f2a33b" stroke-width="2" opacity="0.6"/>
         </svg>
       </div>
     </section>
@@ -509,8 +509,8 @@
     </form>
 
     <form id="setup-form" onsubmit="soumettreSetupInitial(event)" style="display:none">
-      <div style="background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:.88rem;line-height:1.5">
-        <strong style="color:#ffd0d4">Premier démarrage</strong><br />
+      <div style="background:rgba(242,163,59,0.08);border:1px solid rgba(242,163,59,0.25);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:.88rem;line-height:1.5">
+        <strong style="color:#ffd49e">🔐 Premier démarrage</strong><br />
         Créez le compte administrateur principal.<br />
         <span style="color:var(--muted);font-size:.82rem">Mot de passe : minimum 8 caractères, une majuscule, une minuscule, un chiffre.</span>
       </div>
@@ -646,7 +646,7 @@
       }
       const favicon = document.querySelector("link[rel='icon']") || document.createElement('link');
       favicon.rel = 'icon';
-      favicon.href = logo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23e63946'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-size='24' font-family='Arial' font-weight='700' fill='%230d1524'%3EMCA%3C/text%3E%3C/svg%3E";
+      favicon.href = logo || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23f2a33b'/%3E%3Ctext x='32' y='39' text-anchor='middle' font-size='24' font-family='Arial' font-weight='700' fill='%230d1524'%3EMCA%3C/text%3E%3C/svg%3E";
       if (!favicon.parentNode) {
         document.head.appendChild(favicon);
       }
@@ -877,17 +877,10 @@
         return true;
       }
 
-      // Bug #4 audit Chrome : differencier compte introuvable / mot de passe incorrect
-      // pour aider l'utilisateur a diagnostiquer plus vite. Les 2 messages restent
-      // volontairement neutres pour ne pas leak l'existence d'un compte (anti-enumeration).
       if (authResult.reason === 'invalid_credentials') {
-        afficherErreurConnexion('Mot de passe incorrect. Vérifiez votre saisie ou réinitialisez-le.');
+        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       } else if (authResult.reason === 'not_found') {
-        afficherErreurConnexion('Aucun compte trouvé pour cet identifiant.');
-      } else if (authResult.reason === 'rate_limited') {
-        afficherErreurConnexion('Trop de tentatives. Réessayez dans quelques minutes.');
-      } else if (authResult.reason === 'network') {
-        afficherErreurConnexion('Connexion impossible. Vérifiez votre réseau.');
+        afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       } else {
         afficherErreurConnexion('Identifiants non reconnus. Vérifiez votre saisie.');
       }

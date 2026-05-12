@@ -48,13 +48,13 @@ function getSalarieConformiteBadges(salarie) {
   var limitAssurance = new Date(now); limitAssurance.setDate(limitAssurance.getDate() + 30);
   if (permisDate) {
     badges.push(permisDate < now
-      ? '<span class="inline-badge-danger">Permis expiré</span>'
-      : permisDate < limitPermis ? '<span class="inline-badge-warning">Permis proche</span>' : '');
+      ? '<span class="inline-badge-danger">🪪 Permis expiré</span>'
+      : permisDate < limitPermis ? '<span class="inline-badge-warning">🪪 Permis proche</span>' : '');
   }
   if (assuranceDate) {
     badges.push(assuranceDate < now
-      ? '<span class="inline-badge-danger">Assurance expirée</span>'
-      : assuranceDate < limitAssurance ? '<span class="inline-badge-warning">Assurance proche</span>' : '');
+      ? '<span class="inline-badge-danger">🛡️ Assurance expirée</span>'
+      : assuranceDate < limitAssurance ? '<span class="inline-badge-warning">🛡️ Assurance proche</span>' : '');
   }
   var incidents = charger('incidents').filter(function(item) { return item.statut === 'ouvert' && (item.salId === salarie.id || item.chaufId === salarie.id); });
   if (incidents.length) badges.push('<span class="inline-badge-danger">🚨 ' + incidents.length + ' incident' + (incidents.length > 1 ? 's' : '') + '</span>');
@@ -171,12 +171,12 @@ function afficherChauffeurs() {
     const veh  = vehicules.find(v => v.salId === c.id);
     return `<tr>
       <td><strong>${c.nom}</strong></td><td>${c.tel}</td><td>${badgeChauffeur(c.statut)}</td>
-      <td>${veh ? `<span style="color:var(--accent-2);font-size:0.82rem">${veh.immat}</span>` : '<span style="color:var(--text-muted);font-size:0.82rem">—</span>'}</td>
+      <td>${veh ? `<span style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</span>` : '<span style="color:var(--text-muted);font-size:0.82rem">—</span>'}</td>
       <td>${livs.length}</td><td>${euros(ca)}</td>
       <td style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <select class="btn-icon" data-tooltip="Statut chauffeur" onchange="changerStatutChauffeur('${c.id}',this.value)">
           <option value="disponible"   ${c.statut==='disponible'  ?'selected':''}>✅ Dispo</option>
-          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>En route</option>
+          <option value="en-livraison" ${c.statut==='en-livraison'?'selected':''}>🚐 En route</option>
           <option value="inactif"      ${c.statut==='inactif'     ?'selected':''}>⏸️ Inactif</option>
         </select>
         ${buildInlineActionsDropdown('Actions', [
@@ -197,7 +197,7 @@ async function supprimerChauffeur(id) {
   const _ok4 = await confirmDialog('Supprimer ce chauffeur ?', {titre:'Supprimer',icone:'👤',btnLabel:'Supprimer'});
   if (!_ok4) return;
   sauvegarder('chauffeurs', charger('chauffeurs').filter(c => c.id !== id));
-  afficherChauffeurs(); afficherToast('Supprimé');
+  afficherChauffeurs(); afficherToast('🗑️ Supprimé');
 }
 
 // L3933 (script.js d'origine)
@@ -378,7 +378,7 @@ function copierCredentialsChauffeur(quoi) {
   if (quoi === 'numero') texte = creds.numero;
   else if (quoi === 'mdp') texte = creds.mdp;
   else texte = `Identifiant : ${creds.numero}\nMot de passe : ${creds.mdp}`;
-  const done = function() { if (typeof afficherToast === 'function') afficherToast('Copié dans le presse-papier'); };
+  const done = function() { if (typeof afficherToast === 'function') afficherToast('📋 Copié dans le presse-papier'); };
   const fallback = function() {
     try {
       const ta = document.createElement('textarea');
@@ -628,7 +628,7 @@ async function creerSalarie() {
     ['permis', 'cni', 'iban', 'vitale', 'medecine'].forEach(t => {
       const lbl = document.getElementById('nsal-doc-' + t + '-label');
       const inp = document.getElementById('nsal-doc-' + t);
-      if (lbl) lbl.textContent = 'Choisir un fichier';
+      if (lbl) lbl.textContent = '📎 Choisir un fichier';
       if (inp) { inp.value = ''; const wrap = inp.previousElementSibling; if (wrap && wrap.classList) wrap.classList.remove('has-file'); }
     });
   }
@@ -709,7 +709,7 @@ function afficherSalaries() {
     const veh=getSalarieVehicule(s);
     const stats = getSalarieStatsMois(s.id);
     const vehLabel=veh
-      ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${veh.id}')" title="Ouvrir le véhicule" style="color:var(--accent-2);font-size:0.82rem">${veh.immat}</button>`
+      ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${veh.id}')" title="Ouvrir le véhicule" style="color:var(--accent-2);font-size:0.82rem">🚐 ${veh.immat}</button>`
       : `<span style="color:var(--text-muted);font-size:0.82rem">Non affecté</span>`;
     const badge=s.actif
       ? '<span class="badge badge-dispo">✅ Actif</span>'
@@ -924,13 +924,13 @@ async function supprimerSalarie(id) {
 
   afficherSalaries();
   rafraichirDependancesSalaries();
-  afficherToast(`${sal?.nom || 'Salarié'} et toutes ses données supprimés`);
+  afficherToast(`🗑️ ${sal?.nom || 'Salarié'} et toutes ses données supprimés`);
   notifierSynchroSalarie(syncResult, 'Suppression salarie');
 }
 
 // L4641 (script.js d'origine)
 function badgeChauffeur(s) {
-  return { 'disponible':'<span class="badge badge-dispo">✅ Disponible</span>', 'en-livraison':'<span class="badge badge-actif">En livraison</span>', 'inactif':'<span class="badge badge-inactif">⏸️ Inactif</span>' }[s] || s;
+  return { 'disponible':'<span class="badge badge-dispo">✅ Disponible</span>', 'en-livraison':'<span class="badge badge-actif">🚐 En livraison</span>', 'inactif':'<span class="badge badge-inactif">⏸️ Inactif</span>' }[s] || s;
 }
 
 // L4762 (script.js d'origine)
@@ -1020,7 +1020,7 @@ function verifierDocumentsSalaries() {
       } else if (diff <= 60) {
         ajouterAlerteSiAbsente(
           'permis_proche_'+s.id,
-          `Permis expire dans ${diff} jour(s) — ${s.nom} (${s.datePermis})`,
+          `🪪 Permis expire dans ${diff} jour(s) — ${s.nom} (${s.datePermis})`,
           { salId:s.id, salNom:s.nom }
         );
       }
@@ -1044,7 +1044,7 @@ function verifierDocumentsSalaries() {
       } else if (diff <= 30) {
         ajouterAlerteSiAbsente(
           'assurance_proche_'+s.id,
-          `Assurance expire dans ${diff} jour(s) — ${s.nom} (${s.dateAssurance})`,
+          `🛡️ Assurance expire dans ${diff} jour(s) — ${s.nom} (${s.dateAssurance})`,
           { salId:s.id, salNom:s.nom }
         );
       }
@@ -1081,7 +1081,7 @@ function verifierDocumentsSalaries() {
     if (s.visiteMedicale?.aptitude === 'inapte') {
       ajouterAlerteSiAbsente(
         'visite_inapte_' + s.id,
-        'Inaptitude médicale déclarée — ' + s.nom + ' · ne peut pas conduire',
+        '🚨 Inaptitude médicale déclarée — ' + s.nom + ' · ne peut pas conduire',
         { salId: s.id, salNom: s.nom }
       );
     }

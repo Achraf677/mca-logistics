@@ -152,19 +152,7 @@
   // ============================================================
   function initSentry() {
     if (!SENTRY_DSN) return; // inactif tant que pas configure
-    // #21 audit Chrome : Sentry chargeait inconditionnellement 100KB+ au boot.
-    // Lazy-load 3s apres pour ne pas bloquer le path critique. Buffer les
-    // erreurs entre temps via un wrapper window.onerror qui les replay une
-    // fois Sentry charge.
-    if (typeof window !== 'undefined') {
-      var earlyErrors = [];
-      var origOnError = window.onerror;
-      window.onerror = function () { earlyErrors.push(['error', Array.prototype.slice.call(arguments)]); if (origOnError) return origOnError.apply(this, arguments); };
-      var origOnRej = window.onunhandledrejection;
-      window.onunhandledrejection = function (e) { earlyErrors.push(['rejection', e && e.reason]); if (origOnRej) return origOnRej.apply(this, arguments); };
-      window.__mcaEarlyErrors = earlyErrors;
-    }
-    setTimeout(function () { resolveReleaseThen(_initSentryNow); }, 3000);
+    resolveReleaseThen(_initSentryNow);
   }
 
   function _initSentryNow() {

@@ -126,10 +126,10 @@ function genererRapportMensuel() {
     <!-- KPIs -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px">
       ${[
-        ['CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#f5a623'],
-        ['Livraisons', livraisons.length + ' total', '#4f8ef7'],
+        ['💶 CA du mois', new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(caTotal), '#f5a623'],
+        ['📦 Livraisons', livraisons.length + ' total', '#4f8ef7'],
         ['⛽ Carburant',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(carbTotal), '#e74c3c'],
-        ['Bénéfice',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(benefice), benefice>=0?'#2ecc71':'#e74c3c'],
+        ['💰 Bénéfice',  new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(benefice), benefice>=0?'#2ecc71':'#e74c3c'],
       ].map(([label, value, color]) => `
         <div style="background:#f8f9fc;border-radius:10px;padding:14px;text-align:center;border-top:3px solid ${color}">
           <div style="font-size:.72rem;color:#9ca3af;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">${label}</div>
@@ -143,7 +143,7 @@ function genererRapportMensuel() {
       <div style="display:flex;gap:20px;flex-wrap:wrap">
         <div><span style="background:rgba(46,204,113,.15);color:#2ecc71;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">✅ Livré : ${livrees}</span></div>
         <div><span style="background:rgba(245,166,35,.15);color:#f5a623;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">⏳ En attente : ${enAttente}</span></div>
-        <div><span style="background:rgba(52,152,219,.15);color:#4f8ef7;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">En cours : ${livraisons.filter(l=>l.statut==='en-cours').length}</span></div>
+        <div><span style="background:rgba(52,152,219,.15);color:#4f8ef7;padding:3px 10px;border-radius:20px;font-size:.82rem;font-weight:600">🚐 En cours : ${livraisons.filter(l=>l.statut==='en-cours').length}</span></div>
       </div>
     </div>
 
@@ -185,7 +185,7 @@ function genererRapportMensuel() {
   </div>`;
 
   ouvrirFenetreImpression(`Rapport ${moisLabel} — ${nom}`, html, 'width=850,height=950');
-  afficherToast('Rapport mensuel généré');
+  afficherToast('📄 Rapport mensuel généré');
 }
 
 // L6637 (script.js d'origine)
@@ -198,9 +198,9 @@ function exporterHistoriqueFournisseursCSV() {
   const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'fournisseurs_' + window.todayLocalISO() + '.csv';
+  a.download = 'fournisseurs_' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
-  afficherToast('Export CSV fournisseurs');
+  afficherToast('📥 Export CSV fournisseurs');
 }
 
 // L6651 (script.js d'origine)
@@ -459,7 +459,7 @@ function exporterDonneesRGPDClientCourant() {
     if (typeof ajouterEntreeAudit === 'function') {
       ajouterEntreeAudit('Export RGPD', 'Export portabilité art. 20 — client ' + (payload.meta.clientNom || '—'));
     }
-    if (typeof afficherToast === 'function') afficherToast('Export RGPD généré', 'success');
+    if (typeof afficherToast === 'function') afficherToast('🛡️ Export RGPD généré', 'success');
   } catch (e) {
     console.warn('[RGPD]', e);
     if (typeof afficherToast === 'function') afficherToast('❌ Échec export RGPD', 'error');
@@ -512,7 +512,7 @@ function exporterChargesPDF() {
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Charges — ${nom}`, html, 'width=800,height=700');
-  afficherToast('PDF charges généré');
+  afficherToast('📄 PDF charges généré');
 }
 
 // L10372 (script.js d'origine)
@@ -537,7 +537,7 @@ function exporterHeuresPDF() {
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Heures - ${nom}`, html, 'width=800,height=700');
-  afficherToast('Rapport heures généré');
+  afficherToast('📄 Rapport heures généré');
 }
 
 // L10549 (script.js d'origine)
@@ -573,7 +573,7 @@ function exporterPlanningPDF() {
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Planning - ${nom}`, html, 'width=950,height=700');
-  afficherToast('Rapport planning généré');
+  afficherToast('📄 Rapport planning généré');
 }
 
 // L10588 (script.js d'origine)
@@ -607,7 +607,7 @@ function exporterVehiculesPDF() {
     ${renderFooterEntreprise(params, dateExp)}
   </div>`;
   ouvrirFenetreImpression(`Véhicules — ${nom}`, html, 'width=850,height=700');
-  afficherToast('Rapport véhicules généré');
+  afficherToast('📄 Rapport véhicules généré');
 }
 
 // L10925 (script.js d'origine)
@@ -670,7 +670,7 @@ function exporterPlanningSemainePDF() {
     '</div>';
 
   ouvrirFenetreImpression('Planning ' + titreSemaine, html, 'width=950,height=700');
-  afficherToast('Rapport planning semaine généré');
+  afficherToast('📄 Rapport planning semaine généré');
 }
 
 // L11194 (script.js d'origine)
@@ -707,7 +707,7 @@ function exporterReleveKmPDF() {
     renderFooterEntreprise(params, dateExp)+
     '</div>';
   ouvrirFenetreImpression('Relevés km — ' + nom, html, 'width=800,height=700');
-  afficherToast('Rapport relevés km généré');
+  afficherToast('📄 Rapport relevés km généré');
 }
 
 // L11232 (script.js d'origine)
@@ -788,7 +788,7 @@ function exporterRapportHeuresEtKmPDF() {
   + '</div>';
 
   ouvrirFenetreImpression('Heures et km - ' + nom, html, 'width=980,height=760');
-  afficherToast('Rapport heures et km généré');
+  afficherToast('📄 Rapport heures et km généré');
 }
 
 // L11456 (script.js d'origine)
@@ -810,7 +810,7 @@ function exporterTvaCSV() {
   });
   if (!rows.length) { afficherToast('Aucune donnée TVA à exporter sur cette période', 'error'); return; }
   exporterCSV('tva-' + range.debut + '-au-' + range.fin + '.csv', rows);
-  afficherToast('Export CSV TVA généré');
+  afficherToast('📥 Export CSV TVA généré');
 }
 
 // L11478 (script.js d'origine)
@@ -841,19 +841,19 @@ function exporterTvaPDF() {
   var html = '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:750px;margin:0 auto;padding:32px;color:#1a1d27">' +
     construireEnteteExport(params, 'Récapitulatif TVA', moisLabel, dateExp, metaTva) +
     renderBlocInfosEntreprise(params) +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">TVA Collectée exigible</div>' +
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2ecc71">📤 TVA Collectée exigible</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Exigibilité</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+collRows+'<tr style="background:#e8f5e9;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#2ecc71">'+euros(totalCollectee)+'</td><td></td></tr></tbody></table>' +
-    (pendingRows ? '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#f5a623">Facturé mais non encore exigible</div><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date facture</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:left">Statut</th></tr></thead><tbody>' + pendingRows + '</tbody></table>' : '') +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e67e22">TVA Déductible</div>' +
+    (pendingRows ? '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#f5a623">📅 Facturé mais non encore exigible</div><table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date facture</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:left">Statut</th></tr></thead><tbody>' + pendingRows + '</tbody></table>' : '') +
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#e67e22">📥 TVA Déductible</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Date</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Base HT</th><th style="padding:6px 12px;text-align:right">TVA</th><th style="padding:6px 12px;text-align:right">TTC</th></tr></thead><tbody>'+dedRows+'<tr style="background:#fff3e0;font-weight:700"><td style="padding:6px 12px">TOTAL</td><td></td><td></td><td style="padding:6px 12px;text-align:right;color:#e67e22">'+euros(totalDeductible)+'</td><td></td></tr></tbody></table>' +
-    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2563eb">Règlements TVA rattachés à la période</div>' +
+    '<div style="font-weight:700;font-size:1rem;margin-bottom:10px;color:#2563eb">🧾 Règlements TVA rattachés à la période</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:.85rem;margin-bottom:20px"><thead><tr style="background:#f3f4f6"><th style="padding:6px 12px;text-align:left">Période TVA</th><th style="padding:6px 12px;text-align:left">Date paiement</th><th style="padding:6px 12px;text-align:left">Libellé</th><th style="padding:6px 12px;text-align:right">Montant</th></tr></thead><tbody>' + settlementRows + '</tbody></table>' +
     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:20px 0"><div style="padding:14px;background:#e8f5e9;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Collectée</div><div style="font-size:1.2rem;font-weight:800;color:#2ecc71">'+euros(totalCollectee)+'</div></div><div style="padding:14px;background:#fff3e0;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Déductible</div><div style="font-size:1.2rem;font-weight:800;color:#e67e22">'+euros(totalDeductible)+'</div></div><div style="padding:14px;background:#eff6ff;border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">Planifiée / réglée</div><div style="font-size:1.2rem;font-weight:800;color:#2563eb">'+euros(summary.totalTVAPlanifiee)+'</div></div><div style="padding:14px;background:'+(solde>=0?'#ffebee':'#f5edff')+';border-radius:8px;text-align:center"><div style="font-size:.72rem;color:#6b7280">'+(solde>=0?'Reste non planifié':'Crédit TVA')+'</div><div style="font-size:1.2rem;font-weight:800;color:'+(solde>=0?'#e74c3c':'#8e44ad')+'">'+euros(solde>=0 ? summary.tvaReverser : summary.tvaCredit)+'</div></div></div>' +
     renderFooterEntreprise(params, dateExp) +
     '</div>';
 
   ouvrirFenetreImpression('TVA '+moisLabel+' — '+nom, html, 'width=800,height=800');
-  afficherToast('Rapport TVA généré');
+  afficherToast('📄 Rapport TVA généré');
 }
 
 // L11527 (script.js d'origine)
@@ -1025,6 +1025,6 @@ function exporterChargesPDFMois() {
     '</div>';
 
   ouvrirFenetreImpression('Charges '+moisLabel+' — '+nom, html, 'width=800,height=700');
-  afficherToast('Rapport charges généré');
+  afficherToast('📄 Rapport charges généré');
 }
 

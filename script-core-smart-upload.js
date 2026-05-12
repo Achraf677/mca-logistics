@@ -139,7 +139,7 @@
       // Salaries PC : pas de champs IBAN/BIC dedies dans le form de creation
       // actuel. On affiche en toast pour copie manuelle (sera remplace par des
       // inputs dedies dans le drawer 360 PC, sprint H2.4 - voir CLAUDE.md).
-      var msg = 'RIB lu : ' + (f.titulaire || 'titulaire ?') +
+      var msg = '🏦 RIB lu : ' + (f.titulaire || 'titulaire ?') +
         ' / IBAN ' + (f.iban || '?') + ' / BIC ' + (f.bic || '?');
       toastSafe(msg, 'info');
       n = (f.titulaire ? 1 : 0) + (f.iban ? 1 : 0) + (f.bic ? 1 : 0);
@@ -156,7 +156,7 @@
       }
     } else if (route.target_section === 'carte_grise') {
       // Defere a la PR de suivi (cablage modal-vehicule). On toast pour signaler.
-      toastSafe('Carte grise lue (câblage Véhicule en PR de suivi)', 'info');
+      toastSafe('🪪 Carte grise lue (câblage Véhicule en PR de suivi)', 'info');
       n = 1;
     }
 
@@ -208,7 +208,7 @@
     } else if (route.target_section === 'rib') {
       try {
         if (window.MCAm && typeof window.MCAm.toast === 'function') {
-          window.MCAm.toast('RIB lu : ' + (f.iban || '?') + ' / ' + (f.bic || '?'));
+          window.MCAm.toast('🏦 RIB lu : ' + (f.iban || '?') + ' / ' + (f.bic || '?'));
         }
       } catch (_) {}
       n = (f.iban ? 1 : 0) + (f.bic ? 1 : 0) + (f.titulaire ? 1 : 0);
@@ -242,7 +242,7 @@
         },
         feedbackEl: document.getElementById('carb-smart-upload-feedback'),
         onOcrResult: function (payload) {
-          if (carbLabel) carbLabel.textContent = 'Uploader (auto) — ticket carburant';
+          if (carbLabel) carbLabel.textContent = '📤 Uploader (auto) — ticket carburant';
           applyAutoResultToPCForm(payload, { expectedSection: 'ticket' });
         },
         onError: function (err) { console.warn('[carb smart-upload]', err); },
@@ -260,7 +260,7 @@
         skipStorage: true,
         feedbackEl: document.getElementById('nsal-smart-upload-feedback'),
         onOcrResult: function (payload) {
-          if (salLabel) salLabel.textContent = 'Uploader (auto) — RIB / permis (auto-détection)';
+          if (salLabel) salLabel.textContent = '📤 Uploader (auto) — RIB / permis (auto-détection)';
           applyAutoResultToPCForm(payload);
         },
         onError: function (err) { console.warn('[nsal smart-upload]', err); },

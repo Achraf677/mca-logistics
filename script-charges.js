@@ -51,7 +51,7 @@ function resetFormulaireCharge() {
   if (modal) {
     var title = modal.querySelector('.modal-header h3');
     var btn = modal.querySelector('.modal-footer .btn-primary');
-    if (title) title.textContent = 'Nouvelle charge';
+    if (title) title.textContent = '💸 Nouvelle charge';
     if (btn) btn.textContent = '✅ Enregistrer';
   }
 }
@@ -214,7 +214,7 @@ function attacherSmartUploadCharge() {
     skipStorage: true,
     feedbackEl: feedback || null,
     onOcrResult: function (payload) {
-      if (label) label.textContent = 'Uploader (auto) — facture / ticket';
+      if (label) label.textContent = '📤 Uploader (auto) — facture / ticket';
       // Si ticket carburant detecte -> bascule la categorie pour activer
       // les champs litres + prix/L (toggle gere par ajusterCategorieCharge).
       if (payload && payload.type_detecte === 'ticket_carburant') {
@@ -528,14 +528,7 @@ function afficherCharges() {
     return;
   }
 
-  // #96 audit Chrome : libelles humains pour les categories raw (lld_credit ->
-  // "Crédit-bail / LLD"). Avant le fix, le badge affichait "lld_credit" en raw.
   const catIcons = { carburant:'⛽', peage:'🛣️', entretien:'🔧', assurance:'🛡️', salaires:'👥', lld_credit:'🚐', tva:'🧾', autre:'📝' };
-  const catLabels = {
-    carburant: 'Carburant', peage: 'Péage', entretien: 'Entretien',
-    assurance: 'Assurance', salaires: 'Salaires', lld_credit: 'Crédit-bail / LLD',
-    tva: 'TVA', autre: 'Autre'
-  };
   paginer(charges, 'tb-charges', function(items) {
     return items.map(c => {
     const ht = c.montantHT || (c.montant||0) / (1 + (c.tauxTVA||20)/100);
@@ -558,8 +551,8 @@ function afficherCharges() {
     var statutLabels = {
       a_payer:  { txt: '⏳ À payer',   bg: '#fff3cd', col: '#856404' },
       paye:     { txt: '✅ Payé',      bg: '#d4edda', col: '#155724' },
-      partiel:  { txt: 'Partiel',   bg: '#fff3cd', col: '#856404' },
-      en_retard:{ txt: 'En retard', bg: '#f8d7da', col: '#721c24' }
+      partiel:  { txt: '🟡 Partiel',   bg: '#fff3cd', col: '#856404' },
+      en_retard:{ txt: '🔴 En retard', bg: '#f8d7da', col: '#721c24' }
     };
     var st = statutLabels[statutEff] || statutLabels.a_payer;
     var btnToggleTitre = (statutEff === 'paye') ? 'Marquer à payer' : 'Marquer payée';
@@ -568,7 +561,7 @@ function afficherCharges() {
       + ' <button class="btn-icon" onclick="basculerStatutCharge(\'' + c.id + '\')" title="' + btnToggleTitre + '" style="padding:2px 4px;font-size:.85rem">' + btnToggleIcone + '</button>';
     return `<tr>
     <td>${formatDateExport(c.date)}</td>
-    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${catLabels[c.categorie]||c.categorie||'Autre'}</span></td>
+    <td><span class="charge-cat-badge charge-cat-${c.categorie||'autre'}">${catIcons[c.categorie]||'📝'} ${c.categorie||'autre'}</span></td>
     <td>${descAffichee}</td>
     <td>${vehicule ? `<button type="button" class="table-link-button" onclick="ouvrirFicheVehiculeDepuisTableau('${vehicule.id}')" title="Ouvrir le véhicule">${vehicule.immat}</button>` : (c.vehNom||'—')}</td>
     <td style="font-size:.85rem">${euros(ht)}</td>
@@ -726,7 +719,7 @@ async function supprimerCharge(id) {
   afficherRentabilite();
   if (typeof afficherCarburant === 'function') afficherCarburant();
   ajouterEntreeAudit('Suppression charge', (charge?.categorie || 'charge') + ' · ' + euros(charge?.montant || 0));
-  afficherToast('Charge supprimée');
+  afficherToast('🗑️ Charge supprimée');
 }
 
 // L7493 (script.js d'origine)

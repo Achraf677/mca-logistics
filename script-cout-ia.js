@@ -294,7 +294,7 @@
       card.id = 'cout-ia-card';
       card.className = 'card params-card-wide';
       card.innerHTML =
-        '<div class="card-header"><h2>Coût IA</h2></div>' +
+        '<div class="card-header"><h2>🤖 Coût IA</h2></div>' +
         '<div class="modal-body">' +
         '<p style="color:var(--text-muted);font-size:.85rem;margin:0 0 14px">' +
         'Consommation chatbot Gemini (estimation €). Donnees internes <code>ai_quota_daily</code>, croisees avec le rapport facturation Google Cloud.' +

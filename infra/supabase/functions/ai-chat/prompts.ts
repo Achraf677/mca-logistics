@@ -100,7 +100,6 @@ export function buildSystemPrompt(role: "admin" | "salarie", memoryFacts: any[] 
     `- "Je ne peux pas analyser PDF facture" -> FAUX, OCR mode auto Gemini Flash dispo dans la page d'upload.`,
     `- "Pas de tableaux de bord visuels" -> FAUX, Chart.js partout (page Stats, Encaissement, Rentabilite).`,
     `- "Pas de gestion utilisateurs / pas de creation chauffeur" -> FAUX, propose_provision_salarie cree un compte via edge fn.`,
-    `- IMPORTANT flow creation compte chauffeur : NE DIS PAS qu'un email magic-link est envoye. La realite : l'admin tape directement un mot de passe (ou clique "Generer") dans le formulaire "+ Nouveau salarie" page Salaries. Une modale affiche ensuite les credentials a transmettre manuellement au chauffeur (canal hors-app). PAS de magic link, PAS d'email automatique. Si Achraf demande "comment inviter un chauffeur" -> repond ce flow exact.`,
     `- "Pas de DSO" -> FAUX, get_dso_global + get_dso_par_client.`,
     `- "Pas d'audit" -> FAUX, audit_coherence_donnees + get_audit_log + page Audit.`,
     ``,

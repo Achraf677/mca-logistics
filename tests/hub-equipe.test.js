@@ -131,39 +131,28 @@ test('heures semaine : virgule decimale parsable (saisie FR)', () => {
 // ============================================================
 // calculerLivraisons30j
 // ============================================================
-test('livraisons 30j : compte tous les statuts sauf annule, CA en HT (#109 audit)', () => {
+test('livraisons 30j : compte uniquement statut=livre', () => {
   const ref = new Date('2026-05-09T12:00:00Z');
   const livraisons = [
-    { date: '2026-05-08', statut: 'livre',      prixHT: 100 },
-    { date: '2026-05-07', statut: 'livre',      prixHT: 200 },
-    { date: '2026-05-06', statut: 'en-attente', prixHT: 300 }, // inclus apres fix #109
-    { date: '2026-05-05', statut: 'annule',     prixHT: 999 }, // exclus
-    { date: '2026-04-01', statut: 'livre',      prixHT: 50 }   // hors 30j
-  ];
-  const r = calculerLivraisons30j(livraisons, ref);
-  assert.equal(r.nb, 3);
-  assert.equal(r.ca, 600);
-});
-
-test('livraisons 30j : limite inclusive (J-30 et J)', () => {
-  const ref = new Date('2026-05-09T12:00:00Z');
-  const livraisons = [
-    { date: '2026-04-09', statut: 'livre', prixHT: 100 }, // J-30 inclus
-    { date: '2026-05-09', statut: 'livre', prixHT: 200 }  // J inclus
+    { date: '2026-05-08', statut: 'livre', prix: 100 },
+    { date: '2026-05-07', statut: 'livre', prix: 200 },
+    { date: '2026-05-06', statut: 'en-attente', prix: 300 },
+    { date: '2026-04-01', statut: 'livre', prix: 50 } // hors 30j
   ];
   const r = calculerLivraisons30j(livraisons, ref);
   assert.equal(r.nb, 2);
   assert.equal(r.ca, 300);
 });
 
-test('livraisons 30j : fallback prix TTC -> HT si prixHT manquant (#109)', () => {
+test('livraisons 30j : limite inclusive (J-30 et J)', () => {
   const ref = new Date('2026-05-09T12:00:00Z');
   const livraisons = [
-    { date: '2026-05-08', statut: 'livre', prix: 120, tauxTVA: 20 } // 120 TTC -> 100 HT
+    { date: '2026-04-09', statut: 'livre', prix: 100 }, // J-30 inclus
+    { date: '2026-05-09', statut: 'livre', prix: 200 }  // J inclus
   ];
   const r = calculerLivraisons30j(livraisons, ref);
-  assert.equal(r.nb, 1);
-  assert.equal(r.ca, 100);
+  assert.equal(r.nb, 2);
+  assert.equal(r.ca, 300);
 });
 
 test('livraisons 30j : input vide -> 0', () => {
