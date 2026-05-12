@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 56 — Heures 62→72%, Incidents 62→75%, Planning 60→72%, Brouillons IA 58→68% (commit a112414)
+> **Dernier commit** : Phase 57 — Encaissement 65→80%, Statistiques 65→78%, Équipe 65→75% (commit 13c5806)
 
 ---
 
@@ -33,13 +33,13 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Entretiens | 78% | 100% | Phase 51 : Exporter dropdown, combined period nav, alert banner CT échéances |
 | Inspections | 68% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
-| Encaissement | 65% | 100% | Phase 50 : Exporter dropdown, "+ Enregistrer paiement" primary btn, section-head mockup-aligned |
+| Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
 | Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
-| Statistiques | 65% | 100% | Phase 54 : CSS hide s22-bandeau COMPTABILITE quand Stats active, ds-crumbs force-show |
+| Statistiques | 78% | 100% | Phase 57 : chips Mois/Trimestre/Année section-head + stat-row bar charts CSS + KPI label fix |
 | Calendrier | 70% | 100% | Phase 55 : sidebar h3 display font + dupe Légende supprimée |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
-| Équipe | 65% | 100% | Phase 54 : KPI grid labels mockup-aligned (Chauffeurs actifs/Heures travaillées/Incidents ouverts/Échéances permis) + ds-kpi classes |
+| Équipe | 75% | 100% | Phase 57 : team-grid + member-card CSS (avatar/head/body/foot/badges) mockup-aligned |
 | Heures | 72% | 100% | Phase 56 : heures-km-layout 2-col styled, CE 561 kpi red, incident badge colors |
 | Incidents | 75% | 100% | Phase 56 : chips toolbar (Tous/Ouverts/En cours/Traités/Graves) + incChipFilter() + badge colors |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |

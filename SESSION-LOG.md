@@ -5,6 +5,24 @@
 
 ---
 
+## Session 2026-05-12 :45 — Phase 57 Encaissement+Stats+Équipe (agent :45)
+**Phases** : 57
+**Commit final** : `13c5806`
+**CACHE_VERSION** : v99 → v100
+
+### Actions clés
+- **Encaissement** : `style-design-encaissement.css` NEW — enc-chip→btn-chip, enc-table standard, statut badges pills (ok/warn/alert/att), period nav bar, enc-mark-pay. admin.html : period nav bar Jour/Semaine/Mois/Année, "Envoyer relances" btn, export dropdown 4 items (PDF/CSV/Excel/Relances email). Encaissement 65%→80%
+- **Statistiques** : admin.html section-head chips Mois/Trimestre/Année + KPI label "CA HT période". `script-stats-calendrier-counts.js` : window.setStatsGranularity() global. `style-design-rentabilite-stats.css` : stat-row bar chart (.bar-track/.bar-fill/.lbl/.val), chart-legend::before. Stats 65%→78%
+- **Équipe** : `style-design-equipe.css` : team-grid auto-fill grid + member-card complet (head/avatar/info/name/role/body/stats/foot) + badge variants (ok/warn/alert). Équipe 65%→75%
+- Tests 426/427 pass (1 skip E2E)
+
+### Décisions
+- Encaissement period nav = cosmétique (les boutons appellent fonctions JS si présentes, pas d'erreur si absentes)
+- setStatsGranularity mappe trimestre→changerVueStats('annee') (pas de mode trimestre natif dans le JS)
+- member-card CSS ajouté mais le rendu effectif dépend du JS EquipeHub (prêt quand Hub sera étendu)
+
+---
+
 ## Session 2026-05-12 :15 — Phase 56 Heures+Incidents+Planning+Brouillons IA (agent :15)
 **Phases** : 56
 **Commit final** : `a112414`
