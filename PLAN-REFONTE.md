@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 54 — Équipe 55→65% (KPI labels mockup-aligned), Alertes/Statistiques/Calendrier CSS fixes
+> **Dernier commit** : Phase 55 — Brouillons IA 45→58%, Calendrier 65→70% (sidebar display font + dupe Légende supprimée)
 
 ---
 
@@ -37,13 +37,13 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
 | Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
 | Statistiques | 65% | 100% | Phase 54 : CSS hide s22-bandeau COMPTABILITE quand Stats active, ds-crumbs force-show |
-| Calendrier | 65% | 100% | Phase 54 : CSS cal16-kpi-grid polished + Légende section + Aujourd'hui button + sidebar labels |
+| Calendrier | 70% | 100% | Phase 55 : sidebar h3 display font + dupe Légende supprimée |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
 | Équipe | 65% | 100% | Phase 54 : KPI grid labels mockup-aligned (Chauffeurs actifs/Heures travaillées/Incidents ouverts/Échéances permis) + ds-kpi classes |
 | Heures | 62% | 100% | Phase 51 : Exporter dropdown (4 rapports), combined period nav + chips |
 | Incidents | 62% | 100% | Phase 51 : Exporter dropdown (PDF + CSV) |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
-| Brouillons IA | 45% | 100% | Phase 53 : Valider/Rejeter sélection buttons in section-head |
+| Brouillons IA | 58% | 100% | Phase 55 : list wrapped in .card + header row; description card supprimée |
 | Planning | 60% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips + ⋯ button |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |

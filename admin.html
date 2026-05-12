@@ -3075,7 +3075,7 @@
       <div class="cal16-layout">
         <!-- Sidebar filtres -->
         <aside class="cal16-sidebar card">
-          <h3 style="margin:0 0 10px;font-size:1rem">Filtres</h3>
+          <h3 style="margin:0 0 14px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Filtres</h3>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="livraisons" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-liv"></span> Livraisons</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="echeances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-ech"></span> Échéances</label>
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="relances" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-rel"></span> Relances</label>
@@ -3083,7 +3083,7 @@
           <label class="cal16-filter"><input type="checkbox" data-cal-filter="feries" checked onchange="window.cal16?.render()" /> <span class="cal16-dot cal16-dot-fer"></span> Jours fériés</label>
 
           <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 10px;font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)">Ce mois</h3>
+          <h3 style="margin:0 0 14px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Ce mois</h3>
           <div class="cal16-kpi-grid">
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Livraisons</div><div class="cal16-kpi-val" id="cal16-kpi-liv">0</div></div>
             <div class="cal16-kpi"><div class="cal16-kpi-lbl" style="color:var(--warning,#f5a623)">Échéances</div><div class="cal16-kpi-val" style="color:var(--warning,#f5a623)" id="cal16-kpi-ech">0</div></div>
@@ -3092,20 +3092,11 @@
           </div>
 
           <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 10px;font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted)">Légende</h3>
+          <h3 style="margin:0 0 10px;font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Légende</h3>
           <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
             <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--brand,#e63946);flex-shrink:0"></span> Aujourd'hui</div>
             <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--success,#06d6a0);flex-shrink:0"></span> Férié</div>
             <div style="display:flex;align-items:center;gap:8px"><span style="width:10px;height:10px;border-radius:50%;background:var(--warning,#f5a623);flex-shrink:0"></span> Échéance</div>
-          </div>
-
-          <!-- Phase 53 : Légende section (mockup-aligned) -->
-          <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
-          <h3 style="margin:0 0 10px;font-size:1rem">Légende</h3>
-          <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--text-muted)">
-            <div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--brand);flex-shrink:0"></span>Aujourd'hui</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#06d6a0;flex-shrink:0"></span>Jour férié</div>
-            <div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d4b67a;flex-shrink:0"></span>Échéance</div>
           </div>
 
         </aside>
@@ -3422,13 +3413,13 @@
         <button class="ds-chip" type="button" data-brouillons-statut="rejected" onclick="brouillonsChipFilter(this)">Rejetées</button>
         <button class="ds-chip" type="button" data-brouillons-statut="ocr" onclick="brouillonsChipFilter(this)">OCR factures</button>
       </div>
-      <div class="card" style="margin-bottom:14px;padding:14px 18px">
-        <div style="font-size:.88rem;color:var(--text-muted);line-height:1.5">
-          Liste des actions proposées par l'assistant IA et déposées en brouillon depuis le chat.
-          Approuver pour exécuter (création / modification / suppression réelle), rejeter pour annuler définitivement.
+      <div class="card" style="padding:0">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-family:var(--ds-font-display,var(--font-display));font-size:14px;font-weight:800">Actions en attente</div>
+          <div style="font-size:.78rem;color:var(--text-muted)">Approuver ou rejeter chaque proposition</div>
         </div>
+        <div style="padding:14px 18px" id="brouillons-ia-list">Chargement…</div>
       </div>
-      <div id="brouillons-ia-list">Chargement…</div>
     </section>
 
   </main>
