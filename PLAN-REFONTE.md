@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 53 (Paramètres 35%→65%, Calendrier 40%→45%, Brouillons IA 40%→45%)
+> **Dernier commit** : Phase 53 (:15) Paramètres 35%→70% (7 tabs + 2 nouveaux panels Notifications+Intégrations)
 
 ---
 
@@ -42,7 +42,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Équipe | 55% | 100% | Phase 46 : breadcrumb+h1 supprimés, KPI val 28px, tab count badges (Salariés/Incidents) |
 | Heures | 62% | 100% | Phase 51 : Exporter dropdown (4 rapports), combined period nav + chips |
 | Incidents | 62% | 100% | Phase 51 : Exporter dropdown (PDF + CSV) |
-| Paramètres | 65% | 100% | Phase 53 : tabs navigation (Entreprise/Comptabilité/Sécurité/Apparence/Sauvegarde) |
+| Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
 | Brouillons IA | 45% | 100% | Phase 53 : Valider/Rejeter sélection buttons in section-head |
 | Planning | 60% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips + ⋯ button |
 | Mobile m.html | 75% | 100% | Phase 16 |

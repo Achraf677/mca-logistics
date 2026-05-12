@@ -5,6 +5,24 @@
 
 ---
 
+## Session 2026-05-12 :15 — Phase 53 Paramètres 7 tabs (agent :15)
+**Phases** : 53 (Paramètres tabs)
+**Commit final** : `59d5983`
+**État** : 0 bugs NEW, Paramètres 35%→70%, CACHE_VERSION v95
+
+### Actions clés
+- **Tabs Paramètres** : 7 tabs mockup-aligned (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde)
+- **7 param-panel divs** : Entreprise (3 cards), Comptabilité (2 cards), Notifications (static 11 toggles), Sécurité (Mdp + sessions), Intégrations (Pennylane/Qonto/Gemini/ORS), Apparence (thème+préfs), Sauvegarde (backup+audit+changelog)
+- **CSS** : `.param-tabs-bar`, `.param-tab`, `.param-panel`, `.toggle-row`, `.field` ajoutés à `style-design-parametres.css`
+- **JS** : `window.switchParamTab(tab)` global (onclick-compatible, préserve window.X pattern)
+- Conflits résolus avec agent :45 (version 5-tabs → remplacée par 7-tabs plus complète)
+- CACHE_VERSION v94 → v95
+
+### Décisions
+- Panel wrapping HTML-natif plutôt que JS dynamique (plus robuste, pas de flash au reload)
+- 7 tabs vs 5 de l'agent :45 : Notifications + Intégrations ajoutés car présents dans mockup
+- Panels Notifications et Intégrations = contenu statique (visuellement correct, non branché JS)
+
 ## Session 2026-05-12 (autonome-6) — Phase 53 : Paramètres tabs + Calendrier Légende + Brouillons IA
 **Phases** : 53
 **Commit final** : TBD
