@@ -120,11 +120,26 @@
 
 .badge-alertes-nav {
   background: var(--ds-brand);
-  color: var(--ds-brand-on);
+  color: var(--ds-brand-on, #fff);
   font-family: var(--ds-font-mono);
   font-weight: var(--ds-fw-bold);
-  font-size: var(--ds-fs-xs);
+  font-size: 10px;
   border-radius: var(--ds-r-pill);
+  /* Phase 60 polish V2 : pill compacte pour 3 chiffres lisibles */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 0 6px;
+  line-height: 1;
+  letter-spacing: 0;
+  margin-left: 6px;
+}
+
+/* Quand le badge contient un nombre à 3+ chiffres, fontsize plus petit */
+.badge-alertes-nav:not(:empty) {
+  font-feature-settings: "tnum";
 }
 
 /* ============ SIDEBAR FOOTER (admin identity + dropdown) ============ */
