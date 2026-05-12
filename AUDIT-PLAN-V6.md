@@ -87,10 +87,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 ### KPIs non connectés
 
-- ⬜ **H12** — Rentabilité : KPIs vides (CA, Charges, Marge, Coût/km) → connecter calculs
-- ⬜ **H13** — Statistiques : KPIs à 0 → connecter calculs
-- ⬜ **H14** — Inspections : KPIs vides → connecter (KO count, conformité %, véhicule à risque)
-- ⬜ **H15** — Top chauffeurs / Utilisation véhicules : sections vides → connecter
+- ✅ **H12** — Rentabilité : KPIs `rent-kpi-ca/charges/marge/cout-km` maintenant peuplés via `script-rent-kpis.js` (nouveau) — calculs depuis livraisons+charges+carburant mois courant. Session :45 2026-05-12.
+- ✅ **H13** — Statistiques : FALSE POSITIVE — `script-stats.js` peuple déjà `stats-ca-periode`, `stats-livraisons-periode`, `stats-panier-moyen`, `stats-km-total`. KPIs à 0 = absence de données seedées, pas bug code.
+- ✅ **H14** — Inspections : FALSE POSITIVE — `script-inspections-counts.js` peuple déjà `insp-kpi-semaine`, `insp-kpi-defauts`, `insp-kpi-conformite`, `insp-kpi-risque` (Phase 43). Audit vu 0 = pas de données.
+- ✅ **H15** — Top chauffeurs / Utilisation véhicules : FALSE POSITIVE — `chartChauffeurs` + `chartVehicules` déjà câblés dans `script-stats.js` lignes 115/137. Canvas vides = données absentes, pas bug code.
 
 ### Sections manquantes mockup
 
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 14 | 0 | 12 (H2, H3, H4, H10, H11, H16, H17, H18, H23, H24, H25, H26) | - | - |
+| 2 — HIGH | 26 | 10 | 0 | 16 (H2–H4, H10–H18, H23–H26) | - | - |
 | 3 — MEDIUM | 18 | 14 | 0 | 4 (M1, M2, M10, M11) | - | - |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **42** | **0** | **17** | **2** | **4** |
+| **TOTAL** | **65** | **38** | **0** | **21** | **2** | **4** |
 
 ---
 
