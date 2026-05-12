@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-12-v85-period-row-drawer-zindex-watchdog';
+const CACHE_VERSION = 'mca-v2026-05-12-v86-clients-fournisseurs-mockup-phase47';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -109,6 +109,8 @@ const CORE_ASSETS = [
   '/script-clients-fournisseurs-counts.js',
   // Phase 39 — Clients/Fournisseurs chips toolbar filter
   '/script-clients-fournisseurs-kpis.js',
+  // Phase 47 — Clients/Fournisseurs table post-render (Ville/SIREN columns)
+  '/script-clients-table-polish.js',
   // Phase 2 HTML refonte — Alertes section-head counts
   '/script-alertes-counts.js',
   // Phase 2 HTML refonte — Stats/Calendrier sub-meta (periode mirror + livraisons count)

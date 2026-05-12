@@ -127,6 +127,8 @@
   <script defer src="script-clients-fournisseurs-counts.js?v=2"></script>
   <!-- Phase 39 : Clients + Fournisseurs chips toolbar filter. -->
   <script defer src="script-clients-fournisseurs-kpis.js?v=1"></script>
+  <!-- Phase 47 : Clients + Fournisseurs table columns post-render (Ville/SIREN). -->
+  <script defer src="script-clients-table-polish.js?v=1"></script>
   <!-- Phase 2 HTML refonte Alertes : counts actives + reportees + traitees. -->
   <script defer src="script-alertes-counts.js?v=2"></script>
   <!-- Phase 2 HTML refonte Stats/Calendrier : sub-meta mirror periode + nb livraisons. -->
@@ -875,19 +877,36 @@
         </div>
       </div>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 47 refonte HTML : section-head mockup-aligned (Exporter dropdown + Nouveau client) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
-          <h2>Carnet Clients</h2>
+          <h2>Carnet clients</h2>
           <div class="ds-section-head__sub">
             <span><span id="clients-section-sub-total">0</span> client(s)</span>
             <span class="ds-section-head__sep">·</span>
             <span><span id="clients-section-sub-actifs">0</span> actif(s) (90j)</span>
+            <span class="ds-section-head__sep" id="clients-section-sep-ca" style="display:none">·</span>
+            <span id="clients-section-sub-ca" style="display:none"></span>
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <button class="btn-secondary" onclick="exporterHistoriqueClientsCSV()">Historique clients</button>
-          <button class="btn-rapport" onclick="genererRapportClients()">Rapport</button>
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="cli-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('cli-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="cli-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterHistoriqueClientsCSV();document.getElementById('cli-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="genererRapportClients();document.getElementById('cli-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport PDF
+              </button>
+            </div>
+          </div>
           <button class="btn-primary" onclick="openModal('modal-client')">+ Nouveau client</button>
         </div>
       </div>
@@ -898,24 +917,22 @@
         <div class="kpi"><div class="kpi-lbl">DSO global</div><div class="kpi-val" id="clients-kpi-dso">—</div><div class="kpi-sub">Délai paiement moyen</div></div>
         <div class="kpi"><div class="kpi-lbl">Encours impayés</div><div class="kpi-val" id="clients-kpi-encours" style="font-size:1.15rem">—</div><div class="kpi-sub" id="clients-kpi-encours-nb"></div></div>
       </div>
-      <!-- Phase 39 : chips toolbar Clients (mockup-matched) -->
-      <div class="ds-chips-toolbar" id="cli-chips-toolbar" style="margin-bottom:8px">
+      <!-- Phase 47 : chips toolbar + search inline (mockup-matched) -->
+      <div class="ds-filter-chips-row" id="cli-chips-toolbar" style="margin-bottom:14px">
+        <div class="searchbar ds-filter-search">
+          <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input type="search" id="filtre-cl-search" placeholder="Rechercher nom, ville, SIREN…" oninput="afficherClientsDashboard()" aria-label="Rechercher un client, un nom, une ville, un SIREN…" />
+        </div>
         <button class="ds-chip active" type="button" data-chip="tous" onclick="cliChipFilter('tous')">Tous</button>
         <button class="ds-chip" type="button" data-chip="actifs90j" onclick="cliChipFilter('actifs90j')">Actifs 90j</button>
         <button class="ds-chip" type="button" data-chip="risque" onclick="cliChipFilter('risque')">Risque</button>
         <button class="ds-chip" type="button" data-chip="inactifs" onclick="cliChipFilter('inactifs')">Inactifs</button>
       </div>
-      <div class="filters filters-clients" style="margin-bottom:16px">
-        <div class="searchbar">
-          <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-cl-search" placeholder="Rechercher un client, un nom, une ville, un SIREN..." oninput="afficherClientsDashboard()" / aria-label="Rechercher un client, un nom, une ville, un SIREN..." />
-        </div>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-cl-search').value='';afficherClientsDashboard()">Réinitialiser</button>
-      </div>
       <div class="card">
         <div class="table-wrapper">
+          <!-- Phase 47 : columns mockup-aligned (Ville + SIREN visible, polished by script-clients-table-polish.js) -->
           <table class="data-table clients-table">
-            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total CA</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Nom</th><th class="cli-col-ville">Ville</th><th class="cli-col-tel">Téléphone</th><th class="cli-col-siren">SIREN</th><th>CA 12m</th><th class="cli-col-actions">Actions</th></tr></thead>
             <tbody id="tb-clients"><tr><td colspan="6" class="empty-row">Aucun client enregistré</td></tr></tbody>
           </table>
         </div>
@@ -941,10 +958,10 @@
         </div>
       </div>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 47 refonte HTML : section-head mockup-aligned (Exporter dropdown + Nouveau fournisseur) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
-          <h2>Carnet Fournisseurs</h2>
+          <h2>Carnet fournisseurs</h2>
           <div class="ds-section-head__sub">
             <span><span id="fournisseurs-section-sub-total">0</span> fournisseur(s)</span>
             <span class="ds-section-head__sep">·</span>
@@ -952,8 +969,23 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <button class="btn-secondary" onclick="exporterHistoriqueFournisseursCSV()">Historique fournisseurs</button>
-          <button class="btn-rapport" onclick="genererRapportFournisseurs()">Rapport</button>
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="frn-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('frn-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="frn-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:200px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterHistoriqueFournisseursCSV();document.getElementById('frn-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="genererRapportFournisseurs();document.getElementById('frn-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport PDF
+              </button>
+            </div>
+          </div>
           <button class="btn-primary" onclick="resetFormulaireFournisseur();openModal('modal-fournisseur')">+ Nouveau fournisseur</button>
         </div>
       </div>
@@ -964,24 +996,22 @@
         <div class="kpi"><div class="kpi-lbl">Charges à régler</div><div class="kpi-val" id="fournisseurs-kpi-encours" style="font-size:1.15rem">—</div><div class="kpi-sub" id="fournisseurs-kpi-encours-nb"></div></div>
         <div class="kpi"><div class="kpi-lbl">Catégorie dominante</div><div class="kpi-val" id="fournisseurs-kpi-categorie" style="font-size:1.1rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div><div class="kpi-sub" id="fournisseurs-kpi-categorie-pct"></div></div>
       </div>
-      <!-- Phase 39 : chips toolbar Fournisseurs (mockup-matched) -->
-      <div class="ds-chips-toolbar" id="frn-chips-toolbar" style="margin-bottom:8px">
+      <!-- Phase 47 : chips toolbar + search inline (mockup-matched) -->
+      <div class="ds-filter-chips-row" id="frn-chips-toolbar" style="margin-bottom:14px">
+        <div class="searchbar ds-filter-search">
+          <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
+          <input type="search" id="filtre-frn-search" placeholder="Rechercher nom, ville, SIREN…" oninput="afficherFournisseursDashboard()" aria-label="Rechercher un fournisseur, un nom, une ville, un SIREN…" />
+        </div>
         <button class="ds-chip active" type="button" data-chip="tous" onclick="frnChipFilter('tous')">Tous</button>
         <button class="ds-chip" type="button" data-chip="carburant" onclick="frnChipFilter('carburant')">Carburant</button>
         <button class="ds-chip" type="button" data-chip="garage" onclick="frnChipFilter('garage')">Garage</button>
         <button class="ds-chip" type="button" data-chip="assurance" onclick="frnChipFilter('assurance')">Assurance</button>
       </div>
-      <div class="filters filters-fournisseurs" style="margin-bottom:16px">
-        <div class="searchbar">
-          <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
-          <input type="search" id="filtre-frn-search" placeholder="Rechercher un fournisseur, un nom, une ville, un SIREN..." oninput="afficherFournisseursDashboard()" / aria-label="Rechercher un fournisseur, un nom, une ville, un SIREN..." />
-        </div>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-frn-search').value='';afficherFournisseursDashboard()">Réinitialiser</button>
-      </div>
       <div class="card">
         <div class="table-wrapper">
+          <!-- Phase 47 : columns mockup-aligned (Ville + SIREN visible, polished by script-clients-table-polish.js) -->
           <table class="data-table fournisseurs-table">
-            <thead><tr><th>Nom</th><th>Contact</th><th>Téléphone</th><th>Adresse habituelle</th><th>Total dépensé</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Nom</th><th class="frn-col-ville">Ville</th><th class="frn-col-tel">Téléphone</th><th class="frn-col-siren">SIREN</th><th>Charges 12m</th><th class="frn-col-actions">Actions</th></tr></thead>
             <tbody id="tb-fournisseurs"><tr><td colspan="6" class="empty-row">Aucun fournisseur enregistré</td></tr></tbody>
           </table>
         </div>

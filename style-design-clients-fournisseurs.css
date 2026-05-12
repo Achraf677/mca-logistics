@@ -221,16 +221,103 @@ tr[data-impaye="1"] td {
   }
 }
 
-/* ============ Phase 34 : masquer colonnes hors-mockup ============ */
-/* Clients : Contact (2) + Adresse habituelle (4) */
-.clients-table th:nth-child(2),
+/* ============ Phase 47 : colonnes Ville (2) + SIREN (4) visibles ============ */
+/* Phase 34 masquait ces colonnes — Phase 47 les réactive avec les bons labels.
+   script-clients-table-polish.js remplace le contenu Contact/Adresse par Ville/SIREN. */
+.clients-table th.cli-col-ville,
 .clients-table td:nth-child(2),
-.clients-table th:nth-child(4),
+.clients-table th.cli-col-siren,
 .clients-table td:nth-child(4),
-/* Fournisseurs : Contact (2) + Adresse habituelle (4) */
-.fournisseurs-table th:nth-child(2),
+.fournisseurs-table th.frn-col-ville,
 .fournisseurs-table td:nth-child(2),
-.fournisseurs-table th:nth-child(4),
+.fournisseurs-table th.frn-col-siren,
 .fournisseurs-table td:nth-child(4) {
-  display: none !important;
+  display: table-cell;
+}
+
+/* Ville column : compact */
+.clients-table td:nth-child(2),
+.fournisseurs-table td:nth-child(2) {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* SIREN column : mono + compact */
+.clients-table td:nth-child(4),
+.fournisseurs-table td:nth-child(4) {
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* Hide Ville + SIREN on narrow screens */
+@media (max-width: 900px) {
+  .clients-table th.cli-col-ville,
+  .clients-table td:nth-child(2),
+  .clients-table th.cli-col-siren,
+  .clients-table td:nth-child(4),
+  .fournisseurs-table th.frn-col-ville,
+  .fournisseurs-table td:nth-child(2),
+  .fournisseurs-table th.frn-col-siren,
+  .fournisseurs-table td:nth-child(4) {
+    display: none !important;
+  }
+}
+
+/* ============ Phase 47 : filter-chips-row (search inline + chips) ============ */
+
+.ds-filter-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ds-filter-chips-row .ds-filter-search {
+  flex: 0 0 300px;
+  min-width: 160px;
+}
+
+@media (max-width: 768px) {
+  .ds-filter-chips-row {
+    flex-wrap: wrap;
+  }
+  .ds-filter-chips-row .ds-filter-search {
+    flex: 1 1 100%;
+  }
+}
+
+/* ============ Phase 47 : Exporter dropdown menu ============ */
+
+.ds-dropdown-menu {
+  background: var(--bg-card, #1e2230);
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.12));
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  padding: 4px 0;
+  min-width: 180px;
+}
+
+.ds-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.ds-menu-item:hover {
+  background: var(--bg-card-hover, rgba(255,255,255,0.06));
+}
+
+.ds-menu-item svg {
+  flex-shrink: 0;
+  opacity: 0.6;
 }
