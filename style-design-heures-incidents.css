@@ -1,0 +1,183 @@
+/* ==========================================================================
+   MCA Logistics — Design Heures & Incidents (Phase 56)
+
+   Restyle CSS-only des pages Heures & Km et Incidents pour matcher
+   les mockups previews/heures.html et previews/incidents.html.
+   ========================================================================== */
+
+/* ============ HEURES & KM — Layout deux colonnes ============ */
+
+/* Make the two-column grid responsive */
+.heures-km-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 1100px) {
+  .heures-km-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Heures card headers — match mockup icons + labels */
+#page-heures .card .card-header h2 {
+  font-size: 15px;
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* CE 561 alert badge */
+#heures-kpi-ce561[data-val]:not([data-val="0"]),
+#heures-kpi-ce561:not(:empty) {
+  color: var(--brand, #e63946);
+}
+
+/* Heures table — column widths mockup-aligned */
+#page-heures .data-table th,
+#page-heures .data-table td {
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* Heures km table — monospace amounts */
+#tb-releve-km td:nth-child(4),
+#tb-releve-km td:nth-child(5),
+#tb-releve-km td:nth-child(6) {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* KPI CE 561 alertes — colored red if >0 */
+#page-heures .kpi:last-child .kpi-val {
+  color: var(--brand, #e63946);
+}
+
+/* Searchbar in heures — full width */
+.searchbar-heures {
+  flex: 1;
+  max-width: 480px;
+}
+
+/* ============ INCIDENTS — Chips toolbar styling ============ */
+
+#inc-chips-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+#inc-chips-toolbar .inc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-strong, rgba(255,255,255,0.15));
+  background: rgba(255,255,255,0.06);
+  color: var(--text, #e8eaf0);
+  font-family: inherit;
+  transition: all 0.15s ease;
+  letter-spacing: 0.02em;
+}
+
+#inc-chips-toolbar .inc-chip:hover {
+  background: var(--bg-card-hover, rgba(255,255,255,0.08));
+}
+
+#inc-chips-toolbar .inc-chip.active {
+  background: var(--brand-soft, rgba(230,57,70,0.12));
+  color: var(--brand, #e63946);
+  border-color: rgba(230,57,70,0.4);
+}
+
+#inc-chips-toolbar .inc-chip .chip-count {
+  font-size: 10px;
+  font-weight: 800;
+  opacity: 0.8;
+  background: var(--brand-soft, rgba(230,57,70,0.15));
+  border-radius: 999px;
+  padding: 0 5px;
+  min-width: 18px;
+  text-align: center;
+  display: inline-block;
+}
+
+#inc-chips-toolbar .inc-chip.active .chip-count {
+  background: rgba(230,57,70,0.25);
+}
+
+/* ============ INCIDENTS — Table badges ============ */
+
+/* Incident type chips in table */
+#page-incidents .incident-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+
+#page-incidents .incident-badge.incident-ouvert {
+  color: var(--brand, #e63946);
+  background: rgba(230,57,70,0.1);
+  border-color: rgba(230,57,70,0.35);
+}
+
+#page-incidents .incident-badge.incident-encours {
+  color: #f5a623;
+  background: rgba(245,166,35,0.1);
+  border-color: rgba(245,166,35,0.35);
+}
+
+#page-incidents .incident-badge.incident-traite {
+  color: #06d6a0;
+  background: rgba(6,214,160,0.1);
+  border-color: rgba(6,214,160,0.35);
+}
+
+/* ============ INCIDENTS — Period nav (carb-period-nav injected) ============ */
+
+#inc-period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card, #1e2230);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#inc-period-nav .period-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#inc-period-nav .period-label {
+  font-family: var(--font-display, 'Syne', sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  margin-left: 8px;
+  text-transform: capitalize;
+}
+
+#inc-period-nav .period-dates {
+  font-size: 11px;
+  color: var(--text-muted, #7c8299);
+  font-family: var(--font-mono, monospace);
+}

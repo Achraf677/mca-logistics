@@ -221,3 +221,199 @@
   color: var(--ds-text);
   font-feature-settings: "tnum";
 }
+
+/* ============ PLANNING WEEKLY TABLE — calendar grid style (Phase 56) ============ */
+
+/* Table wrapper */
+.planning-week-table {
+  overflow-x: auto;
+}
+
+/* Table header — calendar-style (Chauffeur | Lun | Mar | ...) */
+.planning-week-grid thead th {
+  text-align: center;
+  padding: 10px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted, #7c8299);
+  background: var(--bg-elevated, #1a1d22);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  white-space: nowrap;
+}
+
+.planning-week-grid thead th:first-child {
+  text-align: left;
+  padding-left: 16px;
+  min-width: 140px;
+}
+
+/* Table cells */
+.planning-week-grid td {
+  vertical-align: top;
+  padding: 6px;
+  min-height: 68px;
+  border-right: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+
+.planning-week-grid td:last-child {
+  border-right: none;
+}
+
+/* Driver cell (first column) */
+.planning-week-grid td:first-child,
+.planning-week-grid .planning-week-salarie {
+  padding: 10px 14px;
+  background: var(--bg-elevated, #1a1d22);
+  border-right: 1px solid var(--border, rgba(255,255,255,0.08));
+  min-width: 140px;
+  vertical-align: middle;
+}
+
+.planning-week-grid .planning-week-salarie strong {
+  font-size: 12px;
+  font-weight: 700;
+  display: block;
+  color: var(--text, #e8eaf0);
+}
+
+.planning-week-grid .planning-week-meta {
+  font-size: 10px;
+  color: var(--text-muted, #7c8299);
+  display: block;
+  margin-top: 2px;
+}
+
+/* State blocks — shift cards inside cells */
+.planning-week-grid .planning-week-state {
+  display: flex;
+  flex-direction: column;
+  border-radius: 6px;
+  padding: 5px 7px;
+  font-size: 10px;
+  min-height: 56px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+/* Work shift — gradient red (mockup .shift) */
+.planning-week-grid .planning-week-state.is-work {
+  background: linear-gradient(135deg, rgba(230,57,70,0.15), rgba(230,57,70,0.07));
+  border: 1px solid rgba(230,57,70,0.3);
+  color: var(--text, #e8eaf0);
+}
+
+.planning-week-grid .planning-week-state.is-work:hover {
+  background: linear-gradient(135deg, rgba(230,57,70,0.25), rgba(230,57,70,0.12));
+  border-color: rgba(230,57,70,0.5);
+}
+
+.planning-week-grid .planning-week-state.is-work > span:first-child {
+  font-weight: 700;
+  font-size: 9px;
+  color: var(--brand, #e63946);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+/* Work time display */
+.planning-week-grid .planning-week-time {
+  font-family: var(--font-mono, monospace);
+  font-size: 9px;
+  color: var(--text, #e8eaf0);
+  font-weight: 600;
+}
+
+/* Work zone/note */
+.planning-week-grid .planning-week-note {
+  font-size: 9px;
+  color: var(--text-muted, #7c8299);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Rest / Off shift (mockup .shift.off) */
+.planning-week-grid .planning-week-state.is-rest {
+  background: transparent;
+  border: 1px dashed var(--border-strong, rgba(255,255,255,0.15));
+  color: var(--text-muted, #7c8299);
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Absence / Congé */
+.planning-week-grid .planning-week-state.is-conge {
+  background: rgba(76,201,240,0.1);
+  border: 1px solid rgba(76,201,240,0.3);
+  color: #4cc9f0;
+}
+
+.planning-week-grid .planning-week-state.is-conge > span:first-child {
+  color: #4cc9f0;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Absence */
+.planning-week-grid .planning-week-state.is-absence {
+  background: rgba(245,166,35,0.1);
+  border: 1px solid rgba(245,166,35,0.3);
+  color: #f5a623;
+}
+
+.planning-week-grid .planning-week-state.is-absence > span:first-child {
+  color: #f5a623;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Maladie */
+.planning-week-grid .planning-week-state.is-maladie {
+  background: rgba(168,85,247,0.1);
+  border: 1px solid rgba(168,85,247,0.3);
+  color: #a855f7;
+}
+
+.planning-week-grid .planning-week-state.is-maladie > span:first-child {
+  color: #a855f7;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Legend row at bottom */
+.planning-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: var(--bg-card, #1e2230);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.planning-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted, #7c8299);
+}
+
+.planning-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}

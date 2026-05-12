@@ -124,6 +124,24 @@ async function supprimerIncident(id) {
   afficherToast('Incident supprimé');
 }
 
+// Phase 56 — chips toolbar filter for incidents
+window.incChipFilter = function(btn, statut, gravite) {
+  var toolbar = document.getElementById('inc-chips-toolbar');
+  if (toolbar) {
+    toolbar.querySelectorAll('.inc-chip').forEach(function(c) {
+      c.classList.remove('active');
+      c.setAttribute('aria-selected', 'false');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+  }
+  var selStatut = document.getElementById('filtre-inc-statut');
+  var selGravite = document.getElementById('filtre-inc-gravite');
+  if (selStatut) selStatut.value = statut || '';
+  if (selGravite) selGravite.value = gravite || '';
+  if (typeof afficherIncidents === 'function') afficherIncidents();
+};
+
 // L12146 (script.js d'origine)
 function peupleIncSalarie() {
   var sel = document.getElementById('inc-salarie');

@@ -111,6 +111,8 @@
   <link rel="stylesheet" href="style-design-livraisons-drawer.css?v=1" />
   <!-- Phase 29 refonte HTML : topbar refine (brand + search input look + theme + agent + user compact) -->
   <link rel="stylesheet" href="style-design-topbar-refine.css?v=1" />
+  <link rel="stylesheet" href="style-design-heures-incidents.css?v=1" />
+  <link rel="stylesheet" href="style-design-brouillons-ia.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
@@ -2776,6 +2778,14 @@
         <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="inc-kpi-cout">—</div><div class="kpi-sub">À facturer assurance</div></div>
         <div class="kpi"><div class="kpi-lbl">Délai résolution</div><div class="kpi-val" id="inc-kpi-delai">—</div><div class="kpi-sub">Moyenne sur 30j</div></div>
       </div>
+      <!-- Phase 56 : chips toolbar Incidents (mockup-aligned) -->
+      <div id="inc-chips-toolbar" role="tablist" aria-label="Filtres incidents">
+        <button class="inc-chip active" role="tab" aria-selected="true" onclick="incChipFilter(this,'','')">Tous</button>
+        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'ouvert','')">Ouverts</button>
+        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'encours','')">En cours</button>
+        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'traite','')">Traités</button>
+        <button class="inc-chip" role="tab" aria-selected="false" onclick="incChipFilter(this,'','grave')">Graves</button>
+      </div>
       <div class="filters" style="margin-bottom:16px">
         <div class="searchbar">
           <span class="searchbar-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>
@@ -2793,7 +2803,7 @@
           <option value="encours">En cours</option>
           <option value="traite">Traité</option>
         </select>
-        <button class="btn-secondary" onclick="document.getElementById('filtre-inc-search').value='';document.getElementById('filtre-inc-gravite').value='';document.getElementById('filtre-inc-statut').value='';afficherIncidents()">Réinitialiser</button>
+        <button class="btn-secondary" onclick="document.getElementById('filtre-inc-search').value='';document.getElementById('filtre-inc-gravite').value='';document.getElementById('filtre-inc-statut').value='';incChipFilter(document.querySelector(\'#inc-chips-toolbar .inc-chip\'),\'\',\'\')">Réinitialiser</button>
       </div>
       <div class="card">
         <div class="table-wrapper">
