@@ -61,13 +61,24 @@
 }
 
 .ds-section-head__sub {
-  display: flex;
-  align-items: center;
-  gap: var(--ds-sp-2);
-  flex-wrap: wrap;
+  /* Phase 60 polish V4 (Gemini audit HIGH) : éviter wrap qui crée des sauts de ligne */
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0;
+  flex-wrap: nowrap;
   color: var(--ds-text-muted);
   font-family: var(--ds-font-body);
   font-size: var(--ds-fs-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Force inline rendering : les <span> internes doivent rester sur la même ligne */
+.ds-section-head__sub > span {
+  display: inline;
+  white-space: nowrap;
 }
 
 .ds-section-head__sub strong {
