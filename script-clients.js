@@ -74,19 +74,36 @@ function afficherClientsDashboard() {
     ? clientsAll.filter(c => [c.nom, c.prenom, c.contact, c.tel, c.email, c.adresse, c.ville, c.cp, c.siren]
         .filter(Boolean).join(' ').toLowerCase().includes(filtre))
     : clientsAll;
-  if (!clients.length) { tb.innerHTML = '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
+  if (!clients.length) { tb.innerHTML = '<tr><td colspan="8" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
   const livraisons = charger('livraisons');
+  const now = new Date();
+  const _fmtSiren = s => { const c = String(s||'').replace(/\s+/g,''); return c.length===9 ? c.slice(0,3)+' '+c.slice(3,6)+' '+c.slice(6) : c||'—'; };
 
   tb.innerHTML = clients.sort((a,b)=>(a.nom||'').localeCompare(b.nom||'','fr')).map(c => {
     const livsC = livraisons.filter(l => l.client === c.nom || l.clientId === c.id);
     const caC = livsC.reduce((s,l)=>s + (typeof getMontantHTLivraison === 'function' ? getMontantHTLivraison(l) : (parseFloat(l.prix) || 0)), 0);
-    const contact = (c.contact || c.prenom || '').trim();
+    // Encours = livraisons livrées non payées
+    const impayees = livsC.filter(l => (l.statut==='livre'||l.statut==='livré'||l.statut==='livree') && l.statutPaiement !== 'paye' && l.statutPaiement !== 'payé');
+    const encours = impayees.reduce((s,l) => s + (parseFloat(l.prix||l.prixTTC||0)), 0);
+    // Statut : plus vieille facture impayée → retard si > 30j
+    let statutBadge = '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.05em;color:#9bb1a4"><span style="width:7px;height:7px;border-radius:50%;background:#9bb1a4;flex-shrink:0"></span>ACTIF</span>';
+    if (impayees.length > 0) {
+      const oldest = impayees.map(l => new Date(l.date||l.dateLivraison||0)).sort((a,b)=>a-b)[0];
+      const diffJ = oldest ? Math.round((now - oldest) / 86400000) : 0;
+      if (diffJ > 30) {
+        statutBadge = `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--ds-brand,#e63946)"><span style="width:7px;height:7px;border-radius:50%;background:var(--ds-brand,#e63946);flex-shrink:0"></span>RETARD ${diffJ}j</span>`;
+      } else {
+        statutBadge = '<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.05em;color:#d4b67a"><span style="width:7px;height:7px;border-radius:50%;background:#d4b67a;flex-shrink:0"></span>À RELANCER</span>';
+      }
+    }
     return `<tr>
       <td><button type="button" class="btn-link-inline" onclick="ouvrirHistoriqueClient('${c.id}')" style="font-weight:700">${c.nom}</button></td>
-      <td>${contact||'—'}</td>
+      <td>${c.ville||'—'}</td>
+      <td class="mono" style="font-size:.82rem">${_fmtSiren(c.siren)}</td>
       <td>${c.tel||'—'}</td>
-      <td style="font-size:.82rem">${c.adresse||'—'}</td>
       <td><strong>${euros(caC)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${livsC.length} livraison${livsC.length>1?'s':''}</div></td>
+      <td>${encours>0?`<span style="color:var(--ds-brand,#e63946);font-weight:700">${euros(encours)}</span>`:'<span style="color:var(--ds-text-muted,#adb5bd)">—</span>'}</td>
+      <td>${statutBadge}</td>
       <td>${buildInlineActionsDropdown('Actions', [
         { icon:'📚', label:'Historique', action:`ouvrirHistoriqueClient('${c.id}')` },
         { icon:'✏️', label:'Modifier', action:`ouvrirEditClient('${c.id}')` },

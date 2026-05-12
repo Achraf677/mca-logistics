@@ -28,39 +28,9 @@
   // ── CLIENTS ───────────────────────────────────────────────────────────────
 
   function patchClientsRows() {
-    var tb = document.getElementById('tb-clients');
-    if (!tb) return;
-    var clients = lire('clients');
-    if (!clients.length) return;
-
-    var byId = {};
-    clients.forEach(function (c) { if (c.id) byId[c.id] = c; });
-
-    Array.from(tb.querySelectorAll('tr')).forEach(function (row) {
-      var cells = row.querySelectorAll('td');
-      if (cells.length < 4) return; // empty-row guard
-
-      var cid = extractId(row);
-      var c = cid ? (byId[cid] || null) : null;
-      if (!c) return;
-
-      // col 2 (index 1) → Ville
-      var villeCell = cells[1];
-      if (villeCell && !villeCell.dataset.patched) {
-        villeCell.textContent = c.ville || (c.cp ? c.cp : '—');
-        villeCell.dataset.patched = '1';
-        villeCell.removeAttribute('style');
-      }
-
-      // col 4 (index 3) → SIREN
-      var sirenCell = cells[3];
-      if (sirenCell && !sirenCell.dataset.patched) {
-        sirenCell.textContent = fmtSiren(c.siren);
-        sirenCell.dataset.patched = '1';
-        sirenCell.classList.add('mono');
-        sirenCell.removeAttribute('style');
-      }
-    });
+    // H10 — clients now renders correct columns directly (ville/siren/encours/statut).
+    // Patching obsolète — no-op.
+    return;
   }
 
   // ── FOURNISSEURS ──────────────────────────────────────────────────────────
