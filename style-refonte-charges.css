@@ -80,6 +80,8 @@
   display: inline;
   white-space: nowrap;
 }
+/* Preserve [hidden] semantics inside sub-meta — display:inline above overrides UA stylesheet */
+.ds-section-head__sub > span[hidden] { display: none; }
 
 .ds-section-head__sub strong {
   color: var(--ds-text);

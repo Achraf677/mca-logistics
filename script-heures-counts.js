@@ -95,6 +95,15 @@
       if (subChauffeurs) subChauffeurs.textContent = chauffeursIds.size;
       if (subJours) subJours.textContent = joursPointes;
     }
+    // Mirror period label from heures-semaine-label into section sub-meta
+    var subPeriode = document.getElementById('heures-section-sub-periode');
+    if (subPeriode) {
+      var labelEl = document.getElementById('heures-semaine-label');
+      var datesEl = document.getElementById('heures-semaine-dates');
+      var labelTxt = labelEl && labelEl.textContent ? labelEl.textContent.trim() : '';
+      var datesTxt = datesEl && datesEl.textContent ? datesEl.textContent.trim() : '';
+      subPeriode.textContent = labelTxt || datesTxt || '—';
+    }
   }
 
   function tryAttach() {
