@@ -38,7 +38,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Rentabilité | 90% | 100% | Phase 59 : exporterRentabiliteCSV vraiment impl (était stub) + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 85% | 100% | Phase 59 : sub-meta mockup format + structure complète (sidebar filtres + KPIs + Légende + toolbar prev/Aujourd'hui/next + period chips + grid 7-col) toutes alignées mockup. Visual fine-tuning sans screenshot reste à valider. |
-| Alertes | 82% | 100% | Phase 59 : sub-meta format mockup ("X alertes actives · Y échéances dans les 30 jours") + compute logic ECHEANCE_TYPES |
+| Alertes | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels) + sub-meta mockup format |
 | Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
 | Heures | 88% | 100% | Phase 59 : exporterHeuresExcel vraiment impl (était fallback) + sub-meta mockup |
 | Incidents | 90% | 100% | Phase 59 : exporterIncidentsExcel vraiment impl + sub-meta "en attente expertise" mockup-aligned |

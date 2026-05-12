@@ -308,6 +308,37 @@ function exporterVehiculesExcel() {
 }
 window.exporterVehiculesExcel = exporterVehiculesExcel;
 
+// Phase 59 — Alertes exports
+function exporterAlertesCSV() {
+  const alertes = charger('alertes_admin');
+  exporterCSV(alertes, [
+    { label: 'Date', get: a => a.creeLe || a.date || '' },
+    { label: 'Type', get: a => a.type || '' },
+    { label: 'Severité', get: a => a.severite || '' },
+    { label: 'Message', get: a => a.message || a.description || '' },
+    { label: 'Lié à', get: a => a.lieATo || a.entiteTo || a.salId || a.vehId || a.clientId || '' },
+    { label: 'Statut', get: a => a.traite ? 'Traitée' : 'Active' },
+    { label: 'Date traitement', get: a => a.dateTraite || '' }
+  ], 'alertes-' + new Date().toISOString().slice(0, 10) + '.csv');
+  if (typeof afficherToast === 'function') afficherToast('CSV alertes exporté');
+}
+window.exporterAlertesCSV = exporterAlertesCSV;
+
+function exporterAlertesExcel() {
+  const alertes = charger('alertes_admin');
+  exporterExcelXML(alertes, [
+    { label: 'Date', get: a => a.creeLe || a.date || '' },
+    { label: 'Type', get: a => a.type || '' },
+    { label: 'Severité', get: a => a.severite || '' },
+    { label: 'Message', get: a => a.message || a.description || '' },
+    { label: 'Lié à', get: a => a.lieATo || a.entiteTo || a.salId || a.vehId || a.clientId || '' },
+    { label: 'Statut', get: a => a.traite ? 'Traitée' : 'Active' },
+    { label: 'Date traitement', get: a => a.dateTraite || '' }
+  ], 'alertes-' + new Date().toISOString().slice(0, 10), 'Alertes');
+  if (typeof afficherToast === 'function') afficherToast('Excel alertes exporté');
+}
+window.exporterAlertesExcel = exporterAlertesExcel;
+
 function exporterEncaissementExcel() {
   const livs = charger('livraisons').filter(l => {
     const s = (l && (l.statutPaiement || l.statut_paiement)) || '';
