@@ -478,3 +478,44 @@ function exporterCarburantPDF() {
   afficherToast('Rapport carburant généré');
 }
 
+// Phase 59 polish — Export CSV carburant (mockup-aligned, dropdown wired)
+function exporterCarburantCSV() {
+  var range = getCarburantPeriodeRange();
+  var pleins = charger('carburant').filter(function(p){return isDateInRange(p.date, range);}).sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+  var vehicules = charger('vehicules');
+  var headers = ['Date','Vehicule','Immatriculation','Type','Litres','Prix unitaire','Total HT','Total TVA','Total TTC','Conso L/100km'];
+  var lines = [headers.join(';')];
+  pleins.forEach(function(p){
+    var veh = vehicules.find(function(v){return v.id===p.vehId;});
+    var total = parseFloat(p.total)||0;
+    var ht = total / 1.2;
+    var tva = total - ht;
+    var litres = parseFloat(p.litres)||0;
+    var puL = litres > 0 ? (total/litres) : 0;
+    var conso = (typeof p.consoL100 === 'number') ? p.consoL100.toFixed(1) : '';
+    lines.push([
+      p.date,
+      (veh && veh.modele) ? veh.modele.replace(/;/g,',') : '',
+      (veh && veh.immat) ? veh.immat : '',
+      (p.type || 'gasoil'),
+      litres.toFixed(2),
+      puL.toFixed(3),
+      ht.toFixed(2),
+      tva.toFixed(2),
+      total.toFixed(2),
+      conso
+    ].join(';'));
+  });
+  var csv = '﻿' + lines.join('\r\n'); // BOM UTF-8 pour Excel
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'carburant-' + (range.label || 'export').replace(/[^\w-]+/g,'-') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+  if (typeof afficherToast === 'function') afficherToast('CSV carburant exporté (' + pleins.length + ' lignes)');
+}
+window.exporterCarburantCSV = exporterCarburantCSV;
+

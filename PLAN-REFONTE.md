@@ -29,7 +29,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
-| Carburant | 75% | 100% | Phase 49 : Exporter dropdown, période nav combined row, filtres cachés |
+| Carburant | 82% | 100% | Phase 59 : Export CSV vraiment implémenté (10 cols, BOM UTF-8) + Export Excel ajouté |
 | Entretiens | 78% | 100% | Phase 51 : Exporter dropdown, combined period nav, alert banner CT échéances |
 | Inspections | 75% | 100% | Phase 58 : Excel export ajouté + status filter (heuristique KO count) + btn 'Nouvelle inspection' mockup-aligned. BUG-023 ouvert (cards vs table mockup) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
