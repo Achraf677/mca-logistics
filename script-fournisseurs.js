@@ -19,21 +19,31 @@ function afficherFournisseursDashboard() {
   }
   const filtre = (document.getElementById('filtre-frn-search')?.value || '').trim().toLowerCase();
   const fournisseurs = filtre
-    ? fournAll.filter(f => [f.nom, f.contact, f.tel, f.email, f.adresse, f.ville, f.cp, f.siren]
+    ? fournAll.filter(f => [f.nom, f.contact, f.tel, f.email, f.adresse, f.ville, f.cp, f.siren, f.secteur]
         .filter(Boolean).join(' ').toLowerCase().includes(filtre))
     : fournAll;
-  if (!fournisseurs.length) { tb.innerHTML = (typeof emptyState === 'function') ? emptyState('🔍', 'Aucun résultat', 'Aucun fournisseur ne correspond à « ' + filtre + ' ».') : '<tr><td colspan="6" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
+  if (!fournisseurs.length) { tb.innerHTML = (typeof emptyState === 'function') ? emptyState('🔍', 'Aucun résultat', 'Aucun fournisseur ne correspond à « ' + filtre + ' ».') : '<tr><td colspan="7" class="empty-row">Aucun résultat pour « ' + filtre + ' »</td></tr>'; return; }
   const charges = charger('charges');
+  // H11 — secteur → catégorie badge (couleur mockup-aligned)
+  const _SECT_CLR = { carburant: 'var(--ds-brand,#e63946)', entretien: '#d4b67a', garage: '#d4b67a', assurance: '#7ab8d4', peage: '#9bb1a4', peages: '#9bb1a4' };
+  function _sectBadge(secteur) {
+    const s = (secteur || '').toLowerCase().replace(/[éèê]/g, 'e').replace(/[àâ]/g, 'a');
+    const color = _SECT_CLR[s] || 'var(--ds-text-muted,#adb5bd)';
+    const label = secteur ? secteur.charAt(0).toUpperCase() + secteur.slice(1) : '—';
+    return secteur ? `<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:${color}"><span style="width:7px;height:7px;border-radius:50%;background:${color};flex-shrink:0"></span>${label}</span>` : '<span style="color:var(--ds-text-muted)">—</span>';
+  }
   tb.innerHTML = fournisseurs.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr')).map(f => {
     const chargesF = charges.filter(c => c.fournisseurId === f.id || c.fournisseur === f.nom);
     const totalDepense = chargesF.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
-    const contact = (f.contact || f.prenom || '').trim();
+    const impayees = chargesF.filter(c => !c.estPaye && c.statut !== 'payee' && c.statut !== 'payé');
+    const aRegler = impayees.reduce((s, c) => s + (parseFloat(c.montant) || 0), 0);
     return `<tr>
       <td><strong>${f.nom || '—'}</strong></td>
-      <td>${contact || '—'}</td>
+      <td>${_sectBadge(f.secteur)}</td>
+      <td>${f.ville || '—'}</td>
       <td>${f.tel || '—'}</td>
-      <td style="font-size:.82rem">${f.adresse || '—'}</td>
       <td><strong>${euros(totalDepense)}</strong><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px">${chargesF.length} charge${chargesF.length > 1 ? 's' : ''}</div></td>
+      <td>${aRegler > 0 ? `<span style="color:var(--ds-brand,#e63946);font-weight:700">${euros(aRegler)}</span><div style="font-size:.78rem;color:var(--text-muted)">${impayees.length} en attente</div>` : '<span style="color:var(--ds-text-muted,#adb5bd)">À jour</span>'}</td>
       <td>${buildInlineActionsDropdown('Actions', [
         { icon: '✏️', label: 'Modifier', action: `ouvrirEditFournisseur('${f.id}')` },
         { icon: '🗑️', label: 'Supprimer', action: `supprimerFournisseur('${f.id}')`, danger: true }

@@ -66,36 +66,9 @@
   // ── FOURNISSEURS ──────────────────────────────────────────────────────────
 
   function patchFournisseursRows() {
-    var tb = document.getElementById('tb-fournisseurs');
-    if (!tb) return;
-    var fournisseurs = lire('fournisseurs');
-    if (!fournisseurs.length) return;
-
-    var byId = {};
-    fournisseurs.forEach(function (f) { if (f.id) byId[f.id] = f; });
-
-    Array.from(tb.querySelectorAll('tr')).forEach(function (row) {
-      var cells = row.querySelectorAll('td');
-      if (cells.length < 4) return;
-
-      var fid = extractId(row);
-      var f = fid ? (byId[fid] || null) : null;
-      if (!f) return;
-
-      var villeCell = cells[1];
-      if (villeCell && !villeCell.dataset.patched) {
-        villeCell.textContent = f.ville || (f.cp ? f.cp : '—');
-        villeCell.dataset.patched = '1';
-        villeCell.removeAttribute('style');
-      }
-
-      var sirenCell = cells[3];
-      if (sirenCell && !sirenCell.dataset.patched) {
-        sirenCell.textContent = fmtSiren(f.siren);
-        sirenCell.dataset.patched = '1';
-        sirenCell.classList.add('mono');
-        sirenCell.removeAttribute('style');
-      }
+    // H11 — fournisseurs now renders correct columns directly (catégorie/ville/à régler).
+    // Patching obsolète — no-op.
+    return;
     });
   }
 
