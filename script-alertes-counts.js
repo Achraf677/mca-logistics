@@ -73,6 +73,17 @@
     if (subReportees) subReportees.textContent = reportees;
     if (subTraitees) subTraitees.textContent = traitees;
     if (subEch30) subEch30.textContent = echeances30;
+
+    // Phase 60 polish V5 — pluriels conditionnels mockup-aligned
+    var wrapActives = document.getElementById('alertes-sub-actives-wrap');
+    if (wrapActives) {
+      wrapActives.innerHTML = '<span id="alertes-section-sub-actives">' + actives + '</span> alerte' + (actives > 1 ? 's' : '') + ' active' + (actives > 1 ? 's' : '');
+    }
+    var wrapEch30 = document.getElementById('alertes-sub-echeances30-wrap');
+    if (wrapEch30) {
+      wrapEch30.innerHTML = '<span id="alertes-section-sub-echeances30">' + echeances30 + '</span> échéance' + (echeances30 > 1 ? 's' : '') + ' dans les 30 jours';
+    }
+
     if (kpiCrit) kpiCrit.textContent = critiques;
     if (kpiAlert) kpiAlert.textContent = alertesCnt;
     if (kpiInfo) kpiInfo.textContent = infoCnt;

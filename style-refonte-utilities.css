@@ -255,3 +255,28 @@
   .cal16-layout { grid-template-columns: 1fr; }
   .chart-row { grid-template-columns: 1fr; }
 }
+
+/* ============ Phase 60 polish V5 — slashed-zero pour distinguer 0/O ============ */
+/* Évite l'ambiguïté visuelle (Gemini OCR confondait '0' avec 'O') */
+.kpi-val,
+.kpi-lbl strong,
+.badge-alertes-nav,
+.ds-section-head__sub strong,
+.ds-section-head__sub,
+.ds-chip__count,
+.sub-meta,
+.sub-meta strong,
+.fv-immat,
+.title-row strong,
+[id$="-titlerow-count"],
+[id$="-titlerow-actives"],
+[id$="-titlerow-cemois"],
+[id$="-section-sub-actifs"],
+[id$="-section-sub-count"],
+[id^="alertes-section-"],
+[id^="heures-kpi-"],
+[id^="equipe-kpi-"],
+[id^="brouillons-kpi-"] {
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: "tnum", "zero";
+}
