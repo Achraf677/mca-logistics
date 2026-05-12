@@ -39,10 +39,16 @@
     var subCount = document.getElementById('brouillons-section-sub-count');
     if (subCount) subCount.textContent = pending;
 
-    // Met à jour le libellé du chip "En attente" avec le count
+    // Phase 60 polish V3 (Gemini audit LOW) : chip "En attente" avec count badge mockup-aligned
+    // (au lieu de "En attente (4)" en texte brut, utiliser <span class="ds-chip__count">4</span>)
     var chipAttente = document.querySelector('#brouillons-chips .ds-chip[data-brouillons-statut="pending"]');
     if (chipAttente) {
-      chipAttente.textContent = pending > 0 ? 'En attente (' + pending + ')' : 'En attente';
+      var label = 'En attente';
+      if (pending > 0) {
+        chipAttente.innerHTML = label + ' <span class="ds-chip__count">' + pending + '</span>';
+      } else {
+        chipAttente.textContent = label;
+      }
     }
 
     // Validées / rejetées ce mois via Supabase
