@@ -6,6 +6,16 @@
    #s26-params-section, #s26-sig-*, etc.)
    ========================================================================== */
 
+/* ============ S29 SHELL visibility — cacher quand tab non-Entreprise ============ */
+/*
+  S29 (Sprint 29) déplace .params-grid hors de #ptab-entreprise dans un .s29-shell
+  frère de tous les .param-panel. Sans ce fix le s29-shell reste visible même sur
+  les onglets Notifications / Sécurité / etc.
+  :has() = Chrome 105+ / Safari 15.4+ / Firefox 121+ — OK prod.
+*/
+#page-parametres .s29-shell { display: none; }
+#page-parametres:has(#ptab-entreprise.active) .s29-shell { display: grid; }
+
 /* ============ PARAM TABS — Phase 53 (mockup-aligned) ============ */
 
 #page-parametres .param-tabs-bar {
