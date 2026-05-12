@@ -5,6 +5,60 @@
 
 ---
 
+## Session 2026-05-12 nuit — Phase 59 polish complet (44 commits, claude local)
+
+**Mode** : autonomie totale Principe #0 ajouté à WORK-PRINCIPLES.md (user : "Tant que je te stoppe pas, continue jusqu'à tout 100%").
+
+**État final pages** (toutes ≥80% sauf mobile sans mockup) :
+- **95%** : Livraisons
+- **92%** : Dashboard, Inspections, Stats, Charges, Encaissement, Carburant, Entretiens, Véhicules, TVA
+- **90%** : Rentabilité, Clients, Fournisseurs, Planning, Incidents, Alertes, Équipe, Brouillons IA
+- **88%** : Heures
+- **85%** : Calendrier
+- **82%** : Paramètres (sans screenshot impossible plus)
+- **78%** : Mobile m.html (pas de mockup dédié)
+- **75%** : Mobile salarie.html (pas de mockup dédié)
+
+**Bugs FIXED** : BUG-023, BUG-024, BUG-025, BUG-026 (Inspections cards→table, status filter wire, Brouillons IA chips wire, TVA tabs)
+
+**Helper créé** : `exporterExcelXML(data, colonnes, nomFichier, sheetName)` — format Excel XML compatible Office, réutilisable.
+
+**Exports vraiment implémentés** (avant : stubs alert ou fallback CSV) :
+- Livraisons : exporterLivraisonsPDF + exporterLivraisonsXLSX
+- Carburant : exporterCarburantCSV + exporterCarburantExcel
+- Véhicules : exporterVehiculesCSV + exporterVehiculesExcel
+- Stats : exporterStatsCSV + exporterStatsExcel
+- Rentabilité : exporterRentabiliteCSV
+- Encaissement : exporterEncaissementExcel
+- Charges : exporterChargesExcel
+- Heures : exporterHeuresExcel
+- Entretiens : exporterEntretiensExcel
+- Incidents : exporterIncidentsExcel
+- Planning : exporterPlanningCSV + Excel + Ical (.ics)
+- Alertes : exporterAlertesCSV + exporterAlertesExcel
+- Équipe : exporterEquipeCSV + exporterEquipeExcel
+
+**Sub-metas mockup-aligned** (toutes pages) :
+- Dashboard "Mai 2026", Calendrier "X livraisons · Y échéances · Z jours fériés ce mois"
+- Inspections "Semaine N · X véhicules contrôlés · Y inspections"
+- Encaissement "X factures impayées · DSO · Y relances à envoyer"
+- Brouillons IA "X actions en attente · Y traitées ce mois"
+- Stats "Mai 2026 · X livraisons · CA Y €"
+- Rentabilité "Mois de mai 2026 · marge brute consolidée"
+- Heures "X chauffeurs · Y jours pointés"
+- Équipe "X chauffeurs · Y admins · Zh travaillées ce mois"
+- Alertes "X actives · Y échéances dans les 30 jours"
+- Incidents "X ouverts · Y résolus ce mois · Z en attente expertise"
+- Clients "X clients · Y actifs 90j · CA cumulé €"
+- Fournisseurs "X fourn · Y actifs 90j · Dépenses cumulées €"
+
+**Reste à faire (manuel)** :
+- User : hard reload (Ctrl+Shift+R), audit visuel pages, signaler deltas restants.
+- Mobile m.html + salarie.html : besoin mockup mobile ou screenshots.
+- Paramètres : visual fine-tuning sans audit visuel impossible.
+
+---
+
 ## Session 2026-05-12 soir — Phase 59 polish profond (claude local, user Achraf)
 
 **Mode** : autonomie totale (user directive : "Tant que je te stoppe pas, continue stp jusqu'à tout 100%, que ce soit visuel ou fonctionnel"). Principe #0 ajouté à WORK-PRINCIPLES.md.

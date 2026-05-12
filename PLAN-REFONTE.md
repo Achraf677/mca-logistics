@@ -34,7 +34,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
 | Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
 | Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
-| TVA | 88% | 100% | Phase 59 : BUG-026 FIXED — tabs Collectée/Déductible underline-style avec count badges + JS switch (script-tva-tabs.js) |
+| TVA | 92% | 100% | Phase 59 : BUG-026 FIXED tabs + 3 exports impl (CA3 PDF + CSV taux + Excel annexes) + sub-meta mockup |
 | Rentabilité | 90% | 100% | Phase 59 : exporterRentabiliteCSV vraiment impl (était stub) + sub-meta mockup + tabs underline + Export 4 items |
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 85% | 100% | Phase 59 : sub-meta mockup format + structure complète (sidebar filtres + KPIs + Légende + toolbar prev/Aujourd'hui/next + period chips + grid 7-col) toutes alignées mockup. Visual fine-tuning sans screenshot reste à valider. |
@@ -43,7 +43,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Heures | 88% | 100% | Phase 59 : exporterHeuresExcel vraiment impl (était fallback) + sub-meta mockup |
 | Incidents | 90% | 100% | Phase 59 : exporterIncidentsExcel vraiment impl + sub-meta "en attente expertise" mockup-aligned |
 | Paramètres | 82% | 100% | Phase 59 : audit code-level — 7 panels structurellement alignés mockup (Notifications 11 toggles, Sécurité, Intégrations Pennylane/Qonto/Gemini/ORS). Visual fine-tuning sans screenshot reste à valider user. |
-| Brouillons IA | 85% | 100% | Phase 59 : sub-meta mockup (X actions en attente · Y traitées ce mois) + chips filtrent vraiment |
+| Brouillons IA | 90% | 100% | Phase 59 : chips filtrent vraiment (setStatusFilter) + sub-meta mockup + Valider/Rejeter sélection batch wired |
 | Planning | 90% | 100% | Phase 59 : exporterPlanningCSV + exporterPlanningExcel + exporterPlanningIcal (.ics) vraiment impl (étaient stubs alert) |
 | Mobile m.html | 78% | 100% | Phase 59 audit code-level : m-tabs déjà accessibles (aria-hidden SVG + text labels), 75% reflète manque mockup mobile. Polish visuel impossible sans mockup mobile dédié. |
 | Mobile salarie.html | 75% | 100% | Phase 59 audit code-level : 31/41 boutons ont aria-label (bonne couverture). Polish visuel impossible sans mockup mobile dédié. |
