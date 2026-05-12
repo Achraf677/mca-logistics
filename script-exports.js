@@ -610,6 +610,51 @@ function exporterVehiculesPDF() {
   afficherToast('Rapport véhicules généré');
 }
 
+// Phase 59 polish — Export CSV véhicules (mockup-aligned, dropdown wired)
+function exporterVehiculesCSV() {
+  const vehicules = charger('vehicules');
+  const entretiens = charger('entretiens');
+  const carbu = charger('carburant');
+  const headers = ['Immatriculation','Modele','Marque','Annee','Km','Mode acquisition','Date acquisition','Prix HT','Prix TTC','Date CT','Date assurance','Salarie','Dernier entretien','Conso L/100 moy'];
+  const lines = [headers.join(';')];
+  vehicules.forEach(v => {
+    const ent = entretiens.filter(e => e.vehId === v.id).sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+    const pleinsVeh = carbu.filter(p => p.vehId === v.id);
+    const consoMoy = (function() {
+      const vals = pleinsVeh.map(p => p.consoL100).filter(c => typeof c === 'number' && c > 0);
+      if (!vals.length) return '';
+      return (vals.reduce((s,x) => s+x, 0) / vals.length).toFixed(1);
+    })();
+    lines.push([
+      v.immat || '',
+      (v.modele || '').replace(/;/g, ','),
+      (v.marque || '').replace(/;/g, ','),
+      v.annee || '',
+      v.km || 0,
+      (v.modeAcquisition || '').toUpperCase(),
+      v.dateAcquisition || '',
+      v.prixAchatHT || '',
+      v.prixAchatTTC || '',
+      v.dateCT || '',
+      v.dateAssurance || '',
+      (v.salNom || '').replace(/;/g, ','),
+      ent ? ent.date : '',
+      consoMoy
+    ].join(';'));
+  });
+  const csv = '﻿' + lines.join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'vehicules-export-' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+  if (typeof afficherToast === 'function') afficherToast('CSV véhicules exporté (' + vehicules.length + ' lignes)');
+}
+window.exporterVehiculesCSV = exporterVehiculesCSV;
+
 // L10925 (script.js d'origine)
 function exporterPlanningSemainePDF() {
   var lundi = getLundiDeSemaine(_planningSemaineOffset);
