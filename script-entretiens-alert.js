@@ -85,7 +85,70 @@
     }
   }
 
-  function showAll() { showAlertBanner(); showCTAVenir(); }
+  // H19 — Historique véhicule (timeline)
+  function initHistoriqueVehicule() {
+    var sel = document.getElementById('entr-hist-vehicule-select');
+    if (!sel) return;
+
+    // Populate vehicle options
+    var vehicules = [];
+    try { vehicules = JSON.parse(localStorage.getItem('vehicules') || '[]'); } catch (e) {}
+    sel.innerHTML = '<option value="">— Sélectionner un véhicule —</option>';
+    vehicules.forEach(function (v) {
+      var immat = v.immatriculation || v.immat || '';
+      var label = ((v.marque || '') + ' ' + (v.modele || '')).trim() || immat;
+      var opt = document.createElement('option');
+      opt.value = immat;
+      opt.textContent = immat ? label + (immat !== label ? ' (' + immat + ')' : '') : label;
+      sel.appendChild(opt);
+    });
+  }
+
+  function renderHistoriqueVehicule(immat) {
+    var tl = document.getElementById('entr-hist-vehicule-timeline');
+    if (!tl) return;
+    if (!immat) {
+      tl.innerHTML = '<div style="font-size:13px;color:var(--ds-text-muted,var(--text-muted))">Sélectionnez un véhicule pour afficher son historique.</div>';
+      return;
+    }
+
+    var entretiens = [];
+    try { entretiens = JSON.parse(localStorage.getItem('entretiens') || '[]'); } catch (e) {}
+
+    var events = entretiens.filter(function (e) {
+      var ev = e.vehImmat || e.immatriculation || e.vehicule || '';
+      return ev.toLowerCase() === immat.toLowerCase();
+    }).sort(function (a, b) { return (b.date || '') > (a.date || '') ? 1 : -1; });
+
+    if (!events.length) {
+      tl.innerHTML = '<div style="font-size:13px;color:var(--ds-text-muted,var(--text-muted))">Aucun entretien enregistré pour ce véhicule.</div>';
+      return;
+    }
+
+    var typeColor = { vidange: '#2563eb', revision: '#7c3aed', pneu: '#d97706', frein: '#dc2626', ct: '#059669', autre: '#6b7280' };
+    function colorOf(t) { var k = (t || '').toLowerCase(); for (var c in typeColor) if (k.indexOf(c) !== -1) return typeColor[c]; return typeColor.autre; }
+
+    var html = '<div style="position:relative;padding-left:20px">';
+    html += '<div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--ds-border,var(--border))"></div>';
+    events.forEach(function (e) {
+      var col = colorOf(e.type);
+      var desc = e.description || e.type || 'Entretien';
+      var km = e.kilometrage ? ' · ' + Number(e.kilometrage).toLocaleString('fr-FR') + ' km' : '';
+      var prix = e.montantTTC ? ' · ' + Number(e.montantTTC).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }) : '';
+      html += '<div style="position:relative;margin-bottom:14px;padding-left:16px">'
+        + '<div style="position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:' + col + ';border:2px solid white"></div>'
+        + '<div style="font-size:11px;color:var(--ds-text-muted,var(--text-muted))">' + (e.date || '—') + km + '</div>'
+        + '<div style="font-size:13px;font-weight:600;color:var(--ds-text,var(--text))">' + desc + '</div>'
+        + (prix ? '<div style="font-size:12px;color:var(--ds-text-muted,var(--text-muted))">' + prix + '</div>' : '')
+        + '</div>';
+    });
+    html += '</div>';
+    tl.innerHTML = html;
+  }
+
+  window.__entrHistVehicule = renderHistoriqueVehicule;
+
+  function showAll() { showAlertBanner(); showCTAVenir(); initHistoriqueVehicule(); }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', function () { setTimeout(showAll, 200); });

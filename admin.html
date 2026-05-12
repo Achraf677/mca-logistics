@@ -3085,6 +3085,19 @@
         </div>
       </div>
 
+      <!-- H19 — Historique véhicule (timeline) -->
+      <div class="card" id="entr-hist-vehicule-card" style="margin-bottom:14px">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <h3 style="margin:0;font-size:14px;font-weight:700">Historique véhicule</h3>
+          <select id="entr-hist-vehicule-select" aria-label="Sélectionner un véhicule" style="font-size:12px;padding:4px 8px;border:1px solid var(--ds-border,var(--border));border-radius:6px;background:var(--bg-card);color:var(--text)" onchange="window.__entrHistVehicule&&window.__entrHistVehicule(this.value)">
+            <option value="">— Sélectionner un véhicule —</option>
+          </select>
+        </div>
+        <div id="entr-hist-vehicule-timeline" style="padding:14px 18px;max-height:320px;overflow-y:auto">
+          <div style="font-size:13px;color:var(--ds-text-muted,var(--text-muted))">Sélectionnez un véhicule pour afficher son historique.</div>
+        </div>
+      </div>
+
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table entretiens-table">

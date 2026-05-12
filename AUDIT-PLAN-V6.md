@@ -97,7 +97,7 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 - ✅ **H16** — Carburant : bannière anomalies ajoutée (`#carb-anomalie-banner`). Peuplée via alertes_admin type=carburant_anomalie. Bouton "Configurer" → `ouvrirConfigAnomaliesCarburant()`. DONE session :45 2026-05-12
 - ✅ **H17** — Entretiens : bannière déjà impl (`#entr-alert-banner` + `script-entretiens-alert.js`). FALSE POSITIVE audit. DONE depuis Phase 51.
 - ✅ **H18** — Entretiens : section "Contrôles techniques à venir" (tableau CT + dates) — DONE. HTML `#entr-ct-venir-card` + table `#tb-ct-venir-body` ajoutés dans admin.html. `showCTAVenir()` dans script-entretiens-alert.js : query vehicules.date_prochain_ct, tri par diff, couleurs rouge/orange/muted, visible jusqu'à 60j. Session :45 2026-05-12.
-- ⬜ **H19** — Entretiens : section "Historique véhicule" (timeline)
+- ✅ **H19** — Entretiens : section "Historique véhicule" (timeline) ajoutée. HTML `#entr-hist-vehicule-card` avec select véhicule + `#entr-hist-vehicule-timeline`. `initHistoriqueVehicule()` + `renderHistoriqueVehicule(immat)` dans script-entretiens-alert.js — timeline verticale avec dots colorés par type (vidange/pneu/frein/CT). Session :45 2026-05-12.
 - ⬜ **H20** — Inspections : table avec 5 rows mockup + badges colorés
 - ⬜ **H21** — Équipe Vue d'ensemble : 8 cards chauffeurs avec véhicule/livraisons30j/ponctualité/permis
 - ⬜ **H22** — Planning : grille hebdo CHAUFFEUR × LUN-DIM avec créneaux colorés
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 10 | 0 | 16 (H2–H4, H10–H18, H23–H26) | - | - |
+| 2 — HIGH | 26 | 9 | 0 | 17 (H2–H4, H10–H19, H23–H26) | - | - |
 | 3 — MEDIUM | 18 | 14 | 0 | 4 (M1, M2, M10, M11) | - | - |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **38** | **0** | **21** | **2** | **4** |
+| **TOTAL** | **65** | **37** | **0** | **22** | **2** | **4** |
 
 ---
 
