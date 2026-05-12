@@ -237,6 +237,118 @@
    Masquer colonnes HT + TVA (détail financier → drawer/modal)
    Montant TTC renommé en colonne visible principale.
    ============================================================ */
+/* ============================================================
+   Phase 48 — Period nav combined bar (mockup-aligned)
+   ============================================================ */
+.charges-period-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--ds-bg-card);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--ds-r-md);
+  margin-bottom: var(--ds-sp-4);
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.charges-period-bar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.charges-nav-btn {
+  min-height: 34px !important;
+  padding: 6px 10px !important;
+  font-size: 12px !important;
+}
+
+.charges-nav-today {
+  background: var(--ds-brand-soft) !important;
+  color: var(--ds-brand) !important;
+  border-color: rgba(230,57,70,0.4) !important;
+}
+
+.charges-period-label {
+  font-weight: 800;
+  font-size: 14px;
+  margin-left: 8px;
+  text-transform: capitalize;
+}
+
+.charges-period-dates {
+  font-family: var(--ds-font-mono);
+  font-size: 11px;
+  color: var(--ds-text-muted);
+}
+
+/* ============================================================
+   Phase 48 — Chart area (Évolution + Répartition)
+   ============================================================ */
+.charges-charts-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+  margin-bottom: var(--ds-sp-4);
+}
+
+@media (max-width: 900px) {
+  .charges-charts-row { grid-template-columns: 1fr; }
+}
+
+.charges-chart-card {
+  margin: 0;
+  overflow: hidden;
+}
+
+.charges-chart-hd {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--ds-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charges-chart-hd__title {
+  font-family: var(--ds-font-display);
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--ds-text);
+}
+
+.charges-chart-hd__meta {
+  font-size: 11px;
+  color: var(--ds-text-muted);
+}
+
+.charges-chart-body {
+  padding: 18px 20px;
+  height: 278px;
+  position: relative;
+}
+
+.charges-chart-body canvas {
+  position: absolute;
+  inset: 18px 20px;
+  width: calc(100% - 40px) !important;
+  height: calc(100% - 36px) !important;
+}
+
+/* ============================================================
+   Phase 48 — Hide mini KPI bar (not in mockup)
+   ============================================================ */
+#charges-mini-kpi-bar {
+  display: none;
+}
+
+/* ============================================================
+   Phase 34 — Aligner table Charges avec mockup
+   Masquer colonnes HT + TVA (détail financier → drawer/modal)
+   Montant TTC renommé en colonne visible principale.
+   ============================================================ */
 .charges-table th:nth-child(5),
 .charges-table td:nth-child(5),
 .charges-table th:nth-child(6),
