@@ -1773,10 +1773,10 @@
         </div>
       </div>
 
-      <!-- Phase 2 HTML refonte : section-head pattern mockup -->
+      <!-- Phase 46 refonte HTML : section-head mockup-aligned -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
-          <h2>Alertes administrateur</h2>
+          <h2>Alertes &amp; échéances</h2>
           <div class="ds-section-head__sub">
             <span><span id="alertes-section-sub-actives">0</span> active(s)</span>
             <span class="ds-section-head__sep">·</span>
@@ -1786,7 +1786,7 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="viderAlertes()">Vider l'historique traité</button>
+          <button class="btn-secondary" onclick="marquerToutesAlertesLues()">Tout marquer comme lu</button>
         </div>
       </div>
 
@@ -1797,44 +1797,55 @@
         <div class="kpi"><div class="kpi-lbl">Info</div><div class="kpi-val" id="alertes-kpi-info">—</div><div class="kpi-sub">Notifications légères</div></div>
       </div>
 
-      <!-- Filtres alertes (sticky : reste visible quand on scroll dans une longue liste) -->
-      <div class="filters alertes-filters-sticky" style="margin-bottom:16px;position:sticky;top:0;z-index:20;background:var(--bg);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
-        <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" / aria-label="Rechercher (message, salarié, client, immat…)" />
-        <select id="filtre-alerte-type" onchange="afficherAlertes()" aria-label="filtre alerte type">
-          <option value="">Tous les types</option>
-          <option value="ct_expire">CT expiré</option>
-          <option value="ct_proche">CT proche</option>
-          <option value="vidange">Vidange</option>
-          <option value="permis_expire">Permis expiré</option>
-          <option value="permis_proche">Permis proche</option>
-          <option value="assurance_expire">Assurance expirée</option>
-          <option value="assurance_proche">Assurance proche</option>
-          <option value="prix_manquant">Prix manquant</option>
-          <option value="charge_retard_paiement">Charge en retard de paiement</option>
-          <option value="carburant_anomalie">Anomalie carburant</option>
-          <option value="planning_manquant">Salarié sans planning</option>
-          <option value="inspection_manquante">Véhicule sans inspection</option>
-          <option value="livraison_modif">Livraison modifiée</option>
-          <option value="carburant_modif">Carburant modifié</option>
-          <option value="km_modif">Km modifié</option>
-          <option value="inspection">Inspection reçue</option>
-          <option value="relance_auto">Relance client</option>
-        </select>
-        <select id="filtre-alerte-salarie" onchange="afficherAlertes()" aria-label="filtre alerte salarie">
-          <option value="">Tous les salariés</option>
-        </select>
-        <select id="filtre-alerte-statut" onchange="afficherAlertes()" aria-label="filtre alerte statut">
-          <option value="actives">Alertes actives</option>
-          <option value="reportees">⏰ Alertes reportées</option>
-          <option value="traitees">Historique traité</option>
-          <option value="toutes">Toutes</option>
-        </select>
-        <input type="date" id="filtre-alerte-date" onchange="afficherAlertes()" title="Filtrer par date" / aria-label="Filtrer par date" />
-        <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';afficherAlertes()">Réinitialiser</button>
+      <!-- Phase 46 : card wrapper "Liste des alertes" + quick filters (mockup-matched) -->
+      <div class="card" id="card-alertes-liste" style="margin-bottom:16px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800">Liste des alertes</div>
+          <div style="display:flex;gap:6px">
+            <button id="btn-alerte-quick-toutes" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px" onclick="filtreAlerteQuick('toutes')">Toutes</button>
+            <button id="btn-alerte-quick-actives" class="btn-secondary" style="padding:6px 10px;min-height:30px;font-size:12px;background:var(--brand);color:#fff;border-color:var(--brand)" onclick="filtreAlerteQuick('actives')">Non lues</button>
+          </div>
+        </div>
+        <div style="padding:0 18px">
+          <!-- Filtres alertes (sticky) -->
+          <div class="filters alertes-filters-sticky" style="margin-bottom:0;position:sticky;top:0;z-index:20;background:var(--bg-card);padding:10px 0;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)">
+            <input type="search" id="filtre-alerte-recherche" oninput="afficherAlertes()" placeholder="Rechercher (message, salarié, client, immat…)" style="min-width:240px;flex:1 1 240px" aria-label="Rechercher (message, salarié, client, immat…)" />
+            <select id="filtre-alerte-type" onchange="afficherAlertes()" aria-label="filtre alerte type">
+              <option value="">Tous les types</option>
+              <option value="ct_expire">CT expiré</option>
+              <option value="ct_proche">CT proche</option>
+              <option value="vidange">Vidange</option>
+              <option value="permis_expire">Permis expiré</option>
+              <option value="permis_proche">Permis proche</option>
+              <option value="assurance_expire">Assurance expirée</option>
+              <option value="assurance_proche">Assurance proche</option>
+              <option value="prix_manquant">Prix manquant</option>
+              <option value="charge_retard_paiement">Charge en retard de paiement</option>
+              <option value="carburant_anomalie">Anomalie carburant</option>
+              <option value="planning_manquant">Salarié sans planning</option>
+              <option value="inspection_manquante">Véhicule sans inspection</option>
+              <option value="livraison_modif">Livraison modifiée</option>
+              <option value="carburant_modif">Carburant modifié</option>
+              <option value="km_modif">Km modifié</option>
+              <option value="inspection">Inspection reçue</option>
+              <option value="relance_auto">Relance client</option>
+            </select>
+            <select id="filtre-alerte-salarie" onchange="afficherAlertes()" aria-label="filtre alerte salarie">
+              <option value="">Tous les salariés</option>
+            </select>
+            <select id="filtre-alerte-statut" onchange="afficherAlertes()" aria-label="filtre alerte statut">
+              <option value="actives">Alertes actives</option>
+              <option value="reportees">⏰ Alertes reportées</option>
+              <option value="traitees">Historique traité</option>
+              <option value="toutes">Toutes</option>
+            </select>
+            <input type="date" id="filtre-alerte-date" onchange="afficherAlertes()" title="Filtrer par date" aria-label="Filtrer par date" />
+            <button class="btn-secondary" onclick="document.getElementById('filtre-alerte-recherche').value='';document.getElementById('filtre-alerte-type').value='';document.getElementById('filtre-alerte-salarie').value='';document.getElementById('filtre-alerte-statut').value='actives';document.getElementById('filtre-alerte-date').value='';filtreAlerteQuick('actives')">Réinitialiser</button>
+          </div>
+          <!-- Alertes actives triées par catégorie (généré dynamiquement) -->
+          <div id="alertes-categories" style="padding-bottom:14px"></div>
+        </div>
       </div>
-
-      <!-- Alertes actives triées par catégorie (généré dynamiquement) -->
-      <div id="alertes-categories"></div>
 
       <!-- Historique traité -->
       <div class="card" id="card-alertes-traitees">

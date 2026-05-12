@@ -510,3 +510,40 @@ function reprendreAlerte(id) {
   afficherToast('▶️ Alerte reprise');
 }
 
+// Phase 46 — "Tout marquer comme lu" : traite toutes les alertes actives en une fois
+async function marquerToutesAlertesLues() {
+  const alertes = charger('alertes_admin');
+  const actives = alertes.filter(a => !a.traitee && !a.ignoree && !estReportee(a));
+  if (!actives.length) { afficherToast('Aucune alerte active à traiter'); return; }
+  const ok = await confirmDialog(
+    `Marquer ${actives.length} alerte${actives.length > 1 ? 's' : ''} comme traitée${actives.length > 1 ? 's' : ''} ?`,
+    { titre: 'Tout marquer comme lu', icone: '✅', btnLabel: 'Tout traiter', danger: false }
+  );
+  if (!ok) return;
+  const now = new Date().toISOString();
+  const cooldown = dateCooldownIso(ALERTE_COOLDOWN_JOURS);
+  const ids = new Set(actives.map(a => a.id));
+  const out = alertes.map(a => ids.has(a.id) ? { ...a, traitee: true, traiteLe: now, cooldownJusquA: cooldown } : a);
+  sauvegarder('alertes_admin', out);
+  afficherAlertes();
+  afficherBadgeAlertes();
+  afficherToast(`✅ ${actives.length} alerte${actives.length > 1 ? 's' : ''} traitée${actives.length > 1 ? 's' : ''}`);
+}
+window.marquerToutesAlertesLues = marquerToutesAlertesLues;
+
+// Phase 46 — Quick filter "Toutes" / "Non lues" (buttons dans le card-header)
+function filtreAlerteQuick(mode) {
+  const sel = document.getElementById('filtre-alerte-statut');
+  if (sel) sel.value = mode === 'toutes' ? 'toutes' : 'actives';
+  const btnT = document.getElementById('btn-alerte-quick-toutes');
+  const btnA = document.getElementById('btn-alerte-quick-actives');
+  if (btnT && btnA) {
+    const activeStyle = 'background:var(--brand);color:#fff;border-color:var(--brand)';
+    const inactiveStyle = '';
+    btnT.style.cssText = mode === 'toutes' ? activeStyle : inactiveStyle;
+    btnA.style.cssText = mode !== 'toutes' ? activeStyle : inactiveStyle;
+  }
+  afficherAlertes();
+}
+window.filtreAlerteQuick = filtreAlerteQuick;
+

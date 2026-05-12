@@ -5,6 +5,20 @@
 
 ---
 
+## Session 2026-05-12 (:15) — Phase 46 : Alertes section-head + card liste
+**Phases** : 46
+**Commit final** : TBD
+**État** : Alertes 30% → 55% — section-head mockup-matched, card wrapper "Liste des alertes" + quick filters
+
+### Actions clés
+- Section-head h2 "Alertes administrateur" → "Alertes & échéances" (mockup match)
+- Bouton section-head "Vider l'historique traité" → "Tout marquer comme lu" avec `marquerToutesAlertesLues()`
+- Card wrapper autour filtres + #alertes-categories : card-header "Liste des alertes" + boutons "Toutes"/"Non lues"
+- `filtreAlerteQuick(mode)` : quick filter Toutes/actives avec highlight bouton actif
+- sw.js CACHE_VERSION v80 → v81
+
+---
+
 ## Session 2026-05-11 (:45) — Phase 45 : Statistiques + Calendrier + Véhicules toolbar
 **Phases** : 45
 **Commit final** : TBD

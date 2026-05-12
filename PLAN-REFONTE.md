@@ -38,7 +38,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Rentabilité | 50% | 100% | Phase 35b : section-head + KPI grid (CA/Charges/Marge/Coût km) |
 | Statistiques | 45% | 100% | Phase 45 : Exporter dropdown + period nav chips mockup-aligned |
 | Calendrier | 40% | 100% | Phase 45 : nav bar chips + mockup-aligned prev/today/next |
-| Alertes | 30% | 100% | Phase 7 |
+| Alertes | 55% | 100% | Phase 46 : section-head "Alertes & échéances" + card "Liste des alertes" + quick filters Toutes/Non lues + marquerToutesAlertesLues() |
 | Équipe | 30% | 100% | Phase 8 |
 | Heures | 45% | 100% | Phase 35 : section-head + KPI grid (total/sup/km/CE561) |
 | Incidents | 45% | 100% | Phase 35 : section-head + KPI grid (ouverts/résolus/coût/délai) |
