@@ -38,7 +38,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Rentabilité | 78% | 100% | Phase 59 : Export CSV + Excel ajoutés (4 items dropdown) + tabs underline-style mockup-aligned (rent-tab-btn) |
 | Statistiques | 82% | 100% | Phase 59 : Export CSV+Excel wired (au lieu de no-op silencieux) |
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
-| Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
+| Alertes | 82% | 100% | Phase 59 : sub-meta format mockup ("X alertes actives · Y échéances dans les 30 jours") + compute logic ECHEANCE_TYPES |
 | Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
 | Heures | 76% | 100% | Phase 59 : Export Excel ajouté (5 items : 3 PDF + CSV + Excel) |
 | Incidents | 80% | 100% | Phase 59 : Export Excel ajouté (3 items : Rapport PDF + CSV + Excel) |

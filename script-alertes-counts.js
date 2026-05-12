@@ -23,15 +23,20 @@
     var subActives = document.getElementById('alertes-section-sub-actives');
     var subReportees = document.getElementById('alertes-section-sub-reportees');
     var subTraitees = document.getElementById('alertes-section-sub-traitees');
+    var subEch30 = document.getElementById('alertes-section-sub-echeances30');
     var kpiCrit = document.getElementById('alertes-kpi-critiques');
     var kpiAlert = document.getElementById('alertes-kpi-alertes');
     var kpiInfo = document.getElementById('alertes-kpi-info');
-    if (!subActives && !subReportees && !subTraitees) return;
+    if (!subActives && !subReportees && !subTraitees && !subEch30) return;
 
     var alertes = lire('alertes_admin');
     var nowMs = Date.now();
-    var actives = 0, reportees = 0, traitees = 0;
+    var seuil30j = 30 * 86400000;
+    var actives = 0, reportees = 0, traitees = 0, echeances30 = 0;
     var critiques = 0, alertesCnt = 0, infoCnt = 0;
+
+    // Phase 59 mockup-aligned : compte les échéances dans les 30 jours (CT, permis, assurance, vidange)
+    var ECHEANCE_TYPES = { ct_expire: 1, ct_proche: 1, permis_expire: 1, permis_proche: 1, assurance_expire: 1, assurance_proche: 1, vidange: 1 };
 
     alertes.forEach(function (a) {
       if (!a) return;
@@ -49,11 +54,25 @@
       if (sev === 'critique') critiques++;
       else if (sev === 'alerte') alertesCnt++;
       else infoCnt++;
+      // Échéances dans les 30 jours
+      if (ECHEANCE_TYPES[a.type]) {
+        var echDate = a.echeance || a.dateEcheance || a.date_echeance;
+        if (echDate) {
+          var echMs = new Date(echDate).getTime();
+          if (!isNaN(echMs) && echMs > nowMs && (echMs - nowMs) <= seuil30j) {
+            echeances30++;
+          }
+        } else if (sev === 'critique' || sev === 'alerte') {
+          // Fallback : si pas de date mais c'est critique/alerte (déjà expirée ou imminente)
+          echeances30++;
+        }
+      }
     });
 
     if (subActives) subActives.textContent = actives;
     if (subReportees) subReportees.textContent = reportees;
     if (subTraitees) subTraitees.textContent = traitees;
+    if (subEch30) subEch30.textContent = echeances30;
     if (kpiCrit) kpiCrit.textContent = critiques;
     if (kpiAlert) kpiAlert.textContent = alertesCnt;
     if (kpiInfo) kpiInfo.textContent = infoCnt;
