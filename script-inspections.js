@@ -238,31 +238,50 @@ function afficherInspections() {
     return;
   }
 
-  container.innerHTML = inspections.map(insp => `
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-header">
-        <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <strong>${insp.salNom}</strong> — ${insp.vehImmat}${insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : ''}</span>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.82rem;color:var(--text-muted)">${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
-          <button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button>
-        </div>
-      </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
-          ${getInspectionPhotoList(insp).map((p, i) => {
-            const thumb = getInspectionPhotoThumbDescriptorAdmin(p);
-            const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="chargement..."';
-            const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
-            return `
-            <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;background:rgba(0,0,0,0.05)" onclick="voirPhotoAdmin('${insp.id}',${i})">
-              <img ${srcAttr} ${dataAttrs} style="width:100%;height:100%;object-fit:cover" />
-            </div>`;
-          }).join('')}
-        </div>
-        ${insp.note_cleanup_storage ? `<div style="margin-top:10px;font-size:.78rem;color:var(--text-muted)">${insp.note_cleanup_storage}</div>` : ''}
-      </div>
-    </div>`).join('');
+  // Phase 59 polish (BUG-023) — table-view mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut)
+  // Photos count clickable -> ouvre lightbox via voirPhotoAdmin
+  function statutBadge(insp) {
+    if (insp.statut === 'conforme') return '<span class="badge ok">Conforme</span>';
+    const koCount = Array.isArray(insp.pointsKO) ? insp.pointsKO.length : 0;
+    if (koCount >= 3) return '<span class="badge alert">Défaut majeur</span>';
+    return '<span class="badge warn">Défaut mineur</span>';
+  }
+  function defautsList(insp) {
+    if (insp.statut === 'conforme') return '—';
+    const ko = Array.isArray(insp.pointsKO) ? insp.pointsKO : [];
+    if (!ko.length) return '—';
+    if (ko.length <= 2) return ko.join(', ');
+    return ko.slice(0, 2).join(', ') + ' +' + (ko.length - 2);
+  }
+  const rows = inspections.map(insp => {
+    const photos = getInspectionPhotoList(insp);
+    const photoCount = photos.length;
+    const sourceBadge = insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : '';
+    return `
+      <tr class="row-hover" data-insp-id="${insp.id}">
+        <td class="mono" style="white-space:nowrap">${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</td>
+        <td>${insp.vehImmat || '—'}</td>
+        <td>${insp.salNom || '—'}${sourceBadge}</td>
+        <td>${photoCount > 0
+          ? `<button type="button" class="btn-link" style="background:none;border:none;color:var(--brand);cursor:pointer;font-size:.85rem;padding:0;text-decoration:underline" onclick="voirPhotoAdmin('${insp.id}',0)">${photoCount} photo${photoCount > 1 ? 's' : ''}</button>`
+          : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${defautsList(insp)}</td>
+        <td>${statutBadge(insp)}</td>
+        <td style="text-align:right"><button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button></td>
+      </tr>`;
+  }).join('');
 
-  // Resoudre les signed URLs pour les photos en bucket prive
+  container.innerHTML = `
+    <div class="card table-card">
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Véhicule</th><th>Chauffeur</th><th>Photos</th><th>Défauts</th><th>Statut</th><th style="text-align:right">Actions</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Resoudre signed URLs pour les photos (en cas d'usage drawer/modal)
   if (window.resolveStorageImages) {
     window.resolveStorageImages(container);
   }

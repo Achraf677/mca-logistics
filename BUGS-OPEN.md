@@ -10,15 +10,6 @@
 ## 🔴 NEW (à traiter)
 
 
-### BUG-023 — Inspections : rendu cards-photo-grid au lieu de table mockup
-- **Page** : Inspections (admin.html)
-- **Symptôme** : `afficherInspections()` dans `script-inspections.js:226` produit des `<div class="card">` avec grille de photos. Le mockup `previews/inspections.html:281` montre une `<table>` classique Date / Véhicule / Chauffeur / Photos / Défauts / Statut avec badges colorés (ok/warn/alert).
-- **Severity** : MEDIUM (les 2 paradigmes sont fonctionnels mais le mockup compact-table est plus scan-friendly)
-- **Reporter** : audit polish 2026-05-12
-- **Fix proposé** :
-  - Option A (lourde) : refactor `afficherInspections()` pour rendre une `<table>` avec badges `ok`/`warn`/`alert` selon `insp.defauts.length` et `insp.severite`. Garder les photos accessibles via clic row → drawer 360 ou modal.
-  - Option B (légère) : CSS-only — afficher en grille tableau-like avec colonnes alignées (sans changer la structure card).
-- **Test** : ouvrir Inspections → voir une liste tabulaire compacte avec colonnes Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges colorés.
 
 
 ---
@@ -30,6 +21,11 @@ _(vide pour l'instant)_
 ---
 
 ## ✅ FIXED (à vérifier par user)
+
+### BUG-023 — Inspections : rendu cards-photo-grid au lieu de table mockup
+- **Status** : FIXED Phase 59 (2026-05-12)
+- **Fix** : `afficherInspections()` dans `script-inspections.js` refactore pour render `<table class="data-table">` mockup-aligned (Date / Véhicule / Chauffeur / Photos / Défauts / Statut / Actions). Badges statut : Conforme (ok green), Défaut majeur (alert red, ≥3 KO), Défaut mineur (warn yellow, 1-2 KO). Photos count clickable → `voirPhotoAdmin(id, 0)` lightbox. Défauts list tronquée à 2 + "+N".
+- **À vérifier** : ouvrir Inspections → tableau compact au lieu de cards. Clic sur "X photos" ouvre la première photo.
 
 ### BUG-026 — TVA : tabs Collectée/Déductible (mockup-aligned)
 - **Status** : FIXED Phase 59 (2026-05-12)
@@ -205,7 +201,7 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 1 |
+| NEW | 0 |
 | IN_PROGRESS | 0 |
 | FIXED (à vérifier) | 24 |
 | VERIFIED | 0 |

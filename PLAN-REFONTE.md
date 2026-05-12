@@ -31,7 +31,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Véhicules | 85% | 100% | Phase 59 : Export CSV véhicules vraiment implémenté (14 cols, conso moy, BOM UTF-8) + Excel wired |
 | Carburant | 82% | 100% | Phase 59 : Export CSV vraiment implémenté (10 cols, BOM UTF-8) + Export Excel ajouté |
 | Entretiens | 82% | 100% | Phase 59 : Export Excel ajouté (3 items : Carnet PDF + CSV + Excel) |
-| Inspections | 82% | 100% | Phase 59 : sub-meta format mockup (Semaine N · X véhicules contrôlés · Y inspections cette semaine) |
+| Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 88% | 100% | Phase 59 : sub-meta mockup 3 parties (X factures impayées · DSO · Y relances à envoyer) |
 | TVA | 88% | 100% | Phase 59 : BUG-026 FIXED — tabs Collectée/Déductible underline-style avec count badges + JS switch (script-tva-tabs.js) |
