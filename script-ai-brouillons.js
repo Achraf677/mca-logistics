@@ -20,6 +20,7 @@
     pendingCount: 0,
     refreshTimer: null,
     container: null,
+    statusFilter: 'pending',
   };
 
   // ----- Helpers -----
@@ -164,17 +165,25 @@
 
   // ----- Network -----
 
-  async function fetchDrafts() {
+  async function fetchDrafts(statusFilter) {
     const client = getClient();
     if (!client) {
       state.lastError = 'Supabase non initialisé';
       return [];
     }
-    const { data, error } = await client.from('ai_pending_actions')
+    // Phase 58 polish (BUG-025) : filtrage par statut chip-driven
+    const filter = statusFilter || state.statusFilter || 'pending';
+    let query = client.from('ai_pending_actions')
       .select('id, action, payload, reasoning, source_message_id, created_by, created_at, status')
-      .eq('status', 'pending')
       .order('created_at', { ascending: false })
       .limit(100);
+    if (filter === 'ocr') {
+      // OCR factures : actions de creation charge (proxy heuristique pour OCR)
+      query = query.in('status', ['pending', 'executed']).like('action', 'propose_create_charge%');
+    } else if (filter === 'pending' || filter === 'executed' || filter === 'rejected') {
+      query = query.eq('status', filter);
+    }
+    const { data, error } = await query;
     if (error) {
       state.lastError = error.message || String(error);
       return [];
@@ -506,6 +515,13 @@
 
   // ----- Expose -----
 
+  // Phase 58 polish (BUG-025) : exposer setStatusFilter pour les chips
+  async function setStatusFilter(filter) {
+    state.statusFilter = filter || 'pending';
+    await loadDrafts();
+    if (state.container) renderDraftsPage(state.container);
+  }
+
   window.AIBrouillons = {
     loadDrafts,
     renderDraftsPage: mountAndLoad,
@@ -516,6 +532,7 @@
     refreshBadge: refreshBadgeOnly,
     startBadgePolling,
     stopAutoRefresh,
+    setStatusFilter,
     _state: state,
   };
 

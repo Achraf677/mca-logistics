@@ -31,7 +31,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
 | Carburant | 75% | 100% | Phase 49 : Exporter dropdown, période nav combined row, filtres cachés |
 | Entretiens | 78% | 100% | Phase 51 : Exporter dropdown, combined period nav, alert banner CT échéances |
-| Inspections | 68% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips |
+| Inspections | 75% | 100% | Phase 58 : Excel export ajouté + status filter (heuristique KO count) + btn 'Nouvelle inspection' mockup-aligned. BUG-023 ouvert (cards vs table mockup) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
@@ -43,7 +43,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Heures | 72% | 100% | Phase 56 : heures-km-layout 2-col styled, CE 561 kpi red, incident badge colors |
 | Incidents | 75% | 100% | Phase 56 : chips toolbar (Tous/Ouverts/En cours/Traités/Graves) + incChipFilter() + badge colors |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
-| Brouillons IA | 68% | 100% | Phase 56 : aib-card row-style (border-bottom, hover), aib-toolbar, aib-btn variants |
+| Brouillons IA | 78% | 100% | Phase 58 : chips Validées/Rejetées/OCR filtrent vraiment la liste (fetchDrafts paramétré + setStatusFilter) |
 | Planning | 72% | 100% | Phase 56 : planning-week-grid calendar style (shift cards is-work/is-rest/is-conge/is-absence/is-maladie) |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |

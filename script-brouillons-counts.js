@@ -79,12 +79,15 @@
     } catch (_) {}
   }
 
-  // Gestion active state des chips (le filtre visuel reste sur "En attente" par défaut
-  // car loadDrafts() ne charge que le statut pending)
+  // Phase 58 polish (BUG-025) : chips filter wire AIBrouillons.setStatusFilter
   window.brouillonsChipFilter = function (btn) {
     document.querySelectorAll('#brouillons-chips .ds-chip').forEach(function (c) {
       c.classList.toggle('active', c === btn);
     });
+    var filter = btn.getAttribute('data-brouillons-statut') || 'pending';
+    if (window.AIBrouillons && typeof window.AIBrouillons.setStatusFilter === 'function') {
+      window.AIBrouillons.setStatusFilter(filter);
+    }
   };
 
   function tryAttach() {

@@ -30,6 +30,15 @@ _(vide pour l'instant)_
 
 ## ✅ FIXED (à vérifier par user)
 
+### BUG-025 — Brouillons IA : chips Validées/Rejetées/OCR ne filtrent pas la liste
+- **Status** : FIXED Phase 58 polish 2026-05-12
+- **Cause** : `fetchDrafts()` dans `script-ai-brouillons.js:175` hardcodait `.eq('status', 'pending')`. Les chips `brouillonsChipFilter()` ne changeaient que la classe active, pas le fetch.
+- **Fix** :
+  - `fetchDrafts(statusFilter)` accepte un paramètre + lit `state.statusFilter` (défaut 'pending'). Cas spécial 'ocr' = `.like('action', 'propose_create_charge%')`.
+  - Nouveau `AIBrouillons.setStatusFilter(filter)` qui set state + recharge + re-render.
+  - `brouillonsChipFilter(btn)` dans `script-brouillons-counts.js` appelle désormais `setStatusFilter` avec `data-brouillons-statut`.
+- **À vérifier** : ouvrir Brouillons IA → cliquer "Validées" → la liste affiche les drafts validés du mois (au lieu de rester sur les pending).
+
 ### BUG-024 — Inspections : status filter "Conforme/Défaut mineur/Défaut majeur" pas wiré
 - **Status** : FIXED Phase 58 polish 2026-05-12
 - **Fix** : `afficherInspections()` dans `script-inspections.js:217` lit `#filtre-insp-statut` et applique heuristique (`'conforme'` exact, `'defaut-majeur'` = ≥3 KO, `'defaut-mineur'` = 1-2 KO). Onchange dropdown ré-appelle `afficherInspections()`.
