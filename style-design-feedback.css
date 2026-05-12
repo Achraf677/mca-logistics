@@ -195,3 +195,12 @@
     animation-duration: 1.4s;
   }
 }
+
+/* ============ Phase 60 polish — skeleton loader (Brouillons IA + autres) ============ */
+@keyframes skel-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+.skel-bar {
+  background: var(--ds-bg-card-hover, var(--bg-card-hover, rgba(255,255,255,0.06))) !important;
+}

@@ -78,8 +78,10 @@
 }
 
 .ds-section-head__sep {
-  opacity: 0.4;
+  opacity: 0.5;
   user-select: none;
+  margin: 0 4px;
+  color: var(--ds-text-muted);
 }
 
 .ds-section-head__total {

@@ -262,3 +262,20 @@
   .topbar-search-trigger { display: none !important; }
   #topbar-admin-label { display: none; }
 }
+
+/* ============ Phase 60 polish — Topbar duplicate brand fix (Gemini audit HIGH) ============ */
+/* Sidebar a déjà la brand "MCA Logistics", topbar la duplique → hide topbar-branding sur desktop */
+@media (min-width: 881px) {
+  .topbar-branding {
+    display: none !important;
+  }
+}
+
+/* Sidebar header text : empêcher truncation "MCA LOGI..." → permettre wrap ou shrink fontsize */
+.sidebar-header .logo-text {
+  white-space: nowrap;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  letter-spacing: -0.01em;
+  font-size: 0.95rem;
+}

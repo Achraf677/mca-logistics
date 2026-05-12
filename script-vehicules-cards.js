@@ -97,14 +97,15 @@
     var procheEnt = entretiens.filter(function (e) {
       return e.vehId === v.id && e.statut !== 'termine';
     }).length > 0;
-    var actionBtn;
+    // Phase 60 polish (Gemini audit HIGH) : éviter doublon Modifier+Voir le détail.
+    // Garder un bouton d'action UNIQUEMENT en cas d'urgence (CT proche / Entretien dû). Sinon le lien "Voir le détail →" suffit.
+    var actionBtn = '';
     if (ct && ct.cls === 'badge-warn') {
       actionBtn = '<button class="fv-action-btn fv-action-primary" onclick="ouvrirEditVehicule(\'' + v.id + '\')" title="Programmer CT">Programmer CT</button>';
     } else if (procheEnt) {
       actionBtn = '<button class="fv-action-btn fv-action-secondary" onclick="ouvrirEditVehicule(\'' + v.id + '\')" title="Entretien planifié">Entretien</button>';
-    } else {
-      actionBtn = '<button class="fv-action-btn fv-action-secondary" onclick="ouvrirEditVehicule(\'' + v.id + '\')">Modifier</button>';
     }
+    // Else : pas de bouton (redondant avec lien "Voir le détail →")
 
     var immat = v.immat || '—';
     var modele = v.modele || '';
