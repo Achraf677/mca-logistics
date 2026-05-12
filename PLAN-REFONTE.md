@@ -39,7 +39,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 85% | 100% | Phase 59 : sub-meta mockup format + structure complète (sidebar filtres + KPIs + Légende + toolbar prev/Aujourd'hui/next + period chips + grid 7-col) toutes alignées mockup. Visual fine-tuning sans screenshot reste à valider. |
 | Alertes | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels) + sub-meta mockup format |
-| Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
+| Équipe | 90% | 100% | Phase 59 : Export dropdown ajouté (CSV + Excel impl réels — numéro/nom/prénom/rôle/permis/visite médicale) + sub-meta mockup |
 | Heures | 88% | 100% | Phase 59 : exporterHeuresExcel vraiment impl (était fallback) + sub-meta mockup |
 | Incidents | 90% | 100% | Phase 59 : exporterIncidentsExcel vraiment impl + sub-meta "en attente expertise" mockup-aligned |
 | Paramètres | 82% | 100% | Phase 59 : audit code-level — 7 panels structurellement alignés mockup (Notifications 11 toggles, Sécurité, Intégrations Pennylane/Qonto/Gemini/ORS). Visual fine-tuning sans screenshot reste à valider user. |

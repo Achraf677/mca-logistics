@@ -308,6 +308,43 @@ function exporterVehiculesExcel() {
 }
 window.exporterVehiculesExcel = exporterVehiculesExcel;
 
+// Phase 59 — Équipe exports
+function exporterEquipeCSV() {
+  const salaries = charger('salaries').filter(s => s && s.actif !== false);
+  exporterCSV(salaries, [
+    { label: 'Numéro', get: s => s.numero || s.id || '' },
+    { label: 'Nom', get: s => s.nom || '' },
+    { label: 'Prénom', get: s => s.prenom || '' },
+    { label: 'Rôle', get: s => s.role || 'chauffeur' },
+    { label: 'Email', get: s => s.email || '' },
+    { label: 'Téléphone', get: s => s.tel || s.telephone || '' },
+    { label: 'Permis', get: s => s.categoriesPermis || s.permis || '' },
+    { label: 'Date permis exp.', get: s => s.datePermis || '' },
+    { label: 'Visite médicale', get: s => s.dateVisiteMedicale || '' },
+    { label: 'Contrat', get: s => s.typeContrat || '' }
+  ], 'equipe-' + new Date().toISOString().slice(0, 10) + '.csv');
+  if (typeof afficherToast === 'function') afficherToast('CSV équipe exporté');
+}
+window.exporterEquipeCSV = exporterEquipeCSV;
+
+function exporterEquipeExcel() {
+  const salaries = charger('salaries').filter(s => s && s.actif !== false);
+  exporterExcelXML(salaries, [
+    { label: 'Numéro', get: s => s.numero || s.id || '' },
+    { label: 'Nom', get: s => s.nom || '' },
+    { label: 'Prénom', get: s => s.prenom || '' },
+    { label: 'Rôle', get: s => s.role || 'chauffeur' },
+    { label: 'Email', get: s => s.email || '' },
+    { label: 'Téléphone', get: s => s.tel || s.telephone || '' },
+    { label: 'Permis', get: s => s.categoriesPermis || s.permis || '' },
+    { label: 'Date permis exp.', get: s => s.datePermis || '' },
+    { label: 'Visite médicale', get: s => s.dateVisiteMedicale || '' },
+    { label: 'Contrat', get: s => s.typeContrat || '' }
+  ], 'equipe-' + new Date().toISOString().slice(0, 10), 'Équipe');
+  if (typeof afficherToast === 'function') afficherToast('Excel équipe exporté');
+}
+window.exporterEquipeExcel = exporterEquipeExcel;
+
 // Phase 59 — Alertes exports
 function exporterAlertesCSV() {
   const alertes = charger('alertes_admin');
