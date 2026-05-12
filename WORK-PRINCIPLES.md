@@ -8,6 +8,29 @@
 
 ---
 
+## 🛑 Principe #0 — Don't stop until 100%
+
+> *« Tant que je te stoppe pas, continue stp jusqu'à tout 100%, que ce soit visuel ou fonctionnel »* (2026-05-12)
+
+Quand le user dit "continue jusqu'à 100%", ça veut dire :
+- **Aucune pause "veux-tu que je continue ?"** entre les commits
+- **Aucune validation préventive** sur les pages qu'il n'a pas signalées
+- **Aucun "bilan intermédiaire"** tant que toutes les pages ne sont pas à 95-100% visuel ET 100% fonctionnel
+- **Stop autorisé UNIQUEMENT si** :
+  - User dit explicitement "stop" / "arrête" / "fais pause"
+  - Bloqueur technique réel (serveur down, accès manquant, info nécessaire chez le user)
+  - Risque de régression non testable localement (alors note dans BUGS-OPEN.md et continue ailleurs)
+- **PAS de stop sur** :
+  - "j'ai fait beaucoup, on devrait s'arrêter ?" (NON, continue)
+  - "tu veux que je passe à autre chose ?" (NON, continue dans l'ordre)
+  - Peur de "trop de commits cosmétiques" (les commits doivent ÊTRE pertinents, pas peureux)
+
+Pour les pages restantes (<95% visuel OU <100% fonctionnel) : enchaîner jusqu'à atteindre 95-100% visuel + 100% fonctionnel sur toutes.
+
+Workflow : pick la page la moins avancée → polish/fix → commit → push → marquer % new → repeat. Sans pause.
+
+---
+
 ## 🎯 Principe #1 — Autonomie maximale
 
 > *« Fonce » · « Continue » · « En auto mode, exécute »*
