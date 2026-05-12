@@ -37,7 +37,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
 | Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
 | Statistiques | 78% | 100% | Phase 57 : chips Mois/Trimestre/Année section-head + stat-row bar charts CSS + KPI label fix |
-| Calendrier | 70% | 100% | Phase 55 : sidebar h3 display font + dupe Légende supprimée |
+| Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
 | Équipe | 75% | 100% | Phase 57 : team-grid + member-card CSS (avatar/head/body/foot/badges) mockup-aligned |
 | Heures | 72% | 100% | Phase 56 : heures-km-layout 2-col styled, CE 561 kpi red, incident badge colors |

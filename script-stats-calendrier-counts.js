@@ -27,11 +27,30 @@
   function updateCalendrier() {
     var subPeriode = document.getElementById('calendrier-section-sub-periode');
     if (!subPeriode) return;
-    var label = document.getElementById('cal16-label');
-    var sub = document.getElementById('cal16-sub');
-    var labelTxt = label && label.textContent ? label.textContent.trim() : '';
-    var subTxt = sub && sub.textContent ? sub.textContent.trim() : '';
-    subPeriode.textContent = (labelTxt + (subTxt ? ' (' + subTxt + ')' : '')) || '—';
+    // Phase 59 polish (mockup format) : "X livraisons · Y échéances · Z jours fériés ce mois"
+    function readNum(id) {
+      var el = document.getElementById(id);
+      if (!el) return 0;
+      var n = parseInt((el.textContent || '').replace(/[^\d]/g, ''), 10);
+      return isNaN(n) ? 0 : n;
+    }
+    var cntLiv = readNum('cal16-kpi-liv');
+    var cntEch = readNum('cal16-kpi-ech');
+    var cntFer = readNum('cal16-kpi-feries');
+    if (cntLiv === 0 && cntEch === 0 && cntFer === 0) {
+      // Fallback : afficher la période si les KPIs ne sont pas encore prêts
+      var label = document.getElementById('cal16-label');
+      var sub = document.getElementById('cal16-sub');
+      var labelTxt = label && label.textContent ? label.textContent.trim() : '';
+      var subTxt = sub && sub.textContent ? sub.textContent.trim() : '';
+      subPeriode.textContent = (labelTxt + (subTxt ? ' (' + subTxt + ')' : '')) || '—';
+      return;
+    }
+    var parts = [];
+    parts.push(cntLiv + ' livraison' + (cntLiv > 1 ? 's' : ''));
+    if (cntEch > 0) parts.push(cntEch + ' échéance' + (cntEch > 1 ? 's' : ''));
+    if (cntFer > 0) parts.push(cntFer + ' jour' + (cntFer > 1 ? 's' : '') + ' férié' + (cntFer > 1 ? 's' : ''));
+    subPeriode.textContent = parts.join(' · ') + ' ce mois';
   }
 
   function update() { updateStats(); updateCalendrier(); }
