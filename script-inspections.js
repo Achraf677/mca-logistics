@@ -215,6 +215,21 @@ function afficherInspections() {
   }
 
   if (filtreSal)  inspections = inspections.filter(i => i.salId === filtreSal);
+
+  // Phase 58 polish (BUG-024) — filtre statut conforme / anomalies
+  const filtreStatut = document.getElementById('filtre-insp-statut')?.value || '';
+  if (filtreStatut === 'conforme') {
+    inspections = inspections.filter(i => i.statut === 'conforme');
+  } else if (filtreStatut === 'defaut-mineur' || filtreStatut === 'defaut-majeur') {
+    // Heuristique : data model actuel a juste 'conforme' vs 'avec_anomalies'.
+    // mineur = 1-2 KO, majeur = 3+ KO (à raffiner quand vraie severite ajoutée).
+    inspections = inspections.filter(i => {
+      if (i.statut !== 'avec_anomalies') return false;
+      const koCount = Array.isArray(i.pointsKO) ? i.pointsKO.length : 0;
+      return filtreStatut === 'defaut-majeur' ? koCount >= 3 : koCount > 0 && koCount < 3;
+    });
+  }
+
   inspections = inspections.filter(i => isDateInRange(i.date, range));
   inspections.sort((a, b) => new Date(b.creeLe) - new Date(a.creeLe));
 

@@ -19,13 +19,6 @@
   - Option B (légère) : CSS-only — afficher en grille tableau-like avec colonnes alignées (sans changer la structure card).
 - **Test** : ouvrir Inspections → voir une liste tabulaire compacte avec colonnes Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges colorés.
 
-### BUG-024 — Inspections : status filter "Conforme/Défaut mineur/Défaut majeur" pas wiré
-- **Page** : Inspections (admin.html)
-- **Symptôme** : Phase 58 a ajouté le `<select id="filtre-insp-statut">` mais `window.filtrerInspParStatut` n'existe pas dans `script-inspections.js`. Le `onchange` fallback sur `afficherInspections()` qui ne filtre que par salarié + date range, pas par statut.
-- **Severity** : LOW (UX dégradé — le filtre apparaît mais ne fait rien)
-- **Reporter** : audit polish 2026-05-12
-- **Fix proposé** : implémenter `window.filtrerInspParStatut(val)` qui set un `_inspFiltreStatut` et le push dans `afficherInspections()` (filter `inspections` by `insp.severite` matching the dropdown value).
-- **Test** : ouvrir Inspections → sélectionner "Défaut majeur" → seules les lignes avec defauts.severite='majeur' s'affichent.
 
 ---
 
@@ -36,6 +29,12 @@ _(vide pour l'instant)_
 ---
 
 ## ✅ FIXED (à vérifier par user)
+
+### BUG-024 — Inspections : status filter "Conforme/Défaut mineur/Défaut majeur" pas wiré
+- **Status** : FIXED Phase 58 polish 2026-05-12
+- **Fix** : `afficherInspections()` dans `script-inspections.js:217` lit `#filtre-insp-statut` et applique heuristique (`'conforme'` exact, `'defaut-majeur'` = ≥3 KO, `'defaut-mineur'` = 1-2 KO). Onchange dropdown ré-appelle `afficherInspections()`.
+- **Limite connue** : heuristique sur `pointsKO.length`, pas vraie severite typée. Affiner quand vraie severite ajoutée au data model.
+- **À vérifier** : ouvrir Inspections → sélectionner "Défaut majeur" → seules les inspections avec 3+ KO s'affichent.
 
 ### BUG-022 — title-row masqué pour Livraisons (régression Phase 46 global hide)
 - **Status** : FIXED (session :30 2026-05-12)
@@ -191,7 +190,7 @@ _(vide pour l'instant — user à valider)_
 
 | Statut | Count |
 |---|---|
-| NEW | 2 |
+| NEW | 1 |
 | IN_PROGRESS | 0 |
 | FIXED (à vérifier) | 24 |
 | VERIFIED | 0 |
