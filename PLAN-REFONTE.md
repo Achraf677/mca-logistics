@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 55 — Brouillons IA 45→58%, Calendrier 65→70% (sidebar display font + dupe Légende supprimée)
+> **Dernier commit** : Phase 56 — Heures 62→72%, Incidents 62→75%, Planning 60→72%, Brouillons IA 58→68% (commit a112414)
 
 ---
 
@@ -40,11 +40,11 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Calendrier | 70% | 100% | Phase 55 : sidebar h3 display font + dupe Légende supprimée |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
 | Équipe | 65% | 100% | Phase 54 : KPI grid labels mockup-aligned (Chauffeurs actifs/Heures travaillées/Incidents ouverts/Échéances permis) + ds-kpi classes |
-| Heures | 62% | 100% | Phase 51 : Exporter dropdown (4 rapports), combined period nav + chips |
-| Incidents | 62% | 100% | Phase 51 : Exporter dropdown (PDF + CSV) |
+| Heures | 72% | 100% | Phase 56 : heures-km-layout 2-col styled, CE 561 kpi red, incident badge colors |
+| Incidents | 75% | 100% | Phase 56 : chips toolbar (Tous/Ouverts/En cours/Traités/Graves) + incChipFilter() + badge colors |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
-| Brouillons IA | 58% | 100% | Phase 55 : list wrapped in .card + header row; description card supprimée |
-| Planning | 60% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips + ⋯ button |
+| Brouillons IA | 68% | 100% | Phase 56 : aib-card row-style (border-bottom, hover), aib-toolbar, aib-btn variants |
+| Planning | 72% | 100% | Phase 56 : planning-week-grid calendar style (shift cards is-work/is-rest/is-conge/is-absence/is-maladie) |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |
 

@@ -5,6 +5,26 @@
 
 ---
 
+## Session 2026-05-12 :15 — Phase 56 Heures+Incidents+Planning+Brouillons IA (agent :15)
+**Phases** : 56
+**Commit final** : `a112414`
+**CACHE_VERSION** : v98 → v99
+
+### Actions clés
+- **Heures** : `style-design-heures-incidents.css` NEW — heures-km-layout 2-col responsive, CE 561 kpi val rouge, incident badge 3 couleurs (ouvert/encours/traite)
+- **Incidents** : chips toolbar HTML (5 chips : Tous/Ouverts/En cours/Traités/Graves) dans admin.html + `window.incChipFilter()` dans script-incidents.js. Chips pilotent filtre-inc-statut + filtre-inc-gravite + appellent afficherIncidents()
+- **Brouillons IA** : `style-design-brouillons-ia.css` NEW — aib-card row-style (border-bottom, hover, no border-radius), aib-btn variants, aib-toolbar, aib-list flex column, aib-card-head flex
+- **Planning** : `style-design-planning.css` updated — planning-week-grid calendar visual (is-work gradient red, is-rest dashed, is-conge blue, is-absence yellow, is-maladie purple, driver cell sticky bg)
+- CACHE_VERSION v98 → v99
+- Tests 426/426 pass
+
+### Décisions
+- Chips incidents mappent sur les selects existants (filtre-inc-statut + filtre-inc-gravite), pas de nouveau data model
+- aib-card gardé en format carte (pas transformé en table-row car JS génère des cartes)
+- planning-week-grid styling CSS-only, zéro modif JS
+
+---
+
 ## Session 2026-05-12 :15 — Phase 53 Paramètres 7 tabs (agent :15)
 **Phases** : 53 (Paramètres tabs)
 **Commit final** : `59d5983`
