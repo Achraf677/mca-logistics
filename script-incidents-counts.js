@@ -37,6 +37,19 @@
     if (subOuverts) subOuverts.textContent = ouverts.length;
     if (subResolus) subResolus.textContent = resolus.length;
 
+    // Phase 59 — sub-meta "en attente expertise" (mockup-aligned)
+    var subExpertise = document.getElementById('inc-section-sub-expertise');
+    if (subExpertise) {
+      var expertise = incidents.filter(function (i) {
+        if (!i) return false;
+        var s = i.statut || '';
+        var sousStatut = (i.sousStatut || i.sous_statut || '').toLowerCase();
+        // En attente expertise = statut 'encours' avec sous-statut expertise OU tag specifique
+        return (s === 'encours' || s === 'en-cours') && (sousStatut.includes('expertise') || (i.tags || []).indexOf('expertise') !== -1);
+      });
+      subExpertise.textContent = expertise.length;
+    }
+
     // Coût total (si champ cout présent dans les données)
     if (kpiCout) {
       var totalCout = incidents.reduce(function (s, i) { return s + parseFloat(i && (i.cout || i.cost || i.montant) || 0); }, 0);
