@@ -5,14 +5,27 @@
   function update() {
     var subActifs = document.getElementById('equipe-section-sub-actifs');
     var subPostes = document.getElementById('equipe-section-sub-postes');
+    var subAdmins = document.getElementById('equipe-section-sub-admins');
+    var subHeures = document.getElementById('equipe-section-sub-heures');
     if (!subActifs && !subPostes) return;
     var salaries = lire('salaries');
     var postes = lire('postes');
     var incidents = lire('incidents');
     var heures = lire('heures');
-    var actifs = salaries.filter(function (s) { return !s || s.actif !== false; }).length;
-    if (subActifs) subActifs.textContent = actifs;
+    // Phase 59 mockup-aligned : chauffeurs vs admins (au lieu de salarié(s) actif(s) + poste(s))
+    var actifsList = salaries.filter(function (s) { return !s || s.actif !== false; });
+    var chauffeurs = actifsList.filter(function (s) { return !s.role || s.role === 'chauffeur' || s.role === 'salarie'; }).length;
+    var admins = actifsList.filter(function (s) { return s.role === 'admin' || s.role === 'manager'; }).length;
+    if (subActifs) subActifs.textContent = chauffeurs > 0 ? chauffeurs : actifsList.length;
+    if (subAdmins) subAdmins.textContent = admins;
     if (subPostes) subPostes.textContent = postes.length;
+    if (subHeures) {
+      var now = new Date();
+      var moisStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      var moisH = heures.filter(function (h) { return h && h.date && new Date(h.date).getTime() >= moisStart; })
+        .reduce(function (s, h) { return s + (parseFloat(h.heures) || 0); }, 0);
+      subHeures.textContent = Math.round(moisH);
+    }
     // Tab count badges (Phase 46)
     var salCount = document.getElementById('equipe-tab-sal-count');
     var incCount = document.getElementById('equipe-tab-inc-count');

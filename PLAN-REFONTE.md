@@ -25,7 +25,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Page | Visuel | Fonctionnel | Notes |
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
-| **Livraisons** | 100% | 100% | Phases 22-34 + BUG-001-022 fixés + sidebar-foot admin + banner "ce mois" mockup-aligned (commit a22ac3f, 2026-05-12) |
+| **Livraisons** | 92% | 95% | User correction 2026-05-12 : 100% prématuré. Reste : couleurs chips/Kanban/statut pills, alignement colonnes table, boutons morts/doublons, génération facture+CSV+XLSX à valider end-to-end, modals Nouvelle/Modifier parité, drawer 360 polish |
 | Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 85% | 100% | Phase 59 : Export CSV véhicules vraiment implémenté (14 cols, conso moy, BOM UTF-8) + Excel wired |
@@ -39,7 +39,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Statistiques | 82% | 100% | Phase 59 : Export CSV+Excel wired (au lieu de no-op silencieux) |
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
-| Équipe | 75% | 100% | Phase 57 : team-grid + member-card CSS (avatar/head/body/foot/badges) mockup-aligned |
+| Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
 | Heures | 76% | 100% | Phase 59 : Export Excel ajouté (5 items : 3 PDF + CSV + Excel) |
 | Incidents | 80% | 100% | Phase 59 : Export Excel ajouté (3 items : Rapport PDF + CSV + Excel) |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
