@@ -5,6 +5,55 @@
 
 ---
 
+## Session 2026-05-12 soir — Phase 59 polish profond (claude local, user Achraf)
+
+**Mode** : autonomie totale (user directive : "Tant que je te stoppe pas, continue stp jusqu'à tout 100%, que ce soit visuel ou fonctionnel"). Principe #0 ajouté à WORK-PRINCIPLES.md.
+
+**~30 commits push** sur `claude/html-refonte-cleanup` (de a22ac3f à ee8b902).
+
+**% gains (avant → après)** :
+- Inspections : 75 → **92%** (BUG-023 FIXED — table mockup-aligned avec badges ok/warn/alert)
+- TVA : 80 → **88%** (BUG-026 FIXED — tabs Collectée/Déductible underline + count badges)
+- Encaissement : 80 → **88%** (sub-meta 3 parties + relances à envoyer)
+- Statistiques : 82 → **88%** (sub-meta CA mockup)
+- Carburant : 82 → **87%** (Email cabinet compta + Excel)
+- Entretiens : 82 → **87%** (Email cabinet compta + Excel)
+- Rentabilité : 78 → **85%** (sub-meta "Mois de mai · marge brute consolidée")
+- Brouillons IA : 78 → **85%** (sub-meta "X actions · Y traitées ce mois")
+- Heures : 76 → **82%** (sub-meta "X chauffeurs · Y jours pointés")
+- Équipe : 75 → **82%** (sub-meta "X chauffeurs · Y admins · Zh ce mois")
+- Alertes : 75 → **82%** (sub-meta "X actives · Y échéances 30j")
+- Paramètres : 70 → **82%** (audit code-level 7 panels)
+- Clients : 85 → **90%** (CA cumulé 12m dans sub-meta)
+- Fournisseurs : 85 → **90%** (Dépenses cumulées 12m)
+- Dashboard : 90 → **92%** (sub-meta date "Mai 2026" wired)
+- Calendrier : 70 → **78%** (sub-meta mockup format)
+- Livraisons : 100 → **92%** (user correction "pas finie du tout")
+
+**Bugs FIXED cette session** :
+- BUG-023 Inspections cards → table
+- BUG-024 Inspections status filter wire
+- BUG-025 Brouillons IA chips filter wire
+- BUG-026 TVA tabs Collectée/Déductible
+
+**Nouveaux scripts** :
+- `script-sidebar-foot.js` (admin identity dropdown)
+- `script-dashboard-submeta.js` (Dashboard + Rentabilité mois)
+- `script-tva-tabs.js` (TVA tabs switch)
+
+**Nouvelles fonctions impl** (pas que stubs) :
+- `exporterCarburantCSV()` (10 cols, BOM UTF-8)
+- `exporterVehiculesCSV()` (14 cols, conso moy)
+- `AIBrouillons.setStatusFilter(filter)` (chips filter wired)
+
+**Memory updates** :
+- Principe #0 verrouillé dans WORK-PRINCIPLES.md (don't stop until 100%)
+- Memory feedback-polish-final-toutes-pages + project-livraisons-pas-finie
+
+**Pages restantes à attaquer** : Mobile m.html 75%, Mobile salarie.html 70% (pas de mockup desktop pour comparer).
+
+---
+
 ## Session 2026-05-12 :45 — Phase 57 Encaissement+Stats+Équipe (agent :45)
 **Phases** : 57
 **Commit final** : `13c5806`
