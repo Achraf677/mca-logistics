@@ -1,6 +1,6 @@
-/* Phase 47 — Clients + Fournisseurs table post-render polish
-   Additive only — MutationObserver rewrites col 2 (Ville) + col 4 (SIREN)
-   after afficherClientsDashboard() / afficherFournisseursDashboard() render.
+/* Phase 47 + H10/H11 — Clients + Fournisseurs table post-render polish
+   Additive only — MutationObserver rewrites Ville/SIREN + injects ENCOURS/STATUT
+   (clients) and CATÉGORIE/À RÉGLER/DERN. FACTURE (fournisseurs).
    No modification of script-clients.js or script-fournisseurs.js. */
 (function () {
   'use strict';
@@ -17,12 +17,32 @@
     return clean || '—';
   }
 
+  function fmtEur(v) {
+    if (!v && v !== 0) return '—';
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(v);
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    try {
+      var dt = new Date(d);
+      if (isNaN(dt)) return '—';
+      return dt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+    } catch (_) { return '—'; }
+  }
+
   // Extract client/fournisseur id from first-cell onclick attr
   function extractId(row) {
     var btn = row.querySelector('td:first-child button[onclick]');
     if (!btn) return null;
     var m = (btn.getAttribute('onclick') || '').match(/\('([^']+)'\)/);
     return m ? m[1] : null;
+  }
+
+  function insertBeforeLast(row, td) {
+    var last = row.querySelector('td:last-child');
+    if (last) row.insertBefore(td, last);
+    else row.appendChild(td);
   }
 
   // ── CLIENTS ───────────────────────────────────────────────────────────────
@@ -39,7 +59,6 @@
     // H11 — fournisseurs now renders correct columns directly (catégorie/ville/à régler).
     // Patching obsolète — no-op.
     return;
-    });
   }
 
   // ── DROPDOWN MENU TOGGLE ──────────────────────────────────────────────────
