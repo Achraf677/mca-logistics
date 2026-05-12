@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 51 (Charges 78%→85%, Entretiens 65%→78%, Heures 45%→62%, Incidents 45%→62%)
+> **Dernier commit** : Phase 52 (Planning 40%→60%, Inspections 50%→68%)
 
 ---
 
@@ -31,7 +31,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
 | Carburant | 75% | 100% | Phase 49 : Exporter dropdown, période nav combined row, filtres cachés |
 | Entretiens | 78% | 100% | Phase 51 : Exporter dropdown, combined period nav, alert banner CT échéances |
-| Inspections | 50% | 100% | Phase 43 : KPI grid peuplé |
+| Inspections | 68% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 65% | 100% | Phase 50 : Exporter dropdown, "+ Enregistrer paiement" primary btn, section-head mockup-aligned |
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
@@ -44,7 +44,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Incidents | 62% | 100% | Phase 51 : Exporter dropdown (PDF + CSV) |
 | Paramètres | 35% | 100% | Phase 46 : breadcrumb + title-row supprimés, boutons Annuler+Enregistrer mockup-matched |
 | Brouillons IA | 40% | 100% | Phase 35d : section-head |
-| Planning | 40% | 100% | Phase 46 : breadcrumb + title-row supprimés |
+| Planning | 60% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips + ⋯ button |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |
 
