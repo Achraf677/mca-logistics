@@ -68,9 +68,9 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 ### Routing & Navigation
 
 - ⬜ **H1** — Architecture sidebar : décider plate (mockup, 22 items) vs hiérarchique (prod, 5 groupes). **Recommandation** : garder hiérarchique mais déplier par défaut sur Dashboard.
-- ⬜ **H2** — Renommer groupes sidebar : QUOTIDIEN→OPÉRATIONS, TIERS→CARNET (mockup-aligned)
-- ⬜ **H3** — Paramètres double-nav : supprimer la sidebar gauche secondaire (garder uniquement les 7 tabs horizontaux mockup)
-- ⬜ **H4** — Paramètres : titre header reste "Paramètres" (pas "Paramètres - Comptabilité")
+- ✅ **H2** — Renommer groupes sidebar : QUOTIDIEN→OPÉRATIONS, TIERS→CARNET (mockup-aligned) — DONE session :45 2026-05-12
+- ✅ **H3** — Paramètres double-nav : `.s29-sidebar { display:none !important }` — DONE session :45 2026-05-12
+- ✅ **H4** — Paramètres : MutationObserver remet h2 = "Paramètres" quand s29 JS le modifie — DONE session :45 2026-05-12
 
 ### Graphiques manquants (8 charts)
 
@@ -104,20 +104,20 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 ### Dashboard
 
-- ⬜ **H23** — KPI bar : harmoniser libellés (LIVRAISONS/CA HT/MARGE NETTE/RETARDS au lieu de CA CE MOIS/LIVRAISONS CE MOIS/DÉPENSES/BÉNÉFICE)
+- ✅ **H23** — KPI bar : labels + ordre mockup-aligned (Livraisons/CA HT/Marge nette/Retards). Retards = count livraisons isRetard() via script-dashboard-finish.js. kpi-carburant/kpi-depenses-detail conservés cachés (legacy). DONE session :45 2026-05-12
 - ⬜ **H24** — Indice santé : ajouter 4 sous-cartes (FINANCE 92/FLOTTE 88/RH 85/CONFORMITÉ 95)
 
 ### Couleurs hors palette
 
-- ⬜ **H25** — Calendrier : header jours semaine **bleu/violet `#7C5CFA`** → repasser en gris foncé ou brand red
-- ⬜ **H26** — Calendrier : cellule "Aujourd'hui" en violet → brand red `#E11D48`
+- ✅ **H25** — Calendrier : header jours semaine → déjà `var(--ds-text-muted)` (gris). FALSE POSITIVE (audit vu sur ancienne version). Vérifié code : `.cal-header-day { color: var(--ds-text-muted) }`.
+- ✅ **H26** — Calendrier : cellule "Aujourd'hui" en violet → brand red `#E11D48` — DONE session :45 2026-05-12 (commit c28802f)
 
 ---
 
 ## 🟡 PHASE 3 — Bugs MEDIUM
 
-- ⬜ **M1** — Livraisons header : meta tronquée "3 Mai 2026 ·" → fixer fallback agrégation
-- ⬜ **M2** — Livraisons badge "En atten…" tronqué → overflow CSS
+- ✅ **M1** — Livraisons header : trailing "·" avec retards=0 → `<span> · </span>` déplacé à l'intérieur de `retards-wrap` — DONE session :45 2026-05-12
+- ✅ **M2** — Livraisons badge "En atten…" tronqué → min-width 90→120px sur `.livraison-inline-select` — DONE session :45 2026-05-12
 - ⬜ **M3** — Statut pills : harmoniser dots colorés (mockup) vs pills (prod) — décider style unique
 - ⬜ **M4** — Calendrier : KPI "ENCAISSÉ" formule différente (HT vs TTC) → harmoniser
 - ⬜ **M5** — Alertes : sub-tabs "Critique/À traiter/Pour info/Reportées" — décider ajout mockup ou retrait prod
@@ -125,8 +125,8 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 - ⬜ **M7** — Fournisseurs : KPI TOP DÉPENSE / CAT. DOMINANTE vides → bug calcul
 - ⬜ **M8** — Véhicules : compléter cards (Entretien/CT/Diagnostiquer buttons, layout 3 colonnes)
 - ⬜ **M9** — Entretiens : harmoniser chips filtres (5 prod vs 4 mockup)
-- ⬜ **M10** — Heures&Km : header "0 jours pointés0" — **double 0 typo**
-- ⬜ **M11** — Heures&Km : bouton "+ Saisir un relevé" → renommer "+ Pointer" (mockup)
+- ✅ **M10** — Heures&Km : header "0 jours pointés0" — FALSE POSITIVE. Code vérifié : `<span id="heures-section-sub-count" hidden>0</span>` est caché par attribut HTML natif. Pas de double-0 dans prod.
+- ✅ **M11** — Heures&Km : bouton "+ Saisir un relevé" → renommé "+ Pointer" (mockup) — DONE session :45 2026-05-12
 - ⬜ **M12** — Heures&Km : aligner colonnes tables (DÉBUT/FIN/TOTAL/CE 561) avec mockup
 - ⬜ **M13** — Charges : decider architecture page autonome vs tab Finances
 - ⬜ **M14** — Encaissement : harmoniser KPIs (1 ligne au lieu de 2)
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 26 | 0 | 0 | - | - |
-| 3 — MEDIUM | 18 | 18 | 0 | 0 | - | - |
+| 2 — HIGH | 26 | 21 | 0 | 5 (H2, H3, H4, H25, H26) | - | - |
+| 3 — MEDIUM | 18 | 13 | 0 | 3 (M1, M2, M11) | 2 (M10, H25) | - |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **58** | **0** | **1** | **2** | **4** |
+| **TOTAL** | **65** | **48** | **0** | **8** | **4** | **4** |
 
 ---
 

@@ -438,7 +438,7 @@
   text-transform: none;
   font-family: inherit;
   cursor: pointer;
-  min-width: 90px;
+  min-width: 120px;
   text-align: left;
   outline: none;
   transition: filter 0.15s ease-out;

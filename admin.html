@@ -181,13 +181,13 @@
           - <header class="topbar">       : recherche + agent IA + avatar (ligne ~201)
 
        2. PAGES (21 sections, chacune <section class="page" id="page-X">)
-          QUOTIDIEN
+          OPÉRATIONS
             page-dashboard      ~ligne  230  : Vue d'ensemble + KPI hero
             page-livraisons     ~ligne  353  : Tableau/Kanban/Calendrier courses
             page-calendrier     ~ligne 1923  : Calendrier opérationnel mensuel
             page-alertes        ~ligne 1170  : Centre d'alertes
             page-planning       ~ligne 1993  : Planning hebdomadaire
-          TIERS
+          CARNET
             page-clients        ~ligne  477  : Carnet clients
             page-fournisseurs   ~ligne  517  : Carnet fournisseurs
           FLOTTE (Parc auto + Équipe)
@@ -229,9 +229,9 @@
     <nav class="sidebar-nav" aria-label="Navigation principale">
       <a href="#" class="nav-item active" data-page="dashboard"><span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg></span><span class="nav-label">Dashboard</span></a>
 
-      <div class="nav-section" data-section="quotidien">
-        <button type="button" class="nav-section-header" onclick="toggleNavSection('quotidien')" aria-expanded="true">
-          <span class="nav-section-title">Quotidien</span>
+      <div class="nav-section" data-section="operations">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('operations')" aria-expanded="true">
+          <span class="nav-section-title">Opérations</span>
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
@@ -242,9 +242,9 @@
         </div>
       </div>
 
-      <div class="nav-section" data-section="tiers">
-        <button type="button" class="nav-section-header" onclick="toggleNavSection('tiers')" aria-expanded="true">
-          <span class="nav-section-title">Tiers</span>
+      <div class="nav-section" data-section="carnet">
+        <button type="button" class="nav-section-header" onclick="toggleNavSection('carnet')" aria-expanded="true">
+          <span class="nav-section-title">Carnet</span>
           <span class="nav-section-chevron" aria-hidden="true">▾</span>
         </button>
         <div class="nav-section-content">
@@ -488,26 +488,27 @@
       <!-- ============================================================== -->
 
       <div class="kpi-grid kpi-grid-primary" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Livraisons</div>
+          <div class="kpi-value" id="kpi-livraisons-mois">0</div>
+          <div id="kpi-objectif-liv-pct"></div>
+        </div>
         <div class="kpi-card green">
-          <div class="kpi-label">CA ce mois (HT)</div>
+          <div class="kpi-label">CA HT</div>
           <div class="kpi-value" id="kpi-ca-mois">0 €</div>
           <div class="kpi-sub" id="kpi-ca-mois-ttc"></div>
           <div id="kpi-objectif-pct"></div>
         </div>
-        <div class="kpi-card blue">
-          <div class="kpi-label">Livraisons ce mois</div>
-          <div class="kpi-value" id="kpi-livraisons-mois">0</div>
-          <div id="kpi-objectif-liv-pct"></div>
-        </div>
-        <div class="kpi-card" style="border-top:3px solid #e67e22">
-          <div class="kpi-label">Dépenses ce mois</div>
-          <div class="kpi-value" id="kpi-carburant">0 €</div>
-          <div class="kpi-sub" id="kpi-depenses-detail"></div>
-        </div>
         <div class="kpi-card purple">
-          <div class="kpi-label">Bénéfice estimé</div>
+          <div class="kpi-label">Marge nette</div>
           <div class="kpi-value" id="kpi-benefice">0 €</div>
           <div class="kpi-sub">CA HT − dépenses</div>
+        </div>
+        <div class="kpi-card" style="border-top:3px solid #e67e22">
+          <div class="kpi-label">Retards</div>
+          <div class="kpi-value" id="kpi-retards-count">—</div>
+          <div class="kpi-sub" id="kpi-depenses-detail" style="display:none"></div>
+          <div class="kpi-sub" id="kpi-carburant" style="display:none">0 €</div>
         </div>
       </div>
 
@@ -624,8 +625,8 @@
         <div class="sub-meta">
           <strong id="livraisons-titlerow-count">0</strong>
           <span id="livraisons-titlerow-periode">ce mois</span>
-          <span> · </span>
           <span id="livraisons-titlerow-retards-wrap" style="display:none">
+            <span> · </span>
             <span class="alert"><strong id="livraisons-titlerow-retards">0</strong> retard<span id="livraisons-titlerow-retards-s"></span> à traiter</span>
           </span>
         </div>
@@ -2547,6 +2548,21 @@
       </div><!-- /ptab-sauvegarde -->
 
       <script>
+        // H4 — keep param header h2 always "Paramètres" (s29 JS modifies it)
+        (function() {
+          function guardParamTitle() {
+            var p = document.getElementById('page-parametres');
+            if (!p) return;
+            var h2 = p.querySelector('.page-actions h2');
+            if (h2 && h2.textContent !== 'Paramètres') h2.textContent = 'Paramètres';
+          }
+          var obs = new MutationObserver(guardParamTitle);
+          function init() {
+            var p = document.getElementById('page-parametres');
+            if (p) obs.observe(p, { childList: true, subtree: true, characterData: true });
+          }
+          if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+        })();
         window.switchParamTab = function(tab) {
           var page = document.getElementById('page-parametres');
           if (!page) return;
@@ -3111,7 +3127,7 @@
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Saisir un relevé</button>
+          <button class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Pointer</button>
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">

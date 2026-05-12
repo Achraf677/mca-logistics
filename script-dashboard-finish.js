@@ -277,6 +277,13 @@
     if (lastDel) lastDel.innerHTML = buildLastDeliveries();
     var alertsBox = document.getElementById('dashboard-alerts-details');
     if (alertsBox) alertsBox.innerHTML = buildAlertsDetails();
+    // H23 — KPI "Retards" : count livraisons en retard
+    var retardsEl = document.getElementById('kpi-retards-count');
+    if (retardsEl) {
+      var livs = readArr('livraisons');
+      var nbRetards = livs.filter(function(l) { return isRetard(l); }).length;
+      retardsEl.textContent = nbRetards > 0 ? nbRetards : '0';
+    }
   }
 
   function setupHook() {
