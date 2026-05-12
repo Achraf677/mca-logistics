@@ -41,11 +41,11 @@ function afficherIncidents() {
     return;
   }
 
-  const statBadge = { ouvert:'<span class="incident-badge incident-ouvert">Ouvert</span>', encours:'<span class="incident-badge incident-encours">En cours</span>', traite:'<span class="incident-badge incident-traite">✅ Traité</span>' };
+  const statBadge = { ouvert:'<span class="incident-badge incident-ouvert">🔴 Ouvert</span>', encours:'<span class="incident-badge incident-encours">🟡 En cours</span>', traite:'<span class="incident-badge incident-traite">✅ Traité</span>' };
   const graviteBadge = {
-    faible:'<span class="incident-badge incident-traite">Faible</span>',
-    moyen:'<span class="incident-badge incident-encours">Moyen</span>',
-    grave:'<span class="incident-badge incident-ouvert">Grave</span>'
+    faible:'<span class="incident-badge incident-traite">🟢 Faible</span>',
+    moyen:'<span class="incident-badge incident-encours">🟠 Moyen</span>',
+    grave:'<span class="incident-badge incident-ouvert">🔴 Grave</span>'
   };
 
   paginer(incidents, 'tb-incidents', function(items) {
@@ -71,16 +71,7 @@ function ajouterIncident() {
   const date     = document.getElementById('inc-date')?.value || aujourdhui();
   const livId    = document.getElementById('inc-livraison')?.value || '';
   const salId    = document.getElementById('inc-salarie')?.value || '';
-  // #51 audit Chrome : sanitize defense en profondeur (le rendu echappe deja
-  // mais on retire <script>/<iframe>/on*= avant stockage pour eviter qu'un
-  // futur renderer innerHTML execute du code injecte).
-  const descRaw  = document.getElementById('inc-description')?.value.trim() || '';
-  const desc     = (typeof window.sanitizeUserInput === 'function') ? window.sanitizeUserInput(descRaw) : descRaw;
-  // #49 audit Chrome : avertir l'utilisateur si on a retire du contenu
-  // (avant le fix, strip silencieux -> user perdait son texte sans le savoir).
-  if (desc !== descRaw && typeof afficherToast === 'function') {
-    afficherToast('ℹ️ Caractères dangereux (<script>, on=, etc.) retirés de la description.');
-  }
+  const desc     = document.getElementById('inc-description')?.value.trim() || '';
   const gravite  = document.getElementById('inc-gravite')?.value || 'moyen';
 
   if (!desc) { afficherToast('⚠️ Description obligatoire','error'); return; }
@@ -121,7 +112,7 @@ async function supprimerIncident(id) {
   if (!ok) return;
   sauvegarder('incidents', charger('incidents').filter(i=>i.id!==id));
   afficherIncidents();
-  afficherToast('Incident supprimé');
+  afficherToast('🗑️ Incident supprimé');
 }
 
 // L12146 (script.js d'origine)

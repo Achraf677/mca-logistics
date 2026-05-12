@@ -340,6 +340,6 @@ function confirmerNoteInterne() {
   notes[salId] = { texte, date: new Date().toISOString() };
   localStorage.setItem('notes_internes', JSON.stringify(notes));
   closeModal('modal-note-interne');
-  afficherToast('Note enregistrée');
+  afficherToast('📝 Note enregistrée');
 }
 

@@ -9,18 +9,12 @@
     "declaration-empty-line-before": null,
     "rule-empty-line-before": null,
     "comment-empty-line-before": null,
-    "no-duplicate-selectors": null,
+    "no-duplicate-selectors": "warning",
     "color-hex-length": null,
-    "shorthand-property-no-redundant-values": null,
+    "shorthand-property-no-redundant-values": "warning",
     "alpha-value-notation": null,
     "color-function-notation": null,
-    "hue-degree-notation": null,
-    "declaration-block-single-line-max-declarations": null,
-    "declaration-block-no-duplicate-properties": null,
-    "media-feature-range-notation": null,
-    "selector-not-notation": null,
-    "selector-attribute-quotes": null,
-    "block-no-empty": null
+    "hue-degree-notation": null
   },
   "ignoreFiles": [
     "node_modules/**",

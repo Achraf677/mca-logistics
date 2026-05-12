@@ -158,7 +158,7 @@
     container.innerHTML =
       '<div class="modal" style="max-width:600px;width:96%;max-height:90vh;overflow-y:auto">' +
         '<div class="modal-header" style="display:flex;align-items:center;justify-content:space-between">' +
-          '<h3 id="mca-setup-title">Bienvenue chez MCA Logistics</h3>' +
+          '<h3 id="mca-setup-title">🚀 Bienvenue chez MCA Logistics</h3>' +
           '<button type="button" class="modal-close" aria-label="Plus tard" onclick="window.MCASetup.later()">✕</button>' +
         '</div>' +
         '<div class="modal-body">' +
@@ -506,7 +506,7 @@
       else if (state.step === 2) readStep2();
     } catch (_) {}
     hide();
-    toast('Vous pourrez reprendre à votre prochaine connexion');
+    toast('💾 Vous pourrez reprendre à votre prochaine connexion');
   }
 
   function skipAll() {
@@ -610,16 +610,6 @@
     removeItem: removeItem,
     onLogoChange: onLogoChange,
     shouldShow: shouldShow,
-    // #102 audit Chrome : permet de re-declencher le wizard depuis la console
-    // ou une page Parametres. Reset le flag local + supprime le cache local
-    // params_entreprise pour que le wizard revienne au prochain reload.
-    forceReshow: function () {
-      try {
-        localStorage.removeItem(FLAG_KEY);
-        localStorage.removeItem('params_entreprise');
-      } catch (_) {}
-      open();
-    },
     // Exposes pour tests
     _state: state,
     _isValidSiret: isValidSiret,

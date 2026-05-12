@@ -228,7 +228,7 @@ function ouvrirPlanningSalarie(salId) {
 function ouvrirPlanningRecurrence() {
   var modalTitle = document.querySelector('#modal-planning .modal-header h3');
   if (modalTitle) {
-    modalTitle.textContent = 'Horaires récurrents';
+    modalTitle.textContent = '🔁 Horaires récurrents';
     // Marque la modal pour que ouvrirModalPlanning ne reset pas le titre
     modalTitle.dataset.recurrent = '1';
   }
@@ -437,7 +437,7 @@ async function supprimerPlanning(salId) {
   afficherPlanning();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  afficherToast('Planning supprimé');
+  afficherToast('🗑️ Planning supprimé');
 }
 
 // L6390 (script.js d'origine)
@@ -630,7 +630,7 @@ function ouvrirRecapPlanningPeriode(salId, debut, fin, label) {
           return '<div class="planning-recap-item"><strong>Inspection</strong><div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(formatDateExport(item.date)) + (item.commentaire ? ' · ' + planningEscapeHtml(item.commentaire) : '') + '</div></div>';
         }).join('') : '<div class="planning-recap-empty">Aucune inspection sur cette période.</div>')
       + (recap.incidents.length ? recap.incidents.map(function(item) {
-          return '<div class="planning-recap-item"><strong>Incident</strong><div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(item.description || 'Incident') + '</div></div>';
+          return '<div class="planning-recap-item"><strong>🚨 Incident</strong><div class="planning-week-meta" style="margin-top:4px">' + planningEscapeHtml(item.description || 'Incident') + '</div></div>';
         }).join('') : '')
     + '</div></div>';
   openModal('modal-planning-recap');
@@ -746,7 +746,7 @@ function supprimerAbsencePeriode(id) {
   afficherAbsencesPeriodes();
   afficherPlanningSemaine();
   afficherCompteurHeures();
-  afficherToast('Période supprimée');
+  afficherToast('🗑️ Période supprimée');
 }
 
 // L9628 (script.js d'origine)
@@ -807,25 +807,6 @@ function changerVuePlanning(mode) {
   _planningPeriode.offset = 0;
   _planningSemaineOffset = 0;
   afficherPlanningSemaine();
-  // #54 #70 audit Chrome : titres et labels statiques "hebdomadaire" alors
-  // que la vue peut etre jour/mois/annee. Renomme dynamiquement les libelles.
-  var modeLabels = {
-    jour: { titre: 'Planning du jour', kpi1: 'PLANIFIÉS AUJOURD\'HUI', kpi2: 'ABSENCES DU JOUR', sub: 'Vue journalière équipe', helper: 'horaires sur la journée affichée' },
-    semaine: { titre: 'Planning hebdomadaire', kpi1: 'PLANIFIÉS CETTE SEMAINE', kpi2: 'ABSENCES SUR LA SEMAINE', sub: 'Vue hebdomadaire équipe', helper: 'horaires sur la semaine affichée' },
-    mois: { titre: 'Planning mensuel', kpi1: 'PLANIFIÉS CE MOIS', kpi2: 'ABSENCES DU MOIS', sub: 'Vue mensuelle équipe', helper: 'horaires sur le mois affiché' },
-    annee: { titre: 'Planning annuel', kpi1: 'PLANIFIÉS CETTE ANNÉE', kpi2: 'ABSENCES DE L\'ANNÉE', sub: 'Vue annuelle équipe', helper: 'horaires sur l\'année affichée' }
-  };
-  var lbl = modeLabels[_planningPeriode.mode] || modeLabels.semaine;
-  var t = document.querySelector('#page-planning h2');
-  if (t) t.textContent = lbl.titre;
-  var sub = document.querySelector('.planning-panel-title');
-  if (sub) sub.textContent = lbl.sub;
-  var helper = document.querySelector('.planning-toolbar-sub');
-  if (helper) helper.textContent = 'Lecture rapide des horaires, repos et absences ' + lbl.helper + '.';
-  var k1 = document.querySelector('[data-planning-kpi="planifies"] .kpi-label, #kpi-planifies-label');
-  if (k1) k1.textContent = lbl.kpi1;
-  var k2 = document.querySelector('[data-planning-kpi="absences"] .kpi-label, #kpi-absences-label');
-  if (k2) k2.textContent = lbl.kpi2;
 }
 
 // L9706 (script.js d'origine)

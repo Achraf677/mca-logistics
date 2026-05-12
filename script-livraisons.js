@@ -401,7 +401,7 @@ async function supprimerLivraison(id) {
   annulerArchiveFactureLivraison(livraison);
   sauvegarder('livraisons', livraisons.filter(function(l) { return l.id !== id; }));
   if (livraison) ajouterEntreeAudit('Suppression livraison', (livraison.numLiv || 'Livraison') + ' · ' + (livraison.client || 'Client'));
-  afficherLivraisons(); afficherToast('Supprimé');
+  afficherLivraisons(); afficherToast('🗑️ Supprimé');
 }
 
 // L2494 (script.js d'origine)
@@ -531,7 +531,7 @@ function dupliquerLivraison(id) {
   livraisons.push(copie);
   sauvegarder('livraisons', livraisons);
   afficherLivraisons();
-  afficherToast(`Livraison dupliquée → ${copie.numLiv}`);
+  afficherToast(`📋 Livraison dupliquée → ${copie.numLiv}`);
 }
 
 // L3980 (script.js d'origine)
@@ -643,7 +643,7 @@ function ajouterCommentaireLiv(livId) {
   localStorage.setItem(cle, JSON.stringify(list));
   if (input) input.value = '';
   afficherCommentairesLiv(livId);
-  afficherToast('Commentaire ajouté');
+  afficherToast('💬 Commentaire ajouté');
 }
 
 // L5460 (script.js d'origine)
@@ -680,7 +680,7 @@ function genererBonLivraison(livId) {
         <div>
           <div style="font-size:1.6rem;font-weight:800;color:#f5a623;letter-spacing:1px">${nom}</div>
           ${adresse ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">${adresse}</div>` : ''}
-          ${tel     ? `<div style="font-size:.85rem;color:#6b7280">${tel}</div>` : ''}
+          ${tel     ? `<div style="font-size:.85rem;color:#6b7280">📞 ${tel}</div>` : ''}
           ${siret !== '—' ? `<div style="font-size:.78rem;color:#9ca3af;margin-top:2px">SIRET : ${siret}</div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right">
@@ -699,7 +699,7 @@ function genererBonLivraison(livId) {
         <div style="background:#f8f9fc;border-radius:10px;padding:16px">
           <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Client</div>
           <div style="font-size:1rem;font-weight:700">${l.client || '—'}</div>
-          ${l.arrivee ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">${l.arrivee}</div>` : ''}
+          ${l.arrivee ? `<div style="font-size:.85rem;color:#6b7280;margin-top:4px">📍 ${l.arrivee}</div>` : ''}
         </div>
         <div style="background:#f8f9fc;border-radius:10px;padding:16px">
           <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:8px">Exécution</div>
@@ -714,9 +714,9 @@ function genererBonLivraison(livId) {
       <div style="background:#fff8ed;border:1px solid #fed7aa;border-radius:10px;padding:16px;margin-bottom:24px">
         <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#9ca3af;margin-bottom:10px">Itinéraire</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          ${l.depart  ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">DÉPART</div><div style="font-weight:600">${l.depart}</div></div>` : ''}
+          ${l.depart  ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">DÉPART</div><div style="font-weight:600">📍 ${l.depart}</div></div>` : ''}
           ${l.depart && l.arrivee ? `<div style="font-size:1.2rem;color:#f5a623">→</div>` : ''}
-          ${l.arrivee ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">ARRIVÉE</div><div style="font-weight:600">${l.arrivee}</div></div>` : ''}
+          ${l.arrivee ? `<div style="flex:1;min-width:180px"><div style="font-size:.72rem;color:#9ca3af">ARRIVÉE</div><div style="font-weight:600">🏁 ${l.arrivee}</div></div>` : ''}
         </div>
       </div>` : ''}
 
@@ -913,7 +913,7 @@ function genererFactureLivraison(livId) {
   }
   ouvrirFenetreImpression('Facture ' + numeroFacture, html, 'width=980,height=820');
   ajouterEntreeAudit('Génération facture', numeroFacture + ' · ' + (livraison.client || 'Client') + ' · ' + euros(montantTTC));
-  afficherToast('Facture générée');
+  afficherToast('📄 Facture générée');
 }
 
 // L6141 (script.js d'origine)
@@ -1181,7 +1181,7 @@ function reinitialiserLivPeriode() {
     toggle: function () {
       var next = getMode() === 'server' ? 'client' : 'server';
       setMode(next);
-      if (typeof afficherToast === 'function') afficherToast('Pagination livraisons : ' + next);
+      if (typeof afficherToast === 'function') afficherToast('🔀 Pagination livraisons : ' + next);
       if (typeof window.afficherLivraisons === 'function') window.afficherLivraisons();
       return next;
     }

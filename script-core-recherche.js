@@ -37,13 +37,13 @@ function rechercheUniverselle(q) {
   const res = [];
 
   livraisons.filter(l => (l.client||'').toLowerCase().includes(q)||(l.numLiv||'').toLowerCase().includes(q)||(l.chaufNom||'').toLowerCase().includes(q))
-    .slice(0,4).forEach(l => res.push({ label:`${l.numLiv||''} — ${l.client}`, sub:`${formatDateExport(l.date)} · ${euros(l.prix||0)}`, action:`rechercheOuvrirLivraison('${l.id}')` }));
+    .slice(0,4).forEach(l => res.push({ label:`📦 ${l.numLiv||''} — ${l.client}`, sub:`${formatDateExport(l.date)} · ${euros(l.prix||0)}`, action:`rechercheOuvrirLivraison('${l.id}')` }));
   salaries.filter(s => [s.nom, s.prenom, s.numero].filter(Boolean).join(' ').toLowerCase().includes(q))
-    .slice(0,3).forEach(s => res.push({ label:`${getSalarieNomComplet(s)}`, sub:`N° ${s.numero || '—'}`, action:`ouvrirEditSalarie('${s.id}')` }));
+    .slice(0,3).forEach(s => res.push({ label:`👤 ${getSalarieNomComplet(s)}`, sub:`N° ${s.numero || '—'}`, action:`ouvrirEditSalarie('${s.id}')` }));
   vehicules.filter(v => (v.immat||'').toLowerCase().includes(q)||(v.modele||'').toLowerCase().includes(q))
-    .slice(0,3).forEach(v => res.push({ label:`${v.immat}`, sub:v.modele||'', action:`ouvrirFicheVehiculeDepuisTableau('${v.id}')` }));
+    .slice(0,3).forEach(v => res.push({ label:`🚐 ${v.immat}`, sub:v.modele||'', action:`ouvrirFicheVehiculeDepuisTableau('${v.id}')` }));
   clients.filter(c => [c.nom, c.prenom, c.tel].filter(Boolean).join(' ').toLowerCase().includes(q))
-    .slice(0,3).forEach(c => res.push({ label:`${c.nom}`, sub:c.adresse||c.tel||'', action:`rechercheOuvrirClient('${c.id}')` }));
+    .slice(0,3).forEach(c => res.push({ label:`🧑‍💼 ${c.nom}`, sub:c.adresse||c.tel||'', action:`rechercheOuvrirClient('${c.id}')` }));
 
   if (!res.length) { cont.innerHTML='<div style="padding:10px 14px;color:var(--text-muted);font-size:.85rem">Aucun résultat</div>'; cont.style.display='block'; return; }
   cont.innerHTML = res.map(r => `

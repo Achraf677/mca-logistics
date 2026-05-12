@@ -176,7 +176,7 @@
       anomalies.push({
         type: 'regression_km',
         niveau: 'rouge',
-        message: 'Km régression : ' + km + ' < ' + kmPrec + ' (plein du ' + precBrut.date + ')',
+        message: 'Km saisi (' + km + ') < km plein precedent (' + kmPrec + ', ' + precBrut.date + ')',
         km: km, kmPrecedent: kmPrec
       });
     }
@@ -224,7 +224,7 @@
           anomalies.push({
             type: 'hors_heures',
             niveau: 'orange',
-            message: 'Plein effectué ' + raison,
+            message: 'Plein effectue ' + raison,
             heure: heure, jour: jour
           });
         }

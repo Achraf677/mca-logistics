@@ -215,7 +215,7 @@ function afficherCompteurHeures() {
     const absences = plan?.semaine?.filter(j=>['conge','absence','maladie'].includes(j.typeJour)) || [];
     const absencesPeriodeSemaine = absencesPeriodes.filter(a => a.salId===s.id && a.type !== 'travail' && a.fin >= range.debut && a.debut <= range.fin);
     const typeColors = { conge:'#3498db', absence:'#e74c3c', maladie:'#9b59b6' };
-    const typeLabels = { conge:'Congé', absence:'Absence', maladie:'Maladie' };
+    const typeLabels = { conge:'🔵 Congé', absence:'🔴 Absence', maladie:'🟣 Maladie' };
     const absStr = absences.length
       ? absences.map(j=>`<span style="display:inline-block;background:${typeColors[j.typeJour]||'var(--muted)'}20;color:${typeColors[j.typeJour]||'var(--muted)'};padding:2px 8px;border-radius:12px;font-size:.72rem;margin:1px">${typeLabels[j.typeJour]||j.typeJour} ${j.jour.substring(0,3)}</span>`).join(' ')
       : '<span style="color:var(--text-muted);font-size:.78rem">—</span>';
@@ -275,73 +275,3 @@ function majHeuresSemaineLabel() {
   majHeuresPeriodeLabel();
 }
 
-
-// #52 audit Chrome : page Heures n'avait aucun CTA admin pour saisie manuelle.
-// Cas d'usage : chauffeur sans telephone, ou rattrapage retroactif. Ouvre une
-// modale simple qui injecte un releve dans heures_$salId localStorage.
-window.ouvrirModalSaisieHeureAdmin = function () {
-  if (document.getElementById('modal-saisie-heure-admin')) {
-    document.getElementById('modal-saisie-heure-admin').classList.add('open');
-    return;
-  }
-  var salaries = (typeof charger === 'function') ? charger('salaries') : [];
-  var div = document.createElement('div');
-  div.id = 'modal-saisie-heure-admin';
-  div.className = 'modal-overlay open';
-  div.style.zIndex = '9100';
-  var optsSal = salaries.map(function (s) {
-    return '<option value="' + s.id + '">' + (s.prenom || '') + ' ' + (s.nom || '') + (s.numero ? ' (' + s.numero + ')' : '') + '</option>';
-  }).join('');
-  div.innerHTML = '<div class="modal" style="max-width:480px">'
-    + '<div class="modal-header"><h3>⏱️ Saisir un relevé manuel</h3><button class="modal-close" onclick="document.getElementById(\'modal-saisie-heure-admin\').classList.remove(\'open\')">✕</button></div>'
-    + '<div class="modal-body">'
-    + '<div class="form-group"><label>Salarié</label><select id="hadm-sal" required>' + (optsSal || '<option value="">— Aucun salarié —</option>') + '</select></div>'
-    + '<div class="form-group"><label>Date</label><input type="date" id="hadm-date" value="' + (typeof aujourdhui === 'function' ? aujourdhui() : new Date().toISOString().slice(0, 10)) + '" required /></div>'
-    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-    + '  <div class="form-group"><label>Début</label><input type="time" id="hadm-debut" value="08:00" /></div>'
-    + '  <div class="form-group"><label>Fin</label><input type="time" id="hadm-fin" value="17:00" /></div>'
-    + '  <div class="form-group"><label>Pause (min)</label><input type="number" id="hadm-pause" min="0" value="60" /></div>'
-    + '  <div class="form-group"><label>Km parcourus</label><input type="number" id="hadm-km" min="0" placeholder="0" /></div>'
-    + '</div>'
-    + '<div class="form-group"><label>Notes</label><textarea id="hadm-notes" rows="2" placeholder="Saisie admin pour ..."></textarea></div>'
-    + '</div>'
-    + '<div class="modal-footer"><button class="btn-secondary" onclick="document.getElementById(\'modal-saisie-heure-admin\').classList.remove(\'open\')">Annuler</button><button class="btn-primary" onclick="confirmerSaisieHeureAdmin()">✅ Enregistrer</button></div>'
-    + '</div>';
-  document.body.appendChild(div);
-};
-
-window.confirmerSaisieHeureAdmin = function () {
-  var salId = document.getElementById('hadm-sal').value;
-  var date = document.getElementById('hadm-date').value;
-  if (!salId || !date) { (window.afficherToast || alert)('⚠️ Salarié et date obligatoires', 'error'); return; }
-  var debut = document.getElementById('hadm-debut').value;
-  var fin = document.getElementById('hadm-fin').value;
-  var pauseMin = parseInt(document.getElementById('hadm-pause').value, 10) || 0;
-  var km = parseFloat(document.getElementById('hadm-km').value) || 0;
-  var notes = document.getElementById('hadm-notes').value || '';
-  // Calcul duree (heures decimales)
-  var duree = 0;
-  if (debut && fin) {
-    var [hd, md] = debut.split(':').map(Number);
-    var [hf, mf] = fin.split(':').map(Number);
-    duree = ((hf * 60 + mf) - (hd * 60 + md) - pauseMin) / 60;
-    if (duree < 0) duree = 0;
-  }
-  // Append a heures_$salId
-  var key = 'heures_' + salId;
-  var arr = [];
-  try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) {}
-  arr.push({
-    id: (typeof genId === 'function' ? genId() : 'h_' + Date.now()),
-    date: date, debut: debut, fin: fin, pauseMin: pauseMin,
-    duree: duree, km: km, notes: notes,
-    sourceAdmin: true,
-    creeLe: new Date().toISOString()
-  });
-  localStorage.setItem(key, JSON.stringify(arr));
-  if (typeof ajouterEntreeAudit === 'function') ajouterEntreeAudit('Saisie heures admin', 'Salarié ' + salId + ' · ' + date + ' · ' + duree.toFixed(1) + 'h');
-  document.getElementById('modal-saisie-heure-admin').classList.remove('open');
-  (window.afficherToast || console.log)('✅ Relevé enregistré');
-  if (typeof afficherCompteurHeures === 'function') afficherCompteurHeures();
-  if (typeof afficherReleveKm === 'function') afficherReleveKm();
-};

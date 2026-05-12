@@ -527,12 +527,12 @@ function afficherTva() {
   if (collectTitle) {
     collectTitle.textContent = profile.isVatEnabled
       ? ((profile.activiteType === 'goods' || profile.exigibiliteServices === 'debits')
-          ? 'TVA Collectée (exigible à la facture / livraison)'
-          : 'TVA Collectée (exigible à l’encaissement)')
-      : 'TVA Collectée';
+          ? '📤 TVA Collectée (exigible à la facture / livraison)'
+          : '📤 TVA Collectée (exigible à l’encaissement)')
+      : '📤 TVA Collectée';
   }
   var dedTitle = document.getElementById('tva-deductible-title');
-  if (dedTitle) dedTitle.textContent = 'TVA Déductible (charges, carburant, entretiens)';
+  if (dedTitle) dedTitle.textContent = '📥 TVA Déductible (charges, carburant, entretiens)';
 
   var modeInfo = document.getElementById('tva-mode-info');
   if (modeInfo) {
@@ -570,7 +570,7 @@ function afficherTva() {
         var detail = item.paymentDate ? 'Paiement prévu le ' + formatDateExport(item.paymentDate) : 'Aucun encaissement enregistré à ce jour';
         return '<div style="display:flex;justify-content:space-between;gap:14px;padding:8px 0;border-top:1px solid var(--border)"><div><strong>' + planningEscapeHtml(item.libelle) + '</strong><div style="font-size:.78rem;color:var(--text-muted)">' + detail + '</div></div><div style="font-weight:700;color:var(--accent)">' + euros(item.tva) + '</div></div>';
       }).join('');
-      nonExigibleInfo.innerHTML = '<div style="margin-top:4px;padding:14px 16px;border-radius:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)"><div style="font-size:.88rem;font-weight:700;margin-bottom:6px">Facturé mais non encore exigible</div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">' + summary.pending.length + ' livraison(s) facturées sur la période restent hors TVA collectée tant qu’elles ne sont pas exigibles.</div><div style="font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:4px">TVA concernée : ' + euros(totalPending) + '</div>' + pendingRows + '</div>';
+      nonExigibleInfo.innerHTML = '<div style="margin-top:4px;padding:14px 16px;border-radius:12px;background:rgba(245,166,35,.08);border:1px solid rgba(245,166,35,.22)"><div style="font-size:.88rem;font-weight:700;margin-bottom:6px">📅 Facturé mais non encore exigible</div><div style="font-size:.8rem;color:var(--text-muted);margin-bottom:6px">' + summary.pending.length + ' livraison(s) facturées sur la période restent hors TVA collectée tant qu’elles ne sont pas exigibles.</div><div style="font-size:.82rem;font-weight:700;color:var(--accent);margin-bottom:4px">TVA concernée : ' + euros(totalPending) + '</div>' + pendingRows + '</div>';
     }
   }
 

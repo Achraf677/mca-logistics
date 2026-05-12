@@ -8,14 +8,10 @@
 *.log
 .DS_Store
 .claude/worktrees/
-.claude/scheduled_tasks.lock
-screenshots/
 .env
 .env*
 .env.*.local
 .env.local
-.local-secrets
-.local-secrets.*
 .idea/
 .vscode/
 .wrangler/

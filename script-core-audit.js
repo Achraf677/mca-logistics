@@ -155,7 +155,7 @@ async function viderJournalAudit() {
   if (!ok) return;
   sauvegarder('audit_log', []);
   afficherJournalAudit();
-  afficherToast('Journal d’audit vidé');
+  afficherToast('🗑️ Journal d’audit vidé');
 }
 
 // L1975 (script.js d'origine)
@@ -208,7 +208,7 @@ function afficherDecisionsAgent() {
   if (!decisions.length) {
     container.innerHTML = `
       <div style="text-align:center;padding:40px 20px;color:#7c8299">
-        <div style="margin-bottom:12px;display:flex;justify-content:center"><svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#e63946" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="opacity:.75"><path d="M12 2l1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5L12 2z"/><path d="M5 4l.5 2L7 6.5 5.5 7 5 9l-.5-2L3 6.5 4.5 6 5 4z"/><path d="M19 15l.5 2 1.5.5-1.5.5-.5 2-.5-2-1.5-.5 1.5-.5.5-2z"/></svg></div>
+        <div style="font-size:2.5rem;margin-bottom:12px">✨</div>
         <div style="font-size:.95rem;margin-bottom:6px;font-weight:600;color:#e8eaf0">Aucune décision en attente</div>
         <div style="font-size:.8rem">Le brief Gemini scanne tes données automatiquement à chaque session.</div>
       </div>`;
@@ -223,7 +223,7 @@ function afficherDecisionsAgent() {
     // Bouton "Discuter avec l'IA" (parite mobile) — ouvre le chatbot avec un
     // message pre-rempli construit a partir de la decision. Permet a Achraf
     // de creuser une decision sans retaper le contexte.
-    const btnDiscuter = `<button type="button" onclick="discuterDecisionAvecIA('${d.id}')" style="background:rgba(255,255,255,0.08);color:#e8eaf0;border:1px solid #2a2d3d;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">Discuter</button>`;
+    const btnDiscuter = `<button type="button" onclick="discuterDecisionAvecIA('${d.id}')" style="background:rgba(255,255,255,0.08);color:#e8eaf0;border:1px solid #2a2d3d;border-radius:8px;padding:6px 12px;font-size:.78rem;font-weight:600;cursor:pointer">💬 Discuter</button>`;
     return `
       <div style="background:#2a2f37;border:1px solid ${couleurBord};${lu}border-radius:12px;padding:14px;margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px">
@@ -292,7 +292,7 @@ function effacerToutesDecisions() {
   localStorage.setItem('agent_decisions', JSON.stringify([]));
   afficherDecisionsAgent();
   majBadgeAgent();
-  afficherToast('Decisions effacees');
+  afficherToast('🗑 Decisions effacees');
 }
 
 if (typeof window !== 'undefined') {
@@ -328,7 +328,7 @@ async function lancerBriefAuto(trigger) {
   window[AI_BRIEF_PENDING_KEY] = true;
   try {
     if (trigger === 'manual') {
-      afficherToast('Brief IA en cours…');
+      afficherToast('🔄 Brief IA en cours…');
     }
     const client = window.DelivProSupabase && window.DelivProSupabase.getClient
       ? window.DelivProSupabase.getClient()

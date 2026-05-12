@@ -4,7 +4,7 @@
 //   - JS / CSS / PNG : cache-first (versionnés via ?v=... ou immutables). MAJ en background.
 //   - API Supabase   : passthrough (pas de cache — données live).
 
-const CACHE_VERSION = 'mca-v2026-05-11-v11_5-agent-ia-sparkles-svg-359';
+const CACHE_VERSION = 'mca-v2026-05-10-v5_08-cache-edit-locks-184';
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
 
@@ -18,61 +18,6 @@ const CORE_ASSETS = [
   '/style-mobile.css',
   '/script-mobile.js',
   '/style.css',
-  // Design system tokens (Phase 4 / PR-1) — prefixe --ds-* additif
-  '/style-tokens.css',
-  // Design shell (Phase 4 / PR-2) — restyle sidebar + topbar
-  '/style-design-shell.css',
-  // Design dashboard (Phase 4 / PR-4) — restyle KPIs + cards + tables
-  '/style-design-dashboard.css',
-  // Design feedback (Phase 4 / PR-5) — toasts + empty states + skeletons
-  '/style-design-feedback.css',
-  // Design livraisons (Phase 4 / PR-6) — filtres + table + bulk-bar + kanban
-  '/style-design-livraisons.css',
-  // Design modale + forms (Phase 4 / PR-7) — modal + form-group + drawers
-  '/style-design-modal.css',
-  // Design charges (Phase 4 / PR-8) — nav-periode + recurrence + montants
-  '/style-design-charges.css',
-  // Design carburant (Phase 4 / PR-9) — anomalies + doublons + conso L/100km
-  '/style-design-carburant.css',
-  // Design entretiens (Phase 4 / PR-10) — type-badge + source-badge + echeance
-  '/style-design-entretiens.css',
-  // Design vehicules (Phase 4 / PR-11) — TCO + plaques + statuts
-  '/style-design-vehicules.css',
-  // Design equipe (Phase 4 / PR-12) — s22-bandeau + avatar + incidents + credentials
-  '/style-design-equipe.css',
-  // Design clients + fournisseurs bundle (Phase 4 / PR-13+14) — filtres + risque + drawer onglets
-  '/style-design-clients-fournisseurs.css',
-  // Design planning (Phase 4 / PR-15) — overview cards + jour-types + toolbar
-  '/style-design-planning.css',
-  // Design alertes (Phase 4 / PR-16) — s19 KPIs + s20 drawer + s25 rules
-  '/style-design-alertes.css',
-  // Design rentabilite + stats bundle (Phase 4 / PR-17+18) — KPI tiles + simulator + previsions
-  '/style-design-rentabilite-stats.css',
-  // Design calendrier (Phase 4 / PR-19) — grid + cells + livraisons dots
-  '/style-design-calendrier.css',
-  // Design parametres (Phase 4 / PR-20) — page-parametres cards + s24 toggles + s26 sig/timeline
-  '/style-design-parametres.css',
-  // Design setup wizard (Phase 4 / PR-21) — overrides inline JS styles
-  '/style-design-setup-wizard.css',
-  // Design mobile ds (Phase 4 / PR-22) — restyle .m-* avec tokens ds
-  '/style-design-mobile-ds.css',
-  // Phase 2 HTML refonte — composants ds canoniques (Charges page premiere)
-  '/style-refonte-charges.css',
-  '/script-charges-kpis-categorie.js',
-  // Phase 2 HTML refonte — Livraisons chips toolbar handler
-  '/script-livraisons-chips.js',
-  // Phase 2 HTML refonte — Equipe section-head counts
-  '/script-equipe-counts.js',
-  // Phase 2 HTML refonte — Vehicules counts (total + alertes CT)
-  '/script-vehicules-counts.js',
-  // Phase 2 HTML refonte — Planning section-head counts (semaine + planifies)
-  '/script-planning-counts.js',
-  // Phase 2 HTML refonte — Clients/Fournisseurs section-head counts
-  '/script-clients-fournisseurs-counts.js',
-  // Phase 2 HTML refonte — Alertes section-head counts
-  '/script-alertes-counts.js',
-  // Phase 2 HTML refonte — Stats/Calendrier sub-meta (periode mirror + livraisons count)
-  '/script-stats-calendrier-counts.js',
   '/script.js',
   '/chart.min.js',
   '/security-utils.js',
@@ -124,7 +69,6 @@ const CORE_ASSETS = [
   '/script-core-audit.js',
   '/script-core-recherche.js',
   '/script-core-dso.js',
-  '/script-core-dashboard-kpis.js',
   '/script-drawer-360-pc-parite.js',
   '/script-ai-chat.js',
   '/script-ai-brouillons.js',
@@ -153,8 +97,6 @@ const CORE_ASSETS = [
   '/script-cache-clear.js',
   // PR #51 — edit-locks bootstrap (wrappe ouvrirEditLivraison/Charge/Client)
   '/script-edit-locks-bootstrap.js',
-  // #74 audit Chrome : inline scripts admin extraits vers fichier externe
-  '/script-boot-admin.js',
 ];
 
 // Pages essentielles chauffeur — DOIVENT etre servies depuis le cache hors-ligne

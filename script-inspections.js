@@ -226,16 +226,16 @@ function afficherInspections() {
   container.innerHTML = inspections.map(insp => `
     <div class="card" style="margin-bottom:16px">
       <div class="card-header">
-        <span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <strong>${insp.salNom}</strong> — ${insp.vehImmat}${insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : ''}</span>
+        <span>👤 <strong>${insp.salNom}</strong> — ${insp.vehImmat}${insp.source === 'admin' ? ' <span class="inspection-source-badge admin">Admin</span>' : ''}</span>
         <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:.82rem;color:var(--text-muted)">${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
+          <span style="font-size:.82rem;color:var(--text-muted)">🗓️ ${formatDateExport(insp.date)}${insp.km ? ' · ' + parseInt(insp.km, 10).toLocaleString('fr-FR') + ' km' : ''}</span>
           <button class="btn-icon danger" onclick="supprimerInspectionAdmin('${insp.id}')" title="Supprimer">🗑️</button>
         </div>
       </div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px">
           ${getInspectionPhotoList(insp).map((p, i) => {
             const thumb = getInspectionPhotoThumbDescriptorAdmin(p);
-            const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="chargement..."';
+            const srcAttr = thumb.src ? `src="${thumb.src}"` : 'src="" alt="📷 chargement..."';
             const dataAttrs = thumb.path ? `data-photo-path="${thumb.path}" data-photo-bucket="inspections-photos"` : '';
             return `
             <div style="border-radius:8px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;background:rgba(0,0,0,0.05)" onclick="voirPhotoAdmin('${insp.id}',${i})">
@@ -291,17 +291,6 @@ function ajouterInspectionAdmin() {
   var date = document.getElementById('admin-insp-date')?.value || '';
   var km = parseFloat(document.getElementById('admin-insp-km')?.value || '') || null;
   var commentaire = (document.getElementById('admin-insp-commentaire')?.value || '').trim();
-  // #47 audit Chrome : recolte des checkpoints OK/KO (DGITM controle vehicule).
-  var checkpoints = {};
-  var pointsKO = [];
-  document.querySelectorAll('#admin-insp-checkpoints input[data-checkpoint]').forEach(function (cb) {
-    var key = cb.dataset.checkpoint;
-    checkpoints[key] = cb.checked ? 'ok' : 'ko';
-    if (!cb.checked) {
-      var label = (cb.parentElement && cb.parentElement.textContent || key).trim();
-      pointsKO.push(label);
-    }
-  });
   if (!salId || !date) {
     afficherToast('Sélectionnez un salarié et une date d’inspection', 'error');
     return;
@@ -315,9 +304,8 @@ function ajouterInspectionAdmin() {
   var salarie = salaries.find(function(item) { return item.id === salId; });
   var vehicule = vehicules.find(function(item) { return item.id === vehId; }) || vehicules.find(function(item) { return item.salId === salId; }) || null;
   var inspections = charger('inspections');
-  var inspectionId = genId();
   inspections.push({
-    id: inspectionId,
+    id: genId(),
     salId: salId,
     salNom: salarie ? getSalarieNomComplet(salarie) : 'Salarié',
     vehId: vehicule ? vehicule.id : '',
@@ -325,34 +313,10 @@ function ajouterInspectionAdmin() {
     date: date,
     km: km,
     commentaire: commentaire,
-    checkpoints: checkpoints,
-    statut: pointsKO.length > 0 ? 'avec_anomalies' : 'conforme',
     photos: [],
     source: 'admin',
     creeLe: new Date().toISOString()
   });
-  // Auto-creation incidents pour les KO
-  if (pointsKO.length > 0) {
-    var incidents = charger('incidents');
-    pointsKO.forEach(function (label) {
-      incidents.push({
-        id: genId(),
-        date: date,
-        livId: '',
-        salId: salId,
-        salNom: salarie ? getSalarieNomComplet(salarie) : '',
-        client: '',
-        chaufId: salId,
-        chaufNom: salarie ? getSalarieNomComplet(salarie) : '',
-        description: 'Inspection KO : ' + label + (commentaire ? ' — ' + commentaire : '') + (vehicule ? ' · ' + vehicule.immat : ''),
-        gravite: 'moyen',
-        statut: 'ouvert',
-        inspectionId: inspectionId,
-        creeLe: new Date().toISOString()
-      });
-    });
-    sauvegarder('incidents', incidents);
-  }
   sauvegarder('inspections', inspections);
   if (vehicule && km) {
     var vehiculesMaj = charger('vehicules');
@@ -363,14 +327,10 @@ function ajouterInspectionAdmin() {
     }
   }
   closeModal('modal-inspection-admin');
-  // Reset checkboxes pour la prochaine ouverture
-  document.querySelectorAll('#admin-insp-checkpoints input[data-checkpoint]').forEach(function (cb) { cb.checked = true; });
-  ajouterEntreeAudit('Création inspection', (salarie ? getSalarieNomComplet(salarie) : 'Salarié') + ' · ' + date + (vehicule ? ' · ' + vehicule.immat : '') + (pointsKO.length > 0 ? ' · ' + pointsKO.length + ' KO' : ' · conforme'));
+  ajouterEntreeAudit('Création inspection', (salarie ? getSalarieNomComplet(salarie) : 'Salarié') + ' · ' + date + (vehicule ? ' · ' + vehicule.immat : ''));
   afficherInspections();
   if (typeof rafraichirDashboard === 'function') rafraichirDashboard();
-  afficherToast(pointsKO.length > 0
-    ? '⚠️ Inspection enregistrée avec ' + pointsKO.length + ' anomalie(s) — incident(s) auto-créé(s)'
-    : '✅ Inspection conforme enregistrée');
+  afficherToast('✅ Inspection ajoutée');
 }
 
 // L6266 (script.js d'origine)
@@ -391,7 +351,7 @@ async function supprimerInspectionAdmin(id) {
   localStorage.setItem('inspections', JSON.stringify(toutes));
   ajouterEntreeAudit('Suppression inspection', (inspection.vehImmat || 'Inspection') + ' · ' + (inspection.date || ''));
   afficherInspections();
-  afficherToast('Inspection supprimée');
+  afficherToast('🗑️ Inspection supprimée');
 }
 
 // L8001 (script.js d'origine)
