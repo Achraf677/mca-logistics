@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : 2aee4c9 — Phase 47 (Clients + Fournisseurs 70%→85%)
+> **Dernier commit** : f50bdc9 — Phase 48 (Véhicules fleet cards 55%→80%)
 
 ---
 
@@ -28,7 +28,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | **Livraisons** | 96% | 95% | Phases 22-34 + BUG-017/018/019/020/021 fixés — period-row visible, drawer z-index, watchdog |
 | Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
-| Véhicules | 55% | 100% | Phase 45 : section-head "Flotte" + Exporter dropdown |
+| Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
 | Carburant | 55% | 100% | Phase 35b : section-head ds-section-head + sub-meta |
 | Entretiens | 65% | 100% | Phase 44 : chips toolbar mockup-matched |
 | Inspections | 50% | 100% | Phase 43 : KPI grid peuplé |

@@ -1122,60 +1122,77 @@
         </div>
       </div>
 
-      <!-- Phase 35 refonte HTML : section-head -->
+      <!-- Phase 49 refonte HTML : section-head mockup-aligned (Carburant + Exporter dropdown + Plein) -->
       <div class="page-actions ds-section-head">
         <div class="ds-section-head__title">
-          <h2>Suivi Carburant</h2>
+          <h2>Carburant</h2>
           <div class="ds-section-head__sub">
             <span id="carb-section-sub-periode">—</span>
             <span class="ds-section-head__sep">·</span>
             <span id="carb-section-sub-count">0 plein(s)</span>
           </div>
         </div>
-        <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="ouvrirConfigAnomaliesCarburant()" title="Configurer la détection d'anomalies">Anomalies</button>
-          <button class="btn-rapport" onclick="exporterCarburantPDF()">Rapport</button>
-          <button class="btn-primary" onclick="openModal('modal-carburant')">+ Enregistrer un plein</button>
-        </div>
-      </div>
-      <!-- Phase 12 refonte HTML : period-row -->
-      <div class="period-row">
-        <div></div>
-        <div class="period-chips" data-period-target="vue-carb-select">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
+        <div class="ds-section-head__actions u-flex-row">
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="carb-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('carb-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="carb-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterCarburantPDF();document.getElementById('carb-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="document.getElementById('carb-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="ouvrirConfigAnomaliesCarburant();document.getElementById('carb-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Configurer anomalies
+              </button>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="openModal('modal-carburant')">+ Plein</button>
         </div>
       </div>
 
-      <!-- Navigation mois -->
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-carb-select" onchange="changerVueCarburant(this.value)" aria-label="vue carb select">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navCarburantPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center"><div id="carb-mois-label" class="u-title-sm"></div><div id="carb-mois-dates" class="u-muted-sm"></div></div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="navCarburantPeriode(1)" style="padding:5px 12px">Suivant</button>
+      <!-- Phase 49 : période nav mockup-aligned (combined row) -->
+      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" onclick="navCarburantPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
+          <button class="btn-secondary" onclick="reinitialiserCarburantPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navCarburantPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="carb-mois-label"></div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="carb-mois-dates"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="period-selector" id="vue-carb-select" onchange="changerVueCarburant(this.value)" aria-label="vue carb select" style="display:none">
+            <option value="jour">Par jour</option>
+            <option value="semaine">Par semaine</option>
+            <option value="mois" selected>Par mois</option>
+            <option value="annee">Par année</option>
+          </select>
+          <div class="period-chips" data-period-target="vue-carb-select">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period" data-period="semaine">Semaine</button>
+            <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
-      <!-- Phase 39 refonte HTML : KPI grid carburant mockup-aligned (.kpi pattern) -->
-      <div class="kpi-grid">
+
+      <!-- KPI grid carburant (mockup-aligned) -->
+      <div class="kpi-grid" style="margin-bottom:14px">
         <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="kpi-carb-mois">0 €</div><div class="kpi-sub" id="kpi-carb-mois-detail"></div></div>
         <div class="kpi"><div class="kpi-lbl">Litres consommés</div><div class="kpi-val" id="kpi-litres-mois">0 L</div></div>
         <div class="kpi"><div class="kpi-lbl">Prix moyen</div><div class="kpi-val" id="kpi-prix-litre">0 €/L</div><div class="kpi-sub" id="kpi-prix-litre-detail"></div></div>
         <div class="kpi"><div class="kpi-lbl">Conso moyenne</div><div class="kpi-val" id="kpi-conso-l100">—</div><div class="kpi-sub">L/100 km flotte</div></div>
       </div>
-      <div class="filters mt-20">
+
+      <!-- Filters (hidden visually, kept for script-carburant.js selects) -->
+      <div class="filters carb-filters-hidden" style="height:0;overflow:hidden;visibility:hidden;margin:0;padding:0">
         <select id="filtre-carb-vehicule" onchange="afficherCarburant()" aria-label="filtre carb vehicule">
           <option value="">Tous les véhicules</option>
         </select>
@@ -1190,10 +1207,15 @@
         </select>
         <button class="btn-secondary" onclick="resetFiltresCarburant()">Réinitialiser</button>
       </div>
-      <div class="card mt-20">
+
+      <!-- Pleins table (Registre complet) — cols nettoyées Phase 49 -->
+      <div class="card">
+        <div class="card-header" style="padding:12px 16px">
+          <h3 style="font-size:14px;font-weight:700;margin:0">Registre des pleins</h3>
+        </div>
         <div class="table-wrapper">
           <table class="data-table carburant-table">
-            <thead><tr><th>Libellé (plaque — salarié)</th><th>Type</th><th>Litres</th><th>Prix/L</th><th>Total</th><th>TVA déductible</th><th>Km compteur</th><th>Date</th><th>Source</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Libellé (plaque — salarié)</th><th class="carb-col-type">Type</th><th>Litres</th><th>Prix/L</th><th>Total</th><th class="carb-col-tva">TVA déductible</th><th>Km compteur</th><th>Date</th><th class="carb-col-source">Source</th><th>Actions</th></tr></thead>
             <tbody id="tb-carburant"><tr><td colspan="10" class="empty-row">Aucun plein</td></tr></tbody>
           </table>
         </div>

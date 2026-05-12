@@ -5,6 +5,29 @@
 
 ---
 
+## Session 2026-05-12 (autonome-3) — Phase 48 : Véhicules fleet card grid
+**Phases** : 48
+**Commit final** : f50bdc9
+**État** : Véhicules 55%→80%
+
+### Actions clés
+- **script-vehicules-cards.js** : reads `localStorage.vehicules` + MutationObserver sur `#tb-vehicules`
+  Renders `.fleet-cards-grid` (3→2→1 cols responsive) avec cartes `.fv-card` :
+  - Top: immat + marque/modele + badge statut CT (En service / CT Xj / CT expiré)
+  - Art: SVG camion inline
+  - Stats grid 2×2: Kilométrage, Conso 30j (calculée entre pleins), Chauffeur, Prochain CT
+  - Footer: "Voir le détail →" + bouton contextuel (Programmer CT / Entretien / Modifier)
+- admin.html : `#fleet-cards-grid` inséré avant la table ; table dans `#vehicules-table-fallback` (masquée quand cards visibles)
+- CSS : 15+ classes `.fv-*` dans style-design-vehicules.css
+- sw.js CACHE_VERSION v86→v87
+
+### État pages post-session
+| Page | Avant | Après |
+|---|---|---|
+| Véhicules | 55% | 80% |
+
+---
+
 ## Session 2026-05-12 (autonome-2) — Phase 47 : Clients + Fournisseurs mockup-aligned
 **Phases** : 47
 **Commit final** : 2aee4c9
