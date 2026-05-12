@@ -3051,10 +3051,9 @@
       <!-- Phase 44 refonte HTML : chips tabs type entretien (mockup-matched) -->
       <div class="ds-chips-toolbar" id="entr-chips-type" style="margin-bottom:8px">
         <button class="ds-chip active" type="button" data-entr-type="" onclick="entrChipType(this,'')">Tous</button>
+        <button class="ds-chip" type="button" data-entr-type="ct_en_cours" onclick="entrChipType(this,'ct_en_cours')">CT en cours</button>
         <button class="ds-chip" type="button" data-entr-type="revision" onclick="entrChipType(this,'revision')">Révisions</button>
-        <button class="ds-chip" type="button" data-entr-type="vidange" onclick="entrChipType(this,'vidange')">Vidanges</button>
-        <button class="ds-chip" type="button" data-entr-type="freins" onclick="entrChipType(this,'freins')">Freins / Pneus</button>
-        <button class="ds-chip" type="button" data-entr-type="carrosserie" onclick="entrChipType(this,'carrosserie')">Carrosserie</button>
+        <button class="ds-chip" type="button" data-entr-type="reparation" onclick="entrChipType(this,'reparation')">Réparations</button>
       </div>
       <div class="filters" style="margin-bottom:16px">
         <select id="filtre-entr-vehicule" onchange="afficherEntretiens()" aria-label="filtre entr vehicule">

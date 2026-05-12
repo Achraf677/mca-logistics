@@ -150,7 +150,15 @@ function afficherEntretiens() {
     vehicules.forEach(v => { selVeh.innerHTML += `<option value="${v.id}">${v.immat}</option>`; });
   }
   if (filtreVeh)  entretiens = entretiens.filter(e => e.vehId === filtreVeh);
-  if (filtreType) entretiens = entretiens.filter(e => e.type === filtreType);
+  const activeChip = window._entrChipActive || '';
+  if (activeChip === 'ct_en_cours') {
+    entretiens = entretiens.filter(e => e.type === 'controle_technique');
+  } else if (activeChip === 'reparation') {
+    const repTypes = window._ENTR_REPARATION_TYPES || ['vidange','pneus','plaquettes','courroie','freins','carrosserie','autre'];
+    entretiens = entretiens.filter(e => repTypes.includes(e.type));
+  } else if (filtreType) {
+    entretiens = entretiens.filter(e => e.type === filtreType);
+  }
   entretiens = entretiens.filter(e => isDateInRange(e.date, rangeEntr));
   if (entretiens.some(e => e.vehId && !vehicules.some(v => v.id === e.vehId))) {
     ajouterAlerteSiAbsente('entretien_orphelin', '⚠️ Certains entretiens sont liés à un véhicule supprimé.', { vehId: 'entretien_orphelin' });
