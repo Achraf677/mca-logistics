@@ -231,6 +231,86 @@
   font-family: var(--ds-font-body);
 }
 
+/* ============ Phase 57 : Statistiques — horizontal bar chart rows ============ */
+/* .stat-row, .bar-track, .bar-fill — pattern from mockup statistiques */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 80px;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--border, var(--ds-border));
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+.stat-row .lbl {
+  font-size: 13px;
+  color: var(--text, var(--ds-text));
+  font-weight: 600;
+}
+
+.stat-row .val {
+  font-weight: 700;
+  text-align: right;
+  font-feature-settings: "tnum";
+  font-size: 13px;
+  font-family: var(--font-mono, var(--ds-font-mono));
+}
+
+.bar-track {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border, var(--ds-border));
+}
+
+.bar-fill {
+  position: absolute;
+  inset: 0;
+  width: var(--w, 50%);
+  background: linear-gradient(90deg, var(--brand, #e63946) 0%, var(--brand-hover, #c62b38) 100%);
+  border-radius: 3px;
+  box-shadow: 0 0 12px rgba(230, 57, 70, 0.3);
+  animation: bar-grow 0.8s ease-out both;
+}
+
+@keyframes bar-grow {
+  from { width: 0; }
+}
+
+/* chart-card h3 legend */
+.chart-card h3 .chart-legend {
+  font-family: var(--font-body, var(--ds-font-body));
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, var(--ds-text-muted));
+  text-transform: none;
+  letter-spacing: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.chart-card h3 .chart-legend::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--brand, #e63946);
+}
+
+/* Section-head stats granularity chips */
+.stats-granularity {
+  flex-shrink: 0;
+}
+
 /* ============ Phase 51 : Statistiques — hide COMPTABILITE bandeau ============ */
 /* The s22-bandeau is outside page-statistiques. Use :has() to target by active page. */
 #mainContent:has(#page-statistiques.active) #s22-bandeau {

@@ -113,6 +113,8 @@
   <link rel="stylesheet" href="style-design-topbar-refine.css?v=1" />
   <link rel="stylesheet" href="style-design-heures-incidents.css?v=1" />
   <link rel="stylesheet" href="style-design-brouillons-ia.css?v=1" />
+  <!-- Phase 57 refonte HTML : Encaissement chips + table + period nav mockup-aligned -->
+  <link rel="stylesheet" href="style-design-encaissement.css?v=1" />
   <!-- Chart.js chargé en lazy via ensureChartJs() uniquement quand Dashboard/Stats/Rentabilité ouverts -->
   <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
   <!-- Phase 2 HTML refonte Charges : computer KPIs categorie + chips toolbar handler. -->
@@ -1581,7 +1583,11 @@
             <span><span id="stats-section-sub-livraisons">0</span> livraisons</span>
           </div>
         </div>
-        <div class="ds-section-head__actions">
+        <div class="ds-section-head__actions u-flex-row">
+          <!-- Phase 57 : Mois/Trimestre/Année chips in section-head (mockup) -->
+          <button class="btn-chip stats-granularity active" data-granularity="mois" onclick="setStatsGranularity(this,'mois')">Mois</button>
+          <button class="btn-chip stats-granularity" data-granularity="trimestre" onclick="setStatsGranularity(this,'trimestre')">Trimestre</button>
+          <button class="btn-chip stats-granularity" data-granularity="annee" onclick="setStatsGranularity(this,'annee')">Année</button>
           <div class="liv-dropdown-wrap" style="position:relative">
             <button class="btn-secondary liv-dropdown-btn" onclick="this.parentElement.classList.toggle('open')" aria-haspopup="true">
               <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -1591,15 +1597,15 @@
             <div class="liv-dropdown-menu">
               <button class="liv-dropdown-item" onclick="exporterStatsPDF();this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
-                <div><div style="font-weight:600;font-size:13px">Export PDF</div><div style="font-size:11px;color:var(--text-muted)">Rapport mensuel</div></div>
+                <div><div class="liv-di-name">Export PDF</div><div class="liv-di-sub">Rapport mensuel</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
-                <div><div style="font-weight:600;font-size:13px">Export CSV</div><div style="font-size:11px;color:var(--text-muted)">Données brutes</div></div>
+                <div><div class="liv-di-name">Export CSV</div><div class="liv-di-sub">Données brutes</div></div>
               </button>
               <button class="liv-dropdown-item" onclick="this.closest('.liv-dropdown-wrap').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                <div><div style="font-weight:600;font-size:13px">Export Excel</div><div style="font-size:11px;color:var(--text-muted)">Onglets par catégorie</div></div>
+                <div><div class="liv-di-name">Export Excel</div><div class="liv-di-sub">Onglets par catégorie</div></div>
               </button>
             </div>
           </div>
@@ -1634,7 +1640,7 @@
       </select>
       <!-- Phase 36 refonte HTML : KPIs mockup-aligned + charts dans chart-card -->
       <div class="kpi-grid" style="margin-bottom:20px">
-        <div class="kpi"><div class="kpi-lbl">CA période HT</div><div class="kpi-val" id="stats-ca-periode">0 €</div><div class="kpi-sub">Montant hors taxes</div></div>
+        <div class="kpi"><div class="kpi-lbl">CA HT période</div><div class="kpi-val" id="stats-ca-periode">0 €</div><div class="kpi-sub">Montant hors taxes</div></div>
         <div class="kpi"><div class="kpi-lbl">Livraisons</div><div class="kpi-val" id="stats-livraisons-periode">0</div></div>
         <div class="kpi"><div class="kpi-lbl">Panier moyen HT</div><div class="kpi-val" id="stats-panier-moyen">0 €</div><div class="kpi-sub">Moyenne hors taxes</div></div>
         <div class="kpi"><div class="kpi-lbl">Km total</div><div class="kpi-val" id="stats-km-total">0 km</div></div>
@@ -2503,24 +2509,57 @@
           </div>
         </div>
         <div class="ds-section-head__actions u-flex-row">
-          <div class="ds-export-wrap" style="position:relative">
-            <button class="btn-secondary ds-export-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('enc-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
-              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <button class="btn-secondary" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0" style="white-space:nowrap">Envoyer relances</button>
+          <div class="liv-dropdown-wrap" style="position:relative">
+            <button class="btn-secondary liv-dropdown-btn" id="enc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="this.closest('.liv-dropdown-wrap').classList.toggle('open');var o=this.closest('.liv-dropdown-wrap').classList.contains('open');this.setAttribute('aria-expanded',o)">
+              <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               Exporter
-              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg viewBox="0 0 24 24" width="11" height="11" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round;margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ds-dropdown-menu" id="enc-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
-              <button class="ds-menu-item" role="menuitem" onclick="exporterEncaissementRapport();document.getElementById('enc-export-menu').classList.remove('open')">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Rapport impayés PDF
+            <div class="liv-dropdown-menu" role="menu">
+              <button class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementRapport();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                <div><div class="liv-di-name">Export PDF</div><div class="liv-di-sub">Suivi impayés imprimable</div></div>
               </button>
-              <button class="ds-menu-item" role="menuitem" onclick="exporterEncaissementCSV();document.getElementById('enc-export-menu').classList.remove('open')">
-                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                Export CSV
+              <button class="liv-dropdown-item" role="menuitem" onclick="exporterEncaissementCSV();this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/></svg>
+                <div><div class="liv-di-name">Export CSV</div><div class="liv-di-sub">Factures + relances</div></div>
+              </button>
+              <button class="liv-dropdown-item" role="menuitem" onclick="typeof exporterEncaissementExcel==='function'?exporterEncaissementExcel():void 0;this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <div><div class="liv-di-name">Export Excel</div><div class="liv-di-sub">Onglet par statut</div></div>
+              </button>
+              <div class="liv-dropdown-sep"></div>
+              <button class="liv-dropdown-item" role="menuitem" onclick="typeof envoyerRelancesEmail==='function'?envoyerRelancesEmail():void 0;this.closest('.liv-dropdown-wrap').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="16" height="16" style="stroke:currentColor;stroke-width:1.8;fill:none;flex-shrink:0;color:var(--text-muted)"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <div><div class="liv-di-name">Envoyer relances email</div><div class="liv-di-sub">Sélection multiple</div></div>
               </button>
             </div>
           </div>
-          <button class="btn-primary" onclick="openModal('modal-paiement')">+ Enregistrer paiement</button>
+          <button class="btn-primary" onclick="openModal('modal-paiement')">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2.2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+            Enregistrer paiement
+          </button>
+        </div>
+      </div>
+      <!-- Phase 57 : period nav bar Encaissement (mockup-aligned, même pattern que Statistiques) -->
+      <div id="enc-period-nav">
+        <div class="enc-period-left">
+          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="typeof navEncPeriode==='function'&&navEncPeriode(-1)" aria-label="Précédent">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <button class="btn-secondary" style="min-height:34px;padding:6px 12px;font-size:12px;background:var(--brand-soft);color:var(--brand);border-color:rgba(230,57,70,0.4)" onclick="typeof reinitialiserEncPeriode==='function'&&reinitialiserEncPeriode()">Aujourd'hui</button>
+          <button class="btn-secondary" style="min-height:34px;padding:6px 10px;font-size:12px" onclick="typeof navEncPeriode==='function'&&navEncPeriode(1)" aria-label="Suivant">
+            <svg viewBox="0 0 24 24" width="14" height="14" style="stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <div class="enc-period-label" id="enc-mois-label"></div>
+          <div class="enc-period-dates" id="enc-mois-dates"></div>
+        </div>
+        <div class="enc-period-chips">
+          <button class="btn-chip" onclick="setEncVue('jour')">Jour</button>
+          <button class="btn-chip" onclick="setEncVue('semaine')">Semaine</button>
+          <button class="btn-chip active" onclick="setEncVue('mois')">Mois</button>
+          <button class="btn-chip" onclick="setEncVue('annee')">Année</button>
         </div>
       </div>
       <!-- Phase 40 refonte HTML : KPI grid Encaissement (mockup-matched) -->

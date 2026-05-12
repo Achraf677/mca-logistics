@@ -216,3 +216,136 @@ td.km {
 
 /* Phase 46 : tab count badges — populated by script-equipe-counts.js */
 #equipe-tabs-nav .count:empty { display: none; }
+
+/* ============ Phase 57 : Équipe — team-grid + member-card (mockup) ============ */
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-items: start;
+  margin-bottom: 14px;
+}
+
+.member-card {
+  background: var(--bg-card, var(--ds-bg-card));
+  border: 1px solid var(--border, var(--ds-border));
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.member-card:hover {
+  border-color: var(--border-strong, var(--ds-border-strong));
+}
+
+.member-head {
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-bottom: 1px solid var(--border, var(--ds-border));
+  min-height: 82px;
+  position: relative;
+}
+
+.member-head .badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.member-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--brand, #e63946);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+  font-family: var(--font-display, var(--ds-font-display));
+  box-shadow: 0 0 0 2px rgba(230, 57, 70, 0.2);
+}
+
+.member-info {
+  flex: 1;
+  min-width: 0;
+  padding-right: 80px;
+}
+
+.member-name {
+  font-family: var(--font-display, var(--ds-font-display));
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--text, var(--ds-text));
+}
+
+.member-role {
+  font-size: 11px;
+  color: var(--text-muted, var(--ds-text-muted));
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-body {
+  padding: 14px 18px;
+  flex: 1;
+}
+
+.member-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* .stat-row in equipe context (simpler, no bar) */
+.member-stats .stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 0;
+  border-bottom: none;
+  grid-template-columns: unset;
+}
+
+.member-stats .stat-label {
+  color: var(--text-muted, var(--ds-text-muted));
+}
+
+.member-stats .stat-value {
+  font-weight: 600;
+  font-family: var(--font-mono, var(--ds-font-mono));
+  font-size: 12px;
+}
+
+.member-foot {
+  padding: 12px 18px;
+  border-top: 1px solid var(--border, var(--ds-border));
+  display: flex;
+  gap: 8px;
+}
+
+/* Override member-foot buttons to smaller size */
+.member-foot .btn {
+  flex: 1;
+  padding: 7px 12px;
+  min-height: 32px;
+  font-size: 12px;
+  justify-content: center;
+}
+
+/* Badge variants for member-card (ok/warn/alert) */
+.member-head .badge.ok { color: #9bb1a4; }
+.member-head .badge.warn { color: #d4b67a; border-color: rgba(212, 182, 122, 0.4); background: rgba(212, 182, 122, 0.08); }
+.member-head .badge.alert { color: var(--brand, #e63946); border-color: rgba(230, 57, 70, 0.4); background: rgba(230, 57, 70, 0.08); }

@@ -1,0 +1,261 @@
+/* ==========================================================================
+   MCA Logistics — Design Encaissement (Phase 57)
+
+   Restyle CSS-only du contenu rendu par script-encaissement.js pour matcher
+   le mockup previews/encaissement.html.
+
+   Approche couche additive : override des classes inline injectées par le
+   script sans toucher script-encaissement.js.
+   ========================================================================== */
+
+/* ============ CHIPS ENCAISSEMENT (.enc-chip → btn-chip style) ============ */
+
+.enc-chip {
+  padding: 8px 14px;
+  min-height: 34px;
+  font-size: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border: 1px solid var(--border-strong, var(--ds-border-strong));
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-family: var(--font-body, var(--ds-font-body));
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all var(--t-fast, 0.15s) var(--ease-out, ease-out);
+}
+
+.enc-chip:hover {
+  background: var(--bg-card-hover, var(--ds-bg-card-hover));
+  color: var(--text);
+  border-color: var(--border-strong, var(--ds-border-strong));
+}
+
+.enc-chip.active {
+  background: var(--brand-soft, var(--ds-brand-soft));
+  color: var(--brand, var(--ds-brand));
+  border-color: rgba(230, 57, 70, 0.4);
+}
+
+/* ============ KPI CARDS inside encaissement-content ============ */
+/* script-encaissement.js rend des .card avec border-left colored →
+   on les réaligne sur le pattern .kpi standard */
+
+#encaissement-content .card[style*="border-left"] {
+  border: 1px solid var(--border, var(--ds-border));
+  border-radius: 12px;
+  border-left: 1px solid var(--border, var(--ds-border)) !important;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--t-fast, 0.15s) var(--ease-out, ease-out);
+}
+
+#encaissement-content .card[style*="border-left"]::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand, #e63946), transparent);
+  pointer-events: none;
+}
+
+#encaissement-content .card[style*="border-left"] > div:first-child {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+#encaissement-content .card[style*="border-left"] > div:nth-child(2) {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--text);
+  font-feature-settings: "tnum";
+}
+
+/* ============ TABLE ENCAISSEMENT (.enc-table → standard table style) ============ */
+
+.enc-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+
+.enc-table th {
+  text-align: left;
+  padding: 11px 18px;
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  border-bottom: 1px solid var(--border, var(--ds-border));
+  background: rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
+}
+
+.enc-table td {
+  padding: 13px 18px;
+  border-bottom: 1px solid var(--border, var(--ds-border));
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.enc-table tr:last-child td {
+  border-bottom: none;
+}
+
+.enc-table tr:hover td {
+  background: var(--bg-card-hover, var(--ds-bg-card-hover));
+  cursor: pointer;
+}
+
+/* Statut badges — override legacy inline color */
+.enc-status-paye {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(155, 177, 164, 0.12);
+  border: 1px solid rgba(155, 177, 164, 0.3);
+  color: #9bb1a4 !important;
+}
+
+.enc-status-retard {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(230, 57, 70, 0.08);
+  border: 1px solid rgba(230, 57, 70, 0.4);
+  color: var(--brand, #e63946) !important;
+}
+
+.enc-status-litige {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(212, 182, 122, 0.1);
+  border: 1px solid rgba(212, 182, 122, 0.3);
+  color: #d4b67a !important;
+}
+
+.enc-status-att {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.15));
+  color: var(--text-muted) !important;
+}
+
+/* Mark encaissé button */
+.enc-mark-pay {
+  background: rgba(155, 177, 164, 0.12);
+  color: #9bb1a4;
+  border: 1px solid rgba(155, 177, 164, 0.3);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--t-fast, 0.15s);
+}
+
+.enc-mark-pay:hover {
+  background: rgba(155, 177, 164, 0.22);
+}
+
+/* Batch bar — subtle styling */
+#enc-batch-bar {
+  background: var(--bg-card, var(--ds-bg-card));
+  border: 1px solid var(--border, var(--ds-border));
+  border-radius: 8px;
+}
+
+/* ============ ENCAISSEMENT-CONTENT — wrap inside card ============ */
+
+#encaissement-content > table.enc-table {
+  display: block;
+  background: var(--bg-card, var(--ds-bg-card));
+  border: 1px solid var(--border, var(--ds-border));
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Pagination bar styling */
+.enc-pagination {
+  background: var(--bg-card, var(--ds-bg-card));
+  border: 1px solid var(--border, var(--ds-border));
+  border-radius: 10px;
+}
+
+/* ============ PERIOD NAV BAR (partagé avec autres pages) ============ */
+
+#enc-period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card, var(--ds-bg-card));
+  border: 1px solid var(--border, var(--ds-border));
+  border-radius: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#enc-period-nav .enc-period-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#enc-period-nav .enc-period-label {
+  font-size: 14px;
+  font-weight: 800;
+  margin-left: 8px;
+  text-transform: capitalize;
+}
+
+#enc-period-nav .enc-period-dates {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono, monospace);
+}
+
+#enc-period-nav .enc-period-chips {
+  display: flex;
+  gap: 6px;
+}
