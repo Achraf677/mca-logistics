@@ -198,6 +198,26 @@
 
 ---
 
+## Session 2026-05-12 :30 — BUG-017/018/019 modal + drawer fixes (agent :30)
+**Phases** : bug-fix Livraisons
+**Commits** : fix(BUG-017 BUG-018), fix(BUG-019)
+**CACHE_VERSION** : v79 → v80
+**Livraisons** : 92% → 96% visuel / 90% → 95% fonctionnel
+
+### Actions clés
+- **BUG-017 FIXED** : `[data-s11-progress]` CSS dans `style-design-parametres.css` appliquait `border-radius:9999px + overflow:hidden` sur `.modal-body` (script.js y set `dataset.s11Progress='1'`). Titres de sections tronqués → fix `border-radius:0 !important` dans `style-design-modals-refine.css`.
+- **BUG-018 FIXED** : `openModal()` auto-focus first field → red :focus ring avant user interaction. `:focus:not(:focus-visible)` inefficace (Chrome headless = focus-visible:true sur focus() prog.). Fix JS : classe `modal-just-opened` sur overlay à l'ouverture, retirée au 1er keydown/pointerdown. CSS supprime ring dans cette fenêtre.
+- **BUG-019 FIXED** : FAB chat (`#ai-chat-fab`, fixed bottom:20px right:20px, 56×56px) chevauchait le bouton "Modifier" du `.dr-foot` drawer 360 livraison. Fix CSS `body:has(#dr-liv-panel.open) #ai-chat-fab { bottom:80px }` dans `style-design-livraisons-drawer.css`.
+- Rebase conflit `sw.js` v78↔v79 résolu → v79 puis v80
+- Tests 427 : 426 pass, 1 skip
+
+### Observations
+- `ouvrirEditLivraison()` n'appelle pas `openModal()` → pas d'auto-focus → BUG-018 ne s'applique pas à modal edit
+- Actions dropdown trigger button hors viewport horizontal en Playwright headless — bug audit seulement, pas prod
+- `data-liv-id` attribut correct (pas `data-id`) sur rows livraisons
+
+---
+
 ## Format pour nouvelles sessions
 
 ```markdown
