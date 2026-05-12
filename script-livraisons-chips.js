@@ -70,10 +70,11 @@
     setText('livraisons-chip-count-brouillon', c.brouillon);
     // Section-head sub-meta
     setText('livraisons-section-sub-count', c.all);
-    var periodeLabel = (document.getElementById('liv-periode-label') || {}).textContent || '';
+    var rawPeriode = (document.getElementById('liv-periode-label') || {}).textContent || '';
+    var periodeLabel = (rawPeriode && rawPeriode.trim() !== 'Période courante') ? rawPeriode.trim() : '';
     setText('livraisons-section-sub-mois', periodeLabel || 'Période courante');
 
-    // Phase 6 : title-row (H1 page name + sub-meta count)
+    // Phase 6 : title-row (H1 page name + sub-meta count) — mockup format "X ce mois"
     setText('livraisons-titlerow-count', c.all);
     setText('livraisons-titlerow-periode', periodeLabel || 'ce mois');
     var retardsWrap = document.getElementById('livraisons-titlerow-retards-wrap');
