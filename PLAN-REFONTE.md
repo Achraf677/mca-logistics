@@ -25,7 +25,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Page | Visuel | Fonctionnel | Notes |
 |---|---|---|---|
 | **Dashboard** | 90% | 100% | Phases 5-21 — fini |
-| **Livraisons** | 98% | 95% | Phases 22-34 + BUG-017-022 fixés — period-row restauré, avatars gris, title-row restauré |
+| **Livraisons** | 100% | 100% | Phases 22-34 + BUG-001-022 fixés + sidebar-foot admin + banner "ce mois" mockup-aligned (commit a22ac3f, 2026-05-12) |
 | Clients | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
@@ -222,4 +222,4 @@ Paramètres — gros formulaire
 
 ---
 
-**Prochaine action** : reprendre Bug 1.1 (section titles tronqués) puis enchaîner Sprint 1.
+**Prochaine action** : Livraisons est à 100% (user-validé 2026-05-12). Pages prioritaires restantes par ordre sidebar : Clients (85%), Fournisseurs (85%), Véhicules (80%), Carburant (75%), Entretiens (78%), Inspections (68%), Charges (90%), Encaissement (65%), TVA (75%), Rentabilité (70%), Stats (65%), Calendrier (70%), Alertes (75%), Équipe (65%), Heures (62%), Incidents (62%), Planning (60%), Paramètres (70%), Brouillons IA (58%). Picker l'item le moins avancé (Brouillons IA 58%) ou le plus visible quotidiennement (Planning 60%).
