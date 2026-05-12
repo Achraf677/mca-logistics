@@ -94,9 +94,9 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 
 ### Sections manquantes mockup
 
-- ⬜ **H16** — Carburant : bannière "2 anomalies détectées" + bouton Configurer
-- ⬜ **H17** — Entretiens : bannière "X véhicules nécessitent intervention"
-- ⬜ **H18** — Entretiens : section "Contrôles techniques à venir"
+- ✅ **H16** — Carburant : bannière anomalies ajoutée (`#carb-anomalie-banner`). Peuplée via alertes_admin type=carburant_anomalie. Bouton "Configurer" → `ouvrirConfigAnomaliesCarburant()`. DONE session :45 2026-05-12
+- ✅ **H17** — Entretiens : bannière déjà impl (`#entr-alert-banner` + `script-entretiens-alert.js`). FALSE POSITIVE audit. DONE depuis Phase 51.
+- ✅ **H18** — Entretiens : section "Contrôles techniques à venir" (tableau CT + dates) — DONE. HTML `#entr-ct-venir-card` + table `#tb-ct-venir-body` ajoutés dans admin.html. `showCTAVenir()` dans script-entretiens-alert.js : query vehicules.date_prochain_ct, tri par diff, couleurs rouge/orange/muted, visible jusqu'à 60j. Session :45 2026-05-12.
 - ⬜ **H19** — Entretiens : section "Historique véhicule" (timeline)
 - ⬜ **H20** — Inspections : table avec 5 rows mockup + badges colorés
 - ⬜ **H21** — Équipe Vue d'ensemble : 8 cards chauffeurs avec véhicule/livraisons30j/ponctualité/permis
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 21 | 0 | 5 (H2, H3, H4, H25, H26) | - | - |
-| 3 — MEDIUM | 18 | 13 | 0 | 3 (M1, M2, M11) | 2 (M10, H25) | - |
+| 2 — HIGH | 26 | 17 | 0 | 9 (H2, H3, H4, H16, H17, H18, H23, H25, H26) | - | - |
+| 3 — MEDIUM | 18 | 14 | 0 | 4 (M1, M2, M10, M11) | - | - |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **48** | **0** | **8** | **4** | **4** |
+| **TOTAL** | **65** | **45** | **0** | **14** | **2** | **4** |
 
 ---
 

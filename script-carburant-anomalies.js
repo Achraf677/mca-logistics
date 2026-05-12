@@ -313,6 +313,38 @@
     if (typeof afficherCarburant === 'function') afficherCarburant();
   }
 
+  // H16 — bannière anomalies carburant dans page-carburant
+  function updateCarburantAnomaliesBanner() {
+    var banner = document.getElementById('carb-anomalie-banner');
+    var text = document.getElementById('carb-anomalie-banner-text');
+    if (!banner || !text) return;
+    var alertes = [];
+    try { alertes = JSON.parse(localStorage.getItem('alertes_admin') || '[]'); } catch (e) {}
+    var anomalies = alertes.filter(function(a) {
+      return !a.traitee && (a.type === 'carburant_anomalie' || (a.categorie || '').toLowerCase().includes('carburant'));
+    });
+    if (anomalies.length > 0) {
+      var nb = anomalies.length;
+      text.textContent = nb + ' anomalie' + (nb > 1 ? 's' : '') + ' détectée' + (nb > 1 ? 's' : '') + ' — vérifiez les pleins suspects avant export comptable.';
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+  if (typeof window !== 'undefined') {
+    window.__updateCarburantAnomaliesBanner = updateCarburantAnomaliesBanner;
+    document.addEventListener('DOMContentLoaded', function() {
+      updateCarburantAnomaliesBanner();
+      var page = document.getElementById('page-carburant');
+      if (page && typeof MutationObserver !== 'undefined') {
+        var obs = new MutationObserver(function() {
+          if (page.classList.contains('active')) updateCarburantAnomaliesBanner();
+        });
+        obs.observe(page, { attributes: true, attributeFilter: ['class'] });
+      }
+    });
+  }
+
   // Expose (browser only — guard pour permettre require() en Node tests)
   if (typeof window !== 'undefined') {
     window.detecterAnomaliesPlein = detecterAnomaliesPlein;

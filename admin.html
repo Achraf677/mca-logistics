@@ -1218,6 +1218,13 @@
         </div>
       </div>
 
+      <!-- H16: bannière anomalies carburant (peuplée par script-carburant-anomalies.js) -->
+      <div id="carb-anomalie-banner" style="display:none;background:rgba(230,57,70,0.08);border:1px solid rgba(230,57,70,0.25);border-radius:10px;padding:12px 16px;margin-bottom:14px;align-items:center;gap:12px">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#e63946" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <span id="carb-anomalie-banner-text" style="flex:1;font-size:13px;color:var(--ds-text,var(--text))">Anomalies détectées</span>
+        <button class="btn-secondary" style="font-size:12px;padding:5px 12px;flex-shrink:0" onclick="ouvrirConfigAnomaliesCarburant()">Configurer</button>
+      </div>
+
       <!-- KPI grid carburant (mockup-aligned) -->
       <div class="kpi-grid" style="margin-bottom:14px">
         <div class="kpi"><div class="kpi-lbl">Coût total</div><div class="kpi-val" id="kpi-carb-mois">0 €</div><div class="kpi-sub" id="kpi-carb-mois-detail"></div></div>
@@ -3063,6 +3070,19 @@
         </select>
         <button class="btn-secondary" onclick="document.getElementById('filtre-entr-vehicule').value='';document.getElementById('filtre-entr-type').value='';entrSyncChips('');afficherEntretiens()">Réinitialiser</button>
       </div>
+      <!-- H18: Contrôles techniques à venir (peuplé dynamiquement depuis vehicules.dateCT) -->
+      <div class="card" id="entr-ct-venir-card" style="margin-bottom:14px;display:none">
+        <div class="card-header">
+          <h3 style="margin:0;font-size:14px;font-weight:700">Contrôles techniques à venir <span id="entr-ct-venir-count" style="font-size:12px;font-weight:500;color:var(--ds-text-muted)"></span></h3>
+        </div>
+        <div class="table-wrapper">
+          <table class="data-table" id="tb-ct-venir">
+            <thead><tr><th>Véhicule</th><th>Immatriculation</th><th>Date CT</th><th>Échéance</th></tr></thead>
+            <tbody id="tb-ct-venir-body"><tr><td colspan="4" class="empty-row">Aucun CT à venir (30j)</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card">
         <div class="table-wrapper">
           <table class="data-table entretiens-table">

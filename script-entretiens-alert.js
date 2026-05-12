@@ -51,9 +51,51 @@
     setTimeout(showAlertBanner, 200);
   }
 
+  // H18 — Section "Contrôles techniques à venir" (30j)
+  function showCTAVenir() {
+    var card = document.getElementById('entr-ct-venir-card');
+    var tbody = document.getElementById('tb-ct-venir-body');
+    var countEl = document.getElementById('entr-ct-venir-count');
+    if (!card || !tbody) return;
+
+    var vehicules = [];
+    try { vehicules = JSON.parse(localStorage.getItem('vehicules') || '[]'); } catch (e) {}
+    var now = Date.now();
+    var rows = [];
+    vehicules.forEach(function(v) {
+      var ctDate = v.date_prochain_ct || v.prochainCT || v.prochain_ct || null;
+      if (!ctDate) return;
+      var diff = Math.round((new Date(ctDate) - now) / 86400000);
+      if (diff > 60) return; // show up to 60 days out
+      var nom = ((v.marque || '') + ' ' + (v.modele || '')).trim() || '—';
+      var immat = v.immatriculation || v.immat || '—';
+      var echeanceCls = diff < 0 ? 'color:#e63946;font-weight:700' : diff <= 15 ? 'color:#e67e22;font-weight:600' : 'color:var(--ds-text-muted)';
+      var echeance = diff < 0 ? 'Expiré (' + Math.abs(diff) + 'j)' : 'Dans ' + diff + ' jour' + (diff > 1 ? 's' : '');
+      rows.push({ diff: diff, html: '<tr><td>' + nom + '</td><td style="font-family:var(--font-mono,monospace)">' + immat + '</td><td>' + ctDate + '</td><td style="' + echeanceCls + '">' + echeance + '</td></tr>' });
+    });
+
+    rows.sort(function(a, b) { return a.diff - b.diff; });
+
+    if (rows.length > 0) {
+      tbody.innerHTML = rows.map(function(r) { return r.html; }).join('');
+      if (countEl) countEl.textContent = '(' + rows.length + ' véhicule' + (rows.length > 1 ? 's' : '') + ')';
+      card.style.display = '';
+    } else {
+      card.style.display = 'none';
+    }
+  }
+
+  function showAll() { showAlertBanner(); showCTAVenir(); }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { setTimeout(showAll, 200); });
+  } else {
+    setTimeout(showAll, 200);
+  }
+
   // Re-check when navigating to page
   document.addEventListener('click', function (e) {
     var nav = e.target.closest && e.target.closest('.nav-item[data-page="entretiens"]');
-    if (nav) setTimeout(showAlertBanner, 400);
+    if (nav) setTimeout(showAll, 400);
   });
 })();
