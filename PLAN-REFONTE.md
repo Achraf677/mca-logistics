@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 52 (Planning 40%→60%, Inspections 50%→68%)
+> **Dernier commit** : Phase 53 (Paramètres 35%→65%, Calendrier 40%→45%, Brouillons IA 40%→45%)
 
 ---
 
@@ -37,13 +37,13 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
 | Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
 | Statistiques | 45% | 100% | Phase 45 : Exporter dropdown + period nav chips mockup-aligned |
-| Calendrier | 40% | 100% | Phase 45 : nav bar chips + mockup-aligned prev/today/next |
+| Calendrier | 45% | 100% | Phase 53 : Légende section sidebar ajoutée |
 | Alertes | 55% | 100% | Phase 46 : section-head "Alertes & échéances" + card "Liste des alertes" + quick filters Toutes/Non lues + marquerToutesAlertesLues() |
 | Équipe | 55% | 100% | Phase 46 : breadcrumb+h1 supprimés, KPI val 28px, tab count badges (Salariés/Incidents) |
 | Heures | 62% | 100% | Phase 51 : Exporter dropdown (4 rapports), combined period nav + chips |
 | Incidents | 62% | 100% | Phase 51 : Exporter dropdown (PDF + CSV) |
-| Paramètres | 35% | 100% | Phase 46 : breadcrumb + title-row supprimés, boutons Annuler+Enregistrer mockup-matched |
-| Brouillons IA | 40% | 100% | Phase 35d : section-head |
+| Paramètres | 65% | 100% | Phase 53 : tabs navigation (Entreprise/Comptabilité/Sécurité/Apparence/Sauvegarde) |
+| Brouillons IA | 45% | 100% | Phase 53 : Valider/Rejeter sélection buttons in section-head |
 | Planning | 60% | 100% | Phase 52 : Exporter dropdown + combined period nav + chips + ⋯ button |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |

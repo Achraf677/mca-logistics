@@ -2050,6 +2050,21 @@
           <button class="btn-primary" onclick="if(typeof enregistrerParametres==='function')enregistrerParametres()">Enregistrer modifications</button>
         </div>
       </div>
+
+      <!-- Phase 53 refonte HTML : tabs navigation Paramètres (mockup-aligned) -->
+      <nav class="params-tabs-nav" style="display:flex;gap:0;margin-bottom:18px;border-bottom:2px solid var(--border);overflow-x:auto;padding-bottom:0">
+        <button class="ptab-btn ptab-active" data-ptab="entreprise">Entreprise</button>
+        <button class="ptab-btn" data-ptab="comptabilite">Comptabilité</button>
+        <button class="ptab-btn" data-ptab="securite">Sécurité</button>
+        <button class="ptab-btn" data-ptab="apparence">Apparence</button>
+        <button class="ptab-btn" data-ptab="sauvegarde">Sauvegarde</button>
+      </nav>
+      <style>
+        #page-parametres .ptab-btn{padding:10px 18px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;margin-bottom:-2px;transition:color 0.15s,border-color 0.15s}
+        #page-parametres .ptab-btn:hover{color:var(--text)}
+        #page-parametres .ptab-btn.ptab-active{color:var(--brand);border-bottom-color:var(--brand)}
+      </style>
+
       <div class="params-grid">
 
         <!-- Entreprise -->
@@ -2336,6 +2351,56 @@
         </div>
 
       </div>
+
+      <!-- Phase 53 : param-tabs JS wiring (post-render, additive) -->
+      <script>
+      (function(){
+        var TAB_MAP = {
+          'entreprise':   ['informations entreprise', 'identit', 'postes'],
+          'comptabilite': ['fiscalit', 'trésorerie'],
+          'securite':     ['mot de passe', 'blocage'],
+          'apparence':    ['apparence'],
+          'sauvegarde':   ['journal d\'audit', 'sauvegarde', 'historique des versions']
+        };
+        function getCardTab(card) {
+          var h = card.querySelector('.card-header h2');
+          if (!h) return 'entreprise';
+          var text = h.textContent.toLowerCase().trim();
+          for (var tab in TAB_MAP) {
+            for (var i = 0; i < TAB_MAP[tab].length; i++) {
+              if (text.indexOf(TAB_MAP[tab][i]) !== -1) return tab;
+            }
+          }
+          return 'sauvegarde';
+        }
+        function initParamTabs() {
+          var grid = document.querySelector('#page-parametres .params-grid');
+          if (!grid) return;
+          var cards = grid.querySelectorAll(':scope > .card');
+          cards.forEach(function(c) { c.setAttribute('data-ptab', getCardTab(c)); });
+          function activateTab(name) {
+            document.querySelectorAll('#page-parametres .ptab-btn').forEach(function(b) {
+              var on = b.getAttribute('data-ptab') === name;
+              b.classList.toggle('ptab-active', on);
+            });
+            cards.forEach(function(c) {
+              c.style.display = c.getAttribute('data-ptab') === name ? '' : 'none';
+            });
+          }
+          document.querySelectorAll('#page-parametres .ptab-btn').forEach(function(b) {
+            b.addEventListener('click', function() { activateTab(b.getAttribute('data-ptab')); });
+          });
+          activateTab('entreprise');
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', function() { setTimeout(initParamTabs, 50); });
+        } else { setTimeout(initParamTabs, 50); }
+        document.addEventListener('click', function(e) {
+          var nav = e.target.closest && e.target.closest('.nav-item[data-page="parametres"]');
+          if (nav) setTimeout(initParamTabs, 100);
+        });
+      })();
+      </script>
     </section>
 
     <!-- ============================================================
@@ -2963,6 +3028,15 @@
             <div class="cal16-kpi"><div class="cal16-kpi-lbl">Encaissé</div><div class="cal16-kpi-val" id="cal16-kpi-pai">—</div></div>
           </div>
 
+          <!-- Phase 53 : Légende section (mockup-aligned) -->
+          <hr style="margin:14px 0;border:none;border-top:1px solid var(--border)" />
+          <h3 style="margin:0 0 10px;font-size:1rem">Légende</h3>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--text-muted)">
+            <div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--brand);flex-shrink:0"></span>Aujourd'hui</div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#06d6a0;flex-shrink:0"></span>Jour férié</div>
+            <div style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#d4b67a;flex-shrink:0"></span>Échéance</div>
+          </div>
+
         </aside>
 
         <!-- Grid calendrier -->
@@ -3257,7 +3331,11 @@
             <span id="brouillons-section-sub-count">0 action(s) en attente</span>
           </div>
         </div>
-        <div class="ds-section-head__actions"></div>
+        <!-- Phase 53 : Valider/Rejeter sélection (mockup-aligned) -->
+        <div class="ds-section-head__actions">
+          <button class="btn-secondary" onclick="(function(){var drafts=window.AIBrouillons?._state?.drafts||[];var checked=document.querySelectorAll('#brouillons-ia-list input[type=checkbox]:checked');if(!checked.length){alert('Cocher des brouillons à rejeter');return;}if(confirm('Rejeter '+checked.length+' brouillon(s) ?')){checked.forEach(function(c){var id=c.closest('[data-id]')?.getAttribute('data-id');if(id&&window.AIBrouillons?.rejectDraft)window.AIBrouillons.rejectDraft(id);});}})()">Rejeter sélection</button>
+          <button class="btn-primary" onclick="(function(){var checked=document.querySelectorAll('#brouillons-ia-list input[type=checkbox]:checked');if(!checked.length){alert('Cocher des brouillons à valider');return;}if(confirm('Valider '+checked.length+' brouillon(s) ?')){checked.forEach(function(c){var id=c.closest('[data-id]')?.getAttribute('data-id');if(id&&window.AIBrouillons?.approveDraft)window.AIBrouillons.approveDraft(id);});}})()">Valider sélection</button>
+        </div>
       </div>
       <!-- Phase 45 refonte HTML — Brouillons IA KPI grid -->
       <div class="kpi-grid" style="margin-bottom:16px">

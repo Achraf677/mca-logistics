@@ -5,6 +5,26 @@
 
 ---
 
+## Session 2026-05-12 (autonome-6) — Phase 53 : Paramètres tabs + Calendrier Légende + Brouillons IA
+**Phases** : 53
+**Commit final** : TBD
+**État** : Paramètres 35%→65%, Calendrier 40%→45%, Brouillons IA 40%→45%
+
+### Actions clés
+- **Paramètres** : tab navigation HTML + CSS + inline JS post-render (Entreprise/Comptabilité/Sécurité/Apparence/Sauvegarde) — show/hide cards by `data-ptab` attribute
+- **Calendrier** : Légende section ajoutée dans `.cal16-sidebar` (Aujourd'hui/Férié/Échéance avec dots colorés)
+- **Brouillons IA** : Valider sélection + Rejeter sélection buttons dans section-head (safe batch calls via `window.AIBrouillons.approveDraft/rejectDraft`)
+- sw.js CACHE_VERSION v93→v94
+
+### État pages post-session
+| Page | Avant | Après |
+|---|---|---|
+| Paramètres | 35% | 65% |
+| Calendrier | 40% | 45% |
+| Brouillons IA | 40% | 45% |
+
+---
+
 ## Session 2026-05-12 (:45) — Phase 48 Charges : charts + period nav combined
 **Phases** : 48 (Charges)
 **Commit final** : 4854961
