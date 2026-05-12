@@ -36,7 +36,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Encaissement | 88% | 100% | Phase 59 : sub-meta mockup 3 parties (X factures impayées · DSO · Y relances à envoyer) |
 | TVA | 88% | 100% | Phase 59 : BUG-026 FIXED — tabs Collectée/Déductible underline-style avec count badges + JS switch (script-tva-tabs.js) |
 | Rentabilité | 85% | 100% | Phase 59 : sub-meta mockup ("Mois de mai 2026 · marge brute consolidée") + tabs underline + Export 4 items |
-| Statistiques | 82% | 100% | Phase 59 : Export CSV+Excel wired (au lieu de no-op silencieux) |
+| Statistiques | 88% | 100% | Phase 59 : sub-meta mockup CA ajouté (Mai 2026 · X livraisons · CA Y €) + Export CSV/Excel wired |
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
 | Alertes | 82% | 100% | Phase 59 : sub-meta format mockup ("X alertes actives · Y échéances dans les 30 jours") + compute logic ECHEANCE_TYPES |
 | Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |

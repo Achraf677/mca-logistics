@@ -22,6 +22,27 @@
         subLivraisons.textContent = isNaN(num) ? '0' : String(num);
       }
     }
+    // Phase 59 polish — CA sub-meta (mockup format "CA 38 420 €")
+    var subCa = document.getElementById('stats-section-sub-ca');
+    if (subCa) {
+      var kpiCa = document.getElementById('stats-ca-periode') || document.getElementById('stats-ca-ht-periode');
+      if (kpiCa && kpiCa.textContent) {
+        subCa.textContent = kpiCa.textContent.trim();
+      } else {
+        // Fallback : compute from livraisons localStorage
+        try {
+          var livs = JSON.parse(localStorage.getItem('livraisons') || '[]');
+          var now = new Date();
+          var moisStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+          var totalCa = livs.filter(function(l) {
+            if (!l) return false;
+            var d = new Date(l.date || l.dateLivraison || '');
+            return !isNaN(d.getTime()) && d.getTime() >= moisStart;
+          }).reduce(function(s, l) { return s + (parseFloat(l.prixHT || l.prix || 0)); }, 0);
+          subCa.textContent = totalCa.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+        } catch (_) {}
+      }
+    }
   }
 
   function updateCalendrier() {
