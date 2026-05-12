@@ -620,3 +620,28 @@
 ## Format pour nouvelles sessions
 
 ```markdown
+
+## Session 2026-05-12 — Phase 59 polish continuation (session 30+)
+
+**Branch** : `claude/html-refonte-cleanup`
+**CACHE_VERSION** : v141 → v142
+
+### Actions
+
+**Livraisons (95% → 95%)** :
+- Title-row "Mai 2026" → "ce mois" : fix `script-livraisons-chips.js` comparant periodeLabel au mois courant en locale fr-FR
+- Row height 62px → ~54px : réduit padding `tbody td` 14px→10px dans `style-design-livraisons-refonte.css`
+
+**Calendrier (85% → 90%)** :
+- `#cal16-kpi-feries` jamais mis à jour par script.js → compter `.cal16-day-ferie` dans le DOM
+- Fallback texte "—" remplacé par label mois quand KPIs pas encore prêts
+- Intervalle setInterval 5000ms → 1500ms pour réactivité
+
+**Paramètres (82% → 88%)** :
+- S29 shell (`.s29-shell`) visible sur TOUS les tabs car frère de tous `.param-panel` → fix CSS `:has(#ptab-entreprise.active)` dans `style-design-parametres.css`
+- Screenshots confirmés : Notifications, Intégrations propres sans S29 bleeding through
+
+### CACHE_VERSION
+v141 `liv-row-compact-ce-mois` → v142 `params-s29-shell-fix`
+
+---
