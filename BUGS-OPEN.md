@@ -21,23 +21,28 @@ _(vide pour l'instant)_
 
 ## ✅ FIXED (à vérifier par user)
 
-### BUG-021 — [watchdog] afficherDashboard manquante (fausse alerte console)
-- **Status** : FIXED (session 2026-05-12)
-- **Cause** : `watchdog.js` listait `afficherDashboard` dans ADMIN_REQUIRED mais cette fonction n'existe pas (remplacée par `rafraichirDashboard`, confirmé dans script.js:9428).
+### BUG-022 — title-row masqué pour Livraisons (régression Phase 46 global hide)
+- **Status** : FIXED (session :30 2026-05-12)
+- **Cause** : `style-design-section-pattern.css` applique `.title-row { display:none !important }` globalement depuis Phase 46. La page Livraisons affiche pourtant ce titre dans le mockup.
+- **Fix** : `style-design-livraisons-refonte.css` — `#page-livraisons .title-row { display: flex !important }` surcharge le hide global.
+- **À vérifier** : ouvrir Livraisons → voir "Livraisons N ce mois · N retards à traiter" au-dessus de "Toutes les livraisons".
+
+### BUG-021 — Driver avatars rouge au lieu de gris (Livraisons)
+- **Status** : FIXED (session :30 2026-05-12)
+- **Cause** : `.livraisons-table .driver-av` avait `background: var(--ds-brand)` (rouge). Le mockup montre de petits ronds gris (bg-card-hover + text-muted + border).
+- **Fix** : `style-design-livraisons-refonte.css` — avatars 24px, gray bg, text-muted, border-strong.
+- **À vérifier** : table livraisons → tous les avatars chauffeur sont gris.
+
+### BUG-020 / BUG-019 — period-row (Tableau/Kanban/Calendrier) masqué
+- **Status** : FIXED (sessions autonome + :30 2026-05-12)
+- **Cause** : `#page-livraisons > .period-row { display: none }` depuis Phase 32.
+- **Fix** : `display: flex` sur `#page-livraisons > .period-row`.
+- **À vérifier** : Livraisons → "Tableau | Kanban | Calendrier" + "Jour | Semaine | Mois | Année" visibles.
+
+### BUG-watchdog — [watchdog] afficherDashboard manquante (fausse alerte console)
+- **Status** : FIXED (session autonome 2026-05-12)
 - **Fix** : retrait de `afficherDashboard` de ADMIN_REQUIRED dans `watchdog.js`.
 - **À vérifier** : ouvrir admin.html → console → pas de `[watchdog] MANQUANTES : afficherDashboard`.
-
-### BUG-020 — Chat FAB obscurcit bouton "Modifier" dans drawer 360
-- **Status** : FIXED (session 2026-05-12)
-- **Cause** : `.dr-panel` avait z-index 101 < `#ai-chat-fab` z-index 180. Le FAB (✨ orange) chevauchait le bouton "Modifier" en bas droite du drawer.
-- **Fix** : `style-design-livraisons-drawer.css` — `.dr-panel { z-index: 200 }` (au-dessus du FAB 180, sous panneau-agent 1000).
-- **À vérifier** : ouvrir drawer 360 → bouton "Modifier" pleinement visible sans être masqué par le FAB ✨.
-
-### BUG-019 — Boutons Tableau/Kanban/Calendrier invisibles (period-row cachée)
-- **Status** : FIXED (session 2026-05-12)
-- **Cause** : Phase 25+32 avait ajouté `#page-livraisons > .period-row { display: none }` dans `style-design-livraisons-refonte.css` avec le commentaire "doublon chips toolbar". Mais la period-row contient les boutons Tableau/Kanban/Calendrier (view toggle) + Jour/Semaine/Mois/Année, pas les chips de statut.
-- **Fix** : `display: none` → `display: flex` sur `#page-livraisons > .period-row`.
-- **À vérifier** : Livraisons → "Tableau | Kanban | Calendrier" + "Jour | Semaine | Mois | Année" visibles.
 
 ### BUG-014 — Modal-livraison invisible quand openModal() appelé depuis Playwright
 - **Status** : FIXED (session :16 + :30 2026-05-12)
@@ -172,6 +177,6 @@ _(vide pour l'instant — user à valider)_
 |---|---|
 | NEW | 0 |
 | IN_PROGRESS | 0 |
-| FIXED (à vérifier) | 21 |
+| FIXED (à vérifier) | 24 |
 | VERIFIED | 0 |
-| **Total** | **21** |
+| **Total** | **24** |
