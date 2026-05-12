@@ -30,7 +30,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
 | Carburant | 82% | 100% | Phase 59 : Export CSV vraiment implémenté (10 cols, BOM UTF-8) + Export Excel ajouté |
-| Entretiens | 78% | 100% | Phase 51 : Exporter dropdown, combined period nav, alert banner CT échéances |
+| Entretiens | 82% | 100% | Phase 59 : Export Excel ajouté (3 items : Carnet PDF + CSV + Excel) |
 | Inspections | 75% | 100% | Phase 58 : Excel export ajouté + status filter (heuristique KO count) + btn 'Nouvelle inspection' mockup-aligned. BUG-023 ouvert (cards vs table mockup) |
 | Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 80% | 100% | Phase 57 : period nav bar + "Envoyer relances" btn + export 4 items + CSS enc-chips/table/badges mockup-aligned |
@@ -41,7 +41,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
 | Équipe | 75% | 100% | Phase 57 : team-grid + member-card CSS (avatar/head/body/foot/badges) mockup-aligned |
 | Heures | 76% | 100% | Phase 59 : Export Excel ajouté (5 items : 3 PDF + CSV + Excel) |
-| Incidents | 75% | 100% | Phase 56 : chips toolbar (Tous/Ouverts/En cours/Traités/Graves) + incChipFilter() + badge colors |
+| Incidents | 80% | 100% | Phase 59 : Export Excel ajouté (3 items : Rapport PDF + CSV + Excel) |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
 | Brouillons IA | 78% | 100% | Phase 58 : chips Validées/Rejetées/OCR filtrent vraiment la liste (fetchDrafts paramétré + setStatusFilter) |
 | Planning | 80% | 100% | Phase 59 : Export dropdown 4 items (PDF semaine + CSV créneaux + Excel par salarié + iCal .ics) |
