@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-12-v90-phase50-livraisons-pixel-perfect-merged';
+const CACHE_VERSION = 'mca-v2026-05-12-v91-charges-entretiens-heures-incidents-phase51';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -127,6 +127,8 @@ const CORE_ASSETS = [
   '/script-inspections-counts.js',
   // Phase 44 refonte HTML — Entretiens type chips toolbar
   '/script-entretiens-chips.js',
+  // Phase 51 refonte HTML — Entretiens alert banner (CT échéances)
+  '/script-entretiens-alert.js',
   // Phase 45 refonte HTML — Brouillons IA KPI grid counts
   '/script-brouillons-counts.js',
   '/script.js',

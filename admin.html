@@ -145,6 +145,8 @@
   <script defer src="script-inspections-counts.js?v=1"></script>
   <!-- Phase 44 refonte HTML : Entretiens type chips toolbar wiring. -->
   <script defer src="script-entretiens-chips.js?v=1"></script>
+  <!-- Phase 51 refonte HTML — Entretiens alert banner (CT échéances) -->
+  <script defer src="script-entretiens-alert.js?v=1"></script>
   <script defer src="script-brouillons-counts.js?v=1"></script>
   <!-- Phase 3 refonte : dashboard "Points d'attention" preview (top 3 alertes) -->
   <script defer src="script-dashboard-attention.js?v=1"></script>
@@ -2466,33 +2468,27 @@
           <div class="ds-kpi-card__sub"><span id="charges-kpi-cat-assurance-count">0</span> lignes</div>
         </div>
       </div>
-      <!-- Phase 12 refonte HTML : period-row -->
-      <div class="period-row">
-        <div></div>
-        <div class="period-chips" data-period-target="vue-charges-select">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
+      <!-- Phase 51 : combined period nav row (mockup-aligned, remplace period-row + nav-periode-bar) -->
+      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" onclick="navChargesPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
+          <button class="btn-secondary" onclick="reinitialiserChargesPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navChargesPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="charges-mois-label"></div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="charges-mois-dates"></div>
         </div>
-      </div>
-
-      <!-- Navigation mois -->
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-charges-select" onchange="changerVueCharges(this.value)" aria-label="vue charges select">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navChargesPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center"><div id="charges-mois-label" class="u-title-sm"></div><div id="charges-mois-dates" class="u-muted-sm"></div></div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserChargesPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="navChargesPeriode(1)" style="padding:5px 12px">Suivant</button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="period-selector" id="vue-charges-select" onchange="changerVueCharges(this.value)" aria-label="vue charges select" style="display:none">
+            <option value="jour">Par jour</option>
+            <option value="semaine">Par semaine</option>
+            <option value="mois" selected>Par mois</option>
+            <option value="annee">Par année</option>
+          </select>
+          <div class="period-chips" data-period-target="vue-charges-select">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period" data-period="semaine">Semaine</button>
+            <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -2583,8 +2579,25 @@
             <span id="inc-section-sub-resolus">0</span> résolu(s) ce mois
           </div>
         </div>
-        <div class="ds-section-head__actions">
-          <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler un incident</button>
+        <div class="ds-section-head__actions u-flex-row">
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="inc-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('inc-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="inc-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:210px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterIncidentsPDF&&exporterIncidentsPDF();document.getElementById('inc-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport incidents PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterIncidentsCSV&&exporterIncidentsCSV();document.getElementById('inc-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="openModal('modal-incident')">+ Signaler</button>
         </div>
       </div>
       <div class="kpi-grid" style="margin-bottom:16px">
@@ -2649,38 +2662,55 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="exporterEntretiens()">CSV</button>
-          <button class="btn-rapport" onclick="exporterEntretiensPDF()">Rapport</button>
-          <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Ajouter entretien</button>
-        </div>
-      </div>
-      <!-- Phase 12 refonte HTML : period-row -->
-      <div class="period-row">
-        <div></div>
-        <div class="period-chips" data-period-target="vue-entr-select">
-          <button class="chip-period" data-period="jour">Jour</button>
-          <button class="chip-period" data-period="semaine">Semaine</button>
-          <button class="chip-period active" data-period="mois">Mois</button>
-          <button class="chip-period" data-period="annee">Année</button>
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="entr-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('entr-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="entr-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:220px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterEntretiensPDF();document.getElementById('entr-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Carnet PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterEntretiens();document.getElementById('entr-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
+            </div>
+          </div>
+          <button class="btn-primary" onclick="ouvrirModalEntretien()">+ Planifier</button>
         </div>
       </div>
 
-      <!-- Navigation mois -->
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="vue-entr-select" onchange="changerVueEntretiens(this.value)" aria-label="vue entr select">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois" selected>Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" onclick="navEntretiensPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center"><div id="entr-mois-label" class="u-title-sm"></div><div id="entr-mois-dates" class="u-muted-sm"></div></div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" onclick="navEntretiensPeriode(1)" style="padding:5px 12px">Suivant</button>
+      <!-- Phase 51 : alert banner véhicules echéance (peuplé dynamiquement par script-entretiens-alert.js) -->
+      <div id="entr-alert-banner" style="display:none;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:10px;padding:14px 18px;margin-bottom:14px;display:none;align-items:center;gap:12px">
+        <svg viewBox="0 0 24 24" width="20" height="20" style="flex-shrink:0;stroke:var(--brand);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round"><path d="m21.7 18-9-15.4a2 2 0 0 0-3.4 0L.3 18A2 2 0 0 0 2 21h18a2 2 0 0 0 1.7-3z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+        <div id="entr-alert-banner-text" style="flex:1;font-size:13px;color:var(--text)"></div>
+        <button class="btn-primary" style="flex-shrink:0;padding:6px 14px;font-size:12px" onclick="document.getElementById('filtre-entr-type').value='';afficherEntretiens()">Voir</button>
+      </div>
+
+      <!-- Phase 51 : combined period nav row (mockup-aligned) -->
+      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" onclick="navEntretiensPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
+          <button class="btn-secondary" onclick="reinitialiserEntretiensPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
+          <button class="btn-secondary" onclick="navEntretiensPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="entr-mois-label"></div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="entr-mois-dates"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="period-selector" id="vue-entr-select" onchange="changerVueEntretiens(this.value)" aria-label="vue entr select" style="display:none">
+            <option value="jour">Par jour</option>
+            <option value="semaine">Par semaine</option>
+            <option value="mois" selected>Par mois</option>
+            <option value="annee">Par année</option>
+          </select>
+          <div class="period-chips" data-period-target="vue-entr-select">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period" data-period="semaine">Semaine</button>
+            <button class="chip-period active" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>
@@ -2740,13 +2770,29 @@
           </div>
         </div>
         <div class="ds-section-head__actions">
-          <button class="btn-secondary" onclick="exporterRecapHeures()">&#128229; CSV</button>
-          <div class="inline-dropdown" id="heures-rapports-menu">
-            <button class="btn-rapport" type="button" onclick="toggleHeuresRapportsMenu(event)">&#128196; Rapports &#9662;</button>
-            <div class="inline-dropdown-menu">
-              <button class="inline-dropdown-item" type="button" onclick="exporterRapportHeuresEtKmPDF(); fermerHeuresRapportsMenu();">Rapport heures et km</button>
-              <button class="inline-dropdown-item" type="button" onclick="exporterRecapHeuresPDF(); fermerHeuresRapportsMenu();">Rapport heures</button>
-              <button class="inline-dropdown-item" type="button" onclick="exporterReleveKmPDF(); fermerHeuresRapportsMenu();">Rapport km</button>
+          <div class="ds-export-wrap" style="position:relative">
+            <button class="btn-secondary ds-export-btn" id="heures-export-btn" aria-haspopup="true" aria-expanded="false" onclick="(function(b){var m=document.getElementById('heures-export-menu');var o=m.classList.toggle('open');b.setAttribute('aria-expanded',o);document.addEventListener('click',function h(e){if(!b.contains(e.target)&&!m.contains(e.target)){m.classList.remove('open');b.setAttribute('aria-expanded','false');document.removeEventListener('click',h)}},{once:true});})(this)">
+              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exporter
+              <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ds-dropdown-menu" id="heures-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:230px;z-index:50">
+              <button class="ds-menu-item" role="menuitem" onclick="exporterRapportHeuresEtKmPDF();document.getElementById('heures-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport heures &amp; km PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterRecapHeuresPDF();document.getElementById('heures-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport heures PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterReleveKmPDF();document.getElementById('heures-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Rapport km PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="exporterRecapHeures();document.getElementById('heures-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV
+              </button>
             </div>
           </div>
           <button class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Saisir un relevé</button>
@@ -2759,25 +2805,27 @@
         <div class="kpi"><div class="kpi-lbl">CE 561 alertes</div><div class="kpi-val" id="heures-kpi-ce561">—</div></div>
       </div>
 
-      <!-- Navigation semaine -->
-      <div class="card u-block-pad-md">
-        <div class="nav-periode-bar">
-          <div class="nav-periode-left">
-            <select class="period-selector" id="filtre-heures-vue" onchange="changerVueHeures(this.value)" aria-label="filtre heures vue">
-              <option value="jour">Par jour</option>
-              <option value="semaine">Par semaine</option>
-              <option value="mois">Par mois</option>
-              <option value="annee">Par année</option>
-            </select>
-            <button class="btn-secondary" id="heures-prev-btn" onclick="naviguerHeuresPeriode(-1)" style="padding:5px 12px">Précédent</button>
-          </div>
-          <div class="nav-periode-center">
-            <div id="heures-semaine-label" class="u-title-sm"></div>
-            <div id="heures-semaine-dates" class="u-muted-sm"></div>
-          </div>
-          <div class="nav-periode-right">
-            <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="padding:5px 12px">Aujourd'hui</button>
-            <button class="btn-secondary" id="heures-next-btn" onclick="naviguerHeuresPeriode(1)" style="padding:5px 12px">Suivant</button>
+      <!-- Phase 51 : combined period nav row (mockup-aligned) -->
+      <div class="carb-period-nav" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:14px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" id="heures-prev-btn" onclick="naviguerHeuresPeriode(-1)" style="min-height:34px;padding:6px 10px;font-size:12px">←</button>
+          <button class="btn-secondary" id="heures-reset-btn" onclick="reinitialiserHeuresPeriode()" style="min-height:34px;padding:6px 12px;font-size:12px">Aujourd'hui</button>
+          <button class="btn-secondary" id="heures-next-btn" onclick="naviguerHeuresPeriode(1)" style="min-height:34px;padding:6px 10px;font-size:12px">→</button>
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:800;margin-left:8px;text-transform:capitalize" id="heures-semaine-label"></div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono)" id="heures-semaine-dates"></div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="period-selector" id="filtre-heures-vue" onchange="changerVueHeures(this.value)" aria-label="filtre heures vue" style="display:none">
+            <option value="jour">Par jour</option>
+            <option value="semaine" selected>Par semaine</option>
+            <option value="mois">Par mois</option>
+            <option value="annee">Par année</option>
+          </select>
+          <div class="period-chips" data-period-target="filtre-heures-vue">
+            <button class="chip-period" data-period="jour">Jour</button>
+            <button class="chip-period active" data-period="semaine">Semaine</button>
+            <button class="chip-period" data-period="mois">Mois</button>
+            <button class="chip-period" data-period="annee">Année</button>
           </div>
         </div>
       </div>

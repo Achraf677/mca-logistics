@@ -5,7 +5,7 @@
 >
 > **Dernière mise à jour** : 2026-05-12
 > **Branche active** : `claude/html-refonte-cleanup`
-> **Dernier commit** : Phase 50 (Encaissement 40%→65%, TVA 55%→75%, Rentabilité 50%→70%)
+> **Dernier commit** : Phase 51 (Charges 78%→85%, Entretiens 65%→78%, Heures 45%→62%, Incidents 45%→62%)
 
 ---
 
@@ -30,9 +30,9 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Fournisseurs | 85% | 100% | Phase 47 : Exporter dropdown, chips+search inline, Ville/SIREN columns (post-render) |
 | Véhicules | 80% | 100% | Phase 45+48 : section-head "Flotte" + Exporter dropdown + fleet card grid (fv-card) |
 | Carburant | 75% | 100% | Phase 49 : Exporter dropdown, période nav combined row, filtres cachés |
-| Entretiens | 65% | 100% | Phase 44 : chips toolbar mockup-matched |
+| Entretiens | 78% | 100% | Phase 51 : Exporter dropdown, combined period nav, alert banner CT échéances |
 | Inspections | 50% | 100% | Phase 43 : KPI grid peuplé |
-| Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
+| Charges | 85% | 100% | Phase 51 : combined period nav (carb-period-nav), chips+Exporter already in place |
 | Encaissement | 65% | 100% | Phase 50 : Exporter dropdown, "+ Enregistrer paiement" primary btn, section-head mockup-aligned |
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
 | Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |
@@ -40,8 +40,8 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Calendrier | 40% | 100% | Phase 45 : nav bar chips + mockup-aligned prev/today/next |
 | Alertes | 55% | 100% | Phase 46 : section-head "Alertes & échéances" + card "Liste des alertes" + quick filters Toutes/Non lues + marquerToutesAlertesLues() |
 | Équipe | 55% | 100% | Phase 46 : breadcrumb+h1 supprimés, KPI val 28px, tab count badges (Salariés/Incidents) |
-| Heures | 45% | 100% | Phase 35 : section-head + KPI grid (total/sup/km/CE561) |
-| Incidents | 45% | 100% | Phase 35 : section-head + KPI grid (ouverts/résolus/coût/délai) |
+| Heures | 62% | 100% | Phase 51 : Exporter dropdown (4 rapports), combined period nav + chips |
+| Incidents | 62% | 100% | Phase 51 : Exporter dropdown (PDF + CSV) |
 | Paramètres | 35% | 100% | Phase 46 : breadcrumb + title-row supprimés, boutons Annuler+Enregistrer mockup-matched |
 | Brouillons IA | 40% | 100% | Phase 35d : section-head |
 | Planning | 40% | 100% | Phase 46 : breadcrumb + title-row supprimés |
