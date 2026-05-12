@@ -49,6 +49,71 @@ function exporterCSV(data, colonnes, nomFichier) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// Phase 59 polish — Export Livraisons PDF (rapport imprimable)
+function exporterLivraisonsPDF() {
+  if (typeof getLivraisonsFiltresActifs !== 'function' || typeof ouvrirFenetreImpression !== 'function') {
+    if (typeof afficherToast === 'function') afficherToast('Export PDF indisponible — fallback CSV');
+    return exporterLivraisons();
+  }
+  const livraisons = getLivraisonsFiltresActifs();
+  const params = (typeof getEntrepriseExportParams === 'function') ? getEntrepriseExportParams() : { nom: 'MCA Logistics' };
+  const dateExp = (typeof formatDateHeureExport === 'function') ? formatDateHeureExport() : new Date().toLocaleString('fr-FR');
+  const meta = livraisons.length + ' livraison' + (livraisons.length > 1 ? 's' : '');
+  const rows = livraisons.map((l, i) => `<tr style="border-bottom:1px solid #f0f0f0;background:${i%2===0?'#fff':'#fafafa'}">
+    <td style="padding:6px 10px">${l.numLiv || ''}</td>
+    <td style="padding:6px 10px">${l.date || ''}</td>
+    <td style="padding:6px 10px">${(l.client || '').replace(/[<>]/g,'')}</td>
+    <td style="padding:6px 10px">${(l.depart || '') + ' → ' + (l.arrivee || '')}</td>
+    <td style="padding:6px 10px;text-align:right">${l.distance || ''} km</td>
+    <td style="padding:6px 10px;text-align:right;font-weight:700">${(l.prix || l.prixHT || 0)} €</td>
+    <td style="padding:6px 10px">${(l.statut || '')}</td>
+  </tr>`).join('');
+  const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:1000px;margin:0 auto;padding:32px;color:#1a1d27">
+    ${typeof construireEnteteExport === 'function' ? construireEnteteExport(params, 'Livraisons', '', dateExp, meta) : '<h1>Livraisons</h1><p>' + meta + ' · ' + dateExp + '</p>'}
+    ${typeof renderBlocInfosEntreprise === 'function' ? renderBlocInfosEntreprise(params) : ''}
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem"><thead><tr style="background:#f3f4f6"><th style="padding:6px 10px;text-align:left">N°</th><th style="padding:6px 10px;text-align:left">Date</th><th style="padding:6px 10px;text-align:left">Client</th><th style="padding:6px 10px;text-align:left">Trajet</th><th style="padding:6px 10px;text-align:right">Km</th><th style="padding:6px 10px;text-align:right">Prix</th><th style="padding:6px 10px;text-align:left">Statut</th></tr></thead><tbody>${rows}</tbody></table>
+    ${typeof renderFooterEntreprise === 'function' ? renderFooterEntreprise(params, dateExp) : ''}
+  </div>`;
+  ouvrirFenetreImpression('Livraisons — ' + params.nom, html, 'width=1050,height=750');
+  if (typeof afficherToast === 'function') afficherToast('Rapport livraisons PDF généré');
+}
+window.exporterLivraisonsPDF = exporterLivraisonsPDF;
+
+// Phase 59 polish — Export Livraisons XLSX (basic : 1 sheet, CSV with .xlsx extension if no xlsx lib)
+function exporterLivraisonsXLSX() {
+  // Sans bibliothèque XLSX, on génère un fichier .xls compatible Excel (HTML table-based)
+  if (typeof getLivraisonsFiltresActifs !== 'function') {
+    if (typeof afficherToast === 'function') afficherToast('Export XLSX indisponible — fallback CSV');
+    return exporterLivraisons();
+  }
+  const livraisons = getLivraisonsFiltresActifs();
+  const headers = ['N° LIV','Date','Client','Départ','Arrivée','Distance km','Prix €','Chauffeur','Véhicule','Statut','Paiement','Date paiement','Mode paiement'];
+  const rows = livraisons.map(l => [
+    l.numLiv||'', l.date||'', l.client||'', l.depart||'', l.arrivee||'',
+    l.distance||'', l.prix||'', l.chaufNom||'', l.vehNom||'',
+    l.statut||'', l.statutPaiement||'', l.datePaiement||'', l.modePaiement||''
+  ]);
+  // Format Excel XML (compatible Office)
+  let xml = '<?xml version="1.0"?><?mso-application progid="Excel.Sheet"?>';
+  xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">';
+  xml += '<Worksheet ss:Name="Livraisons"><Table>';
+  xml += '<Row>' + headers.map(h => '<Cell><Data ss:Type="String">' + h + '</Data></Cell>').join('') + '</Row>';
+  rows.forEach(r => {
+    xml += '<Row>' + r.map(v => '<Cell><Data ss:Type="String">' + String(v).replace(/[<>&]/g,'') + '</Data></Cell>').join('') + '</Row>';
+  });
+  xml += '</Table></Worksheet></Workbook>';
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'livraisons-' + new Date().toISOString().slice(0,10) + '.xls';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+  if (typeof afficherToast === 'function') afficherToast('Export Excel livraisons généré (' + livraisons.length + ' lignes)');
+}
+window.exporterLivraisonsXLSX = exporterLivraisonsXLSX;
+
 // L6167 (script.js d'origine)
 function exporterLivraisons() {
   const livraisons = getLivraisonsFiltresActifs();
