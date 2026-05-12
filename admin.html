@@ -3026,6 +3026,10 @@
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Export CSV
               </button>
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterHeuresExcel||window.exporterRecapHeures||function(){alert('Excel: fallback CSV')})();document.getElementById('heures-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                Export Excel
+              </button>
             </div>
           </div>
           <button class="btn-primary" onclick="ouvrirModalSaisieHeureAdmin()" title="Saisir manuellement les heures d'un chauffeur (ex: chauffeur sans téléphone)">+ Saisir un relevé</button>
@@ -3209,10 +3213,22 @@
               Exporter
               <svg viewBox="0 0 24 24" width="11" height="11" style="margin-left:2px"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <div class="ds-dropdown-menu" id="planning-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:210px;z-index:50">
+            <div class="ds-dropdown-menu" id="planning-export-menu" role="menu" style="display:none;position:absolute;right:0;top:calc(100% + 4px);min-width:240px;z-index:50">
               <button class="ds-menu-item" role="menuitem" onclick="exporterPlanningSemainePDF();document.getElementById('planning-export-menu').classList.remove('open')">
                 <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Planning semaine PDF
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningCSV||function(){alert('Export CSV planning: bientôt')})();document.getElementById('planning-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Export CSV (créneaux)
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningExcel||window.exporterPlanningCSV||function(){alert('Export Excel planning: bientôt')})();document.getElementById('planning-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                Export Excel (par salarié)
+              </button>
+              <button class="ds-menu-item" role="menuitem" onclick="(window.exporterPlanningIcal||function(){alert('Export iCal: bientôt — intégration agenda')})();document.getElementById('planning-export-menu').classList.remove('open')">
+                <svg viewBox="0 0 24 24" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg>
+                Export iCal (.ics)
               </button>
             </div>
           </div>

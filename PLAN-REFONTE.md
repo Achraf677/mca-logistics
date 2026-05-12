@@ -40,11 +40,11 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Calendrier | 78% | 100% | Phase 59 : section-head sub-meta mockup format ("X livraisons · Y échéances · Z jours fériés ce mois") au lieu de période |
 | Alertes | 75% | 100% | Phase 54 : CSS hide #s19-centre, force-show section-head + #alertes-categories, kpi-grid 3-col |
 | Équipe | 75% | 100% | Phase 57 : team-grid + member-card CSS (avatar/head/body/foot/badges) mockup-aligned |
-| Heures | 72% | 100% | Phase 56 : heures-km-layout 2-col styled, CE 561 kpi red, incident badge colors |
+| Heures | 76% | 100% | Phase 59 : Export Excel ajouté (5 items : 3 PDF + CSV + Excel) |
 | Incidents | 75% | 100% | Phase 56 : chips toolbar (Tous/Ouverts/En cours/Traités/Graves) + incChipFilter() + badge colors |
 | Paramètres | 70% | 100% | Phase 53 : tabs 7 panels (Entreprise/Comptabilité/Notifications/Sécurité/Intégrations/Apparence/Sauvegarde) mockup-aligned |
 | Brouillons IA | 78% | 100% | Phase 58 : chips Validées/Rejetées/OCR filtrent vraiment la liste (fetchDrafts paramétré + setStatusFilter) |
-| Planning | 72% | 100% | Phase 56 : planning-week-grid calendar style (shift cards is-work/is-rest/is-conge/is-absence/is-maladie) |
+| Planning | 80% | 100% | Phase 59 : Export dropdown 4 items (PDF semaine + CSV créneaux + Excel par salarié + iCal .ics) |
 | Mobile m.html | 75% | 100% | Phase 16 |
 | Mobile salarie.html | 70% | 100% | Phase 16 |
 
