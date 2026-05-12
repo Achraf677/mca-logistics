@@ -76,7 +76,12 @@
 
     // Phase 6 : title-row (H1 page name + sub-meta count) — mockup format "X ce mois"
     setText('livraisons-titlerow-count', c.all);
-    setText('livraisons-titlerow-periode', periodeLabel || 'ce mois');
+    // Afficher "ce mois" quand la période sélectionnée = mois courant (offset 0)
+    var _now = new Date();
+    var _curMonthLabel = (_now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) || '');
+    _curMonthLabel = _curMonthLabel.charAt(0).toUpperCase() + _curMonthLabel.slice(1);
+    var titlePeriode = (!periodeLabel || periodeLabel === _curMonthLabel) ? 'ce mois' : periodeLabel;
+    setText('livraisons-titlerow-periode', titlePeriode);
     var retardsWrap = document.getElementById('livraisons-titlerow-retards-wrap');
     if (retardsWrap) {
       if (c.retard > 0) {

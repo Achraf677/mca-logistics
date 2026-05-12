@@ -57,21 +57,24 @@
     }
     var cntLiv = readNum('cal16-kpi-liv');
     var cntEch = readNum('cal16-kpi-ech');
-    var cntFer = readNum('cal16-kpi-feries');
+    // cal16-kpi-feries n'est jamais mis à jour par le calendrier — on compte les cellules directement
+    var feriesCells = document.querySelectorAll('#cal16-grid .cal16-day-ferie');
+    var cntFer = feriesCells.length;
+    // Mettre à jour l'élément KPI pour cohérence sidebar
+    var kpiFerEl = document.getElementById('cal16-kpi-feries');
+    if (kpiFerEl) kpiFerEl.textContent = cntFer > 0 ? String(cntFer) : '—';
     if (cntLiv === 0 && cntEch === 0 && cntFer === 0) {
       // Fallback : afficher la période si les KPIs ne sont pas encore prêts
       var label = document.getElementById('cal16-label');
-      var sub = document.getElementById('cal16-sub');
       var labelTxt = label && label.textContent ? label.textContent.trim() : '';
-      var subTxt = sub && sub.textContent ? sub.textContent.trim() : '';
-      subPeriode.textContent = (labelTxt + (subTxt ? ' (' + subTxt + ')' : '')) || '—';
+      subPeriode.textContent = labelTxt || '—';
       return;
     }
     var parts = [];
-    parts.push(cntLiv + ' livraison' + (cntLiv > 1 ? 's' : ''));
+    if (cntLiv > 0) parts.push(cntLiv + ' livraison' + (cntLiv > 1 ? 's' : ''));
     if (cntEch > 0) parts.push(cntEch + ' échéance' + (cntEch > 1 ? 's' : ''));
     if (cntFer > 0) parts.push(cntFer + ' jour' + (cntFer > 1 ? 's' : '') + ' férié' + (cntFer > 1 ? 's' : ''));
-    subPeriode.textContent = parts.join(' · ') + ' ce mois';
+    subPeriode.textContent = parts.join(' · ') + (parts.length ? ' ce mois' : '—');
   }
 
   function update() { updateStats(); updateCalendrier(); }
@@ -80,7 +83,7 @@
     if (!document.getElementById('stats-section-sub-periode') && !document.getElementById('calendrier-section-sub-periode')) return false;
     update();
     if (!window.__refonteStatsCalIv) {
-      window.__refonteStatsCalIv = setInterval(update, 5000);
+      window.__refonteStatsCalIv = setInterval(update, 1500);
     }
     return true;
   }

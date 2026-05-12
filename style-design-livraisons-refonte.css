@@ -162,9 +162,9 @@
   padding: 14px 16px;
 }
 
-/* Rows : aerer un peu (Phase 30) - de 11px a 14px de padding vertical */
+/* Rows : padding réduit pour cibler hauteur mockup ~53px (select natif ~32px + 2×10 + 1 border) */
 .livraisons-table tbody td {
-  padding: 14px 16px;
+  padding: 10px 12px;
 }
 
 /* ============ Pagination footer polish ============ */

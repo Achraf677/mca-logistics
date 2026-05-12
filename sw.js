@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-12-v140-audit-v6-H26-calendrier-today-brand';
+const CACHE_VERSION = 'mca-v2026-05-12-v141-liv-row-compact-ce-mois';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
