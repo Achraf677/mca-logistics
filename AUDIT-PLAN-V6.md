@@ -105,7 +105,7 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 ### Dashboard
 
 - ✅ **H23** — KPI bar : labels + ordre mockup-aligned (Livraisons/CA HT/Marge nette/Retards). Retards = count livraisons isRetard() via script-dashboard-finish.js. kpi-carburant/kpi-depenses-detail conservés cachés (legacy). DONE session :45 2026-05-12
-- ⬜ **H24** — Indice santé : ajouter 4 sous-cartes (FINANCE 92/FLOTTE 88/RH 85/CONFORMITÉ 95)
+- ✅ **H24** — Indice santé : 4 sous-cartes FINANCE/FLOTTE/RH/CONFORMITÉ ajoutées. HTML `#dashboard-sub-scores` dans admin.html. `buildSubScores()` dans script-dashboard-finish.js : valeurs calculées depuis livraisons/vehicules/salaries/alertes. Session :45 2026-05-12.
 
 ### Couleurs hors palette
 
@@ -161,10 +161,10 @@ Ces 7 bugs cassent la prod ou empêchent le rendu. À fixer AVANT toute amélior
 | Phase | Total | TODO | IN_PROGRESS | DONE | FALSE_POSITIVE | DEPEND_USER |
 |---|---|---|---|---|---|---|
 | 1 — CRITIQUE | 7 | 0 | 0 | 1 (C1) | 2 (C6, C7) | 4 (C2, C3, C4, C5) |
-| 2 — HIGH | 26 | 17 | 0 | 9 (H2, H3, H4, H16, H17, H18, H23, H25, H26) | - | - |
+| 2 — HIGH | 26 | 16 | 0 | 10 (H2, H3, H4, H16, H17, H18, H23, H24, H25, H26) | - | - |
 | 3 — MEDIUM | 18 | 14 | 0 | 4 (M1, M2, M10, M11) | - | - |
 | 4 — LOW | 14 | 14 | 0 | 0 | - | - |
-| **TOTAL** | **65** | **45** | **0** | **14** | **2** | **4** |
+| **TOTAL** | **65** | **44** | **0** | **15** | **2** | **4** |
 
 ---
 

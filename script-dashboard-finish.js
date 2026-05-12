@@ -237,6 +237,57 @@
       + '<div class="dashboard-alerts-list">' + items + '</div>';
   }
 
+  // ============ SUB-SCORES SANTÉ (H24) ============
+  function buildSubScores() {
+    var livs = readArr('livraisons');
+    var vehicules = readArr('vehicules');
+    var salaries = readArr('salaries');
+    var alertes = readArr('alertes_admin').filter(function (a) { return !a.traitee && !a.ignoree; });
+    var now = Date.now();
+
+    var finance = '—';
+    if (livs.length > 0) {
+      var payees = livs.filter(function (l) {
+        var s = getStatut(l);
+        return s === 'livre' || s === 'livré' || s === 'livree' || s === 'payé' || s === 'paye';
+      }).length;
+      finance = Math.round(40 + (payees / livs.length) * 60);
+    }
+
+    var flotte = '—';
+    if (vehicules.length > 0) {
+      var ctOk = vehicules.filter(function (v) {
+        var ctDate = v.date_prochain_ct || v.prochainCT || v.prochain_ct;
+        if (!ctDate) return true;
+        return (new Date(ctDate) - now) / 86400000 > 30;
+      }).length;
+      flotte = Math.round(20 + (ctOk / vehicules.length) * 80);
+    }
+
+    var rh = '—';
+    if (salaries.length > 0) {
+      var actifs = salaries.filter(function (s) {
+        return !s.dateFinContrat || new Date(s.dateFinContrat) > new Date();
+      }).length;
+      rh = Math.round(50 + (actifs / salaries.length) * 50);
+    }
+
+    var critiques = alertes.filter(function (a) {
+      var n = (a.niveau || '').toLowerCase();
+      return n === 'critical' || n === 'haute';
+    }).length;
+    var conformite = alertes.length > 0 ? Math.round(100 - (critiques / alertes.length) * 40) : 95;
+
+    var fill = function (id, val) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    fill('ss-finance', finance);
+    fill('ss-flotte', flotte);
+    fill('ss-rh', rh);
+    fill('ss-conformite', conformite);
+  }
+
   // ============ ORCHESTRATION ============
   function ensureStructure() {
     // Replace dash-statuts-chart container with new .status-card-v2 structure
@@ -284,6 +335,7 @@
       var nbRetards = livs.filter(function(l) { return isRetard(l); }).length;
       retardsEl.textContent = nbRetards > 0 ? nbRetards : '0';
     }
+    buildSubScores();
   }
 
   function setupHook() {
