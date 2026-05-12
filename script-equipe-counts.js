@@ -1,4 +1,4 @@
-/* Phase 2 PR-E Equipe section-head counts — Phase 46 : tab badges */
+/* Phase 2 PR-E Equipe section-head counts — Phase 46 : tab badges — Phase 54 : KPI grid */
 (function () {
   'use strict';
   function lire(key) { try { return JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (_) { return []; } }
@@ -9,6 +9,7 @@
     var salaries = lire('salaries');
     var postes = lire('postes');
     var incidents = lire('incidents');
+    var heures = lire('heures');
     var actifs = salaries.filter(function (s) { return !s || s.actif !== false; }).length;
     if (subActifs) subActifs.textContent = actifs;
     if (subPostes) subPostes.textContent = postes.length;
@@ -18,6 +19,27 @@
     var incOuverts = incidents.filter(function (i) { return i && !i.resolu && !i.archive; }).length;
     if (salCount) salCount.textContent = actifs > 0 ? actifs : '';
     if (incCount) incCount.textContent = incOuverts > 0 ? incOuverts : '';
+    // KPI grid (Phase 54)
+    var kpiActifs = document.getElementById('equipe-kpi-actifs');
+    var kpiHeures = document.getElementById('equipe-kpi-heures');
+    var kpiInc = document.getElementById('equipe-kpi-incidents');
+    var kpiPermis = document.getElementById('equipe-kpi-permis');
+    if (kpiActifs) kpiActifs.textContent = actifs > 0 ? actifs : '—';
+    if (kpiInc) kpiInc.textContent = incOuverts > 0 ? incOuverts : '0';
+    if (kpiHeures) {
+      var totalH = heures.reduce(function (s, h) { return s + (parseFloat(h.heures) || 0); }, 0);
+      kpiHeures.textContent = totalH > 0 ? Math.round(totalH) + ' h' : '—';
+    }
+    if (kpiPermis) {
+      var now = Date.now();
+      var seuil = 60 * 86400000;
+      var proches = salaries.filter(function (s) {
+        if (!s || !s.datePermis) return false;
+        var d = new Date(s.datePermis).getTime();
+        return d > now && (d - now) < seuil;
+      }).length;
+      kpiPermis.textContent = proches > 0 ? proches : '0';
+    }
   }
   function tryAttach() {
     if (!document.getElementById('equipe-section-sub-actifs')) return false;
