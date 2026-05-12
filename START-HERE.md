@@ -14,7 +14,8 @@ LIS DANS L'ORDRE :
 1. WORK-PRINCIPLES.md (constitution — applique les 12 principes)
 2. BUGS-OPEN.md (bugs à traiter en priorité)
 3. PLAN-REFONTE.md (vision)
-4. CLAUDE.md (rappels projet)
+4. POLISH-CHECKLIST.md (checklist polish à appliquer même sur les pages DONE)
+5. CLAUDE.md (rappels projet)
 
 ENSUITE EXÉCUTE EN BOUCLE sans me poser de question :
 
@@ -30,6 +31,13 @@ ENSUITE EXÉCUTE EN BOUCLE sans me poser de question :
 QUAND TOUS LES BUGS NEW SONT FIXED :
 - Pick la prochaine page de PLAN-REFONTE.md non-DONE
 - Workflow type page (voir WORK-PRINCIPLES.md section "Workflow type")
+
+QUAND TOUTES LES PAGES SONT À >85% ET BUGS NEW VIDE :
+- Repasse les pages DONE (Dashboard, Livraisons en premier) avec POLISH-CHECKLIST.md
+- Audit couleurs pixel-par-pixel vs mockup
+- Test exports CSV/XLSX/PDF de bout en bout
+- Identifier + supprimer/déplacer les boutons morts/doublons
+- "DONE" ≠ "intouchable", c'est juste "OK pour démo"
 
 RÈGLES ABSOLUES :
 - NE ME DEMANDE JAMAIS "veux-tu que..."
