@@ -32,7 +32,7 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Carburant | 75% | 100% | Phase 49 : Exporter dropdown, période nav combined row, filtres cachés |
 | Entretiens | 65% | 100% | Phase 44 : chips toolbar mockup-matched |
 | Inspections | 50% | 100% | Phase 43 : KPI grid peuplé |
-| Charges | 78% | 100% | Phase 4 + 14 + chips Assurance/Taxes/Salaires + table HT/TVA masquées |
+| Charges | 90% | 100% | Phase 48 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
 | Encaissement | 65% | 100% | Phase 50 : Exporter dropdown, "+ Enregistrer paiement" primary btn, section-head mockup-aligned |
 | TVA | 75% | 100% | Phase 50 : Exporter dropdown, combined period nav row (tva-mois-label/dates/vue-tva-select IDs préservés) |
 | Rentabilité | 70% | 100% | Phase 50 : Exporter dropdown (Rapport PDF + Simulateur PDF), Config btn préservé |

@@ -5,7 +5,7 @@
 //   - API Supabase   : passthrough (pas de cache — données live).
 
 
-const CACHE_VERSION = 'mca-v2026-05-12-v90-phase50-livraisons-pixel-perfect-merged';
+const CACHE_VERSION = 'mca-v2026-05-12-v91-charges-charts-phase48';
 
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `runtime-${CACHE_VERSION}`;
@@ -97,6 +97,8 @@ const CORE_ASSETS = [
   // Solution B refonte : fake data seed (no-op sauf ?seed=1 dans URL)
   '/script-dev-seed.js',
   '/script-charges-kpis-categorie.js',
+  // Phase 48 refonte HTML — Charges charts (Évolution + Répartition)
+  '/script-charges-charts.js',
   // Phase 2 HTML refonte — Livraisons chips toolbar handler
   '/script-livraisons-chips.js',
   // Phase 2 HTML refonte — Equipe section-head counts

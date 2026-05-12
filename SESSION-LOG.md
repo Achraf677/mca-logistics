@@ -5,6 +5,21 @@
 
 ---
 
+## Session 2026-05-12 (:45) — Phase 48 Charges : charts + period nav combined
+**Phases** : 48 (Charges)
+**Commit final** : 4854961
+**État** : Charges 78%→90%
+
+### Actions clés
+- Period nav combiné (prev/Aujourd'hui/next + label + Jour/Sem/Mois/An) en une seule barre mockup-aligned
+- Chart area ajoutée : "Évolution charges — 6 derniers mois" (line Chart.js) + "Répartition par catégorie" (donut Chart.js)
+- script-charges-charts.js créé (MutationObserver + ensureChartJs + renderCharts)
+- Parking chip 🅿️ ajouté, Export dropdown étendu 4 items, Mini-kpi bar masquée
+- sw.js CACHE_VERSION v91
+- Tests : 426/426 pass
+
+---
+
 ## Session 2026-05-12 (autonome-5) — Phase 50 : Encaissement + TVA + Rentabilité section-heads
 **Phases** : 50
 **Commit final** : 5782421
@@ -40,6 +55,7 @@
 | Page | Avant | Après |
 |---|---|---|
 | Carburant | 55% | 75% |
+
 
 ---
 
@@ -101,6 +117,7 @@
 |---|---|---|
 | Clients | 70% | 85% |
 | Fournisseurs | 70% | 85% |
+
 
 ---
 
