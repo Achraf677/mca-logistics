@@ -32,11 +32,11 @@ des `script.js` / `script-livraisons.js` / `script-mobile.js` legacy.
 | Carburant | 87% | 100% | Phase 59 : Export CSV impl + Excel + Email cabinet compta (Pennylane) ajoutés (5 items dropdown mockup-aligned) |
 | Entretiens | 87% | 100% | Phase 59 : Excel + Email cabinet compta ajoutés (4 items dropdown mockup-aligned) |
 | Inspections | 92% | 100% | Phase 59 : BUG-023 FIXED — table mockup-aligned (Date/Véhicule/Chauffeur/Photos/Défauts/Statut + badges ok/warn/alert). Photos count clickable → lightbox |
-| Charges | 90% | 100% | Phase 48+51 : period nav combined + charts (Évolution+Répartition) + Parking chip + Export 4 items |
-| Encaissement | 88% | 100% | Phase 59 : sub-meta mockup 3 parties (X factures impayées · DSO · Y relances à envoyer) |
+| Charges | 92% | 100% | Phase 59 : exporterChargesExcel vraiment impl (était inexistant) + Phase 48+51 period nav/charts/Parking chip |
+| Encaissement | 92% | 100% | Phase 59 : exporterEncaissementExcel vraiment impl (was stub) + sub-meta 3 parties mockup |
 | TVA | 88% | 100% | Phase 59 : BUG-026 FIXED — tabs Collectée/Déductible underline-style avec count badges + JS switch (script-tva-tabs.js) |
-| Rentabilité | 85% | 100% | Phase 59 : sub-meta mockup ("Mois de mai 2026 · marge brute consolidée") + tabs underline + Export 4 items |
-| Statistiques | 88% | 100% | Phase 59 : sub-meta mockup CA ajouté (Mai 2026 · X livraisons · CA Y €) + Export CSV/Excel wired |
+| Rentabilité | 90% | 100% | Phase 59 : exporterRentabiliteCSV vraiment impl (était stub) + sub-meta mockup + tabs underline + Export 4 items |
+| Statistiques | 92% | 100% | Phase 59 : exporterStatsCSV + exporterStatsExcel vraiment impl (étaient stubs alert). Sub-meta CA mockup. |
 | Calendrier | 85% | 100% | Phase 59 : sub-meta mockup format + structure complète (sidebar filtres + KPIs + Légende + toolbar prev/Aujourd'hui/next + period chips + grid 7-col) toutes alignées mockup. Visual fine-tuning sans screenshot reste à valider. |
 | Alertes | 82% | 100% | Phase 59 : sub-meta format mockup ("X alertes actives · Y échéances dans les 30 jours") + compute logic ECHEANCE_TYPES |
 | Équipe | 82% | 100% | Phase 59 : sub-meta format mockup ("X chauffeurs · Y admins · Zh travaillées ce mois") |
